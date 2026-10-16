@@ -572,6 +572,100 @@ test("a gone transcript starts a new session, which says so", async () => {
   ]);
 });
 
+const FRESH =
+  "Started a new session for this run: the agent reads the repository, not the turns above.";
+
+test("a fresh workflow run starts a new agent session in the feature's session, which says so", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  const first = await sessions.send(repo, session.id, { text: "Hello" });
+  await sessions.settled(first.turn);
+
+  adapter.script([]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: true, trigger: "approval" },
+  });
+  await sessions.settled(turn);
+
+  // The open process is closed, and a new one starts a new agent session, not resumed.
+  expect(adapter.closes).toBe(1);
+  expect(adapter.opens).toHaveLength(2);
+  expect(adapter.opens[1]).toMatchObject({ resume: false });
+  expect(adapter.opens[1]?.nativeId).not.toBe(adapter.opens[0]?.nativeId);
+  expect(cache.session(session.id)?.nativeId).toBe(adapter.opens[1]?.nativeId);
+  expect(cache.featureSession(session.repo, AGENT)?.id).toBe(session.id);
+  // The earlier turn stays in the session, above the line.
+  expect(cache.turns(session.id).map((row) => row.id)).toEqual([first.turn, turn]);
+  expect(cache.items(turn, 0, 2)).toEqual([
+    { kind: "system", seq: 0, text: FRESH },
+    expect.objectContaining({ kind: "message", origin: "workflow", text: "Continue the feature." }),
+  ]);
+});
+
+test("a workflow run that is not fresh continues the agent session", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
+
+  adapter.script([]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { trigger: "approval" },
+  });
+  await sessions.settled(turn);
+
+  expect(adapter.closes).toBe(0);
+  expect(adapter.opens).toHaveLength(1);
+  expect(cache.session(session.id)?.nativeId).toBe(adapter.opens[0]?.nativeId);
+  expect(cache.items(turn, 0, 1)).toEqual([
+    expect.objectContaining({ kind: "message", origin: "workflow" }),
+  ]);
+});
+
+test("a fresh workflow run queued after a chat turn starts its new agent session once it ends", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const chat = await sessions.send(repo, session.id, { text: "What is left?" });
+
+  const workflow = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: true, trigger: "approval" },
+  });
+  expect(cache.turn(workflow.turn)?.state).toBe("queued");
+
+  adapter.script([]);
+  adapter.emit(done());
+  await sessions.settled(chat.turn);
+  await sessions.settled(workflow.turn);
+
+  expect(adapter.opens).toHaveLength(2);
+  expect(adapter.opens[1]?.resume).toBe(false);
+  expect(adapter.opens[1]?.nativeId).not.toBe(adapter.opens[0]?.nativeId);
+  expect(adapter.sent[1]?.text).toBe("Continue the feature.");
+  // The queued message's item came first; the line follows once the turn starts.
+  expect(cache.items(workflow.turn, 1, 1)).toEqual([{ kind: "system", seq: 1, text: FRESH }]);
+});
+
+test("a fresh first run opens the session's own agent session, with no line", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: true, trigger: "manual" },
+  });
+  await sessions.settled(turn);
+
+  expect(adapter.opens[0]?.nativeId).toBe(session.nativeId);
+  expect(cache.items(turn, 0, 1)).toEqual([
+    expect.objectContaining({ kind: "message", origin: "workflow" }),
+  ]);
+});
+
 test("the process exits during a turn: it fails with its stderr", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);

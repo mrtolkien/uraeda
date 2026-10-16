@@ -11,9 +11,10 @@ machine and signed in by the user, never through a bundled binary or Claude's SD
 reached through one adapter, as sessions of turns and items: a session keeps one process while it is
 used, and takes the human's messages as they come. Claude Code is the first agent. A feature has one
 session, where the workflow's runs and the human's chat follow each other; a session without a
-feature works in the main checkout. What the server remembers of sessions lives in a local SQLite
-cache that is never committed. A run's turn lasts until every background task of it has ended,
-background commands included.
+feature works in the main checkout. The run after a spec's approval starts a new agent session in
+the feature's session by default, its context from the repository alone. What the server remembers
+of sessions lives in a local SQLite cache that is never committed. A run's turn lasts until every
+background task of it has ended, background commands included.
 
 ## Rules
 
@@ -53,6 +54,12 @@ background commands included.
 - A feature MUST have at most one session. A session MUST have at most one live process and at most
   one turn at a time. A message sent during a turn MUST be steered into it or queued after it, as
   the adapter declares, and MUST NOT start a second process. Checked by the runner's tests.
+- A workflow run sent as fresh MUST start a new agent session in its feature's session: the open
+  process is closed first, the session takes the new agent session's ID, its earlier turns stay in
+  it, and the run's turn shows a line saying a new session started. Any other message MUST resume
+  the agent session, unless its transcript is gone. The web UI MUST offer a fresh run at the step
+  after a spec's approval, on as the `build_in_fresh_session` setting says, true by default. Checked
+  by the runner's and the web UI's tests.
 - A workflow run MUST carry the step, its reference, and the trigger in its message, since a resumed
   session keeps its first system prompt. A chat message on a feature that follows a workflow run, or
   opens the session, MUST start with one line saying that a human is chatting, and that the agent
@@ -134,6 +141,12 @@ agent run" and agents leave no dev servers running when they are done
 Claude Code's print mode already stays open for background commands, and stops those of unattended
 sessions after 30 minutes by default ([end of a run](../done/2026-10-16-redesign-interface.md)).
 
+By the build, a feature's session held 300k to 900k tokens of discovery and spec history the build
+no longer needs, about 10% of all tokens, and caused context compactions, while everything the build
+needs is committed. The human asked for the build in a fresh session, "visible at the step approval
+step", with "a default in the settings page", "ON by default" (2026-10-16). A new agent session in
+the same session keeps one session per feature, one place to read it, and the earlier turns.
+
 ## Alternatives considered
 
 - The Agent SDK in the server, which the stack decision expected: typed messages and a permission
@@ -147,6 +160,8 @@ sessions after 30 minutes by default ([end of a run](../done/2026-10-16-redesign
   could never reach a working agent, and every commit cost the prompt cache.
 - Chats as sessions forked from the feature's session, like Claude Code's `/btw`: a clean workflow
   session, but two writers in one worktree, and nothing settled in a chat reaching the next run.
+- A new session row for the build, listed apart from the feature's first: two sessions per feature,
+  and a choice of which one the feature's page and the sidebar show.
 - Background commands not holding a turn, which only reopened when they reported back: the first
   rule, abandoned when the UI said "Needs you" while a long review still ran (2026-10-16).
 
@@ -174,6 +189,8 @@ sessions after 30 minutes by default ([end of a run](../done/2026-10-16-redesign
   Code's own limit stops it, 2 hours at most.
 - The idle timer waits for background work, so a process lives as long as its longest background
   task.
+- A session's turns may span several agent sessions: the agent's own transcript of a fresh run holds
+  only the turns after its line.
 
 ## Applies to
 
