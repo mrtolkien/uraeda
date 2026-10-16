@@ -210,6 +210,5 @@ synced after a few seconds; and for the changed lines' count, "+1050 −250", on
   stories, `Writes/Feedback#Committing` and `Sidebar#Committing`.
 - `packages/web/src/data.ts` is at its 500 lines: the next read extracts one first.
 - The theme's `--size-session-aside` size is no longer used, the column's width being its own.
-- Failing before this feature: the Storybook comments' "the Mockups button scrolls to an embed below
-  another one in the fold" browser test, on `main` too, and the server's sessions tests' cleanup
-  timing out after 10 seconds on a busy disk.
+- Failing before this feature: the server's sessions tests' cleanup times out after 10 seconds on a
+  busy disk.
