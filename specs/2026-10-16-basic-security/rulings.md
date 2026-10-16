@@ -374,3 +374,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: without a lock, two servers writing in the same millisecond may lose one of the two
   writes, and a device signs in again.
 - **Where**: `packages/server/src/sign-in/store.ts`, `store.test.ts`
+
+## R31: A first start that fails removes the sign-in file it made
+
+- **Decision**: when the start that made the access key fails after writing `sign-in.json`, as with
+  a `--repo` that is not a git repository, it removes the file before it exits, so the next start
+  makes a key and shows it. A start that found the file never removes it.
+- **Rationale**: the store opens first, so a file it cannot read stops the start before anything
+  else, but the key is printed only once the server runs: a failed first start left a key no one had
+  seen, and US1.1's first start printed none.
+- **Alternatives considered**: opening the store after the hosts, which lets a start with an
+  unreadable file do work before it is refused; printing the key before the start can fail, for a
+  server that then does not run.
+- **If wrong**: a failed first start leaves no file, as before it ran.
+- **Where**: `packages/server/src/server.ts`, `main.test.ts`

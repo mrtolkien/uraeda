@@ -1,5 +1,6 @@
 // The server's wiring, one for `main.ts` and `dev.ts`: the session manager, the hosts of the
 // listed repositories, the starting repository, and the app.
+import { rmSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
@@ -21,7 +22,7 @@ import type { Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
-import { SignInStore } from "./sign-in/store.ts";
+import { SIGN_IN_FILE, SignInStore } from "./sign-in/store.ts";
 
 /** How often the server checks that the agent still works. */
 export const CHECK_EVERY_MS = 60_000;
@@ -171,24 +172,43 @@ async function openStart(binding: Binding, dataDir: string, request: OpenRequest
  * Sign-in is on unless `signIn` is false, as for tests and Uraeda's own Storybook: the store opens
  * `sign-in.json` in the data folder first, so a file that cannot be read, or a folder that cannot
  * be written, stops the start before anything else; `/open` and `/session/key` take `hostToken`.
+ * A start that fails after making the key removes the file it wrote, so the next start shows a key.
  */
-export async function startServer(
-  options: Omit<Options, "newKey" | "open" | "show"> & {
-    adapter: Adapter;
-    binding: Binding;
-    dataDir: string;
-    /** The host token `/open` and `/session/key` accept from the host's own `uraeda`. */
-    hostToken?: string;
-    /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
-    lockedList?: boolean;
-    /** False for no sign-in: only code turns it off. */
-    signIn?: false;
-    /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
-    webRoot?: string;
-  },
+export async function startServer(options: StartOptions): Promise<Server> {
+  const { key, signIn } = openSignIn(options);
+  try {
+    return await startOpened(options, signIn, key);
+  } catch (error) {
+    // A key this start made was never shown: the next start makes and shows another.
+    if (key !== undefined) {
+      rmSync(join(options.dataDir, SIGN_IN_FILE), { force: true });
+    }
+    throw error;
+  }
+}
+
+/** What `startServer` takes. */
+type StartOptions = Omit<Options, "newKey" | "open" | "show"> & {
+  adapter: Adapter;
+  binding: Binding;
+  dataDir: string;
+  /** The host token `/open` and `/session/key` accept from the host's own `uraeda`. */
+  hostToken?: string;
+  /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
+  lockedList?: boolean;
+  /** False for no sign-in: only code turns it off. */
+  signIn?: false;
+  /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
+  webRoot?: string;
+};
+
+/** Starts the server once its sign-in is open, `key` the access key when this start made it. */
+async function startOpened(
+  options: StartOptions,
+  signIn: SignInOptions | undefined,
+  key: string | undefined,
 ): Promise<Server> {
   const { adapter, binding, dataDir } = options;
-  const { key, signIn } = openSignIn(options);
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   // The Storybooks a killed server left run no more: their record's groups are killed first.
   const record = groupsFolder(dataDir);
