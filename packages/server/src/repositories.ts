@@ -29,6 +29,17 @@ export const LIST_QUIET_MS = 100;
 
 let announced = 0;
 
+/**
+ * The hosts' binding, data folder, and session manager, and `stopped`, told of each host closed as
+ * the list changes, not as the server stops.
+ */
+type HostsOptions = {
+  binding: Binding;
+  dataDir: string;
+  sessions: Sessions;
+  stopped?: (host: Host) => void;
+};
+
 /** A host, and the watch of its files: none for a missing folder, or a watch that failed. */
 type Entry = { host: Host; watch?: WatchHandle };
 
@@ -37,7 +48,7 @@ type Entry = { host: Host; watch?: WatchHandle };
  * only code that starts and closes their fate servers, live buses, and watches.
  */
 export class Hosts {
-  #options: { binding: Binding; dataDir: string; sessions: Sessions };
+  #options: HostsOptions;
   #entries = new Map<string, Entry>();
   #rows: Array<Repository> = [];
   /** The reloads run one at a time, each reading the file after the last one's done. */
@@ -49,7 +60,7 @@ export class Hosts {
   #timer?: ReturnType<typeof setTimeout>;
   #closed = false;
 
-  private constructor(options: { binding: Binding; dataDir: string; sessions: Sessions }) {
+  private constructor(options: HostsOptions) {
     this.#options = options;
   }
 
@@ -58,11 +69,7 @@ export class Hosts {
    * folder, created when it does not exist, is watched too: a change of the list's file, by
    * `ura add` or by hand, reloads it.
    */
-  static async open(options: {
-    binding: Binding;
-    dataDir: string;
-    sessions: Sessions;
-  }): Promise<Hosts> {
+  static async open(options: HostsOptions): Promise<Hosts> {
     const hosts = new Hosts(options);
     hosts.#watchList();
     await hosts.reload();
@@ -221,8 +228,12 @@ export class Hosts {
   }
 
   #stop(name: string): void {
-    this.#entries.get(name)?.watch?.close();
+    const entry = this.#entries.get(name);
+    entry?.watch?.close();
     this.#entries.delete(name);
+    if (entry) {
+      this.#options.stopped?.(entry.host);
+    }
   }
 
   /** Closes every watch, the data folder's too, as the server stops. */

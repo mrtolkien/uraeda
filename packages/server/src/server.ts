@@ -122,19 +122,25 @@ export async function startServer(
 ): Promise<Server> {
   const { adapter, binding, dataDir } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
+  // The Storybooks a killed server left run no more: their record's groups are killed first.
+  const record = groupsFolder(dataDir);
+  killLeftGroups(record);
+  const previews = livePreviews({ record: new GroupRecord(record) });
   let hosts: Hosts | undefined;
   const sessions = await startSessions({ adapter, binding, dataDir, hosts: () => hosts });
   try {
-    hosts = await Hosts.open({ binding, dataDir, sessions: sessions.sessions });
+    hosts = await Hosts.open({
+      binding,
+      dataDir,
+      sessions: sessions.sessions,
+      // A repository removed from the list stops its Storybooks.
+      stopped: (host) => previews.stopRepository(host.name),
+    });
   } catch (error) {
     await sessions.stop();
     throw error;
   }
   const opened = hosts;
-  // The Storybooks a killed server left run no more: their record's groups are killed first.
-  const record = groupsFolder(dataDir);
-  killLeftGroups(record);
-  const previews = livePreviews({ record: new GroupRecord(record) });
   const sweeping = setInterval(() => previews.sweep(), SWEEP_EVERY_MS);
   sweeping.unref();
   let stopping: Promise<void> | undefined;

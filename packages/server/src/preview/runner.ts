@@ -1,8 +1,8 @@
 // The preview runner: the only code that starts, watches, and stops Storybook processes, one per
 // checkout's base path, `/r/<name>/preview/<folder>/`. A view starts the checkout's Storybook, which
-// is ready once its index answers; it stops after 30 minutes without a view, when its checkout is
-// removed, and with the server. Its state lives in memory, and its process groups in a record the
-// next start reads, should the server be killed.
+// is ready once its index answers; it stops after 30 minutes without a view, when its checkout or
+// its repository is removed, and with the server. Its state lives in memory, and its process groups
+// in a record the next start reads, should the server be killed.
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { createServer } from "node:net";
@@ -171,14 +171,16 @@ export class Previews {
   }
 
   /**
-   * The checkout's state, its Storybook started when none runs, and the view recorded. Once the
-   * runner is stopped, failed with `NOT_RUNNING`, and nothing starts.
+   * The checkout's state, its Storybook started when none runs, and the view recorded. A Storybook
+   * under the same base in another folder, a removed repository's whose folder name another one
+   * took, is stopped, and one started in the checkout. Once the runner is stopped, failed with
+   * `NOT_RUNNING`, and nothing starts.
    */
   view(checkout: Checkout): PreviewState {
     if (this.#closed) {
       return { error: NOT_RUNNING, state: "failed" };
     }
-    const entry = this.#entries.get(checkout.base) ?? this.#start(checkout);
+    const entry = this.#entry(checkout) ?? this.#start(checkout);
     entry.lastView = this.#now();
     return entry.state;
   }
@@ -190,7 +192,7 @@ export class Previews {
 
   /** Stops the checkout's Storybook, if one runs, and starts it again: a view too. */
   restart(checkout: Checkout): PreviewState {
-    const entry = this.#entries.get(checkout.base);
+    const entry = this.#entry(checkout);
     if (entry !== undefined) {
       void this.#stop(entry);
     }
@@ -222,10 +224,30 @@ export class Previews {
     }
   }
 
+  /** Stops the Storybooks of the repository `name`, as it is removed from the list. */
+  stopRepository(name: string): void {
+    const prefix = `/r/${encodeURIComponent(name)}/preview/`;
+    for (const entry of this.#entries.values()) {
+      if (entry.checkout.base.startsWith(prefix)) {
+        void this.#stop(entry);
+      }
+    }
+  }
+
   /** Stops every Storybook, once their processes exited; nothing starts afterwards. */
   async stopAll(): Promise<void> {
     this.#closed = true;
     await Promise.all([...this.#entries.values()].map((entry) => this.#stop(entry)));
+  }
+
+  /** The checkout's entry; one under its base in another folder is stopped, and none is given. */
+  #entry(checkout: Checkout): Entry | undefined {
+    const entry = this.#entries.get(checkout.base);
+    if (entry !== undefined && entry.checkout.dir !== checkout.dir) {
+      void this.#stop(entry);
+      return undefined;
+    }
+    return entry;
   }
 
   #start(checkout: Checkout): Entry {
