@@ -340,3 +340,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   mockups under `skills/`; serving any `.html` file, which still serves a project's own HTML pages.
 - **If wrong**: an HTML page outside a `mockups` folder opens as text instead of rendered.
 - **Where**: `packages/server/src/files.ts`, `packages/web/src/routes.tsx`, `pathLink`
+
+## R29: A test keeps every route of the app among the server's paths
+
+- **Decision**: the session check still lets a path outside `SERVER_PATHS` through as the built
+  UI's, and a test lists every route of a signed-in app, but the UI's catch-all `/*` and the
+  middleware on it, and fails when one is outside `SERVER_PATHS`, naming `server-paths.ts`. The
+  decision's "every new route is closed by default" holds through that test.
+- **Rationale**: `vp dev` sends only `SERVER_PATHS` to the server and lets Vite serve the rest, so
+  the server cannot tell the UI's files from everything else by order alone: serving the UI's files
+  before the check, and closing the rest, would need a second list of the UI's paths, which the
+  client's routes already are. One list, checked against the app's own routes, is the simpler way.
+- **Alternatives considered**: the built UI's files served before the session check, and every other
+  path closed; the check closing every path but a list of the UI's routes.
+- **If wrong**: a route added to the app outside `SERVER_PATHS` fails the test, and is never shipped
+  open.
+- **Where**: `packages/server/src/sign-in/__tests__/closed.test.ts`, `server-paths.ts`
