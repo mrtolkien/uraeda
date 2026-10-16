@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Redesign sidebars and global interface
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 15 questions on the sidebars, statuses, notifications, and feedback, about 50 minutes.
+> Answered on 2026-10-16.
 >
 > - Two choices change active decisions: what holds a run's "Working" (background commands), and
 >   whether the client may guess a status, which the stack decision forbids today.
@@ -71,7 +71,7 @@ sidebar waits on the statuses.
   - [pro] the smallest specs.
   - [con] three rounds of questions and review, and the shell twice in flight.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How does the sidebar show Uraeda's hierarchy?
 
@@ -99,7 +99,7 @@ for what waits on you.
   - [pro] the smallest change.
   - [con] the hierarchy shows only in icons.
 
-**Answer:**
+**Answer:** A: Drafts are parts of priorities, they don't deserve a separate part of the sidebar
 
 ### Q2.A: How do drafts show?
 
@@ -115,7 +115,8 @@ page. Opening one goes to its editor.
   - [pro] one line.
   - [con] no draft reachable from the sidebar directly.
 
-**Answer:**
+**Answer:** B: Don't even add that line, we go there from priorities. A draft is a state of a
+priority.
 
 ## Q3: Can an item move to its next state from the sidebar?
 
@@ -137,7 +138,7 @@ menu on every row.
   - [pro] a smaller feature.
   - [con] going from one state to another stays as many taps as today.
 
-**Answer:**
+**Answer:** B
 
 ## Q4: How does a feature's step show on its row before implementation?
 
@@ -163,7 +164,11 @@ Why it matters: it is what tells you, at a glance, where each feature stands.
   - [con] users of ClickUp report that filled circles imply a straight line, which waiting and
     revision steps break.
 
-**Answer:**
+**Answer:** A: - Also group all lines related to a feature with a common border/card. Right now it's
+hard to read when there's subagents/tasks ongoing.
+
+- The icon should be at the start of the row, not the end, I think. Move the agent running indicator
+  at the end. And order the "agents at work" by active step.
 
 ## Q5: What does hiding a sidebar do?
 
@@ -190,7 +195,7 @@ gets back.
   - [pro] a glance without unhiding.
   - [con] it can open by accident.
 
-**Answer:**
+**Answer:** B
 
 ## Q6: How do the last five done features show?
 
@@ -214,7 +219,7 @@ Why it matters: it decides whether done features are reachable from the sidebar 
   - [pro] simplest, always there.
   - [con] not bottom-aligned, as you asked.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Where does the theme go until the settings page exists?
 
@@ -237,7 +242,7 @@ Why it matters: whichever feature merges first decides where the theme sits in b
   - [pro] nothing to move.
   - [con] no way to force light or dark in between.
 
-**Answer:**
+**Answer:** C
 
 ## Q8: Does a background command keep a run "Working"?
 
@@ -264,7 +269,8 @@ decision.
   - [pro] no decision changes.
   - [con] the status still says "Needs you" while work goes on.
 
-**Answer:**
+**Answer:** A: Use a terminal icon, no need for all that text. A background command is part of an
+agent run. There will normally be no lingering dev servers when agents are done with a feature.
 
 ## Q9: What does a button that writes to git show while it runs?
 
@@ -290,7 +296,7 @@ Why it matters: it is the feedback on every commit, start, answer, and approval.
   - [pro] nothing can be clicked.
   - [con] the page cannot be read for several seconds.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: How do optimistic statuses work?
 
@@ -319,7 +325,7 @@ C can come on top of A: the action at once, then the step from the write's answe
   - [pro] the right step as soon as the button stops; no guess.
   - [con] nothing changes while the commit's hooks run, and a run's start still waits for the agent.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: What sends a notification?
 
@@ -341,7 +347,7 @@ Why it matters: too many notifications get turned off; too few miss the point.
   - [pro] nothing missed.
   - [con] noisy.
 
-**Answer:**
+**Answer:** A
 
 ## Q12: How does Uraeda ask for permission to notify?
 
@@ -365,7 +371,7 @@ Why it matters: a refused permission is hard to get back.
   - [pro] never in the way.
   - [con] easy to never find.
 
-**Answer:**
+**Answer:** A
 
 ## Q13: Where do notifications reach you?
 
@@ -390,7 +396,7 @@ Why it matters: Web Push is about as much work as the rest of the notifications 
   - [pro] reaches the phone without Web Push.
   - [con] another app, and a new dependency on an outside service.
 
-**Answer:**
+**Answer:** A
 
 ## Q14: What do renaming and colouring a feature change?
 
@@ -420,7 +426,7 @@ names.
   - [pro] one name everywhere.
   - [con] breaks open sessions, links, and the pull request's branch.
 
-**Answer:**
+**Answer:** A
 
 ## Q15: Do the addresses change?
 
@@ -440,7 +446,7 @@ Why it matters: addresses are in links you have shared, in records, and in the n
   - [pro] addresses read like the hierarchy.
   - [con] the router, near its size limit, is split and rewritten, and redirects kept.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -488,4 +494,7 @@ Why it matters: addresses are in links you have shared, in records, and in the n
   draft is [`specs/drafts/look-and-feel.md`](/specs/drafts/look-and-feel.md). The proposal stays as
   you wrote it. See [discovery](discovery-01.md#a-broken-link).
 
-**Notes:**
+**Notes:** I want a total diff count in the "agent running" part of a feature in the sidebar:
+`+1050 -250`, I think it will look pretty good and let us see at a glance what is happening.
+
+Push against it if it's too costly.
