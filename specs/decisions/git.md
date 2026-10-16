@@ -100,8 +100,8 @@ a branch checked out in a worktree was read from its disk, without its folder be
 branch outside the workflow showed in the UI, and a file an agent saved but had not committed
 already read as a gate. The human asked for parsing that is "ROBUST, ACCURATE, and FAST", which
 "focus[es] on the committed state of all worktrees", and for "only true uraeda flows" in the UI
-([proposal](../2026-10-16-redesign-interface/proposal.md),
-[status detection](../2026-10-16-redesign-interface/discovery-01.md#status-detection)).
+([proposal](../done/2026-10-16-redesign-interface.md),
+[status detection](../done/2026-10-16-redesign-interface.md)).
 
 ## Alternatives considered
 

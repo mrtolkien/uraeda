@@ -85,11 +85,11 @@ dedicated page" (C1 of the [spec's review](../done/2026-10-14-session-view.md)).
 the human asked the sidebar to show each feature's step before implementation, as an icon at the
 start of the row with the running indicator at its end, and every line about a feature grouped in
 one card, since sub-agents and tasks were hard to read
-([Q4](../2026-10-16-redesign-interface/clarifications-01.md#q4-how-does-a-features-step-show-on-its-row-before-implementation)).
+([Q4](../done/2026-10-16-redesign-interface.md#q4-how-does-a-features-step-show-on-its-row-before-implementation)).
 They asked to rename a feature or give it a colour
-([Q14](../2026-10-16-redesign-interface/clarifications-01.md#q14-what-do-renaming-and-colouring-a-feature-change)),
+([Q14](../done/2026-10-16-redesign-interface.md#q14-what-do-renaming-and-colouring-a-feature-change)),
 to resize both sidebars, and to keep the rail as the folded state, with its button at the top
-([Q5](../2026-10-16-redesign-interface/clarifications-01.md#q5-what-does-hiding-a-sidebar-do)).
+([Q5](../done/2026-10-16-redesign-interface.md#q5-what-does-hiding-a-sidebar-do)).
 
 ## Alternatives considered
 
