@@ -69,6 +69,8 @@ type ComposerProps = {
   onSent?: (session: string) => void;
   /** The send button's label, a primary button's, instead of Send. */
   sendLabel?: string;
+  /** Why the page's own send button waits, as for another page's git write: its tooltip. */
+  sendWaits?: string | undefined;
   session?: string;
   value: string;
   /** The workflow's trigger, while the composer holds its message. */
@@ -229,6 +231,7 @@ function sendButtons({
   label,
   pending,
   send,
+  waits,
   workflow,
   working,
 }: {
@@ -237,6 +240,7 @@ function sendButtons({
   label: string | undefined;
   pending: boolean;
   send: () => void;
+  waits: string | undefined;
   workflow: boolean;
   working: boolean;
 }): { sendActions?: ReactNode; sendButton?: ReactNode } {
@@ -249,7 +253,9 @@ function sendButtons({
       sendButton: (
         <Button
           clickAction={send}
-          isDisabled={!canSend}
+          isDisabled={!canSend || waits !== undefined}
+          // A disabled button with a tooltip stays focusable, through `aria-disabled`.
+          {...(waits === undefined ? {} : { tooltip: waits })}
           isLoading={pending}
           label={label ?? (working ? "Start once this turn ends" : "Start the agent")}
           variant="primary"
@@ -306,7 +312,8 @@ export function Composer(props: ComposerProps) {
   const saving = !workflow && images.some((image) => !image.image);
   // A started change needs its title: images alone are not one.
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
-  const canSend = hasContent && !saving && !unavailable;
+  // Another page's write blocks the page's own send, not the typing.
+  const canSend = hasContent && !saving && !unavailable && props.sendWaits === undefined;
   const { error, pending, stop, submit } = useSend(props, {
     canSend,
     refused,
@@ -320,6 +327,7 @@ export function Composer(props: ComposerProps) {
     label: props.sendLabel,
     pending,
     send: () => submit(value.trim()),
+    waits: props.sendWaits,
     workflow: workflow !== undefined,
     working,
   });

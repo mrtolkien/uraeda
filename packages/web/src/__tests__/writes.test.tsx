@@ -155,21 +155,30 @@ test("Start the agent shows on the feature's card at once", async () => {
   }
 });
 
-/** US5.1, on the New change page: another page's write blocks "Start the change". */
+/** US5.1, on the New change page: another page's write blocks "Start the change", not the typing. */
 test("Start the change waits for another page's write", async () => {
   const done = Promise.withResolvers<boolean>();
   let write: Promise<boolean> | undefined;
   await renderPage("/changes/new", answeredRepo(), { agent: true });
-  await screen.findByRole("heading", { name: "New change" });
+  await type(
+    await screen.findByRole("textbox", { name: "Message Claude Code" }),
+    "Centre the x in failure circles",
+  );
+  const start = screen.getByRole("button", { name: "Start the change" });
+  expect(start.getAttribute("aria-disabled")).not.toBe("true");
 
   act(() => {
     write = runWrite({ label: "Committing…" }, () => done.promise);
   });
 
-  expect(await screen.findByText("Another change is being saved to git")).toBeTruthy();
+  expect(start.getAttribute("aria-disabled")).toBe("true");
+  await type(screen.getByRole("textbox", { name: "Message Claude Code" }), "Widen the sidebar");
+  expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(
+    "Widen the sidebar",
+  );
   await act(async () => {
     done.resolve(true);
     await write;
   });
-  expect(screen.queryByText("Another change is being saved to git")).toBeNull();
+  expect(start.getAttribute("aria-disabled")).not.toBe("true");
 });
