@@ -13,8 +13,11 @@ import { fileDataView, type FileRecord, sentFile } from "./views.ts";
 /** A note's edit: the note's id, `note-3`, and the inbox's hash as read. */
 type NoteInput = { hash: string; note: string };
 
-/** A note to add: its text, its category, none when left out, and the feature or change it is about. */
-type AddInput = { about?: string; category?: string; hash: string; text: string };
+/**
+ * A note to add: its text, its category, none when left out, the feature or change it is about,
+ * and `commit`, for "Add and commit".
+ */
+type AddInput = { about?: string; category?: string; commit?: boolean; hash: string; text: string };
 
 /**
  * The Undo of a move: the note's lines as written, and its place, its category, none when left
@@ -41,14 +44,20 @@ export const inboxMutations = {
     type: "Priorities",
   },
   "inbox.add": {
-    resolve: async ({ ctx, input, select }: Resolver<AddInput>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.addNote(ctx.repo, input.text, input.hash, input.category, input.about),
-        ),
-        select,
-      ),
+    resolve: async ({ ctx, input, select }: Resolver<AddInput>) => {
+      const { about, category, hash, text } = input;
+      if (!input.commit) {
+        return inbox(
+          ctx,
+          await refusable(() => ctx.binding.addNote(ctx.repo, text, hash, category, about)),
+          select,
+        );
+      }
+      const result = await refusable(() =>
+        ctx.binding.addNoteAndCommit(ctx.repo, text, hash, category, about),
+      );
+      return inbox(ctx, result.inbox, select, result.added);
+    },
     type: "Inbox",
   },
   "inbox.category": {
@@ -164,6 +173,15 @@ export const inboxMutations = {
         await refusable(() =>
           ctx.binding.undoNoteCategory(ctx.repo, input.lines, input.index, input.category),
         ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.undoCommitted": {
+    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; lines: Array<string> }>) =>
+      inbox(
+        ctx,
+        await refusable(() => ctx.binding.undoCommittedNote(ctx.repo, input.lines, input.hash)),
         select,
       ),
     type: "Inbox",

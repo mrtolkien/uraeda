@@ -2,6 +2,7 @@
 // mapped type turns napi-rs's interfaces into type literals, which fate's record constraint accepts.
 import { dataView, list } from "@nkzw/fate/server";
 import type {
+  AddCommit,
   BranchChanges,
   ChangedFile,
   DraftView,
@@ -117,13 +118,17 @@ export function sentChanges(changes: BranchChanges | null): BranchChangesRecord[
 type EntryRecord = Omit<EntryItem, "running"> & {
   running?: Omit<RunningFeature, "step"> & { step: StepRecord };
 };
-export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
-  id: string;
-  sections: Array<Omit<SectionItems, "entries"> & { entries: Array<EntryRecord> }>;
-};
+/** Whether "Add and commit" committed: set on the answer of an add, null on other answers. */
+type Added = { added?: Record_<AddCommit> | null };
+export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> &
+  Added & {
+    id: string;
+    sections: Array<Omit<SectionItems, "entries"> & { entries: Array<EntryRecord> }>;
+  };
 
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
-export type InboxRecord = Omit<Record_<Inbox>, "triage"> & { id: string; triage: string | null };
+export type InboxRecord = Omit<Record_<Inbox>, "triage"> &
+  Added & { id: string; triage: string | null };
 
 export type DraftRecord = Record_<DraftView> & { id: string };
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
@@ -344,6 +349,7 @@ export const fileDataView = dataView<FileRecord>("WorkflowFile")({
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
+  added: true,
   changes: true,
   hash: true,
   id: true,
@@ -351,6 +357,7 @@ export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
 });
 
 export const inboxDataView = dataView<InboxRecord>("Inbox")({
+  added: true,
   categories: true,
   changes: true,
   count: true,

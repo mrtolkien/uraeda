@@ -7,6 +7,7 @@ use std::path::Path;
 use super::priority_edits::{change_count, section};
 use super::{Result, on_default, open, reach_default, write_lock};
 use crate::actions::changes;
+use crate::actions::commit::Added;
 use crate::actions::inbox::{self as edits, Marks};
 use crate::files::inbox::Inbox;
 use crate::workspace::folder_slug;
@@ -48,6 +49,37 @@ pub fn add_note(
     let place = reach_default(repo)?;
     let (inbox, _) = edits::add(&place, category.as_deref(), &marks, text, Some(previous))?;
     Ok(inbox)
+}
+
+/// Adds a note as [`add_note`] does, then commits `INBOX.md` alone, when it had no other change,
+/// with `chore: add "<note>" to the inbox`.
+pub fn add_note_and_commit(
+    repo: &Path,
+    category: Option<String>,
+    about: Option<String>,
+    text: &str,
+    previous: &str,
+) -> Result<(Inbox, Added)> {
+    let marks = marks(about);
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::add_and_commit(
+        &place,
+        category.as_deref(),
+        &marks,
+        text,
+        previous,
+    )?)
+}
+
+/// Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
+/// committed alone with `chore: remove "<note>" from the inbox`. Refused as a conflict when the
+/// inbox changed since it was read at `previous`.
+pub fn undo_committed_note(repo: &Path, lines: &[String], previous: &str) -> Result<Inbox> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::undo_committed(&place, lines, previous)?;
+    Ok(edits::read(&place))
 }
 
 /// Adds a note as [`add_note`] does, over the inbox as it is now, without a hash, as `ura note`

@@ -365,3 +365,68 @@ fn a_note_from_a_folder_without_a_date_has_no_mark() {
             .contains("- We need a home icon\n- A note\n\n## UI")
     );
 }
+
+/// US3 4: "Add and commit" commits a note alone, the other staged files left staged.
+#[test]
+fn a_note_commits_alone() {
+    let repo = fixture_repo();
+    repo.write("README.md", "# Test, staged\n");
+    repo.git(&["add", "README.md"]);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (inbox, added) =
+        api::add_note_and_commit(repo.path(), None, None, "Icons are blurry", &read.hash).unwrap();
+
+    assert!(added.committed);
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: add \"Icons are blurry\" to the inbox"
+    );
+    assert_eq!(repo.changed_in("HEAD"), [INBOX]);
+    assert_eq!(
+        repo.git(&["diff", "--cached", "--name-only"]),
+        "README.md\n"
+    );
+    assert!(repo.read(INBOX).contains("- Icons are blurry\n"));
+    assert_eq!(inbox.changes, 0);
+}
+
+/// US3 3, for a note: an inbox with other changes gets the note, and no commit.
+#[test]
+fn a_note_on_a_changed_inbox_is_not_committed() {
+    let repo = fixture_repo();
+    repo.write(INBOX, &format!("{}- Typed by hand\n", repo.read(INBOX)));
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (_, added) =
+        api::add_note_and_commit(repo.path(), None, None, "Icons are blurry", &read.hash).unwrap();
+
+    assert!(!added.committed);
+    assert_eq!(added.reason.as_deref(), Some("other-changes"));
+    assert_eq!(repo.subjects("main")[0], "chore: specs");
+    assert!(repo.read(INBOX).contains("- Icons are blurry\n"));
+}
+
+/// US3 6, for a note: Undo of a committed add commits the note's removal alone; over an inbox
+/// changed since, it is refused as a conflict.
+#[test]
+fn undo_of_a_committed_note_commits_the_removal() {
+    let repo = fixture_repo();
+    let before = repo.read(INBOX);
+    let read = api::read_inbox(repo.path()).unwrap();
+    let (added, _) =
+        api::add_note_and_commit(repo.path(), None, None, "Icons are blurry", &read.hash).unwrap();
+    let lines = ["- Icons are blurry".to_string()];
+
+    let stale = api::undo_committed_note(repo.path(), &lines, &read.hash).unwrap_err();
+    assert_eq!(stale.code, "conflict");
+    let undone = api::undo_committed_note(repo.path(), &lines, &added.hash).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: remove \"Icons are blurry\" from the inbox"
+    );
+    assert_eq!(repo.changed_in("HEAD"), [INBOX]);
+    assert_eq!(repo.read(INBOX), before);
+    assert_eq!(undone.changes, 0);
+}

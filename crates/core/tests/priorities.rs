@@ -2,6 +2,7 @@ mod common;
 
 use common::repo::TestRepo;
 use common::texts::{proposal, record};
+use uraeda_core::actions::commit::Added;
 use uraeda_core::actions::priorities as actions;
 use uraeda_core::actions::{ActionError, changes, draft, place};
 use uraeda_core::api;
@@ -766,4 +767,155 @@ fn discard_after_a_note_draft_and_a_line_draft() {
     assert_eq!(repo.read("specs/PRIORITIES.md"), priorities_before);
     assert_eq!(repo.read("specs/INBOX.md"), inbox_before);
     assert_eq!(repo.porcelain(), "");
+}
+
+const SORT: &str = "Sort done features";
+
+/// US3 1: "Add and commit" on a file equal to its commit commits it alone.
+#[test]
+fn an_add_commits_alone_on_a_clean_file() {
+    let repo = repo();
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let (priorities, added) =
+        api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+
+    assert_eq!(
+        added,
+        Added {
+            committed: true,
+            reason: None,
+            message: None
+        }
+    );
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: add \"Sort done features\" to Next"
+    );
+    assert_eq!(repo.changed_in("HEAD"), ["specs/PRIORITIES.md"]);
+    assert_eq!(repo.porcelain(), "");
+    assert_eq!(repo.hook_runs(), 1);
+    assert_eq!(priorities.changes, 0);
+    assert_eq!(
+        section_texts(&repo.read("specs/PRIORITIES.md"), "next")[2],
+        SORT
+    );
+}
+
+/// US3 3: a file with other changes gets the entry, and no commit.
+#[test]
+fn an_add_on_a_changed_file_is_not_committed() {
+    let repo = repo();
+    repo.write("specs/PRIORITIES.md", &TEXT.replace("- Slack\n", ""));
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let (priorities, added) =
+        api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+
+    assert!(!added.committed);
+    assert_eq!(added.reason.as_deref(), Some("other-changes"));
+    assert_eq!(repo.subjects("main")[0], "chore: specs");
+    assert_eq!(
+        section_texts(&repo.read("specs/PRIORITIES.md"), "next")[2],
+        SORT
+    );
+    assert_eq!(priorities.changes, 2);
+}
+
+/// Review focus 1: a file staged by the human stays staged, and out of the commit.
+#[test]
+fn an_add_commits_alone_beside_other_staged_files() {
+    let repo = repo();
+    repo.write("README.md", "# Test, staged\n");
+    repo.git(&["add", "README.md"]);
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let (_, added) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+
+    assert!(added.committed);
+    assert_eq!(repo.changed_in("HEAD"), ["specs/PRIORITIES.md"]);
+    assert_eq!(
+        repo.git(&["diff", "--cached", "--name-only"]),
+        "README.md\n"
+    );
+    assert_eq!(repo.read("README.md"), "# Test, staged\n");
+}
+
+/// The edge case of a hook refusing the commit: the entry stays written, unstaged, and the answer
+/// carries the hook's first line.
+#[test]
+fn a_hook_failure_leaves_the_entry_written() {
+    let repo = repo();
+    repo.set_hook("echo 'Trailing space in PRIORITIES.md' >&2\necho 'line 9' >&2\nexit 1");
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let (priorities, added) =
+        api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+
+    assert_eq!(
+        added,
+        Added {
+            committed: false,
+            reason: Some("hook-failed".into()),
+            message: Some("Trailing space in PRIORITIES.md".into())
+        }
+    );
+    assert_eq!(repo.subjects("main")[0], "chore: specs");
+    assert_eq!(repo.git(&["diff", "--cached", "--name-only"]), "");
+    assert_eq!(
+        section_texts(&repo.read("specs/PRIORITIES.md"), "next")[2],
+        SORT
+    );
+    assert_eq!(priorities.changes, 1);
+}
+
+/// US3 6: Undo of a committed add removes the entry, and commits the removal alone.
+#[test]
+fn undo_of_a_committed_add_commits_the_removal() {
+    let repo = repo();
+    let read = api::read_priorities(repo.path()).unwrap();
+    let (added, _) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    repo.write("README.md", "# Test, staged\n");
+    repo.git(&["add", "README.md"]);
+
+    let undone =
+        api::undo_committed_priority(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: remove \"Sort done features\""
+    );
+    assert_eq!(repo.changed_in("HEAD"), ["specs/PRIORITIES.md"]);
+    assert_eq!(repo.read("specs/PRIORITIES.md"), TEXT);
+    assert_eq!(
+        repo.git(&["diff", "--cached", "--name-only"]),
+        "README.md\n"
+    );
+    assert_eq!(undone.hash, hash(TEXT));
+    assert_eq!(undone.changes, 0);
+}
+
+/// Review focus 6: Undo over a file changed since the add is refused, as a conflict, and nothing
+/// is written or committed.
+#[test]
+fn undo_after_the_file_changed_is_refused() {
+    let repo = repo();
+    let read = api::read_priorities(repo.path()).unwrap();
+    let (added, _) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    let changed = repo.read("specs/PRIORITIES.md").replace("- Slack\n", "");
+    repo.write("specs/PRIORITIES.md", &changed);
+
+    let error =
+        api::undo_committed_priority(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
+
+    assert_eq!(error.code, "conflict");
+    assert_eq!(
+        error.message,
+        "PRIORITIES.md changed on disk. Your change was not applied."
+    );
+    assert_eq!(repo.read("specs/PRIORITIES.md"), changed);
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: add \"Sort done features\" to Next"
+    );
 }

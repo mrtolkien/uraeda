@@ -10,6 +10,7 @@ use crate::files::priorities::{self, Section};
 use crate::files::proposal;
 use crate::today::Date;
 
+use super::commit::Added;
 use super::place::Place;
 use super::{ActionError, Change, Committed, STALE, answer, changes, commit, draft};
 
@@ -17,7 +18,9 @@ mod image;
 mod undo;
 
 pub use image::add_with_image;
-pub use undo::{undo_add, undo_as_draft, undo_category, undo_to_draft, undo_to_priorities};
+pub use undo::{
+    undo_add, undo_as_draft, undo_category, undo_committed, undo_to_draft, undo_to_priorities,
+};
 
 pub const PATH: &str = "specs/INBOX.md";
 /// The agent's proposed triage, answered like a round of questions.
@@ -216,19 +219,38 @@ pub fn note(
         (true, false) => return Ok(Noted::Uncommitted),
         (true, true) => {}
     }
-    let subject = format!(
-        "chore: add \"{}\" to the inbox",
-        super::priorities::short(&crate::files::lines::one_line(text))
-    );
-    commit::commit(
+    commit::commit_only(
         place,
         &Change {
             paths: vec![PATH.to_string()],
-            subject,
+            subject: added_subject(text),
             body: None,
         },
     )
     .map(Noted::Committed)
+}
+
+/// The subject of a note's add committed alone.
+fn added_subject(text: &str) -> String {
+    format!(
+        "chore: add \"{}\" to the inbox",
+        super::priorities::short(&crate::files::lines::one_line(text))
+    )
+}
+
+/// Adds a note over the inbox read at `previous`, then commits `INBOX.md` alone when it had no
+/// other change: "Add and commit".
+pub fn add_and_commit(
+    place: &Place,
+    category: Option<&str>,
+    marks: &Marks,
+    text: &str,
+    previous: &str,
+) -> Result<(Inbox, Added), ActionError> {
+    let (_, added) = commit::add_alone(place, PATH, added_subject(text), || {
+        add(place, category, marks, text, Some(previous))
+    })?;
+    Ok((read(place), added))
 }
 
 /// Replaces a note's text, its marks and sub-items kept.
