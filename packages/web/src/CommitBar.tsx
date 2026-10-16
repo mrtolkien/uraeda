@@ -11,6 +11,7 @@ import { rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { PrioritiesView } from "./views.ts";
+import { WriteButton } from "./writes/WriteButton.tsx";
 
 const styles = stylex.create({
   bar: {
@@ -50,9 +51,10 @@ export function CommitBar({ changes }: { changes: number }) {
     rereadChanges(fate);
     if (result.error) {
       setMessage(refusal(result.error).message);
-      return;
+      return false;
     }
     closeUndoToasts();
+    return true;
   };
 
   const commit = () =>
@@ -79,7 +81,7 @@ export function CommitBar({ changes }: { changes: number }) {
             ) : (
               <>
                 <Button label="Discard" onClick={() => setConfirm(true)} variant="ghost" />
-                <Button clickAction={commit} label="Commit" variant="primary" />
+                <WriteButton label="Commit" onClick={commit} variant="primary" />
               </>
             )}
           </HStack>

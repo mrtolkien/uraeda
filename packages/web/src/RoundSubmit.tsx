@@ -1,5 +1,4 @@
 import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -8,6 +7,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
 import { CommitActions } from "./CommitActions.tsx";
+import { WriteButton } from "./writes/WriteButton.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
@@ -45,7 +45,7 @@ export function HookRefusal({
   return (
     <Banner
       collapsible={false}
-      endContent={<Button clickAction={onRetry} label="Try again" />}
+      endContent={<WriteButton label="Try again" onClick={onRetry} />}
       status="error"
       title={`The pre-commit hook refused the commit. ${what}`}
     >
@@ -87,16 +87,19 @@ export function useRoundSubmit(
         message:
           "Some answers were not saved: nothing was submitted. Check them, then submit again.",
       });
-      return;
+      return false;
     }
     const result = await writes.submit(file.name);
     if (result.error) {
       setError(refusal(result.error));
-    } else if (isTriage(target)) {
+      return false;
+    }
+    if (isTriage(target)) {
       navigateHere("/inbox");
     } else if (next) {
       proceed();
     }
+    return true;
   };
   const retry = async () => {
     const result = await writes.retry(file.name);
@@ -201,14 +204,19 @@ export function RoundEnd({
       <div ref={submitRow}>
         {isTriage(target) ? (
           // The triage hands nothing over: the inbox offers to apply it.
-          <Button
-            clickAction={() => submit(false)}
+          <WriteButton
             isDisabled={blank.length > 0}
             label="Submit answers"
+            onClick={() => submit(false)}
             variant="primary"
           />
         ) : (
-          <CommitActions isDisabled={blank.length > 0} label="Submit answers" onCommit={submit} />
+          <CommitActions
+            folder={file.folder}
+            isDisabled={blank.length > 0}
+            label="Submit answers"
+            onCommit={submit}
+          />
         )}
       </div>
     </VStack>

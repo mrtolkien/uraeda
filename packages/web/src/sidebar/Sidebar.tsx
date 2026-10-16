@@ -25,6 +25,7 @@ import {
 import { useOpenSettings } from "./FeatureSettingsDialog.tsx";
 import { type CardItem, ItemCard } from "./ItemCard.tsx";
 import { Chat, Item, NewRow, selects } from "./Row.tsx";
+import { usePendingAction } from "../writes/store.ts";
 
 const styles = stylex.create({
   empty: {
@@ -70,7 +71,10 @@ function FeatureCard({
       onSettings={() => settings(feature)}
     />
   );
-  const item = toCard(feature, row);
+  const base = toCard(feature, row);
+  // What a button just started for it, until the server's status for it changes.
+  const pending = usePendingAction(feature.folder, `${base.status.status} ${base.status.label}`);
+  const item = pending === undefined ? base : { ...base, pending };
   return (
     <Suspense fallback={card(item)}>
       <WithChanges folder={feature.folder} item={item} render={card} />

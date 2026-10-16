@@ -43,25 +43,25 @@ export function useEditorActions({
     setMessage(undefined);
     if (!(await saveTyped())) {
       setMessage({ ok: false, text: "Your text is not saved: nothing was committed." });
-      return;
+      return false;
     }
     const result = await fate.mutations.text.commit({ input: { path }, view: DraftView });
     if (result.error) {
       setMessage({ ok: false, text: refusal(result.error).message });
-      return;
+      return false;
     }
-    const folder = draft?.folder;
-    if (continues && folder) {
-      handOver(folder, "proposal", path.split("/").at(-1));
+    if (continues && draft?.folder) {
+      handOver(draft.folder, "proposal", path.split("/").at(-1));
     } else {
       setMessage({ ok: true, text: "Committed." });
     }
+    return true;
   };
   const start = async (continues: boolean) => {
     setMessage(undefined);
     if (!(await saveTyped())) {
       setMessage({ ok: false, text: "Your text is not saved: the feature was not started." });
-      return;
+      return false;
     }
     const result = await fate.mutations.feature.start({
       input: { draft: path, slug: slug.text },
@@ -69,7 +69,9 @@ export function useEditorActions({
     });
     if (result.error) {
       setMessage({ ok: false, text: refusal(result.error).message });
-    } else if (typeof result.result?.folder === "string") {
+      return false;
+    }
+    if (typeof result.result?.folder === "string") {
       const folder = result.result.folder;
       slug.discard();
       if (continues) {
@@ -78,6 +80,7 @@ export function useEditorActions({
         navigate(here(`/f/${folder}`));
       }
     }
+    return true;
   };
   /**
    * Sets the discovery effort in the frontmatter, in the save queue: after the text typed is saved,
