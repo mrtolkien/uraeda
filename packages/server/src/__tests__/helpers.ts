@@ -16,6 +16,9 @@ import type { Previews } from "../preview/runner.ts";
 import { Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
+import type { SignInOptions } from "../sign-in/check.ts";
+import { OneTimeLinks } from "../sign-in/links.ts";
+import { SignInStore } from "../sign-in/store.ts";
 import { fakeSessions } from "../testing.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -87,12 +90,16 @@ export async function testHosts(
   return { adapter, dataDir, hosts, names: added, sessions };
 }
 
+/** The options of `createApp` a test may add: sign-in and the built UI. */
+type Extra = { signIn?: SignInOptions; webRoot?: string };
+
 function app(
   allowedHosts: Array<string>,
   { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
   options: PreviewOptions = {},
   lockedList = false,
+  extra: Extra = {},
 ) {
   const previews = testPreviews(options);
   const created = createApp({
@@ -105,9 +112,58 @@ function app(
     port,
     previews,
     sessions,
+    ...extra,
   });
   names.set(created, name);
   return { app: created, previews };
+}
+
+/**
+ * Sign-in for a test's app: the store on its data folder, its access key, the one-time links, a
+ * clock the test moves, starting on 2026-10-01T10:00Z, and the delays and log lines of failed
+ * sign-ins, recorded rather than waited and printed.
+ */
+export type TestSignIn = {
+  clock: { now: number };
+  key: string;
+  lines: Array<string>;
+  links: OneTimeLinks;
+  options: SignInOptions;
+  /** A `Cookie` header of a new session, from `POST /session` on the server's address. */
+  signedIn: () => Promise<string>;
+  store: SignInStore;
+  waits: Array<number>;
+};
+
+/** Sign-in for a test's app, on its data folder, the host token given, before its app exists. */
+function testSignIn(dataDir: string, hostToken: string | undefined) {
+  const clock = { now: Date.parse("2026-10-01T10:00:00Z") };
+  const now = () => clock.now;
+  const { key, store } = SignInStore.open(dataDir, now);
+  const links = new OneTimeLinks(now);
+  const lines: Array<string> = [];
+  const waits: Array<number> = [];
+  const options: SignInOptions = {
+    hostToken,
+    links,
+    log: (line) => lines.push(line),
+    store,
+    wait: async (ms) => void waits.push(ms),
+  };
+  return { clock, key: key!, lines, links, options, store, waits };
+}
+
+/**
+ * Signs in to an app with the key, on `host`, the server's address by default, and returns the
+ * `Cookie` header of the new session.
+ */
+export async function signInCookie(app: App, key: string, host = `127.0.0.1:${port}`) {
+  const response = await app.request(`http://${host}/session`, {
+    body: JSON.stringify({ key }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  return response.headers.get("set-cookie")!.split(";")[0];
 }
 
 /**
@@ -116,27 +172,48 @@ function app(
  * list, and `previews` the app's Storybook runner, built with `previewOptions`; `lockedList` locks
  * its list, as Uraeda's own Storybook does.
  */
-export async function testApp(
+export async function testApp<SignedIn extends boolean = false>(
   repo = fixtureRepo(),
   {
     allowedHosts = [],
     binding: using = binding,
+    hostToken,
     lockedList,
     previewOptions,
+    signIn,
+    webRoot,
   }: {
     allowedHosts?: Array<string>;
     binding?: Binding;
+    /** The host token `/open` and `/session/key` accept, with `signIn`. */
+    hostToken?: string;
     lockedList?: boolean;
     previewOptions?: PreviewOptions;
+    /** Whether the app checks sessions: see `TestSignIn`. */
+    signIn?: SignedIn;
+    webRoot?: string;
   } = {},
-) {
+): Promise<
+  Awaited<ReturnType<typeof testHosts>> &
+    ReturnType<typeof app> & { name: string; repo: string } & (SignedIn extends true
+      ? { signIn: TestSignIn }
+      : unknown)
+> {
   const opened = await testHosts([repo], { binding: using, installed: false });
+  const signedIn = signIn ? testSignIn(opened.dataDir, hostToken) : undefined;
+  const created = app(allowedHosts, opened, using, previewOptions, lockedList, {
+    signIn: signedIn?.options,
+    webRoot,
+  });
   return {
     ...opened,
-    ...app(allowedHosts, opened, using, previewOptions, lockedList),
+    ...created,
     name: opened.names[0],
     repo,
-  };
+    ...(signedIn && {
+      signIn: { ...signedIn, signedIn: () => signInCookie(created.app, signedIn.key) },
+    }),
+  } as Awaited<ReturnType<typeof testApp<SignedIn>>>;
 }
 
 /** The server's app with sessions on the fake adapter, checked once. */
