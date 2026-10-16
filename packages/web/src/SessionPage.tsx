@@ -12,7 +12,7 @@ import { useFateClient, useView } from "react-fate";
 import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { MAIN_CHECKOUT, useAgent, useFeature, useWorkflowMessage } from "./data.ts";
+import { MAIN_CHECKOUT, useAgent, useFeature } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import {
   composerDraft,
@@ -22,6 +22,7 @@ import {
   useDraft,
 } from "./useDraft.ts";
 import { EditableLine } from "./EditableLine.tsx";
+import { useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
 import { type AsideShown, useAsideShown, WithAside } from "./SessionAside.tsx";
@@ -297,37 +298,6 @@ function SessionPane({
 
 /** Why a feature's session takes no message before its proposal is committed. */
 const NO_BRANCH = "This feature has no branch left: it is merged.";
-
-/** The workflow's message an address asks for: `?continue=<trigger>&file=<file>`. */
-function useHandOver(search: string): { file?: string; trigger: Trigger } | undefined {
-  const params = new URLSearchParams(search);
-  const trigger = params.get("continue");
-  const file = params.get("file");
-  return trigger ? { trigger: trigger as Trigger, ...(file ? { file } : {}) } : undefined;
-}
-
-/** Reads the workflow's message for a feature, and gives it, or its refusal, to the page. */
-function WorkflowMessage({
-  folder,
-  onRead,
-  workflow,
-}: {
-  folder: string;
-  onRead: (message: { refusal: string | null; text: string }) => void;
-  workflow: { file?: string; trigger: Trigger };
-}) {
-  const message = useWorkflowMessage(folder, workflow.trigger, workflow.file);
-  const text = message?.text;
-  const refusal = message?.refusal;
-  useEffect(() => {
-    if (text !== undefined && refusal !== undefined) {
-      onRead({ refusal, text });
-    }
-    // Once per message read: `onRead` is a new function at each draw.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, refusal]);
-  return null;
-}
 
 /**
  * A feature's session: created with its first message, which this view sends. Opened to hand the
