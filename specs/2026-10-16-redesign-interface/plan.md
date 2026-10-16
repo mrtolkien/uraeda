@@ -920,7 +920,7 @@ git commit -m "feat(redesign-interface): notifications when the human is needed"
   `specs/2026-10-16-redesign-interface/screenshots/`
 - Test: `__tests__/add-repository.test.tsx`, `__tests__/repository-menu.test.tsx`
 
-- [ ] **Step 1: Split `RepositoryMenu`'s `Menu` before it changes**; Run: `vp check`,
+- [x] **Step 1: Split `RepositoryMenu`'s `Menu` before it changes**; Run: `vp check`,
       `vp run ts:test`; Expected: PASS before and after; commit
       `refactor(redesign-interface): the repository menu's list in its own component`.
 - [ ] **Step 2: Write the failing tests**: US9.2 to US9.4.
