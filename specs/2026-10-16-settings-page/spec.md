@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Settings page
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Approved on 2026-10-16.
 >
 > - One new decision, settings: a TOML file in `~/.config/uraeda/`, owned by the core, written with
 >   your comments kept, which flags and variables override for one run and never write.
