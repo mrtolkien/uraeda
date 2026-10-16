@@ -3,7 +3,8 @@
 // (US1.4), in every workflow file (US1.6), with one Storybook for every page (US1.7, SC-001), and
 // through a listed host name (SC-006). The embed's states and edge cases: a failed start, a missing
 // story, no worktree, a story that never reports its height, a frame Storybook reloads, a malformed
-// size, no preview decision, and story links that do not embed.
+// size, no preview decision, and story links that do not embed. Frames load only once on screen, and
+// a feature's page starts its Storybook before any story is embedded.
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
@@ -110,6 +111,22 @@ describe("on a desktop", () => {
 
     await storyShown(DESKTOP, { interval: 50, timeout: 2000 });
     await storyShown(PHONE, { interval: 50, timeout: 2000 });
+    expect(await commands.previewStarts()).toHaveLength(1);
+  });
+});
+
+describe("on a desktop, as embeds load", () => {
+  atSize("desktop");
+
+  test("a feature's page starts its Storybook, so its spec's story is ready once opened", async () => {
+    await commands.addStoryFeature();
+    await show(`/f/${FEATURE}`, "Sidebar resize");
+
+    // No story is embedded on the feature's page.
+    expect(screen.queryByRole("figure", { name: LABEL })).toBeNull();
+    await expect.poll(() => commands.previewStarts(), READY).toHaveLength(1);
+    await show(SPEC, "Resize the sidebar");
+    await storyShown(DESKTOP);
     expect(await commands.previewStarts()).toHaveLength(1);
   });
 
