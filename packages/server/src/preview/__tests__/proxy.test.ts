@@ -15,7 +15,7 @@ import {
 import { FakeAdapter } from "../../runner/fake.ts";
 import { startServer } from "../../server.ts";
 import { SANDBOX } from "../proxy.ts";
-import { checkoutOf, ready, socketOpens, upgradeStatus, WAIT } from "./helpers.ts";
+import { checkoutOf, rawUpgrade, ready, socketOpens, upgradeStatus, WAIT } from "./helpers.ts";
 
 const binding = await import("uraeda-binding");
 
@@ -56,6 +56,7 @@ async function runningPreview(mode: FakeMode = "ok") {
     log: log!,
     name: basename(repo),
     origin: `http://127.0.0.1:${port}`,
+    port,
     previews: server.previews,
   };
 }
@@ -211,6 +212,15 @@ test("an upgrade outside a preview path is closed", async () => {
 
   expect(await socketOpens(`${origin}/r/${name}/fate/live`, {})).toBe(false);
   expect(await socketOpens(`${origin}/r/${name}/fate/live`, { origin: "null" })).toBe(false);
+});
+
+test("an upgrade to a target that is not a URL is refused, and the server keeps answering", async () => {
+  const { base, origin, port } = await runningPreview();
+
+  const answer = await rawUpgrade(port, "//[");
+
+  expect(answer).toMatch(/^HTTP\/1\.1 400 /);
+  expect((await fetch(`${origin}${base}__echo`, { headers: { origin: "null" } })).status).toBe(200);
 });
 
 /** SC-004 */

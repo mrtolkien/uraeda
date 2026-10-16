@@ -2,6 +2,7 @@
 // the test feature's checkout on the fake preview.
 import { randomBytes } from "node:crypto";
 import { request as httpRequest } from "node:http";
+import { connect } from "node:net";
 import { join } from "node:path";
 import { afterEach, expect } from "vite-plus/test";
 import {
@@ -128,4 +129,33 @@ export async function socketOpens(
   options: { origin?: string; protocol?: string },
 ): Promise<boolean> {
   return (await upgradeStatus(url, options)) === 101;
+}
+
+/**
+ * The first answer to a WebSocket upgrade sent raw to the server on `port`, with `target` as it is,
+ * which a URL may not parse: empty when the socket closes without one.
+ */
+export function rawUpgrade(port: number, target: string): Promise<string> {
+  return new Promise((resolve) => {
+    const socket = connect(port, "127.0.0.1", () => {
+      socket.write(
+        [
+          `GET ${target} HTTP/1.1`,
+          `Host: 127.0.0.1:${port}`,
+          "Connection: Upgrade",
+          "Upgrade: websocket",
+          `Sec-WebSocket-Key: ${randomBytes(16).toString("base64")}`,
+          "Sec-WebSocket-Version: 13",
+          "",
+          "",
+        ].join("\r\n"),
+      );
+    });
+    let answer = "";
+    socket.on("data", (chunk) => {
+      answer += chunk.toString();
+    });
+    socket.on("error", () => undefined);
+    socket.on("close", () => resolve(answer));
+  });
 }

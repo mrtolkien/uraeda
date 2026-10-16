@@ -139,7 +139,7 @@ export function previewRoutes() {
 }
 
 /** Ends an upgrade's socket with an HTTP status, and its text, sandboxed. */
-function refuse(socket: Duplex, status: string, text: string) {
+export function refuse(socket: Duplex, status: string, text: string) {
   const head = [
     `HTTP/1.1 ${status}`,
     "Connection: close",
@@ -147,6 +147,18 @@ function refuse(socket: Duplex, status: string, text: string) {
     ...Object.entries(SANDBOXED).map(([name, value]) => `${name}: ${value}`),
   ];
   socket.end(`${head.join("\r\n")}\r\n\r\n${text}`);
+}
+
+/**
+ * An upgrade's target as a URL; undefined when it is not one, as `//[`, which the server's
+ * `upgrade` listeners refuse with a 400: thrown there, it would stop the whole server.
+ */
+export function upgradeUrl(request: IncomingMessage): URL | undefined {
+  try {
+    return new URL(request.url ?? "/", "http://127.0.0.1");
+  } catch {
+    return undefined;
+  }
 }
 
 /** Whether an upgrade asks for a WebSocket, as a GET: the only upgrade forwarded. */
@@ -196,7 +208,7 @@ function upstreamSearch(path: string, url: URL): string {
  * The server's upgrades: refused by the guard's rule, `check`; WebSocket GETs under a preview's
  * path piped to the Storybook the runner has ready, with the full path for Vite's `vite-hmr`
  * protocol and the rest only otherwise, Storybook's channel as a preview's; anything else is closed
- * with a 404.
+ * with a 404, and a target that is not a URL with a 400.
  */
 export function previewUpgrade({
   check,
@@ -207,7 +219,11 @@ export function previewUpgrade({
 }): (request: IncomingMessage, socket: Duplex, head: Buffer) => void {
   return (request, socket, head) => {
     socket.on("error", () => socket.destroy());
-    const url = new URL(request.url ?? "/", "http://127.0.0.1");
+    const url = upgradeUrl(request);
+    if (url === undefined) {
+      refuse(socket, "400 Bad Request", "Bad request");
+      return;
+    }
     const refusal = check({
       host: request.headers.host ?? "",
       method: request.method ?? "GET",
