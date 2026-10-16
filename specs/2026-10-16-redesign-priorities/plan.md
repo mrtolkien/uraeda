@@ -704,18 +704,22 @@ git commit -m "feat(redesign-priorities): the core reads the constitution and de
 
 - Consumes: `EntryItem.draft`, `EntryItem.running` (task 2).
 - Produces:
-  - `WorkList({sections, selected?, onMove?})`,
+  - `WorkList({sections, selected?, onMove?, isFocused?})`, `isFocused` putting the keyboard's focus
+    on the selected row, for the `Selected` story,
     `WorkSection { id, title, tone: "green" | "blue" | "neutral" | "gray" | "orange", rows, footer?, isFixed? }`,
     `WorkRow { key, href, text, label?, lines, marks?, isFixed? }`;
     `onMove(row: string, section: string, index: number)` is called on a drop with the index among
-    the section's rows on screen.
+    the section's rows on screen once the row is taken out, `Number.MAX_SAFE_INTEGER` for the end;
+    the list stays as the drag left it until the promise it returns resolves.
   - `useDragOrder(sections, onMove)`: the dnd-kit wiring and announcements, as today's.
   - On the priorities page: "Ongoing · N" (green, entries with `running`, file order, no handle, no
     add row), then "Now · N" (the others), Next, Later, Blocked. A drop at screen index `i` of Now
     maps to the file position of the `i`-th entry of Now that is not running, or after the last of
-    them (review focus 3).
+    them (review focus 3): `fileIndex(entries, key, index)` in `PrioritiesList.tsx`. "Ongoing"
+    gathers the running entries of every section and shows only when one runs (R10). The focus ring
+    and the dividers use Astryx's own styles (R11).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - happy-dom `priorities.test.tsx`:
     - `ongoing entries show apart, with their step`: fixture → heading "Ongoing · 4", rows "Web UI
       for the workflow files" … each with "Running" and its step ("Plan" for "CLI TUIs"), no "Move
@@ -731,20 +735,21 @@ git commit -m "feat(redesign-priorities): the core reads the constitution and de
       US4 scenario 6).
     - `a focused row shows the focus ring`: tab to a row → its computed `outline-style` is not
       `none` (C6's list, the ring the UI behaviour decision asks for; Selection.tsx fix).
-    - Existing drag tests (mouse, keyboard, touch 500 ms) still pass.
+    - Existing drag tests (mouse, keyboard, touch 500 ms) still pass; the keyboard's moves a line of
+      Later, since the fixture's Now holds only started entries, without handles.
   - `layout.test.tsx`: the priorities page's PAGES entry waits for "Ongoing"; narrow and wide checks
     pass (SC-004).
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `vp test --project uraeda-web packages/web/src/__tests__/priorities.test.tsx`
   - Expected: FAIL, `Unable to find role "heading" with name "Ongoing · 4"`
-- [ ] **Step 3: Implement; fix the focus ring and divider at their source (write those styles so
+- [x] **Step 3: Implement; fix the focus ring and divider at their source (write those styles so
       they do not emit Astryx's atomic values, or layer the app's StyleX after Astryx's); remove
       `KeysHint`; update the stories (`Priorities`, `Selected` without the hint)**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
   - Run:
     `vp check && vp test --project uraeda-web && vp test --project desktop packages/web/src/__browser__/priorities.test.tsx packages/web/src/__browser__/layout.test.tsx && vp test --project phone packages/web/src/__browser__/layout.test.tsx`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

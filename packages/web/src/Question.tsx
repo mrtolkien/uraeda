@@ -1,4 +1,5 @@
 import { Button } from "@astryxdesign/core/Button";
+import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -86,12 +87,6 @@ const styles = stylex.create({
     textAlign: "start",
     textWrap: "pretty",
     width: "100%",
-  },
-  // An option and its variants' stories, split from the next by a hairline.
-  optionItem: {
-    borderBlockEndColor: colorVars["--color-border"],
-    borderBlockEndStyle: "solid",
-    borderBlockEndWidth: borderVars["--border-width"],
   },
   optionOff: {
     cursor: "default",
@@ -190,7 +185,10 @@ function Option({
     </li>
   );
   return (
-    <div {...stylex.props(styles.optionItem)}>
+    // An option and its variants' stories, split from the next by Astryx's divider: a border of
+    // the app's own would write the atomic rule of a list's dividers again, unlayered, and every
+    // list's last row would keep its divider.
+    <div>
       {/* oxlint-disable-next-line react/forbid-elements -- a full-width toggle holding paragraphs and lists, which no Astryx component draws (an Astryx gap, see the plan) */}
       <button
         aria-pressed={selected}
@@ -223,6 +221,7 @@ function Option({
           <Blocks document={document} ids={variants} />
         </div>
       )}
+      <Divider />
     </div>
   );
 }

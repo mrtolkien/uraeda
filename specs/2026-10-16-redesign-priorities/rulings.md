@@ -116,3 +116,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a ledger read spawns one `git log` per decision; a batched read can replace the loop
   in `api/ledger.rs`.
 - **Where**: task 7.
+
+## R10: "Ongoing" gathers the running entries of every section
+
+- **Decision**: "Ongoing" lists every entry with `running`, from any section, in the file's order,
+  and shows only when one runs; each section on screen lists the others. A drop maps its index among
+  a section's rows on screen to the file through `fileIndex`, in `PrioritiesList.tsx`. An entry
+  whose feature waits at a human gate shows "Waiting on you" as its step, the step's own name being
+  `human-gate`.
+- **Rationale**: C6 asks for the running features apart; a running entry left in Next or Blocked
+  would be the one row of its section without a handle, and a drop beside it would have two
+  meanings. One rule, every running entry in "Ongoing", keeps every section on screen movable.
+- **Alternatives considered**: "Ongoing" holding Now's running entries alone, the others fixed rows
+  in their section; an empty "Ongoing · 0" always shown.
+- **If wrong**: the filter of `ongoing` in `PrioritiesList.tsx`.
+- **Where**: task 8.
+
+## R11: The focus ring and the dividers are Astryx's own styles
+
+- **Decision**: the app writes no style with the atomic value of an Astryx rule that another Astryx
+  rule overrides in a state: `Selection.tsx`'s toggle takes Astryx's
+  `focusOutlineStyles.focusVisible` with an offset of its own, the bars of `StoryEmbed.tsx` and
+  `pane/EntryPane.tsx` and the options of `Question.tsx` draw their hairline with Astryx's
+  `Divider`, and the shared list's rows override only the ring's offset, with a value Astryx does
+  not write.
+- **Rationale**: `@stylexjs/unplugin`'s `useCSSLayers` layers only the extracted stylesheet, not the
+  runtime injection the tests use, so no browser test could prove it; and a layer of the app's after
+  `astryx-base` would still let a copied `outline-style: none` beat Astryx's `:has(:focus-visible)`
+  rule.
+- **Alternatives considered**: `useCSSLayers` with the app's layers before `astryx-base`: every app
+  override of an Astryx element outside `xstyle` would lose, and the tests would not see it.
+- **If wrong**: another app style copying an Astryx atomic value hides a state again; the browser
+  test of the row's ring catches the ring's case.
+- **Where**: task 8.
