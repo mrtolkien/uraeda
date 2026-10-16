@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 04: UI iteration flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question on the full Storybook page, about 5 minutes.
+> Answered on 2026-10-16.
 >
 > - **The Storybook page does not render stories through Uraeda.** Its list loads, but its canvas
 >   and controls stay empty. The fix is a Storybook setting its own code calls insecure.
@@ -47,7 +47,8 @@ Storybook calls insecure, in every project's Storybook that Uraeda serves.
   - [pro] nothing changes.
   - [con] the page you asked for does not work.
 
-**Answer:**
+**Answer:** C: Let's drop it for the moment, and add it as a "now" feature in priorities. We'll take
+a small look at it with the changes workflow.
 
 ## Settled without the human
 
