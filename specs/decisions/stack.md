@@ -148,7 +148,7 @@ a proxy, so the 127.0.0.1 rule stays
   them, so its versions stay pinned and upgrades are deliberate.
 - Anyone signed in can change which host names reach the server, from any device: a host name added
   on a phone opens the server to that name at once, without a restart
-  ([settings page](../2026-10-16-settings-page/spec.md)).
+  ([settings page](../done/2026-10-16-settings-page.md)).
 - Anyone who can reach a listed host name still has to sign in, as the [sign-in](sign-in.md)
   decision says.
 - Every markdown feature the UI shows, like a new callout type, is added to the core first.
