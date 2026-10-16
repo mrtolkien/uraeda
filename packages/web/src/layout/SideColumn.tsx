@@ -1,18 +1,39 @@
 // A page's column at the window's right edge, on wide screens: resized from its edge, its width kept
-// in the browser, and hidden from the button at its top, shown under the pointer and always to the
-// keyboard and on touch. Hidden, the page shows the button that brings it back at its top right.
-import { HStack } from "@astryxdesign/core/HStack";
+// in the browser, and hidden or shown from one button at the page's top right, which keeps its spot
+// in both states (C3): shown under the pointer over the column, always to the keyboard and on
+// touch, and always while the column is hidden; `]` does the same. The page keeps its place in the
+// tree as the column comes and goes, or the width changes, so its transcript, focus, and errors
+// stay.
+import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { Text } from "@astryxdesign/core/Text";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
+import { useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
+  bar: {
+    // Of no height, in view while the window scrolls: the button hangs from it at the same spot,
+    // over the column's heading or the page's top right.
+    display: "flex",
+    height: 0,
+    justifyContent: "flex-end",
+    paddingInline: spacingVars["--spacing-2"],
+    position: "sticky",
+    top: 0,
+    zIndex: 1,
+  },
+  button: {
+    marginBlockStart: spacingVars["--spacing-2"],
+  },
   header: {
+    alignItems: "center",
+    display: "flex",
+    minHeight: sizeVars["--size-element-md"],
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
   },
@@ -20,9 +41,14 @@ const styles = stylex.create({
     // Still focusable, and shown once focused: only its look waits for the pointer.
     opacity: { ":focus-visible": 1, "@media (hover: none)": 1, default: 0 },
   },
-  show: {
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-3"],
+  panel: {
+    // Beside the page, in view while the window scrolls, scrolling on its own when taller than the
+    // window.
+    alignSelf: "flex-start",
+    maxHeight: "var(--size-viewport-height)",
+    overflowY: "auto",
+    position: "sticky",
+    top: 0,
   },
 });
 
@@ -48,6 +74,7 @@ export function SideColumn({
   /** Where its width is kept in the browser. */
   storageKey: string;
 }) {
+  const wide = useWidthClass() === "wide";
   const resizable = useResizable({
     autoSaveId: storageKey,
     defaultSize: 320,
@@ -56,54 +83,52 @@ export function SideColumn({
   });
   const [pointer, setPointer] = useState(false);
   const revealed = revealedByStory ?? pointer;
-  if (!isShown) {
-    return (
+  const shown = wide && isShown;
+  const toggle = () => onShownChange(!isShown);
+  useHotkeys([{ isDisabled: !wide, keys: "]", onPress: toggle }]);
+  const name = label.toLowerCase();
+  return (
+    <div>
+      {wide && (
+        <div {...stylex.props(styles.bar)}>
+          <IconButton
+            icon={<Icon icon="uraeda:panel-right" />}
+            label={isShown ? `Hide ${name}` : `Show ${name}`}
+            onClick={toggle}
+            onPointerEnter={() => setPointer(true)}
+            onPointerLeave={() => setPointer(false)}
+            variant="ghost"
+            xstyle={[styles.button, isShown && !revealed && styles.hidden]}
+          />
+        </div>
+      )}
       <Layout
-        content={
-          <>
-            <HStack justify="end" xstyle={styles.show}>
-              <IconButton
-                icon={<Icon icon="uraeda:panel-right" />}
-                label={`Show ${label.toLowerCase()}`}
-                onClick={() => onShownChange(true)}
-                variant="ghost"
-              />
-            </HStack>
-            {content}
-          </>
+        content={content}
+        end={
+          shown ? (
+            <>
+              <ResizeHandle isReversed label={`Resize ${name}`} resizable={resizable.props} />
+              <LayoutPanel
+                label={label}
+                resizable={resizable.props}
+                role="complementary"
+                xstyle={styles.panel}
+              >
+                <div
+                  onPointerEnter={() => setPointer(true)}
+                  onPointerLeave={() => setPointer(false)}
+                >
+                  <div {...stylex.props(styles.header)}>
+                    <Text type="label">{label}</Text>
+                  </div>
+                  {children}
+                </div>
+              </LayoutPanel>
+            </>
+          ) : undefined
         }
         height="auto"
       />
-    );
-  }
-  return (
-    <Layout
-      content={content}
-      end={
-        <>
-          <ResizeHandle
-            isReversed
-            label={`Resize ${label.toLowerCase()}`}
-            resizable={resizable.props}
-          />
-          <LayoutPanel label={label} resizable={resizable.props} role="complementary">
-            <div onPointerEnter={() => setPointer(true)} onPointerLeave={() => setPointer(false)}>
-              <HStack align="center" justify="between" xstyle={styles.header}>
-                <Text type="label">{label}</Text>
-                <IconButton
-                  icon={<Icon icon="uraeda:panel-right" />}
-                  label={`Hide ${label.toLowerCase()}`}
-                  onClick={() => onShownChange(false)}
-                  variant="ghost"
-                  xstyle={revealed ? undefined : styles.hidden}
-                />
-              </HStack>
-              {children}
-            </div>
-          </LayoutPanel>
-        </>
-      }
-      height="auto"
-    />
+    </div>
   );
 }

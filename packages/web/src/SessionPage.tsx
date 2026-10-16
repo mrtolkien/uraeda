@@ -23,7 +23,7 @@ import {
 import { EditableLine } from "./EditableLine.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
-import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
+import { type AsideShown, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
@@ -61,16 +61,14 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 
 /**
  * A session's header: its title, then its status, agent, and place on one line. A chat's
- * title is renamed in place, and the chat archived or brought back. A feature's folds its column.
+ * title is renamed in place, and the chat archived or brought back.
  */
 function Header({
-  aside,
   chat,
   place,
   status,
   title,
 }: {
-  aside?: AsideShown | undefined;
   chat?: ChatControls;
   place?: string;
   status?: { label: string; status: Status };
@@ -100,7 +98,6 @@ function Header({
             variant="secondary"
           />
         )}
-        {aside && <AsideToggle aside={aside} />}
       </HStack>
     </VStack>
   );
@@ -121,14 +118,11 @@ type Handing = {
  * reads above its end, it gives the pane the jump back to the latest.
  */
 function SessionLog({
-  aside,
   crumbs,
   draft,
   id,
   onJump,
 }: {
-  /** A feature's column, shown or not. */
-  aside?: AsideShown | undefined;
   crumbs?: string | undefined;
   draft: Draft;
   id: string;
@@ -175,7 +169,6 @@ function SessionLog({
   return (
     <VStack gap={3}>
       <Header
-        aside={aside}
         place={session.place}
         status={{ label: session.statusLabel, status: session.status }}
         title={session.title}
@@ -265,16 +258,15 @@ function SessionPane({
         {crumbs !== undefined && <Crumbs folder={crumbs} session />}
         {id === undefined ? (
           <VStack gap={3}>
-            <Header aside={aside} title={title ?? ""} />
+            <Header title={title ?? ""} />
             {crumbs !== undefined && <ProgressLine folder={crumbs} />}
             <Transcript session={{ id: "", turns: [] }} />
           </VStack>
         ) : (
           // Read once the first message created the session: its title stays, and the composer, as
           // it is read. The transcript waits for it: a page shows one log.
-          <Suspense fallback={title === undefined ? null : <Header aside={aside} title={title} />}>
+          <Suspense fallback={title === undefined ? null : <Header title={title} />}>
             <SessionLog
-              aside={aside}
               crumbs={crumbs}
               draft={draft}
               id={id}
