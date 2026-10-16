@@ -6,7 +6,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { VStack } from "@astryxdesign/core/VStack";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import type { Span } from "uraeda-binding";
 import { usePriority } from "../data.ts";
 import { stepTitle } from "../labels.ts";
@@ -29,23 +29,6 @@ import { type Found, usePriorityActions } from "./usePriorityActions.ts";
 /** The file a line links, from the repository's top level, if any. */
 function linkOf(spans: ReadonlyArray<Span>) {
   return spans.find((span) => span.link?.path)?.link?.path;
-}
-
-/**
- * The line's field, open from the start with `editing` typed in it when given: the Editing story's
- * state. Its text is forgotten as the story leaves, so the reading one never finds it restored.
- */
-function useStoryEditing(line: ReturnType<typeof useLineSave>, editing: string | undefined) {
-  // As the story draws: the line it opens is the one it leaves.
-  useEffect(() => {
-    if (editing === undefined) {
-      return undefined;
-    }
-    line.openLine();
-    line.change(editing);
-    return () => line.drop();
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, on the first drawing only
-  }, []);
 }
 
 /**
@@ -101,13 +84,11 @@ function Kind({
  * neighbours.
  */
 function PriorityBody({
-  editing,
   found,
   hash,
   onClose,
   onRenaming,
 }: {
-  editing?: string;
   found: Found;
   hash: string;
   onClose?: () => void;
@@ -117,12 +98,11 @@ function PriorityBody({
   const { entry, index, section } = found;
   const actions = usePriorityActions(found, hash, onRenaming);
   const line = useLineSave({
-    field: editing === undefined ? `priorities#${entry.key}` : `story-editing#${entry.key}`,
+    field: `priorities#${entry.key}`,
     onSave: actions.rename,
     stayOpen: false,
     value: entry.text,
   });
-  useStoryEditing(line, editing);
   const entries = section.entries;
   return (
     <EntryPane
@@ -167,17 +147,9 @@ function PriorityBody({
 
 /**
  * A line of `PRIORITIES.md` in the pane, by its key: read-only on arrival, Edit in its bar. On
- * narrow screens, the page itself. `editing`, for the stories, opens it with that text typed.
+ * narrow screens, the page itself.
  */
-export function PriorityPane({
-  editing,
-  entryKey,
-  onClose,
-}: {
-  editing?: string;
-  entryKey: string;
-  onClose?: () => void;
-}) {
+export function PriorityPane({ entryKey, onClose }: { entryKey: string; onClose?: () => void }) {
   // The line's id while it is renamed: its key changes before its address does.
   const [renaming, setRenaming] = useState<string>();
   const { found, priorities } = usePriority(entryKey, renaming);
@@ -204,12 +176,6 @@ export function PriorityPane({
     );
   }
   return (
-    <PriorityBody
-      editing={editing}
-      found={found}
-      hash={priorities.hash}
-      onClose={onClose}
-      onRenaming={setRenaming}
-    />
+    <PriorityBody found={found} hash={priorities.hash} onClose={onClose} onRenaming={setRenaming} />
   );
 }
