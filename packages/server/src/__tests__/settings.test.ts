@@ -145,7 +145,7 @@ test("a broken file gives the defaults and its problem, printed once", async () 
   });
   await settings.reload();
 
-  const problem = `Cannot read ${dir}/config.toml: line 2, port: The port is a number from 1 to 65535.`;
+  const problem = `Cannot read ${binding.settingsFile(dir)}: line 2, port: The port is a number from 1 to 65535.`;
   expect(settings.problem).toBe(problem);
   expect(settings.view()).toEqual(
     inForce({ noOpen: false, port: { name: "URAEDA_PORT", value: 4400 } }, null),

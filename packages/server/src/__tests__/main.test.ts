@@ -20,7 +20,7 @@ import { HELP } from "../options.ts";
 import { linkPages } from "../sign-in/links.ts";
 import { hash } from "../sign-in/tokens.ts";
 import { SessionCache } from "../runner/cache.ts";
-import { readRepositories, version } from "uraeda-binding";
+import { readRepositories, settingsFile, version } from "uraeda-binding";
 import {
   addStoryFeature,
   fixtureRepo,
@@ -853,7 +853,7 @@ test("a broken file starts on the defaults, its problem printed, the file kept",
 
   expect(server.output.stdout).toContain(`Uraeda server on http://127.0.0.1:${port}\n`);
   expect(server.output.stderr).toContain(
-    `uraeda: Cannot read ${config.dir}/config.toml: line 2, port: The port is a number from 1 to 65535. The server uses its defaults until the file is fixed.\n`,
+    `uraeda: Cannot read ${settingsFile(config.dir)}: line 2, port: The port is a number from 1 to 65535. The server uses its defaults until the file is fixed.\n`,
   );
   expect(config.read()).toBe("[server]\nport = 0\n");
 });
