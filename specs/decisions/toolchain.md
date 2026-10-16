@@ -35,6 +35,16 @@ by the build, not by hand.
   test binaries then fail to link napi's symbols, which only Node provides. Checked by `ready`.
 - Library crates MUST set `doctest = false`, since cargo-nextest does not run doctests. Checked by
   the test of the toolchain's configuration.
+- Each task running tests MUST run its command through `scripts/test-run.ts`, in a temporary folder
+  of its own, removed when the command ends, passed or failed. The browser tests' tasks MUST also
+  take its machine-wide lock, so at most two browser runs execute at once across checkouts, and the
+  others wait. Checked by the test of the toolchain's configuration.
+- Tests and the servers and previews they start MUST NOT listen on a fixed port: they take one from
+  `freePort`, below the ports the system hands out by itself. Checked by the test of the toolchain's
+  configuration, for the test runners' configurations and the tasks, and by review.
+- The Vite configs of the packages loading the native binding MUST import `fresh-binding` first, so
+  `vp dev` and the tests rebuild a binding older than the Rust core before loading it. Checked by
+  the test of the toolchain's configuration.
 - Test runners MUST NOT retry a failed test: cargo-nextest, Vitest, and mini.test run each test
   once. A test that fails without a bug MUST be fixed or rewritten in the pull request that finds
   it. Checked by the test of the toolchain's configuration, and by review.
@@ -84,6 +94,13 @@ Neovim tests out of the default run, and a coverage report without thresholds
 ([Q1](../done/2026-10-14-testing-review.md#q1-what-does-this-feature-cover),
 [Q1.A](../done/2026-10-14-testing-review.md#q1a-what-does-coverage-do-once-it-is-measured)).
 
+Several worktrees run their tests at once on one machine. Their temporary folders filled a 16 GB
+`/tmp`, which read as flaky tests; their servers and previews took the same ports; their browser
+tests, all at once, slowed each other past their timeouts; and after a pull, `vp dev` and the tests
+ran, or refused, a binding built from the old core. The human asked for each run to clean up after
+itself, for free ports, for a cap on browser runs across checkouts, and for the binding to be
+rebuilt instead of refused.
+
 The web UI is compiled with React Compiler: typing a review comment redrew the whole spec at each
 keystroke, and nothing in the web UI was memoized. The human chose to fix it for every page with
 React Compiler, rather than by hand where it shows
@@ -116,6 +133,9 @@ experimental.
   added, or `ready` reuses a stale result locally.
 - CI sets up the dev shell once per job: more runner minutes, less waiting.
 - A change breaking only the Neovim plugin is found on CI, not by `ready`.
+- A browser test run waits while two others run on the machine, and says so; on CI, alone on its
+  machine, it never waits.
+- A test reading `os.tmpdir()` across runs finds nothing there: each run starts with an empty one.
 - Coverage can go down unnoticed, until someone reads the report.
 - A bug specific to macOS or arm64 is only caught by the release builds, or by a contributor.
 - Generated declarations show up in diffs, so a reviewer sees every change to the types crossing
@@ -129,5 +149,8 @@ experimental.
 - [`packages/web/vite.config.ts`](/packages/web/vite.config.ts), and web UI code, for React Compiler
 - [`package.json`](/package.json), [`vite.config.ts`](/vite.config.ts), [`flake.nix`](/flake.nix),
   [`rust-toolchain.toml`](/rust-toolchain.toml), `.config/nextest.toml`,
+  [`scripts/test-run.ts`](/scripts/test-run.ts),
+  [`free-port.ts`](/packages/server/src/free-port.ts),
+  [`fresh-binding.ts`](/packages/server/src/fresh-binding.ts),
   [`.github/workflows/`](/.github/workflows/), every feature that adds a package, a crate, or a
   tool, and every feature that adds a test reading files outside its own package or crate
