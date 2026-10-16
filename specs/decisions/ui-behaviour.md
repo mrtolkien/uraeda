@@ -98,14 +98,13 @@ fields that grow move the page's layout as the human types (the review of the
 commits take seconds while the hooks format files, and the human asked for "EXTREMELY CLEAR
 feedback" on every button that works in the background; they chose a spinner with the action's name
 and every other writing button blocked, over graying out the whole page
-([Q9](../2026-10-16-redesign-interface/clarifications-01.md#q9-what-does-a-button-that-writes-to-git-show-while-it-runs),
-[feedback for git writes](../2026-10-16-redesign-interface/discovery-01.md#feedback-for-git-writes)).
+([Q9](../done/2026-10-16-redesign-interface.md#q9-what-does-a-button-that-writes-to-git-show-while-it-runs),
+[feedback for git writes](../done/2026-10-16-redesign-interface.md#q9-what-does-a-button-that-writes-to-git-show-while-it-runs)).
 They asked for the sidebar to change at once, and chose to show the action rather than a guessed
 status, which would copy the workflow's rules into the browser against the [stack](stack.md)
-decision
-([Q10](../2026-10-16-redesign-interface/clarifications-01.md#q10-how-do-optimistic-statuses-work)).
-The "…" and the fold button show under the pointer, as the human asked, and stay reachable without
-one ([Q5](../2026-10-16-redesign-interface/clarifications-01.md#q5-what-does-hiding-a-sidebar-do)).
+decision ([Q10](../done/2026-10-16-redesign-interface.md#q10-how-do-optimistic-statuses-work)). The
+"…" and the fold button show under the pointer, as the human asked, and stay reachable without one
+([Q5](../done/2026-10-16-redesign-interface.md#q5-what-does-hiding-a-sidebar-do)).
 
 ## Alternatives considered
 

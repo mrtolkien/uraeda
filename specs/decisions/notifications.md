@@ -39,13 +39,12 @@ Push, are left to a feature of their own.
 
 The human asked to be pinged when input is needed, and chose notifications for what needs them only,
 from an open tab on desktop browsers, with the tab's title counting what waits, leaving the phone to
-its own feature
-([Q11](../2026-10-16-redesign-interface/clarifications-01.md#q11-what-sends-a-notification),
-[Q13](../2026-10-16-redesign-interface/clarifications-01.md#q13-where-do-notifications-reach-you)).
-Firefox and Safari ignore a permission request no click asked for, and a refusal cannot be asked
-again, so the page explains first and asks on "Turn on"
-([Q12](../2026-10-16-redesign-interface/clarifications-01.md#q12-how-does-uraeda-ask-for-permission-to-notify),
-[browser notifications](../2026-10-16-redesign-interface/discovery-01.md#browser-notifications)).
+its own feature ([Q11](../done/2026-10-16-redesign-interface.md#q11-what-sends-a-notification),
+[Q13](../done/2026-10-16-redesign-interface.md#q13-where-do-notifications-reach-you)). Firefox and
+Safari ignore a permission request no click asked for, and a refusal cannot be asked again, so the
+page explains first and asks on "Turn on"
+([Q12](../done/2026-10-16-redesign-interface.md#q12-how-does-uraeda-ask-for-permission-to-notify),
+[browser notifications](../done/2026-10-16-redesign-interface.md)).
 
 ## Alternatives considered
 

@@ -56,7 +56,7 @@ Only git repositories can be added, since every call into the core needs one
 
 the human asked to rename a feature or give it a colour from the sidebar, kept by the server so
 every device sees them, without touching git
-([Q14](../2026-10-16-redesign-interface/clarifications-01.md#q14-what-do-renaming-and-colouring-a-feature-change));
+([Q14](../done/2026-10-16-redesign-interface.md#q14-what-do-renaming-and-colouring-a-feature-change));
 they are data about a repository, like its entry. Notifications cover every repository the server
 has, from one tab ([notifications](notifications.md)).
 

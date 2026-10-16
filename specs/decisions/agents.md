@@ -128,11 +128,10 @@ the UI said "Needs you" while a background command, like a long review, still ra
 back to working when it reported; the human asked for runs to "_fully_ finish" before saying they
 wait on them, and chose to count background commands too, since "a background command is part of an
 agent run" and agents leave no dev servers running when they are done
-([Q8](../2026-10-16-redesign-interface/clarifications-01.md#q8-does-a-background-command-keep-a-run-working),
-[when a run is over](../2026-10-16-redesign-interface/discovery-01.md#when-a-run-is-over)). Claude
-Code's print mode already stays open for background commands, and stops those of unattended sessions
-after 30 minutes by default
-([end of a run](../2026-10-16-redesign-interface/discovery-01.md#claude-codes-end-of-a-run)).
+([Q8](../done/2026-10-16-redesign-interface.md#q8-does-a-background-command-keep-a-run-working),
+[when a run is over](../done/2026-10-16-redesign-interface.md#q8-does-a-background-command-keep-a-run-working)).
+Claude Code's print mode already stays open for background commands, and stops those of unattended
+sessions after 30 minutes by default ([end of a run](../done/2026-10-16-redesign-interface.md)).
 
 ## Alternatives considered
 
