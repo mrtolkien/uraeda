@@ -20,4 +20,7 @@ afterAll(() => {
     }
   }
   rmSync(directory, { force: true, recursive: true });
-});
+  // A test file's thousands of files, its repositories' and data folders', took 13 to 16 seconds
+  // to remove with every worker removing its own at once, under several checkouts' tests: past
+  // the hooks' 10 seconds, which failed files whose tests had all passed. Cleanup is given time.
+}, 120_000);
