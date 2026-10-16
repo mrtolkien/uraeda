@@ -14,6 +14,7 @@ import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
 import { previewUpgrade } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
+import { oldGroupsFolder, removeOldRunFiles } from "./run-folder.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
@@ -227,9 +228,12 @@ async function startOpened(
 ): Promise<Server> {
   const { adapter, binding, dataDir } = options;
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
-  // The Storybooks a killed server left run no more: their record's groups are killed first.
+  // The Storybooks a killed server left run no more: their record's groups are killed first, an
+  // earlier version's in the data folder's root too, before its running files there are removed.
   const record = groupsFolder(dataDir);
   killLeftGroups(record);
+  killLeftGroups(oldGroupsFolder(dataDir));
+  removeOldRunFiles(dataDir);
   const previews = livePreviews({ record: new GroupRecord(record) });
   // One frame secret for the server: each replacement restarts its Storybooks under the new base.
   const frames = new FrameSecret();

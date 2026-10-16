@@ -1,4 +1,5 @@
-import { afterEach } from "vite-plus/test";
+import { spawn } from "node:child_process";
+import { afterEach, onTestFinished } from "vite-plus/test";
 import {
   addChange,
   addPlan,
@@ -348,4 +349,31 @@ export function searchCache(sessions = 500, items = 100_000) {
     }
   }
   return { cache, needle };
+}
+
+/** Whether the process is running. */
+export function running(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A process leading a group of its own, as a Storybook does, killed after the test: its pid. */
+export function groupLeader(): number {
+  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1 << 30)"], {
+    detached: true,
+    stdio: "ignore",
+  });
+  child.unref();
+  onTestFinished(() => {
+    try {
+      process.kill(-child.pid!, "SIGKILL");
+    } catch {
+      // Already killed.
+    }
+  });
+  return child.pid!;
 }
