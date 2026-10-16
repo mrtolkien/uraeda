@@ -11,11 +11,9 @@ import {
   draftDataView,
   featureDataView,
   fileDataView,
-  folderSuggestionsDataView,
   inboxDataView,
   prioritiesDataView,
   proposalHintsDataView,
-  repositoriesDataView,
   Root as Views,
   sessionDataView,
   sessionListDataView,
@@ -29,6 +27,7 @@ import {
 import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { settingsDataView } from "./fate/settings.ts";
+import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
 
 export {
   agentDataView,
@@ -60,12 +59,12 @@ export {
   INBOX_ID,
   PRIORITIES_ID,
   PROPOSAL_HINTS_ID,
-  REPOSITORIES_ID,
   SESSION_LIST_ID,
   TRIAGE_ID,
   WORKSPACE_ID,
 } from "./fate/views.ts";
 export { SETTINGS_ID } from "./fate/settings.ts";
+export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;

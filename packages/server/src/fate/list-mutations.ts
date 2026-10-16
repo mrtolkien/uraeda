@@ -7,7 +7,7 @@ import { typedFolder } from "../folders.ts";
 import { type Context, unlockedList } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { repositoriesRecord, sources } from "./sources.ts";
-import { repositoriesDataView } from "./views.ts";
+import { repositoriesDataView } from "./views-repositories.ts";
 
 /** The arguments of a mutation of the list, which every endpoint serves. */
 export type ListResolver<Input> = { ctx: Context; input: Input; select: Array<string> };
