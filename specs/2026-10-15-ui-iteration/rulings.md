@@ -476,16 +476,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 9, `packages/web/src/stories.tsx`, `Blocks.tsx`, `StoryPick.tsx`; tasks 10 and 11
   provide `{ path, save }`.
 
-## R33: A Mockups button scrolls to its story's embed, else opens its Storybook page
+## R33: A Mockups button scrolls to its story's embed, else opens its Storybook page, or its file without a preview decision
 
 - **Decision**: a story's button in a review's Mockups finds the embed of the same file and export
   among the version's `stories`, by the element id `story-<block>`, and scrolls to it under the top
-  bar, as an address's anchor does, opening first the fold that holds it, when closed. When no embed
-  shows, without a preview decision, it opens the Storybook page at the story.
-- **Rationale**: the spec's edge case asks the buttons to scroll to each story's embed; a story with
-  no embed on the page has nowhere to scroll, and `/f/<folder>/<path>` is not a page for a stories
-  file.
-- **Alternatives considered**: a button that does nothing without an embed; the raw file.
+  bar, as an address's anchor does, opening first the fold that holds it, when closed. When the
+  checkout has a preview decision but no embed shows, it opens the Storybook page at the story.
+  Without a preview decision, it opens the stories file, as the story's link does (`pathLink`): its
+  raw file, in a new tab.
+- **Rationale**: the spec's edge case asks the buttons to scroll to each story's embed, and makes a
+  story link without a preview decision a plain link opening the file; a story with no embed on the
+  page has nowhere to scroll, and `/f/<folder>/<path>` is not a page for a stories file. Without a
+  preview decision, the Storybook page has nothing to show.
+- **Alternatives considered**: a button that does nothing without an embed; the raw file whenever no
+  embed shows.
 - **If wrong**: one branch of `ReviewMockups.tsx`.
 - **Where**: task 9, `packages/web/src/ReviewMockups.tsx`.
 
