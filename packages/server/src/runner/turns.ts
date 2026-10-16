@@ -6,7 +6,6 @@ import {
   type Live,
   type Message,
   type Proc,
-  REPLACED,
   RESUMED,
   type Running,
   type Sent,
@@ -48,8 +47,9 @@ export class Turns {
       allowed: string | null;
       item: Message;
       kind: TurnKind;
+      /** The system line it opens with, when its process started a new agent session. */
+      line?: string;
       message: Outgoing;
-      replaced: boolean;
       step: string | null;
       trigger: Trigger | null;
     },
@@ -64,8 +64,8 @@ export class Turns {
       trigger: turn.trigger,
     });
     this.track(id);
-    if (turn.replaced) {
-      cache.appendItem(id, { kind: "system", text: REPLACED });
+    if (turn.line !== undefined) {
+      cache.appendItem(id, { kind: "system", text: turn.line });
     }
     const seq = cache.appendItem(id, turn.item);
     live.messages.set(turn.message.id, { item: turn.item, seq, turn: id, written: true });
@@ -229,9 +229,9 @@ export class Turns {
     if (!queued) {
       return;
     }
-    let replaced: boolean;
+    let line: string | undefined;
     try {
-      ({ replaced } = await processes.open(live));
+      ({ line } = await processes.open(live, { fresh: queued.fresh === true }));
     } catch (error) {
       // The turns cannot run: each fails with why.
       const reason = String((error as Error).message ?? error).replace(/^refused: /, "");
@@ -248,8 +248,8 @@ export class Turns {
     }
     live.queue.shift();
     cache.startTurn(queued.id);
-    if (replaced) {
-      cache.appendItem(queued.id, { kind: "system", text: REPLACED });
+    if (line !== undefined) {
+      cache.appendItem(queued.id, { kind: "system", text: line });
     }
     this.#run(live, queued.id, queued.message);
   }

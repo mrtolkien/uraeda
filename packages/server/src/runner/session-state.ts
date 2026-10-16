@@ -42,6 +42,10 @@ export const REFUSALS = {
 /** The line a turn shows when its session's transcript was gone, and a new one started. */
 export const REPLACED = "Started a new session: the previous one is gone.";
 
+/** The line a turn shows when it started a new agent session, from the repository alone. */
+export const FRESH =
+  "Started a new session for this run: the agent reads the repository, not the turns above.";
+
 /** The line a turn shows when it reopened: its agent went on after it ended. */
 export const RESUMED = "The agent went on by itself: a background task reported back.";
 
@@ -105,8 +109,11 @@ export type Running = {
   watchdog?: Timer;
 };
 
-/** A turn waiting for the running one to end: its message is written when it starts. */
-export type Queued = { id: number; message: Outgoing };
+/**
+ * A turn waiting for the running one to end: its message is written when it starts, in a new agent
+ * session when `fresh`.
+ */
+export type Queued = { fresh?: boolean; id: number; message: Outgoing };
 
 /** A message this server sent, or will send, and where its item is. */
 export type Sent = { item: Message; seq: number; turn: number; written: boolean };

@@ -250,6 +250,7 @@ export class Sessions {
     }
 
     const kind: TurnKind = workflow ? "workflow" : "chat";
+    const fresh = workflow?.fresh === true;
     const opening =
       kind === "chat" && live.folder !== null && branch !== undefined && this.#opens(live)
         ? chatOpening({ branch, feature: await binding.readFeature(live.repo, live.folder) })
@@ -278,13 +279,13 @@ export class Sessions {
       turns.track(queued);
       const seq = cache.appendItem(queued, item);
       live.messages.set(id, { item, seq, turn: queued, written: false });
-      live.queue.push({ id: queued, message });
+      live.queue.push({ ...(fresh ? { fresh } : {}), id: queued, message });
       changed(live, queued, "queued");
       return { turn: queued };
     }
 
-    const { replaced } = await processes.open(live);
-    return { turn: turns.begin(live, { ...turn, item, message, replaced }) };
+    const { line } = await processes.open(live, { fresh });
+    return { turn: turns.begin(live, { ...turn, item, line, message }) };
   }
 
   /** Whether a chat message starts with the opening line: first, or after a workflow run. */
@@ -368,7 +369,7 @@ export class Sessions {
       if (live.turn || live.queue.length > 0) {
         throw refused(REFUSALS.working);
       }
-      const { replaced } = await processes.open(live, rule);
+      const { line } = await processes.open(live, { allowed: rule });
       const id = randomUUID();
       const text = retryMessage(denial);
       const started = turns.begin(live, {
@@ -376,7 +377,7 @@ export class Sessions {
         item: { id, kind: "message", origin: "human", state: "pending", text },
         kind: "allow",
         message: { id, images: [], text, when: "queue" },
-        replaced,
+        ...(line === undefined ? {} : { line }),
         step: null,
         trigger: null,
       });

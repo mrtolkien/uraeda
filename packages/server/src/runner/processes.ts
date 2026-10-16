@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { AgentEvent, UsageLimit } from "./events.ts";
 import {
+  FRESH,
   type Live,
   type Proc,
   REFUSALS,
   refused,
+  REPLACED,
   rowOf,
   type SessionContext,
   TERMINATE_AFTER_MS,
@@ -56,13 +58,17 @@ export class Processes {
 
   /**
    * The session's open process, opened when it has none, or when it is closing: then once it
-   * exited. A transcript that is gone starts a new agent session. `allowed` reopens the process
-   * with the rule.
+   * exited. A transcript that is gone starts a new agent session, and so does `fresh`, for a run
+   * that starts from the repository alone, the process open closed first: `line` says so, in the
+   * session that ran before. `allowed` reopens the process with the rule.
    */
-  async open(live: Live, allowed?: string): Promise<{ proc: Proc; replaced: boolean }> {
+  async open(
+    live: Live,
+    { allowed, fresh = false }: { allowed?: string; fresh?: boolean } = {},
+  ): Promise<{ line?: string; proc: Proc }> {
     const { adapter, binding, cache } = this.#context;
-    if (live.proc && !live.proc.closing && allowed === undefined) {
-      return { proc: live.proc, replaced: false };
+    if (live.proc && !live.proc.closing && allowed === undefined && !fresh) {
+      return { proc: live.proc };
     }
     if (live.proc) {
       this.close(live.proc);
@@ -75,11 +81,12 @@ export class Processes {
     try {
       const cwd = live.folder === null ? live.repo : await binding.workDir(live.repo, live.folder);
       const row = rowOf(cache, live);
-      const resume = adapter.hasSession(row.nativeId);
+      const resume = !fresh && adapter.hasSession(row.nativeId);
+      const ran = cache.turns(live.id).some((turn) => turn.startedAt !== null);
       // A session that ran before has lost its transcript: Claude Code deletes old ones.
-      const replaced = !resume && cache.turns(live.id).some((turn) => turn.startedAt !== null);
-      const nativeId = replaced ? randomUUID() : row.nativeId;
-      if (replaced) {
+      const line = resume || !ran ? undefined : fresh ? FRESH : REPLACED;
+      const nativeId = line === undefined ? row.nativeId : randomUUID();
+      if (line !== undefined) {
         cache.updateSession(live.id, { nativeId });
       }
       const agent = adapter.open({
@@ -98,7 +105,7 @@ export class Processes {
       };
       live.proc = proc;
       proc.done = this.#consume(live, proc);
-      return { proc, replaced };
+      return { proc, ...(line === undefined ? {} : { line }) };
     } catch (error) {
       cache.releaseSession(live.id);
       throw error;

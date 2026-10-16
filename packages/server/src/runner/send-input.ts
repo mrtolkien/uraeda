@@ -7,11 +7,14 @@ import { REFUSALS, refused } from "./session-state.ts";
 /** A chat image sent with a message: its ID and size, which its item keeps, and its file's path. */
 export type SentImage = ChatImage & { path: string };
 
-/** A message to send: its text, its chat images, and for the workflow's, what started it. */
+/**
+ * A message to send: its text, its chat images, and for the workflow's, what started it, and
+ * whether its run starts a new agent session, `fresh`.
+ */
 export type SendInput = {
   images?: Array<SentImage>;
   text: string;
-  workflow?: { file?: string; trigger: Trigger };
+  workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
 };
 
 /**

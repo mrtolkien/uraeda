@@ -306,8 +306,11 @@ const repositoryMutations = {
       /** The session to send to. */
       session?: string;
       text: string;
-      /** The workflow's message, which starts the feature's step. */
-      workflow?: { file?: string; trigger: Trigger };
+      /**
+       * The workflow's message, which starts the feature's step: in a new agent session when
+       * `fresh`.
+       */
+      workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
     }>) => {
       const { workflow } = input;
       if (workflow && !TRIGGERS.includes(workflow.trigger)) {
@@ -338,6 +341,7 @@ const repositoryMutations = {
                 workflow: {
                   trigger: workflow.trigger,
                   ...(workflow.file === undefined ? {} : { file: workflow.file }),
+                  ...(workflow.fresh === true ? { fresh: true } : {}),
                 },
               }),
         }),
