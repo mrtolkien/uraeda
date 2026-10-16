@@ -217,6 +217,28 @@ test("stopping stops every Storybook", async () => {
   await expect.poll(() => running(previewStarts(log)[0]!.pid), { timeout: 10_000 }).toBe(false);
 });
 
+test("removing a repository from the list stops its Storybooks", async () => {
+  const repo = fixtureRepo();
+  const log = addPreview(repo, { folder: "." });
+  const dataDir = temporaryFolder("uraeda-data");
+  const server = await start(repo, dataDir);
+  const [{ name }] = server.hosts.all();
+  const base = `/r/${encodeURIComponent(name!)}/preview/main/`;
+  server.previews.view({
+    base,
+    command: (await binding.preview(repo))!.command,
+    dir: repo,
+    folder: ".",
+  });
+  await expect.poll(() => server.previews.state(base)?.state, { timeout: 10_000 }).toBe("ready");
+
+  await binding.removeRepository(dataDir, name!);
+  await server.hosts.reload();
+
+  expect(server.previews.state(base)).toBeUndefined();
+  await expect.poll(() => running(previewStarts(log)[0]!.pid), { timeout: 10_000 }).toBe(false);
+});
+
 test("the server sweeps its Storybooks every minute", async () => {
   vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
   onTestFinished(() => {

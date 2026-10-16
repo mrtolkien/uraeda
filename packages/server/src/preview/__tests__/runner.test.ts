@@ -280,6 +280,25 @@ test("each checkout has its own Storybook", async () => {
   expect(new Set(starts.map(({ port }) => port)).size).toBe(2);
 });
 
+test("a view under a base whose Storybook runs in another folder stops it and starts one there", async () => {
+  // A repository removed from the list, and another of the same folder name added: the same base.
+  const { checkout, log, repo } = await storyCheckout();
+  const other = await checkoutOf(repo, checkout.base);
+  const runner = previews();
+  runner.view(checkout);
+  await ready(runner, checkout);
+  const [first] = previewStarts(log);
+
+  expect(runner.view(other)).toEqual({ state: "starting" });
+
+  await ready(runner, other);
+  const starts = previewStarts(log);
+  expect(starts).toHaveLength(2);
+  expect(starts[1]!.cwd).toBe(join(repo, "packages/web"));
+  expect(runner.state(other.base)).toEqual({ port: starts[1]!.port, state: "ready" });
+  await expect.poll(() => alive(first!.pid), WAIT).toBe(false);
+});
+
 test("a ready Storybook's index is read", async () => {
   const { checkout } = await storyCheckout();
   const runner = previews();
