@@ -17,10 +17,50 @@ pub const FILE: &str = "config.toml";
 /// process and a count, so writers in other processes never share it.
 const TEMPORARY: &str = "config.toml.";
 
-/// The file's text, `None` when there is none. Any other failure is the problem, as a reason.
-pub fn load(dir: &Path) -> Result<Option<String>, String> {
+/// How the file writes what its text holds: a byte order mark first, and line ends of `\r\n`. A
+/// write keeps both, and a new file has neither.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Layout {
+    mark: bool,
+    crlf: bool,
+}
+
+const MARK: char = '\u{feff}';
+
+impl Layout {
+    /// `raw`'s text without its layout, no mark and `\n` line ends, and the layout.
+    fn of(raw: &str) -> (String, Self) {
+        let mark = raw.starts_with(MARK);
+        let body = raw.strip_prefix(MARK).unwrap_or(raw);
+        let crlf = body.contains("\r\n");
+        let body = if crlf {
+            body.replace("\r\n", "\n")
+        } else {
+            body.to_owned()
+        };
+        (body, Self { mark, crlf })
+    }
+
+    /// `text` written in this layout.
+    fn apply(self, text: &str) -> String {
+        let body = if self.crlf {
+            text.replace('\n', "\r\n")
+        } else {
+            text.to_owned()
+        };
+        if self.mark {
+            format!("{MARK}{body}")
+        } else {
+            body
+        }
+    }
+}
+
+/// The file's text, without its mark and with `\n` line ends, and its layout; `None` when there
+/// is no file. Any other failure is the problem, as a reason.
+pub fn load(dir: &Path) -> Result<Option<(String, Layout)>, String> {
     match fs::read_to_string(dir.join(FILE)) {
-        Ok(text) => Ok(Some(text)),
+        Ok(raw) => Ok(Some(Layout::of(&raw))),
         Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
         Err(error) => Err(format!("{}.", reason(&error))),
     }
@@ -117,22 +157,35 @@ fn line(text: &str, offset: usize) -> usize {
     text[..offset.min(text.len())].matches('\n').count() + 1
 }
 
-/// Replaces the file whole with `text`: written aside, then renamed over it. The failure is its
+/// Replaces the file whole with `text`, in `layout`: written aside, then renamed over it. A
+/// symlink stays, the file it points to replaced; the file's permissions stay. The failure is its
 /// reason, `permission denied`.
-pub fn save(dir: &Path, text: &str) -> Result<(), String> {
+pub fn save(dir: &Path, text: &str, layout: Layout) -> Result<(), String> {
     let failed = |error: std::io::Error| reason(&error);
     fs::create_dir_all(dir).map_err(failed)?;
-    let temporary = temporary(dir);
+    let path = dir.join(FILE);
+    // A file that does not exist yet, or a symlink to nothing, has no target to resolve.
+    let target = fs::canonicalize(&path).unwrap_or(path);
+    let temporary = temporary(target.parent().unwrap_or(dir));
     let mut file = fs::File::create_new(&temporary).map_err(failed)?;
-    let written = file
-        .write_all(text.as_bytes())
+    let written = keep_permissions(&target, &file)
+        .and_then(|()| file.write_all(layout.apply(text).as_bytes()))
         .and_then(|()| file.sync_all())
-        .and_then(|()| fs::rename(&temporary, dir.join(FILE)));
+        .and_then(|()| fs::rename(&temporary, &target));
     if let Err(error) = written {
         let _ = fs::remove_file(&temporary);
         return Err(failed(error));
     }
     Ok(())
+}
+
+/// Gives `file` the permissions of the file at `target`, when there is one.
+fn keep_permissions(target: &Path, file: &fs::File) -> std::io::Result<()> {
+    match fs::metadata(target) {
+        Ok(metadata) => file.set_permissions(metadata.permissions()),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 /// An I/O error's kind, in lower case: `permission denied`.

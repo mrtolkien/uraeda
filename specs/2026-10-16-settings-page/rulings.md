@@ -85,3 +85,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   names, as it gave none before this feature.
 - **If wrong**: one condition in `loadEnv`.
 - **Where**: task 2, `packages/server/src/env.ts`
+
+## R8: A name listed twice is edited and removed in every place
+
+- **Decision**: when the file lists a name more than once, in any case, as a hand edit can, removing
+  it removes every copy, and editing it replaces the first and removes the others.
+- **Rationale**: the page shows each name once, read in lower case; acting on one copy would leave
+  the name allowed after the page said it was removed.
+- **Alternatives considered**: acting on the first copy only; refusing the change until the file is
+  fixed.
+- **If wrong**: one loop in `crates/core/src/settings.rs`.
+- **Where**: task 1
+
+## R9: A name's comments are the lines above it and the one ending its line
+
+- **Decision**: in a list of one name per line, a name added goes on a line of its own, indented
+  like the last name; a name removed takes with it the comment lines above it and the comment ending
+  its line, and every other name keeps its own. A file with any `\r\n` line end is written with
+  `\r\n` line ends throughout, and a leading byte order mark stays.
+- **Rationale**: SC-002 keeps every other byte; a comment is read as the human wrote it, about the
+  name it sits above or beside.
+- **Alternatives considered**: `toml_edit`'s own layout, which moves a removed name's comment onto
+  the next one and puts a name added after the last one's line end.
+- **If wrong**: a file mixing line ends gets `\r\n` everywhere; a comment above a name meant for the
+  one before goes with the wrong one.
+- **Where**: task 1, `crates/core/src/settings/list.rs` and `crates/core/src/settings/file.rs`
