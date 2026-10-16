@@ -11,7 +11,8 @@ import {
   TRIAGE_ID,
   WORKSPACE_ID,
 } from "./fate/views.ts";
-import { type LiveBus, live } from "./fate.ts";
+import { type LiveBus, live as globalLive } from "./fate.ts";
+import { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
@@ -45,6 +46,8 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
 export function publish(changes: Changes, host: Pick<Host, "path" | "live">, sessions?: Sessions) {
   const { live } = host;
   live.update("Workspace", WORKSPACE_ID, { eventId: eventId("workspace") });
+  // What needs the human spans every repository: its view is on the global bus.
+  globalLive.update("NeedsYouList", NEEDS_YOU_ID, { eventId: eventId("needs-you") });
   for (const folder of changes.features) {
     live.update("Feature", folder, { eventId: eventId(`feature:${folder}`) });
     live.update("BranchChanges", folder, { eventId: eventId(`changes:${folder}`) });
@@ -253,6 +256,10 @@ export function createSessions(options: {
     ...options,
     onChange: (change) => {
       publish(change);
+      // A session's status changes with its turn's state, which what needs the human reads.
+      if (!("agent" in change) && (change.turn === undefined || change.state !== undefined)) {
+        globalLive.update("NeedsYouList", NEEDS_YOU_ID, { eventId: eventId("needs-you") });
+      }
       if ("agent" in change || change.state !== "done" || change.folder === null) {
         return;
       }
@@ -270,7 +277,7 @@ export function createSessions(options: {
  */
 export function announceSettings(settings: ServerSettings, hosts: Pick<Hosts, "all">): () => void {
   return settings.onChange(() => {
-    for (const bus of new Set([live, ...hosts.all().map((host) => host.live)])) {
+    for (const bus of new Set([globalLive, ...hosts.all().map((host) => host.live)])) {
       sender(bus)("Settings", SETTINGS_ID);
     }
   });

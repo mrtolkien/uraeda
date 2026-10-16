@@ -26,6 +26,7 @@ import type {
 } from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
 import type { ItemLook } from "./items.ts";
+import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { settingsDataView } from "./settings.ts";
 
@@ -481,6 +482,7 @@ export const Root = {
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),
   inboxes: list(inboxDataView),
+  needsYouLists: list(needsYouListDataView),
   previews: list(previewDataView),
   prioritiesList: list(prioritiesDataView),
   proposalHintsList: list(proposalHintsDataView),

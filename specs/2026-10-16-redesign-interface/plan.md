@@ -653,17 +653,18 @@ git commit -m "feat(redesign-interface): background commands hold their run"
 
 - Produces:
   `NeedsYouRecord = { id: string; key: string; repository: string; folder: string; label: string; title: string; reason: "blocked" | "attention" | "step" | "pull-request"; message: string; href: string }`,
-  on the global endpoint as list `needsYouList`, live on the global bus. `id` is
-  `<repository>/<folder>`; `key` joins it with the reason and the step name or the latest turn's id.
-  Its rows come from each host's session rows and workspace through the same `statusOf`, the reason
-  picked in the spec's order: refused action, failed or stopped run, step waiting, pull request
-  ready. `message` is one of the spec's: "Questions to answer", "The spec to review", "The plan to
-  review", "The proposal to write", "The agent was refused an action", "The run failed", "The run
-  stopped before a gate", "Pull request #31 is ready for review". `href` is the repository's path:
-  the waiting file for a step (`waiting()`'s target, from the core's `step.file`), the session for a
-  refused action or a run, the feature for a pull request. `label` is the item's name or slug.
+  on the global endpoint, live on the global bus; `needsYouReason({ status, statusReason, step })`
+  picks the reason. `id` is `<repository>/<folder>`; `key` joins it with the reason and the step
+  name or the latest turn's id. Its rows come from each host's session rows and workspace through
+  the same `statusOf`, the reason picked in the spec's order: refused action, failed or stopped run,
+  step waiting, pull request ready. `message` is one of the spec's: "Questions to answer", "The spec
+  to review", "The plan to review", "The proposal to write", "The agent was refused an action", "The
+  run failed", "The run stopped before a gate", "Pull request #31 is ready for review". `href` is
+  the repository's path: the waiting file for a step (`waiting()`'s target, from the core's
+  `step.file`), the session for a refused action or a run, the feature for a pull request. `label`
+  is the item's name or slug.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `needs-you.test.ts`, on `testServer` with two repositories: a feature at its questions in each lists
 two rows, with "Questions to answer" and `/r/<name>/f/<folder>/clarifications-01.md` (US6.5); a
@@ -673,16 +674,16 @@ waiting on the agent lists nothing; committing the answers removes its row, live
 The break each test catches: rows read from one repository only; the reason's order inverted; the
 row kept after the step moves.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/needs-you.test.ts`
 - Expected: FAIL, `needsYouList` unknown
 
-- [ ] **Step 3: Implement**, as in **Interfaces**.
+- [x] **Step 3: Implement**, as in **Interfaces**.
 
-- [ ] **Step 4: Run all tests** (`vp check`, `vp run ts:test`), Expected: PASS
+- [x] **Step 4: Run all tests** (`vp check`, `vp run ts:test`), Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-16-redesign-interface/plan.md
