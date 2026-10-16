@@ -295,6 +295,7 @@ export const tasks = {
       input: [
         "packages/uraeda/**",
         "packages/binding/*.node",
+        "packages/server/src/free-port.ts",
         "scripts/test-run.ts",
         "!**/node_modules/**",
       ],
