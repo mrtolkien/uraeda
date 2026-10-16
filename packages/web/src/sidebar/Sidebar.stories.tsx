@@ -65,9 +65,6 @@ const CHANGES: Array<CardItem> = [
   },
 ];
 
-/** The feature renamed "Sidebar", in purple. */
-const SIDEBAR = "2026-10-16-redesign-interface";
-
 /** In the flow's order: the earliest step first. */
 const FEATURES: Array<CardItem> = [
   {
@@ -158,25 +155,9 @@ function FlowRow({ add, count, label }: { add: string; count: number; label: str
   );
 }
 
-function Cards({
-  items,
-  revealed,
-  tagged = false,
-}: {
-  items: Array<CardItem>;
-  /** The folder of the card under the pointer. */
-  revealed?: string;
-  tagged?: boolean;
-}) {
+function Cards({ items, tagged = false }: { items: Array<CardItem>; tagged?: boolean }) {
   return items.map((item) => (
-    <ItemCard
-      hasChangeTag={tagged}
-      href="#"
-      isRevealed={revealed === item.folder ? true : undefined}
-      item={item}
-      key={item.folder}
-      onSettings={() => {}}
-    />
+    <ItemCard hasChangeTag={tagged} href="#" item={item} key={item.folder} onSettings={() => {}} />
   ));
 }
 
@@ -230,7 +211,7 @@ function SidebarMockup({
               <Cards items={changes} />
             </SideNavSection>
             <SideNavSection title="Features">
-              <Cards items={features} {...(isRevealed ? { revealed: SIDEBAR } : {})} />
+              <Cards items={features} />
             </SideNavSection>
             <SideNavSection title="Chats">
               <SideNavItem href="#" icon={<span aria-hidden="true">＋</span>} label="New chat" />
@@ -265,7 +246,7 @@ type Story = StoryObj<typeof meta>;
  */
 export const Unfolded: Story = { args: {} };
 
-/** Under the pointer: the button that folds the sidebar, and the "…" of the card it is over. */
+/** Under the pointer: the button that folds the sidebar; every card's "…" is always there. */
 export const UnderThePointer: Story = { args: { isRevealed: true } };
 
 /** Folded to its rail: each item's step icon and status, the button that unfolds it on top. */

@@ -11,7 +11,7 @@ import {
 
 const label = "Claude five-hour allowance remaining";
 
-test("five-hour allowance sits in Agents at work, updates, and disappears when the runner exits", async () => {
+test("five-hour allowance closes the Features section, updates, and disappears when the runner exits", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const chat = await fake.sessions.newChat(repo);
@@ -20,7 +20,7 @@ test("five-hour allowance sits in Agents at work, updates, and disappears when t
   await fake.sessions.settled((await fake.sessions.send(repo, chat.id, { text: "Hello" })).turn);
   await renderPage("/", repo, { agent: fake });
 
-  const group = within(await screen.findByRole("group", { name: "Agents at work" }));
+  const group = within(await screen.findByRole("group", { name: "Features" }));
   expect(group.getByText("Claude 5h")).toBeTruthy();
   expect(group.getByText(/57% left · reset/)).toBeTruthy();
   expect(group.getByRole("progressbar", { name: label }).getAttribute("aria-valuenow")).toBe("57");
@@ -39,7 +39,7 @@ test("five-hour allowance sits in Agents at work, updates, and disappears when t
 
 test("a runner without usage data shows no allowance", async () => {
   await renderPage("/", undefined, { agent: true });
-  await screen.findByRole("group", { name: "Agents at work" });
+  await screen.findByRole("group", { name: "Features" });
   expect(screen.queryByText("Claude 5h")).toBeNull();
   expect(screen.queryByRole("progressbar", { name: label })).toBeNull();
 });
@@ -60,7 +60,7 @@ test("loading the allowance keeps the page and working features visible", async 
   try {
     await renderPage("/", repo, { agent: fake, fetch });
     await screen.findByRole("heading", { name: "Waiting on you" });
-    const group = within(screen.getByRole("group", { name: "Agents at work" }));
+    const group = within(screen.getByRole("group", { name: "Features" }));
     expect(group.getByRole("link", { name: /^cli-tuis,/ })).toBeTruthy();
     expect(waiting).toBe(true);
   } finally {
