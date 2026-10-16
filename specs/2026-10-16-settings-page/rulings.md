@@ -162,3 +162,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   what a human keeps there; the old folder's name written again in `server.ts`.
 - **If wrong**: one pattern in `packages/server/src/run-folder.ts`.
 - **Where**: task 4, `packages/server/src/run-folder.ts`
+
+## R14: The settings mutations have their own module
+
+- **Decision**: `fate/settings.ts` holds the record's view, id, and reader;
+  `fate/settings-mutations.ts` holds the five mutations, which mask their answer through `sources`.
+  The live update is sent by `announceSettings` in `live.ts`, beside the other publishers, called
+  once by `createApp`.
+- **Rationale**: `sources.ts` reads the view from `fate/settings.ts`; mutations there, masking
+  through `sources`, would make the two modules import each other, and a test or a module importing
+  `fate/settings.ts` first would read the view before it exists. `list-mutations.ts` is the same
+  shape for the list.
+- **Alternatives considered**: the mutations in `fate/settings.ts` with an import cycle; a second
+  source registry in `fate/settings.ts` for masking alone.
+- **If wrong**: the mutations move into `fate/settings.ts`, unchanged.
+- **Where**: task 5, `packages/server/src/fate/settings-mutations.ts`

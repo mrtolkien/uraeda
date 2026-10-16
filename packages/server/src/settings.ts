@@ -97,6 +97,8 @@ type SettingsOptions = {
  * cannot be read, the defaults applying meanwhile.
  */
 export class ServerSettings {
+  /** The config folder, the settings file's, which the page's changes write. */
+  readonly dir: string;
   /** The settings file, with `~` for the home folder. */
   readonly file: string;
   /** Why the file could not be read at the last read, or null when it was, or there is none. */
@@ -112,6 +114,7 @@ export class ServerSettings {
 
   private constructor({ options, ...rest }: SettingsOptions) {
     this.#options = rest;
+    this.dir = rest.dir;
     this.#given = checked(options, rest.binding.checkedPort);
     this.file = rest.binding.settingsFile(rest.dir);
     this.#view = inForce(this.#given, null);

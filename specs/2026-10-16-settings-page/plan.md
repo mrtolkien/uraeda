@@ -570,12 +570,15 @@ git commit -m "feat(settings-page): a running server's files in run/"
 
 **Files:**
 
-- Create: `packages/server/src/fate/settings.ts`,
+- Create: `packages/server/src/fate/settings.ts`, `packages/server/src/fate/settings-mutations.ts`
+  ([R14](rulings.md#r14-the-settings-mutations-have-their-own-module)),
   `packages/server/src/__tests__/settings-fate.test.ts`
 - Modify: `packages/server/src/fate/context.ts` (`settings: ServerSettings`),
   `packages/server/src/fate/views.ts` (one `Root` entry), `packages/server/src/fate/sources.ts` (one
   source entry), `packages/server/src/fate/mutations.ts` (spread the settings mutations beside
-  `listMutations`), `packages/server/src/fate.ts` (exports), `packages/server/src/app.ts` (context)
+  `listMutations`), `packages/server/src/fate.ts` (exports), `packages/server/src/app.ts` (context,
+  and `announceSettings`), `packages/server/src/live.ts` (`announceSettings`),
+  `packages/server/src/settings.ts` (`dir`, the config folder the mutations write)
 
 **Interfaces:**
 
@@ -588,7 +591,7 @@ git commit -m "feat(settings-page): a running server's files in run/"
   `refused: <message>` error; a `Settings` update on the global bus and every host's bus when
   `ServerSettings` changes.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - Reading `settings` on the global endpoint gives the record of an empty folder: no host names, port
   4310 from the default, a browser opened.
@@ -602,22 +605,24 @@ git commit -m "feat(settings-page): a running server's files in run/"
 The break each test catches: a record built from `Options`; a mutation that answers before the
 settings reload; updates sent only to one bus.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-server src/__tests__/settings-fate.test.ts`
-- Expected: FAIL, `Failed to resolve import "../fate/settings.ts"`
+- Expected: FAIL, `No source registered for 'Settings'.`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Each mutation calls the binding, then `ctx.settings.reload()`, then answers the record masked to the
-selection, as `listChanged` does.
+selection, as `listChanged` does. `announceSettings(settings, hosts)` in `live.ts`, called once by
+`createApp`, sends the update on each `ServerSettings` change; `settings.close()`, as the server
+stops, removes it.
 
-- [ ] **Step 4: Run all server tests**
+- [x] **Step 4: Run all server tests**
 
 - Run: `vp test --project uraeda-server && vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-16-settings-page/plan.md

@@ -25,6 +25,7 @@ import type {
 } from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
+import { settingsDataView } from "./settings.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
@@ -474,6 +475,7 @@ export const Root = {
   sessionLists: list(sessionListDataView),
   sessions: list(sessionDataView),
   sessionSearches: list(sessionSearchDataView),
+  settingsList: list(settingsDataView),
   slugProposals: list(slugProposalDataView),
   stories: list(storyDataView),
   storyHrefs: list(storyHrefDataView),

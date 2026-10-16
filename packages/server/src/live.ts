@@ -2,6 +2,7 @@ import type { Changes } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { changedRecords, takeWatched, type Watched } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
+import { SETTINGS_ID } from "./fate/settings.ts";
 import {
   AGENT_ID,
   INBOX_ID,
@@ -16,6 +17,7 @@ import type { Host, Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import type { SessionCache } from "./runner/cache.ts";
 import { type SessionChange, Sessions } from "./runner/sessions.ts";
+import type { ServerSettings } from "./settings.ts";
 
 /** A session's live updates are sent at most this often while its items change. */
 export const SESSION_UPDATE_MS = 250;
@@ -259,4 +261,17 @@ export function createSessions(options: {
     },
   });
   return sessions;
+}
+
+/**
+ * Sends the `Settings` record's live update on the global bus and every host's, each time the
+ * settings in force or their problem change, once per change: returns its removal, which
+ * `settings.close()`, as the server stops, makes too.
+ */
+export function announceSettings(settings: ServerSettings, hosts: Pick<Hosts, "all">): () => void {
+  return settings.onChange(() => {
+    for (const bus of new Set([live, ...hosts.all().map((host) => host.live)])) {
+      sender(bus)("Settings", SETTINGS_ID);
+    }
+  });
 }
