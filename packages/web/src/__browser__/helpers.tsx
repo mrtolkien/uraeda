@@ -80,6 +80,8 @@ export async function reducedMotion(reduce: boolean) {
 beforeEach(async () => {
   // What a page remembers, like the question a round was left at, is another test's.
   window.localStorage.clear();
+  // The banner that asks to notify shows above every page until dismissed: a test of its own shows it.
+  window.localStorage.setItem("uraeda.notifications", "dismissed");
   await colorScheme("light");
   ({ name, token: turn } = await commands.takeRepo());
 });

@@ -253,3 +253,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   them, and would rethrow them.
 - **If wrong**: the actions throw, and `runWrite` catches.
 - **Where**: task 10.
+
+## R19: The notifier's tag is the item, and a tab in front holds a lock
+
+- **Decision**: a notification's `tag` is the item's id, not its key, so a new ask for an item
+  replaces the last one shown for it, as the notifications decision asks. A tab in front holds the
+  shared Web Lock `uraeda.front`, which the notifying tab reads before it notifies: no tab in front,
+  across tabs, without a channel of their own. The notifier runs in a repository's shell, on the
+  global client: a page without a repository, like a missing folder, does not notify, and a server
+  that cannot be reached shows its one error. The banner shows nothing when the browser already
+  answered, and "unsupported" when `requestPermission` throws; a browser without `Notification`
+  shows no banner, as the plan says. The browser tests start with the banner dismissed: the
+  notifier's own tests show it.
+- **Rationale**: the plan's `tag: key` would stack one notification per ask of the same item; the
+  front lock rests on the lock API the notifier already uses; the notifier outside the shell logged
+  a second error where the server could not be reached.
+- **Alternatives considered**: a `BroadcastChannel` of the tabs' visibility: a second API, and a
+  closed tab's last message to trust.
+- **If wrong**: the tag becomes the key, and the notifier moves up to the app.
+- **Where**: task 11.
