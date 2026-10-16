@@ -4,7 +4,23 @@ discovery: high # low, medium, or high: how far the agent researches before aski
 
 # Auth and login for basic security
 
-## What
+## What (human written)
+
+I want to be able to use uraeda remotely, from my phone, laptop, ...
+
+Right now I access it through Tailscale and that was enough security for the early prototype, but we
+should add some basic security.
+
+We only need to support a single user for the moment, but it's important to be able to easily login
+from multiple places. The key should be stable and not change on server restarts.
+
+Keep it simple _but_ it should be secure enough to start running uraeda on a public,
+internet-accessible server.
+
+You should also directly start working from the ui-iteration branch, it's almost done and includes
+features that relate to security and access.
+
+## What (agent written)
 
 Auth and login for basic security: only the human, or the people they allow, can reach Uraeda's
 server and what it runs, from this computer or through Tailscale.
