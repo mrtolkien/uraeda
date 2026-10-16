@@ -1,6 +1,7 @@
 import { createElement, useCallback, useSyncExternalStore } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
+import { WriteButton } from "../writes/WriteButton.tsx";
 
 /** The undo toasts on screen, by the function that closes each. */
 const open = new Set<() => void>();
@@ -53,27 +54,43 @@ export function useUndoErrors(): [ReadonlyArray<UndoError>, (id: number) => void
 /**
  * Confirms a change the human cannot see on screen, for 5 seconds, with one Undo that reverts it.
  * `undo` resolves with nothing once reverted, or with the error to show instead: in the page,
- * under the top bar, until dismissed, as a toast must not be the only place an error shows.
+ * under the top bar, until dismissed, as a toast must not be the only place an error shows. With
+ * `commits`, Undo commits its revert: a git write, which reads "Undoing…" until it ends, the toast
+ * open, and waits while another write runs.
  */
-export function useUndoToast(): (message: string, undo: () => Promise<string | undefined>) => void {
+export function useUndoToast(): (
+  message: string,
+  undo: () => Promise<string | undefined>,
+  commits?: boolean,
+) => void {
   const showToast = useToast();
   return useCallback(
-    (message, undo) => {
+    (message, undo, commits = false) => {
+      const revert = async () => {
+        const error = await undo();
+        if (error) {
+          nextId += 1;
+          setErrors([...errors, { id: nextId, text: error }]);
+        }
+      };
       const dismiss = showToast({
         autoHideDuration: 5000,
         body: message,
-        endContent: createElement(Button, {
-          clickAction: async () => {
-            close();
-            const error = await undo();
-            if (error) {
-              nextId += 1;
-              setErrors([...errors, { id: nextId, text: error }]);
-            }
-          },
-          label: "Undo",
-          variant: "ghost",
-        }),
+        endContent: commits
+          ? createElement(WriteButton, {
+              label: "Undo",
+              onClick: () => revert().finally(close),
+              runningLabel: "Undoing…",
+              variant: "ghost",
+            })
+          : createElement(Button, {
+              clickAction: async () => {
+                close();
+                await revert();
+              },
+              label: "Undo",
+              variant: "ghost",
+            }),
       });
       const close = () => {
         open.delete(close);

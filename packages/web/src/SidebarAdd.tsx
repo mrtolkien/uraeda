@@ -92,7 +92,7 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     const title = TITLES.get(section);
     if (line?.committed) {
       const { hash } = line.committed;
-      toast(`Added to ${title} and committed`, () => undoCommitted(fate, line, hash));
+      toast(`Added to ${title} and committed`, () => undoCommitted(fate, line, hash), true);
       return;
     }
     toast(`Added to ${title}, not committed`, async () => {
@@ -164,6 +164,7 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
       toast(
         committed ? "Added to the inbox and committed" : "Added to the inbox, not committed",
         () => undoAdd(fate, note, committed),
+        committed !== undefined,
       );
       return;
     }
