@@ -11,6 +11,7 @@ import { type ReactNode, useState } from "react";
 import type { Inbox } from "uraeda-server/fate";
 import { useDraftTitles, useInbox, useWorkspace } from "./data.ts";
 import { LineField } from "./EditableLine.tsx";
+import { usePaneEdit } from "./lists/listPane.ts";
 import { Marks } from "./InboxPage.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -161,6 +162,8 @@ function NoteBody({
     stayOpen: false,
     value: note.text,
   });
+  // Enter on the inbox's selected row opens the note's field.
+  usePaneEdit(line.openLine, line.open);
   return (
     <Page>
       <VStack gap={4}>

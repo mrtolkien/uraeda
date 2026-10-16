@@ -5,7 +5,14 @@ import { LinkProvider } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { Theme } from "@astryxdesign/core/theme";
 import { uraedaTheme } from "./theme/built/uraeda.js";
-import { Component, type ReactNode, Suspense, useLayoutEffect, useState } from "react";
+import {
+  Component,
+  type ReactNode,
+  Suspense,
+  useDeferredValue,
+  useLayoutEffect,
+  useState,
+} from "react";
 import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
 import { useFeature, usePreview, useRepositories } from "./data.ts";
@@ -25,6 +32,7 @@ import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
+import { ListPaneContext, useListPane } from "./lists/listPane.ts";
 import { RouterAnchor } from "./links.tsx";
 import {
   currentEntry,
@@ -34,6 +42,7 @@ import {
   repoPath,
   type Route,
   redirect,
+  useEntryId,
   useRepoPath,
   useRestoreScroll,
   useRoute,
@@ -84,6 +93,14 @@ class ServerErrorBoundary extends Component<
       </PageLayout>
     );
   }
+}
+
+/**
+ * What draws a page anew: its address, except for a list with its pane, which stays drawn while
+ * the pane follows the list's keys to another row in the same history entry, and keeps the focus.
+ */
+function pageKey(route: Route, pathname: string, entryId: string | undefined) {
+  return route.page === "task" || route.page === "note" ? `${route.page}:${entryId}` : pathname;
 }
 
 /** The page of the route, and the Storybook of its feature started. */
@@ -142,32 +159,41 @@ function RoutePage({ route }: { route: Route }) {
 /**
  * A task view: on wide screens, in a pane beside the list it was opened from, home or the
  * priorities page (the priorities page when opened from anywhere else), at the list's position;
- * on narrow screens, a page of its own.
+ * on narrow screens, a page of its own. The list's keys show another line in the pane.
  */
 function TaskRoute({ entryKey }: { entryKey: string }) {
   const [{ from }] = useState(currentEntry);
   const list = from === "/" ? "/" : "/priorities";
   const here = useRepoPath();
+  const pane = useListPane(() => navigate(here(list)));
   useListPosition();
   return (
-    <Panes
-      detail={<TaskView entryKey={entryKey} />}
-      list={list === "/" ? <Home /> : <PrioritiesPage />}
-      onCloseDetail={() => navigate(here(list))}
-    />
+    <ListPaneContext value={pane}>
+      <Panes
+        detail={<TaskView entryKey={entryKey} key={entryKey} />}
+        list={list === "/" ? <Home /> : <PrioritiesPage />}
+        onCloseDetail={pane.close}
+      />
+    </ListPaneContext>
   );
 }
 
-/** A note's view: on wide screens, in a pane beside the inbox; on narrow screens, a page of its own. */
+/**
+ * A note's view: on wide screens, in a pane beside the inbox; on narrow screens, a page of its own.
+ * The inbox's keys show another note in the pane.
+ */
 function NoteRoute({ noteKey }: { noteKey: string }) {
   const here = useRepoPath();
+  const pane = useListPane(() => navigate(here("/inbox")));
   useListPosition();
   return (
-    <Panes
-      detail={<NoteView noteKey={noteKey} />}
-      list={<InboxPage />}
-      onCloseDetail={() => navigate(here("/inbox"))}
-    />
+    <ListPaneContext value={pane}>
+      <Panes
+        detail={<NoteView key={noteKey} noteKey={noteKey} />}
+        list={<InboxPage />}
+        onCloseDetail={pane.close}
+      />
+    </ListPaneContext>
   );
 }
 
@@ -318,6 +344,8 @@ export function App({
   onSignedIn?: () => void;
 }) {
   const { pathname, repo, route } = useRoute();
+  // A step behind, as the route is.
+  const entryId = useDeferredValue(useEntryId());
   const [attempt, setAttempt] = useState(0);
   const signedOut = useSignedOut();
   // Unsaved text older than 30 days goes as the app starts, before a field shows it.
@@ -341,7 +369,7 @@ export function App({
                           <Suspense fallback={<Loading />}>
                             <Shell>
                               <Suspense fallback={<Loading />}>
-                                <Page key={pathname} route={route} />
+                                <Page key={pageKey(route, pathname, entryId)} route={route} />
                               </Suspense>
                             </Shell>
                           </Suspense>

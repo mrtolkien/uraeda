@@ -799,20 +799,36 @@ git commit -m "feat(redesign-priorities): the inbox on the shared list"
 
 **Files:**
 
-- Create: `packages/web/src/lists/useListKeys.ts`
+- Create: `packages/web/src/lists/useListKeys.ts`, `packages/web/src/lists/listPane.ts`
 - Modify: `packages/web/src/lists/WorkList.tsx`, `packages/web/src/App.tsx` (`TaskRoute`,
-  `NoteRoute`: the pane follows the selection with `redirect`, so Back is not flooded)
+  `NoteRoute`: the pane follows the selection with `redirect`, so Back is not flooded; the page's
+  key), `packages/web/src/EditableLine.tsx`, `TaskView.tsx`, `NoteView.tsx` (their Edit through
+  `usePaneEdit`)
 - Test: `packages/web/src/__browser__/lists.test.tsx`
 
 **Interfaces:**
 
-- Produces: `useListKeys({count, selected, onSelect(index), onEdit(), onClose()})`, built on
-  Astryx's `useListFocus` with roving focus over the rows' links: ↑ ↓ and j k move, Home and End go
-  to the first and last row across sections, Enter calls `onEdit`, Escape `onClose`; it acts only
-  when the event's target is not a text field and no popover, menu, or dialog is open (review focus
-  5). No hint.
+- Produces:
+  - `useListKeys({selected, onSelect(index), onEdit(), onClose()}) -> {ref, focusSelected}`, built
+    on Astryx's `useListFocus` over the rows' links (`[data-row] a[href]`, the `data-row` of each
+    `WorkList` row's item), `ref` on the list's element: ↑ ↓ and j k move the focus, Home and End go
+    to the first and last row across sections, then `onSelect`; Enter on the selected row calls
+    `onEdit`, which returns whether it edited, else the row's link opens it; Escape calls `onClose`,
+    which returns whether it closed something. It acts only when the event's target is a row's link
+    or the page itself, never a text field or a row's handle, and when no dialog, no open popover
+    other than the toasts', and no expanded popup trigger is in the page (review focus 5). No hint
+    (C5).
+  - `lists/listPane.ts`, the hook point between a list and its pane (R12): `ListPaneContext`, set by
+    `TaskRoute` and `NoteRoute` with `useListPane(close)`; `WorkList` reads it, so its keys follow
+    (`redirect`, the page's position kept), edit, and close only when a pane is open, and without
+    one only the focus moves. A pane calls `usePaneEdit(edit, isEditing)`: Enter calls `edit`, and
+    once `isEditing` turns false with the focus lost, the focus goes back to the row. Today
+    `EditableLine isPaneEdit` (the task view's line) and `NoteView`'s line call it; task 11's
+    `EntryPane` calls `usePaneEdit(onEdit, isEditing)` in their place.
+  - `App`'s page key: a task or a note page is keyed by its history entry, not its address, so the
+    list and its focus stay drawn while the pane follows in the same entry.
 
-- [ ] **Step 1: Write the failing tests**, browser, desktop:
+- [x] **Step 1: Write the failing tests**, browser, desktop:
   - `↓ selects the next row and the pane follows` (US2 scenario 1, SC-003: nine presses reach the
     tenth row).
   - `j crosses sections` (scenario 2).
@@ -821,15 +837,15 @@ git commit -m "feat(redesign-priorities): the inbox on the shared list"
   - `End and Home` (scenario 5).
   - `k in the inbox` (scenario 7).
   - `keys do nothing while a Selector is open` (review focus 5).
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `vp test --project desktop packages/web/src/__browser__/lists.test.tsx`
   - Expected: FAIL, the address stays on the first entry after ↓
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run all tests**
   - Run:
     `vp check && vp test --project uraeda-web && vp test --project desktop packages/web/src/__browser__/lists.test.tsx packages/web/src/__browser__/priorities.test.tsx`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
