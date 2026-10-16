@@ -171,6 +171,16 @@ const bell = outline(
   }),
 );
 
+/** Lucide's `calendar-clock`. */
+const calendarClock = outline(
+  h("path", { d: "M16 14v2.2l1.6 1" }),
+  h("path", { d: "M16 2v3" }),
+  h("path", { d: "M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338" }),
+  h("path", { d: "M3 9h5.859" }),
+  h("path", { d: "M8 2v3" }),
+  h("circle", { cx: "16", cy: "16", r: "6" }),
+);
+
 /** Lucide's `component`. */
 const component = outline(
   h("path", {
@@ -185,6 +195,13 @@ const component = outline(
   h("path", {
     d: "M8.916 4.674a1 1 0 0 0 0 1.414l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z",
   }),
+);
+
+/** Lucide's `database`. */
+const database = outline(
+  h("ellipse", { cx: "12", cy: "5", rx: "9", ry: "3" }),
+  h("path", { d: "M3 5V19A9 3 0 0 0 21 19V5" }),
+  h("path", { d: "M3 12A9 3 0 0 0 21 12" }),
 );
 
 /** Lucide's `folder-git-2`. */
@@ -249,6 +266,14 @@ const packageIcon = outline(
   h("path", { d: "m7.5 4.27 9 5.15" }),
 );
 
+/** Lucide's `repeat`. */
+const repeat = outline(
+  h("path", { d: "m17 2 4 4-4 4" }),
+  h("path", { d: "M3 11v-1a4 4 0 0 1 4-4h14" }),
+  h("path", { d: "m7 22-4-4 4-4" }),
+  h("path", { d: "M21 13v1a4 4 0 0 1-4 4H3" }),
+);
+
 /** Lucide's `ruler`. */
 const ruler = outline(
   h("path", {
@@ -301,7 +326,9 @@ const fileText = outline(
 const DECISION_ICONS = {
   bell,
   bot,
+  "calendar-clock": calendarClock,
   component,
+  database,
   eye: review,
   "file-text": fileText,
   "folder-git-2": folderGit2,
@@ -312,6 +339,7 @@ const DECISION_ICONS = {
   "mouse-pointer-click": mousePointerClick,
   package: packageIcon,
   paperclip: attach,
+  repeat,
   ruler,
   "scan-eye": scanEye,
   settings,
