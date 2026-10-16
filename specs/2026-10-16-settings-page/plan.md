@@ -270,7 +270,7 @@ No function or file grows past a limit; `routes.tsx` stays under 500, at about 4
   `setPort(dir, port: string)`, `setOpenBrowser(dir, open: boolean)`, all but `configDir` returning
   `Promise<Settings>`, rejecting with "<code>: <message>".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/settings.rs`, on a temporary folder per test:
 
@@ -279,8 +279,9 @@ In `crates/core/tests/settings.rs`, on a temporary folder per test:
   value; `[agents]\nmodel = "x"` gives the defaults; `port = 0`, `port = 70000`, `port = "x"` give
   `unreadable` "Cannot read <dir>/config.toml: line 2, port: The port is a number from 1 to 65535.";
   `allowed_hosts = ["https://x"]` gives "…: line 2, allowed_hosts: https://x is not a host name: use
-  letters, digits, hyphens, and dots, like mac.tail1234.ts.net."; `[server` gives a `unreadable`
-  message starting with "Cannot read" and holding "line 1".
+  letters, digits, hyphens, and dots, like mac.tail1234.ts.net.". In its own test,
+  `reports_where_a_file_does_not_parse`: `[server` gives a `unreadable` message starting with
+  "Cannot read <dir>/config.toml: line 1".
 - `checks_each_host_name` (table, through `add_allowed_host`): `mac.tail1234.ts.net` and
   `MAC.Tail1234.ts.net` (saved `mac.tail1234.ts.net`), `mac.tail1234.ts.net` (trimmed) are accepted;
   `https://mac.tail1234.ts.net`, `mac.tail1234.ts.net.`, `-mac.ts.net`, `mac_1.ts.net`,
@@ -295,6 +296,11 @@ In `crates/core/tests/settings.rs`, on a temporary folder per test:
 - `edits_and_removes_a_name` (US1.3, US1.4): edit to `laptop.tail1234.ts.net` gives
   `allowed_hosts = ["laptop.tail1234.ts.net"]`; remove leaves `allowed_hosts = []`; editing or
   removing a name not listed is refused with "<name> is not an allowed host name.".
+- `removes_the_first_of_two_names`: removing the first of
+  `["mac.tail1234.ts.net", "phone.tail1234.ts.net"]` gives
+  `allowed_hosts = ["phone.tail1234.ts.net"]`.
+- `adds_the_server_table_to_a_file_without_it`: a file holding only `[agents]` gets `[server]` after
+  it, the rest unchanged.
 - `creates_the_folder_and_file`: on a missing folder, `set_open_browser(false)` creates it, and the
   file starts with "# Uraeda's settings. The settings page writes this file too, and keeps your
   comments." then `[server]` and `open_browser = false`.
@@ -317,29 +323,31 @@ The break each test catches:
 - Concurrency: a change applied to a copy read before the lock.
 - Folder: `XDG_CONFIG_HOME` read before `URAEDA_CONFIG_DIR`, or an empty value taken as a path.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test settings`
 - Expected: FAIL to compile, `unresolved import uraeda_core::settings`
 
-- [ ] **Step 3: Implement the module and the binding's functions**
+- [x] **Step 3: Implement the module and the binding's functions**
 
 Add
 `toml_edit = { version = "0.23", default-features = false, features = ["parse", "display", "serde"] }`
-to the workspace and the core. Read with `toml_edit::DocumentMut` and `toml_edit::de`, checking each
-value with the host name and port rules (1 to 253 characters; labels of ASCII letters, digits, and
-hyphens joined by dots, none empty, none starting or ending with a hyphen; ports 1 to 65535), and
-finding a key's line from its span for problems. Write each change on the parsed document, under
-`crate::api::write_lock()`, into a temporary file renamed over `config.toml`, as
-`repositories::save` does. The binding's submodule wraps each in `job`, as `lib.rs` does.
+to the workspace and the core. Read with `toml_edit::Document`, which keeps each key's span,
+checking each value with the host name and port rules (1 to 253 characters; labels of ASCII letters,
+digits, and hyphens joined by dots, none empty, none starting or ending with a hyphen; ports 1 to
+65535), and finding a key's line from its span for problems (see
+[R6](rulings.md#r6-the-files-other-problems-and-their-messages) for the problems the spec names no
+text for). Write each change on the parsed document, under `crate::api::write_lock()`, into a
+temporary file renamed over `config.toml`, as `repositories::save` does. The binding's submodule
+wraps each in `job`, as `lib.rs` does.
 
-- [ ] **Step 4: Run all the Rust checks and regenerate the binding**
+- [x] **Step 4: Run all the Rust checks and regenerate the binding**
 
 - Run:
   `cargo nextest run && cargo clippy --workspace --all-targets -- -D warnings && vp run binding:touch`
 - Expected: PASS; `packages/binding/index.d.ts` declares the seven functions and two types.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock crates/core crates/binding packages/binding/index.js packages/binding/index.d.ts specs/2026-10-16-settings-page/plan.md
