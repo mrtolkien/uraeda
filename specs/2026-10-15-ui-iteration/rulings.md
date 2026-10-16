@@ -944,3 +944,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md`,
   `skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/plan.md`, and
   `skills/uraeda/references/plan.md`.
+
+## R58: The Storybook page shows the list of stories only, until a change
+
+- **Decision**: the Storybook page, its rows, and "Open in Storybook" stay as built. Through Uraeda,
+  the page shows Storybook's list of stories, but no story renders in its canvas and its controls
+  stay empty. No setting is changed in the skill's helper.
+- **Rationale**: round 04's answer, C: "Let's drop it for the moment, and add it as a "now" feature
+  in priorities." Storybook 10.6.2's dev mode pins its iframe messages to the frame's origin, which
+  a sandboxed frame does not have, and only its `security.insecureIframeMessaging` setting stops
+  that. The entry in Now looks at it as a change.
+- **Alternatives considered**: the setting in the helper, when Uraeda serves the Storybook (round
+  04's option A); "Open in Storybook" on Storybook's own port (option B).
+- **If wrong**: the change in Now sets `security.insecureIframeMessaging` in `uraeda-preview.js`
+  under `URAEDA_PREVIEW_BASE`, and the validation script checks a story renders in the page.
+- **Where**: `skills/uraeda/assets/storybook/uraeda-preview.js`,
+  `packages/web/src/StorybookPage.tsx`, and `specs/PRIORITIES.md`'s Now on the default branch.
