@@ -11,6 +11,7 @@ use napi::bindgen_prelude::{AsyncTask, Buffer, ToNapiValue, TypeName};
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
+use uraeda_core::actions::commit::PrioritiesAdded;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::preview::Preview;
@@ -252,6 +253,33 @@ pub fn add_priority(
     previous: String,
 ) -> AsyncTask<Job<Priorities>> {
     job(move || api::add_priority(Path::new(&repo), &section, &text, &previous))
+}
+
+/// Adds a line at the end of a section of the priorities, then commits `PRIORITIES.md` alone when
+/// it had no other change: "Add and commit".
+#[napi(ts_return_type = "Promise<PrioritiesAdded>")]
+pub fn add_priority_and_commit(
+    repo: String,
+    section: String,
+    text: String,
+    previous: String,
+) -> AsyncTask<Job<PrioritiesAdded>> {
+    job(move || {
+        let (priorities, added) =
+            api::add_priority_and_commit(Path::new(&repo), &section, &text, &previous)?;
+        Ok(PrioritiesAdded { priorities, added })
+    })
+}
+
+/// Takes back a committed add: the entry, `lines` as written, leaves the priorities, and the
+/// removal is committed alone.
+#[napi(ts_return_type = "Promise<Priorities>")]
+pub fn undo_committed_priority(
+    repo: String,
+    lines: Vec<String>,
+    previous: String,
+) -> AsyncTask<Job<Priorities>> {
+    job(move || api::undo_committed_priority(Path::new(&repo), &lines, &previous))
 }
 
 /// Inserts a priority line with its nested lines, as written, before the line at `index` of a

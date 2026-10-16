@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import type { PriorityEntry } from "../fate.ts";
@@ -10,6 +10,7 @@ import {
   commitOnBranch,
   ELEVEN,
   fixtureRepo,
+  git,
   mutate,
   testApp,
 } from "./helpers.ts";
@@ -159,6 +160,82 @@ test("adds a priority line", async () => {
   expect(result.data.changes).toBe(1);
   const next = result.data.sections.find((s: { section: string }) => s.section === "next");
   expect(next.entries.at(-1).text).toBe("Show the agent's last commit");
+});
+
+/** The subject and files of the repository's last commit. */
+const lastCommit = (repo: string) => ({
+  files: git(repo, "show", "--name-only", "--format=", "HEAD").trim().split("\n"),
+  subject: git(repo, "log", "-1", "--format=%s").trim(),
+});
+
+test("US3 1 and 6: adds and commits a priority line alone, and its Undo commits the removal", async () => {
+  const { app, repo } = await testApp();
+  const [read] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
+
+  const added = await mutate(
+    app,
+    "priorities.add",
+    { commit: true, hash: read.hash, section: "next", text: "Sort done features" },
+    ["id", "hash", "changes", "added"],
+  );
+
+  expect(added.data.added).toEqual({ committed: true });
+  expect(added.data.changes).toBe(0);
+  expect(lastCommit(repo)).toEqual({
+    files: ["specs/PRIORITIES.md"],
+    subject: 'chore: add "Sort done features" to Next',
+  });
+  const undone = await mutate(
+    app,
+    "priorities.undoCommitted",
+    { hash: added.data.hash, lines: ["- Sort done features"] },
+    ["id", "hash", "added"],
+  );
+  expect(undone.data).toEqual({ added: null, hash: read.hash, id: "priorities" });
+  expect(lastCommit(repo).subject).toBe('chore: remove "Sort done features"');
+});
+
+test("US3 3: an add and commit over other changes answers why it did not commit", async () => {
+  const { app, repo } = await testApp();
+  const path = join(repo, "specs/PRIORITIES.md");
+  writeFileSync(path, `${readFileSync(path, "utf8")}\n- Typed by hand\n`);
+  const [read] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
+
+  const added = await mutate(
+    app,
+    "priorities.add",
+    { commit: true, hash: read.hash, section: "next", text: "Sort done features" },
+    ["id", "added"],
+  );
+
+  expect(added.data.added).toEqual({ committed: false, reason: "other-changes" });
+  expect(lastCommit(repo).subject).toBe("chore: specs");
+});
+
+test("US3 4: adds and commits a note alone", async () => {
+  const { app, repo } = await testApp();
+  const [read] = await byId(app, "Inbox", ["inbox"], ["id", "hash"]);
+
+  const added = await mutate(
+    app,
+    "inbox.add",
+    { commit: true, hash: read.hash, text: "Icons are blurry" },
+    ["id", "hash", "added"],
+  );
+
+  expect(added.data.added).toEqual({ committed: true });
+  expect(lastCommit(repo)).toEqual({
+    files: ["specs/INBOX.md"],
+    subject: 'chore: add "Icons are blurry" to the inbox',
+  });
+  const undone = await mutate(
+    app,
+    "inbox.undoCommitted",
+    { hash: added.data.hash, lines: ["- Icons are blurry"] },
+    ["id", "hash"],
+  );
+  expect(undone.data.hash).toBe(read.hash);
+  expect(lastCommit(repo).subject).toBe('chore: remove "Icons are blurry" from the inbox');
 });
 
 test("puts a removed priority line back", async () => {

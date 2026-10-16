@@ -6,6 +6,7 @@ use std::path::Path;
 
 use napi::bindgen_prelude::{AsyncTask, Buffer};
 use napi_derive::napi;
+use uraeda_core::actions::commit::InboxAdded;
 use uraeda_core::api;
 use uraeda_core::files::inbox::Inbox;
 use uraeda_core::view::FileView;
@@ -29,6 +30,34 @@ pub fn add_note(
     about: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
     job(move || api::add_note(Path::new(&repo), category, about, &text, &previous))
+}
+
+/// Adds a note as `addNote` does, then commits `INBOX.md` alone when it had no other change: "Add
+/// and commit".
+#[napi(ts_return_type = "Promise<InboxAdded>")]
+pub fn add_note_and_commit(
+    repo: String,
+    text: String,
+    previous: String,
+    category: Option<String>,
+    about: Option<String>,
+) -> AsyncTask<Job<InboxAdded>> {
+    job(move || {
+        let (inbox, added) =
+            api::add_note_and_commit(Path::new(&repo), category, about, &text, &previous)?;
+        Ok(InboxAdded { inbox, added })
+    })
+}
+
+/// Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
+/// committed alone.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_committed_note(
+    repo: String,
+    lines: Vec<String>,
+    previous: String,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || api::undo_committed_note(Path::new(&repo), &lines, &previous))
 }
 
 /// Replaces a note's text, its marks kept.

@@ -226,6 +226,38 @@ pub fn remove_written(
     .ok()
 }
 
+/// Removes the entry an add wrote: the last of its section whose lines, nested ones included, are
+/// exactly `lines`, returned with the text without it. `None` unless exactly one section ends with
+/// it.
+pub fn remove_added(text: &str, lines: &[String]) -> Option<(String, Entry)> {
+    let mut removed = None;
+    let without = super::super::with_unix_newlines(text, |text| {
+        let all: Vec<&str> = text.split('\n').collect();
+        let entries = parse(text);
+        let last: Vec<&Entry> = entries
+            .iter()
+            .enumerate()
+            .filter(|(at, entry)| {
+                entries
+                    .get(at + 1)
+                    .is_none_or(|next| next.section != entry.section)
+                    && all[entry.item.line - 1..entry.item.end]
+                        .iter()
+                        .copied()
+                        .eq(lines.iter().map(String::as_str))
+            })
+            .map(|(_, entry)| entry)
+            .collect();
+        let [one] = last.as_slice() else {
+            return Err(());
+        };
+        removed = Some((*one).clone());
+        Ok::<_, ()>(lines::remove(text, &one.item))
+    })
+    .ok()?;
+    Some((without, removed?))
+}
+
 /// Removes an entry, with its nested lines.
 pub fn remove(text: &str, id: &str) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {

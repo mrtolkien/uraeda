@@ -6,8 +6,9 @@ use std::fs;
 use crate::files::document::hash;
 use crate::files::priorities::{self, EntryChange, Priorities, Section};
 
+use super::commit::{Added, add_alone, commit_only, is_clean};
 use super::place::Place;
-use super::{ActionError, Committed, STALE, changes};
+use super::{ActionError, Change, Committed, STALE, changes};
 
 pub const PATH: &str = "specs/PRIORITIES.md";
 
@@ -59,6 +60,54 @@ pub fn add(
         |text| priorities::add(text, section, line),
         "a priority needs some text",
     )
+}
+
+/// Adds a line at the end of a section, then commits `PRIORITIES.md` alone when it had no other
+/// change: "Add and commit".
+pub fn add_and_commit(
+    place: &Place,
+    section: Section,
+    line: &str,
+    previous: &str,
+) -> Result<(Priorities, Added), ActionError> {
+    let added = EntryChange::Added {
+        section,
+        text: crate::files::lines::one_line(line),
+    };
+    let subject = format!("chore: {}", describe(&added));
+    let (_, added) = add_alone(place, PATH, subject, || add(place, section, line, previous))?;
+    Ok((read(place), added))
+}
+
+/// Removes the entry a committed add wrote, `lines` as written, and commits the removal alone:
+/// Undo of "Add and commit". Refused as stale when the file changed since it was read at
+/// `previous`, or since its commit.
+pub fn undo_committed(
+    place: &Place,
+    lines: &[String],
+    previous: &str,
+) -> Result<Priorities, ActionError> {
+    let current = text(place);
+    if hash(&current) != previous || !is_clean(place, PATH) {
+        return Err(ActionError::Refused(format!("PRIORITIES.md {STALE}")));
+    }
+    let (without, entry) = priorities::remove_added(&current, lines).ok_or_else(|| {
+        ActionError::Refused("Could not undo: the entry is no longer in PRIORITIES.md.".to_string())
+    })?;
+    fs::write(place.root.join(PATH), &without)?;
+    let removed = EntryChange::Removed {
+        section: entry.section,
+        text: entry.text,
+    };
+    commit_only(
+        place,
+        &Change {
+            paths: vec![PATH.to_string()],
+            subject: format!("chore: {}", describe(&removed)),
+            body: None,
+        },
+    )?;
+    Ok(read(place))
 }
 
 /// Inserts an entry's lines, nested lines included, before the entry at `index` of `section`, or
