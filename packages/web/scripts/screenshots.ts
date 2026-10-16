@@ -104,9 +104,6 @@ async function main() {
           hasTouch: size === "phone",
           reducedMotion: "reduce",
         });
-        await context.addInitScript((value) => {
-          window.localStorage.setItem("uraeda.theme", value);
-        }, mode);
         shots.push({ context, mode, page: await context.newPage(), size });
       }
     }

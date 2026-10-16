@@ -2,7 +2,7 @@
 // request, the files changed on its branch, and its files (US4.1–US4.3, US4.6). The sidebar tags
 // its row "Change" (US4.4), and the phone's progress line names its round (US4.5). Its page passes
 // the UI checks at both sizes, in light and dark.
-import { isInaccessible, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import {
@@ -15,6 +15,7 @@ import {
   LIVE,
   show,
   startTurn,
+  colorScheme,
 } from "./helpers.tsx";
 
 const CENTRED = "2026-10-16-centred-x";
@@ -75,9 +76,7 @@ The x sat low in its circle.
 The glyph is centred on its box.
 `;
 
-afterEach(() => {
-  window.localStorage.removeItem("uraeda.theme");
-});
+afterEach(() => {});
 
 /** The change `centred-x`, with only its proposal. */
 async function centred() {
@@ -164,7 +163,7 @@ describe("on the desktop", () => {
     const aside = await column();
     const link = await aside.findByRole("link", { name: "Pull request #31" }, LIVE);
     expect(link.getAttribute("href")).toBe("https://github.com/o/r/pull/31");
-    expect(headings()[0]).toBe("Pull request");
+    expect(headings()[0]).toBe("Pull request state unknown");
     const files = aside.getByRole("list", { name: "Files" });
     expect(
       within(files)
@@ -173,8 +172,9 @@ describe("on the desktop", () => {
     ).toEqual([`${CENTRED}.md`]);
   });
 
-  // US4.4
-  test("the sidebar tags a change", async () => {
+  // US4.4: the tag is for Needs you, where changes and features share a section; the Changes
+  // section needs none, and the name says it.
+  test("the sidebar names a change, in its own section", async () => {
     await centred();
     await show(`/f/${CENTRED}`, CENTRED_TITLE);
     await startTurn("Carry on.", [{ text: "Investigating.", type: "text" }]);
@@ -182,18 +182,17 @@ describe("on the desktop", () => {
     const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
     const row = await nav.findByRole(
       "link",
-      { name: `centred-x, ${CENTRED_TITLE}, change, Working` },
+      { name: new RegExp(`^centred-x, ${CENTRED_TITLE}, change, .+, Working`) },
       LIVE,
     );
     expect(row.getAttribute("href")).toBe(atRepo(`/f/${CENTRED}`));
     expect(row.textContent).toBe("centred-x");
-    // Its tag, beside the link, in the same row, shown but not read again after the name's.
-    const tag = within(row.parentElement!).getByText("Change");
-    expect(isInaccessible(tag)).toBe(true);
-    // A feature's row has no tag, and its name no kind.
+    const changes = nav.getByRole("group", { name: "Changes" });
+    expect(changes.contains(row)).toBe(true);
+    expect(within(changes).queryByText("Change")).toBeNull();
+    // A feature's name has no kind.
     const feature = nav.getByRole("link", { name: /^cli-tuis, / });
     expect(feature.getAttribute("aria-label")).not.toMatch(/change|feature/);
-    expect(within(feature.parentElement!).queryByText("Change")).toBeNull();
   });
 });
 
@@ -218,7 +217,7 @@ const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
 // The UI checks on a change's page, its column shown beside it on the desktop, its line open on
 // the phone, with a round and a file changed on its branch.
 test.each(MODES)("a change's page, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await headerLogo();
   await agent.commitOnBranch(`change/${LOGO}`, {
     "packages/web/src/Header.tsx": "// The header.\n",

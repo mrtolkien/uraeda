@@ -63,9 +63,24 @@ export function atSize(only: "phone" | "desktop" | "both") {
   }
 }
 
+/** Sets the system's colour scheme, which the UI's theme follows (R5). */
+export async function colorScheme(mode: "light" | "dark") {
+  await (
+    browserCommands as unknown as { setColorScheme(mode: "light" | "dark"): Promise<void> }
+  ).setColorScheme(mode);
+}
+
+/** Sets whether the system asks for reduced motion. */
+export async function reducedMotion(reduce: boolean) {
+  await (
+    browserCommands as unknown as { setReducedMotion(reduce: boolean): Promise<void> }
+  ).setReducedMotion(reduce);
+}
+
 beforeEach(async () => {
   // What a page remembers, like the question a round was left at, is another test's.
   window.localStorage.clear();
+  await colorScheme("light");
   ({ name, token: turn } = await commands.takeRepo());
 });
 

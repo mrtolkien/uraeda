@@ -50,6 +50,7 @@ import {
   sendMessage,
   show,
   startTurn,
+  colorScheme,
 } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
@@ -89,9 +90,7 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["the Sign-in settings", "/settings/sign-in", "Sign out everywhere…", null],
 ];
 
-afterEach(() => {
-  window.localStorage.removeItem("uraeda.theme");
-});
+afterEach(() => {});
 
 const CASES = PAGES.flatMap(([name, path, text, insets]) =>
   (["light", "dark"] as const).map((mode) => ({ insets, mode, name, path, text })),
@@ -124,7 +123,7 @@ async function checkCase(
   insets: string | null,
   mode: "light" | "dark",
 ) {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await show(path, text);
   expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
   if (window.innerWidth < 768) {
@@ -291,7 +290,7 @@ test.each(
     (["light", "dark"] as const).map((mode) => ({ mode, state })),
   ),
 )("a feature's session, $state, and its agent section, in $mode", async ({ mode, state }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", LONG_TURN);
   await screen.findByText(/Rate limited/, undefined, LIVE);
@@ -326,7 +325,7 @@ const LINE = "Implementation · 7/11 · Session column";
  * its column drawn beside it on wide screens, its progress line above it on the phone.
  */
 async function implementation(mode: "light" | "dark") {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await agent.addPlan(CLI);
   // Files changed on the branch, their paths as long as a column's line.
   await agent.commitOnBranch(CLI, {
@@ -457,7 +456,7 @@ async function blockedChat() {
 
 // SC-004: a chat with one reply.
 test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await show("/chats/new", "New chat");
   await sendMessage("Why is CI slow on WebKit?");
   await agent.agentAccept();
@@ -478,7 +477,7 @@ test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
 test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
   "a chat with a blocked action, in $mode",
   async ({ mode }) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     await blockedChat();
     await checkLayout();
   },
@@ -500,7 +499,7 @@ test.each(
     (["light", "dark"] as const).map((mode) => ({ mode, query })),
   ),
 )("the sidebar with sessions, searched for “$query”, in $mode", async ({ mode, query }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   // A chat, then a feature's session with a sub-agent at work.
   await blockedChat();
   await show(`/f/${CLI}/session`, "CLI TUIs");
@@ -529,9 +528,14 @@ test.each(
       LIVE,
     );
     if (query !== "zzz") {
+      // The Home row goes; the phone's heading keeps its Home button, a name without text.
       await expect
-        .poll(() => within(nav as HTMLElement).queryByRole("link", { name: /^Home/ }))
-        .toBeNull();
+        .poll(() =>
+          within(nav as HTMLElement)
+            .queryAllByRole("link", { name: /^Home/ })
+            .filter((link) => link.textContent?.includes("Home")),
+        )
+        .toEqual([]);
     }
     await drawn();
   }
@@ -567,7 +571,7 @@ async function imagesLoaded() {
 }
 
 test.each(MODES)("the editor's preview with an image, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await draftWithImage();
   try {
     await show(`/edit/${DRAFT}`, "Login error banner");
@@ -583,7 +587,7 @@ test.each(MODES)("the editor's preview with an image, in $mode", async ({ mode }
 test.each(MODES)(
   "the editor with an image's link, a refusal, and the drop hint, in $mode",
   async ({ mode }) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     await draftWithImage();
     try {
       await show(`/edit/${DRAFT}`, "Login error banner");
@@ -614,7 +618,7 @@ async function proposalWithImage() {
 }
 
 test.each(MODES)("a spec with a story embedded, ready, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await commands.addStoryFeature();
   await show("/f/2026-10-20-sidebar-resize/spec.md", "Resize the sidebar");
   await expect
@@ -630,7 +634,7 @@ test.each(MODES)("a spec with a story embedded, ready, in $mode", async ({ mode 
 });
 
 test.each(MODES)("a round whose options are stories, ready, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await commands.addStoryFeature();
   await show(
     "/f/2026-10-20-sidebar-resize/clarifications-01.md",
@@ -653,7 +657,7 @@ test.each(MODES)("a round whose options are stories, ready, in $mode", async ({ 
 });
 
 test.each(MODES)("the Storybook page, ready, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await commands.addStoryFeature();
   await show("/f/2026-10-20-sidebar-resize/storybook", "Storybook");
   await expect
@@ -663,13 +667,13 @@ test.each(MODES)("the Storybook page, ready, in $mode", async ({ mode }) => {
 });
 
 test.each(MODES)("a proposal with an image, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await proposalWithImage();
   await checkLayout();
 });
 
 test.each(MODES)("an image open full screen, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await proposalWithImage();
   await userEvent.click(screen.getByRole("link", { name: "login" }));
   const lightbox = await screen.findByRole("dialog");
@@ -690,7 +694,7 @@ async function thumbnails() {
 test.each(MODES)(
   "the composer with two thumbnails, and a message with images, in $mode",
   async ({ mode }) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     await show(`/f/${CLI}/session`, "Message Claude Code");
     const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
     paste([await image("phone.png", "image.png"), await image("desktop.png", "desktop.png")], box);
@@ -714,7 +718,7 @@ test.each(MODES)(
 test.each(MODES)(
   "a review comment holding an image's link, with the drop hint, in $mode",
   async ({ mode }) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     await show(SPEC, "Complete a repeating task");
     try {
       drop([await image("phone.png", "shot.png")]);
@@ -732,7 +736,7 @@ test.each(MODES)(
 );
 
 test.each(MODES)("a round's answer holding an image's link, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await show(ROUND, "How does your iPhone reach the server?");
   const field = within(document.getElementById("Q3")!).getByRole("textbox", { name: "Comment" });
   await userEvent.click(field);
@@ -786,7 +790,7 @@ const overlayOf = (element: HTMLElement) => element.closest("dialog") ?? element
 test.each(MODES)(
   "a round with a settled point's comment and another's form open, in $mode",
   async ({ mode }) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     const form = await settledComments();
     if (window.innerWidth < 768) {
       // The form in its sheet, then the page under it, once the sheet is closed.
@@ -802,7 +806,7 @@ test.each(MODES)(
 test.each(MODES)(
   "the notes restored after a reload, with their notice, in $mode",
   async ({ mode }) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     await show(ROUND, QUESTION);
     await userEvent.fill(screen.getByLabelText("Notes"), "Overall fine, but say where answers go.");
     await reload(QUESTION);
@@ -814,7 +818,7 @@ test.each(MODES)(
 );
 
 test.each(MODES)("the Leave page? confirmation, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await show("/f/2026-10-11-web-ui", "Web UI for the workflow files");
   await act(async () => navigate(atRepo(ROUND)));
   await screen.findByText(QUESTION);
@@ -829,7 +833,7 @@ test.each(MODES)("the Leave page? confirmation, in $mode", async ({ mode }) => {
 });
 
 test.each(MODES)("the Discard your comment? confirmation, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await show(ROUND, QUESTION);
   await userEvent.click(await settledPoint(ANSWER), { force: true });
   const form = await settledForm();

@@ -72,8 +72,9 @@ const styles = stylex.create({
     overflow: "hidden",
   },
   changes: {
+    // A row of its own, which never breaks between its two counts: no `white-space` rule, whose
+    // atomic class would reorder against the transcript's own.
     flexShrink: 0,
-    whiteSpace: "nowrap",
   },
   mark: {
     // The status over the step's icon's corner, in the folded rail.
@@ -199,10 +200,10 @@ function Activity({ hasChangeTag, item }: { hasChangeTag: boolean; item: CardIte
       )}
       {changes && (
         // Read in the card's name, in words.
-        <span aria-hidden {...stylex.props(styles.changes)}>
-          <Text color="success" hasTabularNumbers type="supporting">{`+${changes.added}`}</Text>{" "}
+        <HStack aria-hidden gap={1} xstyle={styles.changes}>
+          <Text color="success" hasTabularNumbers type="supporting">{`+${changes.added}`}</Text>
           <Text color="error" hasTabularNumbers type="supporting">{`−${changes.removed}`}</Text>
-        </span>
+        </HStack>
       )}
     </HStack>
   );

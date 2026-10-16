@@ -6,7 +6,18 @@
 import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { agent, atRepo, atSize, checkLayout, drawn, image, LIVE, paste, show } from "./helpers.tsx";
+import {
+  agent,
+  atRepo,
+  atSize,
+  checkLayout,
+  drawn,
+  image,
+  LIVE,
+  paste,
+  show,
+  colorScheme,
+} from "./helpers.tsx";
 
 const TITLE = "Centre the x in failure circles";
 const BODY = "In failures the x sits low in its circle.";
@@ -17,9 +28,7 @@ const INTRO = "Describe the bug or the change. The first line is its title.";
 
 atSize("both");
 
-afterEach(() => {
-  window.localStorage.removeItem("uraeda.theme");
-});
+afterEach(() => {});
 
 /** Opens the navigation, from the phone's menu, and clicks one of its links. */
 async function openFromNavigation(name: string) {
@@ -228,7 +237,7 @@ const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
 
 // The UI checks on "New change", holding a change's text, its slug proposed.
 test.each(MODES)("New change, in $mode", async ({ mode }) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+  await colorScheme(mode);
   await show("/changes/new", "New change");
   expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
   await typeChange(await screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE));
