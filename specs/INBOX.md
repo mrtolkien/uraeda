@@ -61,3 +61,5 @@
   valid link can read as broken
 - [agent] [redesign-priorities] Finishing the last started entry, or moving the last other entry out
   of Now, leaves two blank lines under ## Now in PRIORITIES.md
+- [agent] [redesign-priorities] In a numbered Now, a newly started entry repeats the next number (2.
+  C, blank line, 2. B)
