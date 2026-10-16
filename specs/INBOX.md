@@ -32,3 +32,6 @@
   - Then we transform the file into a second, human-readable, actionable document?
   - The idea would be let the model make a first "draft" that's extensive, _then_ extract the most
     important information, well formatted, for a human
+- We need a "check decisions coherence" option, like "inbox triage"
+  - It should read constitution and all decisions and raise if some of them are competing, and
+    explain the options clearly (what are the 2 options to keep it clean)
