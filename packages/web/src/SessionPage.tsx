@@ -7,7 +7,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
@@ -22,7 +22,7 @@ import {
   useDraft,
 } from "./useDraft.ts";
 import { EditableLine } from "./EditableLine.tsx";
-import { useHandOver, WorkflowMessage } from "./HandOver.tsx";
+import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
 import { type AsideShown, useAsideShown, WithAside } from "./SessionAside.tsx";
@@ -112,7 +112,9 @@ function Header({
 type Handing = {
   notice?: string;
   onSent?: (session: string) => void;
-  workflow?: { file?: string; trigger: Trigger };
+  /** The controls of the workflow's run, like building in a fresh session. */
+  options?: ReactNode;
+  workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
 };
 
 /**
@@ -319,6 +321,7 @@ function FeatureSession({ folder }: { folder: string }) {
   // The refusal read for an address: shown only while the address asks for that message.
   const [refusal, setRefusal] = useState<{ search: string; text: string }>();
   const refused = refusal?.search === search ? refusal.text : undefined;
+  const fresh = useFreshRun(search);
   // The address whose message the composer took: each is put in once.
   const filled = useRef<string>(undefined);
   const handingOver = workflow !== undefined || ask !== undefined;
@@ -353,8 +356,9 @@ function FeatureSession({ folder }: { folder: string }) {
   // refuses every message with the same words.
   const blocked = feature.branch ? undefined : NO_BRANCH;
   const id = feature.session ?? created;
-  const read = (message: { refusal: string | null; text: string }) => {
+  const read = (message: ReadMessage) => {
     setRefusal(message.refusal === null ? undefined : { search, text: message.refusal });
+    fresh.read(message);
     if (message.refusal === null && filled.current !== search) {
       filled.current = search;
       const text = message.text.trimEnd();
@@ -364,7 +368,11 @@ function FeatureSession({ folder }: { folder: string }) {
   // Sent: the address no longer asks for the message, or the quote.
   const sent = () => redirect(here(sessionPath(folder)));
   const handing: Handing = workflow
-    ? { workflow, ...(refused === undefined ? {} : { notice: refused }), onSent: sent }
+    ? {
+        ...fresh.handing(workflow),
+        ...(refused === undefined ? {} : { notice: refused }),
+        onSent: sent,
+      }
     : ask !== undefined
       ? { onSent: sent }
       : {};

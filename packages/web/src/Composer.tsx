@@ -67,14 +67,16 @@ type ComposerProps = {
    */
   onSend?: (text: string, images: ReadonlyArray<DraftImage>) => Promise<boolean>;
   onSent?: (session: string) => void;
+  /** The controls of the workflow's run, in the composer's footer while it holds its message. */
+  options?: ReactNode;
   /** The send button's label, a primary button's, instead of Send. */
   sendLabel?: string;
   /** Why the page's own send button waits, as for another page's git write: its tooltip. */
   sendWaits?: string | undefined;
   session?: string;
   value: string;
-  /** The workflow's trigger, while the composer holds its message. */
-  workflow?: { file?: string; trigger: Trigger };
+  /** The workflow's trigger, and whether its run starts fresh, while the composer holds its message. */
+  workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
   /** Whether the session has a turn going: Stop shows, and Send steers into the turn. */
   working?: boolean;
 };
@@ -342,7 +344,9 @@ export function Composer(props: ComposerProps) {
             ) : undefined
           }
           footerActions={
-            (onSend || agent?.capabilities.images) && !workflow ? (
+            workflow ? (
+              props.options
+            ) : onSend || agent?.capabilities.images ? (
               <AttachButton
                 isDisabled={Boolean(unavailable)}
                 isIconOnly
