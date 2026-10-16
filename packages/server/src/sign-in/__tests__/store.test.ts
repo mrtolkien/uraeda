@@ -206,3 +206,25 @@ test("never writes a session token", () => {
   expect(store.findSession(`${id}.${secret.slice(1)}x`)).toBeUndefined();
   expect(store.findSession(undefined)).toBeUndefined();
 });
+
+/** A write that fails still ends the sessions in memory: their streams close, and it throws. */
+test.each([
+  ["one session", (store: SignInStore, ids: Array<string>) => store.endSession(ids[0]!)],
+  ["every session", (store: SignInStore) => store.endAll()],
+  ["the unused sessions", (store: SignInStore) => store.sweep()],
+])("ending %s with a file that cannot be written ends them, and throws", (_name, end) => {
+  const { clock, dataDir, now, path } = folder();
+  const { store } = SignInStore.open(dataDir, now);
+  const ids = [store.createSession(), store.createSession()].map(idOf);
+  const signals = ids.map((id) => store.signal(id));
+  const ended: Array<string> = [];
+  store.onEnded((id) => ended.push(id));
+  clock.now += 31 * DAY;
+  chmodSync(dataDir, 0o500);
+  onTestFinished(() => chmodSync(dataDir, 0o700));
+
+  expect(() => end(store, ids)).toThrow(new RegExp(`^cannot write ${path}: .+`));
+
+  expect(ended.length).toBeGreaterThan(0);
+  expect(ended.every((id) => signals[ids.indexOf(id)]!.aborted)).toBe(true);
+});
