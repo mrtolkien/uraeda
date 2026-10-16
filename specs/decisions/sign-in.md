@@ -45,24 +45,23 @@ off but code, for tests.
 
 The server commits, starts agents, and runs project code, and the human wants to reach it from a
 phone and a laptop, and one day from a public address
-([proposal](../2026-10-16-basic-security/proposal.md)). A generated key cannot be guessed, so a
-public server needs no lockout an attacker could turn against its owner, and it is the stable key
-the proposal asked for
-([Q1](../2026-10-16-basic-security/clarifications-01.md#q1-what-do-you-sign-in-with),
-[the credential](../2026-10-16-basic-security/discovery-01.md#the-credential)). Sessions on the
+([proposal](../done/2026-10-16-basic-security.md)). A generated key cannot be guessed, so a public
+server needs no lockout an attacker could turn against its owner, and it is the stable key the
+proposal asked for ([Q1](../done/2026-10-16-basic-security.md#q1-what-do-you-sign-in-with),
+[the credential](../done/2026-10-16-basic-security.md#q1-what-do-you-sign-in-with)). Sessions on the
 server let one device be signed out
-([Q2](../2026-10-16-basic-security/clarifications-01.md#q2-how-long-does-a-device-stay-signed-in-and-how-is-it-signed-out)).
+([Q2](../done/2026-10-16-basic-security.md#q2-how-long-does-a-device-stay-signed-in-and-how-is-it-signed-out)).
 
 No address, `Host`, or proxy header proves who sends a request: every proxy connects from 127.0.0.1,
 NGINX rewrites `Host` by default, and a second proxy passes a forged Tailscale header
-([Q3](../2026-10-16-basic-security/clarifications-01.md#q3-does-a-browser-on-this-machine-sign-in-too),
-[Q4](../2026-10-16-basic-security/clarifications-01.md#q4-does-your-tailnet-sign-you-in)).
+([Q3](../done/2026-10-16-basic-security.md#q3-does-a-browser-on-this-machine-sign-in-too),
+[Q4](../done/2026-10-16-basic-security.md#q4-does-your-tailnet-sign-you-in)).
 
 Frames sandboxed without `allow-same-origin` get no `Lax` or `Strict` cookie in Chromium and
 Firefox, so previews and mockups prove themselves with a secret in their path. A Storybook bakes its
 address in when it starts, so the secret is shared by every session and replaced whenever one ends
-([Q6](../2026-10-16-basic-security/clarifications-01.md#q6-how-do-previews-and-mockups-prove-they-come-from-you),
-[cookies in sandboxed frames](../2026-10-16-basic-security/discovery-01.md#cookies-in-sandboxed-frames)).
+([Q6](../done/2026-10-16-basic-security.md#q6-how-do-previews-and-mockups-prove-they-come-from-you),
+[cookies in sandboxed frames](../done/2026-10-16-basic-security.md)).
 
 ## Alternatives considered
 

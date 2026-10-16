@@ -112,10 +112,10 @@ route still refuses ([running untrusted UI](../done/2026-10-15-ui-iteration.md))
 Basic security puts the [sign-in](sign-in.md) decision's frame secret in preview and mockup paths,
 since sandboxed frames get no sign-in cookie, so `Origin: null` reaches only frames given that
 secret
-([Q6](../2026-10-16-basic-security/clarifications-01.md#q6-how-do-previews-and-mockups-prove-they-come-from-you),
-[cookies in sandboxed frames](../2026-10-16-basic-security/discovery-01.md#cookies-in-sandboxed-frames)).
-A public address stays behind a proxy, so the 127.0.0.1 rule stays
-([Q5](../2026-10-16-basic-security/clarifications-01.md#q5-how-does-a-public-server-reach-uraeda)).
+([Q6](../done/2026-10-16-basic-security.md#q6-how-do-previews-and-mockups-prove-they-come-from-you),
+[cookies in sandboxed frames](../done/2026-10-16-basic-security.md)). A public address stays behind
+a proxy, so the 127.0.0.1 rule stays
+([Q5](../done/2026-10-16-basic-security.md#q5-how-does-a-public-server-reach-uraeda)).
 
 ## Alternatives considered
 
