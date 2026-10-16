@@ -63,6 +63,16 @@ reference, its template, and the example's file must agree.
 Markdown files can link to any file in the repository. Write markdown links with a relative path or
 a path from the repository root (`/src/...`). Humans may also write wikilinks (`[[file-name]]`).
 
+## Shell
+
+- Commands run in zsh, where an unquoted glob that matches no file fails the whole command
+  (`no matches found: --include=*.ts`). Quote globs, `--include='*.ts'`, or use `rg -g '*.ts'`.
+- Run the toolchain inside the dev shell, `nix develop -c <command>`: outside it, `cargo nextest`,
+  `stylua`, and other pinned tools are missing.
+- The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it
+  (unwrapped, failing the format check). Edit it by hand, or copy a newer version from
+  `node_modules/vite-plus/AGENTS.md`.
+
 ## Working with the human
 
 - Give one complete response per turn. When a subagent's result matters to the answer, such as an
@@ -77,8 +87,6 @@ messages (no `Co-Authored-By` lines, no "generated with" footers), not in the RE
 file or pull request. This applies to every coding agent working on this repository. The work is
 made by its human owner, who takes the decisions an agent executes, the same way a README does not
 name the code editor it was written in.
-
-<!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web
 
@@ -111,5 +119,3 @@ local `vite-plus` package. Use `vp why <package>` to show the package-manager de
       run via `vp run <script>`.
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include
       its output when asking for help.
-
-<!--VITE PLUS END-->
