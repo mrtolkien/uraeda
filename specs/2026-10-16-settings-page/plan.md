@@ -766,36 +766,42 @@ git commit -m "feat(settings-page): Settings in the sidebar, with the theme and 
 
 - Produces: `Category.settings: ReadonlyArray<string>`, the labels of its real settings, and
   `searchSettings(text: string): Array<{ category: Category; label: string }>`, matching each label
-  and category name without case, the planned settings included.
+  and category name without case, the planned settings included; `SettingsView`'s
+  `initialSearch?: string`, for the `Search` story
+  ([R17](rulings.md#r17-the-search-clears-when-a-result-opens-its-category-and-starts-empty)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - A table of `searchSettings`: "host" finds "Allowed host names" in Server; "THEME" finds "Theme" in
-  Appearance; "model" finds "The model and effort of each step" in Agents; "xyz" finds nothing.
-- On the page, at 1440 and at 402 wide: "Search settings" is in the heading row on wide screens and
-  first on narrow ones; typing "port" lists "Port", under "Server", which opens `/settings/server`;
-  review focus 8: "xyz" says "No setting matches “xyz”."; clearing the field shows the categories
-  again.
+  Appearance; "model" finds "The model and effort of each step" in Agents, and the two Reviews
+  settings that name a model; "sign-IN" finds both Sign-in settings, by the category's name; "xyz"
+  and "" find nothing.
+- On the page, at 1440 and at 402 wide: "Search settings" is in the heading row on wide screens,
+  after the heading and before the categories, and first on narrow ones, before the heading and
+  before "‹ Settings" (the row itself is seen in task 9's screenshots); typing "port" lists "Port",
+  under "Server", which opens `/settings/server` and clears the search, and "theme" at 402 opens
+  `/settings/appearance`; review focus 8: "xyz" says "No setting matches “xyz”."; clearing the field
+  shows the categories again.
 
 The break each test catches: planned settings left out of the search; case kept; results that do not
 lead to their category.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web src/__tests__/settings.test.tsx`
 - Expected: FAIL, `searchSettings is not a function`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The field is an Astryx `TextInput` with the `search` icon, its text kept in the page's state, never
 saved, like the repository menu's filter.
 
-- [ ] **Step 4: Run the web tests**
+- [x] **Step 4: Run the web tests**
 
 - Run: `vp test --project uraeda-web && vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-settings-page/plan.md

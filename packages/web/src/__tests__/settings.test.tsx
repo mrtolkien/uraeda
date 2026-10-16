@@ -3,12 +3,13 @@
 // while the file's names are in force (review focus 7); US2.4, a flag in force; US3, the port and
 // the browser at start; and a file that cannot be read. C2's borders are checked in screenshots.
 // US4: the page opened from the sidebar, its categories at a desktop's and a phone's width, the
-// later settings, and an unknown category.
+// later settings, and an unknown category. C1: searching the settings, at both widths.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
+import { searchSettings } from "../settings/categories.ts";
 import { atRepo, atWidth, click, fixtureRepo, refreshUntil, renderPage, type } from "./helpers.tsx";
 
 const MAC = "mac.tail1234.ts.net";
@@ -357,4 +358,104 @@ test("an unknown category reads as none: on a desktop, Server beside the list", 
 
   expect(await categoryNames()).toEqual(LISTED);
   expect(await screen.findByRole("heading", { level: 2, name: "Server" })).toBeTruthy();
+});
+
+test.each([
+  ["host", [["Allowed host names", "Server"]]],
+  ["THEME", [["Theme", "Appearance"]]],
+  [
+    "  model ",
+    [
+      ["The model and effort of each step", "Agents"],
+      ["The review's command, model, and number of reviewers", "Reviews"],
+      ["A second review by another model", "Reviews"],
+    ],
+  ],
+  [
+    "sign-IN",
+    [
+      ["Sign out", "Sign-in"],
+      ["Sign out everywhere", "Sign-in"],
+    ],
+  ],
+  ["xyz", []],
+  ["", []],
+])("searching %j finds %j (C1)", (text, found) => {
+  expect(searchSettings(text).map(({ category, label }) => [label, category.label])).toEqual(found);
+});
+
+/** Whether `a` comes before `b` in the page. */
+const before = (a: HTMLElement, b: HTMLElement) =>
+  (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+/** The search field, once the page shows it. */
+const searchField = () =>
+  screen.findByRole<HTMLInputElement>("textbox", { name: "Search settings" });
+
+test("on a desktop, the search is in the heading row: after the heading, before the categories (C1)", async () => {
+  atWidth(1440);
+  await renderPage("/settings");
+
+  const field = await searchField();
+  expect(before(screen.getByRole("heading", { level: 1, name: "Settings" }), field)).toBe(true);
+  expect(before(field, await screen.findByRole("list", { name: "Categories" }))).toBe(true);
+});
+
+test("on a phone, the search comes first, above the categories and above a category (C1)", async () => {
+  atWidth(402);
+  await renderPage("/settings");
+
+  const field = await searchField();
+  expect(before(field, screen.getByRole("heading", { level: 1, name: "Settings" }))).toBe(true);
+  expect(before(field, await screen.findByRole("list", { name: "Categories" }))).toBe(true);
+
+  await click((await categories()).getByRole("link", { name: /^Runs/ }));
+  await screen.findByRole("heading", { name: "Runs" });
+  expect(before(await searchField(), screen.getByRole("link", { name: "‹ Settings" }))).toBe(true);
+});
+
+test.each([
+  [1440, "port", "Port", "Server", "server"],
+  [402, "port", "Port", "Server", "server"],
+  [402, "theme", "Theme", "Appearance", "appearance"],
+])(
+  "at %i px, searching %s lists %s under %s, which opens it and clears the search (C1)",
+  async (width, text, label, category, id) => {
+    atWidth(width);
+    await renderPage("/settings/runs");
+
+    await type(await searchField(), text);
+
+    const results = within(await screen.findByRole("list", { name: "Settings found" }));
+    expect(results.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      `${label}${category}`,
+    ]);
+    expect(screen.queryByRole("list", { name: "Categories" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Runs" })).toBeNull();
+
+    await click(results.getByRole("link", { name: new RegExp(`^${label}`) }));
+
+    expect(window.location.pathname).toBe(atRepo(`/settings/${id}`));
+    await screen.findByRole("heading", { level: 2, name: category });
+    expect((await searchField()).value).toBe("");
+    expect(screen.queryByRole("list", { name: "Settings found" })).toBeNull();
+  },
+);
+
+test("a search with no match says so, and clearing it shows the categories again (review focus 8)", async () => {
+  atWidth(1440);
+  await renderPage("/settings");
+  const field = await searchField();
+
+  await type(field, "xyz");
+
+  expect(await screen.findByText("No setting matches “xyz”.")).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "Categories" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Server" })).toBeNull();
+
+  await type(field, "");
+
+  expect(await categoryNames()).toEqual(LISTED);
+  expect(await screen.findByRole("heading", { level: 2, name: "Server" })).toBeTruthy();
+  expect(screen.queryByText("No setting matches “xyz”.")).toBeNull();
 });
