@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.6.0 - 2026-10-16
+
+### Features
+
+- **[Testing review](https://github.com/mrtolkien/uraeda/blob/v0.6.0/specs/done/2026-10-14-testing-review.md)**
+  ([#18](https://github.com/mrtolkien/uraeda/pull/18)): `vp run ready` runs after every task of a
+  plan, and took about 2 minutes locally, rerunning every step one after the other: over a feature,
+  an hour or more lost. CI took up to 15 minutes in one job, and failed about half the time, when "a
+  CI failure MUST mean that there is an IMPORTANT bug to fix". The human asked for tests that are
+  "useful AND fast AND accurate": only the checks a change can affect rerun, what can run in
+  parallel does, tests are isolated and reproducible, coverage is measured, and every test, flaky
+  ones above all, pulls its weight.
+- **[Add a bugfixing/low impact change flow](https://github.com/mrtolkien/uraeda/blob/v0.6.0/specs/done/2026-10-15-add-bugfixing.md)**
+  ([#19](https://github.com/mrtolkien/uraeda/pull/19)): A light flow for bug fixes and small
+  changes, shorter than the feature flow but with the same code quality: no questions or spec by
+  default, and an offer to upgrade a change that turns out too big. With the full flow, any small
+  change took an hour or more with an agent, so about 24 small changes went straight to `main` in
+  five days with no record, tests, or review, and the agent-written bug flow was never used. The
+  human wanted it to "look and feel like a chat with a light structure on top: a file as input for
+  context, optional clarifications rounds, and then implementation and a PR". The visual UI
+  iteration flow the proposal also floated became its own draft,
+  [UI iteration flow](https://github.com/mrtolkien/uraeda/blob/v0.6.0/specs/done/2026-10-15-ui-iteration.md).
+- **[Inbox](https://github.com/mrtolkien/uraeda/blob/v0.6.0/specs/done/2026-10-15-add-scratchpad.md)**
+  ([#20](https://github.com/mrtolkien/uraeda/pull/20)): A small, structured place to write down
+  ideas and feedback while using the software: a feature is mostly good but has small things to fix,
+  not enough to block its pull request, or unrelated to it, and they should be kept in the
+  repository to treat later. Until now they were lines at the end of `PRIORITIES.md`, under
+  `## Scratchpad`, which the tools ignored, and which "could become their priorities, or could go
+  inside drafts, or could be fixed quickly without a full dev flow". The human wanted capture first,
+  organization as a second step in the same feature, and the name "Inbox". Notes now live in
+  `specs/INBOX.md`, apart from the priorities, "because they are _not_ priorities, by definition",
+  grouped under categories the human names; this feature's finishing commit moved the scratchpad's
+  notes there.
+- **[Claude five-hour allowance](https://github.com/mrtolkien/uraeda/blob/v0.6.0/specs/done/2026-10-15-claude-usage.md)**:
+  Implemented directly on main at the human's request. The sidebar's **Agents at work** section
+  shows the account's remaining Claude five-hour allowance below its feature and sub-agent rows.
+- **[UI iteration flow](https://github.com/mrtolkien/uraeda/blob/v0.6.0/specs/done/2026-10-15-ui-iteration.md)**
+  ([#21](https://github.com/mrtolkien/uraeda/pull/21)): Agent-written code is often mostly right,
+  but its UI needs many small, targeted fixes and visual feedback, and HTML mockups end up "far from
+  the actual results". The human wanted a visual way to iterate: real, interactive mockups that
+  "PROPERLY show how the feature will BEHAVE", shown inside the spec, A/B/C picks between visual
+  variants, and precise comments, for every repository using Uraeda whatever its stack, and for
+  Uraeda itself. Mockups became Storybook stories in the project's own code, which Uraeda runs and
+  embeds live, so the picked variant is the code that ships.
+
 ## 0.5.0 - 2026-10-15
 
 ### Features
