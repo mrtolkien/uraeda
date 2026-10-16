@@ -7,6 +7,7 @@ import { chatImages } from "./attach.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv, type Sources } from "./env.ts";
 import { PREVIEW_PATH } from "./guard.ts";
+import { refuse, upgradeUrl } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { layout } from "./paths.ts";
@@ -69,12 +70,18 @@ export async function reloadRepositories(): Promise<void> {
 
 /**
  * The upgrades of Vite's server: those under a preview's path go to the server of its port, which
- * its first request started; Vite answers the others, its own HMR socket among them.
+ * its first request started; Vite answers the others, its own HMR socket among them. A target that
+ * is not a URL is refused with a 400.
  */
 export function devUpgrade(): (request: IncomingMessage, socket: Duplex, head: Buffer) => void {
   return (request, socket, head) => {
-    const path = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
-    if (!PREVIEW_PATH.test(path)) {
+    const url = upgradeUrl(request);
+    if (url === undefined) {
+      socket.on("error", () => socket.destroy());
+      refuse(socket, "400 Bad Request", "Bad request");
+      return;
+    }
+    if (!PREVIEW_PATH.test(url.pathname)) {
       return;
     }
     const started = servers.get(request.socket.localPort ?? 0);

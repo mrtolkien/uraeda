@@ -5,7 +5,7 @@ import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { devHandler, devPreviews, devServer, devUpgrade, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
-import { checkoutOf, ready, socketOpens } from "../preview/__tests__/helpers.ts";
+import { checkoutOf, rawUpgrade, ready, socketOpens } from "../preview/__tests__/helpers.ts";
 import { fixture, fixtureRepo } from "./helpers.ts";
 import { addStoryFeature, STORY_FEATURE, temporaryFolder } from "uraeda-binding/test-utils";
 
@@ -169,4 +169,20 @@ test("vp dev sends preview paths and their sockets to the server", async () => {
 
   expect(((await echo.json()) as { path: string }).path).toBe("/__echo");
   expect(await socketOpens(`${url}${base}storybook-server-channel`, { origin: "null" })).toBe(true);
+});
+
+test("vp dev refuses an upgrade to a target that is not a URL, and keeps answering", async () => {
+  const server = createServer((_req, res) => res.end("vite"));
+  server.on("upgrade", devUpgrade());
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  onTestFinished(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const { port } = server.address() as { port: number };
+
+  const answer = await rawUpgrade(port, "//[");
+
+  expect(answer).toMatch(/^HTTP\/1\.1 400 /);
+  expect(await (await fetch(`http://127.0.0.1:${port}/`)).text()).toBe("vite");
 });
