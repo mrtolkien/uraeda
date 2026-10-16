@@ -9,7 +9,7 @@ use super::{
 };
 use crate::files::{frontmatter, markdown};
 use crate::git::ObjectId;
-use crate::steps::Step;
+use crate::steps::{self, PullRequest, Step};
 
 /// The texts of a folder's workflow files, by name, and the names of those that are not UTF-8.
 fn read_texts(
@@ -98,8 +98,35 @@ fn folder_uncommitted(
             .is_ok_and(|files| files.iter().any(|file| file.starts_with(&folder_prefix))))
 }
 
-/// A feature or change, from its folder, or its record when the folder is gone.
+/// A feature or change, from its folder, or its record when the folder is gone. Read from disk, its
+/// step is read from `committed`, its latest commit, while its files stay the disk's (R4).
 pub(super) fn read_feature(
+    reader: &Reader<'_>,
+    kind: Kind,
+    folder: &str,
+    branch: Option<String>,
+    from: ReadFrom,
+    committed: Option<ObjectId>,
+) -> Feature {
+    let mut feature = read_folder(reader, kind, folder, branch, from, committed);
+    feature.step = steps::step(&feature, PullRequest::Unknown);
+    if let (ReadFrom::Disk, Some(commit)) = (from, committed) {
+        let at_tip = read_feature(
+            reader,
+            kind,
+            folder,
+            None,
+            ReadFrom::Commit(commit),
+            committed,
+        );
+        feature.step = at_tip.step.clone();
+        feature.at_tip = Some(Box::new(at_tip));
+    }
+    feature
+}
+
+/// A feature or change, from its folder, or its record when the folder is gone.
+fn read_folder(
     reader: &Reader<'_>,
     kind: Kind,
     folder: &str,

@@ -1,4 +1,3 @@
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
@@ -612,21 +611,6 @@ test("an init with a new session ID updates the native ID", async () => {
   await flush();
 
   expect(cache.session(session.id)?.nativeId).toBe("cleared-1");
-});
-
-test("a feature with no branch refuses with 'This feature has no branch yet: commit its proposal first.'", async () => {
-  const repo = fixtureRepo();
-  const folder = "2026-10-20-draft";
-  mkdirSync(join(repo, "specs", folder));
-  writeFileSync(join(repo, "specs", folder, "proposal.md"), "# Draft\n\n## What\n\nA draft.\n");
-  const { adapter, sessions } = await testSessions(repo);
-  expect((await binding.nextStep(repo, folder)).branch).toBeUndefined();
-  const session = await sessions.featureSession(repo, folder);
-
-  await expect(sessions.send(repo, session.id, { text: "Hello" })).rejects.toThrow(
-    "refused: This feature has no branch yet: commit its proposal first.",
-  );
-  expect(adapter.opens).toEqual([]);
 });
 
 test("the watchdog fails a silent turn after 30 minutes with 'No output for 30 minutes.'", async () => {

@@ -270,20 +270,21 @@ fn branch_with_a_slash() {
     );
 }
 
+/// R3: a branch whose proposal was never committed has no folder in its latest commit, so it is no
+/// item.
 #[test]
-fn uncommitted_proposal_waits_on_you() {
+fn an_uncommitted_proposal_is_no_item() {
     let repo = repo_with_priorities();
     repo.switch_new("2026-10-11-runner");
     repo.write("specs/2026-10-11-runner/proposal.md", &proposal());
 
     let output = ura(&repo, &["status"]);
 
-    assert_eq!(
-        output.row("2026-10-11-runner")[1..],
-        [
-            "you",
-            "proposal.md: write it, then commit it (uncommitted changes)"
-        ]
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(
+        !output.stdout.contains("2026-10-11-runner"),
+        "{}",
+        output.stdout
     );
 }
 
