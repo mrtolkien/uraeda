@@ -20,10 +20,18 @@ const headers = (token: string | undefined): Record<string, string> => ({
 });
 
 /**
+ * Whether a page of the answer is a path on the server: it starts with `/`, never `//` or `/\`,
+ * which a browser may take for another site, so the browser opens nothing but the server's pages.
+ */
+const onServer = (path: unknown): path is string =>
+  typeof path === "string" && /^\/(?![/\\])/.test(path);
+
+/**
  * Asks the server on 127.0.0.1:`port` to open `request.folder`, with the host token `token`, within
  * `timeoutMs`, 2000 by default. "refused" for a 400 with an `error`; "unauthorized" for a 401;
- * "other" for a refused connection, a timeout, or an answer without `uraeda`. An answer without
- * `signIn`, from a server without sign-in, opens the page itself.
+ * "other" for a refused connection, a timeout, an answer without `uraeda`, or one whose `url` or
+ * `signIn` is not a path on the server. An answer without `signIn`, from a server without sign-in,
+ * opens the page itself.
  */
 export async function handOff(
   port: number,
@@ -47,8 +55,8 @@ export async function handOff(
     if (response.status === 400 && typeof body?.error === "string") {
       return { error: body.error, kind: "refused" };
     }
-    if (response.ok && typeof body?.uraeda === "string" && typeof body.url === "string") {
-      const signIn = typeof body.signIn === "string" ? body.signIn : body.url;
+    const signIn = body?.signIn ?? body?.url;
+    if (response.ok && typeof body?.uraeda === "string" && onServer(body.url) && onServer(signIn)) {
       return { kind: "opened", signIn, url: body.url };
     }
   } catch {
