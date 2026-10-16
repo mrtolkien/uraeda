@@ -161,8 +161,7 @@ export class SignInStore {
   /** Ends a session: signed out, its streams closed. One already gone is no error. */
   endSession(id: string): void {
     if (this.sessions.delete(id)) {
-      this.write();
-      this.ended([id]);
+      this.writeEnded([id]);
     }
   }
 
@@ -170,8 +169,7 @@ export class SignInStore {
   endAll(): void {
     const ids = [...this.sessions.keys()];
     this.sessions.clear();
-    this.write();
-    this.ended(ids);
+    this.writeEnded(ids);
   }
 
   /** Ends every session unused for more than 30 days. */
@@ -182,8 +180,7 @@ export class SignInStore {
       .map((session) => session.id);
     if (ids.length > 0) {
       ids.forEach((id) => this.sessions.delete(id));
-      this.write();
-      this.ended(ids);
+      this.writeEnded(ids);
     }
   }
 
@@ -203,6 +200,18 @@ export class SignInStore {
   /** Calls `listener` with the ID of every session that ends, once each. */
   onEnded(listener: (id: string) => void): void {
     this.listeners.push(listener);
+  }
+
+  /**
+   * Writes the file without the sessions `ids`, already gone from memory, then ends them: even when
+   * the write throws, their streams close and the listeners are told, before it is thrown.
+   */
+  private writeEnded(ids: Array<string>): void {
+    try {
+      this.write();
+    } finally {
+      this.ended(ids);
+    }
   }
 
   /** Aborts the ended sessions' signals, and tells the listeners. */
