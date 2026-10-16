@@ -32,11 +32,14 @@ export function AppearanceSettings() {
   );
 }
 
-/** Sign out this browser, or every device after asking, with the error when the server refused. */
+/**
+ * Sign out this browser, or every device after asking, with the error of the last one the server
+ * refused or never got.
+ */
 export function SignInSettings() {
   const { signOut } = useSignOut();
   const [refused, setRefused] = useState<string>();
-  const everywhere = useSignOutEverywhere(() => {});
+  const everywhere = useSignOutEverywhere();
   const problem = refused ?? everywhere.failed;
   return (
     <VStack gap={4}>
@@ -56,7 +59,14 @@ export function SignInSettings() {
       </VStack>
       <VStack gap={2}>
         <HStack>
-          <Button label="Sign out everywhere…" onClick={everywhere.ask} variant="destructive" />
+          <Button
+            label="Sign out everywhere…"
+            onClick={() => {
+              setRefused(undefined);
+              everywhere.ask();
+            }}
+            variant="destructive"
+          />
         </HStack>
         <Text color="secondary">
           Every browser signed in to Uraeda, this one included, will need the access key again.

@@ -248,8 +248,14 @@ describe("on a desktop, the frames and their messages", () => {
     await storyShown(DESKTOP);
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("dark");
 
-    const theme = screen.getByRole("radiogroup", { name: "Theme" });
+    // The theme is picked in the settings' Appearance, then the spec is shown again.
+    const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
+    await userEvent.click(nav.getByRole("link", { name: "Settings" }));
+    await userEvent.click(await screen.findByRole("link", { name: /^Appearance/ }));
+    const theme = await screen.findByRole("radiogroup", { name: "Theme" });
     await userEvent.click(within(theme).getByRole("radio", { name: "Light" }));
+    window.history.go(-2);
+    await storyShown(DESKTOP);
 
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("light");
   });

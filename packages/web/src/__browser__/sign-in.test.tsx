@@ -1,16 +1,15 @@
 // The sign-in screen at both sizes, in light and dark, as a server without a session shows it,
-// empty and with a wrong key's error; and the repository menu with its sign-out list, and the dialog
-// of "Sign out everywhere…": each passes the layout checks of the UI checks decision. The test
+// empty and with a wrong key's error; and the settings' Sign-in category, and the dialog of "Sign
+// out everywhere…": each passes the layout checks of the UI checks decision. The test
 // server has no sign-in: its fate requests are answered here, as a server with sign-in answers a
 // browser without a session.
-import { screen, within } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
-import { page, userEvent } from "vite-plus/test/browser";
+import { userEvent } from "vite-plus/test/browser";
 import { forgetSignedOut } from "../sign-in/signedOut.ts";
-import { checkLayout, drawn, repository, show } from "./helpers.tsx";
+import { checkLayout, drawn, show } from "./helpers.tsx";
 
 const MODES = ["light", "dark"] as const;
-const narrow = () => window.innerWidth < 768;
 
 /** The browser's own `fetch`, put back after each test. */
 const browserFetch = globalThis.fetch;
@@ -60,30 +59,14 @@ test.each(MODES)("the sign-in screen, empty, then with a wrong key, in %s", asyn
   await checkLayout(document.body);
 });
 
-/**
- * Opens the repository menu from its trigger, "Uraeda" over the repository's name: in the phone's
- * top bar, or in the navigation's heading on a wide screen.
- */
-async function openMenu() {
-  const bar = narrow()
-    ? page.getByRole("banner")
-    : page.getByRole("navigation", { name: "Side navigation" });
-  await userEvent.click(bar.getByRole("button", { exact: true, name: `Uraeda ${repository()}` }));
-  const menu = await screen.findByRole("dialog", { name: "Repositories" });
-  await within(menu).findByRole("list", { name: "Sign out" });
-  await drawn();
-  return menu;
-}
-
-test.each(MODES)("the menu's sign-out list, and its confirmation, in %s", async (mode) => {
+test.each(MODES)("the Sign-in category, and its confirmation, in %s", async (mode) => {
   window.localStorage.setItem("uraeda.theme", mode);
-  await show("/", "Waiting on you");
-  const menu = await openMenu();
-  const list = within(menu).getByRole("list", { name: "Sign out" });
-  expect(within(list).getByText("Sign out")).toBeTruthy();
-  await checkLayout(menu);
+  await show("/settings/sign-in", "Sign out everywhere…");
+  expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+  await drawn();
+  await checkLayout();
 
-  await userEvent.click(within(list).getByText("Sign out everywhere…"));
+  await userEvent.click(screen.getByRole("button", { name: "Sign out everywhere…" }));
   const dialog = await screen.findByRole("dialog", { name: "Sign out every device?" });
   await drawn();
   await checkLayout(dialog);
