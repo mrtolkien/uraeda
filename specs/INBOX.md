@@ -48,3 +48,8 @@
 - [agent] [redesign-priorities] Once the interface and priorities redesigns are merged, review the
   sidebar: a grey count of inbox notes on the Inbox row, and a Decisions row above Done
 - Add icons to decisions?
+
+## Flow
+
+- Settings page didn't show as "finished" in the UI after the last message -> might be fixed by the
+  interface review feature
