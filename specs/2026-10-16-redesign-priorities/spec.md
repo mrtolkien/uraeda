@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign home, inbox, and priorities
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 35 minutes.
+> Approved on 2026-10-16.
 >
 > - One changed decision,
 >   [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-16-redesign-priorities):
