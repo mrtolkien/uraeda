@@ -173,18 +173,24 @@ describe("on a desktop, the embed's sizes", () => {
   });
 
   test("in a document's column, the embed grows into the empty space beside it", async () => {
-    await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
-    await storyShown(DESKTOP);
-    const column = embed().parentElement!.getBoundingClientRect();
+    // A window wide enough for empty space beside the column whatever the fonts, which size it.
+    await page.viewport(1920, 1080);
+    try {
+      await commands.addStoryFeature();
+      await show(SPEC, "Resize the sidebar");
+      await storyShown(DESKTOP);
+      const column = embed().parentElement!.getBoundingClientRect();
 
-    await expect.poll(() => embed().getBoundingClientRect().width).toBeGreaterThan(column.width);
-    const grown = embed().getBoundingClientRect();
-    expect(grown.width).toBeLessThanOrEqual(1440 + 34);
-    // Never past the page's own inset, nor over the sidebar.
-    const sidebar = screen.getAllByRole("link", { name: "Home" })[0]!.getBoundingClientRect();
-    expect(grown.left).toBeGreaterThan(sidebar.right);
-    expect(grown.right).toBeLessThanOrEqual(window.innerWidth);
+      await expect.poll(() => embed().getBoundingClientRect().width).toBeGreaterThan(column.width);
+      const grown = embed().getBoundingClientRect();
+      expect(grown.width).toBeLessThanOrEqual(1440 + 34);
+      // Never past the page's own inset, nor over the sidebar.
+      const sidebar = screen.getAllByRole("link", { name: "Home" })[0]!.getBoundingClientRect();
+      expect(grown.left).toBeGreaterThan(sidebar.right);
+      expect(grown.right).toBeLessThanOrEqual(window.innerWidth);
+    } finally {
+      await page.viewport(1440, 900);
+    }
   });
 
   test("a second page uses the running Storybook, ready within 2 seconds (US1.7, SC-001)", async () => {
