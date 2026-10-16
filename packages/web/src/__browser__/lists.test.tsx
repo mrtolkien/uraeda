@@ -44,11 +44,18 @@ function address(name: string | RegExp) {
   return new URL(row(name).getAttribute("href") ?? "", window.location.href).pathname;
 }
 
+/** The rows of the page's lists marked current, `aria-current`: the selected one. */
+function current() {
+  return within(screen.getByRole("main")).queryAllByRole("listitem", { current: true });
+}
+
 /** Waits for the row of a text to be selected, focused, and shown in the pane. */
 async function selected(name: string | RegExp) {
   await expect.poll(() => window.location.pathname).toBe(address(name));
   await expect.poll(() => document.activeElement).toBe(row(name));
-  await expect.poll(() => row(name).closest("li")?.getAttribute("aria-current")).toBe("true");
+  await expect
+    .poll(() => current().map((item) => within(item).queryByRole("link", { name }) === row(name)))
+    .toEqual([true]);
 }
 
 /** Opens the priorities with Now's first line in the pane and the focus on its row. */
@@ -210,9 +217,12 @@ test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
     window.localStorage.setItem("uraeda.theme", mode);
     await show("/priorities/git-listener", "Open draft");
     const next = within(screen.getByRole("list", { name: "Next lines" }));
-    const open = next.getByRole("link", { name: /Git listener process/ }).closest("li");
-    await expect.poll(() => open?.getAttribute("aria-current")).toBe("true");
-    const other = next.getByRole("link", { name: /Claude Code runner/ }).closest("li");
-    expect(background(open)).not.toBe(background(other));
+    const open = await next.findByRole("listitem", { current: true });
+    expect(within(open).getByRole("link", { name: /Git listener process/ })).toBeTruthy();
+    const other = next
+      .getAllByRole("listitem")
+      .find((item) => within(item).queryByRole("link", { name: /Claude Code runner/ }));
+    expect(other).toBeTruthy();
+    expect(background(open)).not.toBe(background(other ?? null));
   },
 );

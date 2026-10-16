@@ -51,11 +51,7 @@ function DecisionRow({ decision, isSelected }: { decision: LedgerDecision; isSel
       }
       href={here(`/decisions/${decision.name}`)}
       isSelected={isSelected}
-      label={
-        <Text data-title="" weight="medium">
-          {decision.title}
-        </Text>
-      }
+      label={<Text weight="medium">{decision.title}</Text>}
       startContent={
         <span {...stylex.props(styles.icon)}>
           <Icon icon={decisionIcon(decision.icon)} />

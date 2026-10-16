@@ -343,3 +343,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a slow re-read flashes the old line until the watch's next push; a test holding a
   read's answer, as the check did, shows it.
 - **Where**: the final review.
+
+## R25: The tests find rows and cards by their roles, and the icons by their registered names
+
+- **Decision**: the tests of the decisions, home, and the lists find a row as the list item holding
+  its link, the selected one by `aria-current` through the `current` filter of its role, and home's
+  cards as regions: each card's `section` is now named by its heading. A decision's icon is checked
+  in `decision-icons.test.ts`, by the name `decisionIcon` gives the row and the theme's registry,
+  not on the page: the icon is decorative inside the row's link, hidden from assistive technology,
+  so no role or name reaches it without labelling it, which Astryx's `Icon` advises against inside a
+  link. `DecisionList.tsx` loses its `data-title`.
+- **Rationale**: the [UI checks](/specs/decisions/ui-checks.md) decision: "UI tests MUST drive the
+  UI as a user does, through roles, labels, and visible text … They MUST NOT assert markup
+  structure". A card named by its heading is a region for assistive technology too.
+- **Alternatives considered**: a label on each decision's icon, read as "git-branch, image" beside
+  every title; comparing the drawn SVG to the registry's: markup again.
+- **If wrong**: a row's icon wired to another name than its decision's passes the tests; the
+  screenshots show it.
+- **Where**: the final review.

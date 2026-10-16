@@ -10,7 +10,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 
 const styles = stylex.create({
@@ -133,6 +133,8 @@ export function Panel({
   title: string;
 }) {
   const wide = useWidthClass() === "wide";
+  // The card is a region named by its heading.
+  const headingId = useId();
   const parts = (
     <span {...stylex.props(styles.heading)}>
       {title}
@@ -145,10 +147,10 @@ export function Panel({
     </span>
   );
   return (
-    <section id={id}>
+    <section aria-labelledby={headingId} id={id}>
       <Card padding={wide ? 4 : 3}>
         <VStack gap={2}>
-          <Heading level={2}>
+          <Heading id={headingId} level={2}>
             {href ? (
               <Link
                 color="primary"
