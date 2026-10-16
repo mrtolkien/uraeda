@@ -3,7 +3,8 @@
 
 use std::path::{Path, PathBuf};
 
-use super::Feature;
+use super::{Feature, PriorityEntry};
+use crate::files::priorities;
 
 /// A link's file, from the top level, relative to the folder `dir` holding the linking file.
 /// `None` for an anchor in the page, a URI with a scheme (`https:`, `data:`, `mailto:`), or a
@@ -94,4 +95,30 @@ pub(super) fn match_feature(link: &str, features: &[Feature]) -> Option<String> 
                 .any(|name| *name == feature.folder || *name == feature.slug)
         })
         .map(|feature| feature.folder.clone())
+}
+
+/// The priorities' entries, each with the feature or the draft it links to.
+pub(super) fn priority_entries(text: &str, features: &[Feature]) -> Vec<PriorityEntry> {
+    let entries = priorities::parse(text);
+    let keys = priorities::keys(&entries);
+    entries
+        .into_iter()
+        .zip(keys)
+        .map(|(entry, key)| {
+            let feature = entry
+                .link
+                .as_deref()
+                .and_then(|link| match_feature(link, features));
+            let draft = entry.link.as_deref().and_then(linked_draft);
+            PriorityEntry {
+                section: entry.section,
+                position: entry.position,
+                key,
+                text: entry.text,
+                link: entry.link,
+                feature,
+                draft,
+            }
+        })
+        .collect()
 }
