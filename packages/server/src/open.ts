@@ -5,6 +5,8 @@ import { Hono } from "hono";
 import type { Binding } from "./fate/context.ts";
 import type { FateVariables } from "./fate.ts";
 import type { Hosts } from "./repositories.ts";
+import { fromHost } from "./sign-in/check.ts";
+import type { OneTimeLinks } from "./sign-in/links.ts";
 
 /**
  * A second start's request: its absolute folder, whether `--repo` or `URAEDA_REPO` gave it, and
@@ -56,12 +58,12 @@ async function openRequest(request: Request): Promise<OpenRequest | null> {
 }
 
 /**
- * `POST /open`: 200 with an `OpenAnswer`, its `signIn` from `signInLink` when the request asks
- * for one, else the page, or 400 with `{ error }`
- * for a body without an absolute folder, a given folder outside git, or a list the core refuses to
- * change.
+ * `POST /open`: 200 with an `OpenAnswer`, its `signIn` a one-time link from `signIn.links` when the
+ * request asks for one with the host token, else the page, or 400 with `{ error }` for a body
+ * without an absolute folder, a given folder outside git, or a list the core refuses to change. A
+ * signed-in browser may call it too, and never gets a link it could hand out.
  */
-export function openRoute(signInLink: (to: string) => string) {
+export function openRoute(signIn?: { hostToken?: string; links: OneTimeLinks }) {
   const route = new Hono<{ Variables: FateVariables }>();
   route.post("/open", async (context) => {
     const request = await openRequest(context.req.raw);
@@ -71,8 +73,9 @@ export function openRoute(signInLink: (to: string) => string) {
     const { binding, dataDir, hosts } = context.get("fate");
     try {
       const { url } = await openFolder({ binding, dataDir, hosts }, request);
+      const link = request.signIn && signIn && fromHost(context, signIn.hostToken);
       return context.json({
-        signIn: request.signIn ? signInLink(url) : url,
+        signIn: link ? signIn.links.make(url) : url,
         uraeda: binding.version(),
         url,
       } satisfies OpenAnswer);
