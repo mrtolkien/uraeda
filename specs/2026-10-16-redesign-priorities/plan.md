@@ -48,7 +48,8 @@ land.
    entries not started, never between two started ones. Task 8.
 4. **A feature that finishes while its entry shows as ongoing**: when a feature's step becomes
    `done`, its entry leaves "Ongoing" and gets its handle back without a reload. The priorities
-   record must be pushed when the workspace changes, not only when `PRIORITIES.md` does. Task 2.
+   record must be pushed when the workspace changes, not only when `PRIORITIES.md` does: the watch's
+   priorities hash covers the steps of the features the entries link (R6). Task 2.
 5. **Keys while a popover, a menu, or a dialog is open**: ↑ ↓ j k move the list's selection only
    when the focus is on the list or the page, never inside a text field, an open Selector, a menu,
    or a dialog. Task 10.
@@ -349,11 +350,15 @@ git commit -m "refactor(redesign-priorities): split links from the router, and s
 **Files:**
 
 - Modify: `crates/core/src/files/priorities.rs` (`EntryItem`), `crates/core/src/workspace.rs`,
-  `crates/core/src/workspace/links.rs`, `crates/core/src/api/priority_edits.rs`,
-  `crates/core/src/watch.rs`, `packages/server/src/live.ts`, `packages/server/src/fate/views.ts`
-  (priorities view selects the new fields; `StepRecord` treatment for the nested step)
+  `crates/core/src/workspace/links.rs` (`LinkedFile`, `RunningFeature`,
+  `Workspace::join_priorities`), `crates/core/src/api.rs`, `crates/core/src/api/priority_edits.rs`,
+  `crates/core/src/watch.rs`, `packages/server/src/fate/views.ts` (`PrioritiesRecord` with the
+  `StepRecord` treatment for the nested step), `packages/server/src/fate/sources.ts`
+  (`sentPriorities`), `packages/server/src/fate/masked.ts`, `packages/server/src/fate.ts`
+  (`PriorityEntry`), and the web's two `EntryItem` annotations, in `PrioritiesPage.tsx` and
+  `lists/PrioritiesWork.tsx`, which read the record's `PriorityEntry` instead
 - Test: `crates/core/tests/priorities.rs`, `crates/core/tests/watch.rs`,
-  `packages/server/src/__tests__/live.test.ts`
+  `packages/server/src/__tests__/fate.test.ts`
 
 **Interfaces:**
 
@@ -366,10 +371,11 @@ git commit -m "refactor(redesign-priorities): split links from the router, and s
     entry's link matches, while its step is not `done`.
 - `api::read_priorities` and every priorities write's answer fill both from the workspace; the
   file-level `priorities::read` leaves them `None`.
-- The watch's priorities hash covers each entry's nested lines and each matched feature's step;
-  `live.ts` pushes the priorities record when the workspace changes too.
+- The watch's priorities hash covers the record as the core joins it, each entry's nested lines and
+  each matched feature's step included, so `priorities: true` reports a feature that starts, moves a
+  step, or finishes; `live.ts` pushes the priorities record on it, as today (R6).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `priorities.rs`, `an_entry_links_its_existing_draft_or_backlog_file`: fixture with
     `drafts/git-listener.md` (exists), `backlog/benchmarks/proposal.md` (exists), and
     `drafts/missing.md` (missing) → `draft` is
@@ -384,20 +390,24 @@ git commit -m "refactor(redesign-priorities): split links from the router, and s
     branch → `running.change` is `true`.
   - `watch.rs`, `a_child_line_or_a_step_change_flags_the_priorities`: editing only a child line, and
     separately committing a step on a feature branch, both give `priorities: true`.
-  - `live.test.ts`: a workspace-only change pushes the `Priorities` record.
-- [ ] **Step 2: Run them to check they fail**
+  - `fate.test.ts`,
+    `US4.1 and US4.2: the priorities' entries carry their draft and running feature`: the fixture's
+    "Git listener process" has its draft, "Web UI for the workflow files" its running feature, its
+    step's `progress` sent as `null`. Break: the source sending the binding's answer without
+    `sentPriorities`.
+- [x] **Step 2: Run them to check they fail**
   - Run: `cargo nextest run -p uraeda-core -E 'test(/draft_or_backlog|running|child_line/)'`
   - Expected: FAIL, `no field 'draft' on type EntryItem` (compile error)
-- [ ] **Step 3: Implement the fields, the workspace join in the core's api layer, the hash, and the
-      push; rebuild the binding and select the fields in the server's view**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement the fields, the workspace join in the core's api layer, and the hash;
+      rebuild the binding and send the fields from the server's source**
+- [x] **Step 4: Run all tests**
   - Run:
     `cargo nextest run -p uraeda-core && vp run binding:build && vp test --project uraeda-server`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates/core packages/binding packages/server
+git add crates/core packages/binding packages/server packages/web specs/2026-10-16-redesign-priorities
 git commit -m "feat(redesign-priorities): entries say which draft and feature they have"
 ```
 

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import type { PriorityEntry } from "../fate.ts";
 import { refusable } from "../fate/errors.ts";
 import {
   addPlan,
@@ -120,6 +121,28 @@ test("a binding call's refusal is a bad request, and any other error an internal
   expect(log).toHaveBeenCalledOnce();
   expect(String(log.mock.calls[0]?.[0])).toContain("the task ran twice");
   log.mockRestore();
+});
+
+test("US4.1 and US4.2: the priorities' entries carry their draft and running feature", async () => {
+  const [priorities] = await byId(
+    (await testApp()).app,
+    "Priorities",
+    ["priorities"],
+    ["sections"],
+  );
+  const entries = priorities.sections.flatMap(
+    (section: { entries: Array<PriorityEntry> }) => section.entries,
+  );
+  const entry = (text: string) => entries.find((e: PriorityEntry) => e.text.includes(text));
+
+  expect(entry("Git listener")?.draft).toEqual({
+    backlog: false,
+    path: "specs/drafts/git-listener.md",
+  });
+  const running = entry("Web UI for the workflow files")?.running;
+  expect(running?.folder).toBe("2026-10-11-web-ui");
+  // Sent as every step is: a step without progress has it null.
+  expect(running?.step).toHaveProperty("progress", null);
 });
 
 test("adds a priority line", async () => {

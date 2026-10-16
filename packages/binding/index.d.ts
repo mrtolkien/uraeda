@@ -464,7 +464,10 @@ export interface Changes {
   features: Array<string>
   /** The files whose text changed, as `<folder>/<name>`. */
   files: Array<string>
-  /** Whether `PRIORITIES.md` or the drafts changed. */
+  /**
+   * Whether the priorities record changed: `PRIORITIES.md`, the drafts, or the step of a feature
+   * an entry links.
+   */
   priorities: boolean
   /** Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed. */
   inbox: boolean
@@ -575,6 +578,13 @@ export interface EntryItem {
   nested: Array<string>
   /** The text of each nested item, without its marker. */
   nestedSpans: Array<Array<Span>>
+  /**
+   * The draft or backlog file it links, when it exists: set by the workspace, see
+   * [`Workspace::join_priorities`](crate::workspace::Workspace::join_priorities).
+   */
+  draft?: LinkedFile
+  /** The feature or change it links, while it runs: set by the workspace. */
+  running?: RunningFeature
 }
 
 export interface FeatureView {
@@ -728,6 +738,14 @@ export interface ItemSettingsView {
 export interface LineRange {
   start: number
   end: number
+}
+
+/** The draft or backlog file a priorities entry links, as it is on the default branch. */
+export interface LinkedFile {
+  /** From the top level: `specs/drafts/x.md`, `specs/backlog/y/proposal.md`. */
+  path: string
+  /** Whether it is under `specs/backlog/`. */
+  backlog: boolean
 }
 
 /** A link of a spec's `## Mockups` section to an HTML file under `mockups/`, or to a story. */
@@ -905,6 +923,14 @@ export interface Ruling {
   title: string
   headingBlock: number
   blocks: Array<number>
+}
+
+/** The feature or change a priorities entry links, while its step is not `done`. */
+export interface RunningFeature {
+  folder: string
+  /** Whether it is a change. */
+  change: boolean
+  step: StepView
 }
 
 export interface Scenario {

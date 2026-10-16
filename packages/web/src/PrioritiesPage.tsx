@@ -28,7 +28,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { CommitBar } from "./CommitBar.tsx";
-import type { EntryItem } from "uraeda-binding";
+import type { PriorityEntry } from "uraeda-server/fate";
 import { usePriorities } from "./data.ts";
 import { dropMove, type Order, orderOf, type Priorities, spotOf } from "./drop.ts";
 import { EditableLine } from "./EditableLine.tsx";
@@ -90,7 +90,7 @@ function Line({
   isSelected,
   section,
 }: {
-  entry: EntryItem;
+  entry: PriorityEntry;
   index: number;
   isReduced: boolean;
   isSelected: boolean;

@@ -1,6 +1,7 @@
 mod common;
 
 use common::repo::TestRepo;
+use common::texts::{proposal, record};
 use uraeda_core::actions::priorities as actions;
 use uraeda_core::actions::{ActionError, changes, draft, place};
 use uraeda_core::api;
@@ -531,4 +532,133 @@ fn insert_past_the_end_appends_and_a_stale_hash_is_refused() {
         error.to_string(),
         "PRIORITIES.md changed on disk. Your change was not applied."
     );
+}
+
+/// The entry of `priorities` whose markdown is `text`.
+fn entry<'p>(priorities: &'p priorities::Priorities, text: &str) -> &'p priorities::EntryItem {
+    priorities
+        .sections
+        .iter()
+        .flat_map(|section| &section.entries)
+        .find(|entry| entry.text == text)
+        .unwrap_or_else(|| panic!("no entry {text}"))
+}
+
+const DRAFTED: &str = "# Priorities\n\n## Now\n\n## Next\n\n- [Git listener](drafts/git-listener.md)\n- [Benchmarks](backlog/benchmarks/proposal.md)\n- [Missing](drafts/missing.md)\n";
+
+/// US4.2 and US4.3: an entry marks its draft or backlog file only when the file exists.
+#[test]
+fn an_entry_links_its_existing_draft_or_backlog_file() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write("specs/PRIORITIES.md", DRAFTED);
+    repo.write("specs/drafts/git-listener.md", "# Git listener\n");
+    repo.write("specs/backlog/benchmarks/proposal.md", "# Benchmarks\n");
+    repo.commit("chore: specs");
+
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let draft = |text: &str, read: &priorities::Priorities| {
+        entry(read, text)
+            .draft
+            .as_ref()
+            .map(|file| (file.path.clone(), file.backlog))
+    };
+    assert_eq!(
+        draft("[Git listener](drafts/git-listener.md)", &read),
+        Some(("specs/drafts/git-listener.md".into(), false))
+    );
+    assert_eq!(
+        draft("[Benchmarks](backlog/benchmarks/proposal.md)", &read),
+        Some(("specs/backlog/benchmarks/proposal.md".into(), true))
+    );
+    assert_eq!(draft("[Missing](drafts/missing.md)", &read), None);
+    // The file-level reader leaves the join to the workspace.
+    assert_eq!(
+        draft(
+            "[Git listener](drafts/git-listener.md)",
+            &priorities::read(DRAFTED, None)
+        ),
+        None
+    );
+    // A write's answer is joined too.
+    let added = api::add_priority(repo.path(), "later", "Slack", &read.hash).unwrap();
+    assert_eq!(
+        draft("[Git listener](drafts/git-listener.md)", &added),
+        Some(("specs/drafts/git-listener.md".into(), false))
+    );
+}
+
+const WEB_UI: &str = "2026-10-11-web-ui";
+
+/// The edge case of a started entry whose feature is done: it is no longer running.
+#[test]
+fn an_entry_names_its_running_feature_until_done() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n",
+    );
+    repo.commit("chore: specs");
+    repo.switch_new(WEB_UI);
+    repo.write(&format!("specs/{WEB_UI}/proposal.md"), &proposal());
+    repo.commit("discovery(web-ui): web UI");
+    repo.switch("main");
+    let text = "[Web UI](/specs/2026-10-11-web-ui/proposal.md)";
+
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let running = entry(&read, text).running.clone().expect("running");
+    assert_eq!(running.folder, WEB_UI);
+    assert!(!running.change);
+    let workspace =
+        uraeda_core::workspace::Workspace::read(&Git::discover(repo.path()).unwrap()).unwrap();
+    let feature = workspace
+        .features
+        .iter()
+        .find(|f| f.folder == WEB_UI)
+        .unwrap();
+    assert_eq!(running.step.name, feature.step.name.as_str());
+    assert_ne!(running.step.name, "done");
+
+    repo.switch(WEB_UI);
+    repo.git(&["rm", "-r", "--quiet", &format!("specs/{WEB_UI}")]);
+    repo.write(
+        &format!("specs/done/{WEB_UI}.md"),
+        &record("feature", "Web UI"),
+    );
+    repo.commit("finish: web ui");
+    repo.switch("main");
+    repo.git(&["merge", "--quiet", "--no-ff", "--no-edit", WEB_UI]);
+
+    let read = api::read_priorities(repo.path()).unwrap();
+    assert_eq!(entry(&read, text).running, None);
+}
+
+/// The edge case of a change, not a feature, started: it is running too.
+#[test]
+fn a_change_is_running_too() {
+    let change = "2026-10-14-tasks-reappear";
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    let text = format!("[Tasks reappear](/specs/changes/{change}/proposal.md)");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &format!("# Priorities\n\n## Now\n\n- {text}\n"),
+    );
+    repo.commit("chore: specs");
+    repo.switch_new(&format!("change/{change}"));
+    repo.write(
+        &format!("specs/changes/{change}/proposal.md"),
+        "# Completed tasks reappear\n",
+    );
+    repo.commit("chore: proposal");
+    repo.switch("main");
+
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let running = entry(&read, &text).running.clone().expect("running");
+    assert_eq!(running.folder, change);
+    assert!(running.change);
 }

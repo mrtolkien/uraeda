@@ -334,3 +334,51 @@ fn a_dropped_watcher_stops() {
 
     assert!(receiver.recv_timeout(Duration::from_millis(800)).is_err());
 }
+
+/// Whether a report flags the priorities within 5 seconds, every report before it taken.
+fn flags_priorities(receiver: &mpsc::Receiver<Changes>) -> bool {
+    while let Ok(changes) = receiver.recv_timeout(Duration::from_secs(5)) {
+        if changes.priorities {
+            return true;
+        }
+    }
+    false
+}
+
+/// Review focus 4: the priorities record shows each entry's nested lines and its feature's step.
+#[test]
+fn a_child_line_or_a_step_change_flags_the_priorities() {
+    let repo = repo();
+    let entry = "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n";
+    repo.write("specs/PRIORITIES.md", &format!("{entry}  - a child\n"));
+    repo.commit("chore: priorities");
+    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.write(
+        "specs/PRIORITIES.md",
+        &format!("{entry}  - another child\n"),
+    );
+    assert!(flags_priorities(&receiver), "a child line");
+
+    let round = place
+        .root
+        .join("specs/2026-10-11-web-ui/clarifications-01.md");
+    std::fs::write(
+        &round,
+        clarifications("answered", "1 question, about 3 minutes.", &["A"]),
+    )
+    .unwrap();
+    run_git(&place.root, &["add", "specs"]);
+    run_git(
+        &place.root,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "answer(web-ui): A",
+        ],
+    );
+    assert!(flags_priorities(&receiver), "a step change");
+}

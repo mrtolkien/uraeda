@@ -5,11 +5,14 @@ import type {
   BranchChanges,
   ChangedFile,
   DraftView,
+  EntryItem,
   FeatureView,
   FileView,
   Inbox,
   Priorities,
   ProposalHint,
+  RunningFeature,
+  SectionItems,
   StepView,
   TaskProgress,
   WorkspaceView,
@@ -110,7 +113,15 @@ export function sentChanges(changes: BranchChanges | null): BranchChangesRecord[
     }
   );
 }
-export type PrioritiesRecord = Record_<Priorities> & { id: string };
+/** An entry, the step of its running feature sent as `sentStep` sends it. */
+type EntryRecord = Omit<EntryItem, "running"> & {
+  running?: Omit<RunningFeature, "step"> & { step: StepRecord };
+};
+export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
+  id: string;
+  sections: Array<Omit<SectionItems, "entries"> & { entries: Array<EntryRecord> }>;
+};
+
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
 export type InboxRecord = Omit<Record_<Inbox>, "triage"> & { id: string; triage: string | null };
 
