@@ -44,6 +44,20 @@
             neovim
             stylua
           ];
+          # `nix develop` points the temporary folder at a `nix-shell.*` folder of its own, and
+          # writes its shell's startup file in a `nix-develop-<its pid>-*` one: it removes neither
+          # when it runs a command (`-c`), so every command left two in /tmp, with what the command
+          # wrote there, thousands a day. The shell removes both, the startup file being read
+          # already, and uses the temporary folder it was started in.
+          shellHook = ''
+            if [ -n "''${NIX_BUILD_TOP:-}" ] && [ "''${TMPDIR:-}" = "$NIX_BUILD_TOP" ]; then
+              TMPDIR=$(dirname "$NIX_BUILD_TOP")
+              rmdir "$NIX_BUILD_TOP" 2>/dev/null
+              rm -rf "$TMPDIR"/nix-develop-$$-*
+              export TMPDIR TMP="$TMPDIR" TEMP="$TMPDIR" TEMPDIR="$TMPDIR"
+              unset NIX_BUILD_TOP
+            fi
+          '';
           # mini.test, which the Neovim plugin's tests run on, pinned by the flake's lock.
           MINI_TEST = "${pkgs.vimPlugins.mini-test}";
           # The browsers of the web UI's layout tests: the playwright package pins the same version
