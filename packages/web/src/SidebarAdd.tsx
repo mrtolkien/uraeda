@@ -112,7 +112,7 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   };
 
   return (
-    <Overlay isOpen={isOpen} label="New priority" onClose={onClose}>
+    <Overlay isOpen={isOpen} label="New priority" onClose={onClose} width="var(--size-quick-add)">
       <Suspense fallback={<Spinner label="Loading the priorities" />}>
         <AddForm onAdded={added} onCancel={onClose} />
       </Suspense>
@@ -177,7 +177,13 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   };
 
   return (
-    <Overlay isOpen={isOpen} label="Add a note" onClose={onClose} sheetHeight="hug">
+    <Overlay
+      isOpen={isOpen}
+      label="Add a note"
+      onClose={onClose}
+      sheetHeight="hug"
+      width="var(--size-quick-add)"
+    >
       <Suspense fallback={<Spinner label="Loading the inbox" />}>
         <AddNote
           about={about}
