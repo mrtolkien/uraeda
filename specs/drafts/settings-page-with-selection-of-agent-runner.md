@@ -29,7 +29,7 @@ Settings already known, all placeholders for the moment except the first bullet 
 - Same for subagents in implementation, or review settings (command, model, count, ...)
 - Need to be able to rename a project slug, at least in the UI
 - Sign-in: "Sign out" and "Sign out everywhere", which basic security puts in the repository menu
-  for now ([its spec](/specs/2026-10-16-basic-security/spec.md), on its branch until it merges)
+  for now ([its record](/specs/done/2026-10-16-basic-security.md))
 
 ## Notes
 

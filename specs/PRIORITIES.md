@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
-
 - [Redesign home, inbox, and priorities](drafts/redesign-priorities.md)
 - [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
 - [Redesign + reword specs](drafts/redesign-specs.md)
