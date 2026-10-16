@@ -1171,6 +1171,8 @@ export interface StepView {
   waitsOn: string
   /** The file waiting for the human, at a gate. */
   file?: string
+  /** That file's kind, `clarifications`, `spec`, `plan`, ...: what the gate asks of the human. */
+  fileKind?: string
   /** The first unchecked task, for implementation. */
   task?: string
   /** Where the implementation is in the plan's tasks, for implementation. */

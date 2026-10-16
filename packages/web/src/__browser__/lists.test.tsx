@@ -164,3 +164,29 @@ test("keys do nothing while a Selector is open (review focus 5)", async () => {
   }
   expect(screen.getByRole("region", { name: "Detail" })).toBeTruthy();
 });
+
+/** Two lines, each with enough children to make its pane scroll. */
+const TALL = ["Tall one", "Tall two"];
+
+/** Task 10's follow-up: the pane shows the next row from its top, not where the last was read. */
+test("the pane starts at its top when the keys show another row", async () => {
+  const children = Array.from({ length: 40 }, (_, at) => `  - Detail ${at + 1}\n`).join("");
+  const original = await commands.readRepo();
+  await commands.writeRepo(
+    original.replace(
+      /## Now\n\n[^#]*## Next/,
+      `## Now\n\n${TALL.map((line) => `- ${line}\n${children}`).join("")}\n## Next`,
+    ),
+  );
+  await show("/priorities/tall-one", "Tall two");
+  const pane = screen.getByRole("region", { name: "Detail" });
+  pane.scrollTop = pane.scrollHeight;
+  await expect.poll(() => pane.scrollTop).toBeGreaterThan(0);
+  row(/Tall one/).focus();
+
+  await userEvent.keyboard("{ArrowDown}");
+
+  await selected(/Tall two/);
+  expect(await screen.findByText("Now · 2 of 2")).toBeTruthy();
+  expect(pane.scrollTop).toBe(0);
+});

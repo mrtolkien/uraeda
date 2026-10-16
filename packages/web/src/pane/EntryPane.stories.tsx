@@ -1,13 +1,10 @@
-// The entry pane, mockups of the redesign of the priorities and the inbox: a priority's and a
-// note's detail, read-only on arrival, Edit in its bar. Over the fixture repository's real
-// priorities and inbox (see `.storybook/fixture.ts`), through fate; beside the real list on wide
-// screens, the page itself on narrow ones. Only a note's children are given: the core does not read
-// them yet.
+// The entry pane: a priority's and a note's detail, read-only on arrival, Edit in its bar. Over the
+// fixture repository's real priorities and inbox (see `.storybook/fixture.ts`), through fate;
+// beside the real list on wide screens, the page itself on narrow ones.
 import { borderVars, colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import type { Span } from "uraeda-binding";
 import { useInbox, usePriorities, useWorkspace } from "../data.ts";
 import { InboxPage } from "../InboxPage.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
@@ -66,25 +63,15 @@ function Priority({ editing, text }: { editing?: string; text: string }) {
   );
 }
 
-/** A span of plain text: a note's child, which the core does not read yet. */
-function plainSpan(text: string): Array<Span> {
-  return [{ code: false, emphasis: false, strike: false, strong: false, text }];
-}
-
-/** A note's pane, found by its text in the fixture's `INBOX.md`, with `lines`, its children. */
-function InboxNote({ lines, text }: { lines: Array<string>; text: string }) {
+/** A note's pane, found by its text in the fixture's `INBOX.md`. */
+function InboxNote({ text }: { text: string }) {
   const note = useInbox()
     ?.categories.flatMap((category) => category.notes)
     .find((one) => one.text === text);
   if (!note) {
     return null;
   }
-  return (
-    <Beside
-      list={<InboxPage />}
-      pane={<NotePane nested={lines.map(plainSpan)} noteKey={note.key} onClose={() => {}} />}
-    />
-  );
+  return <Beside list={<InboxPage />} pane={<NotePane noteKey={note.key} onClose={() => {}} />} />;
 }
 
 /** The fixture's folder, as `App` sets it: what keeps the fields' unsaved text apart. */
@@ -119,7 +106,10 @@ type Story = StoryObj<typeof meta>;
  */
 export const Reading: Story = { args: { text: "Git listener process" } };
 
-/** The same, after Edit: the one-line field in place, its text changed, so "Unsaved changes". */
+/**
+ * The same, after Edit: the one-line field in place, its text changed, so "Unsaved changes", and
+ * the draft's text under it, with Save and Commit.
+ */
 export const Editing: Story = {
   args: { editing: "Git listener process, polling every minute", text: "Git listener process" },
 };
@@ -129,14 +119,9 @@ export const Running: Story = { args: { text: "Recurring tasks" } };
 
 /**
  * An inbox note, read-only, with its children under it: its category, Organize, Delete, and its
- * neighbours. Its children are given, the rest is the fixture's.
+ * neighbours.
  */
 export const Note: Story = {
   args: { text: "Icons are blurry on retina screens" },
-  render: ({ text }) => (
-    <InboxNote
-      lines={["On the sidebar's step icons", "Seen on a 2x display, in Firefox and Chrome"]}
-      text={text}
-    />
-  ),
+  render: ({ text }) => <InboxNote text={text} />,
 };

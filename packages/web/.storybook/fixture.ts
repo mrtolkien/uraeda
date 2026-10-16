@@ -1,8 +1,8 @@
 // The repository Uraeda's Storybook serves its stories from: a fresh copy of `fixtures/repo`, its
-// commits dated 2026-10-16, with the test feature of the story embeds and one checkout for each state
-// `StoryEmbed.stories.tsx` shows. Its previews run the tests' fake Storybook,
+// commits dated 2026-10-16, a note given children, with the test feature of the story embeds and
+// one checkout for each state `StoryEmbed.stories.tsx` shows. Its previews run the tests' fake Storybook,
 // `fixtures/preview/serve.mjs`, as the browser tests' do.
-import { renameSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   addStoryFeature,
@@ -46,6 +46,16 @@ function addFeature(
   }
 }
 
+/** The children of the inbox's note the `Note` pane story shows, committed on `main`. */
+function addNoteChildren(repo: string) {
+  const inbox = join(repo, "specs/INBOX.md");
+  const note = "- Icons are blurry on retina screens\n";
+  const children =
+    "  - On the sidebar's step icons\n  - Seen on a 2x display, in Firefox and Chrome\n";
+  writeFileSync(inbox, readFileSync(inbox, "utf8").replace(note, `${note}${children}`));
+  git(repo, "commit", "--quiet", "--no-verify", "--all", "--message", "chore: a note's children");
+}
+
 /**
  * Builds the fixture at `<temporary folder>/fixture`, which the server lists as `fixture`, and its
  * data and config folders, the config folder empty, all removed when Storybook exits.
@@ -56,6 +66,7 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
   try {
     const repo = join(temporaryFolder("uraeda-storybook"), "fixture");
     renameSync(fixtureRepo(), repo);
+    addNoteChildren(repo);
     // The test feature, `CHECKOUTS.ready`, its preview ready: the `Ready`, `Missing`, and
     // `Removed` states.
     addStoryFeature(repo);

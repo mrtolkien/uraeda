@@ -750,3 +750,37 @@ fn finish_follows_its_reference() {
         Some("skills/uraeda/references/finish.md")
     );
 }
+
+/// What a human gate asks, named from the step alone: the kind of the file it waits on, which the
+/// web UI's "Answer questions", "Review the spec", and "Review the plan" are read from.
+#[test]
+fn a_gate_names_the_kind_of_its_file() {
+    let questions = vec![
+        ("proposal.md", proposal()),
+        ("clarifications-01.md", waiting()),
+    ];
+    let spec_waits = vec![
+        ("proposal.md", proposal()),
+        ("clarifications-01.md", answered()),
+        ("spec.md", spec("awaiting-human", 1, 1)),
+    ];
+    let plan_waits = vec![
+        ("proposal.md", proposal()),
+        ("clarifications-01.md", answered()),
+        ("spec.md", spec("approved", 1, 1)),
+        ("plan.md", plan("awaiting-human", 1, &[("One", 0, 1)])),
+    ];
+    let rows: Vec<(Files, Option<&str>)> = vec![
+        (questions, Some("clarifications")),
+        (spec_waits, Some("spec")),
+        (plan_waits, Some("plan")),
+        (vec![("proposal.md", proposal())], None),
+    ];
+    for (files, expected) in rows {
+        let feature = feature(Kind::Feature, &files);
+
+        let step = StepView::from(&feature.step);
+
+        assert_eq!(step.file_kind.as_deref(), expected, "{:?}", step.file);
+    }
+}
