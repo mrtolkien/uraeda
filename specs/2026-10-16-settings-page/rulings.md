@@ -206,3 +206,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   place; the link kept, the check failing.
 - **If wrong**: one element in `packages/web/src/settings/SettingsView.tsx`.
 - **Where**: task 7, `packages/web/src/settings/SettingsView.tsx`
+
+## R17: The search clears when a result opens its category, and starts empty
+
+- **Decision**: the search's text is `SettingsView`'s own state, cleared once a result's link opens
+  its category in the page; a result opened in a new tab leaves it. `SettingsView` takes
+  `initialSearch`, empty by default, which only the `Search` story sets.
+- **Rationale**: Astryx's `ListItem` drops `onClick` when it has `href`, so the list hears the click
+  after the app's link has handled it; a row stays a link, opened in a new tab like the categories.
+  A story renders its state from its arguments, with no typing step in this project's stories.
+- **Alternatives considered**: rows as buttons that navigate and clear, losing the link; the search
+  in the address, a saved place the spec does not ask for; a story typing through a `play` function,
+  a new kind of story here.
+- **If wrong**: one handler and one prop in `packages/web/src/settings/SettingsView.tsx`.
+- **Where**: task 8, `packages/web/src/settings/SettingsView.tsx`

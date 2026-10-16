@@ -1,5 +1,6 @@
 // The settings page's states, as the spec's mockups: each category, the Server category with a
-// value a flag overrides and with a file that cannot be read, and the phone's list of categories.
+// value a flag overrides and with a file that cannot be read, the phone's list of categories, and
+// a search.
 // The Server values are records as the server's settings source gives them, passed in, as
 // `SettingsPage` passes the one it reads; Sign-in and Appearance are the real ones.
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -95,3 +96,6 @@ export const Runs: Story = { args: { category: "runs" } };
 
 /** No category named: the list on a phone, Server beside it on a desktop. */
 export const Index: Story = { args: { category: undefined } };
+
+/** A search across every category, the settings to come included: each leads to its category. */
+export const Search: Story = { args: { category: undefined, initialSearch: "model" } };
