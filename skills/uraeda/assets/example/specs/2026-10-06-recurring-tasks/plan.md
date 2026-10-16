@@ -186,6 +186,9 @@ The decisions this plan relies on, and where it follows them:
 
 ## Task 1: Calendar-day due dates, and their upgrade
 
+**Risky:** it rewrites every stored task's due date when the database upgrades: a mistake loses
+users' dates.
+
 **Files:**
 
 - Create: `src/lib/dates.ts`

@@ -107,6 +107,12 @@ When drawing task boundaries:
 - Split only where a reviewer could meaningfully reject one task while approving its neighbour.
 - Order the tasks so each one is built and tested on what the earlier ones made: data changes come
   before the code that relies on them.
+- When the spec names unverified outside behaviour, the first task checks it, with a test through
+  the real library, browser, or tool. If the check fails, the build stops there and goes back to the
+  human, before any work relies on it.
+- Mark the risky tasks, the ones that change security, data written to disk, concurrency, or a rule
+  several callers share, with a **Risky** line saying why: each is
+  [reviewed on its own](implementation.md#review-the-tasks).
 - Each task ends with an independently testable deliverable, and leaves the project working.
 
 ## Step granularity
@@ -224,6 +230,8 @@ the task's commit, which is how any agent knows how far the work went.
 
 ````markdown
 ## Task N: [Component or deliverable]
+
+**Risky:** [Only for a risky task: what it changes that makes it risky.]
 
 **Files:**
 
