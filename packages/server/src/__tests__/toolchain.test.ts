@@ -255,6 +255,54 @@ function projectNames(): Array<string> {
   });
 }
 
+/** A command line that runs tests: a test runner, or the package's smoke test. */
+const TEST_RUNNER = /\b(?:vp test|cargo (?:llvm-cov )?nextest|nvim --headless)\b|smoke\.ts\b/;
+
+/** `scripts/test-run.ts`, from the root or a task's folder, with its options. */
+const TEST_RUN = /^node (?:\.\.\/)*scripts\/test-run\.ts((?: --\S+ \S+)*) /;
+
+/**
+ * The tasks running tests outside a temporary folder of their own: a test leaving its folders
+ * behind, or a run killed before its cleanup, would fill the machine's `/tmp`.
+ */
+function outsideRunFolder(tasks: Record<string, Task>): Array<string> {
+  return Object.entries(tasks).flatMap(([name, { command }]) =>
+    [command].flat().some((line) => TEST_RUNNER.test(line) && !TEST_RUN.test(line))
+      ? [
+          `\`${name}\` runs tests outside a temporary folder of their own: start its command with \`node scripts/test-run.ts\`.`,
+        ]
+      : [],
+  );
+}
+
+/**
+ * The tasks running a browser project without the machine's lock of the browser tests, which
+ * caps how many run at once across checkouts.
+ */
+function unlockedBrowsers(tasks: Record<string, Task>, browsers: Array<string>): Array<string> {
+  return Object.entries(tasks).flatMap(([name, { command }]) =>
+    [command]
+      .flat()
+      .some(
+        (line) =>
+          projectOptions(line).some((options) =>
+            browsers.some((browser) => selects(options, browser)),
+          ) && !/--lock browser\b/.test(TEST_RUN.exec(line)?.[1] ?? ""),
+      )
+      ? [
+          `\`${name}\` runs browser tests without waiting for the other checkouts': run it with \`node scripts/test-run.ts --lock browser --slots 2\`.`,
+        ]
+      : [],
+  );
+}
+
+/** The browser projects' names: the instances of the root's config file projects. */
+function browserProjects(): Array<string> {
+  const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
+  const packages = projects.filter((project) => !project.endsWith(".ts")).length;
+  return projectNames().slice(packages);
+}
+
 test.each([
   [
     "a task without inputs",
@@ -341,6 +389,41 @@ test.each([
       "`uraeda-server` is in `test.projects`, but no task of `ready` runs it: select the unit projects by exclusion in `ts:test` (`--project '!phone'`), or add a task running it.",
     ],
   ],
+  [
+    "a test task outside a run folder, next to a wrapped one and a build",
+    outsideRunFolder({
+      "rust:test": { command: "env -u GIT_DIR cargo nextest run" },
+      "test:nvim": {
+        command: ["cargo build -q", "node ../../scripts/test-run.ts nvim --headless -u x.lua"],
+      },
+      "ts:test": { command: "node scripts/test-run.ts vp test --project '!phone'" },
+      "ui:smoke": { command: ["node scripts/build.ts", "node packages/uraeda/scripts/smoke.ts"] },
+    }),
+    [
+      "`rust:test` runs tests outside a temporary folder of their own: start its command with `node scripts/test-run.ts`.",
+      "`ui:smoke` runs tests outside a temporary folder of their own: start its command with `node scripts/test-run.ts`.",
+    ],
+  ],
+  [
+    "a browser task without the lock",
+    unlockedBrowsers(
+      {
+        "browser:desktop": { command: "node scripts/test-run.ts vp test --project desktop" },
+        "browser:phone": {
+          command: "node scripts/test-run.ts --lock browser --slots 2 vp test --project phone",
+        },
+        coverage: {
+          command: "node scripts/test-run.ts vp test --project '!phone' --project '!desktop'",
+        },
+        everything: { command: "node scripts/test-run.ts vp test" },
+      },
+      ["phone", "desktop"],
+    ),
+    [
+      "`browser:desktop` runs browser tests without waiting for the other checkouts': run it with `node scripts/test-run.ts --lock browser --slots 2`.",
+      "`everything` runs browser tests without waiting for the other checkouts': run it with `node scripts/test-run.ts --lock browser --slots 2`.",
+    ],
+  ],
 ])("%s is reported", (_name, problems, expected) => expect(problems).toEqual(expected));
 
 test("a comment naming a retry setting is not reported", () =>
@@ -373,7 +456,12 @@ test("the repository's toolchain follows the decision", () => {
   expect(retriedTasks(allTasks())).toEqual([]);
   expect(withDoctests(libraryManifests())).toEqual([]);
   expect(unselected(projectNames(), readyTasks())).toEqual([]);
+  expect(outsideRunFolder(allTasks())).toEqual([]);
+  expect(unlockedBrowsers(allTasks(), browserProjects())).toEqual([]);
 });
+
+test("the browser projects are the browser config's instances", () =>
+  expect(browserProjects()).toEqual(["phone", "desktop"]));
 
 test("a project added to test.projects is run by a task selecting the others by exclusion", () =>
   expect(
