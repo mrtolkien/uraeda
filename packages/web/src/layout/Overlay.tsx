@@ -20,6 +20,7 @@ export function Overlay({
   onClose,
   sheetHeight = "tall",
   sheetRef,
+  width,
 }: {
   children: ReactNode;
   /** On narrow screens, whether the page behind the sheet is blocked, and dimmed. */
@@ -34,6 +35,8 @@ export function Overlay({
   sheetHeight?: "tall" | "capped" | "hug";
   /** On narrow screens, the sheet's panel, as drawn on screen. */
   sheetRef?: RefObject<HTMLDivElement | null>;
+  /** On wide screens, the dialog's width, when Astryx's default is too narrow for its buttons. */
+  width?: string;
 }) {
   const wide = useWidthClass() === "wide";
   const close = useBackCloses(label, isOpen, onClose);
@@ -45,7 +48,7 @@ export function Overlay({
 
   if (wide) {
     return (
-      <Dialog isOpen={isOpen} onOpenChange={onOpenChange} padding={4} purpose="form">
+      <Dialog isOpen={isOpen} onOpenChange={onOpenChange} padding={4} purpose="form" width={width}>
         <DialogHeader hasDivider={false} onOpenChange={onOpenChange} title={label} />
         {isOpen && children}
       </Dialog>
