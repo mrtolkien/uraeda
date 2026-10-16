@@ -74,6 +74,27 @@ impl Git {
             .any(|entry| !entry.starts_with("AD ")))
     }
 
+    /// Whether the file at `path` is as `HEAD` has it in both the index and the working tree, a
+    /// missing file as `HEAD` has none: a change staged then undone on disk is still a change,
+    /// and so is a file git ignores.
+    pub fn as_committed(&self, path: &str) -> Result<bool, GitError> {
+        let output = self.output(
+            "status",
+            &[
+                "--no-optional-locks",
+                "status",
+                "--porcelain=v1",
+                "-z",
+                "--untracked-files=all",
+                "--ignored=matching",
+                "--no-renames",
+                "--",
+                path,
+            ],
+        )?;
+        Ok(output.split('\0').all(|entry| entry.is_empty()))
+    }
+
     /// Whether the index holds `path`, or files under it.
     pub(crate) fn in_index(&self, path: &str) -> Result<bool, GitError> {
         let index = self

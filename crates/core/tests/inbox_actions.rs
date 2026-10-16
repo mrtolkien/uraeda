@@ -246,8 +246,17 @@ fn an_unreadable_inbox_is_not_overwritten() {
     let path = repo.path().join(INBOX);
     std::fs::write(&path, b"# Inbox\n\n- \xff\n").unwrap();
 
-    let error =
-        actions::add(&main_place(&repo), None, &Marks::default(), "A note", None).unwrap_err();
+    let error = actions::add(
+        &main_place(&repo),
+        None,
+        &Marks {
+            agent: false,
+            about: None,
+        },
+        "A note",
+        None,
+    )
+    .unwrap_err();
 
     assert!(matches!(error, ActionError::Io(_)), "{error:?}");
     assert_eq!(std::fs::read(&path).unwrap(), b"# Inbox\n\n- \xff\n");
@@ -429,4 +438,55 @@ fn undo_of_a_committed_note_commits_the_removal() {
     assert_eq!(repo.changed_in("HEAD"), [INBOX]);
     assert_eq!(repo.read(INBOX), before);
     assert_eq!(undone.changes, 0);
+}
+
+/// An inbox staged by the human, its working copy then put back as committed, still has changes:
+/// "Add and commit" writes the note without committing, and the staged version stays staged.
+#[test]
+fn a_note_over_a_staged_inbox_is_not_committed() {
+    let repo = fixture_repo();
+    let committed = repo.read(INBOX);
+    let staged = format!("{committed}- Typed by hand\n");
+    repo.write(INBOX, &staged);
+    repo.git(&["add", INBOX]);
+    repo.write(INBOX, &committed);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (_, added) =
+        api::add_note_and_commit(repo.path(), None, None, "Icons are blurry", &read.hash).unwrap();
+
+    assert!(!added.committed);
+    assert_eq!(added.reason.as_deref(), Some("other-changes"));
+    assert_eq!(repo.subjects("main")[0], "chore: specs");
+    assert_eq!(repo.git(&["show", &format!(":{INBOX}")]), staged);
+    assert!(repo.read(INBOX).contains("- Icons are blurry\n"));
+}
+
+/// `ura note` over a staged inbox, its working copy put back as committed, writes the note and
+/// commits nothing.
+#[test]
+fn ura_note_over_a_staged_inbox_is_not_committed() {
+    let repo = fixture_repo();
+    let committed = repo.read(INBOX);
+    let staged = format!("{committed}- Typed by hand\n");
+    repo.write(INBOX, &staged);
+    repo.git(&["add", INBOX]);
+    repo.write(INBOX, &committed);
+
+    let noted = actions::note(
+        &main_place(&repo),
+        None,
+        &Marks {
+            agent: false,
+            about: None,
+        },
+        "Icons are blurry",
+        true,
+    )
+    .unwrap();
+
+    assert_eq!(noted, actions::Noted::Uncommitted);
+    assert_eq!(repo.subjects("main")[0], "chore: specs");
+    assert_eq!(repo.git(&["show", &format!(":{INBOX}")]), staged);
+    assert!(repo.read(INBOX).contains("- Icons are blurry\n"));
 }
