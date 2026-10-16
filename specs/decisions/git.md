@@ -132,3 +132,68 @@ automatic deletion setting covers them.
 
 - [`crates/`](/crates/), and every Rust feature that reads or writes git: the CLI, the git listener,
   the runner
+
+## Proposed change (2026-10-16-redesign-interface)
+
+Proposed by the [spec](../2026-10-16-redesign-interface/spec.md). A branch's workflow state, which
+items exist and the step each one is at, is read from its commits, whether or not it is checked out;
+files on disk only show as uncommitted changes.
+
+The rules become:
+
+- Rust tools MUST read git through gix: references and branches, files at a ref, worktrees, the
+  working tree's status, and ancestry. Checked by review.
+- Tools MUST run the system `git` binary for every write: commits, worktrees, branch switches,
+  branch deletions, and pushes, and for any read gix does not support. Checked by review.
+- Tools MUST NOT bypass the user's hooks: no `--no-verify`, and no commit written by gix or with
+  plumbing to skip them. Checked by review.
+- Tools MUST NOT switch the user's checkout to another branch, unless the human asks for it with a
+  flag. To write on a branch, they MUST use the checkout or worktree that has it, or else create a
+  worktree for it at `.worktrees/<branch>/`, at the root of the main checkout. Checked by review.
+- Drafts, backlog files, `PRIORITIES.md`, `INBOX.md`, and `INBOX-TRIAGE.md` MUST be written on the
+  default branch, from every tool and from any checkout. A tool opened in another branch's checkout
+  MAY act on its copy of one of them only while that copy holds the default branch's text, and MUST
+  otherwise refuse, naming the default branch's checkout. Checked by the core's tests of each
+  writing action.
+- A feature's or a change's workflow state, whether it exists and which step it is at, MUST be read
+  from its branch's latest commit, whether or not the branch is checked out. A branch MUST count as
+  a feature or a change only when its folder or its record is in that commit. Files that differ on
+  disk MUST only mark the item as having uncommitted changes. Checked by the core's workspace tests.
+- `ura start` MUST create the new feature's branch in a worktree at `.worktrees/<folder>/` by
+  default. Checked by the CLI's tests.
+- Tools MUST remove a worktree or delete a local branch only when a human asks for it, for a feature
+  merged into the default branch. Checked by review.
+- Tools MUST remove only worktrees under `.worktrees/`, with `git worktree remove`, never with
+  `--force`. Checked by the core's tests.
+- Tools MUST delete a local branch only once no worktree has it checked out, with `git branch -D`,
+  and only when each of its commits is on the local default branch or its remote-tracking branch, or
+  has a patch-equivalent commit on one of them, as `git cherry` reports it. Checked by the core's
+  tests.
+- Tools MAY run `git worktree prune`, which only drops the records of worktree folders already gone.
+  Checked by review.
+- Tools MUST read whether a worktree has uncommitted or untracked files, or is locked, before
+  removing it, and MUST NOT infer it from `git`'s messages. Checked by the core's tests.
+- Tools MUST NOT delete remote branches. Checked by review.
+- When `core.hooksPath` is a relative path, commits made by tools in a linked worktree MUST resolve
+  it against the main checkout, so the same hooks run. Checked by the core's tests.
+- Tools MUST keep `.worktrees/` out of the user's `git status`, through the repository's
+  `.git/info/exclude`, without editing a tracked file. Checked by the core's tests.
+- Tools MUST NOT link another git library, such as git2 (libgit2) or jj-lib. Checked by review.
+- Output of the `git` binary MUST be parsed only in its plumbing, `--porcelain`, or `--format`
+  forms, never as text meant for humans. Checked by review.
+- In Rust, every git access MUST go through one module of the core, so no other code uses gix or
+  builds `git` command lines. Checked by review.
+- gix MUST be built without its default features, with only those the reads need. Checked by review.
+
+Why: a branch checked out in a worktree was read from its disk, without its folder being required,
+so a branch outside the workflow showed in the UI, and a file an agent saved but had not committed
+already read as a gate. The human asked for parsing that is "ROBUST, ACCURATE, and FAST", which
+"focus[es] on the committed state of all worktrees", and for "only true uraeda flows" in the UI
+([proposal](../2026-10-16-redesign-interface/proposal.md),
+[status detection](../2026-10-16-redesign-interface/discovery-01.md#status-detection)).
+
+The consequences gain:
+
+- Every step of the workflow is a commit, so the UI moves when a commit lands, not when a file is
+  saved.
+- A human editing a workflow file by hand sees its step change once they commit it.

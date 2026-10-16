@@ -101,3 +101,64 @@ dedicated page" (C1 of the [spec's review](../done/2026-10-14-session-view.md)).
 ## Applies to
 
 - [`packages/web/`](/packages/web/), and every feature that adds or changes a view
+
+## Proposed change (2026-10-16-redesign-interface)
+
+Proposed by the [spec](../2026-10-16-redesign-interface/spec.md). The sidebar shows each feature and
+change as a card, by the name the human gave it or its slug, with its step as an icon at the start
+and its status at the end; it folds to a rail of those icons from a button at its top.
+
+The rules become:
+
+- Readability and clarity for the human MUST come first. A view's spec MUST say why its layout reads
+  best for what the view is for, and the rules below SHOULD give way to that, with the reason in the
+  spec. Checked by review.
+- The UI MUST have two width classes: narrow, under 768 px, and wide, from 768 px, taken from the
+  theme's `md` breakpoint. A layout MUST be chosen by width, never by device type, user agent, or
+  pointer. Checked by review.
+- Components MUST NOT write their own media queries with sizes. They read the width class from one
+  shared hook, or the theme's adaptations. Checked by review.
+- On narrow screens, a view MUST open as its own page. Checked by the browser tests.
+- On wide screens, a detail the human checks while working through a list, like a task of the
+  priorities, SHOULD open in a pane beside the list, which stays usable. A view the human stays in
+  or follows, like an agent's session, SHOULD be a page of its own, and MAY have a column beside its
+  main content for what the human needs to keep in view. A column that takes room from the content
+  MUST be foldable and resizable, with its width and the choice kept in the browser. Checked by the
+  browser tests.
+- The sidebar SHOULD stay short and visual: each feature or change as one card, by the name the
+  human gave it, or its slug when it has none; its step as an icon at the card's start; its status
+  and a running background command as icons at its end; its progress and the lines its branch
+  changed as counts. Each card's accessible name MUST carry the full words: its name, its title, its
+  step, its status, and its task. Checked by the UI tests.
+- On wide screens, the sidebar MUST fold to a rail of its rows' icons, each with its status, from a
+  button at its top, and unfold from the same place. Checked by the browser tests.
+- On wide screens, menus MUST be popovers and short forms dialogs. On narrow screens, both MUST be
+  bottom sheets. Astryx's `presentation="adaptive"` SHOULD be used where a component offers it.
+  Checked by review.
+- An open detail, tab, or sheet that can be returned to MUST be in the URL, so a reload, Back, or a
+  change of width keeps it. Checked by the UI tests.
+- Body text MUST be 17 px on narrow screens. From 1024 px wide, body text MUST be 19 px, and element
+  heights and spacing MUST grow by the same factor, 1.2, through the theme's adaptations. Checked by
+  the browser tests.
+- Under a coarse pointer, every control MUST be at least 44 px tall, through the theme's
+  adaptations. Checked by the browser tests.
+- Reading text MUST NOT be wider than about 120 characters. Checked by the browser tests.
+- Text MUST be left-aligned, never justified. Paragraphs SHOULD use `text-wrap: pretty`. Checked by
+  review.
+- Every view's spec MUST say what it shows at both width classes, and its mockups MUST show both.
+  Checked by review.
+
+Why: the human asked the sidebar to show each feature's step before implementation, as an icon at
+the start of the row with the running indicator at its end, and every line about a feature grouped
+in one card, since sub-agents and tasks were hard to read
+([Q4](../2026-10-16-redesign-interface/clarifications-01.md#q4-how-does-a-features-step-show-on-its-row-before-implementation)).
+They asked to rename a feature or give it a colour
+([Q14](../2026-10-16-redesign-interface/clarifications-01.md#q14-what-do-renaming-and-colouring-a-feature-change)),
+to resize both sidebars, and to keep the rail as the folded state, with its button at the top
+([Q5](../2026-10-16-redesign-interface/clarifications-01.md#q5-what-does-hiding-a-sidebar-do)).
+
+The consequences gain:
+
+- A renamed feature reads by its new name in the sidebar only: addresses, branches, and commits keep
+  its slug.
+- The rail keeps every item's step and status in view, 48 px wide.
