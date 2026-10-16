@@ -266,8 +266,9 @@ Preserved behaviour:
 **Files:**
 
 - Create: `crates/core/src/workspace/branches.rs` (the branch reading moved out of `workspace.rs`)
-- Modify: `crates/core/src/workspace.rs` (`working_tree_features`, `add_branch_features`,
-  `branch_feature`, `read_feature`)
+- Modify: `crates/core/src/workspace.rs` (`Feature.at_tip`, `with_pull_request`),
+  `crates/core/src/workspace/read.rs` (`read_feature`, moved there from `workspace.rs`,
+  [R6](rulings.md#r6-read_feature-moves-into-the-read-module-before-it-changes))
 - Test: `crates/core/tests/workspace.rs`, `crates/cli/tests/status.rs`
 
 **Interfaces:**
@@ -279,7 +280,10 @@ Preserved behaviour:
 - [x] **Step 1: Split `workspace.rs` before it changes**
 
 Move `add_branch_features`, `branch_feature`, and `working_tree_features` into
-`workspace/branches.rs`, unchanged, so the changes of step 4 fit under the file's cap.
+`workspace/branches.rs`, unchanged; then, in a second commit, `read_feature` and `decisions_pending`
+into `workspace/read.rs`, unchanged
+([R6](rulings.md#r6-read_feature-moves-into-the-read-module-before-it-changes)), so the changes of
+step 4 fit under the file's cap.
 
 - Run:
   `env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 cargo nextest run -p uraeda-core -p uraeda-cli`
@@ -290,6 +294,11 @@ Move `add_branch_features`, `branch_feature`, and `working_tree_features` into
 ```bash
 git add crates/core/src/workspace.rs crates/core/src/workspace/branches.rs crates/cli/tests/structure.rs
 git commit -m "refactor(redesign-interface): read branches' features in their own module"
+```
+
+```bash
+git add crates/core/src/workspace.rs crates/core/src/workspace/read.rs crates/cli/tests/structure.rs specs/2026-10-16-redesign-interface
+git commit -m "refactor(redesign-interface): read a feature's folder in the read module"
 ```
 
 - [ ] **Step 2: Write the failing tests**
