@@ -235,6 +235,27 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   const original = priorities(repo);
   await takePriorities(each, shots, repo);
   await takeDecisions(each);
+  // A refused Undo: the file changes before the Undo's insert reaches the server. Taken before
+  // the reviews' views, which make a draft of a priority that would show here.
+  await each("undo-refused", async ({ page }) => {
+    await page.route("**/fate**", async (route) => {
+      if (route.request().postData()?.includes("priorities.insert")) {
+        writeFileSync(
+          join(repo, "specs/PRIORITIES.md"),
+          `${priorities(repo)}\n- Added elsewhere\n`,
+        );
+      }
+      await route.continue();
+    });
+    await show(page, "/priorities/nix-docker-based-execution-environments", "Nix + Docker");
+    await page.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await page.getByText(/Could not restore/).waitFor();
+    await settle(page);
+    await page.unroute("**/fate**");
+    writeFileSync(join(repo, "specs/PRIORITIES.md"), original);
+  });
+
   const first = shots[0]!.page;
   await takeReviews(each, first);
   await takeSessions(each, first, adapter);
@@ -255,26 +276,6 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
     await page.getByRole("searchbox", { name: "Search sessions" }).fill("zzz");
     await page.getByText("No session matches “zzz”.").waitFor();
     await settle(page);
-  });
-
-  // A refused Undo: the file changes before the Undo's insert reaches the server.
-  await each("undo-refused", async ({ page }) => {
-    await page.route("**/fate**", async (route) => {
-      if (route.request().postData()?.includes("priorities.insert")) {
-        writeFileSync(
-          join(repo, "specs/PRIORITIES.md"),
-          `${priorities(repo)}\n- Added elsewhere\n`,
-        );
-      }
-      await route.continue();
-    });
-    await show(page, "/priorities/nix-docker-based-execution-environments", "Nix + Docker");
-    await page.getByRole("button", { name: "Delete" }).click();
-    await page.getByRole("button", { name: "Undo" }).click();
-    await page.getByText(/Could not restore/).waitFor();
-    await settle(page);
-    await page.unroute("**/fate**");
-    writeFileSync(join(repo, "specs/PRIORITIES.md"), original);
   });
 
   await takeImplementation(each, adapter, repo);
