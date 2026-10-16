@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { port, testApp } from "../../__tests__/helpers.ts";
+import { SERVER_PATHS } from "../../server-paths.ts";
 
 const HOST_TOKEN = "the-host-token";
 
@@ -89,4 +90,25 @@ test.each(open)("%s %s is open", async (method, path, headers, status) => {
   });
 
   expect(response.status).toBe(status);
+});
+
+/**
+ * Every new route is closed by default: the session check lets a path that is not the server's
+ * through as the built UI's, so each route of the app, but the UI's own catch-all `/*` and the
+ * middleware on it, must be one of `SERVER_PATHS`. Its parameters and wildcards stand for one
+ * segment.
+ */
+test("every route of the app is one of the server's paths", async () => {
+  const { app } = await closedApp();
+
+  const uncovered = app.routes
+    .map((route) => route.path)
+    .filter((path) => path !== "/*")
+    .map((path) => path.replaceAll(/:[^/]+/g, "x").replaceAll("*", "x"))
+    .filter((path) => !SERVER_PATHS.test(path));
+
+  expect(
+    uncovered,
+    "a route the session check would let through: add its path to SERVER_PATHS in server-paths.ts",
+  ).toEqual([]);
 });
