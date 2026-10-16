@@ -43,9 +43,29 @@ that task from its first step.
 ## For each task, in order
 
 One task at a time, in the plan's order: each task is built and tested on what the earlier ones
-made. If your harness can run agents, give each task to a fresh implementer agent, with the task's
-text, the global constraints, the path of the spec, and what earlier tasks produced, but not your
-session's history. Otherwise, implement it yourself.
+made. If your harness can run agents, give each task to a fresh implementer agent, with
+[its brief](#the-implementers-brief), but not your session's history. Otherwise, implement it
+yourself. You coordinate: when an implementer stops or is interrupted, give the task to a fresh one,
+told to resume from the commits and the checked boxes, rather than building it in your own session.
+
+### The implementer's brief
+
+The plan, the spec, and the rulings grow to tens of thousands of words, and an implementer told to
+read them in full reloads all of them for every task. Give it what its task needs instead, and let
+it open the rest at the sections it needs:
+
+- the task's text, all of it, and the plan's **Global constraints**;
+- the **Review focus** items the task owns;
+- links to the spec's sections the task implements, by heading;
+- the rulings that touch the task's files;
+- the discovery's map of the code the task touches: its
+  [important reads](discovery.md#the-discovery-file) and likely changes;
+- what earlier tasks produced that it consumes: names, interfaces, files;
+- the findings left from the previous task's review, to fix first, when there are any: see
+  [review the tasks](#review-the-tasks).
+
+Write the parts every task shares once, in a file outside the repository, and give each implementer
+its path with its task's own parts.
 
 1. **Read the task**, all of it, even one you remember: its text has the exact values. Check its
    **Consumes** against what the earlier tasks actually produced in the code, and trace the affected
@@ -73,24 +93,47 @@ session's history. Otherwise, implement it yourself.
      the same commit, so later tasks follow what was built. Remove paths made obsolete by the
      change; keep unrelated refactoring out. Do not weaken tests or change user-visible behaviour to
      accommodate the new design.
-3. **Run the project's validation**: formatter, linter, type checker, and every test.
+3. **Run the validation the step needs**, the smallest first:
+   - **While working**: the tests the task adds or touches, by file or project, and the fast checks
+     (formatter, linter, type checker).
+   - **Before the task's commit**: the project's validation once. Its slow suites, such as browser
+     tests and screenshots, only when the task changes what they cover: a UI behaviour, a layout, a
+     route. A validation that reruns only what changed, through a cache, is run whole.
+   - **At the final review**: everything, slow suites included.
+
+   A failure unrelated to the task that passes when run again is not hunted in rerun loops: run it
+   at most twice. A test that fails intermittently follows the project's rule for flaky tests, when
+   an active decision has one; otherwise note it in the inbox, as
+   [agents' notes](inbox.md#agents-notes) says, and go on.
+
 4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
    plan's commit message. Check a box only for a step that ran, with the output the plan expects:
    the next agent trusts it without running it again.
-5. **Review the task**, when your harness can run a fresh reviewer agent. Give it the task's text,
-   the spec and its approval comments, the global constraints, and the diff of the task's commits.
-   It derives expected behaviour from the approved requirements before checking the implementation
-   and tests, then reviews the changed responsibilities and their callers. It gives two verdicts,
-   spec compliance first, then quality, with the criteria of [Review the branch](#review-the-branch)
-   scaled to the task, and flags what the task grew, not sizes that were already there
-   ([extract, don't grow](code-quality.md#extract-dont-grow)). Fix what matters in new commits, each
-   behaviour fix with a test that fails first; structural changes must keep behavioural tests
-   passing and satisfy explicit architectural constraints. After five rounds, rule on what remains,
-   in `rulings.md`, and go on.
+5. **Review**, after every second or third task, or after a risky one: see
+   [review the tasks](#review-the-tasks).
 
 In the messages that report your work, link each story you wrote or changed, alone in its paragraph,
 with a blank line before and after, as a [story link](conventions.md#markdown): Uraeda shows it live
 in the session, where the human can try it and comment on it.
+
+### Review the tasks
+
+When your harness can run a fresh reviewer agent, review the tasks as they are built, so their
+problems are fixed while their context is fresh, not all at the final review. Review every two or
+three tasks, on the diff of their commits, and a risky task on its own: one that changes security,
+data written to disk, concurrency, or a rule several callers share. Give the reviewer the tasks'
+text, the spec's sections they implement and its approval comments, the global constraints, and the
+diff. It derives expected behaviour from the approved requirements before checking the
+implementation and tests, then reviews the changed responsibilities and their callers. It gives two
+verdicts, spec compliance first, then quality, with the criteria of
+[Review the branch](#review-the-branch) scaled to the tasks, and flags what the tasks grew, not
+sizes that were already there ([extract, don't grow](code-quality.md#extract-dont-grow)).
+
+Its findings are [graded](#grade-the-findings) like the final review's: only the critical and
+important ones are fixed. Give them to the next task's implementer, to fix first, each behaviour fix
+with a test that fails first, in its own commit; after the last task, to a fresh implementer.
+Structural fixes must keep behavioural tests passing and satisfy explicit architectural constraints.
+A finding still open after two rounds is ruled on, in `rulings.md`.
 
 ### Rulings
 
@@ -183,6 +226,8 @@ Review the changed subsystem and affected callers, including relevant code outsi
 - **Size**: list each function and file the branch grew, with its length before and after, for the
   pull request's description ([extract, don't grow](code-quality.md#extract-dont-grow)).
 
+### Grade the findings
+
 Grade each finding by what a user gets if the branch ships, not by whether the spec names the input
 that triggers it:
 
@@ -190,7 +235,9 @@ that triggers it:
   structural fixes with behavioural regression checks and any explicit architectural checks. Do not
   manufacture a failing test that only pins a private implementation shape. Run the full validation.
   Commit with the feature's scope: `fix(recurring-tasks): keep the undo after a reload`.
-- **Minor**: do not fix them. List them in the pull request, for the human to decide.
+- **Minor**: do not fix them, and do not let an implementer fix them in passing. Add each to the
+  inbox under **Deferred fixes**, as an [agent's note](inbox.md#agents-notes) about the feature, for
+  the human to decide, and list them in the pull request.
 
 A maintenance defect can be important before it causes a user-visible failure. Name the likely
 change or failure it makes harder, and the duplicated edits, coupling, or missing ownership behind
@@ -200,7 +247,9 @@ past a limit, or a copy of a rule ([one home per rule](code-quality.md#one-home-
 A finding you decide not to fix is a ruling, written in `rulings.md` with the others.
 
 A second reviewer, such as another tool's review skill, can review the branch too, after the first.
-Its findings are graded and fixed the same way, and the pull request names it.
+Its findings are graded and fixed the same way, and the pull request names it. It reviews the branch
+once; after its fixes, a second pass reviews only the fix commits, and what it still finds is listed
+in the pull request rather than fixed in another loop.
 
 Then push the branch, open its pull request as a draft, and run the [finish](finish.md) step: it
 replaces the folder with its record, and marks the pull request ready.
@@ -222,7 +271,7 @@ description, written when it is marked ready, reads like a file waiting for the 
 - **Size**: each function and file the branch grew, with its length before and after.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Review comments**: when the plan was approved with comments, how each was carried out.
-- **Deferred minors**: the minor findings of the final review.
+- **Deferred fixes**: the minor findings of the reviews, as noted in the inbox.
 - **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 If you cannot open a pull request, push the branch, and put the description in the body of the last

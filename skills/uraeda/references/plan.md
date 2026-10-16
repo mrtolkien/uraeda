@@ -46,7 +46,9 @@ context it needs without prescribing choices the implementer can make from the c
 5. The code itself: its structure and patterns, the test setup and existing helpers, every place
    that reads or writes data the feature changes, and the commands that validate the project
    (formatter, linter, type checker, tests, benchmarks). Read it: do not plan from the discovery's
-   summary alone.
+   summary alone. Start from the discovery's map rather than mapping the code again: read what it
+   lists, and look further only for what it lacks. Agents you give parts of the code to get the
+   map's sections for them, and are asked only what the map does not answer.
 
 If `spec.md` still opens with a `> [!IMPORTANT]` block, the approval step did not run, for example
 because the spec proposes no decision: turn the block into a record, as described in

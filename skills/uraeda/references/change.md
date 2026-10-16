@@ -230,8 +230,9 @@ time, one commit per item:
   passing, and not dropped: note it in the inbox, as [agents' notes](inbox.md#agents-notes) says,
   with the change's slug, and name it in the pull request's description.
 
-Run the project's validation before each commit. When something only the human can decide comes up
-midway, ask in a round: the items already committed stay.
+Before each commit, run the validation the step needs, as the implementation step's
+[validation](implementation.md#for-each-task-in-order) says. When something only the human can
+decide comes up midway, ask in a round: the items already committed stay.
 
 ## The review
 
@@ -258,7 +259,8 @@ in this order:
 6. **Screenshots** of a UI change.
 7. **Rulings**: a link to `rulings.md` at the commit before finishing, and the ones that change
    behaviour, one line each.
-8. **Minor findings** of the review, and the notes added to the inbox.
+8. **Deferred fixes**: the minor findings of the review, noted in the inbox under **Deferred
+   fixes**, and the other notes added to the inbox.
 9. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 Changes requested on the pull request are handled as for a feature, as
