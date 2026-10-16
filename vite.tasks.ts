@@ -26,6 +26,19 @@ const testEnv = [
 const isolatedGit =
   "env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1";
 
+/**
+ * Runs a test command in a temporary folder of its own, `TMPDIR`, removed when it ends (see
+ * `scripts/test-run.ts`): several checkouts' tests at once once filled the machine's `/tmp`. From
+ * the task's `cwd`, which `from` reaches the root from.
+ */
+const testRun = (from = ".") => `node ${from === "." ? "" : `${from}/`}scripts/test-run.ts`;
+
+/**
+ * The browser tests run at most two at once on the machine, one checkout's phone and desktop: more,
+ * from several checkouts, slowed them all past their timeouts. The others wait for their turn.
+ */
+const browserRun = `${testRun()} --lock browser --slots 2`;
+
 /** What the Rust crates are built from: the skill is compiled into the core. */
 const rustSources = [
   "crates/**",
@@ -65,10 +78,10 @@ export const tasks = {
   bench: {
     cache: false,
     command: [
-      `${isolatedGit} cargo nextest run --run-ignored only -E 'test(/^bench_/)'`,
-      `${isolatedGit} vp test bench --run`,
+      `${testRun()} ${isolatedGit} cargo nextest run --run-ignored only -E 'test(/^bench_/)'`,
+      `${testRun()} ${isolatedGit} vp test bench --run`,
       // The run-ui feature's SC-002: the installed package's first page within 2 seconds.
-      `${isolatedGit} node packages/uraeda/scripts/smoke.ts --binding packages/binding --timed`,
+      `${testRun()} ${isolatedGit} node packages/uraeda/scripts/smoke.ts --binding packages/binding --timed`,
     ],
     dependsOn: ["binding:touch", "ui:build"],
   },
@@ -101,13 +114,13 @@ export const tasks = {
     dependsOn: ["binding:build"],
   },
   "browser:desktop": {
-    cache: { input: tsTestInputs, output: [], untrackedEnv: testEnv },
-    command: `${isolatedGit} vp test --project desktop`,
+    cache: { input: [...tsTestInputs, "scripts/test-run.ts"], output: [], untrackedEnv: testEnv },
+    command: `${browserRun} ${isolatedGit} vp test --project desktop`,
     dependsOn: ["binding:touch"],
   },
   "browser:phone": {
-    cache: { input: tsTestInputs, output: [], untrackedEnv: testEnv },
-    command: `${isolatedGit} vp test --project phone`,
+    cache: { input: [...tsTestInputs, "scripts/test-run.ts"], output: [], untrackedEnv: testEnv },
+    command: `${browserRun} ${isolatedGit} vp test --project phone`,
     dependsOn: ["binding:touch"],
   },
   // A report of the lines the Rust tests and the TypeScript unit tests run, never a check: it is not
@@ -117,9 +130,9 @@ export const tasks = {
     command: [
       // cargo-llvm-cov writes its lcov file into an existing folder only.
       "mkdir -p coverage",
-      `${isolatedGit} cargo llvm-cov nextest --profile coverage --lcov --output-path coverage/rust.lcov`,
+      `${testRun()} ${isolatedGit} cargo llvm-cov nextest --profile coverage --lcov --output-path coverage/rust.lcov`,
       "cargo llvm-cov report --html --output-dir coverage/rust",
-      `${isolatedGit} vp test --project '!phone' --project '!desktop' --coverage`,
+      `${testRun()} ${isolatedGit} vp test --project '!phone' --project '!desktop' --coverage`,
       "node scripts/coverage-summary.ts",
     ],
     dependsOn: ["binding:touch", "web:build"],
@@ -168,11 +181,11 @@ export const tasks = {
   "rust:test": {
     // CI sets NEXTEST_PROFILE=ci, to report every failure at once.
     cache: {
-      input: [...rustSources, "fixtures/**", ".config/nextest.toml"],
+      input: [...rustSources, "fixtures/**", ".config/nextest.toml", "scripts/test-run.ts"],
       output: [],
       untrackedEnv: [...testEnv, "NEXTEST_PROFILE"],
     },
-    command: `${isolatedGit} cargo nextest run`,
+    command: `${testRun()} ${isolatedGit} cargo nextest run`,
   },
   // `ura check` follows the specs' links to any Markdown file of the repository.
   "specs:check": {
@@ -216,7 +229,7 @@ export const tasks = {
     cache: false,
     command: [
       "cargo build -q -p uraeda-cli",
-      `${isolatedGit} nvim --headless --noplugin -u tests/minimal_init.lua -c 'lua MiniTest.run()'`,
+      `${testRun("../..")} ${isolatedGit} nvim --headless --noplugin -u tests/minimal_init.lua -c 'lua MiniTest.run()'`,
     ],
     cwd: "editors/nvim",
   },
@@ -253,7 +266,7 @@ export const tasks = {
       untrackedEnv: testEnv,
     },
     // Every project but the browser's, by exclusion: a package added to `test.projects` runs here.
-    command: `${isolatedGit} vp test --project '!phone' --project '!desktop'`,
+    command: `${testRun()} ${isolatedGit} vp test --project '!phone' --project '!desktop'`,
     dependsOn: ["binding:touch", "web:build"],
   },
   // `@uraeda/ui`, built from the web UI, the server, the binding's loader, and the skill.
@@ -279,11 +292,16 @@ export const tasks = {
   // The package, installed and run as a user would, on the checkout's binding: timed by `bench` only.
   "ui:smoke": {
     cache: {
-      input: ["packages/uraeda/**", "packages/binding/*.node", "!**/node_modules/**"],
+      input: [
+        "packages/uraeda/**",
+        "packages/binding/*.node",
+        "scripts/test-run.ts",
+        "!**/node_modules/**",
+      ],
       output: [],
       untrackedEnv: testEnv,
     },
-    command: `${isolatedGit} node packages/uraeda/scripts/smoke.ts --binding packages/binding`,
+    command: `${testRun()} ${isolatedGit} node packages/uraeda/scripts/smoke.ts --binding packages/binding`,
     dependsOn: ["ui:build", "binding:touch"],
   },
   "web:build": {
