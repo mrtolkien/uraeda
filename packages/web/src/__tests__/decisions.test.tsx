@@ -1,16 +1,12 @@
 // US8: the constitution and decisions page, read-only, over the fixture repository's constitution
-// and its five decisions; the edge cases of a missing folder, a missing constitution, an unknown
-// icon, and a decision `ura check` cannot read (review focus 7).
+// and its five decisions; the edge cases of a missing folder, a missing constitution, a decision
+// without a title, one with a problem, and one `ura check` cannot read (review focus 7). The icons
+// a row draws are checked in `decision-icons.test.ts`.
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { atRepo, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
-
-/** The path of Lucide's `git-branch`, as `theme/icons.ts` draws it. */
-const GIT_BRANCH = "M15 6a9 9 0 0 0-9 9V3";
-/** The path of Lucide's `file-text`, the default icon of a decision. */
-const FILE_TEXT = "M14 2v5a1 1 0 0 0 1 1h5";
 
 /** Commits every change of the repository, dated `date`. */
 function commitOn(repo: string, message: string, date: string) {
@@ -35,17 +31,30 @@ async function decisionList() {
   return within(await screen.findByRole("list", { name: "Decisions" }));
 }
 
-/** The titles of the decisions' rows, in order. */
-async function titles() {
-  return (await decisionList())
-    .getAllByRole("link")
-    .map((link) => link.querySelector("[data-title]")?.textContent);
+/** A row's link name: its title, then its subtitle and its date, if any. */
+const titled = (title: string) => new RegExp(`^${title}( |$)`);
+
+/** The titles the decisions' rows start with, among `known`, in the rows' order. */
+async function titles(known: ReadonlyArray<string>) {
+  const names: Array<string> = [];
+  (await decisionList()).getAllByRole("link", {
+    name: (name) => {
+      names.push(name);
+      return true;
+    },
+  });
+  return names.map((name) => known.find((title) => titled(title).test(name)));
 }
 
 /** A decision's row, by its title. */
 async function decisionRow(title: string) {
-  const link = (await decisionList()).getByRole("link", { name: new RegExp(`^${title}`) });
-  return link.closest("li") as HTMLElement;
+  const row = (await decisionList())
+    .getAllByRole("listitem")
+    .find((item) => within(item).queryByRole("link", { name: titled(title) }));
+  if (!row) {
+    throw new Error(`No decision row ${title}`);
+  }
+  return row;
 }
 
 /** The pane beside the list. */
@@ -84,7 +93,8 @@ test("shows the constitution's version and principles, then the decisions, lates
   ]);
   expect(page.getByRole("heading", { name: "Decisions · 5" })).toBeTruthy();
   // Stack changed last; the others, changed the same day, A to Z.
-  expect(await titles()).toEqual(["Stack", "Agents", "Git", "TUI", "UI behaviour"]);
+  const latest = ["Stack", "Agents", "Git", "TUI", "UI behaviour"];
+  expect(await titles(latest)).toEqual(latest);
   expect(within(await decisionRow("Stack")).getByText("Jan 5")).toBeTruthy();
   expect(
     within(await decisionRow("Git")).getByText(/^Uraeda's Rust tools read git with gix/),
@@ -102,13 +112,12 @@ test("A to Z sorts the decisions by title, and stays chosen after a reload", asy
   await click(await screen.findByRole("combobox", { name: "Sort decisions" }));
   await click(await screen.findByRole("option", { name: "A to Z" }));
 
-  expect(await titles()).toEqual(["Agents", "Git", "Stack", "TUI", "UI behaviour"]);
+  const sorted = ["Agents", "Git", "Stack", "TUI", "UI behaviour"];
+  expect(await titles(sorted)).toEqual(sorted);
   expect(window.localStorage.getItem("uraeda:decisions:sort")).toBe("title");
 
   await renderPage("/decisions", repo, { reload: true });
-  await waitFor(async () =>
-    expect(await titles()).toEqual(["Agents", "Git", "Stack", "TUI", "UI behaviour"]),
-  );
+  await waitFor(async () => expect(await titles(sorted)).toEqual(sorted));
 });
 
 /** US8 3 */
@@ -173,25 +182,6 @@ test("a proposed decision's row says so; an active one's does not", async () => 
 
   expect(within(await decisionRow("TUI")).getByText("Proposed")).toBeTruthy();
   expect(within(await decisionRow("Git")).queryByText("Active")).toBeNull();
-});
-
-/** The paths of the icon of a decision's row. */
-async function paths(title: string) {
-  const row = await decisionRow(title);
-  return [...row.querySelectorAll("svg path")].map((path) => path.getAttribute("d"));
-}
-
-/** C8: each decision's icon, from its frontmatter, and a default for a name the UI does not know. */
-test("a decision shows its icon, or the default one", async () => {
-  const repo = fixtureRepo();
-  writeFileSync(
-    join(repo, "specs/decisions/due-dates.md"),
-    "---\nstatus: active\napproved-by: mrtolkien\nicon: calendar-clock\n---\n\n# Due dates\n\nDays.\n\n## Rules\n\n- One.\n\n## Why\n\nSo.\n\n## Consequences\n\n- None.\n\n## Applies to\n\n- Dates\n",
-  );
-  await renderPage("/decisions", repo);
-
-  expect(await paths("Git")).toContain(GIT_BRANCH);
-  expect(await paths("Due dates")).toContain(FILE_TEXT);
 });
 
 test("says when there is no decision yet", async () => {
