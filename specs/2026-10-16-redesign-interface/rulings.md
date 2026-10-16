@@ -204,3 +204,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   approval comment C4's card that keeps its size, and the spec's card.
 - **If wrong**: the tests follow whatever replaces the cards.
 - **Where**: task 7.
+
+## R16: The sidebar opens at 280 px, and its fold button holds one spot
+
+- **Decision**: the sidebar's default width is 280 px instead of Astryx's 260 or the spec's 240; the
+  fold button is placed absolutely at the heading's start, with a gap of its size kept in the row,
+  in both states; the colour scheme and reduced motion are set in the browser tests by
+  `vite.browser.color-scheme.ts`, beside `vite.browser.config.ts`, which is at its 500 lines; the
+  Done area measures its heading and rows once drawn, and counts the rows that fit from them, so its
+  count does not feed its own measure.
+- **Rationale**: at 240 px a card's name with its status and "…" is cut ("recurring-tasks"); the
+  folded rail's padding differs from the unfolded heading's, so a button in the flow moves (C3); a
+  count measured from the rows it draws loops.
+- **Alternatives considered**: a shorter card name: the names are the human's; the button in the
+  flow with a padding per state: two values to keep equal by hand.
+- **If wrong**: the default width goes back to 240, which the stored width overrides anyway.
+- **Where**: task 8.
+
+## R17: The browser tests follow the cards, the system's theme, and the phone's Home
+
+- **Decision**: `change.test.tsx`'s "the sidebar tags a change" becomes "the sidebar names a change,
+  in its own section": a working change sits in Changes, untagged, its name saying "change"; its "a
+  finished change links its pull request" reads "Pull request state unknown", as R10 does.
+  `session.test.tsx`'s session opened after a task view goes through the card and "Open the
+  session", since a card's sub-agent line is no link. `story-embed.test.tsx` changes the system's
+  colour scheme instead of the removed switch. `layout.test.tsx`'s search on the phone checks that
+  the Home row goes, the drawer's heading keeping its Home button.
+- **Rationale**: the spec tags changes under Needs you only (US4.4), a card is one link (C4), the
+  theme follows the system (US9.1), and the phone's heading starts with Home (US4.1).
+- **Alternatives considered**: the sub-agent line as a second link: against the card of one link.
+- **If wrong**: the tests follow whatever replaces the cards.
+- **Where**: task 8.

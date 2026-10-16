@@ -11,7 +11,7 @@
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { atRepo, atSize, commands, LIVE, repository, show } from "./helpers.tsx";
+import { atRepo, atSize, colorScheme, commands, LIVE, repository, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-20-sidebar-resize";
 const SPEC = `/f/${FEATURE}/spec.md`;
@@ -255,7 +255,7 @@ describe("on a desktop, the frames and their messages", () => {
   atSize("desktop");
 
   test("the story is drawn in Uraeda's colour mode, and follows it (US1.4)", async () => {
-    window.localStorage.setItem("uraeda.theme", "dark");
+    await colorScheme("dark");
     await commands.addStoryFeature();
     await show(SPEC, "Resize the sidebar");
     await storyShown(DESKTOP);
@@ -268,7 +268,7 @@ describe("on a desktop, the frames and their messages", () => {
   });
 
   test("after Storybook reloads a frame, it gets the colour mode again (review focus 2)", async () => {
-    window.localStorage.setItem("uraeda.theme", "dark");
+    await colorScheme("dark");
     await commands.addStoryFeature();
     await show(SPEC, "Resize the sidebar");
     await expect

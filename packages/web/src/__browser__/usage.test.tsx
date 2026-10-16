@@ -2,13 +2,13 @@ import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { checkLayout, drawn, LIVE, show, startTurn } from "./helpers.tsx";
+import { checkLayout, drawn, LIVE, show, startTurn, colorScheme } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 const label = "Claude five-hour allowance remaining";
 
-test.each(["light", "dark"])("five-hour allowance updates live in %s", async (mode) => {
-  window.localStorage.setItem("uraeda.theme", mode);
+test.each(["light", "dark"] as const)("five-hour allowance updates live in %s", async (mode) => {
+  await colorScheme(mode);
   await show("/f/2026-10-12-cli-tuis/session", "CLI TUIs");
   const resetsAt = new Date(Date.now() + 3_600_000).toISOString();
   await startTurn("Plan the CLI.", [{ fiveHour: { percentUsed: 43, resetsAt }, type: "usage" }]);

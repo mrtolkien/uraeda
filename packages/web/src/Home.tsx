@@ -4,12 +4,12 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import type { ReactNode } from "react";
+import { type ReactNode, useLayoutEffect } from "react";
 import { useInbox, useWorkspace } from "./data.ts";
 import { notes } from "./InboxPage.tsx";
 import { stepLabel, waiting } from "./labels.ts";
 import { Page } from "./layout/Page.tsx";
-import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
+import { useHash, useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 
 /** A row that leads somewhere, tapped as a whole. */
 function Row({
@@ -181,16 +181,19 @@ function DoneGroup({ features }: { features: Array<Feature> }) {
     return null;
   }
   return (
-    <Group title="Done">
-      {features.map((feature) => (
-        <Row
-          badge={<Badge label="Merged" variant="success" />}
-          href={here(`/f/${feature.folder}`)}
-          key={feature.folder}
-          title={feature.title}
-        />
-      ))}
-    </Group>
+    // The sidebar's Done area opens it at `#done`.
+    <div id="done">
+      <Group title="Done">
+        {features.map((feature) => (
+          <Row
+            badge={<Badge label="Merged" variant="success" />}
+            href={here(`/f/${feature.folder}`)}
+            key={feature.folder}
+            title={feature.title}
+          />
+        ))}
+      </Group>
+    </div>
   );
 }
 
@@ -202,6 +205,13 @@ export function Home() {
   const workspace = useWorkspace();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
+  const hash = useHash();
+  // After the position: the sidebar's "…" opens the Done group.
+  useLayoutEffect(() => {
+    if (hash === "#done") {
+      document.getElementById("done")?.scrollIntoView();
+    }
+  }, [hash]);
   if (!workspace) {
     return null;
   }

@@ -758,21 +758,22 @@ git commit -m "feat(redesign-interface): the sidebar of cards, in the flow's ord
 **Files:**
 
 - Start from: `packages/web/src/sidebar/Sidebar.stories.tsx#Folded`, `#FewItems`
-- Modify: `sidebar/SidebarHeading.tsx` (one fold button at the heading's start in both states, C3;
-  the page's slot kept; Home first on the phone), `Shell.tsx` (`collapsible={{ hasButton: false }}`,
-  `resizable` 200 to 480 px, the `[` hotkey, no footer switch, the Done area),
-  `sidebar/DoneArea.tsx`, `Home.tsx` (the Done group's id `done`, scrolled to on `#done`),
-  `theme.tsx` (system only), `App.tsx`, the browser tests' colour scheme (R5): a command module
-  beside `vite.browser.config.ts`, and `scripts/screenshots.ts`, `scripts/inbox-shots.ts`
+- Modify: `sidebar/SidebarHeading.tsx` (one fold button at the heading's start in both states,
+  placed absolutely, C3 and R16; the page's slot kept; Home first on the phone), `Shell.tsx`
+  (`collapsible={{ hasButton: false }}`, `resizable` 200 to 480 px from 280 (R16), the `[` hotkey,
+  no footer switch, the Done area), `sidebar/DoneArea.tsx`, `Home.tsx` (the Done group's id `done`,
+  scrolled to on `#done`), `theme.tsx` (system only), `App.tsx`, the browser tests' colour scheme
+  (R5): a command module beside `vite.browser.config.ts`, `vite.browser.color-scheme.ts` (R16), and
+  `scripts/screenshots.ts`, `scripts/inbox-shots.ts`
 - Test: `__browser__/sidebar.test.tsx` (new), `__browser__/layout.test.tsx`,
-  `__tests__/theme.test.tsx`, every browser test that set `uraeda.theme`
+  `__tests__/theme.test.tsx`, every browser test that set `uraeda.theme`, and the tests R17 names
 
 **Interfaces:**
 
 - Produces: `setColorScheme(mode: "light" | "dark")` browser command; `ThemeModeProvider` gives the
   system's mode.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `__browser__/sidebar.test.tsx` at 1440 × 900: US3.1 (the fold button revealed under the pointer,
 reachable by Tab); US3.2 (the rail, each card's step icon with its status, the button at the same
@@ -784,18 +785,18 @@ US9.1 (a stored "dark" ignored, no theme switch).
 The break each test catches: the button drawn at the heading's end in one state; the hotkey firing
 in a field; the Done area making the list scroll; the stored theme still read.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run browser:desktop`
 - Expected: FAIL, US3.2's button at different coordinates
 
-- [ ] **Step 3: Implement**, as in **Files**; replace every
+- [x] **Step 3: Implement**, as in **Files**; replace every
       `localStorage.setItem("uraeda.theme", …)` in tests and scripts with the command.
 
-- [ ] **Step 4: Run all tests** (`vp check`, `vp run ts:test`, `vp run browser:desktop`,
+- [x] **Step 4: Run all tests** (`vp check`, `vp run ts:test`, `vp run browser:desktop`,
       `vp run browser:phone`), Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-redesign-interface/plan.md

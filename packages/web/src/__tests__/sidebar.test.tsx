@@ -41,7 +41,8 @@ test("the sidebar reads in the flow's order, the inbox's and Now's counts, and n
   expect(at("＋New change")).toBeLessThan(at("cli-tuis, "));
   expect(at("cli-tuis, ")).toBeLessThan(at("＋New chat"));
   await waitFor(() => expect(links[at("Inbox")]).toContain("10"));
-  expect(links[at("Priorities")]).toBe("Priorities, 4 in Now");
+  // The count of the entries under Now (C1), seen beside the row's label.
+  expect(links[at("Priorities")]).toBe("Priorities4");
   expect(nav().queryByText(/Drafts?/)).toBeNull();
 });
 

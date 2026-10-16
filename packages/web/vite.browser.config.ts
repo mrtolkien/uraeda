@@ -22,6 +22,7 @@ import { playwright } from "vite-plus/test/browser-playwright";
 import { defineConfig, type Plugin, type PluginOption } from "vite-plus";
 import { forwardingProxy } from "./src/__browser__/forwarding-proxy.ts";
 import base, { uraedaServer } from "./vite.config.ts";
+import { setColorScheme, setReducedMotion } from "./vite.browser.color-scheme.ts";
 
 const plugins = (base.plugins ?? []).filter(
   (plugin: PluginOption) => !(plugin && "name" in plugin && plugin.name === "uraeda-server"),
@@ -433,7 +434,7 @@ export default defineConfig({
     fileParallelism: false,
     // WebKit, at a phone's size and a desktop's.
     browser: {
-      commands,
+      commands: { ...commands, setColorScheme, setReducedMotion },
       enabled: true,
       headless: true,
       instances: [
