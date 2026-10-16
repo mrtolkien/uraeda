@@ -1,6 +1,6 @@
 import { chmodSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, onTestFinished, test } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { SIGN_IN_FILE, SignInStore } from "../store.ts";
 import { hash } from "../tokens.ts";
@@ -239,4 +239,89 @@ test.each([
 
   expect(ended.length).toBeGreaterThan(0);
   expect(ended.every((id) => signals[ids.indexOf(id)]!.aborted)).toBe(true);
+});
+
+/** Two stores on one data folder, as two servers on two ports, each with its own clock. */
+function twoStores() {
+  const a = folder();
+  const clock = { now: a.clock.now };
+  const opened = SignInStore.open(a.dataDir, a.now);
+  const other = SignInStore.open(a.dataDir, () => clock.now).store;
+  return { a: { ...a, store: opened.store }, b: { clock, store: other }, key: opened.key! };
+}
+
+/** The file stays the truth: a new key on one server signs out the devices of the other. */
+test("a new key on one store refuses the old key and ends the sessions of another", () => {
+  const { a, b, key } = twoStores();
+  const cookie = b.store.createSession();
+  const signal = b.store.signal(idOf(cookie));
+  const ended: Array<string> = [];
+  b.store.onEnded((id) => ended.push(id));
+
+  const newKey = a.store.replaceKey();
+
+  expect(b.store.checkKey(key)).toBe(false);
+  expect(b.store.checkKey(newKey)).toBe(true);
+  expect(b.store.findSession(cookie)).toBeUndefined();
+  expect(ended).toEqual([idOf(cookie)]);
+  expect(signal.aborted).toBe(true);
+  b.store.createSession();
+  expect(read(a.path).key).toBe(hash(newKey));
+  expect(a.store.checkKey(key)).toBe(false);
+});
+
+test("a session made on one store is found by another, and ended there by a sign-out", () => {
+  const { a, b } = twoStores();
+  const cookie = a.store.createSession();
+  const ended: Array<string> = [];
+  a.store.onEnded((id) => ended.push(id));
+  const signal = a.store.signal(idOf(cookie));
+
+  expect(b.store.findSession(cookie)).toEqual({ id: idOf(cookie), refreshed: false });
+  b.store.endSession(idOf(cookie));
+
+  expect(a.store.findSession(cookie)).toBeUndefined();
+  expect(ended).toEqual([idOf(cookie)]);
+  expect(signal.aborted).toBe(true);
+  expect(read(a.path).sessions).toEqual([]);
+});
+
+test("each write keeps what another store wrote", () => {
+  const { a, b } = twoStores();
+  const first = a.store.createSession();
+  const second = b.store.createSession();
+
+  b.clock.now += DAY;
+  expect(b.store.findSession(first)?.refreshed).toBe(true);
+  a.store.createSession();
+
+  expect(read(a.path).sessions.map(({ id }) => id)).toContain(idOf(second));
+  expect(a.store.findSession(second)?.id).toBe(idOf(second));
+  expect(read(a.path).sessions.find(({ id }) => id === idOf(first))?.used).toBe(
+    new Date(b.clock.now).toISOString(),
+  );
+});
+
+/** A file another server or a human broke while running: every sign-in refused, never rewritten. */
+test("a file that became unreadable refuses everything, and is never overwritten", () => {
+  const { a, b, key } = twoStores();
+  const cookie = a.store.createSession();
+  const ended: Array<string> = [];
+  a.store.onEnded((id) => ended.push(id));
+  const errors = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+  onTestFinished(() => errors.mockRestore());
+  writeFileSync(a.path, "{ broken", { mode: 0o600 });
+
+  expect(a.store.checkKey(key)).toBe(false);
+  expect(a.store.findSession(cookie)).toBeUndefined();
+  expect(ended).toEqual([idOf(cookie)]);
+  expect(() => a.store.createSession()).toThrow(new RegExp(`^cannot read ${a.path}: `));
+  expect(() => b.store.replaceKey()).toThrow(new RegExp(`^cannot read ${a.path}: `));
+  a.store.endAll();
+  a.store.sweep();
+
+  expect(readFileSync(a.path, "utf8")).toBe("{ broken");
+  // Reported once by each store, however often it is asked.
+  const logged = errors.mock.calls.filter(([text]) => String(text).includes("cannot read"));
+  expect(logged).toHaveLength(2);
 });
