@@ -8,7 +8,6 @@
 
 - [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
 
-- [Redesign sidebars and global interface](drafts/redesign-interface.md)
 - [Redesign home, inbox, and priorities](drafts/redesign-priorities.md)
 - [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
 - [Redesign + reword specs](drafts/redesign-specs.md)
@@ -28,6 +27,7 @@
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
 - [Settings page with selection of agent runner, config values, other run values](/specs/2026-10-16-settings-page/proposal.md)
+- [Redesign sidebars and global interface](/specs/2026-10-16-redesign-interface/proposal.md)
 
 ## Next
 
