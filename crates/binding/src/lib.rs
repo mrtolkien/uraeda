@@ -12,7 +12,7 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::actions::commit::PrioritiesAdded;
-use uraeda_core::api::{self, ApiError};
+use uraeda_core::api::{self, ApiError, Ledger};
 use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::preview::Preview;
 use uraeda_core::files::priorities::Priorities;
@@ -106,6 +106,12 @@ pub fn read_file(repo: String, folder: String, name: String) -> AsyncTask<Job<Fi
 #[napi(ts_return_type = "Promise<Priorities>")]
 pub fn read_priorities(repo: String) -> AsyncTask<Job<Priorities>> {
     job(move || api::read_priorities(Path::new(&repo)))
+}
+
+/// The constitution and the decisions of the default branch, each decision with its last change.
+#[napi(ts_return_type = "Promise<Ledger>")]
+pub fn read_ledger(repo: String) -> AsyncTask<Job<Ledger>> {
+    job(move || api::read_ledger(Path::new(&repo)))
 }
 
 /// A draft, by its path from the top level.

@@ -139,7 +139,14 @@ const repositoryMutations = {
       // The hosts read the list again, so the records join the new name and colour.
       await ctx.hosts.reload();
       publish(
-        { features: [input.folder], files: [], inbox: false, priorities: false, workspace: true },
+        {
+          decisions: false,
+          features: [input.folder],
+          files: [],
+          inbox: false,
+          priorities: false,
+          workspace: true,
+        },
         host,
       );
       const feature = await ctx.binding.readFeature(ctx.repo, input.folder);

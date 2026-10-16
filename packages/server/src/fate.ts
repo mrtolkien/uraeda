@@ -27,6 +27,7 @@ import {
 import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { settingsDataView } from "./fate/settings.ts";
+import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
 
 export {
@@ -37,6 +38,7 @@ export {
   fileDataView,
   folderSuggestionsDataView,
   inboxDataView,
+  ledgerDataView,
   needsYouListDataView,
   previewDataView,
   prioritiesDataView,
@@ -64,6 +66,7 @@ export {
   WORKSPACE_ID,
 } from "./fate/views.ts";
 export { SETTINGS_ID } from "./fate/settings.ts";
+export { LEDGER_ID } from "./fate/views-ledger.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
@@ -76,6 +79,7 @@ export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
 export type PriorityEntry = Priorities["sections"][number]["entries"][number];
 export type Inbox = Entity<typeof inboxDataView, "Inbox">;
 export type Draft = Entity<typeof draftDataView, "Draft">;
+export type Ledger = Entity<typeof ledgerDataView, "Ledger">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;
 export type Agent = Entity<typeof agentDataView, "Agent">;
 export type Session = Entity<typeof sessionDataView, "Session">;

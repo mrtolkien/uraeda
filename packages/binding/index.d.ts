@@ -235,6 +235,9 @@ export declare function readImage(repo: string, path: string): Promise<ImageFile
 /** The inbox, with the count of the commit bar's changes and the triage's status. */
 export declare function readInbox(repo: string): Promise<Inbox>
 
+/** The constitution and the decisions of the default branch, each decision with its last change. */
+export declare function readLedger(repo: string): Promise<Ledger>
+
 /** `PRIORITIES.md`, with its changes since the last commit. */
 export declare function readPriorities(repo: string): Promise<Priorities>
 
@@ -511,6 +514,11 @@ export interface Changes {
   priorities: boolean
   /** Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed. */
   inbox: boolean
+  /**
+   * Whether the ledger changed: `specs/CONSTITUTION.md` or `specs/decisions/` on the default
+   * branch.
+   */
+  decisions: boolean
   /** Whether a feature, a branch, or a worktree appeared or went. */
   workspace: boolean
 }
@@ -552,10 +560,44 @@ export interface CommitView {
   commit: string
 }
 
+/**
+ * `specs/CONSTITUTION.md`: its title, its version line's fields when it has them, and its
+ * principles, the `### <number>. <title>` headings.
+ */
+export interface Constitution {
+  title: string
+  /** From `**Version**: 1.3.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14`. */
+  version?: string
+  ratified?: string
+  amended?: string
+  principles: Array<Principle>
+  document: Document
+}
+
 export interface Criterion {
   /** `SC-001`. */
   id: string
   block: number
+}
+
+/** A decision of `specs/decisions/`. */
+export interface Decision {
+  /** Its file name without `.md`, like `ui-behaviour`. */
+  name: string
+  /** Its H1, else its name. */
+  title: string
+  /** Its frontmatter's fields, when they are text. */
+  status?: string
+  approvedBy?: string
+  /** A Lucide icon name, like `git-branch`. */
+  icon?: string
+  /** The first sentence of its first paragraph, when one comes before its first section. */
+  summary?: string
+  /** The date of the last commit of the default branch touching it, `YYYY-MM-DD`. */
+  changed?: string
+  document: Document
+  /** The first problem `ura check` finds in it. */
+  problem?: string
 }
 
 /** The tree of one workflow file. */
@@ -784,6 +826,18 @@ export interface ItemSettingsView {
   color?: Color
 }
 
+/**
+ * The constitution and the decisions: `None` without `specs/CONSTITUTION.md`, and no decision
+ * without `specs/decisions/`.
+ */
+export interface Ledger {
+  constitution?: Constitution
+  /** By file name. */
+  decisions: Array<Decision>
+  /** Every problem `ura check` finds in the decisions. */
+  problems: Array<ProblemView>
+}
+
 /** Lines of a file, 1-based and inclusive. */
 export interface LineRange {
   start: number
@@ -852,6 +906,20 @@ export interface Preview {
   folder: string
   /** The command, holding `{port}` where the port goes. */
   command: string
+}
+
+/** A principle of the constitution. */
+export interface Principle {
+  /** Its Roman numeral, like `IV`. */
+  number: string
+  /** Its numeral in lower case, like `iv`, for its address. */
+  slug: string
+  title: string
+  /**
+   * The ids of its heading and of the top-level blocks under it, up to the next heading of its
+   * level or above, in the constitution's document.
+   */
+  blocks: Array<number>
 }
 
 /** `PRIORITIES.md` read for editing. */

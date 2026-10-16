@@ -32,6 +32,7 @@ import type { ItemLook } from "./items.ts";
 import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { settingsDataView } from "./settings.ts";
+import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
@@ -447,6 +448,7 @@ export const Root = {
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),
   inboxes: list(inboxDataView),
+  ledgers: list(ledgerDataView),
   needsYouLists: list(needsYouListDataView),
   previews: list(previewDataView),
   prioritiesList: list(prioritiesDataView),

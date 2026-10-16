@@ -102,3 +102,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   record type of its own for the add's answer: a second view of the same priorities.
 - **If wrong**: one `js_name`, and the two record fields.
 - **Where**: task 6.
+
+## R9: `last_change` takes the default branch as its revision
+
+- **Decision**: `Git::last_change(revision, path)` runs
+  `git log -1 --format=%cs <revision> -- <path>`, and the ledger passes the default branch, read
+  once per decision. The ledger's tests are selected with `binary(ledger) | test(icon)`, since their
+  names do not all hold "ledger".
+- **Rationale**: the plan's `last_change(path)` reads the history of the checkout's `HEAD`, which is
+  a feature's branch when the server runs in one, while the page shows the default branch only.
+- **Alternatives considered**: one `git log --name-only` over `specs/decisions/` for every date at
+  once: one process instead of one per decision, for a parser of the log's file lists.
+- **If wrong**: a ledger read spawns one `git log` per decision; a batched read can replace the loop
+  in `api/ledger.rs`.
+- **Where**: task 7.

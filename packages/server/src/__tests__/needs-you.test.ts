@@ -86,7 +86,14 @@ test("a repository's change is heard on the global bus", () => {
   const bus = { update: vi.fn() } as unknown as Parameters<typeof publish>[1]["live"];
 
   publish(
-    { features: [HUMAN], files: [], inbox: false, priorities: false, workspace: false },
+    {
+      decisions: false,
+      features: [HUMAN],
+      files: [],
+      inbox: false,
+      priorities: false,
+      workspace: false,
+    },
     { live: bus, path: "/repo" },
   );
 

@@ -220,7 +220,14 @@ export class Hosts {
       const { binding, sessions } = this.#options;
       entry.pulls = startPullRequests(path, binding, (features) =>
         publish(
-          { features, files: [], inbox: false, priorities: false, workspace: true },
+          {
+            decisions: false,
+            features,
+            files: [],
+            inbox: false,
+            priorities: false,
+            workspace: true,
+          },
           entry.host,
           sessions,
         ),

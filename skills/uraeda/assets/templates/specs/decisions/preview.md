@@ -1,6 +1,7 @@
 ---
 status: proposed
 approved-by:
+icon:
 preview-folder: [the folder Storybook runs in, from the repository's top level, or .]
 preview-command: [the command that starts it, with {port} and --host 127.0.0.1]
 ---
