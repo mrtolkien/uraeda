@@ -60,8 +60,8 @@ export function PrincipleDetail({
 }
 
 /**
- * A decision: its title, status, and approver, the first problem `ura check` finds in it, then its
- * document past its title.
+ * A decision: its title, status, and approver, the first problem `ura check` finds in it, as an
+ * error when it cannot be parsed and a warning otherwise, then its document past its title.
  */
 export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
   const { document } = decision;
@@ -92,9 +92,12 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
             </HStack>
           )}
         </VStack>
-        {decision.problem !== null && (
-          <Banner description={decision.problem} status="error" title="Can't read this file" />
-        )}
+        {decision.problem !== null &&
+          (decision.unreadable ? (
+            <Banner description={decision.problem} status="error" title="Can't read this file" />
+          ) : (
+            <Banner status="warning" title={decision.problem} />
+          ))}
         <Blocks document={document} ids={ids} />
       </VStack>
     </article>

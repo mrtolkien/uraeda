@@ -68,7 +68,7 @@ pub struct Principle {
 pub struct Decision {
     /// Its file name without `.md`, like `ui-behaviour`.
     pub name: String,
-    /// Its H1, else its name.
+    /// Its H1, else, or when it is unreadable, its name.
     pub title: String,
     /// Its frontmatter's fields, when they are text.
     pub status: Option<String>,
@@ -82,6 +82,9 @@ pub struct Decision {
     pub document: Document,
     /// The first problem `ura check` finds in it.
     pub problem: Option<String>,
+    /// Whether it cannot be parsed, like a frontmatter that is not valid YAML: its title is then its
+    /// name, and nothing else read from it stands.
+    pub unreadable: bool,
 }
 
 /// The texts of the constitution and of the decisions, by file name, and where they were read.
@@ -220,7 +223,13 @@ fn first_sentence(text: &str) -> &str {
 fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem]) -> Decision {
     let name = file.strip_suffix(".md").unwrap_or(file).to_string();
     let document = document::parse(text, DECISIONS);
-    let front = frontmatter::parse(text).ok();
+    let front = frontmatter::parse(text);
+    // A file without frontmatter is read as markdown; one whose frontmatter breaks is not read.
+    let unreadable = matches!(
+        front,
+        Err(frontmatter::FrontmatterError::Unclosed | frontmatter::FrontmatterError::Yaml(_))
+    );
+    let front = front.ok();
     let field = |key: &str| {
         front
             .as_ref()
@@ -235,13 +244,16 @@ fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem
         .find(|block| block.kind == BlockKind::Paragraph)
         .map(|block| first_sentence(&document.text(block.id)).to_string());
     Decision {
-        title: heading(&document, 1).unwrap_or_else(|| name.clone()),
+        title: heading(&document, 1)
+            .filter(|_| !unreadable)
+            .unwrap_or_else(|| name.clone()),
         status: field("status"),
         approved_by: field("approved-by"),
         icon: field("icon"),
         summary,
         changed,
         problem: problems.first().map(|problem| problem.message.clone()),
+        unreadable,
         name,
         document,
     }
