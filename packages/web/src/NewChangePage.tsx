@@ -118,7 +118,6 @@ export function NewChangePage() {
           images={images}
           onChange={text.change}
           onImagesChange={setImages}
-          {...(running && !starting ? { blocked: "Another change is being saved to git" } : {})}
           // Its branch and worktree are written: the other writes wait, as for a commit.
           onSend={(sent, images) => {
             setStarting(true);
@@ -127,6 +126,7 @@ export function NewChangePage() {
             );
           }}
           sendLabel="Start the change"
+          sendWaits={running && !starting ? "Another change is being saved to git" : undefined}
           value={text.text}
         />
         <SlugField field={slug} restoreNotice={false} />
