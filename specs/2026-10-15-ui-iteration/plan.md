@@ -2304,7 +2304,7 @@ and output `packages/web/storybook-static/**`; depends on `binding:build`; liste
   the server on the fake agent, opens a story of `StoryEmbed.stories.tsx` through
   `/r/<name>/preview/<folder>/iframe.html?id=storyembed--ready&viewMode=story` in WebKit, `<folder>`
   the feature's in its worktree, `main` otherwise
-  ([R43](rulings.md#r43-the-validation-script-opens-its-own-checkouts-storybook-and-nested-frames-load-only-on-storybooks-own-address)),
+  ([R43](rulings.md#r43-the-validation-script-opens-its-own-checkouts-storybook-and-the-previews-urls-are-rebased-under-storybooks-base)),
   checks it renders with the fixture's data, edits the stories file, checks the frame shows the edit
   without a reload, and restores the file. It prints each check and exits 1 on the first failure.
 

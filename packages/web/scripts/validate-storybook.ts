@@ -3,7 +3,8 @@
  * fake agent, lists this checkout's repository and starts its preview decision's command, the real
  * Storybook of `packages/web`; WebKit opens the `Ready` story of `StoryEmbed.stories.tsx` through
  * Uraeda's address, `/r/<name>/preview/<folder>/iframe.html?id=storyembed--ready&viewMode=story`;
- * the story shows the fixture's data, which its fate client reads through GETs (R4); then an edit of
+ * the story shows the fixture's data, which its fate client reads through GETs (R4), and its frame the
+ * fixture's story, through Uraeda (R43); then an edit of
  * the stories file shows in the frame without a reload, and the file is restored.
  *
  * Run it by hand, inside `nix develop` for WebKit, after `vp install`:
@@ -124,6 +125,26 @@ async function check(address: string, name: string, folder: string) {
       fail("the Ready story shows the fixture's data", text);
     }
     pass("the Ready story shows the fixture's data, read through fate's GETs");
+
+    // The story's own frame, the fixture's fake Storybook, loads through Uraeda: its address is
+    // under this Storybook's base (R43).
+    const inner = page.frameLocator(`iframe[title="${LABEL}, desktop"]`);
+    const story = await inner
+      .getByRole("heading", { name: "Dragging" })
+      .waitFor({ timeout: SHOW_MS })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (!story) {
+      const src = await page.getByTitle(`${LABEL}, desktop`).getAttribute("src");
+      const body = await inner
+        .locator("body")
+        .innerText({ timeout: 1000 })
+        .catch(() => "");
+      fail("the Ready story's frame shows its story", { body, src });
+    }
+    pass("the Ready story's frame shows its story, through Uraeda");
 
     await page.evaluate(() => {
       (window as { uraedaLoaded?: boolean }).uraedaLoaded = true;
