@@ -264,7 +264,7 @@ Changed, applied when this spec is approved:
 
 - [Stack](../decisions/stack.md): `Origin: null` reaches only preview and mockup paths carrying the
   frame secret, and preview paths become `/r/<repository>/preview/<secret>/<folder>/`. See its
-  [proposed change](../decisions/stack.md#proposed-change-2026-10-16-basic-security).
+  [rules](../decisions/stack.md#rules).
 
 Relied on:
 

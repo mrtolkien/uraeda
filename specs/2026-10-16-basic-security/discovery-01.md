@@ -6,9 +6,9 @@ Self-hosted, single-user developer tools sign their owner in with one of three c
 random token (VS Code's `serve-web`, Jupyter), a password stored as a hash (Jupyter, code-server,
 Syncthing, Portainer), or, rarely, passkeys (Authelia). Each then gives the browser a long-lived
 session cookie, from one week (VS Code, Syncthing) to a month (Open WebUI, Authelia). They differ
-most on three points: whether sessions live on the server, which allows logging one device out;
-how they slow down guessing; and how the owner recovers a lost secret, which always assumes a shell
-on the host. Most of them tell users not to expose them to the internet without TLS and a proxy.
+most on three points: whether sessions live on the server, which allows logging one device out; how
+they slow down guessing; and how the owner recovers a lost secret, which always assumes a shell on
+the host. Most of them tell users not to expose them to the internet without TLS and a proxy.
 
 The [proposal](proposal.md) asks for one user, signed in from several devices, with a key that
 survives restarts, simple but safe on a public server, and it must close the hole the UI iteration
@@ -18,8 +18,8 @@ command. Preview frames are sandboxed without `allow-same-origin`, and Chromium 
 them no `SameSite=Lax` or `Strict` cookie, so a login cookie alone cannot protect previews: they
 need a secret in their path.
 
-The code this feature changes is on the UI iteration branch, `2026-10-15-ui-iteration`, which is
-not merged yet: every code reference below is to that branch, unless it says otherwise.
+The code this feature changes is on the UI iteration branch, `2026-10-15-ui-iteration`, which is not
+merged yet: every code reference below is to that branch, unless it says otherwise.
 
 ## How other products do it
 
@@ -33,7 +33,8 @@ not merged yet: every code reference below is to that branch, unless it says oth
   ([identity.py](https://github.com/jupyter-server/jupyter_server/blob/main/jupyter_server/auth/identity.py)).
 - `jupyter server password` writes an Argon2id hash to the config; setting a password turns the
   token off. Running it again is the documented recovery, and it logs every session out after a
-  restart ([public server docs](https://jupyter-server.readthedocs.io/en/latest/operators/public-server.html)).
+  restart
+  ([public server docs](https://jupyter-server.readthedocs.io/en/latest/operators/public-server.html)).
 - The cookie secret is generated on first start and persisted to a file, and the password hash is
   part of the signing key, so changing the password invalidates every cookie
   ([full config](https://jupyter-server.readthedocs.io/en/latest/other/full-config.html),
@@ -67,7 +68,8 @@ not merged yet: every code reference below is to that branch, unless it says oth
 ### VS Code `serve-web`
 
 - One connection token, persisted in a `serve-web-token` file, so it survives restarts, and printed
-  as a `?tkn=` URL ([serve_web.rs](https://github.com/microsoft/vscode/blob/main/cli/src/commands/serve_web.rs),
+  as a `?tkn=` URL
+  ([serve_web.rs](https://github.com/microsoft/vscode/blob/main/cli/src/commands/serve_web.rs),
   [serverConnectionToken.ts](https://github.com/microsoft/vscode/blob/main/src/vs/server/node/serverConnectionToken.ts),
   mode 0600).
 - The server swaps the URL's token for a `vscode-tkn` cookie, `SameSite=Lax`, one week, renewed at
@@ -82,8 +84,8 @@ not merged yet: every code reference below is to that branch, unless it says oth
   ([config](https://docs.syncthing.net/users/config.html),
   [REST](https://docs.syncthing.net/dev/rest.html)).
 - Sessions are stored on the server, so they survive restarts and logout ends them. The cookie is a
-  browser-session cookie unless "stay logged in" is checked, which lasts
-  `sessionCookieDurationS`, one week by default
+  browser-session cookie unless "stay logged in" is checked, which lasts `sessionCookieDurationS`,
+  one week by default
   ([tokenmanager.go](https://github.com/syncthing/syncthing/blob/main/lib/api/tokenmanager.go)).
 - Brute force only meets a random 100 to 200 ms delay, with no lockout (api_auth.go).
 - Recovery: stop it and run `syncthing generate --gui-user --gui-password`
@@ -102,8 +104,8 @@ not merged yet: every code reference below is to that branch, unless it says oth
   proxy it needs `use_x_forwarded_for` and `trusted_proxies`
   ([http](https://www.home-assistant.io/integrations/http/)).
 - "Trusted networks" skip the password
-  ([providers](https://www.home-assistant.io/docs/authentication/providers/)). Recovery is a
-  command on the host ([locked out](https://www.home-assistant.io/docs/locked_out/)).
+  ([providers](https://www.home-assistant.io/docs/authentication/providers/)). Recovery is a command
+  on the host ([locked out](https://www.home-assistant.io/docs/locked_out/)).
 
 ### Grafana, Portainer, ttyd, Open WebUI
 
@@ -114,8 +116,8 @@ not merged yet: every code reference below is to that branch, unless it says oth
   [CLI](https://grafana.com/docs/grafana/latest/cli/)).
 - Portainer: a 12-character minimum, and a setup token printed in the logs guards the first setup
   ([setup](https://docs.portainer.io/start/install-ce/server/setup)).
-- ttyd: basic auth with `-c user:pass`, the WebSocket proving it in its first message, no rate
-  limit ([ttyd](https://github.com/tsl0922/ttyd)).
+- ttyd: basic auth with `-c user:pass`, the WebSocket proving it in its first message, no rate limit
+  ([ttyd](https://github.com/tsl0922/ttyd)).
 - Open WebUI: its secret key is generated and persisted to a file; recreating the container without
   it logs everyone out, so the docs recommend setting one. Sessions last 4 weeks
   ([environment](https://docs.openwebui.com/reference/env-configuration)).
@@ -161,18 +163,18 @@ not merged yet: every code reference below is to that branch, unless it says oth
   lockout (Grafana, Home Assistant), the lockout handing attackers a way to lock the owner out.
 - **`Host` and `Origin` checks** against DNS rebinding and cross-site WebSocket hijacking.
 - **A token for scripts**, separate from the browser session (Syncthing, Home Assistant, Grafana).
-- **Signing a new device in from a signed-in one** was not seen in these products: Uraeda's
-  question about phones is open, in [new devices](#signing-in-a-new-device).
+- **Signing a new device in from a signed-in one** was not seen in these products: Uraeda's question
+  about phones is open, in [new devices](#signing-in-a-new-device).
 
 ## Standards and libraries
 
 ### OWASP and NIST
 
-- Session identifiers need at least 128 bits when generated by the application; the server may
-  store an id with a SHA-256 of the secret, compared in constant time. Sessions need an idle and an
+- Session identifiers need at least 128 bits when generated by the application; the server may store
+  an id with a SHA-256 of the secret, compared in constant time. Sessions need an idle and an
   absolute timeout enforced on the server, a new identifier at login, and server-side invalidation
-  at logout. Session identifiers belong in cookies, never in URLs, which leak through logs,
-  history, and `Referer`
+  at logout. Session identifiers belong in cookies, never in URLs, which leak through logs, history,
+  and `Referer`
   ([Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)).
 - Passwords: at least 15 characters without a second factor, no composition rules, generic error
   messages, failures counted per account, with backoff
@@ -205,7 +207,8 @@ not merged yet: every code reference below is to that branch, unless it says oth
   - Everything the frame loads afterwards (scripts, `fetch`, a nested frame, the WebSocket) carries
     only the `None` cookie in Chromium, no cookie in Firefox, and `Lax` and `Strict` in WebKit.
 - Chrome documents it: without `allow-same-origin`, "all requests from the sandboxed page" are
-  cross-site ([Privacy Sandbox](https://privacysandbox.google.com/blog/sandbox-allow-same-site-none-cookies)).
+  cross-site
+  ([Privacy Sandbox](https://privacysandbox.google.com/blog/sandbox-allow-same-site-none-cookies)).
   RFC 6265bis says the opposite, which only WebKit follows.
 - The UI iteration flow's own spike found the same: "Sandboxed frames send no cookie"
   (`specs/2026-10-15-ui-iteration/discovery-03.md`, on its branch).
@@ -219,14 +222,15 @@ not merged yet: every code reference below is to that branch, unless it says oth
 - WebAuthn needs a secure context, and the relying party ID must be the page's domain or a
   registrable suffix of it: IP addresses cannot be one
   ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions); the
-  IP rule seen only in a [mailing list thread](https://lists.w3.org/Archives/Public/public-webauthn/2020Jan/0033.html)).
+  IP rule seen only in a
+  [mailing list thread](https://lists.w3.org/Archives/Public/public-webauthn/2020Jan/0033.html)).
   `ts.net` is on the [Public Suffix List](https://publicsuffix.org/list/public_suffix_list.dat), so
   a tailnet name works.
 - A passkey is bound to its domain: moving from a `*.ts.net` name to one's own domain orphans every
   passkey. Synced passkeys and a phone's cross-device sign-in reach several devices
   ([passkeys.dev](https://passkeys.dev/docs/reference/terms/)).
-- `@simplewebauthn/server` 14.0.3 is the usual Node library; a passkey flow needs challenges,
-  stored credentials, and a recovery path that is not a passkey
+- `@simplewebauthn/server` 14.0.3 is the usual Node library; a passkey flow needs challenges, stored
+  credentials, and a recovery path that is not a passkey
   ([SimpleWebAuthn](https://simplewebauthn.dev/docs/advanced/passkeys)).
 
 ### Hono 4.13.13 and Node 24
@@ -248,14 +252,14 @@ not merged yet: every code reference below is to that branch, unless it says oth
 
 ### Auth libraries
 
-- Lucia was deprecated in March 2025 and replaced by a single reference file: a token `id.secret`
-  of 32 random bytes, SHA-256 of the secret stored, sliding 10-day expiry, `HttpOnly; Secure; Lax`
+- Lucia was deprecated in March 2025 and replaced by a single reference file: a token `id.secret` of
+  32 random bytes, SHA-256 of the secret stored, sliding 10-day expiry, `HttpOnly; Secure; Lax`
   cookie, and writes refused unless `Sec-Fetch-Site` is `same-origin`
   ([auth_session.ts](https://raw.githubusercontent.com/lucia-auth/lucia/refs/heads/main/code/auth_session.ts)).
 - better-auth 1.7 mounts on Hono, with user, session, account, and verification tables
   ([Hono integration](https://www.better-auth.com/docs/integrations/hono),
-  [database](https://www.better-auth.com/docs/concepts/database)). Judgement: built for many
-  users, far more than one owner needs.
+  [database](https://www.better-auth.com/docs/concepts/database)). Judgement: built for many users,
+  far more than one owner needs.
 
 ### Running on a public server
 
@@ -272,25 +276,25 @@ not merged yet: every code reference below is to that branch, unless it says oth
 
 ### Important reads
 
-- [`main.ts`](/packages/server/src/main.ts): listens on `127.0.0.1`, hard-coded, on 4310 by
-  default; a second start that finds the port taken posts `{folder}` to `/open` on the running
-  server ([open-client.ts](/packages/server/src/open-client.ts)), with no `Origin`; the start
-  opens a browser unless `--no-open`.
-- [`guard.ts`](/packages/server/src/guard.ts): the only protection today. It rejects a `Host`
-  other than `127.0.0.1`, `localhost`, or a listed host; an `Origin` other than its own or
-  `https://<listed host>`; and writes with a cross-site `Sec-Fetch-Site`. On the UI iteration
-  branch it also lets `Origin: null` read `/r/<repository>/preview/<folder>/`. A request with
-  neither header passes, like `curl`.
-- `app.ts` (UI iteration branch): every route sits behind the guard: global and per-repository
-  fate with its live SSE stream, `/raw`, `/mockups`, `/images`, `/chat-images`, `/attach`,
-  `/preview`, `/open`, and the built UI. fate mutations commit, start and steer agents
+- [`main.ts`](/packages/server/src/main.ts): listens on `127.0.0.1`, hard-coded, on 4310 by default;
+  a second start that finds the port taken posts `{folder}` to `/open` on the running server
+  ([open-client.ts](/packages/server/src/open-client.ts)), with no `Origin`; the start opens a
+  browser unless `--no-open`.
+- [`guard.ts`](/packages/server/src/guard.ts): the only protection today. It rejects a `Host` other
+  than `127.0.0.1`, `localhost`, or a listed host; an `Origin` other than its own or
+  `https://<listed host>`; and writes with a cross-site `Sec-Fetch-Site`. On the UI iteration branch
+  it also lets `Origin: null` read `/r/<repository>/preview/<folder>/`. A request with neither
+  header passes, like `curl`.
+- `app.ts` (UI iteration branch): every route sits behind the guard: global and per-repository fate
+  with its live SSE stream, `/raw`, `/mockups`, `/images`, `/chat-images`, `/attach`, `/preview`,
+  `/open`, and the built UI. fate mutations commit, start and steer agents
   (`claude -p --permission-mode auto`), add any folder as a repository, and start a preview.
 - `preview/proxy.ts` (UI iteration branch): forwards GET, HEAD, and WebSocket upgrades to the
   Storybook, adds `Access-Control-Allow-Origin: *` and a `sandbox` CSP, drops `Set-Cookie` from
   answers, removes `Origin` from upgrades, and forces `page=preview` on Storybook's channel. It
   forwards every request header, so a session cookie would reach Storybook today.
-- `fate/preview.ts` (UI iteration branch): the frame address `/r/<name>/preview/<folder>/`
-  reaches the UI only through fate. Reading a story view starts the Storybook.
+- `fate/preview.ts` (UI iteration branch): the frame address `/r/<name>/preview/<folder>/` reaches
+  the UI only through fate. Reading a story view starts the Storybook.
 - `packages/web/src/clients.ts` and fate's client: posts to the same origin, and live views open an
   `EventSource` with `withCredentials: true`, so a cookie flows with no change. Nothing in the UI
   handles a 401, and there is no login page.
@@ -299,8 +303,7 @@ not merged yet: every code reference below is to that branch, unless it says oth
   (rulings R4 and R47 of the UI iteration flow).
 - [`env.ts`](/packages/server/src/env.ts) and [`options.ts`](/packages/server/src/options.ts):
   `URAEDA_PORT`, `URAEDA_ALLOWED_HOSTS`, `URAEDA_REPO`, `URAEDA_DATA_DIR`, and flags; the packaged
-  server reads no `.env`
-  ([distribution](../decisions/distribution.md)).
+  server reads no `.env` ([distribution](../decisions/distribution.md)).
 - The data folder, `~/.local/share/uraeda` by default: `repositories.json` (the core's only),
   `runner.sqlite` (a cache, whose loss must cost only sessions, per
   [agents](../decisions/agents.md)), `images/` written `0700` and `0600`
@@ -328,8 +331,8 @@ not merged yet: every code reference below is to that branch, unless it says oth
      and the proxy must not forward Uraeda's cookie to Storybook.
    - **A link from elsewhere** (a pull request, a notification) to Uraeda is a cross-site top-level
      navigation: a `Strict` cookie would show the sign-in screen, a `Lax` one would not.
-   - **The development servers** (`vp dev`, Uraeda's own Storybook, tests calling `app.request`)
-     run the same app.
+   - **The development servers** (`vp dev`, Uraeda's own Storybook, tests calling `app.request`) run
+     the same app.
    - **Restarting the server** must not sign devices out, per the proposal.
 
 ### Other features in flight
@@ -362,8 +365,7 @@ Under every option:
 - `packages/web`: a sign-in screen, a 401 handler that returns to it, and logging out.
 - `packages/web/.storybook/` and test helpers: the nested and test servers sign in, or run without
   sign-in from code only.
-- The stack decision, and a new decision for sign-in; `.env.example` and the README for remote
-  use.
+- The stack decision, and a new decision for sign-in; `.env.example` and the README for remote use.
 
 Depending on the options: a `--host` flag and TLS settings in `options.ts` (public server, option
 B); a dependency for passkeys or QR codes; a devices page in the UI.
@@ -390,8 +392,8 @@ says "a single user for the moment". Read as: one owner, signed in on several de
 ### "The key should be stable"
 
 A key that survives restarts is a credential the human keeps. NIST asks session secrets not to
-survive restarts, and the proposal wants devices to stay signed in across them: the sessions must
-be stored, not only the key.
+survive restarts, and the proposal wants devices to stay signed in across them: the sessions must be
+stored, not only the key.
 
 ### Signing in on the host itself
 
@@ -405,19 +407,18 @@ misconfigured proxy rewrites and which other local users can send.
 
 What the human proves to sign in. Criteria: the proposal (simple, stable, several devices, safe in
 public), [the constitution](../CONSTITUTION.md)'s simplicity, dependencies, recovery. Knowledge:
-[products](#what-they-have-in-common), [OWASP and NIST](#owasp-and-nist),
-[passkeys](#passkeys).
+[products](#what-they-have-in-common), [OWASP and NIST](#owasp-and-nist), [passkeys](#passkeys).
 
 - **A generated access key**: 256 random bits, created at first start, kept as a hash in the data
   folder, pasted once per device. Guessing is impossible, so no lockout is needed; nothing to
   choose. Shown once, so losing it means making a new one on the host, like VS Code's token but
   hashed.
-- **A password the human chooses**, hashed with Node's Argon2id, set by a command on the host.
-  Easy to type on a phone, but guessable: it needs a minimum length and a limit on failures, and
-  the limit lets an attacker lock the owner out.
-- **Passkeys**, with a key or one-time link to register the first device and recover. The
-  strongest, and phishing-proof, but a dependency, two ceremonies, a stored credential list, and no
-  passkey on `127.0.0.1` or across a change of host name.
+- **A password the human chooses**, hashed with Node's Argon2id, set by a command on the host. Easy
+  to type on a phone, but guessable: it needs a minimum length and a limit on failures, and the
+  limit lets an attacker lock the owner out.
+- **Passkeys**, with a key or one-time link to register the first device and recover. The strongest,
+  and phishing-proof, but a dependency, two ceremonies, a stored credential list, and no passkey on
+  `127.0.0.1` or across a change of host name.
 - **No long-lived secret**: each device is signed in by a one-time link, from a signed-in device or
   from the host. Nothing to leak, but a lost or expired set of devices needs the host's shell.
 - **Delegating to a proxy** (Tailscale identity, Cloudflare Access, oauth2-proxy): no credential
@@ -431,8 +432,8 @@ How a phone gets a session. Only with the key or password of [the credential](#t
 - **Type or paste the credential**, from a password manager: works everywhere, painful to type a
   43-character key on a phone.
 - **A one-time sign-in link from a signed-in device**, shown as a link and a QR code, single use,
-  valid a few minutes: a phone scans the laptop's screen. Needs a QR code encoder: a dependency or
-  a small module.
+  valid a few minutes: a phone scans the laptop's screen. Needs a QR code encoder: a dependency or a
+  small module.
 - **A one-time sign-in link from the host**, printed by a command: works with no signed-in device,
   needs the host's shell.
 
@@ -450,8 +451,8 @@ How long a device stays signed in, and how it is signed out. Knowledge:
 
 ### This machine
 
-Whether a browser on the host must sign in. Knowledge: [signing in on the
-host](#signing-in-on-the-host-itself).
+Whether a browser on the host must sign in. Knowledge:
+[signing in on the host](#signing-in-on-the-host-itself).
 
 - **Sign in everywhere**, with the start opening the browser through a one-time link, so the host
   feels unchanged.
@@ -470,8 +471,9 @@ Whether Tailscale's identity signs a device in. Knowledge:
 
 ### Reaching it from the internet
 
-How a public server reaches Uraeda. Knowledge: [running on a public
-server](#running-on-a-public-server), [the stack rule](#secure-enough-for-a-public-server-against-must-listen-on-127001-only).
+How a public server reaches Uraeda. Knowledge:
+[running on a public server](#running-on-a-public-server),
+[the stack rule](#secure-enough-for-a-public-server-against-must-listen-on-127001-only).
 
 - **A proxy on the same machine** (Caddy, NGINX, Tailscale Funnel) ends TLS and forwards to
   127.0.0.1, with its host name listed: the stack rule stays, documentation only.
@@ -482,8 +484,8 @@ server](#running-on-a-public-server), [the stack rule](#secure-enough-for-a-publ
 
 ### Previews and mockups
 
-How sandboxed frames prove they come from a signed-in page. Knowledge: [cookies in sandboxed
-frames](#cookies-in-sandboxed-frames).
+How sandboxed frames prove they come from a signed-in page. Knowledge:
+[cookies in sandboxed frames](#cookies-in-sandboxed-frames).
 
 - **A secret per session in the path**, `/r/<repository>/preview/<secret>/<folder>/`, given by fate
   to the signed-in page and ending with its session.
