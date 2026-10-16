@@ -1,0 +1,32 @@
+---
+discovery: high # low, medium, or high: how far the agent researches before asking
+---
+
+# Redesign and reword specs
+
+## What
+
+Redesign and reword specs and the other agent-generated pages (plans, data models, ...). The goal is
+READABILITY: rewording and redesign go together, the skill and the templates change with the UI.
+
+- Specs are still way too long and hard to read, with tens of bullet points (examples: "run ui")
+- For example specs are very hard to read at the moment, there's no clear user stories UI, it's a
+  sea of bullet points, ...
+- Generally _all_ agent-generated pages need to have good formatting, adapted for the page: cards
+  for user stories, tables, ...
+- We should have color and hierarchy for specs and plans
+- Data model pages (data-model.md) should read like an actual table with proper table formatting. We
+  could force mermaid graph + rendering for example.
+- Parsed frontmatter should not appear in the edit box
+- The wording and style must be model-agnostic: we need to be extremely clear as to the format
+  expected, the tone, ...
+
+## Why
+
+Approving a spec is the human's most important job, and today it's a sea of bullet points.
+
+## Notes
+
+- I'll do page-by-page passes on the formatting.
+- Same model-agnostic wording work as in the
+  [clarifications redesign](redesign-clarifications/proposal.md).

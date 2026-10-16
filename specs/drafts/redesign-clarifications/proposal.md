@@ -50,4 +50,7 @@ It's hard to read and overwhelming at the moment.
 - Small extra change: we should be allowed to not select any answer if there's a comment (happens
   when we don't like any of the options)
 - For all the points I raise, we can change the wording of the skill and the template for
-  clarifications
+  clarifications: rewording and redesign go together
+- An important piece of work is making the clarifications wording and style model-agnostic. We need
+  to be extremely clear as to the format expected, the tone, ... Same work as in the
+  [specs redesign](../redesign-specs.md)

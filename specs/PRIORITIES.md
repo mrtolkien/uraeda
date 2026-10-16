@@ -8,15 +8,16 @@
 
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 
-- Redesign sidebars and global interface
+- [Redesign sidebars and global interface](drafts/redesign-interface.md)
+- [Redesign home, inbox, and priorities](drafts/redesign-priorities.md)
 - [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
-- Redesign + reword specs
-- Redesign session
-- Redesign priorities
+- [Redesign + reword specs](drafts/redesign-specs.md)
+- [Redesign session](drafts/redesign-session.md)
+- [Redesign feature and change pages](drafts/redesign-feature-page.md)
+
 - [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
-  - For example: does each step start with a new context or continues a "master session"? Should be
-    a config flag, and able to toggle it per feature
-  - Same for subagents in implementation, or review settings (command, model, count, ...)
+
+- [Review the overall flow of all user stories](drafts/flow-review.md)
 
 - [Look and feel pass](drafts/look-and-feel.md)
 
@@ -37,7 +38,6 @@
   - This only doable once we have a good benchmark!
 
 - CLI auto-expand in fish and ?zsh?
-- Ping user when input is needed
 - Git listener process
 
 - Neovim plugin: an "open priorities" shortcut, and review its shortcuts, they are very bad atm
@@ -45,6 +45,8 @@
   in
 
 - Monorepo support: multiple `specs` folders, principles per package, ...
+- Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
+  repos and not in a monorepo
 - Codex runtime + model settings
 - Adversarial review flow with a secondary model + review settings
 

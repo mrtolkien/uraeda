@@ -16,6 +16,14 @@ I don't like CLI flags for important config values like allowed hosts, which is 
 moment. And we'll need a settings page anyways for many settings in the future (model selection,
 runner type, review settings, workflow settings, ...).
 
+Settings already known:
+
+- A model selector for _each step_ once we have multiple models/runners
+- Run options: "master session" vs 1 session per workflow: does each step start with a new context
+  or continue a "master session"? Should be a config flag, and able to toggle it per feature
+- Same for subagents in implementation, or review settings (command, model, count, ...)
+- Need to be able to rename a project slug, at least in the UI
+
 ## Notes
 
 - Store the config in a simple format that can be backed up/added to dotfiles simply
