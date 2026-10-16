@@ -11,6 +11,8 @@
 - Draft to proposal on mobile went 404
 - Ongoing tasks should be their own category in priorities (when starting a feature/change)
 - When there's multiple "blocked by auto mode", we should be able to allow them ALL at once!
+- Setup coverage visualisation (could be a simple command for this project, loclly)
+  - Also understand why the coverage job takes so much time?
 
 ## Prompts
 
@@ -21,3 +23,6 @@
     auto-filled message asked to go back to spec (normal for the standard flow). But it could
     directly finish the PR without all the flow again... We need a way to shortcut the flow for
     later clarifications
+- We need a dedicated "testing setup" reference which covers storybook and component testing, and
+  should only be read rarely (during the flow setup or when UI work starts) -> it should then be
+  made into a repository-specific decision
