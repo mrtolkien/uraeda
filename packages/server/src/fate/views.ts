@@ -32,6 +32,7 @@ import type { ItemLook } from "./items.ts";
 import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { settingsDataView } from "./settings.ts";
+import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
@@ -252,40 +253,6 @@ export type WorkflowMessageRecord = {
   text: string;
 };
 
-/** A listed repository, as the menu shows it. */
-export type RepositoryRow = {
-  /** `path` with the home folder written `~`. */
-  home: string;
-  /** Its folder no longer holds a git repository. */
-  missing: boolean;
-  /** Its name in the list, the `<name>` of its `/r/<name>/` URLs. */
-  name: string;
-  /** Its main checkout, absolute. */
-  path: string;
-};
-
-/**
- * The listed repositories, most recently opened first: one record, `repositories`, kept live, read
- * from every endpoint.
- */
-export type RepositoriesRecord = {
-  /**
-   * The repository `repositories.add` added or found listed, in that mutation's answer only: null
-   * in every other answer.
-   */
-  added: string | null;
-  id: string;
-  /** Why `repositories.json` could not be read at its last change: the rows are the last read. */
-  problem: string | null;
-  rows: Array<RepositoryRow>;
-};
-
-/** A folder the add form suggests, `path` as typed and ending with `/`. */
-export type FolderSuggestionRecord = { git: boolean; path: string };
-
-/** The folders the add form suggests for a typed text, which is its ID: not live. */
-export type FolderSuggestionsRecord = { id: string; rows: Array<FolderSuggestionRecord> };
-
 export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   currentBranch: true,
   defaultBranch: true,
@@ -462,18 +429,6 @@ export const slugProposalDataView = dataView<SlugProposalRecord>("SlugProposal")
   slug: true,
 });
 
-export const repositoriesDataView = dataView<RepositoriesRecord>("Repositories")({
-  added: true,
-  id: true,
-  problem: true,
-  rows: true,
-});
-
-export const folderSuggestionsDataView = dataView<FolderSuggestionsRecord>("FolderSuggestions")({
-  id: true,
-  rows: true,
-});
-
 /** The ids of the records there is one of. */
 export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
@@ -483,7 +438,6 @@ export const TRIAGE_ID = "inbox-triage";
 export const AGENT_ID = "agent";
 export const SESSION_LIST_ID = "all";
 export const PROPOSAL_HINTS_ID = "proposal";
-export const REPOSITORIES_ID = "repositories";
 
 /** The roots: one list per type, so every type is read by id. */
 export const Root = {
