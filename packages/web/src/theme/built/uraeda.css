@@ -231,7 +231,7 @@
     --color-background-popover: light-dark(#ffffff, #1b1b1b);
     --color-background-muted: light-dark(#f1f1f1, #1b1b1b);
     --color-accent: light-dark(#1b1b1b, #f1f1f1);
-    --color-accent-muted: light-dark(#f1f1f1, #262626);
+    --color-accent-muted: light-dark(#f1f1f1, #303030);
     --color-neutral: light-dark(#0000000F, #ffffff1A);
     --color-overlay: light-dark(#00000080, #000000CC);
     --color-overlay-hover: light-dark(#0000000D, #ffffff0D);
