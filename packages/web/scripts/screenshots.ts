@@ -26,6 +26,7 @@ import base, { uraedaServer } from "../vite.config.ts";
 import { takeChanges } from "./change-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
+import { type Serve, takeSettings } from "./settings-shots.ts";
 import { takeSignIn } from "./sign-in-shots.ts";
 import { takeTextInputs } from "./text-input-shots.ts";
 import {
@@ -86,18 +87,7 @@ async function main() {
   // Listed now, as the server lists it when it starts: its pages are under `/r/<name>/`.
   const { repository: listed } = await addRepository(data, repo);
   const adapter = new FakeAdapter();
-  const plugins = (base.plugins ?? []).filter(
-    (plugin: PluginOption) => !(plugin && "name" in plugin && plugin.name === "uraeda-server"),
-  );
-  const server = await createServer({
-    ...base,
-    configFile: false,
-    logLevel: "warn",
-    plugins: [...plugins, uraedaServer({ adapter, signIn: false })],
-    root: web,
-    server: { host: "127.0.0.1", port: 4390, strictPort: false },
-  });
-  await server.listen();
+  const server = await serve(adapter, 4390);
   const url = server.resolvedUrls?.local[0]?.replace(/\/$/, "") ?? "";
   let browser: Browser | undefined;
   try {
@@ -126,6 +116,38 @@ async function main() {
     await takeTextInputs(shooter(shots, out, views));
     await takeChanges(shooter(shots, out, views), shots[0]!.page, adapter, repo);
     await takeStories(shooter(shots, out, views));
+    // `settings` names every view of the settings page. Its second server reads `env` with its
+    // first request, so `env` stays in the environment until it is closed.
+    const second: Serve = async (env) => {
+      const before = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
+      const restore = () => {
+        for (const [name, value] of Object.entries(before)) {
+          if (value === undefined) {
+            delete process.env[name];
+          } else {
+            process.env[name] = value;
+          }
+        }
+      };
+      Object.assign(process.env, env);
+      const started = await serve(new FakeAdapter(), 4395).catch((error: unknown) => {
+        restore();
+        throw error;
+      });
+      return {
+        close: async () => {
+          await started.close();
+          restore();
+        },
+        url: started.resolvedUrls?.local[0]?.replace(/\/$/, "") ?? "",
+      };
+    };
+    await takeSettings(
+      shooter(shots, out, views.includes("settings") ? [] : views),
+      config,
+      second,
+      at,
+    );
     // `sign-in` names every view of signing in and out.
     await takeSignIn(shooter(shots, out, views.includes("sign-in") ? [] : views));
   } finally {
@@ -135,6 +157,26 @@ async function main() {
       rmSync(folder, { force: true, recursive: true });
     }
   }
+}
+
+/**
+ * The UI served by Vite with the server's routes in process, on `adapter`, without sign-in, on
+ * `port` or the next one free, with the settings of the environment as it is now.
+ */
+async function serve(adapter: FakeAdapter, port: number) {
+  const plugins = (base.plugins ?? []).filter(
+    (plugin: PluginOption) => !(plugin && "name" in plugin && plugin.name === "uraeda-server"),
+  );
+  const server = await createServer({
+    ...base,
+    configFile: false,
+    logLevel: "warn",
+    plugins: [...plugins, uraedaServer({ adapter, signIn: false })],
+    root: web,
+    server: { host: "127.0.0.1", port, strictPort: false },
+  });
+  await server.listen();
+  return server;
 }
 
 /** Home, with the navigation open on the phone. */

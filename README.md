@@ -203,7 +203,7 @@ opens in the server already running.
 ```sh
 npx @uraeda/ui                          # the web UI, for the repository you are in
 npx @uraeda/ui --no-open --port 4311    # without opening the browser, on another port
-npx @uraeda/ui --allowed-hosts mac.tail1234.ts.net  # host names accepted besides 127.0.0.1
+npx @uraeda/ui --allowed-hosts mac.tail1234.ts.net  # host names for this run, over the settings
 npx @uraeda/ui --new-key                # a new access key, which signs every device out
 npm i -g @uraeda/ui@latest              # a lasting install, then `uraeda`; updated the same way
 ```
@@ -211,14 +211,34 @@ npm i -g @uraeda/ui@latest              # a lasting install, then `uraeda`; upda
 Every browser signs in. The first start shows an access key, once, in the terminal: keep it in a
 password manager. The browser it opens is signed in already, and so is the one a second start opens
 on the same machine. Any other browser, like your phone's, pastes the key once and stays signed in
-while it is used at least every 30 days. "Sign out" and "Sign out everywhere…" are at the end of the
-repository menu. A lost key is replaced with `uraeda --new-key` on the machine that runs Uraeda,
-which signs every device out.
+while it is used at least every 30 days. "Sign out" and "Sign out everywhere…" are in Settings,
+under Sign-in. A lost key is replaced with `uraeda --new-key` on the machine that runs Uraeda, which
+signs every device out.
+
+Settings, at the bottom of the sidebar, shows and changes the server's settings, and holds the
+theme, kept on each browser, and signing out. The server's settings are kept in
+`~/.config/uraeda/config.toml`, a file you can also edit by hand and keep in your dotfiles: in
+`$XDG_CONFIG_HOME/uraeda/` when `XDG_CONFIG_HOME` is set, or in `URAEDA_CONFIG_DIR` when that is.
+The page keeps the file's comments. Its `[server]` table holds:
+
+```toml
+[server]
+allowed_hosts = ["mac.tail1234.ts.net"]  # host names accepted besides 127.0.0.1 and localhost
+port = 4310                              # the server's port
+open_browser = true                      # whether a start opens the browser
+```
+
+A host name added or removed applies to the next request; the port and the browser, at the next
+start. Each value comes from its flag, `--allowed-hosts`, `--port`, or `--no-open`, else its
+environment variable, `URAEDA_ALLOWED_HOSTS` or `URAEDA_PORT`, else the file, else its default: a
+flag or a variable holds for one run, is never written into the file, and the page says which one is
+in force. A file that cannot be read is never overwritten: the server says why and uses its defaults
+until it is fixed.
 
 To reach Uraeda from a public address, put a proxy that ends TLS on the same machine, like Caddy or
-Tailscale Funnel, and give its host name to `--allowed-hosts`. With Caddy, the whole configuration
-is `uraeda.example.com { reverse_proxy 127.0.0.1:4310 }`. The server itself listens on 127.0.0.1
-only.
+Tailscale Funnel, and add its host name in Settings, or give it to `--allowed-hosts`. With Caddy,
+the whole configuration is `uraeda.example.com { reverse_proxy 127.0.0.1:4310 }`. The server itself
+listens on 127.0.0.1 only.
 
 In a repository whose `package.json` asks for another package manager in `devEngines`, npm refuses
 to run `npx`, with `EBADDEVENGINES`. In a pnpm project, run `pnpm dlx @uraeda/ui`; anywhere, install
@@ -291,9 +311,11 @@ adds the repository of the folder you are in. Each repository's pages are under 
 `vp dev` and `vp run dev` read `.env` at the root, from [`.env.example`](.env.example):
 `URAEDA_REPO` names the repository opened first, and adds it to the list, `URAEDA_PORT` changes the
 port, and `URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your
-machine's full name on your tailnet, `mac.tail1234.ts.net`. The server listens on 127.0.0.1 only:
-`tailscale serve --bg 4310` reaches it from your phone, at `https://mac.tail1234.ts.net/`. The npm
-package reads no `.env`: give it its flags, or the same variables in its environment.
+machine's full name on your tailnet, `mac.tail1234.ts.net`. Vite checks host names and takes its
+port before the settings file is read: under `vp dev`, they come from these variables only. The
+server listens on 127.0.0.1 only: `tailscale serve --bg 4310` reaches it from your phone, at
+`https://mac.tail1234.ts.net/`. The npm package reads no `.env`: its settings come from its flags,
+its environment, and your settings file.
 
 Sessions need `claude` installed and signed in on the machine. Each feature has one session, in its
 worktree, where the workflow's runs and your chat follow each other; "New chat" opens one without a
@@ -305,8 +327,10 @@ what needs you, what works, and each new reply. Claude Code runs in `auto` permi
 your own settings, and with the server's copy of the skill as a plugin: see the
 [agents](specs/decisions/agents.md) decision. Without `claude`, the pages only commit. Sessions are
 kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder, `~/.local/share/uraeda/`
-on Linux. When Claude Code changes and sessions break, `vp run validate:claude` checks the
-integration against the installed `claude`, with a few short sessions.
+on Linux, where a running server keeps the files that only live while it runs, like its host token
+and its Storybooks' records, in `run/`. When Claude Code changes and sessions break,
+`vp run validate:claude` checks the integration against the installed `claude`, with a few short
+sessions.
 
 The code is under the MIT or Apache-2.0 licenses, at your option.
 
