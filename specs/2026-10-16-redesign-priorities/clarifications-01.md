@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Redesign home, inbox, and priorities
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 11 questions on the priorities, the inbox, home, and the decisions view, about 40 minutes.
+> Answered on 2026-10-16.
 >
 > - The home's layout is a visual question: three live variants to try at both widths, with today's
 >   home beside them.
@@ -65,7 +65,7 @@ their binding, and their tests.
   - [pro] the smallest feature.
   - [con] four requests left out.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Which feature changes the sidebar?
 
@@ -87,7 +87,8 @@ Why it matters: both features edit the same sidebar file; whichever merges secon
   - [pro] one owner for the sidebar.
   - [con] no count and no decisions row until it merges.
 
-**Answer:**
+**Answer:** B: Make a small note in the inbox in the UI category, I'll review it once both branches
+are merged
 
 ## Q3: How should home look?
 
@@ -129,7 +130,11 @@ redesigns.
   - [pro] the most information per screen.
   - [con] dense for a newcomer, and its style may need the look and feel pass to land.
 
-**Answer:**
+**Answer:** A: Home but small notes:
+
+- Priorities should just be "Priorities" and show only Now by default, with a click on the card's
+  title opening the priorities page
+- The "Organize 10 notes" link should not be there
 
 ## Q4: What does a click on a priority or a note open?
 
@@ -157,7 +162,14 @@ click.
   - [pro] reading a line never risks editing it.
   - [con] the path you asked to shorten stays as long.
 
-**Answer:**
+**Answer:** C: We should remove one step: one click to open the pane, one click to edit. This is
+much smoother than before.
+
+The "edit" button should also be at the top and allow in-place editing. There should be a separate
+"Fullscreen"/"Draft view" button.
+
+With this the flow will be fast enough while looking good and feeling smooth (opening the pane shows
+markdown and does not steal focus).
 
 ## Q5: Does the editor change an entry's children too?
 
@@ -177,7 +189,8 @@ Why it matters: without it, changing a child bullet means opening the file in an
   - [pro] the quickest one-line edit.
   - [con] children stay out of reach.
 
-**Answer:**
+**Answer:** B: I do not understand the question, I'm not sure where that would appear. Is this only
+for new priorities? If so yes, single line is ok.
 
 ## Q6: Which keys move through the list?
 
@@ -199,7 +212,7 @@ Why it matters: it decides how fast you go through a list of thirty priorities.
   - [pro] the pane changes only on Enter.
   - [con] one key more per row looked at.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How does running work stand apart in the priorities?
 
@@ -221,7 +234,8 @@ others, since moving the line does not move the branch.
   - [pro] the page mirrors the file.
   - [con] Now mixes two kinds of entries.
 
-**Answer:**
+**Answer:** B: I think it's ok to keep it simple and follow other products, BUT make sure they are
+moved at the TOP of `now` in the file, with an empty line before the other lines
 
 ## Q8: How does "Add and commit" work?
 
@@ -243,7 +257,7 @@ Why it matters: it is the quick-capture path from any page, and the phone's six 
   - [pro] one button.
   - [con] no way to jot several lines into one commit from the ＋.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: Can notes be dragged like priorities?
 
@@ -262,7 +276,7 @@ Why it matters: A makes the two pages one component; B keeps them two.
   - [pro] no core change for order.
   - [con] the handles differ between the two pages.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: What happens to a priority's children when it becomes a draft?
 
@@ -281,7 +295,7 @@ Draft.
   - [pro] the priorities page still shows them.
   - [con] two copies that drift.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: How do the constitution and decisions show?
 
@@ -306,7 +320,14 @@ Why it matters: it is a new page, and where a newcomer learns the project's rule
   - [pro] what is about to change shows too.
   - [con] a branch reader, and overlap with the specs redesign.
 
-**Answer:**
+**Answer:** A: Actually let's do it differently:
+
+- Let's do a compact list that starts with the constitution at the top, in cards or horizontally
+- Then each decision one by one, with the decision name (first H1 header) as title and first phrase
+  as a sub-title
+- There should be sort settings: latest changes first/last, alphabetical, ...
+- Clicking a constitution rule or decision opens its content in the right sidebar: this is read-only
+- Arrows navigate between items
 
 ## Settled without the human
 
