@@ -58,3 +58,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: resetting each fate client's cache, which fate does not expose.
 - **If wrong**: a second of loading after a sign-in.
 - **Where**: task 5, `SignInPage.tsx`
+
+## R6: A missing module fails with "Cannot find module"
+
+- **Decision**: the plan's expected failures for a module not written yet read
+  `Cannot find module '<path>'`, in tasks 1, 2, 3, and 5.
+- **Rationale**: it is the message the test runner gives for a missing import, seen in task 1's
+  first run, not `Failed to load url`. The failure's cause is the same.
+- **Alternatives considered**: leaving the plan's wording, which no run would match.
+- **If wrong**: a wording only; each step still expects its test to fail on the missing module.
+- **Where**: `plan.md`, the **Expected** line of each task's step 2

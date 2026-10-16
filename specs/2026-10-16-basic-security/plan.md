@@ -232,7 +232,7 @@ link; if it nears 100 lines, its start goes to a function of its own.
     `endSession(id: string): void`; `endAll(): void`; `sweep(): void`;
     `signal(id: string): AbortSignal`; `onEnded(listener: (id: string) => void): void`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Tests on a temporary data folder, the clock a variable the test moves:
 
@@ -250,6 +250,8 @@ Tests on a temporary data folder, the clock a variable the test moves:
 - "ends one session, every session, and every session on a new key": `endSession`, `endAll`,
   `replaceKey` each remove sessions, abort their signals, and call `onEnded` once per session; the
   old key is refused after `replaceKey`.
+- "the sweep ends every session unused for 30 days": one session of two ended, its signal aborted,
+  `onEnded` called for it, and the file holding the other.
 - "refuses a file it cannot read" (edge case, review focus 7): a file that is not JSON, and one with
   `version: 2`, throw
   `cannot read <path>: <reason>. Fix it, or delete it to make a new access key and sign every device out.`,
@@ -260,27 +262,28 @@ Tests on a temporary data folder, the clock a variable the test moves:
   hash of its secret, not the secret.
 
 The break each test catches: a key stored in clear; a missing trim; sessions kept in memory only; an
-off-by-one on 30 days, or `used` never updated; a write on every request; an ended session left
-streaming; a corrupt file overwritten with a new key; a token written in clear.
+off-by-one on 30 days, or `used` never updated; a write on every request; a sweep that leaves an
+expired session; an ended session left streaming; a corrupt file overwritten with a new key; a token
+written in clear.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/sign-in/__tests__/store.test.ts`
-- Expected: FAIL, `Failed to load url ../store.ts`.
+- Expected: FAIL, `Cannot find module '../store.ts'`.
 
-- [ ] **Step 3: Implement `tokens.ts` and `SignInStore`**
+- [x] **Step 3: Implement `tokens.ts` and `SignInStore`**
 
 The file format is the spec's `SignInFile`. Writes go to `sign-in.json.<random>.tmp` with mode
 `0o600`, then `rename`. Hashes are compared with `sameHash`. Session ids are 16 random bytes,
 secrets 32. A session whose secret does not match its id is not found. `sweep` ends every expired
 session.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/sign-in specs/2026-10-16-basic-security/plan.md
@@ -368,7 +371,7 @@ answers cached by a proxy; framing by another site.
 - [ ] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/sign-in`
-- Expected: FAIL, `Failed to load url ../routes.ts`.
+- Expected: FAIL, `Cannot find module '../routes.ts'`.
 
 - [ ] **Step 3: Implement the check, the routes, and the links, and wire them in `createApp`**
 
@@ -461,7 +464,7 @@ the Storybook on the old base; a 404 that hides a restart; a listener that throw
 - [ ] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/sign-in/__tests__/frames.test.ts`
-- Expected: FAIL, `Failed to load url ../frames.ts`.
+- Expected: FAIL, `Cannot find module '../frames.ts'`.
 
 - [ ] **Step 3: Implement**
 
@@ -636,7 +639,7 @@ failure; drafts lost; an upload's 401 shown as a failed upload.
 - [ ] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/sign-in.test.tsx`
-- Expected: FAIL, `Failed to load url ../sign-in/SignInPage.tsx`.
+- Expected: FAIL, `Cannot find module '../sign-in/SignInPage.tsx'`.
 
 - [ ] **Step 3: Implement**
 
