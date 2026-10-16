@@ -226,6 +226,16 @@ test("Recently done lists the five latest, and Show all (7) lists all seven", as
   expect(done.queryByRole("button", { name: /Show all/ })).toBeNull();
 });
 
+/** R19: the sidebar's "All done features and changes" opens home at #done, every one listed. */
+test("at #done, Recently done lists all seven", async () => {
+  await renderPage("/#done", withDone(5));
+
+  const done = await card("Recently done");
+
+  expect(links(done.getByRole("list", { name: "Recently done" }))).toHaveLength(7);
+  expect(done.queryByRole("button", { name: /Show all/ })).toBeNull();
+});
+
 /** US7 7 */
 test("Needs you says so when nothing waits on the human", async () => {
   const repo = fixtureRepo();
