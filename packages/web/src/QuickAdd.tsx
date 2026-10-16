@@ -3,15 +3,18 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type KeyboardEvent, useState } from "react";
+import { Icon } from "@astryxdesign/core/Icon";
+import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { useFateClient } from "react-fate";
+import type { AddCommit } from "uraeda-binding";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
-import { PrioritiesView } from "./views.ts";
+import { useWidthClass } from "./layout/useWidthClass.ts";
+import { PrioritiesAddedView } from "./views.ts";
 
 /** Each section's title, in the order the page shows them: a map, which the lint does not sort. */
 export const TITLES = new Map([
@@ -21,9 +24,37 @@ export const TITLES = new Map([
   ["blocked", "Blocked"],
 ]);
 
-/** What "Add and commit" says when the file had other changes: the line is added, not committed. */
-export function notCommitted(section: string) {
-  return `Added to ${TITLES.get(section)}. Not committed: PRIORITIES.md has other changes to commit or discard.`;
+/**
+ * What "Add and commit" says when the file had other changes: the line is added, not committed.
+ * `place` is where it went, "Next" or "the inbox", and `file` the file it went in.
+ */
+export function notCommitted(place: string, file = "PRIORITIES.md") {
+  return `Added to ${place}. Not committed: ${file} has other changes to commit or discard.`;
+}
+
+/** What the form says after "Add and commit", and how: a warning, or the hook's error. */
+export type CommitNotice = { status: "error" | "warning"; title: string };
+
+/**
+ * Why "Add and commit" only added, for its form to say until it closes: the file's other changes,
+ * or the hook that refused the commit, by the first line of its output. Nothing once committed.
+ */
+export function uncommitted(
+  added: AddCommit | null | undefined,
+  place: string,
+  file?: string,
+): CommitNotice | undefined {
+  if (!added || added.committed) {
+    return undefined;
+  }
+  return added.reason === "hook-failed"
+    ? { status: "error", title: `Commit failed: ${added.message ?? ""}` }
+    : { status: "warning", title: notCommitted(place, file) };
+}
+
+/** What a form says after "Add and commit", in the form, until it closes. */
+export function CommitBanner({ notice }: { notice: CommitNotice | undefined }) {
+  return notice && <Banner status={notice.status} title={notice.title} />;
 }
 
 /** A one-line field's Enter, Shift+Enter aside: it calls `onEnter` instead of a new line. */
@@ -38,33 +69,44 @@ export function enterAdds(onEnter: () => void) {
 
 /**
  * A ＋ form's buttons: Cancel, Add, which adds the line uncommitted, and "Add and commit", the
- * primary one and Enter's, which commits that file alone.
+ * primary one and Enter's, which commits that file alone. On wide screens, where a keyboard is
+ * likely, "Add and commit" shows the Enter key it shares (C4); its name stays "Add and commit".
+ * `start` comes first in the row, like the inbox's "Attach an image".
  */
 export function AddButtons({
+  addLabel = "Add",
   isReady,
   onAdd,
   onAddAndCommit,
   onCancel,
+  start,
 }: {
+  /** Add's label, like "Add as a draft". */
+  addLabel?: string;
   isReady: boolean;
   onAdd: () => Promise<void>;
-  /** Without it, Add alone, the primary button, as before Q8. */
+  /** Without it, Add alone, the primary button. */
   onAddAndCommit?: () => Promise<void>;
   onCancel: () => void;
+  start?: ReactNode;
 }) {
+  const wide = useWidthClass() === "wide";
   const committing = onAddAndCommit !== undefined;
   return (
     <HStack gap={2} justify="end" wrap="wrap">
+      {start}
       <Button label="Cancel" onClick={onCancel} variant={committing ? "ghost" : "secondary"} />
       <Button
         clickAction={onAdd}
         isDisabled={!isReady}
-        label="Add"
+        label={addLabel}
         variant={committing ? "secondary" : "primary"}
       />
       {committing && (
         <Button
           clickAction={onAddAndCommit}
+          // Out of the button's name, which stays its label; named, for the tests to find it.
+          endContent={wide && <Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
           isDisabled={!isReady}
           label="Add and commit"
           variant="primary"
@@ -74,8 +116,16 @@ export function AddButtons({
   );
 }
 
-/** The line ＋ added, as the core wrote it: its key, and its text after its marker. */
-export type Added = { key: string; text: string };
+/**
+ * The line ＋ added, as the core wrote it: its key, its text after its marker, and its lines; with
+ * "Add and commit", the file's version after the commit, for Undo to remove it from.
+ */
+export type Added = {
+  committed?: { hash: string };
+  key: string;
+  lines: ReadonlyArray<string>;
+  text: string;
+};
 
 /**
  * The form: it reads the priorities when it opens, for the version it adds to. Its text is the
@@ -83,15 +133,12 @@ export type Added = { key: string; text: string };
  * asks "Discard your changes?" first when it holds text.
  */
 export function AddForm({
-  canCommit = false,
   notice: shown,
   onAdded,
   onCancel,
 }: {
-  /** "Add and commit" beside Add, the default on Enter (Q8 of the redesign of the priorities). */
-  canCommit?: boolean;
   /** What "Add and commit" said last, from the start: the stories' not-committed state. */
-  notice?: string;
+  notice?: CommitNotice;
   onAdded: (section: string, added: Added | undefined) => void;
   onCancel: () => void;
 }) {
@@ -108,26 +155,35 @@ export function AddForm({
     setMessage(undefined);
     setNotice(undefined);
     const result = await fate.mutations.priorities.add({
-      input: { hash: priorities?.hash ?? "", section, text },
-      view: PrioritiesView,
+      input: { commit, hash: priorities?.hash ?? "", section, text },
+      view: PrioritiesAddedView,
     });
     if (result.error) {
       setMessage(refusal(result.error).message);
       return;
     }
+    const answer = result.result;
     // The line just added ends its section.
-    const added = result.result?.sections.find((s) => s.section === section)?.entries.at(-1);
+    const added = answer?.sections.find((s) => s.section === section)?.entries.at(-1);
     // Forgotten once added, unless more was typed meanwhile.
     if (field.unsavedNow()?.text === text) {
       field.discard();
     }
-    if (commit) {
-      // TEMPORARY: the core cannot commit PRIORITIES.md alone yet (Q1): the form stays open,
-      // saying the line is added and not committed, as when the file has other changes.
-      setNotice(notCommitted(section));
+    // Only added: the form stays open, saying why.
+    const why = commit ? uncommitted(answer?.added, TITLES.get(section) ?? section) : undefined;
+    if (why) {
+      setNotice(why);
       return;
     }
-    onAdded(section, added && { key: added.key, text: added.text });
+    onAdded(
+      section,
+      added && {
+        ...(commit && answer ? { committed: { hash: answer.hash } } : {}),
+        key: added.key,
+        lines: added.lines,
+        text: added.text,
+      },
+    );
   };
 
   const cancel = async () => {
@@ -150,12 +206,8 @@ export function AddForm({
         kind="line"
         label="Priority"
         onChange={field.change}
-        {...(canCommit
-          ? // A line: Enter adds and commits, Ctrl+Enter or Cmd+Enter as well.
-            { onKeyDown: enterAdds(() => text.trim() && void add(true)) }
-          : text.trim()
-            ? { onSubmit: () => void add() }
-            : {})}
+        // A line: Enter adds and commits, Ctrl+Enter or Cmd+Enter as well.
+        onKeyDown={enterAdds(() => text.trim() && void add(true))}
         value={text}
       />
       <SegmentedControl
@@ -168,11 +220,11 @@ export function AddForm({
         ))}
       </SegmentedControl>
       {message && <Banner status="error" title={message} />}
-      {notice && <Banner status="warning" title={notice} />}
+      <CommitBanner notice={notice} />
       <AddButtons
         isReady={text.trim() !== ""}
         onAdd={() => add()}
-        {...(canCommit ? { onAddAndCommit: () => add(true) } : {})}
+        onAddAndCommit={() => add(true)}
         onCancel={() => void cancel()}
       />
     </VStack>

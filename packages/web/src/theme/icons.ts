@@ -144,9 +144,16 @@ const panelRight = outline(
   h("path", { d: "M15 3v18" }),
 );
 
+/** The Enter key, for the button Enter presses: Lucide's `corner-down-left`. */
+const enter = outline(
+  h("path", { d: "M20 4v7a4 4 0 0 1-4 4H4" }),
+  h("path", { d: "m9 10-5 5 5 5" }),
+);
+
 export const uraedaIcons = {
   "uraeda:attach": attach,
   "uraeda:comment": comment,
+  "uraeda:enter": enter,
   "uraeda:home": home,
   "uraeda:panel-left": panelLeft,
   "uraeda:panel-right": panelRight,
