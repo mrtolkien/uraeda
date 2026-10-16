@@ -125,10 +125,6 @@ export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
 export type InboxRecord = Omit<Record_<Inbox>, "triage"> & { id: string; triage: string | null };
 
-/** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
-export function sentInbox(inbox: Inbox): InboxRecord {
-  return { ...inbox, id: INBOX_ID, triage: inbox.triage ?? null };
-}
 export type DraftRecord = Record_<DraftView> & { id: string };
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
 export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: string };
