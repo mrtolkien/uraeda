@@ -17,6 +17,7 @@ import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
 import { useFeature, usePreview, useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
+import { DecisionsPage, type LedgerOpen } from "./decisions/DecisionsPage.tsx";
 import { FeaturePage } from "./FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
 import { LeaveGuard } from "./fields/LeaveGuard.tsx";
@@ -97,9 +98,13 @@ class ServerErrorBoundary extends Component<
 
 /**
  * What draws a page anew: its address, except for a list with its pane, which stays drawn while
- * the pane follows the list's keys to another row in the same history entry, and keeps the focus.
+ * the pane follows the list's keys to another row in the same history entry, and keeps the focus:
+ * on the decisions page, from a principle to a decision too.
  */
 function pageKey(route: Route, pathname: string, entryId: string | undefined) {
+  if (route.page === "decision" || route.page === "principle") {
+    return `ledger:${entryId}`;
+  }
   return route.page === "task" || route.page === "note" ? `${route.page}:${entryId}` : pathname;
 }
 
@@ -131,6 +136,12 @@ function RoutePage({ route }: { route: Route }) {
       return <InboxPage />;
     case "triage":
       return <TriagePage />;
+    case "decisions":
+      return <DecisionsPage />;
+    case "decision":
+      return <LedgerRoute open={{ kind: "decision", name: route.name }} />;
+    case "principle":
+      return <LedgerRoute open={{ kind: "principle", slug: route.slug }} />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":
@@ -193,6 +204,21 @@ function NoteRoute({ noteKey }: { noteKey: string }) {
         detailKey={noteKey}
         list={<InboxPage />}
       />
+    </ListPaneContext>
+  );
+}
+
+/**
+ * A decision's or a principle's pane: on wide screens, beside the constitution and the decisions,
+ * with its Close; on narrow screens, a page of its own. The list's keys show another item in it.
+ */
+function LedgerRoute({ open }: { open: LedgerOpen }) {
+  const here = useRepoPath();
+  const pane = useListPane(() => navigate(here("/decisions")));
+  useListPosition();
+  return (
+    <ListPaneContext value={pane}>
+      <DecisionsPage onClose={pane.close} open={open} />
     </ListPaneContext>
   );
 }

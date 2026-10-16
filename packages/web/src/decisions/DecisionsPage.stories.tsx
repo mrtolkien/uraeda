@@ -1,16 +1,12 @@
-// The constitution and decisions page, for the redesign of home, inbox, and priorities. Nothing in
-// the server reads these files yet, so the page takes plain props: the stories pass this
-// repository's own constitution and decisions, as literals (`samples.ts`).
+// The constitution and decisions page, over the fixture repository's real constitution and
+// decisions (see `.storybook/fixture.ts`): its data comes from Uraeda's server in Storybook, through
+// fate.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DecisionsPage } from "./DecisionsPage.tsx";
-import { CONSTITUTION, DECISIONS, UI_BEHAVIOUR } from "./samples.ts";
 
 const meta = {
-  args: {
-    constitution: CONSTITUTION,
-    decisions: DECISIONS,
-    documents: { "ui-behaviour": UI_BEHAVIOUR },
-  },
+  // A Close and a way back, which close nothing in a story.
+  args: { onClose: () => {} },
   component: DecisionsPage,
   // The page fills the frame, as in the app's main column.
   parameters: { layout: "fullscreen" },
@@ -21,18 +17,24 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** The principles first, then the 15 decisions, latest change first; nothing open. */
-export const List: Story = {};
+/** The principles first, then the decisions, latest change first; nothing open. */
+export const List: Story = { args: { onClose: undefined } };
 
 /** The "UI behaviour" decision open: beside the list on wide screens, its own page on narrow. */
 export const Decision: Story = {
-  args: { initialSelection: { kind: "decision", slug: "ui-behaviour" } },
+  args: { open: { kind: "decision", name: "ui-behaviour" } },
 };
 
 /** Principle IV, "Review effort matches impact", open. */
 export const Principle: Story = {
-  args: { initialSelection: { kind: "principle", numeral: "IV" } },
+  args: { open: { kind: "principle", slug: "iv" } },
 };
 
-/** The decisions sorted A to Z. */
-export const SortedAToZ: Story = { args: { initialSort: "a-z" } };
+/** The decisions sorted A to Z, as the sort control keeps it in the browser. */
+export const SortedAToZ: Story = {
+  args: { onClose: undefined },
+  beforeEach: () => {
+    window.localStorage.setItem("uraeda:decisions:sort", "title");
+    return () => window.localStorage.removeItem("uraeda:decisions:sort");
+  },
+};

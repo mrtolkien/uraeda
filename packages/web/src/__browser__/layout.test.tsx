@@ -93,6 +93,9 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["the settings", "/settings", "Host names, port, and start", null],
   ["the Server settings", "/settings/server", "Allowed host names", null],
   ["the Sign-in settings", "/settings/sign-in", "Sign out everywhere…", null],
+  // US8: the constitution and the decisions, and a decision open beside them, or alone on a phone.
+  ["the decisions", "/decisions", "Decisions · 5", null],
+  ["a decision open", "/decisions/ui-behaviour", "Approved by mrtolkien", null],
 ];
 
 afterEach(() => {});

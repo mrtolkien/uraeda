@@ -150,6 +150,175 @@ const enter = outline(
   h("path", { d: "m9 10-5 5 5 5" }),
 );
 
+// The decisions' icons, by their Lucide name in a decision's frontmatter (R2): those
+// `specs/decisions/` uses, and `file-text`, the default for a name not registered here.
+
+/** Lucide's `bot`. */
+const bot = outline(
+  h("path", { d: "M12 8V4H8" }),
+  h("rect", { height: 12, rx: 2, width: 16, x: 4, y: 8 }),
+  h("path", { d: "M2 14h2" }),
+  h("path", { d: "M20 14h2" }),
+  h("path", { d: "M15 13v2" }),
+  h("path", { d: "M9 13v2" }),
+);
+
+/** Lucide's `component`. */
+const component = outline(
+  h("path", {
+    d: "M15.536 11.293a1 1 0 0 0 0 1.414l2.376 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z",
+  }),
+  h("path", {
+    d: "M2.297 11.293a1 1 0 0 0 0 1.414l2.377 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414L6.088 8.916a1 1 0 0 0-1.414 0z",
+  }),
+  h("path", {
+    d: "M8.916 17.912a1 1 0 0 0 0 1.415l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.415l-2.377-2.376a1 1 0 0 0-1.414 0z",
+  }),
+  h("path", {
+    d: "M8.916 4.674a1 1 0 0 0 0 1.414l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z",
+  }),
+);
+
+/** Lucide's `folder-git-2`. */
+const folderGit2 = outline(
+  h("path", { d: "M18 19a5 5 0 0 1-5-5v8" }),
+  h("path", {
+    d: "M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v5",
+  }),
+  h("circle", { cx: 13, cy: 12, r: 2 }),
+  h("circle", { cx: 20, cy: 19, r: 2 }),
+);
+
+/** Lucide's `git-branch`. */
+const gitBranch = outline(
+  h("path", { d: "M15 6a9 9 0 0 0-9 9V3" }),
+  h("circle", { cx: 18, cy: 6, r: 3 }),
+  h("circle", { cx: 6, cy: 18, r: 3 }),
+);
+
+/** Lucide's `key-round`. */
+const keyRound = outline(
+  h("path", {
+    d: "M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z",
+  }),
+  h("circle", { cx: 16.5, cy: 7.5, fill: "currentColor", r: 0.5 }),
+);
+
+/** Lucide's `layers`. */
+const layers = outline(
+  h("path", {
+    d: "M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z",
+  }),
+  h("path", { d: "M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" }),
+  h("path", { d: "M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" }),
+);
+
+/** Lucide's `layout-panel-left`. */
+const layoutPanelLeft = outline(
+  h("rect", { height: 18, rx: 1, width: 7, x: 3, y: 3 }),
+  h("rect", { height: 7, rx: 1, width: 7, x: 14, y: 3 }),
+  h("rect", { height: 7, rx: 1, width: 7, x: 14, y: 14 }),
+);
+
+/** Lucide's `mouse-pointer-click`. */
+const mousePointerClick = outline(
+  h("path", { d: "M14 4.1 12 6" }),
+  h("path", { d: "m5.1 8-2.9-.8" }),
+  h("path", { d: "m6 12-1.9 2" }),
+  h("path", { d: "M7.2 2.2 8 5.1" }),
+  h("path", {
+    d: "M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z",
+  }),
+);
+
+/** Lucide's `package`. */
+const packageIcon = outline(
+  h("path", {
+    d: "M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z",
+  }),
+  h("path", { d: "M12 22V12" }),
+  h("polyline", { points: "3.29 7 12 12 20.71 7" }),
+  h("path", { d: "m7.5 4.27 9 5.15" }),
+);
+
+/** Lucide's `ruler`. */
+const ruler = outline(
+  h("path", {
+    d: "M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z",
+  }),
+  h("path", { d: "m14.5 12.5 2-2" }),
+  h("path", { d: "m11.5 9.5 2-2" }),
+  h("path", { d: "m8.5 6.5 2-2" }),
+  h("path", { d: "m17.5 15.5 2-2" }),
+);
+
+/** Lucide's `scan-eye`. */
+const scanEye = outline(
+  h("path", { d: "M3 7V5a2 2 0 0 1 2-2h2" }),
+  h("path", { d: "M17 3h2a2 2 0 0 1 2 2v2" }),
+  h("path", { d: "M21 17v2a2 2 0 0 1-2 2h-2" }),
+  h("path", { d: "M7 21H5a2 2 0 0 1-2-2v-2" }),
+  h("circle", { cx: 12, cy: 12, r: 1 }),
+  h("path", {
+    d: "M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0",
+  }),
+);
+
+/** Lucide's `square-terminal`. */
+const squareTerminal = outline(
+  h("path", { d: "m7 11 2-2-2-2" }),
+  h("path", { d: "M11 13h4" }),
+  h("rect", { height: 18, rx: 2, ry: 2, width: 18, x: 3, y: 3 }),
+);
+
+/** Lucide's `wrench`. */
+const wrench = outline(
+  h("path", {
+    d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z",
+  }),
+);
+
+/** Lucide's `file-text`. */
+const fileText = outline(
+  h("path", {
+    d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
+  }),
+  h("path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }),
+  h("path", { d: "M10 9H8" }),
+  h("path", { d: "M16 13H8" }),
+  h("path", { d: "M16 17H8" }),
+);
+
+/** A decision's icons, by the Lucide name its frontmatter's `icon` gives. */
+const DECISION_ICONS = {
+  bot,
+  component,
+  eye: review,
+  "file-text": fileText,
+  "folder-git-2": folderGit2,
+  "git-branch": gitBranch,
+  "key-round": keyRound,
+  layers,
+  "layout-panel-left": layoutPanelLeft,
+  "mouse-pointer-click": mousePointerClick,
+  package: packageIcon,
+  paperclip: attach,
+  ruler,
+  "scan-eye": scanEye,
+  "square-terminal": squareTerminal,
+  terminal,
+  wrench,
+};
+
+/**
+ * The registered name of a decision's icon, from its frontmatter's Lucide name: `file-text`'s for
+ * a name not registered, or none.
+ */
+export function decisionIcon(name: string | null | undefined): `uraeda:decision-${string}` {
+  const known = name != null && Object.hasOwn(DECISION_ICONS, name);
+  return `uraeda:decision-${known ? name : "file-text"}`;
+}
+
 export const uraedaIcons = {
   "uraeda:attach": attach,
   "uraeda:comment": comment,
@@ -168,4 +337,7 @@ export const uraedaIcons = {
   "uraeda:step-review": review,
   "uraeda:step-spec": spec,
   "uraeda:terminal": terminal,
+  ...Object.fromEntries(
+    Object.entries(DECISION_ICONS).map(([name, icon]) => [`uraeda:decision-${name}`, icon]),
+  ),
 };

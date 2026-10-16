@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import type { PriorityEntry } from "../fate.ts";
@@ -148,6 +148,9 @@ test("US4.1 and US4.2: the priorities' entries carry their draft and running fea
 
 test("US8: the ledger sends the constitution and each decision, a field it lacks as null", async () => {
   const repo = fixtureRepo();
+  // One decision, and a constitution without its version line, in place of the fixture's.
+  rmSync(join(repo, "specs/decisions"), { force: true, recursive: true });
+  writeFileSync(join(repo, "specs/CONSTITUTION.md"), "# Constitution\n");
   mkdirSync(join(repo, "specs/decisions"), { recursive: true });
   writeFileSync(
     join(repo, "specs/decisions/git.md"),
