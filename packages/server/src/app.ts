@@ -5,7 +5,9 @@ import type { Binding } from "./fate/context.ts";
 import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
 import { withWholeFields } from "./fate/select.ts";
 import { files } from "./files.ts";
+import { warmPreview } from "./fate/preview.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
+import { onTurnDone } from "./live.ts";
 import { openRoute } from "./open.ts";
 import type { Options } from "./options.ts";
 import { previewRoutes } from "./preview/proxy.ts";
@@ -157,6 +159,11 @@ export function createApp(options: AppOptions) {
   });
   hostedRoutes(app, options, frames);
   fateRoutes(app, hosts);
+  // A feature's turn that ends done starts its Storybook, so its stories are ready as you come.
+  onTurnDone(sessions, (repo, folder) => {
+    const ctx = { binding, dataDir, frames, hosts, lockedList, previews, repo, sessions };
+    warmPreview(ctx, folder).catch(() => {});
+  });
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */
   const moved = (context: Context) => {
     const host = hosts.mostRecent();

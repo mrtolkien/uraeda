@@ -130,8 +130,8 @@ test("a message shows its stories once it ends, not while it streams", async () 
     { text: `${sentence}${LINK} is ready.`, type: "text" },
   ]);
   await screen.findByText(/is ready\./, {}, LIVE);
+  // No embed, though the session's page has started its Storybook already.
   expect(screen.queryByRole("figure")).toBeNull();
-  expect(await commands.previewStarts()).toHaveLength(0);
 
   // A message that ends with a story link alone in a paragraph shows it.
   await commands.agentEmit([{ text: LINK, type: "text" }]);

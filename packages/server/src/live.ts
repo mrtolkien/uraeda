@@ -219,12 +219,44 @@ export function sessionPublisher(
   };
 }
 
-/** A session manager whose changes are sent as live updates, to the hosts of their repositories. */
+/** What each session manager calls as a feature's turn ends done: see `onTurnDone`. */
+const turnDone = new WeakMap<Sessions, Set<(repo: string, folder: string) => void>>();
+
+/**
+ * Calls `listener` with the repository and the folder of each feature's or change's turn of
+ * `sessions` that ends done, as the agent comes back to the human. Gives what stops the calls.
+ */
+export function onTurnDone(
+  sessions: Sessions,
+  listener: (repo: string, folder: string) => void,
+): () => void {
+  const listeners = turnDone.get(sessions) ?? new Set();
+  turnDone.set(sessions, listeners);
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * A session manager whose changes are sent as live updates, to the hosts of their repositories, and
+ * whose features' turns that end done reach `onTurnDone`'s listeners.
+ */
 export function createSessions(options: {
   adapter: Adapter;
   binding: Binding;
   cache: SessionCache;
   hosts: HostsOf;
 }): Sessions {
-  return new Sessions({ ...options, onChange: sessionPublisher(options.cache, options.hosts) });
+  const publish = sessionPublisher(options.cache, options.hosts);
+  const sessions: Sessions = new Sessions({
+    ...options,
+    onChange: (change) => {
+      publish(change);
+      if ("agent" in change || change.state !== "done" || change.folder === null) {
+        return;
+      }
+      const { folder, repo } = change;
+      turnDone.get(sessions)?.forEach((listener) => listener(repo, folder));
+    },
+  });
+  return sessions;
 }

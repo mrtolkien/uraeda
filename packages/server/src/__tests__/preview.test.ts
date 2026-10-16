@@ -1,12 +1,13 @@
 // Stories and previews in fate: a story link's record starts its checkout's Storybook, turns ready
 // live, and names its frame; a checkout's record restarts it; features and the workspace say whether
 // they have a preview; and an agent's link is checked through the core.
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { addStoryFeature, previewStarts, STORY_FEATURE } from "uraeda-binding/test-utils";
 import { UNREADABLE_INDEX } from "../preview/index.ts";
 import { IDLE_MS } from "../preview/runner.ts";
-import { byId, type Data, fixtureRepo, mutate, testApp } from "./helpers.ts";
+import { byId, type Data, fixtureRepo, mutate, testApp, testServer } from "./helpers.ts";
 import { connect, subscribe } from "./live-stream.ts";
 
 const STORY = `${STORY_FEATURE}:packages/web/src/SidebarHandle.stories.tsx#Dragging`;
@@ -275,4 +276,30 @@ test("a ready Storybook whose index cannot be read fails its stories (R23)", asy
     state: "failed",
     storybook: null,
   });
+});
+
+test("a feature's turn that ends done starts its Storybook, once its preview folder is installed", async () => {
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  const { adapter, sessions } = await testServer(repo);
+  const session = await sessions.featureSession(repo, STORY_FEATURE);
+  const turn = async () => {
+    adapter.script([{ text: "Done.", type: "text" }]);
+    await sessions.settled((await sessions.send(repo, session.id, { text: "Go on" })).turn);
+  };
+
+  // Without its dependencies, a Storybook would only fail: none starts.
+  await turn();
+  await new Promise((done) => setTimeout(done, 300));
+  expect(previewStarts(log!)).toHaveLength(0);
+
+  mkdirSync(join(repo, ".worktrees", STORY_FEATURE, "packages/web/node_modules"), {
+    recursive: true,
+  });
+  await turn();
+
+  await expect.poll(() => previewStarts(log!).length, WAIT).toBe(1);
+  expect(previewStarts(log!)[0]!.cwd).toMatch(
+    /\.worktrees\/2026-10-20-sidebar-resize\/packages\/web$/,
+  );
 });

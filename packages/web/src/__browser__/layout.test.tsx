@@ -627,6 +627,8 @@ test.each(MODES)("a round whose options are stories, ready, in $mode", async ({ 
     ["Thin line", "ThinLine"],
     ["Grip", "Grip"],
   ]) {
+    // An embed loads its frames once on screen.
+    (await screen.findByRole("figure", { name: label })).scrollIntoView();
     await expect
       .poll(() => commands.frameText(`${label}, phone`), { timeout: 20_000 })
       .toContain(name);
