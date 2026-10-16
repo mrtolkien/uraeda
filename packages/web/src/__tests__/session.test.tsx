@@ -1063,3 +1063,11 @@ test("a thumbnail shows its file, dimmed, while it is saved", async () => {
     ),
   );
 });
+
+test("a merged feature: the composer is disabled and says why", async () => {
+  // Committed on the default branch: merged, with no branch left.
+  await renderPage("/f/2026-10-10-cli-core/session", fixtureRepo(), { agent: await fakeAgent() });
+
+  expect(await screen.findByText("This feature has no branch left: it is merged.")).toBeTruthy();
+  expect((await composer()).getAttribute("aria-disabled")).toBe("true");
+});

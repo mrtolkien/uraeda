@@ -26,7 +26,7 @@ export const REFUSALS = {
   working: "An agent is working on this feature. Stop it first, or wait for it.",
   /** A workflow message on a feature whose step waits on the human. */
   human: "The feature waits on you now: there is nothing to continue.",
-  noBranch: "This feature has no branch yet: commit its proposal first.",
+  noBranch: "This feature has no branch left: it is merged.",
   /** A take-back of a message the agent read. */
   read: "The agent already read it.",
   /** A message with no text. */
