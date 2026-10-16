@@ -58,8 +58,9 @@ background task of it has ended, background commands included.
   process is closed first, the session takes the new agent session's ID, its earlier turns stay in
   it, and the run's turn shows a line saying a new session started. Any other message MUST resume
   the agent session, unless its transcript is gone. The web UI MUST offer a fresh run at the step
-  after a spec's approval, on as the `build_in_fresh_session` setting says, true by default. Checked
-  by the runner's and the web UI's tests.
+  right after a spec's approval, `approval`, or `plan` when the spec lists no decision, on as the
+  `build_in_fresh_session` setting says, true by default. Checked by the runner's and the web UI's
+  tests.
 - A workflow run MUST carry the step, its reference, and the trigger in its message, since a resumed
   session keeps its first system prompt. A chat message on a feature that follows a workflow run, or
   opens the session, MUST start with one line saying that a human is chatting, and that the agent
