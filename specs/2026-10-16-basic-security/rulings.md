@@ -68,3 +68,48 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: leaving the plan's wording, which no run would match.
 - **If wrong**: a wording only; each step still expects its test to fail on the missing module.
 - **Where**: `plan.md`, the **Expected** line of each task's step 2
+
+## R7: The signed-in session is the Hono variable `device`
+
+- **Decision**: the session check sets `device`, `{ id, signal }`, on the request's context, typed
+  as `FateVariables.device`, not `session` as the plan named it.
+- **Rationale**: the server already calls the agents' chats sessions: `Sessions`, the `sessions`
+  option, and `fate.sessions` on the same context. A second `session` beside them reads as one of
+  those.
+- **Alternatives considered**: `session`, as planned; `signIn`, already the option's name.
+- **If wrong**: a rename in `check.ts`, `routes.ts`, `fate.ts`, and `app.ts`.
+- **Where**: task 2, `sign-in/check.ts`; `plan.md`, task 2's interfaces
+
+## R8: `POST /session/key` passes the check only with the host token
+
+- **Decision**: of the `/session` routes, the check lets every one through without a session but
+  `/session/key`, which passes with the host token, and otherwise needs a session like
+  `DELETE /sessions`. Task 4's route still checks the host token itself.
+- **Rationale**: the sign-in decision opens `/session/key` with the host token only. Opening every
+  `/session` route, as the plan's step 3 read, would leave Task 4's route the only guard of the key.
+- **Alternatives considered**: every `/session/*` path open, and the route alone checking the token.
+- **If wrong**: a signed-in browser gets the route's own refusal rather than the check's 401.
+- **Where**: task 2, `sign-in/check.ts`; `plan.md`, task 2's step 3
+
+## R9: A request counts as HTTPS when its `Host` is exactly a listed host name
+
+- **Decision**: the cookie is `__Host-uraeda` with `Secure`, and `X-Forwarded-For` is believed, only
+  when the `Host` header equals a listed host name, without a port. A listed name with the server's
+  port, which the guard accepts, gets `uraeda` and the connection's address.
+- **Rationale**: `tailscale serve` and a proxy ending HTTPS on 443 send the bare name. A name with
+  the server's port comes from a plain HTTP path, where a `Secure` cookie would never be sent back.
+- **Alternatives considered**: comparing the host name without its port, which would set a cookie
+  the browser drops over HTTP.
+- **If wrong**: a proxy ending HTTPS on another port gets a cookie without `Secure`, still
+  `HttpOnly` and `SameSite=Lax`.
+- **Where**: task 2, `cookieName` and `address` in `sign-in/check.ts`
+
+## R10: Task 2's tests first fail on the helpers' missing import
+
+- **Decision**: task 2's expected failure reads `Cannot find module '../sign-in/links.ts'`.
+- **Rationale**: both test files import the test helpers, which import `links.ts` before either test
+  reaches `routes.ts`. The cause is the same: the module is not written yet.
+- **Alternatives considered**: ordering the imports so `routes.ts` fails first, for the wording
+  only.
+- **If wrong**: a wording only.
+- **Where**: `plan.md`, task 2's step 2
