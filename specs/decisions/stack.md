@@ -162,3 +162,65 @@ a proxy, so the 127.0.0.1 rule stays
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
 - [`editors/`](/editors/), and every feature that adds an editor integration
+
+## Proposed change (2026-10-16-settings-page)
+
+Proposed by the [spec](../2026-10-16-settings-page/spec.md). The host names the server accepts come
+from its settings, in the order of the [settings](settings.md) decision, instead of
+`URAEDA_ALLOWED_HOSTS` alone, and a change to the settings file applies without a restart.
+
+The rules become:
+
+- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
+  [`crates/core`](/crates/core/). Checked by review.
+- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
+  NOT need Node or any other runtime to run. Checked by review.
+- The server MUST be written in TypeScript, run on Node, and live in
+  [`packages/server`](/packages/server/). Checked by review.
+- TypeScript code MUST reach the core only through the binding,
+  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
+  states. Checked by review.
+- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
+  binding. They MUST NOT be redeclared by hand in TypeScript. Checked by review.
+- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
+  its data only from the server, through fate. Checked by review.
+- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
+  their markdown, with a library or by hand. It MAY render an agent's messages, which are not
+  workflow files, with Astryx's `Markdown` component. Checked by review.
+- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
+  or `localhost` on its port, or an allowed host name: the `--allowed-hosts` flag, else
+  `URAEDA_ALLOWED_HOSTS`, else the settings file's `allowed_hosts`, as the [settings](settings.md)
+  decision orders them, with a change to the file applied to the next request. It MUST reject
+  requests whose `Origin`, when present, is not the server's own, `https://` and an allowed host
+  name, or an allowed origin, except GET and HEAD requests and WebSocket upgrades under
+  `/r/<repository>/preview/<secret>/` and `/r/<repository>/mockups/<secret>/` with the current frame
+  secret, which MAY carry `Origin: null`. Checked by the guard's tests.
+- The server MAY start the command of a project's active [preview](preview.md) decision, read from a
+  checkout, in that checkout, bound to 127.0.0.1 on a free port. It MUST forward only that process's
+  GET and HEAD requests and WebSocket upgrades, under `/r/<repository>/preview/<secret>/<folder>/`,
+  with `Access-Control-Allow-Origin: *` and a `Content-Security-Policy` of
+  `sandbox allow-scripts allow-popups` on every response. It MUST stop the process when the server
+  stops. Checked by the preview proxy's and runner's tests.
+- The web UI MAY show a preview's pages only in frames sandboxed without `allow-same-origin`. It
+  MUST accept messages only from those frames' windows, and MUST NOT give a frame any data beyond
+  the story to show, its colour mode, and whether pick mode is on. Checked by the embed's tests.
+- The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
+  files only through the core. Checked by review.
+- The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
+  runtime. Checked by review.
+- Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
+  `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
+  library or by hand. Checked by review.
+- The language server's completions and code actions MUST only edit the open document. Actions that
+  write another file or commit MUST be commands the user runs explicitly, never code actions.
+  Checked by review.
+
+Why: the human asked for allowed host names on a settings page, kept in a settings file, with flags
+still overriding them at start
+([Q1](../2026-10-16-settings-page/clarifications-01.md#q1-what-format-is-the-settings-file-and-where-does-it-live),
+[Q3](../2026-10-16-settings-page/clarifications-01.md#q3-what-does-a-flag-given-at-start-do-to-the-settings)).
+Editing them from a page is safe only behind the sign-in the [sign-in](sign-in.md) decision
+requires, which is now in place.
+
+- Anyone signed in can change which host names reach the server, from any device: a host name added
+  on a phone opens the server to that name at once.
