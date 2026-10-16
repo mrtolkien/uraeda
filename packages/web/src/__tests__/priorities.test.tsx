@@ -2,12 +2,23 @@
 // task view, with no ⋯ menu and no editing in place on the list; moving a line between sections,
 // editing its text, and deleting it are the task view's (task.test.tsx); dragging is tested in the
 // browser (__browser__/priorities.test.tsx), with committing closing the toasts.
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atRepo, click, git, read, renderPage, sent, type } from "./helpers.tsx";
+import {
+  atRepo,
+  click,
+  fixtureRepo,
+  git,
+  read,
+  record,
+  refreshUntil,
+  renderPage,
+  sent,
+  type,
+} from "./helpers.tsx";
 
 const PATH = "specs/PRIORITIES.md";
 
@@ -28,9 +39,88 @@ function toast(text: string) {
 
 test("sections show their counts, and end with an Add row (US4 1)", async () => {
   await renderPage("/priorities");
-  expect(await screen.findByRole("heading", { name: "Now · 4" })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Now · 0" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Next · 2" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add to Later" })).toBeTruthy();
+});
+
+/** The rows of a section's list, by the section's title. */
+function rowsOf(title: string) {
+  return within(screen.getByRole("list", { name: `${title} lines` })).getAllByRole("listitem");
+}
+
+/** A row of a section, by its text. */
+function rowOf(title: string, text: string) {
+  const row = rowsOf(title).find((item) => item.textContent?.includes(text));
+  expect(row, `${text} in ${title}`).toBeTruthy();
+  return row as HTMLElement;
+}
+
+/** C6 and US4 1: started entries show in their own section, with their step, and no handle. */
+test("ongoing entries show apart, with their step", async () => {
+  await renderPage("/priorities");
+
+  expect(await screen.findByRole("heading", { name: "Ongoing · 4" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Now · 0" })).toBeTruthy();
+  expect(rowsOf("Ongoing").map((row) => within(row).getByRole("link").textContent)).toEqual([
+    "Web UI for the workflow files",
+    "Recurring tasks",
+    "CLI TUIs",
+    "Plan review",
+  ]);
+  for (const row of rowsOf("Ongoing")) {
+    expect(within(row).getByText("Running")).toBeTruthy();
+  }
+  expect(within(rowOf("Ongoing", "CLI TUIs")).getByText("Plan")).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: /^Move (Web UI|Recurring|CLI TUIs|Plan)/ }),
+  ).toBeNull();
+  // No add row: what is added goes to Now.
+  expect(screen.queryByRole("button", { name: "Add to Ongoing" })).toBeNull();
+});
+
+/** US4 2 and 3: a draft that exists shows "Draft", a missing one nothing. */
+test("a drafted entry shows Draft, a missing draft nothing", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(
+    join(repo, PATH),
+    read(repo).replace("## Later\n\n", "## Later\n\n- [A lost idea](drafts/missing.md)\n"),
+  );
+  await renderPage("/priorities", repo);
+
+  expect(within(await findRow("Next", "Git listener process")).getByText("Draft")).toBeTruthy();
+  expect(within(rowOf("Later", "A lost idea")).queryByText("Draft")).toBeNull();
+});
+
+/** A row once the page shows it. */
+async function findRow(title: string, text: string) {
+  await screen.findByRole("list", { name: `${title} lines` });
+  return rowOf(title, text);
+}
+
+/** Edge case and review focus 4: a feature that finishes leaves Ongoing and gets its handle back. */
+test("a done feature's entry leaves Ongoing", async () => {
+  const repo = fixtureRepo();
+  await renderPage("/priorities", repo);
+  expect(await screen.findByRole("heading", { name: "Ongoing · 4" })).toBeTruthy();
+
+  const folder = "2026-10-12-cli-tuis";
+  git(repo, "switch", "--quiet", folder);
+  git(repo, "rm", "-r", "--quiet", `specs/${folder}`);
+  mkdirSync(join(repo, "specs/done"), { recursive: true });
+  writeFileSync(join(repo, `specs/done/${folder}.md`), record("CLI TUIs"));
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "finish(cli-tuis): CLI TUIs");
+  git(repo, "switch", "--quiet", "main");
+  git(repo, "merge", "--quiet", "--no-ff", "--no-edit", folder);
+
+  await refreshUntil(() => {
+    expect(screen.getByRole("heading", { name: "Ongoing · 3" })).toBeTruthy();
+  });
+  expect(screen.getByRole("heading", { name: "Now · 1" })).toBeTruthy();
+  const row = rowOf("Now", "CLI TUIs");
+  expect(within(row).getByRole("button", { name: "Move CLI TUIs" })).toBeTruthy();
+  expect(within(row).queryByText("Running")).toBeNull();
 });
 
 test("tapping a line opens its task view, with no menu on the list (C3)", async () => {

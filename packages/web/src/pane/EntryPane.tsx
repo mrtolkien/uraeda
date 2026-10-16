@@ -11,7 +11,6 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
-  borderVars,
   colorVars,
   fontWeightVars,
   spacingVars,
@@ -29,15 +28,14 @@ const styles = stylex.create({
   bar: {
     // The bar stays in view as the pane scrolls: Edit and Close are always one click away.
     backgroundColor: colorVars["--color-background-surface"],
-    borderBlockEndColor: colorVars["--color-border"],
-    borderBlockEndStyle: "solid",
-    borderBlockEndWidth: borderVars["--border-width"],
-    boxSizing: "border-box",
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-4"],
     position: "sticky",
     top: 0,
     zIndex: 1,
+  },
+  barContent: {
+    boxSizing: "border-box",
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-4"],
   },
   barWide: {
     paddingInline: spacingVars["--spacing-6"],
@@ -86,25 +84,30 @@ function PaneBar({
 }) {
   const wide = useWidthClass() === "wide";
   return (
-    <div {...stylex.props(styles.bar, wide && styles.barWide)}>
-      <HStack align="center" gap={2} justify="between" wrap="wrap">
-        <Text color="secondary" type="supporting">
-          {location}
-        </Text>
-        <HStack align="center" gap={2}>
-          <Button isDisabled={isEditing} label="Edit" onClick={onEdit} variant="secondary" />
-          {draftHref && <Button href={draftHref} label="Open draft" variant="secondary" />}
-          {wide && onClose && (
-            <Button
-              icon={<Icon icon="close" />}
-              isIconOnly
-              label="Close"
-              onClick={onClose}
-              variant="ghost"
-            />
-          )}
+    <div {...stylex.props(styles.bar)}>
+      <div {...stylex.props(styles.barContent, wide && styles.barWide)}>
+        <HStack align="center" gap={2} justify="between" wrap="wrap">
+          <Text color="secondary" type="supporting">
+            {location}
+          </Text>
+          <HStack align="center" gap={2}>
+            <Button isDisabled={isEditing} label="Edit" onClick={onEdit} variant="secondary" />
+            {draftHref && <Button href={draftHref} label="Open draft" variant="secondary" />}
+            {wide && onClose && (
+              <Button
+                icon={<Icon icon="close" />}
+                isIconOnly
+                label="Close"
+                onClick={onClose}
+                variant="ghost"
+              />
+            )}
+          </HStack>
         </HStack>
-      </HStack>
+      </div>
+      {/* Astryx's divider: a border of the app's own would write the atomic rule of a list's
+          dividers again, unlayered, and every list's last row would keep its divider. */}
+      <Divider />
     </div>
   );
 }

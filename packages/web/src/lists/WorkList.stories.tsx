@@ -4,9 +4,9 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { useWorkspace } from "../data.ts";
+import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { RepositoryPathContext } from "../routes.tsx";
 import { InboxWork } from "./InboxWork.tsx";
-import { PrioritiesWork } from "./PrioritiesWork.tsx";
 
 /** The fixture's folder, as `App` sets it: what keeps the Add rows' unsaved text apart. */
 function InRepositoryFolder({ children }: { children: ReactNode }) {
@@ -23,22 +23,24 @@ const inRepositoryFolder: Decorator = (Story) => (
 );
 
 const meta = {
-  component: PrioritiesWork,
+  component: PrioritiesPage,
   decorators: [inRepositoryFolder],
   // The page fills the frame, as in the app's main column.
   parameters: { layout: "fullscreen" },
   title: "Lists",
-} satisfies Meta<typeof PrioritiesWork>;
+} satisfies Meta<typeof PrioritiesPage>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Now, Next, Later, and Blocked, each in its colour; in Now, the running entries first. */
+/** "Ongoing", the running entries, then Now, Next, Later, and Blocked, each in its colour. */
 export const Priorities: Story = {};
 
-/** The second row of Now selected, with the keyboard's focus on it, and the keys shown once. */
-export const Selected: Story = { args: { hasHint: true, isFocused: true, select: 1 } };
+/** The first row of Next selected, with the keyboard's focus on it. */
+export const Selected: Story = {
+  args: { isFocused: true, select: "claude-code-runner-triggered-manually" },
+};
 
 /** The inbox's categories as the same sections, every note with the same handle. */
 export const Inbox: Story = { render: () => <InboxWork /> };

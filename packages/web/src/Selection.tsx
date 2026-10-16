@@ -1,4 +1,5 @@
-import { focusVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
 import type { Block } from "uraeda-binding";
@@ -45,17 +46,16 @@ const styles = stylex.create({
   },
   toggle: {
     // The block's toggle, for the keyboard and screen readers: under the block's text, as large as
-    // the block (as its first cell, for a table row), its ring around it when focused by the keyboard.
+    // the block (as its first cell, for a table row), Astryx's ring around it when focused by the
+    // keyboard, on its edge. The ring is Astryx's own styles, in Astryx's layer: an unlayered copy of
+    // its `outline-style: none` here would hide every ring Astryx draws, like a list row's.
     backgroundColor: "transparent",
     borderWidth: 0,
     cursor: "pointer",
     height: "100%",
     inset: 0,
     margin: 0,
-    outlineColor: focusVars["--focus-outline-color"],
-    outlineOffset: 0,
-    outlineStyle: { ":focus-visible": focusVars["--focus-outline-style"], default: "none" },
-    outlineWidth: focusVars["--focus-outline-width"],
+    outlineOffset: { ":focus-visible": spacingVars["--spacing-0"], default: null },
     padding: 0,
     position: "absolute",
     width: "100%",
@@ -118,7 +118,7 @@ export function useSelect(block: Block, selection: Selection | undefined) {
         {...(block.kind === "rule"
           ? { "aria-label": `Line ${block.startLine}` }
           : { "aria-labelledby": textId })}
-        {...stylex.props(styles.toggle)}
+        {...stylex.props(focusOutlineStyles.focusVisible, styles.toggle)}
       />
     ),
   };
