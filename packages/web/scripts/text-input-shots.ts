@@ -136,11 +136,8 @@ async function dialogShots(each: Each) {
 
 async function fieldShots(each: Each) {
   await each("text-line", async ({ page }) => {
-    await fresh(page, "/priorities/git-listener", "Run the next step when a branch changes.");
-    await page
-      .getByRole("button", { name: /^Git listener process/ })
-      .last()
-      .click();
+    await fresh(page, "/priorities/git-listener", "Open draft");
+    await page.getByRole("button", { name: "Edit" }).click();
     await page.getByRole("textbox", { name: "Line" }).fill("Git listener process, and a log");
     await settle(page);
   });

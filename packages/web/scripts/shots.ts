@@ -34,6 +34,21 @@ export async function show(page: Page, path: string, text: string | RegExp) {
   await settle(page);
 }
 
+/** Forgets the browser's unsaved text and choices, but the theme: the next view opens as new. */
+export async function forget(page: Page) {
+  // A page that has not opened the app yet has nothing kept, and no storage to reach.
+  if (page.url() === "about:blank") {
+    return;
+  }
+  await page.evaluate(() => {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key !== "uraeda.theme") {
+        window.localStorage.removeItem(key);
+      }
+    }
+  });
+}
+
 /** Waits for fonts, then for transitions to end. */
 export async function settle(page: Page) {
   await page.evaluate(() => document.fonts.ready);
