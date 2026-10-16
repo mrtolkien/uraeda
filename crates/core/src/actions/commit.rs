@@ -5,7 +5,7 @@ use crate::files::inbox::Inbox;
 use crate::files::priorities::Priorities;
 use crate::git::{Git, GitError};
 
-use super::place::{self, Place};
+use super::place::Place;
 use super::{ActionError, Change, Committed};
 
 /// Commits an action's files in the working tree it wrote in, running the hooks. A hook's refusal
@@ -83,9 +83,12 @@ pub struct InboxAdded {
     pub added: Added,
 }
 
-/// Whether the file at `path` is as its last commit has it, a missing file as no commit has it.
+/// Whether the file at `path` is as its last commit has it, on disk and in the index, a missing
+/// file as no commit has it. A change staged then undone on disk is someone's work in progress.
 pub fn is_clean(place: &Place, path: &str) -> bool {
-    std::fs::read_to_string(place.root.join(path)).ok() == place::committed(place, path)
+    Git::open(&place.root)
+        .and_then(|git| git.as_committed(path))
+        .unwrap_or(false)
 }
 
 /// Runs `write`, an add to the file at `path`, then commits that file alone with `subject`, when

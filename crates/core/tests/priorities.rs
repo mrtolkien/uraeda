@@ -919,3 +919,51 @@ fn undo_after_the_file_changed_is_refused() {
         "chore: add \"Sort done features\" to Next"
     );
 }
+
+/// A file staged by the human, its working copy then put back as committed, still has changes:
+/// "Add and commit" writes the entry without committing, and the staged version stays staged.
+#[test]
+fn an_add_over_a_staged_change_is_not_committed() {
+    let repo = repo();
+    let staged = TEXT.replace("- Slack\n", "");
+    repo.write("specs/PRIORITIES.md", &staged);
+    repo.git(&["add", "specs/PRIORITIES.md"]);
+    repo.write("specs/PRIORITIES.md", TEXT);
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let (_, added) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+
+    assert!(!added.committed);
+    assert_eq!(added.reason.as_deref(), Some("other-changes"));
+    assert_eq!(repo.subjects("main")[0], "chore: specs");
+    assert_eq!(repo.git(&["show", ":specs/PRIORITIES.md"]), staged);
+    assert_eq!(
+        section_texts(&repo.read("specs/PRIORITIES.md"), "next")[2],
+        SORT
+    );
+}
+
+/// Undo of a committed add over a change staged since, the working copy put back as committed,
+/// is refused, and the staged version stays staged.
+#[test]
+fn undo_over_a_staged_change_is_refused() {
+    let repo = repo();
+    let read = api::read_priorities(repo.path()).unwrap();
+    let (added, _) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    let committed = repo.read("specs/PRIORITIES.md");
+    let staged = committed.replace("- Slack\n", "");
+    repo.write("specs/PRIORITIES.md", &staged);
+    repo.git(&["add", "specs/PRIORITIES.md"]);
+    repo.write("specs/PRIORITIES.md", &committed);
+
+    let error =
+        api::undo_committed_priority(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
+
+    assert_eq!(error.code, "conflict");
+    assert_eq!(repo.git(&["show", ":specs/PRIORITIES.md"]), staged);
+    assert_eq!(repo.read("specs/PRIORITIES.md"), committed);
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: add \"Sort done features\" to Next"
+    );
+}

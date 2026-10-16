@@ -208,8 +208,7 @@ pub fn note(
     commit: bool,
 ) -> Result<Noted, ActionError> {
     checked_note(marks, text)?;
-    let before = fs::read_to_string(place.root.join(PATH)).ok();
-    let clean = before == super::place::committed(place, PATH);
+    let clean = commit::is_clean(place, PATH);
     if commit && clean {
         super::place::ensure_only_staged(place, &[PATH.to_string()])?;
     }
