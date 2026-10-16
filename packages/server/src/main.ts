@@ -170,7 +170,8 @@ async function main(argv: Array<string>): Promise<number> {
   // Only a path: the second start reads its host token there, and never opens a file the running
   // server owns.
   const dataDir = loadDataDir(checkout, binding);
-  // The settings give the port, so they are read before it is taken.
+  // The settings give the port, so they are read before it is taken; a port given for the run
+  // that is not one stops the start here (R11).
   const settings = await ServerSettings.open({
     binding,
     dir: loadConfigDir(checkout, binding),

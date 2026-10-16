@@ -77,13 +77,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R7: An empty variable is unset; an empty flag is given
 
 - **Decision**: `URAEDA_ALLOWED_HOSTS=` and `URAEDA_PORT=`, set but empty, count as unset, so the
-  file's value applies; `--allowed-hosts ""` is given, and allows no host name for the run.
+  next source applies: an empty variable in the environment leaves `.env`'s value, and an empty one
+  there the file's. `--allowed-hosts ""` is given, and allows no host name for the run.
 - **Rationale**: `URAEDA_REPO`, `URAEDA_DATA_DIR`, and `URAEDA_CONFIG_DIR` already read an empty
   value as unset, and a `.env` line left empty means "not set"; a flag typed on the command line is
   a deliberate choice for the run.
 - **Alternatives considered**: an empty `URAEDA_ALLOWED_HOSTS` overriding the file with no host
   names, as it gave none before this feature.
-- **If wrong**: one condition in `loadEnv`.
+- **If wrong**: one condition in `loadEnv`, and one in `settings` for `.env`.
 - **Where**: task 2, `packages/server/src/env.ts`
 
 ## R8: A name listed twice is edited and removed in every place
@@ -120,3 +121,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: splitting `server.test.ts` first, a move of unrelated tests.
 - **If wrong**: the tests move, unchanged.
 - **Where**: task 3
+
+## R11: A port given by a flag or a variable that is not one refuses the start
+
+- **Decision**: `--port` and `URAEDA_PORT` are checked with the core's port rule, the file's, as the
+  start reads the settings; one that is not a port, `--port ""` included, stops the start with
+  `uraeda: The port is a number from 1 to 65535.`, exit 1, before the port is taken.
+- **Rationale**: a value typed for the run is a deliberate choice (R7): falling back to the file or
+  the default would start on a port the user did not ask for; the rule has one home, the core.
+- **Alternatives considered**: ignoring the invalid value, as a broken file is; Node's own errors,
+  which listened on a random port for `0`.
+- **If wrong**: one call in `checked`, `packages/server/src/settings.ts`.
+- **Where**: task 2, `packages/server/src/settings.ts`
+
+## R12: A symlinked `config.toml` is watched at its target, the folder from the nearest one there
+
+- **Decision**: each read resolves the file's real path; when a symlink leads to another folder or
+  name, that folder is watched too, for that name, and follows the link when it changes. A config
+  folder that does not exist is never made by a start: the nearest folder above it is watched until
+  it appears. A symlink to nothing is not followed: the file it would point to, made by hand, is
+  seen at the next change in the config folder or restart; a write from the page replaces the link.
+- **Rationale**: dotfiles managers like GNU Stow link the file; `fs.watch` reports only the watched
+  folder's own entries.
+- **Alternatives considered**: polling the file with `fs.watchFile`, slower to answer and a timer
+  per server; making the folder at start, which the spec's edge case leaves to the first write.
+- **If wrong**: `packages/server/src/settings-watch.ts` alone.
+- **Where**: task 2, `packages/server/src/settings-watch.ts`

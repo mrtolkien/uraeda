@@ -25,7 +25,7 @@ test("reads the allowed hosts, the port, and the repository from .env, with thei
   expect(loadEnv(dir, {})).toEqual({
     allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: ["a.ts.net", "b.ts.net"] },
     given: true,
-    port: { name: "URAEDA_PORT", value: 4999 },
+    port: { name: "URAEDA_PORT", value: "4999" },
     repo: join(dir, "../todo"),
   });
 });
@@ -44,10 +44,25 @@ test("the environment wins over .env, and the command line over both", () => {
   const dir = root("URAEDA_PORT=4999\n");
 
   const env = loadEnv(dir, { URAEDA_PORT: "5000" });
-  expect(env.port).toEqual({ name: "URAEDA_PORT", value: 5000 });
-  expect(parseOptions(["--port", "5001"], env).port).toEqual({ name: "--port", value: 5001 });
-  expect(parseOptions([], env).port).toEqual({ name: "URAEDA_PORT", value: 5000 });
+  expect(env.port).toEqual({ name: "URAEDA_PORT", value: "5000" });
+  expect(parseOptions(["--port", "5001"], env).port).toEqual({ name: "--port", value: "5001" });
+  expect(parseOptions([], env).port).toEqual({ name: "URAEDA_PORT", value: "5000" });
   expect(parseOptions([], loadEnv(root(), {})).port).toBeUndefined();
+});
+
+/** R7 */
+test("an empty variable leaves .env's value", () => {
+  const dir = root(
+    "URAEDA_ALLOWED_HOSTS=a.ts.net\nURAEDA_CONFIG_DIR=/config/from-env-file\nURAEDA_PORT=4999\nURAEDA_REPO=../todo\n",
+  );
+
+  expect(loadEnv(dir, { URAEDA_ALLOWED_HOSTS: "", URAEDA_PORT: "", URAEDA_REPO: "" })).toEqual({
+    allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: ["a.ts.net"] },
+    given: true,
+    port: { name: "URAEDA_PORT", value: "4999" },
+    repo: join(dir, "../todo"),
+  });
+  expect(loadConfigDir(dir, core, { URAEDA_CONFIG_DIR: "" })).toBe("/config/from-env-file");
 });
 
 test("the repository is given by URAEDA_REPO or --repo, not by the folder the server starts in", () => {
@@ -128,7 +143,7 @@ test("without .env, the settings come from the environment only", () => {
   expect(loadEnv(dir, {}, { file: false })).toEqual({ given: false, repo: dir });
   expect(loadEnv(dir, { URAEDA_PORT: "5000" }, { file: false }).port).toEqual({
     name: "URAEDA_PORT",
-    value: 5000,
+    value: "5000",
   });
   expect(loadDataDir(dir, core, {}, { file: false })).toBe(dataDir());
 });

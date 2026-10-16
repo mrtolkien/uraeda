@@ -797,6 +797,36 @@ test("the port comes from --port, then URAEDA_PORT, then the file, which no star
   expect(config.read()).toBe(`# mine\n[server]\nport = ${file}\n`);
 });
 
+/** SC-003, edge case: no config folder. A start never makes the folder, nor writes in it. */
+test("a start leaves an empty config folder empty, and an absent one absent", async () => {
+  const empty = temporaryFolder("uraeda-config");
+  const absent = join(temporaryFolder("uraeda-config"), "uraeda");
+
+  await startOn(empty, { args: ["--port", String(await freePort())] });
+  await startOn(absent, { args: ["--port", String(await freePort())] });
+
+  expect(readdirSync(empty)).toEqual([]);
+  expect(existsSync(absent)).toBe(false);
+});
+
+/** A port given by a flag or a variable follows the core's rule, as the file's does. */
+test.each<{ args: Array<string>; env: Record<string, string> }>([
+  { args: ["--port", "abc"], env: {} },
+  { args: [], env: { URAEDA_PORT: "0" } },
+  { args: [], env: { URAEDA_PORT: "70000" } },
+])("a port that is not one refuses the start: $args $env", async ({ args, env }) => {
+  const data = temporaryFolder("uraeda-data");
+
+  const refused = await run(["--repo", fixtureRepo(), ...args], {
+    env: { URAEDA_CONFIG_DIR: temporaryFolder("uraeda-config"), URAEDA_DATA_DIR: data, ...env },
+  });
+
+  expect(refused.code).toBe(1);
+  expect(refused.stdout).toBe("");
+  expect(refused.stderr).toBe("uraeda: The port is a number from 1 to 65535.\n");
+  expect(readdirSync(data)).toEqual([]);
+});
+
 /** US3.3 */
 test("open_browser = false in the file opens no browser", async () => {
   const opener = fakeOpener();

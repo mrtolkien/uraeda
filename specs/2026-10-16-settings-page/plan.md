@@ -22,8 +22,10 @@ settings page with categories and a search, which also takes the theme and signi
   file or `Options` directly.
 - **Flags and variables** are reported, not resolved, by `options.ts` and `env.ts`: each value with
   the name of the flag or variable that gave it, no defaults.
-- **Resources**: `ServerSettings.open` starts one `fs.watch` of the config folder; `close()` stops
-  it, called by the server's `stop`, by `main.ts` on a handover, and by every test that opens one.
+- **Resources**: `ServerSettings.open` starts a `FileWatch` (`settings-watch.ts`): an `fs.watch` of
+  the config folder, or of the nearest folder above it until it exists, and of a symlink's target
+  folder (R12); `close()` stops them, called by the server's `stop`, by `main.ts` on a handover, and
+  by every test that opens one.
 - **The page** reads one fate record, `Settings`, on the global endpoint, and changes it through
   five mutations; the record is published on the global live bus when the values change.
 - **The data folder's `run/`** has one helper, `runFolder(dataDir)`, the only builder of its paths.
@@ -367,9 +369,9 @@ git commit -m "feat(settings-page): the settings file in the core"
 **Interfaces:**
 
 - Consumes: task 1's binding functions and `Settings` type.
-- Produces, in `env.ts`: `type Given<T> = { name: string; value: T }`;
-  `Env = { allowedHosts?: Given<Array<string>>; given: boolean; port?: Given<number>; repo: string }`,
-  without defaults, an empty variable as unset
+- Produces, in `env.ts`: `type Given<T, N> = { name: N; value: T }`, `HostsName`, `PortName`;
+  `Env = { allowedHosts?: Given<Array<string>, HostsName>; given: boolean; port?: Given<string, PortName>; repo: string }`,
+  the port as typed, without defaults, an empty variable as unset
   ([R7](rulings.md#r7-an-empty-variable-is-unset-an-empty-flag-is-given));
   `loadConfigDir(root, core: { configDir }, environment?, sources?): string`, like `loadDataDir`.
   `DEFAULT_PORT` moves to `settings.ts`, with the other defaults.
@@ -379,14 +381,18 @@ git commit -m "feat(settings-page): the settings file in the core"
 - Produces, in `settings.ts`:
   - `type Source`, `type Setting<T>`, as the spec's **Data**;
     `type ServerSettingsView = { allowedHosts: Setting<Array<string>>; openBrowser: Setting<boolean>; port: Setting<number> }`.
-  - `function inForce(options: Pick<Options, "allowedHosts" | "noOpen" | "port">, file: Settings | null): ServerSettingsView`.
+  - `function checked(given: GivenValues, check: (typed: string) => number): RunValues`, the port
+    checked by the binding's `checkedPort`, the core's rule
+    ([R11](rulings.md#r11-a-port-given-by-a-flag-or-a-variable-that-is-not-one-refuses-the-start)).
+  - `function inForce(options: RunValues, file: Settings | null): ServerSettingsView`.
   - `class ServerSettings` with
     `static async open({ binding, dir, options }): Promise<ServerSettings>`,
-    `view(): ServerSettingsView`, `problem: string | null`, `file: string` (with `~`),
-    `allowedHosts(): ReadonlyArray<string>`, `onChange(listener: () => void): () => void`,
-    `reload(): Promise<void>`, `close(): void`. `open` reads the file once and watches the folder; a
-    reload that finds the file broken keeps nothing of it, and prints, once per new problem,
-    "uraeda: <problem> The server uses its defaults until the file is fixed.".
+    `view(): ServerSettingsView`, `problem: string | null`, `file: string` (with `~`, from the
+    binding's `settingsFile`), `allowedHosts(): ReadonlyArray<string>`,
+    `onChange(listener: () => void): () => void`, `reload(): Promise<void>`, `close(): void`. `open`
+    reads the file once and watches it (R12); a reload that finds the file broken keeps nothing of
+    it, and prints, once per new problem, "uraeda: <problem> The server uses its defaults until the
+    file is fixed.".
 - Produces, in `server.ts` and `app.ts`: `StartOptions` and `AppOptions` no longer derive from
   `Options`: they list `allowedHosts?: Array<string>`, `allowOrigins`, `port: number`, and, for
   `startServer`, `given`, `repo`, and `settings?: ServerSettings`, which its `stop` closes.
@@ -424,7 +430,8 @@ developer's own `~/.config/uraeda`.
 `main.ts` opens `ServerSettings` after loading the binding and before taking the port, takes the
 port and `openBrowser` from its view, closes it on a handover, and passes it to `startServer` (task
 3 consumes it there). The watcher copies `Hosts.#watchList`: the config folder, filtered by
-`config.toml`, debounced `LIST_QUIET_MS`, created if missing.
+`config.toml`, debounced `LIST_QUIET_MS`; a missing folder is watched from the nearest one above it,
+and a symlink's target folder too (R12).
 
 - [x] **Step 4: Run all server tests**
 

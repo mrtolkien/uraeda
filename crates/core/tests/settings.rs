@@ -330,6 +330,39 @@ fn sets_the_port() {
 }
 
 #[test]
+fn checks_a_port_given_by_a_flag_or_a_variable() {
+    assert_eq!(settings::port(" 4400 "), Ok(4400));
+    for typed in ["70000", "0", "abc", "", "-1", "4400.5", "0x10"] {
+        assert_eq!(
+            settings::port(typed),
+            Err(PORT_PROBLEM.into()),
+            "for {typed:?}"
+        );
+    }
+}
+
+#[test]
+fn shows_the_settings_file_with_the_home_folder_as_tilde() {
+    let home = std::env::home_dir().unwrap_or_default();
+
+    assert_eq!(
+        settings::shown_file(&home.join(".config/uraeda")),
+        "~/.config/uraeda/config.toml"
+    );
+    assert_eq!(
+        settings::shown(Path::new("/srv/uraeda/config.toml"), Path::new("/home/me/")),
+        "/srv/uraeda/config.toml"
+    );
+    assert_eq!(
+        settings::shown(
+            Path::new("/home/me/.config/uraeda/config.toml"),
+            Path::new("/home/me/")
+        ),
+        "~/.config/uraeda/config.toml"
+    );
+}
+
+#[test]
 fn refuses_writes_to_a_broken_file() {
     for before in ["[server\n", "[server]\nport = 0\n"] {
         let dir = tempdir();
