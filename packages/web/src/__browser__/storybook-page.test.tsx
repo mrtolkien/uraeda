@@ -32,8 +32,7 @@ async function storyShown() {
  */
 async function undoRefused() {
   await show("/priorities", "Git listener process");
-  const adds = screen.getAllByRole("button", { name: "Add a priority" });
-  await userEvent.click(adds.find((add) => !add.closest("nav")) ?? adds[0]!);
+  await userEvent.click(screen.getAllByRole("button", { name: "Add to the priorities" })[0]!);
   await userEvent.type(await screen.findByLabelText("Priority"), "Show the last commit");
   await userEvent.click(screen.getByRole("radio", { name: "Later" }));
   await userEvent.click(screen.getByRole("button", { name: "Add" }));
