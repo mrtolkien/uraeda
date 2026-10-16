@@ -25,6 +25,7 @@ import {
 } from "./NoteImage.tsx";
 import {
   AddButtons,
+  useAddAndCommit,
   CommitBanner,
   type CommitNotice,
   enterAdds,
@@ -238,6 +239,7 @@ export function AddNote({
   const { add, message, names, notice, ready, status } = useAdd({ about, image, onAdded, typed });
   // A draft with its image is never committed by its add.
   const commits = image === undefined;
+  const commit = useAddAndCommit(() => add(true));
 
   const cancel = async () => {
     if ((typed.dirty || image) && !(await confirm(DISCARD_CHANGES))) {
@@ -261,7 +263,7 @@ export function AddNote({
         label="Note"
         onChange={typed.note.change}
         // A note is one line: Enter adds and commits it, or adds it as a draft with its image.
-        onKeyDown={enterAdds(() => void add(commits))}
+        onKeyDown={enterAdds(() => (commits ? ready && commit.onAddAndCommit() : void add()))}
         placeholder="What did you notice?"
         value={typed.note.text}
       />
@@ -287,7 +289,7 @@ export function AddNote({
         addLabel={image ? "Add as a draft" : "Add"}
         isReady={ready}
         onAdd={() => add()}
-        {...(commits ? { onAddAndCommit: () => add(true) } : {})}
+        {...(commits ? commit : {})}
         onCancel={() => void cancel()}
         start={<AttachButton onFiles={([file]) => onImage(file)} text="Attach an image" />}
       />
