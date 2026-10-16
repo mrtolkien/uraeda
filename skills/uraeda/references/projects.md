@@ -66,10 +66,13 @@ Do these only when a human asks.
   `ura start <draft> --slug <slug>` runs these steps for a draft file or postponed folder, whatever
   it holds: the proposal is freeform. Without `--slug`, it takes the first two words of the draft's
   name that name something.
-  1. On the default branch, move the feature's `PRIORITIES.md` entry to the end of **Now**, unless
-     the human says otherwise, as a link to the future `proposal.md` from the repository root,
+  1. On the default branch, move the feature's `PRIORITIES.md` entry to the top of **Now**, after
+     the other started entries, then a blank line, unless the human says otherwise, as a link to the
+     future `proposal.md` from the repository root,
      `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`, and commit with
-     `chore(<slug>): start <feature name>`. Entries match branches through that link.
+     `chore(<slug>): start <feature name>`. Entries match branches through that link. Started
+     entries are those linking a dated folder's `proposal.md`, a feature's or a change's. Entries
+     started lower in **Now** stay where they are, and no blank line is left at the end of **Now**.
      `PRIORITIES.md` lives on the default branch: feature branches only remove their own entry, in
      their last commit.
   2. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
