@@ -1890,7 +1890,7 @@ git commit -m "feat(ui-iteration): the Storybook page and its rows"
   `CommentForm`, in place under the embed on wide screens and in an `Overlay` sheet on narrow ones,
   its field `<path>#story:<folder>:<path>#<export>`.
 - Changes: `ReviewMockups`' button for a story scrolls to its embed, else opens its Storybook page
-  ([R33](rulings.md#r33-a-mockups-button-scrolls-to-its-storys-embed-else-opens-its-storybook-page)).
+  ([R33](rulings.md#r33-a-mockups-button-scrolls-to-its-storys-embed-else-opens-its-storybook-page-or-its-file-without-a-preview-decision)).
 - Changes: `StoriesProvider`'s `comment` is `StoryComments`, `{ path, save }`, `save` the
   `(story, text, block?)` function above, `path` the file the comments go to; `StoryEmbed`'s is
   `{ field, save(text) }`, built by `Blocks`

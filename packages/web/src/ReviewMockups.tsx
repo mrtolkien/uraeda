@@ -3,14 +3,14 @@ import { HStack } from "@astryxdesign/core/HStack";
 import type { Document, MockupLink, StoryLink } from "uraeda-binding";
 import { usePreviewOn } from "./data.ts";
 import { type Folds, useRevealBlock } from "./Folds.tsx";
-import { navigate, useRepoPath } from "./routes.tsx";
+import { navigate, pathLink, useRepoPath, useRepository } from "./routes.tsx";
 import { storybookHref, storyEmbedId } from "./stories.tsx";
 
 /**
  * The spec's mockups, at the top of its review: the easiest part of a spec to check, one large
  * button per mockup its Mockups section links, each opening the mockup's page, or scrolling to the
- * embed of a story, opening its fold first, else opening the story in the Storybook page. Nothing
- * without mockups.
+ * embed of a story, opening its fold first, else opening the story in the Storybook page; without a
+ * preview decision, a story's opens its file, as its link does. Nothing without mockups.
  */
 export function ReviewMockups({
   document,
@@ -28,6 +28,7 @@ export function ReviewMockups({
   wide: boolean;
 }) {
   const here = useRepoPath();
+  const repo = useRepository();
   // Without a preview decision, the file embeds no story.
   const preview = usePreviewOn(folder);
   const reveal = useRevealBlock(document, folds);
@@ -41,6 +42,13 @@ export function ReviewMockups({
       navigate(here(`/f/${folder}/${path}`));
     } else if (embed) {
       reveal(document.blocks[embed.block], storyEmbedId(embed.block));
+    } else if (!preview) {
+      const { href, inApp } = pathLink(path, repo);
+      if (inApp) {
+        navigate(href);
+      } else {
+        window.open(href, "_blank", "noreferrer");
+      }
     } else {
       navigate(here(storybookHref(folder, story)));
     }
