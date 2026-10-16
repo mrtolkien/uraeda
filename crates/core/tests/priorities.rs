@@ -967,3 +967,35 @@ fn undo_over_a_staged_change_is_refused() {
         "chore: add \"Sort done features\" to Next"
     );
 }
+
+const FOLDERS: &str = "# Priorities\n\n## Now\n\n## Next\n\n- [Icons](drafts/icons/proposal.md)\n- [Search](drafts/search/proposal.md)\n";
+
+/// A draft folder counts as a draft only when it holds its `proposal.md`: a folder of images alone
+/// has no draft to open, read from disk on the default branch or from its commit elsewhere.
+#[test]
+fn a_folder_without_its_proposal_is_no_draft() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write("specs/PRIORITIES.md", FOLDERS);
+    repo.write("specs/drafts/icons/home.png", "not really a png\n");
+    repo.write("specs/drafts/search/proposal.md", "# Search\n");
+    repo.write("specs/drafts/search/results.png", "not really a png\n");
+    repo.commit("chore: specs");
+    let drafts = |repo: &TestRepo| {
+        let read = api::read_priorities(repo.path()).unwrap();
+        ["Icons", "Search"].map(|name| {
+            entry(
+                &read,
+                &format!("[{name}](drafts/{}/proposal.md)", name.to_lowercase()),
+            )
+            .draft
+            .as_ref()
+            .map(|file| file.path.clone())
+        })
+    };
+    let expected = [None, Some("specs/drafts/search/proposal.md".to_string())];
+
+    assert_eq!(drafts(&repo), expected);
+    repo.switch_new("2026-10-17-feature");
+    assert_eq!(drafts(&repo), expected);
+}

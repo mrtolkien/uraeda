@@ -120,7 +120,8 @@ impl EntryLink<'_> {
 }
 
 /// The draft or backlog file a link points to, when `drafts`, as [`Workspace::drafts`] lists them,
-/// holds it: a folder's `proposal.md` counts as its folder.
+/// holds it: a folder's `proposal.md` counts as its folder, which they list only when it holds
+/// that file.
 fn linked_file(link: &str, drafts: &[String]) -> Option<LinkedFile> {
     let path = resolve("specs", link)?;
     let folder = path.strip_suffix("/proposal.md").unwrap_or(&path);
