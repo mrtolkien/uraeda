@@ -553,8 +553,11 @@ git commit -m "feat(redesign-priorities): notes have children and a place"
 
 - Modify: `crates/core/src/git/commit.rs` (`commit_only`), `crates/core/src/actions/commit.rs`,
   `crates/core/src/actions/priorities.rs`, `crates/core/src/actions/inbox.rs` (`note` uses the same
-  path for the CLI), `crates/core/src/api/priority_edits.rs`, `crates/core/src/api/inbox_edits.rs`,
-  the binding, `packages/server/src/fate/mutations.ts`, `inbox-mutations.ts`
+  path for the CLI), `crates/core/src/actions/inbox/undo.rs`,
+  `crates/core/src/files/priorities/edits.rs` (`remove_added`),
+  `crates/core/src/api/priority_edits.rs`, `crates/core/src/api/inbox_edits.rs`, the binding,
+  `packages/server/src/fate/mutations.ts`, `inbox-mutations.ts`, `masked.ts`, `views.ts` (the
+  records' `added`, after `sentInbox` moves to `sources.ts` in a `refactor(...)` commit)
 - Modify: `skills/uraeda/references/inbox.md` (Capture, web UI: "＋ next to Inbox … 'Add and commit'
   commits the note alone, unless `INBOX.md` had other changes; 'Add' leaves it for the commit bar")
 - Test: `crates/core/tests/priorities.rs`, `crates/core/tests/inbox_actions.rs`,
@@ -566,8 +569,10 @@ git commit -m "feat(redesign-priorities): notes have children and a place"
   - `Git::commit_only(&self, paths: &[String], subject: &str, body: Option<&str>) -> Result<(), GitError>`:
     `git add -- <paths>` then `git commit --only --quiet --message … -- <paths>`, hooks running;
     other staged files stay staged.
-  - `Added { committed: bool, reason: Option<String>, message: Option<String> }` (napi object;
-    `reason` is `"other-changes"` or `"hook-failed"`, `message` the hook's first line).
+  - `actions::commit::Added { committed: bool, reason: Option<String>, message: Option<String> }`
+    (napi object `AddCommit`, R8; `reason` is `"other-changes"` or `"hook-failed"`, `message` the
+    hook's first line), and the binding's answers `PrioritiesAdded { priorities, added }` and
+    `InboxAdded { inbox, added }`.
   - `api::add_priority_and_commit(repo, section_id, line, previous) -> Result<(Priorities, Added)>`
     and `api::add_note_and_commit(repo, category, about, text, previous) -> Result<(Inbox, Added)>`:
     write, then commit the file alone with `chore: add "<short>" to <Section>` or
@@ -576,10 +581,11 @@ git commit -m "feat(redesign-priorities): notes have children and a place"
     `api::undo_committed_note(repo, lines, previous)`: remove the entry or note, committed alone
     with `chore: remove "<short>"` or `chore: remove "<short>" from the inbox`; a stale hash refuses
     with the existing conflict message.
-  - Mutations `priorities.add` and `inbox.add` take `commit?: boolean` and answer `added`; new
-    `priorities.undoCommitted` and `inbox.undoCommitted`.
+  - Mutations `priorities.add` and `inbox.add` take `commit?: boolean` and answer `added`, a field
+    of the `Priorities` and `Inbox` records, null on every other answer; new
+    `priorities.undoCommitted` and `inbox.undoCommitted`, taking `{ hash, lines }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `an_add_commits_alone_on_a_clean_file`: subject `chore: add "Sort done features" to Next`, the
     commit holds `specs/PRIORITIES.md` only (US3 scenario 1).
   - `an_add_on_a_changed_file_is_not_committed`: `committed: false`, `reason: "other-changes"`, the
@@ -591,16 +597,18 @@ git commit -m "feat(redesign-priorities): notes have children and a place"
   - `a_note_commits_alone`: `chore: add "Icons are blurry" to the inbox` (US3 scenario 4).
   - `undo_of_a_committed_add_commits_the_removal` (US3 scenario 6) and
     `undo_after_the_file_changed_is_refused` (review focus 6).
+  - For notes too: `a_note_on_a_changed_inbox_is_not_committed`,
+    `undo_of_a_committed_note_commits_the_removal`; the server's US3 1, 3, 4, and 6 tests.
   - CLI's existing `crates/cli/tests/note.rs` still passes.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run:
     `cargo nextest run -p uraeda-core -E 'test(/commits_alone|not_committed|hook_failure|undo_/)'`
   - Expected: FAIL, `cannot find function add_priority_and_commit`
-- [ ] **Step 3: Implement; export; add the mutations; update the skill**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement; export; add the mutations; update the skill**
+- [x] **Step 4: Run all tests**
   - Run: `cargo nextest run && vp run binding:build && vp test --project uraeda-server`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding packages/server skills

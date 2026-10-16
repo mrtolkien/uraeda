@@ -157,14 +157,21 @@ const repositoryMutations = {
       ctx,
       input,
       select,
-    }: Resolver<{ hash: string; section: string; text: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.addPriority(ctx.repo, input.section, input.text, input.hash),
-        ),
-        select,
-      ),
+    }: Resolver<{ commit?: boolean; hash: string; section: string; text: string }>) => {
+      if (!input.commit) {
+        return priorities(
+          ctx,
+          await refusable(() =>
+            ctx.binding.addPriority(ctx.repo, input.section, input.text, input.hash),
+          ),
+          select,
+        );
+      }
+      const result = await refusable(() =>
+        ctx.binding.addPriorityAndCommit(ctx.repo, input.section, input.text, input.hash),
+      );
+      return priorities(ctx, result.priorities, select, result.added);
+    },
     type: "Priorities",
   },
   "priorities.commit": {
@@ -227,6 +234,15 @@ const repositoryMutations = {
       priorities(
         ctx,
         await refusable(() => ctx.binding.removePriority(ctx.repo, input.entry, input.hash)),
+        select,
+      ),
+    type: "Priorities",
+  },
+  "priorities.undoCommitted": {
+    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; lines: Array<string> }>) =>
+      priorities(
+        ctx,
+        await refusable(() => ctx.binding.undoCommittedPriority(ctx.repo, input.lines, input.hash)),
         select,
       ),
     type: "Priorities",

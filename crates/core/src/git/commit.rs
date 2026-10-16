@@ -58,6 +58,36 @@ impl Git {
             add.extend(addable.iter().copied());
             self.run("add", &add)?;
         }
+        self.commit_staged(&[], subject, body)
+            // A refused commit takes back what it staged, so nothing it held blocks or rides along.
+            .inspect_err(|_| drop(self.unstage(&addable)))
+    }
+
+    /// Commits `paths` alone, files as they are in the working tree, running the hooks: other
+    /// staged files stay staged, out of the commit. A refused commit takes back what it staged.
+    pub fn commit_only(
+        &self,
+        paths: &[String],
+        subject: &str,
+        body: Option<&str>,
+    ) -> Result<(), GitError> {
+        let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
+        let mut add = vec!["add", "--"];
+        add.extend(&paths);
+        self.run("add", &add)?;
+        let mut only = vec!["--only", "--"];
+        only.extend(&paths);
+        self.commit_staged(&only, subject, body)
+            .inspect_err(|_| drop(self.unstage(&paths)))
+    }
+
+    /// Runs `git commit` with the hooks, `extra` after its message.
+    fn commit_staged(
+        &self,
+        extra: &[&str],
+        subject: &str,
+        body: Option<&str>,
+    ) -> Result<(), GitError> {
         let hooks = self
             .hooks_override()
             .map(|path| format!("core.hooksPath={path}"));
@@ -69,9 +99,8 @@ impl Git {
         if let Some(body) = body {
             commit.extend(["--message", body]);
         }
-        // A refused commit takes back what it staged, so nothing it held blocks or rides along.
+        commit.extend(extra);
         self.run("commit", &commit)
-            .inspect_err(|_| drop(self.unstage(&addable)))
     }
 
     /// Resets the index entries of `paths`, files or folders, to `HEAD`, the working tree kept.

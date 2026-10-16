@@ -4,13 +4,14 @@
 
 use std::fs;
 
+use crate::files::document::hash;
 use crate::files::inbox;
 use crate::files::lines;
 use crate::files::priorities::{self, Section};
 use crate::files::proposal;
 
 use super::super::place::{self, Place};
-use super::super::{ActionError, draft, priorities as priority_edits};
+use super::super::{ActionError, Change, STALE, commit, draft, priorities as priority_edits};
 use super::{PATH, draft_text, file, text, write_both};
 
 /// The refusal of an Undo whose note is no longer where the move put it.
@@ -126,5 +127,29 @@ pub fn undo_add(place: &Place, lines: &[String]) -> Result<(), ActionError> {
     let (note, current, id) = found(place, lines)?;
     let without = inbox::remove(&current, &id).ok_or_else(|| gone(&note, "INBOX.md"))?;
     fs::write(place.root.join(PATH), without)?;
+    Ok(())
+}
+
+/// Takes back a committed add, as [`undo_add`] does, and commits the removal alone: Undo of "Add
+/// and commit". Refused as stale when the inbox changed since it was read at `previous`, or since
+/// its commit.
+pub fn undo_committed(place: &Place, lines: &[String], previous: &str) -> Result<(), ActionError> {
+    let current = text(place)?;
+    if hash(&current) != previous || !commit::is_clean(place, PATH) {
+        return Err(ActionError::Refused(format!("INBOX.md {STALE}")));
+    }
+    let (note, _) = parts(lines)?;
+    undo_add(place, lines)?;
+    commit::commit_only(
+        place,
+        &Change {
+            paths: vec![PATH.to_string()],
+            subject: format!(
+                "chore: remove \"{}\" from the inbox",
+                priority_edits::short(&note)
+            ),
+            body: None,
+        },
+    )?;
     Ok(())
 }

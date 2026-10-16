@@ -106,6 +106,11 @@ const mutations = {
     FateAPI['mutations']['inbox.undoCategory']['input'],
     FateAPI['mutations']['inbox.undoCategory']['output']
   >('Inbox'),
+  'inbox.undoCommitted': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.undoCommitted']['input'],
+    FateAPI['mutations']['inbox.undoCommitted']['output']
+  >('Inbox'),
   'inbox.undoToDraft': mutation<
     Inbox,
     FateAPI['mutations']['inbox.undoToDraft']['input'],
@@ -165,6 +170,11 @@ const mutations = {
     Priorities,
     FateAPI['mutations']['priorities.remove']['input'],
     FateAPI['mutations']['priorities.remove']['output']
+  >('Priorities'),
+  'priorities.undoCommitted': mutation<
+    Priorities,
+    FateAPI['mutations']['priorities.undoCommitted']['input'],
+    FateAPI['mutations']['priorities.undoCommitted']['output']
   >('Priorities'),
   'repositories.add': mutation<
     Repositories,

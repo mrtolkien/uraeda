@@ -7,6 +7,7 @@ use super::{
     Result, default_checkout, on_default, open, reach_default, reach_default_from, refused,
     write_lock,
 };
+use crate::actions::commit::Added;
 use crate::actions::{changes, place, priorities as edits};
 use crate::files::priorities::{self, Priorities, Section};
 use crate::git::Git;
@@ -65,6 +66,33 @@ pub fn add_priority(
     let _lock = write_lock();
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::add(&place, section(section_id)?, line, previous)?))
+}
+
+/// Adds a line at the end of a section, as [`add_priority`] does, then commits `PRIORITIES.md`
+/// alone, when it had no other change, with `chore: add "<short>" to <Section>`.
+pub fn add_priority_and_commit(
+    repo: &Path,
+    section_id: &str,
+    line: &str,
+    previous: &str,
+) -> Result<(Priorities, Added)> {
+    let _lock = write_lock();
+    let (place, workspace) = reach_default_from(repo)?;
+    let (priorities, added) = edits::add_and_commit(&place, section(section_id)?, line, previous)?;
+    Ok((workspace.join_priorities(priorities), added))
+}
+
+/// Takes back a committed add: the entry, `lines` as written, leaves the end of its section, and
+/// the removal is committed alone with `chore: remove "<short>"`. Refused as a conflict when the
+/// file changed since it was read at `previous`.
+pub fn undo_committed_priority(
+    repo: &Path,
+    lines: &[String],
+    previous: &str,
+) -> Result<Priorities> {
+    let _lock = write_lock();
+    let (place, workspace) = reach_default_from(repo)?;
+    Ok(workspace.join_priorities(edits::undo_committed(&place, lines, previous)?))
 }
 
 /// Inserts a line with its nested lines, as written, before the line at `index` of a section, or

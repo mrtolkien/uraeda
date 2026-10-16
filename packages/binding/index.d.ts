@@ -28,6 +28,12 @@ export declare function addComment(repo: string, folder: string, file: string, s
 export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<Inbox>
 
 /**
+ * Adds a note as `addNote` does, then commits `INBOX.md` alone when it had no other change: "Add
+ * and commit".
+ */
+export declare function addNoteAndCommit(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<InboxAdded>
+
+/**
  * Adds a note as a new draft folder holding its text and the image `bytes`, linked from the end
  * of a category, all written or none. `name` is the image's file name. Returns the draft's path.
  */
@@ -35,6 +41,12 @@ export declare function addNoteWithImage(repo: string, text: string, previous: s
 
 /** Adds a line at the end of a section of the priorities. */
 export declare function addPriority(repo: string, section: string, text: string, previous: string): Promise<Priorities>
+
+/**
+ * Adds a line at the end of a section of the priorities, then commits `PRIORITIES.md` alone when
+ * it had no other change: "Add and commit".
+ */
+export declare function addPriorityAndCommit(repo: string, section: string, text: string, previous: string): Promise<PrioritiesAdded>
 
 /**
  * Adds the git repository holding `folder`, an absolute path, to the list; one listed already
@@ -350,6 +362,18 @@ export declare function submitAnswers(repo: string, folder: string, name?: strin
 export declare function submitTriage(repo: string, previous: string): Promise<FileView>
 
 /**
+ * Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
+ * committed alone.
+ */
+export declare function undoCommittedNote(repo: string, lines: Array<string>, previous: string): Promise<Inbox>
+
+/**
+ * Takes back a committed add: the entry, `lines` as written, leaves the priorities, and the
+ * removal is committed alone.
+ */
+export declare function undoCommittedPriority(repo: string, lines: Array<string>, previous: string): Promise<Priorities>
+
+/**
  * Takes back a note's add: the note, found by its lines, leaves the inbox wherever it is now.
  * Refused once it changed or left, or when two notes hold its lines.
  */
@@ -391,6 +415,16 @@ export declare function watch(repo: string, onChange: (changes: Changes) => void
 
 /** The directory an agent works on a feature in, its worktree created when none has its branch. */
 export declare function workDir(repo: string, folder: string): Promise<string>
+
+/**
+ * Whether "Add and commit" committed its file: `reason` is `other-changes` when the file had
+ * uncommitted changes before the add, or `hook-failed`, with `message` the hook's first line.
+ */
+export interface AddCommit {
+  committed: boolean
+  reason?: string
+  message?: string
+}
 
 /** A repository added to the list, or found listed already. */
 export interface Added {
@@ -686,6 +720,12 @@ export interface Inbox {
   triage?: string
 }
 
+/** The inbox after "Add and commit", and whether it committed. */
+export interface InboxAdded {
+  inbox: Inbox
+  added: AddCommit
+}
+
 export interface InboxCategory {
   /** `None` for the notes before the first category. */
   name?: string
@@ -821,6 +861,12 @@ export interface Priorities {
   sections: Array<SectionItems>
   /** How many entries were added, moved, edited, or removed since the last commit. */
   changes: number
+}
+
+/** The priorities after "Add and commit", and whether it committed. */
+export interface PrioritiesAdded {
+  priorities: Priorities
+  added: AddCommit
 }
 
 export interface PriorityView {

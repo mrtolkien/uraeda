@@ -88,3 +88,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   required `string | null` in the middle, unlike its neighbours.
 - **If wrong**: the argument order of one export and its one caller.
 - **Where**: task 5.
+
+## R8: "Add and commit"'s answer is `AddCommit` in JavaScript
+
+- **Decision**: the core's `actions::commit::Added` is the napi object `AddCommit`, and the binding
+  answers `addPriorityAndCommit` and `addNoteAndCommit` with `PrioritiesAdded` and `InboxAdded`,
+  objects declared in the core. The mutations send it as `added`, a field of the `Priorities` and
+  `Inbox` records, null on every other mutation's answer.
+- **Rationale**: `Added` is already the JavaScript name of a repository added to the list
+  ([`view.rs`](/crates/core/src/view.rs)), and napi-rs cannot return a tuple; a fate mutation
+  answers a record of its type, so `added` is one of its fields.
+- **Alternatives considered**: renaming the repository's `Added`: a change outside this feature; a
+  record type of its own for the add's answer: a second view of the same priorities.
+- **If wrong**: one `js_name`, and the two record fields.
+- **Where**: task 6.
