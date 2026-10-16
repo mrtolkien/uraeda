@@ -87,7 +87,7 @@ test("a note added in a category ends it, with a toast, and shows under it", asy
     "- Text input feels laggy on the sessions page\n- The plan's task list scrolls under the top bar\n\n## CLI\n",
   );
   expect(git(repo, "status", "--porcelain")).toContain("INBOX.md");
-  const ui = within(screen.getByRole("list", { name: "UI" }));
+  const ui = within(screen.getByRole("list", { name: "UI lines" }));
   expect(await ui.findByText("The plan's task list scrolls under the top bar")).toBeTruthy();
 });
 
@@ -101,7 +101,7 @@ test("a note with no category goes before the first category", async () => {
   expect(read(repo, PATH)).toContain(
     "- We need a home icon\n- Sessions need a model selector\n\n## UI\n",
   );
-  const none = within(screen.getByRole("list", { name: "No category" }));
+  const none = within(screen.getByRole("list", { name: "No category lines" }));
   expect(await none.findByText("Sessions need a model selector")).toBeTruthy();
 });
 
@@ -119,7 +119,7 @@ test("New category… adds its heading at the end of the file, with the note", a
   expect(read(repo, PATH)).toMatch(
     /- Make sure agents are resumable\n\n## Editor\n\n- Folding is slow\n$/,
   );
-  const editor = within(await screen.findByRole("list", { name: "Editor" }));
+  const editor = within(await screen.findByRole("list", { name: "Editor lines" }));
   expect(editor.getByText("Folding is slow")).toBeTruthy();
 });
 
@@ -373,15 +373,41 @@ test("the inbox page lists the notes by category, in file order", async () => {
   const page = await main();
 
   expect(await page.findByRole("heading", { level: 1, name: "Inbox" })).toBeTruthy();
-  expect(page.getByText("10 notes")).toBeTruthy();
   expect(page.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
-    "No category",
-    "UI",
-    "CLI",
+    "No category · 3",
+    "UI · 5",
+    "CLI · 2",
   ]);
   expect(
-    within(page.getByRole("list", { name: "CLI" })).getByText("Make sure agents are resumable"),
+    within(page.getByRole("list", { name: "CLI lines" })).getByText(
+      "Make sure agents are resumable",
+    ),
   ).toBeTruthy();
+});
+
+/** C3: the count of the inbox's notes is a badge beside its heading, without words. */
+test("the inbox heading shows a count without words", async () => {
+  await renderPage("/inbox");
+  const page = await main();
+
+  expect(await page.findByRole("heading", { level: 1, name: "Inbox" })).toBeTruthy();
+  expect(page.getByText("10")).toBeTruthy();
+  expect(page.queryByText(/10 notes/)).toBeNull();
+});
+
+/** US5 3: a note's children show under it, as lines of its row. */
+test("a note shows its children", async () => {
+  await renderPage(
+    "/inbox",
+    withInbox(
+      "# Inbox\n\n## UI\n\n- Icons are blurry\n  - on retina screens\n  - and in the dock\n- Next note\n",
+    ),
+  );
+
+  const note = await noteRow(/Icons are blurry/);
+  expect(note.getByText("on retina screens")).toBeTruthy();
+  expect(note.getByText("and in the dock")).toBeTruthy();
+  expect(note.getByRole("link", { name: /Icons are blurry/ })).toBeTruthy();
 });
 
 /** US5 3 */
@@ -403,7 +429,7 @@ test("an empty category is hidden, and the empty inbox says so", async () => {
   const page = await main();
   await page.findByText("One thing");
   expect(page.queryByRole("heading", { name: "UI" })).toBeNull();
-  expect(page.getByText("1 note")).toBeTruthy();
+  expect(page.getByText("1")).toBeTruthy();
 
   writeFileSync(join(repo, PATH), "# Inbox\n");
   await renderPage("/inbox", repo, { reload: true });

@@ -36,7 +36,7 @@ async function openForm() {
 
 /** SC-001, on a wide screen, and US1 1: one tap on ＋, the text, and Enter. */
 test("a note is added with ＋, its text, and Enter", async () => {
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
   const form = await openForm();
   // The phone's sheet takes the focus itself, as the keyboard would cover it: a tap on the field.
   if (narrow()) {
@@ -50,9 +50,10 @@ test("a note is added with ＋, its text, and Enter", async () => {
     .poll(() => commands.readRepo(PATH))
     .toContain("- We need a home icon\n- The plan's task list scrolls under the top bar\n");
   await expect.poll(() => screen.queryByRole("dialog", { name: "Add a note" })).toBeNull();
-  const none = within(screen.getByRole("list", { name: "No category" }));
+  const none = within(screen.getByRole("list", { name: "No category lines" }));
   expect(await none.findByText("The plan's task list scrolls under the top bar")).toBeTruthy();
-  expect(await screen.findByText("11 notes")).toBeTruthy();
+  // C3: the count beside the heading, without words.
+  expect(await screen.findByText("11")).toBeTruthy();
 });
 
 /** The UI layout decision: a short form is a dialog on wide screens, a bottom sheet on narrow ones. */
@@ -79,7 +80,7 @@ test("the add form is a dialog on wide screens and a sheet on narrow ones", asyn
 });
 
 test("the inbox page passes the layout checks", async () => {
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
   await checkLayout();
 });
 
@@ -95,7 +96,7 @@ test("the empty inbox passes the layout checks", async () => {
  * its own URL; on narrow screens, as its own page.
  */
 test("three taps from the inbox move a note to Next", async () => {
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
 
   await userEvent.click(screen.getByRole("link", { name: /Draft to proposal on mobile went 404/ }));
   await expect
@@ -149,7 +150,7 @@ async function typeNote(form: HTMLElement, text: string) {
  * it under UI.
  */
 test("a note with an image is added as a draft that holds it, linked from the inbox", async () => {
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
   const form = await openForm();
   await typeNote(form, NOTE);
   await userEvent.click(within(form).getByRole("combobox", { name: "Category" }));
@@ -187,7 +188,7 @@ test("a note linking a draft keeps its link once moved to Next", async () => {
     inbox.replace(laggy, `${laggy}- [${NOTE}](drafts/${SLUG}/proposal.md)\n`),
     PATH,
   );
-  await show("/inbox", "11 notes");
+  await show("/inbox", NOTE);
 
   // The row is the note's one link: its draft's link does not nest in it.
   await userEvent.click(screen.getByRole("link", { name: new RegExp(NOTE) }));
@@ -208,7 +209,7 @@ test("a note linking a draft keeps its link once moved to Next", async () => {
  */
 test("an image the core refuses shows its message, and the note keeps its text", async () => {
   const inbox = await commands.readRepo(PATH);
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
   const form = await openForm();
   await typeNote(form, "Headings are flat");
 
@@ -235,7 +236,7 @@ test("an image the core refuses shows its message, and the note keeps its text",
  * only an image asks first.
  */
 test("Remove drops the image, and Cancel asks first with only an image", async () => {
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
   const form = await openForm();
   attachImage(form, await image("phone.png", "spec-headings.png"));
 
@@ -256,7 +257,7 @@ test("Remove drops the image, and Cancel asks first with only an image", async (
 /** The toast's Undo of a note added with an image takes the note out, with its draft. */
 test("Undo of a note added with an image takes it out, with its draft", async () => {
   const inbox = await commands.readRepo(PATH);
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
   const form = await openForm();
   await typeNote(form, NOTE);
   attachImage(form, await image("phone.png", "spec-headings.png"));
@@ -327,7 +328,7 @@ test("the triage's banner and its answering view pass the layout checks", async 
 
 /** US4 1 and 3: "Organize with an agent", then the answered triage's banner and its button. */
 test("Organize with an agent and the answered triage's banner pass the layout checks", async () => {
-  await show("/inbox", "10 notes");
+  await show("/inbox", "We need a home icon");
   expect(screen.getByRole("button", { name: "Organize with an agent" })).toBeTruthy();
   await checkLayout();
 
@@ -341,4 +342,106 @@ test("Organize with an agent and the answered triage's banner pass the layout ch
   await show("/inbox", "Your triage answers are ready to apply");
   expect(screen.getByRole("button", { name: "Apply the answers" })).toBeTruthy();
   await checkLayout();
+});
+
+/** The middle of an element, in the page's coordinates. */
+function middle(element: Element) {
+  const box = element.getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+
+/** Whether a note was picked up, as the page announces it once its drag starts. */
+function lifted(name: string) {
+  return new RegExp(`(Picked up|Moved:) ${name}`).test(document.body.textContent ?? "");
+}
+
+/** The text of the category `## <name>` of the inbox, up to the next heading. */
+function category(text: string, name: string) {
+  return text.split(`## ${name}\n\n`)[1]?.split("\n## ")[0] ?? "";
+}
+
+/** Drags a note by its handle, with the mouse, to a point of the page, and drops it there. */
+async function drag(note: string, to: { x: number; y: number }) {
+  const handle = middle(screen.getByRole("button", { name: `Move ${note}` }));
+  await commands.mouse([
+    { type: "move", x: handle.x, y: handle.y },
+    { type: "down" },
+    { type: "move", x: handle.x, y: handle.y - 10 },
+    { type: "move", x: to.x, y: to.y },
+  ]);
+  await expect.poll(() => lifted(note)).toBe(true);
+  await commands.mouse([{ type: "up" }]);
+}
+
+// US5: notes drag as the priorities' lines do, by their handle or the keyboard.
+describe("on the desktop, dragging notes", () => {
+  atSize("desktop");
+
+  // A test that fails with the mouse button down would leave it pressed for the next one.
+  afterEach(async () => {
+    await commands.mouse([{ type: "up" }]);
+  });
+
+  /** US5 1 */
+  test("a note drags within its category", async () => {
+    await show("/inbox", "Icons are blurry on retina screens");
+    const first = screen.getByRole("link", { name: /In failures the/ }).getBoundingClientRect();
+
+    await drag("Icons are blurry on retina screens", { x: first.left + 20, y: first.top + 2 });
+
+    await expect
+      .poll(async () => category(await commands.readRepo(PATH), "UI"), { timeout: 10_000 })
+      .toMatch(/^- Icons are blurry on retina screens\n- \[run-ui\] In failures/);
+    await userEvent.click(await screen.findByRole("button", { name: "Commit" }));
+    await expect
+      .poll(() => commands.readRepo(".git/logs/HEAD"), { timeout: 10_000 })
+      .toContain('commit: chore: move "Icons are blurry on retina screens" within UI in the inbox');
+  });
+
+  /** US5 2 and 3: the note moves with its children. */
+  test("a note drags to another category", async () => {
+    const laggy = "- Text input feels laggy on the sessions page\n";
+    const inbox = await commands.readRepo(PATH);
+    await commands.writeRepo(inbox.replace(laggy, `${laggy}  - on long sessions\n`), PATH);
+    await show("/inbox", "on long sessions");
+    const last = screen
+      .getByRole("link", { name: /Make sure agents are resumable/ })
+      .getBoundingClientRect();
+
+    await drag("Text input feels laggy on the sessions page", {
+      x: last.left + 20,
+      y: last.bottom - 2,
+    });
+
+    await expect
+      .poll(async () => category(await commands.readRepo(PATH), "CLI"), { timeout: 10_000 })
+      .toBe(
+        "- Allow no selection in responses (after a warning)\n- Make sure agents are resumable\n- Text input feels laggy on the sessions page\n  - on long sessions\n",
+      );
+    expect(category(await commands.readRepo(PATH), "UI")).not.toContain("laggy");
+  });
+
+  /** US5 4 */
+  test("the keyboard moves a note", async () => {
+    await show("/inbox", "Make sure agents are resumable");
+    screen
+      .getByRole("button", { name: "Move Allow no selection in responses (after a warning)" })
+      .focus();
+
+    await userEvent.keyboard("[Space]");
+    await expect
+      .poll(() => document.body.textContent)
+      .toContain("Allow no selection in responses (after a warning), 1 of 2 in CLI.");
+    await userEvent.keyboard("[ArrowDown]");
+    await expect
+      .poll(() => document.body.textContent)
+      .toContain("Allow no selection in responses (after a warning), 2 of 2 in CLI.");
+    await userEvent.keyboard("[Space]");
+
+    await expect
+      .poll(async () => category(await commands.readRepo(PATH), "CLI"), { timeout: 10_000 })
+      .toBe(
+        "- Make sure agents are resumable\n- Allow no selection in responses (after a warning)\n",
+      );
+  });
 });
