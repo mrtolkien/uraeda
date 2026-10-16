@@ -812,35 +812,38 @@ git commit -m "feat(settings-page): search the settings"
 
 **Files:**
 
-- Modify: `packages/web/src/__browser__/layout.test.tsx` (`PAGES`), `README.md`, `.env.example`
-- Create: `specs/2026-10-16-settings-page/screenshots/*.webp`
+- Modify: `packages/web/src/__browser__/layout.test.tsx` (`PAGES`), `README.md`, `.env.example`,
+  `packages/web/scripts/screenshots.ts` (a second server, for a variable in force),
+  `packages/web/scripts/sign-in-shots.ts` (its sign-out views, moved to the settings' views)
+- Create: `packages/web/scripts/settings-shots.ts`,
+  `specs/2026-10-16-settings-page/screenshots/*.webp`
 
-- [ ] **Step 1: Add the settings pages to the layout checks**
+- [x] **Step 1: Add the settings pages to the layout checks**
 
 `/settings`, `/settings/server`, and `/settings/sign-in`, at both sizes, light and dark (SC-005).
 
-- [ ] **Step 2: Run the browser tests**
+- [x] **Step 2: Run the browser tests**
 
 - Run:
   `vp test --project desktop src/__browser__/layout.test.tsx && vp test --project phone src/__browser__/layout.test.tsx`
 - Expected: PASS
 
-- [ ] **Step 3: Document the settings file**
+- [x] **Step 3: Document the settings file**
 
 `README.md` and `.env.example`: the file, its folder, `URAEDA_CONFIG_DIR`, and the order flag,
 variable, file, default.
 
-- [ ] **Step 4: Screenshots**
+- [x] **Step 4: Screenshots**
 
 Each settings page and the sidebar's footer, at 402 × 874 and 1440 × 900, light and dark, reviewed
 against the stories and C2, committed as WebP under `screenshots/`.
 
-- [ ] **Step 5: Run the whole validation**
+- [x] **Step 5: Run the whole validation**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web README.md .env.example specs/2026-10-16-settings-page

@@ -1,8 +1,8 @@
 /**
  * The screenshots' views of signing in and out: the sign-in screen empty, signing in, and with a
- * wrong key's error, as a server without a session shows it; the repository menu with its sign-out
- * list; and the confirmation of "Sign out everywhere…". The screenshots' server has no sign-in: its
- * fate requests are answered here, as a server with sign-in answers a browser without a session.
+ * wrong key's error, as a server without a session shows it. Signing out is in the settings' views.
+ * The screenshots' server has no sign-in: its fate requests are answered here, as a server with
+ * sign-in answers a browser without a session.
  */
 import type { Page, Route } from "playwright";
 import { type Each, settle, show } from "./shots.ts";
@@ -22,11 +22,6 @@ async function signedOut(page: Page, onSignIn: (route: Route) => Promise<void>) 
   );
 }
 
-/** Answers the page's requests as the screenshots' server does again. */
-async function signedIn(page: Page) {
-  await page.unrouteAll({ behavior: "ignoreErrors" });
-}
-
 /** A wrong key's answer. */
 const wrongKey = (route: Route) =>
   route.fulfill({ json: { error: "This is not Uraeda's access key." }, status: 401 });
@@ -37,19 +32,7 @@ async function typed(page: Page) {
   await page.getByLabel("Access key").fill("ura_q4W7bZ0kLr2N8vXc5TfY1sHjU6mPaE3dGoK9iRtB2wQ");
 }
 
-/** Opens the repository menu, from the navigation's heading or the phone's top bar. */
-async function openMenu(page: Page) {
-  await show(page, "/", "Waiting on you");
-  await page
-    .getByRole("button", { name: /^Uraeda / })
-    .first()
-    .click();
-  const menu = page.getByRole("dialog", { name: "Repositories" });
-  await menu.getByRole("list", { name: "Sign out" }).waitFor();
-  return menu;
-}
-
-/** Every view of signing in and out, at both sizes and in both themes. */
+/** Every view of signing in, at both sizes and in both themes. */
 export async function takeSignIn(each: Each) {
   await each("sign-in", async ({ page }) => {
     await signedOut(page, wrongKey);
@@ -78,17 +61,6 @@ export async function takeSignIn(each: Each) {
     await page.getByText("This is not Uraeda's access key.").first().waitFor();
     await settle(page);
   });
-  await each("sign-in-menu", async ({ page }) => {
-    answer?.();
-    await signedIn(page);
-    const menu = await openMenu(page);
-    await menu.getByText("Sign out everywhere…").scrollIntoViewIfNeeded();
-    await settle(page);
-  });
-  await each("sign-in-confirm", async ({ page }) => {
-    const menu = await openMenu(page);
-    await menu.getByText("Sign out everywhere…").click();
-    await page.getByRole("dialog", { name: "Sign out every device?" }).waitFor();
-    await settle(page);
-  });
+  // The last sign-in's answer, held since its view, is let go.
+  answer?.();
 }
