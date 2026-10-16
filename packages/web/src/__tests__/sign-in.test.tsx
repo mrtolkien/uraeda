@@ -154,6 +154,26 @@ test("an unreachable server says so", async () => {
   expect(field().value).toBe("ura_key");
 });
 
+/** Error handling: an answer other than 401 is the server's failure, never a wrong key. */
+test.each([403, 413, 500])("a sign-in answered %i says the server failed", async (status) => {
+  const repo = fixtureRepo();
+  const { fetch } = signInServer(repo);
+  const failing: typeof globalThis.fetch = (input, init) =>
+    init?.method === "POST" && String(input).endsWith("/session")
+      ? Promise.resolve(Response.json({ error: "Forbidden" }, { status }))
+      : fetch(input, init);
+  await renderPage("/", repo, { fetch: failing });
+  await waitFor(() => expect(heading()).not.toBeNull());
+
+  await type(field(), "ura_key");
+  await click(button("Sign in"));
+
+  expect(await screen.findByText(UNREACHABLE)).toBeTruthy();
+  expect(screen.queryByText(WRONG)).toBeNull();
+  expect(screen.queryByText("Forbidden")).toBeNull();
+  expect(field().value).toBe("ura_key");
+});
+
 /** US3.1 */
 test("Sign out ends this session", async () => {
   const server = await signedInPage();
