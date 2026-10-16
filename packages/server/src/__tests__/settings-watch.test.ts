@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
-import { setTimeout as sleep } from "node:timers/promises";
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { LIST_QUIET_MS } from "../repositories.ts";
+import { FileWatch } from "../settings-watch.ts";
 import { ServerSettings } from "../settings.ts";
 
 /** The core's binding, as one object: the settings take it whole. */
@@ -11,9 +11,6 @@ const binding = await import("uraeda-binding");
 
 const MAC = "mac.tail1234.ts.net";
 const LAPTOP = "laptop.tail1234.ts.net";
-
-/** Long enough for a watch's event and the quiet moment after it: only to see nothing happen. */
-const SETTLED_MS = LIST_QUIET_MS * 5;
 
 /** How long a change may take to reach the view. */
 const POLL = { timeout: 5000 };
@@ -101,21 +98,54 @@ test("a symlinked file is seen changing, by hand, by the core, and pointed elsew
   await expect.poll(() => settings.allowedHosts(), POLL).toEqual([LAPTOP]);
 });
 
-test("a burst of writes is read once, and another file of the folder never", async () => {
+test("a burst of writes is read once", async () => {
   const dir = temporaryFolder("uraeda-config");
   const { counted, settings } = await watched(dir);
   const reads = counted.reads;
+  // A second watch of the file: once it sees a write, the settings' watch has had it too.
+  let seen = 0;
+  const probe = new FileWatch(dir, "config.toml", () => {
+    seen += 1;
+  });
+  onTestFinished(() => probe.close());
+  // The settings' quiet moment passes only when the test says so.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
 
   for (const name of [MAC, LAPTOP, MAC, LAPTOP]) {
+    const before = seen;
     writeFileSync(join(dir, "config.toml"), hosts(name));
+    await expect.poll(() => seen, POLL).toBeGreaterThan(before);
   }
-  await expect.poll(() => settings.allowedHosts(), POLL).toEqual([LAPTOP]);
-  await sleep(SETTLED_MS);
-  expect(counted.reads).toBe(reads + 1);
+  vi.advanceTimersByTime(LIST_QUIET_MS);
+  // Waits for the read the quiet moment started, then reads once more.
+  await settings.reload();
+
+  expect(settings.allowedHosts()).toEqual([LAPTOP]);
+  expect(counted.reads).toBe(reads + 2);
+});
+
+test("another file of the folder is not reported", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  let changes = 0;
+  const watch = new FileWatch(dir, "config.toml", () => {
+    changes += 1;
+  });
+  onTestFinished(() => watch.close());
+  // A second watch of the folder, for another name: its event comes after the first file's.
+  let probed = false;
+  const probe = new FileWatch(dir, "probe.txt", () => {
+    probed = true;
+  });
+  onTestFinished(() => probe.close());
 
   writeFileSync(join(dir, "notes.txt"), "mine\n");
-  await sleep(SETTLED_MS);
-  expect(counted.reads).toBe(reads + 1);
+  writeFileSync(join(dir, "probe.txt"), "seen\n");
+  await expect.poll(() => probed, POLL).toBe(true);
+
+  expect(changes).toBe(0);
 });
 
 test("close stops the reads and the listeners' calls", async () => {
@@ -124,10 +154,12 @@ test("close stops the reads and the listeners' calls", async () => {
   const changed = vi.fn();
   settings.onChange(changed);
   const reads = counted.reads;
+  // Settings still open on the folder: once they read the write, the closed ones had its events.
+  const open = await watched(dir);
 
   settings.close();
   writeFileSync(join(dir, "config.toml"), hosts(MAC));
-  await sleep(SETTLED_MS);
+  await expect.poll(() => open.settings.allowedHosts(), POLL).toEqual([MAC]);
 
   expect(counted.reads).toBe(reads);
   expect(changed).not.toHaveBeenCalled();

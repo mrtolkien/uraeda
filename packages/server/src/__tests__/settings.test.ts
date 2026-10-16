@@ -176,6 +176,22 @@ test("a hand edit reaches the view once read again, and each listener once", asy
   expect(second).not.toHaveBeenCalled();
 });
 
+/** The guard rebuilds its sets only when the array changes. */
+test("the host names keep their array while a read changes nothing", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  writeFileSync(join(dir, "config.toml"), `[server]\nallowed_hosts = ["${MAC}"]\n`);
+  const settings = await opened(dir);
+  const before = settings.allowedHosts();
+
+  await settings.reload();
+  expect(settings.allowedHosts()).toBe(before);
+
+  writeFileSync(join(dir, "config.toml"), `[server]\nallowed_hosts = ["${LAPTOP}"]\n`);
+  await settings.reload();
+  expect(settings.allowedHosts()).not.toBe(before);
+  expect(settings.allowedHosts()).toEqual([LAPTOP]);
+});
+
 test("a fixed file clears its problem, and a deleted one gives the defaults", async () => {
   const dir = temporaryFolder("uraeda-config");
   writeFileSync(join(dir, "config.toml"), "[server\n");
