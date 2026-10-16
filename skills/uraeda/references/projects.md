@@ -56,9 +56,11 @@ terminal can pass the terminal check, yet no one presses its keys.
 Do these only when a human asks.
 
 - **Draft**: a line of `PRIORITIES.md` becomes a draft in `specs/drafts/<slug>.md`, from the
-  proposal template with the line as its title and as the first paragraph of What, and no
-  placeholder text, and the line links to it. With `ura`, `ura draft <text>` does it, on the default
-  branch, without committing, and opens the editor.
+  proposal template with the line as its title and as the first paragraph of What, followed by its
+  children, which leave the line, and no placeholder text, and the line links to it alone. The
+  children's relative links are rewritten to point at the same files from the draft's folder. With
+  `ura`, `ura draft <text>` does it, on the default branch, without committing, and opens the
+  editor.
 - **Start**: name the folder with today's date and a slug of two words at most,
   `YYYY-MM-DD-feature-slug`, like `2026-10-06-recurring-tasks`. Propose a slug from the feature's
   name and ask the human for theirs before starting. The date never changes, even if the feature is

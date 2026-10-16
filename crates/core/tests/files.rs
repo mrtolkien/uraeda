@@ -467,13 +467,12 @@ fn priorities_entries_with_continuations_and_sub_items() {
     );
 }
 
+/// US6.1: the link stands alone, its sub-items gone into the draft.
 #[test]
 fn priorities_link_an_entry() {
     let linked = priorities::link(PRIORITIES, 11, "drafts/git-listener-process.md").unwrap();
 
-    assert!(linked.contains(
-        "- [Git listener process](drafts/git-listener-process.md)\n  - with a sub-item\n- Runner"
-    ));
+    assert!(linked.contains("- [Git listener process](drafts/git-listener-process.md)\n- Runner"));
 }
 
 /// The lines of a `PRIORITIES.md` whose Now holds `now`, its lines, followed by a Next.

@@ -468,7 +468,8 @@ git commit -m "feat(redesign-priorities): started entries go to the top of Now"
   lines, read from the committed `PRIORITIES.md`)
 - Modify: `skills/uraeda/references/projects.md` (Draft: "the line as its title and as the first
   paragraph of What, followed by its children, which leave the line")
-- Test: `crates/core/tests/priorities.rs`
+- Test: `crates/core/tests/priorities.rs`, and `crates/core/tests/files.rs`
+  (`priorities_link_an_entry` now expects the link alone)
 
 **Interfaces:**
 
@@ -476,7 +477,7 @@ git commit -m "feat(redesign-priorities): started entries go to the top of Now"
   rebased from `specs/` to the draft's folder; `priorities::link` replaces the whole item, sub-items
   included, by the one link line.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a_drafted_line_takes_its_children`: Later "Nix + Docker based execution environments" with
     child "with a cache" → the draft `specs/drafts/nix-docker-based-execution-environments.md` has
     the title, and What holds the line, a blank line, then `- with a cache`; the entry is the link
@@ -485,14 +486,14 @@ git commit -m "feat(redesign-priorities): started entries go to the top of Now"
     `[git](decisions/git.md)` → both resolve from `specs/drafts/` (US6 scenario 2).
   - `discard_deletes_the_draft_and_gives_the_children_back` (US6 scenario 3), and
     `discard_after_a_note_draft_and_a_line_draft` (edge case).
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `cargo nextest run -p uraeda-core -E 'test(/drafted|discard_/)'`
   - Expected: FAIL, the draft's What lacks `- with a cache`
-- [ ] **Step 3: Implement; update the skill**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement; update the skill**
+- [x] **Step 4: Run all tests**
   - Run: `cargo nextest run -p uraeda-core`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates skills
