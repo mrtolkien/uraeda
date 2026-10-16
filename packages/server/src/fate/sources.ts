@@ -137,7 +137,7 @@ function missingFeature(folder: string): FeatureRecord {
     session: null,
     slug: "",
     source: "",
-    step: { implemented: false, name: "none", progress: null, waitsOn: "nobody" },
+    step: { implemented: false, name: "none", order: 14, progress: null, waitsOn: "nobody" },
     title: "",
     uncommitted: false,
   };

@@ -159,6 +159,9 @@ pub struct Feature {
     #[serde(skip)]
     pub mockups: Vec<String>,
     pub step: Step,
+    /// Its branch's open pull request, from the latest snapshot of `gh`.
+    #[serde(skip)]
+    pub pull_request: Option<crate::pulls::PullRequestView>,
     pub problems: Vec<Problem>,
     /// For a merged feature, its worktree still there, from the main checkout.
     pub left_worktree: Option<String>,
@@ -567,6 +570,10 @@ impl Workspace {
         reading.add_branch_features(&branches, &mut features);
         let mut features: Vec<Feature> = features.into_values().collect();
         features.extend(reading.merged_features(&branches));
+        let pull_requests = crate::pulls::latest(&reading.main_root);
+        features
+            .iter_mut()
+            .for_each(|feature| pull_requests.apply(feature));
 
         let fetched = git.fetched_at();
         Ok(Workspace {
@@ -662,6 +669,7 @@ impl Feature {
             files,
             mockups: Vec::new(),
             step: Step::none(),
+            pull_request: None,
             problems,
             left_worktree: None,
             left_branch: None,
@@ -718,6 +726,7 @@ impl Feature {
             }],
             mockups: Vec::new(),
             step: Step::none(),
+            pull_request: None,
             problems,
             left_worktree: None,
             left_branch: None,

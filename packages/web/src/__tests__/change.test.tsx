@@ -104,8 +104,10 @@ test("a record without a pull request shows the step's title, with no link", asy
   const aside = await column();
   expect(await aside.findByRole("list", { name: "Files" })).toBeTruthy();
   expect(aside.queryByRole("link", { name: /^Pull request/ })).toBeNull();
-  // The step's title, the agent still to open the pull request.
-  expect(aside.getAllByRole("heading", { level: 2 })[0]!.textContent).toBe("Pull request");
+  // The step's title without GitHub, whose pull request the tests cannot know (R10).
+  expect(aside.getAllByRole("heading", { level: 2 })[0]!.textContent).toBe(
+    "Pull request state unknown",
+  );
   expect(aside.getByText("The agent is working.")).toBeTruthy();
 });
 

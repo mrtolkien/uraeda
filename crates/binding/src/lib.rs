@@ -138,6 +138,13 @@ pub fn next_step(repo: String, folder: String) -> AsyncTask<Job<NextView>> {
     job(move || api::next_step(Path::new(&repo), &folder))
 }
 
+/// Asks `gh` for the repository's open pull requests, once, for every read that follows: whether
+/// they changed since the last refresh.
+#[napi(ts_return_type = "Promise<boolean>")]
+pub fn refresh_pull_requests(repo: String) -> AsyncTask<Job<bool>> {
+    job(move || api::refresh_pull_requests(Path::new(&repo)))
+}
+
 /// The directory an agent works on a feature in, its worktree created when none has its branch.
 #[napi(ts_return_type = "Promise<string>")]
 pub fn work_dir(repo: String, folder: String) -> AsyncTask<Job<String>> {

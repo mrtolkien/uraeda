@@ -65,8 +65,21 @@ pub fn fail(message: &str) -> ExitCode {
 
 /// The repository of the current folder, and its workspace.
 pub fn workspace() -> Result<(Git, Workspace), String> {
+    read(false)
+}
+
+/// The repository of the current folder, and its workspace, with its open pull requests asked of
+/// `gh` first.
+pub fn workspace_with_pull_requests() -> Result<(Git, Workspace), String> {
+    read(true)
+}
+
+fn read(pull_requests: bool) -> Result<(Git, Workspace), String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let git = Git::discover(&cwd).map_err(|error| error.to_string())?;
+    if pull_requests {
+        uraeda_core::pulls::refresh(&git.main_root());
+    }
     let workspace = Workspace::read(&git).map_err(|error| error.to_string())?;
     Ok((git, workspace))
 }

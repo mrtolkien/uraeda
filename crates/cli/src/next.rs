@@ -19,18 +19,13 @@ struct Next<'a> {
 }
 
 pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
-    let (git, mut workspace) = output::workspace()?;
-    let lookup = |branch: &str| steps::pull_request(git.root(), branch);
+    let (_, workspace) = output::workspace_with_pull_requests()?;
     let index = match target {
-        Some(target) => {
-            let index = match output::target(&workspace, Some(&target), Purpose::Inspect)? {
-                Target::Feature(index) | Target::File(index, _) => index,
-                Target::Draft(draft) => return Err(format!("{draft} is not started")),
-            };
-            steps::refresh_pull_request(&mut workspace.features[index], lookup);
-            Some(index)
-        }
-        None => steps::next_target(&mut workspace, lookup),
+        Some(target) => match output::target(&workspace, Some(&target), Purpose::Inspect)? {
+            Target::Feature(index) | Target::File(index, _) => Some(index),
+            Target::Draft(draft) => return Err(format!("{draft} is not started")),
+        },
+        None => steps::next_target(&workspace),
     };
     let feature = index.map(|index| &workspace.features[index]);
     if json {

@@ -9,6 +9,7 @@ pub mod files;
 pub mod gates;
 pub mod git;
 pub mod images;
+pub mod pulls;
 pub mod repositories;
 pub mod settings;
 pub mod slug;
