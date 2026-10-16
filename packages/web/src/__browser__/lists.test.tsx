@@ -2,7 +2,7 @@
 // or j k, Home and End, the pane beside it following; Enter edits the selected item in its pane, and
 // Escape closes the field, then the pane. No key acts while a text field or an open Selector has
 // the focus. Each test takes the repository in turn, on a fresh copy of the fixture.
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
@@ -190,3 +190,29 @@ test("the pane starts at its top when the keys show another row", async () => {
   expect(await screen.findByText("Now · 2 of 2")).toBeTruthy();
   expect(pane.scrollTop).toBe(0);
 });
+
+/** An element's own background, or the first one behind it: a transparent one shows its parent's. */
+function background(element: Element | null): string {
+  for (let at = element; at; at = at.parentElement) {
+    const colour = getComputedStyle(at).backgroundColor;
+    if (colour !== "rgba(0, 0, 0, 0)" && colour !== "transparent") {
+      return colour;
+    }
+  }
+  return "";
+}
+
+// The spec's "the selected row is highlighted": in dark, the neutral theme's selection was the
+// page's own colour, so the open row did not show.
+test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
+  "the selected row stands out from the list, in $mode",
+  async ({ mode }) => {
+    window.localStorage.setItem("uraeda.theme", mode);
+    await show("/priorities/git-listener", "Open draft");
+    const next = within(screen.getByRole("list", { name: "Next lines" }));
+    const open = next.getByRole("link", { name: /Git listener process/ }).closest("li");
+    await expect.poll(() => open?.getAttribute("aria-current")).toBe("true");
+    const other = next.getByRole("link", { name: /Claude Code runner/ }).closest("li");
+    expect(background(open)).not.toBe(background(other));
+  },
+);
