@@ -20,6 +20,8 @@ pub struct StepView {
     pub waits_on: String,
     /// The file waiting for the human, at a gate.
     pub file: Option<String>,
+    /// That file's kind, `clarifications`, `spec`, `plan`, ...: what the gate asks of the human.
+    pub file_kind: Option<String>,
     /// The first unchecked task, for implementation.
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
@@ -104,6 +106,11 @@ impl From<&Step> for StepView {
             name: step.name.as_str().to_string(),
             waits_on: kebab(&step.waits_on),
             file: step.file.clone(),
+            file_kind: step
+                .file
+                .as_deref()
+                .and_then(FileKind::of)
+                .map(|(kind, _)| kebab(&kind)),
             task: step.task.clone(),
             progress: step.progress.clone(),
             implemented: step.implemented,

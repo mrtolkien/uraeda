@@ -3,29 +3,24 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
-import { useFateClient } from "react-fate";
 import { Blocks } from "../Blocks.tsx";
 import { MAIN_CHECKOUT, useDraft } from "../data.ts";
-import { refusal } from "../errors.ts";
 import { useTextField } from "../fields/useTextField.ts";
 import { Paragraph } from "../layout/Paragraph.tsx";
-import { navigate, useRepoPath } from "../routes.tsx";
 import { SlugField } from "../SlugField.tsx";
 import { StoriesProvider } from "../stories.tsx";
-import { FeatureView } from "../views.ts";
+import { DraftEditor } from "./DraftEditor.tsx";
+import { useDraftEditor } from "./useDraftEditor.ts";
 
 /**
- * An entry's draft, drawn, with its slug and Start the feature, as `TaskView`'s draft part: its
- * Edit moved to the pane's bar, as Open draft. TEMPORARY: a copy of `TaskView`'s `DraftPart`,
- * which the redesign's implementation shares between the two.
+ * An entry's draft: drawn to read, or, while the entry is edited (`isEditing`) or its text holds
+ * unsaved changes, its text in the editor of drafts, with Save and Commit (C2); then its slug and
+ * Start the feature, which saves the text typed first, as the editor page does.
  */
-export function PaneDraft({ path }: { path: string }) {
-  const fate = useFateClient();
+export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: string }) {
   const draft = useDraft(path);
-  const here = useRepoPath();
-  const [message, setMessage] = useState<string>();
   const slug = useTextField(`${path}#slug`, draft?.slug ?? "");
+  const editor = useDraftEditor({ draft, isDrawnFirst: false, path, slug });
   if (!draft) {
     return <Paragraph>No draft {path}.</Paragraph>;
   }
@@ -35,32 +30,34 @@ export function PaneDraft({ path }: { path: string }) {
       (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
     )
     .map((block) => block.id);
-  const start = async () => {
-    setMessage(undefined);
-    const result = await fate.mutations.feature.start({
-      input: { draft: path, slug: slug.text },
-      view: FeatureView,
-    });
-    if (result.error) {
-      setMessage(refusal(result.error).message);
-    } else if (typeof result.result?.folder === "string") {
-      slug.discard();
-      navigate(here(`/f/${result.result.folder}`));
-    }
-  };
+  const { message } = editor.actions;
   return (
     <VStack gap={3}>
       <Text color="secondary" type="supporting">
         {path.replace(/^specs\//, "")} · {draft.committed ? "committed" : "not committed"}
       </Text>
-      <StoriesProvider folder={MAIN_CHECKOUT} stories={draft.stories}>
-        <Blocks document={draft.document} ids={ids} />
-      </StoriesProvider>
+      {isEditing || editor.field.entry ? (
+        <DraftEditor draft={draft} editor={editor} />
+      ) : (
+        <StoriesProvider folder={MAIN_CHECKOUT} stories={draft.stories}>
+          <Blocks document={draft.document} ids={ids} />
+        </StoriesProvider>
+      )}
       <SlugField field={slug} />
       <HStack gap={2}>
-        <Button clickAction={start} label="Start the feature" variant="primary" />
+        <Button
+          clickAction={() => editor.actions.start(false)}
+          label="Start the feature"
+          variant="primary"
+        />
       </HStack>
-      {message && <Banner collapsible={false} status="error" title={message} />}
+      {message && (
+        <Banner
+          collapsible={false}
+          status={message.ok ? "success" : "error"}
+          title={message.text}
+        />
+      )}
     </VStack>
   );
 }

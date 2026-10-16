@@ -1,4 +1,6 @@
-// US3: a task view for every priority line; US4 scenario 9: Delete, with Undo, in the task view.
+// US1: a priority's or a note's pane opens to read, nothing focused, and Edit, in its bar, edits the
+// line in place, and a drafted entry's text with it (C2). And the task view's own tests, moved here
+// with it: its section, Delete with Undo, ‹ Previous / Next ›, and the line's field.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -6,14 +8,43 @@ import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import {
   atRepo,
+  atWidth,
   click,
   fixtureRepo,
+  git,
   read,
   renderPage,
   sent,
   serverFetch,
   type,
 } from "./helpers.tsx";
+
+const DRAFT = "specs/drafts/git-listener.md";
+
+/** The pane beside the list, as it is drawn now. */
+function detail() {
+  return within(screen.getByRole("region", { name: "Detail" }));
+}
+
+/** The pane beside the list, once it is drawn. */
+async function paneDrawn() {
+  return within(await screen.findByRole("region", { name: "Detail" }));
+}
+
+/** A section's rows on the list beside the pane, by the section's title, once it is drawn. */
+async function rows(title: string) {
+  return within(await screen.findByRole("list", { name: `${title} lines` }));
+}
+
+/** Whether a text field has the focus: opening an entry never puts it in one (SC-005). */
+function isFieldFocused() {
+  return screen.queryAllByRole("textbox").some((field) => field === document.activeElement);
+}
+
+/** Presses Edit, in the pane's bar. */
+async function pressEdit() {
+  await click(await screen.findByRole("button", { name: "Edit" }));
+}
 
 /** Types a line's new text in its field, and presses a key. */
 async function edit(text: string, key: string) {
@@ -48,37 +79,167 @@ test("a line without a draft opens its task view (US3 1)", async () => {
   expect(screen.queryByRole("button", { name: "Move down" })).toBeNull();
 });
 
-test("a line with a draft shows it drawn (US3 2)", async () => {
-  await renderPage("/priorities/git-listener");
-  expect(await screen.findByRole("heading", { name: "What" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Start the feature" })).toBeTruthy();
-  // The only field is the slug, two words of the draft's name, for the human to change.
-  expect(screen.getByRole("textbox", { name: "Slug" })).toHaveProperty("value", "git-listener");
-});
-
 test("editing the line in place moves the address (US3 3)", async () => {
   const { repo } = await renderPage("/priorities/claude-code-runner-triggered-manually");
-  await click(await screen.findByRole("button", { name: /^Claude Code runner/ }));
+  await pressEdit();
   await edit("Claude Code runner", "Enter");
   await waitFor(() => expect(read(repo)).toContain("- Claude Code runner\n"));
   await waitFor(() =>
     expect(window.location.pathname).toBe(atRepo("/priorities/claude-code-runner")),
   );
-  expect(await screen.findByRole("button", { name: /^Claude Code runner$/ })).toBeTruthy();
+  expect(await (await paneDrawn()).findByText("Claude Code runner")).toBeTruthy();
+});
+
+/** US1 1, SC-005 */
+test("a click opens the pane to read", async () => {
+  await renderPage("/priorities");
+
+  await click(await (await rows("Next")).findByRole("link", { name: /Git listener process/ }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/priorities/git-listener")));
+  expect(await (await paneDrawn()).findByText("Next · 2 of 2")).toBeTruthy();
+  expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();
+  expect(detail().getByRole("link", { name: "Open draft" })).toBeTruthy();
+  // The draft, drawn, with its slug and Start.
+  expect(await (await paneDrawn()).findByRole("heading", { name: "What" })).toBeTruthy();
+  expect(detail().getByRole("button", { name: "Start the feature" })).toBeTruthy();
+  expect(detail().getByRole("textbox", { name: "Slug" })).toHaveProperty("value", "git-listener");
+  expect(detail().queryByRole("textbox", { name: "Line" })).toBeNull();
+  expect(isFieldFocused()).toBe(false);
+  // One Close, the pane's.
+  expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
+});
+
+/** US1 2, C2 */
+test("Edit opens the line and the draft's text in place", async () => {
+  const { repo } = await renderPage("/priorities/git-listener");
+
+  await pressEdit();
+
+  const line = (await paneDrawn()).getByRole("textbox", { name: "Line" });
+  expect(line).toHaveProperty("value", "[Git listener process](drafts/git-listener.md)");
+  expect(document.activeElement).toBe(line);
+  const text = (await paneDrawn()).getByRole("textbox", { name: "Text" });
+  expect(text).toHaveProperty("value", read(repo, DRAFT));
+  expect(text.getAttribute("rows")).toBe("20");
+  expect(detail().getByText("Enter saves · Escape cancels")).toBeTruthy();
+  expect(detail().getByRole("button", { name: "Commit" })).toBeTruthy();
+});
+
+/** US1 3, SC-001 */
+test("Enter saves the line", async () => {
+  const { repo } = await renderPage("/priorities/git-listener");
+  await pressEdit();
+
+  await edit("[Git listener](drafts/git-listener.md)", "Enter");
+
+  await waitFor(() => expect(read(repo)).toContain("- [Git listener](drafts/git-listener.md)\n"));
+  await waitFor(() => expect(detail().queryByRole("textbox", { name: "Line" })).toBeNull());
+  expect(await (await rows("Next")).findByRole("link", { name: /^Git listener/ })).toBeTruthy();
+  expect(detail().getByText("Git listener")).toBeTruthy();
+  expect(await screen.findByText("1 change to commit")).toBeTruthy();
+  // The draft's text, unchanged, closed with the line.
+  expect(detail().queryByRole("textbox", { name: "Text" })).toBeNull();
+});
+
+/** C2: the draft's text, What and Why, saved and committed from the pane. */
+test("the draft's text saves in place, and commits", async () => {
+  const { repo } = await renderPage("/priorities/git-listener");
+  await pressEdit();
+  const typed = read(repo, DRAFT).replace("Run the next step", "Run the agent's next step");
+  const text = (await paneDrawn()).getByRole("textbox", { name: "Text" });
+
+  await type(text, typed);
+  await act(async () => {
+    fireEvent.keyDown(text, { ctrlKey: true, key: "Enter" });
+  });
+
+  await waitFor(() => expect(read(repo, DRAFT)).toBe(typed));
+  await click(detail().getByRole("button", { name: "Commit" }));
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+      "chore: edit the draft Git listener process",
+    ),
+  );
+  expect(git(repo, "show", `HEAD:${DRAFT}`)).toBe(typed);
+});
+
+/** US1 4 */
+test("Open draft opens the editor page", async () => {
+  await renderPage("/priorities/git-listener");
+
+  await click(await (await paneDrawn()).findByRole("link", { name: "Open draft" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${DRAFT}`)));
+  expect(
+    await screen.findByRole("heading", { level: 1, name: "Git listener process" }),
+  ).toBeTruthy();
+});
+
+/** US1 7, and what a gate asks of the human. */
+test("a running entry's pane", async () => {
+  await renderPage("/priorities");
+
+  await click(await (await rows("Ongoing")).findByRole("link", { name: /CLI TUIs/ }));
+
+  expect(await (await paneDrawn()).findByText("Running")).toBeTruthy();
+  expect(detail().getByText("Plan")).toBeTruthy();
+  expect(detail().getByRole("link", { name: "Open the feature" })).toBeTruthy();
+  expect(detail().queryByRole("radiogroup", { name: "Section" })).toBeNull();
+  expect(detail().queryByRole("radio", { name: "Now" })).toBeNull();
+
+  await click((await rows("Ongoing")).getByRole("link", { name: /Web UI for the workflow files/ }));
+  expect(await (await paneDrawn()).findByText("Answer questions")).toBeTruthy();
+});
+
+/** US1 5 */
+test("a note opens to read, with its children", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(
+    join(repo, "specs/INBOX.md"),
+    read(repo, "specs/INBOX.md").replace(
+      "- We need a home icon\n",
+      "- We need a home icon\n  - in the sidebar's header\n",
+    ),
+  );
+  await renderPage("/inbox", repo);
+
+  await click(await screen.findByRole("link", { name: /We need a home icon/ }));
+
+  expect(await (await paneDrawn()).findByText("Note, in No category")).toBeTruthy();
+  expect(detail().getByText("in the sidebar's header")).toBeTruthy();
+  expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();
+  expect(detail().queryByRole("textbox", { name: "Note" })).toBeNull();
+  expect(isFieldFocused()).toBe(false);
+});
+
+/** Edge case: a row left with unsaved text keeps it, restored as it shows again. */
+test("another row with unsaved text", async () => {
+  await renderPage("/priorities/claude-code-runner-triggered-manually");
+  await pressEdit();
+  await type(screen.getByRole("textbox", { name: "Line" }), "Claude Code runner, by hand");
+
+  await click((await rows("Later")).getByRole("link", { name: /Nix \+ Docker/ }));
+  expect(await (await paneDrawn()).findByText("Later · 1 of 1")).toBeTruthy();
+  expect(detail().queryByRole("textbox", { name: "Line" })).toBeNull();
+  await click((await rows("Next")).getByRole("link", { name: /Claude Code runner/ }));
+
+  const line = await (await paneDrawn()).findByRole("textbox", { name: "Line" });
+  expect(line).toHaveProperty("value", "Claude Code runner, by hand");
+  expect(detail().getByText(/^Unsaved text restored from \d\d:\d\d\.$/)).toBeTruthy();
 });
 
 test("Escape keeps the text, and an empty line is refused", async () => {
   const { repo } = await renderPage("/priorities/claude-code-runner-triggered-manually");
   const before = read(repo);
-  await click(await screen.findByRole("button", { name: /^Claude Code runner/ }));
+  await pressEdit();
   await edit("Something else", "Escape");
   await answer("Discard");
   expect(screen.queryByRole("textbox", { name: "Line" })).toBeNull();
-  expect(screen.getByRole("button", { name: /^Claude Code runner/ })).toBeTruthy();
+  expect(detail().getByText("Claude Code runner (triggered manually)")).toBeTruthy();
   expect(read(repo)).toBe(before);
 
-  await click(screen.getByRole("button", { name: /^Claude Code runner/ }));
+  await pressEdit();
   await edit("  ", "Enter");
   expect(screen.getAllByText("A priority cannot be empty.").length).toBeGreaterThan(0);
   expect(screen.getByRole("textbox", { name: "Line" })).toBeTruthy();
@@ -110,13 +271,13 @@ test("Next › walks the section, disabled on the last (US3 6)", async () => {
 test("a reload shows the same line (US3 7)", async () => {
   const repo = fixtureRepo();
   await renderPage("/priorities/claude-code-runner-triggered-manually", repo);
-  expect(await screen.findByRole("button", { name: /^Claude Code runner/ })).toBeTruthy();
+  expect(await (await paneDrawn()).findByText("Next · 1 of 2")).toBeTruthy();
   await renderPage(window.location.pathname, repo, { reload: true });
   expect(window.location.pathname).toBe(
     atRepo("/priorities/claude-code-runner-triggered-manually"),
   );
   expect(
-    await screen.findByRole("button", { name: "Claude Code runner (triggered manually)" }),
+    await (await paneDrawn()).findByText("Claude Code runner (triggered manually)"),
   ).toBeTruthy();
 });
 
@@ -220,7 +381,7 @@ async function npxChanged(repo = fixtureRepo()) {
     read(repo).replace("Claude Code runner (triggered manually)", NPX),
   );
   await renderPage("/priorities/run-the-web-ui-with-npx", repo);
-  await click(await screen.findByRole("button", { name: NPX }));
+  await pressEdit();
   await type(lineField(), LONGER);
   return repo;
 }
@@ -253,7 +414,7 @@ test.each(["Enter", "Save"])("%s saves the line, and closes it", async (how) => 
   }
 
   await waitFor(() => expect(read(repo)).toContain(`- ${LONGER}\n`));
-  expect(await screen.findByRole("button", { name: LONGER })).toBeTruthy();
+  expect(await (await paneDrawn()).findByText(LONGER)).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Line" })).toBeNull();
 });
 
@@ -291,14 +452,14 @@ test.each(["Escape", "Cancel"])("%s on a changed line asks first", async (how) =
   await cancel();
   await answer("Discard");
   expect(screen.queryByRole("textbox", { name: "Line" })).toBeNull();
-  expect(screen.getByRole("button", { name: NPX })).toBeTruthy();
+  expect(detail().getByText(NPX)).toBeTruthy();
   expect(read(repo)).toBe(before);
 });
 
 /** US2 8 */
 test("an unchanged line's Save is disabled, and Cancel closes it without asking", async () => {
   await renderPage("/priorities/claude-code-runner-triggered-manually");
-  await click(await screen.findByRole("button", { name: /^Claude Code runner/ }));
+  await pressEdit();
 
   expect(screen.getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true);
   expect(screen.queryByText("Unsaved changes")).toBeNull();
@@ -326,7 +487,7 @@ test("a line's unsaved text is restored after a reload, and Discard drops it", a
 
   forgetUnsaved();
   await renderPage(window.location.pathname, repo, { reload: true });
-  expect(await screen.findByRole("button", { name: NPX })).toBeTruthy();
+  expect(await (await paneDrawn()).findByText(NPX)).toBeTruthy();
   expect(screen.queryByText(/^Unsaved text restored/)).toBeNull();
 });
 
@@ -348,4 +509,22 @@ test("Escape on a changed slug asks first", async () => {
   await escape();
   await answer("Discard");
   expect(slug().value).toBe("git-listener");
+});
+
+/** US1 6: on a phone, the entry's page, to read, Edit at its top, and no keyboard. */
+test("on a phone, the page opens to read", async () => {
+  atWidth(402);
+  try {
+    await renderPage("/priorities");
+
+    await click(await (await rows("Next")).findByRole("link", { name: /Git listener process/ }));
+
+    expect(await screen.findByText("Next · 2 of 2")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Detail" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(isFieldFocused()).toBe(false);
+  } finally {
+    atWidth(1024);
+  }
 });

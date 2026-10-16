@@ -759,3 +759,24 @@ test("a feature's committed proposal is edited and committed in its worktree", a
   );
   expect(readFileSync(proposal, "utf8")).toContain("Run agents.");
 });
+
+/** C2 and R1: the pane's editor and the editor page hold one unsaved text, `<path>#editor`. */
+test("the draft's text typed in the pane opens on the editor page", async () => {
+  const typed = "# Git listener process\n\n## What\n\nTyped in the pane.\n";
+  await renderPage("/priorities/git-listener");
+  await click(await screen.findByRole("button", { name: "Edit" }));
+  await type(screen.getByRole("textbox", { name: "Text" }), typed);
+
+  await click(screen.getByRole("link", { name: "Open draft" }));
+  await click(
+    within(await screen.findByRole("dialog", { name: "Leave page?" })).getByRole("button", {
+      name: "Leave page",
+    }),
+  );
+
+  await waitFor(() =>
+    expect(window.location.pathname).toBe(atRepo("/edit/specs/drafts/git-listener.md")),
+  );
+  expect(await screen.findByRole("textbox", { name: "Text" })).toHaveProperty("value", typed);
+  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+});

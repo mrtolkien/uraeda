@@ -1,20 +1,35 @@
 // What a priority's pane does to its line: rename it, move it to a section, draft it, or delete it
-// with Undo, each written at once over the priorities as read. TEMPORARY: `TaskView`'s actions,
-// taken out of it as they are, which the redesign's implementation shares between the two.
+// with Undo, each written at once over the priorities as read.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readPrioritiesHash, usePriority } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
-import { navigate, redirect, useRepoPath } from "../routes.tsx";
+import { currentEntry, navigate, redirect, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { DraftView, PrioritiesView } from "../views.ts";
 
 /** A line found in the priorities, with its section and its place in it. */
 export type Found = NonNullable<ReturnType<typeof usePriority>["found"]>;
 
-/** The pane's actions on `found`, over the priorities of `hash`, and the last refusal to show. */
-export function usePriorityActions({ entry, index, section }: Found, hash: string) {
+/**
+ * The page a pane was opened from, within its repository, which it returns to once its line is
+ * deleted.
+ */
+function origin() {
+  return currentEntry().from === "/" ? "/" : "/priorities";
+}
+
+/**
+ * The pane's actions on `found`, over the priorities of `hash`, and the last refusal to show.
+ * `onRenaming` gets the line's id while its text is saved, as its key changes before its address
+ * does, and nothing once the save is refused.
+ */
+export function usePriorityActions(
+  { entry, index, section }: Found,
+  hash: string,
+  onRenaming: (id: string | undefined) => void,
+) {
   const fate = useFateClient();
   const toast = useUndoToast();
   const here = useRepoPath();
@@ -38,11 +53,13 @@ export function usePriorityActions({ entry, index, section }: Found, hash: strin
   };
 
   const rename = async (text: string) => {
+    onRenaming(entry.id);
     const result = await fate.mutations.priorities.edit({
       input: { entry: entry.id, hash, text },
       view: PrioritiesView,
     });
     if (result.error) {
+      onRenaming(undefined);
       return refusal(result.error).message;
     }
     const key = result.result?.sections
@@ -74,6 +91,7 @@ export function usePriorityActions({ entry, index, section }: Found, hash: strin
 
   const remove = async () => {
     const text = plain(entry.spans);
+    // What Undo writes back: the line's lines, nested ones included, exactly as they were.
     const { lines } = entry;
     const at = { index, section: section.section };
     const result = await run(() =>
@@ -85,6 +103,7 @@ export function usePriorityActions({ entry, index, section }: Found, hash: strin
     const failed = `Could not restore "${text}": PRIORITIES.md changed on disk.`;
     toast(`Deleted "${text}"`, async () => {
       try {
+        // Over the file as it is now: the line goes back to its place, or its section's end.
         const now = await readPrioritiesHash(fate);
         const restored = await fate.mutations.priorities.insert({
           input: { ...at, hash: now, lines },
@@ -95,7 +114,7 @@ export function usePriorityActions({ entry, index, section }: Found, hash: strin
         return failed;
       }
     });
-    redirect(here("/priorities"));
+    redirect(here(origin()));
   };
 
   return { draft, message, move, remove, rename };

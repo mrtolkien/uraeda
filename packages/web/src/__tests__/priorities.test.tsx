@@ -79,6 +79,16 @@ test("ongoing entries show apart, with their step", async () => {
   expect(screen.queryByRole("button", { name: "Add to Ongoing" })).toBeNull();
 });
 
+/** The spec's assumption: an entry at a human gate says what the gate asks, as home does. */
+test("an ongoing entry at a gate says what it asks of the human", async () => {
+  await renderPage("/priorities");
+
+  const row = await findRow("Ongoing", "Web UI for the workflow files");
+
+  expect(within(row).getByText("Answer questions")).toBeTruthy();
+  expect(within(row).queryByText("Waiting on you")).toBeNull();
+});
+
 /** US4 2 and 3: a draft that exists shows "Draft", a missing one nothing. */
 test("a drafted entry shows Draft, a missing draft nothing", async () => {
   const repo = fixtureRepo();

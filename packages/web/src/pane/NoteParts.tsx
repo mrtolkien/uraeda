@@ -1,5 +1,4 @@
-// The note pane's own controls: its Category, and the Organize actions, as `NoteView` draws them.
-// TEMPORARY: copies of `NoteView`'s, which the redesign's implementation shares between the two.
+// The note pane's own controls: its Category, and the Organize actions.
 import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";

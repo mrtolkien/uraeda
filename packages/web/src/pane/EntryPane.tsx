@@ -1,7 +1,8 @@
 // The detail pane of an entry, a priority or a note, shared by both pages: a bar with its place
 // and its actions, then its body, read-only on arrival. Opening it focuses nothing: the arrows keep
 // moving through the list, and the entry reads as markdown. Edit, in the bar, turns its text into
-// the one-line field, in place (Q4, Q5 of the redesign's first round).
+// the one-line field, in place (Q4, Q5 of the redesign's first round), and a drafted entry's
+// draft into its text, under it (C2).
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
@@ -21,6 +22,7 @@ import type { ReactNode } from "react";
 import type { Span } from "uraeda-binding";
 import { LineField } from "../EditableLine.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
+import { usePaneEdit } from "../lists/listPane.ts";
 import { Spans } from "../Spans.tsx";
 import type { useLineSave } from "../useLineSave.ts";
 
@@ -134,10 +136,11 @@ export function EntryText({
       {line.open ? (
         <LineField label={label} line={line} />
       ) : (
-        <p {...stylex.props(styles.text)}>
+        // The pane's title: a heading, read at a heading's size.
+        <h2 {...stylex.props(styles.text)}>
           {marks}
           <Spans spans={spans} />
-        </p>
+        </h2>
       )}
       {nested.length > 0 && (
         <ul {...stylex.props(styles.children)}>
@@ -187,36 +190,42 @@ export function Steps({
 /**
  * The pane: its bar, then its body, `text` first, then `children`, what the entry's kind adds, a
  * Delete button, and ‹ Previous / Next ›. On wide screens it sits beside the list, with Close; on
- * narrow ones it is the page itself, and Back leaves it.
+ * narrow ones it is the page itself, and Back leaves it. `onEdit`, from Edit or Enter on the list's
+ * selected row, opens what the pane edits; `isEditing` says it is open, and once it closes the
+ * focus goes back to the list's row.
  */
 export function EntryPane({
   children,
   draftHref,
-  line,
+  isEditing,
   location,
   onClose,
   onDelete,
+  onEdit,
   steps,
   text,
 }: {
   children: ReactNode;
   draftHref?: string;
-  line: ReturnType<typeof useLineSave>;
+  isEditing: boolean;
   location: string;
   onClose?: () => void;
   onDelete: () => Promise<void> | void;
+  onEdit: () => void;
   steps: ReactNode;
   text: ReactNode;
 }) {
   const wide = useWidthClass() === "wide";
+  // Enter on the list's selected row edits, as Edit does.
+  usePaneEdit(onEdit, isEditing);
   return (
     <VStack gap={0}>
       <PaneBar
         draftHref={draftHref}
-        isEditing={line.open}
+        isEditing={isEditing}
         location={location}
         onClose={onClose}
-        onEdit={line.openLine}
+        onEdit={onEdit}
       />
       <div {...stylex.props(styles.body, wide && styles.bodyWide)}>
         <VStack gap={4}>

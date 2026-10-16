@@ -102,6 +102,7 @@ export const FeatureView = view<Feature>()({
   source: true,
   step: {
     file: true,
+    fileKind: true,
     implemented: true,
     name: true,
     order: true,
