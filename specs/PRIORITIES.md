@@ -7,6 +7,10 @@
 > Features for v1.0.0
 
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
+- Storybook's full interface inside Uraeda: its page lists stories but renders none, since
+  Storybook's dev mode pins its messages to an origin the sandboxed frame lacks
+  (`security.insecureIframeMessaging`). Look at it as a change, see round 04 of the UI iteration
+  flow
 
 - [Redesign sidebars and global interface](drafts/redesign-interface.md)
 - [Redesign home, inbox, and priorities](drafts/redesign-priorities.md)
