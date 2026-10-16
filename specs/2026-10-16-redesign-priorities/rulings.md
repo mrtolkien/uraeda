@@ -327,3 +327,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for one link, which already disagreed on a missing draft.
 - **If wrong**: `Workspace::link`, and `PriorityLink.draft` for a hint naming backlog apart.
 - **Where**: the final review.
+
+## R24: A re-read answered after a line's save does not bring its old text back
+
+- **Decision**: no change. A read of the priorities sent before a line's rename and answered after
+  the rename's own answer leaves the new text on screen: fate gives each read the write generation
+  it started with, and refuses an older read's write over a record a newer write already set while
+  reads are in flight (`acceptWrite` in `@nkzw/fate`).
+- **Rationale**: checked in `pane.test.tsx`'s setting, with a throwaway test: the page's
+  refresh-on-show re-read, answered by the server with "Git listener process", was held until the
+  rename to "Git listener" was saved and drawn, then released; the pane and the Next row kept "Git
+  listener". In the app, the watch's push after the write reads the file again in any case.
+- **Alternatives considered**: a hash or a version on the priorities record, kept by the client: a
+  copy of what fate's write generations already do.
+- **If wrong**: a slow re-read flashes the old line until the watch's next push; a test holding a
+  read's answer, as the check did, shows it.
+- **Where**: the final review.
