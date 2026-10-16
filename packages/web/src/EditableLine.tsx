@@ -16,6 +16,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
+import { usePaneEdit } from "./lists/listPane.ts";
 import { useLineSave } from "./useLineSave.ts";
 
 /** What the restore notice adds when the line changed since its unsaved text was typed. */
@@ -53,12 +54,14 @@ const styles = stylex.create({
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
  * for the next line. `look` draws the closed line as text, by default, or as a bordered field, for
  * a value to change like a setting's. `empty` is the refusal of an empty text, a priority's by
- * default.
+ * default. With `isPaneEdit`, the line is its pane's item: Enter on the list's selected row opens
+ * it.
  */
 export function EditableLine({
   display,
   empty,
   field: key,
+  isPaneEdit = false,
   label,
   look = "text",
   onSave,
@@ -68,6 +71,7 @@ export function EditableLine({
   display?: ReactNode;
   empty?: string;
   field: string;
+  isPaneEdit?: boolean;
   label: string;
   look?: "text" | "field";
   onSave: (text: string) => Promise<string | undefined>;
@@ -75,6 +79,7 @@ export function EditableLine({
   value: string;
 }) {
   const line = useLineSave({ empty, field: key, onSave, stayOpen, value });
+  usePaneEdit(isPaneEdit ? line.openLine : undefined, line.open);
 
   if (!line.open) {
     return (

@@ -260,6 +260,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           <EditableLine
             display={text}
             field={`priorities#${entry.key}`}
+            isPaneEdit
             label="Line"
             onSave={rename}
             value={entry.text}

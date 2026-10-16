@@ -1,7 +1,8 @@
 // The list the priorities and the inbox share: sections under a coloured heading with their count,
 // on wide screens a thin edge of the same colour, and compact rows with the drag handle on the
 // left, their text, their children as grey lines, and their marks on the right. Each row is one
-// link; its handle, a press of half a second on a touch screen, or the keyboard moves it.
+// link; its handle, a press of half a second on a touch screen, or the keyboard moves it. The keys
+// move the selection, with the pane beside the list following (see `useListKeys`).
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -19,9 +20,11 @@ import {
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
-import { Fragment, type ReactNode, type Ref, useEffect, useRef } from "react";
+import { Fragment, type ReactNode, type Ref, use, useEffect } from "react";
 import { useWidthClass } from "../layout/useWidthClass.ts";
+import { ListPaneContext } from "./listPane.ts";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
+import { useListKeys } from "./useListKeys.ts";
 
 /**
  * A section's colour: the ongoing entries green, Now blue, Next and the inbox's categories
@@ -151,6 +154,8 @@ function RowItem({
   const hasMarksBelow = isNarrow && row.marks !== undefined;
   return (
     <ListItem
+      // What the list's keys move between: see `useListKeys`.
+      data-row=""
       description={
         row.lines.length > 0 || hasMarksBelow ? (
           <>
@@ -305,12 +310,7 @@ export function WorkList({
   sections: ReadonlyArray<WorkSection>;
   selected?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (isFocused && selected !== undefined) {
-      ref.current?.querySelector<HTMLElement>('[aria-current="true"] a, a[aria-current]')?.focus();
-    }
-  }, [isFocused, selected]);
+  const pane = use(ListPaneContext);
   const drag = useDragOrder(sections, onMove);
   const byKey = new Map(
     drag.sections.flatMap((section) => section.rows.map((row) => [row.key, row] as const)),
@@ -319,6 +319,24 @@ export function WorkList({
     section.isFixed
       ? section.rows
       : (drag.order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? []);
+  // The rows in the order they show, which the keys move along.
+  const rows = drag.sections.flatMap(rowsOf);
+  const { focusSelected, ref } = useListKeys({
+    onClose: () => {
+      pane?.close();
+      return pane !== null;
+    },
+    onEdit: () => pane?.edit() ?? false,
+    // On wide screens the pane follows the selection; without a pane, only the focus moves.
+    onSelect: (index) => pane?.follow(rows[index].href),
+    selected: rows.findIndex((row) => row.key === selected),
+  });
+  useEffect(() => {
+    if (isFocused && selected !== undefined) {
+      focusSelected();
+    }
+  }, [isFocused, selected, focusSelected]);
+  useEffect(() => pane?.setFocusRow(focusSelected), [pane, focusSelected]);
   return (
     <div ref={ref}>
       <DragDropProvider {...drag.provider}>
