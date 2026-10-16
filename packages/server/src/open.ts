@@ -6,11 +6,18 @@ import type { Binding } from "./fate/context.ts";
 import type { FateVariables } from "./fate.ts";
 import type { Hosts } from "./repositories.ts";
 
-/** A second start's request: its absolute folder, and whether `--repo` or `URAEDA_REPO` gave it. */
-export type OpenRequest = { folder: string; given: boolean };
+/**
+ * A second start's request: its absolute folder, whether `--repo` or `URAEDA_REPO` gave it, and
+ * whether it opens a browser, which then gets a one-time link.
+ */
+export type OpenRequest = { folder: string; given: boolean; signIn?: boolean };
 
-/** The running server's answer: its version, which marks it as Uraeda, and the page to open. */
-export type OpenAnswer = { uraeda: string; url: string };
+/**
+ * The running server's answer: its version, which marks it as Uraeda, the page to open, and the
+ * address the second start's browser opens, a one-time link to it, or the page itself without
+ * sign-in.
+ */
+export type OpenAnswer = { signIn: string; uraeda: string; url: string };
 
 /** The `code` of `openFolder`'s error for a given folder outside git, which stops the start. */
 export const NOT_A_REPOSITORY = "NOT_A_REPOSITORY";
@@ -45,14 +52,16 @@ async function openRequest(request: Request): Promise<OpenRequest | null> {
   if (typeof body?.folder !== "string" || !isAbsolute(body.folder)) {
     return null;
   }
-  return { folder: body.folder, given: body.given === true };
+  return { folder: body.folder, given: body.given === true, signIn: body.signIn === true };
 }
 
 /**
- * `POST /open`: 200 with an `OpenAnswer`, or 400 with `{ error }` for a body without an absolute
- * folder, a given folder outside git, or a list the core refuses to change.
+ * `POST /open`: 200 with an `OpenAnswer`, its `signIn` from `signInLink` when the request asks
+ * for one, else the page, or 400 with `{ error }`
+ * for a body without an absolute folder, a given folder outside git, or a list the core refuses to
+ * change.
  */
-export function openRoute() {
+export function openRoute(signInLink: (to: string) => string) {
   const route = new Hono<{ Variables: FateVariables }>();
   route.post("/open", async (context) => {
     const request = await openRequest(context.req.raw);
@@ -62,7 +71,11 @@ export function openRoute() {
     const { binding, dataDir, hosts } = context.get("fate");
     try {
       const { url } = await openFolder({ binding, dataDir, hosts }, request);
-      return context.json({ uraeda: binding.version(), url } satisfies OpenAnswer);
+      return context.json({
+        signIn: request.signIn ? signInLink(url) : url,
+        uraeda: binding.version(),
+        url,
+      } satisfies OpenAnswer);
     } catch (error) {
       return context.json({ error: (error as Error).message.replace(/^refused: /, "") }, 400);
     }

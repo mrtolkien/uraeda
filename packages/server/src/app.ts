@@ -31,7 +31,7 @@ const rewritten = async (request: Request) =>
   });
 
 /** What `createApp` takes, and its route groups. */
-type AppOptions = Omit<Options, "given" | "open" | "repo" | "show"> & {
+type AppOptions = Omit<Options, "given" | "newKey" | "open" | "repo" | "show"> & {
   binding: Binding;
   dataDir: string;
   /** The frame secret of preview and mockup paths: a new one by default. */
@@ -171,7 +171,7 @@ export function createApp(options: AppOptions) {
   app.route("/r/:name", previewRoutes());
   app.route("/r/:name", files());
   app.route("/r/:name", attach());
-  app.route("/", openRoute());
+  app.route("/", openRoute(signIn ? (to) => signIn.links.make(to) : (to) => to));
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));
     app.get("/*", serveStatic({ path: "index.html", root: options.webRoot }));

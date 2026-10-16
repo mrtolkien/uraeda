@@ -172,3 +172,75 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   value.
 - **If wrong**: test code only.
 - **Where**: task 3, `packages/web/vite.browser.config.ts` and the story browser tests
+
+## R16: Existing start tests follow the host token and sign-in
+
+- **Decision**: "a second start hands its repository to the running server" runs its second start on
+  the same data folder; "a second start during the first's start waits for it" waits for the host
+  token file instead of the bound port, and sends the token; "SIGHUP stops the server and its
+  Storybooks" signs in with the printed key before reading the `Preview` record. The `/open` answers
+  in `open.test.ts` gain `signIn`; the server, dev, and preview tests that read routes without a
+  cookie start with `signIn: false`.
+- **Rationale**: the spec makes a second start with another data folder an error, and closes every
+  route without a session. Each test keeps what it checked: the handover, a request while the server
+  starts, the Storybooks stopped with the server.
+- **Alternatives considered**: a way to start `main.ts` without sign-in, which the sign-in decision
+  forbids.
+- **If wrong**: test code only.
+- **Where**: task 4, `__tests__/main.test.ts`, `open.test.ts`, `server.test.ts`, `dev.test.ts`,
+  `preview/__tests__/helpers.ts`
+
+## R17: The help line for `--new-key` is aligned with the other options
+
+- **Decision**: `HELP` writes `--new-key` followed by 16 spaces, so its text starts in the same
+  column as every other option's; the spec's and plan's line has 15.
+- **Rationale**: one space less shifts the line left of its neighbours, which reads as a typo in
+  `uraeda --help`. The words are the spec's.
+- **Alternatives considered**: 15 spaces, as written, and a misaligned help.
+- **If wrong**: one space in `options.ts` and its test.
+- **Where**: task 4, `options.ts`
+
+## R18: A one-time link is made only when a browser opens, a second start's too
+
+- **Decision**: `browserOpens()` gives `openBrowser`'s decision before anything is opened. The first
+  start makes its link only when it is true; a second start sends `signIn: true` in its `/open`
+  request only then, and `/open` makes a link only when asked, answering the page itself otherwise.
+- **Rationale**: the spec's edge case says a start with no desktop makes no one-time link. The
+  server makes a second start's link, so it must be told whether a browser will open.
+- **Alternatives considered**: `/open` always making a link, left to expire unused over SSH or with
+  `--no-open`; `openBrowser` taking a function, which covers the first start only.
+- **If wrong**: a link made and never used expires in 5 minutes; the field can be dropped.
+- **Where**: task 4, `browser.ts`, `open.ts`, `main.ts`
+
+## R19: `vp dev` prints the access key its start made
+
+- **Decision**: `devHandler`, with sign-in on, prints the two lines of a key its start made, as
+  `uraeda` does.
+- **Rationale**: `vp dev` on a fresh data folder makes the key; without the lines, no one could sign
+  in to it, and it has no host token for `--new-key`.
+- **Alternatives considered**: printing nothing, and asking developers to start `uraeda` once first.
+- **If wrong**: a few lines in `dev.ts`.
+- **Where**: task 4, `dev.ts`
+
+## R20: `--new-key` shows one key, after the server's address
+
+- **Decision**: without a server, `--new-key` prints `Uraeda server on <address>`, then the two
+  lines of the new key, as the first start prints its key. When that start made the key, it is the
+  new key: no second one is made, and the new-key lines show it. A second start with no host token
+  for the port is refused like a wrong token.
+- **Rationale**: the spec's US3.5 asks the same two lines and a start as usual; the mockup's first
+  start prints the address first. One key made per command keeps SC-003's "the key appears only in
+  the line that showed it".
+- **Alternatives considered**: the first start's lines and the new key's, two keys in one output.
+- **If wrong**: the order of two writes in `main.ts`.
+- **Where**: task 4, `main.ts`
+
+## R21: `POST /session/key` refuses with 401 and keeps the cookie
+
+- **Decision**: without the host token, the route answers 401 `{ "error": "Sign in to Uraeda." }`,
+  `no-store`, and does not clear a session cookie the request carried.
+- **Rationale**: R8 lets a signed-in request reach the route; refusing it the new key must not sign
+  that browser out. The body is the spec's 401 text; no new text is needed.
+- **Alternatives considered**: 403 with a new text; the check's `refused`, which clears the cookie.
+- **If wrong**: a status and a body in `routes.ts`.
+- **Where**: task 4, `sign-in/routes.ts`

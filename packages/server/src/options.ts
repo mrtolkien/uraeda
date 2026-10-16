@@ -6,6 +6,8 @@ import { type Env, hostNames } from "./env.ts";
 export type Options = Env & {
   /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
+  /** Whether the start makes a new access key, signing every device out: `--new-key`. */
+  newKey: boolean;
   /** Whether the start opens the browser: false with `--no-open`. */
   open: boolean;
   /** What to print instead of starting: `--help` or `--version`. */
@@ -21,6 +23,7 @@ Starts Uraeda's web UI for the repository of the current folder.
   --repo <folder>          the repository to open, the current folder by default (URAEDA_REPO)
   --allowed-hosts <names>  host names accepted besides 127.0.0.1, comma separated (URAEDA_ALLOWED_HOSTS)
   --no-open                do not open the browser
+  --new-key                make a new access key and sign every device out
   --version                print the version
   --help                   print this help
 `;
@@ -38,6 +41,7 @@ export function parseOptions(argv: Array<string>, env: Env): Options {
       values["allowed-hosts"] === undefined ? env.allowedHosts : hostNames(values["allowed-hosts"]),
     allowOrigins: values["allow-origin"],
     given: Boolean(values.repo) || env.given,
+    newKey: Boolean(values["new-key"]),
     open: !values["no-open"],
     port: values.port ? Number(values.port) : env.port,
     repo: values.repo ? resolve(values.repo) : env.repo,
@@ -54,6 +58,7 @@ function parse(argv: Array<string>) {
         "allow-origin": { default: [], multiple: true, type: "string" },
         "allowed-hosts": { type: "string" },
         help: { type: "boolean" },
+        "new-key": { type: "boolean" },
         "no-open": { type: "boolean" },
         port: { type: "string" },
         repo: { type: "string" },

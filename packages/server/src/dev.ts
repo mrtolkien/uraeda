@@ -14,7 +14,7 @@ import { layout } from "./paths.ts";
 import type { FrameSecret } from "./sign-in/frames.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
 import { SERVER_PATHS } from "./server-paths.ts";
-import { type Server, startServer } from "./server.ts";
+import { keyLines, type Server, startServer } from "./server.ts";
 
 export { checkBinding, loadEnv };
 
@@ -110,8 +110,10 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
  * first request to its port, in the repository of the settings read then, on Claude Code unless
  * `adapter` says otherwise, from `.env` too unless `file` is false. `allowOrigins` gives the
  * origins the server of a port allows besides its own, none by default. `lockedList` locks the
- * server's list, as Uraeda's own Storybook does: see `unlockedList`. A start that fails answers 500
- * with its reason, and the next request tries again.
+ * server's list, as Uraeda's own Storybook does: see `unlockedList`. Sessions are checked unless
+ * `signIn` is false, as for the browser tests and Uraeda's own Storybook; a key the start makes is
+ * printed, as `uraeda` prints it. A start that fails answers 500 with its reason, and the next
+ * request tries again.
  */
 export function devHandler(
   root: string | null,
@@ -119,11 +121,13 @@ export function devHandler(
     adapter,
     allowOrigins,
     lockedList = false,
+    signIn = true,
     ...sources
   }: {
     adapter?: Adapter;
     allowOrigins?: (port: number) => Array<string>;
     lockedList?: boolean;
+    signIn?: boolean;
   } & Sources = {},
 ) {
   const env = loadEnv(root, process.env, sources);
@@ -142,7 +146,11 @@ export function devHandler(
       dataDir,
       lockedList,
       port,
+      ...(!signIn && { signIn: false as const }),
     });
+    if (server.key !== undefined) {
+      process.stdout.write(keyLines(server.key));
+    }
     return { listener: getRequestListener(server.app.fetch), server };
   };
   const serverOf = (port: number) => {

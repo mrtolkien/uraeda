@@ -184,6 +184,7 @@ export async function runningPreview(mode: FakeMode = "ok", repo = fixtureRepo()
     given: false,
     port,
     repo,
+    signIn: false,
   });
   http.on("request", getRequestListener(server.app.fetch));
   http.on("upgrade", server.upgrade);

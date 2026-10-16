@@ -409,7 +409,11 @@ export default defineConfig({
     ...plugins,
     slowChatImages,
     // SC-006's page, under the listed host name, is its own origin, which the guard allows.
-    uraedaServer({ adapter: agent, allowOrigins: (port) => [`http://${LISTED_HOST}:${port}`] }),
+    uraedaServer({
+      adapter: agent,
+      allowOrigins: (port) => [`http://${LISTED_HOST}:${port}`],
+      signIn: false,
+    }),
   ],
   // The dev server's fixed port is for `vp dev`: the tests take the next free port when another
   // checkout's tests hold theirs. Vite answers the listed host name too (R12).
