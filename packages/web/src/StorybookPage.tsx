@@ -6,14 +6,14 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useContext, useLayoutEffect, useRef, useState } from "react";
 import type { StoryTarget } from "uraeda-binding";
 import { Crumbs } from "./Crumbs.tsx";
 import { MAIN_CHECKOUT, usePreview, usePreviewOn, useStory } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
-import { storybookHref } from "./stories.tsx";
+import { PreviewBase, storybookHref } from "./stories.tsx";
 import { NoSuchStory, State, TryAgain } from "./StoryEmbed.tsx";
 
 const styles = stylex.create({
@@ -96,11 +96,12 @@ function useWindowHeight(shown: boolean) {
 function StorybookFrame({ folder }: { folder: string }) {
   const record = usePreview(folder);
   const search = useSearch();
+  const base = useContext(PreviewBase);
   if (record?.state === "ready" && record.base) {
     return (
       <iframe
         sandbox={SANDBOX}
-        src={`${record.base}${pathOf(search)}`}
+        src={`${base}${record.base}${pathOf(search)}`}
         title="Storybook"
         {...stylex.props(styles.frame)}
       />

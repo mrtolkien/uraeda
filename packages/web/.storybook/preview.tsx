@@ -1,8 +1,9 @@
 /// <reference types="vite-plus/client" />
 // Every story of Uraeda's Storybook, as the app draws it: Astryx's stylesheets and Uraeda's theme,
 // in the colour mode of the page that embeds it, inside the fixture repository's providers, on a
-// fate client that reaches Uraeda's server in Storybook through GETs (R4). The skill's pick script
-// lets Uraeda's embeds pick an element in it.
+// fate client that reaches Uraeda's server in Storybook through GETs (R4), and that server's preview
+// URLs under Storybook's base (R43). The skill's pick script lets Uraeda's embeds pick an element in
+// it.
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "../src/theme/built/uraeda.css";
@@ -15,6 +16,7 @@ import { FateClient } from "react-fate";
 import { fateClients } from "../src/clients.ts";
 import { ListClientContext } from "../src/RepositoryMenu.tsx";
 import { RepositoryContext } from "../src/routes.tsx";
+import { PreviewBase } from "../src/stories.tsx";
 import type { ThemeMode } from "../src/theme.tsx";
 import { uraedaTheme } from "../src/theme/built/uraeda.js";
 import { fetchOverGet, liveWithoutCredentials } from "./fateOverGet.ts";
@@ -24,11 +26,11 @@ const REPOSITORY = "fixture";
 
 liveWithoutCredentials();
 
-/** The fate clients, under Storybook's base: Uraeda's address of it, or `/` on its own. */
-const clientFor = fateClients({
-  fetch: fetchOverGet,
-  origin: import.meta.env.BASE_URL.replace(/\/$/, ""),
-});
+/** Storybook's base, without its last slash: Uraeda's address of it, or empty on its own. */
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+/** The fate clients, under Storybook's base. */
+const clientFor = fateClients({ fetch: fetchOverGet, origin: BASE });
 
 /**
  * The colour mode the embedding page sends, `{ uraeda: "mode", mode }`, from `window.parent` only;
@@ -80,7 +82,9 @@ function InUraeda({ children }: { children: ReactNode }) {
           <ListClientContext value={clientFor(null)}>
             <RepositoryContext value={REPOSITORY}>
               <FateClient client={clientFor(REPOSITORY)}>
-                <Suspense>{children}</Suspense>
+                <PreviewBase value={BASE}>
+                  <Suspense>{children}</Suspense>
+                </PreviewBase>
               </FateClient>
             </RepositoryContext>
           </ListClientContext>

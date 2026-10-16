@@ -636,27 +636,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `storybook:build` task in `vite.tasks.ts`.
 - **Where**: task 12, `vite.tasks.ts`, `packages/web/tsconfig.json`.
 
-## R43: The validation script opens its own checkout's Storybook, and nested frames load only on Storybook's own address
+## R43: The validation script opens its own checkout's Storybook, and the preview's URLs are rebased under Storybook's base
 
 - **Decision**: `validate-storybook.ts` serves the repository with the server as `vp dev` mounts it
   (`devHandler` on the fake agent, a temporary data folder) and opens the `Ready` story under the
   checkout it runs in: the feature's folder in a feature's worktree, `main` otherwise. Through
   Uraeda, the `Ready` story of `StoryEmbed.stories.tsx` shows its state, its toolbar, and its frames
-  from the fixture's data, but its frames' own pages do not load: their paths,
-  `/r/fixture/preview/<folder>/…`, are from the root, so they reach Uraeda, which has no `fixture`
-  repository. On Storybook's own address, `http://127.0.0.1:6006/`, they load. Storybook runs Vite
-  without an HTTP server of its own, so the server plugin attaches no upgrade handler there: the
-  nested frames' sockets are not forwarded, and their fake Storybooks stop through the runner's exit
-  hook when Storybook stops, as every run of the script left none.
+  from the fixture's data, and its frames show their story. The server's preview URLs, `Story.frame`
+  and `Preview.base`, are from the root, `/r/fixture/preview/<folder>/…`, which would reach Uraeda,
+  which has no `fixture` repository: the embed and the Storybook page put them under the
+  `PreviewBase` context, empty in the app, and Uraeda's Storybook's preview gives it its own base,
+  as it does to its fate clients. Storybook runs Vite without an HTTP server of its own, so the
+  server plugin attaches no upgrade handler there: the nested frames' sockets are not forwarded, and
+  their fake Storybooks stop through the runner's exit hook when Storybook stops, as every run of
+  the script left none.
 - **Rationale**: the server lists a repository's main checkout, whose branch may not have Uraeda's
-  Storybook yet: run in this feature's worktree, `main` would run `main`'s files. The frames' paths
-  come from the server's `Story` record, and rewriting them in the preview would fake the server's
-  answers, which the preview decision forbids. A story of the embed inside an embed is the one case.
+  Storybook yet: run in this feature's worktree, `main` would run `main`'s files. The server's
+  answers stay as they are, as the preview decision asks: only where the page reaches them changes,
+  as for fate's endpoint, and nothing changes in the app, where the context is empty.
 - **Alternatives considered**: the plan's `/r/<name>/preview/main/` always; rewriting the fixture's
-  paths under Storybook's base.
+  answers in the preview's `fetch`, which fate's live stream would bypass; leaving the frames' own
+  pages unloaded inside Uraeda.
 - **If wrong**: `checkoutFolder` in `packages/web/scripts/validate-storybook.ts`; a story of
   `StoryEmbed` embedded in a spec shows its frames' error pages.
-- **Where**: task 12, `packages/web/scripts/validate-storybook.ts`.
+- **Where**: task 12, `packages/web/scripts/validate-storybook.ts`, `packages/web/src/stories.tsx`,
+  `packages/web/.storybook/preview.tsx`.
 
 ## R44: Storybook's install and the helper's types
 

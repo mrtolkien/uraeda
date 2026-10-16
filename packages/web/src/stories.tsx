@@ -35,6 +35,13 @@ export type Stories = {
 
 export const StoryContext = createContext<Stories | null>(null);
 
+/**
+ * The address the server's preview URLs, `Story.frame` and `Preview.base`, are under: they are from
+ * the root, so empty in the app. Uraeda's own Storybook, which Uraeda may serve under its own base,
+ * gives that base, as the server in it is reached through that base (R43).
+ */
+export const PreviewBase = createContext("");
+
 /** Gives the stories of a workflow file or a draft to what draws it. */
 export function StoriesProvider({
   children,

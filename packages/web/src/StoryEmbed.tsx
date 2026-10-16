@@ -15,14 +15,14 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, Suspense, useEffect, useId, useState } from "react";
+import { type ReactNode, Suspense, useContext, useEffect, useId, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { StoryTarget } from "uraeda-binding";
 import { useStory } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
-import { storybookHref } from "./stories.tsx";
+import { PreviewBase, storybookHref } from "./stories.tsx";
 import { StoryFrames, type Widths } from "./StoryFrames.tsx";
 import {
   type EmbedComment,
@@ -165,6 +165,7 @@ function ReadyStory({
 }) {
   const wide = useWidthClass() === "wide";
   const [widths, setWidths] = useState<Widths>("both");
+  const base = useContext(PreviewBase);
   // Pick mode ends with the frames: a story stopped picks nothing.
   const { setPicking } = pick;
   useEffect(() => () => setPicking(false), [setPicking]);
@@ -187,7 +188,13 @@ function ReadyStory({
         <OpenInStorybook href={storybook} wide={wide} />
       </Bar>
       {comment && <PickHint picking={pick.picking} />}
-      <StoryFrames label={label} pick={pick.frames} src={frame} wide={wide} widths={widths} />
+      <StoryFrames
+        label={label}
+        pick={pick.frames}
+        src={`${base}${frame}`}
+        wide={wide}
+        widths={widths}
+      />
     </>
   );
 }
