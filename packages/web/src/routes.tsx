@@ -475,7 +475,8 @@ export function pathLink(path: string, repo: string): { href: string; inApp: boo
   if (/^specs\/(drafts|backlog)\/.+\.md$/.test(file)) {
     return { href: at(`/edit/${file}`), inApp: true };
   }
-  if (file.endsWith(".html")) {
+  // The mockup route serves only the files of a `mockups` folder, as the server's rule.
+  if (file.endsWith(".html") && file.split("/").slice(0, -1).includes("mockups")) {
     return { href: at(`/mockups/${file}`), inApp: false };
   }
   return { href: at(`/raw/${file}`), inApp: false };

@@ -28,6 +28,32 @@ test("serves a mockup sandboxed, with its type", async () => {
   expect(await response.text()).toBe("<p>UI</p>");
 });
 
+test("the mockup route serves only files in a mockups folder", async () => {
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "2026-10-11-web-ui");
+  mkdirSync(join(repo, "specs/2026-10-11-web-ui/mockups/assets"), { recursive: true });
+  writeFileSync(join(repo, "specs/2026-10-11-web-ui/mockups/ui.html"), "<p>UI</p>");
+  writeFileSync(join(repo, "specs/2026-10-11-web-ui/mockups/assets/ui.css"), "p {}");
+  writeFileSync(join(repo, "specs/2026-10-11-web-ui/page.html"), "<p>Page</p>");
+  const { app, frames, name } = await testApp(repo);
+  const status = async (path: string) =>
+    (await app.request(`http://127.0.0.1:${port}/r/${name}/mockups/${frames.current()}/${path}`))
+      .status;
+
+  for (const path of [
+    "specs/PRIORITIES.md",
+    "specs/2026-10-11-web-ui/page.html",
+    "specs/2026-10-11-web-ui/mockups",
+    "specs/2026-10-11-web-ui/mockups/..%2F..%2FPRIORITIES.md",
+    "specs%2F2026-10-11-web-ui%2Fmockups%2F..%2F..%2FPRIORITIES.md",
+    "mockups/..%2Fspecs%2FPRIORITIES.md",
+  ]) {
+    expect(await status(path), path).toBe(404);
+  }
+  expect(await status("specs/2026-10-11-web-ui/mockups/ui.html")).toBe(200);
+  expect(await status("specs/2026-10-11-web-ui/mockups/assets/ui.css")).toBe(200);
+});
+
 test("serves a file's raw text, and nothing outside the repository", async () => {
   const { app, name } = await testApp();
 
@@ -68,7 +94,7 @@ test("a file that cannot be read for another reason than its absence is a server
 
   const raw = await app.request(`http://127.0.0.1:${port}/r/${names[0]}/raw/specs/README.md`);
   const mockup = await app.request(
-    `http://127.0.0.1:${port}/r/${names[0]}/mockups/${frames.current()}/specs/README.md`,
+    `http://127.0.0.1:${port}/r/${names[0]}/mockups/${frames.current()}/specs/x/mockups/ui.html`,
   );
 
   expect([raw.status, mockup.status]).toEqual([500, 500]);
