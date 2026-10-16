@@ -1,7 +1,7 @@
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Banner } from "@astryxdesign/core/Banner";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { SideNav, useSideNavCollapse } from "@astryxdesign/core/SideNav";
+import { Icon } from "@astryxdesign/core/Icon";
+import { SideNav, SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -11,10 +11,9 @@ import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
-import { currentEntry, useLocalPath, useRepository } from "./routes.tsx";
+import { currentEntry, navigate, useLocalPath, useRepoPath, useRepository } from "./routes.tsx";
 import { SearchField, SessionNav, useSessionQuery } from "./SessionNav.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
-import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
 const styles = stylex.create({
   controls: {
@@ -90,31 +89,29 @@ function Heading({ current, slot }: { current: string | null; slot: ReactNode })
   );
 }
 
-/** The theme's three choices, small enough to fit the navigation's default width. */
-function ThemeSwitch() {
-  const [mode, setMode] = useThemeMode();
-  // The folded navigation is too narrow for it.
-  const { isCollapsed } = useSideNavCollapse();
-  if (isCollapsed) {
-    return null;
-  }
+/**
+ * The navigation's footer: Settings, selected on its pages. Folded, its icon alone, named
+ * "Settings".
+ */
+function SettingsItem({ path }: { path: string }) {
+  const here = useRepoPath();
   return (
-    <SegmentedControl
-      label="Theme"
-      onChange={(value: string) => setMode(value as ThemeMode)}
-      size="sm"
-      value={mode}
-    >
-      <SegmentedControlItem label="System" value="system" />
-      <SegmentedControlItem label="Light" value="light" />
-      <SegmentedControlItem label="Dark" value="dark" />
-    </SegmentedControl>
+    <SideNavItem
+      href={here("/settings")}
+      icon={<Icon icon="uraeda:settings" />}
+      isSelected={path === "/settings" || path.startsWith("/settings/")}
+      label="Settings"
+      onClick={(event: React.MouseEvent) => {
+        event.preventDefault();
+        navigate(here("/settings"));
+      }}
+    />
   );
 }
 
 /**
  * The navigation: a search over the sessions, home, priorities and the inbox with their ＋, every
- * feature by what it waits for with its session's status, the chats, then the theme. Its heading
+ * feature by what it waits for with its session's status, the chats, then Settings. Its heading
  * goes home and ends with the page's own controls; on wide screens it folds away and resizes, its
  * width and state kept in the browser.
  */
@@ -128,7 +125,7 @@ function Nav({ slot }: { slot: ReactNode }) {
   return (
     <SideNav
       collapsible
-      footer={<ThemeSwitch />}
+      footer={<SettingsItem path={path} />}
       header={<Heading current={current} slot={slot} />}
       resizable={{ autoSaveId: "uraeda.nav", defaultWidth: 240, maxWidth: 360, minWidth: 200 }}
       topContent={<SearchField onChange={setText} text={text} />}

@@ -1,6 +1,7 @@
 // US1.2 to US1.4 and US3.1 to US3.3: the sign-in screen and signing out, through the real app in
-// process with sign-in on. The edge cases: unsaved text survives a sign-out, an upload without a
-// session shows the sign-in screen, and an unreachable server is said so.
+// process with sign-in on, signing out from the settings' Sign-in category (US6 of the settings
+// page). The edge cases: unsaved text survives a sign-out, an upload without a session shows the
+// sign-in screen, and an unreachable server is said so.
 import { readFileSync } from "node:fs";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
@@ -174,31 +175,50 @@ test.each([403, 413, 500])("a sign-in answered %i says the server failed", async
   expect(field().value).toBe("ura_key");
 });
 
-/** US3.1 */
-test("Sign out ends this session", async () => {
+/** The Sign-in category of the settings, where signing out lives. */
+const SIGN_IN = "/settings/sign-in";
+
+/** The Sign-in category's button, once the category shows. */
+async function signInButton(name: string) {
+  await screen.findByRole("heading", { name: "Sign-in" });
+  return button(name);
+}
+
+/** Taps "Sign out everywhere…" in Sign-in, and returns the dialog that asks first. */
+async function askEverywhere() {
+  await click(await signInButton("Sign out everywhere…"));
+  return within(await screen.findByRole("dialog", { name: "Sign out every device?" }));
+}
+
+/** US6.1 */
+test("the repository menu holds no sign-out item", async () => {
   const server = await signedInPage();
-  // Another tab of the same browser, with the same cookie.
-  const tab = server.device(server.fetch);
   const menu = await openMenu(server.name);
 
-  await click(within(menu.getByRole("list", { name: "Sign out" })).getByText("Sign out"));
+  await menu.findByRole("list", { name: "Repositories" });
+  expect(menu.queryByText("Sign out")).toBeNull();
+  expect(menu.queryByText("Sign out everywhere…")).toBeNull();
+});
+
+/** US3.1, US6.2 */
+test("Sign out ends this session", async () => {
+  const server = await signedInPage(SIGN_IN);
+  // Another tab of the same browser, with the same cookie.
+  const tab = server.device(server.fetch);
+
+  await click(await signInButton("Sign out"));
 
   await waitFor(() => expect(heading()).not.toBeNull());
   expect((await tab("/session")).status).toBe(401);
 });
 
-/** US3.2, US3.3 */
+/** US3.2, US3.3, US6.3 */
 test("Sign out everywhere asks first", async () => {
-  const server = await signedInPage();
+  const server = await signedInPage(SIGN_IN);
   const phone = server.device();
   await signIn(phone, server.key);
-  const ask = async () => {
-    const menu = await openMenu(server.name);
-    await click(menu.getByText("Sign out everywhere…"));
-    return within(await screen.findByRole("dialog", { name: "Sign out every device?" }));
-  };
 
-  let dialog = await ask();
+  let dialog = await askEverywhere();
   expect(
     dialog.getByText(
       "Every browser signed in to Uraeda, this one included, will need the access key again.",
@@ -210,13 +230,41 @@ test("Sign out everywhere asks first", async () => {
   expect(heading()).toBeNull();
   expect((await phone("/session")).status).toBe(204);
 
-  dialog = await ask();
+  dialog = await askEverywhere();
   await click(dialog.getByRole("button", { name: "Sign out everywhere" }));
 
   await waitFor(() => expect(heading()).not.toBeNull());
   await reloaded("/", server.repo, phone);
   await waitFor(() => expect(heading()).not.toBeNull());
 });
+
+/** US6.4, and the error handling of a sign-out the server never got, from either button. */
+test.each([
+  ["Sign out", "/session", false],
+  ["Sign out everywhere…", "/sessions", true],
+])(
+  "%s with the server stopped says so in Sign-in, and the page stays",
+  async (name, path, asks) => {
+    const repo = fixtureRepo();
+    const server = signInServer(repo);
+    await signIn(server.fetch, server.key);
+    const down: typeof globalThis.fetch = (input, init) =>
+      init?.method === "DELETE" && String(input).endsWith(path)
+        ? Promise.reject(new TypeError("Failed to fetch"))
+        : server.fetch(input, init);
+    await renderPage(SIGN_IN, repo, { fetch: down });
+
+    await click(await signInButton(name));
+    if (asks) {
+      const dialog = within(await screen.findByRole("dialog", { name: "Sign out every device?" }));
+      await click(dialog.getByRole("button", { name: "Sign out everywhere" }));
+    }
+
+    expect(await screen.findByText(UNREACHABLE)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Sign-in" })).toBeTruthy();
+    expect(heading()).toBeNull();
+  },
+);
 
 /** The live streams of a page, which the test fails as a browser does when its session ends. */
 const streams: Array<{ fail(): void }> = [];

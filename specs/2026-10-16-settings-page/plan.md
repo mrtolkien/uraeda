@@ -707,8 +707,12 @@ git commit -m "feat(settings-page): the settings page and its Server category"
 
 - Modify: `packages/web/src/Shell.tsx`, `packages/web/src/RepositoryMenu.tsx`,
   `packages/web/src/theme/icons.ts`, `packages/web/src/settings/OtherSettings.tsx`,
-  `packages/web/src/__tests__/theme.test.tsx`, `packages/web/src/__tests__/sign-in.test.tsx`,
-  `packages/web/src/__browser__/story-embed.test.tsx`, `packages/web/src/__tests__/shell.test.tsx`
+  `packages/web/src/settings/SettingsView.tsx` ("‹ Settings",
+  [R16](rulings.md#r16-the-way-back-to-the-categories-is-a-ghost-button)),
+  `packages/web/src/sign-in/useSignOut.ts`, `packages/web/src/__tests__/theme.test.tsx`,
+  `packages/web/src/__tests__/sign-in.test.tsx`, `packages/web/src/__tests__/settings.test.tsx`,
+  `packages/web/src/__browser__/story-embed.test.tsx`,
+  `packages/web/src/__browser__/sign-in.test.tsx` (its menu's sign-out list, checked in Sign-in)
 - Delete: `packages/web/src/sign-in/SignOutList.tsx`
 
 **Interfaces:**
@@ -716,7 +720,7 @@ git commit -m "feat(settings-page): the settings page and its Server category"
 - Consumes: the settings route (task 6).
 - Produces: the `uraeda:settings` icon; the footer's `SideNavItem` "Settings".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - US4.1: from home, "Settings" in the sidebar opens `/r/<name>/settings`, selected there.
 - US4.2, US4.3 at 1440 and 402 wide: the categories in order, Server beside on wide; the list alone
@@ -730,20 +734,20 @@ git commit -m "feat(settings-page): the settings page and its Server category"
 The break each test catches: the theme switch left in the footer; the sign-out group left in the
 menu; categories out of order.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test --project uraeda-web src/__tests__/theme.test.tsx src/__tests__/sign-in.test.tsx src/__tests__/settings.test.tsx`
 - Expected: FAIL, `Unable to find role "link" and name "Settings"`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run the web tests**
+- [x] **Step 4: Run the web tests**
 
 - Run: `vp test --project uraeda-web && vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-settings-page/plan.md
