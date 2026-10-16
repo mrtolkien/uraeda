@@ -86,6 +86,21 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  "inbox.place": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<NoteInput & { category?: string; index: number }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.placeNote(ctx.repo, input.note, input.index, input.hash, input.category),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
   "inbox.remove": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput>) =>
       inbox(

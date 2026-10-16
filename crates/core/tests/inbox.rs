@@ -486,3 +486,31 @@ fn closing_hashes_are_not_part_of_a_category() {
         "# Inbox\n\n## UI ##\n\n- a\n- note\n"
     );
 }
+
+/// US5 3: a note's children are read with it, as written and as spans, as an entry's are.
+#[test]
+fn a_note_shows_its_children() {
+    let text = "# Inbox\n\n## UI\n\n- Icons are blurry\n  - on retina screens\n  - in [the sidebar](decisions/ui-layout.md)\n- Next note\n";
+
+    let read = inbox::read(text);
+
+    let icons = &read.categories[0].notes[0];
+    assert_eq!(
+        icons.nested,
+        [
+            "  - on retina screens",
+            "  - in [the sidebar](decisions/ui-layout.md)"
+        ]
+    );
+    let texts: Vec<Vec<&str>> = icons
+        .nested_spans
+        .iter()
+        .map(|spans| spans.iter().map(|s| s.text.as_str()).collect())
+        .collect();
+    assert_eq!(
+        texts,
+        [vec!["on retina screens"], vec!["in ", "the sidebar"]]
+    );
+    assert!(read.categories[0].notes[1].nested.is_empty());
+    assert!(read.categories[0].notes[1].nested_spans.is_empty());
+}

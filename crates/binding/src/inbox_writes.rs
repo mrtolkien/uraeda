@@ -59,6 +59,19 @@ pub fn move_note_to_category(
     job(move || api::move_note_to_category(Path::new(&repo), &id, category, &previous))
 }
 
+/// Moves a note before the note at `index` of a category, or of the notes without one, or to its
+/// end, `index` counting the category's notes once the note has left it.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn place_note(
+    repo: String,
+    id: String,
+    index: u32,
+    previous: String,
+    category: Option<String>,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || api::place_note(Path::new(&repo), &id, category, index, &previous))
+}
+
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
 /// Undo of a removal.
 #[napi(ts_return_type = "Promise<Inbox>")]
