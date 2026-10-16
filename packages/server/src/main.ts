@@ -1,6 +1,7 @@
 // `uraeda`: takes the port first, then starts the server on it, or hands the repository to the
 // server already there, with the host token. The session cache and the sign-in file are opened
 // only once the port is this process's.
+import { rmSync } from "node:fs";
 import { createServer, type RequestListener, type Server as HttpServer } from "node:http";
 import { getRequestListener } from "@hono/node-server";
 import { chatImages } from "./attach.ts";
@@ -14,6 +15,7 @@ import { layout, requireWeb } from "./paths.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
 import { keyLines, newKeyLines, startServer } from "./server.ts";
 import { readHostToken, removeHostToken, writeHostToken } from "./sign-in/host.ts";
+import { browserAddress, linkPages } from "./sign-in/links.ts";
 
 /** Listens on 127.0.0.1:`port`; null when another process holds it. */
 function takePort(port: number): Promise<HttpServer | null> {
@@ -67,7 +69,9 @@ async function handOver(options: Options, dataDir: string): Promise<number> {
   const address = `http://127.0.0.1:${port}`;
   process.stdout.write(`Uraeda already runs at ${address}${answer.url}\n`);
   if (opens) {
-    openBrowser(`${address}${answer.signIn}`);
+    // A one-time link goes through a page in the data folder: the launcher's command line, which
+    // every user of the machine can read, never holds it.
+    openBrowser(browserAddress(linkPages(dataDir, port), address, answer.signIn));
   }
   return 0;
 }
@@ -97,7 +101,11 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
   const { binding, dataDir, plugin, web } = start;
   const attach = serveWhenReady(http);
   const hostToken = writeHostToken(dataDir, options.port);
-  process.once("exit", () => removeHostToken(dataDir, options.port));
+  process.once("exit", () => {
+    removeHostToken(dataDir, options.port);
+    // The pages of one-time links, even after a crash; a stop removes them first.
+    rmSync(linkPages(dataDir, options.port), { force: true, recursive: true });
+  });
   const server = await startServer({
     ...options,
     adapter: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: plugin }),
@@ -122,7 +130,7 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
   process.stdout.write(`Uraeda server on ${address}\n${shown}`);
   // A one-time link only for a browser that opens: none over SSH.
   if (options.open && browserOpens()) {
-    openBrowser(`${address}${server.signInLink(server.url)}`);
+    openBrowser(server.signInPage(server.url));
   }
   return 0;
 }

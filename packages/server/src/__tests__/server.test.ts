@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import {
   addPreview,
@@ -417,7 +418,8 @@ test("a new key signs every device out", async () => {
 test("a one-time link signs the host's browser in once", async () => {
   const server = await signedServer(fixtureRepo(), temporaryFolder("uraeda-data"));
 
-  const link = server.signInLink(server.url);
+  const page = fileURLToPath(server.signInPage(server.url));
+  const link = /<a href="http:\/\/127\.0\.0\.1:4310([^"]+)">/.exec(readFileSync(page, "utf8"))![1];
 
   expect(link).toMatch(new RegExp(`^/session/[\\w-]{43}\\?to=${server.url}$`));
   const used = await server.app.request(`http://127.0.0.1:4310${link}`);
@@ -431,7 +433,7 @@ test("a server without sign-in links to the page itself, and has no key", async 
   const dataDir = temporaryFolder("uraeda-data");
   const server = await start(fixtureRepo(), dataDir);
 
-  expect(server.signInLink("/r/repo/")).toBe("/r/repo/");
+  expect(server.signInPage("/r/repo/")).toBe("http://127.0.0.1:4310/r/repo/");
   expect(server.key).toBeUndefined();
   expect(existsSync(join(dataDir, SIGN_IN_FILE))).toBe(false);
 });

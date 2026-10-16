@@ -306,3 +306,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one more image set to look at.
 - **Where**: task 5, `scripts/sign-in-shots.ts`, `scripts/screenshots.ts`; `plan.md`, task 5's step
   5
+
+## R27: The browser opens a page in the data folder that leads to the one-time link
+
+- **Decision**: a start, and a second start, give the browser launcher the `file://` address of a
+  page in `sign-in-links/<port>/`, in the data folder, never the link itself. The page, mode `0600`
+  in a `0700` folder and named by the token's hash, redirects to
+  `http://127.0.0.1:<port>/session/<token>?to=…` at once, with a link to click as a fallback. The
+  server removes it once its link is used or expires, as it stops, and at exit. US4.1's browser
+  "opens `http://127.0.0.1:4310/session/<one-time token>?to=/r/todo/`" through that page: what the
+  human sees, the page signed in with `/r/todo/` in the address bar, is unchanged.
+- **Rationale**: the launcher's command line, `xdg-open <url>` or `open <url>`, is readable by every
+  user of the machine through `/proc` or `ps`, which would let another local user sign in within 5
+  minutes. Jupyter opens its token links the same way.
+- **Alternatives considered**: passing the link on the command line, as the spec's scenario reads;
+  sending it to the launcher on its standard input, which neither `xdg-open` nor `open` reads.
+- **If wrong**: a browser that does not follow a local page's redirect shows the page's link to
+  click.
+- **Where**: `packages/server/src/sign-in/links.ts`, `main.ts`, `server.ts`; `spec.md`, US4.1 and
+  US4.2
