@@ -118,11 +118,11 @@ decision ([Q10](../done/2026-10-16-redesign-interface.md#q10-how-do-optimistic-s
 A click on a priority opened its pane, a click on its text opened the field, and Enter saved: the
 human asked for "one click to open the pane, one click to edit", with a pane that "shows markdown
 and does not steal focus", and for ↑ and ↓ to move through the list when no text field has the focus
-([Q4](../2026-10-16-redesign-priorities/clarifications-01.md#q4-what-does-a-click-on-a-priority-or-a-note-open),
-[Q6](../2026-10-16-redesign-priorities/clarifications-01.md#q6-which-keys-move-through-the-list)).
-Linear, Todoist, and Gmail move a highlighted row with these keys, and the accessibility guidance
-asks for focus and selection to look different
-([keyboard navigation](../2026-10-16-redesign-priorities/discovery-01.md#keyboard-navigation)).
+([Q4](../done/2026-10-16-redesign-priorities.md#q4-what-does-a-click-on-a-priority-or-a-note-open),
+[Q6](../done/2026-10-16-redesign-priorities.md#q6-which-keys-move-through-the-list)). Linear,
+Todoist, and Gmail move a highlighted row with these keys, and the accessibility guidance asks for
+focus and selection to look different
+([keyboard navigation](../done/2026-10-16-redesign-priorities.md#q6-which-keys-move-through-the-list)).
 
 ## Alternatives considered
 
