@@ -288,3 +288,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a step per case in `CASES`: one more field every page sets.
 - **If wrong**: the cases move into `layout.test.tsx`.
 - **Where**: task 12.
+
+## R21: Caught up with the settings page and basic security
+
+- **Decision**: rebased on `main` after the settings page and basic security merged. The theme is
+  picked again, on the settings page's Appearance, kept in this browser as `uraeda.theme`, as the
+  spec's "the system's mode until the settings page brings a choice back" foresaw: US9.1's test
+  gives way to the settings page's, and `ThemeModeProvider` still resolves "System" to light or
+  dark, which the story frames and `data-theme` need. Settings stays the sidebar's last row, under
+  the Done area. The repository menu's rows were already split on `main`, so task 12's first step
+  has no code of its own. The sign-in frames' test commits its mockup on its feature's branch: an
+  uncommitted folder in the main checkout is no item (R3), and a feature's files are read from its
+  branch. `FeatureRecord` takes its name and colour from `ItemLook`, keeping `fate/views.ts` under
+  500 lines with both features' fields.
+- **The new decisions**: `settings.md` applies to the web UI: this branch adds no server setting;
+  the sidebar's width and fold, the column's, and the dismissed notification banner are each this
+  browser's, kept in `localStorage`, as the theme is. `sign-in.md` applies to the server: the new
+  `NeedsYouList` is read through fate, behind the session, and the `gh` processes get no cookie nor
+  `Authorization` header. `stack.md`'s and `distribution.md`'s changes do not touch this branch.
+- **Rationale**: the spec named the settings page as the theme's next owner; the test's setup put a
+  feature's file where the core no longer reads it.
+- **Alternatives considered**: reading a feature's uncommitted folder in the main checkout again:
+  against R3, which the human's answers to round 01 set.
+- **If wrong**: the theme goes back to the system's only, and the frames' test writes its mockup in
+  the main checkout under a folder that is no feature.
+- **Where**: the final review.

@@ -1,9 +1,12 @@
 // US2: preview and mockup frames load from addresses carrying the frame secret, which only a
 // signed-in page receives; other addresses answer 404, and a sign-out replaces the secret.
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { previewStarts, STORY_FEATURE, temporaryFolder } from "uraeda-binding/test-utils";
+import {
+  commitOnBranch,
+  previewStarts,
+  STORY_FEATURE,
+  temporaryFolder,
+} from "uraeda-binding/test-utils";
 import { type Data, fixtureRepo, port, testApp } from "../../__tests__/helpers.ts";
 import {
   type Echo,
@@ -21,11 +24,13 @@ import { SignInStore } from "../store.ts";
 const STORY = `${STORY_FEATURE}:packages/web/src/SidebarHandle.stories.tsx#Dragging`;
 const MOCKUP = "specs/2026-10-11-web-ui/mockups/ui.html";
 
-/** A repository holding a mockup, `MOCKUP`, in its main checkout. */
+/**
+ * A repository holding a mockup, `MOCKUP`, committed on its feature's branch, where the feature's
+ * files are read from.
+ */
 function mockupRepo(): string {
   const repo = fixtureRepo();
-  mkdirSync(join(repo, "specs/2026-10-11-web-ui/mockups"), { recursive: true });
-  writeFileSync(join(repo, MOCKUP), "<p>UI</p>");
+  commitOnBranch(repo, "2026-10-11-web-ui", { [MOCKUP]: "<p>UI</p>" });
   return repo;
 }
 
