@@ -25,10 +25,9 @@ async function count(name: string) {
   return (await (await main()).findByRole("group", { name })).textContent;
 }
 
-/** A card of home, by its heading: the card's element, holding its heading and its rows. */
+/** A card of home, by its heading, which names it: its heading and its rows. */
 async function card(title: string | RegExp) {
-  const heading = await (await main()).findByRole("heading", { name: title });
-  return within(heading.closest("section") as HTMLElement);
+  return within(await (await main()).findByRole("region", { name: title }));
 }
 
 /** The names of the links of a card's list, in order. */
@@ -174,8 +173,8 @@ test("the Priorities title opens the priorities, the Inbox title the inbox", asy
   await renderPage();
   const page = await main();
 
-  const priorities = await page.findByRole("link", { name: /^Priorities, open/ });
-  expect(priorities.closest("h2")).toBeTruthy();
+  const title = await page.findByRole("heading", { level: 2, name: /^Priorities, open/ });
+  const priorities = within(title).getByRole("link", { name: /^Priorities, open/ });
   expect(priorities.getAttribute("href")).toBe(atRepo("/priorities"));
   // The inbox's title, with its count, as the link's name.
   const inbox = within(page.getByRole("heading", { name: /^Inbox/ })).getByRole("link");
