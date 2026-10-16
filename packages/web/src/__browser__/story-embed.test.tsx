@@ -6,7 +6,7 @@
 // size, no preview decision, and story links that do not embed.
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
-import { userEvent } from "vite-plus/test/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 import { atRepo, atSize, commands, LIVE, repository, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-20-sidebar-resize";
@@ -50,10 +50,10 @@ describe("on a desktop", () => {
     expect(statuses()).toContain("Starting Storybook for this branch…");
     const phone = await within(embed()).findByTitle(PHONE, {}, READY);
     const desktop = within(embed()).getByTitle(DESKTOP);
-    expect([phone.getAttribute("src"), desktop.getAttribute("src")]).toEqual([
-      await FRAME(repository()),
-      await FRAME(repository()),
-    ]);
+    // On screen, the frames load as soon as the observer sees them.
+    await expect
+      .poll(() => [phone.getAttribute("src"), desktop.getAttribute("src")])
+      .toEqual([await FRAME(repository()), await FRAME(repository())]);
     expect(phone.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
     expect(desktop.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
     await storyShown(DESKTOP);
@@ -111,6 +111,31 @@ describe("on a desktop", () => {
     await storyShown(DESKTOP, { interval: 50, timeout: 2000 });
     await storyShown(PHONE, { interval: 50, timeout: 2000 });
     expect(await commands.previewStarts()).toHaveLength(1);
+  });
+
+  test("an embed below the window loads its frames only once scrolled to, its Storybook started at once", async () => {
+    await commands.addStoryFeature();
+    await page.viewport(1440, 300);
+    try {
+      await show(SPEC, "Resize the sidebar");
+      const phone = await within(embed()).findByTitle(PHONE, {}, READY);
+      const desktop = within(embed()).getByTitle(DESKTOP);
+      expect(embed().getBoundingClientRect().top).toBeGreaterThan(window.innerHeight);
+      expect([phone.getAttribute("src"), desktop.getAttribute("src")]).toEqual([null, null]);
+      expect(await commands.previewStarts()).toHaveLength(1);
+
+      embed().scrollIntoView();
+
+      await expect.poll(() => phone.getAttribute("src")).toBe(await FRAME(repository()));
+      expect(desktop.getAttribute("src")).toBe(await FRAME(repository()));
+      await storyShown(PHONE);
+      // Once loaded, a frame stays loaded when scrolled away.
+      window.scrollTo(0, 0);
+      await storyShown(DESKTOP);
+      expect(phone.getAttribute("src")).toBe(await FRAME(repository()));
+    } finally {
+      await page.viewport(1440, 900);
+    }
   });
 });
 

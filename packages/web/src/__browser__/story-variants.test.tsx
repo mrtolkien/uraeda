@@ -34,6 +34,8 @@ test("each variant shows under its option's button, which still picks it (US3.1)
   expect(a.compareDocumentPosition(thin) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const grip = screen.getByRole("figure", { name: "Grip" });
   expect(a.compareDocumentPosition(grip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  // An embed loads its frames once on screen.
+  thin.scrollIntoView();
   await expect.poll(() => commands.frameText("Thin line, desktop"), READY).toContain("ThinLine");
 
   await userEvent.click(a);
@@ -51,6 +53,7 @@ async function editRound(edit: (round: string) => string) {
 /** Picks the separator in a story's desktop frame, and saves a comment on it with Ctrl+Enter. */
 async function commentOnSeparator(label: string, text: string) {
   const embed = await screen.findByRole("figure", { name: label });
+  embed.scrollIntoView();
   await expect.poll(() => commands.frameText(`${label}, desktop`), READY).not.toBe("");
   await userEvent.click(
     await within(embed).findByRole("button", { name: "Pick an element" }, READY),
@@ -83,7 +86,9 @@ test("a variant nested in its option's quote or list shows outside its button (U
   expect(await screen.findByText("As drawn:")).toBeTruthy();
   const grip = await screen.findByRole("figure", { name: "Grip" });
   expect(b.contains(grip)).toBe(false);
+  thin.scrollIntoView();
   await expect.poll(() => commands.frameText("Thin line, desktop"), READY).toContain("ThinLine");
+  grip.scrollIntoView();
   await expect.poll(() => commands.frameText("Grip, desktop"), READY).toContain("Grip");
 });
 
