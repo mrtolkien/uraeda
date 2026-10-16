@@ -130,7 +130,8 @@ test("a message shows its stories once it ends, not while it streams", async () 
     { text: `${sentence}${LINK} is ready.`, type: "text" },
   ]);
   await screen.findByText(/is ready\./, {}, LIVE);
-  // No embed, though the session's page has started its Storybook already.
+  // No embed, though the session's page has started its Storybook already: a story's record read
+  // while the message streams, without an embed, would go unseen here.
   expect(screen.queryByRole("figure")).toBeNull();
 
   // A message that ends with a story link alone in a paragraph shows it.
