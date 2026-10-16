@@ -290,6 +290,11 @@ in the project's own stack, that the human can run or read.
 - **Assumptions**: first the points settled in the clarifications, then what you settled yourself
   while writing the spec, so the human can object. An assumption that changes what users get is also
   an item of the `> [!IMPORTANT]` block.
+- **Unverified**: a story that relies on outside behaviour nobody has checked yet, as the
+  [discovery](discovery.md#investigate-in-depth) found it, is marked unverified in the block, with
+  what the plan's first task checks and what happens to the story if the check fails.
+- **Relaxed guards**: a design that loosens a security rule, an origin check, a permission, or a
+  sandbox, says in the block what an attacker could then do, in one sentence, not as a mechanism.
 - **Decisions**: grouped as "New, applied when this spec is approved", "Changed", and "Relied on",
   each with a sentence: the rule for new ones, the change for changed ones, how the spec follows the
   others. Only the decisions that apply to the feature, not the whole ledger. Approving the spec
@@ -376,6 +381,8 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 6. **Linear reading**: nothing is referred to before it is introduced, and the block names subjects.
 7. **Decisions**: each new one passes the three tests, each changed one lists every rule after the
    change, and each rule says how it is checked.
+8. **Risks**: every unverified outside behaviour and every relaxed guard is in the block, a guard as
+   what an attacker could do.
 
 ## Red flags
 
