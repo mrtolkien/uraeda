@@ -6,12 +6,12 @@ import { inboxMutations } from "./inbox-mutations.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { changeImages, sentImages } from "./chat-images.ts";
 import { callSiteError, refusable } from "./errors.ts";
-import { restartPreview } from "./preview.ts";
+import { previewDataView, restartPreview } from "./preview.ts";
 import { featureRecord, readSession, readWorkflowMessage, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { sources } from "./sources.ts";
 import { draft, priorities } from "./masked.ts";
-import { featureDataView, previewDataView, sessionDataView } from "./views.ts";
+import { featureDataView, sessionDataView } from "./views.ts";
 
 /** A session, masked to the fields the client selected. */
 const session = async (ctx: RepoContext, id: string, select: Array<string>) => {

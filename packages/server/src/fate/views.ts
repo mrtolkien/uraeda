@@ -24,7 +24,7 @@ import type {
   UsageLimit,
 } from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
-import type { PreviewRecord, StoryHrefRecord, StoryRecord } from "./preview.ts";
+import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
@@ -446,27 +446,6 @@ export const repositoriesDataView = dataView<RepositoriesRecord>("Repositories")
 export const folderSuggestionsDataView = dataView<FolderSuggestionsRecord>("FolderSuggestions")({
   id: true,
   rows: true,
-});
-
-export const storyDataView = dataView<StoryRecord>("Story")({
-  error: true,
-  frame: true,
-  id: true,
-  state: true,
-  storybook: true,
-});
-
-export const previewDataView = dataView<PreviewRecord>("Preview")({
-  base: true,
-  error: true,
-  id: true,
-  state: true,
-});
-
-export const storyHrefDataView = dataView<StoryHrefRecord>("StoryHref")({
-  export: true,
-  id: true,
-  path: true,
 });
 
 /** The ids of the records there is one of. */

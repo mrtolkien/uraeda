@@ -12,7 +12,6 @@ import {
   fileDataView,
   folderSuggestionsDataView,
   inboxDataView,
-  previewDataView,
   prioritiesDataView,
   proposalHintsDataView,
   repositoriesDataView,
@@ -21,13 +20,12 @@ import {
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
-  storyDataView,
-  storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
   workspaceDataView,
 } from "./fate/views.ts";
+import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 
 export {
   agentDataView,
