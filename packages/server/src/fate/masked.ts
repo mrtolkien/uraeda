@@ -1,14 +1,13 @@
 /** The records the repository's mutations answer with, masked to the fields the client selected. */
 import type { Inbox, Priorities } from "uraeda-binding";
 import type { Context } from "./context.ts";
-import { sentPriorities, sources } from "./sources.ts";
+import { sentInbox, sentPriorities, sources } from "./sources.ts";
 import {
   draftDataView,
   type DraftRecord,
   inboxDataView,
   PRIORITIES_ID,
   prioritiesDataView,
-  sentInbox,
 } from "./views.ts";
 
 export const priorities = (ctx: Context, record: Priorities, select: Array<string>) =>
