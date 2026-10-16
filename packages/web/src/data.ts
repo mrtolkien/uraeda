@@ -16,6 +16,7 @@ import {
   PreviewView,
   PrioritiesView,
   ProposalHintsView,
+  NeedsYouView,
   RepositoriesView,
   SessionListView,
   SessionSearchView,
@@ -41,6 +42,7 @@ const SESSION_LIST_ID = "all";
 const PROPOSAL_HINTS_ID = "proposal";
 const REPOSITORIES_ID = "repositories";
 const SETTINGS_ID = "settings";
+const NEEDS_YOU_ID = "all";
 
 /** Reads a request again from the server when the page comes back to the foreground. */
 function useRefreshOnShow(request: Parameters<typeof useRequest>[0]) {
@@ -362,6 +364,17 @@ export function useSettings() {
   const { settings } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(SettingsRecordView, settings);
+}
+
+/**
+ * What needs the human across every repository, read on the global endpoint: the items, each with
+ * its key, which changes with what it asks, kept up to date.
+ */
+export function useNeedsYou() {
+  const request = { needsYouList: { id: NEEDS_YOU_ID, view: NeedsYouView } };
+  const { needsYouList } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(NeedsYouView, needsYouList);
 }
 
 /**

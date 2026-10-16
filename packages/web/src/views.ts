@@ -8,6 +8,7 @@ import type {
   Feature,
   FolderSuggestions,
   Inbox,
+  NeedsYouList,
   Preview,
   Priorities,
   ProposalHints,
@@ -264,6 +265,12 @@ export const WorkflowMessageView = view<WorkflowMessage>()({
 export const ProposalHintsView = view<ProposalHints>()({
   hints: true,
   id: true,
+});
+
+/** What needs the human across every repository, on the global endpoint, for the notifications. */
+export const NeedsYouView = view<NeedsYouList>()({
+  id: true,
+  rows: true,
 });
 
 /** The list of repositories, which every endpoint serves. */
