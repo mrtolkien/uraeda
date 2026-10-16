@@ -163,6 +163,14 @@ const bot = outline(
   h("path", { d: "M9 13v2" }),
 );
 
+/** Lucide's `bell`. */
+const bell = outline(
+  h("path", { d: "M10.268 21a2 2 0 0 0 3.464 0" }),
+  h("path", {
+    d: "M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326",
+  }),
+);
+
 /** Lucide's `component`. */
 const component = outline(
   h("path", {
@@ -291,6 +299,7 @@ const fileText = outline(
 
 /** A decision's icons, by the Lucide name its frontmatter's `icon` gives. */
 const DECISION_ICONS = {
+  bell,
   bot,
   component,
   eye: review,
@@ -305,6 +314,7 @@ const DECISION_ICONS = {
   paperclip: attach,
   ruler,
   "scan-eye": scanEye,
+  settings,
   "square-terminal": squareTerminal,
   terminal,
   wrench,
