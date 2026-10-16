@@ -421,6 +421,23 @@ test("a server that answers 404, like an older Uraeda, is another program", asyn
   expect(second.code).toBe(1);
 });
 
+/** A second start opens only a page of the server on the port, whatever that server answers. */
+test.each([
+  { url: "//evil.com/" },
+  { url: String.raw`/\evil.com/` },
+  { url: "@evil.com/" },
+  { url: "https://evil.com/" },
+  { signIn: "//evil.com/", url: "/r/todo/" },
+  { signIn: String.raw`/\evil.com/`, url: "/r/todo/" },
+  { signIn: "@evil.com/", url: "/r/todo/" },
+])("an answer whose page is not on the server is another program's: %o", async (answer) => {
+  const port = await httpServer(200, { uraeda: "0.0.0", ...answer });
+
+  expect(await handOff(port, { folder: fixtureRepo(), given: false, signIn: true })).toEqual({
+    kind: "other",
+  });
+});
+
 test("a second start during the first's start waits for it", async () => {
   const data = temporaryFolder("uraeda-data");
   const port = await freePort();
