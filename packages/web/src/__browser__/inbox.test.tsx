@@ -52,8 +52,10 @@ test("a note is added with ＋, its text, and Enter", async () => {
   await expect.poll(() => screen.queryByRole("dialog", { name: "Add a note" })).toBeNull();
   const none = within(screen.getByRole("list", { name: "No category lines" }));
   expect(await none.findByText("The plan's task list scrolls under the top bar")).toBeTruthy();
-  // C3: the count beside the heading, without words.
-  expect(await screen.findByText("11")).toBeTruthy();
+  // C3: the count beside the page's heading, without words; the sidebar shows it too.
+  const inbox = within(screen.getByRole("main"));
+  expect(inbox.getByRole("heading", { level: 1, name: "Inbox" })).toBeTruthy();
+  expect(await inbox.findByText("11")).toBeTruthy();
 });
 
 /** The UI layout decision: a short form is a dialog on wide screens, a bottom sheet on narrow ones. */
