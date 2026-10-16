@@ -181,6 +181,9 @@ function useFrame(pick: PickMode) {
   return { frame, reported };
 }
 
+/** How far below the window's top, in px, a box must reach to count as on screen. */
+const EDGE = 32;
+
 /**
  * Whether the box has been on screen since it was drawn: false until it first is, then true for
  * good. Without IntersectionObserver, true at once.
@@ -192,11 +195,16 @@ function useSeen(box: RefObject<HTMLDivElement | null>) {
     if (seen || !outer) {
       return;
     }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setSeen(true);
-      }
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setSeen(true);
+        }
+      },
+      // A sliver at the window's top is not on screen: a scroll to the embed below another leaves
+      // the last pixel of the one above in view. At the bottom, a frame coming into view loads.
+      { rootMargin: `-${EDGE}px 0px 0px` },
+    );
     observer.observe(outer);
     return () => observer.disconnect();
   }, [box, seen]);
