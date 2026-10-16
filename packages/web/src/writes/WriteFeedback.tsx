@@ -6,6 +6,7 @@ import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import type { ReactNode } from "react";
 
 /** A writing button's state: free, running its own write, or blocked by another one. */
 export type WriteState = "idle" | "running" | "blocked";
@@ -33,14 +34,15 @@ export function WriteProgress({ isRunning }: { isRunning: boolean }) {
 }
 
 /** A button's variant, as Astryx names it. */
-type Variant = "primary" | "secondary" | "destructive";
+export type Variant = "primary" | "secondary" | "destructive" | "ghost";
 
 /**
  * A button that writes to git, drawn in its state: its running label with a spinner while its own
  * write runs, blocked while another one does. `isDisabled` and `tooltip` are its own reasons not to
- * write, as a question left blank.
+ * write, as a question left blank. `endContent` shows after its label, but while it runs.
  */
 export function WriteButtonView({
+  endContent,
   isDisabled = false,
   label,
   onClick,
@@ -49,6 +51,7 @@ export function WriteButtonView({
   tooltip,
   variant,
 }: {
+  endContent?: ReactNode;
   isDisabled?: boolean;
   label: string;
   onClick: () => void;
@@ -77,6 +80,7 @@ export function WriteButtonView({
   const reason = blocked ? "Another change is being saved to git" : tooltip;
   return (
     <Button
+      endContent={endContent}
       isDisabled={blocked || isDisabled}
       label={label}
       onClick={onClick}
