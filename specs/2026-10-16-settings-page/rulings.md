@@ -56,3 +56,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: removing nothing and answering the record.
 - **If wrong**: one more message to change.
 - **Where**: task 1
+
+## R6: The file's other problems, and their messages
+
+- **Decision**: the problems the spec names no text for read, after "Cannot read <file>: ":
+  `line N: <the parser's message>.` for a file that does not parse, like "line 1: unclosed table,
+  expected `]`."; "line N, server: [server] is a table of settings."; "line N, allowed_hosts: The
+  allowed host names are a list, like ["mac.tail1234.ts.net"]."; "line N, open_browser: Opening a
+  browser at start is true or false."; and the I/O error's kind, "permission denied.", for a file
+  that exists but cannot be read. A host name in the file is read trimmed and in lower case, as one
+  typed on the page is saved. The file is read with `toml_edit::Document`, which keeps spans, rather
+  than through `toml_edit::de`, so each problem has its line.
+- **Rationale**: the spec gives the shape, "line 3, port: …", and the texts for host names and ports
+  only; every problem keeps that shape.
+- **Alternatives considered**: the parser's full report, several lines with a caret, in a one-line
+  banner; serde's messages, which name Rust types.
+- **If wrong**: a few messages to change, in `crates/core/src/settings/file.rs`.
+- **Where**: task 1
