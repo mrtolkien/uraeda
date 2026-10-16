@@ -173,7 +173,7 @@ export function createApp(options: AppOptions) {
   fateRoutes(app, hosts);
   // A feature's turn that ends done starts its Storybook, so its stories are ready as you come.
   onTurnDone(sessions, (repo, folder) => {
-    const ctx = { binding, dataDir, frames, hosts, lockedList, previews, repo, sessions };
+    const ctx = { binding, dataDir, frames, hosts, lockedList, previews, repo, sessions, settings };
     warmPreview(ctx, folder).catch(() => {});
   });
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */

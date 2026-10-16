@@ -238,6 +238,19 @@ describe("on a desktop, as embeds load", () => {
   });
 });
 
+/**
+ * Picks a theme in the settings' Appearance, reached from the sidebar, then goes back to the page
+ * it left.
+ */
+async function pickThemeInSettings(mode: "Dark" | "Light" | "System") {
+  const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
+  await userEvent.click(nav.getByRole("link", { name: "Settings" }));
+  await userEvent.click(await screen.findByRole("link", { name: /^Appearance/ }));
+  const theme = await screen.findByRole("radiogroup", { name: "Theme" });
+  await userEvent.click(within(theme).getByRole("radio", { name: mode }));
+  window.history.go(-2);
+}
+
 describe("on a desktop, the frames and their messages", () => {
   atSize("desktop");
 
@@ -248,13 +261,7 @@ describe("on a desktop, the frames and their messages", () => {
     await storyShown(DESKTOP);
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("dark");
 
-    // The theme is picked in the settings' Appearance, then the spec is shown again.
-    const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
-    await userEvent.click(nav.getByRole("link", { name: "Settings" }));
-    await userEvent.click(await screen.findByRole("link", { name: /^Appearance/ }));
-    const theme = await screen.findByRole("radiogroup", { name: "Theme" });
-    await userEvent.click(within(theme).getByRole("radio", { name: "Light" }));
-    window.history.go(-2);
+    await pickThemeInSettings("Light");
     await storyShown(DESKTOP);
 
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("light");
