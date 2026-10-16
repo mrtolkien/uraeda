@@ -31,7 +31,7 @@ describe("on a desktop, folding and resizing", () => {
 
   /** US3.1 */
   test("the fold button shows under the pointer, and is reached with Tab", async () => {
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
     const button = within(nav()).getByRole("button", { name: "Collapse sidebar" });
     expect(getComputedStyle(button).opacity).toBe("0");
 
@@ -45,7 +45,7 @@ describe("on a desktop, folding and resizing", () => {
 
   /** US3.2, C3, review focus 6 */
   test("folding draws the rail, and the button stays where it was", async () => {
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
     await userEvent.hover(nav());
     const before = at(foldButton());
 
@@ -65,7 +65,7 @@ describe("on a desktop, folding and resizing", () => {
 
   /** US3.3, US3.4 */
   test("[ folds and unfolds the sidebar, but not while a text field has the focus", async () => {
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
 
     await userEvent.keyboard("[[");
     await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Expand sidebar");
@@ -81,7 +81,7 @@ describe("on a desktop, folding and resizing", () => {
 
   /** US3.5 */
   test("the sidebar resizes between 200 and 480 px, kept after a reload, and folds under 160", async () => {
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
     // Beside the navigation, not inside it.
     const handle = screen.getByRole("separator", { name: "Resize sidebar" });
 
@@ -95,7 +95,7 @@ describe("on a desktop, folding and resizing", () => {
     }
     await expect.poll(() => width()).toBe(400);
 
-    await reload("Waiting on you");
+    await reload("Needs you");
     await expect.poll(() => width()).toBe(400);
 
     // Dragged under 160 px, it folds.
@@ -108,7 +108,7 @@ describe("on a desktop, folding and resizing", () => {
 
   /** US3.8 */
   test("the fold eases over 200 ms, and at once under reduced motion", async () => {
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
     await userEvent.click(foldButton());
     expect(getComputedStyle(nav()).transitionDuration).toBe("0.2s");
     await userEvent.click(foldButton());
@@ -126,7 +126,7 @@ describe("on a desktop, the latest done items", () => {
   /** US7.1 to US7.3 */
   test("the latest done items fill the room the rows above leave, up to five", async () => {
     await page.viewport(1440, 2000);
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
     const done = () => within(nav()).queryByRole("group", { name: "Done" });
     // The fixture has two done items: both fit in a tall window.
     await expect.poll(() => done()?.querySelectorAll("a").length).toBe(3);

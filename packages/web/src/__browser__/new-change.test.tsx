@@ -42,7 +42,7 @@ async function openFromNavigation(name: string) {
 
 /** Opens "New change" from Home, by the sidebar's row. */
 async function newChange() {
-  await show("/", "Git listener process");
+  await show("/", "Needs you");
   await openFromNavigation("New change");
   await screen.findByRole("heading", { level: 1, name: "New change" }, LIVE);
   return screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE);

@@ -1,25 +1,24 @@
-// What the hub reads from the workspace and the inbox: a started feature's status, the inbox summed
-// up, and a section of the priorities, its running lines first.
-import type { useInbox, useWorkspace } from "../data.ts";
-import { agentState, type Feature } from "../Home.tsx";
-import { waiting } from "../labels.ts";
-
-/** The workspace's priorities, as the hub reads them. */
-type Priority = NonNullable<ReturnType<typeof useWorkspace>>["priorities"][number];
+// What the hub reads from the priorities and the inbox: a running entry's status, the inbox summed
+// up, and a section of the priorities as the hub lists it.
+import type { PriorityEntry } from "uraeda-server/fate";
+import type { useInbox } from "../data.ts";
+import { stepTitle } from "../labels.ts";
+import type { Priorities } from "../lists/PrioritiesList.tsx";
 
 /**
- * A started feature's status in a word, as a badge shows it: what it waits on the human for, its
+ * A running entry's status in a word, as a badge shows it: what its gate asks of the human, its
  * agent working, or its step.
  */
-export function featureStatus(
-  feature: Feature,
-  running: Array<string>,
+export function runningStatus(
+  running: NonNullable<PriorityEntry["running"]>,
+  working: Array<string>,
 ): { label: string; variant: "info" | "success" | "warning" } {
-  if (feature.step.waitsOn === "human") {
-    return { label: waiting(feature).verb, variant: "warning" };
+  if (running.step.waitsOn === "human") {
+    return { label: stepTitle(running.step), variant: "warning" };
   }
-  const { step, working } = agentState(feature, running);
-  return working ? { label: "Working", variant: "success" } : { label: step, variant: "info" };
+  return working.includes(running.folder)
+    ? { label: "Working", variant: "success" }
+    : { label: stepTitle(running.step), variant: "info" };
 }
 
 /**
@@ -41,22 +40,20 @@ export function inboxSummary(inbox: ReturnType<typeof useInbox>, latest = 3) {
   };
 }
 
-/** A line of the priorities, with the feature it started while that feature is not done. */
-export type SectionEntry = { entry: Priority; running?: Feature };
-
 /**
- * The lines of a section of the priorities, those whose feature runs first, each keeping its order:
- * a line runs when it links a feature that is not done.
+ * The entries the hub lists for a section, as the priorities page shows them (R10): for Now, the
+ * running entries of every section first, then Now's others; for another section, its entries not
+ * running. Each keeps the file's order.
  */
 export function prioritySection(
-  workspace: { features: Array<Feature>; priorities: Array<Priority> },
-  section: string,
-): Array<SectionEntry> {
-  const entries = workspace.priorities
-    .filter((entry) => entry.section === section)
-    .map((entry) => {
-      const feature = workspace.features.find((f) => f.folder === entry.feature);
-      return { entry, running: feature?.step.name === "done" ? undefined : feature };
-    });
-  return [...entries.filter((e) => e.running), ...entries.filter((e) => !e.running)];
+  priorities: Pick<Priorities, "sections">,
+  section: "now" | "next",
+): Array<PriorityEntry> {
+  const entries = (name: string) =>
+    priorities.sections.find((s) => s.section === name)?.entries ?? [];
+  const rest = entries(section).filter((entry) => !entry.running);
+  if (section !== "now") {
+    return rest;
+  }
+  return [...priorities.sections.flatMap((s) => s.entries.filter((e) => e.running)), ...rest];
 }

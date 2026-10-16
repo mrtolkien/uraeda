@@ -340,14 +340,14 @@ test("an add with an image that gets no answer says so, and keeps the note", asy
   expect(read(repo, PATH)).toBe(before);
 });
 
-/** US3 1, 2, 3: Home's Inbox group, and its plural. */
+/** US3 1, 2, 3: Home's Inbox count and card, and the count's plural. */
 test("Home shows how many notes wait, and opens the inbox", async () => {
   await renderPage("/");
   const page = await main();
 
-  const row = await page.findByRole("link", { name: /10 notes to organize/ });
-  expect(page.getByRole("heading", { name: "Inbox" })).toBeTruthy();
-  await click(row);
+  const count = await page.findByRole("link", { name: /^Inbox: 10, notes to organize/ });
+  expect(page.getByRole("heading", { name: /^Inbox/ })).toBeTruthy();
+  await click(count);
 
   expect(window.location.pathname).toBe(atRepo("/inbox"));
 });
@@ -355,16 +355,17 @@ test("Home shows how many notes wait, and opens the inbox", async () => {
 test("Home says 1 note to organize for one note (US3 2)", async () => {
   await renderPage("/", withInbox("# Inbox\n\n## UI\n\n- One thing\n"));
 
-  expect(await (await main()).findByRole("link", { name: /1 note to organize/ })).toBeTruthy();
+  expect(
+    await (await main()).findByRole("link", { name: /^Inbox: 1, note to organize/ }),
+  ).toBeTruthy();
 });
 
-test("Home shows no Inbox group without notes (US3 3)", async () => {
+test("Home's Inbox card says the inbox is empty without notes (US3 3)", async () => {
   await renderPage("/", withInbox("# Inbox\n\n## UI\n"));
   const page = await main();
 
-  await page.findByRole("link", { name: "All priorities" });
-  expect(page.queryByRole("heading", { name: "Inbox" })).toBeNull();
-  expect(page.queryByText(/to organize/)).toBeNull();
+  expect(await page.findByText("The inbox is empty.")).toBeTruthy();
+  expect(page.queryByRole("list", { name: "Latest notes" })).toBeNull();
 });
 
 /** The inbox page: its count, its categories in file order with "No category" first. */

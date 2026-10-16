@@ -196,3 +196,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the same rule.
 - **If wrong**: `besideSameList` in `routes.tsx`.
 - **Where**: task 11.
+
+## R15: Home's tests count the tests' fixture
+
+- **Decision**: `home.test.tsx` checks the counts of `fixtures/repo`, "Needs you 3", "Agents 1",
+  "Now 4", and "Inbox 10", not the spec's "Needs you 4" and "Agents 4", which Storybook's fixture
+  shows: it adds a feature with stories under review and three checkouts for the story embeds'
+  states ([`.storybook/fixture.ts`](/packages/web/.storybook/fixture.ts)).
+- **Rationale**: the happy-dom tests read `fixtures/repo` alone; the counts are the same rule over
+  fewer features, and the Hub story shows the spec's numbers.
+- **Alternatives considered**: adding the story embeds' features to the happy-dom repository for
+  this test: a copy of Storybook's fixture for two numbers.
+- **If wrong**: the first test of `home.test.tsx` builds its repository as Storybook does.
+- **Where**: task 13.

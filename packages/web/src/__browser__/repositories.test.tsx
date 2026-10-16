@@ -51,7 +51,7 @@ test.each(MODES)(
   "the menu is a popover on wide screens and a sheet on narrow ones, in %s (US1)",
   async (mode) => {
     await colorScheme(mode);
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
     const menu = await openMenu();
     await expectSheetOrNarrow(menu);
     // The test's repository, and the way to add another.
@@ -96,7 +96,7 @@ test.each(MODES)(
   "the add form is a dialog on wide screens and a sheet on narrow ones, with Close, in %s (US2)",
   async (mode) => {
     await colorScheme(mode);
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
 
     let form = await openForm();
     await expect.poll(() => screen.queryByRole("dialog", { name: "Repositories" })).toBeNull();

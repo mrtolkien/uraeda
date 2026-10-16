@@ -19,7 +19,7 @@
 // error, and the settings' Sign-in category and its confirmation, in `sign-in.test.tsx`.
 // So do the settings page, its Server and Sign-in categories, and a search with its results
 // (SC-005 of the settings page).
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
@@ -59,8 +59,13 @@ const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 const TASK = "/priorities/claude-code-runner-triggered-manually";
 
+/** The pane beside a list, on wide screens. */
+function detail() {
+  return within(screen.getByRole("region", { name: "Detail" }));
+}
+
 const PAGES: Array<[name: string, path: string, text: string, insets: string | null]> = [
-  ["home", "/", "Waiting on you", null],
+  ["home", "/", "Needs you", null],
   [
     "a round of questions",
     ROUND,
@@ -165,11 +170,13 @@ describe("on the desktop", () => {
 
   test("a task view keeps its address as the window crosses 768 px", async () => {
     try {
+      // Home's Priorities card on Next, where the fixture's lines not started are.
+      window.localStorage.setItem("uraeda:home:priorities", "next");
       await show("/", "Claude Code runner");
       await act(async () => {
         fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
       });
-      await screen.findByRole("radio", { checked: true, name: "Next" });
+      await waitFor(() => detail().getByRole("radio", { checked: true, name: "Next" }));
       // A pane beside home, to read, with its one Close.
       expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
       expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
@@ -190,7 +197,7 @@ describe("on the desktop", () => {
       await expect.poll(() => window.innerWidth).toBe(1440);
       // A pane again.
       expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
-      expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
+      expect(detail().getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
       expect(window.location.pathname).toBe(atRepo(TASK));
     } finally {
       await page.viewport(1440, 900);
