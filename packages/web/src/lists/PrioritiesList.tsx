@@ -8,7 +8,7 @@ import { useFateClient } from "react-fate";
 import type { PriorityEntry } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
 import { EditableLine } from "../EditableLine.tsx";
-import { stepLabel } from "../labels.ts";
+import { stepTitle } from "../labels.ts";
 import { useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { PrioritiesView } from "../views.ts";
@@ -37,12 +37,7 @@ function Marks({ entry }: { entry: PriorityEntry }) {
     return (
       <HStack align="center" gap={2} wrap="wrap">
         <Badge label="Running" variant="green" />
-        <Text color="secondary">
-          {/* At a human gate, the step is the human's: the feature's page says which. */}
-          {entry.running.step.waitsOn === "human"
-            ? "Waiting on you"
-            : stepLabel(entry.running.step.name)}
-        </Text>
+        <Text color="secondary">{stepTitle(entry.running.step)}</Text>
       </HStack>
     );
   }

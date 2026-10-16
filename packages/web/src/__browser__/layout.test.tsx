@@ -170,8 +170,9 @@ describe("on the desktop", () => {
         fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
       });
       await screen.findByRole("radio", { checked: true, name: "Next" });
-      // A pane beside home.
+      // A pane beside home, to read, with its one Close.
       expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
+      expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
 
       await page.viewport(700, 900);
       await expect.poll(() => window.innerWidth).toBe(700);
@@ -181,6 +182,9 @@ describe("on the desktop", () => {
         .toBeNull();
       expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
       expect(window.location.pathname).toBe(atRepo(TASK));
+      // The pane's page, to read: Edit at its top, and no Close, which Back is.
+      expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
 
       await page.viewport(1440, 900);
       await expect.poll(() => window.innerWidth).toBe(1440);

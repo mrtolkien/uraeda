@@ -14,7 +14,7 @@ import { DraftView, InboxView } from "./views.ts";
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
 
-/** The note's id while its text is saved, and that text: see `NoteView`. */
+/** The note's id while its text is saved, and that text: see `NotePane`. */
 export type Renaming = { id: string; text: string };
 
 type Fate = ReturnType<typeof useFateClient>;

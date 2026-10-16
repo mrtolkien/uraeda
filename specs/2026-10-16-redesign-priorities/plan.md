@@ -864,23 +864,33 @@ git commit -m "feat(redesign-priorities): lists move with the keyboard"
 - Modify: `packages/web/src/EditorPage.tsx` (uses them), `packages/web/src/pane/EntryPane.tsx`,
   `pane/PriorityPane.tsx`, `pane/NotePane.tsx`, `pane/PaneDraft.tsx`, `packages/web/src/App.tsx`
   (`TaskRoute` and `NoteRoute` draw `PriorityPane` and `NotePane`; one Close only, the pane's),
-  `packages/web/src/pane/EntryPane.stories.tsx`
+  `layout/Panes.tsx` (its Close only with `onCloseDetail`; the detail scrolled to its top when
+  `detailKey` changes), `routes.tsx` (`navigate` does not ask "Leave page?" when only the pane shows
+  another item of its list, R14), `labels.ts` (`stepTitle`, and `waiting` from the step's
+  `fileKind`, R13), `lists/PrioritiesList.tsx`, `packages/web/src/views.ts`,
+  `crates/core/src/view/feature.rs` (`StepView.file_kind`), `packages/web/.storybook/fixture.ts` (a
+  note's children for the `Note` story), `packages/web/src/pane/EntryPane.stories.tsx`
 - Delete: `packages/web/src/TaskView.tsx`, `packages/web/src/NoteView.tsx` (their `renaming`
   fallback and `origin()` move into the panes and `usePriorityActions`; `NoteParts.tsx` becomes
   their only copy)
-- Test: `packages/web/src/__tests__/pane.test.tsx` (from `task.test.tsx` and the note-view part of
-  `inbox.test.tsx`), `packages/web/src/__tests__/editor.test.tsx`,
-  `packages/web/src/__browser__/task.test.tsx`, `layout.test.tsx` (the 768 px task test)
+- Test: `packages/web/src/__tests__/pane.test.tsx` (from `task.test.tsx`; the note pane's Organize
+  tests stay in `inbox.test.tsx`, which already reach them through the pane),
+  `packages/web/src/__tests__/editor.test.tsx`, `priorities.test.tsx` (the gate's label),
+  `packages/web/src/__browser__/task.test.tsx`, `layout.test.tsx` (the 768 px task test),
+  `lists.test.tsx` (the pane's scroll), `crates/core/tests/steps.rs` (`file_kind`)
 
 **Interfaces:**
 
 - Consumes: `EntryItem.draft`, `.running` (task 2), `InboxNote.nested` (task 5).
-- Produces: `EntryPane({location, onEdit, isEditing, draftHref?, onClose?, children})`; picking
-  "Edit" opens the line's field (cursor in it) and, for a drafted entry, the `DraftEditor` of its
-  draft under it (C2), 20 rows, with "Save" (Ctrl+Enter or Cmd+Enter) and "Commit" as on the editor
-  page; the pane and the editor page share the unsaved text of `${path}#editor`.
+- Produces:
+  `EntryPane({location, onEdit, isEditing, draftHref?, onClose?, onDelete, steps, text, children})`,
+  which calls `usePaneEdit(onEdit, isEditing)`; `useDraftEditor({draft, isDrawnFirst, path, slug})`;
+  `stepTitle(step)`, what a step asks of the human at a gate, like "Review the spec"; picking "Edit"
+  opens the line's field (cursor in it) and, for a drafted entry, the `DraftEditor` of its draft
+  under it (C2), 20 rows, with "Save" (Ctrl+Enter or Cmd+Enter) and "Commit" as on the editor page;
+  the pane and the editor page share the unsaved text of `${path}#editor`.
 
-- [ ] **Step 1: Write the failing tests**, happy-dom `pane.test.tsx`:
+- [x] **Step 1: Write the failing tests**, happy-dom `pane.test.tsx`:
   - `a click opens the pane to read`: "Git listener process" → "Next · 2 of 2", "Edit", "Open
     draft", the draft drawn, `document.activeElement` not a textbox (US1 scenario 1, SC-005).
   - `Edit opens the line and the draft's text in place`: textbox "Line" holds
@@ -899,16 +909,21 @@ git commit -m "feat(redesign-priorities): lists move with the keyboard"
   - `another row with unsaved text`: type in the line's field, open another row, come back → the
     text is restored with its notice (edge case).
   - The existing task and note tests kept, moved, and updated to the read-first path.
-- [ ] **Step 2: Run them to check they fail**
+  - `editor.test.tsx`: `the draft's text typed in the pane opens on the editor page` (R1).
+  - `priorities.test.tsx`: `an ongoing entry at a gate says what it asks of the human`, "Answer
+    questions", not "Waiting on you" (the spec's assumption, R13); core `steps.rs`:
+    `a_gate_names_the_kind_of_its_file`.
+  - Browser `lists.test.tsx`: `the pane starts at its top when the keys show another row`.
+- [x] **Step 2: Run them to check they fail**
   - Run: `vp test --project uraeda-web packages/web/src/__tests__/pane.test.tsx`
   - Expected: FAIL, `Unable to find role "button" with name "Edit"`
-- [ ] **Step 3: Implement; the stories `Reading`, `Editing` (now showing the draft's text too),
+- [x] **Step 3: Implement; the stories `Reading`, `Editing` (now showing the draft's text too),
       `Running`, `Note` use the real panes**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
   - Run:
     `vp check && vp test --project uraeda-web && vp test --project desktop packages/web/src/__browser__/task.test.tsx packages/web/src/__browser__/layout.test.tsx`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

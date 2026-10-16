@@ -6,14 +6,21 @@ import { Link } from "@astryxdesign/core/Link";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { VStack } from "@astryxdesign/core/VStack";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import type { Span } from "uraeda-binding";
-import { usePriority, useWorkspace } from "../data.ts";
-import { stepLabel, waiting } from "../labels.ts";
+import { usePriority } from "../data.ts";
+import { stepTitle } from "../labels.ts";
+import { Page } from "../layout/Page.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
-import { TITLES } from "../QuickAdd.tsx";
 import { pathLink } from "../links.tsx";
-import { currentEntry, navigate, useRepoPath, useRepository } from "../routes.tsx";
+import { TITLES } from "../QuickAdd.tsx";
+import {
+  currentEntry,
+  navigate,
+  useRepoPath,
+  useRepository,
+  useRestoreScroll,
+} from "../routes.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { EntryPane, EntryText, RunningPart, Steps } from "./EntryPane.tsx";
 import { PaneDraft } from "./PaneDraft.tsx";
@@ -22,18 +29,6 @@ import { type Found, usePriorityActions } from "./usePriorityActions.ts";
 /** The file a line links, from the repository's top level, if any. */
 function linkOf(spans: ReadonlyArray<Span>) {
   return spans.find((span) => span.link?.path)?.link?.path;
-}
-
-/** Whether a path is a draft, or a postponed proposal, which the editor opens. */
-function isDraft(path: string) {
-  return /^specs\/(drafts|backlog)\/.+\.md$/.test(path);
-}
-
-/** The started feature a line links, by its proposal's folder: `specs/<folder>/proposal.md`. */
-function useRunning(link: string | undefined) {
-  const workspace = useWorkspace();
-  const folder = link?.match(/^specs\/(?:changes\/)?([^/]+)\/proposal\.md$/)?.[1];
-  return folder ? workspace?.features.find((feature) => feature.folder === folder) : undefined;
 }
 
 /**
@@ -53,25 +48,35 @@ function useStoryEditing(line: ReturnType<typeof useLineSave>, editing: string |
   }, []);
 }
 
-/** What the entry is past its text: running, drafted, a linked file, or nothing yet. */
-function Kind({ draft, found }: { draft: () => Promise<void>; found: Found }) {
+/**
+ * What the entry is past its text, as the core says: running, drafted, a linked file, or nothing
+ * yet. A draft shows its text to edit while the entry is edited (`isEditing`).
+ */
+function Kind({
+  draft,
+  found,
+  isEditing,
+}: {
+  draft: () => Promise<void>;
+  found: Found;
+  isEditing: boolean;
+}) {
   const here = useRepoPath();
   const repo = useRepository();
-  const link = linkOf(found.entry.spans);
-  const running = useRunning(link);
-  if (running) {
-    // At a human gate, what the gate asks, like "Review the spec"; else the agent's step.
-    const step =
-      running.step.waitsOn === "human" ? waiting(running).title : stepLabel(running.step.name);
-    return <RunningPart href={here(`/f/${running.folder}`)} step={step} />;
+  const { entry } = found;
+  if (entry.running) {
+    return (
+      <RunningPart href={here(`/f/${entry.running.folder}`)} step={stepTitle(entry.running.step)} />
+    );
   }
-  if (link && isDraft(link)) {
+  if (entry.draft) {
     return (
       <Suspense fallback={<Spinner label="Loading the draft" />}>
-        <PaneDraft path={link} />
+        <PaneDraft isEditing={isEditing} path={entry.draft.path} />
       </Suspense>
     );
   }
+  const link = linkOf(entry.spans);
   if (link) {
     return (
       <Paragraph>
@@ -91,21 +96,26 @@ function Kind({ draft, found }: { draft: () => Promise<void>; found: Found }) {
   );
 }
 
-/** A found line's pane: its text, what it is, its section, Delete, and its neighbours. */
+/**
+ * A found line's pane: its text, what it is, its section unless it runs, Delete, and its
+ * neighbours.
+ */
 function PriorityBody({
   editing,
   found,
   hash,
   onClose,
+  onRenaming,
 }: {
   editing?: string;
   found: Found;
   hash: string;
   onClose?: () => void;
+  onRenaming: (id: string | undefined) => void;
 }) {
   const here = useRepoPath();
   const { entry, index, section } = found;
-  const actions = usePriorityActions(found, hash);
+  const actions = usePriorityActions(found, hash, onRenaming);
   const line = useLineSave({
     field: editing === undefined ? `priorities#${entry.key}` : `story-editing#${entry.key}`,
     onSave: actions.rename,
@@ -113,15 +123,15 @@ function PriorityBody({
     value: entry.text,
   });
   useStoryEditing(line, editing);
-  const link = linkOf(entry.spans);
   const entries = section.entries;
   return (
     <EntryPane
-      draftHref={link && isDraft(link) ? here(`/edit/${link}`) : undefined}
-      line={line}
+      draftHref={entry.draft ? here(`/edit/${entry.draft.path}`) : undefined}
+      isEditing={line.open}
       location={`${section.title} · ${index + 1} of ${entries.length}`}
       onClose={onClose}
       onDelete={actions.remove}
+      onEdit={line.openLine}
       steps={
         <Steps
           count={entries.length}
@@ -134,25 +144,30 @@ function PriorityBody({
       text={<EntryText label="Line" line={line} nested={entry.nestedSpans} spans={entry.spans} />}
     >
       <Divider />
-      <Kind draft={actions.draft} found={found} />
-      <Divider />
-      <SegmentedControl
-        label="Section"
-        onChange={(to: string) => void actions.move(to)}
-        value={section.section}
-      >
-        {[...TITLES].map(([id, title]) => (
-          <SegmentedControlItem key={id} label={title} value={id} />
-        ))}
-      </SegmentedControl>
+      <Kind draft={actions.draft} found={found} isEditing={line.open} />
+      {/* A running entry's line does not move its branch: it has no section to pick. */}
+      {!entry.running && (
+        <>
+          <Divider />
+          <SegmentedControl
+            label="Section"
+            onChange={(to: string) => void actions.move(to)}
+            value={section.section}
+          >
+            {[...TITLES].map(([id, title]) => (
+              <SegmentedControlItem key={id} label={title} value={id} />
+            ))}
+          </SegmentedControl>
+        </>
+      )}
       {actions.message && <Banner collapsible={false} status="error" title={actions.message} />}
     </EntryPane>
   );
 }
 
 /**
- * A line of `PRIORITIES.md` in the pane, by its key: read-only on arrival, Edit in its bar.
- * `editing`, for the stories, opens it with that text typed.
+ * A line of `PRIORITIES.md` in the pane, by its key: read-only on arrival, Edit in its bar. On
+ * narrow screens, the page itself. `editing`, for the stories, opens it with that text typed.
  */
 export function PriorityPane({
   editing,
@@ -163,24 +178,38 @@ export function PriorityPane({
   entryKey: string;
   onClose?: () => void;
 }) {
-  const { found, priorities } = usePriority(entryKey);
+  // The line's id while it is renamed: its key changes before its address does.
+  const [renaming, setRenaming] = useState<string>();
+  const { found, priorities } = usePriority(entryKey, renaming);
   const here = useRepoPath();
+  // Its data is read before it draws: the position comes back at once.
+  useRestoreScroll(true);
   if (!priorities) {
     return null;
   }
   if (!found) {
     return (
-      <Banner
-        collapsible={false}
-        description={
-          <Link hasUnderline href={here("/priorities")}>
-            Open the priorities
-          </Link>
-        }
-        status="error"
-        title="This line is no longer in PRIORITIES.md."
-      />
+      <Page>
+        <Banner
+          collapsible={false}
+          description={
+            <Link hasUnderline href={here("/priorities")}>
+              Open the priorities
+            </Link>
+          }
+          status="error"
+          title="This line is no longer in PRIORITIES.md."
+        />
+      </Page>
     );
   }
-  return <PriorityBody editing={editing} found={found} hash={priorities.hash} onClose={onClose} />;
+  return (
+    <PriorityBody
+      editing={editing}
+      found={found}
+      hash={priorities.hash}
+      onClose={onClose}
+      onRenaming={setRenaming}
+    />
+  );
 }

@@ -27,12 +27,13 @@ import { Home } from "./Home.tsx";
 import { InboxPage } from "./InboxPage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
 import { NewChangePage } from "./NewChangePage.tsx";
-import { NoteView } from "./NoteView.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { ListPaneContext, useListPane } from "./lists/listPane.ts";
+import { NotePane } from "./pane/NotePane.tsx";
+import { PriorityPane } from "./pane/PriorityPane.tsx";
 import { RouterAnchor } from "./links.tsx";
 import {
   currentEntry,
@@ -52,7 +53,6 @@ import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.ts
 import { SessionPage } from "./SessionPage.tsx";
 import { SettingsPage } from "./settings/SettingsPage.tsx";
 import { StorybookPage } from "./StorybookPage.tsx";
-import { TaskView } from "./TaskView.tsx";
 import { TriagePage } from "./TriagePage.tsx";
 import { Shell } from "./Shell.tsx";
 import { SignInPage } from "./sign-in/SignInPage.tsx";
@@ -157,9 +157,9 @@ function RoutePage({ route }: { route: Route }) {
 }
 
 /**
- * A task view: on wide screens, in a pane beside the list it was opened from, home or the
- * priorities page (the priorities page when opened from anywhere else), at the list's position;
- * on narrow screens, a page of its own. The list's keys show another line in the pane.
+ * A priority's pane: on wide screens, beside the list it was opened from, home or the priorities
+ * page (the priorities page when opened from anywhere else), at the list's position, with its
+ * Close; on narrow screens, a page of its own. The list's keys show another line in the pane.
  */
 function TaskRoute({ entryKey }: { entryKey: string }) {
   const [{ from }] = useState(currentEntry);
@@ -170,17 +170,17 @@ function TaskRoute({ entryKey }: { entryKey: string }) {
   return (
     <ListPaneContext value={pane}>
       <Panes
-        detail={<TaskView entryKey={entryKey} key={entryKey} />}
+        detail={<PriorityPane entryKey={entryKey} key={entryKey} onClose={pane.close} />}
+        detailKey={entryKey}
         list={list === "/" ? <Home /> : <PrioritiesPage />}
-        onCloseDetail={pane.close}
       />
     </ListPaneContext>
   );
 }
 
 /**
- * A note's view: on wide screens, in a pane beside the inbox; on narrow screens, a page of its own.
- * The inbox's keys show another note in the pane.
+ * A note's pane: on wide screens, beside the inbox, with its Close; on narrow screens, a page of
+ * its own. The inbox's keys show another note in the pane.
  */
 function NoteRoute({ noteKey }: { noteKey: string }) {
   const here = useRepoPath();
@@ -189,9 +189,9 @@ function NoteRoute({ noteKey }: { noteKey: string }) {
   return (
     <ListPaneContext value={pane}>
       <Panes
-        detail={<NoteView key={noteKey} noteKey={noteKey} />}
+        detail={<NotePane key={noteKey} noteKey={noteKey} onClose={pane.close} />}
+        detailKey={noteKey}
         list={<InboxPage />}
-        onCloseDetail={pane.close}
       />
     </ListPaneContext>
   );

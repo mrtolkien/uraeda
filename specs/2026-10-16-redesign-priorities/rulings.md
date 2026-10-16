@@ -122,8 +122,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: "Ongoing" lists every entry with `running`, from any section, in the file's order,
   and shows only when one runs; each section on screen lists the others. A drop maps its index among
   a section's rows on screen to the file through `fileIndex`, in `PrioritiesList.tsx`. An entry
-  whose feature waits at a human gate shows "Waiting on you" as its step, the step's own name being
-  `human-gate`.
+  whose feature waits at a human gate shows what the gate asks as its step, like "Answer questions"
+  or "Review the spec", as home names it (R13), the step's own name being `human-gate`.
 - **Rationale**: C6 asks for the running features apart; a running entry left in Next or Blocked
   would be the one row of its section without a handle, and a drop beside it would have two
   meanings. One rule, every running entry in "Ongoing", keeps every section on screen movable.
@@ -169,3 +169,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   first ↓ on `/priorities`: a key that changes the page.
 - **If wrong**: the target test and `isLayerOpen` in `useListKeys.ts`, and `pageKey` in `App.tsx`.
 - **Where**: task 10.
+
+## R13: A step names the kind of the file its gate waits on
+
+- **Decision**: the core's `StepView` gains `file_kind`, the kind of `file` as `FileKind::of` reads
+  it (`clarifications`, `spec`, `plan`, ...), and `labels.ts` names what a gate asks from it alone:
+  `stepTitle(step)` for the priorities' rows and the pane, and `waiting(feature)` for home and the
+  feature's page.
+- **Rationale**: a running entry carries only its feature's step, not its files, and the web UI must
+  not read a file's kind from its name ([stack](../decisions/stack.md)); the spec's assumption and
+  home already show "Answer questions", "Review the spec", or "Review the plan".
+- **Alternatives considered**: joining the workspace record's files in the pane, as the mockup did:
+  the UI joining two records, which the spec's architecture rules out; "Waiting on you", as task 8
+  wrote: the same words for every gate.
+- **If wrong**: one optional field of `StepView`, and `gateAction` in `labels.ts`.
+- **Where**: task 11.
+
+## R14: Another row of the same list does not ask "Leave page?"
+
+- **Decision**: `navigate` does not ask before leaving when the page is a priority's or a note's
+  pane and the address is another of the same kind: the list stays, and the pane's unsaved text
+  stays in the browser and comes back, with its notice, when its item opens again.
+- **Rationale**: the spec's edge case "Clicking another row while a field holds unsaved text" opens
+  the new pane at once; the leave guard asked first, as for leaving the page.
+- **Alternatives considered**: a pane's own guard, set and cleared by the pane: a second guard for
+  the same rule.
+- **If wrong**: `besideSameList` in `routes.tsx`.
+- **Where**: task 11.
