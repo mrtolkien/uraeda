@@ -19,7 +19,7 @@ mod read;
 
 use read::read_feature;
 
-pub use links::{linked_draft, resolve};
+pub use links::{LinkedFile, RunningFeature, linked_draft, linked_file, resolve};
 
 use links::{match_feature, priority_entries};
 pub(crate) use paths::folder_path;

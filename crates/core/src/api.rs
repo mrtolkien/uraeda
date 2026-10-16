@@ -39,6 +39,7 @@ pub use drafts::{
 pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use inbox_edits::*;
 pub use preview::preview;
+pub(crate) use priority_edits::joined_priorities;
 pub use priority_edits::{
     add_priority, commit_priorities, discard_priorities, edit_priority, insert_priority,
     move_priority, read_priorities, remove_priority,
@@ -611,11 +612,18 @@ pub fn on_default_branch(repo: &Path, path: &str, text: &str) -> Result<()> {
 }
 
 fn reach_default(repo: &Path) -> Result<place::Place> {
+    Ok(reach_default_from(repo)?.0)
+}
+
+/// The checkout holding the default branch, as [`reach_default`] reaches it, with the workspace
+/// read on the way.
+fn reach_default_from(repo: &Path) -> Result<(place::Place, Workspace)> {
     let (git, workspace) = open(repo)?;
     let default = workspace
         .default_branch
+        .as_deref()
         .ok_or_else(|| refused("no default branch: commit on main first"))?;
-    Ok(place::reach(&git, &default)?)
+    Ok((place::reach(&git, default)?, workspace))
 }
 
 /// The checkout holding the default branch, where drafts and the priorities are written: this one,

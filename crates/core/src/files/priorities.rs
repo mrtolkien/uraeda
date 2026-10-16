@@ -164,6 +164,11 @@ pub struct EntryItem {
     pub nested: Vec<String>,
     /// The text of each nested item, without its marker.
     pub nested_spans: Vec<Vec<super::document::Span>>,
+    /// The draft or backlog file it links, when it exists: set by the workspace, see
+    /// [`Workspace::join_priorities`](crate::workspace::Workspace::join_priorities).
+    pub draft: Option<crate::workspace::LinkedFile>,
+    /// The feature or change it links, while it runs: set by the workspace.
+    pub running: Option<crate::workspace::RunningFeature>,
 }
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -254,6 +259,8 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
                         nested_spans: lines::nested_spans(
                             &lines[entry.item.text_end..entry.item.end],
                         ),
+                        draft: None,
+                        running: None,
                     }
                 })
                 .collect(),

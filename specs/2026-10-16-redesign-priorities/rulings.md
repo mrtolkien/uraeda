@@ -58,3 +58,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: returning only the `href`: a change of every caller in a move.
 - **If wrong**: later tasks call `pathLink(...).href` where they need a string.
 - **Where**: task 1.
+
+## R6: The watch flags the priorities when a linked feature's step changes
+
+- **Decision**: the watch's priorities hash covers the priorities record as the core joins it,
+  nested lines, drafts, and the steps of the features the entries link included, and `live.ts` keeps
+  pushing the record only on `priorities` or `inbox`, not on every `workspace` change. The server's
+  record sends each running feature's step through `sentStep`, so the web reads entries as the
+  record's `PriorityEntry`, not the binding's `EntryItem`.
+- **Rationale**: the record changes exactly when that hash does, so a feature that starts, moves a
+  step, or finishes reaches the page (review focus 4); a push on every `workspace` change would also
+  send the record on a branch switch, which the test that a repository's changes do not reach
+  another (`live.test.ts`) relies on not happening.
+- **Alternatives considered**: pushing on `workspace` too, as the plan first said: redundant with
+  the hash, and it would change that test's expectations.
+- **If wrong**: a workspace change that alters the record without changing the hash would leave it
+  stale until the next reload; adding `changes.workspace` to the condition in `publish` sends it.
+- **Where**: task 2.
