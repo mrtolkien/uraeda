@@ -13,6 +13,8 @@
 - When there's multiple "blocked by auto mode", we should be able to allow them ALL at once!
 - Setup coverage visualisation (could be a simple command for this project, loclly)
   - Also understand why the coverage job takes so much time?
+- [agent] [storybook-warmup] vp install in a new worktree rewrites the Vite+ section of AGENTS.md
+  without its line wrapping, so vp check fails until it is restored
 
 ## Prompts
 
