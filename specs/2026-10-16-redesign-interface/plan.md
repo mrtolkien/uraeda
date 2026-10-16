@@ -405,7 +405,15 @@ git commit -m "feat(redesign-interface): items and their steps come from their c
 - [x] **Step 1: Move the process runner out of `git.rs`**
 
 Move `Git::output`'s process handling into `git/process.rs` as `run(program, args, dir)`, used by
-`output`, so `git.rs` shrinks.
+`output`, so `git.rs` shrinks. Then, in a second commit, move `priority_entries` from `workspace.rs`
+into `workspace/links.rs`, unchanged, and lower `workspace.rs`'s cap to its new length and the 8
+lines step 4 adds there
+([R9](rulings.md#r9-priority_entries-moves-into-the-links-module-before-workspacers-grows)).
+
+```bash
+git add crates/core/src/workspace.rs crates/core/src/workspace/links.rs crates/cli/tests/structure.rs specs/2026-10-16-redesign-interface
+git commit -m "refactor(redesign-interface): match priorities' entries in the links module"
+```
 
 - Run: `cargo nextest run --workspace` and clippy, before and after
 - Expected: PASS both times; lower `git.rs`'s cap in `structure.rs`

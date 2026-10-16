@@ -108,3 +108,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   check anything of their own; keeping an exception for uncommitted proposals: against R3.
 - **If wrong**: the tests come back with the exception R3 describes.
 - **Where**: task 1.
+
+## R9: `priority_entries` moves into the links module before `workspace.rs` grows
+
+- **Decision**: a second structural commit of task 2 moves `priority_entries`, unchanged, from
+  `workspace.rs` into `workspace/links.rs`, and lowers `workspace.rs`'s cap in `structure.rs` to
+  741: its 733 lines, and the 8 that step 4 adds for the feature's pull request and the snapshot's
+  application in `Workspace::read`.
+- **Rationale**: task 1 left `workspace.rs` at its exact cap, 759, so the `Feature` field that
+  carries the snapshot's pull request, and its two initialisations, could not fit. The links module
+  already holds `match_feature` and `linked_draft`, the two rules `priority_entries` applies.
+- **Alternatives considered**: carrying the pull request inside `Step`: it is the step's input, not
+  the step, and `ura next --json` would print it; computing it in `FeatureView::new`: the view has
+  no repository path to find the snapshot.
+- **If wrong**: the function moves back, and the cap rises by the human's approval only.
+- **Where**: task 2.
