@@ -1,7 +1,7 @@
 // The settings page's states, as the spec's mockups: each category, the Server category with a
 // value a flag overrides and with a file that cannot be read, and the phone's list of categories.
-// The Server values are the page's own view of them, passed in, until the server's settings source
-// exists; Sign-in and Appearance are the real ones.
+// The Server values are records as the server's settings source gives them, passed in, as
+// `SettingsPage` passes the one it reads; Sign-in and Appearance are the real ones.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { RepositoryPathContext } from "../routes.tsx";
 import type { CategoryId } from "./categories.ts";
@@ -10,23 +10,25 @@ import { SettingsView } from "./SettingsView.tsx";
 
 /** The settings file of a machine reached through its tailnet name, nothing overridden. */
 const server: ServerValues = {
-  allowedHosts: {
-    inForce: ["mac.tail1234.ts.net"],
-    saved: ["mac.tail1234.ts.net"],
-    source: { kind: "file" },
-  },
-  currentHost: "mac.tail1234.ts.net",
   file: "~/.config/uraeda/config.toml",
-  openBrowser: { inForce: true, saved: undefined, source: { kind: "default" } },
-  port: { inForce: 4310, saved: undefined, source: { kind: "default" } },
+  problem: null,
+  server: {
+    allowedHosts: {
+      inForce: ["mac.tail1234.ts.net"],
+      saved: ["mac.tail1234.ts.net"],
+      source: { kind: "file" },
+    },
+    openBrowser: { inForce: true, saved: null, source: { kind: "default" } },
+    port: { inForce: 4310, saved: null, source: { kind: "default" } },
+  },
 };
 
 /** Every change succeeds, and changes nothing: the page's actions are the server's. */
 const serverActions: ServerActions = {
   addHost: async () => undefined,
   editHost: async () => undefined,
-  removeHost: () => {},
-  setOpenBrowser: () => {},
+  removeHost: async () => undefined,
+  setOpenBrowser: async () => undefined,
   setPort: async () => undefined,
 };
 
@@ -58,12 +60,15 @@ export const Overridden: Story = {
   args: {
     server: {
       ...server,
-      allowedHosts: {
-        inForce: ["build.tail1234.ts.net"],
-        saved: ["mac.tail1234.ts.net"],
-        source: { kind: "flag", name: "--allowed-hosts" },
+      server: {
+        ...server.server,
+        allowedHosts: {
+          inForce: ["build.tail1234.ts.net"],
+          saved: ["mac.tail1234.ts.net"],
+          source: { kind: "flag", name: "--allowed-hosts" },
+        },
+        port: { inForce: 4400, saved: 4310, source: { kind: "environment", name: "URAEDA_PORT" } },
       },
-      port: { inForce: 4400, saved: 4310, source: { kind: "environment", name: "URAEDA_PORT" } },
     },
   },
 };
@@ -74,7 +79,7 @@ export const Unreadable: Story = {
     server: {
       ...server,
       problem:
-        "Cannot read ~/.config/uraeda/config.toml: line 3, port: expected a number from 1 to 65535.",
+        "Cannot read ~/.config/uraeda/config.toml: line 3, port: The port is a number from 1 to 65535.",
     },
   },
 };

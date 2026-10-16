@@ -155,7 +155,8 @@ export function atRepo(path: string): string {
  * already in that data folder, the repository left out of it. Without `agent`, the agent is not
  * installed, and the pages keep their single buttons; `true` gives a new fake agent, which a test
  * can also build first with `fakeAgent`. `binding` gives the server a binding of its own, as one
- * whose call fails. `onSignedIn` replaces the sign-in screen's reload.
+ * whose call fails. `onSignedIn` replaces the sign-in screen's reload. `settings` gives the server's
+ settings their config folder, a new empty one by default, and the host names of `--allowed-hosts`.
  */
 export async function renderPage(
   path = "/",
@@ -168,6 +169,7 @@ export async function renderPage(
     onSignedIn?: () => void;
     raw?: boolean;
     reload?: boolean;
+    settings?: SettingsOptions;
   } = {},
 ) {
   const fake =
@@ -181,6 +183,7 @@ export async function renderPage(
       fake.sessions,
       options.dataDir,
       options.binding,
+      options.settings,
     );
   current = (await names.get(fetch)) ?? basename(repo);
   if (options.reload) {
@@ -199,6 +202,9 @@ export async function renderPage(
   );
   return { ...rendered, agent: fake.adapter, name: current, repo, sessions: fake.sessions };
 }
+
+/** The config folder of a test's server, and the host names of `--allowed-hosts`, when given. */
+type SettingsOptions = Parameters<typeof testSettings>[0];
 
 /** The hosts of the tests' apps, whose watches are closed after each test. */
 const opened: Array<Promise<Hosts>> = [];
@@ -255,15 +261,17 @@ export async function quiet() {
 /**
  * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default,
  * with a list in a temporary data folder holding `repo`; or, given `dataDir`, the list already
- * there, which `repo` is added to unless it is null; on the core's binding, or `server`'s.
+ * there, which `repo` is added to unless it is null; on the core's binding, or `server`'s; on the
+ * settings of `settings`, as `testSettings` takes them.
  */
 export function serverFetch(
   repo: string | null,
   sessions?: Fake["sessions"],
   dataDir = temporaryFolder("uraeda-data"),
   server: Binding = binding,
+  settings?: SettingsOptions,
 ): typeof globalThis.fetch {
-  const { added, created } = serverApp(repo, sessions, dataDir, server);
+  const { added, created } = serverApp(repo, sessions, dataDir, server, undefined, settings);
   return fetchOn(created, added);
 }
 
@@ -289,6 +297,7 @@ function serverApp(
   dataDir: string,
   server: Binding,
   signIn?: ReturnType<typeof testSignIn>["options"],
+  settingsOptions?: SettingsOptions,
 ) {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
@@ -302,8 +311,8 @@ function serverApp(
   opened.push(hosts);
   const previews = livePreviews();
   runners.push(previews);
-  // On a config folder of its own, empty: no host name besides the server's own.
-  const settings = testSettings();
+  // On a config folder of its own, empty unless given: no host name besides the server's own.
+  const settings = testSettings(settingsOptions);
   settled.push(settings);
   const created = Promise.all([hosts, settings]).then(([hosts, settings]) =>
     createApp({

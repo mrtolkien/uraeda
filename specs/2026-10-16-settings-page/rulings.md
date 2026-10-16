@@ -177,3 +177,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   source registry in `fate/settings.ts` for masking alone.
 - **If wrong**: the mutations move into `fate/settings.ts`, unchanged.
 - **Where**: task 5, `packages/server/src/fate/settings-mutations.ts`
+
+## R15: The Add row is a button, and empty values have their own refusal
+
+- **Decision**: "＋ Add a host name" is a secondary `Button` that opens the add field, built from
+  `useLineSave` and `LineField` as `EditableLine` is, rather than an `EditableLine` drawn as a
+  button. `EditableLine` takes `empty`, passed to `useLineSave`: an empty host name is refused with
+  "A host name cannot be empty.", an empty port with "The port is a number from 1 to 65535.". The
+  dialog before removing this browser's host name is asked by `SettingsPage`, as the spec's
+  components say, so `SettingsView` takes no `currentHost`.
+- **Rationale**: C2 asks the Add line to read as an action, which a button is; a third `look` would
+  serve one caller. An empty line was refused with the priorities' "A priority cannot be empty.",
+  wrong on this page, and the spec names no text for it.
+- **Alternatives considered**: a `look="button"` on `EditableLine`; the core's refusal of an empty
+  name, never reached since the line refuses an empty text before saving; the dialog in
+  `ServerSettings`, with `currentHost` as a prop.
+- **If wrong**: one string, or the Add row back to an `EditableLine` with `display`.
+- **Where**: task 6, `packages/web/src/settings/ServerSettings.tsx`,
+  `packages/web/src/settings/SettingsPage.tsx`, `packages/web/src/EditableLine.tsx`

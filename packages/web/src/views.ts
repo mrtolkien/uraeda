@@ -15,6 +15,7 @@ import type {
   Session,
   SessionList,
   SessionSearch,
+  Settings,
   SlugProposal,
   Story,
   StoryHref,
@@ -261,6 +262,24 @@ export const RepositoriesView = view<Repositories>()({
   id: true,
   problem: true,
   rows: true,
+});
+
+/** A setting: its value in force, the file's, and its source. */
+const SettingSelection = { inForce: true, saved: true, source: true } as const;
+
+/**
+ * The server's settings, which every endpoint serves: the file, its problem, and each setting's
+ * value in force, the file's, and its source. Named apart from the page's `SettingsView`.
+ */
+export const SettingsRecordView = view<Settings>()({
+  file: true,
+  id: true,
+  problem: true,
+  server: {
+    allowedHosts: SettingSelection,
+    openBrowser: SettingSelection,
+    port: SettingSelection,
+  },
 });
 
 /** The folders the add form suggests for a typed text, its id. */

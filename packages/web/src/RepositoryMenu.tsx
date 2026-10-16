@@ -63,8 +63,8 @@ const styles = stylex.create({
  */
 export const ListClientContext = createContext<Client | null>(null);
 
-/** Its children on the global client, which reads and changes the list. */
-function OnListClient({ children }: { children: ReactNode }) {
+/** Its children on the global client, which reads and changes the list and the settings. */
+export function OnListClient({ children }: { children: ReactNode }) {
   const client = use(ListClientContext);
   return client ? <FateClient client={client}>{children}</FateClient> : children;
 }
