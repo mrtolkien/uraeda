@@ -1,7 +1,7 @@
 //! The edits of `PRIORITIES.md`: adding, moving, linking, editing, and removing entries, each
 //! splicing lines so every other line keeps its bytes.
 
-use super::super::lines::{self, Marker};
+use super::super::lines::{self, Item, Marker};
 use super::super::markdown::link_text as escaped;
 use super::{Entry, Section, entry_id, keys, parse};
 
@@ -9,7 +9,8 @@ fn entry_at(text: &str, line: usize) -> Option<Entry> {
     parse(text).into_iter().find(|entry| entry.line == line)
 }
 
-/// Turns the entry starting at `line` into a link to `target`, keeping its sub-items.
+/// Turns the entry starting at `line` into a link to `target`, alone: its sub-items go, as the
+/// draft it links takes them.
 pub fn link(text: &str, line: usize, target: &str) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
         let entry = entry_at(text, line).ok_or(())?;
@@ -18,7 +19,11 @@ pub fn link(text: &str, line: usize, target: &str) -> Option<String> {
             entry.item.marker.render(),
             escaped(&entry.text)
         );
-        Ok::<_, ()>(lines::replace(text, &entry.item, &[item]))
+        let whole = Item {
+            text_end: entry.item.end,
+            ..entry.item.clone()
+        };
+        Ok::<_, ()>(lines::replace(text, &whole, &[item]))
     })
     .ok()
 }

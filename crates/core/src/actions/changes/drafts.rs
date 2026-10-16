@@ -179,7 +179,8 @@ fn draft_links(inbox: &str, priorities: &str) -> Vec<(String, Option<String>)> {
 /// Holds in the commit every draft the lists link that no commit has, so none of their links points
 /// at a file the commit lacks: a note added and moved since the last commit leaves no trace in the
 /// inbox to pair. One linked since the last commit Discard deletes while it holds what a tool wrote
-/// for the link, the proposal titled by its text.
+/// for the link, the proposal titled by its text, with the nested lines the entry of that text had
+/// at the last commit.
 pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Drafts) {
     if texts.inbox.0 == texts.inbox.1 && texts.priorities.0 == texts.priorities.1 {
         return;
@@ -203,13 +204,24 @@ pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Drafts) 
             continue;
         }
         if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path)) {
+            let nested = nested_of(&text(&texts.priorities.1), &title);
             found.undo.push(Undo::Created {
                 path: path.clone(),
-                written: draft::from_note(&path, &title, &[]),
+                written: draft::from_note(&path, &title, &nested),
             });
         }
         found.paths.push(path);
     }
+}
+
+/// The nested lines of the entry of `priorities` without a link whose text is `title`, as a draft
+/// of it takes them: none when there is no such entry.
+fn nested_of(priorities: &str, title: &str) -> Vec<String> {
+    priorities::parse(priorities)
+        .into_iter()
+        .find(|entry| entry.link.is_none() && entry.text == title)
+        .map(|entry| entry.nested(priorities))
+        .unwrap_or_default()
 }
 
 /// The committed single-file draft the folder draft `path` was made from by an attached image: the
