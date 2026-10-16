@@ -64,9 +64,27 @@ const rest = (context: { req: { path: string } }, route: string) =>
 const failed = (status: 404 | 500) => (status === 404 ? "Not found" : "The file could not be read");
 
 /**
+ * Whether `path`, decoded, names a file in a `mockups` folder, at any depth below it, with no empty,
+ * `.`, or `..` segment: the only files the mockup route serves.
+ */
+function inMockups(path: string): boolean {
+  let segments: Array<string>;
+  try {
+    segments = decodeURIComponent(path).split("/");
+  } catch {
+    return false;
+  }
+  return (
+    !segments.some((segment) => segment === "" || segment === "." || segment === "..") &&
+    segments.slice(0, -1).includes("mockups")
+  );
+}
+
+/**
  * A mockup, `/mockups/<secret>/<path>`, the frame secret first, with its own type, sandboxed so its
- * scripts run outside the UI's origin. Any other mockup path, which only a signed-in page reaches,
- * is sent with 303 to its path under the secret; the secret alone is 404.
+ * scripts run outside the UI's origin: only a file in a `mockups` folder, any other path is 404.
+ * Any other mockup path, which only a signed-in page reaches, is sent with 303 to its path under
+ * the secret; the secret alone is 404.
  */
 async function mockup(context: Context) {
   const path = rest(context, "mockups");
@@ -78,7 +96,7 @@ async function mockup(context: Context) {
     return context.redirect(`${prefix}/mockups/${frames.current()}/${path}${search}`, 303);
   }
   const file = others.join("/");
-  const text = file === "" ? 404 : await read(context, file);
+  const text = inMockups(file) ? await read(context, file) : 404;
   if (typeof text === "number") {
     return context.text(failed(text), text);
   }

@@ -325,3 +325,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   click.
 - **Where**: `packages/server/src/sign-in/links.ts`, `main.ts`, `server.ts`; `spec.md`, US4.1 and
   US4.2
+
+## R28: The mockup route serves only the files of a `mockups` folder
+
+- **Decision**: under `/r/<name>/mockups/<secret>/`, the server serves a path only when one of its
+  folders is named `mockups`, like `specs/<folder>/mockups/repeat.html` or
+  `specs/<folder>/mockups/assets/app.css`, with no empty, `.`, or `..` segment once decoded; any
+  other path is 404. An HTML file outside a `mockups` folder is no longer served through the mockup
+  route: the UI links it as text, through `/raw/`, as other files.
+- **Rationale**: the frame secret is shared by every frame, and a mockup's own scripts can read
+  their address. With it, the route served every tracked file of the repository, which only a
+  signed-in page should read; mockups live in a feature's `mockups/` folder.
+- **Alternatives considered**: only `specs/<folder>/mockups/`, which would refuse the example's
+  mockups under `skills/`; serving any `.html` file, which still serves a project's own HTML pages.
+- **If wrong**: an HTML page outside a `mockups` folder opens as text instead of rendered.
+- **Where**: `packages/server/src/files.ts`, `packages/web/src/routes.tsx`, `pathLink`
