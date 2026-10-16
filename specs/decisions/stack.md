@@ -102,13 +102,12 @@ and approving or starting a feature must be a deliberate act
 
 The human chose live mockups run by Uraeda from the project's own Storybook, working remotely
 through Tailscale, with a laxer `Origin` rule on the preview's paths
-([Q5](../2026-10-15-ui-iteration/clarifications-01.md#q5-how-do-you-see-interactions-not-only-a-still),
-[round 02](../2026-10-15-ui-iteration/clarifications-02.md),
-[the spec](../2026-10-15-ui-iteration/spec.md)). A frame sandboxed without `allow-same-origin` sends
-`Origin: null`, which every write and every other route still refuses
-([running untrusted UI](../2026-10-15-ui-iteration/discovery-02.md#running-untrusted-ui-next-to-a-host)).
-Any page can send `Origin: null` too, so the human kept these rules only until basic security
-([round 03](../2026-10-15-ui-iteration/clarifications-03.md#q1-how-do-previews-stay-out-of-other-websites-reach),
+([Q5](../done/2026-10-15-ui-iteration.md#q5-how-do-you-see-interactions-not-only-a-still),
+[round 02](../done/2026-10-15-ui-iteration.md), [the spec](../done/2026-10-15-ui-iteration.md)). A
+frame sandboxed without `allow-same-origin` sends `Origin: null`, which every write and every other
+route still refuses ([running untrusted UI](../done/2026-10-15-ui-iteration.md)). Any page can send
+`Origin: null` too, so the human kept these rules only until basic security
+([round 03](../done/2026-10-15-ui-iteration.md#q1-how-do-previews-stay-out-of-other-websites-reach),
 [basic security](../drafts/basic-security.md)).
 
 ## Alternatives considered
