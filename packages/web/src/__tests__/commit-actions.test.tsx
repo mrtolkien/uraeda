@@ -197,9 +197,8 @@ test("Commit only commits, and starts nothing", async () => {
   await click(await screen.findByRole("button", { name: "Commit only" }));
 
   // The round turns read-only once the commit's answer reaches the page, its buttons gone: a start
-  // would have been asked for by then.
-  await waitFor(() => expect(screen.queryByRole("button", { name: "Commit only" })).toBeNull());
-  expect(screen.queryByRole("button", { name: "Commit and continue" })).toBeNull();
+  // would have been asked for by then. Until then, the clicked button reads "Committing…".
+  await waitFor(() => expect(screen.queryByRole("button", { name: /^Commit/ })).toBeNull());
   expect(git(repo, "log", "-1", "--format=%s", WEB_UI).trim()).toBe(
     "discovery(web-ui): answer round 01",
   );
