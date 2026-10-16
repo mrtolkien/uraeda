@@ -6,7 +6,7 @@ import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
-import { createSessions, type HostsOf, livePreviews } from "./live.ts";
+import { createSessions, type HostsOf, livePreviews, renewPreviews } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import type { Options } from "./options.ts";
 import { guardCheck } from "./guard.ts";
@@ -18,6 +18,7 @@ import type { Adapter } from "./runner/adapter.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
 import type { Sessions } from "./runner/sessions.ts";
+import { FrameSecret } from "./sign-in/frames.ts";
 
 /** How often the server checks that the agent still works. */
 export const CHECK_EVERY_MS = 60_000;
@@ -61,11 +62,13 @@ export async function startSessions(options: {
 }
 
 /**
- * A started server: its app, the hosts, the session manager, and the Storybooks it serves, the page
- * of the repository it started in, and how to stop them.
+ * A started server: its app, the hosts, the session manager, and the Storybooks it serves, the frame
+ * secret of their paths, the page of the repository it started in, and how to stop them.
  */
 export type Server = {
   app: ReturnType<typeof createApp>;
+  /** The frame secret of preview and mockup paths: replacing it restarts the Storybooks. */
+  frames: FrameSecret;
   hosts: Hosts;
   previews: Previews;
   sessions: Sessions;
@@ -74,7 +77,10 @@ export type Server = {
    * Storybook.
    */
   stop: () => Promise<void>;
-  /** The HTTP server's upgrades: WebSockets to the Storybooks, through the guard's rule. */
+  /**
+   * The HTTP server's upgrades: WebSockets to the Storybooks, through the guard's rule and the
+   * frame secret.
+   */
   upgrade: (request: IncomingMessage, socket: Duplex, head: Buffer) => void;
   /** The started repository's page, `/r/<name>/`, or `/` when the server started outside git. */
   url: string;
@@ -126,6 +132,9 @@ export async function startServer(
   const record = groupsFolder(dataDir);
   killLeftGroups(record);
   const previews = livePreviews({ record: new GroupRecord(record) });
+  // One frame secret for the server: each replacement restarts its Storybooks under the new base.
+  const frames = new FrameSecret();
+  frames.onReplace(() => renewPreviews(previews));
   let hosts: Hosts | undefined;
   const sessions = await startSessions({ adapter, binding, dataDir, hosts: () => hosts });
   try {
@@ -149,10 +158,12 @@ export async function startServer(
       ...options,
       binding,
       dataDir,
+      frames,
       hosts: opened,
       previews,
       sessions: sessions.sessions,
     }),
+    frames,
     hosts: opened,
     previews,
     sessions: sessions.sessions,
@@ -164,7 +175,11 @@ export async function startServer(
       })();
       return stopping;
     },
-    upgrade: previewUpgrade({ check: guardCheck(options), previews }),
+    upgrade: previewUpgrade({
+      check: guardCheck({ ...options, isFrame: (path) => frames.allows(path) }),
+      frames,
+      previews,
+    }),
     url,
   };
 }

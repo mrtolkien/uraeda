@@ -41,7 +41,7 @@ async function settled(app: App, type: string, id: string): Promise<Record<strin
 test("a story's first read starts its Storybook, and turns ready live (US1.1)", async () => {
   const repo = fixtureRepo();
   addStoryFeature(repo);
-  const { app, name } = await testApp(repo);
+  const { app, frames, name } = await testApp(repo);
   const updates = await liveUpdates(app, name, "Story", STORY);
 
   const [first] = await byId(app, "Story", [STORY], FIELDS);
@@ -52,7 +52,7 @@ test("a story's first read starts its Storybook, and turns ready live (US1.1)", 
   const [ready] = await byId(app, "Story", [STORY], FIELDS);
   expect(ready).toMatchObject({
     error: null,
-    frame: `/r/${name}/preview/${STORY_FEATURE}/iframe.html?id=sidebarhandle--dragging&viewMode=story`,
+    frame: `/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/iframe.html?id=sidebarhandle--dragging&viewMode=story`,
     state: "ready",
     storybook: `/f/${STORY_FEATURE}/storybook?path=/story/sidebarhandle--dragging`,
   });
@@ -74,15 +74,17 @@ test("an export not in the index is missing", async () => {
 test("a feature without a worktree has no story to run", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo, { worktree: false });
-  const { app, name, previews } = await testApp(repo);
+  const { app, frames, name, previews } = await testApp(repo);
 
   const [story] = await byId(app, "Story", [STORY], FIELDS);
 
   expect(story).toMatchObject({ frame: null, state: "none" });
   const [preview] = await byId(app, "Preview", [STORY_FEATURE], ["state", "base"]);
   expect(preview).toMatchObject({ base: null, state: "none" });
-  expect(previews.state(`/r/${name}/preview/${STORY_FEATURE}/`)).toBeUndefined();
-  expect(previews.state(`/r/${name}/preview/main/`)).toBeUndefined();
+  expect(
+    previews.state(`/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`),
+  ).toBeUndefined();
+  expect(previews.state(`/r/${name}/preview/${frames.current()}/main/`)).toBeUndefined();
   expect(previewStarts(log!)).toEqual([]);
 });
 
@@ -122,15 +124,18 @@ test("preview.restart starts it again", async () => {
 test("the main checkout's stories run at main", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo);
-  const { app, name } = await testApp(repo);
+  const { app, frames, name } = await testApp(repo);
 
   expect(await settled(app, "Story", MAIN_STORY)).toMatchObject({
-    frame: `/r/${name}/preview/main/iframe.html?id=sidebarhandle--dragging&viewMode=story`,
+    frame: `/r/${name}/preview/${frames.current()}/main/iframe.html?id=sidebarhandle--dragging&viewMode=story`,
     state: "ready",
     storybook: "/storybook?path=/story/sidebarhandle--dragging",
   });
   const [preview] = await byId(app, "Preview", ["main"], ["state", "base"]);
-  expect(preview).toMatchObject({ base: `/r/${name}/preview/main/`, state: "ready" });
+  expect(preview).toMatchObject({
+    base: `/r/${name}/preview/${frames.current()}/main/`,
+    state: "ready",
+  });
   expect(previewStarts(log!).map(({ cwd }) => cwd)).toEqual([join(repo, "packages/web")]);
 });
 
@@ -154,7 +159,7 @@ test("a feature and the workspace say whether they have a preview", async () => 
 test("an agent's link is checked through the core", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo);
-  const { app, name, previews } = await testApp(repo);
+  const { app, frames, name, previews } = await testApp(repo);
   const link = "/packages/web/src/SidebarHandle.stories.tsx#Dragging";
 
   const hrefs = await byId(app, "StoryHref", [link, "https://example.com/x"], ["path", "export"]);
@@ -163,8 +168,10 @@ test("an agent's link is checked through the core", async () => {
     { export: "Dragging", id: link, path: "packages/web/src/SidebarHandle.stories.tsx" },
     { export: null, id: "https://example.com/x", path: null },
   ]);
-  expect(previews.state(`/r/${name}/preview/${STORY_FEATURE}/`)).toBeUndefined();
-  expect(previews.state(`/r/${name}/preview/main/`)).toBeUndefined();
+  expect(
+    previews.state(`/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`),
+  ).toBeUndefined();
+  expect(previews.state(`/r/${name}/preview/${frames.current()}/main/`)).toBeUndefined();
   expect(previewStarts(log!)).toEqual([]);
 });
 
@@ -182,7 +189,7 @@ test("a Storybook stopped without a view is not started again by a page subscrib
   const { log } = addStoryFeature(repo);
   const clock = { now: Date.now() };
   const opened = await testApp(repo, { previewOptions: { now: () => clock.now } });
-  const { app, name, previews } = opened;
+  const { app, frames, name, previews } = opened;
   const updates = await liveUpdates(app, name, "Story", STORY);
   await byId(app, "Story", [STORY], FIELDS);
   expect(await updates.arrival('"state":"ready"'), "no live update to ready").toBeDefined();
@@ -194,7 +201,9 @@ test("a Storybook stopped without a view is not started again by a page subscrib
   previews.sweep();
 
   // A stop's updates are sent as it happens: none was.
-  expect(previews.state(`/r/${name}/preview/${STORY_FEATURE}/`)).toBeUndefined();
+  expect(
+    previews.state(`/r/${name}/preview/${frames.current()}/${STORY_FEATURE}/`),
+  ).toBeUndefined();
   expect(sent.sent, "a stop sent the story a live update").toHaveLength(1);
   expect(previewStarts(log!)).toHaveLength(1);
   // Its records are forgotten: the checkout's next start, read by its preview alone, is not the
@@ -231,7 +240,7 @@ test("a restart still updates the stories read before it", async () => {
 test("a story's id is checked by the core's rule: another file's link runs nothing", async () => {
   const repo = fixtureRepo();
   const { log } = addStoryFeature(repo);
-  const { app, name, previews } = await testApp(repo);
+  const { app, frames, name, previews } = await testApp(repo);
 
   const stories = await byId(
     app,
@@ -246,7 +255,7 @@ test("a story's id is checked by the core's rule: another file's link runs nothi
   );
 
   expect(stories.map((story) => story.state)).toEqual(["none", "none", "none"]);
-  expect(previews.state(`/r/${name}/preview/main/`)).toBeUndefined();
+  expect(previews.state(`/r/${name}/preview/${frames.current()}/main/`)).toBeUndefined();
   expect(previewStarts(log!)).toEqual([]);
 });
 

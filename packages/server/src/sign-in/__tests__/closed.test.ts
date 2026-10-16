@@ -58,7 +58,11 @@ test.each(closed)("%s %s needs a session", async (method, path, headers = {}) =>
   expect(await response.json()).toEqual({ error: "Sign in to Uraeda." });
 });
 
-/** The exceptions: the UI's files, the `/session` routes, and the host's own `/open`. */
+/**
+ * The exceptions: the UI's files, the `/session` routes, the host's own `/open`, and frame paths
+ * with the frame secret, `<secret>`: a mockup the repository does not have, and a Storybook not
+ * running.
+ */
 const open: Array<[...Row, status: number]> = [
   ["GET", "/", {}, 200],
   ["GET", "/r/<name>/", {}, 200],
@@ -69,12 +73,15 @@ const open: Array<[...Row, status: number]> = [
   ["DELETE", "/session", {}, 204],
   ["GET", "/session/unknown?to=/r/todo/", {}, 303],
   ["POST", "/open", { authorization: `Bearer ${HOST_TOKEN}` }, 400],
+  ["GET", "/r/<name>/mockups/<secret>/specs/ui.html", {}, 404],
+  ["GET", "/r/<name>/preview/<secret>/main/iframe.html", {}, 503],
 ];
 
 test.each(open)("%s %s is open", async (method, path, headers, status) => {
-  const { app, name, signIn } = await closedApp();
+  const { app, frames, name, signIn } = await closedApp();
+  const target = path.replace("<name>", name).replace("<secret>", frames.current());
 
-  const response = await app.request(`http://127.0.0.1:${port}${path.replace("<name>", name)}`, {
+  const response = await app.request(`http://127.0.0.1:${port}${target}`, {
     body: method === "POST" ? JSON.stringify({ key: signIn.key }) : undefined,
     headers: { "content-type": "application/json", ...headers },
     method,

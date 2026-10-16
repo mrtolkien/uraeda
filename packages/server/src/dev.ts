@@ -11,6 +11,7 @@ import { refuse, upgradeUrl } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { layout } from "./paths.ts";
+import type { FrameSecret } from "./sign-in/frames.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
 import { SERVER_PATHS } from "./server-paths.ts";
 import { type Server, startServer } from "./server.ts";
@@ -63,9 +64,10 @@ export async function reloadRepositories(): Promise<void> {
 }
 
 /**
- * The upgrades of Vite's server: those under a preview's path go to the server of its port, which
- * its first request started; Vite answers the others, its own HMR socket among them. A target that
- * is not a URL is refused with a 400.
+ * The upgrades of Vite's server: those with a preview path's shape, whatever secret they carry, go
+ * to the server of its port, which its first request started, and which refuses a wrong secret;
+ * Vite answers the others, its own HMR socket among them. A target that is not a URL is refused
+ * with a 400.
  */
 export function devUpgrade(): (request: IncomingMessage, socket: Duplex, head: Buffer) => void {
   return (request, socket, head) => {
@@ -93,6 +95,14 @@ export function devUpgrade(): (request: IncomingMessage, socket: Duplex, head: B
 /** The Storybooks of the server started on Vite's `port`, once started: the tests view them. */
 export async function devPreviews(port: number): Promise<Previews | undefined> {
   return (await servers.get(port)?.catch(() => undefined))?.server.previews;
+}
+
+/**
+ * The frame secret of the server started on Vite's `port`, once started: the tests build preview
+ * paths with it.
+ */
+export async function devFrames(port: number): Promise<FrameSecret | undefined> {
+  return (await servers.get(port)?.catch(() => undefined))?.server.frames;
 }
 
 /**

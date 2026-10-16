@@ -12,6 +12,7 @@ import { previewRoutes } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import type { Hosts } from "./repositories.ts";
 import { sessionCheck, type SignInOptions, withDevice } from "./sign-in/check.ts";
+import { FrameSecret } from "./sign-in/frames.ts";
 import { signInRoutes } from "./sign-in/routes.ts";
 
 export { Hosts } from "./repositories.ts";
@@ -33,10 +34,12 @@ const rewritten = async (request: Request) =>
 type AppOptions = Omit<Options, "given" | "open" | "repo" | "show"> & {
   binding: Binding;
   dataDir: string;
+  /** The frame secret of preview and mockup paths: a new one by default. */
+  frames?: FrameSecret;
   hosts: Hosts;
   /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
   lockedList?: boolean;
-  /** The server's Storybooks, which `/r/<name>/preview/<folder>/` forwards to. */
+  /** The server's Storybooks, which `/r/<name>/preview/<secret>/<folder>/` forwards to. */
   previews: Previews;
   sessions: Sessions;
   /** Sign-in: without it, as in tests and Uraeda's own Storybook, no session is checked. */
@@ -54,6 +57,7 @@ type App = Hono<{ Variables: FateVariables }>;
 function hostedRoutes(
   app: App,
   { binding, dataDir, hosts, lockedList, previews, sessions }: AppOptions,
+  frames: FrameSecret,
 ) {
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
@@ -67,6 +71,7 @@ function hostedRoutes(
     context.set("fate", {
       binding,
       dataDir,
+      frames,
       hosts,
       lockedList,
       previews,
@@ -115,13 +120,15 @@ const framed = (path: string) =>
  * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
- * opened repository's; `/r/<name>/preview/<folder>/`, each checkout's Storybook; `POST /open`, a
- * second start's handoff; and with `signIn`, the session routes, every other route behind the
- * session check. Answers but mockups' and Storybooks' refuse other sites' frames.
+ * opened repository's; `/r/<name>/preview/<secret>/<folder>/`, each checkout's Storybook; `POST
+ * /open`, a second start's handoff; and with `signIn`, the session routes, every other route behind
+ * the session check but frame paths with the frame secret, which every ended session replaces.
+ * Answers but mockups' and Storybooks' refuse other sites' frames.
  */
 export function createApp(options: AppOptions) {
   const { binding, dataDir, hosts, lockedList, previews, sessions, signIn } = options;
   const allowedHosts = options.allowedHosts ?? [];
+  const frames = options.frames ?? new FrameSecret();
   const app: App = new Hono<{ Variables: FateVariables }>();
   app.use(async (context, next) => {
     await next();
@@ -129,16 +136,26 @@ export function createApp(options: AppOptions) {
       context.header("X-Frame-Options", "SAMEORIGIN");
     }
   });
-  app.use(guard(options));
+  app.use(guard({ ...options, isFrame: (path) => frames.allows(path) }));
   if (signIn) {
-    app.use(sessionCheck({ ...signIn, allowedHosts }));
+    signIn.store.onEnded(() => frames.replace());
+    app.use(sessionCheck({ ...signIn, allowedHosts, frames }));
     app.route("/", signInRoutes({ ...signIn, allowedHosts }));
   }
   app.use(async (context, next) => {
-    context.set("fate", { binding, dataDir, hosts, lockedList, previews, repo: null, sessions });
+    context.set("fate", {
+      binding,
+      dataDir,
+      frames,
+      hosts,
+      lockedList,
+      previews,
+      repo: null,
+      sessions,
+    });
     await next();
   });
-  hostedRoutes(app, options);
+  hostedRoutes(app, options, frames);
   fateRoutes(app, hosts);
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */
   const moved = (context: Context) => {

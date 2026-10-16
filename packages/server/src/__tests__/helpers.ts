@@ -17,6 +17,7 @@ import { Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import type { SignInOptions } from "../sign-in/check.ts";
+import { FrameSecret } from "../sign-in/frames.ts";
 import { OneTimeLinks } from "../sign-in/links.ts";
 import { SignInStore } from "../sign-in/store.ts";
 import { fakeSessions } from "../testing.ts";
@@ -102,11 +103,13 @@ function app(
   extra: Extra = {},
 ) {
   const previews = testPreviews(options);
+  const frames = new FrameSecret();
   const created = createApp({
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
     binding: using,
     dataDir,
+    frames,
     hosts,
     lockedList,
     port,
@@ -115,7 +118,7 @@ function app(
     ...extra,
   });
   names.set(created, name);
-  return { app: created, previews };
+  return { app: created, frames, previews };
 }
 
 /**
@@ -169,8 +172,8 @@ export async function signInCookie(app: App, key: string, host = `127.0.0.1:${po
 /**
  * The server's app, called in process, on a repository added to a temporary list, with sessions
  * that have no agent, on the core's binding or a fake of it. `name` is the repository's in the
- * list, and `previews` the app's Storybook runner, built with `previewOptions`; `lockedList` locks
- * its list, as Uraeda's own Storybook does.
+ * list, `previews` the app's Storybook runner, built with `previewOptions`, and `frames` its frame
+ * secret; `lockedList` locks its list, as Uraeda's own Storybook does.
  */
 export async function testApp<SignedIn extends boolean = false>(
   repo = fixtureRepo(),

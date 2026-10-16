@@ -42,7 +42,7 @@ test("a story link alone in an agent's message shows the story (US4.1)", async (
   await startTurn("Show me", [{ text: `I wrote the stories.\n\n${LINK}`, type: "text" }], SESSION);
 
   expect(await frameSource()).toBe(
-    `/r/${encodeURIComponent(repository())}/preview/${FEATURE}/iframe.html?id=sidebarhandle--dragging&viewMode=story`,
+    `/r/${encodeURIComponent(repository())}/preview/${await commands.frameSecret()}/${FEATURE}/iframe.html?id=sidebarhandle--dragging&viewMode=story`,
   );
 });
 
@@ -52,7 +52,9 @@ test("a chat on the main checkout shows its story from main (US4.2)", async () =
   await startTurn("Show me", [{ text: LINK, type: "text" }], "/chats/new");
 
   expect(await frameSource()).toMatch(
-    new RegExp(`^/r/${encodeURIComponent(repository())}/preview/main/iframe\\.html\\?`),
+    new RegExp(
+      `^/r/${encodeURIComponent(repository())}/preview/${await commands.frameSecret()}/main/iframe\\.html\\?`,
+    ),
   );
 });
 

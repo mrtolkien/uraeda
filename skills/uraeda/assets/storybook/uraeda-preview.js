@@ -1,4 +1,5 @@
-// Lets Uraeda serve a Storybook under its own address, `/r/<repository>/preview/<folder>/`.
+// Lets Uraeda serve a Storybook under its own address,
+// `/r/<repository>/preview/<secret>/<folder>/`.
 //
 // Wrap the config of `.storybook/main.ts` with it:
 //

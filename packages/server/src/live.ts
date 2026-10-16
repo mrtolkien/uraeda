@@ -1,6 +1,6 @@
 import type { Changes } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
-import { changedRecords } from "./fate/preview.ts";
+import { changedRecords, takeWatched, type Watched } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
 import {
   AGENT_ID,
@@ -70,6 +70,15 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   }
 }
 
+/** Sends the live updates of the records read for a base: its `Preview`, and its `Story`s. */
+function sendWatched({ folder, live, stories }: Watched) {
+  const update = sender(live);
+  update("Preview", folder);
+  for (const id of stories) {
+    update("Story", id);
+  }
+}
+
 /**
  * A Storybook runner whose changes are sent live: when a checkout's state changes, its `Preview`
  * record and every `Story` record read for it, on the bus of the repository that read them.
@@ -82,15 +91,23 @@ export function livePreviews(
     onChange: (base) => {
       const changed = changedRecords(previews, base);
       if (changed !== undefined) {
-        const update = sender(changed.live);
-        update("Preview", changed.folder);
-        for (const id of changed.stories) {
-          update("Story", id);
-        }
+        sendWatched(changed);
       }
     },
   });
   return previews;
+}
+
+/**
+ * Renews the Storybooks as the frame secret is replaced: the records read for every base are
+ * taken, every Storybook, starting or running, is stopped, and their records are sent, so the pages
+ * that read them read them again under the new base, which starts their Storybooks again. A
+ * Storybook no page reads stays stopped.
+ */
+export function renewPreviews(previews: Previews): void {
+  const records = takeWatched(previews);
+  previews.stopEach();
+  records.forEach(sendWatched);
 }
 
 type Timer = ReturnType<typeof setTimeout>;

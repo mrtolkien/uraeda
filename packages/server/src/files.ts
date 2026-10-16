@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { Hono } from "hono";
+import { type Context as HonoContext, Hono } from "hono";
 import { chatImages } from "./attach.ts";
 import type { FateVariables } from "./fate.ts";
 import { imageInUse } from "./runner/image-uses.ts";
 import { chatImageType } from "./runner/images.ts";
+
+type Context = HonoContext<{ Variables: FateVariables }>;
 
 const types: Record<string, string> = {
   css: "text/css; charset=utf-8",
@@ -62,9 +64,35 @@ const rest = (context: { req: { path: string } }, route: string) =>
 const failed = (status: 404 | 500) => (status === 404 ? "Not found" : "The file could not be read");
 
 /**
+ * A mockup, `/mockups/<secret>/<path>`, the frame secret first, with its own type, sandboxed so its
+ * scripts run outside the UI's origin. Any other mockup path, which only a signed-in page reaches,
+ * is sent with 303 to its path under the secret; the secret alone is 404.
+ */
+async function mockup(context: Context) {
+  const path = rest(context, "mockups");
+  const [first = "", ...others] = path.split("/");
+  const { frames } = context.get("fate");
+  if (!frames.check(first)) {
+    const prefix = /^\/r\/[^/]+/.exec(context.req.path)?.[0] ?? "";
+    const search = new URL(context.req.url).search;
+    return context.redirect(`${prefix}/mockups/${frames.current()}/${path}${search}`, 303);
+  }
+  const file = others.join("/");
+  const text = file === "" ? 404 : await read(context, file);
+  if (typeof text === "number") {
+    return context.text(failed(text), text);
+  }
+  const extension = file.split(".").pop() ?? "";
+  return context.body(text, 200, {
+    "content-security-policy": "sandbox allow-scripts",
+    "content-type": types[extension] ?? "text/plain; charset=utf-8",
+  });
+}
+
+/**
  * Files of the repository, read through the binding: `/raw/<path>` as text, for links to code,
- * `/mockups/<path>` with their own type, sandboxed so their scripts run outside the UI's origin,
- * and `/images/<path>` as images. And the chat images of the data folder, `/chat-images/<id>`,
+ * `/mockups/<secret>/<path>`, see `mockup`, its answers sending no referrer, as their address holds
+ * the frame secret, and `/images/<path>` as images. And the chat images of the data folder, `/chat-images/<id>`,
  * deleted by `DELETE` while no message holds them. Mounted at `/r/:name`, whose prefix is left out
  * of the file's path.
  */
@@ -76,18 +104,11 @@ export function files() {
       ? context.text(failed(text), text)
       : context.text(text, 200, { "content-type": "text/plain; charset=utf-8" });
   });
-  app.get("/mockups/*", async (context) => {
-    const path = rest(context, "mockups");
-    const text = await read(context, path);
-    if (typeof text === "number") {
-      return context.text(failed(text), text);
-    }
-    const extension = path.split(".").pop() ?? "";
-    return context.body(text, 200, {
-      "content-security-policy": "sandbox allow-scripts",
-      "content-type": types[extension] ?? "text/plain; charset=utf-8",
-    });
+  app.use("/mockups/*", async (context, next) => {
+    await next();
+    context.res.headers.set("referrer-policy", "no-referrer");
   });
+  app.get("/mockups/*", mockup);
   app.get("/images/*", async (context) => {
     const { binding, repo } = context.get("fate");
     const path = rest(context, "images");
