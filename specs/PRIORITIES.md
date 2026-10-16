@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Redesign sidebars and global interface](/specs/2026-10-16-redesign-interface/proposal.md)
 - [Redesign home, inbox, and priorities](/specs/2026-10-16-redesign-priorities/proposal.md)
 
 - [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
