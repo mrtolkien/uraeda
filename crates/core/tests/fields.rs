@@ -173,6 +173,7 @@ fn every_kind_lists_the_fields_check_requires() {
             vec![
                 ("status", choice(&["proposed", "active"])),
                 ("approved-by", plain(FieldKind::Text)),
+                ("icon", plain(FieldKind::Text)),
             ],
         ),
         (

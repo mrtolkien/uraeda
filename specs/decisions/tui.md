@@ -1,6 +1,7 @@
 ---
 status: active
 approved-by: mrtolkien
+icon: square-terminal
 ---
 
 # TUI

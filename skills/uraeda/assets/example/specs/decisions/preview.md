@@ -1,6 +1,7 @@
 ---
 status: active
 approved-by: mrtolkien
+icon: eye
 preview-folder: .
 preview-command: npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}
 ---

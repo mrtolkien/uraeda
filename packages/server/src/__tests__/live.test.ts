@@ -1,4 +1,4 @@
-import { readdirSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Changes } from "uraeda-binding";
 import { afterEach, expect, test, vi } from "vite-plus/test";
@@ -101,6 +101,7 @@ test("a feature's change through git is published to its session, its branch's c
   const sent = published(hosts.get(names[0])!.live);
 
   watcher!({
+    decisions: false,
     features: ["2026-10-12-cli-tuis", "2026-10-11-web-ui"],
     files: [],
     inbox: false,
@@ -194,7 +195,14 @@ test("two changes published in one millisecond have different event IDs", () => 
   vi.spyOn(Date, "now").mockReturnValue(1000);
   const host = hostAt("/repo");
   const update = vi.spyOn(host.live, "update");
-  const changes = { features: [], files: [], inbox: false, priorities: false, workspace: true };
+  const changes = {
+    decisions: false,
+    features: [],
+    files: [],
+    inbox: false,
+    priorities: false,
+    workspace: true,
+  };
 
   publish(changes, host);
   publish(changes, host);
@@ -362,6 +370,17 @@ test("a change of INBOX.md publishes the inbox, the priorities, and the triage",
   expect(sent()).toEqual(
     expect.arrayContaining(["Priorities priorities", "WorkflowFile inbox-triage"]),
   );
+});
+
+/** US8: a decision edited on the default branch reaches the decisions page. */
+test("a change of a decision publishes the ledger", async () => {
+  const { hosts, names } = await testHosts([fixtureRepo()], { installed: false });
+  const host = hosts.get(names[0])!;
+  const sent = published(host.live);
+
+  mkdirSync(join(host.path, "specs/decisions"), { recursive: true });
+  writeFileSync(join(host.path, "specs/decisions/git.md"), "# Git\n\nA choice.\n");
+  await vi.waitFor(() => expect(sent()).toContain("Ledger ledger"), { timeout: 5000 });
 });
 
 test("a session's change goes to its repository's bus", () => {

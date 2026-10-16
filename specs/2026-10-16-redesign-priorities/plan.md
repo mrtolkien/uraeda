@@ -620,18 +620,20 @@ git commit -m "feat(redesign-priorities): an add can commit alone"
 **Files:**
 
 - Create: `crates/core/src/api/ledger.rs`
-- Modify: `crates/core/src/git.rs` (`last_change`), `crates/core/src/check/values.rs` (`icon` among
-  a decision's optional fields), `crates/core/src/watch.rs` (`decisions` flag), the binding,
+- Modify: `crates/core/src/git/log.rs` (`last_change`), `crates/core/src/check/values.rs` (`icon`
+  among a decision's optional fields), `crates/core/src/watch.rs` (`decisions` flag), the binding,
   `packages/server/src/fate/sources.ts`, `views.ts` (move the record views it gains to a new
   `views-ledger.ts` if it would pass 500 lines), `packages/server/src/fate.ts`,
-  `packages/server/src/live.ts`
-- Modify: `skills/uraeda/assets/templates/specs/decisions/decision-topic.md` (`icon:` optional,
-  empty), `skills/uraeda/references/conventions.md` (the status table: `decisions/*.md`, `icon`, set
-  by the agent or the human, "a Lucide icon name, like `git-branch`"),
+  `packages/server/src/live.ts`; first, in a `refactor(...)` commit, a review's commands move from
+  `crates/core/src/api.rs` to `api/reviews.rs`, so `api.rs` can gain the ledger's module
+- Modify: `skills/uraeda/assets/templates/specs/decisions/decision-topic.md` and `preview.md`
+  (`icon:` optional, empty), `skills/uraeda/references/conventions.md` (the status table:
+  `decisions/*.md`, `icon`, set by the agent or the human, "a Lucide icon name, like `git-branch`"),
   `skills/uraeda/references/spec.md` (writing a decision: an icon for it), the example's decisions,
   and each of `specs/decisions/*.md` given an icon (C8)
-- Test: `crates/core/tests/ledger.rs`, `crates/core/tests/check.rs`,
-  `packages/server/src/__tests__/fate.test.ts`
+- Test: `crates/core/tests/ledger.rs`, `crates/core/tests/check.rs`, `crates/core/tests/watch.rs`,
+  `crates/core/tests/fields.rs` (a decision's fields list `icon`),
+  `packages/server/src/__tests__/fate.test.ts`, `packages/server/src/__tests__/live.test.ts`
 
 **Interfaces:**
 
@@ -644,12 +646,12 @@ git commit -m "feat(redesign-priorities): an add can commit alone"
   - `Decision { name: "ui-behaviour", title, status, approved_by: Option<String>, icon: Option<String>, summary: Option<String>, changed: Option<String> /* "2026-10-16" */, document: Document, problem: Option<String> }`:
     `title` from the H1, else the file name; `summary` the first sentence of the first paragraph;
     `changed` from `Git::last_change`; `problem` the check's first problem for the file.
-  - `Git::last_change(&self, path: &str) -> Result<Option<String>, GitError>`:
-    `git log -1 --format=%cs -- <path>` on the default branch.
+  - `Git::last_change(&self, revision: &str, path: &str) -> Result<Option<String>, GitError>`:
+    `git log -1 --format=%cs <revision> -- <path>`, given the default branch (R9).
   - Binding `readLedger(repo)`; fate record `Ledger`, id `ledger`, in `Root` as `ledgers`;
     `Changes.decisions` set when `specs/decisions/` or `specs/CONSTITUTION.md` change, pushing it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `ledger.rs`, `the_ledger_reads_the_constitution`: version `1.3.1`, ratified `2026-10-07`,
     amended `2026-10-14`, six principles from `I` "Humans stay in control" to `VI` (US8 scenario 1).
   - `the_ledger_reads_each_decision`: title, status, approved-by, icon, summary's first sentence,
@@ -659,20 +661,20 @@ git commit -m "feat(redesign-priorities): an add can commit alone"
   - `no_decisions_or_no_constitution`: empty list, `None` (edge cases).
   - `check.rs`, `a_decision_may_have_an_icon`: no problem with `icon: git-branch`; still
     `frontmatter.unknown` for another field.
-- [ ] **Step 2: Run them to check they fail**
-  - Run: `cargo nextest run -p uraeda-core -E 'test(/ledger|icon/)'`
+- [x] **Step 2: Run them to check they fail**
+  - Run: `cargo nextest run -p uraeda-core -E 'binary(ledger) | test(icon)'` (R9)
   - Expected: FAIL, `cannot find function read_ledger`
-- [ ] **Step 3: Implement; export; add the record, the watch flag, and the push; give each decision
+- [x] **Step 3: Implement; export; add the record, the watch flag, and the push; give each decision
       of this repository an icon from Lucide (agents `bot`, attachments `paperclip`, cli `terminal`,
       code-quality `ruler`, distribution `package`, git `git-branch`, preview `eye`, repositories
       `folder-git-2`, sign-in `key-round`, stack `layers`, toolchain `wrench`, tui
       `square-terminal`, ui-behaviour `mouse-pointer-click`, ui-checks `scan-eye`, ui-components
       `component`, ui-layout `layout-panel-left`); update the template, the example, and the skill**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
   - Run:
     `cargo nextest run && vp run binding:build && vp test --project uraeda-server && vp run specs:check`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding packages/server skills specs/decisions

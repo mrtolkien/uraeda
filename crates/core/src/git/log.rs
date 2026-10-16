@@ -49,4 +49,12 @@ impl Git {
             .map(|walk| walk.filter_map(Result::ok).count())
             .unwrap_or(0)
     }
+
+    /// The date of the last commit of `revision` touching `path`, as `YYYY-MM-DD`: `None` when no
+    /// commit touched it.
+    pub fn last_change(&self, revision: &str, path: &str) -> Result<Option<String>, GitError> {
+        let output = self.output("log", &["log", "-1", "--format=%cs", revision, "--", path])?;
+        let date = output.trim();
+        Ok((!date.is_empty()).then(|| date.to_string()))
+    }
 }

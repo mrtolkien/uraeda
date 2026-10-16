@@ -1,6 +1,7 @@
 ---
 status: proposed
 approved-by:
+icon:
 ---
 
 # [Topic]

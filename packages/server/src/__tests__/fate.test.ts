@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import type { PriorityEntry } from "../fate.ts";
@@ -144,6 +144,37 @@ test("US4.1 and US4.2: the priorities' entries carry their draft and running fea
   expect(running?.folder).toBe("2026-10-11-web-ui");
   // Sent as every step is: a step without progress has it null.
   expect(running?.step).toHaveProperty("progress", null);
+});
+
+test("US8: the ledger sends the constitution and each decision, a field it lacks as null", async () => {
+  const repo = fixtureRepo();
+  mkdirSync(join(repo, "specs/decisions"), { recursive: true });
+  writeFileSync(
+    join(repo, "specs/decisions/git.md"),
+    "---\nstatus: active\napproved-by:\nicon: git-branch\n---\n\n# Git\n\nGix reads. Git writes.\n",
+  );
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "decision: git");
+
+  const [ledger] = await byId(
+    (await testApp(repo)).app,
+    "Ledger",
+    ["ledger"],
+    ["decisions", "constitution"],
+  );
+
+  expect(ledger.constitution).toMatchObject({ title: "Constitution", version: null });
+  expect(ledger.decisions).toHaveLength(1);
+  const [decision] = ledger.decisions;
+  expect(decision).toMatchObject({
+    approvedBy: null,
+    icon: "git-branch",
+    name: "git",
+    status: "active",
+    summary: "Gix reads.",
+    title: "Git",
+  });
+  expect(decision.changed).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
 
 test("adds a priority line", async () => {
