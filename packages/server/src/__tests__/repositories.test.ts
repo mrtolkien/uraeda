@@ -17,6 +17,7 @@ import { homePath } from "../folders.ts";
 import { Hosts } from "../repositories.ts";
 import { fakeSessions } from "../testing.ts";
 import {
+  appSettings,
   byIdAt,
   fateAt,
   fixtureRepo,
@@ -53,7 +54,6 @@ async function twoRepositories() {
   const repos = [repoWithFeature("Dark mode in uraeda"), repoWithFeature("Dark mode in todo-app")];
   const opened = await testHosts(repos, { installed: false });
   const app = createApp({
-    allowedHosts: [],
     allowOrigins: [],
     binding,
     dataDir: opened.dataDir,
@@ -61,6 +61,7 @@ async function twoRepositories() {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
+    settings: (await appSettings()).settings,
   });
   return { app, ...opened };
 }
@@ -449,7 +450,6 @@ test("opening a repository moves it first", async () => {
   writeFileSync(file, JSON.stringify(stored));
   await opened.hosts.reload();
   const app = createApp({
-    allowedHosts: [],
     allowOrigins: [],
     binding,
     dataDir: opened.dataDir,
@@ -457,6 +457,7 @@ test("opening a repository moves it first", async () => {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
+    settings: (await appSettings()).settings,
   });
   const last = opened.hosts.rows().at(-1)!.name;
 
@@ -628,7 +629,6 @@ test("an old raw link redirects to the most recent repository", async () => {
 test("an old raw link without any repository is not found", async () => {
   const opened = await testHosts([]);
   const app = createApp({
-    allowedHosts: [],
     allowOrigins: [],
     binding,
     dataDir: opened.dataDir,
@@ -636,6 +636,7 @@ test("an old raw link without any repository is not found", async () => {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
+    settings: (await appSettings()).settings,
   });
 
   const response = await app.request(`http://127.0.0.1:${port}/raw/specs/PRIORITIES.md`);

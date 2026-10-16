@@ -2,6 +2,7 @@
 // device a valid cookie names.
 import { type Context, Hono, type Next } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import type { AllowedHosts } from "../guard.ts";
 import {
   address,
   clearSessionCookie,
@@ -53,7 +54,7 @@ async function noStore(context: Context, next: Next) {
  * new access key, signs every device out, and answers `{ key }`. Signing in again ends the session
  * the device had.
  */
-export function signInRoutes(options: SignInOptions & { allowedHosts: Array<string> }) {
+export function signInRoutes(options: SignInOptions & { allowedHosts: AllowedHosts }) {
   const {
     allowedHosts,
     hostToken,

@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { port, testApp } from "../../__tests__/helpers.ts";
+import { binding, port, testApp } from "../../__tests__/helpers.ts";
 
 const tailnet = "mac.tail1234.ts.net";
 const local = `127.0.0.1:${port}`;
@@ -75,6 +75,20 @@ test("the key signs in, with the cookie's attributes", async () => {
   expect((await readFate(app, name, cookieOf(secure), tailnet)).status).toBe(200);
   // Each name is read on its own kind of host only.
   expect((await readFate(app, name, cookieOf(secure))).status).toBe(401);
+});
+
+/** US1.1: the cookie's HTTPS test reads the host names in force, not those at start. */
+test("a host name added to the settings signs in with the secure cookie", async () => {
+  const laptop = "laptop.tail1234.ts.net";
+  // No flag: the file's names apply.
+  const { app, configDir, settings, signIn } = await testApp(undefined, { signIn: true });
+
+  await binding.addAllowedHost(configDir, laptop);
+  await settings.reload();
+  const response = await send(app, "POST", "/session", { body: { key: signIn.key }, host: laptop });
+
+  expect(response.status).toBe(204);
+  expect(cookieOf(response)).toMatch(/^__Host-uraeda=/);
 });
 
 /** US1.4 */
