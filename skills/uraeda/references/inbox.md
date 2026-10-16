@@ -107,18 +107,19 @@ commit as what it became:
   page has no action for it.
 - **Nothing**: the note is deleted. A note linking a draft loses its line only: the draft stays.
 
-A note can also have its text edited, its marks kept, or move to another category.
+A note can also have its text edited, its marks kept, or move, with the lines indented under it, to
+another place in its category or to another category.
 
 Commit `INBOX.md` with the files the notes went into, and nothing else. The message names the one
 change, with the note's text shortened like a priorities entry: `edit "<note>" in the inbox`,
-`remove "<note>" from the inbox`, `move "<note>" to <Category> in the inbox`, with `No category` for
-none, `move "<note>" from the inbox to <Section>`, or
-`move "<note>" from the inbox to the draft <title>`, each with `chore:`. A note counts as moved only
-when the entry or the draft's line has its exact text: one edited on the way is a removal and an
-addition. With more changes, `PRIORITIES.md`'s included, the subject names the first one and ends
-with `, and <count> more`, and the body lists every change, one per line, the inbox's first:
-`- Move from the inbox to Next: <note>`, `- Remove from the inbox: <note>`. See
-[Commits](conventions.md#commits).
+`remove "<note>" from the inbox`, `move "<note>" within <Category> in the inbox`,
+`move "<note>" to <Category> in the inbox`, with `No category` for none,
+`move "<note>" from the inbox to <Section>`, or `move "<note>" from the inbox to the draft <title>`,
+each with `chore:`. A note counts as moved only when the entry or the draft's line has its exact
+text: one edited on the way is a removal and an addition. With more changes, `PRIORITIES.md`'s
+included, the subject names the first one and ends with `, and <count> more`, and the body lists
+every change, one per line, the inbox's first: `- Move from the inbox to Next: <note>`,
+`- Remove from the inbox: <note>`. See [Commits](conventions.md#commits).
 
 ## The triage
 

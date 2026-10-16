@@ -507,7 +507,8 @@ git commit -m "feat(redesign-priorities): a draft takes its line's children"
 - Modify: `crates/core/src/files/inbox/read.rs` (`InboxNote.nested`, `nested_spans`),
   `crates/core/src/files/inbox.rs` (`place`), `crates/core/src/actions/inbox.rs` (`place`),
   `crates/core/src/api/inbox_edits.rs`, `crates/binding/src/inbox_writes.rs`,
-  `packages/server/src/fate/inbox-mutations.ts` (`inbox.place`), `packages/server/src/fate/views.ts`
+  `packages/server/src/fate/inbox-mutations.ts` (`inbox.place`); `views.ts` sends `categories`
+  whole, so the notes' new fields need no change there (R7)
 - Modify: `skills/uraeda/references/inbox.md` (a note can move to a place in its category, with its
   commit line)
 - Test: `crates/core/tests/inbox.rs`, `crates/core/tests/inbox_moves.rs`,
@@ -517,11 +518,12 @@ git commit -m "feat(redesign-priorities): a draft takes its line's children"
 
 - Produces: `InboxNote { nested: Vec<String>, nested_spans: Vec<Vec<Span>> }`, as `EntryItem`;
   `actions::inbox::place(place, id: &str, category: Option<&str>, index: usize, previous: Option<&str>) -> Result<Inbox, ActionError>`;
-  `api::place_note(repo, id, category: Option<&str>, index: u32, previous) -> Result<Inbox>`;
-  binding `placeNote(repo, id, category, index, previous)`; mutation
-  `inbox.place { hash, id, category?, index }` returning the inbox.
+  `api::place_note(repo, id, category: Option<String>, index: u32, previous) -> Result<Inbox>`;
+  binding `placeNote(repo, id, index, previous, category?)`, the category last as in every inbox
+  export (R7); mutation `inbox.place { hash, note, category?, index }` returning the inbox; `index`
+  counts the category's notes once the note has left it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `a_note_shows_its_children`: a note with two children → `nested` holds both, `nested_spans`
     their spans (US5 scenario 3).
   - `a_note_moves_to_a_place_in_its_category`: UI's third note to index 0 → first of UI; the change
@@ -530,15 +532,15 @@ git commit -m "feat(redesign-priorities): a draft takes its line's children"
     `move "<note>" to CLI in the inbox` (US5 scenario 2).
   - `a_stale_hash_refuses_the_place` (review of the existing conflict rule).
   - `inbox.test.ts`: `inbox.place` answers the moved inbox.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `cargo nextest run -p uraeda-core -E 'test(/children|place/)'`
   - Expected: FAIL, `no field 'nested' on type InboxNote`
-- [ ] **Step 3: Implement on `insert_at`; export; add the mutation; update the skill**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement on `insert_at`; export; add the mutation; update the skill**
+- [x] **Step 4: Run all tests**
   - Run:
     `cargo nextest run -p uraeda-core && vp run binding:build && vp test --project uraeda-server`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding packages/server skills

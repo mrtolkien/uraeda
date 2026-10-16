@@ -95,6 +95,26 @@ pub fn move_note_to_category(
     )?)
 }
 
+/// Moves a note before the note at `index` of a category, or of the notes without one, or to its
+/// end, `index` counting the category's notes once the note has left it.
+pub fn place_note(
+    repo: &Path,
+    id: &str,
+    category: Option<String>,
+    index: u32,
+    previous: &str,
+) -> Result<Inbox> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::place(
+        &place,
+        id,
+        category.as_deref(),
+        index as usize,
+        Some(previous),
+    )?)
+}
+
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
 /// Undo of a removal.
 pub fn insert_note(
