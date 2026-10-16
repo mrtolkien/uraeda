@@ -25,6 +25,7 @@ const SESSION_FIELDS = [
   "turns",
   "archived",
   "subagents",
+  "backgroundCommands",
 ];
 const TURN_FIELDS = [
   "id",
@@ -423,7 +424,7 @@ test("a turn waits for its background sub-agents to report back, and lists them 
     subagent: { description: "Research the tools" },
     type: "toolStart",
   });
-  server.adapter.emit({ tools: ["agent-1"], type: "background" });
+  server.adapter.emit({ tasks: [{ kind: "subagent", tool: "agent-1" }], type: "background" });
   server.adapter.emit({ id: "agent-1", isError: false, output: "Launched.", type: "toolEnd" });
   server.adapter.emit({ text: "I'll write the files once it reports back.", type: "text" });
   server.adapter.emit(result());
@@ -432,7 +433,7 @@ test("a turn waits for its background sub-agents to report back, and lists them 
   expect(await state()).toBe("running");
   expect(await subagents()).toEqual([{ description: "Research the tools", id: "agent-1" }]);
 
-  server.adapter.emit({ tools: [], type: "background" });
+  server.adapter.emit({ tasks: [], type: "background" });
   await flush();
   expect(await subagents()).toEqual([]);
   expect(await state()).toBe("running");
@@ -441,6 +442,25 @@ test("a turn waits for its background sub-agents to report back, and lists them 
   server.adapter.emit(result());
   await settle(server, session);
   expect(await state()).toBe("done");
+});
+
+/** US1.9, SC-003 */
+test("a run with a live background command reads Working, and counts it", async () => {
+  const server = await testServer();
+  const session = await send(server, { folder: AGENT, text: "Review it" });
+  const read = async () =>
+    (await byId(server.app, "Session", [session.id], ["statusLabel", "backgroundCommands"]))[0]!;
+  server.adapter.emit({ tasks: [{ kind: "command", tool: "bash-1" }], type: "background" });
+  server.adapter.emit({ text: "The review runs.", type: "text" });
+  server.adapter.emit(result());
+  await flush();
+
+  expect(await read()).toMatchObject({ backgroundCommands: 1, statusLabel: "Working" });
+
+  server.adapter.emit({ tasks: [], type: "background" });
+  server.adapter.emit(result());
+  await settle(server, session);
+  expect((await read()).backgroundCommands).toBe(0);
 });
 
 test("a running turn says what its agent does, and since when, until it ends", async () => {
@@ -491,12 +511,12 @@ test("a running turn says what its agent does, and since when, until it ends", a
   expect((await activity())?.label).toBe("Thinking");
 
   // A reply that ended while background sub-agents run waits for them, by count.
-  server.adapter.emit({ tools: ["agent-1"], type: "background" });
+  server.adapter.emit({ tasks: [{ kind: "subagent", tool: "agent-1" }], type: "background" });
   server.adapter.emit({ id: "agent-1", isError: false, output: "Launched.", type: "toolEnd" });
   server.adapter.emit({ text: "Waiting on the map.", type: "text" });
   server.adapter.emit(result());
   expect((await activity())?.label).toBe("Waiting for 1 sub-agent");
-  server.adapter.emit({ tools: [], type: "background" });
+  server.adapter.emit({ tasks: [], type: "background" });
   expect((await activity())?.label).toBe("Working");
 
   server.adapter.emit({ text: "Written.", type: "text" });

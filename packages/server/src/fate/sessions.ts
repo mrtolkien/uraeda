@@ -166,6 +166,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     title: titleOf(row, feature),
     ...statusOf(row, read, feature),
     archived: row.archivedAt !== null,
+    backgroundCommands: ctx.sessions.backgroundCommands(row.id),
     place: await placeOf(ctx, row, feature),
     subagents: read.subagents,
     turns: read.turns.map((turn) => String(turn.id)),
@@ -243,6 +244,7 @@ async function rows(
       const { status, statusLabel } = statusOf(row, read, feature);
       return {
         archived: row.archivedAt !== null,
+        backgroundCommands: ctx.sessions.backgroundCommands(row.id),
         folder: row.folder,
         id: row.id,
         status,

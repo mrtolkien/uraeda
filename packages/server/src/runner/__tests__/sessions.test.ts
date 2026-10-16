@@ -2,13 +2,7 @@ import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentEvent } from "../events.ts";
-import {
-  IDLE_CLOSE_MS,
-  OUTPUT_LIMIT,
-  RESUMED,
-  TERMINATE_AFTER_MS,
-  WATCHDOG_MS,
-} from "../sessions.ts";
+import { IDLE_CLOSE_MS, OUTPUT_LIMIT, TERMINATE_AFTER_MS, WATCHDOG_MS } from "../sessions.ts";
 import { flush, testSessions } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -256,34 +250,59 @@ test("US1.7 and C1: an idle process closes after 15 minutes, and the next messag
   expect(adapter.opens[1]).toMatchObject({ nativeId: adapter.opens[0]!.nativeId, resume: true });
 });
 
-test("a turn reopens when its agent goes on by itself after it ended, and its process stays open", async () => {
+/** A background command, Bash run in the background, as Claude Code reports it live. */
+const command = (live: boolean): AgentEvent => ({
+  tasks: live ? [{ kind: "command", tool: "bash-1" }] : [],
+  type: "background",
+});
+
+/** US1.9, US1.10, SC-003 */
+test("a background command holds its turn and its process, and the watchdog waits for it", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
-  const { turn } = await sessions.send(repo, session.id, { text: "Implement it" });
-  // A background shell does not hold the turn: shells and watchers may never end.
+  const { turn } = await sessions.send(repo, session.id, { text: "Review it" });
   adapter.emit({ id: "bash-1", input: {}, kind: "execute", name: "Bash", type: "toolStart" });
   adapter.emit({ id: "bash-1", isError: false, output: "Running in background.", type: "toolEnd" });
-  adapter.emit({ text: "The baseline runs.", type: "text" });
+  adapter.emit(command(true));
+  adapter.emit({ text: "The review runs.", type: "text" });
+  adapter.emit(done());
+  await flush();
+
+  expect(cache.turn(turn)).toMatchObject({ endedAt: null, state: "running" });
+  expect(sessions.backgroundCommands(session.id)).toBe(1);
+  vi.advanceTimersByTime(WATCHDOG_MS + IDLE_CLOSE_MS);
+  await flush();
+  expect(cache.turn(turn)?.state).toBe("running");
+  expect(adapter.closes).toBe(0);
+
+  // The command reports back: the agent goes on, then settles.
+  adapter.emit(command(false));
+  adapter.emit({ text: "The review passed.", type: "text" });
   adapter.emit(done());
   await sessions.settled(turn);
   expect(cache.turn(turn)).toMatchObject({ state: "done" });
+  expect(sessions.backgroundCommands(session.id)).toBe(0);
+  vi.advanceTimersByTime(IDLE_CLOSE_MS);
+  expect(adapter.closes).toBe(1);
+});
 
-  // The shell reports back: the agent goes on, in the same turn.
-  vi.advanceTimersByTime(IDLE_CLOSE_MS - 1);
-  adapter.emit({ text: "The baseline passed.", type: "text" });
+/** Review focus 3 */
+test("a background command that ends while no turn runs starts the idle timer then", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Review it" });
+  adapter.emit(command(true));
   await flush();
-  expect(cache.turn(turn)).toMatchObject({ endedAt: null, state: "running" });
-  expect(sessions.working(repo)).toEqual([AGENT]);
-  expect(cache.items(turn, 0, 10).slice(-2)).toMatchObject([
-    { kind: "system", text: RESUMED },
-    { kind: "text", text: "The baseline passed." },
-  ]);
+  sessions.stop(repo, session.id);
+  adapter.emit(done({ interrupted: true, ok: false }));
+  await sessions.settled(turn);
+  expect(cache.turn(turn)?.state).toBe("stopped");
+
   vi.advanceTimersByTime(IDLE_CLOSE_MS);
   expect(adapter.closes).toBe(0);
 
-  adapter.emit(done());
-  await sessions.settled(turn);
-  expect(cache.turn(turn)).toMatchObject({ state: "done" });
+  adapter.emit(command(false));
+  await flush();
   vi.advanceTimersByTime(IDLE_CLOSE_MS);
   expect(adapter.closes).toBe(1);
 });

@@ -149,6 +149,8 @@ export type SessionRecord = {
   /** The agent's kind. */
   agent: string;
   archived: boolean;
+  /** The background commands of its running turn still running. */
+  backgroundCommands: number;
   /** The feature's folder, null for a chat. */
   folder: string | null;
   id: string;
@@ -210,6 +212,8 @@ export type TurnLogRecord = {
 /** A session's row in the sidebar. */
 export type SessionRowRecord = {
   archived: boolean;
+  /** The background commands of its running turn still running. */
+  backgroundCommands: number;
   folder: string | null;
   id: string;
   status: SessionStatus;
@@ -384,6 +388,7 @@ export const agentDataView = dataView<AgentRecord>("Agent")({
 export const sessionDataView = dataView<SessionRecord>("Session")({
   agent: true,
   archived: true,
+  backgroundCommands: true,
   folder: true,
   id: true,
   place: true,

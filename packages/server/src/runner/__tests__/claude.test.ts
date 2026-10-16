@@ -587,7 +587,7 @@ const task = (id: string, type: string, extra: Record<string, unknown> = {}) => 
   ...extra,
 });
 
-test("background sub-agents are reported by their tool calls; shells and watchers are not", () => {
+test("every background task but an ambient one is reported, a sub-agent or a command", () => {
   const tasks = new Map<string, string>();
   const parse = (value: Record<string, unknown>) =>
     parseLine(line({ type: "system", ...value }), undefined, tasks);
@@ -605,9 +605,18 @@ test("background sub-agents are reported by their tool calls; shells and watcher
         task("t4", "local_agent", { ambient: true }),
       ],
     }),
-  ).toEqual([{ tools: ["toolu_1", "t2"], type: "background" }]);
+  ).toEqual([
+    {
+      tasks: [
+        { kind: "subagent", tool: "toolu_1" },
+        { kind: "subagent", tool: "t2" },
+        { kind: "command", tool: "t3" },
+      ],
+      type: "background",
+    },
+  ]);
   expect(parse({ subtype: "background_tasks_changed", tasks: [] })).toEqual([
-    { tools: [], type: "background" },
+    { tasks: [], type: "background" },
   ]);
 });
 

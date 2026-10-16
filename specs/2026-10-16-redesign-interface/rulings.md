@@ -157,3 +157,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   snapshot, and the CLI without the rule.
 - **If wrong**: `settle` drops its window, and a failure reads as unknown at once.
 - **Where**: task 4.
+
+## R13: Background tasks are tested inline, and their count publishes through the session
+
+- **Decision**: the parser's test of background tasks stays an inline test of `claude.test.ts`,
+  rewritten for the kinds, instead of a new `fixtures/claude/background.jsonl`; a change of the
+  background commands' count calls the session manager's `changed(live)`, which already sends the
+  session, the list, the feature, and the workspace, instead of a new branch of `live.ts`'s
+  `sessionPublisher`; one helper, `commandCount` in `session-state.ts`, counts them for the runner
+  and the records.
+- **Rationale**: the inline test already held every task type, ambient included; `changed(live)`
+  publishes what the sidebar reads without growing `sessionPublisher`, which is at its function
+  limit.
+- **Alternatives considered**: the fixture file, a copy of the inline lines; a count tracked in
+  `sessionPublisher`'s throttled path.
+- **If wrong**: the fixture is added, or the count moves into the publisher's throttle.
+- **Where**: task 5.

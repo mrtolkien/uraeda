@@ -11,6 +11,7 @@ import {
   type Live,
   type Message,
   REFUSALS,
+  commandCount,
   refused,
   rowOf,
   type SessionChange,
@@ -148,6 +149,11 @@ export class Sessions {
       }
     }
     return undefined;
+  }
+
+  /** How many background commands of the session's run still run, on this server's process. */
+  backgroundCommands(session: string): number {
+    return commandCount(this.#context.live.get(session)?.proc?.background);
   }
 
   /** The feature's one session, created when it has none. */
