@@ -334,6 +334,19 @@ pub struct RepositoryView {
     pub opened_at: String,
     /// The folder no longer holds the main checkout of a git repository.
     pub missing: bool,
+    /// Its features' and changes' names and colours in the sidebar.
+    pub items: Vec<ItemSettingsView>,
+}
+
+/// The name and the colour a feature or a change shows in the sidebar.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemSettingsView {
+    /// The item's folder, `YYYY-MM-DD-<slug>`.
+    pub folder: String,
+    pub label: Option<String>,
+    pub color: Option<crate::repositories::Color>,
 }
 
 impl From<crate::repositories::Repository> for RepositoryView {
@@ -343,6 +356,15 @@ impl From<crate::repositories::Repository> for RepositoryView {
             path: repository.path.to_string_lossy().into_owned(),
             opened_at: repository.opened_at,
             missing: repository.missing,
+            items: repository
+                .items
+                .into_iter()
+                .map(|(folder, settings)| ItemSettingsView {
+                    folder,
+                    label: settings.label,
+                    color: settings.color,
+                })
+                .collect(),
         }
     }
 }

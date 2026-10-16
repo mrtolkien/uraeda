@@ -46,6 +46,7 @@ pub use priority_edits::{
 pub use pulls::refresh_pull_requests;
 pub use repository_list::{
     add_repository, data_dir, open_repository, read_repositories, remove_repository,
+    set_item_settings,
 };
 pub use start::{propose_slug, start_change, start_feature, start_kind};
 
