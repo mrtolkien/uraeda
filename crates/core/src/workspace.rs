@@ -21,7 +21,7 @@ use read::read_feature;
 
 pub use links::{linked_draft, resolve};
 
-use links::match_feature;
+use links::{match_feature, priority_entries};
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
 
@@ -505,32 +505,6 @@ impl Reading<'_> {
         }
         features
     }
-}
-
-/// The priorities' entries, each with the feature or the draft it links to.
-fn priority_entries(text: &str, features: &[Feature]) -> Vec<PriorityEntry> {
-    let entries = priorities::parse(text);
-    let keys = priorities::keys(&entries);
-    entries
-        .into_iter()
-        .zip(keys)
-        .map(|(entry, key)| {
-            let feature = entry
-                .link
-                .as_deref()
-                .and_then(|link| match_feature(link, features));
-            let draft = entry.link.as_deref().and_then(linked_draft);
-            PriorityEntry {
-                section: entry.section,
-                position: entry.position,
-                key,
-                text: entry.text,
-                link: entry.link,
-                feature,
-                draft,
-            }
-        })
-        .collect()
 }
 
 impl Workspace {
