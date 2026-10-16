@@ -77,9 +77,21 @@ fn the_current_branchs_feature_is_in_this_checkout() {
     );
 }
 
+/// An entry's draft is a draft or a postponed feature the default branch has, as the priorities'
+/// page shows it: a link to a draft that does not exist names none.
 #[test]
 fn priority_entries_name_their_draft() {
     let repo = repo();
+    repo.write(
+        "specs/PRIORITIES.md",
+        &repo.read("specs/PRIORITIES.md").replace(
+            "- Git listener process\n",
+            "- Git listener process\n- [Gone](drafts/gone.md)\n- [Later](backlog/later/proposal.md)\n",
+        ),
+    );
+    repo.write("specs/drafts/note.md", "# Note\n");
+    repo.write("specs/backlog/later/proposal.md", "# Later\n");
+    repo.commit("chore: drafts");
 
     let workspace = workspace(&repo);
 
@@ -88,7 +100,16 @@ fn priority_entries_name_their_draft() {
         .iter()
         .map(|entry| entry.draft.as_deref())
         .collect();
-    assert_eq!(drafts, [None, Some("specs/drafts/note.md"), None]);
+    assert_eq!(
+        drafts,
+        [
+            None,
+            Some("specs/drafts/note.md"),
+            None,
+            None,
+            Some("specs/backlog/later/proposal.md")
+        ]
+    );
 }
 
 /// The edge case of the spec: a merged feature whose branch still exists is done, once.
