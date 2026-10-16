@@ -438,7 +438,8 @@ test.each(["/", "/priorities"])("every ＋ outside %s's page is the sidebar's", 
     .getAllByRole("button")
     .filter((button) => button.textContent?.includes("＋") && !page.contains(button))
     .map((button) => button.getAttribute("aria-label"));
-  expect(plus).toEqual(["Add to the priorities", "Add a note to the inbox"]);
+  // In the flow's order: the inbox, then the priorities (R15).
+  expect(plus).toEqual(["Add a note to the inbox", "Add to the priorities"]);
 });
 
 test.each(["/", "/priorities"])("no ＋ in the phone's top bar of %s", async (path) => {

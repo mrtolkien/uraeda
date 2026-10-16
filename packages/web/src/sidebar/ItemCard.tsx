@@ -16,9 +16,7 @@ import {
   radiusVars,
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
 import * as stylex from "@stylexjs/stylex";
-import { useState } from "react";
 import type { SessionStatus } from "uraeda-server/fate";
 import { ProgressRing } from "../ProgressRing.tsx";
 import { StatusMark } from "../StatusMark.tsx";
@@ -114,7 +112,8 @@ const stripes = stylex.create({
 
 /**
  * The card's accessible name, in full words: its name, its title, its kind for a change, its step,
- * its status or the action in flight, its background command, and the lines its branch changed.
+ * its status or the action in flight, its task, its background command, and the lines its branch
+ * changed.
  */
 export function cardName(item: CardItem) {
   return [
@@ -123,6 +122,9 @@ export function cardName(item: CardItem) {
     item.kind === "change" ? "change" : undefined,
     item.step.label,
     item.pending ?? item.status.label,
+    item.progress
+      ? `Task ${item.progress.position} of ${item.progress.total}, ${item.progress.title}`
+      : undefined,
     item.hasBackgroundCommand ? "background command running" : undefined,
     item.changes ? `${item.changes.added} lines added, ${item.changes.removed} removed` : undefined,
   ]
@@ -209,49 +211,33 @@ function Activity({ hasChangeTag, item }: { hasChangeTag: boolean; item: CardIte
 export function ItemCard({
   hasChangeTag = false,
   href,
-  isRevealed: revealedByStory,
   isSelected = false,
   item,
+  onOpen,
   onSettings,
 }: {
   /** Whether a change says so with a tag: where changes and features share a section. */
   hasChangeTag?: boolean;
   href: string;
-  /** Shows the "…" as under the pointer, for a story. */
-  isRevealed?: boolean;
   isSelected?: boolean;
   item: CardItem;
+  /** Opens the item's page inside the app, instead of loading `href`. */
+  onOpen?: () => void;
   onSettings: () => void;
 }) {
   const { isCollapsed } = useSideNavCollapse();
-  const [pointer, setPointer] = useState(false);
-  const [focused, setFocused] = useState(false);
-  // A touch screen has no pointer to wait for, and the keyboard reaches it from the card's link.
-  const touch = useMediaQuery("(hover: none)");
-  const revealed = revealedByStory ?? (pointer || focused || touch);
   return (
-    <div
-      {...stylex.props(styles.card, item.color && [styles.stripe, stripes[item.color]])}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setFocused(false);
-        }
-      }}
-      onFocus={() => setFocused(true)}
-      onPointerEnter={() => setPointer(true)}
-      onPointerLeave={() => setPointer(false)}
-    >
+    <div {...stylex.props(styles.card, item.color && [styles.stripe, stripes[item.color]])}>
       <SideNavItem
+        // Always drawn, muted, so the card keeps its size under the pointer (C4).
         actions={
-          revealed ? (
-            <IconButton
-              icon={<Icon icon="moreHorizontal" />}
-              label={`Settings of ${item.label}`}
-              onClick={onSettings}
-              size="sm"
-              variant="ghost"
-            />
-          ) : undefined
+          <IconButton
+            icon={<Icon color="secondary" icon="moreHorizontal" />}
+            label={`Settings of ${item.label}`}
+            onClick={onSettings}
+            size="sm"
+            variant="ghost"
+          />
         }
         aria-label={cardName(item)}
         endContent={<Status item={item} />}
@@ -259,6 +245,14 @@ export function ItemCard({
         icon={<CardIcon item={item} />}
         isSelected={isSelected}
         label={item.label}
+        {...(onOpen
+          ? {
+              onClick: (event: React.MouseEvent) => {
+                event.preventDefault();
+                onOpen();
+              },
+            }
+          : {})}
       />
       {!isCollapsed && <Activity hasChangeTag={hasChangeTag} item={item} />}
       {!isCollapsed &&

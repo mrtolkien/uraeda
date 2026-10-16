@@ -186,3 +186,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   harder to see.
 - **If wrong**: the rows become records of their own, read through a list.
 - **Where**: task 6.
+
+## R15: The sidebar's tests follow its cards
+
+- **Decision**: `shell.test.tsx`'s tests of the old sidebar are rewritten for cards: the progress
+  row's tests check the card's task line and the task in its name, "Task 7 of 11, Session column";
+  the sub-agent's test reads its line in the card; the Done group's sort becomes the Needs you
+  section's; the names gain the step's label. `usage.test.tsx` finds the allowance at the end of the
+  Features section; `inbox.test.tsx`'s ＋ order is the flow's, the inbox before the priorities;
+  `triage.test.tsx` waits for the inbox's new state with `refreshUntil`, since the sidebar's count
+  read the inbox before the page did. The card's accessible name gains its task, as the UI layout
+  decision asks. The settings dialog has a host beside the shell, drawn from its first opening, as
+  the ＋ forms are, so the phone's drawer closes first and a page's own focus is kept.
+- **Rationale**: the spec replaces the progress row by the card, groups by the flow, and moves the
+  allowance; live updates do not reach the happy-dom tests, whose pattern is `refreshUntil`.
+- **Alternatives considered**: keeping a progress link of its own: two links per card, against the
+  approval comment C4's card that keeps its size, and the spec's card.
+- **If wrong**: the tests follow whatever replaces the cards.
+- **Where**: task 7.

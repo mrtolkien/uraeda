@@ -696,7 +696,9 @@ git commit -m "feat(redesign-interface): what needs the human, across repositori
 
 - Start from: `packages/web/src/sidebar/Sidebar.stories.tsx#Unfolded`
 - Create: `packages/web/src/sidebar/Sidebar.tsx`, `sidebar/cards.ts` (from features and session rows
-  to `CardItem`), `sidebar/FeatureSettingsDialog.tsx`
+  to `CardItem`), `sidebar/FeatureSettingsDialog.tsx` (its host, drawn beside the shell),
+  `sidebar/Row.tsx` (plain rows and chats), `sidebar/Search.tsx`, `sidebar/Allowance.tsx`
+  ([R15](rulings.md#r15-the-sidebars-tests-follow-its-cards))
 - Modify: `sidebar/ItemCard.tsx` (the "…" always drawn, muted; navigation through `navigate`),
   `sidebar/StepIcon.tsx`, `labels.ts`, `views.ts` (feature `label`, `color`, `step.order`, session
   rows' `backgroundCommands`), `Shell.tsx` (uses `Sidebar`), `sidebar/Sidebar.stories.tsx`
@@ -719,7 +721,7 @@ git commit -m "feat(redesign-interface): what needs the human, across repositori
   Features (the same), the allowance bar, Chats; `ItemCard` takes `onOpen`, used by the sections.
   Search matches a card by name, slug, or title, and hides Home, Inbox, Priorities, and New change.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `sidebar.test.tsx`, on `renderPage` over the fixture repository: US2.1 (order, "4", "12", no
 Drafts); US2.2 (the name "settings-page, Settings page, Questions to answer, Needs you", in Needs
@@ -733,18 +735,18 @@ slug kept on the feature's page, the "…" on the phone's drawer).
 The break each test catches: sections ordered by status; the count of all priorities instead of
 Now's; the "…" drawn only under the pointer; the search ignoring names.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/sidebar.test.tsx`
 - Expected: FAIL, no link named "settings-page, Settings page, Questions to answer, Needs you"
 
-- [ ] **Step 3: Implement**, as in **Interfaces**, from the mockups' components; remove the old
+- [x] **Step 3: Implement**, as in **Interfaces**, from the mockups' components; remove the old
       sidebar's tests that the new ones replace.
 
-- [ ] **Step 4: Run all tests** (`vp check`, `vp run ts:test`, `vp run storybook:build`), Expected:
+- [x] **Step 4: Run all tests** (`vp check`, `vp run ts:test`, `vp run storybook:build`), Expected:
       PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-redesign-interface/plan.md
