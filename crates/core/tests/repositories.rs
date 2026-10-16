@@ -1,12 +1,13 @@
 mod common;
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use common::repo::{TestRepo, run_git};
 use tempfile::TempDir;
-use uraeda_core::repositories::{self, ListError, Repository};
+use uraeda_core::repositories::{self, Color, ItemSettings, ListError, Repository};
 
 fn tempdir() -> TempDir {
     TempDir::new().expect("a temporary folder")
@@ -120,6 +121,7 @@ fn adding_twice_keeps_one_entry_and_touches_it() {
             path: repo.path().into(),
             opened_at: "2026-10-14T11:00:00Z".into(),
             missing: false,
+            items: BTreeMap::new(),
         }]
     );
 }
@@ -280,6 +282,7 @@ fn a_deleted_folder_is_missing() {
             path,
             opened_at: "2026-10-14T09:00:00Z".into(),
             missing: true,
+            items: BTreeMap::new(),
         }]
     );
 }
@@ -392,4 +395,97 @@ fn the_data_folder_follows_the_platform() {
 
         assert_eq!(folder, PathBuf::from(expected), "{vars:?} on {os}");
     }
+}
+
+const FOLDER: &str = "2026-10-16-redesign-interface";
+
+/// A repository of a fresh list, and the list's folder.
+fn listed() -> (TempDir, TestRepo) {
+    let (data, repo) = (tempdir(), TestRepo::named("todo-app"));
+    repositories::add(data.path(), repo.path(), at("2026-10-14T09:00:00Z")).unwrap();
+    (data, repo)
+}
+
+/// The settings of a folder in the repository `todo-app`.
+fn settings_of(data: &Path, folder: &str) -> Option<ItemSettings> {
+    let list = repositories::read(data).unwrap();
+    list[0].items.get(folder).cloned()
+}
+
+/// US8.1
+#[test]
+fn a_name_and_a_colour_are_kept_by_folder() {
+    let (data, _repo) = listed();
+
+    repositories::set_item(
+        data.path(),
+        "todo-app",
+        FOLDER,
+        Some("Sidebar".into()),
+        Some(Color::Purple),
+    )
+    .unwrap();
+
+    let settings = settings_of(data.path(), FOLDER).unwrap();
+    assert_eq!(settings.label.as_deref(), Some("Sidebar"));
+    assert_eq!(settings.color, Some(Color::Purple));
+    let text = fs::read_to_string(data.path().join("repositories.json")).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        json["repositories"][0]["items"][FOLDER],
+        serde_json::json!({ "label": "Sidebar", "color": "purple" })
+    );
+}
+
+/// US8.2: an empty name removes it, and an item without name or colour leaves the file.
+#[test]
+fn an_empty_name_removes_it() {
+    let (data, _repo) = listed();
+    let set = |label: &str, color| {
+        repositories::set_item(data.path(), "todo-app", FOLDER, Some(label.into()), color).unwrap()
+    };
+    set("Sidebar", Some(Color::Purple));
+
+    set("", Some(Color::Purple));
+    assert_eq!(settings_of(data.path(), FOLDER).unwrap().label, None);
+
+    set("", None);
+    assert_eq!(settings_of(data.path(), FOLDER), None);
+    let text = fs::read_to_string(data.path().join("repositories.json")).unwrap();
+    assert!(!text.contains("items"));
+}
+
+/// Review focus 7
+#[test]
+fn a_name_is_trimmed_and_spaces_only_remove_it() {
+    let (data, _repo) = listed();
+    let set = |label: &str| {
+        repositories::set_item(data.path(), "todo-app", FOLDER, Some(label.into()), None).unwrap()
+    };
+
+    set("  Sidebar  ");
+    assert_eq!(
+        settings_of(data.path(), FOLDER).unwrap().label.as_deref(),
+        Some("Sidebar")
+    );
+
+    set("   ");
+    assert_eq!(settings_of(data.path(), FOLDER), None);
+}
+
+#[test]
+fn a_name_over_40_characters_is_refused() {
+    let (data, _repo) = listed();
+    let name = "a".repeat(41);
+
+    let error =
+        repositories::set_item(data.path(), "todo-app", FOLDER, Some(name), None).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "A name in the sidebar holds at most 40 characters."
+    );
+    assert_eq!(settings_of(data.path(), FOLDER), None);
+    let forty = "a".repeat(40);
+    repositories::set_item(data.path(), "todo-app", FOLDER, Some(forty), None).unwrap();
 }

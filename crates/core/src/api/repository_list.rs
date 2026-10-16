@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use super::Result;
-use crate::repositories;
+use crate::repositories::{self, Color};
 use crate::view::{AddedView, RepositoryView};
 
 /// Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
@@ -38,4 +38,16 @@ pub fn remove_repository(data_dir: &Path, name: &str) -> Result<()> {
 /// Records that a repository was opened now.
 pub fn open_repository(data_dir: &Path, name: &str) -> Result<RepositoryView> {
     Ok(repositories::touch(data_dir, name, SystemTime::now())?.into())
+}
+
+/// Sets the name and the colour a feature or a change of a repository shows in the sidebar, by its
+/// folder: an empty name removes it.
+pub fn set_item_settings(
+    data_dir: &Path,
+    name: &str,
+    folder: &str,
+    label: Option<String>,
+    color: Option<Color>,
+) -> Result<RepositoryView> {
+    Ok(repositories::set_item(data_dir, name, folder, label, color)?.into())
 }
