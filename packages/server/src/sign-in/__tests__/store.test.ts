@@ -159,11 +159,23 @@ test("ends one session, every session, and every session on a new key", () => {
   expect(store.checkKey(newKey)).toBe(true);
 });
 
+/** A session as written, its dates dates. */
+const SESSION = {
+  created: "2026-10-01T10:00:00.000Z",
+  id: "i",
+  secret: "s",
+  used: "2026-10-01T10:00:00.000Z",
+};
+
 /** Edge case: `sign-in.json` unreadable or invalid; review focus 7. */
 test.each([
   ["not JSON", "{ version: 1"],
   ["written by a newer Uraeda", JSON.stringify({ key: "k", sessions: [], version: 2 })],
   ["without its key", JSON.stringify({ sessions: [], version: 1 })],
+  ...(["created", "used"] as const).map((field): [string, string] => [
+    `with a session whose ${field} is not a date`,
+    JSON.stringify({ key: "k", sessions: [{ ...SESSION, [field]: "never" }], version: 1 }),
+  ]),
 ])("refuses a file it cannot read: %s", (_name, content) => {
   const { dataDir, path } = folder();
   writeFileSync(path, content, { mode: 0o600 });
