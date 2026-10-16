@@ -350,6 +350,35 @@ fn priorities_entries_hint_their_step() {
     );
 }
 
+/// An entry's hint names a draft or a postponed feature the default branch has, as the web's
+/// priorities do: a link to a draft that does not exist has none.
+#[test]
+fn priorities_entries_hint_only_existing_drafts() {
+    let repo = with_codex_runtime(&[]);
+    repo.write("specs/backlog/later/proposal.md", "# Later\n");
+    repo.commit("chore: postpone later");
+    let path = repo.path().join("specs/PRIORITIES.md");
+    let text = repo.read("specs/PRIORITIES.md").replace(
+        "## Later\n",
+        "## Later\n\n1. [Gone](drafts/gone.md)\n2. [Later](backlog/later/proposal.md)\n",
+    );
+    let mut session = Session::start(repo.path());
+    session.open(&path, &text);
+
+    let labels: Vec<(u32, String)> = hints(&mut session, &path)
+        .into_iter()
+        .map(|(line, _, label)| (line, label))
+        .collect();
+    assert_eq!(
+        labels,
+        [
+            (4, "discovery · waits on agent".to_string()),
+            (8, "draft".to_string()),
+            (15, "draft".to_string()),
+        ]
+    );
+}
+
 #[test]
 fn other_files_have_no_hints() {
     let (repo, path, spec_text) = feature_with_spec();

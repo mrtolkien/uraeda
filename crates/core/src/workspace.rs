@@ -19,9 +19,9 @@ mod read;
 
 use read::read_feature;
 
-pub use links::{LinkedFile, RunningFeature, linked_draft, linked_file, resolve};
+pub use links::{EntryLink, LinkedFile, RunningFeature, resolve};
 
-use links::{match_feature, priority_entries};
+use links::priority_entries;
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
 
@@ -234,7 +234,7 @@ pub struct PriorityEntry {
     pub text: String,
     pub link: Option<String>,
     pub feature: Option<String>,
-    /// The draft it links, from the top level, when it links a file of `specs/drafts/`.
+    /// The draft or backlog file it links, from the top level, when the default branch has it.
     pub draft: Option<String>,
 }
 
@@ -576,19 +576,21 @@ impl Workspace {
             .for_each(|feature| pull_requests.apply(feature));
 
         let fetched = git.fetched_at();
-        Ok(Workspace {
+        let mut workspace = Workspace {
             root: root.to_path_buf(),
             default_branch,
             current_branch,
             fetched_at: fetched.map(today::rfc3339),
             fetched_ago: fetched.map(today::ago),
-            priorities: priority_entries(&priorities_text, &features),
+            priorities: Vec::new(),
             features,
             drafts: default_reader.drafts(priorities_from),
             inbox: default_reader.read(priorities_from, "specs/INBOX.md"),
             triage: default_reader.read(priorities_from, "specs/INBOX-TRIAGE.md"),
             problems: Vec::new(),
-        })
+        };
+        workspace.priorities = priority_entries(&priorities_text, &workspace);
+        Ok(workspace)
     }
 
     /// The feature or change in a folder.
@@ -596,11 +598,6 @@ impl Workspace {
         self.features
             .iter()
             .find(|feature| feature.folder == folder)
-    }
-
-    /// The feature or change a priorities entry's link points to.
-    pub fn linked_feature(&self, link: &str) -> Option<&Feature> {
-        match_feature(link, &self.features).and_then(|folder| self.feature(&folder))
     }
 }
 

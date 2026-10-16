@@ -309,3 +309,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none.
 - **If wrong**: `running` in [`links.rs`](/crates/core/src/workspace/links.rs).
 - **Where**: the catch-up with the default branch.
+
+## R23: One join of a priorities entry to the workspace, for every reader
+
+- **Decision**: `Workspace::link` in [`links.rs`](/crates/core/src/workspace/links.rs) gives an
+  entry's link its feature, whatever its step, and its draft or backlog file, when the default
+  branch has it; `EntryLink::running` its feature while not `done`. The web's priorities
+  (`join_priorities`), the workspace's entries (`Workspace::priorities[].draft`), and the language
+  server (`api::priority_links`) all read it. Two values change: an entry linking a draft that does
+  not exist names no draft, and one linking a postponed feature names its backlog file. So the
+  language server's hint "draft" shows on a backlog entry and not on a missing draft, and its Draft
+  command opens a backlog entry's file and drafts an entry whose draft is gone, as the web does.
+- **Rationale**: the final review found three joins with two rules for a draft (existing files and
+  backlog in the web, any `specs/drafts/` path elsewhere) and `Workspace::running` repeating
+  `linked_feature`: a later change to what an entry links would have needed all three.
+- **Alternatives considered**: the old values for the workspace and the language server: two rules
+  for one link, which already disagreed on a missing draft.
+- **If wrong**: `Workspace::link`, and `PriorityLink.draft` for a hint naming backlog apart.
+- **Where**: the final review.
