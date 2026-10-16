@@ -91,3 +91,7 @@ future.
 ## Changes after approval
 
 - A repeat phrase in a title needs a space before it: "Gymevery day" stays as typed (ruling R3).
+
+## Follow-ups
+
+- The repeat menu's options are rebuilt at every render of a task row: noted in the inbox.

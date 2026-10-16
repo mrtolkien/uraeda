@@ -55,6 +55,12 @@ in the way.]
 
 [What the proposal says, what was found, and why they do not fit.]
 
+## Worth it and feasibility
+
+[Optional: what the feature gives against what it costs. The outside behaviour it relies on: each
+checked, with how, or unverified, with what the plan must check first. Each guard an option relaxes,
+as what an attacker could then do. Left out when the feature is small and relies on nothing new.]
+
 ## Approaches
 
 Criteria come from [the proposal, the constitution, and active decisions: list them, with links].

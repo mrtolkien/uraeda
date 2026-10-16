@@ -74,8 +74,8 @@ task that carries it out. State which spec clause it supersedes when it explicit
 
 ## Task 1: [Component or deliverable]
 
-**Risky:** [Optional: for a task that changes security, data written to disk, concurrency, or a rule
-several callers share, what makes it risky. It is reviewed on its own.]
+**Risky:** [Optional: for a task that changes security, the format of stored data or its migration,
+concurrency, or a rule several callers share, what makes it risky. It is reviewed on its own.]
 
 **Files:**
 
@@ -130,7 +130,7 @@ The break each test catches:
 contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
 to the implementer.]
 
-- [ ] **Step 5: Run all tests[, and the benchmark]**
+- [ ] **Step 5: Run the project's validation[, and the benchmark]**
 
 - Run: `[command]`
 - Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets].

@@ -99,8 +99,8 @@ that make sense on their own.
 
 ## Task right-sizing
 
-A task is the smallest unit that carries its own test cycle and is worth a fresh reviewer's gate.
-When drawing task boundaries:
+A task is the smallest unit that carries its own test cycle and is worth reviewing. When drawing
+task boundaries:
 
 - Fold setup, configuration, scaffolding, test helpers, and documentation into the task whose
   deliverable needs them. A helper is created in the first task whose tests use it.
@@ -110,8 +110,8 @@ When drawing task boundaries:
 - When the spec names unverified outside behaviour, the first task checks it, with a test through
   the real library, browser, or tool. If the check fails, the build stops there and goes back to the
   human, before any work relies on it.
-- Mark the risky tasks, the ones that change security, data written to disk, concurrency, or a rule
-  several callers share, with a **Risky** line saying why: each is
+- Mark the risky tasks, the ones that change security, the format of stored data or its migration,
+  concurrency, or a rule several callers share, with a **Risky** line saying why: each is
   [reviewed on its own](implementation.md#review-the-tasks).
 - Each task ends with an independently testable deliverable, and leaves the project working.
 
@@ -122,7 +122,8 @@ Each step is one action with a checkable result:
 - "Write the failing tests" is a step.
 - "Run them to check they fail" is a step.
 - "Implement the code that makes them pass" is a step.
-- "Run all tests" is a step.
+- "Run the project's validation" is a step. It names the slow suites, such as browser tests, only
+  for a task that changes what they cover.
 - "Commit" is a step.
 
 ## Plan document
@@ -275,7 +276,7 @@ The break each test catches:
 contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
 to the implementer.]
 
-- [ ] **Step 4: Run all tests**
+- [ ] **Step 4: Run the project's validation**
 
 - Run: `npx vitest run`
 - Expected: PASS
@@ -347,7 +348,8 @@ fix what you find inline. This is a checklist you run yourself.
    test added to the owning task. An empty section means you checked and found none, not that you
    skipped the check.
 6. **Order**: each task can be built and tested with what the earlier tasks made, and each expected
-   failure is the first one its run will actually hit.
+   failure is the first one its run will actually hit. Outside behaviour the spec marks unverified
+   is checked by the first task, and each risky task has its **Risky** line.
 7. **Proportion**: compare the plan's length to the code it describes. If code blocks are most of
    the document, replace private bodies with responsibilities, required contracts, test names, and
    assertions. Keep instructions that change a decision or make an outcome checkable; link shared
