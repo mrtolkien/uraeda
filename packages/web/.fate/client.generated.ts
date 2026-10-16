@@ -111,6 +111,11 @@ const mutations = {
     FateAPI['mutations']['inbox.undoToPriorities']['input'],
     FateAPI['mutations']['inbox.undoToPriorities']['output']
   >('Inbox'),
+  'item.settings': mutation<
+    Feature,
+    FateAPI['mutations']['item.settings']['input'],
+    FateAPI['mutations']['item.settings']['output']
+  >('Feature'),
   'notes.save': mutation<
     WorkflowFile,
     FateAPI['mutations']['notes.save']['input'],

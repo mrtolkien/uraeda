@@ -5,6 +5,7 @@ import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views.ts";
 import { createFate, type FateServer, live as globalLive, type LiveBus } from "./fate.ts";
 import { publish } from "./live.ts";
+import { type PullRequests, startPullRequests } from "./pulls.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 /**
@@ -40,8 +41,11 @@ type HostsOptions = {
   stopped?: (host: Host) => void;
 };
 
-/** A host, and the watch of its files: none for a missing folder, or a watch that failed. */
-type Entry = { host: Host; watch?: WatchHandle };
+/**
+ * A host, the watch of its files, none for a missing folder or a watch that failed, and the
+ * refresher of its pull requests.
+ */
+type Entry = { host: Host; pulls?: PullRequests; watch?: WatchHandle };
 
 /**
  * The hosts of the repositories in the list, `repositories.json`, read through the binding: the
@@ -213,10 +217,19 @@ export class Hosts {
     const { fateServer, live } = createFate();
     const entry: Entry = { host: { fate: fateServer, live, missing, name, path } };
     if (!missing) {
+      const { binding, sessions } = this.#options;
+      entry.pulls = startPullRequests(path, binding, (features) =>
+        publish(
+          { features, files: [], inbox: false, priorities: false, workspace: true },
+          entry.host,
+          sessions,
+        ),
+      );
       try {
-        entry.watch = this.#options.binding.watch(path, (changes) =>
-          publish(changes, entry.host, this.#options.sessions),
-        );
+        entry.watch = binding.watch(path, (changes) => {
+          publish(changes, entry.host, sessions);
+          entry.pulls?.onChanges(changes);
+        });
       } catch (error) {
         // The host still serves its files: its pages read them again when shown.
         process.stderr.write(
@@ -230,6 +243,7 @@ export class Hosts {
   #stop(name: string): void {
     const entry = this.#entries.get(name);
     entry?.watch?.close();
+    entry?.pulls?.stop();
     this.#entries.delete(name);
     if (entry) {
       this.#options.stopped?.(entry.host);
@@ -241,8 +255,9 @@ export class Hosts {
     this.#closed = true;
     clearTimeout(this.#timer);
     this.#watch?.close();
-    for (const { watch } of this.#entries.values()) {
+    for (const { pulls, watch } of this.#entries.values()) {
       watch?.close();
+      pulls?.stop();
     }
     this.#entries.clear();
   }

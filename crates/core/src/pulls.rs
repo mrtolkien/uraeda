@@ -4,6 +4,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, SystemTime};
 
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -122,19 +123,54 @@ pub fn fetch(root: &Path) -> PullRequests {
         .map_or(PullRequests::Unavailable, PullRequests::Known)
 }
 
-fn snapshots() -> &'static Mutex<HashMap<PathBuf, PullRequests>> {
-    static SNAPSHOTS: OnceLock<Mutex<HashMap<PathBuf, PullRequests>>> = OnceLock::new();
+/// How long a failed `gh` keeps the last pull requests it read.
+const KEPT: Duration = Duration::from_secs(10 * 60);
+
+/// The latest snapshot of a repository, and when it was last known from `gh`.
+struct Kept {
+    snapshot: PullRequests,
+    known_at: Option<SystemTime>,
+}
+
+fn snapshots() -> &'static Mutex<HashMap<PathBuf, Kept>> {
+    static SNAPSHOTS: OnceLock<Mutex<HashMap<PathBuf, Kept>>> = OnceLock::new();
     SNAPSHOTS.get_or_init(Mutex::default)
 }
 
 /// Keeps `snapshot` as the latest of the repository whose main checkout is `root`, and says
 /// whether it differs from the one before.
 pub fn remember(root: &Path, snapshot: PullRequests) -> bool {
+    settle(root, snapshot, SystemTime::now())
+}
+
+/// Keeps a fetched snapshot as the latest, at `now`: an `Unavailable` one keeps the last known
+/// pull requests for 10 minutes after they were read, so a failure of `gh` for a moment changes no
+/// step. Says whether the latest changed.
+pub fn settle(root: &Path, fetched: PullRequests, now: SystemTime) -> bool {
     let mut snapshots = snapshots()
         .lock()
         .unwrap_or_else(|poison| poison.into_inner());
-    let before = snapshots.insert(root.to_path_buf(), snapshot.clone());
-    before.unwrap_or(PullRequests::Unavailable) != snapshot
+    let kept = snapshots.entry(root.to_path_buf()).or_insert(Kept {
+        snapshot: PullRequests::Unavailable,
+        known_at: None,
+    });
+    let recent = kept
+        .known_at
+        .is_some_and(|at| now.duration_since(at).unwrap_or_default() < KEPT);
+    let next = match fetched {
+        PullRequests::Known(_) => {
+            kept.known_at = Some(now);
+            fetched
+        }
+        PullRequests::Unavailable if recent => return false,
+        PullRequests::Unavailable => {
+            kept.known_at = None;
+            fetched
+        }
+    };
+    let changed = kept.snapshot != next;
+    kept.snapshot = next;
+    changed
 }
 
 /// The latest snapshot of the repository whose main checkout is `root`: `Unavailable` until a
@@ -145,8 +181,7 @@ pub fn latest(root: &Path) -> PullRequests {
         .unwrap_or_else(|poison| poison.into_inner());
     snapshots
         .get(root)
-        .cloned()
-        .unwrap_or(PullRequests::Unavailable)
+        .map_or(PullRequests::Unavailable, |kept| kept.snapshot.clone())
 }
 
 /// Fetches the pull requests of the repository whose main checkout is `root`, and remembers them:

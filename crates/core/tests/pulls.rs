@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use uraeda_core::pulls::{self, PullRequestState, PullRequestView};
+use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
 
 /// A row of `gh pr list --json headRefName,number,url,isDraft,reviewDecision`.
 fn row(branch: &str, number: u32, draft: bool, decision: &str) -> String {
@@ -64,4 +64,19 @@ fn parse_rows() {
 
         assert_eq!(pulls::parse(json.as_bytes()), expected, "{name}");
     }
+}
+
+/// A failed `gh` keeps the last known pull requests for up to 10 minutes, then gives them up.
+#[test]
+fn a_failed_fetch_keeps_the_last_snapshot_for_ten_minutes() {
+    let root = std::path::PathBuf::from("/tmp/uraeda-pulls-settle-test");
+    let start = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_000_000);
+    let minutes = |n: u64| start + std::time::Duration::from_secs(60 * n);
+    let known = PullRequests::Known([("b".to_string(), view(31, PullRequestState::Open))].into());
+
+    assert!(pulls::settle(&root, known.clone(), start));
+    assert!(!pulls::settle(&root, PullRequests::Unavailable, minutes(9)));
+    assert_eq!(pulls::latest(&root), known);
+    assert!(pulls::settle(&root, PullRequests::Unavailable, minutes(11)));
+    assert_eq!(pulls::latest(&root), PullRequests::Unavailable);
 }

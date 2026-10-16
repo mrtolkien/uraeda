@@ -2,6 +2,7 @@
 // mapped type turns napi-rs's interfaces into type literals, which fate's record constraint accepts.
 import { dataView, list } from "@nkzw/fate/server";
 import type {
+  Color,
   BranchChanges,
   ChangedFile,
   DraftView,
@@ -24,6 +25,7 @@ import type {
   UsageLimit,
 } from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
+import type { ItemLook } from "./items.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { settingsDataView } from "./settings.ts";
 
@@ -42,8 +44,8 @@ export function sentStep(step: StepView): StepRecord {
 }
 
 export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
-  /** Its features, each step sent as `sentStep` sends it. */
-  features: Array<Omit<FeatureView, "step"> & { step: StepRecord }>;
+  /** Its features, each step sent as `sentStep` sends it, with its name and colour (R2). */
+  features: Array<Omit<FeatureView, "step"> & ItemLook & { step: StepRecord }>;
   id: string;
   /** Whether the main checkout has an active preview decision. */
   preview: boolean;
@@ -53,7 +55,11 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
 
 /** A feature, or `missing` alone when no feature has its folder. */
 export type FeatureRecord = Omit<Record_<FeatureView>, "step"> & {
+  /** Its colour in the sidebar, or null (R2). */
+  color: Color | null;
   id: string;
+  /** Its name in the sidebar, or null for its slug (R2). */
+  label: string | null;
   missing?: boolean;
   /**
    * Whether its worktree, or the main checkout for a feature without one, has an active preview
@@ -283,10 +289,12 @@ export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
 export const featureDataView = dataView<FeatureRecord>("Feature")({
   behind: true,
   branch: true,
+  color: true,
   files: true,
   folder: true,
   id: true,
   kind: true,
+  label: true,
   leftBranch: true,
   leftWorktree: true,
   missing: true,

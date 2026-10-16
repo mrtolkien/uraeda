@@ -6,6 +6,7 @@ import type { Trigger } from "../runner/events.ts";
 import { runMessage } from "../runner/message.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { sessionStatus, STATUS_ORDER } from "../runner/status.ts";
+import { itemLooks } from "./items.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import { checkoutDir, hasPreview } from "./preview.ts";
@@ -113,6 +114,7 @@ function statusOf(row: SessionRow, read: ReturnType<typeof turnsOf>, feature?: F
     blocked: read.blocked,
     queued: read.queued,
     seenAt: row.seenAt,
+    ...(feature ? { stepName: feature.step.name } : {}),
     waitsOnAgent: feature?.step.waitsOn === "agent",
     waitsOnHuman: feature?.step.waitsOn === "human",
   });
@@ -351,6 +353,7 @@ export async function featureRecord(
   return {
     id: feature.folder,
     ...feature,
+    ...itemLooks(ctx)(feature.folder),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: session?.id ?? null,
     step: sentStep(feature.step),
