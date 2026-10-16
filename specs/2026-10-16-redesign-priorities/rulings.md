@@ -244,6 +244,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `useOwnWrite` in [`writes/`](/packages/web/src/writes/), and its callers.
 - **Where**: the catch-up with the default branch.
 
+## R18: The decisions page stays reached from home's card
+
+- **Decision**: home keeps its "Constitution and decisions" card as the way to the decisions page;
+  the sidebar gains no Decisions row. Main's redesigned sidebar has the inbox's count this feature
+  left to it (Q2, B), and no row for the decisions.
+- **Rationale**: Q2's answer left the sidebar's inbox count and decisions row to the interface's
+  redesign, and this feature reaches the decisions page from home; the redesign merged without the
+  row, so home's card is still the way there, and nothing changes.
+- **Alternatives considered**: adding the row to main's sidebar here: the choice Q2 left to the
+  sidebar's owner, and the human's review of both branches.
+- **If wrong**: a row in [`Sidebar.tsx`](/packages/web/src/sidebar/Sidebar.tsx)'s flow, and the
+  card's removal from [`HomeHub.tsx`](/packages/web/src/home/HomeHub.tsx).
+- **Where**: the catch-up with the default branch.
+
 ## R19: The sidebar's "All done features and changes" opens home with every done feature
 
 - **Decision**: home's Recently done card carries main's `#done` anchor, which the sidebar's Done
@@ -269,4 +283,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   decisions page then reads as if they were broken.
 - **If wrong**: the two `icon` lines, and `DECISION_ICONS` in
   [`icons.ts`](/packages/web/src/theme/icons.ts).
+- **Where**: the catch-up with the default branch.
+
+## R21: Main's tests wait on the new home
+
+- **Decision**: in the rebase, the tests main added that wait for home to draw, in
+  `sidebar.test.tsx`, `shell-checks.test.tsx`, `notify.test.tsx`, and `usage.test.tsx`, wait for
+  "Needs you" instead of the old home's "Waiting on you", as this branch's own tests did when home
+  became the hub. `usage.test.tsx` finds the working feature in main's sidebar group, "Features".
+  Their checks are unchanged.
+- **Rationale**: home's "Waiting on you" heading is gone with the hub; the text was only the sign
+  that home had drawn.
+- **Alternatives considered**: none: the old heading does not exist.
+- **If wrong**: the `show("/", …)` calls of those files.
+- **Where**: the catch-up with the default branch.
+
+## R22: Entries' features follow main's committed reading
+
+- **Decision**: an entry's `running` feature and its step, joined in `Workspace::join_priorities`,
+  come from the workspace's features, which main's [git](/specs/decisions/git.md) decision reads
+  from each branch's latest commit: a branch outside the workflow is never an entry's feature, and a
+  step moves only once committed. No change was needed.
+- **Rationale**: the rule "A feature's or a change's workflow state … MUST be read from its branch's
+  latest commit" applies to the priorities' join this branch added, which reads no branch itself.
+- **Alternatives considered**: none.
+- **If wrong**: `running` in [`links.rs`](/crates/core/src/workspace/links.rs).
 - **Where**: the catch-up with the default branch.
