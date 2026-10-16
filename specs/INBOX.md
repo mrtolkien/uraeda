@@ -15,6 +15,9 @@
   - Also understand why the coverage job takes so much time?
 - [agent] [storybook-warmup] vp install in a new worktree rewrites the Vite+ section of AGENTS.md
   without its line wrapping, so vp check fails until it is restored
+- [agent] [storybook-warmup] Under vp run ready, server test files that run sessions sometimes fail
+  on test-setup.ts's afterAll (10 s hook timeout, removing the temporary folder), which stops the
+  browser suites; they pass alone
 
 ## Prompts
 
