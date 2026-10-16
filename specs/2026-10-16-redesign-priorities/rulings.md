@@ -149,3 +149,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: another app style copying an Astryx atomic value hides a state again; the browser
   test of the row's ring catches the ring's case.
 - **Where**: task 8.
+
+## R12: A list reaches its pane through `listPane.ts`, and the keys act on a row or the page
+
+- **Decision**: `useListKeys` takes no `count`: it reads the rows' links from the list's element,
+  and returns the `ref` to put on it with `focusSelected`; `onEdit` and `onClose` return whether
+  they acted, so Enter opens the row's link when its pane has nothing to edit. The keys act only
+  when the focus is on a row's link or on the page, which leaves out text fields, the drag handles
+  (their own keys move the row), and the pane's controls. The list and its pane meet through
+  `ListPaneContext`, set by `TaskRoute` and `NoteRoute`: the pane follows only when one is open, so
+  on `/priorities` and on a phone the keys move the focus alone. A task or a note page is keyed by
+  its history entry, not its address, so the list is not drawn anew at each key.
+- **Rationale**: a count would repeat the rows the list already draws; a handle's arrows move its
+  row in a keyboard drag, and would move the selection too; and the page drawn anew loses the row's
+  focus and restores the list's position at each key, as the browser test showed.
+- **Alternatives considered**: the list listening to its own `keydown` only, through
+  `useListFocus`'s `handleKeyDown`: after a click on a row, which WebKit does not focus, or once a
+  field saves, the focus is on the page, and the keys would do nothing; opening the pane at the
+  first ↓ on `/priorities`: a key that changes the page.
+- **If wrong**: the target test and `isLayerOpen` in `useListKeys.ts`, and `pageKey` in `App.tsx`.
+- **Where**: task 10.
