@@ -1,7 +1,7 @@
 // US3, US4, and US7 of the interface's redesign: the sidebar folds to its rail from one button that
 // keeps its place (C3), and from `[`; it resizes from its edge, its width kept; the phone's top bar
 // starts with Home; and the latest done items fill the room the rows above leave.
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import { page, userEvent } from "vite-plus/test/browser";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { atRepo, atSize, drawn, reducedMotion, reload, show } from "./helpers.tsx";
@@ -163,7 +163,9 @@ describe("on the phone", () => {
     const home = within(bar).getByRole("link", { name: "Home" });
     expect(within(bar).getAllByRole("link")[0]).toBe(home);
 
-    await userEvent.click(home);
+    // Clicked itself: the closed drawer's heading holds another link named Home, which a locator by
+    // its name would find too.
+    await act(async () => home.click());
 
     await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
     await expect
