@@ -8,6 +8,7 @@
     "./fate": "./src/fate.ts",
     "./dev": "./src/dev.ts",
     "./free-port": "./src/free-port.ts",
+    "./fresh-binding": "./src/fresh-binding.ts",
     "./testing": "./src/testing.ts",
     "./limits": "./src/limits.ts",
     "./paths": "./src/paths.ts",

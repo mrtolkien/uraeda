@@ -295,7 +295,7 @@ find their WebKit browser:
 
 ```sh
 vp install         # dependencies
-vp run --filter uraeda-binding build  # the Rust core for Node: again after every pull
+vp run --filter uraeda-binding build  # the Rust core for Node, which vp dev and the tests rebuild when older
 vp run ready       # every check and test; CI also runs the Neovim tests
 vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
 vp run dev         # the same, rebuilding the Rust core and restarting as it or the server changes

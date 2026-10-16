@@ -14,7 +14,7 @@ import { createServer, type Server } from "node:net";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test } from "vite-plus/test";
-import { checkBinding, loadBinding } from "../binding.ts";
+import { checkBinding, freshBinding, loadBinding } from "../binding.ts";
 import { freePort } from "../free-port.ts";
 import { handOff } from "../open-client.ts";
 import { HELP } from "../options.ts";
@@ -493,6 +493,36 @@ test("refuses a binding older than the Rust core, as after a pull", () => {
 
 test("takes a binding built after the Rust core changed", () => {
   expect(() => checkBinding(checkout(200, 100))).not.toThrow();
+});
+
+test("rebuilds a binding older than the Rust core, as vp dev and the tests do before loading it", () => {
+  const root = checkout(100, 200);
+  const built: Array<string> = [];
+
+  freshBinding(root, (at) => {
+    built.push(at);
+    utimesSync(join(at, "packages/binding/uraeda-binding.linux-x64-gnu.node"), 300, 300);
+  });
+
+  expect(built).toEqual([root]);
+});
+
+test("refuses a binding its rebuild left older than the Rust core", () => {
+  expect(() => freshBinding(checkout(100, 200), () => {})).toThrow(
+    "the native binding is older than the Rust core",
+  );
+});
+
+/** A build a test expects never to run. */
+function unexpectedBuild(): never {
+  throw new Error("rebuilt");
+}
+
+test("leaves a binding built after the Rust core, and the package's", () => {
+  const build = unexpectedBuild;
+
+  expect(() => freshBinding(checkout(200, 100), build)).not.toThrow();
+  expect(() => freshBinding(null, build)).not.toThrow();
 });
 
 test("takes any binding outside a checkout of the repository", () => {

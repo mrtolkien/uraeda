@@ -1,3 +1,5 @@
+// A binding older than the Rust core is rebuilt before the tests load it.
+import "./src/fresh-binding.ts";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
