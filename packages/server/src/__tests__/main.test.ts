@@ -1,13 +1,22 @@
 import { type ChildProcessWithoutNullStreams, spawn, spawnSync } from "node:child_process";
-import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer as createHttpServer } from "node:http";
-import { connect, createServer, type Server } from "node:net";
+import { createServer, type Server } from "node:net";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test } from "vite-plus/test";
 import { checkBinding, loadBinding } from "../binding.ts";
 import { handOff } from "../open-client.ts";
 import { HELP } from "../options.ts";
+import { hash } from "../sign-in/tokens.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { readRepositories, version } from "uraeda-binding";
 import {
@@ -41,14 +50,17 @@ afterEach(async () => {
   }
 });
 
-/** Spawns `main.ts` with `--no-open`, in `cwd`, with `env` over the test's environment. */
+/**
+ * Spawns `main.ts` in `cwd`, with `env` over the test's environment: with `--no-open`, or with
+ * `opener`'s faked browser launcher, on a desktop.
+ */
 function start(
   args: Array<string>,
-  { cwd, env = {} }: { cwd?: string; env?: Record<string, string> } = {},
+  { cwd, env = {}, opener }: { cwd?: string; env?: Record<string, string>; opener?: Opener } = {},
 ): Started {
-  const child = spawn(process.execPath, [main, "--no-open", ...args], {
+  const child = spawn(process.execPath, [main, ...(opener ? [] : ["--no-open"]), ...args], {
     cwd,
-    env: { ...process.env, ...env },
+    env: { ...process.env, ...opener?.env, ...env },
   });
   const output = { stderr: "", stdout: "" };
   child.stdout.on("data", (chunk) => (output.stdout += chunk));
@@ -91,21 +103,66 @@ async function freePort(): Promise<number> {
   return port;
 }
 
-/** Resolves once something accepts connections on 127.0.0.1:`port`, retrying as soon as refused. */
-async function bound(port: number): Promise<void> {
-  for (;;) {
-    const accepted = await new Promise<boolean>((resolve) => {
-      const socket = connect(port, "127.0.0.1");
-      socket.once("connect", () => {
-        socket.destroy();
-        resolve(true);
-      });
-      socket.once("error", () => resolve(false));
-    });
-    if (accepted) {
-      return;
-    }
+/**
+ * A faked browser launcher: `xdg-open` and `open` first in the `PATH`, on a desktop, writing each
+ * address they are given to `log`.
+ */
+type Opener = { env: Record<string, string>; log: string };
+
+function fakeOpener(): Opener {
+  const bin = temporaryFolder("uraeda-opener");
+  const log = join(bin, "opened.log");
+  for (const name of ["xdg-open", "open"]) {
+    writeFileSync(join(bin, name), `#!/bin/sh\nprintf '%s\\n' "$1" >> '${log}'\n`, { mode: 0o755 });
   }
+  return {
+    env: { DISPLAY: ":0", PATH: `${bin}:${process.env.PATH}`, SSH_CONNECTION: "", SSH_TTY: "" },
+    log,
+  };
+}
+
+/** The addresses the faked launcher opened, once it opened `count`. */
+async function opened({ log }: Opener, count = 1): Promise<Array<string>> {
+  const lines = () =>
+    existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean) : [];
+  await expect.poll(() => lines().length, { interval: 20, timeout: 10_000 }).toBe(count);
+  return lines();
+}
+
+/** The host token file of the server on `port` with the data folder `data`. */
+const tokenFile = (data: string, port: number) => join(data, `server-${port}.token`);
+
+/** The access key a start printed. */
+const keyIn = (stdout: string) => /shown once: (ura_[\w-]{43})\n/.exec(stdout)![1];
+
+/** Signs in to the server on `port` with `key`: the `Cookie` header of the new session. */
+async function signIn(port: number, key: string): Promise<string> {
+  const response = await fetch(`http://127.0.0.1:${port}/session`, {
+    body: JSON.stringify({ key }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  expect(response.status).toBe(204);
+  return response.headers.get("set-cookie")!.split(";")[0];
+}
+
+/** Whether a `Cookie` header is signed in on the server on `port`. */
+async function signedIn(port: number, cookie: string): Promise<boolean> {
+  const response = await fetch(`http://127.0.0.1:${port}/session`, { headers: { cookie } });
+  return response.status === 204;
+}
+
+/** A first start on a fresh data folder, ready: its data folder, port, and printed key. */
+async function firstStart(options: { opener?: Opener; repo?: string } = {}) {
+  const data = temporaryFolder("uraeda-data");
+  const port = await freePort();
+  const repo = options.repo ?? fixtureRepo();
+  const server = start(["--repo", repo, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+    opener: options.opener,
+  });
+  await ready(server);
+  return { data, key: keyIn(server.output.stdout), port, repo, server };
 }
 
 /** Another program's listener on a free port, plain TCP, which never answers. */
@@ -199,7 +256,7 @@ test("a second start hands its repository to the running server and exits 0", as
   const notes = fixtureRepo();
 
   const second = await run(["--repo", notes, "--port", String(port)], {
-    env: { URAEDA_DATA_DIR: temporaryFolder("uraeda-other-data") },
+    env: { URAEDA_DATA_DIR: data },
   });
 
   const name = await listedName(data, notes);
@@ -262,8 +319,16 @@ test("a handoff leaves the running server's turns in progress", async () => {
   cache.db.close();
 });
 
-/** Reads the feature's `Preview` record on the server at `port`, as a view, until it is ready. */
-async function viewUntilReady(port: number, name: string, folder: string): Promise<void> {
+/**
+ * Reads the feature's `Preview` record on the server at `port`, as a view signed in with `cookie`,
+ * until it is ready.
+ */
+async function viewUntilReady(
+  port: number,
+  name: string,
+  folder: string,
+  cookie: string,
+): Promise<void> {
   const origin = `http://127.0.0.1:${port}`;
   await expect
     .poll(
@@ -275,7 +340,7 @@ async function viewUntilReady(port: number, name: string, folder: string): Promi
             ],
             version: 1,
           }),
-          headers: { "content-type": "application/json", origin },
+          headers: { "content-type": "application/json", cookie, origin },
           method: "POST",
         });
         const payload = (await response.json()) as {
@@ -307,7 +372,8 @@ test("SIGHUP stops the server and its Storybooks", async () => {
     env: { URAEDA_DATA_DIR: data },
   });
   await ready(server);
-  await viewUntilReady(port, (await listedName(data, repo))!, STORY_FEATURE);
+  const cookie = await signIn(port, keyIn(server.output.stdout));
+  await viewUntilReady(port, (await listedName(data, repo))!, STORY_FEATURE, cookie);
   const [storybook] = previewStarts(log!);
 
   server.child.kill("SIGHUP");
@@ -347,15 +413,17 @@ test("a second start during the first's start waits for it", async () => {
   const port = await freePort();
   const [first, notes, todo] = [fixtureRepo(), fixtureRepo(), fixtureRepo()];
   start(["--repo", first, "--port", String(port)], { env: { URAEDA_DATA_DIR: data } });
-  await bound(port);
+  // The host token is written as soon as the port is taken, before the server starts.
+  await expect.poll(() => existsSync(tokenFile(data, port)), { interval: 5 }).toBe(true);
+  const token = readFileSync(tokenFile(data, port), "utf8");
 
   // A request as soon as the port is taken, while the server may still start, and a second start.
   const [early, second] = await Promise.all([
-    handOff(port, { folder: notes, given: true }),
+    handOff(port, { folder: notes, given: true }, token),
     run(["--repo", todo, "--port", String(port)], { env: { URAEDA_DATA_DIR: data } }),
   ]);
 
-  expect(early).toEqual({ kind: "opened", url: `/r/${await listedName(data, notes)}/` });
+  expect(early).toMatchObject({ kind: "opened", url: `/r/${await listedName(data, notes)}/` });
   expect(second.stdout).toBe(
     `Uraeda already runs at http://127.0.0.1:${port}/r/${await listedName(data, todo)}/\n`,
   );
@@ -409,4 +477,209 @@ test("takes any binding outside a checkout of the repository", () => {
   writeFileSync(join(root, "packages/binding/uraeda-binding.linux-x64-gnu.node"), "");
 
   expect(() => checkBinding(root)).not.toThrow();
+});
+
+/** The lines of a start that made the key. */
+const KEY_LINES =
+  /^Access key, shown once: ura_[\w-]{43}\nKeep it in a password manager: every new device signs in with it\.\n$/;
+
+/** The lines of a new key. */
+const NEW_KEY_LINES = /^New access key, shown once: ura_[\w-]{43}\nEvery device is signed out\.\n/;
+
+/** US1.1, SC-003 */
+test("the first start prints the key once", async () => {
+  const { data, port, repo, server } = await firstStart();
+  const address = `Uraeda server on http://127.0.0.1:${port}\n`;
+  await expect.poll(() => server.output.stdout.length).toBeGreaterThan(address.length);
+  server.child.kill("SIGTERM");
+  await server.exited;
+
+  const next = start(["--repo", repo, "--port", String(port)], { env: { URAEDA_DATA_DIR: data } });
+  await ready(next);
+
+  expect(server.output.stdout.slice(0, address.length)).toBe(address);
+  expect(server.output.stdout.slice(address.length)).toMatch(KEY_LINES);
+  expect(next.output.stdout).toBe(address);
+  const file = readFileSync(join(data, "sign-in.json"), "utf8");
+  expect(file).not.toContain(keyIn(server.output.stdout));
+  expect(file).toContain(hash(keyIn(server.output.stdout)));
+});
+
+/** The host token file: written with the port taken, `0600`, removed at exit. */
+test("the host token lives as long as the server", async () => {
+  const { data, port, server } = await firstStart();
+
+  expect(statSync(tokenFile(data, port)).mode & 0o777).toBe(0o600);
+  expect(readFileSync(tokenFile(data, port), "utf8")).toMatch(/^[\w-]{43}$/);
+  server.child.kill("SIGTERM");
+  expect(await server.exited).toBe(0);
+  expect(existsSync(tokenFile(data, port))).toBe(false);
+});
+
+/** US4.1 */
+test("the start opens the browser through a one-time link", async () => {
+  const opener = fakeOpener();
+  const { data, port, repo } = await firstStart({ opener });
+  const name = await listedName(data, repo);
+
+  const [link] = await opened(opener);
+
+  const path = new RegExp(`^http://127\\.0\\.0\\.1:${port}/session/[\\w-]{43}\\?to=/r/${name}/$`);
+  expect(link).toMatch(path);
+  const used = await fetch(link!, { redirect: "manual" });
+  expect(used.status).toBe(303);
+  expect(used.headers.get("location")).toBe(`/r/${name}/`);
+  expect(await signedIn(port, used.headers.get("set-cookie")!.split(";")[0])).toBe(true);
+  const again = await fetch(link!, { redirect: "manual" });
+  expect(again.headers.get("set-cookie")).toBeNull();
+});
+
+/** US4.2 */
+test("a second start hands over with the host token, and signs its browser in", async () => {
+  const { data, port } = await firstStart();
+  const notes = fixtureRepo();
+  const opener = fakeOpener();
+
+  const second = await run(["--repo", notes, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+    opener,
+  });
+
+  const name = await listedName(data, notes);
+  expect(second.stdout).toBe(`Uraeda already runs at http://127.0.0.1:${port}/r/${name}/\n`);
+  expect(second.code).toBe(0);
+  const [link] = await opened(opener);
+  expect(link).toMatch(
+    new RegExp(`^http://127\\.0\\.0\\.1:${port}/session/[\\w-]{43}\\?to=/r/${name}/$`),
+  );
+  const used = await fetch(link!, { redirect: "manual" });
+  expect(await signedIn(port, used.headers.get("set-cookie")!.split(";")[0])).toBe(true);
+});
+
+/** Edge case: a second start with another data folder. */
+test("a second start with another data folder names it and exits 1", async () => {
+  const { data, port } = await firstStart();
+  const notes = fixtureRepo();
+
+  const second = await run(["--repo", notes, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: temporaryFolder("uraeda-other-data") },
+  });
+
+  expect(second.stderr).toBe(
+    `uraeda: port ${port} is used by an Uraeda server with another data folder.\n`,
+  );
+  expect(second.code).toBe(1);
+  expect(await listedName(data, notes)).toBeUndefined();
+});
+
+/** US3.4 */
+test("a new key on a running server", async () => {
+  const { data, key, port, repo } = await firstStart();
+  const cookie = await signIn(port, key);
+
+  const second = await run(["--new-key", "--repo", repo, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+  });
+
+  const name = await listedName(data, repo);
+  expect(second.stdout).toMatch(NEW_KEY_LINES);
+  expect(second.stdout.replace(NEW_KEY_LINES, "")).toBe(
+    `Uraeda already runs at http://127.0.0.1:${port}/r/${name}/\n`,
+  );
+  expect(second.code).toBe(0);
+  expect(await signedIn(port, cookie)).toBe(false);
+  const file = readFileSync(join(data, "sign-in.json"), "utf8");
+  expect(file).not.toContain(hash(key));
+  expect(file).toContain(hash(keyIn(second.stdout)));
+  expect(await signedIn(port, await signIn(port, keyIn(second.stdout)))).toBe(true);
+});
+
+/** US3.5 */
+test("a new key without a server prints the two lines, then starts", async () => {
+  const { data, key, port, repo, server } = await firstStart();
+  server.child.kill("SIGTERM");
+  await server.exited;
+
+  const next = start(["--new-key", "--repo", repo, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+  });
+  await ready(next);
+  const address = `Uraeda server on http://127.0.0.1:${port}\n`;
+  await expect.poll(() => next.output.stdout.length).toBeGreaterThan(address.length);
+
+  expect(next.output.stdout.slice(0, address.length)).toBe(address);
+  expect(next.output.stdout.slice(address.length)).toMatch(NEW_KEY_LINES);
+  const file = readFileSync(join(data, "sign-in.json"), "utf8");
+  expect(file).not.toContain(hash(key));
+  expect(file).toContain(hash(keyIn(next.output.stdout)));
+});
+
+/** US3.5, on a fresh data folder: the key the start made is the new one, made once. */
+test("a new key at the first start makes one key", async () => {
+  const data = temporaryFolder("uraeda-data");
+  const port = await freePort();
+
+  const server = start(["--new-key", "--repo", fixtureRepo(), "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+  });
+  await ready(server);
+  const address = `Uraeda server on http://127.0.0.1:${port}\n`;
+  await expect.poll(() => server.output.stdout.length).toBeGreaterThan(address.length);
+
+  expect(server.output.stdout.slice(address.length)).toMatch(NEW_KEY_LINES);
+  expect(server.output.stdout.match(/ura_/g)).toHaveLength(1);
+  const file = readFileSync(join(data, "sign-in.json"), "utf8");
+  expect(file).toContain(hash(keyIn(server.output.stdout)));
+});
+
+/** Error handling: `--new-key` refused by a running server. */
+test("a new key the server refuses changes nothing and exits 1", async () => {
+  const { data, key, port, repo } = await firstStart();
+  const cookie = await signIn(port, key);
+  writeFileSync(tokenFile(data, port), "a-wrong-token");
+
+  const second = await run(["--new-key", "--repo", repo, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+  });
+
+  expect(second.stderr).toBe(`uraeda: the server on port ${port} refused the new key.\n`);
+  expect(second.stdout).toBe("");
+  expect(second.code).toBe(1);
+  expect(readFileSync(join(data, "sign-in.json"), "utf8")).toContain(hash(key));
+  expect(await signedIn(port, cookie)).toBe(true);
+});
+
+test("the help names --new-key", () => {
+  expect(HELP).toContain(
+    "  --new-key                make a new access key and sign every device out\n",
+  );
+});
+
+/** SC-003 */
+test("the sign-in file and the output never hold a session token", async () => {
+  const { data, key, port, repo, server } = await firstStart();
+  const read = () => readFileSync(join(data, "sign-in.json"), "utf8");
+  const cookies = [await signIn(port, key), await signIn(port, key)];
+  const files = [read()];
+  await fetch(`http://127.0.0.1:${port}/session`, {
+    headers: { cookie: cookies[0]! },
+    method: "DELETE",
+  });
+  files.push(read());
+
+  const second = await run(["--new-key", "--repo", repo, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+  });
+
+  const file = [...files, read()].join("\n");
+  const output = [server.output.stdout, server.output.stderr, second.stdout, second.stderr];
+  for (const cookie of cookies) {
+    const secret = cookie.split("=")[1]!.split(".")[1]!;
+    expect(file).not.toContain(secret);
+    expect(output.join("")).not.toContain(secret);
+  }
+  expect(output.join("").split(key)).toHaveLength(2);
+  expect(output.join("").split(keyIn(second.stdout))).toHaveLength(2);
+  expect(file).not.toContain(key);
+  expect(file).not.toContain(keyIn(second.stdout));
 });

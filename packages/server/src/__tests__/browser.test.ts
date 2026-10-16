@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { openBrowser } from "../browser.ts";
+import { browserOpens, openBrowser } from "../browser.ts";
 
 const URL = "http://127.0.0.1:4310/r/todo/";
 
@@ -52,6 +52,8 @@ test.each([
 
   expect(calls).toEqual(expected ? [expected] : []);
   expect(result).toBe(expected ? "opened" : "skipped");
+  // Edge case: a start with no desktop knows it first, and makes no one-time link.
+  expect(browserOpens({ env, platform })).toBe(result === "opened");
 });
 
 test("a failed launch warns, with the reason", () => {

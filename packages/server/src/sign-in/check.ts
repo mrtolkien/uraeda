@@ -97,6 +97,17 @@ export function address(context: Context, allowedHosts: Array<string>): string {
   }
 }
 
+/**
+ * Whether a request carries `Authorization: Bearer <host token>`, compared in constant time: never
+ * without a host token.
+ */
+export function fromHost(context: Context, hostToken: string | undefined): boolean {
+  return (
+    hostToken !== undefined &&
+    sameHash(hash(context.req.header("authorization") ?? ""), hash(`Bearer ${hostToken}`))
+  );
+}
+
 /** The `/session` routes a request without a session may reach: all but `/session/key`. */
 const OPEN_PATHS = /^\/session(\/(?!key$)[^/]+)?$/;
 
@@ -119,9 +130,7 @@ export function sessionCheck(
 ) {
   const { allowedHosts, frames, hostToken, store } = options;
   const byHost = (context: Context, path: string) =>
-    hostToken !== undefined &&
-    HOST_PATHS.has(path) &&
-    sameHash(hash(context.req.header("authorization") ?? ""), hash(`Bearer ${hostToken}`));
+    HOST_PATHS.has(path) && fromHost(context, hostToken);
   return createMiddleware(async (context: DeviceContext, next) => {
     const path = context.req.path;
     if (!SERVER_PATHS.test(path) || frames?.allows(path) || byHost(context, path)) {

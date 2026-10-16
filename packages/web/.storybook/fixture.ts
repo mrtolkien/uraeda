@@ -82,6 +82,6 @@ export function fixtureServer(): Array<Plugin> {
   process.env.URAEDA_DATA_DIR = dataDir;
   return [
     fateOverGet(),
-    uraedaServer({ adapter: new FakeAdapter(), file: false, lockedList: true }),
+    uraedaServer({ adapter: new FakeAdapter(), file: false, lockedList: true, signIn: false }),
   ];
 }

@@ -89,7 +89,7 @@ async function main() {
     ...base,
     configFile: false,
     logLevel: "warn",
-    plugins: [...plugins, uraedaServer({ adapter })],
+    plugins: [...plugins, uraedaServer({ adapter, signIn: false })],
     root: web,
     server: { host: "127.0.0.1", port: 4390, strictPort: false },
   });

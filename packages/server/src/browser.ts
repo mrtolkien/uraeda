@@ -22,6 +22,17 @@ function hasDesktop(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): boolean 
   return platform !== "linux" || Boolean(env.DISPLAY || env.WAYLAND_DISPLAY);
 }
 
+/**
+ * Whether `openBrowser` would open a browser here: a start asks it before making a one-time link,
+ * so a start with no desktop makes none.
+ */
+export function browserOpens({
+  env = process.env,
+  platform = process.platform,
+}: { env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform } = {}): boolean {
+  return OPENERS[platform] !== undefined && hasDesktop(env, platform);
+}
+
 /** Opens `url` in the user's browser, without waiting; returns what it did. */
 export function openBrowser(
   url: string,
@@ -38,7 +49,7 @@ export function openBrowser(
   } = {},
 ): "opened" | "skipped" {
   const opener = OPENERS[platform];
-  if (!opener || !hasDesktop(env, platform)) {
+  if (!opener || !browserOpens({ env, platform })) {
     return "skipped";
   }
   const child = spawn(opener, [url]);

@@ -286,3 +286,56 @@ test("Uraeda's pages refuse other sites' frames", async () => {
   expect(preview.status).toBe(503);
   expect(preview.headers.get("x-frame-options")).toBeNull();
 });
+
+/** The host's own `uraeda`'s header, with the host token of `keyApp`. */
+const HOST = { authorization: "Bearer the-host-token" };
+
+/** A signed-in app with a host token. */
+const keyApp = () => testApp(undefined, { hostToken: "the-host-token", signIn: true });
+
+/** US3.4 */
+test("a new key with the host token ends every session, and the old key is refused", async () => {
+  const { app, name, signIn } = await keyApp();
+  const cookie = await signIn.signedIn();
+
+  const response = await send(app, "POST", "/session/key", { headers: HOST });
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  const { key } = (await response.json()) as { key: string };
+  expect(key).toMatch(/^ura_[\w-]{43}$/);
+  expect((await readFate(app, name, cookie)).status).toBe(401);
+  expect(signIn.store.checkKey(signIn.key)).toBe(false);
+  expect(signIn.store.checkKey(key)).toBe(true);
+});
+
+/** Error handling: a new key refused. */
+test.each([
+  ["no host token", {}],
+  ["a wrong host token", { authorization: "Bearer another-token" }],
+  ["the host token sent twice", { authorization: "Bearer the-host-token, Bearer the-host-token" }],
+])("a new key with %s is refused, signed in or not", async (_, headers) => {
+  const { app, signIn } = await keyApp();
+  const cookie = await signIn.signedIn();
+
+  for (const sent of [undefined, cookie]) {
+    const response = await send(app, "POST", "/session/key", { cookie: sent, headers });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Sign in to Uraeda." });
+  }
+  expect(signIn.store.checkKey(signIn.key)).toBe(true);
+  expect(signIn.store.findSession(cookie.split("=")[1])).toBeDefined();
+});
+
+test("an app without a host token refuses every new key", async () => {
+  const { app, signIn } = await signedApp();
+
+  const response = await send(app, "POST", "/session/key", {
+    cookie: await signIn.signedIn(),
+    headers: { authorization: "Bearer " },
+  });
+
+  expect(response.status).toBe(401);
+  expect(signIn.store.checkKey(signIn.key)).toBe(true);
+});

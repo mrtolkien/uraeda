@@ -73,6 +73,7 @@ const open: Array<[...Row, status: number]> = [
   ["DELETE", "/session", {}, 204],
   ["GET", "/session/unknown?to=/r/todo/", {}, 303],
   ["POST", "/open", { authorization: `Bearer ${HOST_TOKEN}` }, 400],
+  ["POST", "/session/key", { authorization: `Bearer ${HOST_TOKEN}` }, 200],
   ["GET", "/r/<name>/mockups/<secret>/specs/ui.html", {}, 404],
   ["GET", "/r/<name>/preview/<secret>/main/iframe.html", {}, 503],
 ];

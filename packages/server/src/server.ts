@@ -18,12 +18,18 @@ import type { Adapter } from "./runner/adapter.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
 import type { Sessions } from "./runner/sessions.ts";
+import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
+import { OneTimeLinks } from "./sign-in/links.ts";
+import { SignInStore } from "./sign-in/store.ts";
 
 /** How often the server checks that the agent still works. */
 export const CHECK_EVERY_MS = 60_000;
 
-/** How often the server stops the Storybooks without a view, or whose checkout is gone. */
+/**
+ * How often the server stops the Storybooks without a view, or whose checkout is gone, and ends
+ * the sessions unused for 30 days.
+ */
 export const SWEEP_EVERY_MS = 60_000;
 
 /**
@@ -70,8 +76,14 @@ export type Server = {
   /** The frame secret of preview and mockup paths: replacing it restarts the Storybooks. */
   frames: FrameSecret;
   hosts: Hosts;
+  /** The access key, when this start made it: shown once, then never again. */
+  key?: string;
+  /** Makes a new access key and returns it, signing every device out; throws without sign-in. */
+  newKey: () => string;
   previews: Previews;
   sessions: Sessions;
+  /** A one-time link to the page `to`, which signs a browser in; `to` itself without sign-in. */
+  signInLink: (to: string) => string;
   /**
    * Closes the hosts' watches, stops the sessions' turns, closes their processes, and stops every
    * Storybook.
@@ -85,6 +97,38 @@ export type Server = {
   /** The started repository's page, `/r/<name>/`, or `/` when the server started outside git. */
   url: string;
 };
+
+/** The lines that show the access key a start made, the only time it is shown. */
+export const keyLines = (key: string) =>
+  `Access key, shown once: ${key}\nKeep it in a password manager: every new device signs in with it.\n`;
+
+/** The lines that show a new access key, made by `--new-key`. */
+export const newKeyLines = (key: string) =>
+  `New access key, shown once: ${key}\nEvery device is signed out.\n`;
+
+/**
+ * The server's sign-in, unless `signIn` is false: the store of the data folder, its key when this
+ * start made it, the one-time links, and the host token.
+ */
+function openSignIn(options: { dataDir: string; hostToken?: string; signIn?: false }): {
+  key?: string;
+  signIn?: SignInOptions;
+} {
+  if (options.signIn === false) {
+    return {};
+  }
+  const { key, store } = SignInStore.open(options.dataDir);
+  return { key, signIn: { hostToken: options.hostToken, links: new OneTimeLinks(), store } };
+}
+
+/** Ends the sessions unused for 30 days; a file that cannot be written is reported, not thrown. */
+function sweepSessions(store: SignInStore | undefined) {
+  try {
+    store?.sweep();
+  } catch (error) {
+    process.stderr.write(`uraeda: ${(error as Error).message}\n`);
+  }
+}
 
 /**
  * Adds the starting folder's repository through `openFolder`, and returns its page. A folder
@@ -114,19 +158,28 @@ async function openStart(binding: Binding, dataDir: string, request: OpenRequest
  * or touched when listed, so it opens first. Outside git, a repository given by `--repo` or
  * `URAEDA_REPO` stops the start, with `<repo> is not a git repository`; the folder the server was
  * merely started in is logged, and the list's most recent repository opens first.
+ *
+ * Sign-in is on unless `signIn` is false, as for tests and Uraeda's own Storybook: the store opens
+ * `sign-in.json` in the data folder first, so a file that cannot be read, or a folder that cannot
+ * be written, stops the start before anything else; `/open` and `/session/key` take `hostToken`.
  */
 export async function startServer(
-  options: Omit<Options, "open" | "show"> & {
+  options: Omit<Options, "newKey" | "open" | "show"> & {
     adapter: Adapter;
     binding: Binding;
     dataDir: string;
+    /** The host token `/open` and `/session/key` accept from the host's own `uraeda`. */
+    hostToken?: string;
     /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
     lockedList?: boolean;
+    /** False for no sign-in: only code turns it off. */
+    signIn?: false;
     /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
     webRoot?: string;
   },
 ): Promise<Server> {
   const { adapter, binding, dataDir } = options;
+  const { key, signIn } = openSignIn(options);
   const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   // The Storybooks a killed server left run no more: their record's groups are killed first.
   const record = groupsFolder(dataDir);
@@ -150,7 +203,10 @@ export async function startServer(
     throw error;
   }
   const opened = hosts;
-  const sweeping = setInterval(() => previews.sweep(), SWEEP_EVERY_MS);
+  const sweeping = setInterval(() => {
+    previews.sweep();
+    sweepSessions(signIn?.store);
+  }, SWEEP_EVERY_MS);
   sweeping.unref();
   let stopping: Promise<void> | undefined;
   return {
@@ -162,11 +218,20 @@ export async function startServer(
       hosts: opened,
       previews,
       sessions: sessions.sessions,
+      signIn,
     }),
     frames,
     hosts: opened,
+    ...(key !== undefined && { key }),
+    newKey: () => {
+      if (!signIn) {
+        throw new Error("this server has no sign-in");
+      }
+      return signIn.store.replaceKey();
+    },
     previews,
     sessions: sessions.sessions,
+    signInLink: (to) => signIn?.links.make(to) ?? to,
     stop: () => {
       stopping ??= (async () => {
         clearInterval(sweeping);

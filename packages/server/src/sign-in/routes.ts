@@ -5,6 +5,7 @@ import {
   address,
   clearSessionCookie,
   type Device,
+  fromHost,
   refused,
   setSessionCookie,
   type SignInOptions,
@@ -43,11 +44,14 @@ async function noStore(context: Context, next: Next) {
  * with `{ key }`, which signs the device in, or after a second answers 401 and logs the address;
  * `DELETE /session`, which signs it out; `DELETE /sessions`, which signs every device out, past the
  * session check; and `GET /session/<token>?to=<path>`, a one-time link, which signs in once and
- * redirects to its path on the server. Signing in again ends the session the device had.
+ * redirects to its path on the server; and `POST /session/key` with the host token, which makes a
+ * new access key, signs every device out, and answers `{ key }`. Signing in again ends the session
+ * the device had.
  */
 export function signInRoutes(options: SignInOptions & { allowedHosts: Array<string> }) {
   const {
     allowedHosts,
+    hostToken,
     links,
     log = (line) => process.stderr.write(`${line}\n`),
     store,
@@ -91,6 +95,12 @@ export function signInRoutes(options: SignInOptions & { allowedHosts: Array<stri
     clearSessionCookie(context, allowedHosts);
     return context.body(null, 204);
   });
+  // The session check lets a signed-in request through too: only the host token makes a new key.
+  app.post("/session/key", (context) =>
+    fromHost(context, hostToken)
+      ? context.json({ key: store.replaceKey() })
+      : context.json({ error: "Sign in to Uraeda." }, 401),
+  );
   app.get("/session/:token", (context) => {
     const to = links.use(context.req.param("token"));
     if (to !== undefined) {

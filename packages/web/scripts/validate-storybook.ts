@@ -185,7 +185,7 @@ async function main(): Promise<number> {
   const folder = checkoutFolder();
   const { repository } = await addRepository(dataDir, root);
   // The server as `vp dev` mounts it, on the fake agent, started by its first request.
-  const handler = devHandler(root, { adapter: new FakeAdapter(), file: false });
+  const handler = devHandler(root, { adapter: new FakeAdapter(), file: false, signIn: false });
   const http = createServer((request, response) =>
     handler(request, response, () => {
       response.statusCode = 404;
