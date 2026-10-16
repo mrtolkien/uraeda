@@ -212,10 +212,54 @@ test("says when there is no constitution yet", async () => {
   expect(await decisionRow("Git")).toBeTruthy();
 });
 
+/** A decision, valid but for what each test changes. */
+const DECISION =
+  "---\nstatus: active\napproved-by: mrtolkien\nicon: git-branch\n---\n\n# Hooks\n\nCommits run the hooks. Always.\n\n## Rules\n\n- One.\n\n## Why\n\nSo.\n\n## Consequences\n\n- None.\n\n## Applies to\n\n- Commits\n";
+
+/** Edge case: a decision without an H1 or a summary stands by its file name, without subtitle. */
+test("a decision without a title shows by its file name, and no subtitle", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(
+    join(repo, "specs/decisions/untitled.md"),
+    DECISION.replace("# Hooks\n\nCommits run the hooks. Always.\n\n", ""),
+  );
+  await renderPage("/decisions", repo);
+
+  // Its row's whole name is its file name: no subtitle, no date, no status.
+  expect(await (await decisionList()).findByRole("link", { name: "untitled" })).toBeTruthy();
+  expect(screen.queryByText("Can't read this file")).toBeNull();
+});
+
+/** A readable decision with a problem keeps its summary, and its pane warns of the problem. */
+test("a decision with a broken link keeps its summary, its pane naming the problem", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(
+    join(repo, "specs/decisions/hooks.md"),
+    DECISION.replace("So.", "So [the hooks](missing.md) say."),
+  );
+  await renderPage("/decisions", repo);
+
+  const hooks = await decisionRow("Hooks");
+  expect(within(hooks).getByText("Commits run the hooks.")).toBeTruthy();
+  expect(within(hooks).queryByText("Can't read this file")).toBeNull();
+
+  await click(within(hooks).getByRole("link"));
+
+  const { readLedger } = await import("uraeda-binding");
+  const { problem } = (await readLedger(repo)).decisions.find((one) => one.name === "hooks")!;
+  expect(problem).toBeTruthy();
+  const detail = await pane();
+  expect(await detail.findByText(problem!)).toBeTruthy();
+  expect(detail.queryByText("Can't read this file")).toBeNull();
+});
+
 /** Review focus 7: listed by its file name, its pane showing the core's first problem. */
 test("a decision ura check cannot read shows by its file name, with its problem", async () => {
   const repo = fixtureRepo();
-  writeFileSync(join(repo, "specs/decisions/broken.md"), "---\nstatus: active\n---\n\nNo title.\n");
+  writeFileSync(
+    join(repo, "specs/decisions/broken.md"),
+    DECISION.replace("status: active", "status: [active"),
+  );
   await renderPage("/decisions", repo);
 
   const broken = await decisionRow("broken");
@@ -228,5 +272,8 @@ test("a decision ura check cannot read shows by its file name, with its problem"
   const { readLedger } = await import("uraeda-binding");
   const { problem } = (await readLedger(repo)).decisions.find((one) => one.name === "broken")!;
   expect(problem).toBeTruthy();
-  expect((await pane()).getByText(problem!)).toBeTruthy();
+  const detail = await pane();
+  expect(detail.getByRole("heading", { level: 2, name: "broken" })).toBeTruthy();
+  expect(detail.getByText("Can't read this file")).toBeTruthy();
+  expect(detail.getByText(problem!)).toBeTruthy();
 });
