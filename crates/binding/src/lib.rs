@@ -24,6 +24,7 @@ use uraeda_core::watch::{self, Changes};
 
 pub mod file_writes;
 pub mod inbox_writes;
+pub mod settings;
 
 /// A core operation, run off the main thread.
 pub struct Job<T: Send + 'static> {

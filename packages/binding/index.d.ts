@@ -15,6 +15,9 @@ export declare class WatchHandle {
   close(): void
 }
 
+/** Adds a host name, in lower case, to the allowed host names. */
+export declare function addAllowedHost(dir: string, name: string): Promise<Settings>
+
 /** Comments on lines of a file as committed, or on the whole file without lines. */
 export declare function addComment(repo: string, folder: string, file: string, startLine: number | undefined | null, endLine: number | undefined | null, text: string): Promise<FileView>
 
@@ -67,6 +70,12 @@ export declare function commitPriorities(repo: string): Promise<Priorities>
 /** Commits a draft, with the priorities when they changed, or a proposal. */
 export declare function commitText(repo: string, path: string): Promise<CommitView>
 
+/**
+ * Uraeda's config folder: `custom` when set and not empty, else `URAEDA_CONFIG_DIR` from this
+ * process's environment, else `$XDG_CONFIG_HOME/uraeda`, else `~/.config/uraeda`.
+ */
+export declare function configDir(custom?: string | undefined | null): string
+
 /** Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`. */
 export declare function createDraft(repo: string, id: string, previous: string): Promise<DraftView>
 
@@ -84,6 +93,9 @@ export declare function discardChanges(repo: string): Promise<void>
 
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
+
+/** Replaces an allowed host name with another, in its place. */
+export declare function editAllowedHost(dir: string, from: string, to: string): Promise<Settings>
 
 /** Replaces the text of a pending comment. */
 export declare function editComment(repo: string, folder: string, file: string, number: number, text: string): Promise<FileView>
@@ -208,6 +220,9 @@ export declare function readRaw(repo: string, path: string): Promise<string>
 /** The list of repositories in the data folder, the most recently opened first. */
 export declare function readRepositories(dataDir: string): Promise<Array<Repository>>
 
+/** The settings in the folder's file, the defaults when there is none. */
+export declare function readSettings(dir: string): Promise<Settings>
+
 /** A draft or a proposal, for its editor, by its path from the top level. */
 export declare function readText(repo: string, path: string): Promise<DraftView>
 
@@ -216,6 +231,9 @@ export declare function readTriage(repo: string): Promise<FileView | null>
 
 /** Every feature, change, and priority of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
+
+/** Removes an allowed host name. */
+export declare function removeAllowedHost(dir: string, name: string): Promise<Settings>
 
 /** Removes a pending comment. */
 export declare function removeComment(repo: string, folder: string, file: string, number: number): Promise<FileView>
@@ -264,6 +282,12 @@ export declare function saveTriageNotes(repo: string, notes: string, previous: s
 
 /** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
+
+/** Sets whether a start opens a browser. */
+export declare function setOpenBrowser(dir: string, open: boolean): Promise<Settings>
+
+/** Sets the port, from the text typed. */
+export declare function setPort(dir: string, port: string): Promise<Settings>
 
 /**
  * Starts a change typed as a text, with its images, in its own worktree: the first written line
@@ -845,6 +869,19 @@ export interface SectionItems {
   section: string
   title: string
   entries: Array<EntryItem>
+}
+
+/** The `[server]` table. */
+export interface ServerSettings {
+  /** Trimmed and in lower case. */
+  allowedHosts?: Array<string>
+  port?: number
+  openBrowser?: boolean
+}
+
+/** The settings the file holds, an absent key unset. */
+export interface Settings {
+  server: ServerSettings
 }
 
 /** A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`. */
