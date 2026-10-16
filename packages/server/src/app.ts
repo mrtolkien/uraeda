@@ -171,7 +171,7 @@ export function createApp(options: AppOptions) {
   app.route("/r/:name", previewRoutes());
   app.route("/r/:name", files());
   app.route("/r/:name", attach());
-  app.route("/", openRoute(signIn ? (to) => signIn.links.make(to) : (to) => to));
+  app.route("/", openRoute(signIn));
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));
     app.get("/*", serveStatic({ path: "index.html", root: options.webRoot }));
