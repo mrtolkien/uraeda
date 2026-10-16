@@ -730,7 +730,7 @@ git commit -m "feat(basic-security): the sign-in screen, and signing out"
 - Modify: `README.md` (signing in, `--new-key`, a public address), `.env.example` (the same, next to
   `URAEDA_ALLOWED_HOSTS`)
 
-- [ ] **Step 1: Write the documentation**
+- [x] **Step 1: Write the documentation**
 
 The README says: the first start shows the access key once; each device pastes it once and stays
 signed in while used every 30 days; `uraeda --new-key` on the host makes a new one and signs every
@@ -738,12 +738,12 @@ device out; a public address goes through Caddy or Tailscale Funnel on the same 
 name in `--allowed-hosts`, with a minimal Caddyfile:
 `uraeda.example.com { reverse_proxy 127.0.0.1:4310 }`.
 
-- [ ] **Step 2: Run all tests**
+- [x] **Step 2: Run all tests**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add README.md .env.example specs/2026-10-16-basic-security/plan.md

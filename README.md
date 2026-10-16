@@ -204,8 +204,21 @@ opens in the server already running.
 npx @uraeda/ui                          # the web UI, for the repository you are in
 npx @uraeda/ui --no-open --port 4311    # without opening the browser, on another port
 npx @uraeda/ui --allowed-hosts mac.tail1234.ts.net  # host names accepted besides 127.0.0.1
+npx @uraeda/ui --new-key                # a new access key, which signs every device out
 npm i -g @uraeda/ui@latest              # a lasting install, then `uraeda`; updated the same way
 ```
+
+Every browser signs in. The first start shows an access key, once, in the terminal: keep it in a
+password manager. The browser it opens is signed in already, and so is the one a second start opens
+on the same machine. Any other browser, like your phone's, pastes the key once and stays signed in
+while it is used at least every 30 days. "Sign out" and "Sign out everywhere…" are at the end of the
+repository menu. A lost key is replaced with `uraeda --new-key` on the machine that runs Uraeda,
+which signs every device out.
+
+To reach Uraeda from a public address, put a proxy that ends TLS on the same machine, like Caddy or
+Tailscale Funnel, and give its host name to `--allowed-hosts`. With Caddy, the whole configuration
+is `uraeda.example.com { reverse_proxy 127.0.0.1:4310 }`. The server itself listens on 127.0.0.1
+only.
 
 In a repository whose `package.json` asks for another package manager in `devEngines`, npm refuses
 to run `npx`, with `EBADDEVENGINES`. In a pnpm project, run `pnpm dlx @uraeda/ui`; anywhere, install
