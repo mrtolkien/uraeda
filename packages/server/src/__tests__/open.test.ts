@@ -159,3 +159,17 @@ test("/open makes a one-time link only when asked", async () => {
 
   expect(((await response.json()) as OpenAnswer).signIn).toBe(`/r/${name}/`);
 });
+
+/** Only the host's own `uraeda` gets a one-time link: a signed-in browser could hand one out. */
+test("/open makes no one-time link for a signed-in browser", async () => {
+  const { app, name, repo, signIn } = await signedApp();
+  const cookie = await signIn.signedIn();
+
+  const response = await app.request(
+    `${url}/open`,
+    post({ folder: repo, given: true, signIn: true }, { cookie }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(((await response.json()) as OpenAnswer).signIn).toBe(`/r/${name}/`);
+});
