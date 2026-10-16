@@ -129,7 +129,10 @@ test("the triage's answers are submitted in one commit, and the inbox offers to 
   );
   expect(read(repo, TRIAGE)).toContain("status: answered");
   expect(read(repo, TRIAGE)).toContain("Start with the bug.");
-  expect(await screen.findByText("Your triage answers are ready to apply")).toBeTruthy();
+  // The sidebar's inbox count read the inbox before: its new state comes as a live update (R15).
+  await refreshUntil(() =>
+    expect(screen.getByText("Your triage answers are ready to apply")).toBeTruthy(),
+  );
 });
 
 /** US4 3 */

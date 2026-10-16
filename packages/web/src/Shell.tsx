@@ -12,7 +12,9 @@ import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath, useRepository } from "./routes.tsx";
-import { SearchField, SessionNav, useSessionQuery } from "./SessionNav.tsx";
+import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
+import { SearchField, useSessionQuery } from "./sidebar/Search.tsx";
+import { Sidebar } from "./sidebar/Sidebar.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
 
 const styles = stylex.create({
@@ -130,12 +132,7 @@ function Nav({ slot }: { slot: ReactNode }) {
       resizable={{ autoSaveId: "uraeda.nav", defaultWidth: 240, maxWidth: 360, minWidth: 200 }}
       topContent={<SearchField onChange={setText} text={text} />}
     >
-      <SessionNav
-        pathname={pathname}
-        query={query}
-        sessionList={sessionList}
-        workspace={workspace}
-      />
+      <Sidebar pathname={pathname} query={query} sessionList={sessionList} workspace={workspace} />
     </SideNav>
   );
 }
@@ -168,15 +165,17 @@ export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
   return (
     <SidebarAddForms>
-      <AppShell
-        contentPadding={0}
-        height="auto"
-        sideNav={<Nav slot={slot} />}
-        xstyle={styles.shell}
-      >
-        <UndoErrors />
-        <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
-      </AppShell>
+      <FeatureSettingsHost>
+        <AppShell
+          contentPadding={0}
+          height="auto"
+          sideNav={<Nav slot={slot} />}
+          xstyle={styles.shell}
+        >
+          <UndoErrors />
+          <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
+        </AppShell>
+      </FeatureSettingsHost>
     </SidebarAddForms>
   );
 }
