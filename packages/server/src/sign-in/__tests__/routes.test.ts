@@ -339,3 +339,17 @@ test("an app without a host token refuses every new key", async () => {
   expect(response.status).toBe(401);
   expect(signIn.store.checkKey(signIn.key)).toBe(true);
 });
+
+/** A sign-in's body is read only up to 4 KB, before any key is checked. */
+test("a sign-in body over 4 KB is refused at once, and not logged", async () => {
+  const { app, signIn } = await signedApp();
+
+  const response = await send(app, "POST", "/session", {
+    body: { key: `ura_${"a".repeat(5 * 1024)}` },
+  });
+
+  expect(response.status).toBe(413);
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(signIn.waits).toEqual([]);
+  expect(signIn.lines).toEqual([]);
+});

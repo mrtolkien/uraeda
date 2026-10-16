@@ -1,6 +1,7 @@
 // Signing in and out: `/session` and `/sessions`. The session check runs before them, and sets the
 // device a valid cookie names.
 import { type Context, Hono, type Next } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import {
   address,
   clearSessionCookie,
@@ -12,6 +13,9 @@ import {
 } from "./check.ts";
 
 type SignInContext = Context<{ Variables: { device?: Device } }>;
+
+/** The largest body `POST /session` reads, before anyone signed in: a key is 47 characters. */
+const SIGN_IN_BODY = 4 * 1024;
 
 /** The origin a redirect's target is resolved against: one no request has. */
 const NOWHERE = "http://redirect.invalid";
@@ -41,9 +45,10 @@ async function noStore(context: Context, next: Next) {
 
 /**
  * The session routes, mounted at `/`: `GET /session`, 204 when signed in, else 401; `POST /session`
- * with `{ key }`, which signs the device in, or after a second answers 401 and logs the address;
- * `DELETE /session`, which signs it out; `DELETE /sessions`, which signs every device out, past the
- * session check; and `GET /session/<token>?to=<path>`, a one-time link, which signs in once and
+ * with `{ key }`, which signs the device in, or after a second answers 401 and logs the address, a
+ * body over 4 KB refused at once with 413; `DELETE /session`, which signs it out; `DELETE
+ * /sessions`, which signs every device out, past the session check; and
+ * `GET /session/<token>?to=<path>`, a one-time link, which signs in once and
  * redirects to its path on the server; and `POST /session/key` with the host token, which makes a
  * new access key, signs every device out, and answers `{ key }`. Signing in again ends the session
  * the device had.
@@ -72,7 +77,7 @@ export function signInRoutes(options: SignInOptions & { allowedHosts: Array<stri
   app.get("/session", (context) =>
     context.get("device") ? context.body(null, 204) : refused(context, allowedHosts),
   );
-  app.post("/session", async (context) => {
+  app.post("/session", bodyLimit({ maxSize: SIGN_IN_BODY }), async (context) => {
     const body = (await context.req.json().catch(() => null)) as { key?: unknown } | null;
     if (typeof body?.key !== "string" || !store.checkKey(body.key)) {
       await wait(1000);
