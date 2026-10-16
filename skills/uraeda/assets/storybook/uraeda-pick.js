@@ -5,7 +5,7 @@
 // To the embedding page, `window.parent`, it posts:
 // - `{ uraeda: "ready" }` once loaded;
 // - `{ uraeda: "size", height }` when the story's height changes;
-// - `{ uraeda: "picked", role, name, text }` for the element clicked in pick mode;
+// - `{ uraeda: "picked", role, name, text }` for the element pressed or clicked in pick mode;
 // - `{ uraeda: "pick-stopped" }` when Escape ends pick mode.
 // From it, it obeys `{ uraeda: "pick", on }`, and ignores every other window.
 //
@@ -125,7 +125,11 @@
   /** The roles that say an element has none; never reported. */
   const NO_ROLE = new Set(["none", "presentation"]);
 
-  /** The pointer events pick mode keeps from the story, its default stopped; a click picks. */
+  /**
+   * The pointer events pick mode keeps from the story, their default stopped; the end of a press
+   * picks, as a disabled control gets no click, and so does a click without a press, from the
+   * keyboard.
+   */
   const POINTER = [
     "pointerdown",
     "pointerup",
@@ -143,6 +147,12 @@
    */
   const TOUCH = ["touchstart", "touchmove", "touchend"];
 
+  /** The events that pick. */
+  const PICKS = ["pointerup", "click"];
+
+  /** How long the rest of a picking press is kept from the story, at most, in milliseconds. */
+  const PRESS_MS = 1000;
+
   /** The white space of a text, collapsed. */
   const SPACES = /\s+/g;
 
@@ -152,6 +162,8 @@
   let outline = null;
   /** The last height posted. */
   let height = -1;
+  /** Ends keeping the rest of a picking press from the story, while it is kept. */
+  let endPress = null;
 
   /** Posts a message to the embedding page. */
   const post = (message) => page.parent.postMessage(message, "*");
@@ -271,24 +283,61 @@
     });
   };
 
-  /**
-   * Keeps a pointer or touch event from the story, stopping the default of a pointer event only; a
-   * press outlines its element, as touch has no hover, and a click picks it and ends pick mode.
-   */
-  const onPointer = (event) => {
+  /** Keeps a pointer or touch event from the story, stopping the default of a pointer event only. */
+  const keep = (event) => {
     if (!TOUCH.includes(event.type)) {
       event.preventDefault();
     }
     event.stopImmediatePropagation();
+  };
+
+  /**
+   * Keeps the rest of the press that picked from the story, its touch end, mouse events, and click,
+   * until its click, a new press, or `PRESS_MS`: a press with no click, as on a disabled control,
+   * leaves the next press to the story.
+   */
+  const keepPressRest = () => {
+    const rest = (event) => {
+      if (event.type === "pointerdown") {
+        endPress();
+        return;
+      }
+      keep(event);
+      if (event.type === "click") {
+        endPress();
+      }
+    };
+    const timer = page.setTimeout(() => endPress?.(), PRESS_MS);
+    for (const type of [...POINTER, ...TOUCH]) {
+      page.addEventListener(type, rest, true);
+    }
+    endPress = () => {
+      page.clearTimeout(timer);
+      for (const type of [...POINTER, ...TOUCH]) {
+        page.removeEventListener(type, rest, true);
+      }
+      endPress = null;
+    };
+  };
+
+  /**
+   * Keeps a pointer or touch event from the story; a press outlines its element, as touch has no
+   * hover, and its end, or a click without one, picks it and ends pick mode.
+   */
+  const onPointer = (event) => {
+    keep(event);
     if (event.type === "pointerdown") {
       draw(event);
     }
     const target = targetOf(event);
-    if (event.type !== "click" || !target) {
+    if (!PICKS.includes(event.type) || !target) {
       return;
     }
     const role = roleOf(target);
     stop();
+    if (event.type === "pointerup") {
+      keepPressRest();
+    }
     post({
       name: nameOf(target, role),
       role,
@@ -311,6 +360,7 @@
       return;
     }
     picking = true;
+    endPress?.();
     page.addEventListener("pointermove", draw, true);
     page.addEventListener("keydown", onEscape, true);
     for (const type of [...POINTER, ...TOUCH]) {

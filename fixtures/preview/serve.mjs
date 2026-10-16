@@ -8,7 +8,7 @@
 //   its `?path=/story/<id>`, or its first, in a frame titled "storybook-preview-iframe", as
 //   Storybook's is;
 // - `/iframe.html?id=<id>`: a page holding the export's name, a button counting its clicks, a
-//   separator, the colour mode it was sent, the module script `/story.js`, and the skill's pick
+//   disabled button beside it, a separator, the colour mode it was sent, the module script `/story.js`, and the skill's pick
 //   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces. Its
 //   script opens Storybook's channel, beside the page, and shows "Channel open" once it answers.
 //   The export `FullHeight` holds them in Storybook's root, `#storybook-root`, as tall as the
@@ -106,7 +106,7 @@ function storyPage(id) {
 ${entry.exportName === "FullHeight" ? '<div id="storybook-root" style="height: 100dvh">' : "<div>"}
 <h1>${entry.exportName}</h1>
 <p id="mode">No mode</p>
-<button type="button" id="hide">Hide the sidebar</button>
+<button type="button" id="hide">Hide the sidebar</button> <button type="button" disabled>Save</button>
 <p id="clicks">Clicked 0 times</p>
 <div role="separator" tabindex="0" style="height: 8px; background: gray"></div>
 </div>

@@ -49,6 +49,8 @@ function repoFolder(): string {
 }
 
 type Context = { frame: () => Promise<Frame>; page: Page };
+/** The roles `frameClick` clicks in a frame. */
+type FrameRole = "button" | "separator";
 
 /** The test server's agent, which the tests that follow a session drive. */
 const agent = new FakeAdapter();
@@ -279,9 +281,15 @@ const commands = {
       .innerText({ timeout: 1000 })
       .catch(() => "");
   },
-  /** Clicks the element of a role, and name when given, in a frame of the page, by its `title`. */
-  async frameClick(context: Context, title: string, role: "button" | "separator", name?: string) {
-    await (await frameTitled(context, title)).getByRole(role, { name }).click();
+  /** Clicks the element of a role, and name, in a frame by its `title`; a disabled one, forced. */
+  async frameClick(
+    context: Context,
+    title: string,
+    role: FrameRole,
+    name?: string,
+    force?: boolean,
+  ) {
+    await (await frameTitled(context, title)).getByRole(role, { name }).click({ force });
   },
   /**
    * Moves the pointer over the element of a role and name in a frame of the page, by its `title`,
@@ -423,7 +431,7 @@ export type RepoCommands = {
   fixtureImage: (name: string) => Promise<string>;
   fixtureText: (name: string) => Promise<string>;
   frameAttribute: (title: string, selector: string, name: string) => Promise<string | null>;
-  frameClick: (title: string, role: "button" | "separator", name?: string) => Promise<void>;
+  frameClick: (title: string, role: FrameRole, name?: string, force?: boolean) => Promise<void>;
   frameOutlined: (title: string, role: "button", name: string) => Promise<boolean>;
   framePress: (title: string, key: string) => Promise<void>;
   frameReload: (title: string) => Promise<void>;
