@@ -40,6 +40,21 @@ test("a draft opens in its editor, other files as text", () => {
   });
 });
 
+/** US8 6: the constitution and the decisions open on their page, not as text. */
+test("a decision and the constitution open on the decisions page", () => {
+  expect(pathLink("specs/decisions/git.md", "uraeda")).toEqual({
+    href: "/r/uraeda/decisions/git",
+    inApp: true,
+  });
+  expect(pathLink("specs/decisions/git.md#rules", "uraeda").href).toBe("/r/uraeda/decisions/git");
+  expect(pathLink("specs/CONSTITUTION.md", "uraeda")).toEqual({
+    href: "/r/uraeda/decisions",
+    inApp: true,
+  });
+  // A file under a decision's folder, like an image, is no decision.
+  expect(pathLink("specs/decisions/images/a.md", "uraeda").inApp).toBe(false);
+});
+
 /** Every page kind of the fixture, and a text it shows once drawn. */
 const PAGES: Array<[path: string, text: string]> = [
   ["/", "Recently done"],
@@ -52,6 +67,8 @@ const PAGES: Array<[path: string, text: string]> = [
   ["/edit/specs/drafts/git-listener.md", "Git listener"],
   ["/chats/new", "New chat"],
   ["/changes/new", "Describe the bug or the change."],
+  ["/decisions", "Decisions · 5"],
+  ["/decisions/git", "Approved by mrtolkien"],
 ];
 
 /** The web UI's proposal, on its checkout, links a workflow file, a draft, code, and the web. */

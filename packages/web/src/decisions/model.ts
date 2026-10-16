@@ -1,81 +1,63 @@
-// TEMPORARY: the shapes the decisions page draws, as plain props, until the core reads the
-// constitution and the decisions and the server serves them through fate.
+// The decisions' order, chosen in the page and kept in the browser, and the date a row shows.
+import { useState } from "react";
+import type { Ledger } from "uraeda-server/fate";
 
-/** One of the constitution's principles. */
-export type Principle = {
-  /** Its Roman numeral, "IV". */
-  numeral: string;
-  rationale: string;
-  rules: Array<string>;
-  title: string;
-};
-
-/** The constitution: its principles by priority, and its version line. */
-export type Constitution = {
-  principles: Array<Principle>;
-  /** "Version 1.3.1 · Ratified 2026-10-07 · Last amended 2026-10-14". */
-  version: string;
-};
-
-/** A decision as the list shows it. */
-export type DecisionSummary = {
-  approvedBy: string;
-  /** Its last change in git, `YYYY-MM-DD`. */
-  changed: string;
-  slug: string;
-  status: string;
-  /** The first sentence of its summary. */
-  subtitle: string;
-  /** Its first H1 heading. */
-  title: string;
-};
-
-/** A section of an open decision: Rules, Why, Alternatives considered, Consequences, Applies to. */
-export type DecisionSection = {
-  bullets?: Array<string>;
-  heading: string;
-  paragraphs?: Array<string>;
-};
-
-/** An open decision's content, past its title. */
-export type DecisionDocument = {
-  sections: Array<DecisionSection>;
-  summary: string;
-};
+/** A decision, as the ledger sends it. */
+export type LedgerDecision = Ledger["decisions"][number];
 
 /** How the decisions are ordered. */
-export type DecisionSort = "latest-first" | "latest-last" | "a-z";
+export type DecisionSort = "changed-desc" | "changed-asc" | "title";
 
 export const SORTS: Array<{ label: string; value: DecisionSort }> = [
-  { label: "Latest change first", value: "latest-first" },
-  { label: "Latest change last", value: "latest-last" },
-  { label: "A to Z", value: "a-z" },
+  { label: "Latest change first", value: "changed-desc" },
+  { label: "Latest change last", value: "changed-asc" },
+  { label: "A to Z", value: "title" },
 ];
 
-/** What is open in the pane: a principle by its numeral, or a decision by its slug. */
-export type Selection = { kind: "principle"; numeral: string } | { kind: "decision"; slug: string };
+/** Where the page keeps its order. */
+const SORT_KEY = "uraeda:decisions:sort";
 
-/** One key per item of the page, for its selection and its focus. */
-export function selectionKey(selection: Selection): string {
-  return selection.kind === "principle"
-    ? `principle:${selection.numeral}`
-    : `decision:${selection.slug}`;
+const isSort = (value: string | null): value is DecisionSort =>
+  SORTS.some((sort) => sort.value === value);
+
+/** The decisions' order, the latest change first until another is chosen, kept in the browser. */
+export function useDecisionSort(): [DecisionSort, (sort: DecisionSort) => void] {
+  const [sort, setSort] = useState<DecisionSort>(() => {
+    try {
+      const stored = window.localStorage.getItem(SORT_KEY);
+      return isSort(stored) ? stored : "changed-desc";
+    } catch {
+      // No storage, as in a private window: the latest change first.
+      return "changed-desc";
+    }
+  });
+  const choose = (next: DecisionSort) => {
+    setSort(next);
+    try {
+      window.localStorage.setItem(SORT_KEY, next);
+    } catch {
+      // No storage: the choice lasts until the page closes.
+    }
+  };
+  return [sort, choose];
 }
 
-const byTitle = (a: DecisionSummary, b: DecisionSummary) =>
+const byTitle = (a: LedgerDecision, b: LedgerDecision) =>
   a.title.localeCompare(b.title, "en", { sensitivity: "base" });
 
-/** The decisions in a sort's order; ties on a date go A to Z. */
+/** The decisions in a sort's order; ties on a date, and decisions without one, go A to Z. */
 export function sortDecisions(
-  decisions: Array<DecisionSummary>,
+  decisions: ReadonlyArray<LedgerDecision>,
   sort: DecisionSort,
-): Array<DecisionSummary> {
+): Array<LedgerDecision> {
   const sorted = [...decisions];
-  if (sort === "a-z") {
+  if (sort === "title") {
     return sorted.sort(byTitle);
   }
-  const way = sort === "latest-first" ? -1 : 1;
-  return sorted.sort((a, b) => way * a.changed.localeCompare(b.changed) || byTitle(a, b));
+  const way = sort === "changed-desc" ? -1 : 1;
+  return sorted.sort(
+    (a, b) => way * (a.changed ?? "").localeCompare(b.changed ?? "") || byTitle(a, b),
+  );
 }
 
 const SHORT_DATE = new Intl.DateTimeFormat("en-US", {
@@ -87,15 +69,4 @@ const SHORT_DATE = new Intl.DateTimeFormat("en-US", {
 /** A `YYYY-MM-DD` date as "Oct 16". */
 export function shortDate(date: string): string {
   return SHORT_DATE.format(new Date(`${date}T00:00:00Z`));
-}
-
-const STATUSES: Record<string, string> = {
-  active: "Active",
-  proposed: "Proposed",
-  superseded: "Superseded",
-};
-
-/** A decision's status, as words. */
-export function statusLabel(status: string): string {
-  return STATUSES[status] ?? status;
 }

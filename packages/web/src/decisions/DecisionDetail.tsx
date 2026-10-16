@@ -1,116 +1,101 @@
+// What the decisions page's pane draws, read-only: a decision's or a principle's document, as the
+// core's tree of the file, with `Blocks`.
 import { Badge } from "@astryxdesign/core/Badge";
+import { Banner } from "@astryxdesign/core/Banner";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import * as stylex from "@stylexjs/stylex";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { Paragraph } from "../layout/Paragraph.tsx";
-import type { DecisionDocument, DecisionSection, DecisionSummary, Principle } from "./model.ts";
-import { statusLabel } from "./model.ts";
+import { Blocks } from "../Blocks.tsx";
+import {
+  type LedgerConstitution,
+  type LedgerPrinciple,
+  principleName,
+  versionLine,
+} from "./ConstitutionRegion.tsx";
+import type { LedgerDecision } from "./model.ts";
 
-const styles = stylex.create({
-  item: {
-    // A bullet's text at the reading size, as `Blocks` draws a document's lists.
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-    textWrap: "pretty",
-    whiteSpace: "normal",
-  },
-  row: {
-    // As tall as its text: a touch screen's 44 px rows are for controls.
-    minHeight: 0,
-    paddingBlock: spacingVars["--spacing-1"],
-  },
-});
+const STATUSES: Record<string, string> = {
+  active: "Active",
+  proposed: "Proposed",
+};
 
-/** A list of rules or points, drawn as `Blocks` draws a document's bullets. */
-function Bullets({ items }: { items: Array<string> }) {
-  return (
-    <List density="compact" edgeCompensation="inline" listStyle="disc">
-      {items.map((item) => (
-        <ListItem
-          key={item}
-          label={<span {...stylex.props(styles.item)}>{item}</span>}
-          xstyle={styles.row}
-        />
-      ))}
-    </List>
-  );
+/** A decision's status, as words. */
+export function statusLabel(status: string): string {
+  return STATUSES[status] ?? status;
 }
 
-/** A principle, read-only: its rules, its rationale, and the constitution's version line. */
-export function PrincipleDetail({ principle, version }: { principle: Principle; version: string }) {
+/**
+ * A principle: its number and title, its rules and its rationale, the blocks under its heading,
+ * then the constitution's version line.
+ */
+export function PrincipleDetail({
+  constitution,
+  principle,
+}: {
+  constitution: LedgerConstitution;
+  principle: LedgerPrinciple;
+}) {
+  // Its heading is the pane's.
+  const [, ...ids] = principle.blocks;
+  const version = versionLine(constitution);
   return (
-    <article aria-label={`Principle ${principle.numeral}`}>
+    <article aria-label={principleName(principle)}>
       <VStack gap={4}>
         <VStack gap={1}>
           <Text color="secondary" type="supporting">
-            Principle {principle.numeral}
+            Principle {principle.number}
           </Text>
           <Heading level={2}>{principle.title}</Heading>
         </VStack>
-        <Bullets items={principle.rules} />
-        <VStack gap={1}>
-          <Heading level={3}>Rationale</Heading>
-          <Paragraph>{principle.rationale}</Paragraph>
-        </VStack>
-        <Text color="secondary" type="supporting">
-          {version}
-        </Text>
+        <Blocks document={constitution.document} ids={ids} />
+        {version && (
+          <Text color="secondary" type="supporting">
+            {version}
+          </Text>
+        )}
       </VStack>
     </article>
   );
 }
 
-/** A section of a decision: its heading, then its paragraphs and bullets. */
-function Section({ section }: { section: DecisionSection }) {
-  return (
-    <section aria-label={section.heading}>
-      <VStack gap={2}>
-        <Heading level={3}>{section.heading}</Heading>
-        {section.paragraphs?.map((paragraph) => (
-          <Paragraph key={paragraph}>{paragraph}</Paragraph>
-        ))}
-        {section.bullets && <Bullets items={section.bullets} />}
-      </VStack>
-    </section>
-  );
-}
-
 /**
- * A decision, read-only: its title, status, approver, summary, then its sections.
- *
- * TEMPORARY: the sections come as plain props for the mockup; the real view draws the core's
- * document tree of the decision's file with `Blocks`, its links and code marks included.
+ * A decision: its title, status, and approver, the first problem `ura check` finds in it, then its
+ * document past its title.
  */
-export function DecisionDetail({
-  decision,
-  document,
-}: {
-  decision: DecisionSummary;
-  document: DecisionDocument | undefined;
-}) {
+export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
+  const { document } = decision;
+  // The title is the pane's heading already.
+  const ids = document.blocks
+    .filter(
+      (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
+    )
+    .map((block) => block.id);
   return (
     <article aria-label={decision.title}>
       <VStack gap={4}>
         <VStack gap={2}>
           <Heading level={2}>{decision.title}</Heading>
-          <HStack align="center" gap={2} wrap="wrap">
-            <Badge
-              label={statusLabel(decision.status)}
-              variant={decision.status === "active" ? "green" : "yellow"}
-            />
-            <Text color="secondary" type="supporting">
-              Approved by {decision.approvedBy}
-            </Text>
-          </HStack>
+          {(decision.status !== null || decision.approvedBy !== null) && (
+            <HStack align="center" gap={2} wrap="wrap">
+              {decision.status !== null && (
+                <Badge
+                  label={statusLabel(decision.status)}
+                  variant={decision.status === "active" ? "green" : "yellow"}
+                />
+              )}
+              {decision.approvedBy !== null && (
+                <Text color="secondary" type="supporting">
+                  Approved by {decision.approvedBy}
+                </Text>
+              )}
+            </HStack>
+          )}
         </VStack>
-        <Paragraph>{document?.summary ?? decision.subtitle}</Paragraph>
-        {document?.sections.map((section) => (
-          <Section key={section.heading} section={section} />
-        ))}
+        {decision.problem !== null && (
+          <Banner description={decision.problem} status="error" title="Can't read this file" />
+        )}
+        <Blocks document={document} ids={ids} />
       </VStack>
     </article>
   );

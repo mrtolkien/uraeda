@@ -8,6 +8,7 @@ import type {
   Feature,
   FolderSuggestions,
   Inbox,
+  Ledger,
   NeedsYouList,
   Preview,
   Priorities,
@@ -358,4 +359,22 @@ export const StoryHrefView = view<StoryHref>()({
   export: true,
   id: true,
   path: true,
+});
+
+/**
+ * The constitution and the decisions of the default branch: the constitution's document, its
+ * version line's fields, and its principles; each decision whole, its document with it.
+ */
+export const LedgerView = view<Ledger>()({
+  constitution: {
+    amended: true,
+    document: DocumentSelection,
+    principles: true,
+    ratified: true,
+    title: true,
+    version: true,
+  },
+  decisions: true,
+  id: true,
+  problems: true,
 });

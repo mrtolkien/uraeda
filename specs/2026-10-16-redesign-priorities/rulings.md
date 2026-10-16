@@ -209,3 +209,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   this test: a copy of Storybook's fixture for two numbers.
 - **If wrong**: the first test of `home.test.tsx` builds its repository as Storybook does.
 - **Where**: task 13.
+
+## R16: The decisions page's keys are tested in the browser
+
+- **Decision**: US8's fifth scenario, ↓ from the last principle to the first decision, is a browser
+  test, [`__browser__/decisions.test.tsx`](/packages/web/src/__browser__/decisions.test.tsx), not
+  one of `decisions.test.tsx`'s happy-dom tests. The fixture repository gains this repository's
+  constitution and five short decisions, `agents`, `git`, `stack`, `tui` (proposed), and
+  `ui-behaviour`, with the icons they have here; the server's ledger test removes them first, as it
+  checks one decision and a constitution without a version line.
+- **Rationale**: happy-dom has no layout, so the repository menu's closed popover counts as shown
+  for `useListKeys`, which then leaves every key to it; the priorities' and the inbox's keys are
+  browser tests for the same reason, as the UI behaviour decision asks of each list.
+- **Alternatives considered**: a happy-dom test faking `getClientRects`: a test of the fake.
+- **If wrong**: a happy-dom test can join once happy-dom lays out the page.
+- **Where**: task 14.

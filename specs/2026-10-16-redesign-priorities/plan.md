@@ -1026,29 +1026,31 @@ git commit -m "feat(redesign-priorities): home as a control hub"
 - Delete: `packages/web/src/decisions/samples.ts` (stories read the fixture's ledger; the fixture
   repository gains a few decisions with icons and a constitution)
 - Test: `packages/web/src/__tests__/decisions.test.tsx`, `packages/web/src/__tests__/links.test.ts`,
-  `layout.test.tsx` (PAGES: the decisions, a decision open)
+  `packages/web/src/__browser__/decisions.test.tsx` (scenario 5, the keys, R16), `layout.test.tsx`
+  (PAGES: the decisions, a decision open)
 
 **Interfaces:**
 
 - Consumes: `readLedger` and the `Ledger` record (task 7), `useListKeys` (task 10).
 
-- [ ] **Step 1: Write the failing tests**, happy-dom, one per US8 scenario 1–7 on the fixture's
+- [x] **Step 1: Write the failing tests**, happy-dom, one per US8 scenario 1–7 on the fixture's
       ledger: the version line and the principle cards, "Decisions · N" latest first, "A to Z" kept
       across a reload, a decision's pane at `/decisions/<name>` with its status, approver, and
       sections, a principle's at `/decisions/constitution/iv`, ↓ from the last principle to the
-      first decision, a spec's link to `../decisions/git.md` opening the page, "Proposed" on a
-      proposed decision; plus each decision's icon (C8), an unknown icon's default, "No decisions
-      yet.", "No constitution yet.", and "Can't read this file" (edge cases, review focus 7).
-- [ ] **Step 2: Run them to check they fail**
+      first decision (in the browser, R16), a spec's link to `../decisions/git.md` opening the page,
+      "Proposed" on a proposed decision; plus each decision's icon (C8), an unknown icon's default,
+      "No decisions yet.", "No constitution yet.", and "Can't read this file" (edge cases, review
+      focus 7).
+- [x] **Step 2: Run them to check they fail**
   - Run: `vp test --project uraeda-web packages/web/src/__tests__/decisions.test.tsx`
   - Expected: FAIL, the route `/decisions` draws the missing page
-- [ ] **Step 3: Implement; the stories `List`, `Decision`, `Principle`, `SortedAToZ` run on the
+- [x] **Step 3: Implement; the stories `List`, `Decision`, `Principle`, `SortedAToZ` run on the
       fixture's data**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
   - Run:
     `vp check && vp test --project uraeda-web && vp test --project desktop packages/web/src/__browser__/layout.test.tsx && vp test --project phone packages/web/src/__browser__/layout.test.tsx`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web fixtures
