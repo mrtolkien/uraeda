@@ -40,7 +40,10 @@ test("the sidebar reads in the flow's order, the inbox's and Now's counts, and n
   expect(at("Priorities")).toBeLessThan(at("＋New change"));
   expect(at("＋New change")).toBeLessThan(at("cli-tuis, "));
   expect(at("cli-tuis, ")).toBeLessThan(at("＋New chat"));
-  await waitFor(() => expect(links[at("Inbox")]).toContain("10"));
+  // The inbox's count, drawn once its own read ends: read again until it is.
+  await waitFor(() =>
+    expect(nav().getByRole("link", { name: /^Inbox/ }).textContent).toContain("10"),
+  );
   // The count of the entries under Now (C1), seen beside the row's label.
   expect(links[at("Priorities")]).toBe("Priorities4");
   expect(nav().queryByText(/Drafts?/)).toBeNull();
