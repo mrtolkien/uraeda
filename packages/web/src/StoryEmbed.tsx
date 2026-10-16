@@ -4,6 +4,7 @@
 // its page's column into the space beside it, and goes full screen. Its frames are sandboxed without
 // `allow-same-origin`: the embed takes messages from their windows only, and sends them nothing
 // but the colour mode and pick mode. Where a comment can go, it offers pick mode and a comment.
+import { Divider } from "@astryxdesign/core/Divider";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -39,9 +40,6 @@ import { PreviewView } from "./views.ts";
 const styles = stylex.create({
   bar: {
     alignItems: "center",
-    borderBlockEndColor: colorVars["--color-border"],
-    borderBlockEndStyle: "solid",
-    borderBlockEndWidth: borderVars["--border-width"],
     display: "flex",
     flexWrap: "wrap",
     gap: spacingVars["--spacing-2"],
@@ -115,12 +113,17 @@ function Bar({
   labelId: string;
 }) {
   return (
-    <div {...stylex.props(styles.bar)}>
-      <Text id={labelId} weight="semibold" xstyle={styles.label}>
-        {label}
-      </Text>
-      {children}
-    </div>
+    <>
+      <div {...stylex.props(styles.bar)}>
+        <Text id={labelId} weight="semibold" xstyle={styles.label}>
+          {label}
+        </Text>
+        {children}
+      </div>
+      {/* Astryx's divider: a border of the app's own would write the atomic rule of a list's
+          dividers again, unlayered, and every list's last row would keep its divider. */}
+      <Divider />
+    </>
   );
 }
 

@@ -47,7 +47,7 @@ const PAGES: Array<[path: string, text: string]> = [
   ["/f/2026-10-11-web-ui/proposal.md", "the code"],
   ["/f/2026-10-06-recurring-tasks/session", "Message Claude Code"],
   ["/f/2026-10-06-recurring-tasks/mockups/repeat.html", "Open in a new tab"],
-  ["/priorities", "Now · 4"],
+  ["/priorities", "Ongoing · 4"],
   ["/priorities/git-listener", "Git listener process"],
   ["/edit/specs/drafts/git-listener.md", "Git listener"],
   ["/chats/new", "New chat"],

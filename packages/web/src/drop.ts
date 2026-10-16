@@ -1,5 +1,4 @@
-/** Where a dragged line of the priorities goes, as the core counts it. */
-import type { usePriorities } from "./data.ts";
+/** Where a dragged row of a list goes, as the core counts it. */
 
 type Spot = { index: number; section: string };
 
@@ -13,19 +12,8 @@ export function dropIndex(from: Spot, target: Spot) {
     : target.index;
 }
 
-/** The lines of each section, by key, in order: what a drag reorders. */
+/** The rows of each section, by key, in order: what a drag reorders. */
 export type Order = Record<string, Array<string>>;
-
-export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
-
-export function orderOf(priorities: Priorities): Order {
-  return Object.fromEntries(
-    priorities.sections.map((section) => [
-      section.section,
-      section.entries.map((entry) => entry.key),
-    ]),
-  );
-}
 
 /** A line's spot in an order: its section and index, if it is there. */
 export function spotOf(order: Order, key: string): Spot | undefined {
