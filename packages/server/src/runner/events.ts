@@ -41,10 +41,11 @@ export type AgentEvent =
   /** A usage report, shared by the account rather than added across sessions. */
   | { fiveHour: UsageLimit; type: "usage" }
   /**
-   * The tool calls of the agent's background sub-agents still running, after one started or
-   * ended. The agent goes on by itself when one reports back.
+   * The agent's background tasks still running, after one started or ended, by their tool calls:
+   * its sub-agents and workflows, and its background commands. The agent goes on by itself when one
+   * reports back.
    */
-  | { tools: Array<string>; type: "background" }
+  | { tasks: Array<BackgroundTask>; type: "background" }
   /** The agent ended its reply. */
   | {
       denials: Array<Denial>;
@@ -132,3 +133,6 @@ export type TurnState = "queued" | "running" | "done" | "failed" | "stopped";
 
 /** What started a workflow turn, which its message tells the agent. */
 export type Trigger = "answers" | "approval" | "changes" | "proposal" | "start" | "manual";
+
+/** A background task of the agent's run, by the tool call that started it. */
+export type BackgroundTask = { kind: "subagent" | "command"; tool: string };

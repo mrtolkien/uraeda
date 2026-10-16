@@ -2,7 +2,7 @@ import type { Binding } from "../fate/context.ts";
 import { IMAGE_REFUSALS } from "../limits.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { Item, TurnActivity, TurnState } from "./events.ts";
+import type { BackgroundTask, Item, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
 import type { Transcript } from "./transcript.ts";
@@ -61,10 +61,10 @@ export type TurnEnd = { reason?: string; state: TurnState };
 export type Proc = {
   agent: AgentProcess;
   /**
-   * The tool calls of its background sub-agents still running: a turn does not end before they
-   * report back.
+   * Its background tasks still running, by their tool calls, sub-agents and commands: a turn does
+   * not end, nor the process close, before they report back.
    */
-  background: Set<string>;
+  background: Map<string, BackgroundTask["kind"]>;
   /** Closed by the idle timer, a plugin error, or "Allow and retry": no message goes to it. */
   closing: boolean;
   cwd: string;
@@ -158,4 +158,9 @@ export function rowOf(cache: SessionCache, live: Live): SessionRow {
     throw new Error(`no session ${live.id}`);
   }
   return row;
+}
+
+/** How many of a process's background tasks are commands, not sub-agents. */
+export function commandCount(background: Proc["background"] | undefined): number {
+  return [...(background?.values() ?? [])].filter((kind) => kind === "command").length;
 }

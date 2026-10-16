@@ -90,7 +90,7 @@ export class Processes {
       });
       const proc: Proc = {
         agent,
-        background: new Set(),
+        background: new Map(),
         closing: false,
         cwd,
         done: Promise.resolve(),
