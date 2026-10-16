@@ -315,6 +315,7 @@ export const SettingsRecordView = view<Settings>()({
   file: true,
   id: true,
   problem: true,
+  runs: { buildInFreshSession: SettingSelection },
   server: {
     allowedHosts: SettingSelection,
     openBrowser: SettingSelection,

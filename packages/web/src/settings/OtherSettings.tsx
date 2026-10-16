@@ -81,6 +81,15 @@ export function PlannedSettings({ category }: { category: Category }) {
   return (
     <VStack gap={4}>
       <Heading level={2}>{category.label}</Heading>
+      <PlannedList category={category} />
+    </VStack>
+  );
+}
+
+/** The settings later features bring to a category, each with the feature that brings it. */
+export function PlannedList({ category }: { category: Category }) {
+  return (
+    <VStack gap={4}>
       <Text color="secondary">These settings come with later features.</Text>
       <List aria-label={`${category.label}, coming later`} hasDividers>
         {(category.planned ?? []).map((setting) => (

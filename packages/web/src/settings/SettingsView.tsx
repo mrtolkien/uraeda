@@ -16,6 +16,7 @@ import { Page } from "../layout/Page.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import { type Category, CATEGORIES, type CategoryId, searchSettings } from "./categories.ts";
 import { AppearanceSettings, PlannedSettings, SignInSettings } from "./OtherSettings.tsx";
+import { RunSettings } from "./RunSettings.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
 
 const styles = stylex.create({
@@ -68,6 +69,8 @@ function Open({
       return <AppearanceSettings />;
     case "sign-in":
       return <SignInSettings />;
+    case "runs":
+      return <RunSettings actions={serverActions} category={category} values={server} />;
     default:
       return <PlannedSettings category={category} />;
   }

@@ -67,6 +67,8 @@ function OnSettings({ category }: { category?: string }) {
       }
       return run(() => change.removeHost({ input: { name }, view }));
     },
+    setBuildInFreshSession: (fresh) =>
+      run(() => change.setBuildInFreshSession({ input: { fresh }, view })),
     setOpenBrowser: (open) => run(() => change.setOpenBrowser({ input: { open }, view })),
     setPort: (port) => run(() => change.setPort({ input: { port }, view })),
   };

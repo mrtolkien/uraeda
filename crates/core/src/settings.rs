@@ -23,6 +23,7 @@ const HEADER: &str =
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Settings {
     pub server: ServerSettings,
+    pub runs: RunSettings,
 }
 
 /// The `[server]` table.
@@ -33,6 +34,14 @@ pub struct ServerSettings {
     pub allowed_hosts: Option<Vec<String>>,
     pub port: Option<u16>,
     pub open_browser: Option<bool>,
+}
+
+/// The `[runs]` table: how the workflow's runs start.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RunSettings {
+    /// Whether the run after a spec's approval starts in a new agent session.
+    pub build_in_fresh_session: Option<bool>,
 }
 
 /// Uraeda's config folder: `URAEDA_CONFIG_DIR`, or else `$XDG_CONFIG_HOME/uraeda`, or else
@@ -135,6 +144,14 @@ pub fn set_open_browser(dir: &Path, open: bool) -> Result<Settings, ApiError> {
     })
 }
 
+/// Sets whether the run after a spec's approval starts in a new agent session, in `[runs]`.
+pub fn set_build_in_fresh_session(dir: &Path, fresh: bool) -> Result<Settings, ApiError> {
+    change_table(dir, "runs", |runs| {
+        set(runs, "build_in_fresh_session", Value::from(fresh));
+        Ok(())
+    })
+}
+
 /// The file's text and layout, `None` when there is none, and its settings; or the `unreadable`
 /// problem.
 fn checked(dir: &Path) -> Result<(Option<(String, file::Layout)>, Settings), ApiError> {
@@ -146,27 +163,36 @@ fn checked(dir: &Path) -> Result<(Option<(String, file::Layout)>, Settings), Api
     Ok((read, settings))
 }
 
-/// Applies `edit` to the `[server]` table of the file as it is now, one write at a time, and
-/// writes the file, refused while the file cannot be read.
+/// Applies `edit` to the `[server]` table of the file as it is now, as `change_table` does.
 fn change(
     dir: &Path,
+    edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
+) -> Result<Settings, ApiError> {
+    change_table(dir, "server", edit)
+}
+
+/// Applies `edit` to the table `name` of the file as it is now, created when absent, one write at
+/// a time, and writes the file, refused while the file cannot be read.
+fn change_table(
+    dir: &Path,
+    name: &str,
     edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
     let _lock = crate::api::write_lock();
     let (read, _) = checked(dir)?;
     let (text, layout) =
-        read.unwrap_or_else(|| (format!("{HEADER}\n[server]\n"), file::Layout::default()));
+        read.unwrap_or_else(|| (format!("{HEADER}\n[{name}]\n"), file::Layout::default()));
     // `checked` parsed the same text, so these failures are unreachable; each still answers.
     let mut document: DocumentMut = text
         .parse()
         .map_err(|error: toml_edit::TomlError| unreadable(dir, error.message()))?;
-    let server = document
+    let table = document
         .as_table_mut()
-        .entry("server")
+        .entry(name)
         .or_insert_with(toml_edit::table)
         .as_table_like_mut()
-        .ok_or_else(|| unreadable(dir, "[server] is a table of settings."))?;
-    edit(server)?;
+        .ok_or_else(|| unreadable(dir, &format!("[{name}] is a table of settings.")))?;
+    edit(table)?;
     let text = document.to_string();
     let not_saved = |reason: &str| refused(format!("Could not save {}: {reason}", shown_file(dir)));
     let settings = file::parse(&text).map_err(|problem| not_saved(&problem))?;
@@ -202,14 +228,14 @@ fn positions(hosts: &Array, name: &str) -> Vec<usize> {
 }
 
 /// Sets `key` to `value`, keeping the comment and spaces around the value it replaces.
-fn set(server: &mut dyn TableLike, key: &str, mut value: Value) {
-    match server.get_mut(key) {
+fn set(table: &mut dyn TableLike, key: &str, mut value: Value) {
+    match table.get_mut(key) {
         Some(Item::Value(old)) => {
             *value.decor_mut() = old.decor().clone();
             *old = value;
         }
         _ => {
-            server.insert(key, Item::Value(value));
+            table.insert(key, Item::Value(value));
         }
     }
 }
