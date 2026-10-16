@@ -73,7 +73,7 @@ the plan, the rulings, and the review files.
 - **Decisions**: each decision the feature made or changed, linked, in a line.
 - **Changes after approval**: the rulings that change behaviour, the spec's revisions after its
   approval, and the changes asked on the pull request.
-- **Follow-ups**: the minor findings deferred by the final review, and the work left.
+- **Follow-ups**: the minor findings deferred by the reviews, noted in the inbox, and the work left.
 
 The record links no image: the folder's `images/` is deleted with it, and git keeps them. Describe
 in words what an image showed, when the record needs it.
