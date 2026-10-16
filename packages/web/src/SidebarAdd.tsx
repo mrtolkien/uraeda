@@ -6,7 +6,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { createContext, type ReactNode, Suspense, useContext, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import { AddNote } from "./AddNote.tsx";
+import { AddNote, type NoteAdded } from "./AddNote.tsx";
 import { undoAsDraft, usePickedImage } from "./NoteImage.tsx";
 import { readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -62,9 +62,26 @@ export function AddNoteButton() {
 }
 
 /**
+ * Undo of a committed add: the core removes the line by its lines and commits the removal alone,
+ * refusing once the file changed since the add's commit, `hash`.
+ */
+async function undoCommitted(
+  fate: ReturnType<typeof useFateClient>,
+  line: Added,
+  hash: string,
+): Promise<string | undefined> {
+  const result = await fate.mutations.priorities.undoCommitted({
+    input: { hash, lines: [...line.lines] },
+    view: PrioritiesView,
+  });
+  return result.error ? refusal(result.error).message : undefined;
+}
+
+/**
  * The priorities' form: it jots a line down at the end of a section of `PRIORITIES.md`, Next by
- * default, at once. A toast says where it went, with Undo. Closing it with Close, Back, or Escape
- * keeps its text.
+ * default, at once, committed alone with "Add and commit". A toast says where it went, with Undo,
+ * which commits the removal of a committed line. Closing it with Close, Back, or Escape keeps its
+ * text.
  */
 function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const fate = useFateClient();
@@ -72,7 +89,13 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
   const added = (section: string, line: Added | undefined) => {
     onClose();
-    toast(`Added to ${TITLES.get(section)}, not committed`, async () => {
+    const title = TITLES.get(section);
+    if (line?.committed) {
+      const { hash } = line.committed;
+      toast(`Added to ${title} and committed`, () => undoCommitted(fate, line, hash));
+      return;
+    }
+    toast(`Added to ${title}, not committed`, async () => {
       // Found again in the file as it is now, by its text: the line it added, wherever it is.
       const now = await readPriorities(fate);
       const same = now.sections.flatMap((s) => s.entries).filter((e) => e.text === line?.text);
@@ -99,16 +122,24 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
 /**
  * Undo of the note just added: the core takes it out, found by its lines wherever it is now, and
- * refuses once it changed or left, or when two notes hold its lines.
+ * refuses once it changed or left, or when two notes hold its lines. A committed note's removal
+ * is committed too, refused once the inbox changed since the add's commit, `committed.hash`.
  */
-async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote | undefined) {
+async function undoAdd(
+  fate: ReturnType<typeof useFateClient>,
+  note: InboxNote | undefined,
+  committed?: { hash: string },
+) {
   if (!note) {
     return "Could not undo: the note is no longer in INBOX.md.";
   }
-  const result = await fate.mutations.inbox.undoAdd({
-    input: { lines: [...note.lines] },
-    view: InboxView,
-  });
+  const lines = [...note.lines];
+  const result = committed
+    ? await fate.mutations.inbox.undoCommitted({
+        input: { hash: committed.hash, lines },
+        view: InboxView,
+      })
+    : await fate.mutations.inbox.undoAdd({ input: { lines }, view: InboxView });
   return result.error ? refusal(result.error).message : undefined;
 }
 
@@ -127,10 +158,13 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
 
-  const added = (note: InboxNote | undefined, draft?: string) => {
+  const added = ({ committed, draft, note }: NoteAdded) => {
     onClose();
     if (draft === undefined) {
-      toast("Added to the inbox, not committed", () => undoAdd(fate, note));
+      toast(
+        committed ? "Added to the inbox and committed" : "Added to the inbox, not committed",
+        () => undoAdd(fate, note, committed),
+      );
       return;
     }
     setImage(undefined);

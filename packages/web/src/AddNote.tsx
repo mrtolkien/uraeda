@@ -1,11 +1,9 @@
 import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type KeyboardEvent, useState } from "react";
+import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AttachButton } from "./attach/AttachButton.tsx";
@@ -25,7 +23,14 @@ import {
   PickedImage,
   useAddWithImage,
 } from "./NoteImage.tsx";
-import { InboxView } from "./views.ts";
+import {
+  AddButtons,
+  CommitBanner,
+  type CommitNotice,
+  enterAdds,
+  uncommitted,
+} from "./QuickAdd.tsx";
+import { InboxAddedView, InboxView } from "./views.ts";
 
 /** The Category menu's values for no category and a new one; a category's is its name, after `:`. */
 const NONE = "none";
@@ -105,9 +110,18 @@ function useTypedNote() {
   };
 }
 
+/** What a note's add reports: the note, its draft when added as one, and its commit, if any. */
+export type NoteAdded = {
+  /** With "Add and commit", the inbox's version after the commit, for Undo to remove it from. */
+  committed?: { hash: string };
+  draft?: string;
+  note: InboxNote | undefined;
+};
+
 /**
- * Add, or Add as a draft with an image: the note through the core, its refusal as the message to
- * show, and a conflict reading the inbox again, for the next try to add to it as it is now.
+ * Add, Add as a draft with an image, or "Add and commit": the note through the core, its refusal as
+ * the message to show, and a conflict reading the inbox again, for the next try to add to it as it
+ * is now. When "Add and commit" only added, `notice` says why, and the form stays open.
  */
 function useAdd({
   about,
@@ -117,13 +131,14 @@ function useAdd({
 }: {
   about?: string;
   image?: Picked;
-  onAdded: (note: InboxNote | undefined, draft?: string) => void;
+  onAdded: (added: NoteAdded) => void;
   typed: ReturnType<typeof useTypedNote>;
 }) {
   const fate = useFateClient();
   const inbox = useInbox();
   const withImages = useAddWithImage();
   const [message, setMessage] = useState<string>();
+  const [notice, setNotice] = useState<CommitNotice>();
   const text = typed.note.text;
   const chosen = typed.chosen;
   const ready = text.trim() !== "" && chosen !== "";
@@ -144,14 +159,15 @@ function useAdd({
       return;
     }
     typed.added(text, typed.name.text);
-    onAdded(result.note, result.draft);
+    onAdded({ draft: result.draft, note: result.note });
   };
 
-  const add = async () => {
+  const add = async (commit = false) => {
     if (!ready) {
       return;
     }
     setMessage(undefined);
+    setNotice(undefined);
     const input: AddInput = {
       hash: inbox?.hash ?? "",
       text,
@@ -163,19 +179,33 @@ function useAdd({
       return;
     }
     const before = inbox?.categories ?? [];
-    const result = await fate.mutations.inbox.add({ input, view: InboxView });
+    const result = await fate.mutations.inbox.add({
+      input: { ...input, commit },
+      view: InboxAddedView,
+    });
     if (result.error) {
       refused(refusal(result.error));
       return;
     }
+    const answer = result.result;
     typed.added(text, typed.name.text);
-    onAdded(addedNote(before, result.result?.categories ?? []));
+    // Only added: the form stays open, saying why.
+    const why = commit ? uncommitted(answer?.added, "the inbox", "INBOX.md") : undefined;
+    if (why) {
+      setNotice(why);
+      return;
+    }
+    onAdded({
+      ...(commit && answer ? { committed: { hash: answer.hash } } : {}),
+      note: addedNote(before, answer?.categories ?? []),
+    });
   };
 
   return {
     add,
     message,
     names: inbox?.names ?? [],
+    notice,
     ready,
     status: image && withImages.statusOf(image.file),
   };
@@ -186,8 +216,9 @@ function useAdd({
  * a new one, named in its own field. It reads the inbox when it opens, for the version it adds to.
  * `about`, on a feature's or a change's page, is its folder, which marks the note with its slug. Its
  * text is kept as the overlay closes and restored as it opens again (`useTypedNote`); Cancel asks
- * "Discard your changes?" first when it holds text or an image. Enter adds. With `image`, picked
- * with "Attach an image" and held by the overlay (`onImage`), Add becomes "Add as a draft".
+ * "Discard your changes?" first when it holds text or an image. Enter adds and commits, as "Add and
+ * commit" does, beside Add. With `image`, picked with "Attach an image" and held by the overlay
+ * (`onImage`), Add becomes "Add as a draft", the one way to add, which Enter takes.
  */
 export function AddNote({
   about,
@@ -198,13 +229,15 @@ export function AddNote({
 }: {
   about?: string;
   image?: Picked;
-  onAdded: (note: InboxNote | undefined, draft?: string) => void;
+  onAdded: (added: NoteAdded) => void;
   onCancel: () => void;
   onImage: (image: File | undefined) => void;
 }) {
   const confirm = useConfirm();
   const typed = useTypedNote();
-  const { add, message, names, ready, status } = useAdd({ about, image, onAdded, typed });
+  const { add, message, names, notice, ready, status } = useAdd({ about, image, onAdded, typed });
+  // A draft with its image is never committed by its add.
+  const commits = image === undefined;
 
   const cancel = async () => {
     if ((typed.dirty || image) && !(await confirm(DISCARD_CHANGES))) {
@@ -227,13 +260,8 @@ export function AddNote({
         kind="line"
         label="Note"
         onChange={typed.note.change}
-        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
-          // A note is one line: Enter adds it.
-          if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-            event.preventDefault();
-            void add();
-          }
-        }}
+        // A note is one line: Enter adds and commits it, or adds it as a draft with its image.
+        onKeyDown={enterAdds(() => void add(commits))}
         placeholder="What did you notice?"
         value={typed.note.text}
       />
@@ -254,16 +282,15 @@ export function AddNote({
         </VStack>
       )}
       {message && <Banner status="error" title={message} />}
-      <HStack gap={2} justify="end" wrap="wrap">
-        <AttachButton onFiles={([file]) => onImage(file)} text="Attach an image" />
-        <Button label="Cancel" onClick={() => void cancel()} variant="secondary" />
-        <Button
-          clickAction={add}
-          isDisabled={!ready}
-          label={image ? "Add as a draft" : "Add"}
-          variant="primary"
-        />
-      </HStack>
+      <CommitBanner notice={notice} />
+      <AddButtons
+        addLabel={image ? "Add as a draft" : "Add"}
+        isReady={ready}
+        onAdd={() => add()}
+        {...(commits ? { onAddAndCommit: () => add(true) } : {})}
+        onCancel={() => void cancel()}
+        start={<AttachButton onFiles={([file]) => onImage(file)} text="Attach an image" />}
+      />
     </VStack>
   );
 }

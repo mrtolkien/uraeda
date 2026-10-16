@@ -145,8 +145,29 @@ export const PrioritiesView = view<Priorities>()({
   sections: true,
 });
 
+/** The priorities as an add answers them: with `added`, whether "Add and commit" committed. */
+export const PrioritiesAddedView = view<Priorities>()({
+  added: { committed: true, message: true, reason: true },
+  changes: true,
+  hash: true,
+  id: true,
+  sections: true,
+});
+
 /** The inbox: its notes by category, every category's name, and the changes to commit. */
 export const InboxView = view<Inbox>()({
+  categories: true,
+  changes: true,
+  count: true,
+  hash: true,
+  id: true,
+  names: true,
+  triage: true,
+});
+
+/** The inbox as an add answers it: with `added`, whether "Add and commit" committed. */
+export const InboxAddedView = view<Inbox>()({
+  added: { committed: true, message: true, reason: true },
   categories: true,
   changes: true,
   count: true,
