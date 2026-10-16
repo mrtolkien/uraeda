@@ -12,10 +12,8 @@ plan-review: false
 >
 > Approved on 2026-10-16.
 >
-> - One changed decision,
->   [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-16-redesign-priorities):
->   opening an item never puts the cursor in a field, and every list with a pane moves with ↑ ↓ or j
->   k.
+> - One changed decision, [UI behaviour](../decisions/ui-behaviour.md#rules): opening an item never
+>   puts the cursor in a field, and every list with a pane moves with ↑ ↓ or j k.
 > - Your Q4 answer read: the pane opens to read, with Edit and "Open draft" at its top. "Open draft"
 >   opens the draft's full page; an entry without a draft has no such button. Say if you meant a
 >   full-page view of the pane itself.
@@ -339,9 +337,8 @@ pane, then the pages that use them.
   through the core's git module, as the [git](../decisions/git.md) decision asks.
 - **One list for every list with a pane** (`WorkList`): headings with counts and colours, rows with
   handles and marks, children, dragging through `@dnd-kit/react`, and the keyboard of the changed
-  [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-16-redesign-priorities)
-  decision. The priorities and the inbox use it with their own sections; the decisions page uses its
-  keyboard and selection without handles.
+  [UI behaviour](../decisions/ui-behaviour.md#rules) decision. The priorities and the inbox use it
+  with their own sections; the decisions page uses its keyboard and selection without handles.
 - **One pane for an entry or a note** (`EntryPane`): a top bar with the place, Edit, "Open draft",
   and Close; a body to read; the line's field in place when editing. `TaskView` and `NoteView`
   become its two bodies.
@@ -450,9 +447,9 @@ Settled while writing this spec:
 
 Changed, applied when this spec is approved:
 
-- [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-16-redesign-priorities):
-  opening an item never puts the focus in a text field, and a list with a pane moves its selection
-  with ↑ ↓ or j k, Home and End, Enter, and Escape.
+- [UI behaviour](../decisions/ui-behaviour.md#rules): opening an item never puts the focus in a text
+  field, and a list with a pane moves its selection with ↑ ↓ or j k, Home and End, Enter, and
+  Escape.
 
 Relied on:
 
