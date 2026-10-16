@@ -122,7 +122,6 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
   });
   const server = await startServer({
     adapter: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: plugin }),
-    allowedHosts: [...settings.allowedHosts()],
     allowOrigins: options.allowOrigins,
     binding,
     dataDir,

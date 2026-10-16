@@ -80,6 +80,9 @@ async function main() {
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = data;
+  // Settings of its own, none: the developer's never show in the screenshots.
+  const config = mkdtempSync(join(tmpdir(), "uraeda-config-"));
+  process.env.URAEDA_CONFIG_DIR = config;
   // Listed now, as the server lists it when it starts: its pages are under `/r/<name>/`.
   const { repository: listed } = await addRepository(data, repo);
   const adapter = new FakeAdapter();
@@ -128,8 +131,9 @@ async function main() {
   } finally {
     await browser?.close();
     await server.close();
-    rmSync(data, { force: true, recursive: true });
-    rmSync(repo, { force: true, recursive: true });
+    for (const folder of [data, config, repo]) {
+      rmSync(folder, { force: true, recursive: true });
+    }
   }
 }
 

@@ -5,7 +5,7 @@ import type { Duplex } from "node:stream";
 import { getRequestListener } from "@hono/node-server";
 import { chatImages } from "./attach.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
-import { type Env, loadDataDir, loadEnv, type Sources } from "./env.ts";
+import { type Env, loadConfigDir, loadDataDir, loadEnv, type Sources } from "./env.ts";
 import { PREVIEW_PATH } from "./guard.ts";
 import { refuse, upgradeUrl } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
@@ -15,7 +15,7 @@ import type { FrameSecret } from "./sign-in/frames.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
 import { SERVER_PATHS } from "./server-paths.ts";
 import { keyLines, type Server, startServer } from "./server.ts";
-import { DEFAULT_PORT } from "./settings.ts";
+import { DEFAULT_PORT, ServerSettings } from "./settings.ts";
 
 export { checkBinding, loadEnv };
 
@@ -112,7 +112,8 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
 
 /**
  * A Connect middleware serving the server's routes, on the server `startServer` starts with the
- * first request to its port, in the repository of the settings read then, on Claude Code unless
+ * first request to its port, in the repository of the settings read then, with its own settings
+ * of the config folder, closed as it stops, on Claude Code unless
  * `adapter` says otherwise, from `.env` too unless `file` is false. `allowOrigins` gives the
  * origins the server of a port allows besides its own, none by default. `lockedList` locks the
  * server's list, as Uraeda's own Storybook does: see `unlockedList`. Sessions are checked unless
@@ -141,12 +142,18 @@ export function devHandler(
     const dataDir = loadDataDir(root, binding, process.env, sources);
     // Read with the first request, as the data folder is: the browser tests' setup sets them after
     // Vite's server is made.
-    const { allowedHosts, given, repo } = loadEnv(root, process.env, sources);
+    const { allowedHosts, given, port: portVariable, repo } = loadEnv(root, process.env, sources);
+    // The server's routes follow the settings file, as the packaged server's do; Vite's own pages
+    // keep the variable's host names (R1).
+    const settings = await ServerSettings.open({
+      binding,
+      dir: loadConfigDir(root, binding, process.env, sources),
+      options: { allowedHosts, noOpen: false, port: portVariable },
+    });
     const server = await startServer({
       adapter:
         adapter ??
         new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: layout().plugin }),
-      allowedHosts: allowedHosts?.value ?? [],
       allowOrigins: allowOrigins?.(port) ?? [],
       binding,
       dataDir,
@@ -154,6 +161,7 @@ export function devHandler(
       lockedList,
       port,
       repo,
+      settings,
       ...(!signIn && { signIn: false as const }),
     });
     if (server.key !== undefined) {

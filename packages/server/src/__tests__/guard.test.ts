@@ -62,6 +62,25 @@ test.each(cases)("a request to %s", async (_, host, headers, status, body) => {
   }
 });
 
+/** US1.1, US1.4: the host names in force are read at each check, not once. */
+test("a host name added or removed applies to the next check", () => {
+  let names: ReadonlyArray<string> = [];
+  const live = guardCheck({ allowedHosts: () => names, allowOrigins: [], port });
+  const request = {
+    host: tailnet,
+    method: "POST",
+    origin: `https://${tailnet}`,
+    path: "/fate",
+    upgrade: false,
+  };
+
+  expect(live(request)).toBe("Forbidden host");
+  names = [tailnet];
+  expect(live(request)).toBeUndefined();
+  names = [];
+  expect(live(request)).toBe("Forbidden host");
+});
+
 // SC-004: a sandboxed frame's requests carry `Origin: null`, which only reads and live connections
 // under a preview's or a mockup's path with the frame secret accept.
 const frames = new FrameSecret(() => "the-secret");

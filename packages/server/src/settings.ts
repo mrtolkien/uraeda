@@ -145,7 +145,10 @@ export class ServerSettings {
     return this.#view;
   }
 
-  /** The host names in force, besides 127.0.0.1 and localhost. */
+  /**
+   * The host names in force, besides 127.0.0.1 and localhost: the same array until they, or
+   * another value in force, change.
+   */
   allowedHosts(): ReadonlyArray<string> {
     return this.#view.allowedHosts.inForce;
   }
@@ -188,8 +191,11 @@ export class ServerSettings {
       );
     }
     this.problem = problem;
-    this.#view = inForce(this.#options.options, saved);
-    if (JSON.stringify([this.#view, this.problem]) !== before) {
+    const view = inForce(this.#options.options, saved);
+    // An unchanged read keeps the view, so `allowedHosts()` keeps its array: the guard rebuilds
+    // its sets only on a change.
+    if (JSON.stringify([view, problem]) !== before) {
+      this.#view = view;
       for (const listener of this.#listeners) {
         listener();
       }

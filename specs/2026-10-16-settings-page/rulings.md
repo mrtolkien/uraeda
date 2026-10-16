@@ -110,3 +110,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a file mixing line ends gets `\r\n` everywhere; a comment above a name meant for the
   one before goes with the wrong one.
 - **Where**: task 1, `crates/core/src/settings/list.rs` and `crates/core/src/settings/file.rs`
+
+## R10: The live host-name tests have their own file
+
+- **Decision**: the started server's tests of host names changing while it runs, US1.1, US1.3,
+  SC-001, and review focus 1, are in `packages/server/src/__tests__/allowed-hosts.test.ts`, not
+  `server.test.ts`.
+- **Rationale**: `server.test.ts` is at 497 lines: the tests would take it past the 500-line limit.
+- **Alternatives considered**: splitting `server.test.ts` first, a move of unrelated tests.
+- **If wrong**: the tests move, unchanged.
+- **Where**: task 3

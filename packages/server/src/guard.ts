@@ -40,34 +40,57 @@ const read = (request: GuardedRequest) =>
   request.upgrade ? request.method === "GET" : ["GET", "HEAD"].includes(request.method);
 
 /**
+ * The host names accepted besides 127.0.0.1 and localhost, in force now: read at each request, so
+ * a change applies to the next. A new array means a change; the same one, none.
+ */
+export type AllowedHosts = () => ReadonlyArray<string>;
+
+/** No host name besides the server's own. */
+const NO_HOSTS: ReadonlyArray<string> = [];
+
+/**
  * The guard's rule, for requests and upgrades alike: the refusal's text, or undefined when the
  * request passes. It rejects what a web page could send to the local server: any `Host` but the
  * server's own or an allowed host name, as in DNS rebinding, any `Origin` but theirs and the
  * allowed ones, and a write without an `Origin` that the browser says another site sent. A request
  * without either header, from a test or `curl`, passes. A sandboxed frame's `Origin: null` passes
  * only for reads and upgrades, as GETs, on a path `isFrame` accepts: a preview's or a mockup's with
- * the current frame secret (SC-004). Such a read on a frame's path without it is `NOT_FOUND`.
+ * the current frame secret (SC-004). Such a read on a frame's path without it is `NOT_FOUND`. The
+ * accepted hosts and origins are built again when `allowedHosts` gives another array.
  */
 export function guardCheck({
-  allowedHosts = [],
+  allowedHosts = () => NO_HOSTS,
   allowOrigins,
   isFrame = () => false,
   port,
 }: {
-  allowedHosts?: Array<string>;
+  allowedHosts?: AllowedHosts;
   allowOrigins: Array<string>;
   isFrame?: (path: string) => boolean;
   port: number;
 }): (request: GuardedRequest) => string | undefined {
   const own = [`127.0.0.1:${port}`, `localhost:${port}`];
-  // `tailscale serve` passes the machine's name, without a port behind HTTPS.
-  const hosts = new Set([...own, ...allowedHosts, ...allowedHosts.map((h) => `${h}:${port}`)]);
-  const origins = new Set([
-    ...own.map((host) => `http://${host}`),
-    ...allowedHosts.map((host) => `https://${host}`),
-    ...allowOrigins,
-  ]);
+  let seen: ReadonlyArray<string> | undefined;
+  let sets = { hosts: new Set<string>(), origins: new Set<string>() };
+  /** The accepted hosts and origins, for the host names in force now. */
+  const accepted = () => {
+    const names = allowedHosts();
+    if (names !== seen) {
+      seen = names;
+      // `tailscale serve` passes the machine's name, without a port behind HTTPS.
+      sets = {
+        hosts: new Set([...own, ...names, ...names.map((name) => `${name}:${port}`)]),
+        origins: new Set([
+          ...own.map((host) => `http://${host}`),
+          ...names.map((name) => `https://${name}`),
+          ...allowOrigins,
+        ]),
+      };
+    }
+    return sets;
+  };
   return (request) => {
+    const { hosts, origins } = accepted();
     if (!hosts.has(request.host)) {
       return "Forbidden host";
     }
