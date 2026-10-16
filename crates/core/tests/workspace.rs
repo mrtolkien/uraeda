@@ -1,7 +1,7 @@
 mod common;
 
 use common::repo::{TestRepo, run_git};
-use common::texts::{clarifications, proposal, record};
+use common::texts::{clarifications, plan, proposal, record, spec};
 use uraeda_core::actions::place;
 use uraeda_core::api;
 use uraeda_core::git::Git;
@@ -632,4 +632,46 @@ fn a_file_page_keeps_its_uncommitted_text() {
 
     assert_eq!(view.current.text, std::fs::read_to_string(round).unwrap());
     assert_eq!(view.status.as_deref(), Some("awaiting-human"));
+}
+
+/// A pull request applied to a checked-out branch past its last task takes the step from the
+/// commit, not from a plan unchecked on disk.
+#[test]
+fn a_pull_request_keeps_the_commits_step() {
+    let repo = repo();
+    repo.switch(FOLDER);
+    let folder = "specs/2026-10-11-web-ui";
+    repo.write(
+        &format!("{folder}/clarifications-01.md"),
+        &clarifications("answered", "1 question, about 3 minutes.", &["A"]),
+    );
+    repo.write(&format!("{folder}/spec.md"), &spec("approved", 1, 1));
+    repo.write(
+        &format!("{folder}/plan.md"),
+        &plan("approved", 1, &[("One", 2, 2)]),
+    );
+    repo.commit("feat(web-ui): every task");
+    repo.switch("main");
+    let git = Git::discover(repo.path()).unwrap();
+    let place = place::reach(&git, FOLDER).unwrap();
+    std::fs::write(
+        place.root.join(format!("{folder}/plan.md")),
+        plan("approved", 1, &[("One", 1, 2)]),
+    )
+    .unwrap();
+    let open = PullRequestView {
+        number: 32,
+        url: "https://github.com/o/r/pull/32".to_string(),
+        state: PullRequestState::Open,
+    };
+
+    pulls::remember(
+        &git.main_root(),
+        PullRequests::Known([(FOLDER.to_string(), open)].into()),
+    );
+
+    let feature = feature(&repo, FOLDER);
+    assert_eq!(feature.step.name, StepName::PullRequest);
+    assert_eq!(feature.step.waits_on, WaitsOn::Human);
+    assert!(feature.uncommitted);
 }

@@ -1,6 +1,6 @@
 // US2 and C2: the buttons that commit and hand over to the agent, and the session they open with
 // the workflow's message in its composer, unsent.
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -265,6 +265,30 @@ test("requesting changes with Request changes and start the agent opens the sess
   await opensWith(RECURRING, /Revise the spec from my review/);
   expect(git(repo, "log", "-1", "--format=%s", RECURRING).trim()).toBe(
     "spec(recurring-tasks): request changes",
+  );
+  expect(agent.sent).toHaveLength(0);
+});
+
+test("committing a feature's edited proposal opens its session with the message", async () => {
+  const repo = fixtureRepo();
+  git(repo, "branch", "2026-10-14-runner", "main");
+  git(repo, "worktree", "add", "--quiet", ".worktrees/2026-10-14-runner", "2026-10-14-runner");
+  const worktree = join(repo, ".worktrees/2026-10-14-runner");
+  const proposal = join(worktree, "specs/2026-10-14-runner/proposal.md");
+  mkdirSync(join(proposal, ".."), { recursive: true });
+  writeFileSync(proposal, "# Runner\n\n## What\n\nRun.\n\n## Why\n\nSpeed.\n");
+  git(worktree, "add", "--all");
+  git(worktree, "commit", "--quiet", "--no-verify", "--message", "chore(runner): proposal");
+  writeFileSync(proposal, "# Runner\n\n## What\n\nRun agents.\n\n## Why\n\nSpeed.\n");
+  const { agent } = await renderPage("/edit/specs/2026-10-14-runner/proposal.md", repo, {
+    agent: true,
+  });
+
+  await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
+
+  await opensWith("2026-10-14-runner", /Investigate it and ask me your questions/);
+  expect(git(repo, "log", "-1", "--format=%s", "2026-10-14-runner").trim()).toBe(
+    "chore(runner): edit the proposal",
   );
   expect(agent.sent).toHaveLength(0);
 });

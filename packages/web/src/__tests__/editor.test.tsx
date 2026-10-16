@@ -736,3 +736,26 @@ test("an image added while the feature's agent works is refused under the field"
   expect(field.value).toBe(before);
   expect(sent.some((request) => request.includes("/attach"))).toBe(true);
 });
+
+test("a feature's committed proposal is edited and committed in its worktree", async () => {
+  const repo = fixtureRepo();
+  git(repo, "branch", "2026-10-14-runner", "main");
+  git(repo, "worktree", "add", "--quiet", ".worktrees/2026-10-14-runner", "2026-10-14-runner");
+  const worktree = join(repo, ".worktrees/2026-10-14-runner");
+  const proposal = join(worktree, "specs/2026-10-14-runner/proposal.md");
+  mkdirSync(join(proposal, ".."), { recursive: true });
+  writeFileSync(proposal, "# Runner\n\n## What\n\nRun.\n\n## Why\n\nSpeed.\n");
+  git(worktree, "add", "--all");
+  git(worktree, "commit", "--quiet", "--no-verify", "--message", "chore(runner): proposal");
+  await renderPage("/edit/specs/2026-10-14-runner/proposal.md", repo);
+
+  await type(await edit(), "# Runner\n\n## What\n\nRun agents.\n\n## Why\n\nSpeed.\n");
+  await click(screen.getByRole("button", { name: "Commit" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s", "2026-10-14-runner").trim()).toBe(
+      "chore(runner): edit the proposal",
+    ),
+  );
+  expect(readFileSync(proposal, "utf8")).toContain("Run agents.");
+});

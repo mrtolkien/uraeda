@@ -6,6 +6,7 @@ import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { addPlan, commitOnBranch, ELEVEN, temporaryFolder } from "uraeda-binding/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
+  answered,
   atWidth,
   type Binding,
   click,
@@ -555,4 +556,13 @@ test("US5.1: a chat on the phone has no progress line", async () => {
     (toggle) => heading.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING,
   );
   expect(toggles).toEqual([]);
+});
+
+test("a merged feature, without a branch: no changes section", async () => {
+  // Committed on the default branch: merged, with no branch left.
+  await renderPage("/f/2026-10-10-cli-core/session", fixtureRepo(), { agent: await fakeAgent() });
+
+  const column = await findAside();
+  await answered("BranchChanges");
+  expect(column.queryByRole("heading", { name: "Changed on the branch" })).toBeNull();
 });

@@ -303,7 +303,7 @@ function SessionPane({
 }
 
 /** Why a feature's session takes no message before its proposal is committed. */
-const NO_BRANCH = "This feature has no branch yet: commit its proposal first.";
+const NO_BRANCH = "This feature has no branch left: it is merged.";
 
 /** The workflow's message an address asks for: `?continue=<trigger>&file=<file>`. */
 function useHandOver(search: string): { file?: string; trigger: Trigger } | undefined {

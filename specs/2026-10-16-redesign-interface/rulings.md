@@ -89,25 +89,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the case goes back to expecting no changes, once the rule counts such folders.
 - **Where**: task 1.
 
-## R8: Tests of folders never committed are removed
+## R8: Tests of folders never committed move to setups still reachable
 
-- **Decision**: five TypeScript tests whose setup is a folder or a proposal never committed are
-  removed: in `packages/server/src/runner/__tests__/sessions.test.ts`, "a feature with no branch
-  refuses…"; in `packages/web/src/__tests__/`, `session.test.tsx`'s "a feature with no branch yet:
-  the composer is disabled and says why", `session-aside.test.tsx`'s "a feature without a branch: no
-  changes section", `editor.test.tsx`'s "a feature's proposal not committed is edited and
-  committed", and the first half of `commit-actions.test.tsx`'s "committing a proposal and starting
-  a feature…", which keeps its second half as "starting a feature opens its session with the
-  message".
-- **Rationale**: they checked what the UI does with a dated folder on the main checkout's disk
-  without its branch, or a branch whose proposal was never committed. Under the approved
-  [git](../decisions/git.md) rule, US1.7, and R3, neither is an item any more, so those pages have
-  no feature to show; the core's workspace tests and the CLI's `an_uncommitted_proposal_is_no_item`
-  check their absence. The plan's task 1 did not foresee them.
-- **Alternatives considered**: committing the proposal in each setup: the tests would no longer
-  check anything of their own; keeping an exception for uncommitted proposals: against R3.
-- **If wrong**: the tests come back with the exception R3 describes.
-- **Where**: task 1.
+- **Decision**: five TypeScript tests whose setup was a folder or a proposal never committed were
+  removed by task 1, then restored by the review of task 1 on setups that are still reachable: the
+  "no branch" tests (`runner/__tests__/sessions.test.ts`, `session.test.tsx`,
+  `session-aside.test.tsx`) on the fixture's merged feature `2026-10-10-cli-core`, which has no
+  branch left; the editor's commit (`editor.test.tsx`, `commit-actions.test.tsx`) on a feature whose
+  committed proposal is edited in its worktree, committed as "chore(runner): edit the proposal".
+- **Rationale**: under the approved [git](../decisions/git.md) rule, US1.7, and R3, an uncommitted
+  folder is no item; but a merged feature still has no branch, and a committed proposal can still be
+  edited before discovery, so those paths stay reachable and keep their tests.
+- **Alternatives considered**: removing the tests: it dropped coverage of reachable behaviour.
+- **If wrong**: the tests go back to their first setups once the rule counts uncommitted folders.
+- **Where**: task 1, and its review's fixes.
+
+## R11: The "no branch" message speaks of a merged feature
+
+- **Decision**: the refusal and the composer's note for a feature without a branch read "This
+  feature has no branch left: it is merged." instead of "This feature has no branch yet: commit its
+  proposal first.", in `runner/session-state.ts` and `SessionPage.tsx`.
+- **Rationale**: a merged feature is the only item without a branch under the approved rule (R3), so
+  the old advice no longer applies.
+- **Alternatives considered**: removing the refusal: a merged feature's session must still refuse a
+  run, since its branch is gone.
+- **If wrong**: the wording changes back with an exception to the rule.
+- **Where**: task 1's review.
 
 ## R9: `priority_entries` moves into the links module before `workspace.rs` grows
 

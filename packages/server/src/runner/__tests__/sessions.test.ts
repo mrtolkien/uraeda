@@ -1087,3 +1087,16 @@ test("refuses images with a workflow message", async () => {
   ).rejects.toThrow("refused: The workflow's message takes no images.");
   expect(adapter.opens).toEqual([]);
 });
+
+test("a merged feature refuses with 'This feature has no branch left: it is merged.'", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  // Committed on the default branch: merged, with no branch left.
+  const folder = "2026-10-10-cli-core";
+  expect((await binding.nextStep(repo, folder)).branch).toBeUndefined();
+  const session = await sessions.featureSession(repo, folder);
+
+  await expect(sessions.send(repo, session.id, { text: "Hello" })).rejects.toThrow(
+    "refused: This feature has no branch left: it is merged.",
+  );
+  expect(adapter.opens).toEqual([]);
+});
