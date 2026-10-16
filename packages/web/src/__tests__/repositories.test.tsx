@@ -32,7 +32,9 @@ test("the root opens the most recent repository's home", async () => {
   await renderPage("/", undefined, { dataDir: twoRepositories(), raw: true });
 
   await waitFor(() => expect(window.location.pathname).toBe("/r/uraeda/"));
-  expect((await screen.findAllByRole("link", { name: /Git listener process/ })).length).toBe(1);
+  expect(
+    (await screen.findAllByRole("link", { name: /^Priorities, open the priorities page/ })).length,
+  ).toBe(1);
 });
 
 /** US6.4 */
@@ -72,7 +74,9 @@ test("a missing folder shows where it was, with Remove", async () => {
 test("a removed repository's open page says it is unknown", async () => {
   const dataDir = listOf([["uraeda", fixtureRepo()]]);
   await renderPage("/r/uraeda/", undefined, { dataDir, raw: true });
-  expect((await screen.findAllByRole("link", { name: /Git listener process/ })).length).toBe(1);
+  expect(
+    (await screen.findAllByRole("link", { name: /^Priorities, open the priorities page/ })).length,
+  ).toBe(1);
 
   await binding.removeRepository(dataDir, "uraeda");
 

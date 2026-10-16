@@ -989,20 +989,20 @@ git commit -m "feat(redesign-priorities): add and commit from the ＋ forms"
 - Consumes: `EntryItem.running` (task 2), the decisions route `/decisions` (task 14 adds the page;
   the card's link exists already).
 
-- [ ] **Step 1: Write the failing tests**, happy-dom `home.test.tsx`, one per US7 scenario 1–8, with
-      the counts "Needs you 4", "Agents 4", "Now 4", "Inbox 10" from the fixture, "Now | Next" kept
-      in `uraeda:home:priorities` across a reload, the titles' links, no "Organize" link, "Show all
-      (7)" on a repository with seven done features, "Nothing waits on you.", and the phone order;
-      plus "The inbox is empty." and "Nothing in Next." (edge cases).
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 1: Write the failing tests**, happy-dom `home.test.tsx`, one per US7 scenario 1–8, with
+      the counts "Needs you 3", "Agents 1", "Now 4", "Inbox 10" from the tests' fixture (R15), "Now
+      | Next" kept in `uraeda:home:priorities` across a reload, the titles' links, no "Organize"
+      link, "Show all (7)" on a repository with seven done features, "Nothing waits on you.", and
+      the phone order; plus "The inbox is empty." and "Nothing in Next." (edge cases).
+- [x] **Step 2: Run them to check they fail**
   - Run: `vp test --project uraeda-web packages/web/src/__tests__/home.test.tsx`
   - Expected: FAIL, `Unable to find role "heading" with name "Needs you"`
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run all tests**
   - Run:
     `vp check && vp test --project uraeda-web && vp test --project desktop packages/web/src/__browser__/layout.test.tsx && vp test --project phone packages/web/src/__browser__/layout.test.tsx`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

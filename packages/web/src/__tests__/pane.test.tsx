@@ -67,7 +67,7 @@ async function deleted() {
 }
 
 test("a line without a draft opens its task view (US3 1)", async () => {
-  await renderPage("/");
+  await renderPage("/priorities");
   await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
   expect(window.location.pathname).toBe(
     atRepo("/priorities/claude-code-runner-triggered-manually"),
