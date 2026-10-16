@@ -1,6 +1,8 @@
 // The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
 // runs never start Claude Code. The root's config lists this project next to the others.
+// First: a binding older than the Rust core is rebuilt before the imports below load it.
+import "uraeda-server/fresh-binding";
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
