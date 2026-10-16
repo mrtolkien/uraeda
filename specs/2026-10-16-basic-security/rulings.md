@@ -356,3 +356,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a route added to the app outside `SERVER_PATHS` fails the test, and is never shipped
   open.
 - **Where**: `packages/server/src/sign-in/__tests__/closed.test.ts`, `server-paths.ts`
+
+## R30: The sign-in file stays the truth for every server on its data folder
+
+- **Decision**: before checking the key or a session, and before each change, the sign-in store
+  reads `sign-in.json` again when its inode, size, or modification time changed since it last read
+  or wrote it, and writes each change over what it just read. Sessions gone from the file end in
+  this server too: their streams close and its frame secret is replaced. A file that became
+  unreadable, or was deleted, while the server runs refuses every sign-in and session, is reported
+  once on the server's error output, and is never written over: a sign-in and a new key fail until
+  it can be read again.
+- **Rationale**: two servers on two ports can share one data folder, as the README's `--port 4311`
+  shows. With the file read once, a new key on one left the other accepting the old key and its
+  sessions, and the other's next write put the old key's hash back.
+- **Alternatives considered**: a lock file per data folder, refusing a second server; watching the
+  file, which still leaves a window before the event arrives.
+- **If wrong**: without a lock, two servers writing in the same millisecond may lose one of the two
+  writes, and a device signs in again.
+- **Where**: `packages/server/src/sign-in/store.ts`, `store.test.ts`
