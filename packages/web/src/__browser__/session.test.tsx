@@ -25,15 +25,14 @@ import {
   sendMessage,
   show,
   startTurn,
+  colorScheme,
 } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
 const CLI = "2026-10-12-cli-tuis";
 
-afterEach(() => {
-  window.localStorage.removeItem("uraeda.theme");
-});
+afterEach(() => {});
 
 /** What scrolls the transcript: the window, the session being a page of its own. */
 function scroller() {
@@ -140,7 +139,7 @@ test("US4.2–US4.4: scrolled up, Jump to the latest brings the end back, and th
 });
 
 test("a working session, with a sub-agent and a steered message, in dark (SC-004)", async () => {
-  window.localStorage.setItem("uraeda.theme", "dark");
+  await colorScheme("dark");
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", [
     { text: "Reading **the answers**.", type: "text" },
@@ -428,9 +427,9 @@ describe("on the phone", () => {
 describe("on the desktop", () => {
   atSize("desktop");
 
-  // A session opened from a task view still opens at its end: the task view's pane keeps its own
-  // position in its history entry, which must not hold the session's page back.
-  test("a session opened from a task view's pane opens at its end", async () => {
+  // A session opened after a task view still opens at its end: the task view's pane keeps its own
+  // position in its history entry, which must not hold the next pages back.
+  test("a session opened after a task view's pane opens at its end", async () => {
     await show(`/f/${CLI}/session`, "CLI TUIs");
     await startTurn("Plan the CLI.", [
       {
@@ -454,9 +453,13 @@ describe("on the desktop", () => {
     pane.scrollTo(0, pane.scrollHeight);
     await drawn();
 
+    // The card opens the feature's page, and the page its session.
     await userEvent.click(
-      await screen.findByRole("link", { name: "Map the runner code, Working" }, LIVE),
+      within(screen.getByRole("navigation", { name: "Side navigation" })).getByRole("link", {
+        name: /^cli-tuis, /,
+      }),
     );
+    await userEvent.click(await screen.findByRole("link", { name: "Open the session" }, LIVE));
 
     await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
     const last = await within(

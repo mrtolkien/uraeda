@@ -11,7 +11,7 @@ import { page, userEvent } from "vite-plus/test/browser";
 import { fateClients } from "../clients.ts";
 import { FirstRun } from "../RepositoryPages.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
-import { checkLayout, drawn, repository, show } from "./helpers.tsx";
+import { checkLayout, drawn, repository, show, colorScheme } from "./helpers.tsx";
 
 const MODES = ["light", "dark"] as const;
 const narrow = () => window.innerWidth < 768;
@@ -50,7 +50,7 @@ async function expectSheetOrNarrow(element: Element) {
 test.each(MODES)(
   "the menu is a popover on wide screens and a sheet on narrow ones, in %s (US1)",
   async (mode) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     await show("/", "Waiting on you");
     const menu = await openMenu();
     await expectSheetOrNarrow(menu);
@@ -95,7 +95,7 @@ async function openForm() {
 test.each(MODES)(
   "the add form is a dialog on wide screens and a sheet on narrow ones, with Close, in %s (US2)",
   async (mode) => {
-    window.localStorage.setItem("uraeda.theme", mode);
+    await colorScheme(mode);
     await show("/", "Waiting on you");
 
     let form = await openForm();

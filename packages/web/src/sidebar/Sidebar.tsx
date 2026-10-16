@@ -36,7 +36,7 @@ const styles = stylex.create({
 /** The workspace and the sessions' list, as the navigation reads them. */
 type Data = ReturnType<typeof useNavigation>;
 
-/** A count at a row's end, read as part of its name. */
+/** A count at a row's end: seen, and left out of the row's name, which its visible label starts. */
 const count = (n: number) => <Badge aria-hidden label={String(n)} variant="neutral" />;
 
 /** The inbox's row, with its notes' count once read. */
@@ -217,7 +217,6 @@ function Flow({ data, pathname }: { data: Data; pathname: string }) {
         actions={<AddPriorityButton />}
         endContent={count(now)}
         label="Priorities"
-        name={`Priorities, ${now} in Now`}
         pathname={pathname}
         to="/priorities"
       />

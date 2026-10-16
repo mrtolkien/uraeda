@@ -24,13 +24,7 @@ const triage = () => readFileSync(join(root, "fixtures/INBOX-TRIAGE.md"), "utf8"
 /** Opens the add form from the ＋ next to Inbox: in the navigation's drawer on the phone. */
 async function openForm(page: Page) {
   // Without the text the last shot's form kept: each form opens as new, with no restore notice.
-  await page.evaluate(() => {
-    for (const key of Object.keys(window.localStorage)) {
-      if (key !== "uraeda.theme") {
-        window.localStorage.removeItem(key);
-      }
-    }
-  });
+  await page.evaluate(() => window.localStorage.clear());
   await show(page, "/inbox", "10 notes");
   if (page.viewportSize()!.width < 768) {
     await page.getByRole("button", { name: "Open navigation" }).click();
