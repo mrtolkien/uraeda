@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Settings page
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions on the settings file, the data folder, and the page, about 30 minutes.
+> Answered on 2026-10-16.
 >
 > - Two choices last beyond this feature: the settings file's format and folder, which every later
 >   setting will use, and how Uraeda's data folder is organized. Both change the distribution
@@ -18,8 +18,8 @@ status: awaiting-human
 > - Renaming a repository is listed among the placeholders, but "at least in the UI" can also mean a
 >   display name.
 > - This feature builds on basic security, which is not merged yet: the spec waits for it.
-> - Nine points are settled without you, at the end, including what happens when you remove the
->   host name you are using.
+> - Nine points are settled without you, at the end, including what happens when you remove the host
+>   name you are using.
 
 ## Context
 
@@ -44,16 +44,16 @@ The full investigation is in [discovery](discovery-01.md). Each question links t
 
 Codex uses TOML in `~/.codex/config.toml`; Claude Code and VS Code use strict JSON; opencode uses
 JSONC in `~/.config/opencode/`. `gh` keeps its config in `~/.config/gh` on macOS too, as most
-command-line tools do. Uraeda's data folder sits in `~/Library/Application Support/uraeda/` on macOS.
-TOML takes comments, and the `toml_edit` crate writes the file while keeping them; JSON has no
-comments. Whatever the answer, the [distribution](../decisions/distribution.md) decision's rule, "its
-settings come from its flags and its environment", becomes "from its flags, its environment, and the
-user's settings file, never a file in a project", and the [stack](../decisions/stack.md) decision's
-host names come from that file too. Where the other data goes is Q2. More in
+command-line tools do. Uraeda's data folder sits in `~/Library/Application Support/uraeda/` on
+macOS. TOML takes comments, and the `toml_edit` crate writes the file while keeping them; JSON has
+no comments. Whatever the answer, the [distribution](../decisions/distribution.md) decision's rule,
+"its settings come from its flags and its environment", becomes "from its flags, its environment,
+and the user's settings file, never a file in a project", and the [stack](../decisions/stack.md)
+decision's host names come from that file too. Where the other data goes is Q2. More in
 [discovery](discovery-01.md#the-files-format-and-place).
 
-Why it matters: every later setting, from models to review options, goes in this file, and it is
-the file you put in your dotfiles.
+Why it matters: every later setting, from models to review options, goes in this file, and it is the
+file you put in your dotfiles.
 
 - **A (recommended). TOML, in `~/.config/uraeda/config.toml` on Linux and macOS
   (`$XDG_CONFIG_HOME/uraeda/` when set), written by the core with `toml_edit`, which keeps your
@@ -72,7 +72,7 @@ the file you put in your dotfiles.
   - [pro] the dotfiles folder, no new dependency, like Claude Code.
   - [con] no comments, and a hand edit with a trailing comma breaks the file.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How is Uraeda's data organized?
 
@@ -104,7 +104,7 @@ every user's folder again.
   - [con] a migration, a fourth folder, and a change to the agents decision, which names
     `runner.sqlite`'s folder; on macOS several folders collapse into one anyway.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What does a flag given at start do to the settings?
 
@@ -122,19 +122,20 @@ Why it matters: it decides whether a headless start with `--allowed-hosts` lasts
     way.
   - [con] a value edited on the page while a flag overrides it only takes effect at a start without
     the flag.
-  - Why recommended: it keeps the file the one lasting source, as the proposal's dotfiles goal needs.
+  - Why recommended: it keeps the file the one lasting source, as the proposal's dotfiles goal
+    needs.
 - **B. A flag or variable given at start is written into the file, then the server reads the file.**
   - [pro] one value at a time, nothing to explain on the page.
   - [con] a start for a test changes your settings for good, and a variable in a shell profile
     rewrites the file at every start.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Which of today's values become settings?
 
 The four variables and the flags are not one kind of value. Allowed host names and the port last;
-the repository to open and `--no-open` describe one start; the data folder says where the files
-are, so it cannot be read from one of them. More in
+the repository to open and `--no-open` describe one start; the data folder says where the files are,
+so it cannot be read from one of them. More in
 [discovery](discovery-01.md#which-values-become-settings).
 
 Why it matters: it is the content of the first real category.
@@ -149,17 +150,17 @@ Why it matters: it is the content of the first real category.
   - [con] a headless start still needs `--no-open` every time.
 - **C. All four variables, the repository to open and the data folder included.**
   - [pro] the file holds everything `.env` held.
-  - [con] the data folder cannot come from a file inside the folders it moves, and the repository
-    to open is better chosen in the UI.
+  - [con] the data folder cannot come from a file inside the folders it moves, and the repository to
+    open is better chosen in the UI.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Where does the settings page live?
 
 Every page today is under a repository, `/r/<name>/`, while the server's settings are the machine's,
-and the settings to come mix both: models and run options for every repository, renaming for one.
-VS Code and Zed open settings from a gear or a shortcut, Vibe Kanban from its sidebar. On a phone,
-the page shows its list of categories, then a category as its own page, as the
+and the settings to come mix both: models and run options for every repository, renaming for one. VS
+Code and Zed open settings from a gear or a shortcut, Vibe Kanban from its sidebar. On a phone, the
+page shows its list of categories, then a category as its own page, as the
 [UI layout](../decisions/ui-layout.md) decision asks; on a desktop, the categories on the left and
 the open category on the right. More in [discovery](discovery-01.md#where-the-page-lives).
 
@@ -179,7 +180,7 @@ interface redesign in Now will build on them.
   - [con] a page without the sidebar's context, a second settings page later, and the shared text
     field hook needs a key outside repositories.
 
-**Answer:**
+**Answer:** A: Move the theme switch into the settings btw
 
 ## Q6: How do the settings to come show now?
 
@@ -205,14 +206,14 @@ drawn now is designed before its feature's own questions.
   - [pro] nothing that does not work.
   - [con] the structure you asked to see does not show.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Do Sign out and Sign out everywhere move to the settings page?
 
-Basic security puts both in the repository menu, and its spec review said "this feature will be
-part of the settings page". GitHub keeps Sign out in its account menu, and lists signed-in sessions,
-each with a way to revoke it, in its settings. Basic security already stores each device's session
-with its creation and last use. More in [discovery](discovery-01.md#signing-out).
+Basic security puts both in the repository menu, and its spec review said "this feature will be part
+of the settings page". GitHub keeps Sign out in its account menu, and lists signed-in sessions, each
+with a way to revoke it, in its settings. Basic security already stores each device's session with
+its creation and last use. More in [discovery](discovery-01.md#signing-out).
 
 Why it matters: it decides where a signed-in phone signs out, and whether you can see which devices
 are signed in.
@@ -231,7 +232,7 @@ are signed in.
   - [pro] no change to basic security's work.
   - [con] account actions in a menu of repositories.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Does renaming a repository stay a placeholder?
 
@@ -256,7 +257,8 @@ to keep apart.
   - [pro] links never break.
   - [con] two names per repository, and an address that no longer matches what you see.
 
-**Answer:**
+**Answer:** A: Don't even add the option. I picked A because you require me picking an option, but
+I'll add that feature with the sidebar feature, not here.
 
 ## Settled without the human
 
@@ -269,9 +271,8 @@ to keep apart.
   and the page says so under it; there is no restart button, since a server started by `npx` cannot
   restart itself reliably. See [discovery](discovery-01.md#important-reads).
 - **Removing the host name the page is using** asks first, in a dialog naming it: "This browser
-  reaches Uraeda through mac.tail1234.ts.net. Removing it cuts this browser off.", with
-  "Remove" and "Cancel". See
-  [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
+  reaches Uraeda through mac.tail1234.ts.net. Removing it cuts this browser off.", with "Remove" and
+  "Cancel". See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 - **Host names are edited as a list**, one line per name, each added, edited in place, or removed,
   saved on Enter or its Save button, as the [UI behaviour](../decisions/ui-behaviour.md) decision
   asks. The core checks each name is a host name, and the port a number from 1 to 65535.
@@ -295,4 +296,5 @@ to keep apart.
   feature in Next; the file leaves room for them in its own tables. See
   [discovery](discovery-01.md#overlaps-with-work-in-flight).
 
-**Notes:**
+**Notes:** I've merged basic security, so you can include the necessary features in the settings
+page.
