@@ -61,11 +61,12 @@ it open the rest at the sections it needs:
 - the discovery's map of the code the task touches: its
   [important reads](discovery.md#the-discovery-file) and likely changes;
 - what earlier tasks produced that it consumes: names, interfaces, files;
-- the findings left from the previous task's review, to fix first, when there are any: see
+- the findings left from the last review of the tasks, to fix first, when there are any: see
   [review the tasks](#review-the-tasks).
 
 Write the parts every task shares once, in a file outside the repository, and give each implementer
-its path with its task's own parts.
+its path with its task's own parts. The brief is not workflow state: a resumed session writes it
+again from the repository.
 
 1. **Read the task**, all of it, even one you remember: its text has the exact values. Check its
    **Consumes** against what the earlier tasks actually produced in the code, and trace the affected
@@ -96,12 +97,13 @@ its path with its task's own parts.
 3. **Run the validation the step needs**, the smallest first:
    - **While working**: the tests the task adds or touches, by file or project, and the fast checks
      (formatter, linter, type checker).
-   - **Before the task's commit**: the project's validation once. Its slow suites, such as browser
-     tests and screenshots, only when the task changes what they cover: a UI behaviour, a layout, a
-     route. A validation that reruns only what changed, through a cache, is run whole.
-   - **At the final review**: everything, slow suites included.
+   - **Before each commit**: the project's validation once. When it is one cached command, such as
+     `vp run ready`, run it whole: its cache skips what the task did not change. Otherwise, run its
+     slow suites, such as browser tests and screenshots, only when the task changes what they cover:
+     a UI behaviour, a layout, a route.
+   - **At the final review**: every check the project runs locally, slow suites included.
 
-   A failure unrelated to the task that passes when run again is not hunted in rerun loops: run it
+   A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
    at most twice. A test that fails intermittently follows the project's rule for flaky tests, when
    an active decision has one; otherwise note it in the inbox, as
    [agents' notes](inbox.md#agents-notes) says, and go on.
@@ -121,11 +123,11 @@ in the session, where the human can try it and comment on it.
 When your harness can run a fresh reviewer agent, review the tasks as they are built, so their
 problems are fixed while their context is fresh, not all at the final review. Review every two or
 three tasks, on the diff of their commits, and a risky task on its own: one that changes security,
-data written to disk, concurrency, or a rule several callers share. Give the reviewer the tasks'
-text, the spec's sections they implement and its approval comments, the global constraints, and the
-diff. It derives expected behaviour from the approved requirements before checking the
-implementation and tests, then reviews the changed responsibilities and their callers. It gives two
-verdicts, spec compliance first, then quality, with the criteria of
+the format of stored data or its migration, concurrency, or a rule several callers share. Give the
+reviewer the tasks' text, the spec's sections they implement and its approval comments, the global
+constraints, and the diff. It derives expected behaviour from the approved requirements before
+checking the implementation and tests, then reviews the changed responsibilities and their callers.
+It gives two verdicts, spec compliance first, then quality, with the criteria of
 [Review the branch](#review-the-branch) scaled to the tasks, and flags what the tasks grew, not
 sizes that were already there ([extract, don't grow](code-quality.md#extract-dont-grow)).
 
@@ -133,7 +135,7 @@ Its findings are [graded](#grade-the-findings) like the final review's: only the
 important ones are fixed. Give them to the next task's implementer, to fix first, each behaviour fix
 with a test that fails first, in its own commit; after the last task, to a fresh implementer.
 Structural fixes must keep behavioural tests passing and satisfy explicit architectural constraints.
-A finding still open after two rounds is ruled on, in `rulings.md`.
+A finding still open after two reviews of the tasks is ruled on, in `rulings.md`.
 
 ### Rulings
 
@@ -157,6 +159,8 @@ needs:
 - Something the spec, the active decisions, or the constitution do not allow, or a choice that would
   become a [decision](spec.md#what-is-a-decision)
 - A plan so broken that every way forward is a guess
+- A failed check of outside behaviour the spec marked unverified: the stories that rely on it need
+  the human's choice
 - An irreversible or destructive operation, a security-sensitive action, or a side effect outside
   the branch: deleting real data, pushing to another branch, publishing
 
@@ -248,8 +252,8 @@ A finding you decide not to fix is a ruling, written in `rulings.md` with the ot
 
 A second reviewer, such as another tool's review skill, can review the branch too, after the first.
 Its findings are graded and fixed the same way, and the pull request names it. It reviews the branch
-once; after its fixes, a second pass reviews only the fix commits, and what it still finds is listed
-in the pull request rather than fixed in another loop.
+once; after its fixes, a second pass reviews only the fix commits. Its critical and important
+findings are fixed once more, without another review, and the rest is listed in the pull request.
 
 Then push the branch, open its pull request as a draft, and run the [finish](finish.md) step: it
 replaces the folder with its record, and marks the pull request ready.

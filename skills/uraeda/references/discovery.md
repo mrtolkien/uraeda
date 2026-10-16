@@ -163,8 +163,9 @@ leaves out, is always a question.
 - **Outside behaviour it relies on**: a feature that depends on how a library, a browser, a
   protocol, or another tool behaves, where its documentation does not settle it (embedding a page in
   a sandboxed frame, a protocol's undocumented messages), is checked now, with a small throwaway
-  experiment when one is cheap. When it cannot be checked, the discovery says so: it becomes an
-  unverified assumption, which the spec names and the plan's first task checks.
+  experiment when one is cheap, run outside the repository and never committed. When it cannot be
+  checked, the discovery says so: it becomes an unverified assumption, which the spec names and the
+  plan's first task checks.
 - **Guards it relaxes**: an option that loosens a security rule, an origin check, a permission, a
   sandbox, says what an attacker could then do, in one sentence a non-specialist understands, not as
   a mechanism: "any website open in your browser could read the project's code", not "the `Origin`
@@ -227,6 +228,8 @@ within that range, and what the code has today.]
 
 ### [Constraint, ambiguity, or gap]
 
+## Worth it and feasibility
+
 ## Approaches
 
 ### [Topic]
@@ -247,6 +250,10 @@ What goes in each section:
   each rule the feature touches, with the code that owns it and every copy, when it touches one; and
   the likely changes, each with the options it depends on.
 - **The proposal**: one section per constraint that cannot be met as written, ambiguity, or gap.
+- **Worth it and feasibility**, left out when the feature is small and relies on nothing new: the
+  feature's cost against its gain, the outside behaviour it relies on, each checked or named as
+  unverified, and what each relaxed guard would let an attacker do, as
+  [investigate in depth](#investigate-in-depth) asks.
 - **Approaches**: one section per topic the feature has to settle. Each says what the topic is about
   in one sentence, links to the knowledge above it relies on, and compares its options against the
   same criteria for every option. Criteria come from the proposal, the constitution, active
@@ -276,6 +283,8 @@ Ask only what only the human can decide:
 - Any choice that would become a [decision](spec.md#what-is-a-decision), including adding a
   dependency.
 - A conflict with an active decision or with the constitution.
+- Loosening a security guard, said as what an attacker could then do.
+- Dropping or shrinking the feature, when the evidence says its cost outweighs its gain.
 
 Settle everything else yourself, within the constitution and active decisions: reusing what exists,
 writing a small module rather than adding a dependency, the behaviour of an edge case the proposal's

@@ -39,7 +39,7 @@ before new behaviour goes in, not after.
   goes away, and it is committed on its own, before the failing test of the new behaviour.
   **Complexity tracking** lists every new abstraction, and every unit a task grows past a limit or
   leaves over one, with the reason.
-- **The task reviewer** flags what the task grew, not sizes that were already there.
+- **The reviews of the tasks** flag what the tasks grew, not sizes that were already there.
 - **The final review** reports each function and file the branch grew, with its length before and
   after, in the pull request's description.
 
@@ -78,8 +78,8 @@ exists for.
 - **The reviews** count a test that asserts nothing, or nothing the spec asks, as an important
   finding.
 
-Checks: the reported failure, which the task reviewer reads. A mutation tool, where the project has
-one, does the same on the changed lines.
+Checks: the reported failure, which the reviews of the tasks read. A mutation tool, where the
+project has one, does the same on the changed lines.
 
 ## UIs verified end to end
 
