@@ -2,7 +2,8 @@
  * `node packages/uraeda/scripts/smoke.ts [--binding <.node or folder> | --platform <tarball>]
  * [--timed]`: packs `@uraeda/ui`, installs it with npm in a new temporary folder outside the
  * repository, and runs it as a user would: its version, help, an unknown option, a start in a new
- * git repository whose `.env` must be ignored, a start outside git, and the package's contents.
+ * git repository whose `.env` must be ignored, a start outside git, a start on the settings file's
+ * port, and the package's contents.
  *
  * `--binding` gives the native binding through `NAPI_RS_NATIVE_LIBRARY_PATH`, as `vp run ready`
  * does with the checkout's build: a `.node` file, or a folder holding one `uraeda-binding.*.node`,
@@ -167,8 +168,8 @@ function status(port: number, path: string, host = `127.0.0.1:${port}`): Promise
 }
 
 /** Starts `uraeda` with `args` in `cwd`, as a server that keeps running. */
-function start(install: Install, args: Array<string>, cwd: string): Started {
-  const child = spawn(install.bin, args, { cwd, env: install.env, stdio: "pipe" });
+function start(install: Install, args: Array<string>, cwd: string, env = install.env): Started {
+  const child = spawn(install.bin, args, { cwd, env, stdio: "pipe" });
   children.add(child);
   let stdout = "";
   let stderr = "";
@@ -375,6 +376,32 @@ async function startOutsideGit(install: Install) {
 }
 
 /**
+ * A start with no port given, in a config folder of its own whose `config.toml` sets one: the
+ * packaged server reads the settings file, and leaves it as it was.
+ */
+async function startOnSettingsFile(install: Install) {
+  const check = "settings file";
+  const config = join(install.folder, "config-port");
+  mkdirSync(config);
+  const port = await freePort();
+  const text = `# mine\n[server]\nport = ${port}\n`;
+  writeFileSync(join(config, "config.toml"), text);
+  const env = { ...install.env, URAEDA_CONFIG_DIR: config };
+  const started = start(install, ["--no-open"], join(install.folder, "todo"), env);
+  try {
+    await line(check, started, port);
+    await answers(check, port, "/", Date.now());
+    expect(
+      check,
+      readFileSync(join(config, "config.toml"), "utf8") === text,
+      "the start changed config.toml",
+    );
+  } finally {
+    await stop(started);
+  }
+}
+
+/**
  * The package's contents: the plugin with its copy of the skill, and the loader napi-rs generated,
  * unchanged, which the bundle imports next to it, never from the checkout.
  */
@@ -418,6 +445,7 @@ async function main() {
     if (installed.binding) {
       await startInRepository(installed, values.timed);
       await startOutsideGit(installed);
+      await startOnSettingsFile(installed);
     }
   } finally {
     for (const child of children) {
