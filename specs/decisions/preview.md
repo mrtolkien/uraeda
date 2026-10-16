@@ -34,9 +34,8 @@ shows.
   embedding page, and MUST load the skill's pick script, `uraeda-pick.js`. Checked by review.
 - Stories MUST follow the [UI components](ui-components.md) decision: its lint rules cover
   `*.stories.tsx` files. Checked by lint.
-- Storybook's automatic test of each story MUST be off. A story MAY run as a test only when it
-  guards a spec's acceptance scenario, edge case, or success criterion, as the
-  [UI checks](ui-checks.md) decision requires of every UI test. Checked by review.
+- Storybook's automatic test of each story MUST be off, and no story MAY run as a test: UI tests are
+  Vitest tests, as the [UI checks](ui-checks.md) decision requires. Checked by review.
 - `vp run ready` MUST build Storybook, so a story that does not compile fails the check. Checked by
   the `storybook:build` task.
 - Storybook's packages MUST be pinned to exact versions, upgraded deliberately and together, and its
@@ -71,7 +70,8 @@ responses would hand-write the server's output.
   embedded.
 - Running one story from Storybook's own screen is broken with Vitest 5 until Storybook 11, which
   does not affect embeds.
-- Moving the UI tests to Storybook's test format is not decided here: it belongs in Next.
+- UI tests stay in Vitest: the [UI checks](ui-checks.md) decision dropped moving them to Storybook's
+  test format.
 
 ## Applies to
 
