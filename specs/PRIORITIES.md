@@ -8,7 +8,7 @@
 
 - [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
 
-- Use Storybook for UI tests
+- [Use Storybook for UI tests](drafts/use-storybook-for-ui-tests.md)
 - [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
 
 - [Redesign sidebars and global interface](drafts/redesign-interface.md)
