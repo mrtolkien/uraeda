@@ -19,13 +19,17 @@ type Session = { created: string; id: string; secret: string; used: string };
 /** The sign-in file, as written. */
 type SignInFile = { key: string; sessions: Array<Session>; version: 1 };
 
-/** Whether a value read from the file is a session, every field a string. */
+/**
+ * Whether a value read from the file is a session, every field a string, and its dates dates: a
+ * session whose last use is no date would never end.
+ */
 function isSession(value: unknown): value is Session {
   const session = value as Record<string, unknown> | null;
   return (
     typeof session === "object" &&
     session !== null &&
-    ["created", "id", "secret", "used"].every((field) => typeof session[field] === "string")
+    ["created", "id", "secret", "used"].every((field) => typeof session[field] === "string") &&
+    ["created", "used"].every((field) => !Number.isNaN(Date.parse(session[field] as string)))
   );
 }
 
@@ -44,7 +48,9 @@ function parse(text: string): SignInFile | string {
   if (typeof file.key !== "string" || !Array.isArray(file.sessions)) {
     return "no key or no sessions";
   }
-  return file.sessions.every(isSession) ? (file as SignInFile) : "a session is incomplete";
+  return file.sessions.every(isSession)
+    ? (file as SignInFile)
+    : "a session is incomplete, or has a date that is not one";
 }
 
 /** A new access key: `ura_` and 32 random bytes in base64url. */
