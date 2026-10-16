@@ -21,6 +21,7 @@ import { Sidebar } from "./sidebar/Sidebar.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { useWrites } from "./writes/store.ts";
 import { WriteProgress } from "./writes/WriteFeedback.tsx";
+import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 
 const styles = stylex.create({
   controls: {
@@ -235,6 +236,8 @@ export function Shell({ children }: { children: ReactNode }) {
           xstyle={styles.shell}
         >
           <Writing />
+          <NotifyBanner />
+          <Notifier />
           <UndoErrors />
           <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
         </AppShell>

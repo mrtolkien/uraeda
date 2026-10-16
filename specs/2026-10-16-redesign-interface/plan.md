@@ -880,9 +880,10 @@ git commit -m "feat(redesign-interface): git writes show at once, on their butto
 **Files:**
 
 - Start from: `packages/web/src/notify/NotificationBanner.stories.tsx#Ask`
-- Create: `packages/web/src/notify/useNotifier.ts`, `notify/permission.ts`
-- Modify: `notify/NotificationBanner.tsx`, `Shell.tsx` (the banner above the page), `App.tsx` (the
-  notifier on the global client), `views.ts` (`NeedsYouView`)
+- Create: `packages/web/src/notify/useNotifier.ts`, `notify/permission.ts`, `notify/Notifier.tsx`
+- Modify: `Shell.tsx` (the banner above the page, and the notifier on the global client, R19),
+  `views.ts` (`NeedsYouView`), `data.ts` (`useNeedsYou`), `__browser__/helpers.tsx` (the banner
+  dismissed)
 - Test: `__tests__/notify.test.tsx` (new)
 
 **Interfaces:**
@@ -894,15 +895,15 @@ git commit -m "feat(redesign-interface): git writes show at once, on their butto
   and navigates to `href`; `document.title` prefixed with "(N) " for N rows. The banner's state from
   `Notification.permission` and `localStorage["uraeda.notifications"]`.
 
-- [ ] **Step 1: Write the failing tests**: US6.1 to US6.9 with a fake `Notification`,
+- [x] **Step 1: Write the failing tests**: US6.1 to US6.9 with a fake `Notification`,
       `navigator.locks`, and `visibilityState`; SC-004 with fake timers; review focus 5 (the lock
       released by a closed tab); `Notification` missing hides the banner.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
       (`vp test packages/web/src/__tests__/notify.test.tsx`), Expected: FAIL, no banner "Get
       notified when an agent needs you"
-- [ ] **Step 3: Implement**, as in **Interfaces**.
-- [ ] **Step 4: Run all tests** (`vp check`, `vp run ts:test`), Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Implement**, as in **Interfaces**.
+- [x] **Step 4: Run all tests** (`vp check`, `vp run ts:test`), Expected: PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-redesign-interface/plan.md
