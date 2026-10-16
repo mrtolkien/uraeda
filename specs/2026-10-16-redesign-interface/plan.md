@@ -276,7 +276,7 @@ Preserved behaviour:
   or record in its tip commit; for a checked-out branch, `Feature.step` comes from the tip's texts,
   while `texts`, `files`, `uncommitted`, `source`, and `worktree` stay from disk.
 
-- [ ] **Step 1: Split `workspace.rs` before it changes**
+- [x] **Step 1: Split `workspace.rs` before it changes**
 
 Move `add_branch_features`, `branch_feature`, and `working_tree_features` into
 `workspace/branches.rs`, unchanged, so the changes of step 4 fit under the file's cap.
