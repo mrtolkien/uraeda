@@ -67,3 +67,5 @@
   page's Now · N leaves them out
 - [agent] [redesign-priorities] ura note still refuses when other files are staged, while the web
   UI's Add and commit commits the file alone
+- [agent] [redesign-priorities] Discard keeps a priority's draft on disk when the line's children
+  changed since the last commit
