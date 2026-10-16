@@ -20,7 +20,7 @@ import { imagesInUse } from "./runner/image-uses.ts";
 import type { Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
-import { OneTimeLinks } from "./sign-in/links.ts";
+import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
 import { SignInStore } from "./sign-in/store.ts";
 
 /** How often the server checks that the agent still works. */
@@ -82,11 +82,14 @@ export type Server = {
   newKey: () => string;
   previews: Previews;
   sessions: Sessions;
-  /** A one-time link to the page `to`, which signs a browser in; `to` itself without sign-in. */
-  signInLink: (to: string) => string;
   /**
-   * Closes the hosts' watches, stops the sessions' turns, closes their processes, and stops every
-   * Storybook.
+   * The address a browser opens for the page `to`: the `file://` address of a page leading to a
+   * one-time link, which signs it in; the page itself without sign-in.
+   */
+  signInPage: (to: string) => string;
+  /**
+   * Closes the hosts' watches, stops the sessions' turns, closes their processes, stops every
+   * Storybook, and removes the one-time links' pages.
    */
   stop: () => Promise<void>;
   /**
@@ -108,9 +111,14 @@ export const newKeyLines = (key: string) =>
 
 /**
  * The server's sign-in, unless `signIn` is false: the store of the data folder, its key when this
- * start made it, the one-time links, and the host token.
+ * start made it, the one-time links, their pages in the data folder, and the host token.
  */
-function openSignIn(options: { dataDir: string; hostToken?: string; signIn?: false }): {
+function openSignIn(options: {
+  dataDir: string;
+  hostToken?: string;
+  port: number;
+  signIn?: false;
+}): {
   key?: string;
   signIn?: SignInOptions;
 } {
@@ -118,7 +126,8 @@ function openSignIn(options: { dataDir: string; hostToken?: string; signIn?: fal
     return {};
   }
   const { key, store } = SignInStore.open(options.dataDir);
-  return { key, signIn: { hostToken: options.hostToken, links: new OneTimeLinks(), store } };
+  const links = new OneTimeLinks(Date.now, linkPages(options.dataDir, options.port));
+  return { key, signIn: { hostToken: options.hostToken, links, store } };
 }
 
 /** Ends the sessions unused for 30 days; a file that cannot be written is reported, not thrown. */
@@ -206,6 +215,7 @@ export async function startServer(
   const sweeping = setInterval(() => {
     previews.sweep();
     sweepSessions(signIn?.store);
+    signIn?.links.sweep();
   }, SWEEP_EVERY_MS);
   sweeping.unref();
   let stopping: Promise<void> | undefined;
@@ -231,10 +241,16 @@ export async function startServer(
     },
     previews,
     sessions: sessions.sessions,
-    signInLink: (to) => signIn?.links.make(to) ?? to,
+    signInPage: (to) =>
+      browserAddress(
+        linkPages(dataDir, options.port),
+        `http://127.0.0.1:${options.port}`,
+        signIn?.links.make(to) ?? to,
+      ),
     stop: () => {
       stopping ??= (async () => {
         clearInterval(sweeping);
+        signIn?.links.close();
         opened.close();
         await Promise.all([sessions.stop(), previews.stopAll()]);
       })();
