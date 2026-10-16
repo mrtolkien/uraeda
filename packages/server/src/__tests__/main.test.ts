@@ -2,6 +2,7 @@ import { type ChildProcessWithoutNullStreams, spawn, spawnSync } from "node:chil
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   statSync,
@@ -16,6 +17,7 @@ import { afterEach, expect, test } from "vite-plus/test";
 import { checkBinding, loadBinding } from "../binding.ts";
 import { handOff } from "../open-client.ts";
 import { HELP } from "../options.ts";
+import { linkPages } from "../sign-in/links.ts";
 import { hash } from "../sign-in/tokens.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { readRepositories, version } from "uraeda-binding";
@@ -747,4 +749,81 @@ test("the sign-in file and the output never hold a session token", async () => {
   expect(output.join("").split(keyIn(second.stdout))).toHaveLength(2);
   expect(file).not.toContain(key);
   expect(file).not.toContain(keyIn(second.stdout));
+});
+
+/** A config folder whose `config.toml` holds `text`: its folder and how to read the file again. */
+function configWith(text: string) {
+  const dir = temporaryFolder("uraeda-config");
+  writeFileSync(join(dir, "config.toml"), text);
+  return { dir, read: () => readFileSync(join(dir, "config.toml"), "utf8") };
+}
+
+/**
+ * Starts `main.ts` on the settings of `config` and the variables of `env`, in a fresh data folder,
+ * without `.env`'s port: once ready, the address it printed.
+ */
+async function startOn(
+  config: string,
+  {
+    args = [],
+    env = {},
+    opener,
+  }: { args?: Array<string>; env?: Record<string, string>; opener?: Opener } = {},
+) {
+  const data = temporaryFolder("uraeda-data");
+  const server = start(["--repo", fixtureRepo(), ...args], {
+    env: { URAEDA_CONFIG_DIR: config, URAEDA_DATA_DIR: data, URAEDA_PORT: "", ...env },
+    opener,
+  });
+  await ready(server);
+  return { address: /Uraeda server on (\S+)\n/.exec(server.output.stdout)![1], data, server };
+}
+
+/** US3.1, US2.2, US2.3, SC-003: the port, from the flag, the variable, then the file. */
+test("the port comes from --port, then URAEDA_PORT, then the file, which no start changes", async () => {
+  const [file, variable, flag] = [await freePort(), await freePort(), await freePort()];
+  const config = configWith(`# mine\n[server]\nport = ${file}\n`);
+
+  const fromFile = await startOn(config.dir);
+  const fromVariable = await startOn(config.dir, { env: { URAEDA_PORT: String(variable) } });
+  const fromFlag = await startOn(config.dir, {
+    args: ["--port", String(flag)],
+    env: { URAEDA_PORT: String(variable) },
+  });
+
+  expect(fromFile.address).toBe(`http://127.0.0.1:${file}`);
+  expect(fromVariable.address).toBe(`http://127.0.0.1:${variable}`);
+  expect(fromFlag.address).toBe(`http://127.0.0.1:${flag}`);
+  expect(config.read()).toBe(`# mine\n[server]\nport = ${file}\n`);
+});
+
+/** US3.3 */
+test("open_browser = false in the file opens no browser", async () => {
+  const opener = fakeOpener();
+  const port = await freePort();
+  const config = configWith("[server]\nopen_browser = false\n");
+
+  const { data } = await startOn(config.dir, { args: ["--port", String(port)], opener });
+  // A round trip: the start's code after its address has run, and a browser that opens would
+  // have its one-time link's page.
+  await fetch(`http://127.0.0.1:${port}/session`);
+
+  const pages = linkPages(data, port);
+  expect(existsSync(pages) ? readdirSync(pages) : []).toEqual([]);
+  expect(existsSync(opener.log)).toBe(false);
+  expect(config.read()).toBe("[server]\nopen_browser = false\n");
+});
+
+/** Edge case: a file that cannot be read. */
+test("a broken file starts on the defaults, its problem printed, the file kept", async () => {
+  const port = await freePort();
+  const config = configWith("[server]\nport = 0\n");
+
+  const { server } = await startOn(config.dir, { env: { URAEDA_PORT: String(port) } });
+
+  expect(server.output.stdout).toContain(`Uraeda server on http://127.0.0.1:${port}\n`);
+  expect(server.output.stderr).toContain(
+    `uraeda: Cannot read ${config.dir}/config.toml: line 2, port: The port is a number from 1 to 65535. The server uses its defaults until the file is fixed.\n`,
+  );
+  expect(config.read()).toBe("[server]\nport = 0\n");
 });

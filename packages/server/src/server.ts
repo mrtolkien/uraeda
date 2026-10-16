@@ -9,7 +9,6 @@ import { chatImages } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf, livePreviews, renewPreviews } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
-import type { Options } from "./options.ts";
 import { guardCheck } from "./guard.ts";
 import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
 import { previewUpgrade } from "./preview/proxy.ts";
@@ -22,6 +21,7 @@ import type { Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
+import type { ServerSettings } from "./settings.ts";
 import { SIGN_IN_FILE, SignInStore } from "./sign-in/store.ts";
 
 /** How often the server checks that the agent still works. */
@@ -89,7 +89,7 @@ export type Server = {
    */
   signInPage: (to: string) => string;
   /**
-   * Closes the hosts' watches, stops the sessions' turns, closes their processes, stops every
+   * Closes the hosts' and the settings' watches, stops the sessions' turns, closes their processes, stops every
    * Storybook, and removes the one-time links' pages.
    */
   stop: () => Promise<void>;
@@ -187,15 +187,27 @@ export async function startServer(options: StartOptions): Promise<Server> {
   }
 }
 
-/** What `startServer` takes. */
-type StartOptions = Omit<Options, "newKey" | "open" | "show"> & {
+/** What `startServer` takes: the values in force for this run, and what the server works with. */
+type StartOptions = {
   adapter: Adapter;
+  /** Host names accepted besides 127.0.0.1 and localhost, as in force at start. */
+  allowedHosts?: Array<string>;
+  /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
+  allowOrigins: Array<string>;
   binding: Binding;
   dataDir: string;
+  /** Whether the repository was named, by `--repo` or `URAEDA_REPO`, so it must be in git. */
+  given: boolean;
   /** The host token `/open` and `/session/key` accept from the host's own `uraeda`. */
   hostToken?: string;
   /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
   lockedList?: boolean;
+  /** The port the server listens on. */
+  port: number;
+  /** The repository to open first. */
+  repo: string;
+  /** The settings in force, closed as the server stops. */
+  settings?: ServerSettings;
   /** False for no sign-in: only code turns it off. */
   signIn?: false;
   /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
@@ -272,6 +284,7 @@ async function startOpened(
         clearInterval(sweeping);
         signIn?.links.close();
         opened.close();
+        options.settings?.close();
         await Promise.all([sessions.stop(), previews.stopAll()]);
       })();
       return stopping;

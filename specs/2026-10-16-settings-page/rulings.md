@@ -73,3 +73,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   banner; serde's messages, which name Rust types.
 - **If wrong**: a few messages to change, in `crates/core/src/settings/file.rs`.
 - **Where**: task 1
+
+## R7: An empty variable is unset; an empty flag is given
+
+- **Decision**: `URAEDA_ALLOWED_HOSTS=` and `URAEDA_PORT=`, set but empty, count as unset, so the
+  file's value applies; `--allowed-hosts ""` is given, and allows no host name for the run.
+- **Rationale**: `URAEDA_REPO`, `URAEDA_DATA_DIR`, and `URAEDA_CONFIG_DIR` already read an empty
+  value as unset, and a `.env` line left empty means "not set"; a flag typed on the command line is
+  a deliberate choice for the run.
+- **Alternatives considered**: an empty `URAEDA_ALLOWED_HOSTS` overriding the file with no host
+  names, as it gave none before this feature.
+- **If wrong**: one condition in `loadEnv`.
+- **Where**: task 2, `packages/server/src/env.ts`
