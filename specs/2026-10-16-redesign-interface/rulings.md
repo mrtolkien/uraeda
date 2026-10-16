@@ -173,3 +173,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `sessionPublisher`'s throttled path.
 - **If wrong**: the fixture is added, or the count moves into the publisher's throttle.
 - **Where**: task 5.
+
+## R14: What needs the human is one record of rows
+
+- **Decision**: the global view is one record, `NeedsYouList`, id `all`, holding every row, as the
+  session list does, instead of one record per item; it is sent again on the global bus whenever a
+  repository's watcher publishes, and whenever a session's turn changes state. Each feature's status
+  comes from `featureStatuses` in `fate/sessions.ts`, the same rules as the session list's.
+- **Rationale**: the notifier compares the whole set with what it saw; one record is one read and
+  one live update, and the list's pattern is the project's.
+- **Alternatives considered**: a list of records by item: one subscription per item, and removals
+  harder to see.
+- **If wrong**: the rows become records of their own, read through a list.
+- **Where**: task 6.

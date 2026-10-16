@@ -257,6 +257,26 @@ async function rows(
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
 }
 
+/**
+ * Each feature in flight of the server's repository, with its status: its session's, from the same
+ * rules as the sidebar's, or, without a session, whether its step waits on the human.
+ */
+export async function featureStatuses(ctx: RepoContext) {
+  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
+  const { cache } = ctx.sessions;
+  return (await workspaceOf(ctx, ctx.repo)).features
+    .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
+    .map((feature) => {
+      const row = root === undefined ? undefined : cache.featureSession(root, feature.folder);
+      const status = row
+        ? statusOf(row, turnsOf(cache, row.id), feature)
+        : feature.step.waitsOn === "human"
+          ? { status: "needs-you" as const, statusReason: "step" as const }
+          : { status: "idle" as const, statusReason: null };
+      return { feature, status: status.status, statusReason: status.statusReason };
+    });
+}
+
 export async function sessionList(ctx: RepoContext): Promise<SessionListRecord> {
   // A repository the core gives no main checkout for, like one without a commit, has no sessions.
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);

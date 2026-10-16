@@ -26,6 +26,7 @@ import {
   workflowMessageDataView,
   workspaceDataView,
 } from "./fate/views.ts";
+import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { settingsDataView } from "./fate/settings.ts";
 
@@ -37,6 +38,7 @@ export {
   fileDataView,
   folderSuggestionsDataView,
   inboxDataView,
+  needsYouListDataView,
   previewDataView,
   prioritiesDataView,
   proposalHintsDataView,
@@ -88,6 +90,8 @@ export type Story = Entity<typeof storyDataView, "Story">;
 export type Preview = Entity<typeof previewDataView, "Preview">;
 export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
 export type Settings = Entity<typeof settingsDataView, "Settings">;
+export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
+export { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";
 /** A turn's item, as a `TurnLog` page lists it. */
