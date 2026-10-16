@@ -16,6 +16,7 @@ import {
   today,
   type,
 } from "./helpers.tsx";
+import { runWrite } from "../writes/store.ts";
 
 const WEB_UI = "2026-10-11-web-ui";
 const ROUND = `/f/${WEB_UI}/clarifications-01.md`;
@@ -152,4 +153,23 @@ test("Start the agent shows on the feature's card at once", async () => {
   } finally {
     held.release();
   }
+});
+
+/** US5.1, on the New change page: another page's write blocks "Start the change". */
+test("Start the change waits for another page's write", async () => {
+  const done = Promise.withResolvers<boolean>();
+  let write: Promise<boolean> | undefined;
+  await renderPage("/changes/new", answeredRepo(), { agent: true });
+  await screen.findByRole("heading", { name: "New change" });
+
+  act(() => {
+    write = runWrite({ label: "Committing…" }, () => done.promise);
+  });
+
+  expect(await screen.findByText("Another change is being saved to git")).toBeTruthy();
+  await act(async () => {
+    done.resolve(true);
+    await write;
+  });
+  expect(screen.queryByText("Another change is being saved to git")).toBeNull();
 });

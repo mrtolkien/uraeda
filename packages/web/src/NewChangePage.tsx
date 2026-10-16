@@ -19,7 +19,7 @@ import { handOver } from "./sessions.ts";
 import { SlugField } from "./SlugField.tsx";
 import { useDraft } from "./useDraft.ts";
 import { FeatureView } from "./views.ts";
-import { runWrite } from "./writes/store.ts";
+import { runWrite, useWrites } from "./writes/store.ts";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -102,6 +102,9 @@ export function NewChangePage() {
   const proposed = useSlugProposal(useSettled(text.text));
   const slug = useTextField("new-change#slug", proposed, { drawn: false });
   const { error, start } = useStart(text, slug);
+  // Another page's write still running blocks this one, as every writing button is blocked.
+  const { running } = useWrites();
+  const [starting, setStarting] = useState(false);
   return (
     <Page>
       <VStack gap={4}>
@@ -115,10 +118,14 @@ export function NewChangePage() {
           images={images}
           onChange={text.change}
           onImagesChange={setImages}
+          {...(running && !starting ? { blocked: "Another change is being saved to git" } : {})}
           // Its branch and worktree are written: the other writes wait, as for a commit.
-          onSend={(sent, images) =>
-            runWrite({ label: "Starting the change…" }, () => start(sent, images))
-          }
+          onSend={(sent, images) => {
+            setStarting(true);
+            return runWrite({ label: "Starting the change…" }, () => start(sent, images)).finally(
+              () => setStarting(false),
+            );
+          }}
           sendLabel="Start the change"
           value={text.text}
         />
