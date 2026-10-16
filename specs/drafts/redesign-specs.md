@@ -27,11 +27,13 @@ READABILITY: rewording and redesign go together, the skill and the templates cha
 
 Regarding storybook:
 
-- On desktop the embed should take more width than only the middle column, right the text is a bit
+- On desktop the embed should take more width than only the middle column, right now the text is too
   small.
+  - If possible I'd even like a "fullscreen" option
 - "Phone" view on desktop should be centered and clearly show what's the Phone screen with borders.
 - The default view should be the one of the active device (phone on phone, desktop on desktop).
   Remove "Both".
+- We should be able to resize the story book from: for interface redesign US2, it was too short
 
 ## Why
 

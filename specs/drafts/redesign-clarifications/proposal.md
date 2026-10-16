@@ -26,6 +26,8 @@ Desktop + mobile:
   - Even when using bullet points, we could use sub-headers for grouping and structure
   - This is about the intro, the questions, and the outro ("settled without you"). They all are hard
     to digest for a human.
+- Storybooks embed didn't work here:
+  http://127.0.0.1:4310/r/uraeda/f/2026-10-16-redesign-priorities/clarifications-01.md
 
 Desktop:
 

@@ -17,7 +17,7 @@
 - Storybook's full interface inside Uraeda: its page lists stories but renders none, since
   Storybook's dev mode pins its messages to an origin the sandboxed frame lacks
   (`security.insecureIframeMessaging`). Look at it as a change, see round 04 of the UI iteration
-  flow -> this is a change not a feature
+  flow
 
 - [Look and feel pass](drafts/look-and-feel.md)
 
