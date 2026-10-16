@@ -2,7 +2,7 @@
 // which order, and what its card shows. The core decides each step and its order; this only draws
 // them.
 import type { SessionStatus } from "uraeda-server/fate";
-import type { useNavigation } from "../data.ts";
+import type { useNavigation } from "../sessionData.ts";
 import { stepLabel, waiting } from "../labels.ts";
 import type { CardItem } from "./ItemCard.tsx";
 import type { StepKind } from "./StepIcon.tsx";

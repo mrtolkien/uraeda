@@ -20,10 +20,10 @@ import { useTextField } from "./fields/useTextField.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useUndoToast } from "./layout/useUndoToast.ts";
+import { pathLink } from "./links.tsx";
 import {
   currentEntry,
   navigate,
-  pathLink,
   redirect,
   useRepoPath,
   useRepository,

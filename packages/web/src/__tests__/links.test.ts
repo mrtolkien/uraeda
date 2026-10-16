@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { pathLink } from "../routes.tsx";
+import { pathLink } from "../links.tsx";
 import { addMockup, answered, atRepo, fixtureRepo, git, quiet, renderPage } from "./helpers.tsx";
 
 test("a feature's workflow file opens in the UI", () => {

@@ -3,7 +3,8 @@ import { HStack } from "@astryxdesign/core/HStack";
 import type { Document, MockupLink, StoryLink } from "uraeda-binding";
 import { usePreviewOn } from "./data.ts";
 import { type Folds, useRevealBlock } from "./Folds.tsx";
-import { navigate, pathLink, useRepoPath, useRepository } from "./routes.tsx";
+import { pathLink } from "./links.tsx";
+import { navigate, useRepoPath, useRepository } from "./routes.tsx";
 import { storybookHref, storyEmbedId } from "./stories.tsx";
 
 /**

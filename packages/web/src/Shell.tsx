@@ -6,7 +6,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useRef, useState } from "react";
-import { useNavigation } from "./data.ts";
+import { useNavigation } from "./sessionData.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
