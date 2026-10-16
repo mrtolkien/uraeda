@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign sidebars and global interface
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 45 minutes.
+> Approved on 2026-10-16.
 >
 > - One new decision, [notifications](../decisions/notifications.md), and five changed:
 >   [agents](../decisions/agents.md#proposed-change-2026-10-16-redesign-interface) (background
