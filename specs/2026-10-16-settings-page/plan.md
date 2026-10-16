@@ -646,11 +646,16 @@ git commit -m "feat(settings-page): the settings record and its changes"
 
 - Consumes: the record and mutations (task 5).
 - Produces: route `{ page: "settings"; category?: string }` for `/settings` and
-  `/settings/<category>`; `ServerValues` and `ServerActions` replaced by the record's type from
-  `fate.ts`, the browser's host from `window.location.hostname`; `EditableLine`'s
-  `look?: "text" | "field"`, `"text"` by default.
+  `/settings/<category>`; `ServerValues`, now `Pick<Settings, "file" | "problem" | "server">` of the
+  record's type from `fate.ts`, and `ServerActions`, each action resolving with the error to show or
+  undefined; `SettingsPage` reads the browser's host from `window.location.hostname` and asks before
+  removing it, so the view takes no `currentHost`
+  ([R15](rulings.md#r15-the-add-row-is-a-button-and-empty-values-have-their-own-refusal));
+  `EditableLine`'s `look?: "text" | "field"`, `"text"` by default, and `empty?: string`, the refusal
+  of an empty text; `OnListClient` exported from `RepositoryMenu.tsx`; the web tests' `renderPage`
+  option `settings: { allowedHosts?, dir? }`, as `testSettings` takes it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `settings.test.tsx`, on `renderPage("/settings/server")` with a temporary config folder:
 
@@ -672,24 +677,24 @@ In `settings.test.tsx`, on `renderPage("/settings/server")` with a temporary con
 The break each test catches: the browser's host compared with the port; the dialog shown for
 `127.0.0.1`; a refusal clearing the field; the note hidden when the flag wins.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web src/__tests__/settings.test.tsx`
 - Expected: FAIL, the page at `/settings/server` renders the missing page:
   `Unable to find role "heading" and name "Server"`
 
-- [ ] **Step 3: Implement the route, `SettingsPage`, and the wiring**
+- [x] **Step 3: Implement the route, `SettingsPage`, and the wiring**
 
 `SettingsPage` reads `useSettings()` on the global client, as `useRepositories` does, and passes the
 record and the mutations to `SettingsView`; the stories keep passing values, now of the record's
 type.
 
-- [ ] **Step 4: Run the web tests**
+- [x] **Step 4: Run the web tests**
 
 - Run: `vp test --project uraeda-web && vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-settings-page/plan.md

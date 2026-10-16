@@ -41,6 +41,7 @@ import {
 import { ListClientContext, useOpenRepository } from "./RepositoryMenu.tsx";
 import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.tsx";
 import { SessionPage } from "./SessionPage.tsx";
+import { SettingsPage } from "./settings/SettingsPage.tsx";
 import { StorybookPage } from "./StorybookPage.tsx";
 import { TaskView } from "./TaskView.tsx";
 import { TriagePage } from "./TriagePage.tsx";
@@ -131,6 +132,8 @@ function RoutePage({ route }: { route: Route }) {
       return <NewChangePage />;
     case "first-run":
       return <FirstRun />;
+    case "settings":
+      return <SettingsPage category={route.category} />;
     default:
       return <Nothing />;
   }

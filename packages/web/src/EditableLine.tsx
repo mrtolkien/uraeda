@@ -4,7 +4,13 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  borderVars,
+  colorVars,
+  radiusVars,
+  sizeVars,
+  spacingVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { KeyboardEvent, ReactNode } from "react";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
@@ -21,6 +27,21 @@ const styles = stylex.create({
     minHeight: sizeVars["--size-element-md"],
     textAlign: "start",
   },
+  // A value to change, like a setting's: a box drawn as a field, at the control's height, the
+  // value inside, so it reads as something to edit.
+  field: {
+    alignItems: "center",
+    backgroundColor: colorVars["--color-background-surface"],
+    borderColor: colorVars["--color-border"],
+    borderRadius: radiusVars["--radius-element"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
+    boxSizing: "border-box",
+    display: "flex",
+    minHeight: sizeVars["--size-element-md"],
+    paddingInline: spacingVars["--spacing-3"],
+    textAlign: "start",
+  },
 });
 
 /**
@@ -30,29 +51,40 @@ const styles = stylex.create({
  * restored with a notice. An empty text is refused; `onSave` resolves with the error to show under
  * the field, which keeps the typed text, or with nothing once saved. `display` is what the button
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
- * for the next line.
+ * for the next line. `look` draws the closed line as text, by default, or as a bordered field, for
+ * a value to change like a setting's. `empty` is the refusal of an empty text, a priority's by
+ * default.
  */
 export function EditableLine({
   display,
+  empty,
   field: key,
   label,
+  look = "text",
   onSave,
   stayOpen = false,
   value,
 }: {
   display?: ReactNode;
+  empty?: string;
   field: string;
   label: string;
+  look?: "text" | "field";
   onSave: (text: string) => Promise<string | undefined>;
   stayOpen?: boolean;
   value: string;
 }) {
-  const line = useLineSave({ field: key, onSave, stayOpen, value });
+  const line = useLineSave({ empty, field: key, onSave, stayOpen, value });
 
   if (!line.open) {
     return (
       <VStack gap={1}>
-        <Link color="primary" onClick={line.openLine} type="inherit" xstyle={styles.text}>
+        <Link
+          color="primary"
+          onClick={line.openLine}
+          type="inherit"
+          xstyle={look === "field" ? styles.field : styles.text}
+        >
           {display ?? value}
         </Link>
         {line.state.kind === "saved" && <SaveStatus dirty={false} state={line.state} />}

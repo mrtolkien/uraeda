@@ -20,6 +20,7 @@ import {
   SessionListView,
   SessionSearchView,
   SessionView,
+  SettingsRecordView,
   SlugProposalView,
   StoryHrefView,
   StoryView,
@@ -39,6 +40,7 @@ const AGENT_ID = "agent";
 const SESSION_LIST_ID = "all";
 const PROPOSAL_HINTS_ID = "proposal";
 const REPOSITORIES_ID = "repositories";
+const SETTINGS_ID = "settings";
 
 /** Reads a request again from the server when the page comes back to the foreground. */
 function useRefreshOnShow(request: Parameters<typeof useRequest>[0]) {
@@ -349,6 +351,17 @@ export function useRepositories() {
   const { repositories } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(RepositoriesView, repositories);
+}
+
+/**
+ * The server's settings, as it applies them, and the file's: the same from every endpoint, read
+ * on the client the caller is under, kept up to date as the file changes.
+ */
+export function useSettings() {
+  const request = { settings: { id: SETTINGS_ID, view: SettingsRecordView } };
+  const { settings } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(SettingsRecordView, settings);
 }
 
 /**
