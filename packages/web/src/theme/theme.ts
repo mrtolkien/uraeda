@@ -174,6 +174,10 @@ export const uraedaTheme = defineTheme({
   },
   name: "uraeda",
   tokens: {
+    // A selected row's background. The neutral theme's dark value is its surface's, #262626, so the
+    // row open in a pane did not show apart from the list; #303030 is its grey background, which
+    // shows on the surface and on the sidebar's #1b1b1b. Light is the neutral theme's.
+    "--color-accent-muted": ["#f1f1f1", "#303030"],
     // Secondary text, lighter in dark than the neutral theme's #9e9e9e, which reads at 4.1:1 on a
     // segmented control's track: #a8a8a8 reaches WCAG AA's 4.5:1 there. Light is the neutral theme's.
     "--color-text-secondary": ["#474747", "#a8a8a8"],
