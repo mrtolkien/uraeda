@@ -11,6 +11,7 @@ use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 use crate::api::ApiError;
 
 mod file;
+mod list;
 mod rules;
 
 /// The start of a file the first write creates.
@@ -63,46 +64,49 @@ pub fn read(dir: &Path) -> Result<Settings, ApiError> {
 pub fn add_allowed_host(dir: &Path, name: &str) -> Result<Settings, ApiError> {
     let name = rules::host_name(name).map_err(refused)?;
     change(dir, |server| {
-        let hosts = hosts(server);
-        if position(hosts, &name).is_some() {
+        let hosts = hosts(server)?;
+        if !positions(hosts, &name).is_empty() {
             return Err(already(&name));
         }
-        let decor = hosts
-            .iter()
-            .last()
-            .map(|last| last.decor().clone())
-            .filter(|decor| prefix(decor).contains('\n'));
-        hosts.push(name.as_str());
-        if let (Some(decor), Some(added)) = (decor, hosts.iter_mut().last()) {
-            *added.decor_mut() = decor;
-        }
+        list::push(hosts, &name);
         Ok(())
     })
 }
 
-/// Replaces the host name `from` with `to`, trimmed and in lower case, in its place.
+/// Replaces the host name `from` with `to`, trimmed and in lower case, in its place. A name the
+/// file lists more than once is replaced in its first place, and its copies removed.
 pub fn edit_allowed_host(dir: &Path, from: &str, to: &str) -> Result<Settings, ApiError> {
     let to = rules::host_name(to).map_err(refused)?;
     change(dir, |server| {
-        let hosts = hosts(server);
-        let index = position(hosts, from).ok_or_else(|| not_listed(from))?;
-        if position(hosts, &to).is_some_and(|other| other != index) {
+        let hosts = hosts(server)?;
+        let places = positions(hosts, from);
+        let Some((&first, copies)) = places.split_first() else {
+            return Err(not_listed(from));
+        };
+        if positions(hosts, &to)
+            .iter()
+            .any(|other| !places.contains(other))
+        {
             return Err(already(&to));
         }
-        hosts.replace(index, to.as_str());
+        for &copy in copies.iter().rev() {
+            list::remove(hosts, copy);
+        }
+        hosts.replace(first, to.as_str());
         Ok(())
     })
 }
 
-/// Removes the host name `name`.
+/// Removes the host name `name`, every copy of it.
 pub fn remove_allowed_host(dir: &Path, name: &str) -> Result<Settings, ApiError> {
     change(dir, |server| {
-        let hosts = hosts(server);
-        let index = position(hosts, name).ok_or_else(|| not_listed(name))?;
-        let removed = hosts.remove(index);
-        // The first name's place, `["` with no space, goes to the name now first.
-        if let (0, Some(first)) = (index, hosts.get_mut(0)) {
-            *first.decor_mut() = removed.decor().clone();
+        let hosts = hosts(server)?;
+        let places = positions(hosts, name);
+        if places.is_empty() {
+            return Err(not_listed(name));
+        }
+        for &place in places.iter().rev() {
+            list::remove(hosts, place);
         }
         Ok(())
     })
@@ -125,19 +129,15 @@ pub fn set_open_browser(dir: &Path, open: bool) -> Result<Settings, ApiError> {
     })
 }
 
-/// The file's text, `None` when there is none, and its settings; or the `unreadable` problem.
-fn checked(dir: &Path) -> Result<(Option<String>, Settings), ApiError> {
-    let unreadable = |problem: String| ApiError {
-        code: "unreadable",
-        message: format!("Cannot read {}: {problem}", shown(&dir.join(file::FILE))),
-        output: None,
-    };
-    let text = file::load(dir).map_err(unreadable)?;
-    let settings = text
-        .as_deref()
-        .map_or_else(|| Ok(Settings::default()), file::parse)
-        .map_err(unreadable)?;
-    Ok((text, settings))
+/// The file's text and layout, `None` when there is none, and its settings; or the `unreadable`
+/// problem.
+fn checked(dir: &Path) -> Result<(Option<(String, file::Layout)>, Settings), ApiError> {
+    let read = file::load(dir).map_err(|problem| unreadable(dir, &problem))?;
+    let settings = read
+        .as_ref()
+        .map_or_else(|| Ok(Settings::default()), |(text, _)| file::parse(text))
+        .map_err(|problem| unreadable(dir, &problem))?;
+    Ok((read, settings))
 }
 
 /// Applies `edit` to the `[server]` table of the file as it is now, one write at a time, and
@@ -147,46 +147,52 @@ fn change(
     edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
     let _lock = crate::api::write_lock();
-    let (text, _) = checked(dir)?;
-    let text = text.unwrap_or_else(|| format!("{HEADER}\n[server]\n"));
-    let mut document: DocumentMut = text.parse().expect("a file read without a problem parses");
+    let (read, _) = checked(dir)?;
+    let (text, layout) =
+        read.unwrap_or_else(|| (format!("{HEADER}\n[server]\n"), file::Layout::default()));
+    // `checked` parsed the same text, so these failures are unreachable; each still answers.
+    let mut document: DocumentMut = text
+        .parse()
+        .map_err(|error: toml_edit::TomlError| unreadable(dir, error.message()))?;
     let server = document
         .as_table_mut()
         .entry("server")
         .or_insert_with(toml_edit::table)
         .as_table_like_mut()
-        .expect("a file read without a problem has a table of settings");
+        .ok_or_else(|| unreadable(dir, "[server] is a table of settings."))?;
     edit(server)?;
     let text = document.to_string();
-    let settings = file::parse(&text).expect("a change keeps the file valid");
-    file::save(dir, &text).map_err(|reason| {
-        refused(format!(
-            "Could not save {}: {reason}.",
-            shown(&dir.join(file::FILE))
-        ))
-    })?;
+    let not_saved = |reason: &str| refused(format!("Could not save {}: {reason}", shown_file(dir)));
+    let settings = file::parse(&text).map_err(|problem| not_saved(&problem))?;
+    file::save(dir, &text, layout).map_err(|reason| not_saved(&format!("{reason}.")))?;
     Ok(settings)
 }
 
 /// `allowed_hosts`, created empty when absent.
-fn hosts(server: &mut dyn TableLike) -> &mut Array {
+fn hosts(server: &mut dyn TableLike) -> Result<&mut Array, ApiError> {
     if server.get("allowed_hosts").is_none() {
         server.insert("allowed_hosts", Item::Value(Value::Array(Array::new())));
     }
+    // A file read without a problem lists its host names, so the refusal is unreachable.
     server
         .get_mut("allowed_hosts")
         .and_then(Item::as_array_mut)
-        .expect("a file read without a problem lists its host names")
+        .ok_or_else(|| refused("The allowed host names are not a list."))
 }
 
-/// Where `name`, trimmed and in any case, is in the list.
-fn position(hosts: &Array, name: &str) -> Option<usize> {
+/// Every place where `name`, trimmed and in any case, is in the list.
+fn positions(hosts: &Array, name: &str) -> Vec<usize> {
     let name = name.trim();
-    hosts.iter().position(|value| {
-        value
-            .as_str()
-            .is_some_and(|listed| listed.eq_ignore_ascii_case(name))
-    })
+    hosts
+        .iter()
+        .enumerate()
+        .filter(|(_, value)| {
+            value
+                .as_str()
+                .is_some_and(|listed| listed.eq_ignore_ascii_case(name))
+        })
+        .map(|(place, _)| place)
+        .collect()
 }
 
 /// Sets `key` to `value`, keeping the comment and spaces around the value it replaces.
@@ -202,17 +208,18 @@ fn set(server: &mut dyn TableLike, key: &str, mut value: Value) {
     }
 }
 
-fn prefix(decor: &toml_edit::Decor) -> &str {
-    decor
-        .prefix()
-        .and_then(|prefix| prefix.as_str())
-        .unwrap_or_default()
-}
-
 fn refused(message: impl Into<String>) -> ApiError {
     ApiError {
         code: "refused",
         message: message.into(),
+        output: None,
+    }
+}
+
+fn unreadable(dir: &Path, problem: &str) -> ApiError {
+    ApiError {
+        code: "unreadable",
+        message: format!("Cannot read {}: {problem}", shown_file(dir)),
         output: None,
     }
 }
@@ -225,11 +232,19 @@ fn not_listed(name: &str) -> ApiError {
     refused(format!("{} is not an allowed host name.", name.trim()))
 }
 
-/// `path`, with the home folder written `~`.
-fn shown(path: &Path) -> String {
-    let home = std::env::home_dir().filter(|home| !home.as_os_str().is_empty());
-    match home.and_then(|home| path.strip_prefix(home).ok().map(Path::to_owned)) {
-        Some(rest) => Path::new("~").join(rest).display().to_string(),
-        None => path.display().to_string(),
+/// `path` as messages show it, the home folder `home` written `~`; unchanged outside it, or when
+/// `home` is empty.
+pub fn shown(path: &Path, home: &Path) -> String {
+    match path.strip_prefix(home) {
+        Ok(rest) if !home.as_os_str().is_empty() => Path::new("~").join(rest).display().to_string(),
+        _ => path.display().to_string(),
     }
+}
+
+/// The settings file in `dir`, as messages show it.
+fn shown_file(dir: &Path) -> String {
+    shown(
+        &dir.join(file::FILE),
+        &std::env::home_dir().unwrap_or_default(),
+    )
 }

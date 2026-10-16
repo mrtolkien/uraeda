@@ -34,10 +34,15 @@ fn refused(message: &str) -> ApiError {
     }
 }
 
+/// The file's path as messages show it.
+fn shown(dir: &Path) -> String {
+    settings::shown(&file(dir), &std::env::home_dir().unwrap_or_default())
+}
+
 fn unreadable(dir: &Path, problem: &str) -> ApiError {
     ApiError {
         code: "unreadable",
-        message: format!("Cannot read {}: {problem}", file(dir).display()),
+        message: format!("Cannot read {}: {problem}", shown(dir)),
         output: None,
     }
 }
@@ -61,7 +66,8 @@ fn reads_each_file() {
             open_browser: Some(false),
         },
     };
-    let rows: [(Option<&str>, Result<Settings, String>); 9] = [
+    let list = "The allowed host names are a list, like [\"mac.tail1234.ts.net\"].";
+    let rows: [(Option<&str>, Result<Settings, String>); 13] = [
         (None, Ok(Settings::default())),
         (Some(""), Ok(Settings::default())),
         (
@@ -91,6 +97,22 @@ fn reads_each_file() {
             Some("# mine\n\n[server]\nport = 0\n"),
             Err(format!("line 4, port: {PORT_PROBLEM}")),
         ),
+        (
+            Some("server = 1\n"),
+            Err("line 1, server: [server] is a table of settings.".into()),
+        ),
+        (
+            Some("[server]\nallowed_hosts = \"mac.tail1234.ts.net\"\n"),
+            Err(format!("line 2, allowed_hosts: {list}")),
+        ),
+        (
+            Some("[server]\nallowed_hosts = [\n  \"a.ts.net\",\n  4310,\n]\n"),
+            Err(format!("line 4, allowed_hosts: {list}")),
+        ),
+        (
+            Some("[server]\nopen_browser = \"yes\"\n"),
+            Err("line 2, open_browser: Opening a browser at start is true or false.".into()),
+        ),
     ];
     for (contents, expected) in rows {
         let _ = fs::remove_file(file(dir.path()));
@@ -113,12 +135,20 @@ fn reports_where_a_file_does_not_parse() {
     let error = settings::read(dir.path()).unwrap_err();
 
     assert_eq!(error.code, "unreadable");
-    let start = format!("Cannot read {}: line 1", file(dir.path()).display());
+    let start = format!("Cannot read {}: line 1", shown(dir.path()));
     assert!(error.message.starts_with(&start), "{}", error.message);
 }
 
 #[test]
 fn checks_each_host_name() {
+    let longest = [
+        "a".repeat(63),
+        "b".repeat(63),
+        "c".repeat(63),
+        "d".repeat(61),
+    ]
+    .join(".");
+    assert_eq!(longest.len(), 253);
     let long = format!("{}.ts.net", "a".repeat(247));
     assert_eq!(long.len(), 254);
     let rows: [(&str, Option<&str>); 11] = [
@@ -134,7 +164,11 @@ fn checks_each_host_name() {
         ("mac.ts.net:4310", None),
         ("", None),
     ];
-    for (typed, saved) in rows.iter().copied().chain([(long.as_str(), None)]) {
+    let lengths = [
+        (longest.as_str(), Some(longest.as_str())),
+        (long.as_str(), None),
+    ];
+    for (typed, saved) in rows.iter().copied().chain(lengths) {
         let dir = tempdir();
         write(dir.path(), "# mine\n");
 
@@ -380,10 +414,7 @@ fn reports_a_failed_write() {
     let saved = settings::set_port(dir.path(), "4400");
 
     fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o700)).unwrap();
-    let message = format!(
-        "Could not save {}: permission denied.",
-        file(dir.path()).display()
-    );
+    let message = format!("Could not save {}: permission denied.", shown(dir.path()));
     assert_eq!(saved, Err(refused(&message)));
     assert_eq!(text(dir.path()), "[server]\nport = 4310\n");
 }
