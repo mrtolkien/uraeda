@@ -23,17 +23,15 @@ READABILITY: rewording and redesign go together, the skill and the templates cha
 - Parsed frontmatter should not appear in the edit box
 - The wording and style must be model-agnostic: we need to be extremely clear as to the format
   expected, the tone, ...
+- Sometimes the spec quotes "Your Q4 answer" but I don't remember what it was: the spec should be
+  fully readable WITHOUT ANY CONTEXT.
 - TODO: Define what goes in the right sidebar on desktop!
+- Sometimes when I comment the page jumps around. Might be due to storybook embeds loading or
+  something?
 
-Regarding storybook:
-
-- On desktop the embed should take more width than only the middle column, right now the text is too
-  small.
-  - If possible I'd even like a "fullscreen" option
-- "Phone" view on desktop should be centered and clearly show what's the Phone screen with borders.
-- The default view should be the one of the active device (phone on phone, desktop on desktop).
-  Remove "Both".
-- We should be able to resize the story book from: for interface redesign US2, it was too short
+- When I pick an element and try to comment on storybook, sometimes the element name seems
+  problematic:
+  - "Story WorkList.stories.tsx#Selected, desktop, element"
 
 ## Why
 
