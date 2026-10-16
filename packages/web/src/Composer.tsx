@@ -30,6 +30,7 @@ import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { sendMessage } from "./sessions.ts";
 import { SessionView } from "./views.ts";
+import { clearPending, markPending } from "./writes/store.ts";
 
 const styles = stylex.create({
   input: { height: "var(--size-composer-input)" },
@@ -126,6 +127,11 @@ function useSend(
     }
     const sending = withImages ? images : [];
     setError(undefined);
+    // The feature's card says so at once, until the server's status for it changes.
+    const starting = workflow !== undefined ? folder : undefined;
+    if (starting !== undefined) {
+      markPending(starting, "Starting the agent…");
+    }
     onChange("");
     if (withImages) {
       onImagesChange([]);
@@ -141,6 +147,9 @@ function useSend(
         onSent?.(result.session);
         return;
       }
+      if (starting !== undefined) {
+        clearPending(starting);
+      }
       onChange(text);
       if (sending.length > 0) {
         onImagesChange((now) => [...sending, ...now]);
@@ -151,9 +160,15 @@ function useSend(
   const stop = () => {
     if (session !== undefined) {
       setError(undefined);
+      if (folder !== undefined) {
+        markPending(folder, "Stopping…");
+      }
       // The turn ends once the agent answers the interrupt: its live update brings the state.
       void fate.mutations.session.stop({ input: { session }, view: SessionView }).then((result) => {
         if (result.error) {
+          if (folder !== undefined) {
+            clearPending(folder);
+          }
           setError(refusal(result.error).message);
         }
       });

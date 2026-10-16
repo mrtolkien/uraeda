@@ -846,7 +846,7 @@ git commit -m "feat(redesign-interface): the session's column resizes and folds 
   `EditorPage.tsx`, `useEditorActions.ts`, `ReviewVerdict.tsx`, `RoundSubmit.tsx`, `roundTarget.ts`,
   `TaskView.tsx` (Start the feature), `NewChangePage.tsx`, `Composer.tsx` (Start the agent, Stop),
   `AgentPanel.tsx` (Stop), `Shell.tsx` (`WriteProgress`), `sidebar/cards.ts` (pending actions)
-- Test: `__tests__/writes.test.tsx` (new)
+- Test: `__tests__/writes.test.tsx` (new), `__tests__/writes-store.test.tsx` (new, R18)
 
 **Interfaces:**
 
@@ -859,16 +859,16 @@ git commit -m "feat(redesign-interface): the session's column resizes and folds 
   status for the folder differs from the one when it started, after 10 seconds, or when the write
   fails.
 
-- [ ] **Step 1: Write the failing tests**: US5.1 to US5.7 with a server held mid-write (the pattern
+- [x] **Step 1: Write the failing tests**: US5.1 to US5.7 with a server held mid-write (the pattern
       of `new-change.test.tsx:45-58`) and fake timers for the 10 seconds; SC-002 (the card's
       "Committing…" in the render after the click); review focus 4; "Discard them" and field saves
       not blocked.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
       (`vp test packages/web/src/__tests__/writes.test.tsx`), Expected: FAIL, no button named
       "Committing…"
-- [ ] **Step 3: Implement**, as in **Interfaces**; split `ReviewVerdict` (98 lines) before it grows.
-- [ ] **Step 4: Run all tests** (`vp check`, `vp run ts:test`), Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Implement**, as in **Interfaces**; split `ReviewVerdict` (98 lines) before it grows.
+- [x] **Step 4: Run all tests** (`vp check`, `vp run ts:test`), Expected: PASS
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-redesign-interface/plan.md

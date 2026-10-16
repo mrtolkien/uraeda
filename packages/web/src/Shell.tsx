@@ -19,6 +19,8 @@ import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
 import { SearchField, useSessionQuery } from "./sidebar/Search.tsx";
 import { Sidebar } from "./sidebar/Sidebar.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
+import { useWrites } from "./writes/store.ts";
+import { WriteProgress } from "./writes/WriteFeedback.tsx";
 
 const styles = stylex.create({
   controls: {
@@ -192,6 +194,11 @@ function Nav({ slot }: { slot: ReactNode }) {
   );
 }
 
+/** The thin bar at the top of the page, while a git write runs. */
+function Writing() {
+  return <WriteProgress isRunning={useWrites().running !== undefined} />;
+}
+
 /** The errors of refused Undos, each until dismissed. */
 function UndoErrors() {
   const [errors, dismiss] = useUndoErrors();
@@ -227,6 +234,7 @@ export function Shell({ children }: { children: ReactNode }) {
           sideNav={<Nav slot={slot} />}
           xstyle={styles.shell}
         >
+          <Writing />
           <UndoErrors />
           <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
         </AppShell>

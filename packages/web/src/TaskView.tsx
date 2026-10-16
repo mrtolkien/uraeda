@@ -33,6 +33,7 @@ import { SlugField } from "./SlugField.tsx";
 import { plain } from "./Spans.tsx";
 import { DraftView, FeatureView, PrioritiesView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { WriteButton } from "./writes/WriteButton.tsx";
 
 /** Each section's title, in the order the page shows them: a map, which the lint does not sort. */
 const SECTIONS = new Map([
@@ -93,10 +94,13 @@ function DraftPart({ path }: { path: string }) {
     });
     if (result.error) {
       setMessage(refusal(result.error).message);
-    } else if (typeof result.result?.folder === "string") {
+      return false;
+    }
+    if (typeof result.result?.folder === "string") {
       slug.discard();
       navigate(here(`/f/${result.result.folder}`));
     }
+    return true;
   };
   return (
     <VStack gap={3}>
@@ -109,7 +113,12 @@ function DraftPart({ path }: { path: string }) {
       <SlugField field={slug} />
       <HStack gap={2}>
         <Button label="Edit" onClick={() => navigate(here(`/edit/${path}`))} />
-        <Button clickAction={start} label="Start the feature" variant="primary" />
+        <WriteButton
+          label="Start the feature"
+          onClick={start}
+          runningLabel="Starting the feature…"
+          variant="primary"
+        />
       </HStack>
       {message && <Banner collapsible={false} status="error" title={message} />}
     </VStack>
