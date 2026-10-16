@@ -393,6 +393,12 @@ pub fn remove(text: &str, id: &str) -> Option<String> {
 
 /// Moves a note, sub-items included, to the end of a category, or of the notes without one.
 pub fn move_to(text: &str, id: &str, category: Option<&str>) -> Option<String> {
+    place(text, id, category, usize::MAX)
+}
+
+/// Moves a note, sub-items included, before the note at `index` of a category, or of the notes
+/// without one, or to its end: `index` counts the category's notes once the note has left it.
+pub fn place(text: &str, id: &str, category: Option<&str>, index: usize) -> Option<String> {
     super::with_unix_newlines(text, |text| {
         let item = find(text, id).ok_or(())?;
         let lines: Vec<String> = text.split('\n').collect::<Vec<_>>()[item.line - 1..item.end]
@@ -400,7 +406,7 @@ pub fn move_to(text: &str, id: &str, category: Option<&str>) -> Option<String> {
             .map(|l| l.to_string())
             .collect();
         let without = lines::remove(text, &item);
-        Ok::<_, ()>(insert_at(&without, category, usize::MAX, &lines).0)
+        Ok::<_, ()>(insert_at(&without, category, index, &lines).0)
     })
     .ok()
 }

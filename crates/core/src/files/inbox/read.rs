@@ -27,6 +27,10 @@ pub struct InboxNote {
     pub end_line: u32,
     /// Its lines as written, sub-items included: what an Undo of its removal writes back.
     pub lines: Vec<String>,
+    /// Its nested lines, as written.
+    pub nested: Vec<String>,
+    /// The text of each nested item, without its marker.
+    pub nested_spans: Vec<Vec<super::super::document::Span>>,
 }
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -83,6 +87,11 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
             .iter()
             .map(|l| l.to_string())
             .collect(),
+        nested: lines[item.text_end..item.end]
+            .iter()
+            .map(|l| l.to_string())
+            .collect(),
+        nested_spans: super::super::lines::nested_spans(&lines[item.text_end..item.end]),
     }
 }
 

@@ -185,6 +185,12 @@ export declare function openRepository(dataDir: string, name: string): Promise<R
 export declare function pathFolder(path: string): string | null
 
 /**
+ * Moves a note before the note at `index` of a category, or of the notes without one, or to its
+ * end, `index` counting the category's notes once the note has left it.
+ */
+export declare function placeNote(repo: string, id: string, index: number, previous: string, category?: string | undefined | null): Promise<Inbox>
+
+/**
  * The preview of the checkout at `checkout`, from its own active preview decision: `null`
  * without one, or when its fields are wrong.
  */
@@ -709,6 +715,10 @@ export interface InboxNote {
   endLine: number
   /** Its lines as written, sub-items included: what an Undo of its removal writes back. */
   lines: Array<string>
+  /** Its nested lines, as written. */
+  nested: Array<string>
+  /** The text of each nested item, without its marker. */
+  nestedSpans: Array<Array<Span>>
 }
 
 /**

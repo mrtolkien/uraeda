@@ -274,6 +274,23 @@ pub fn category(
     )
 }
 
+/// Moves a note before the note at `index` of a category, or of the notes without one, or to its
+/// end: a drag's drop. `index` counts the category's notes once the note has left it.
+pub fn place(
+    place: &Place,
+    id: &str,
+    category: Option<&str>,
+    index: usize,
+    previous: Option<&str>,
+) -> Result<Inbox, ActionError> {
+    apply(
+        place,
+        previous,
+        |current| inbox::place(current, id, category, index),
+        &format!("no note {id}"),
+    )
+}
+
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
 /// Undo of a removal.
 pub fn insert(

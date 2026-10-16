@@ -66,6 +66,11 @@ const mutations = {
     FateAPI['mutations']['inbox.insert']['input'],
     FateAPI['mutations']['inbox.insert']['output']
   >('Inbox'),
+  'inbox.place': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.place']['input'],
+    FateAPI['mutations']['inbox.place']['output']
+  >('Inbox'),
   'inbox.remove': mutation<
     Inbox,
     FateAPI['mutations']['inbox.remove']['input'],

@@ -1015,3 +1015,86 @@ fn a_note_linking_a_draft_is_not_made_a_draft() {
 
     assert!(refused.is_err());
 }
+
+/// The texts of a category's notes, in order.
+fn texts(inbox: &Inbox, category: &str) -> Vec<String> {
+    inbox
+        .categories
+        .iter()
+        .find(|c| c.name.as_deref() == Some(category))
+        .map(|c| c.notes.iter().map(|n| n.text.clone()).collect())
+        .unwrap_or_default()
+}
+
+/// US5 1: a note dragged above the first of its category is first, and its change is a move
+/// within it.
+#[test]
+fn a_note_moves_to_a_place_in_its_category() {
+    let repo = fixture_repo();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let note = id(&inbox, "Icons are blurry on retina screens");
+
+    let placed = api::place_note(repo.path(), &note, Some("UI".into()), 0, &inbox.hash).unwrap();
+
+    let ui = texts(&placed, "UI");
+    assert_eq!(ui[0], "Icons are blurry on retina screens");
+    assert_eq!(ui[1], "In failures the `x` is not centered in the circle");
+    assert_eq!(ui[2], "Draft to proposal on mobile went 404");
+    assert_eq!(ui.len(), 5);
+    assert_eq!(placed.changes, 1);
+    let place = main_place(&repo);
+    assert_eq!(
+        changes::message(&place),
+        (
+            "chore: move \"Icons are blurry on retina screens\" within UI in the inbox".into(),
+            None
+        )
+    );
+}
+
+/// US5 2: a note dragged to the end of another category is its last note, as "move to" does.
+#[test]
+fn a_note_moves_to_a_place_in_another_category() {
+    let repo = fixture_repo();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let note = id(&inbox, "Draft to proposal on mobile went 404");
+
+    let placed = api::place_note(repo.path(), &note, Some("CLI".into()), 2, &inbox.hash).unwrap();
+
+    assert_eq!(
+        texts(&placed, "CLI"),
+        [
+            "Allow no selection in responses (after a warning)",
+            "Make sure agents are resumable",
+            "Draft to proposal on mobile went 404",
+        ]
+    );
+    assert_eq!(texts(&placed, "UI").len(), 4);
+    let place = main_place(&repo);
+    assert_eq!(
+        changes::message(&place),
+        (
+            "chore: move \"Draft to proposal on mobile went 404\" to CLI in the inbox".into(),
+            None
+        )
+    );
+}
+
+/// A place over an inbox changed since it was read is refused, and writes nothing.
+#[test]
+fn a_stale_hash_refuses_the_place() {
+    let repo = fixture_repo();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let note = id(&inbox, "Icons are blurry on retina screens");
+    let changed = repo.read(INBOX).replace("home icon", "home icon!");
+    repo.write(INBOX, &changed);
+
+    let error = api::place_note(repo.path(), &note, Some("UI".into()), 0, &inbox.hash).unwrap_err();
+
+    assert_eq!(error.code, "conflict");
+    assert_eq!(
+        error.message,
+        "INBOX.md changed on disk. Your change was not applied."
+    );
+    assert_eq!(repo.read(INBOX), changed);
+}

@@ -125,6 +125,28 @@ test("edits, recategorizes, removes, and puts back a note", async () => {
   expect(restored.data.changes).toBe(0);
 });
 
+test("US5 1: places a note in its category and answers the moved inbox", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const inbox = await readInbox(app);
+  const note = noteOf(inbox, "Icons are blurry on retina screens");
+
+  const result = await mutate(
+    app,
+    "inbox.place",
+    { category: "UI", hash: inbox.hash, index: 0, note: note.id },
+    INBOX,
+  );
+
+  expect(result.ok).toBe(true);
+  expect(result.data.changes).toBe(1);
+  const ui = result.data.categories.find((category: { name?: string }) => category.name === "UI");
+  expect(ui.notes[0].text).toBe("Icons are blurry on retina screens");
+  expect(read(repo, "specs/INBOX.md")).toContain(
+    "## UI\n\n- Icons are blurry on retina screens\n- [run-ui] In failures",
+  );
+});
+
 test("US2 1: moves a note to a section of the priorities", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);

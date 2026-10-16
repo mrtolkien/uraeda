@@ -75,3 +75,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a workspace change that alters the record without changing the hash would leave it
   stale until the next reload; adding `changes.workspace` to the condition in `publish` sends it.
 - **Where**: task 2.
+
+## R7: `placeNote` takes the category last
+
+- **Decision**: the binding's `placeNote(repo, id, index, previous, category?)` takes the category
+  last, and the mutation `inbox.place` names the note `note`, not `id`; `views.ts` is not changed,
+  since the inbox's view sends `categories` whole, `nested` and `nestedSpans` included.
+- **Rationale**: every inbox export of [`inbox_writes.rs`](/crates/binding/src/inbox_writes.rs) puts
+  an optional category last, so napi-rs can make it optional, and every note mutation of
+  [`inbox-mutations.ts`](/packages/server/src/fate/inbox-mutations.ts) takes `{ hash, note }`.
+- **Alternatives considered**: the plan's `placeNote(repo, id, category, index, previous)`: a
+  required `string | null` in the middle, unlike its neighbours.
+- **If wrong**: the argument order of one export and its one caller.
+- **Where**: task 5.
