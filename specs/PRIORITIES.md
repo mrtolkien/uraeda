@@ -66,6 +66,9 @@
 - Basic git UI in the web ui (pull, see diffs, ...)
 
 - Passkeys to sign in, on top of the access key of basic security
+- Keyboard navigation of the lists, and how users discover it: the ↑ ↓ / j k keys of the priorities,
+  inbox, and decisions lists, without a hint taking room (from the redesign of the priorities' spec
+  review)
 
 ## Later
 
