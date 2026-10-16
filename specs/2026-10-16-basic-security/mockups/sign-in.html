@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Auth and login for basic security: mockups</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font:
+          17px/1.45 system-ui,
+          sans-serif;
+        color: #1f2328;
+        background: #eceef1;
+      }
+      h1.page {
+        margin: 0 0 4px;
+        font-size: 22px;
+      }
+      p.note {
+        max-width: 70ch;
+        margin: 0 0 28px;
+        color: #59636e;
+      }
+      h2 {
+        margin: 36px 0 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #59636e;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .screens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+        align-items: flex-start;
+      }
+      .frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 14px;
+        background: #f6f7f9;
+        box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+      }
+      .narrow {
+        width: 402px;
+        height: 620px;
+      }
+      .wide {
+        width: 760px;
+        height: 480px;
+        font-size: 19px;
+      }
+      .caption {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #59636e;
+      }
+      .center {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        max-width: 460px;
+        padding: 56px 24px;
+      }
+      .wide .center {
+        margin: 0 auto;
+        padding-top: 72px;
+      }
+      .center h1 {
+        margin: 0;
+        font-size: 1.6em;
+      }
+      .center p {
+        margin: 0;
+        color: #3d444d;
+      }
+      code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: #e3e6ea;
+        font-size: 0.9em;
+      }
+      label {
+        font-weight: 600;
+      }
+      .input {
+        min-height: 44px;
+        padding: 0 12px;
+        border: 1px solid #b7bfc8;
+        border-radius: 8px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        letter-spacing: 0.2em;
+      }
+      .input.invalid {
+        border-color: #cf222e;
+      }
+      .error {
+        color: #cf222e;
+        font-size: 0.9em;
+      }
+      .button {
+        align-self: flex-start;
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 8px;
+        background: #1f6feb;
+        color: #fff;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+      }
+      .button.disabled {
+        background: #8fb4f0;
+      }
+      .button.danger {
+        background: #cf222e;
+      }
+      .button.plain {
+        background: #fff;
+        color: #1f2328;
+        border: 1px solid #b7bfc8;
+      }
+      .shell {
+        display: flex;
+        height: 100%;
+      }
+      .nav {
+        width: 230px;
+        padding: 14px;
+        background: #fff;
+        border-right: 1px solid #dde1e6;
+      }
+      .trigger {
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: #eef1f4;
+      }
+      .trigger small {
+        display: block;
+        color: #59636e;
+        font-size: 0.7em;
+      }
+      .content {
+        flex: 1;
+        padding: 20px;
+        color: #8c959f;
+      }
+      .popover {
+        position: absolute;
+        top: 70px;
+        left: 14px;
+        width: 300px;
+        padding: 8px 0;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgb(0 0 0 / 0.2);
+        font-size: 17px;
+      }
+      .popover .row,
+      .sheet .row {
+        padding: 9px 16px;
+      }
+      .popover .filter,
+      .sheet .filter {
+        margin: 4px 12px 8px;
+        padding: 6px 10px;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        color: #8c959f;
+      }
+      .current {
+        font-weight: 600;
+      }
+      .sep {
+        margin: 6px 0;
+        border-top: 1px solid #eef0f2;
+      }
+      .new {
+        background: #fff8c5;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgb(0 0 0 / 0.35);
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 12px 0 24px;
+        border-radius: 16px 16px 0 0;
+        background: #fff;
+      }
+      .sheet .row {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+      }
+      .sheet-head {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 16px 8px;
+        font-weight: 600;
+      }
+      .dialog {
+        position: absolute;
+        top: 110px;
+        left: 50%;
+        width: 420px;
+        margin-left: -210px;
+        padding: 20px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 8px 28px rgb(0 0 0 / 0.25);
+        font-size: 17px;
+      }
+      .dialog h3,
+      .sheet h3 {
+        margin: 0 0 8px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 18px;
+      }
+      .sheet .body {
+        padding: 0 16px;
+      }
+      .sheet .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .sheet .actions .button {
+        align-self: stretch;
+        justify-content: center;
+      }
+      .terminal {
+        width: 760px;
+        padding: 16px;
+        border-radius: 10px;
+        background: #1f2328;
+        color: #e6edf3;
+        font:
+          14px/1.6 ui-monospace,
+          monospace;
+        white-space: pre;
+      }
+      .terminal .prompt {
+        color: #7ee787;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="page">Auth and login for basic security</h1>
+    <p class="note">
+      Narrow frames are 402 px wide, wide ones 760 px of a wider window. Text in quotes is exact;
+      the components are Astryx's, so their look follows the theme, not these colours. New items are
+      highlighted in yellow.
+    </p>
+
+    <h2>1. Sign-in screen, empty</h2>
+    <div class="screens">
+      <div>
+        <div class="frame narrow">
+          <div class="center">
+            <h1>Sign in to Uraeda</h1>
+            <p>
+              Paste the access key Uraeda showed when it first started. On the machine that runs
+              Uraeda, <code>uraeda --new-key</code> makes a new one and signs every device out.
+            </p>
+            <label>Access key</label>
+            <div class="input"></div>
+            <div class="button disabled">Sign in</div>
+          </div>
+        </div>
+        <div class="caption">
+          Narrow: its own page, no sidebar. Sign in is disabled while empty.
+        </div>
+      </div>
+      <div>
+        <div class="frame wide">
+          <div class="center">
+            <h1>Sign in to Uraeda</h1>
+            <p>
+              Paste the access key Uraeda showed when it first started. On the machine that runs
+              Uraeda, <code>uraeda --new-key</code> makes a new one and signs every device out.
+            </p>
+            <label>Access key</label>
+            <div class="input"></div>
+            <div class="button disabled">Sign in</div>
+          </div>
+        </div>
+        <div class="caption">Wide: the same column, centred, 19 px text.</div>
+      </div>
+    </div>
+
+    <h2>2. Signing in, then a wrong key</h2>
+    <div class="screens">
+      <div>
+        <div class="frame narrow">
+          <div class="center">
+            <h1>Sign in to Uraeda</h1>
+            <p>
+              Paste the access key Uraeda showed when it first started. On the machine that runs
+              Uraeda, <code>uraeda --new-key</code> makes a new one and signs every device out.
+            </p>
+            <label>Access key</label>
+            <div class="input">••••••••••••••••••••</div>
+            <div class="button disabled">Signing in…</div>
+          </div>
+        </div>
+        <div class="caption">While the server answers (at least 1 second for a wrong key).</div>
+      </div>
+      <div>
+        <div class="frame narrow">
+          <div class="center">
+            <h1>Sign in to Uraeda</h1>
+            <p>
+              Paste the access key Uraeda showed when it first started. On the machine that runs
+              Uraeda, <code>uraeda --new-key</code> makes a new one and signs every device out.
+            </p>
+            <label>Access key</label>
+            <div class="input invalid">••••••••••••••••••••</div>
+            <div class="error">This is not Uraeda's access key.</div>
+            <div class="button">Sign in</div>
+          </div>
+        </div>
+        <div class="caption">The field keeps its text; the error stays until the next try.</div>
+      </div>
+    </div>
+
+    <h2>3. Sign out, in the repository menu</h2>
+    <div class="screens">
+      <div>
+        <div class="frame wide">
+          <div class="shell">
+            <div class="nav">
+              <div class="trigger"><small>Uraeda</small>todo ▾</div>
+            </div>
+            <div class="content">The page stays behind the popover.</div>
+          </div>
+          <div class="popover">
+            <div class="filter">Filter repositories</div>
+            <div class="row current">todo</div>
+            <div class="row">uraeda</div>
+            <div class="sep"></div>
+            <div class="row">Add a repository…</div>
+            <div class="sep"></div>
+            <div class="row new">Sign out</div>
+            <div class="row new">Sign out everywhere…</div>
+          </div>
+        </div>
+        <div class="caption">Wide: a third group at the end of the popover.</div>
+      </div>
+      <div>
+        <div class="frame narrow">
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="sheet-head"><span>Repositories</span><span>✕</span></div>
+            <div class="filter">Filter repositories</div>
+            <div class="row current">todo</div>
+            <div class="row">uraeda</div>
+            <div class="sep"></div>
+            <div class="row">Add a repository…</div>
+            <div class="sep"></div>
+            <div class="row new">Sign out</div>
+            <div class="row new">Sign out everywhere…</div>
+          </div>
+        </div>
+        <div class="caption">Narrow: the same group at the end of the bottom sheet.</div>
+      </div>
+    </div>
+
+    <h2>4. Sign out everywhere, confirmed</h2>
+    <div class="screens">
+      <div>
+        <div class="frame wide">
+          <div class="scrim"></div>
+          <div class="dialog new">
+            <h3>Sign out every device?</h3>
+            <div>
+              Every browser signed in to Uraeda, this one included, will need the access key again.
+            </div>
+            <div class="actions">
+              <div class="button plain">Cancel</div>
+              <div class="button danger">Sign out everywhere</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">Wide: a dialog. Escape or Back is Cancel.</div>
+      </div>
+      <div>
+        <div class="frame narrow">
+          <div class="scrim"></div>
+          <div class="sheet new">
+            <div class="body">
+              <h3>Sign out every device?</h3>
+              <div>
+                Every browser signed in to Uraeda, this one included, will need the access key
+                again.
+              </div>
+              <div class="actions">
+                <div class="button danger">Sign out everywhere</div>
+                <div class="button plain">Cancel</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">Narrow: a bottom sheet.</div>
+      </div>
+    </div>
+
+    <h2>5. The terminal, at the first start and with a new key</h2>
+    <div class="terminal">
+      <span class="prompt">~/dev/todo $</span> npx @uraeda/ui Uraeda server on http://127.0.0.1:4310
+      Access key, shown once: ura_q4W7bZ0kLr2N8vXc5TfY1sHjU6mPaE3dGoK9iRtB2wQ Keep it in a password
+      manager: every new device signs in with it.
+
+      <span class="prompt">~/dev/todo $</span> npx @uraeda/ui --new-key New access key, shown once:
+      ura_Lm8sD2fQ0xV7cN4bT1zR6yH9kJ3wE5aP0gU8iO2nX4v Every device is signed out. Uraeda already
+      runs at http://127.0.0.1:4310/r/todo/
+    </div>
+  </body>
+</html>
