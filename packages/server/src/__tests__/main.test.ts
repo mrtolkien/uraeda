@@ -129,6 +129,19 @@ async function opened({ log }: Opener, count = 1): Promise<Array<string>> {
   return lines();
 }
 
+/**
+ * The link a page the faked launcher opened leads to: the page is a file only its owner reads, and
+ * its address has no token. Returns the page's path and its link.
+ */
+function linkIn(address: string): { link: string; page: string } {
+  expect(address).toMatch(/^file:\/\/\//);
+  expect(address).not.toMatch(/\/session\//);
+  const page = fileURLToPath(address);
+  expect(statSync(page).mode & 0o777).toBe(0o600);
+  const link = /<a href="([^"]+)">/.exec(readFileSync(page, "utf8"))![1]!;
+  return { link: link.replaceAll("&amp;", "&"), page };
+}
+
 /** The host token file of the server on `port` with the data folder `data`. */
 const tokenFile = (data: string, port: number) => join(data, `server-${port}.token`);
 
@@ -522,16 +535,30 @@ test("the start opens the browser through a one-time link", async () => {
   const { data, port, repo } = await firstStart({ opener });
   const name = await listedName(data, repo);
 
-  const [link] = await opened(opener);
+  const [address] = await opened(opener);
 
+  const { link, page } = linkIn(address!);
   const path = new RegExp(`^http://127\\.0\\.0\\.1:${port}/session/[\\w-]{43}\\?to=/r/${name}/$`);
   expect(link).toMatch(path);
-  const used = await fetch(link!, { redirect: "manual" });
+  const used = await fetch(link, { redirect: "manual" });
   expect(used.status).toBe(303);
   expect(used.headers.get("location")).toBe(`/r/${name}/`);
   expect(await signedIn(port, used.headers.get("set-cookie")!.split(";")[0])).toBe(true);
-  const again = await fetch(link!, { redirect: "manual" });
+  expect(existsSync(page)).toBe(false);
+  const again = await fetch(link, { redirect: "manual" });
   expect(again.headers.get("set-cookie")).toBeNull();
+});
+
+test("a link's page left unused is removed as the server stops", async () => {
+  const opener = fakeOpener();
+  const { server } = await firstStart({ opener });
+  const [address] = await opened(opener);
+  const { page } = linkIn(address!);
+
+  server.child.kill("SIGTERM");
+
+  expect(await server.exited).toBe(0);
+  expect(existsSync(page)).toBe(false);
 });
 
 /** US4.2 */
@@ -548,12 +575,14 @@ test("a second start hands over with the host token, and signs its browser in", 
   const name = await listedName(data, notes);
   expect(second.stdout).toBe(`Uraeda already runs at http://127.0.0.1:${port}/r/${name}/\n`);
   expect(second.code).toBe(0);
-  const [link] = await opened(opener);
+  const [address] = await opened(opener);
+  const { link, page } = linkIn(address!);
   expect(link).toMatch(
     new RegExp(`^http://127\\.0\\.0\\.1:${port}/session/[\\w-]{43}\\?to=/r/${name}/$`),
   );
-  const used = await fetch(link!, { redirect: "manual" });
+  const used = await fetch(link, { redirect: "manual" });
   expect(await signedIn(port, used.headers.get("set-cookie")!.split(";")[0])).toBe(true);
+  expect(existsSync(page)).toBe(false);
 });
 
 /** Edge case: a second start with another data folder. */
