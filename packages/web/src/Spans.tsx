@@ -3,7 +3,8 @@ import { Link } from "@astryxdesign/core/Link";
 import { type ReactNode, useContext } from "react";
 import type { Span } from "uraeda-binding";
 import { ImageView } from "./ImageView.tsx";
-import { pathLink, repoPath, useRepository } from "./routes.tsx";
+import { pathLink } from "./links.tsx";
+import { repoPath, useRepository } from "./routes.tsx";
 import { StoryContext, storybookHref } from "./stories.tsx";
 
 function Marked({ span }: { span: Span }) {
