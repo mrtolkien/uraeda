@@ -773,22 +773,22 @@ git commit -m "feat(redesign-priorities): the priorities on the shared list, ong
 - Produces: the inbox's header: "Inbox" and a neutral count badge on one line, vertically centred,
   then, on the right, set apart, "Organize with an agent".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - happy-dom: `the inbox heading shows a count without words` → heading "Inbox", a "10" badge, no
     "10 notes" text; `a note shows its children` (US5 scenario 3).
   - browser: `a note drags within its category` → file order and the commit bar's message
     `move "<note>" within UI in the inbox` (US5 scenario 1); `a note drags to another category`
     (scenario 2); `the keyboard moves a note` Space, ↓, Space (scenario 4); the inbox's layout
     checks at both sizes (SC-004).
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `vp test --project uraeda-web packages/web/src/__tests__/inbox.test.tsx`
   - Expected: FAIL, `Unable to find an element with the text: …` for the first child line
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run all tests**
   - Run:
     `vp check && vp test --project uraeda-web && vp test --project desktop packages/web/src/__browser__/inbox.test.tsx && vp test --project phone packages/web/src/__browser__/inbox.test.tsx`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

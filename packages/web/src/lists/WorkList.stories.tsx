@@ -4,9 +4,9 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { useWorkspace } from "../data.ts";
+import { InboxPage } from "../InboxPage.tsx";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { RepositoryPathContext } from "../routes.tsx";
-import { InboxWork } from "./InboxWork.tsx";
 
 /** The fixture's folder, as `App` sets it: what keeps the Add rows' unsaved text apart. */
 function InRepositoryFolder({ children }: { children: ReactNode }) {
@@ -42,5 +42,8 @@ export const Selected: Story = {
   args: { isFocused: true, select: "claude-code-runner-triggered-manually" },
 };
 
-/** The inbox's categories as the same sections, every note with the same handle. */
-export const Inbox: Story = { render: () => <InboxWork /> };
+/**
+ * The inbox's categories as the same sections, every note with the same handle and its children,
+ * the count beside the heading and "Organize with an agent" on its right.
+ */
+export const Inbox: Story = { render: () => <InboxPage /> };
