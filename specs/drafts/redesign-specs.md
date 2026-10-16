@@ -9,6 +9,9 @@ discovery: high # low, medium, or high: how far the agent researches before aski
 Redesign and reword specs and the other agent-generated pages (plans, data models, ...). The goal is
 READABILITY: rewording and redesign go together, the skill and the templates change with the UI.
 
+- Decisions can't be accessed with the generated links (example: basic security spec) + they should
+  be EXTREMELY HIGH priority and show a diff: a decision is the main thing that stays from a branch
+  and represents explicit human approval.
 - Specs are still way too long and hard to read, with tens of bullet points (examples: "run ui")
 - For example specs are very hard to read at the moment, there's no clear user stories UI, it's a
   sea of bullet points, ...
