@@ -27,6 +27,7 @@ import {
   workspaceDataView,
 } from "./fate/views.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
+import { settingsDataView } from "./fate/settings.ts";
 
 export {
   agentDataView,
@@ -43,6 +44,7 @@ export {
   sessionDataView,
   sessionListDataView,
   sessionSearchDataView,
+  settingsDataView,
   slugProposalDataView,
   storyDataView,
   storyHrefDataView,
@@ -61,6 +63,7 @@ export {
   TRIAGE_ID,
   WORKSPACE_ID,
 } from "./fate/views.ts";
+export { SETTINGS_ID } from "./fate/settings.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
@@ -84,6 +87,7 @@ export type FolderSuggestions = Entity<typeof folderSuggestionsDataView, "Folder
 export type Story = Entity<typeof storyDataView, "Story">;
 export type Preview = Entity<typeof previewDataView, "Preview">;
 export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
+export type Settings = Entity<typeof settingsDataView, "Settings">;
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";
 /** A turn's item, as a `TurnLog` page lists it. */
