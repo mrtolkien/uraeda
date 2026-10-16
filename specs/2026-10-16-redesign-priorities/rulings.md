@@ -256,3 +256,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   changes", then promises more than the card shows.
 - **If wrong**: `DonePanel` in [`HomeHub.tsx`](/packages/web/src/home/HomeHub.tsx).
 - **Where**: the catch-up with the default branch.
+
+## R20: Main's new decisions have icons
+
+- **Decision**: [notifications](/specs/decisions/notifications.md) gets `icon: bell`, and
+  [settings](/specs/decisions/settings.md) `icon: settings`, the two decisions main added without
+  one; the theme registers Lucide's `bell` for decisions, and main's cog as `settings`. A test reads
+  every decision of this repository and fails on one whose icon the page would not draw.
+- **Rationale**: C8 gives every decision an icon, and this branch gave one to each decision it
+  found; the two merged since would show the default page icon among the others.
+- **Alternatives considered**: leaving them to the default icon until a human picks one: the
+  decisions page then reads as if they were broken.
+- **If wrong**: the two `icon` lines, and `DECISION_ICONS` in
+  [`icons.ts`](/packages/web/src/theme/icons.ts).
+- **Where**: the catch-up with the default branch.
