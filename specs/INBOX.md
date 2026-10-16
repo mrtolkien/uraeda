@@ -18,6 +18,8 @@
 - [agent] [storybook-warmup] Under vp run ready, server test files that run sessions sometimes fail
   on test-setup.ts's afterAll (10 s hook timeout, removing the temporary folder), which stops the
   browser suites; they pass alone
+- We need a "restart stopped agents" button after a crash, that just sends "continue" in all
+  sessions
 
 ## Prompts
 
@@ -45,3 +47,4 @@
 
 - [agent] [redesign-priorities] Once the interface and priorities redesigns are merged, review the
   sidebar: a grey count of inbox notes on the Inbox row, and a Decisions row above Done
+- Add icons to decisions?

@@ -6,11 +6,15 @@
 >
 > Features for v1.0.0
 
+- [Settings page with selection of agent runner, config values, other run values](/specs/2026-10-16-settings-page/proposal.md)
+- [Redesign sidebars and global interface](/specs/2026-10-16-redesign-interface/proposal.md)
+- [Redesign home, inbox, and priorities](/specs/2026-10-16-redesign-priorities/proposal.md)
 - [Redesign home, inbox, and priorities](drafts/redesign-priorities.md)
+
 - [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
 - [Redesign + reword specs](drafts/redesign-specs.md)
-- [Redesign session](drafts/redesign-session.md)
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
+- [Redesign session](drafts/redesign-session.md)
 
 - [Review the overall flow of all user stories](drafts/flow-review.md)
 
@@ -24,9 +28,6 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
-- [Settings page with selection of agent runner, config values, other run values](/specs/2026-10-16-settings-page/proposal.md)
-- [Redesign sidebars and global interface](/specs/2026-10-16-redesign-interface/proposal.md)
-- [Redesign home, inbox, and priorities](/specs/2026-10-16-redesign-priorities/proposal.md)
 
 ## Next
 
@@ -93,5 +94,7 @@
 - Add a repository from the web UI by running `git init` in a folder outside git, or by cloning a
   URL
 - Several users signing in to one Uraeda server, after basic security's single owner
+
+- Lightly integrate deployment tools to add preview environments and/or deploy status
 
 ## Blocked
