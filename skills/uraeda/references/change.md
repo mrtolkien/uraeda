@@ -171,7 +171,8 @@ When one item of a batch needs it, the round offers to split that item out inste
      reverted commits.
   2. The branch's last commit moves the folder to `specs/drafts/<slug>/`, its files unchanged,
      removes the `## Proposed change (<folder>)` sections the change added, the ones the revert
-     brought back included, and relinks **Now**'s entry to `drafts/<slug>/proposal.md`:
+     brought back included, and relinks **Now**'s entry to `drafts/<slug>/proposal.md`, moved first
+     after **Now**'s started entries and their blank line, since it is started no more:
      `chore(<slug>): upgrade to a feature`.
   3. Merge the branch into the default branch, from the main checkout. The human's "A" asks for the
      cleanup too, and `ura clean` cannot do it, since the merge leaves no record or change folder:
@@ -185,9 +186,9 @@ When one item of a batch needs it, the round offers to split that item out inste
   [discovery effort](discovery.md#discovery-effort).
 
 - **On "A", for one item of a batch**: on the default branch, write that item's text as
-  `specs/drafts/<item-slug>.md`, add its entry on the line after the change's entry in **Now**, not
-  nested under it, and commit `chore: draft <Name>`. Then make the other items. Finish removes the
-  change's entry with its nested lines, and the
+  `specs/drafts/<item-slug>.md`, add its entry to **Now**, first after its started entries and their
+  blank line, not nested under the change's entry, and commit `chore: draft <Name>`. Then make the
+  other items. Finish removes the change's entry with its nested lines, and the
   [catch-up](implementation.md#catch-up-with-the-default-branch) brings the draft's line into the
   branch before it, so the draft's entry stays.
 - **On another answer**: keep the change within that answer, or stop if it leaves nothing to do, and
