@@ -220,3 +220,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a new kind of story here.
 - **If wrong**: one handler and one prop in `packages/web/src/settings/SettingsView.tsx`.
 - **Where**: task 8, `packages/web/src/settings/SettingsView.tsx`
+
+## R18: The page's flows are tested in happy-dom, and the final review's minors are deferred
+
+- **Decision**: US1's scenarios run as happy-dom tests of the page on an in-process server
+  (`packages/web/src/__tests__/settings.test.tsx`), and the server's own tests check each `Host`
+  (`packages/server/src/__tests__/allowed-hosts.test.ts`); WebKit runs the layout and accessibility
+  checks of the settings pages. The minor findings of the final review are left for the human, in
+  the pull request: a name listed twice in two cases shows twice; a name the file lists with spaces
+  around it cannot be edited or removed from the page; the port field and the switch show the value
+  in force under an override, beside its note; an older server still running during an upgrade loses
+  its running files; two servers writing at once can lose a change; `config.toml` and the port's
+  refusal are written in both the core and TypeScript; unsaved settings text is kept per repository;
+  a server error reads as an unreachable server; editing this browser's own name asks nothing.
+- **Rationale**: the browser tests share one dev server, whose `URAEDA_ALLOWED_HOSTS` overrides the
+  file, so the file's host names could not be seen in force there; each minor costs little if it
+  ships, and none breaks a scenario of the spec.
+- **Alternatives considered**: a second dev server for the browser tests, without the variable;
+  fixing the minors in this branch, beyond the approved scope.
+- **If wrong**: each minor is a small change in the files the pull request lists.
+- **Where**: the final review
