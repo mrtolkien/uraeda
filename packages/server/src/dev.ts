@@ -12,6 +12,7 @@ import type { Previews } from "./preview/runner.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { layout } from "./paths.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
+import { SERVER_PATHS } from "./server-paths.ts";
 import { type Server, startServer } from "./server.ts";
 
 export { checkBinding, loadEnv };
@@ -25,13 +26,6 @@ export function devServer(env: Env) {
     strictPort: true,
   };
 }
-
-/**
- * The paths the server answers, a repository's and the global ones, and the handoff, `/open`; Vite
- * serves everything else. A repository's images, uploads, and Storybooks are only under its prefix.
- */
-const SERVER_PATHS =
-  /^\/(open|(r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images|inbox\/note-image|preview))(\/|\?|$)/;
 
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 

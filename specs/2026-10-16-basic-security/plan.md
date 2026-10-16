@@ -299,7 +299,7 @@ git commit -m "feat(basic-security): the sign-in store"
 - Modify: `packages/server/src/app.ts` (`AppOptions.signIn`, the check after the guard, live GETs
   with the session's signal, `X-Frame-Options`), `packages/server/src/dev.ts` (`SERVER_PATHS` from
   `server-paths.ts`, with `session` and `sessions`), `packages/server/src/fate.ts`
-  (`FateVariables.session`)
+  (`FateVariables.device`)
 - Test: `packages/server/src/sign-in/__tests__/routes.test.ts`,
   `packages/server/src/sign-in/__tests__/closed.test.ts`, `packages/server/src/__tests__/helpers.ts`
 
@@ -319,10 +319,20 @@ git commit -m "feat(basic-security): the sign-in store"
   `sessionCheck(options: SignInOptions & { allowedHosts: Array<string>; frames?: { allows(path: string): boolean } })`,
   Hono middleware;
   `cookieName(host: string, allowedHosts: Array<string>): "__Host-uraeda" | "uraeda"`.
-- Produces, in `routes.ts`: `signInRoutes(options)`, mounted at `/`: `GET`, `POST`, `DELETE`
-  `/session`, `DELETE /sessions`, `GET /session/:token`. `POST /session/key` is Task 4's.
+- Produces, in `check.ts` too: `type Device = { id: string; signal: AbortSignal }`, set as the Hono
+  variable `device` (`FateVariables.device`), named apart from the agents' sessions;
+  `setSessionCookie(context, allowedHosts, value)`, `clearSessionCookie(context, allowedHosts)`,
+  `refused(context, allowedHosts)` (the 401), `address(context, allowedHosts)` (the address logged),
+  and `withDevice(context): Request` (fate's live GET, aborted with the device's session too).
+- Produces, in `routes.ts`:
+  `signInRoutes(options: SignInOptions & { allowedHosts: Array<string> })`, mounted at `/`: `GET`,
+  `POST`, `DELETE` `/session`, `DELETE /sessions`, `GET /session/:token`. `POST /session/key` is
+  Task 4's: the check lets it through with the host token, else it needs a session like
+  `DELETE /sessions`, so its route checks the host token itself.
+- Produces, in `__tests__/helpers.ts`: `testApp`'s options `signIn`, `hostToken`, and `webRoot`, and
+  its `signIn` (`TestSignIn`) with `signedIn()`; `signInCookie(app, key, host?)`.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 The helper: `testApp(repo, { signIn: true })` in `__tests__/helpers.ts` creates the app with a store
 on its data folder, a fake clock, `wait` recording its delays, and `log` recording its lines, and
@@ -368,29 +378,29 @@ over HTTP; no delay, or the key in the log; a cookie refreshed for an ended sess
 that keeps sending after sign-out; a one-time link usable twice or forever; an open redirect;
 answers cached by a proxy; framing by another site.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/sign-in`
-- Expected: FAIL, `Cannot find module '../routes.ts'`.
+- Expected: FAIL, `Cannot find module '../sign-in/links.ts'`, which the test helpers import.
 
-- [ ] **Step 3: Implement the check, the routes, and the links, and wire them in `createApp`**
+- [x] **Step 3: Implement the check, the routes, and the links, and wire them in `createApp`**
 
 The check runs after the guard. A path that `SERVER_PATHS` does not match is the UI's: it passes. Of
-the server's paths, the `/session` routes but `DELETE /sessions` pass; a frame path the frame secret
-allows passes (Task 3 gives it; until then none); `/open` and `/session/key` pass with
-`Authorization: Bearer <hostToken>` when a host token is set. Every other request needs the cookie
-named by `cookieName` to be a session `findSession` finds; a refreshed session sets its cookie
-again. `context.set("session", { id, signal })`. `fateRoutes` hands live GETs a request whose signal
-also aborts with the session's. Answers outside preview and mockup paths get
+the server's paths, the `/session` routes but `DELETE /sessions` and `POST /session/key` pass; a
+frame path the frame secret allows passes (Task 3 gives it; until then none); `/open` and
+`/session/key` pass with `Authorization: Bearer <hostToken>` when a host token is set. Every other
+request needs the cookie named by `cookieName` to be a session `findSession` finds; a refreshed
+session sets its cookie again. `context.set("device", { id, signal })`. `fateRoutes` hands live GETs
+a request whose signal also aborts with the session's. Answers outside preview and mockup paths get
 `X-Frame-Options: SAMEORIGIN`. The address logged is `X-Forwarded-For`'s first entry when the `Host`
 is a listed host name, else the connection's, else `unknown`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS: existing tests create the app without `signIn`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src specs/2026-10-16-basic-security/plan.md

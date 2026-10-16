@@ -4,6 +4,7 @@ import type { Context as HonoContext } from "hono";
 import type { Context } from "./fate/context.ts";
 import { mutations } from "./fate/mutations.ts";
 import { sources } from "./fate/sources.ts";
+import type { Device } from "./sign-in/check.ts";
 import {
   agentDataView,
   branchChangesDataView,
@@ -92,7 +93,11 @@ export type { SessionStatus, StatusReason } from "./runner/status.ts";
 /** A chat image, as `POST /attach` answers it and `session.send` takes it. */
 export type { ChatImage } from "./runner/images.ts";
 
-export type FateVariables = { fate: Context };
+/**
+ * The variables of a request's Hono context: fate's context, and the signed-in device, set by the
+ * session check when the app checks sessions.
+ */
+export type FateVariables = { device?: Device; fate: Context };
 
 export const Root = Views;
 

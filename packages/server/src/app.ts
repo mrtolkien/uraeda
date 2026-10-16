@@ -5,12 +5,14 @@ import type { Binding } from "./fate/context.ts";
 import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
 import { withWholeFields } from "./fate/select.ts";
 import { files } from "./files.ts";
-import { guard } from "./guard.ts";
+import { guard, PREVIEW_PATH } from "./guard.ts";
 import { openRoute } from "./open.ts";
 import type { Options } from "./options.ts";
 import { previewRoutes } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import type { Hosts } from "./repositories.ts";
+import { sessionCheck, type SignInOptions, withDevice } from "./sign-in/check.ts";
+import { signInRoutes } from "./sign-in/routes.ts";
 
 export { Hosts } from "./repositories.ts";
 export { Previews } from "./preview/runner.ts";
@@ -37,6 +39,8 @@ type AppOptions = Omit<Options, "given" | "open" | "repo" | "show"> & {
   /** The server's Storybooks, which `/r/<name>/preview/<folder>/` forwards to. */
   previews: Previews;
   sessions: Sessions;
+  /** Sign-in: without it, as in tests and Uraeda's own Storybook, no session is checked. */
+  signIn?: SignInOptions;
   /** The built UI, served as static files when set. */
   webRoot?: string;
 };
@@ -96,24 +100,40 @@ function fateRoutes(app: App, hosts: Hosts) {
       server(context).handleLiveRequest(await rewritten(context.req.raw), context),
     );
     app.get(`${base}/fate/live`, (context) =>
-      server(context).handleLiveRequest(context.req.raw, context),
+      server(context).handleLiveRequest(withDevice(context), context),
     );
   };
   endpoint("", () => fateServer);
   endpoint("/r/:name", (context) => hosts.get(context.req.param("name")!)!.fate);
 }
 
+/** The paths framed by Uraeda's own pages: mockups, and Storybooks. */
+const framed = (path: string) =>
+  /^\/(r\/[^/]+\/)?mockups(\/|$)/.test(path) || PREVIEW_PATH.test(path);
+
 /**
  * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
- * opened repository's; `/r/<name>/preview/<folder>/`, each checkout's Storybook; and `POST /open`,
- * a second start's handoff.
+ * opened repository's; `/r/<name>/preview/<folder>/`, each checkout's Storybook; `POST /open`, a
+ * second start's handoff; and with `signIn`, the session routes, every other route behind the
+ * session check. Answers but mockups' and Storybooks' refuse other sites' frames.
  */
 export function createApp(options: AppOptions) {
-  const { binding, dataDir, hosts, lockedList, previews, sessions } = options;
+  const { binding, dataDir, hosts, lockedList, previews, sessions, signIn } = options;
+  const allowedHosts = options.allowedHosts ?? [];
   const app: App = new Hono<{ Variables: FateVariables }>();
+  app.use(async (context, next) => {
+    await next();
+    if (!framed(context.req.path)) {
+      context.header("X-Frame-Options", "SAMEORIGIN");
+    }
+  });
   app.use(guard(options));
+  if (signIn) {
+    app.use(sessionCheck({ ...signIn, allowedHosts }));
+    app.route("/", signInRoutes({ ...signIn, allowedHosts }));
+  }
   app.use(async (context, next) => {
     context.set("fate", { binding, dataDir, hosts, lockedList, previews, repo: null, sessions });
     await next();
