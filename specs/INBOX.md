@@ -26,3 +26,9 @@
 - We need a dedicated "testing setup" reference which covers storybook and component testing, and
   should only be read rarely (during the flow setup or when UI work starts) -> it should then be
   made into a repository-specific decision
+- Should we split the files in two:
+  - A first file that the model writes with light constraints -> this way we let the model write
+    what it would do "normally"
+  - Then we transform the file into a second, human-readable, actionable document?
+  - The idea would be let the model make a first "draft" that's extensive, _then_ extract the most
+    important information, well formatted, for a human
