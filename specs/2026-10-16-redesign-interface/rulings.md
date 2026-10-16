@@ -235,3 +235,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: the sub-agent line as a second link: against the card of one link.
 - **If wrong**: the tests follow whatever replaces the cards.
 - **Where**: task 8.
+
+## R18: A write says it failed by resolving to `false`
+
+- **Decision**: a `WriteButton`'s action resolves to `false` when nothing was written: the commits
+  of the editor, the round, the review, the commit bar, and the task view's start now return it, and
+  the card shows the server's status again at once. "Start the feature" reads "Starting the
+  feature…" while it runs; the hook refusal's "Try again" is a write too, with no card. "Start the
+  change" keeps the composer's own busy button, its write run through `runWrite` so that the other
+  writes wait and the bar runs. The spinner inside a running button is hidden from assistive
+  technology, its label saying it all. Pending actions are kept by folder, for the page's
+  repository. The store's timers are tested on their own, in `writes-store.test.tsx`.
+- **Rationale**: the pages show their own refusals already, and return nothing: one value to return
+  was the smallest change; Astryx's spinner names itself "Loading", which the button's name then
+  repeated.
+- **Alternatives considered**: a thrown error for a refusal: every page catches its refusals to show
+  them, and would rethrow them.
+- **If wrong**: the actions throw, and `runWrite` catches.
+- **Where**: task 10.

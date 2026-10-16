@@ -32,23 +32,31 @@ export function WriteProgress({ isRunning }: { isRunning: boolean }) {
   );
 }
 
+/** A button's variant, as Astryx names it. */
+type Variant = "primary" | "secondary" | "destructive";
+
 /**
  * A button that writes to git, drawn in its state: its running label with a spinner while its own
- * write runs, blocked while another one does.
+ * write runs, blocked while another one does. `isDisabled` and `tooltip` are its own reasons not to
+ * write, as a question left blank.
  */
 export function WriteButtonView({
+  isDisabled = false,
   label,
   onClick,
   runningLabel,
   state,
+  tooltip,
   variant,
 }: {
+  isDisabled?: boolean;
   label: string;
   onClick: () => void;
   /** What it does while running: "Committing…". */
   runningLabel: string;
   state: WriteState;
-  variant?: "primary" | "secondary";
+  tooltip?: string | undefined;
+  variant?: Variant | undefined;
 }) {
   if (state === "running") {
     // Astryx's `isLoading` hides the label: the spinner goes beside it instead, and the button stays
@@ -56,7 +64,7 @@ export function WriteButtonView({
     return (
       <Button
         aria-busy
-        icon={<Spinner shade="inherit" size="sm" />}
+        icon={<Spinner aria-hidden shade="inherit" size="sm" />}
         isDisabled
         label={runningLabel}
         onClick={onClick}
@@ -65,13 +73,15 @@ export function WriteButtonView({
       />
     );
   }
+  const blocked = state === "blocked";
+  const reason = blocked ? "Another change is being saved to git" : tooltip;
   return (
     <Button
-      isDisabled={state === "blocked"}
+      isDisabled={blocked || isDisabled}
       label={label}
       onClick={onClick}
       // Astryx keeps a disabled button with a tooltip focusable, through `aria-disabled`.
-      {...(state === "blocked" ? { tooltip: "Another change is being saved to git" } : {})}
+      {...(reason === undefined ? {} : { tooltip: reason })}
       variant={variant}
     />
   );

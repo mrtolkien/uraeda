@@ -14,6 +14,7 @@ import { SessionStatus } from "./SessionPage.tsx";
 import { useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { SessionView } from "./views.ts";
+import { clearPending, markPending } from "./writes/store.ts";
 
 /** What the panel needs of the feature: its step, its branch, and its session. */
 type Feature = {
@@ -80,7 +81,15 @@ function LatestTurn({ children, id }: { children: (latest: Latest) => ReactNode;
  * The session's status, its latest turn, Stop while it works, with why when it is refused,
  * and the panel's buttons.
  */
-function Summary({ actions, id }: { actions: (latest: Latest) => ReactNode; id: string }) {
+function Summary({
+  actions,
+  folder,
+  id,
+}: {
+  actions: (latest: Latest) => ReactNode;
+  folder: string;
+  id: string;
+}) {
   const fate = useFateClient();
   const session = useSession(id);
   const [error, setError] = useState<string>();
@@ -89,9 +98,11 @@ function Summary({ actions, id }: { actions: (latest: Latest) => ReactNode; id: 
   }
   const stop = async () => {
     setError(undefined);
+    markPending(folder, "Stopping…");
     // The turn ends once the agent answers the interrupt: its live update brings the state.
     const result = await fate.mutations.session.stop({ input: { session: id }, view: SessionView });
     if (result.error) {
+      clearPending(folder);
       setError(refusal(result.error).message);
     }
   };
@@ -162,7 +173,7 @@ export function AgentPanel({ feature }: { feature: Feature }) {
     <VStack aria-label="Agent" as="section" gap={3}>
       <Heading level={2}>Agent</Heading>
       {feature.session ? (
-        <Summary actions={actions} id={feature.session} />
+        <Summary actions={actions} folder={feature.folder} id={feature.session} />
       ) : (
         actions({ needsAttention: false, runsStep: false })
       )}

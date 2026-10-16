@@ -15,6 +15,7 @@ import { asTyped, readDraft, useEditorImages, useMovedText } from "./attach/useE
 import { Blocks } from "./Blocks.tsx";
 import { StoriesProvider } from "./stories.tsx";
 import { CommitActions } from "./CommitActions.tsx";
+import { WriteButton } from "./writes/WriteButton.tsx";
 import { MAIN_CHECKOUT, useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
@@ -212,7 +213,7 @@ function StartDraft({
   start,
 }: {
   slug: ReturnType<typeof useTextField>;
-  start: (continues: boolean) => Promise<void>;
+  start: (continues: boolean) => Promise<boolean>;
 }) {
   return (
     <>
@@ -223,6 +224,7 @@ function StartDraft({
         label="Start the feature"
         onCommit={start}
         onlyLabel="Start only"
+        runningLabel="Starting the feature…"
       />
       <Text color="secondary" type="supporting">
         Creates its branch and worktree, and moves the line to Now.
@@ -255,10 +257,10 @@ function EditorEnd({
       {isDraft ? (
         <HStack gap={2} wrap="wrap">
           {leading}
-          <Button clickAction={() => actions.commit(false)} label="Commit" variant="secondary" />
+          <WriteButton label="Commit" onClick={() => actions.commit(false)} variant="secondary" />
         </HStack>
       ) : (
-        <CommitActions label="Commit" onCommit={actions.commit}>
+        <CommitActions folder={draft.folder} label="Commit" onCommit={actions.commit}>
           {leading}
         </CommitActions>
       )}

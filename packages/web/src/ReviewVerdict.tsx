@@ -69,6 +69,43 @@ function SummaryField({ summary }: { summary: ReturnType<typeof useTextField> })
 }
 
 /**
+ * The verdict's buttons, Request changes and Approve, each committing, then starting the agent or
+ * not; `onVerdict` resolves to whether the verdict was committed.
+ */
+function Verdicts({
+  comments,
+  file,
+  onVerdict,
+}: {
+  comments: number;
+  file: File;
+  onVerdict: (approve: boolean, next: boolean) => Promise<boolean>;
+}) {
+  return (
+    <>
+      <CommitActions
+        continueLabel="Request changes and start the agent"
+        folder={file.folder}
+        isDisabled={comments === 0 || file.committed != null}
+        label="Request changes"
+        onCommit={(next) => onVerdict(false, next)}
+        onlyLabel="Request changes only"
+        tooltip={comments === 0 ? "Add a comment first" : undefined}
+        variant="destructive"
+      />
+      <CommitActions
+        continueLabel="Approve and start the agent"
+        folder={file.folder}
+        isDisabled={file.committed != null}
+        label="Approve"
+        onCommit={(next) => onVerdict(true, next)}
+        onlyLabel="Approve only"
+      />
+    </>
+  );
+}
+
+/**
  * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
  * commits and may hand the feature over to the agent.
  */
@@ -114,6 +151,7 @@ export function ReviewVerdict({
     if (done && next) {
       proceed(trigger);
     }
+    return done;
   };
 
   return (
@@ -141,21 +179,10 @@ export function ReviewVerdict({
           discard them first.
         </span>
       )}
-      <CommitActions
-        continueLabel="Request changes and start the agent"
-        isDisabled={comments === 0 || file.committed != null}
-        label="Request changes"
-        onCommit={async (next) => (hold?.() ? undefined : verdict(false, next))}
-        onlyLabel="Request changes only"
-        tooltip={comments === 0 ? "Add a comment first" : undefined}
-        variant="destructive"
-      />
-      <CommitActions
-        continueLabel="Approve and start the agent"
-        isDisabled={file.committed != null}
-        label="Approve"
-        onCommit={async (next) => (hold?.() ? undefined : verdict(true, next))}
-        onlyLabel="Approve only"
+      <Verdicts
+        comments={comments}
+        file={file}
+        onVerdict={async (approve, next) => (hold?.() ? false : verdict(approve, next))}
       />
       {message && !hides?.(message) && (
         <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>

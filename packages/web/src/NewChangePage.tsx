@@ -19,6 +19,7 @@ import { handOver } from "./sessions.ts";
 import { SlugField } from "./SlugField.tsx";
 import { useDraft } from "./useDraft.ts";
 import { FeatureView } from "./views.ts";
+import { runWrite } from "./writes/store.ts";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -114,7 +115,10 @@ export function NewChangePage() {
           images={images}
           onChange={text.change}
           onImagesChange={setImages}
-          onSend={start}
+          // Its branch and worktree are written: the other writes wait, as for a commit.
+          onSend={(sent, images) =>
+            runWrite({ label: "Starting the change…" }, () => start(sent, images))
+          }
           sendLabel="Start the change"
           value={text.text}
         />
