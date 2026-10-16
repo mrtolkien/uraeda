@@ -26,12 +26,12 @@ const styles = stylex.create({
 });
 
 /**
- * A decision's row: its icon, its title, its first sentence, or "Can't read this file" when
- * `ura check` finds a problem in it, its last change, and its status unless active.
+ * A decision's row: its icon, its title, its first sentence, or "Can't read this file" when it
+ * cannot be parsed, its last change, and its status unless active.
  */
 function DecisionRow({ decision, isSelected }: { decision: LedgerDecision; isSelected: boolean }) {
   const here = useRepoPath();
-  const subtitle = decision.problem === null ? decision.summary : "Can't read this file";
+  const subtitle = decision.unreadable ? "Can't read this file" : decision.summary;
   return (
     <ListItem
       // What the list's keys move between: see `useListKeys`.

@@ -584,7 +584,7 @@ export interface Criterion {
 export interface Decision {
   /** Its file name without `.md`, like `ui-behaviour`. */
   name: string
-  /** Its H1, else its name. */
+  /** Its H1, else, or when it is unreadable, its name. */
   title: string
   /** Its frontmatter's fields, when they are text. */
   status?: string
@@ -598,6 +598,11 @@ export interface Decision {
   document: Document
   /** The first problem `ura check` finds in it. */
   problem?: string
+  /**
+   * Whether it cannot be parsed, like a frontmatter that is not valid YAML: its title is then its
+   * name, and nothing else read from it stands.
+   */
+  unreadable: boolean
 }
 
 /** The tree of one workflow file. */

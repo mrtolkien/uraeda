@@ -139,9 +139,34 @@ fn a_decision_without_a_title_uses_its_file_name() {
     assert_eq!(git.title, "git");
     assert_eq!(git.summary, None);
     assert_eq!(git.problem.as_deref(), Some("no title"));
+    assert!(!git.unreadable);
 }
 
-/// Review focus 7: a decision that cannot be parsed is listed, with the check's first problem.
+/// A readable decision with a problem `ura check` finds, like a broken link, keeps its title and
+/// its summary: only a decision that cannot be parsed is unreadable.
+#[test]
+fn a_decision_with_a_broken_link_keeps_its_summary() {
+    let repo = TestRepo::new();
+    repo.write(
+        "specs/decisions/git.md",
+        &GIT.replace("Hooks.\n", "Hooks, as [the hooks](missing.md) say.\n"),
+    );
+    repo.commit("decision: git");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    let git = decision(&ledger.decisions, "git");
+    assert!(git.problem.is_some(), "{:?}", ledger.problems);
+    assert!(!git.unreadable);
+    assert_eq!(git.title, "Git");
+    assert_eq!(
+        git.summary.as_deref(),
+        Some("Tools read git with gix, and write with the system binary.")
+    );
+}
+
+/// Review focus 7: a decision that cannot be parsed is listed, unreadable, by its file name, with
+/// the check's first problem.
 #[test]
 fn an_unreadable_decision_names_its_problem() {
     let repo = TestRepo::new();
@@ -154,7 +179,9 @@ fn an_unreadable_decision_names_its_problem() {
     let ledger = api::read_ledger(repo.path()).unwrap();
 
     let git = decision(&ledger.decisions, "git");
-    assert_eq!(git.title, "Git");
+    assert!(git.unreadable);
+    // Titled by its file name, even with an H1: nothing read from it stands as its own.
+    assert_eq!(git.title, "git");
     assert_eq!(git.status, None);
     let problem = git.problem.as_deref().expect("a problem");
     assert!(
