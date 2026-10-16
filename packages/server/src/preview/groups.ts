@@ -1,10 +1,11 @@
-// The record of the Storybook process groups a server runs, in Uraeda's data folder: one file per
-// server, `storybooks/<server's pid>.json`. A server killed by SIGKILL, or crashed past its exit
-// hook, leaves its file behind, and the next start kills the groups it names that still run. A
+// The record of the Storybook process groups a server runs, in the data folder's `run/`: one file
+// per server, `run/storybooks/<server's pid>.json`. A server killed by SIGKILL, or crashed past its
+// exit hook, leaves its file behind, and the next start kills the groups it names that still run. A
 // record names processes only: a Storybook's base holds the frame secret, which stays in memory.
 import { execFileSync } from "node:child_process";
 import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { runFolder } from "../run-folder.ts";
 
 /** A process, by its pid and its start time, which tells it from a later process of that pid. */
 export type RecordedProcess = { pid: number; started: string };
@@ -15,8 +16,8 @@ export type GroupsFile = {
   server: { pid: number; started: string | null };
 };
 
-/** The record's folder in the data folder. */
-export const groupsFolder = (dataDir: string) => join(dataDir, "storybooks");
+/** The record's folder, in the data folder's `run/`. */
+export const groupsFolder = (dataDir: string) => join(runFolder(dataDir), "storybooks");
 
 /** The start time of the process `pid`, as `ps` prints it; undefined when none runs. */
 export function startTime(pid: number): string | undefined {

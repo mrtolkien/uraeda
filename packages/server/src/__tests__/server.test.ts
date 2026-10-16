@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,7 @@ import { FakeAdapter } from "../runner/fake.ts";
 import { startServer, SWEEP_EVERY_MS } from "../server.ts";
 import { SIGN_IN_FILE, SignInStore } from "../sign-in/store.ts";
 import { testSettings } from "../testing.ts";
+import { groupLeader, running } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -258,33 +259,6 @@ test("the server sweeps its Storybooks every minute", async () => {
 
   expect(sweep).toHaveBeenCalledOnce();
 });
-
-/** Whether the process is running. */
-function running(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** A process leading a group of its own, as a Storybook does, killed after the test: its pid. */
-function groupLeader(): number {
-  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1 << 30)"], {
-    detached: true,
-    stdio: "ignore",
-  });
-  child.unref();
-  onTestFinished(() => {
-    try {
-      process.kill(-child.pid!, "SIGKILL");
-    } catch {
-      // Already killed.
-    }
-  });
-  return child.pid!;
-}
 
 /**
  * Writes the record a server leaves, naming `groups`: a server killed past its exit hook, or the

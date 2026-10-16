@@ -144,8 +144,8 @@ function linkIn(address: string): { link: string; page: string } {
   return { link: link.replaceAll("&amp;", "&"), page };
 }
 
-/** The host token file of the server on `port` with the data folder `data`. */
-const tokenFile = (data: string, port: number) => join(data, `server-${port}.token`);
+/** The host token file of the server on `port` with the data folder `data`, in its `run/`. */
+const tokenFile = (data: string, port: number) => join(data, "run", `server-${port}.token`);
 
 /** The access key a start printed. */
 const keyIn = (stdout: string) => /shown once: (ura_[\w-]{43})\n/.exec(stdout)![1];

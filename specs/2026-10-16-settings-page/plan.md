@@ -524,15 +524,17 @@ git commit -m "feat(settings-page): host names applied while the server runs"
 - Create: `packages/server/src/run-folder.ts`, `packages/server/src/__tests__/run-folder.test.ts`
 - Modify: `packages/server/src/preview/groups.ts`, `packages/server/src/sign-in/host.ts`,
   `packages/server/src/sign-in/links.ts`, `packages/server/src/server.ts`, their tests where they
-  name the old paths
+  name the old paths (`main.test.ts`), and `packages/server/src/__tests__/helpers.ts`, which takes
+  `groupLeader` and `running` from `server.test.ts` for both test files
 
 **Interfaces:**
 
 - Produces: `runFolder(dataDir: string): string`, `<dataDir>/run`, created with mode `0700` by its
   writers; `removeOldRunFiles(dataDir: string): void`, called once at start after `killLeftGroups`
-  has read the old `storybooks/` too.
+  has read the old `storybooks/` too, `oldGroupsFolder(dataDir)`
+  ([R13](rulings.md#r13-the-old-running-files-are-three-names-in-the-data-folders-root)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - A started server writes `run/storybooks/<pid>.json` when a Storybook starts,
   `run/server-<port>.token`, and `run/sign-in-links/<port>/`; nothing new in the data folder's root.
@@ -545,19 +547,19 @@ git commit -m "feat(settings-page): host names applied while the server runs"
 The break each test catches: one writer left on the old path; the old Storybooks never killed; data
 removed with the old files.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-server src/__tests__/run-folder.test.ts`
-- Expected: FAIL, `Failed to resolve import "../run-folder.ts"`
+- Expected: FAIL, `Cannot find module '../run-folder.ts'`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run all server tests**
+- [x] **Step 4: Run all server tests**
 
 - Run: `vp test --project uraeda-server && vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-16-settings-page/plan.md
