@@ -74,3 +74,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the rule for a checked-out branch past its last task.
 - **If wrong**: the two functions move back; `workspace.rs` gets its cap from the plan's step 1.
 - **Where**: task 1.
+
+## R7: The branch changes' case of a folder without its branch expects no feature
+
+- **Decision**: the case "a feature with no branch" of
+  `branch_changes_lists_the_files_changed_outside_the_feature`
+  (`crates/core/tests/branch_changes.rs`) becomes "a dated folder with no branch, no item (R7)", and
+  expects "no feature 2026-10-14-draft" instead of no changes.
+- **Rationale**: the case wrote `specs/2026-10-14-draft/proposal.md` on the main checkout's disk,
+  with no branch, which the workspace read as a feature without a branch. Under the approved
+  [git](../decisions/git.md) rule and US1.7, that folder is no item. A feature without a branch is
+  now only a merged one, which the case "the feature merged into main" still checks.
+- **Alternatives considered**: deleting the case: it would no longer show what such a folder gives.
+- **If wrong**: the case goes back to expecting no changes, once the rule counts such folders.
+- **Where**: task 1.
+
+## R8: Tests of folders never committed are removed
+
+- **Decision**: five TypeScript tests whose setup is a folder or a proposal never committed are
+  removed: in `packages/server/src/runner/__tests__/sessions.test.ts`, "a feature with no branch
+  refuses…"; in `packages/web/src/__tests__/`, `session.test.tsx`'s "a feature with no branch yet:
+  the composer is disabled and says why", `session-aside.test.tsx`'s "a feature without a branch: no
+  changes section", `editor.test.tsx`'s "a feature's proposal not committed is edited and
+  committed", and the first half of `commit-actions.test.tsx`'s "committing a proposal and starting
+  a feature…", which keeps its second half as "starting a feature opens its session with the
+  message".
+- **Rationale**: they checked what the UI does with a dated folder on the main checkout's disk
+  without its branch, or a branch whose proposal was never committed. Under the approved
+  [git](../decisions/git.md) rule, US1.7, and R3, neither is an item any more, so those pages have
+  no feature to show; the core's workspace tests and the CLI's `an_uncommitted_proposal_is_no_item`
+  check their absence. The plan's task 1 did not foresee them.
+- **Alternatives considered**: committing the proposal in each setup: the tests would no longer
+  check anything of their own; keeping an exception for uncommitted proposals: against R3.
+- **If wrong**: the tests come back with the exception R3 describes.
+- **Where**: task 1.

@@ -339,7 +339,11 @@ fn cases() -> Vec<(&'static str, Setup, Expected)> {
             changes(vec![file("src/fix.rs", Some(1), Some(0))], 1, 1, 0),
         ),
         ("the feature merged into main", merged, Expected::Nothing),
-        ("a feature with no branch", no_branch, Expected::Nothing),
+        (
+            "a dated folder with no branch, no item (R7)",
+            no_branch,
+            Expected::Refused("no feature 2026-10-14-draft"),
+        ),
         (
             "uncommitted code in the feature's worktree",
             uncommitted,

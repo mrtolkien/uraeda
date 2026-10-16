@@ -1,5 +1,6 @@
 //! Reading the features of branches: the current branch's from the working tree, and every other
-//! feature branch's from the working tree that has it, else from its tip.
+//! feature branch's from the working tree that has it, else from its tip. A branch is an item only
+//! with its folder or its record in its latest commit.
 
 use std::collections::BTreeMap;
 
@@ -7,36 +8,48 @@ use super::{
     Feature, Kind, ReadFrom, Reader, Reading, Source, branch_folder, folder_branch, folder_path,
     read_feature, record_path,
 };
-use crate::git::{Branch, Git};
+use crate::git::{Branch, Git, ObjectId};
 
 impl Reading<'_> {
-    /// The working tree's features: the current branch's, and folders not yet committed.
+    /// Whether a commit holds a feature's or a change's folder, or its record: a branch is an item
+    /// only then, unlike a fix made outside the workflow, or a proposal never committed.
+    fn is_item(&self, commit: ObjectId, kind: Kind, folder: &str) -> bool {
+        let from = ReadFrom::Commit(commit);
+        !self
+            .reader
+            .files(from, &folder_path(kind, folder))
+            .is_empty()
+            || self.reader.read(from, &record_path(folder)).is_some()
+    }
+
+    /// The current branch's feature, from the working tree, when its latest commit makes it one.
+    /// Other folders on disk are no items: only branches are.
     pub(super) fn working_tree_features(
         &self,
         current_branch: Option<&str>,
     ) -> BTreeMap<(Kind, String), Feature> {
-        let current_folder = current_branch.and_then(branch_folder);
-        let mut on_disk = self.reader.folders(ReadFrom::Disk);
-        if let Some((kind, folder)) = current_folder {
-            on_disk.insert((kind, folder.to_string()));
-        }
-        let head = self.git.head();
         let mut features = BTreeMap::new();
-        for (kind, folder) in on_disk {
-            if self.merged.keys.contains(&(kind, folder.clone())) {
-                continue;
-            }
-            let branch = current_folder
-                .filter(|(k, f)| *k == kind && *f == folder)
-                .map(|_| folder_branch(kind, &folder));
-            let on_branch = branch.is_some();
-            let mut feature =
-                read_feature(&self.reader, kind, &folder, branch, ReadFrom::Disk, head);
-            if on_branch {
-                feature.worktree = Some(self.shown(self.root));
-            }
-            features.insert((kind, folder), feature);
+        let Some((kind, folder)) = current_branch.and_then(branch_folder) else {
+            return features;
+        };
+        let key = (kind, folder.to_string());
+        let Some(head) = self.git.head() else {
+            return features;
+        };
+        if self.merged.keys.contains(&key) || !self.is_item(head, kind, folder) {
+            return features;
         }
+        let branch = Some(folder_branch(kind, folder));
+        let mut feature = read_feature(
+            &self.reader,
+            kind,
+            folder,
+            branch,
+            ReadFrom::Disk,
+            Some(head),
+        );
+        feature.worktree = Some(self.shown(self.root));
+        features.insert(key, feature);
         features
     }
 
@@ -64,6 +77,9 @@ impl Reading<'_> {
     /// for a branch whose tip has neither its folder nor its record.
     fn branch_feature(&self, branch: &Branch, kind: Kind, folder: &str) -> Option<Feature> {
         let tip = branch.local.or(branch.remote)?;
+        if !self.is_item(tip, kind, folder) {
+            return None;
+        }
         let opened = self
             .checked_out
             .get(&branch.name)
@@ -83,17 +99,6 @@ impl Reading<'_> {
                 feature
             }
             None => {
-                // Neither its folder nor its record, like a fix made outside the workflow:
-                // not a feature.
-                let from = ReadFrom::Commit(tip);
-                if self
-                    .reader
-                    .files(from, &folder_path(kind, folder))
-                    .is_empty()
-                    && self.reader.read(from, &record_path(folder)).is_none()
-                {
-                    return None;
-                }
                 let mut feature = read_feature(
                     &self.reader,
                     kind,

@@ -343,27 +343,6 @@ test("Start turns a draft into a feature in its own worktree", async () => {
 });
 
 /** US4.5 */
-test("a feature's proposal not committed is edited and committed", async () => {
-  const repo = fixtureRepo();
-  git(repo, "branch", "2026-10-14-runner", "main");
-  git(repo, "worktree", "add", "--quiet", ".worktrees/2026-10-14-runner", "2026-10-14-runner");
-  const proposal = join(repo, ".worktrees/2026-10-14-runner/specs/2026-10-14-runner/proposal.md");
-  (await import("node:fs")).mkdirSync(join(proposal, ".."), { recursive: true });
-  writeFileSync(proposal, "# Runner\n\n## What\n\nRun.\n\n## Why\n\nSpeed.\n");
-  await renderPage("/f/2026-10-14-runner", repo);
-
-  await click(await screen.findByRole("button", { name: "Write" }));
-  await type(await edit(), "# Runner\n\n## What\n\nRun agents.\n\n## Why\n\nSpeed.\n");
-  await click(screen.getByRole("button", { name: "Commit" }));
-
-  await waitFor(() =>
-    expect(git(repo, "log", "-1", "--format=%s", "2026-10-14-runner").trim()).toBe(
-      "chore(runner): proposal",
-    ),
-  );
-  expect(readFileSync(proposal, "utf8")).toContain("Run agents.");
-});
-
 /** Review C2: the proposal is freeform, so Start starts any draft. */
 test("a draft with the template's placeholders starts", async () => {
   const repo = fixtureRepo();

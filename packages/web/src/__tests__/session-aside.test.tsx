@@ -6,7 +6,6 @@ import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { addPlan, commitOnBranch, ELEVEN, temporaryFolder } from "uraeda-binding/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
-  answered,
   atWidth,
   type Binding,
   click,
@@ -290,20 +289,6 @@ test("a binary file: listed without counts", async () => {
   const column = await findAside();
   await column.findByText("docs/screen.png");
   expect(changed("docs/screen.png").textContent).toBe("docs/screen.pngbinary");
-});
-
-test("a feature without a branch: no changes section", async () => {
-  const repo = fixtureRepo();
-  // A proposal not committed yet: the feature has no branch.
-  const folder = "2026-10-20-draft";
-  mkdirSync(join(repo, "specs", folder));
-  writeFileSync(join(repo, "specs", folder, "proposal.md"), "# Draft\n\n## What\n\nA draft.\n");
-  await renderPage(`/f/${folder}/session`, repo, { agent: await fakeAgent() });
-
-  const column = await findAside();
-  expect(column.getByRole("heading", { name: "Write the proposal" })).toBeTruthy();
-  await answered("BranchChanges");
-  expect(column.queryByRole("heading", { name: "Changed on the branch" })).toBeNull();
 });
 
 test("git failing: the changes could not be read, and the tasks still show", async () => {

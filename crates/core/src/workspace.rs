@@ -174,6 +174,10 @@ pub struct Feature {
     pub decisions_pending: bool,
     #[serde(skip)]
     texts: BTreeMap<String, String>,
+    /// The same feature read from its latest commit, when its files were read from disk: its step
+    /// is that one's.
+    #[serde(skip)]
+    at_tip: Option<Box<Feature>>,
 }
 
 impl Feature {
@@ -209,9 +213,10 @@ impl Feature {
         path.strip_prefix(self.path.as_str())?.strip_prefix('/')
     }
 
-    /// Recomputes the step with the pull request's state, for the steps that depend on it.
+    /// Recomputes the step with the pull request's state, for the steps that depend on it, from its
+    /// latest commit.
     pub fn with_pull_request(&mut self, pull_request: PullRequest) {
-        self.step = steps::step(self, pull_request);
+        self.step = steps::step(self.at_tip.as_deref().unwrap_or(self), pull_request);
     }
 }
 
@@ -587,9 +592,6 @@ impl Workspace {
         let mut features = reading.working_tree_features(current_branch.as_deref());
         reading.add_branch_features(&branches, &mut features);
         let mut features: Vec<Feature> = features.into_values().collect();
-        for feature in &mut features {
-            feature.step = steps::step(feature, PullRequest::Unknown);
-        }
         features.extend(reading.merged_features(&branches));
 
         let fetched = git.fetched_at();
@@ -693,6 +695,7 @@ impl Feature {
             proposal_committed: texts.contains_key(first_file(kind)),
             decisions_pending: false,
             texts,
+            at_tip: None,
         };
         feature.step = steps::step(&feature, PullRequest::Unknown);
         feature
@@ -748,6 +751,7 @@ impl Feature {
             proposal_committed: true,
             decisions_pending: false,
             texts: BTreeMap::from([(name, text)]),
+            at_tip: None,
         };
         feature.step = steps::step(&feature, PullRequest::Unknown);
         feature

@@ -3,6 +3,7 @@ mod common;
 use common::repo::{TestRepo, run_git};
 use common::texts::{clarifications, proposal, record};
 use uraeda_core::actions::place;
+use uraeda_core::api;
 use uraeda_core::git::Git;
 use uraeda_core::steps::{StepName, WaitsOn};
 use uraeda_core::view::FeatureView;
@@ -494,4 +495,102 @@ fn a_finished_items_view_carries_its_pull_request() {
     repo.write(&format!("specs/done/{FOLDER}.md"), &without);
     repo.commit("record: no pull request");
     assert_eq!(view(&repo), None);
+}
+
+/// US1.6: a branch checked out in a worktree, without its folder in its latest commit, is no item.
+#[test]
+fn a_checked_out_branch_without_its_folder_is_no_item() {
+    let repo = repo();
+    let folder = "2026-10-16-not-a-flow";
+    repo.branch(folder);
+    let worktree = repo.path().join(".worktrees").join(folder);
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        worktree.to_str().unwrap(),
+        folder,
+    ]);
+    std::fs::create_dir_all(worktree.join("specs").join(folder)).unwrap();
+    std::fs::write(
+        worktree.join("specs").join(folder).join("proposal.md"),
+        proposal(),
+    )
+    .unwrap();
+
+    let workspace = workspace(&repo);
+
+    assert!(workspace.features.iter().all(|f| f.folder != folder));
+}
+
+/// US1.7: a dated folder on the main checkout's disk, with no branch of its name, is no item.
+#[test]
+fn a_dated_folder_without_its_branch_is_no_item() {
+    let repo = repo();
+    repo.write("specs/2026-10-20-orphan/proposal.md", &proposal());
+
+    let workspace = workspace(&repo);
+
+    assert!(workspace.feature("2026-10-20-orphan").is_none());
+}
+
+/// A feature in its worktree at its discovery, with its next round of questions saved and not
+/// committed: the round's path in the worktree.
+fn uncommitted_round(repo: &TestRepo) -> std::path::PathBuf {
+    repo.switch(FOLDER);
+    repo.write(
+        "specs/2026-10-11-web-ui/clarifications-01.md",
+        &clarifications("answered", "1 question, about 3 minutes.", &["A"]),
+    );
+    repo.commit("discovery(web-ui): answer round 01");
+    repo.switch("main");
+    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let round = place
+        .root
+        .join("specs/2026-10-11-web-ui/clarifications-02.md");
+    std::fs::write(
+        &round,
+        clarifications("awaiting-human", "1 question, about 2 minutes.", &[""]),
+    )
+    .unwrap();
+    round
+}
+
+/// US1.8: an uncommitted gate leaves the step where the commit has it, until it is committed.
+#[test]
+fn an_uncommitted_gate_does_not_move_the_step() {
+    let repo = repo();
+    let round = uncommitted_round(&repo);
+
+    let saved = feature(&repo, FOLDER);
+    assert_eq!(saved.step.waits_on, WaitsOn::Agent);
+    assert!(saved.uncommitted);
+
+    let worktree = round.parent().unwrap();
+    run_git(worktree, &["add", "--all"]);
+    run_git(
+        worktree,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "discovery(web-ui): round 02",
+        ],
+    );
+    let feature = feature(&repo, FOLDER);
+    assert_eq!(feature.step.waits_on, WaitsOn::Human);
+    assert_eq!(feature.step.file.as_deref(), Some("clarifications-02.md"));
+}
+
+/// Review focus 1: the file page of a checked-out branch still shows its uncommitted text.
+#[test]
+fn a_file_page_keeps_its_uncommitted_text() {
+    let repo = repo();
+    let round = uncommitted_round(&repo);
+
+    let view = api::read_file(repo.path(), FOLDER, "clarifications-02.md").unwrap();
+
+    assert_eq!(view.current.text, std::fs::read_to_string(round).unwrap());
+    assert_eq!(view.status.as_deref(), Some("awaiting-human"));
 }
