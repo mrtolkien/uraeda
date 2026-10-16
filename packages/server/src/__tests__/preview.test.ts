@@ -1,7 +1,7 @@
 // Stories and previews in fate: a story link's record starts its checkout's Storybook, turns ready
 // live, and names its frame; a checkout's record restarts it; features and the workspace say whether
 // they have a preview; and an agent's link is checked through the core.
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { addStoryFeature, previewStarts, STORY_FEATURE } from "uraeda-binding/test-utils";
@@ -283,8 +283,11 @@ test("a feature's turn that ends done starts its Storybook, once its preview fol
   const { log } = addStoryFeature(repo);
   const { adapter, sessions } = await testServer(repo);
   const session = await sessions.featureSession(repo, STORY_FEATURE);
-  const turn = async () => {
-    adapter.script([{ text: "Done.", type: "text" }]);
+  const turn = async (ok = true) => {
+    adapter.script([
+      { text: "Done.", type: "text" },
+      { denials: [], errors: ok ? [] : ["It broke."], interrupted: false, ok, type: "result" },
+    ]);
     await sessions.settled((await sessions.send(repo, session.id, { text: "Go on" })).turn);
   };
 
@@ -296,10 +299,34 @@ test("a feature's turn that ends done starts its Storybook, once its preview fol
   mkdirSync(join(repo, ".worktrees", STORY_FEATURE, "packages/web/node_modules"), {
     recursive: true,
   });
+  // A turn that fails does not come back to the human: none starts either.
+  await turn(false);
+  await new Promise((done) => setTimeout(done, 300));
+  expect(previewStarts(log!)).toHaveLength(0);
   await turn();
 
   await expect.poll(() => previewStarts(log!).length, WAIT).toBe(1);
   expect(previewStarts(log!)[0]!.cwd).toMatch(
     /\.worktrees\/2026-10-20-sidebar-resize\/packages\/web$/,
   );
+});
+
+test("a Storybook a page started before the install, which failed, starts again as the turn ends", async () => {
+  const repo = fixtureRepo();
+  addStoryFeature(repo, { preview: { mode: "fail" } });
+  const { adapter, app, sessions } = await testServer(repo);
+  const worktree = join(repo, ".worktrees", STORY_FEATURE);
+  expect(await settled(app, "Preview", STORY_FEATURE)).toMatchObject({ state: "failed" });
+
+  // The install ends: the preview's command now works, and its folder has its dependencies.
+  const decision = join(worktree, "specs/decisions/preview.md");
+  writeFileSync(decision, readFileSync(decision, "utf8").replace("--mode fail", "--mode ok"));
+  mkdirSync(join(worktree, "packages/web/node_modules"), { recursive: true });
+  const session = await sessions.featureSession(repo, STORY_FEATURE);
+  adapter.script([{ text: "Installed.", type: "text" }]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Set it up" })).turn);
+
+  await expect
+    .poll(async () => (await byId(app, "Preview", [STORY_FEATURE], ["state"]))[0]?.state, WAIT)
+    .toBe("ready");
 });

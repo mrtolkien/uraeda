@@ -189,18 +189,6 @@ export async function readPreview(ctx: RepoContext, folder: string): Promise<Pre
   return previewRecord(folder, checkout, ctx.previews.view(checkout));
 }
 
-/**
- * Starts a checkout's Storybook ahead of any page, by its folder, once its preview folder has its
- * dependencies, `node_modules`: without them it would only fail, and its stories show the failure.
- * Nothing reads its record yet: a page that does finds it starting or ready.
- */
-export async function warmPreview(ctx: RepoContext, folder: string): Promise<void> {
-  const checkout = await runnable(ctx, folder);
-  if (checkout !== null && existsSync(join(checkout.dir, checkout.folder, "node_modules"))) {
-    ctx.previews.view(checkout);
-  }
-}
-
 /** Restarts a checkout's Storybook, by its folder: none without a checkout or a decision. */
 export async function restartPreview(ctx: RepoContext, folder: string): Promise<PreviewRecord> {
   const checkout = await runnable(ctx, folder);
@@ -213,6 +201,24 @@ export async function restartPreview(ctx: RepoContext, folder: string): Promise<
     return previewRecord(folder, checkout, ctx.previews.restart(checkout));
   } finally {
     restarting.delete(checkout.base);
+  }
+}
+
+/**
+ * Starts a checkout's Storybook ahead of any page, by its folder, once its preview folder has its
+ * dependencies, `node_modules`: without them it would only fail, and its stories show the failure.
+ * One that failed, as one a page started during the install, starts again. Nothing reads its record
+ * yet: a page that does finds it starting or ready.
+ */
+export async function warmPreview(ctx: RepoContext, folder: string): Promise<void> {
+  const checkout = await runnable(ctx, folder);
+  if (checkout === null || !existsSync(join(checkout.dir, checkout.folder, "node_modules"))) {
+    return;
+  }
+  if (ctx.previews.state(checkout.base)?.state === "failed") {
+    await restartPreview(ctx, folder);
+  } else {
+    ctx.previews.view(checkout);
   }
 }
 

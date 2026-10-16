@@ -10,7 +10,8 @@ proposal and the decisions. None binds future work: those are decisions.
 - **Rationale**: the agent sets the worktree up inside its turn, as the git decision asks, and the
   server cannot see an install finish. A turn that ends done is when the agent comes back to you, so
   the Storybook warms while you get to it. Without `node_modules`, a start only fails, and every
-  embed then shows the failure until "Try again"
+  embed then shows the failure until "Try again". A start that failed before the install, as one a
+  page opened during it began, starts again at the turn's end
   ([`warmPreview`](/packages/server/src/fate/preview.ts),
   [`onTurnDone`](/packages/server/src/live.ts)).
 - **Alternatives considered**: watching each worktree for its `node_modules` to appear, which needs
@@ -24,14 +25,16 @@ proposal and the decisions. None binds future work: those are decisions.
 
 ## R2: Every page of a feature starts its Storybook, not only its main page
 
-- **Decision**: the feature's or change's page, its files, its HTML mockups, and its session read
-  its Storybook's record, which starts it and keeps it running while one of them shows.
+- **Decision**: every page under a feature's or a change's folder, its page, its files, its HTML
+  mockups, its session, and its runs, reads its Storybook's record, which starts it and keeps it
+  running while one of them shows.
 - **Rationale**: a spec or a round is often opened from a link, without the feature's page first;
   the session is where an agent's stories show. The Storybook page reads it already.
 - **Alternatives considered**: the feature's page alone, as the proposal says it: a link straight to
   the spec would still wait for the start.
-- **If wrong**: a page you keep open keeps its Storybook running past 30 minutes. The routes are
-  listed in `StartsStorybook`, in [`App.tsx`](/packages/web/src/App.tsx).
+- **If wrong**: a page you keep open keeps its Storybook running past 30 minutes, and browsing five
+  features keeps five, about 1.5 GB each, for 30 minutes. `StartsStorybook`, in
+  [`App.tsx`](/packages/web/src/App.tsx), takes every route with a folder.
 - **Where**: `packages/web/src/App.tsx`
 
 ## R3: A frame loads once any part of it is on screen, with no margin
@@ -46,3 +49,16 @@ proposal and the decisions. None binds future work: those are decisions.
 - **If wrong**: frames appear a moment after you scroll to them. A `rootMargin` on the observer in
   [`StoryFrames.tsx`](/packages/web/src/StoryFrames.tsx) loads them earlier.
 - **Where**: `packages/web/src/StoryFrames.tsx`
+
+## R4: `createApp` registers its turn listener for the session manager's lifetime
+
+- **Decision**: each `createApp` adds one `onTurnDone` listener, never removed.
+- **Rationale**: the server and its dev mode make one app per session manager. The test helpers that
+  reuse one session manager across apps fire the old apps' listeners too, and those find their
+  runner stopped or their repository gone, so they start nothing.
+- **Alternatives considered**: wiring it in `startServer`, next to the frame secret's renewal, which
+  takes it out of the apps the tests build; returning what removes it, which `createApp` has no
+  close to call from.
+- **If wrong**: an app made and dropped while its session manager runs keeps a listener. Moving the
+  wiring to [`server.ts`](/packages/server/src/server.ts) fixes it.
+- **Where**: `packages/server/src/app.ts`
