@@ -17,7 +17,7 @@ mod links;
 mod paths;
 mod read;
 
-use read::{folder_uncommitted, read_record, read_texts, source_of};
+use read::read_feature;
 
 pub use links::{linked_draft, resolve};
 
@@ -621,58 +621,6 @@ impl Workspace {
     }
 }
 
-fn read_feature(
-    reader: &Reader<'_>,
-    kind: Kind,
-    folder: &str,
-    branch: Option<String>,
-    from: ReadFrom,
-    committed: Option<ObjectId>,
-) -> Feature {
-    let path = folder_path(kind, folder);
-    let (texts, unreadable) = read_texts(reader, from, &path);
-    if texts.is_empty()
-        && unreadable.is_empty()
-        && let Some(text) = reader.read(from, &record_path(folder))
-    {
-        let mut feature = read_record(reader, kind, folder, text, from, committed);
-        feature.branch = branch;
-        return feature;
-    }
-    let mut feature = Feature::from_texts(kind, folder, texts);
-    feature.mockups = reader
-        .files(from, &format!("{path}/mockups"))
-        .into_iter()
-        .filter(|name| name.ends_with(".html"))
-        .collect();
-    feature.mockups.sort();
-    for name in unreadable {
-        feature.problems.push(Problem {
-            file: format!("{path}/{name}"),
-            line: None,
-            rule: "file.utf8".into(),
-            message: "not UTF-8".into(),
-        });
-    }
-    feature.branch = branch;
-    feature.source = source_of(from);
-    let first_path = format!("{path}/{}", first_file(kind));
-    feature.proposal_committed = committed.is_some_and(|commit| {
-        reader
-            .git
-            .read_file(commit, &first_path)
-            .ok()
-            .flatten()
-            .is_some()
-    });
-    feature.uncommitted = folder_uncommitted(reader, &feature, &path, from, committed);
-    feature.decisions_pending = feature
-        .texts
-        .get("spec.md")
-        .is_some_and(|spec| decisions_pending(reader, from, &path, folder, spec));
-    feature
-}
-
 impl Feature {
     /// A feature or change from its files' texts, by name, with their statuses and problems. It is
     /// taken as committed, on its own branch, with no pending decision.
@@ -804,43 +752,4 @@ impl Feature {
         feature.step = steps::step(&feature, PullRequest::Unknown);
         feature
     }
-}
-
-/// Whether a decision the spec links is `proposed`, or has a proposed change for this folder.
-fn decisions_pending(
-    reader: &Reader<'_>,
-    from: ReadFrom,
-    dir: &str,
-    folder: &str,
-    spec: &str,
-) -> bool {
-    let document = markdown::Document::parse(spec);
-    let start = document
-        .headings
-        .iter()
-        .find(|h| h.level == 2 && h.text == "Decisions")
-        .map(|h| h.line);
-    let Some(start) = start else {
-        return false;
-    };
-    let end = document
-        .headings
-        .iter()
-        .find(|h| h.level <= 2 && h.line > start)
-        .map_or(usize::MAX, |h| h.line);
-    let change = format!("## Proposed change ({folder})");
-    document
-        .links
-        .iter()
-        .filter(|link| link.line > start && link.line < end && !link.wiki)
-        .filter_map(|link| resolve(dir, &link.target))
-        .filter(|path| path.starts_with("specs/decisions/"))
-        .any(|path| {
-            let Some(text) = reader.read(from, &path) else {
-                return false;
-            };
-            let proposed = frontmatter::parse(&text)
-                .is_ok_and(|front| front.text("status") == Some("proposed"));
-            proposed || text.lines().any(|line| line.trim_end() == change)
-        })
 }

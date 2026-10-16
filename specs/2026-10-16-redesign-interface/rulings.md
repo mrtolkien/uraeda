@@ -60,3 +60,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   reach.
 - **If wrong**: the settings page brings a stored choice back; tests may use it again.
 - **Where**: task 8.
+
+## R6: `read_feature` moves into the read module before it changes
+
+- **Decision**: a second structural commit of task 1 moves `read_feature` and `decisions_pending`,
+  unchanged, from `workspace.rs` into `workspace/read.rs`, and lowers `workspace.rs`'s cap in
+  `structure.rs` to 759: its 755 lines, and the 4 that step 4 adds for `Feature.at_tip`.
+- **Rationale**: step 1 lowers `workspace.rs`'s cap to its new length, so any line step 4 adds there
+  fails the structure test; step 4 changes `read_feature` and adds a field to `Feature`. The read
+  module already holds the rest of a folder's reading (`read_texts`, `read_record`).
+- **Alternatives considered**: putting the commit's step read in `branches.rs` only, leaving
+  `with_pull_request` to recompute the step from the disk's texts: `ura status` with `gh` would undo
+  the rule for a checked-out branch past its last task.
+- **If wrong**: the two functions move back; `workspace.rs` gets its cap from the plan's step 1.
+- **Where**: task 1.
