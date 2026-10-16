@@ -6,6 +6,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { AttachButton } from "../attach/AttachButton.tsx";
+import { WriteButton } from "../writes/WriteButton.tsx";
 import { AttachStatus } from "../attach/AttachStatus.tsx";
 import { DropHint } from "../attach/DropHint.tsx";
 import { Blocks } from "../Blocks.tsx";
@@ -142,9 +143,9 @@ export function DraftEditor({ draft, editor }: { draft: Draft; editor: DraftEdit
       )}
       <HStack gap={2} wrap="wrap">
         <AttachButton onFiles={(files) => void editor.images.addFiles(files)} />
-        <Button
-          clickAction={() => editor.actions.commit(false)}
+        <WriteButton
           label="Commit"
+          onClick={() => editor.actions.commit(false)}
           variant="secondary"
         />
       </HStack>
