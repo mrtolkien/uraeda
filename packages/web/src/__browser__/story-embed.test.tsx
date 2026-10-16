@@ -16,8 +16,8 @@ const STORIES = "packages/web/src/SidebarHandle.stories.tsx";
 const LABEL = "Dragging the handle";
 const PHONE = `${LABEL}, phone`;
 const DESKTOP = `${LABEL}, desktop`;
-const FRAME = (name: string) =>
-  `/r/${encodeURIComponent(name)}/preview/${FEATURE}/iframe.html?id=sidebarhandle--dragging&viewMode=story`;
+const FRAME = async (name: string) =>
+  `/r/${encodeURIComponent(name)}/preview/${await commands.frameSecret()}/${FEATURE}/iframe.html?id=sidebarhandle--dragging&viewMode=story`;
 /** How long the fake preview may take to start and its story to load, on a loaded machine. */
 const READY = { interval: 100, timeout: 20_000 };
 
@@ -51,8 +51,8 @@ describe("on a desktop", () => {
     const phone = await within(embed()).findByTitle(PHONE, {}, READY);
     const desktop = within(embed()).getByTitle(DESKTOP);
     expect([phone.getAttribute("src"), desktop.getAttribute("src")]).toEqual([
-      FRAME(repository()),
-      FRAME(repository()),
+      await FRAME(repository()),
+      await FRAME(repository()),
     ]);
     expect(phone.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
     expect(desktop.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
@@ -65,7 +65,9 @@ describe("on a desktop", () => {
     );
     const [start] = await commands.previewStarts();
     expect(start.cwd).toMatch(/\.worktrees\/2026-10-20-sidebar-resize\/packages\/web$/);
-    expect(start.base).toBe(`/r/${encodeURIComponent(repository())}/preview/${FEATURE}/`);
+    expect(start.base).toBe(
+      `/r/${encodeURIComponent(repository())}/preview/${await commands.frameSecret()}/${FEATURE}/`,
+    );
   });
 
   test("Desktop, Phone, and Both choose the widths, and the story runs in each (US1.2)", async () => {

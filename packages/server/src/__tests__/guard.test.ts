@@ -1,5 +1,6 @@
 import { expect, test } from "vite-plus/test";
 import { guardCheck } from "../guard.ts";
+import { FrameSecret } from "../sign-in/frames.ts";
 import { port, testApp } from "./helpers.ts";
 
 const tailnet = "mac.tail1234.ts.net";
@@ -62,12 +63,38 @@ test.each(cases)("a request to %s", async (_, host, headers, status, body) => {
 });
 
 // SC-004: a sandboxed frame's requests carry `Origin: null`, which only reads and live connections
-// under a preview's path accept.
-const check = guardCheck({ allowOrigins: [], port });
-const preview = "/r/repo/preview/2026-10-20-sidebar-resize/iframe.html";
+// under a preview's or a mockup's path with the frame secret accept.
+const frames = new FrameSecret(() => "the-secret");
+const check = guardCheck({ allowOrigins: [], isFrame: (path) => frames.allows(path), port });
+const preview = "/r/repo/preview/the-secret/2026-10-20-sidebar-resize/iframe.html";
+const mockup = "/r/repo/mockups/the-secret/specs/2026-10-06-recurring-tasks/mockups/repeat.html";
 const previewCases: Array<[string, string, string, Record<string, string>, string | undefined]> = [
   ["a frame's read", "GET", preview, { origin: "null" }, undefined],
   ["a frame's HEAD", "HEAD", preview, { origin: "null" }, undefined],
+  ["a mockup's read", "GET", mockup, { origin: "null" }, undefined],
+  // US2.1: an address without the secret does not exist.
+  [
+    "a frame's read without the secret",
+    "GET",
+    "/r/repo/preview/2026-10-20-sidebar-resize/iframe.html",
+    { origin: "null" },
+    "Not found",
+  ],
+  [
+    "a frame's read with another secret",
+    "GET",
+    preview.replace("the-secret", "another"),
+    { origin: "null" },
+    "Not found",
+  ],
+  [
+    "a mockup's read without the secret",
+    "GET",
+    "/r/repo/mockups/specs/2026-10-06-recurring-tasks/mockups/repeat.html",
+    { origin: "null" },
+    "Not found",
+  ],
+  ["a mockup's write", "POST", mockup, { origin: "null" }, "Forbidden origin"],
   ["a frame's write", "POST", preview, { origin: "null" }, "Forbidden origin"],
   ["a frame reading the API", "POST", "/r/repo/fate", { origin: "null" }, "Forbidden origin"],
   [
@@ -89,6 +116,12 @@ test.each(previewCases)("%s", (_, method, path, headers, refusal) => {
 
 test.each([
   ["a frame's socket on a preview", `127.0.0.1:${port}`, preview, undefined],
+  [
+    "a frame's socket without the secret",
+    `127.0.0.1:${port}`,
+    "/r/repo/preview/2026-10-20-sidebar-resize/storybook-server-channel",
+    "Not found",
+  ],
   ["a frame's socket elsewhere", `127.0.0.1:${port}`, "/r/repo/fate/live", "Forbidden origin"],
   ["a socket to another host", `evil.com:${port}`, preview, "Forbidden host"],
 ])("an upgrade: %s", (_, host, path, refusal) => {
@@ -104,7 +137,14 @@ test("an upgrade is a read only as a WebSocket GET", () => {
 });
 
 test("the guard needs a folder", () => {
-  for (const path of ["/r/repo/preview/", "/r/repo/preview//a", "/r/repo/preview"]) {
+  for (const path of [
+    "/r/repo/preview/",
+    "/r/repo/preview//a",
+    "/r/repo/preview",
+    "/r/repo/preview/the-secret/",
+    "/r/repo/preview/the-secret//a",
+    "/r/repo/mockups/the-secret/",
+  ]) {
     for (const upgrade of [false, true]) {
       expect(
         check({ host: `127.0.0.1:${port}`, method: "GET", origin: "null", path, upgrade }),

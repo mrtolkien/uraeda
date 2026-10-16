@@ -3,8 +3,6 @@
 // runs never start Claude Code. The root's config lists this project next to the others.
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { createServer, request as forward } from "node:http";
-import { connect, type AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
@@ -18,10 +16,11 @@ import {
   previewStarts,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
-import { reloadRepositories } from "uraeda-server/dev";
+import { devFrames, reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
 import { defineConfig, type Plugin, type PluginOption } from "vite-plus";
+import { forwardingProxy } from "./src/__browser__/forwarding-proxy.ts";
 import base, { uraedaServer } from "./vite.config.ts";
 
 const plugins = (base.plugins ?? []).filter(
@@ -78,60 +77,6 @@ async function frameTitled(context: Context, title: string): Promise<Frame> {
     throw new Error(`No frame titled ${title}`);
   }
   return frame;
-}
-
-/**
- * A forwarding proxy to the test server's port, for a browser that sends every request through it:
- * absolute-form requests, and `CONNECT` tunnels for its sockets. The host name the browser asked
- * for stays in each request's `Host`.
- */
-async function forwardingProxy(port: number) {
-  const proxy = createServer((request, response) => {
-    const url = new URL(request.url ?? "/");
-    const upstream = forward(
-      {
-        headers: request.headers,
-        host: "127.0.0.1",
-        method: request.method,
-        path: url.pathname + url.search,
-        port,
-      },
-      (answer) => {
-        response.writeHead(answer.statusCode ?? 502, answer.headers);
-        answer.pipe(response);
-      },
-    );
-    upstream.on("error", () => response.destroy());
-    request.pipe(upstream);
-  });
-  proxy.on("connect", (_request, socket, head) => {
-    const upstream = connect(port, "127.0.0.1", () => {
-      socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
-      upstream.write(head);
-      upstream.pipe(socket);
-      socket.pipe(upstream);
-    });
-    upstream.on("error", () => socket.destroy());
-    socket.on("error", () => upstream.destroy());
-  });
-  // WebKit sends a socket's upgrade in absolute form too: it goes on as the same request.
-  proxy.on("upgrade", (request, socket, head) => {
-    const url = new URL(request.url ?? "/");
-    const upstream = connect(port, "127.0.0.1", () => {
-      const lines = [`${request.method} ${url.pathname}${url.search} HTTP/1.1`];
-      for (let index = 0; index < request.rawHeaders.length; index += 2) {
-        lines.push(`${request.rawHeaders[index]}: ${request.rawHeaders[index + 1]}`);
-      }
-      upstream.write(`${lines.join("\r\n")}\r\n\r\n`);
-      upstream.write(head);
-      upstream.pipe(socket);
-      socket.pipe(upstream);
-    });
-    upstream.on("error", () => socket.destroy());
-    socket.on("error", () => upstream.destroy());
-  });
-  await new Promise<void>((resolve) => proxy.listen(0, "127.0.0.1", resolve));
-  return { close: () => proxy.close(), port: (proxy.address() as AddressInfo).port };
 }
 
 /** Holds the chat images' answers for `chatImageDelay`, before the server answers them. */
@@ -252,6 +197,11 @@ const commands = {
   /** Each start of the test feature's fake preview: its base path, folder, process, and port. */
   previewStarts() {
     return previewLog === undefined ? [] : previewStarts(previewLog);
+  },
+  /** The frame secret of the test server's preview paths, which fate gives the page. */
+  async frameSecret(context: Context) {
+    const frames = await devFrames(Number(new URL(context.page.url()).port));
+    return frames!.current();
   },
   /** Kills the test feature's running fake preview, as a crash would: its Storybook fails. */
   stopPreview() {
@@ -436,6 +386,7 @@ export type RepoCommands = {
   framePress: (title: string, key: string) => Promise<void>;
   frameReload: (title: string) => Promise<void>;
   frameRun: (title: string, script: string) => Promise<void>;
+  frameSecret: () => Promise<string>;
   frameText: (title: string) => Promise<string>;
   innerFrameText: (title: string, inner: string) => Promise<string>;
   mouse: (

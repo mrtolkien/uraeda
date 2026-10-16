@@ -13,7 +13,8 @@ const CHANGE = "2026-10-16-centred-x";
 const CHANGE_TITLE = "Centre the x in failure circles";
 const PAGE = `/f/${FEATURE}/storybook`;
 const AT_STORY = "?path=/story/sidebarhandle--dragging";
-const BASE = () => `/r/${encodeURIComponent(repository())}/preview/${FEATURE}/`;
+const BASE = async () =>
+  `/r/${encodeURIComponent(repository())}/preview/${await commands.frameSecret()}/${FEATURE}/`;
 /** Storybook's own frame of the story, inside its interface. */
 const PREVIEW_FRAME = "storybook-preview-iframe";
 /** How long the fake preview may take to start and its story to load, on a loaded machine. */
@@ -64,7 +65,7 @@ describe("on a desktop", () => {
     const crumbs = within(screen.getByRole("navigation", { name: "Breadcrumbs" }));
     expect(crumbs.getByRole("link", { name: "Sidebar resize" })).toBeTruthy();
     expect(within(crumbs.getAllByRole("listitem").at(-1)!).getByText("Storybook")).toBeTruthy();
-    expect(frame.getAttribute("src")).toBe(BASE() + AT_STORY);
+    expect(frame.getAttribute("src")).toBe((await BASE()) + AT_STORY);
     expect(frame.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
     expect(frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
     expect(document.documentElement.scrollHeight).toBe(window.innerHeight);
@@ -113,7 +114,7 @@ describe("on a desktop", () => {
 
     const frame = await screen.findByTitle("Storybook", {}, READY);
     expect(window.location.pathname + window.location.search).toBe(atRepo(PAGE + AT_STORY));
-    expect(frame.getAttribute("src")).toBe(BASE() + AT_STORY);
+    expect(frame.getAttribute("src")).toBe((await BASE()) + AT_STORY);
     await storyShown();
   });
 

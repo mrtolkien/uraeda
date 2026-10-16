@@ -40,8 +40,8 @@ live-error probe, and shows the sign-in screen above everything else. See the
 3. **A preview path whose secret is right but whose Storybook is gone**: 503 as today, not 404, so a
    restart in progress shows "starting" rather than a broken address. Task 3.
 4. **Two sign-outs at once** (a tab and another device): the frame secret is replaced once per ended
-   session, and Storybooks restart at most once per replacement; no listener throws on a session
-   already gone. Task 3.
+   session, and Storybooks restart once for the replacements of one turn of the event loop; no
+   listener throws on a session already gone. Task 3.
 5. **A mockup path that is the frame secret alone** (`/r/<name>/mockups/<secret>/`): 404, never the
    repository's root listing or a redirect loop. Task 3.
 6. **`to` of a one-time link pointing elsewhere** (`//evil.com`, `https://evil.com`): the redirect
@@ -419,30 +419,42 @@ git commit -m "feat(basic-security): sessions on every route, and the sign-in ro
   (`runnable`'s base, `takeWatched`), `packages/server/src/fate/context.ts` (`frames`),
   `packages/server/src/live.ts` (`renewPreviews`), `packages/server/src/files.ts` (mockups under the
   secret, the redirect), `packages/server/src/app.ts`, `packages/server/src/server.ts`,
-  `packages/server/src/dev.ts` (`devUpgrade`'s pattern)
+  `packages/server/src/dev.ts` (`devUpgrade`'s pattern, `devFrames`),
+  `packages/web/vite.browser.config.ts` (the `frameSecret` command; its forwarding proxy moved to
+  `packages/web/src/__browser__/forwarding-proxy.ts`), `packages/web/scripts/validate-storybook.ts`
+  (the base from the `Preview` record), `skills/uraeda/assets/storybook/uraeda-preview.js` (its
+  comment)
 - Test: `packages/server/src/sign-in/__tests__/frames.test.ts`, and the existing `guard.test.ts`,
   `preview/__tests__/proxy.test.ts`, `preview/__tests__/helpers.ts`, `__tests__/preview.test.ts`,
-  `__tests__/files.test.ts`, `__tests__/dev.test.ts` moved to secret paths
+  `__tests__/files.test.ts`, `__tests__/dev.test.ts`, `sign-in/__tests__/closed.test.ts`,
+  `sign-in/__tests__/routes.test.ts`, and the web's `story-embed`, `story-chat`, and
+  `storybook-page` browser tests moved to secret paths
 
 **Interfaces:**
 
 - Consumes: Task 1's `onEnded`; Task 2's `sessionCheck` `frames` option.
 - Produces, in `frames.ts`: `class FrameSecret` with `constructor(make?: () => string)`,
-  `current(): string`, `replace(): void`, `onReplace(listener: () => void): void`,
-  `allows(path: string): boolean` (a preview or mockup path whose secret segment is the current
-  one).
+  `current(): string`, `check(text: string): boolean` (constant time), `replace(): void` (the new
+  secret at once), `onReplace(listener: () => void): void` (called once for the replacements of one
+  turn of the event loop), `allows(path: string): boolean` (a preview or mockup path whose secret
+  segment is the current one).
 - Produces, in `guard.ts`: `PREVIEW_PATH = /^(\/r\/[^/]+\/preview\/([^/]+)\/[^/]+)(\/.*)?$/` (base,
   secret, rest); `MOCKUP_PATH = /^\/r\/[^/]+\/mockups\/([^/]+)\/(.+)$/`; `guardCheck` takes
-  `isFrame?: (path: string) => boolean` in place of matching `PREVIEW_PATH` for `Origin: null`.
+  `isFrame?: (path: string) => boolean` in place of matching `PREVIEW_PATH` for `Origin: null`; a
+  read with `Origin: null` on a path of either shape that `isFrame` refuses is `NOT_FOUND`, which
+  `refusalStatus` answers with 404.
 - Produces, in `runner.ts`: `Previews.stopEach(): void`, stopping every Storybook without closing
   the runner.
 - Produces, in `fate/context.ts`: `Context.frames: FrameSecret`; in `app.ts`:
-  `AppOptions.frames?: FrameSecret` (a new one by default); in `server.ts`: `Server.frames`.
+  `AppOptions.frames?: FrameSecret` (a new one by default); in `server.ts`: `Server.frames`; in
+  `fate/preview.ts`: `takeWatched(previews: Previews): Array<Watched>`; in `dev.ts`:
+  `devFrames(port: number): Promise<FrameSecret | undefined>`, for the browser tests' `frameSecret`
+  command.
 - Produces, in `live.ts`: `renewPreviews(previews: Previews): void`: the records read for every base
   are taken, every Storybook stopped, and their `Preview` and `Story` records sent, so pages read
   them again under the new base.
 
-- [ ] **Step 1: Write the failing tests, and move the existing ones to secret paths**
+- [x] **Step 1: Write the failing tests, and move the existing ones to secret paths**
 
 - `frames.test.ts`:
   - "another site's frame gets 404 for the old address" (US2.1):
@@ -462,7 +474,8 @@ git commit -m "feat(basic-security): sessions on every route, and the sign-in ro
     progress): a ready Storybook and a starting one; `replace()`; both are stopped, the fake's log
     shows a new start under the new base once a record is read again, the old base answers 404.
   - "a right secret on a gone Storybook is 503" (review focus 3).
-  - "two sign-outs at once replace the secret twice, and nothing throws" (review focus 4).
+  - "two sign-outs at once replace the secret twice, restart once, and nothing throws" (review focus
+    4).
 - SC-002, table-driven: preview and mockup paths × `GET`, `HEAD`, upgrade × with and without
   `Origin: null`, all without the secret → never 200 or 101.
 - The existing tests read the base from the app's `frames.current()`; their expectations stay.
@@ -471,28 +484,29 @@ The break each test catches: the old pattern still accepted; a frame address wit
 mockup that needs a cookie; credentials forwarded; a sign-out that leaves the old address working or
 the Storybook on the old base; a 404 that hides a restart; a listener that throws.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/sign-in/__tests__/frames.test.ts`
-- Expected: FAIL, `Cannot find module '../frames.ts'`.
+- Expected: FAIL, `Cannot find module '../sign-in/frames.ts'`, which the test helpers import.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-`startServer` makes one `FrameSecret`, gives it to the app, the upgrade, and fate's context, calls
-`frames.replace()` on every `store.onEnded`, and `renewPreviews(previews)` on every replacement.
-`previewUpgrade` refuses an upgrade the frame secret does not allow with a 404, after the guard. The
-mockup route serves the rest after the secret segment, and redirects any other mockup path, its
-session checked by Task 2's check, with 303 to `/r/<name>/mockups/<secret>/<path>`.
+`startServer` makes one `FrameSecret`, gives it to the app, the upgrade, and fate's context, and
+calls `renewPreviews(previews)` once for the replacements of one turn of the event loop; `createApp`
+calls `frames.replace()` on every `store.onEnded`, as it holds both. `previewUpgrade` refuses an
+upgrade the frame secret does not allow with a 404, after the guard. The mockup route serves the
+rest after the secret segment, and redirects any other mockup path, its session checked by Task 2's
+check, with 303 to `/r/<name>/mockups/<secret>/<path>`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS, the browser tests' stories included: their frame addresses come from fate.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src specs/2026-10-16-basic-security/plan.md
+git add packages skills/uraeda/assets/storybook specs/2026-10-16-basic-security
 git commit -m "feat(basic-security): the frame secret in preview and mockup paths"
 ```
 

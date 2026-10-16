@@ -266,13 +266,20 @@ test("the session routes are never cached", async () => {
 });
 
 test("Uraeda's pages refuse other sites' frames", async () => {
-  const { app, name, signIn } = await signedApp();
+  const { app, frames, name, signIn } = await signedApp();
   const cookie = await signIn.signedIn();
 
   const signed = await readFate(app, name, cookie);
   const refused = await readFate(app, name);
   // A Storybook's answer is framed by Uraeda's own pages, from a sandbox.
-  const preview = await send(app, "GET", `/r/${name}/preview/main/iframe.html`, { cookie });
+  const preview = await send(
+    app,
+    "GET",
+    `/r/${name}/preview/${frames.current()}/main/iframe.html`,
+    {
+      cookie,
+    },
+  );
 
   expect(signed.headers.get("x-frame-options")).toBe("SAMEORIGIN");
   expect(refused.headers.get("x-frame-options")).toBe("SAMEORIGIN");
