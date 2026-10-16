@@ -61,6 +61,7 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";
 import {
   folderSuggestionsDataView,
   REPOSITORIES_ID,
@@ -288,6 +289,13 @@ export const sources = createSources<Context>([
     repository({
       byIds: async ({ binding, repo }, ids) =>
         ids.includes(INBOX_ID) ? [sentInbox(await binding.readInbox(repo))] : [],
+    }),
+  ),
+  fileSource(
+    ledgerDataView,
+    repository({
+      byIds: async ({ binding, repo }, ids) =>
+        ids.includes(LEDGER_ID) ? [sentLedger(await binding.readLedger(repo))] : [],
     }),
   ),
   fileSource(

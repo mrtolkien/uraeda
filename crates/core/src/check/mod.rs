@@ -259,7 +259,30 @@ fn check_folder_files_with(
             }
         }
     }
-    for (name, text) in &texts {
+    check_texts(root, dir, any_folder, &texts, &mut found);
+    found
+}
+
+/// The problems of the files of the folder `dir` under `root`, holding `texts` by name, wherever
+/// they were read from, like a commit: for each file, the problems its rules find, by name.
+pub fn check_folder_texts(
+    root: &Path,
+    dir: &Path,
+    texts: &BTreeMap<String, String>,
+) -> BTreeMap<String, Vec<Problem>> {
+    let mut found = BTreeMap::new();
+    check_texts(root, dir, true, texts, &mut found);
+    found
+}
+
+fn check_texts(
+    root: &Path,
+    dir: &Path,
+    any_folder: bool,
+    texts: &BTreeMap<String, String>,
+    found: &mut BTreeMap<String, Vec<Problem>>,
+) {
+    for (name, text) in texts {
         let Some(kind) = kind_of(dir, name, any_folder) else {
             continue;
         };
@@ -267,7 +290,7 @@ fn check_folder_files_with(
             path: relative(root, &dir.join(name)),
             text,
             kind,
-            folder: &texts,
+            folder: texts,
             root,
         };
         found
@@ -275,7 +298,6 @@ fn check_folder_files_with(
             .or_default()
             .extend(check_file(&file));
     }
-    found
 }
 
 fn check_file(file: &File<'_>) -> Vec<Problem> {

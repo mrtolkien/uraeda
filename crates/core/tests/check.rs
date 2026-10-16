@@ -390,6 +390,36 @@ fn preview_fields_belong_to_the_preview_decision() {
     );
 }
 
+/// C8: a decision may name its icon, the preview decision too; another field is still unknown.
+#[test]
+fn a_decision_may_have_an_icon() {
+    let decision = |title: &str, fields: &str| {
+        format!(
+            "---\nstatus: active\napproved-by: me\n{fields}---\n\n# {title}\n\n## Rules\n\n- A rule.\n\n\
+             ## Why\n\nWhy.\n\n## Consequences\n\n- None.\n\n## Applies to\n\n- `src/`\n"
+        )
+    };
+    let example = Example::new();
+    example.write(
+        "specs/decisions/topic.md",
+        &decision("Topic", "icon: git-branch\n"),
+    );
+    example.write(
+        "specs/decisions/preview.md",
+        &decision("Preview", "icon: eye\n"),
+    );
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+
+    example.write(
+        "specs/decisions/topic.md",
+        &decision("Topic", "icon: git-branch\ncolour: blue\n"),
+    );
+    assert_eq!(
+        summary(&example.problems()),
+        ["specs/decisions/topic.md:5: unknown field \"colour\""]
+    );
+}
+
 #[test]
 fn plan_review_on_any_tier() {
     let example = Example::new();

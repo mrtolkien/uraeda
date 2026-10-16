@@ -262,6 +262,24 @@ fn an_edit_of_the_inbox_triage_is_reported() {
     assert!(next(&receiver).inbox);
 }
 
+/// The decisions page follows an edit of a decision or of the constitution, and only that.
+#[test]
+fn an_edit_of_a_decision_or_the_constitution_is_reported() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.write("specs/decisions/git.md", "# Git\n\nA choice.\n");
+    let changes = next(&receiver);
+    assert!(changes.decisions);
+    assert!(!changes.priorities && !changes.inbox);
+
+    repo.write("specs/CONSTITUTION.md", "# Constitution\n");
+    assert!(next(&receiver).decisions);
+
+    repo.write("specs/INBOX.md", "# Inbox\n\n- A note\n");
+    assert!(!next(&receiver).decisions);
+}
+
 /// The inbox is the default branch's: a feature checkout's copy is not it.
 #[test]
 fn an_edit_of_a_feature_checkouts_inbox_is_not_reported_as_the_inbox() {

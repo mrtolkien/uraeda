@@ -77,6 +77,7 @@ Workflow files track their state in frontmatter fields.
 | `plan.md`              | `spec-revision`   | the spec `revision` it implements     |                                   |
 | `decisions/*.md`       | `status`          | `proposed`, then `active` on approval | `active`                          |
 | `decisions/*.md`       | `approved-by`     | the approver, on approval, if known   | the approver                      |
+| `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                     |
 | `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                        |
 | `decisions/preview.md` | `preview-folder`  | where Storybook runs: `.`, `web`      |                                   |
 | `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                   |
