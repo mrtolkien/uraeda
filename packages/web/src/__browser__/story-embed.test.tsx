@@ -1,5 +1,8 @@
 // US1 of the UI iteration flow: a story link alone in its paragraph shows the story live, from the
-// branch's Storybook, at a phone and a desktop width (US1.1, US1.2, US1.5), in Uraeda's colour mode
+// branch's Storybook, at the desktop's width, or the phone's when chosen, in one frame a change of
+// width never reloads, framed as a phone's screen at its width; the phone's alone on a narrow screen
+// (US1.1, US1.2, US1.5). The handle sets its height, Full screen fills the screen, and in a
+// document's column it grows into the space beside it. It is shown in Uraeda's colour mode
 // (US1.4), in every workflow file (US1.6), with one Storybook for every page (US1.7, SC-001), and
 // through a listed host name (SC-006). The embed's states and edge cases: a failed start, a missing
 // story, no worktree, a story that never reports its height, a frame Storybook reloads, a malformed
@@ -36,31 +39,34 @@ const statuses = () =>
     .queryAllByRole("status")
     .map((region) => region.textContent);
 
+/** Shows the embed's story at the phone's width, as its Phone option does on a wide screen. */
+async function atPhoneWidth() {
+  await userEvent.click(within(embed()).getByRole("radio", { name: "Phone" }));
+  await storyShown(PHONE);
+}
+
 /** A frame's height on the page, in px. */
 const heightOf = (title: string) => screen.getByTitle(title).getBoundingClientRect().height;
 
 describe("on a desktop", () => {
   atSize("desktop");
 
-  test("a story link alone starts the branch's Storybook, and shows the story at both widths (US1.1)", async () => {
+  test("a story link alone starts the branch's Storybook, and shows the story at the desktop's width (US1.1)", async () => {
     await commands.addStoryFeature({ preview: { delay: 1500 } });
     await show(SPEC, "Resize the sidebar");
 
     expect(await within(embed()).findByText("Starting Storybook for this branch…")).toBeTruthy();
     // Said, as it changes, to a screen reader too.
     expect(statuses()).toContain("Starting Storybook for this branch…");
-    const phone = await within(embed()).findByTitle(PHONE, {}, READY);
-    const desktop = within(embed()).getByTitle(DESKTOP);
-    // On screen, the frames load as soon as the observer sees them.
-    await expect
-      .poll(() => [phone.getAttribute("src"), desktop.getAttribute("src")])
-      .toEqual([await FRAME(repository()), await FRAME(repository())]);
-    expect(phone.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
+    const desktop = await within(embed()).findByTitle(DESKTOP, {}, READY);
+    expect(within(embed()).queryByTitle(PHONE)).toBeNull();
+    expect(within(embed()).getByRole("radio", { checked: true, name: "Desktop" })).toBeTruthy();
+    expect(within(embed()).queryByRole("radio", { name: "Both" })).toBeNull();
+    // On screen, the frame loads as soon as the observer sees it.
+    await expect.poll(() => desktop.getAttribute("src")).toBe(await FRAME(repository()));
     expect(desktop.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
     await storyShown(DESKTOP);
-    await storyShown(PHONE);
-    expect(phone.getBoundingClientRect().width).toBe(402);
-    expect(desktop.getBoundingClientRect().width).toBeLessThan(1440);
+    expect(desktop.getBoundingClientRect().width).toBeLessThanOrEqual(1440);
     expect(desktop.getBoundingClientRect().right).toBeLessThanOrEqual(
       embed().getBoundingClientRect().right,
     );
@@ -71,35 +77,114 @@ describe("on a desktop", () => {
     );
   });
 
-  test("Desktop, Phone, and Both choose the widths, and the story runs in each (US1.2)", async () => {
+  test("Phone and Desktop resize the one frame, which keeps its story as it is, unreloaded (US1.2)", async () => {
     await commands.addStoryFeature();
     await show(SPEC, "Resize the sidebar");
     await storyShown(DESKTOP);
-    const column = embed().getBoundingClientRect().width;
-
-    await userEvent.click(within(embed()).getByRole("radio", { name: "Desktop" }));
-
-    expect(within(embed()).queryByTitle(PHONE)).toBeNull();
-    // The desktop width alone, scaled to the whole column.
-    await expect
-      .poll(() => within(embed()).getByTitle(DESKTOP).getBoundingClientRect().width)
-      .toBeGreaterThan(column - 50);
-    await storyShown(DESKTOP);
+    const frame = within(embed()).getByTitle(DESKTOP);
+    // The desktop width, scaled to the whole embed.
+    expect(frame.getBoundingClientRect().width).toBeGreaterThan(
+      embed().getBoundingClientRect().width - 50,
+    );
     await commands.frameClick(DESKTOP, "button", "Hide the sidebar");
     await expect.poll(() => commands.frameText(DESKTOP)).toContain("Clicked 1 time");
 
     await userEvent.click(within(embed()).getByRole("radio", { name: "Phone" }));
 
-    expect(within(embed()).queryByTitle(DESKTOP)).toBeNull();
-    expect(within(embed()).getByTitle(PHONE).getBoundingClientRect().width).toBe(402);
-    await storyShown(PHONE);
+    expect(within(embed()).getByTitle(PHONE)).toBe(frame);
+    await expect.poll(() => frame.getBoundingClientRect().width).toBe(402);
+    // The same page, not loaded again: its click is still counted.
+    expect(await commands.frameText(PHONE)).toContain("Clicked 1 time");
     await commands.frameClick(PHONE, "button", "Hide the sidebar");
-    await expect.poll(() => commands.frameText(PHONE)).toContain("Clicked 1 time");
+    await expect.poll(() => commands.frameText(PHONE)).toContain("Clicked 2 times");
 
-    await userEvent.click(within(embed()).getByRole("radio", { name: "Both" }));
+    await userEvent.click(within(embed()).getByRole("radio", { name: "Desktop" }));
 
-    expect(within(embed()).getByTitle(PHONE)).toBeTruthy();
-    expect(within(embed()).getByTitle(DESKTOP)).toBeTruthy();
+    expect(within(embed()).getByTitle(DESKTOP)).toBe(frame);
+    expect(await commands.frameText(DESKTOP)).toContain("Clicked 2 times");
+  });
+});
+
+describe("on a desktop, the embed's sizes", () => {
+  atSize("desktop");
+
+  test("at the phone's width, the story is centred, framed as a phone's screen, on its own background", async () => {
+    await commands.addStoryFeature();
+    await show(SPEC, "Resize the sidebar");
+    await storyShown(DESKTOP);
+    const frame = within(embed()).getByTitle(DESKTOP);
+    const stage = frame.parentElement!.parentElement!;
+    const desktopBackground = getComputedStyle(stage).backgroundColor;
+
+    await atPhoneWidth();
+
+    const box = frame.getBoundingClientRect();
+    const around = stage.getBoundingClientRect();
+    expect(Math.abs(box.left - around.left - (around.right - box.right))).toBeLessThan(2);
+    expect(
+      Number.parseFloat(getComputedStyle(frame.parentElement!).borderTopWidth),
+    ).toBeGreaterThan(0);
+    expect(getComputedStyle(stage).backgroundColor).not.toBe(desktopBackground);
+  });
+
+  test("the handle under the story makes its frame taller or shorter, by keyboard too", async () => {
+    await commands.addStoryFeature();
+    await show(SPEC, "Resize the sidebar");
+    await storyShown(DESKTOP);
+    const frame = within(embed()).getByTitle(DESKTOP);
+    const before = frame.getBoundingClientRect().height;
+    const handle = within(embed()).getByRole("separator", { name: `Resize ${LABEL}` });
+
+    handle.focus();
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+
+    await expect.poll(() => frame.getBoundingClientRect().height).toBeGreaterThan(before + 20);
+    const taller = frame.getBoundingClientRect().height;
+    await userEvent.keyboard("{ArrowUp}");
+    await expect.poll(() => frame.getBoundingClientRect().height).toBeLessThan(taller);
+  });
+
+  test("Full screen shows the story on the whole screen, and leaves it", async () => {
+    await commands.addStoryFeature();
+    await show(SPEC, "Resize the sidebar");
+    await storyShown(DESKTOP);
+    if (!document.fullscreenEnabled) {
+      // A browser without full screen for an element offers none.
+      expect(within(embed()).queryByRole("button", { name: "Full screen" })).toBeNull();
+      return;
+    }
+
+    await userEvent.click(within(embed()).getByRole("button", { name: "Full screen" }));
+
+    await expect.poll(() => document.fullscreenElement).toBe(embed());
+    const frame = within(embed()).getByTitle(DESKTOP);
+    await expect
+      .poll(() => frame.getBoundingClientRect().height)
+      .toBeGreaterThan(window.innerHeight - 150);
+    expect(within(embed()).queryByRole("separator")).toBeNull();
+    expect(within(embed()).getByRole("button", { name: "Leave full screen" })).toBeTruthy();
+
+    // Left by the browser, as Escape does: the test's driver cannot reach into the full screen of its
+    // own frame, and the embed follows.
+    await document.exitFullscreen();
+
+    expect(await within(embed()).findByRole("button", { name: "Full screen" })).toBeTruthy();
+    expect(within(embed()).getByRole("separator", { name: `Resize ${LABEL}` })).toBeTruthy();
+  });
+
+  test("in a document's column, the embed grows into the empty space beside it", async () => {
+    await commands.addStoryFeature();
+    await show(SPEC, "Resize the sidebar");
+    await storyShown(DESKTOP);
+    const column = embed().parentElement!.getBoundingClientRect();
+
+    await expect.poll(() => embed().getBoundingClientRect().width).toBeGreaterThan(column.width);
+    const grown = embed().getBoundingClientRect();
+    expect(grown.width).toBeLessThanOrEqual(1440 + 34);
+    // Never past the page's own inset, nor over the sidebar.
+    const sidebar = screen.getAllByRole("link", { name: "Home" })[0]!.getBoundingClientRect();
+    expect(grown.left).toBeGreaterThan(sidebar.right);
+    expect(grown.right).toBeLessThanOrEqual(window.innerWidth);
   });
 
   test("a second page uses the running Storybook, ready within 2 seconds (US1.7, SC-001)", async () => {
@@ -110,7 +195,6 @@ describe("on a desktop", () => {
     await show(PROPOSAL, "Long feature names are cut");
 
     await storyShown(DESKTOP, { interval: 50, timeout: 2000 });
-    await storyShown(PHONE, { interval: 50, timeout: 2000 });
     expect(await commands.previewStarts()).toHaveLength(1);
   });
 });
@@ -135,21 +219,19 @@ describe("on a desktop, as embeds load", () => {
     await page.viewport(1440, 300);
     try {
       await show(SPEC, "Resize the sidebar");
-      const phone = await within(embed()).findByTitle(PHONE, {}, READY);
-      const desktop = within(embed()).getByTitle(DESKTOP);
+      const desktop = await within(embed()).findByTitle(DESKTOP, {}, READY);
       expect(embed().getBoundingClientRect().top).toBeGreaterThan(window.innerHeight);
-      expect([phone.getAttribute("src"), desktop.getAttribute("src")]).toEqual([null, null]);
+      expect(desktop.getAttribute("src")).toBeNull();
       expect(await commands.previewStarts()).toHaveLength(1);
 
       embed().scrollIntoView();
 
-      await expect.poll(() => phone.getAttribute("src")).toBe(await FRAME(repository()));
-      expect(desktop.getAttribute("src")).toBe(await FRAME(repository()));
-      await storyShown(PHONE);
+      await expect.poll(() => desktop.getAttribute("src")).toBe(await FRAME(repository()));
+      await storyShown(DESKTOP);
       // Once loaded, a frame stays loaded when scrolled away.
       window.scrollTo(0, 0);
       await storyShown(DESKTOP);
-      expect(phone.getAttribute("src")).toBe(await FRAME(repository()));
+      expect(desktop.getAttribute("src")).toBe(await FRAME(repository()));
     } finally {
       await page.viewport(1440, 900);
     }
@@ -165,13 +247,11 @@ describe("on a desktop, the frames and their messages", () => {
     await show(SPEC, "Resize the sidebar");
     await storyShown(DESKTOP);
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("dark");
-    await expect.poll(() => commands.frameAttribute(PHONE, "html", "data-mode")).toBe("dark");
 
     const theme = screen.getByRole("radiogroup", { name: "Theme" });
     await userEvent.click(within(theme).getByRole("radio", { name: "Light" }));
 
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("light");
-    await expect.poll(() => commands.frameAttribute(PHONE, "html", "data-mode")).toBe("light");
   });
 
   test("after Storybook reloads a frame, it gets the colour mode again (review focus 2)", async () => {
@@ -191,6 +271,8 @@ describe("on a desktop, the frames and their messages", () => {
   test("a size that is not a number above 0 is ignored (review focus 6)", async () => {
     await commands.addStoryFeature();
     await show(SPEC, "Resize the sidebar");
+    await storyShown(DESKTOP);
+    await atPhoneWidth();
     await expect
       .poll(() => commands.frameAttribute(PHONE, "html", "data-mode"), READY)
       .toBe("light");
@@ -213,8 +295,9 @@ describe("on a desktop, the frames and their messages", () => {
   test("a story that never reports its height is 560 px tall", async () => {
     await commands.addStoryFeature({ preview: { mode: "no-pick" } });
     await show(SPEC, "Resize the sidebar");
+    await storyShown(DESKTOP);
 
-    await storyShown(PHONE);
+    await atPhoneWidth();
 
     expect(heightOf(PHONE)).toBe(560);
   });
@@ -228,6 +311,12 @@ describe("on a desktop, the frames and their messages", () => {
     const text = await commands.readRepo(proposal);
     await commands.writeRepo(`${text}\n[Full height](/${STORIES}#FullHeight)\n`, proposal);
     await show(PROPOSAL, "Long feature names are cut");
+    await expect
+      .poll(() => commands.frameText("Full height, desktop"), READY)
+      .toContain("FullHeight");
+    const full = screen.getByRole("figure", { name: "Full height" });
+    full.scrollIntoView();
+    await userEvent.click(within(full).getByRole("radio", { name: "Phone" }));
     await expect
       .poll(() => commands.frameText("Full height, phone"), READY)
       .toContain("FullHeight");
@@ -257,9 +346,15 @@ describe("on a desktop, the embed among other windows and boxes", () => {
     const text = await commands.readRepo(proposal);
     await commands.writeRepo(`${text}\n[Thin line](/${STORIES}#ThinLine)\n`, proposal);
     await show(PROPOSAL, "Long feature names are cut");
-    for (const title of [PHONE, "Thin line, phone"]) {
+    for (const label of [LABEL, "Thin line"]) {
+      const other = screen.getByRole("figure", { name: label });
+      other.scrollIntoView();
       await expect
-        .poll(() => commands.frameAttribute(title, "html", "data-mode"), READY)
+        .poll(() => commands.frameAttribute(`${label}, desktop`, "html", "data-mode"), READY)
+        .toBe("light");
+      await userEvent.click(within(other).getByRole("radio", { name: "Phone" }));
+      await expect
+        .poll(() => commands.frameAttribute(`${label}, phone`, "html", "data-mode"), READY)
         .toBe("light");
     }
     const before = heightOf(PHONE);
@@ -282,7 +377,7 @@ describe("on a desktop, the embed among other windows and boxes", () => {
     expect(heightOf(PHONE)).toBe(before);
   });
 
-  test("in a pane too narrow for both widths, Both shows the phone's alone, within the pane", async () => {
+  test("in a pane, the desktop's width is scaled to the pane", async () => {
     await commands.addStoryFeature();
     // The main checkout's draft embeds the story, and opens in a pane beside the priorities.
     const draft = "specs/drafts/git-listener.md";
@@ -290,11 +385,10 @@ describe("on a desktop, the embed among other windows and boxes", () => {
     await commands.writeRepo(`${text}\n[${LABEL}](/${STORIES}#Dragging)\n`, draft);
     await show("/priorities/git-listener", "So agents start without me.");
 
-    const phone = await within(embed()).findByTitle(PHONE, {}, READY);
-    await storyShown(PHONE);
-    expect(within(embed()).getByRole("radio", { checked: true, name: "Both" })).toBeTruthy();
-    expect(within(embed()).queryByTitle(DESKTOP)).toBeNull();
-    expect(phone.getBoundingClientRect().right).toBeLessThanOrEqual(
+    const desktop = await within(embed()).findByTitle(DESKTOP, {}, READY);
+    await storyShown(DESKTOP);
+    expect(within(embed()).getByRole("radio", { checked: true, name: "Desktop" })).toBeTruthy();
+    expect(desktop.getBoundingClientRect().right).toBeLessThanOrEqual(
       embed().getBoundingClientRect().right,
     );
   });
@@ -320,11 +414,13 @@ describe("on the phone", () => {
 test("an approved spec and a proposal embed their stories (US1.6, other workflow files)", async () => {
   await commands.addStoryFeature({ specStatus: "approved" });
   await show(SPEC, "Resize the sidebar");
-  await storyShown(PHONE);
+  // The desktop's width on a wide screen, the phone's on a narrow one.
+  const shown = window.innerWidth >= 768 ? DESKTOP : PHONE;
+  await storyShown(shown);
 
   await show(PROPOSAL, "Long feature names are cut");
 
-  await storyShown(PHONE);
+  await storyShown(shown);
 });
 
 test("each state says why the story does not show", async () => {

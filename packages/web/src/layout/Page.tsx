@@ -1,6 +1,6 @@
 import * as stylex from "@stylexjs/stylex";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import type { ReactNode } from "react";
+import { createContext, type ReactNode, type RefObject, useRef } from "react";
 import { useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
@@ -21,8 +21,21 @@ const styles = stylex.create({
   },
 });
 
+/**
+ * The page's column, for what may grow past it into the space beside it, as a story's embed does:
+ * null outside a page.
+ */
+export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>(null);
+
 /** A page's content: its inset, and its column on wide screens. */
 export function Page({ children }: { children: ReactNode }) {
   const wide = useWidthClass() === "wide";
-  return <div {...stylex.props(styles.page, wide && styles.wide)}>{children}</div>;
+  const column = useRef<HTMLDivElement>(null);
+  return (
+    <PageColumn value={column}>
+      <div ref={column} {...stylex.props(styles.page, wide && styles.wide)}>
+        {children}
+      </div>
+    </PageColumn>
+  );
 }
