@@ -9,7 +9,6 @@ import { warmPreview } from "./fate/preview.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
 import { onTurnDone } from "./live.ts";
 import { openRoute } from "./open.ts";
-import type { Options } from "./options.ts";
 import { previewRoutes } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import type { Hosts } from "./repositories.ts";
@@ -33,7 +32,11 @@ const rewritten = async (request: Request) =>
   });
 
 /** What `createApp` takes, and its route groups. */
-type AppOptions = Omit<Options, "given" | "newKey" | "open" | "repo" | "show"> & {
+type AppOptions = {
+  /** Host names accepted besides 127.0.0.1 and localhost, like `mac.tail1234.ts.net`. */
+  allowedHosts?: Array<string>;
+  /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
+  allowOrigins: Array<string>;
   binding: Binding;
   dataDir: string;
   /** The frame secret of preview and mockup paths: a new one by default. */
@@ -41,6 +44,8 @@ type AppOptions = Omit<Options, "given" | "newKey" | "open" | "repo" | "show"> &
   hosts: Hosts;
   /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
   lockedList?: boolean;
+  /** The port the server listens on, the only one its own host names take. */
+  port: number;
   /** The server's Storybooks, which `/r/<name>/preview/<secret>/<folder>/` forwards to. */
   previews: Previews;
   sessions: Sessions;
