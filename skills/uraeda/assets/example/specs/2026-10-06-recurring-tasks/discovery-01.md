@@ -169,6 +169,14 @@ The proposal does not say what a repeating task without a due date does. Its pat
 The proposal does not mention editing one occurrence or ending the repetition, which every product
 reviewed offers: see [what they have in common](#what-they-have-in-common).
 
+## Worth it and feasibility
+
+Every product reviewed repeats tasks, and the proposal's weekly chores are the most common case, so
+the feature is worth its cost: one new field, an upgrade of the stored tasks, and at most one new
+screen. It relies on no undocumented behaviour: date-fns documents its month arithmetic, including
+the end of the month (see [dates in JavaScript](#dates-in-javascript)), and IndexedDB's upgrades are
+standard. No option relaxes a guard: the tasks stay in the browser.
+
 ## Approaches
 
 Criteria come from the [proposal](proposal.md) (two clicks: task, repeat, weekly), the

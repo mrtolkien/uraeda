@@ -65,13 +65,13 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
 
 ## Shell
 
-- Commands run in zsh, where an unquoted glob that matches no file fails the whole command
+- Commands run in zsh or fish, where an unquoted glob that matches no file fails the whole command
   (`no matches found: --include=*.ts`). Quote globs, `--include='*.ts'`, or use `rg -g '*.ts'`.
 - Run the toolchain inside the dev shell, `nix develop -c <command>`: outside it, `cargo nextest`,
   `stylua`, and other pinned tools are missing.
-- The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it
-  (unwrapped, failing the format check). Edit it by hand, or copy a newer version from
-  `node_modules/vite-plus/AGENTS.md`.
+- The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:
+  it rewrote the section unwrapped, which fails the format check. Edit it by hand, or copy a newer
+  version from `node_modules/vite-plus/AGENTS.md`.
 
 ## Working with the human
 

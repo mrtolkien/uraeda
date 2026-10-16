@@ -13,7 +13,8 @@ plan-review: false
 > Spec to review, about [M] minutes.
 >
 > - [Where your attention matters most, one line each: new and changed decisions, risky assumptions,
->   the risk tier and whether the plan waits for your review, costs or migrations]
+>   outside behaviour not verified yet, a relaxed guard as what an attacker could do, the risk tier
+>   and whether the plan waits for your review, costs or migrations]
 
 [One paragraph: what the feature does, for whom, and why. Links to the [proposal](proposal.md),
 [discovery](discovery-01.md), and [clarifications](clarifications-01.md).]

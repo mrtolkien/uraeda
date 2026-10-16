@@ -239,7 +239,8 @@ decide comes up midway, ask in a round: the items already committed stay.
 Once every item is committed, catch up with the default branch, as the implementation step's
 [catch-up](implementation.md#catch-up-with-the-default-branch) describes. Then review the branch,
 open its draft pull request, and run the finish step, as
-[review the branch](implementation.md#review-the-branch) describes, with what differs for a change:
+[review the branch](implementation.md#review-the-branch) and
+[grade the findings](implementation.md#grade-the-findings) describe, with what differs for a change:
 the reviewer is given the proposal and its answered rounds in place of the spec and the plan, and
 there were no per-item reviews before it, so this one review is the change's only one. Fixes use the
 change's scope.

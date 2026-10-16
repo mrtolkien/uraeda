@@ -182,8 +182,9 @@ comes back to the human the same way every time, so they see at once what is ask
      questions, about 30 minutes."
    - Then what most needs their attention, most important first, one line each, named by subject,
      not by a number the reader has not seen yet: choices that last beyond the feature, questions
-     that work together, points settled without them, a changed decision, a risky assumption, a
-     cost. The block orients the human: the details stay in the file.
+     that work together, points settled without them, a changed decision, a risky assumption,
+     outside behaviour not verified yet, a relaxed security guard said as what an attacker could do,
+     a cost. The block orients the human: the details stay in the file.
    - On a revision: what changed since their last review.
 2. **The commit message body repeats the block's first line**, so `git log` and any git listener
    show what is waiting, and for how long.
