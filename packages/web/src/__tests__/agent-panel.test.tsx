@@ -214,7 +214,7 @@ test("Home shows a working agent", async () => {
 
   await renderPage("/", repo, { agent: fake });
 
-  const main = within(await screen.findByRole("main"));
+  const main = within(await screen.findByRole("list", { name: "Agents at work" }));
   // The row is the list item whose link leads to the feature.
   await main.findByRole("link", { name: /Git listener process/ });
   const row = main

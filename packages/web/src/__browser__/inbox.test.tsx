@@ -58,7 +58,7 @@ test("a note is added with ＋, its text, and Enter", async () => {
 
 /** The UI layout decision: a short form is a dialog on wide screens, a bottom sheet on narrow ones. */
 test("the add form is a dialog on wide screens and a sheet on narrow ones", async () => {
-  await show("/", "Waiting on you");
+  await show("/", "Needs you");
   const form = await openForm();
 
   await expect

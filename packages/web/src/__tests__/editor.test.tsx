@@ -45,7 +45,7 @@ async function reload(path: string, repo: string) {
 
 /** US4.1 */
 test("Draft turns a line into a draft, linked, and opens its editor", async () => {
-  const { repo } = await renderPage("/");
+  const { repo } = await renderPage("/priorities");
   await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
 
   await click(await screen.findByRole("button", { name: "Draft" }));
@@ -64,7 +64,7 @@ test("Draft turns a line into a draft, linked, and opens its editor", async () =
 
 /** Codex review: Draft drafts the line the human saw, or nothing. */
 test("Draft is refused once the priorities changed elsewhere", async () => {
-  const { repo } = await renderPage("/");
+  const { repo } = await renderPage("/priorities");
   await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
   const draft = await screen.findByRole("button", { name: "Draft" });
   const file = join(repo, "specs/PRIORITIES.md");
@@ -82,7 +82,7 @@ test("Draft is refused once the priorities changed elsewhere", async () => {
 
 /** US5 3 */
 test("a new draft shows its hints, which are not in the file (US5 3)", async () => {
-  const { repo } = await renderPage("/");
+  const { repo } = await renderPage("/priorities");
   await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
   await click(await screen.findByRole("button", { name: "Draft" }));
   expect(await screen.findByText("The problem it solves, and for whom.")).toBeTruthy();

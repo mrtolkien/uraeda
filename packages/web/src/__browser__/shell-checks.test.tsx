@@ -23,7 +23,7 @@ describe("on a desktop", () => {
 
   test.each(MODES)("the folded rail, in $mode", async ({ mode }) => {
     await colorScheme(mode);
-    await show("/", "Waiting on you");
+    await show("/", "Needs you");
     await userEvent.keyboard("[[");
     const nav = screen.getByRole("navigation", { name: "Side navigation" });
     await expect.poll(() => nav.getBoundingClientRect().width).toBeLessThan(80);
@@ -34,7 +34,7 @@ describe("on a desktop", () => {
 
 test.each(MODES)("the feature settings, in $mode", async ({ mode }) => {
   await colorScheme(mode);
-  await show("/", "Waiting on you");
+  await show("/", "Needs you");
   const nav = await navigation();
 
   await userEvent.click(nav.getByRole("button", { name: "Settings of cli-tuis" }));
@@ -51,7 +51,7 @@ test.each(MODES)("the feature settings, in $mode", async ({ mode }) => {
 test.each(MODES)("the banner that asks to notify, in $mode", async ({ mode }) => {
   window.localStorage.removeItem("uraeda.notifications");
   await colorScheme(mode);
-  await show("/", "Waiting on you");
+  await show("/", "Needs you");
 
   expect(await screen.findByText("Get notified when an agent needs you")).toBeTruthy();
   await drawn();
