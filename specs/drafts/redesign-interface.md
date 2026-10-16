@@ -33,6 +33,9 @@ hierarchy.
 - Only true uraeda flows should show up in the UI -> `review-findings` was in the UI despite not
   having used the flow
 - In the "add a repo" modal, if there's a single option, enter should select it
+- Buttons that do background work should ALL have clear feedback
+  - All buttons committing to git in particular take some seconds to execute: there should be
+    EXTREMELY CLEAR feedback, like a spinner + graying out all buttons on the page
 
 ## Why
 

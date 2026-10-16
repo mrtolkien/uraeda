@@ -7,10 +7,10 @@
 > Features for v1.0.0
 
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
-- Storybook's full interface inside Uraeda: its page lists stories but renders none, since
-  Storybook's dev mode pins its messages to an origin the sandboxed frame lacks
-  (`security.insecureIframeMessaging`). Look at it as a change, see round 04 of the UI iteration
-  flow
+- [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
+
+- Use Storybook for UI tests
+- [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
 
 - [Redesign sidebars and global interface](drafts/redesign-interface.md)
 - [Redesign home, inbox, and priorities](drafts/redesign-priorities.md)
@@ -19,16 +19,18 @@
 - [Redesign session](drafts/redesign-session.md)
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
 
-- [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
-
 - [Review the overall flow of all user stories](drafts/flow-review.md)
+
+- Storybook's full interface inside Uraeda: its page lists stories but renders none, since
+  Storybook's dev mode pins its messages to an origin the sandboxed frame lacks
+  (`security.insecureIframeMessaging`). Look at it as a change, see round 04 of the UI iteration
+  flow -> this is a change not a feature
 
 - [Look and feel pass](drafts/look-and-feel.md)
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
-- [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
 
 ## Next
 
@@ -40,6 +42,11 @@
   ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
   - Speed up the process: iteration speed is too slow atm
   - This only doable once we have a good benchmark!
+
+- Run options
+  - Master session vs one session per step
+  - Review options: command, prompt, depth, ...
+  - Can set global defaults and override per-feature
 
 - CLI auto-expand in fish and ?zsh?
 - Git listener process
@@ -61,6 +68,8 @@
   - Web tools in pi-durable
 - Extensions system: of course!
 - Basic git UI in the web ui (pull, see diffs, ...)
+
+- Passkeys to sign in, on top of the access key of basic security
 
 ## Later
 
@@ -84,5 +93,6 @@
 - [Nice TUI](drafts/cli-tuis.md)
 - Add a repository from the web UI by running `git init` in a folder outside git, or by cloning a
   URL
+- Several users signing in to one Uraeda server, after basic security's single owner
 
 ## Blocked

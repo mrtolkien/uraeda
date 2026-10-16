@@ -9,3 +9,15 @@
   - There's no simple fix atm, because the file is only in the worktree: we should likely change the
     commit/worktree flow a bit
 - Draft to proposal on mobile went 404
+- Ongoing tasks should be their own category in priorities (when starting a feature/change)
+- When there's multiple "blocked by auto mode", we should be able to allow them ALL at once!
+
+## Prompts
+
+- Do we really need the `/uraeda:uraeda` in prompts ?
+  - Generally we should take a look at all session transcripts so far and check if our prompts
+    behaved properly.
+  - Example: the UI branch asked for a clarification that would help finish the branch and the
+    auto-filled message asked to go back to spec (normal for the standard flow). But it could
+    directly finish the PR without all the flow again... We need a way to shortcut the flow for
+    later clarifications
