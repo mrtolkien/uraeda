@@ -26,6 +26,7 @@ import base, { uraedaServer } from "../vite.config.ts";
 import { takeChanges } from "./change-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
+import { takeSignIn } from "./sign-in-shots.ts";
 import { takeTextInputs } from "./text-input-shots.ts";
 import {
   here,
@@ -122,6 +123,8 @@ async function main() {
     await takeTextInputs(shooter(shots, out, views));
     await takeChanges(shooter(shots, out, views), shots[0]!.page, adapter, repo);
     await takeStories(shooter(shots, out, views));
+    // `sign-in` names every view of signing in and out.
+    await takeSignIn(shooter(shots, out, views.includes("sign-in") ? [] : views));
   } finally {
     await browser?.close();
     await server.close();
