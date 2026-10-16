@@ -33,6 +33,11 @@ test("a draft opens in its editor, other files as text", () => {
     href: "/r/uraeda/mockups/specs/x/mockups/ui.html",
     inApp: false,
   });
+  // The mockup route serves only a mockups folder's files: other HTML opens as text.
+  expect(pathLink("docs/page.html", "uraeda")).toEqual({
+    href: "/r/uraeda/raw/docs/page.html",
+    inApp: false,
+  });
 });
 
 /** Every page kind of the fixture, and a text it shows once drawn. */
