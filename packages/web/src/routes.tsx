@@ -31,6 +31,7 @@ export type Route =
   | { page: "new-chat" }
   | { page: "new-change" }
   | { page: "first-run" }
+  | { category?: string; page: "settings" }
   | { page: "missing"; path: string };
 
 const CHANGE = "uraeda:navigate";
@@ -144,6 +145,9 @@ export function parseRoute(pathname: string): Route {
   }
   if (parts[0] === "inbox" && parts.length === 2) {
     return parts[1] === "triage" ? { page: "triage" } : { key: parts[1], page: "note" };
+  }
+  if (parts[0] === "settings" && parts.length <= 2) {
+    return parts[1] === undefined ? { page: "settings" } : { category: parts[1], page: "settings" };
   }
   if (parts[0] === "edit" && parts.length > 1) {
     return { page: "edit", path: parts.slice(1).join("/") };
