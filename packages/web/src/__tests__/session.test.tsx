@@ -1,8 +1,9 @@
 // US1: a feature's session, its transcript and its composer, at both widths. The log following its
 // end and Back's position are in the browser tests.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { addPlan, ELEVEN } from "uraeda-binding/test-utils";
+import { addPlan, ELEVEN, temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
@@ -871,6 +872,81 @@ test("a hand-over sends the workflow's message alone, and keeps the draft's imag
     expect(screen.getAllByRole("button", { name: /^Remove / })).toHaveLength(1),
   );
   await thumbnails(1);
+});
+
+/** The switch of building in a fresh session, in the hand-over's composer. */
+const freshSwitch = () =>
+  screen.findByRole<HTMLInputElement>("switch", { name: "Build in a fresh session" });
+
+/**
+ * Opens a feature's session at the step after its spec's approval, with a chat turn ended on its
+ * open process, then hands it over: Start the agent sends the workflow's message.
+ */
+async function handOverAfterChat(fake: Fake, settings?: { dir: string }) {
+  atWidth(402);
+  fake.adapter.script([]);
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), {
+    agent: fake,
+    ...(settings ? { settings } : {}),
+  });
+  await send("What is left?");
+  await waitFor(() => expect(log().getByText("What is left?")).toBeTruthy());
+  await act(async () => navigate(atRepo(`/f/${CLI}/session?continue=approval`)));
+  await waitFor(async () => expect((await composer()).textContent).not.toBe(""));
+}
+
+/** Presses Start the agent, and waits for the workflow's message to reach the agent. */
+async function start(fake: Fake) {
+  fake.adapter.script([]);
+  await click(screen.getByRole("button", { name: "Start the agent" }));
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(2));
+}
+
+test("after a spec's approval, the hand-over builds in a fresh session by default", async () => {
+  const fake = await fakeAgent();
+  await handOverAfterChat(fake);
+  expect((await freshSwitch()).checked).toBe(true);
+
+  await start(fake);
+
+  // The chat's process is closed, and the run opens a new agent session.
+  expect(fake.adapter.opens).toHaveLength(2);
+  expect(fake.adapter.opens[1]?.resume).toBe(false);
+  expect(fake.adapter.opens[1]?.nativeId).not.toBe(fake.adapter.opens[0]?.nativeId);
+});
+
+test("the hand-over's switch turned off continues the session", async () => {
+  const fake = await fakeAgent();
+  await handOverAfterChat(fake);
+
+  await click(await freshSwitch());
+  await waitFor(async () => expect((await freshSwitch()).checked).toBe(false));
+  await start(fake);
+
+  expect(fake.adapter.opens).toHaveLength(1);
+});
+
+test("the hand-over's switch starts from the setting: off, the run continues the session", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  writeFileSync(join(dir, "config.toml"), "[runs]\nbuild_in_fresh_session = false\n");
+  const fake = await fakeAgent();
+  await handOverAfterChat(fake, { dir });
+  await waitFor(async () => expect((await freshSwitch()).checked).toBe(false));
+
+  await start(fake);
+
+  expect(fake.adapter.opens).toHaveLength(1);
+});
+
+test("a hand-over at a later step has no fresh session switch", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session?continue=manual`, repo, { agent: fake });
+  const start = await screen.findByRole("button", { name: "Start the agent" });
+  await waitFor(() => expect(start.hasAttribute("disabled")).toBe(false));
+
+  expect(screen.queryByRole("switch", { name: "Build in a fresh session" })).toBeNull();
 });
 
 test("several thumbnails are told apart by their place", async () => {
