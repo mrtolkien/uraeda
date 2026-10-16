@@ -99,3 +99,83 @@ fields that grow move the page's layout as the human types (the review of the
 ## Applies to
 
 - [`packages/web/`](/packages/web/), and every feature that adds or changes a view
+
+## Proposed change (2026-10-16-redesign-interface)
+
+Proposed by the [spec](../2026-10-16-redesign-interface/spec.md). A git write shows at once, on its
+button and on the item it concerns, and blocks every other git write's button until it ends; the UI
+shows the action in flight, never a guess of the next status.
+
+The rules become:
+
+- A row that leads somewhere MUST be tappable as a whole, not only through a button or a chevron.
+  Checked by the UI tests.
+- A small edit, like a line's text, MUST happen in place: Enter or its Save button saves, Escape or
+  its Cancel button cancels. Leaving the field MUST NOT save it: it stays open with its text.
+  Checked by the UI tests.
+- A text field MUST save only when the human presses its Save button, its own key (Enter in a
+  one-line field, Ctrl+Enter or Cmd+Enter in a multi-line one), or a button that uses its text, like
+  Add comment, Submit, Commit, Start, or a verdict. It MUST NOT save as it is typed, after a pause,
+  or when it loses the focus. Adding an image to a field MAY save that field at once, with its text
+  as typed. Toggles, switches, segmented controls, and option picks MAY save at once. Checked by the
+  UI tests.
+- A text field whose text differs from what is saved MUST say "Unsaved changes" next to its Save
+  button. Its Save button MUST be disabled while nothing changed. Checked by the UI tests.
+- Cancel or Escape on a field whose text changed MUST ask first, with "Discard" and "Keep editing".
+  Checked by the UI tests.
+- Leaving a page that holds unsaved text MUST ask first: the app's own dialog, "Leave page" and
+  "Stay", for a link or Back, and the browser's prompt for a reload or a closed tab. Nothing MUST
+  ask when nothing is unsaved. Checked by the UI tests.
+- The unsaved text of every field MUST be kept in the browser until it is saved or discarded, and
+  restored when the field shows again, with a notice saying so and a Discard button. Checked by the
+  UI tests.
+- Every multi-line text field MUST have a fixed height, set by what it holds, a little larger than
+  its usual text, and the same wherever that kind of field appears: 20 rows for the editor of drafts
+  and proposals, 12 for notes, 7 for every comment and summary, 4 for the chat composer, and 3 for a
+  line that may wrap. A field MUST NOT grow or shrink with its text: past its height, it scrolls. It
+  MAY keep the browser's resize handle, for the human to drag it taller. Every multi-line field
+  except the chat composer MUST use the app's one text area. Checked by the UI tests.
+- A modal sheet or dialog MUST be used only to confirm an irreversible action or to fill a short
+  form, like adding a line. Everything else happens in the page. Checked by review.
+- Every sheet and dialog MUST have a visible close button, and Back MUST close it. Checked by the UI
+  tests.
+- A save's status MUST show next to its control: saving, saved, or the error. Checked by the UI
+  tests.
+- A button that writes to git, by committing, starting a feature or a change, or changing a branch,
+  MUST say what it does at once, like "Committing…", with a spinner beside its label, until its
+  write ends. While any git write runs, every other button that writes to git, in the page and in
+  the sidebar, MUST be blocked and stay focusable, and a thin bar MUST run at the top of the page.
+  Reading and navigating MUST stay usable. Checked by the UI tests.
+- A write or a run's start that concerns a feature or a change MUST show that action on its sidebar
+  card at once, until the server's status for it changes or 10 seconds pass. The UI MUST NOT guess
+  an item's next step or status: the core decides them. Checked by the UI tests.
+- A toast MAY confirm only a result the human cannot see on screen. It MUST last 5 seconds, MAY
+  carry one action, Undo, which reverts that change alone, and MUST NOT be the only place an error
+  shows. Checked by the UI tests.
+- Errors MUST stay on screen until the human deals with them, or the action is retried. Checked by
+  the UI tests.
+- Back MUST return to the same scroll position and the same open items. A page MUST keep showing its
+  content while its data reloads. Checked by the UI tests.
+- Nothing MUST work only on hover: every action has a tap or a keyboard path. A control shown on
+  hover MUST also show while it or its row has the keyboard's focus, and always under a pointer that
+  cannot hover. Checked by the UI tests.
+- A keyboard shortcut MUST NOT act while a text field has the focus. A field's own keys, Enter and
+  Ctrl+Enter or Cmd+Enter, are not shortcuts. Checked by the UI tests.
+
+Why: commits take seconds while the hooks format files, and the human asked for "EXTREMELY CLEAR
+feedback" on every button that works in the background; they chose a spinner with the action's name
+and every other writing button blocked, over graying out the whole page
+([Q9](../2026-10-16-redesign-interface/clarifications-01.md#q9-what-does-a-button-that-writes-to-git-show-while-it-runs),
+[feedback for git writes](../2026-10-16-redesign-interface/discovery-01.md#feedback-for-git-writes)).
+They asked for the sidebar to change at once, and chose to show the action rather than a guessed
+status, which would copy the workflow's rules into the browser against the [stack](stack.md)
+decision
+([Q10](../2026-10-16-redesign-interface/clarifications-01.md#q10-how-do-optimistic-statuses-work)).
+The "…" and the fold button show under the pointer, as the human asked, and stay reachable without
+one ([Q5](../2026-10-16-redesign-interface/clarifications-01.md#q5-what-does-hiding-a-sidebar-do)).
+
+The consequences gain:
+
+- Every button that writes to git goes through one shared record of writes in flight.
+- Two git writes never start from the UI at once, even in different repositories' pages of one tab.
+- A card says "Committing…" for up to 10 seconds, then the server's status, whatever it is.

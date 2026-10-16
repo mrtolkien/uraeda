@@ -165,3 +165,86 @@ names, while ACP itself would need the Agent SDK
 
 An agent that is easier to drive than Claude Code, such as one with a documented protocol for
 prompts, approvals, and models, joins the runner.
+
+## Proposed change (2026-10-16-redesign-interface)
+
+Proposed by the [spec](../2026-10-16-redesign-interface/spec.md). Every background task of a run
+holds its turn, background commands included, so the UI never says the human is needed while the
+agent's work goes on; and a process is never closed while one of them runs.
+
+The rules become:
+
+- The server MUST run Claude Code by spawning the `claude` binary found on the machine's `PATH`, in
+  print mode, with `--input-format stream-json` and `--output-format stream-json`, keeping its stdin
+  open for the session's later messages. It MUST NOT depend on the Claude Agent SDK, or bundle a
+  Claude Code binary. Checked by review.
+- Every agent MUST be reached through one adapter interface, in
+  [`packages/server/src/runner/`](/packages/server/src/runner/): open or resume a session in a
+  directory, send it messages, stream its events, interrupt its turn, and close it. Each adapter
+  MUST declare its capabilities, such as steering a message into a turn, queueing one after it,
+  taking one back, asking for approvals, and reporting sub-agents and background commands, and the
+  UI MUST offer only what the session's agent declares. The tests that `vp run ready` runs MUST use
+  a fake adapter, and MUST NOT run a real agent. Validation scripts, run by hand when an agent's
+  integration breaks, MAY run the real agent, and MUST be kept in the repository. Checked by review.
+- Sessions, turns, and items MUST be stored and sent to the UI in one agent-neutral shape: a session
+  has Uraeda's own ID, the agent's kind, and the agent's own session ID; a turn is one message until
+  the agent settles, once its reply has ended and every background task of its run has ended,
+  sub-agents, workflows, and background commands alike, except the tasks the agent marks as ambient;
+  a turn reopens when the agent goes on by itself after it; items are messages, the agent's text,
+  tool calls with the [Agent Client Protocol](https://agentclientprotocol.com/protocol/tool-calls)'s
+  kinds and statuses, sub-agents, background commands, blocked actions, and system lines. An agent's
+  own formats MUST stay inside its adapter. Checked by the runner's tests.
+- Tools MUST NOT read, store, or pass the agent's credentials: the binary uses the user's own login
+  or API key. Checked by review.
+- Every session MUST pass `--permission-mode auto` explicitly. Tools MUST NOT pass
+  `bypassPermissions` or `--dangerously-skip-permissions`. A permission the human grants from the UI
+  MUST be a narrow allow rule, passed with `--allowedTools` when the session's process is reopened,
+  lasting until that process closes, and never written to a settings file. Checked by the runner's
+  tests.
+- A feature's session MUST work in the feature's worktree, as the core returns it. A session without
+  a feature MUST work in the repository's main checkout, as the core returns it. Tools MUST NOT
+  switch any checkout. Checked by the runner's tests.
+- The skill MUST come from the server's own copy, `skills/uraeda`, loaded as a plugin with
+  `--plugin-dir`, in every session, with or without a feature. The session MUST fail to open when
+  the plugin does not load. Checked by the runner's tests.
+- A feature MUST have at most one session. A session MUST have at most one live process and at most
+  one turn at a time. A message sent during a turn MUST be steered into it or queued after it, as
+  the adapter declares, and MUST NOT start a second process. Checked by the runner's tests.
+- A workflow run MUST carry the step, its reference, and the trigger in its message, since a resumed
+  session keeps its first system prompt. A chat message on a feature that follows a workflow run, or
+  opens the session, MUST start with one line saying that a human is chatting, and that the agent
+  changes files, commits, or moves the workflow only when asked. Every message sent to an agent MUST
+  be stored, and shown in its session as the human's turn. Checked by the runner's tests.
+- Sessions, turns, and their items MUST be stored in a SQLite database, `runner.sqlite`, through
+  Node's built-in `node:sqlite`, in Uraeda's data folder for the user: `URAEDA_DATA_DIR` when it is
+  set, or else the operating system's default, `$XDG_DATA_HOME/uraeda/` on Linux
+  (`~/.local/share/uraeda/` when `XDG_DATA_HOME` is unset), `~/Library/Application Support/uraeda/`
+  on macOS, and `%APPDATA%\uraeda\` on Windows. Its rows MUST be keyed by the repository's main
+  checkout path and the session's own ID, with the feature's folder when the session has one. It
+  MUST NOT live in a repository. It is a cache: workflow state MUST NOT be stored in it, and losing
+  it MUST cost only new sessions and the old transcripts. Checked by review.
+- Stopping MUST interrupt the session's turn through the agent's own interrupt, which keeps the
+  session. When the turn has not ended 10 seconds later, the server MUST end the process: SIGINT
+  first, and SIGTERM when it is still running 10 seconds after that. Checked by the runner's tests.
+- A session's process MUST be closed after 15 minutes without a turn, and MUST NOT be closed while
+  one of its background tasks still runs; it is resumed with its next message. Checked by the
+  runner's tests.
+- Tools MUST NOT change the agent's commit attribution, model, effort, or settings, except the
+  permission mode above: the user's active Claude Code settings apply. Checked by review.
+
+Why: the UI said "Needs you" while a background command, like a long review, still ran, and then
+went back to working when it reported; the human asked for runs to "_fully_ finish" before saying
+they wait on them, and chose to count background commands too, since "a background command is part
+of an agent run" and agents leave no dev servers running when they are done
+([Q8](../2026-10-16-redesign-interface/clarifications-01.md#q8-does-a-background-command-keep-a-run-working),
+[when a run is over](../2026-10-16-redesign-interface/discovery-01.md#when-a-run-is-over)). Claude
+Code's print mode already stays open for background commands, and stops those of unattended sessions
+after 30 minutes by default
+([end of a run](../2026-10-16-redesign-interface/discovery-01.md#claude-codes-end-of-a-run)).
+
+The consequences gain:
+
+- A background command the agent forgets, like a server, holds the session "Working" until Claude
+  Code's own limit stops it, 2 hours at most.
+- The idle timer waits for background work, so a process lives as long as its longest background
+  task.
