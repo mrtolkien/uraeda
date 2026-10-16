@@ -47,3 +47,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: "Working", "Running" (the entries' own mark).
 - **If wrong**: one string in `PrioritiesList.tsx`.
 - **Where**: task 8.
+
+## R5: `pathLink` keeps its return value
+
+- **Decision**: `pathLink` moves to `links.tsx` as it is, returning `{ href, inApp }`, not the
+  `string` task 1's interface named; `sessionData.ts` reads `useRefreshOnShow` and `WORKSPACE_ID`,
+  which `data.ts` now exports.
+- **Rationale**: task 1 is structural, with no behaviour change, and every caller reads `inApp` to
+  choose between a page of the UI and a file opened by the browser.
+- **Alternatives considered**: returning only the `href`: a change of every caller in a move.
+- **If wrong**: later tasks call `pathLink(...).href` where they need a string.
+- **Where**: task 1.

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { refusal } from "./errors.ts";
-import type { useSession } from "./data.ts";
+import type { useSession } from "./sessionData.ts";
 import { SessionView } from "./views.ts";
 
 /** A chat's title, renamed in place, and Archive, which hides it under "Archived" in the sidebar. */

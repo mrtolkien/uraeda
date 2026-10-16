@@ -328,15 +328,16 @@ No function or file is left over a limit, and no new marker is added: task 11 re
 
 **Interfaces:**
 
-- Produces: `pathLink(path: string, repo: string): string` and `RouterAnchor` from `links.tsx`; the
-  session hooks from `sessionData.ts`. No behaviour change.
+- Produces: `pathLink(path: string, repo: string): { href: string; inApp: boolean }` and
+  `RouterAnchor` from `links.tsx`; the session hooks from `sessionData.ts`, which read `data.ts`'s
+  now exported `useRefreshOnShow` and `WORKSPACE_ID`. No behaviour change.
 
-- [ ] **Step 1: Move the code, update the imports, keep the `exhaustive-deps` marker with its
+- [x] **Step 1: Move the code, update the imports, keep the `exhaustive-deps` marker with its
       function**
-- [ ] **Step 2: Run the web tests**
+- [x] **Step 2: Run the web tests**
   - Run: `vp check && vp test --project uraeda-web`
   - Expected: PASS, as before
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/web/src

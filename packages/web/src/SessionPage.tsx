@@ -12,7 +12,8 @@ import { useFateClient, useView } from "react-fate";
 import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { MAIN_CHECKOUT, useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
+import { MAIN_CHECKOUT, useAgent, useFeature, useWorkflowMessage } from "./data.ts";
+import { useSession } from "./sessionData.ts";
 import {
   composerDraft,
   type Draft,

@@ -25,6 +25,7 @@ import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
+import { RouterAnchor } from "./links.tsx";
 import {
   currentEntry,
   navigate,
@@ -33,7 +34,6 @@ import {
   repoPath,
   type Route,
   redirect,
-  RouterAnchor,
   useRepoPath,
   useRestoreScroll,
   useRoute,
