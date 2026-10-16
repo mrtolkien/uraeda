@@ -9,7 +9,6 @@
 - [Settings page with selection of agent runner, config values, other run values](/specs/2026-10-16-settings-page/proposal.md)
 - [Redesign sidebars and global interface](/specs/2026-10-16-redesign-interface/proposal.md)
 - [Redesign home, inbox, and priorities](/specs/2026-10-16-redesign-priorities/proposal.md)
-- [Redesign home, inbox, and priorities](drafts/redesign-priorities.md)
 
 - [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
 - [Redesign + reword specs](drafts/redesign-specs.md)
