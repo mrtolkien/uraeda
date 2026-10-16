@@ -8,8 +8,6 @@
 
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 
-- [Auth and login for basic security](drafts/basic-security.md)
-
 - Redesign sidebars and global interface
 - [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
 - Redesign + reword specs
@@ -25,6 +23,7 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
+- [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
 
 ## Next
 
