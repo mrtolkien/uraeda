@@ -4,12 +4,14 @@
 import { borderVars, colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
+import { userEvent, within } from "storybook/test";
 import { useInbox, usePriorities, useWorkspace } from "../data.ts";
 import { InboxPage } from "../InboxPage.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
-import { RepositoryPathContext } from "../routes.tsx";
+import { dropUnsaved, unsavedKey } from "../fields/unsaved.ts";
+import { RepositoryPathContext, useRepositoryPath } from "../routes.tsx";
 import { NotePane } from "./NotePane.tsx";
 import { PriorityPane } from "./PriorityPane.tsx";
 
@@ -47,18 +49,23 @@ function Beside({ list, pane }: { list: ReactNode; pane: ReactNode }) {
   );
 }
 
-/** A priority's pane, found by its text in the fixture's `PRIORITIES.md`. */
-function Priority({ editing, text }: { editing?: string; text: string }) {
+/**
+ * A priority's pane, found by its text in the fixture's `PRIORITIES.md`. What a story types in its
+ * line is forgotten as the story leaves, so another never finds it restored.
+ */
+function Priority({ text }: { text: string }) {
   const entry = usePriorities()
     ?.sections.flatMap((section) => section.entries)
     .find((one) => one.text.includes(text));
+  const field = unsavedKey(useRepositoryPath(), `priorities#${entry?.key}`);
+  useEffect(() => () => dropUnsaved(field), [field]);
   if (!entry) {
     return null;
   }
   return (
     <Beside
       list={<PrioritiesPage />}
-      pane={<PriorityPane editing={editing} entryKey={entry.key} onClose={() => {}} />}
+      pane={<PriorityPane entryKey={entry.key} onClose={() => {}} />}
     />
   );
 }
@@ -111,7 +118,17 @@ export const Reading: Story = { args: { text: "Git listener process" } };
  * the draft's text under it, with Save and Commit.
  */
 export const Editing: Story = {
-  args: { editing: "Git listener process, polling every minute", text: "Git listener process" },
+  args: { text: "Git listener process" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // The pane beside the list on wide screens; the page itself on narrow ones.
+    const detail = canvas.queryByRole("region", { name: "Detail" });
+    const pane = detail ? within(detail) : canvas;
+    await userEvent.click(await pane.findByRole("button", { name: "Edit" }));
+    const line = await pane.findByRole("textbox", { name: "Line" });
+    await userEvent.clear(line);
+    await userEvent.type(line, "Git listener process, polling every minute");
+  },
 };
 
 /** A Now priority whose feature is started: Running in green, its step, and Open the feature. */
