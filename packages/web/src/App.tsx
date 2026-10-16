@@ -45,6 +45,8 @@ import { StorybookPage } from "./StorybookPage.tsx";
 import { TaskView } from "./TaskView.tsx";
 import { TriagePage } from "./TriagePage.tsx";
 import { Shell } from "./Shell.tsx";
+import { SignInPage } from "./sign-in/SignInPage.tsx";
+import { useSignedOut } from "./sign-in/signedOut.ts";
 import { ThemeModeProvider } from "./theme.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
@@ -272,11 +274,19 @@ function InRepository({
 /**
  * The UI: the list of repositories through the global client, `clientFor(null)`, and the page of
  * the repository the URL names through its own, `clientFor(<name>)`, its tree drawn anew for each
- * repository.
+ * repository. Signed out, the sign-in screen instead, which reloads the page once signed in, or
+ * calls `onSignedIn`.
  */
-export function App({ clientFor }: { clientFor: (repo: string | null) => Client }) {
+export function App({
+  clientFor,
+  onSignedIn,
+}: {
+  clientFor: (repo: string | null) => Client;
+  onSignedIn?: () => void;
+}) {
   const { pathname, repo, route } = useRoute();
   const [attempt, setAttempt] = useState(0);
+  const signedOut = useSignedOut();
   // Unsaved text older than 30 days goes as the app starts, before a field shows it.
   useState(() => pruneUnsaved(new Date()));
   useDropGuard();
@@ -289,19 +299,23 @@ export function App({ clientFor }: { clientFor: (repo: string | null) => Client 
               <LayerProvider toast={{ position: "bottomEnd" }}>
                 <ConfirmHost>
                   <LeaveGuard />
-                  <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
-                    <Suspense fallback={<Loading />}>
-                      <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
-                        <Suspense fallback={<Loading />}>
-                          <Shell>
-                            <Suspense fallback={<Loading />}>
-                              <Page key={pathname} route={route} />
-                            </Suspense>
-                          </Shell>
-                        </Suspense>
-                      </InRepository>
-                    </Suspense>
-                  </ServerErrorBoundary>
+                  {signedOut ? (
+                    <SignInPage onSignedIn={onSignedIn} />
+                  ) : (
+                    <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+                      <Suspense fallback={<Loading />}>
+                        <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
+                          <Suspense fallback={<Loading />}>
+                            <Shell>
+                              <Suspense fallback={<Loading />}>
+                                <Page key={pathname} route={route} />
+                              </Suspense>
+                            </Shell>
+                          </Suspense>
+                        </InRepository>
+                      </Suspense>
+                    </ServerErrorBoundary>
+                  )}
                 </ConfirmHost>
               </LayerProvider>
             </LinkProvider>

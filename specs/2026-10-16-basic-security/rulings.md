@@ -244,3 +244,65 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: 403 with a new text; the check's `refused`, which clears the cookie.
 - **If wrong**: a status and a body in `routes.ts`.
 - **Where**: task 4, `sign-in/routes.ts`
+
+## R22: The app's plain requests go through `signedFetch` in `useServerFetch`
+
+- **Decision**: `useServerFetch` wraps the `fetch` it gives in `signedFetch`, so uploads, image
+  deletions, and the inbox's note with an image all show the sign-in screen on a 401. `useAttach.ts`
+  and `chatImages.ts` are unchanged.
+- **Rationale**: every plain request of the app already takes its `fetch` from that hook; wrapping
+  it once covers the inbox's upload too, which the plan's list of files missed.
+- **Alternatives considered**: `signedFetch` in each of `useAttach.ts`, `chatImages.ts`, and
+  `NoteImage.tsx`, three places that must not drift.
+- **If wrong**: a request that needs a 401 of its own would bypass the hook; none does.
+- **Where**: task 5, `attach/ServerFetch.tsx`; `plan.md`, task 5's files and step 3
+
+## R23: The web tests sign in through `signInServer`, whose browsers keep their cookies
+
+- **Decision**: the web test helper `signInServer(repo)` gives a server with sign-in, its key, a
+  browser's `fetch`, and `device(from?)` for another browser, or another tab of `from`. Its options
+  come from `testSignIn` in `uraeda-server/testing`. happy-dom's `Response` and `Request` drop
+  `Set-Cookie` and `Cookie`, as a browser's do for page scripts: the helper's `Response` keeps
+  `Set-Cookie`, and sets `Cookie` on the request once made.
+- **Rationale**: `serverFetch` takes positional arguments and returns a bare `fetch`; the tests need
+  the key, two devices on one server, and two tabs with one cookie. Without the header workaround,
+  no cookie reaches the server in process.
+- **Alternatives considered**: `serverFetch(..., { signIn: true })` returning a `fetch` with the key
+  attached; the server on a real port, whose `Request` happy-dom builds too.
+- **If wrong**: test code only.
+- **Where**: task 5, `__tests__/helpers.tsx`, `packages/server/src/testing.ts`; `plan.md`, task 5's
+  step 1
+
+## R24: Task 5's tests first fail on the import of the sign-in page from `App`
+
+- **Decision**: task 5's expected failure reads
+  `Failed to resolve import "./sign-in/SignInPage.tsx" from "packages/web/src/App.tsx"`.
+- **Rationale**: the tests render `App`, which imports the page; Vite's transform reports a missing
+  import of a module it transforms that way, not as `Cannot find module`. The cause is the same, as
+  in R6.
+- **Alternatives considered**: none: the wording is the runner's.
+- **If wrong**: a wording only.
+- **Where**: `plan.md`, task 5's step 2
+
+## R25: Signing out has a hook and a list of its own, and the menu's rows a component
+
+- **Decision**: `sign-in/useSignOut.ts` holds `useSignOut` and `useSignOutEverywhere`, with the
+  confirmation's texts, and `sign-in/SignOutList.tsx` the menu's third list. `Menu`'s repository row
+  moves to `RepositoryRow`. A sign-out the server refuses or never gets shows its error in the
+  menu's banner: "Sign out" in the open menu, "Sign out everywhere" in the menu opened again.
+- **Rationale**: `Menu` was at the 100-line limit and `MenuTrigger` near it: the new items had to go
+  elsewhere, as extract, don't grow says. Errors stay on screen, as the UI behaviour decision asks.
+- **Alternatives considered**: the items and the dialog in `RepositoryMenu.tsx`, past the limit; a
+  failed sign-out leaving no trace.
+- **If wrong**: the files move; the behaviour does not.
+- **Where**: task 5, `RepositoryMenu.tsx`, `sign-in/`; `plan.md`, task 5's files and interfaces
+
+## R26: The screenshots of sign-in include "Signing in…", and are taken by naming `sign-in`
+
+- **Decision**: `sign-in-shots.ts` takes five views, `sign-in`, `sign-in-signing`, `sign-in-error`,
+  `sign-in-menu`, and `sign-in-confirm`; naming `sign-in` after the folder takes all five.
+- **Rationale**: the mockup shows the screen while it signs in; the plan's command names one view.
+- **Alternatives considered**: four views, as the plan's step 5 listed; one view per command.
+- **If wrong**: one more image set to look at.
+- **Where**: task 5, `scripts/sign-in-shots.ts`, `scripts/screenshots.ts`; `plan.md`, task 5's step
+  5

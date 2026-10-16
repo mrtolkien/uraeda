@@ -15,7 +15,8 @@
 // and hidden, the phone's progress line open, and a chat, the transcript 760 px wide beside the
 // column at 1440 px (SC-001, SC-004 of the session view), and at 1024 px with the sidebar open (its
 // edge case). So do a spec with a story embedded, ready, a round whose options are stories, and the
-// Storybook page (the UI iteration flow's UI checks).
+// Storybook page (the UI iteration flow's UI checks). So do the sign-in screen, empty and with its
+// error, and the repository menu's sign-out list and its confirmation, in `sign-in.test.tsx`.
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";

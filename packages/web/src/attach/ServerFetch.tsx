@@ -1,4 +1,5 @@
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { signedFetch } from "../sign-in/signedOut.ts";
 
 /**
  * The `fetch` of the app's plain requests to its server, like uploads: the browser's in the app,
@@ -19,7 +20,11 @@ export function ServerFetch({
   return <ServerFetchContext.Provider value={fetch}>{children}</ServerFetchContext.Provider>;
 }
 
-/** The `fetch` the app's plain requests go through. */
+/**
+ * The `fetch` the app's plain requests go through, like uploads and image deletions: a 401 shows
+ * the sign-in screen.
+ */
 export function useServerFetch() {
-  return useContext(ServerFetchContext);
+  const fetch = useContext(ServerFetchContext);
+  return useMemo(() => signedFetch(fetch), [fetch]);
 }

@@ -4,12 +4,13 @@ import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-li
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
-import { fakeSessions } from "uraeda-server/testing";
+import { fakeSessions, testSignIn } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
+import { forgetSignedOut } from "../sign-in/signedOut.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -26,6 +27,20 @@ configure({ asyncUtilTimeout: 10_000 });
 
 const port = 4310;
 const origin = `http://127.0.0.1:${port}`;
+
+/**
+ * happy-dom's `Response`, as a browser's, drops `Set-Cookie`, which no page reads. The server in
+ * process makes its answers with it too, and the tests' browsers keep the cookies they set.
+ */
+const PageResponse = globalThis.Response;
+globalThis.Response = class ServerResponse extends PageResponse {
+  constructor(body?: BodyInit | null, init?: ResponseInit) {
+    super(body, init);
+    for (const line of new Headers(init?.headers).getSetCookie()) {
+      this.headers.append("set-cookie", line);
+    }
+  }
+} as typeof Response;
 
 /**
  * happy-dom has no EventSource: live views subscribe, and receive nothing, in these tests. The
@@ -55,6 +70,8 @@ beforeEach(() => {
   }
   // The unsaved text of the last test, in memory, goes with its storage.
   forgetUnsaved();
+  // A page signed out in the last test loads signed in again.
+  forgetSignedOut();
 });
 
 afterEach(cleanup);
@@ -138,7 +155,7 @@ export function atRepo(path: string): string {
  * already in that data folder, the repository left out of it. Without `agent`, the agent is not
  * installed, and the pages keep their single buttons; `true` gives a new fake agent, which a test
  * can also build first with `fakeAgent`. `binding` gives the server a binding of its own, as one
- * whose call fails.
+ * whose call fails. `onSignedIn` replaces the sign-in screen's reload.
  */
 export async function renderPage(
   path = "/",
@@ -148,6 +165,7 @@ export async function renderPage(
     binding?: Binding;
     dataDir?: string;
     fetch?: typeof globalThis.fetch;
+    onSignedIn?: () => void;
     raw?: boolean;
     reload?: boolean;
   } = {},
@@ -175,7 +193,7 @@ export async function renderPage(
   const rendered = await act(async () =>
     render(
       <ServerFetch fetch={fetch}>
-        <App clientFor={fateClients({ fetch, origin })} />
+        <App clientFor={fateClients({ fetch, origin })} onSignedIn={options.onSignedIn} />
       </ServerFetch>,
     ),
   );
@@ -240,6 +258,33 @@ export function serverFetch(
   dataDir = temporaryFolder("uraeda-data"),
   server: Binding = binding,
 ): typeof globalThis.fetch {
+  const { added, created } = serverApp(repo, sessions, dataDir, server);
+  return fetchOn(created, added);
+}
+
+/**
+ * The server's app in process with sign-in, on a list holding `repo`, as `serverFetch` gives it:
+ * `fetch`, a browser without a session, which keeps the cookies the server's answers set and sends
+ * them back; the access key; and `device`, which gives another browser's `fetch` on the same server,
+ * or another tab's of the browser `from`, its cookies as they are now.
+ */
+export function signInServer(repo = fixtureRepo()) {
+  const dataDir = temporaryFolder("uraeda-data");
+  const { key, options } = testSignIn(dataDir);
+  const { added, created } = serverApp(repo, undefined, dataDir, binding, options);
+  const device = (from?: typeof globalThis.fetch) =>
+    fetchOn(created, added, new Map(from && jars.get(from)));
+  return { device, fetch: device(), key };
+}
+
+/** The app of `serverFetch`, made once its list holds `repo`, and the repository's name there. */
+function serverApp(
+  repo: string | null,
+  sessions: Fake["sessions"] | undefined,
+  dataDir: string,
+  server: Binding,
+  signIn?: ReturnType<typeof testSignIn>["options"],
+) {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
     managers.push(sessions);
@@ -262,8 +307,41 @@ export function serverFetch(
       port,
       previews,
       sessions,
+      signIn,
     }),
   );
+  return { added, created };
+}
+
+/** A browser's cookies, by name: those the server's answers set, and did not clear since. */
+type Jar = Map<string, string>;
+
+/** The cookies of each browser's `fetch`. */
+const jars = new WeakMap<typeof globalThis.fetch, Jar>();
+
+/** Keeps the cookies an answer sets in the jar, and forgets those it clears. */
+function keep(jar: Jar, response: Response) {
+  for (const line of response.headers.getSetCookie()) {
+    const [pair, ...attributes] = line.split(";");
+    const [name, value] = pair.split("=");
+    const cleared = value === "" || attributes.some((part) => /^\s*max-age=0$/i.test(part));
+    if (cleared) {
+      jar.delete(name.trim());
+    } else {
+      jar.set(name.trim(), value);
+    }
+  }
+}
+
+/**
+ * A `fetch` calling the app in process, its requests and answers recorded; with a jar, a browser's
+ * cookies kept and sent back.
+ */
+function fetchOn(
+  created: Promise<ReturnType<typeof createApp>>,
+  added: Promise<string | undefined>,
+  jar?: Jar,
+): typeof globalThis.fetch {
   const send: typeof globalThis.fetch = async (input, init) => {
     const app = await created;
     // The UI's plain requests, like uploads, name a path of the page's own server.
@@ -273,7 +351,7 @@ export function serverFetch(
     ).href;
     sent.push(typeof init?.body === "string" ? init.body : url);
     // fate's requests are JSON; an upload's multipart body sets its own type, with its boundary.
-    const response = await app.request(
+    const request = new Request(
       url,
       init?.body !== undefined && init.body !== null && typeof init.body !== "string"
         ? { body: init.body, method: init.method }
@@ -283,9 +361,17 @@ export function serverFetch(
             method: init?.method,
           },
     );
+    // Set once made: happy-dom's `Request`, as a browser's, drops a `Cookie` header it is given.
+    if (jar && jar.size > 0) {
+      request.headers.set("cookie", [...jar].map(([name, value]) => `${name}=${value}`).join("; "));
+    }
+    const response = await app.request(request);
+    if (jar) {
+      keep(jar, response);
+    }
     const text = await response.text();
     answers.push(typeof init?.body === "string" ? init.body : url);
-    return new Response(text, {
+    return new Response(response.status === 204 ? null : text, {
       headers: { "content-type": response.headers.get("content-type") ?? "application/json" },
       status: response.status,
     });
@@ -300,6 +386,9 @@ export function serverFetch(
     return response;
   };
   names.set(fetch, added);
+  if (jar) {
+    jars.set(fetch, jar);
+  }
   return fetch;
 }
 
