@@ -3,7 +3,13 @@ import { resolve } from "node:path";
 import { parseEnv } from "node:util";
 
 /** A value given for one run, with the name of the variable or flag that gave it. */
-export type Given<T> = { name: string; value: T };
+export type Given<T, N extends string = string> = { name: N; value: T };
+
+/** The flag and the variable giving the allowed host names. */
+export type HostsName = "--allowed-hosts" | "URAEDA_ALLOWED_HOSTS";
+
+/** The flag and the variable giving the port. */
+export type PortName = "--port" | "URAEDA_PORT";
 
 /**
  * The variables of the server's settings, from the process's environment, then `.env` at the
@@ -12,10 +18,11 @@ export type Given<T> = { name: string; value: T };
  */
 export type Env = {
   /** Host names accepted besides 127.0.0.1 and localhost, like `mac.tail1234.ts.net`. */
-  allowedHosts?: Given<Array<string>>;
+  allowedHosts?: Given<Array<string>, HostsName>;
   /** Whether `URAEDA_REPO` named the repository, which must then be in git. */
   given: boolean;
-  port?: Given<number>;
+  /** The port as typed: the settings unit checks it with the core's rule. */
+  port?: Given<string, PortName>;
   /** The repository to open first: `URAEDA_REPO`, or else the folder the server starts in. */
   repo: string;
 };
@@ -43,7 +50,7 @@ export function loadEnv(
   return {
     ...(hosts && { allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: hostNames(hosts) } }),
     given: Boolean(repo),
-    ...(port && { port: { name: "URAEDA_PORT", value: Number(port) } }),
+    ...(port && { port: { name: "URAEDA_PORT", value: port } }),
     repo: resolve(root ?? process.cwd(), repo || "."),
   };
 }
@@ -90,7 +97,7 @@ export function loadConfigDir(
 
 /**
  * A setting by its name: from the environment, else from `<root>/.env` when there is a root and
- * `file` leaves it in.
+ * `file` leaves it in. A variable set but empty is unset, so `.env`'s value applies (R7).
  */
 function settings(
   root: string | null,
@@ -106,5 +113,5 @@ function settings(
   } catch {
     // No `.env`: the defaults apply.
   }
-  return (name: string) => environment[name] ?? file[name];
+  return (name: string) => environment[name] || file[name];
 }

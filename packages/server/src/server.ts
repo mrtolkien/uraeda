@@ -69,8 +69,8 @@ export async function startSessions(options: {
 }
 
 /**
- * A started server: its app, the hosts, the session manager, and the Storybooks it serves, the frame
- * secret of their paths, the page of the repository it started in, and how to stop them.
+ * A started server: its app, the hosts, the session manager, and the Storybooks it serves, the
+ * frame secret of their paths, the page of the repository it started in, and how to stop them.
  */
 export type Server = {
   app: ReturnType<typeof createApp>;

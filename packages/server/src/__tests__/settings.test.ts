@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import type { Settings } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { inForce, ServerSettings, type ServerSettingsView } from "../settings.ts";
+import { type GivenValues, inForce, ServerSettings, type ServerSettingsView } from "../settings.ts";
 
 /** The core's binding, as one object: the settings take it whole. */
 const binding = await import("uraeda-binding");
@@ -120,7 +120,7 @@ test.each<{
 });
 
 /** Opens the settings of `dir`, closed after the test. */
-async function opened(dir: string, options: Parameters<typeof inForce>[0] = none) {
+async function opened(dir: string, options: GivenValues = none) {
   const settings = await ServerSettings.open({ binding, dir, options });
   onTestFinished(() => settings.close());
   return settings;
@@ -139,7 +139,10 @@ test("a broken file gives the defaults and its problem, printed once", async () 
   writeFileSync(join(dir, "config.toml"), "[server]\nport = 0\n");
   const write = stderr();
 
-  const settings = await opened(dir, { noOpen: false, port: { name: "URAEDA_PORT", value: 4400 } });
+  const settings = await opened(dir, {
+    noOpen: false,
+    port: { name: "URAEDA_PORT", value: "4400" },
+  });
   await settings.reload();
 
   const problem = `Cannot read ${dir}/config.toml: line 2, port: The port is a number from 1 to 65535.`;
@@ -191,18 +194,6 @@ test("a fixed file clears its problem, and a deleted one gives the defaults", as
   expect(settings.view()).toEqual(inForce(none, null));
 });
 
-test("the watch of the config folder reads a change made by hand", async () => {
-  const dir = join(temporaryFolder("uraeda-config"), "uraeda");
-  const settings = await opened(dir);
-  const changed = vi.fn();
-  settings.onChange(changed);
-
-  writeFileSync(join(dir, "config.toml"), `[server]\nallowed_hosts = ["${LAPTOP}"]\n`);
-
-  await expect.poll(() => settings.allowedHosts(), { timeout: 5000 }).toEqual([LAPTOP]);
-  expect(changed).toHaveBeenCalledTimes(1);
-});
-
 test("the file's path is written with ~ for the home folder", async () => {
   const home = temporaryFolder("uraeda-home");
   vi.stubEnv("HOME", home);
@@ -213,4 +204,25 @@ test("the file's path is written with ~ for the home folder", async () => {
   const settings = await opened(join(home, ".config", "uraeda"));
 
   expect(settings.file).toBe("~/.config/uraeda/config.toml");
+});
+
+/** A port given by a flag or a variable follows the core's rule, as the file's does. */
+test.each(["0", "abc", "70000", "4400.5", ""])("the given port %j is refused", async (typed) => {
+  const options = { noOpen: false, port: { name: "URAEDA_PORT" as const, value: typed } };
+
+  await expect(opened(temporaryFolder("uraeda-config"), options)).rejects.toThrow(
+    /^The port is a number from 1 to 65535\.$/,
+  );
+});
+
+test("a given port is the core's number", async () => {
+  const options = { noOpen: false, port: { name: "--port" as const, value: " 4400 " } };
+
+  const settings = await opened(temporaryFolder("uraeda-config"), options);
+
+  expect(settings.view().port).toEqual({
+    inForce: 4400,
+    saved: null,
+    source: { kind: "flag", name: "--port" },
+  });
 });

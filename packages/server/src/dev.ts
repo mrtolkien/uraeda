@@ -28,7 +28,7 @@ export function devServer(env: Env) {
   return {
     allowedHosts: env.allowedHosts?.value ?? [],
     host: "127.0.0.1",
-    port: env.port?.value ?? DEFAULT_PORT,
+    port: env.port ? Number(env.port.value) : DEFAULT_PORT,
     strictPort: true,
   };
 }
@@ -186,7 +186,7 @@ export function devHandler(
       next();
       return;
     }
-    const port = req.socket.localPort ?? env.port?.value ?? DEFAULT_PORT;
+    const port = req.socket.localPort ?? (env.port ? Number(env.port.value) : DEFAULT_PORT);
     void serverOf(port).then(
       ({ listener }) => listener(req, res),
       (error: Error) => {

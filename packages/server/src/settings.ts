@@ -1,13 +1,11 @@
 // The server's settings in force: each from its flag, its variable, the settings file, then its
 // default, the file read through the core and watched while the server runs.
-import { type FSWatcher, mkdirSync, watch } from "node:fs";
-import { homedir } from "node:os";
-import { join, sep } from "node:path";
 import type { Settings } from "uraeda-binding";
-import type { Given } from "./env.ts";
+import type { Given, HostsName, PortName } from "./env.ts";
 import type { Binding } from "./fate/context.ts";
 import type { Options } from "./options.ts";
 import { LIST_QUIET_MS } from "./repositories.ts";
+import { FileWatch } from "./settings-watch.ts";
 
 /** The port the server listens on when no flag, variable, or file gives one. */
 export const DEFAULT_PORT = 4310;
@@ -32,15 +30,19 @@ export type ServerSettingsView = {
   port: Setting<number>;
 };
 
-/** The source of a value given for this run: a flag's name starts with `--`. */
-function givenSource({ name }: Given<unknown>): Source {
-  return name.startsWith("--")
-    ? { kind: "flag", name: name as "--allowed-hosts" | "--port" }
-    : { kind: "environment", name: name as "URAEDA_ALLOWED_HOSTS" | "URAEDA_PORT" };
+/** The source of a value given for this run, by the name of its flag or variable. */
+function givenSource({ name }: Given<unknown, HostsName | PortName>): Source {
+  return name === "--allowed-hosts" || name === "--port"
+    ? { kind: "flag", name }
+    : { kind: "environment", name };
 }
 
 /** A setting from the value given for this run, else the file's, else the default. */
-function setting<T>(given: Given<T> | undefined, saved: T | undefined, fallback: T): Setting<T> {
+function setting<T>(
+  given: Given<T, HostsName | PortName> | undefined,
+  saved: T | undefined,
+  fallback: T,
+): Setting<T> {
   const kept = saved ?? null;
   if (given !== undefined) {
     return { inForce: given.value, saved: kept, source: givenSource(given) };
@@ -50,15 +52,27 @@ function setting<T>(given: Given<T> | undefined, saved: T | undefined, fallback:
     : { inForce: kept, saved: kept, source: { kind: "file" } };
 }
 
+/** The values given for this run, as `options.ts` reports them: the port as typed. */
+export type GivenValues = Pick<Options, "allowedHosts" | "noOpen" | "port">;
+
+/** The values given for this run, the port checked. */
+export type RunValues = Omit<GivenValues, "port"> & { port?: Given<number, PortName> };
+
+/**
+ * The values given for this run, the port checked by the core's rule, `check`, which throws its
+ * problem, `The port is a number from 1 to 65535.`, for a port that is not one.
+ */
+export function checked(given: GivenValues, check: (typed: string) => number): RunValues {
+  const { port, ...rest } = given;
+  return port === undefined ? rest : { ...rest, port: { ...port, value: check(port.value) } };
+}
+
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
  * default: no host names, port 4310, a browser opened. `file` is null when there is none, or it
  * cannot be read.
  */
-export function inForce(
-  options: Pick<Options, "allowedHosts" | "noOpen" | "port">,
-  file: Settings | null,
-): ServerSettingsView {
+export function inForce(options: RunValues, file: Settings | null): ServerSettingsView {
   const saved = file?.server ?? {};
   const openBrowser = setting(undefined, saved.openBrowser, true);
   return {
@@ -70,17 +84,11 @@ export function inForce(
   };
 }
 
-/** A path with the home folder written `~`, as the core's messages write it. */
-function shown(path: string): string {
-  const home = homedir();
-  return path.startsWith(home + sep) ? `~${path.slice(home.length)}` : path;
-}
-
 /** What `ServerSettings.open` takes: the binding, the config folder, and the run's options. */
 type SettingsOptions = {
-  binding: Pick<Binding, "readSettings">;
+  binding: Pick<Binding, "checkedPort" | "readSettings" | "settingsFile">;
   dir: string;
-  options: Pick<Options, "allowedHosts" | "noOpen" | "port">;
+  options: GivenValues;
 };
 
 /**
@@ -93,51 +101,35 @@ export class ServerSettings {
   readonly file: string;
   /** Why the file could not be read at the last read, or null when it was, or there is none. */
   problem: string | null = null;
-  readonly #options: SettingsOptions;
+  readonly #options: Omit<SettingsOptions, "options">;
+  readonly #given: RunValues;
   #view: ServerSettingsView;
   #listeners = new Set<() => void>();
   #reloading: Promise<void> = Promise.resolve();
-  #watch?: FSWatcher;
+  #watch?: FileWatch;
   #timer?: ReturnType<typeof setTimeout>;
   #closed = false;
 
-  private constructor(options: SettingsOptions) {
-    this.#options = options;
-    this.file = shown(join(options.dir, FILE));
-    this.#view = inForce(options.options, null);
+  private constructor({ options, ...rest }: SettingsOptions) {
+    this.#options = rest;
+    this.#given = checked(options, rest.binding.checkedPort);
+    this.file = rest.binding.settingsFile(rest.dir);
+    this.#view = inForce(this.#given, null);
   }
 
   /**
-   * The settings of the config folder `dir`: its file read once, then watched, the folder created
-   * when it does not exist. `close` stops the watch.
+   * The settings of the config folder `dir`: its file read once, then watched, a folder that does
+   * not exist yet watched from the nearest one above it. `close` stops the watch. Throws the port's
+   * problem when the port given for this run is not one.
    */
   static async open(options: SettingsOptions): Promise<ServerSettings> {
     const settings = new ServerSettings(options);
-    settings.#watchFolder();
+    settings.#watch = new FileWatch(options.dir, FILE, () => {
+      clearTimeout(settings.#timer);
+      settings.#timer = setTimeout(() => void settings.reload(), LIST_QUIET_MS);
+    });
     await settings.reload();
     return settings;
-  }
-
-  #watchFolder(): void {
-    const { dir } = this.#options;
-    try {
-      mkdirSync(dir, { recursive: true });
-      this.#watch = watch(dir, (_, file) => {
-        if (file === null || String(file) === FILE) {
-          clearTimeout(this.#timer);
-          this.#timer = setTimeout(() => void this.reload(), LIST_QUIET_MS);
-        }
-      });
-      this.#watch.on("error", (error) => {
-        process.stderr.write(
-          `uraeda: ${error.message}; the settings are read again on their next change\n`,
-        );
-      });
-    } catch (error) {
-      process.stderr.write(
-        `uraeda: ${(error as Error).message}; changes to ${this.file} show after a restart\n`,
-      );
-    }
   }
 
   /** The values in force, and the file's. */
@@ -173,6 +165,8 @@ export class ServerSettings {
     if (this.#closed) {
       return;
     }
+    // The folders to watch may have changed: made, deleted, or a symlink pointed elsewhere.
+    this.#watch?.refresh();
     const before = JSON.stringify([this.#view, this.problem]);
     let saved: Settings | null = null;
     let problem: string | null = null;
@@ -191,18 +185,27 @@ export class ServerSettings {
       );
     }
     this.problem = problem;
-    const view = inForce(this.#options.options, saved);
+    const view = inForce(this.#given, saved);
     // An unchanged read keeps the view, so `allowedHosts()` keeps its array: the guard rebuilds
     // its sets only on a change.
     if (JSON.stringify([view, problem]) !== before) {
       this.#view = view;
-      for (const listener of this.#listeners) {
+      this.#tell();
+    }
+  }
+
+  /** Calls each listener: one that throws is printed, and the others are still called. */
+  #tell(): void {
+    for (const listener of this.#listeners) {
+      try {
         listener();
+      } catch (error) {
+        process.stderr.write(`uraeda: ${error instanceof Error ? error.message : String(error)}\n`);
       }
     }
   }
 
-  /** Stops the watch of the config folder, as the server stops. */
+  /** Stops the watches of the settings file, as the server stops. */
   close(): void {
     this.#closed = true;
     clearTimeout(this.#timer);

@@ -61,6 +61,12 @@ export declare function attachImage(repo: string, path: string, bytes: Buffer, n
  */
 export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
 
+/**
+ * `typed`, trimmed, when it is a port, a whole number from 1 to 65535. Throws the problem
+ * otherwise, `The port is a number from 1 to 65535.`
+ */
+export declare function checkedPort(typed: string): number
+
 /** Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into. */
 export declare function commitChanges(repo: string): Promise<void>
 
@@ -288,6 +294,12 @@ export declare function setOpenBrowser(dir: string, open: boolean): Promise<Sett
 
 /** Sets the port, from the text typed. */
 export declare function setPort(dir: string, port: string): Promise<Settings>
+
+/**
+ * The settings file in the config folder `dir`, the home folder written `~`, as the core's messages
+ * write it.
+ */
+export declare function settingsFile(dir: string): string
 
 /**
  * Starts a change typed as a text, with its images, in its own worktree: the first written line
