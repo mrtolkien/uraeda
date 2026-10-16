@@ -2,7 +2,8 @@
 // widths a wide screen shows, the phone's alone on narrow ones, each frame as tall as its story says,
 // up to the theme's maximum, and in Uraeda's colour mode, which a frame is sent when it says it is
 // ready and when it changes; and pick mode, sent to every frame, and the elements their pick scripts
-// report.
+// report. The frames load their story only once their box is on screen, then stay loaded: a page of
+// many embeds loads only those it shows.
 import { useTheme } from "@astryxdesign/core/theme";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -168,7 +169,7 @@ function DesktopFrame({
 }: {
   frameRef: RefObject<HTMLIFrameElement | null>;
   height: number | undefined;
-  src: string;
+  src: string | undefined;
   title: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -240,6 +241,28 @@ function useRoomForBoth(box: RefObject<HTMLDivElement | null>) {
 }
 
 /**
+ * Whether the box has been on screen since it was drawn: false until it first is, then true for
+ * good. Without IntersectionObserver, true at once.
+ */
+function useSeen(box: RefObject<HTMLDivElement | null>) {
+  const [seen, setSeen] = useState(() => typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    const outer = box.current;
+    if (seen || !outer) {
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setSeen(true);
+      }
+    });
+    observer.observe(outer);
+    return () => observer.disconnect();
+  }, [box, seen]);
+  return seen;
+}
+
+/**
  * The story's frames: the widths chosen on wide screens, the phone's alone on narrow ones, and in
  * place of both in a box too narrow for them. An element picked names its frame's width only while
  * both show.
@@ -259,6 +282,8 @@ export function StoryFrames({
 }) {
   const box = useRef<HTMLDivElement>(null);
   const room = useRoomForBoth(box);
+  const seen = useSeen(box);
+  const loaded = seen ? src : undefined;
   const shown = widths === "both" && !room ? "phone" : widths;
   const both = wide && shown === "both";
   const { desktop, heights, phone } = useFrames({
@@ -271,7 +296,7 @@ export function StoryFrames({
         <iframe
           ref={phone}
           sandbox={SANDBOX}
-          src={src}
+          src={loaded}
           title={`${label}, phone`}
           {...stylex.props(
             styles.frame,
@@ -284,7 +309,7 @@ export function StoryFrames({
         <DesktopFrame
           frameRef={desktop}
           height={heights.desktop}
-          src={src}
+          src={loaded}
           title={`${label}, desktop`}
         />
       )}
