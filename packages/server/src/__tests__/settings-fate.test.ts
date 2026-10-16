@@ -1,4 +1,4 @@
-// The `Settings` record and its five changes, on every endpoint: the values in force, the file's,
+// The `Settings` record and its six changes, on every endpoint: the values in force, the file's,
 // and their sources; the core's refusals; and the live update each change sends (review focus 2).
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ import { live } from "../fate.ts";
 import { binding, byIdAt, fateAt, testApp } from "./helpers.ts";
 
 const MAC = "mac.tail1234.ts.net";
-const SELECT = ["id", "file", "problem", "server"];
+const SELECT = ["id", "file", "problem", "runs", "server"];
 
 type Opened = Awaited<ReturnType<typeof testApp>>;
 
@@ -43,6 +43,11 @@ const defaults = {
   port: { inForce: 4310, saved: null, source: { kind: "default" } },
 };
 
+/** The runs' defaults: the build after a spec's approval starts in a fresh session. */
+const runDefaults = {
+  buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
+};
+
 test("the record of an empty config folder is read on the global endpoint and a repository's", async () => {
   const opened = await testApp();
 
@@ -53,6 +58,7 @@ test("the record of an empty config folder is read on the global endpoint and a 
     file: opened.settings.file,
     id: "settings",
     problem: null,
+    runs: runDefaults,
     server: defaults,
   });
   expect(hosted).toEqual(global);
@@ -81,6 +87,7 @@ test("each change answers the record with its value", async () => {
   const removed = await change(opened, "removeHost", { name: "laptop.tail1234.ts.net" });
   const port = await change(opened, "setPort", { port: " 4400 " });
   const open = await change(opened, "setOpenBrowser", { open: false });
+  const fresh = await change(opened, "setBuildInFreshSession", { fresh: false });
 
   expect(edited.data.server.allowedHosts.saved).toEqual(["laptop.tail1234.ts.net"]);
   expect(removed.data.server.allowedHosts.saved).toEqual([]);
@@ -90,6 +97,12 @@ test("each change answers the record with its value", async () => {
     saved: false,
     source: { kind: "file" },
   });
+  expect(fresh.data.runs.buildInFreshSession).toEqual({
+    inForce: false,
+    saved: false,
+    source: { kind: "file" },
+  });
+  expect((await binding.readSettings(opened.configDir)).runs.buildInFreshSession).toBe(false);
 });
 
 /** US3 */
@@ -121,11 +134,18 @@ test("a broken file is the record's problem, and refuses every change with it", 
     change(opened, "removeHost", { name: MAC }),
     change(opened, "setPort", { port: "4400" }),
     change(opened, "setOpenBrowser", { open: false }),
+    change(opened, "setBuildInFreshSession", { fresh: false }),
   ]);
 
-  expect(read).toEqual({ file: opened.settings.file, id: "settings", problem, server: defaults });
+  expect(read).toEqual({
+    file: opened.settings.file,
+    id: "settings",
+    problem,
+    runs: runDefaults,
+    server: defaults,
+  });
   expect(results.map((result) => result.error)).toEqual(
-    Array(5).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
+    Array(6).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
   );
   expect(readFileSync(file, "utf8")).toBe(broken);
 });

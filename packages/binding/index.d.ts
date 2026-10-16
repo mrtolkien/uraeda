@@ -313,6 +313,9 @@ export declare function saveTriageAnswer(repo: string, question: string, letters
 /** Saves the triage's notes, over the notes last read, in the triage read with the hash `base`. */
 export declare function saveTriageNotes(repo: string, notes: string, previous: string, base: string): Promise<FileView>
 
+/** Sets whether the run after a spec's approval starts in a new agent session. */
+export declare function setBuildInFreshSession(dir: string, fresh: boolean): Promise<Settings>
+
 /** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
 
@@ -1062,6 +1065,12 @@ export interface RunningFeature {
   step: StepView
 }
 
+/** The `[runs]` table: how the workflow's runs start. */
+export interface RunSettings {
+  /** Whether the run after a spec's approval starts in a new agent session. */
+  buildInFreshSession?: boolean
+}
+
 export interface Scenario {
   number: number
   block: number
@@ -1085,6 +1094,7 @@ export interface ServerSettings {
 /** The settings the file holds, an absent key unset. */
 export interface Settings {
   server: ServerSettings
+  runs: RunSettings
 }
 
 /** A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`. */

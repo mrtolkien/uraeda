@@ -30,6 +30,14 @@ export type ServerSettingsView = {
   port: Setting<number>;
 };
 
+/** How the workflow's runs start: the default of the run after a spec's approval. */
+export type RunSettingsView = {
+  buildInFreshSession: Setting<boolean>;
+};
+
+/** Every setting in force, by the file's table. */
+export type SettingsView = { runs: RunSettingsView; server: ServerSettingsView };
+
 /** The source of a value given for this run, by the name of its flag or variable. */
 function givenSource({ name }: Given<unknown, HostsName | PortName>): Source {
   return name === "--allowed-hosts" || name === "--port"
@@ -69,18 +77,23 @@ export function checked(given: GivenValues, check: (typed: string) => number): R
 
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
- * default: no host names, port 4310, a browser opened. `file` is null when there is none, or it
- * cannot be read.
+ * default: no host names, port 4310, a browser opened, and the build in a fresh session. `file` is
+ * null when there is none, or it cannot be read.
  */
-export function inForce(options: RunValues, file: Settings | null): ServerSettingsView {
+export function inForce(options: RunValues, file: Settings | null): SettingsView {
   const saved = file?.server ?? {};
   const openBrowser = setting(undefined, saved.openBrowser, true);
   return {
-    allowedHosts: setting(options.allowedHosts, saved.allowedHosts, []),
-    openBrowser: options.noOpen
-      ? { ...openBrowser, inForce: false, source: { kind: "flag", name: "--no-open" } }
-      : openBrowser,
-    port: setting(options.port, saved.port, DEFAULT_PORT),
+    runs: {
+      buildInFreshSession: setting(undefined, file?.runs.buildInFreshSession, true),
+    },
+    server: {
+      allowedHosts: setting(options.allowedHosts, saved.allowedHosts, []),
+      openBrowser: options.noOpen
+        ? { ...openBrowser, inForce: false, source: { kind: "flag", name: "--no-open" } }
+        : openBrowser,
+      port: setting(options.port, saved.port, DEFAULT_PORT),
+    },
   };
 }
 
@@ -105,7 +118,7 @@ export class ServerSettings {
   problem: string | null = null;
   readonly #options: Omit<SettingsOptions, "options">;
   readonly #given: RunValues;
-  #view: ServerSettingsView;
+  #view: SettingsView;
   #listeners = new Set<() => void>();
   #reloading: Promise<void> = Promise.resolve();
   #watch?: FileWatch;
@@ -135,9 +148,14 @@ export class ServerSettings {
     return settings;
   }
 
-  /** The values in force, and the file's. */
+  /** The server's values in force, and the file's. */
   view(): ServerSettingsView {
-    return this.#view;
+    return this.#view.server;
+  }
+
+  /** The runs' values in force, and the file's. */
+  runs(): RunSettingsView {
+    return this.#view.runs;
   }
 
   /**
@@ -145,7 +163,7 @@ export class ServerSettings {
    * another value in force, change.
    */
   allowedHosts(): ReadonlyArray<string> {
-    return this.#view.allowedHosts.inForce;
+    return this.#view.server.allowedHosts.inForce;
   }
 
   /** Calls `listener` once each time the values or the problem change; returns its removal. */

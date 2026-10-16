@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use toml_edit::{Document, Item, Key, TableLike};
 
 use super::rules;
-use super::{ServerSettings, Settings};
+use super::{RunSettings, ServerSettings, Settings};
 
 /// The file, in the config folder.
 pub const FILE: &str = "config.toml";
@@ -79,26 +79,35 @@ pub fn parse(text: &str) -> Result<Settings, String> {
             .join(", ");
         format!("line {line}: {message}.")
     })?;
-    let Some((key, server)) = document.as_table().get_key_value("server") else {
-        return Ok(Settings::default());
+    let at = |(offset, key, problem): Problem| {
+        let at = offset.map_or_else(String::new, |offset| {
+            format!("line {}, ", line(text, offset))
+        });
+        format!("{at}{key}: {problem}")
     };
-    let server = server
-        .as_table_like()
+    let server = table(&document, "server", parse_server).map_err(at)?;
+    let runs = table(&document, "runs", parse_runs).map_err(at)?;
+    Ok(Settings { server, runs })
+}
+
+/// The values of the table `name`, read by `values`: the defaults when the file has no such table.
+fn table<T: Default>(
+    document: &Document<&str>,
+    name: &'static str,
+    values: impl FnOnce(&dyn TableLike) -> Result<T, Problem>,
+) -> Result<T, Problem> {
+    let Some((key, item)) = document.as_table().get_key_value(name) else {
+        return Ok(T::default());
+    };
+    item.as_table_like()
         .ok_or_else(|| {
             (
-                offset(key, server),
-                "server",
-                "[server] is a table of settings.".to_owned(),
+                offset(key, item),
+                name,
+                format!("[{name}] is a table of settings."),
             )
         })
-        .and_then(parse_server)
-        .map_err(|(offset, key, problem)| {
-            let at = offset.map_or_else(String::new, |offset| {
-                format!("line {}, ", line(text, offset))
-            });
-            format!("{at}{key}: {problem}")
-        })?;
-    Ok(Settings { server })
+        .and_then(values)
 }
 
 /// A problem: where it is, as an offset in the text, the key, and the problem.
@@ -134,6 +143,22 @@ fn parse_server(server: &dyn TableLike) -> Result<ServerSettings, Problem> {
             )
         })?;
         settings.open_browser = Some(open);
+    }
+    Ok(settings)
+}
+
+/// The `[runs]` table's values.
+fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
+    let mut settings = RunSettings::default();
+    if let Some((key, item)) = runs.get_key_value("build_in_fresh_session") {
+        let fresh = item.as_bool().ok_or_else(|| {
+            (
+                offset(key, item),
+                "build_in_fresh_session",
+                "Building in a fresh session is true or false.".to_owned(),
+            )
+        })?;
+        settings.build_in_fresh_session = Some(fresh);
     }
     Ok(settings)
 }

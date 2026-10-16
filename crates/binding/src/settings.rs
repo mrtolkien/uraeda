@@ -72,3 +72,9 @@ pub fn set_port(dir: String, port: String) -> AsyncTask<Job<Settings>> {
 pub fn set_open_browser(dir: String, open: bool) -> AsyncTask<Job<Settings>> {
     job(move || settings::set_open_browser(Path::new(&dir), open))
 }
+
+/// Sets whether the run after a spec's approval starts in a new agent session.
+#[napi(ts_return_type = "Promise<Settings>")]
+pub fn set_build_in_fresh_session(dir: String, fresh: bool) -> AsyncTask<Job<Settings>> {
+    job(move || settings::set_build_in_fresh_session(Path::new(&dir), fresh))
+}

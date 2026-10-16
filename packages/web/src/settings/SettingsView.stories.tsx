@@ -13,6 +13,7 @@ import { SettingsView } from "./SettingsView.tsx";
 const server: ServerValues = {
   file: "~/.config/uraeda/config.toml",
   problem: null,
+  runs: { buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } } },
   server: {
     allowedHosts: {
       inForce: ["mac.tail1234.ts.net"],
@@ -29,6 +30,7 @@ const serverActions: ServerActions = {
   addHost: async () => undefined,
   editHost: async () => undefined,
   removeHost: async () => undefined,
+  setBuildInFreshSession: async () => undefined,
   setOpenBrowser: async () => undefined,
   setPort: async () => undefined,
 };
@@ -91,7 +93,7 @@ export const Appearance: Story = { args: { category: "appearance" } };
 /** Sign out this browser, or every device. */
 export const SignIn: Story = { args: { category: "sign-in" } };
 
-/** A category whose settings come with later features. */
+/** Building in a fresh session, on by default, and the run settings later features bring. */
 export const Runs: Story = { args: { category: "runs" } };
 
 /** No category named: the list on a phone, Server beside it on a desktop. */

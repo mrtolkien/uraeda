@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use tempfile::TempDir;
 use uraeda_core::api::ApiError;
-use uraeda_core::settings::{self, ServerSettings, Settings};
+use uraeda_core::settings::{self, RunSettings, ServerSettings, Settings};
 
 const HOST_PROBLEM: &str =
     "is not a host name: use letters, digits, hyphens, and dots, like mac.tail1234.ts.net.";
@@ -53,6 +53,7 @@ fn hosts(names: &[&str]) -> Settings {
             allowed_hosts: Some(names.iter().map(|name| (*name).to_owned()).collect()),
             ..ServerSettings::default()
         },
+        ..Settings::default()
     }
 }
 
@@ -65,14 +66,17 @@ fn reads_each_file() {
             port: Some(4400),
             open_browser: Some(false),
         },
+        runs: RunSettings {
+            build_in_fresh_session: Some(false),
+        },
     };
     let list = "The allowed host names are a list, like [\"mac.tail1234.ts.net\"].";
-    let rows: [(Option<&str>, Result<Settings, String>); 13] = [
+    let rows: [(Option<&str>, Result<Settings, String>); 15] = [
         (None, Ok(Settings::default())),
         (Some(""), Ok(Settings::default())),
         (
             Some(
-                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n",
+                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\n",
             ),
             Ok(full),
         ),
@@ -112,6 +116,17 @@ fn reads_each_file() {
         (
             Some("[server]\nopen_browser = \"yes\"\n"),
             Err("line 2, open_browser: Opening a browser at start is true or false.".into()),
+        ),
+        (
+            Some("[runs]\nbuild_in_fresh_session = 1\n"),
+            Err(
+                "line 2, build_in_fresh_session: Building in a fresh session is true or false."
+                    .into(),
+            ),
+        ),
+        (
+            Some("runs = true\n"),
+            Err("line 1, runs: [runs] is a table of settings.".into()),
         ),
     ];
     for (contents, expected) in rows {
@@ -280,6 +295,26 @@ fn removes_the_first_of_two_names() {
     assert_eq!(
         text(dir.path()),
         "[server]\nallowed_hosts = [\"phone.tail1234.ts.net\"]\n"
+    );
+}
+
+#[test]
+fn sets_building_in_a_fresh_session_in_its_own_table() {
+    let dir = tempdir();
+    write(dir.path(), "# mine\n[server]\nport = 4400\n");
+
+    let saved = settings::set_build_in_fresh_session(dir.path(), false).unwrap();
+
+    assert_eq!(saved.runs.build_in_fresh_session, Some(false));
+    assert_eq!(saved.server.port, Some(4400));
+    assert_eq!(
+        text(dir.path()),
+        "# mine\n[server]\nport = 4400\n\n[runs]\nbuild_in_fresh_session = false\n"
+    );
+    settings::set_build_in_fresh_session(dir.path(), true).unwrap();
+    assert_eq!(
+        text(dir.path()),
+        "# mine\n[server]\nport = 4400\n\n[runs]\nbuild_in_fresh_session = true\n"
     );
 }
 
