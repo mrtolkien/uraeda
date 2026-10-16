@@ -8,7 +8,10 @@ import { existsSync, statSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
+import { freePort } from "../free-port.ts";
 import { readIndex, type StoryIndex, UNREADABLE_INDEX } from "./index.ts";
+
+export { freePort };
 
 /** A checkout's Storybook: starting, ready on its port, or failed, with the sentence to show. */
 export type PreviewState =
@@ -39,18 +42,6 @@ export const TIMED_OUT = "Storybook did not start within 2 minutes.";
 export const NO_PORT = "No free port for Storybook.";
 /** The state a stopped runner gives every view: it starts nothing (R19). */
 export const NOT_RUNNING = "Storybook is not running for this branch.";
-
-/** A free port of 127.0.0.1, which the system picks. */
-export function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const { port } = server.address() as { port: number };
-      server.close(() => resolve(port));
-    });
-  });
-}
 
 /** Whether another program holds `port` of 127.0.0.1 now. */
 function portTaken(port: number): Promise<boolean> {

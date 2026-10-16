@@ -32,11 +32,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { request } from "node:http";
-import { connect, createServer } from "node:net";
+import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { parseArgs } from "node:util";
+import { freePort } from "../../server/src/free-port.ts";
 import { cargoVersion } from "./release.ts";
 
 /** `packages/uraeda`, which is packed. */
@@ -129,18 +130,6 @@ async function waitFor(ready: () => boolean | Promise<boolean>, deadline: number
     }
     await delay(25);
   }
-}
-
-/** A port nothing listens on, from the system. */
-function freePort(): Promise<number> {
-  return new Promise((resolvePort, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      server.close(() => resolvePort(typeof address === "object" && address ? address.port : 0));
-    });
-  });
 }
 
 /** Whether something accepts connections on 127.0.0.1:`port`. */

@@ -17,6 +17,7 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { devFrames, reloadRepositories } from "uraeda-server/dev";
+import { freePort } from "uraeda-server/free-port";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
 import { defineConfig, type Plugin, type PluginOption } from "vite-plus";
@@ -416,13 +417,15 @@ export default defineConfig({
       signIn: false,
     }),
   ],
-  // The dev server's fixed port is for `vp dev`: the tests take the next free port when another
-  // checkout's tests hold theirs. Vite answers the listed host name too (R12).
+  // Vite answers the listed host name too (R12).
   server: { ...base.server, allowedHosts: [LISTED_HOST], strictPort: false },
   // StyleX's runtime injection is imported by the compiled styles, which Vite finds only once the
   // tests run: bundled late, on a cold cache, it reloads the browser and fails the test files.
   optimizeDeps: { include: ["@stylexjs/stylex/lib/stylex-inject"] },
   test: {
+    // The tests' server, on a free port: Vitest's default, 63315, is every checkout's, and so are
+    // the ports after it, which Vite tries in turn.
+    api: { host: "127.0.0.1", port: await freePort() },
     globalSetup: ["src/__browser__/setup.ts"],
     include: ["src/__browser__/**/*.test.tsx"],
     name: "uraeda-web-browser",
