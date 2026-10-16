@@ -10,13 +10,13 @@ import { Text } from "@astryxdesign/core/Text";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useContext, useEffect, useState, useSyncExternalStore } from "react";
 import type { StoryTarget } from "uraeda-binding";
 import { CommentForm } from "./CommentForm.tsx";
 import { readUnsaved, unsavedKey } from "./fields/unsaved.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { type Picked, storyAnchor, storyComment } from "./storyComment.ts";
-import { useRepositoryPath } from "./routes.tsx";
+import { RepositoryPathContext } from "./routes.tsx";
 import type { PickMode } from "./StoryFrames.tsx";
 
 const styles = stylex.create({
@@ -49,11 +49,13 @@ export type StoryPick = ReturnType<typeof useStoryPick>;
  * story stops and starts again.
  */
 export function useStoryPick(field?: string) {
-  const repo = useRepositoryPath();
+  // An embed without a comment, as in Uraeda's own Storybook, may be drawn outside a repository.
+  const repo = useContext(RepositoryPathContext);
   const [pickable, setPickable] = useState(false);
   const [picking, setPicking] = useState(false);
   const [form, setForm] = useState<{ picked?: Picked } | undefined>(() => {
-    const kept = field === undefined ? undefined : readUnsaved(unsavedKey(repo, field));
+    const kept =
+      field === undefined || repo === null ? undefined : readUnsaved(unsavedKey(repo, field));
     return kept && { picked: kept.picked };
   });
   useEffect(() => {
