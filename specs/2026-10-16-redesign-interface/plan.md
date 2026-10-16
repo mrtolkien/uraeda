@@ -810,9 +810,9 @@ git commit -m "feat(redesign-interface): fold, resize, Home on the phone, and th
 - Start from: `packages/web/src/layout/SideColumn.stories.tsx#Shown`
 - Modify: `layout/SideColumn.tsx` (one show and hide button at the page's top right in both states,
   C3; the page's content kept mounted; sticky panel; `]` hotkey), `SessionAside.tsx` (its sections
-  inside `SideColumn`, `WithAside` and `AsideToggle` removed), `SessionPage.tsx` (`aside` out of
-  `Header` and `SessionLog`)
-- Test: `__browser__/session.test.tsx`, `__tests__/session-aside.test.tsx`,
+  inside `SideColumn`, which `WithAside` now draws; `AsideToggle` removed), `SessionPage.tsx`
+  (`aside` out of `Header` and `SessionLog`)
+- Test: `__browser__/side-column.test.tsx` (new), `__tests__/session-aside.test.tsx`,
   `__browser__/layout.test.tsx`
 
 **Interfaces:**
@@ -820,15 +820,15 @@ git commit -m "feat(redesign-interface): fold, resize, Home on the phone, and th
 - Produces: `SideColumn({ children, content, isShown, label, onShownChange, storageKey })`, its
   width kept as `astryx-resizable:uraeda.column`, 280 to 560 px, 320 by default.
 
-- [ ] **Step 1: Write the failing tests**: US3.6 (drag to 400 px, kept after a reload, C2), US3.7
+- [x] **Step 1: Write the failing tests**: US3.6 (drag to 400 px, kept after a reload, C2), US3.7
       ("Hide progress", "Show progress" at the same coordinates, `]`), the transcript and the focus
       kept when the column hides.
-- [ ] **Step 2: Run them to check they fail** (`vp run browser:desktop`), Expected: FAIL, no
+- [x] **Step 2: Run them to check they fail** (`vp run browser:desktop`), Expected: FAIL, no
       separator "Resize progress"
-- [ ] **Step 3: Implement**, as in **Files**.
-- [ ] **Step 4: Run all tests** (`vp check`, `vp run ts:test`, `vp run browser:desktop`), Expected:
+- [x] **Step 3: Implement**, as in **Files**.
+- [x] **Step 4: Run all tests** (`vp check`, `vp run ts:test`, `vp run browser:desktop`), Expected:
       PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-redesign-interface/plan.md
