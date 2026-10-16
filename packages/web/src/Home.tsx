@@ -12,7 +12,7 @@ import { Page } from "./layout/Page.tsx";
 import { useHash, useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 
 /** A row that leads somewhere, tapped as a whole. */
-function Row({
+export function Row({
   badge,
   href,
   isSelected,
@@ -56,7 +56,7 @@ function Group({ children, title }: { children: ReactNode; title?: string }) {
 }
 
 /** The workspace's features, as home reads them. */
-type Feature = NonNullable<ReturnType<typeof useWorkspace>>["features"][number];
+export type Feature = NonNullable<ReturnType<typeof useWorkspace>>["features"][number];
 
 /** The features waiting on the human, each by what it waits for, with the block's line. */
 function WaitingGroup({ features }: { features: Array<Feature> }) {
@@ -103,6 +103,17 @@ function ProblemsGroup({ features }: { features: Array<Feature> }) {
   );
 }
 
+/**
+ * A feature an agent works on: whether its agent runs now, its step's label, and the line under
+ * its title, the step and the task while it runs, the task alone otherwise.
+ */
+export function agentState(feature: Feature, running: Array<string>) {
+  const working = running.includes(feature.folder);
+  const step = stepLabel(feature.step.name);
+  const line = working ? [step, feature.step.task].filter(Boolean).join(" · ") : feature.step.task;
+  return { line, step, working };
+}
+
 /** The features agents work on, each with its step, or "Working" while its agent runs. */
 function AgentsGroup({ features, running }: { features: Array<Feature>; running: Array<string> }) {
   const here = useRepoPath();
@@ -112,11 +123,7 @@ function AgentsGroup({ features, running }: { features: Array<Feature>; running:
   return (
     <Group title="Agents at work">
       {features.map((feature) => {
-        const working = running.includes(feature.folder);
-        const step = stepLabel(feature.step.name);
-        const line = working
-          ? [step, feature.step.task].filter(Boolean).join(" · ")
-          : feature.step.task;
+        const { line, step, working } = agentState(feature, running);
         return (
           <Row
             // A running agent says so; its step moves to the line under the title.
@@ -198,6 +205,75 @@ function DoneGroup({ features }: { features: Array<Feature> }) {
 }
 
 /**
+ * The features as home sorts them: waiting on the human, on an agent, with problems in their files,
+ * and merged, latest first.
+ */
+export function homeFeatures(features: Array<Feature>) {
+  return {
+    agents: features.filter(
+      (f) => f.step.waitsOn === "agent" && f.step.name !== "none" && !f.problems.length,
+    ),
+    // Latest first: a folder's name starts with its date.
+    done: features
+      .filter((f) => f.step.name === "done")
+      .sort((a, b) => b.folder.localeCompare(a.folder)),
+    human: features.filter((f) => f.step.waitsOn === "human" && !f.problems.length),
+    invalid: features.filter((f) => f.problems.length && f.step.name !== "done"),
+  };
+}
+
+/**
+ * A started feature's status in a word, as a badge shows it: what it waits on the human for, its
+ * agent working, or its step.
+ */
+export function featureStatus(
+  feature: Feature,
+  running: Array<string>,
+): { label: string; variant: "info" | "success" | "warning" } {
+  if (feature.step.waitsOn === "human") {
+    return { label: waiting(feature).verb, variant: "warning" };
+  }
+  const { step, working } = agentState(feature, running);
+  return working ? { label: "Working", variant: "success" } : { label: step, variant: "info" };
+}
+
+/** The workspace's priorities, as home reads them. */
+export type Priority = NonNullable<ReturnType<typeof useWorkspace>>["priorities"][number];
+
+/**
+ * The inbox as home sums it up: its count, each category with its number of notes, the notes
+ * without one first, and the last `latest` notes written. Notes carry no date: quick add writes at
+ * the end of the notes without a category, so the latest are taken from there first.
+ */
+export function inboxSummary(inbox: ReturnType<typeof useInbox>, latest = 3) {
+  const categories = (inbox?.categories ?? []).filter((category) => category.notes.length);
+  const loose = categories.filter((category) => !category.name).flatMap((c) => c.notes);
+  const sorted = categories.filter((category) => category.name).flatMap((c) => c.notes);
+  return {
+    categories: categories.map((category) => ({
+      count: category.notes.length,
+      name: category.name ?? "Not sorted",
+    })),
+    count: inbox?.count ?? 0,
+    latest: [...loose.toReversed(), ...sorted.toReversed()].slice(0, latest),
+  };
+}
+
+/** The Now and Next lines, each with the feature it started, when it did. */
+export function nowAndNext(workspace: { features: Array<Feature>; priorities: Array<Priority> }) {
+  const entries = workspace.priorities
+    .filter((entry) => entry.section === "now" || entry.section === "next")
+    .map((entry) => ({
+      entry,
+      feature: workspace.features.find((feature) => feature.folder === entry.feature),
+    }));
+  return {
+    next: entries.filter(({ entry }) => entry.section === "next"),
+    now: entries.filter(({ entry }) => entry.section === "now"),
+  };
+}
+
+/**
  * The home screen: what waits on the human, what agents do, the notes to organize, the next
  * priorities, and what is done.
  */
@@ -225,16 +301,7 @@ export function Home() {
       </Page>
     );
   }
-  const features = workspace.features;
-  const human = features.filter((f) => f.step.waitsOn === "human" && !f.problems.length);
-  const agents = features.filter(
-    (f) => f.step.waitsOn === "agent" && f.step.name !== "none" && !f.problems.length,
-  );
-  const invalid = features.filter((f) => f.problems.length && f.step.name !== "done");
-  // Latest first: a folder's name starts with its date.
-  const done = features
-    .filter((f) => f.step.name === "done")
-    .sort((a, b) => b.folder.localeCompare(a.folder));
+  const { agents, done, human, invalid } = homeFeatures(workspace.features);
   const priorities = workspace.priorities.filter(
     (entry) => (entry.section === "now" || entry.section === "next") && !entry.feature,
   );
