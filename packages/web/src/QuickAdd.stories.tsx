@@ -81,7 +81,14 @@ function NoteForm() {
 
 /** Forgets the line typed in the priorities' form: each story opens it as it shows, not restored. */
 function forgetTyped() {
-  for (const key of Object.keys(window.localStorage)) {
+  let keys: Array<string>;
+  try {
+    keys = Object.keys(window.localStorage);
+  } catch {
+    // No storage, as in Uraeda's sandboxed frames: nothing typed was kept to forget.
+    return;
+  }
+  for (const key of keys) {
     if (key.startsWith("uraeda:unsaved:") && key.endsWith(":quick-add")) {
       dropUnsaved(key);
     }
