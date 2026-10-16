@@ -102,6 +102,20 @@ pub fn parse(text: &str) -> Vec<Entry> {
     entries
 }
 
+impl Entry {
+    /// Its nested lines in `text`, the text it was parsed from, without the indent they share:
+    /// what a draft of it takes.
+    pub fn nested(&self, text: &str) -> Vec<String> {
+        let lines: Vec<String> = text
+            .lines()
+            .skip(self.item.text_end)
+            .take(self.item.end - self.item.text_end)
+            .map(String::from)
+            .collect();
+        lines::dedented(&lines)
+    }
+}
+
 /// An entry of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]

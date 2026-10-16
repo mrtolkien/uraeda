@@ -662,3 +662,108 @@ fn a_change_is_running_too() {
     assert_eq!(running.folder, change);
     assert!(running.change);
 }
+
+const NIX: &str = "Nix + Docker based execution environments";
+const NIX_DRAFT: &str = "specs/drafts/nix-docker-based-execution-environments.md";
+
+/// US6.1: the line's children go into the draft's What, after the line, and leave the entry.
+#[test]
+fn a_drafted_line_takes_its_children() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+
+    let drafted = draft::create(&place, "later-1").unwrap();
+
+    assert_eq!(drafted.path, NIX_DRAFT);
+    let text = repo.read(NIX_DRAFT);
+    assert!(text.contains(&format!("\n# {NIX}\n")), "{text}");
+    assert!(
+        text.contains(&format!("## What\n\n{NIX}\n\n- with a cache\n\n## ")),
+        "{text}"
+    );
+    assert!(repo.read("specs/PRIORITIES.md").contains(&format!(
+        "## Later\n\n- [{NIX}](drafts/nix-docker-based-execution-environments.md)\n\n## Blocked"
+    )));
+}
+
+/// US6.2: a child's link points at the same file from the draft's folder.
+#[test]
+fn a_drafted_child_link_still_resolves() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &format!(
+            "# Priorities\n\n## Now\n\n## Later\n\n- {NIX}\n  - [git](/specs/decisions/git.md)\n  - [git](decisions/git.md)\n"
+        ),
+    );
+    repo.commit("chore: specs");
+    let place = main_place(&repo);
+
+    draft::create(&place, "later-1").unwrap();
+
+    let text = repo.read(NIX_DRAFT);
+    let links: Vec<&str> = text
+        .lines()
+        .filter_map(|line| line.strip_prefix("- [git](")?.strip_suffix(')'))
+        .collect();
+    assert_eq!(links.len(), 2, "{text}");
+    for link in links {
+        assert_eq!(
+            uraeda_core::workspace::resolve("specs/drafts", link).as_deref(),
+            Some("specs/decisions/git.md"),
+            "{link}"
+        );
+    }
+}
+
+/// US6.3: Discard deletes the draft no commit has, and the entry gets its children back.
+#[test]
+fn discard_deletes_the_draft_and_gives_the_children_back() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let before = repo.read("specs/PRIORITIES.md");
+    draft::create(&place, "later-1").unwrap();
+
+    changes::discard(&place).unwrap();
+
+    assert!(!repo.exists(NIX_DRAFT));
+    assert_eq!(repo.read("specs/PRIORITIES.md"), before);
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// The edge case of a Discard after a draft from a note and one from a line: both drafts go, and
+/// both lists are restored.
+#[test]
+fn discard_after_a_note_draft_and_a_line_draft() {
+    let repo = fixture_repo();
+    repo.write(
+        "specs/INBOX.md",
+        &std::fs::read_to_string(common::fixture("repo/main/specs/INBOX.md")).unwrap(),
+    );
+    repo.commit("chore: inbox");
+    let place = main_place(&repo);
+    let priorities_before = repo.read("specs/PRIORITIES.md");
+    let inbox_before = repo.read("specs/INBOX.md");
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let note = inbox
+        .categories
+        .iter()
+        .flat_map(|category| &category.notes)
+        .find(|note| note.text == "We need a home icon")
+        .unwrap()
+        .id
+        .clone();
+    let read = api::read_priorities(repo.path()).unwrap();
+    let note_draft =
+        api::note_to_new_draft(repo.path(), &note, "next", &inbox.hash, &read.hash).unwrap();
+    draft::create(&place, "later-1").unwrap();
+
+    changes::discard(&place).unwrap();
+
+    assert!(!repo.exists(&note_draft));
+    assert!(!repo.exists(NIX_DRAFT));
+    assert_eq!(repo.read("specs/PRIORITIES.md"), priorities_before);
+    assert_eq!(repo.read("specs/INBOX.md"), inbox_before);
+    assert_eq!(repo.porcelain(), "");
+}

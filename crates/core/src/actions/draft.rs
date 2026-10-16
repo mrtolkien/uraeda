@@ -11,7 +11,7 @@ use super::ActionError;
 use super::place::Place;
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
-/// The folder of `INBOX.md`, which a note's relative links start from.
+/// The folder of `INBOX.md` and `PRIORITIES.md`, which their relative links start from.
 pub(crate) const INBOX_FOLDER: &str = "specs";
 
 /// The lines that can be drafted: those without a link.
@@ -95,7 +95,7 @@ fn draft_entry(place: &Place, text: &str, entry: &Entry) -> Result<Drafted, Acti
     if draft.exists() {
         return Err(ActionError::Refused(format!("{path} exists")));
     }
-    let content = proposal(&entry.text, &[]);
+    let content = from_note(&path, &entry.text, &entry.nested(text));
     if content.is_empty() {
         return Err(ActionError::Refused("no proposal template".into()));
     }
@@ -170,9 +170,9 @@ pub(crate) fn proposal(line: &str, nested: &[String]) -> String {
     paragraphs.join("\n\n") + "\n"
 }
 
-/// What a draft at `path` made from a note of `INBOX.md` holds: the [`proposal`] of the note's
-/// line and nested lines, their relative links rebased from `specs/` to the draft's folder, so they
-/// point at the same files.
+/// What a draft at `path` made from a note of `INBOX.md` or a line of `PRIORITIES.md` holds: the
+/// [`proposal`] of its line and nested lines, their relative links rebased from `specs/` to the
+/// draft's folder, so they point at the same files.
 pub(crate) fn from_note(path: &str, line: &str, nested: &[String]) -> String {
     let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
     crate::files::retarget::rebase(&proposal(line, nested), INBOX_FOLDER, folder)
