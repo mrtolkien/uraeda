@@ -1,6 +1,6 @@
 // US2 and C2: the buttons that commit and hand over to the agent, and the session they open with
 // the workflow's message in its composer, unsent.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -269,26 +269,11 @@ test("requesting changes with Request changes and start the agent opens the sess
   expect(agent.sent).toHaveLength(0);
 });
 
-test("committing a proposal and starting a feature open their sessions with the message", async () => {
-  const repo = fixtureRepo();
-  git(repo, "branch", "2026-10-14-runner", "main");
-  git(repo, "worktree", "add", "--quiet", ".worktrees/2026-10-14-runner", "2026-10-14-runner");
-  const proposal = join(repo, ".worktrees/2026-10-14-runner/specs/2026-10-14-runner/proposal.md");
-  mkdirSync(join(proposal, ".."), { recursive: true });
-  writeFileSync(proposal, "# Runner\n\n## What\n\nRun agents.\n\n## Why\n\nSpeed.\n");
-  const { agent } = await renderPage("/edit/specs/2026-10-14-runner/proposal.md", repo, {
+test("starting a feature opens its session with the message", async () => {
+  const { agent } = await renderPage("/edit/specs/drafts/git-listener.md", fixtureRepo(), {
     agent: true,
   });
 
-  await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
-
-  await opensWith("2026-10-14-runner", /Investigate it and ask me your questions/);
-  expect(git(repo, "log", "-1", "--format=%s", "2026-10-14-runner").trim()).toBe(
-    "chore(runner): proposal",
-  );
-
-  window.history.replaceState(null, "", atRepo("/edit/specs/drafts/git-listener.md"));
-  await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
   await type(await screen.findByLabelText("Slug"), "git-listener");
   expect(screen.getByRole("button", { name: "Start only" })).toBeTruthy();
   await click(screen.getByRole("button", { name: "Start the feature and the agent" }));

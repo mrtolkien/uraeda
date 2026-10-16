@@ -1,7 +1,6 @@
 // US1: a feature's session, its transcript and its composer, at both widths. The log following its
 // end and Back's position are in the browser tests.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addPlan, ELEVEN } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
@@ -219,22 +218,6 @@ test("US4.4: without the agent, the composer is disabled and says why", async ()
   const box = await composer();
   expect(box.getAttribute("aria-disabled")).toBe("true");
   expect(screen.getByText("Claude Code is not available on this machine.")).toBeTruthy();
-});
-
-test("a feature with no branch yet: the composer is disabled and says why", async () => {
-  const repo = fixtureRepo();
-  // A proposal not committed yet: the feature has no branch.
-  const folder = "2026-10-20-draft";
-  mkdirSync(join(repo, "specs", folder));
-  writeFileSync(join(repo, "specs", folder, "proposal.md"), "# Draft\n\n## What\n\nA draft.\n");
-  const fake = await fakeAgent();
-
-  await renderPage(`/f/${folder}/session`, repo, { agent: fake });
-
-  expect(
-    await screen.findByText("This feature has no branch yet: commit its proposal first."),
-  ).toBeTruthy();
-  expect((await composer()).getAttribute("aria-disabled")).toBe("true");
 });
 
 test("a blank message cannot be sent", async () => {

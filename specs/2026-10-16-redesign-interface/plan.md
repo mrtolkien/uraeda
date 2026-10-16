@@ -269,13 +269,19 @@ Preserved behaviour:
 - Modify: `crates/core/src/workspace.rs` (`Feature.at_tip`, `with_pull_request`),
   `crates/core/src/workspace/read.rs` (`read_feature`, moved there from `workspace.rs`,
   [R6](rulings.md#r6-read_feature-moves-into-the-read-module-before-it-changes))
-- Test: `crates/core/tests/workspace.rs`, `crates/cli/tests/status.rs`
+- Test: `crates/core/tests/workspace.rs`, `crates/cli/tests/status.rs`,
+  `crates/core/tests/branch_changes.rs`
+  ([R7](rulings.md#r7-the-branch-changes-case-of-a-folder-without-its-branch-expects-no-feature)),
+  and the TypeScript tests of folders never committed, removed
+  ([R8](rulings.md#r8-tests-of-folders-never-committed-are-removed))
 
 **Interfaces:**
 
 - Produces: `Workspace::read(&Git)` unchanged in signature; a branch is an item only with its folder
   or record in its tip commit; for a checked-out branch, `Feature.step` comes from the tip's texts,
-  while `texts`, `files`, `uncommitted`, `source`, and `worktree` stay from disk.
+  while `texts`, `files`, `uncommitted`, `source`, and `worktree` stay from disk. The tip's read is
+  kept in the private `Feature.at_tip`, and `Feature::with_pull_request` computes the step from it,
+  so a later pull request's state never brings the disk's texts back into the step.
 
 - [x] **Step 1: Split `workspace.rs` before it changes**
 
@@ -301,7 +307,7 @@ git add crates/core/src/workspace.rs crates/core/src/workspace/read.rs crates/cl
 git commit -m "refactor(redesign-interface): read a feature's folder in the read module"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `crates/core/tests/workspace.rs`:
 
@@ -326,13 +332,13 @@ The break each test catches:
 - Uncommitted gate: the step computed from the disk's texts.
 - File page: the whole feature read from the commit.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run:
   `env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 cargo nextest run -p uraeda-core -p uraeda-cli`
 - Expected: FAIL, `a_checked_out_branch_without_its_folder_is_no_item` finding the feature
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 In `workspace/branches.rs`: apply the folder-or-record check to every branch, against its tip, the
 current branch included; read only the current branch's folder in `working_tree_features`, never
@@ -341,17 +347,18 @@ tip's texts (R4): read the tip's texts with `ReadFrom::Commit(tip)`, build the s
 keep the disk's texts for everything else. A feature with no tip (none left after the rule) is not
 read.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
-- Run: `env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 cargo nextest run --workspace` and
-  `cargo clippy --workspace --all-targets -- -D warnings`
+- Run: `env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 cargo nextest run --workspace`,
+  `cargo clippy --workspace --all-targets -- -D warnings`, `vp check`, and `vp run ts:test`
 - Expected: PASS; existing tests that relied on disk steps, like the LSP's
-  `waiting_lists_files_of_every_checkout`, still pass, since `waiting` reads the disk
+  `waiting_lists_files_of_every_checkout`, still pass, since `waiting` reads the disk; the tests of
+  folders never committed are changed or removed (R7, R8)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add crates/core crates/cli specs/2026-10-16-redesign-interface/plan.md
+git add crates/core crates/cli packages specs/2026-10-16-redesign-interface
 git commit -m "feat(redesign-interface): items and their steps come from their commits"
 ```
 
