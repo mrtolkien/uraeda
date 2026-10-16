@@ -279,7 +279,7 @@ export async function takeChanges(each: Each, first: Page, adapter: FakeAdapter,
   await phoneShots(each, centred, logo);
   await finished(adapter, repo, centred);
   await each("change-pull-request", ({ page }) =>
-    changePage(page, centred, CENTRED_TITLE, "Pull request"),
+    changePage(page, centred, CENTRED_TITLE, "Pull request state unknown"),
   );
   await each("new-change", ({ page }) => newChange(page));
 }

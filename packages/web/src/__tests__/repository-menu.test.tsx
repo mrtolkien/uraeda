@@ -2,7 +2,7 @@
 // ⋯ menu removes one, and a missing folder is marked.
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { expectLogged } from "uraeda-binding/test-utils";
 import {
@@ -288,4 +288,19 @@ test("on a narrow screen, the menu is a sheet with Close", async () => {
 
   await waitFor(() => expect(window.location.pathname).toBe("/r/todo-app/"));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Repositories" })).toBeNull());
+});
+
+/** US9.4 */
+test("Enter in the filter opens the one repository it leaves", async () => {
+  await renderPage("/r/uraeda/", undefined, { dataDir: twoRepositories(), raw: true });
+  const menu = await openMenu();
+  const filter = menu.getByRole("textbox", { name: "Filter repositories" });
+  await type(filter, "to");
+  expect(rows(menu)).toHaveLength(1);
+
+  await act(async () => {
+    fireEvent.keyDown(filter, { key: "Enter" });
+  });
+
+  await waitFor(() => expect(window.location.pathname).toBe("/r/todo-app/"));
 });

@@ -273,7 +273,7 @@ Preserved behaviour:
   `crates/core/tests/branch_changes.rs`
   ([R7](rulings.md#r7-the-branch-changes-case-of-a-folder-without-its-branch-expects-no-feature)),
   and the TypeScript tests of folders never committed, removed
-  ([R8](rulings.md#r8-tests-of-folders-never-committed-are-removed))
+  ([R8](rulings.md#r8-tests-of-folders-never-committed-move-to-setups-still-reachable))
 
 **Interfaces:**
 
@@ -915,23 +915,23 @@ git commit -m "feat(redesign-interface): notifications when the human is needed"
 **Files:**
 
 - Modify: `AddRepository.tsx` (the suggestions as a listbox the arrows drive), `RepositoryMenu.tsx`
-  (`Menu` split first, then Enter on a single row), the UI checks' pages
-  (`__browser__/layout.test.tsx` `CASES`) with the new states, and
+  (`Menu` split first, then Enter on a single row), the UI checks' new states in
+  `__browser__/shell-checks.test.tsx` (R20), the screenshots' in `scripts/shell-shots.ts`, and
   `specs/2026-10-16-redesign-interface/screenshots/`
 - Test: `__tests__/add-repository.test.tsx`, `__tests__/repository-menu.test.tsx`
 
 - [x] **Step 1: Split `RepositoryMenu`'s `Menu` before it changes**; Run: `vp check`,
       `vp run ts:test`; Expected: PASS before and after; commit
       `refactor(redesign-interface): the repository menu's list in its own component`.
-- [ ] **Step 2: Write the failing tests**: US9.2 to US9.4.
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 2: Write the failing tests**: US9.2 to US9.4.
+- [x] **Step 3: Run them to check they fail**
       (`vp test packages/web/src/__tests__/add-repository.test.tsx`), Expected: FAIL, the field
       holding "~/Dev/ura" after Enter
-- [ ] **Step 4: Implement**, and add the new states to the UI checks (SC-005); take the screenshots
+- [x] **Step 4: Implement**, and add the new states to the UI checks (SC-005); take the screenshots
       of every changed view at both sizes and in both themes, as the
       [UI checks](../decisions/ui-checks.md) decision asks.
-- [ ] **Step 5: Run all tests** (`vp run ready`), Expected: PASS
-- [ ] **Step 6: Commit**
+- [x] **Step 5: Run all tests** (`vp run ready`), Expected: PASS
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-redesign-interface specs/2026-10-16-redesign-interface/plan.md

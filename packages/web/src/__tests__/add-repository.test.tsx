@@ -188,3 +188,43 @@ test("an empty list shows the first run, with the field set to ~/", async () => 
   expect(await screen.findByRole("button", { name: "Uraeda todo-app" })).toBeTruthy();
   expect((await binding.readRepositories(dataDir)).map((row) => row.path)).toEqual([todo]);
 });
+
+/** US9.2 */
+test("Enter fills the field with the one suggestion, then adds it", async () => {
+  await openOnUraeda();
+  const form = await openForm();
+  const field = form.getByRole("textbox", { name: "Folder" }) as HTMLInputElement;
+  await type(field, "~/dev/tod");
+  await waitFor(async () => expect(await suggestions(form)).toEqual(["~/dev/todo-app/git"]));
+
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+  expect(field.value).toBe("~/dev/todo-app/");
+  expect(window.location.pathname).toBe("/r/uraeda/");
+
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+  await waitFor(() => expect(window.location.pathname).toBe("/r/todo-app/"));
+});
+
+/** US9.3 */
+test("Down then Enter fills the field with the first suggestion", async () => {
+  await openOnUraeda();
+  const form = await openForm();
+  const field = form.getByRole("textbox", { name: "Folder" }) as HTMLInputElement;
+  await type(field, "~/dev/to");
+  await waitFor(async () =>
+    expect(await suggestions(form)).toEqual(["~/dev/todo-app/git", "~/dev/tools/"]),
+  );
+
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "ArrowDown" });
+  });
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+
+  expect(field.value).toBe("~/dev/todo-app/");
+});

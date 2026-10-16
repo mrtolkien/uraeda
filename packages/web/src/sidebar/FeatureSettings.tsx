@@ -30,6 +30,9 @@ const styles = stylex.create({
     borderRadius: radiusVars["--radius-inner"],
     display: "inline-block",
     height: spacingVars["--spacing-3"],
+    // Beside the radio, in the row's media slot, centred on it, a gap from it.
+    alignSelf: "center",
+    marginInlineStart: spacingVars["--spacing-1"],
     width: spacingVars["--spacing-3"],
   },
 });
