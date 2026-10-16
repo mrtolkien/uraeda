@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Auth and login for basic security
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions on signing in, sessions, and previews, about 25 minutes.
+> Answered on 2026-10-16.
 >
 > - What you sign in with lasts beyond this feature: a generated key, a password, or passkeys. How a
 >   phone gets signed in follows from it.
@@ -27,9 +27,9 @@ also close the hole the UI iteration flow left in Storybook previews: any websit
 browser can read a running preview, since the guard lets `Origin: null` read preview paths.
 
 Today the server has no sign-in. It listens on 127.0.0.1 and refuses a foreign `Host` or `Origin`
-([guard.ts](/packages/server/src/guard.ts)); whoever passes can commit, start agents, add any
-folder as a repository, and run its preview command. You reach it through `tailscale serve`, so the
-tailnet is its only protection.
+([guard.ts](/packages/server/src/guard.ts)); whoever passes can commit, start agents, add any folder
+as a repository, and run its preview command. You reach it through `tailscale serve`, so the tailnet
+is its only protection.
 
 The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
 
@@ -52,8 +52,8 @@ server must slow down, and how you recover.
     one. Lost, it is replaced, not shown again.
   - Why recommended: it is the "stable key" the proposal asks for, and the only option where safety
     on a public server does not depend on a limit on failures.
-- **B. A password you choose, at least 15 characters, set and reset by a command on the host,
-  stored as an Argon2id hash (built into Node 24).**
+- **B. A password you choose, at least 15 characters, set and reset by a command on the host, stored
+  as an Argon2id hash (built into Node 24).**
   - [pro] easy to remember and type anywhere.
   - [con] guessable: the server needs a limit on failures, and any such limit lets an attacker on
     the internet keep you out for its duration.
@@ -61,14 +61,14 @@ server must slow down, and how you recover.
   with that link as the recovery.**
   - [pro] the strongest and phishing-proof, unlocked by your phone's or laptop's biometrics.
   - [con] the `@simplewebauthn` dependency, two ceremonies and a list of stored credentials; no
-    passkey on `http://127.0.0.1`; changing the host name (another tailnet, your own domain)
-    orphans every passkey.
+    passkey on `http://127.0.0.1`; changing the host name (another tailnet, your own domain) orphans
+    every passkey.
 - **D. No lasting secret: every device is signed in by a one-time link, from a signed-in device or
   printed on the host.**
   - [pro] nothing to leak or store.
   - [con] when every device is signed out, only the host's shell gets you back in.
 
-**Answer:**
+**Answer:** A: This is good as it seems simple, but add passkey support as a "Next" feature
 
 ### Q1.A: How does a phone get signed in?
 
@@ -91,14 +91,14 @@ These options combine: C can come on top of A or B.
   - [pro] signs a device in with no other device at hand, without changing the key.
   - [con] one more command to build and document.
 
-**Answer:**
+**Answer:** B: Let's keep this as simple as possible for the moment.
 
 ## Q2: How long does a device stay signed in, and how is it signed out?
 
-Syncthing, Home Assistant, and Grafana keep sessions on the server, so one device can be signed
-out; Jupyter and code-server only clear the cookie, and signing everything out means changing the
-secret. Sessions last one week (VS Code, Syncthing) to a month (Open WebUI); NIST's lowest level
-asks to sign in again at least every 30 days. More in [discovery](discovery-01.md#sessions).
+Syncthing, Home Assistant, and Grafana keep sessions on the server, so one device can be signed out;
+Jupyter and code-server only clear the cookie, and signing everything out means changing the secret.
+Sessions last one week (VS Code, Syncthing) to a month (Open WebUI); NIST's lowest level asks to
+sign in again at least every 30 days. More in [discovery](discovery-01.md#sessions).
 
 Why it matters: it decides how often you sign in again on each device, and what you can do if a
 device is lost.
@@ -120,7 +120,7 @@ device is lost.
 
 If 30 days does not suit you, give another duration in your answer.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Does a browser on this machine sign in too?
 
@@ -132,16 +132,16 @@ another user of the machine, and NGINX rewrites it to the upstream's address by 
 - **A (recommended). Yes, everywhere. Starting Uraeda opens the browser with a one-time sign-in
   link, and starting it again signs a new browser in the same way, so the host feels unchanged.**
   - [pro] one rule, with nothing a proxy's configuration can break.
-  - [con] a browser on the host that was not opened by Uraeda, after its session ends, needs the
-    key or a new start.
-  - Why recommended: the exemption is exactly the kind of hole a proxy's default turns into a
-    public bypass.
+  - [con] a browser on the host that was not opened by Uraeda, after its session ends, needs the key
+    or a new start.
+  - Why recommended: the exemption is exactly the kind of hole a proxy's default turns into a public
+    bypass.
 - **B. No: a request whose `Host` is `127.0.0.1` or `localhost` is signed in.**
   - [pro] nothing changes on the host.
   - [con] other users of the machine, any local process, and a proxy forwarding `Host: 127.0.0.1`
     get full access.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Does your tailnet sign you in?
 
@@ -159,7 +159,7 @@ like Caddy for a public address, would pass a forged header straight through. Mo
   - [pro] no sign-in at all from your tailnet.
   - [con] a full bypass the day another proxy forwards to Uraeda on the same machine.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How does a public server reach Uraeda?
 
@@ -172,20 +172,22 @@ Why it matters: a public address without TLS sends the key and cookies in clear 
 changes the stack decision.
 
 - **A (recommended). Through a proxy on the same machine (Caddy, NGINX, or Tailscale Funnel) that
-  ends TLS and forwards to 127.0.0.1, with its host name in `--allowed-hosts`. Uraeda only
-  documents it.**
+  ends TLS and forwards to 127.0.0.1, with its host name in `--allowed-hosts`. Uraeda only documents
+  it.**
   - [pro] no TLS code in Uraeda; certificates renew on their own with Caddy or Funnel; the stack
     rule stays.
   - [con] a second program to run on a public server.
   - Why recommended: it is what code-server, Home Assistant, and Syncthing recommend, and it keeps
     the server's surface as it is.
-- **B. A `--host` flag to listen on a public address, with Uraeda's own TLS from a certificate and
-  a key given as flags.**
+- **B. A `--host` flag to listen on a public address, with Uraeda's own TLS from a certificate and a
+  key given as flags.**
   - [pro] one process.
   - [con] you renew certificates yourself; TLS settings to maintain in Uraeda; the stack rule
     changes.
 
-**Answer:**
+**Answer:** A: This is more of a hypothetical, so reverse proxy is ok.
+
+I won't use it that way _yet_, it's more about what the security should cover.
 
 ## Q6: How do previews and mockups prove they come from you?
 
@@ -211,7 +213,7 @@ decision's `Origin: null` exception with a rule on the secret.
   - [pro] the browser itself isolates previews from Uraeda.
   - [con] a second host name to list in Tailscale and in a public proxy, and a second sign-in flow.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -222,8 +224,8 @@ decision's `Origin: null` exception with a rule on the secret.
 - **One owner, no accounts**: "the people they allow" means your devices, not other people, since
   you asked for a single user. See [discovery](discovery-01.md#the-people-they-allow).
 - **Where it is stored**: one file in the data folder, written `0600` and replaced atomically like
-  `repositories.json`, holding the credential's hash and, with A in Q2, the sessions' hashes. Not
-  in `runner.sqlite`, which is a cache, and no new folder. See
+  `repositories.json`, holding the credential's hash and, with A in Q2, the sessions' hashes. Not in
+  `runner.sqlite`, which is a cache, and no new folder. See
   [discovery](discovery-01.md#important-reads).
 - **The cookie**: `HttpOnly`, `SameSite=Lax`, and `__Host-` with `Secure` over HTTPS. `Lax` rather
   than `Strict`, so a link to Uraeda from a pull request or a notification opens signed in; the
@@ -234,9 +236,9 @@ decision's `Origin: null` exception with a rule on the secret.
   lockout, since the key cannot be guessed; with B, a limit of a few attempts a minute per address,
   read from the proxy's forwarded address only when the request comes from 127.0.0.1. See
   [discovery](discovery-01.md#owasp-and-nist).
-- **What signing out ends**: the session on the server, its live update streams, and, with A in
-  Q6, its preview secret and Storybook sockets. A request whose session ended gets a 401, and the
-  UI shows the sign-in screen, then returns to the page you were on. See
+- **What signing out ends**: the session on the server, its live update streams, and, with A in Q6,
+  its preview secret and Storybook sockets. A request whose session ended gets a 401, and the UI
+  shows the sign-in screen, then returns to the page you were on. See
   [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 - **The second start on the host**: it reads the data folder, so it proves it runs on the host to
   the running server when handing over its folder, and, with A in Q3, gets a one-time sign-in link
@@ -247,8 +249,10 @@ decision's `Origin: null` exception with a rule on the secret.
   [discovery](discovery-01.md#hono-41313-and-node-24).
 - **No switch to turn sign-in off**: the packaged server always requires it. Test servers, `vp dev`,
   and Uraeda's own Storybook fixture create the app without sign-in from code, never from a flag or
-  a setting. The rules go into a new decision on sign-in, and the stack decision's `Host`,
-  `Origin`, and preview rules are amended, both approved with the spec. See
+  a setting. The rules go into a new decision on sign-in, and the stack decision's `Host`, `Origin`,
+  and preview rules are amended, both approved with the spec. See
   [discovery](discovery-01.md#rules-and-their-owners).
 
 **Notes:**
+
+- **One owner, no accounts**: Add multi-users in the "later" category on main
