@@ -357,10 +357,9 @@ Changed, applied when this spec is approved:
 
 - [Distribution](../decisions/distribution.md): the packaged server's settings come from its flags,
   its environment, and the user's settings file, never from a file in a project
-  ([proposed change](../decisions/distribution.md#proposed-change-2026-10-16-settings-page)).
+  ([the decision](../decisions/distribution.md)).
 - [Stack](../decisions/stack.md): the allowed host names come from the settings, in their order, and
-  a change to the file applies to the next request
-  ([proposed change](../decisions/stack.md#proposed-change-2026-10-16-settings-page)).
+  a change to the file applies to the next request ([the decision](../decisions/stack.md)).
 
 Relied on:
 
