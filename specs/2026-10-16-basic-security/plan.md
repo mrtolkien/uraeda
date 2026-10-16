@@ -518,13 +518,21 @@ git commit -m "feat(basic-security): the frame secret in preview and mockup path
 - Modify: `packages/server/src/server.ts` (`signIn?: false`, the store opened, `Server.key`,
   `Server.signInLink`, the store's sweep), `packages/server/src/main.ts`,
   `packages/server/src/options.ts` (`--new-key`, `HELP`), `packages/server/src/open.ts` (`signIn` in
-  the answer), `packages/server/src/open-client.ts` (the host token, `unauthorized`),
-  `packages/server/src/sign-in/routes.ts` (`POST /session/key`), `packages/server/src/dev.ts`
-  (`signIn` option), `packages/web/vite.browser.config.ts`, `packages/web/.storybook/fixture.ts`,
-  `packages/web/scripts/screenshots.ts` (`signIn: false`)
+  the request and the answer), `packages/server/src/open-client.ts` (the host token,
+  `unauthorized`), `packages/server/src/browser.ts` (`browserOpens`),
+  `packages/server/src/sign-in/routes.ts` (`POST /session/key`),
+  `packages/server/src/sign-in/check.ts` (`fromHost`, shared with the route),
+  `packages/server/src/app.ts` (`openRoute`'s links), `packages/server/src/dev.ts` (`signIn` option,
+  the key printed), `packages/web/vite.browser.config.ts`, `packages/web/.storybook/fixture.ts`,
+  `packages/web/scripts/screenshots.ts`, `packages/web/scripts/validate-storybook.ts`
+  (`signIn: false`)
 - Test: `packages/server/src/__tests__/server.test.ts`,
   `packages/server/src/__tests__/main.test.ts`, `packages/server/src/__tests__/open.test.ts`,
-  `packages/server/src/__tests__/dev.test.ts`
+  `packages/server/src/__tests__/dev.test.ts`, `packages/server/src/__tests__/browser.test.ts`,
+  `packages/server/src/__tests__/env.test.ts`,
+  `packages/server/src/sign-in/__tests__/routes.test.ts`,
+  `packages/server/src/sign-in/__tests__/closed.test.ts` (a row for `/session/key`), and
+  `packages/server/src/preview/__tests__/helpers.ts` (`signIn: false`)
 
 **Interfaces:**
 
@@ -534,15 +542,23 @@ git commit -m "feat(basic-security): the frame secret in preview and mockup path
   `removeHostToken(dataDir: string, port: number): void`; the file is `server-<port>.token`, `0600`.
 - Produces, in `server.ts`: `startServer` options `hostToken?: string`, `signIn?: false`; `Server`
   gains `key?: string` (made by this start), `newKey(): string`, and
-  `signInLink(to: string): string` (`to` itself without sign-in).
-- Produces, in `open.ts`: `OpenAnswer = { signIn: string; uraeda: string; url: string }`.
-- Produces, in `open-client.ts`: `HandOff` gains `{ kind: "unauthorized" }`;
-  `handOff(port, request, token?)`;
+  `signInLink(to: string): string` (`to` itself without sign-in); `keyLines(key)` and
+  `newKeyLines(key)`, the two lines of each.
+- Produces, in `open.ts`: `OpenRequest` gains `signIn?: boolean` (a one-time link asked for, by a
+  second start that opens a browser); `OpenAnswer = { signIn: string; uraeda: string; url: string }`
+  (`signIn` is `url` when no link was asked for, or without sign-in); `openRoute(signInLink)`.
+- Produces, in `open-client.ts`: `HandOff` gains `{ kind: "unauthorized" }`, and its `opened` kind
+  `signIn: string`; `handOff(port, request, token?, timeoutMs?)`;
   `newKeyOn(port: number, token: string): Promise<string | undefined>`.
+- Produces, in `browser.ts`: `browserOpens({ env?, platform? }): boolean`, what `openBrowser`
+  decides, asked before a one-time link is made.
+- Produces, in `check.ts`: `fromHost(context, hostToken): boolean`, the constant-time host token
+  check, used by the session check and `POST /session/key`.
 - Produces, in `options.ts`: `Options.newKey: boolean`.
-- Produces, in `dev.ts`: `devHandler`'s `signIn?: boolean`, true by default.
+- Produces, in `dev.ts`: `devHandler`'s `signIn?: boolean`, true by default; a key its start made is
+  printed with `keyLines`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - "the first start prints the key once" (US1.1): `main` on a fresh data folder writes
   `Uraeda server on http://127.0.0.1:<port>`, `Access key, shown once: ura_…`, and
@@ -556,7 +572,8 @@ git commit -m "feat(basic-security): the frame secret in preview and mockup path
 - "/open without the host token is refused" (US4.4): 401, the list unchanged.
 - "a second start with another data folder" (edge case): prints
   `uraeda: port <port> is used by an Uraeda server with another data folder.` and exits 1.
-- "a start without a desktop makes no link" (edge case): `openBrowser` skipped, no link made.
+- "a start without a desktop makes no link" (edge case): `browserOpens` is false wherever
+  `openBrowser` skips, and `/open` makes a link only when the request asks for one.
 - "a new key on a running server" (US3.4): `main --new-key` prints
   `New access key, shown once: ura_…` and `Every device is signed out.`, then the handover line; an
   earlier session gets 401, the old key is refused.
@@ -575,27 +592,29 @@ address; an unauthenticated handoff; a confusing message for another data folder
 SSH; a new key that leaves sessions alive; a refused key reported as success; sessions lost at a
 restart; a token in the file or the log.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/__tests__/main.test.ts packages/server/src/__tests__/open.test.ts`
 - Expected: FAIL, the first on the missing `Access key, shown once:` line.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `main.ts` computes the data folder before handing over, reads the host token, and sends it; on a
 free port it writes the host token after taking the port, removes it on exit, and starts with it.
 `--new-key` replaces the key through `newKeyOn` when a server answers, else through `Server.newKey`
 after the start, unless this start just made the key. `POST /session/key` needs the host token,
-replaces the key, ends every session, and answers `{ key }`. The store's sweep runs with the
-previews' sweep.
+replaces the key, ends every session, and answers `{ key }`; without it, 401
+`{ "error": "Sign in to Uraeda." }`, the cookie kept. The store's sweep runs with the previews'
+sweep. A one-time link is made only when `browserOpens()`: the first start asks before making it,
+and a second start sends `signIn: true` to `/open` only then.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages specs/2026-10-16-basic-security/plan.md

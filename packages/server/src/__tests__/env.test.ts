@@ -67,10 +67,12 @@ test("--allowed-hosts replaces URAEDA_ALLOWED_HOSTS", () => {
   ]);
 });
 
-test("--no-open, --help, and --version", () => {
+test("--no-open, --new-key, --help, and --version", () => {
   const env = loadEnv(null, {});
 
   expect(parseOptions([], env).open).toBe(true);
+  expect(parseOptions([], env).newKey).toBe(false);
+  expect(parseOptions(["--new-key"], env).newKey).toBe(true);
   expect(parseOptions(["--no-open"], env).open).toBe(false);
   expect(parseOptions(["--help"], env).show).toBe("help");
   expect(parseOptions(["--version"], env).show).toBe("version");

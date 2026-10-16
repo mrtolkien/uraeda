@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import {
@@ -12,6 +12,7 @@ import {
 import { type GroupsFile, groupsFolder, startTime } from "../preview/groups.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { startServer, SWEEP_EVERY_MS } from "../server.ts";
+import { SIGN_IN_FILE, SignInStore } from "../sign-in/store.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -26,8 +27,11 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-/** A server started in `repo`, on the fake agent and the data folder, stopped after the test. */
-async function start(repo: string, dataDir: string, given = false) {
+/**
+ * A server started in `repo`, on the fake agent and the data folder, stopped after the test;
+ * without sign-in unless `signIn`.
+ */
+async function start(repo: string, dataDir: string, given = false, signIn = false) {
   const server = await startServer({
     adapter: new FakeAdapter(),
     allowedHosts: [],
@@ -37,6 +41,7 @@ async function start(repo: string, dataDir: string, given = false) {
     given,
     port: 4310,
     repo,
+    ...(!signIn && { signIn: false as const }),
   });
   started.push(server);
   return server;
@@ -346,4 +351,116 @@ test("a running Storybook is recorded until it stops", async () => {
   expect(existsSync(file)).toBe(true);
   await server.stop();
   expect(existsSync(file)).toBe(false);
+});
+
+/** A server with sign-in, in `repo` on the data folder. */
+const signedServer = (repo: string, dataDir: string) => start(repo, dataDir, false, true);
+
+/** Signs in to a server's app with the key: the `Cookie` header of the new session. */
+async function signInTo(app: Awaited<ReturnType<typeof start>>["app"], key: string) {
+  const response = await app.request("http://127.0.0.1:4310/session", {
+    body: JSON.stringify({ key }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  return response.headers.get("set-cookie")!.split(";")[0];
+}
+
+/** Whether a `Cookie` header is signed in on a server's app. */
+async function signedIn(app: Awaited<ReturnType<typeof start>>["app"], cookie: string) {
+  const response = await app.request("http://127.0.0.1:4310/session", { headers: { cookie } });
+  return response.status === 204;
+}
+
+/** US1.1 */
+test("the first start makes the key, and the next one does not", async () => {
+  const dataDir = temporaryFolder("uraeda-data");
+  const repo = fixtureRepo();
+
+  const first = await signedServer(repo, dataDir);
+  await first.stop();
+  const second = await signedServer(repo, dataDir);
+
+  expect(first.key).toMatch(/^ura_[\w-]{43}$/);
+  expect(second.key).toBeUndefined();
+  expect(readFileSync(join(dataDir, SIGN_IN_FILE), "utf8")).not.toContain(first.key);
+});
+
+/** SC-004 */
+test("a session survives three restarts", async () => {
+  const dataDir = temporaryFolder("uraeda-data");
+  const repo = fixtureRepo();
+  const first = await signedServer(repo, dataDir);
+  const cookie = await signInTo(first.app, first.key!);
+  await first.stop();
+
+  for (let restart = 0; restart < 3; restart++) {
+    const server = await signedServer(repo, dataDir);
+
+    expect(await signedIn(server.app, cookie)).toBe(true);
+    await server.stop();
+  }
+});
+
+/** US3.5 */
+test("a new key signs every device out", async () => {
+  const server = await signedServer(fixtureRepo(), temporaryFolder("uraeda-data"));
+  const cookie = await signInTo(server.app, server.key!);
+
+  const key = server.newKey();
+
+  expect(key).toMatch(/^ura_[\w-]{43}$/);
+  expect(key).not.toBe(server.key);
+  expect(await signedIn(server.app, cookie)).toBe(false);
+  expect(await signedIn(server.app, await signInTo(server.app, key))).toBe(true);
+});
+
+/** US4.1 */
+test("a one-time link signs the host's browser in once", async () => {
+  const server = await signedServer(fixtureRepo(), temporaryFolder("uraeda-data"));
+
+  const link = server.signInLink(server.url);
+
+  expect(link).toMatch(new RegExp(`^/session/[\\w-]{43}\\?to=${server.url}$`));
+  const used = await server.app.request(`http://127.0.0.1:4310${link}`);
+  expect(used.headers.get("location")).toBe(server.url);
+  expect(await signedIn(server.app, used.headers.get("set-cookie")!.split(";")[0])).toBe(true);
+  const again = await server.app.request(`http://127.0.0.1:4310${link}`);
+  expect(again.headers.get("set-cookie")).toBeNull();
+});
+
+test("a server without sign-in links to the page itself, and has no key", async () => {
+  const dataDir = temporaryFolder("uraeda-data");
+  const server = await start(fixtureRepo(), dataDir);
+
+  expect(server.signInLink("/r/repo/")).toBe("/r/repo/");
+  expect(server.key).toBeUndefined();
+  expect(existsSync(join(dataDir, SIGN_IN_FILE))).toBe(false);
+});
+
+/** Edge case: `sign-in.json` unreadable or invalid. */
+test("an invalid sign-in file stops the start, and is left as it is", async () => {
+  const dataDir = temporaryFolder("uraeda-data");
+  const path = join(dataDir, SIGN_IN_FILE);
+  writeFileSync(path, "{ not json");
+
+  await expect(signedServer(fixtureRepo(), dataDir)).rejects.toThrow(
+    new RegExp(
+      `^cannot read ${path}: .+\\. Fix it, or delete it to make a new access key and sign every device out\\.$`,
+    ),
+  );
+  expect(readFileSync(path, "utf8")).toBe("{ not json");
+});
+
+test("the server ends unused sessions every minute", async () => {
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+  const sweep = vi.spyOn(SignInStore.prototype, "sweep");
+  await signedServer(fixtureRepo(), temporaryFolder("uraeda-data"));
+
+  vi.advanceTimersByTime(SWEEP_EVERY_MS);
+
+  expect(sweep).toHaveBeenCalledOnce();
 });

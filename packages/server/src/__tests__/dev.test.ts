@@ -41,7 +41,7 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   writeFileSync(join(root, ".env"), `URAEDA_REPO=${repo}\nURAEDA_DATA_DIR=${data}\n`);
   vi.stubEnv("URAEDA_REPO", undefined);
   vi.stubEnv("URAEDA_DATA_DIR", undefined);
-  const handler = devHandler(root, { adapter: new FakeAdapter() });
+  const handler = devHandler(root, { adapter: new FakeAdapter(), signIn: false });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
@@ -82,7 +82,7 @@ test("the dev server answers a handoff on Vite's port", async () => {
   const root = temporaryFolder("uraeda-dev");
   process.env.URAEDA_REPO = fixtureRepo();
   process.env.URAEDA_DATA_DIR = temporaryFolder("uraeda-data");
-  const handler = devHandler(root, { adapter: new FakeAdapter() });
+  const handler = devHandler(root, { adapter: new FakeAdapter(), signIn: false });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
@@ -113,7 +113,7 @@ test("the dev server serves a repository's image routes, its uploads in the data
   const data = temporaryFolder("uraeda-data");
   vi.stubEnv("URAEDA_REPO", repo);
   vi.stubEnv("URAEDA_DATA_DIR", data);
-  const handler = devHandler(root, { adapter: new FakeAdapter() });
+  const handler = devHandler(root, { adapter: new FakeAdapter(), signIn: false });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
@@ -145,7 +145,10 @@ test("vp dev sends preview paths and their sockets to the server", async () => {
   addStoryFeature(repo);
   vi.stubEnv("URAEDA_REPO", repo);
   vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
-  const handler = devHandler(temporaryFolder("uraeda-dev"), { adapter: new FakeAdapter() });
+  const handler = devHandler(temporaryFolder("uraeda-dev"), {
+    adapter: new FakeAdapter(),
+    signIn: false,
+  });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   server.on("upgrade", devUpgrade());
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -185,4 +188,41 @@ test("vp dev refuses an upgrade to a target that is not a URL, and keeps answeri
 
   expect(answer).toMatch(/^HTTP\/1\.1 400 /);
   expect(await (await fetch(`http://127.0.0.1:${port}/`)).text()).toBe("vite");
+});
+
+/** The status of an empty read of the global fate endpoint, through a dev handler. */
+async function fateStatus(options: { signIn?: boolean }) {
+  vi.stubEnv("URAEDA_REPO", fixtureRepo());
+  vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
+  const handler = devHandler(temporaryFolder("uraeda-dev"), {
+    adapter: new FakeAdapter(),
+    ...options,
+  });
+  const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  onTestFinished(async () => {
+    server.close();
+    await stopDevRuns();
+  });
+  const { port } = server.address() as { port: number };
+  const response = await fetch(`http://127.0.0.1:${port}/fate`, {
+    body: JSON.stringify({ operations: [], version: 1 }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  return response.status;
+}
+
+test("the dev server checks sessions unless signIn is false, and shows a key it made", async () => {
+  const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  onTestFinished(() => write.mockRestore());
+
+  expect(await fateStatus({ signIn: false })).toBe(200);
+  expect(write).not.toHaveBeenCalled();
+  expect(await fateStatus({})).toBe(401);
+  expect(write).toHaveBeenCalledWith(
+    expect.stringMatching(
+      /^Access key, shown once: ura_[\w-]{43}\nKeep it in a password manager: every new device signs in with it\.\n$/,
+    ),
+  );
 });
