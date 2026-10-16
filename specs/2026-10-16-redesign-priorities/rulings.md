@@ -243,3 +243,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   started by Enter: a change to the store, where the form's own state does.
 - **If wrong**: `useOwnWrite` in [`writes/`](/packages/web/src/writes/), and its callers.
 - **Where**: the catch-up with the default branch.
+
+## R19: The sidebar's "All done features and changes" opens home with every done feature
+
+- **Decision**: home's Recently done card carries main's `#done` anchor, which the sidebar's Done
+  area's "…", "All done features and changes", opens and home scrolls to. At `#done`, the card lists
+  every done feature, as "Show all (N)" does, not the five latest the sidebar already shows.
+- **Rationale**: the interface's redesign has the "…" open "Home at its Done group", which listed
+  every merged feature on main's home; this branch's card shows five until asked, the same five as
+  the sidebar's Done area, so the "…" would have shown nothing more.
+- **Alternatives considered**: the anchor alone, five rows: the link's name, "All done features and
+  changes", then promises more than the card shows.
+- **If wrong**: `DonePanel` in [`HomeHub.tsx`](/packages/web/src/home/HomeHub.tsx).
+- **Where**: the catch-up with the default branch.

@@ -17,7 +17,7 @@ import { useInbox, usePriorities, useWorkspace } from "../data.ts";
 import { waiting } from "../labels.ts";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import { ListPaneContext } from "../lists/listPane.ts";
-import { useLocalPath, useRepoPath } from "../routes.tsx";
+import { useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { agentState, type Feature, homeFeatures } from "./features.ts";
 import { Panel, Row, Tile } from "./parts.tsx";
@@ -221,10 +221,15 @@ function InboxPanel() {
 /** How many done features the hub shows before "Show all". */
 const DONE_SHOWN = 5;
 
-/** The five features merged last, and all of them once asked. */
+/**
+ * The five features merged last, and all of them once asked, or at `#done`, where the sidebar's
+ * "All done features and changes" opens home.
+ */
 function DonePanel({ done }: { done: Array<Feature> }) {
   const here = useRepoPath();
-  const [all, setAll] = useState(false);
+  const [asked, setAll] = useState(false);
+  const hash = useHash();
+  const all = asked || hash === "#done";
   if (!done.length) {
     return null;
   }
