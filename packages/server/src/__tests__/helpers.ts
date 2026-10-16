@@ -18,9 +18,10 @@ import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import type { SignInOptions } from "../sign-in/check.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
+import type { ServerSettings } from "../settings.ts";
 import { OneTimeLinks } from "../sign-in/links.ts";
 import { SignInStore } from "../sign-in/store.ts";
-import { fakeSessions } from "../testing.ts";
+import { fakeSessions, testSettings } from "../testing.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -35,6 +36,8 @@ const managers: Array<Sessions> = [];
 const opened: Array<Hosts> = [];
 /** The Storybook runners of a test, stopped after it. */
 const runners: Array<Previews> = [];
+/** The settings of a test's apps, whose watches are closed after it. */
+const settled: Array<ServerSettings> = [];
 
 afterEach(async () => {
   for (const sessions of managers.splice(0)) {
@@ -42,6 +45,9 @@ afterEach(async () => {
   }
   for (const hosts of opened.splice(0)) {
     hosts.close();
+  }
+  for (const settings of settled.splice(0)) {
+    settings.close();
   }
   await Promise.all(runners.splice(0).map((runner) => runner.stopAll()));
 });
@@ -94,8 +100,19 @@ export async function testHosts(
 /** The options of `createApp` a test may add: sign-in and the built UI. */
 type Extra = { signIn?: SignInOptions; webRoot?: string };
 
+/**
+ * The settings of a test's app on a new config folder, its own, closed after the test: the host
+ * names of `--allowed-hosts` given when `allowedHosts` is.
+ */
+export async function appSettings(allowedHosts?: Array<string>) {
+  const configDir = temporaryFolder("uraeda-config");
+  const settings = await testSettings({ allowedHosts, dir: configDir });
+  settled.push(settings);
+  return { configDir, settings };
+}
+
 function app(
-  allowedHosts: Array<string>,
+  settings: ServerSettings,
   { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
   options: PreviewOptions = {},
@@ -105,7 +122,6 @@ function app(
   const previews = testPreviews(options);
   const frames = new FrameSecret();
   const created = createApp({
-    allowedHosts,
     allowOrigins: ["http://localhost:5173"],
     binding: using,
     dataDir,
@@ -115,6 +131,7 @@ function app(
     port,
     previews,
     sessions,
+    settings,
     ...extra,
   });
   names.set(created, name);
@@ -173,12 +190,13 @@ export async function signInCookie(app: App, key: string, host = `127.0.0.1:${po
  * The server's app, called in process, on a repository added to a temporary list, with sessions
  * that have no agent, on the core's binding or a fake of it. `name` is the repository's in the
  * list, `previews` the app's Storybook runner, built with `previewOptions`, and `frames` its frame
- * secret; `lockedList` locks its list, as Uraeda's own Storybook does.
+ * secret; `lockedList` locks its list, as Uraeda's own Storybook does. Its settings are on a new
+ * config folder, `configDir`, the host names of `--allowed-hosts` given when `allowedHosts` is.
  */
 export async function testApp<SignedIn extends boolean = false>(
   repo = fixtureRepo(),
   {
-    allowedHosts = [],
+    allowedHosts,
     binding: using = binding,
     hostToken,
     lockedList,
@@ -198,19 +216,23 @@ export async function testApp<SignedIn extends boolean = false>(
   } = {},
 ): Promise<
   Awaited<ReturnType<typeof testHosts>> &
-    ReturnType<typeof app> & { name: string; repo: string } & (SignedIn extends true
-      ? { signIn: TestSignIn }
-      : unknown)
+    ReturnType<typeof app> &
+    Awaited<ReturnType<typeof appSettings>> & {
+      name: string;
+      repo: string;
+    } & (SignedIn extends true ? { signIn: TestSignIn } : unknown)
 > {
   const opened = await testHosts([repo], { binding: using, installed: false });
   const signedIn = signIn ? testSignIn(opened.dataDir, hostToken) : undefined;
-  const created = app(allowedHosts, opened, using, previewOptions, lockedList, {
+  const configured = await appSettings(allowedHosts);
+  const created = app(configured.settings, opened, using, previewOptions, lockedList, {
     signIn: signedIn?.options,
     webRoot,
   });
   return {
     ...opened,
     ...created,
+    ...configured,
     name: opened.names[0],
     repo,
     ...(signedIn && {
@@ -223,7 +245,8 @@ export async function testApp<SignedIn extends boolean = false>(
 export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
   const opened = await testHosts([repo], { installed });
   await opened.sessions.check();
-  return { ...opened, ...app([], opened), name: opened.names[0], repo };
+  const { settings } = await appSettings();
+  return { ...opened, ...app(settings, opened), name: opened.names[0], repo };
 }
 
 /**

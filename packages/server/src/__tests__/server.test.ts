@@ -14,6 +14,7 @@ import { type GroupsFile, groupsFolder, startTime } from "../preview/groups.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { startServer, SWEEP_EVERY_MS } from "../server.ts";
 import { SIGN_IN_FILE, SignInStore } from "../sign-in/store.ts";
+import { testSettings } from "../testing.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -35,13 +36,13 @@ afterEach(async () => {
 async function start(repo: string, dataDir: string, given = false, signIn = false) {
   const server = await startServer({
     adapter: new FakeAdapter(),
-    allowedHosts: [],
     allowOrigins: [],
     binding,
     dataDir,
     given,
     port: 4310,
     repo,
+    settings: await testSettings(),
     ...(!signIn && { signIn: false as const }),
   });
   started.push(server);

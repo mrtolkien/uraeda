@@ -445,10 +445,16 @@ git commit -m "feat(settings-page): the server's settings, from flags, variables
 - Modify: `packages/server/src/guard.ts`, `packages/server/src/app.ts`,
   `packages/server/src/server.ts`, `packages/server/src/dev.ts`,
   `packages/server/src/sign-in/check.ts`, `packages/server/src/sign-in/routes.ts`,
+  `packages/server/src/testing.ts`, `packages/server/src/main.ts`,
   `packages/server/src/__tests__/guard.test.ts`, `packages/server/src/__tests__/server.test.ts`,
-  `packages/server/src/__tests__/helpers.ts`, `packages/server/src/preview/__tests__/helpers.ts`,
+  `packages/server/src/__tests__/helpers.ts`, `packages/server/src/__tests__/files.test.ts`,
+  `packages/server/src/__tests__/repositories.test.ts`,
+  `packages/server/src/preview/__tests__/helpers.ts`,
   `packages/server/src/sign-in/__tests__/routes.test.ts`, `packages/web/src/__tests__/helpers.tsx`,
-  `packages/web/.storybook/fixture.ts`, `packages/web/src/__browser__/setup.ts`
+  `packages/web/.storybook/fixture.ts`, `packages/web/src/__browser__/setup.ts`,
+  `packages/web/scripts/screenshots.ts`, `packages/web/scripts/validate-storybook.ts`
+- Create: `packages/server/src/__tests__/allowed-hosts.test.ts`
+  ([R10](rulings.md#r10-the-live-host-name-tests-have-their-own-file))
 
 **Interfaces:**
 
@@ -456,42 +462,48 @@ git commit -m "feat(settings-page): the server's settings, from flags, variables
 - Produces: `type AllowedHosts = () => ReadonlyArray<string>` in `guard.ts`; `guardCheck`,
   `sessionCheck`, `signInRoutes`, and `cookieName` take it in place of an array; `createApp` and
   `startServer` take `settings: ServerSettings` in place of `allowedHosts`, and `startServer`'s
-  `stop` closes it; `devHandler` opens one per started server from `loadConfigDir`.
+  `stop` closes it, as does a failed start; `devHandler` opens one per started server from
+  `loadConfigDir`. `ServerSettings.allowedHosts()` keeps its array while the values in force do not
+  change. In `uraeda-server/testing`:
+  `testSettings({ allowedHosts?, dir? }): Promise<ServerSettings>`, on a new config folder by
+  default, `allowedHosts` given as `--allowed-hosts`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `guard.test.ts`: a `guardCheck` whose list changes from `[]` to `["mac.tail1234.ts.net"]` accepts
   `Host: mac.tail1234.ts.net` on the next check, and its `Origin: https://mac.tail1234.ts.net`; back
   to `[]`, refuses it with "Forbidden host".
-- `server.test.ts` (US1.1, US1.3, SC-001, review focus 1): on a started server with an empty config
-  folder, a request with `Host: mac.tail1234.ts.net` is refused; after `addAllowedHost` and
-  `settings.reload()`, the next is accepted; after editing it to `laptop.tail1234.ts.net`, refused
-  again; with `--allowed-hosts build.tail1234.ts.net` given, the file's names never pass and
-  `build.tail1234.ts.net` does; the file deleted, refused.
+- `allowed-hosts.test.ts` (US1.1, US1.3, SC-001, review focus 1; R10): on a started server with an
+  empty config folder, a request with `Host: mac.tail1234.ts.net` is refused; after `addAllowedHost`
+  and `settings.reload()`, the next is accepted; after editing it to `laptop.tail1234.ts.net`,
+  refused again; with `--allowed-hosts build.tail1234.ts.net` given, the file's names never pass and
+  `build.tail1234.ts.net` does; the file deleted, refused. The upgrade guard follows the same names:
+  refused as a forbidden host, then past the guard once the name is added.
 - `routes.test.ts`: a host added to the settings gets `__Host-uraeda` on sign-in.
 
 The break each test catches: sets built once at start; the flag dropped when the file reloads; the
-cookie's host list read from `Options`.
+cookie's host list read from `Options`; the upgrade's guard given the names at start.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `vp test --project uraeda-server src/__tests__/guard.test.ts src/__tests__/server.test.ts`
-- Expected: FAIL, `TypeError: allowedHosts is not a function`
+- Run:
+  `vp test --project uraeda-server src/__tests__/guard.test.ts src/__tests__/allowed-hosts.test.ts`
+- Expected: FAIL, `TypeError: allowedHosts is not iterable`, and `testSettings is not a function`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `guardCheck` rebuilds its two sets when `allowedHosts()` returns a different array than last time.
 Every caller of `createApp` and `startServer`, the test helpers and the Storybook fixture included,
 passes a `ServerSettings` over a temporary config folder; the browser setup and the fixture set
-`URAEDA_CONFIG_DIR` to a temporary folder. `devServer` keeps giving Vite `URAEDA_ALLOWED_HOSTS` only
-(R1).
+`URAEDA_CONFIG_DIR` to a temporary folder, as do the screenshots and the Storybook check.
+`devServer` keeps giving Vite `URAEDA_ALLOWED_HOSTS` only (R1).
 
-- [ ] **Step 4: Run every TypeScript test**
+- [x] **Step 4: Run every TypeScript test**
 
 - Run: `vp test --project '!phone' --project '!desktop' && vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages specs/2026-10-16-settings-page

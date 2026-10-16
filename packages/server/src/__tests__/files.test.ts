@@ -4,7 +4,16 @@ import { attachImage } from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
 import { createApp } from "../app.ts";
 import { FrameSecret } from "../sign-in/frames.ts";
-import { fixture, fixtureRepo, git, port, testApp, testHosts, testPreviews } from "./helpers.ts";
+import {
+  appSettings,
+  fixture,
+  fixtureRepo,
+  git,
+  port,
+  testApp,
+  testHosts,
+  testPreviews,
+} from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -80,7 +89,6 @@ test("a file that cannot be read for another reason than its absence is a server
   };
   const frames = new FrameSecret();
   const app = createApp({
-    allowedHosts: [],
     allowOrigins: [],
     binding: failing,
     dataDir,
@@ -89,6 +97,7 @@ test("a file that cannot be read for another reason than its absence is a server
     port,
     previews: testPreviews(),
     sessions,
+    settings: (await appSettings()).settings,
   });
   const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 

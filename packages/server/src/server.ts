@@ -89,8 +89,8 @@ export type Server = {
    */
   signInPage: (to: string) => string;
   /**
-   * Closes the hosts' and the settings' watches, stops the sessions' turns, closes their processes, stops every
-   * Storybook, and removes the one-time links' pages.
+   * Closes the hosts' and the settings' watches, stops the sessions' turns, closes their
+   * processes, stops every Storybook, and removes the one-time links' pages.
    */
   stop: () => Promise<void>;
   /**
@@ -173,16 +173,20 @@ async function openStart(binding: Binding, dataDir: string, request: OpenRequest
  * `sign-in.json` in the data folder first, so a file that cannot be read, or a folder that cannot
  * be written, stops the start before anything else; `/open` and `/session/key` take `hostToken`.
  * A start that fails after making the key removes the file it wrote, so the next start shows a key.
+ * A start that fails closes `settings` too.
  */
 export async function startServer(options: StartOptions): Promise<Server> {
-  const { key, signIn } = openSignIn(options);
+  let key: string | undefined;
   try {
-    return await startOpened(options, signIn, key);
+    const opened = openSignIn(options);
+    key = opened.key;
+    return await startOpened(options, opened.signIn, key);
   } catch (error) {
     // A key this start made was never shown: the next start makes and shows another.
     if (key !== undefined) {
       rmSync(join(options.dataDir, SIGN_IN_FILE), { force: true });
     }
+    options.settings.close();
     throw error;
   }
 }
@@ -190,8 +194,6 @@ export async function startServer(options: StartOptions): Promise<Server> {
 /** What `startServer` takes: the values in force for this run, and what the server works with. */
 type StartOptions = {
   adapter: Adapter;
-  /** Host names accepted besides 127.0.0.1 and localhost, as in force at start. */
-  allowedHosts?: Array<string>;
   /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
   binding: Binding;
@@ -206,8 +208,11 @@ type StartOptions = {
   port: number;
   /** The repository to open first. */
   repo: string;
-  /** The settings in force, closed as the server stops. */
-  settings?: ServerSettings;
+  /**
+   * The settings in force, whose host names the guard and the cookie read at each request: the
+   * server owns them, and closes them as it stops, or as its start fails.
+   */
+  settings: ServerSettings;
   /** False for no sign-in: only code turns it off. */
   signIn?: false;
   /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
@@ -284,13 +289,18 @@ async function startOpened(
         clearInterval(sweeping);
         signIn?.links.close();
         opened.close();
-        options.settings?.close();
+        options.settings.close();
         await Promise.all([sessions.stop(), previews.stopAll()]);
       })();
       return stopping;
     },
     upgrade: previewUpgrade({
-      check: guardCheck({ ...options, isFrame: (path) => frames.allows(path) }),
+      check: guardCheck({
+        allowedHosts: () => options.settings.allowedHosts(),
+        allowOrigins: options.allowOrigins,
+        isFrame: (path) => frames.allows(path),
+        port: options.port,
+      }),
       frames,
       previews,
     }),

@@ -15,6 +15,7 @@ import {
 } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../../runner/fake.ts";
 import { startServer } from "../../server.ts";
+import { testSettings } from "../../testing.ts";
 import { type Checkout, Previews } from "../runner.ts";
 
 const binding = await import("uraeda-binding");
@@ -177,13 +178,13 @@ export async function runningPreview(mode: FakeMode = "ok", repo = fixtureRepo()
   const { port } = http.address() as { port: number };
   const server = await startServer({
     adapter: new FakeAdapter(),
-    allowedHosts: [],
     allowOrigins: [],
     binding,
     dataDir: temporaryFolder("uraeda-data"),
     given: false,
     port,
     repo,
+    settings: await testSettings(),
     signIn: false,
   });
   http.on("request", getRequestListener(server.app.fetch));

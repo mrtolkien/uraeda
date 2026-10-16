@@ -4,6 +4,7 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
+import type { AllowedHosts } from "../guard.ts";
 import { SERVER_PATHS } from "../server-paths.ts";
 import type { OneTimeLinks } from "./links.ts";
 import { SESSION_DAYS, type SignInStore } from "./store.ts";
@@ -37,10 +38,11 @@ const COOKIE_MAX_AGE = SESSION_DAYS * 24 * 60 * 60;
 /**
  * The session cookie's name: `__Host-uraeda` over HTTPS, where it is `Secure`, else `uraeda`. A
  * request counts as HTTPS when its `Host` is a listed host name, exactly: only a proxy on this
- * machine sends one, ending HTTPS, so its `X-Forwarded-For` is the proxy's too.
+ * machine sends one, ending HTTPS, so its `X-Forwarded-For` is the proxy's too. The names are those
+ * in force at the request.
  */
-export function cookieName(host: string, allowedHosts: Array<string>): "__Host-uraeda" | "uraeda" {
-  return allowedHosts.includes(host) ? "__Host-uraeda" : "uraeda";
+export function cookieName(host: string, allowedHosts: AllowedHosts): "__Host-uraeda" | "uraeda" {
+  return allowedHosts().includes(host) ? "__Host-uraeda" : "uraeda";
 }
 
 /** The cookie's attributes, for a cookie named `name`. */
@@ -53,17 +55,17 @@ const attributes = (name: string) =>
   }) as const;
 
 /** The name of the request's session cookie, by its `Host`. */
-const nameOf = (context: Context, allowedHosts: Array<string>) =>
+const nameOf = (context: Context, allowedHosts: AllowedHosts) =>
   cookieName(new URL(context.req.url).host, allowedHosts);
 
 /** Sets the session cookie on the answer, `value` being `<id>.<secret>`, for 30 days. */
-export function setSessionCookie(context: Context, allowedHosts: Array<string>, value: string) {
+export function setSessionCookie(context: Context, allowedHosts: AllowedHosts, value: string) {
   const name = nameOf(context, allowedHosts);
   setCookie(context, name, value, { ...attributes(name), maxAge: COOKIE_MAX_AGE });
 }
 
 /** Clears the session cookie in the browser. */
-export function clearSessionCookie(context: Context, allowedHosts: Array<string>) {
+export function clearSessionCookie(context: Context, allowedHosts: AllowedHosts) {
   const name = nameOf(context, allowedHosts);
   deleteCookie(context, name, attributes(name));
 }
@@ -72,7 +74,7 @@ export function clearSessionCookie(context: Context, allowedHosts: Array<string>
  * The answer to a request without a session: 401, never cached, its stale cookie cleared, so it is
  * never sent or refreshed again.
  */
-export function refused(context: Context, allowedHosts: Array<string>) {
+export function refused(context: Context, allowedHosts: AllowedHosts) {
   if (getCookie(context, nameOf(context, allowedHosts)) !== undefined) {
     clearSessionCookie(context, allowedHosts);
   }
@@ -85,7 +87,7 @@ export function refused(context: Context, allowedHosts: Array<string>) {
  * a listed host name, else the connection's, else `unknown`. A request called in process, as the
  * tests do, has no connection.
  */
-export function address(context: Context, allowedHosts: Array<string>): string {
+export function address(context: Context, allowedHosts: AllowedHosts): string {
   const forwarded = context.req.header("x-forwarded-for")?.split(",")[0].trim();
   if (forwarded && nameOf(context, allowedHosts) === "__Host-uraeda") {
     return forwarded;
@@ -124,7 +126,7 @@ const HOST_PATHS = new Set(["/open", "/session/key"]);
  */
 export function sessionCheck(
   options: SignInOptions & {
-    allowedHosts: Array<string>;
+    allowedHosts: AllowedHosts;
     frames?: { allows(path: string): boolean };
   },
 ) {

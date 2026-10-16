@@ -12,6 +12,7 @@ import { openRoute } from "./open.ts";
 import { previewRoutes } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import type { Hosts } from "./repositories.ts";
+import type { ServerSettings } from "./settings.ts";
 import { sessionCheck, type SignInOptions, withDevice } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { signInRoutes } from "./sign-in/routes.ts";
@@ -33,8 +34,6 @@ const rewritten = async (request: Request) =>
 
 /** What `createApp` takes, and its route groups. */
 type AppOptions = {
-  /** Host names accepted besides 127.0.0.1 and localhost, like `mac.tail1234.ts.net`. */
-  allowedHosts?: Array<string>;
   /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
   binding: Binding;
@@ -49,6 +48,8 @@ type AppOptions = {
   /** The server's Storybooks, which `/r/<name>/preview/<secret>/<folder>/` forwards to. */
   previews: Previews;
   sessions: Sessions;
+  /** The settings in force: the guard and the cookie read their host names at each request. */
+  settings: ServerSettings;
   /** Sign-in: without it, as in tests and Uraeda's own Storybook, no session is checked. */
   signIn?: SignInOptions;
   /** The built UI, served as static files when set. */
@@ -133,8 +134,9 @@ const framed = (path: string) =>
  * Answers but mockups' and Storybooks' refuse other sites' frames.
  */
 export function createApp(options: AppOptions) {
-  const { binding, dataDir, hosts, lockedList, previews, sessions, signIn } = options;
-  const allowedHosts = options.allowedHosts ?? [];
+  const { allowOrigins, binding, dataDir, hosts, lockedList, port, previews, sessions } = options;
+  const { settings, signIn } = options;
+  const allowedHosts = () => settings.allowedHosts();
   const frames = options.frames ?? new FrameSecret();
   const app: App = new Hono<{ Variables: FateVariables }>();
   app.use(async (context, next) => {
@@ -143,7 +145,7 @@ export function createApp(options: AppOptions) {
       context.header("X-Frame-Options", "SAMEORIGIN");
     }
   });
-  app.use(guard({ ...options, isFrame: (path) => frames.allows(path) }));
+  app.use(guard({ allowedHosts, allowOrigins, isFrame: (path) => frames.allows(path), port }));
   if (signIn) {
     signIn.store.onEnded(() => frames.replace());
     app.use(sessionCheck({ ...signIn, allowedHosts, frames }));

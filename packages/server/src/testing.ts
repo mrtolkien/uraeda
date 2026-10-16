@@ -1,8 +1,10 @@
 // What the server's and the UI's tests use: the session manager on the fake adapter, with a cache in
-// memory, and sign-in on a test's data folder.
+// memory, sign-in on a test's data folder, and settings on a test's config folder.
+import { temporaryFolder } from "uraeda-binding/test-utils";
 import { createSessions, type HostsOf } from "./live.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { FakeAdapter } from "./runner/fake.ts";
+import { ServerSettings } from "./settings.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { OneTimeLinks } from "./sign-in/links.ts";
 import { SignInStore } from "./sign-in/store.ts";
@@ -44,4 +46,23 @@ export function testSignIn(dataDir: string): { key: string; options: SignInOptio
     key,
     options: { links: new OneTimeLinks(), log: () => {}, store, wait: async () => {} },
   };
+}
+
+/**
+ * The settings of a test's server, on `dir`, a new empty config folder by default: the host names
+ * of `--allowed-hosts` given for the run when `allowedHosts` is, else the file's. The caller
+ * closes them, as `startServer`'s `stop` does.
+ */
+export function testSettings({
+  allowedHosts,
+  dir = temporaryFolder("uraeda-config"),
+}: { allowedHosts?: Array<string>; dir?: string } = {}): Promise<ServerSettings> {
+  return ServerSettings.open({
+    binding,
+    dir,
+    options: {
+      ...(allowedHosts && { allowedHosts: { name: "--allowed-hosts", value: allowedHosts } }),
+      noOpen: false,
+    },
+  });
 }

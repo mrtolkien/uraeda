@@ -181,6 +181,9 @@ async function check(address: string, name: string, folder: string) {
 async function main(): Promise<number> {
   const dataDir = mkdtempSync(join(tmpdir(), "uraeda-validate-storybook-"));
   process.env.URAEDA_DATA_DIR = dataDir;
+  // Settings of its own, none: the developer's host names never reach the check.
+  const configDir = mkdtempSync(join(tmpdir(), "uraeda-validate-storybook-config-"));
+  process.env.URAEDA_CONFIG_DIR = configDir;
   process.env.URAEDA_REPO = root;
   const folder = checkoutFolder();
   const { repository } = await addRepository(dataDir, root);
@@ -203,7 +206,9 @@ async function main(): Promise<number> {
   } finally {
     await stopDevRuns();
     http.close();
-    rmSync(dataDir, { force: true, recursive: true });
+    for (const folder of [dataDir, configDir]) {
+      rmSync(folder, { force: true, recursive: true });
+    }
   }
 }
 

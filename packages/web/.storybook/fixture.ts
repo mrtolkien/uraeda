@@ -48,9 +48,9 @@ function addFeature(
 
 /**
  * Builds the fixture at `<temporary folder>/fixture`, which the server lists as `fixture`, and its
- * data folder, both removed when Storybook exits.
+ * data and config folders, the config folder empty, all removed when Storybook exits.
  */
-export function storybookFixture(): { dataDir: string; repo: string } {
+export function storybookFixture(): { configDir: string; dataDir: string; repo: string } {
   const dates = { GIT_AUTHOR_DATE: DATE, GIT_COMMITTER_DATE: DATE };
   Object.assign(process.env, dates);
   try {
@@ -62,7 +62,11 @@ export function storybookFixture(): { dataDir: string; repo: string } {
     addFeature(repo, CHECKOUTS.starting, { mode: "hang", worktree: true });
     addFeature(repo, CHECKOUTS.failed, { mode: "fail", worktree: true });
     addFeature(repo, CHECKOUTS.noWorktree, { mode: "ok", worktree: false });
-    return { dataDir: temporaryFolder("uraeda-storybook-data"), repo };
+    return {
+      configDir: temporaryFolder("uraeda-storybook-config"),
+      dataDir: temporaryFolder("uraeda-storybook-data"),
+      repo,
+    };
   } finally {
     for (const name of Object.keys(dates)) {
       delete process.env[name];
@@ -72,14 +76,15 @@ export function storybookFixture(): { dataDir: string; repo: string } {
 
 /**
  * Uraeda's server in Storybook's own, over a fresh fixture: on the fake agent, dated 2026-10-16,
- * with no `.env`, its list locked to the fixture (R47), behind the middleware that turns the
- * fixture's fate GETs back into POSTs (R4).
+ * with no `.env` and an empty config folder, its list locked to the fixture (R47), behind the
+ * middleware that turns the fixture's fate GETs back into POSTs (R4).
  */
 export function fixtureServer(): Array<Plugin> {
-  const { dataDir, repo } = storybookFixture();
+  const { configDir, dataDir, repo } = storybookFixture();
   process.env.URA_TODAY = "2026-10-16";
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = dataDir;
+  process.env.URAEDA_CONFIG_DIR = configDir;
   return [
     fateOverGet(),
     uraedaServer({ adapter: new FakeAdapter(), file: false, lockedList: true, signIn: false }),

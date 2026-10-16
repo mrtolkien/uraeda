@@ -4,7 +4,7 @@ import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-li
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
-import { fakeSessions, testSignIn } from "uraeda-server/testing";
+import { fakeSessions, testSettings, testSignIn } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
@@ -204,6 +204,8 @@ export async function renderPage(
 const opened: Array<Promise<Hosts>> = [];
 /** The Storybook runners of the tests' apps, stopped after each test. */
 const runners: Array<Previews> = [];
+/** The settings of the tests' apps, whose watches are closed after each test. */
+const settled: Array<ReturnType<typeof testSettings>> = [];
 
 /**
  * After each test, in order: the page goes, which may send its last saves; the server answers every
@@ -216,6 +218,9 @@ afterEach(async () => {
   await settleRequests();
   for (const hosts of opened.splice(0)) {
     (await hosts).close();
+  }
+  for (const settings of settled.splice(0)) {
+    (await settings).close();
   }
   // Turns left going keep their watchdog's timer.
   for (const sessions of managers.splice(0)) {
@@ -297,9 +302,11 @@ function serverApp(
   opened.push(hosts);
   const previews = livePreviews();
   runners.push(previews);
-  const created = hosts.then((hosts) =>
+  // On a config folder of its own, empty: no host name besides the server's own.
+  const settings = testSettings();
+  settled.push(settings);
+  const created = Promise.all([hosts, settings]).then(([hosts, settings]) =>
     createApp({
-      allowedHosts: [],
       allowOrigins: [],
       binding: server,
       dataDir,
@@ -307,6 +314,7 @@ function serverApp(
       port,
       previews,
       sessions,
+      settings,
       signIn,
     }),
   );
