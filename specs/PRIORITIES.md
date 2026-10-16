@@ -8,7 +8,6 @@
 
 - [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
 
-- [Use Storybook for UI tests](drafts/use-storybook-for-ui-tests.md)
 - [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
 
 - [Redesign sidebars and global interface](drafts/redesign-interface.md)
@@ -30,6 +29,7 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
+- [Use Storybook for UI tests](/specs/2026-10-16-use-storybook/proposal.md)
 
 ## Next
 
