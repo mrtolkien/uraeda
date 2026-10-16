@@ -137,8 +137,8 @@ test("Enter saves the line", async () => {
 
   await waitFor(() => expect(read(repo)).toContain("- [Git listener](drafts/git-listener.md)\n"));
   await waitFor(() => expect(detail().queryByRole("textbox", { name: "Line" })).toBeNull());
-  expect(await (await rows("Next")).findByRole("link", { name: /^Git listener/ })).toBeTruthy();
-  expect(detail().getByText("Git listener")).toBeTruthy();
+  expect(await (await rows("Next")).findByRole("link", { name: "Git listener" })).toBeTruthy();
+  expect(await detail().findByText("Git listener")).toBeTruthy();
   expect(await screen.findByText("1 change to commit")).toBeTruthy();
   // The draft's text, unchanged, closed with the line.
   expect(detail().queryByRole("textbox", { name: "Text" })).toBeNull();
