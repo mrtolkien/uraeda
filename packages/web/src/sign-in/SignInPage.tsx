@@ -33,7 +33,7 @@ const styles = stylex.create({
 
 /** The answer to a wrong key, as the server words it. */
 const WRONG = "This is not Uraeda's access key.";
-/** The answer to a sign-in that never reached the server. */
+/** The answer to a sign-in that never reached the server, or that it failed. */
 const UNREACHABLE = "Could not reach the Uraeda server.";
 
 /** What went wrong with the last try: the key, shown under the field, or the server, under Sign in. */
@@ -80,8 +80,8 @@ export function SignInPage({
       return;
     }
     setBusy(false);
-    const answer = (await response.json().catch(() => null)) as { error?: unknown } | null;
-    setFailure({ key: typeof answer?.error === "string" ? answer.error : WRONG });
+    // Only a 401 is a wrong key: any other answer is the server's failure, not the key's.
+    setFailure(response.status === 401 ? { key: WRONG } : { server: UNREACHABLE });
   };
 
   return (
