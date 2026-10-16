@@ -7,7 +7,7 @@ import { withWholeFields } from "./fate/select.ts";
 import { files } from "./files.ts";
 import { warmPreview } from "./fate/preview.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
-import { onTurnDone } from "./live.ts";
+import { announceSettings, onTurnDone } from "./live.ts";
 import { openRoute } from "./open.ts";
 import { previewRoutes } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
@@ -64,7 +64,7 @@ type App = Hono<{ Variables: FateVariables }>;
  */
 function hostedRoutes(
   app: App,
-  { binding, dataDir, hosts, lockedList, previews, sessions }: AppOptions,
+  { binding, dataDir, hosts, lockedList, previews, sessions, settings }: AppOptions,
   frames: FrameSecret,
 ) {
   const hosted = async (context: Context, next: Next) => {
@@ -85,6 +85,7 @@ function hostedRoutes(
       previews,
       repo: host.path,
       sessions,
+      settings,
     });
     await next();
   };
@@ -138,6 +139,9 @@ export function createApp(options: AppOptions) {
   const { settings, signIn } = options;
   const allowedHosts = () => settings.allowedHosts();
   const frames = options.frames ?? new FrameSecret();
+  // The settings' changes reach every endpoint's views until the settings close, as the server
+  // stops.
+  announceSettings(settings, hosts);
   const app: App = new Hono<{ Variables: FateVariables }>();
   app.use(async (context, next) => {
     await next();
@@ -161,6 +165,7 @@ export function createApp(options: AppOptions) {
       previews,
       repo: null,
       sessions,
+      settings,
     });
     await next();
   });

@@ -9,6 +9,7 @@ import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
 import { featureRecord, readSession, readWorkflowMessage, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
+import { settingsMutations } from "./settings-mutations.ts";
 import { sources } from "./sources.ts";
 import { draft, priorities } from "./masked.ts";
 import { featureDataView, sessionDataView } from "./views.ts";
@@ -372,4 +373,8 @@ function repositoryOnly(definitions: RepositoryMutations) {
   };
 }
 
-export const mutations = { ...repositoryOnly(repositoryMutations), ...listMutations };
+export const mutations = {
+  ...repositoryOnly(repositoryMutations),
+  ...listMutations,
+  ...settingsMutations,
+};

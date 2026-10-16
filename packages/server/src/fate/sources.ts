@@ -22,6 +22,7 @@ import {
   sessionSearch,
   working,
 } from "./sessions.ts";
+import { readSettingsRecord, settingsDataView } from "./settings.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import {
   AGENT_ID,
@@ -328,6 +329,7 @@ export const sources = createSources<Context>([
       return [repositoriesRecord(ctx)];
     },
   }),
+  fileSource(settingsDataView, { byIds: readSettingsRecord }),
   fileSource(folderSuggestionsDataView, {
     byIds: async (ctx, ids) => {
       unlockedList(ctx);
