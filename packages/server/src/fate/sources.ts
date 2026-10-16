@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { homePath, suggest } from "../folders.ts";
+import { NEEDS_YOU_ID, needsYouList, needsYouListDataView } from "./needs-you.ts";
 import { itemLooks } from "./items.ts";
 import { type Context, inRepository, type RepoContext, unlockedList } from "./context.ts";
 import {
@@ -327,6 +328,10 @@ export const sources = createSources<Context>([
     storyHrefDataView,
     repository({ byIds: async (ctx, ids) => ids.map((href) => readStoryHref(ctx, href)) }),
   ),
+  // Every repository's: read on the global endpoint, unwrapped.
+  fileSource(needsYouListDataView, {
+    byIds: async (ctx, ids) => (ids.includes(NEEDS_YOU_ID) ? [await needsYouList(ctx)] : []),
+  }),
   fileSource(repositoriesDataView, {
     // Read again on each read, so a folder moved away or back since shows as it is now.
     byIds: async (ctx, ids) => {
