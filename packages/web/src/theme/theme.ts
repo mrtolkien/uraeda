@@ -161,6 +161,8 @@ export const uraedaTheme = defineTheme({
     // The repository menu's popover on wide screens, and the add form's field in the first run.
     "--size-form": "560px",
     "--size-menu": "360px",
+    // The ＋ forms' dialog: its buttons, "Attach an image" to "Add and commit ↵", on one line.
+    "--size-quick-add": "640px",
     // A story's frames: the phone's width, the desktop's, scaled to the space left, the height of a
     // story that never reports its own, and the most any frame grows to, a desktop window's 900 px:
     // a story as tall as its window grows the frame with each size it reports, up to it (R55).

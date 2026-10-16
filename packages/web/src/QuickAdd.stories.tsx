@@ -29,7 +29,7 @@ const inRepositoryFolder: Decorator = (Story) => (
 /** The priorities' ＋ form, open, as the navigation's ＋ opens it. */
 function PriorityForm({ notice }: { notice?: CommitNotice }) {
   return (
-    <Overlay isOpen label="New priority" onClose={() => {}}>
+    <Overlay isOpen label="New priority" onClose={() => {}} width="var(--size-quick-add)">
       <AddForm notice={notice} onAdded={() => {}} onCancel={() => {}} />
     </Overlay>
   );
@@ -38,7 +38,13 @@ function PriorityForm({ notice }: { notice?: CommitNotice }) {
 /** The inbox's ＋ form, open, with the same buttons: its text, its Category, then the buttons. */
 function NoteForm() {
   return (
-    <Overlay isOpen label="Add a note" onClose={() => {}} sheetHeight="hug">
+    <Overlay
+      isOpen
+      label="Add a note"
+      onClose={() => {}}
+      sheetHeight="hug"
+      width="var(--size-quick-add)"
+    >
       <AddNote onAdded={() => {}} onCancel={() => {}} onImage={() => {}} />
     </Overlay>
   );
