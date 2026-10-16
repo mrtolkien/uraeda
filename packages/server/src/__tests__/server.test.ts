@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import {
@@ -300,7 +300,7 @@ function leftRecord(dataDir: string, groups: GroupsFile["groups"], server?: numb
 test("a start kills the Storybooks a killed server left, and clears their record", async () => {
   const dataDir = temporaryFolder("uraeda-data");
   const pid = groupLeader();
-  leftRecord(dataDir, [{ base: "/r/repo/preview/main/", pid, started: startTime(pid)! }]);
+  leftRecord(dataDir, [{ pid, started: startTime(pid)! }]);
 
   await start(fixtureRepo(), dataDir);
 
@@ -311,9 +311,7 @@ test("a start kills the Storybooks a killed server left, and clears their record
 test("a start leaves a recorded pid that now names another process", async () => {
   const dataDir = temporaryFolder("uraeda-data");
   const pid = groupLeader();
-  leftRecord(dataDir, [
-    { base: "/r/repo/preview/main/", pid, started: "Thu Oct 15 09:00:00 2026" },
-  ]);
+  leftRecord(dataDir, [{ pid, started: "Thu Oct 15 09:00:00 2026" }]);
 
   await start(fixtureRepo(), dataDir);
 
@@ -325,7 +323,7 @@ test("a start leaves the Storybooks of another server still running", async () =
   const dataDir = temporaryFolder("uraeda-data");
   const pid = groupLeader();
   const other = groupLeader();
-  leftRecord(dataDir, [{ base: "/r/repo/preview/main/", pid, started: startTime(pid)! }], other);
+  leftRecord(dataDir, [{ pid, started: startTime(pid)! }], other);
 
   await start(fixtureRepo(), dataDir);
 
@@ -463,4 +461,35 @@ test("the server ends unused sessions every minute", async () => {
   vi.advanceTimersByTime(SWEEP_EVERY_MS);
 
   expect(sweep).toHaveBeenCalledOnce();
+});
+
+/** Every file under `folder`, at any depth. */
+const filesUnder = (folder: string): Array<string> =>
+  readdirSync(folder, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => join(entry.parentPath, entry.name));
+
+/** As SC-003 for tokens: the frame secret stays in memory. */
+test("no file in the data folder holds the frame secret, and the record is the owner's alone", async () => {
+  const repo = fixtureRepo();
+  addPreview(repo, { folder: "." });
+  const dataDir = temporaryFolder("uraeda-data");
+  const server = await signedServer(repo, dataDir);
+  const base = `/r/repo/preview/${server.frames.current()}/main/`;
+  server.previews.view({
+    base,
+    command: (await binding.preview(repo))!.command,
+    dir: repo,
+    folder: ".",
+  });
+  await expect.poll(() => server.previews.state(base)?.state, { timeout: 10_000 }).toBe("ready");
+  const files = filesUnder(dataDir);
+  const record = join(groupsFolder(dataDir), `${process.pid}.json`);
+
+  expect(files).toEqual(expect.arrayContaining([join(dataDir, SIGN_IN_FILE), record]));
+  for (const file of files) {
+    expect(readFileSync(file, "utf8"), file).not.toContain(server.frames.current());
+  }
+  expect(statSync(record).mode & 0o777).toBe(0o600);
+  expect(statSync(groupsFolder(dataDir)).mode & 0o777).toBe(0o700);
 });

@@ -62,7 +62,7 @@ function portTaken(port: number): Promise<boolean> {
 }
 
 /** Where a runner records its process groups: `GroupRecord`, in the data folder. */
-export type GroupRecorder = { add(pid: number, base: string): void; remove(pid: number): void };
+export type GroupRecorder = { add(pid: number): void; remove(pid: number): void };
 
 /**
  * The process groups every runner started, killed as the server exits, even on a crash; a server
@@ -320,7 +320,7 @@ export class Previews {
     if (child.pid !== undefined) {
       groups.add(child.pid);
       endWithServer();
-      this.#record?.add(child.pid, entry.checkout.base);
+      this.#record?.add(child.pid);
     }
     keepLines(child.stdout, run.lines);
     keepLines(child.stderr, run.lines);

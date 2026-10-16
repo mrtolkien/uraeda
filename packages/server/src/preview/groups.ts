@@ -1,16 +1,17 @@
 // The record of the Storybook process groups a server runs, in Uraeda's data folder: one file per
 // server, `storybooks/<server's pid>.json`. A server killed by SIGKILL, or crashed past its exit
-// hook, leaves its file behind, and the next start kills the groups it names that still run.
+// hook, leaves its file behind, and the next start kills the groups it names that still run. A
+// record names processes only: a Storybook's base holds the frame secret, which stays in memory.
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** A process, by its pid and its start time, which tells it from a later process of that pid. */
 export type RecordedProcess = { pid: number; started: string };
 
-/** One server's file: the server, and the groups it runs, by their leader, with their base. */
+/** One server's file: the server, and the groups it runs, by their leader. */
 export type GroupsFile = {
-  groups: Array<RecordedProcess & { base: string }>;
+  groups: Array<RecordedProcess>;
   server: { pid: number; started: string | null };
 };
 
@@ -34,7 +35,10 @@ export function startTime(pid: number): string | undefined {
 const stillRuns = ({ pid, started }: { pid: number; started: string | null }) =>
   started !== null && startTime(pid) === started;
 
-/** The groups this server runs, written to its own file at each change, removed when it has none. */
+/**
+ * The groups this server runs, written to its own file at each change, removed when it has none:
+ * the owner's alone, mode 0600 in a 0700 folder.
+ */
 export class GroupRecord {
   readonly #file: string;
   readonly #folder: string;
@@ -49,11 +53,11 @@ export class GroupRecord {
     };
   }
 
-  /** Records the group led by `pid`, started for `base`. */
-  add(pid: number, base: string): void {
+  /** Records the group led by `pid`. */
+  add(pid: number): void {
     const started = startTime(pid);
     if (started !== undefined) {
-      this.#recorded.groups.push({ base, pid, started });
+      this.#recorded.groups.push({ pid, started });
       this.#write();
     }
   }
@@ -72,8 +76,10 @@ export class GroupRecord {
       rmSync(this.#file, { force: true });
       return;
     }
-    mkdirSync(this.#folder, { recursive: true });
-    writeFileSync(this.#file, JSON.stringify(this.#recorded));
+    mkdirSync(this.#folder, { mode: 0o700, recursive: true });
+    // A folder an earlier version made keeps its mode: it is narrowed too.
+    chmodSync(this.#folder, 0o700);
+    writeFileSync(this.#file, JSON.stringify(this.#recorded), { mode: 0o600 });
   }
 }
 
