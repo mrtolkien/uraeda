@@ -5,17 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import {
-  atRepo,
-  click,
-  fakeAgent,
-  fixtureRepo,
-  git,
-  renderPage,
-  serverFetch,
-  today,
-  type,
-} from "./helpers.tsx";
+import { atRepo, click, fixtureRepo, git, holding, renderPage, today, type } from "./helpers.tsx";
 import { runWrite } from "../writes/store.ts";
 
 const WEB_UI = "2026-10-11-web-ui";
@@ -34,25 +24,6 @@ function answeredRepo() {
     readFileSync(path, "utf8").replaceAll(/^\*\*Answer:\*\*$/gm, "**Answer:** A"),
   );
   return repo;
-}
-
-/**
- * The server's fetch, holding every request whose body names `held` until `release`; `count` says
- * how many it was sent.
- */
-async function holding(repo: string, held: string) {
-  const fake = await fakeAgent();
-  const through = serverFetch(repo, fake.sessions);
-  const gate = Promise.withResolvers<void>();
-  let count = 0;
-  const fetch: typeof globalThis.fetch = async (input, init) => {
-    if (String(init?.body).includes(held)) {
-      count++;
-      await gate.promise;
-    }
-    return through(input, init);
-  };
-  return { count: () => count, fake, fetch, release: () => gate.resolve() };
 }
 
 /** The feature's card in the sidebar. */

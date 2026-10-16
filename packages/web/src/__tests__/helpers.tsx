@@ -276,6 +276,25 @@ export function serverFetch(
 }
 
 /**
+ * The server's fetch, holding every request whose body names `held` until `release`; `count` says
+ * how many it was sent.
+ */
+export async function holding(repo: string, held: string) {
+  const fake = await fakeAgent();
+  const through = serverFetch(repo, fake.sessions);
+  const gate = Promise.withResolvers<void>();
+  let count = 0;
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    if (String(init?.body).includes(held)) {
+      count++;
+      await gate.promise;
+    }
+    return through(input, init);
+  };
+  return { count: () => count, fake, fetch, release: () => gate.resolve() };
+}
+
+/**
  * The server's app in process with sign-in, on a list holding `repo`, as `serverFetch` gives it:
  * `fetch`, a browser without a session, which keeps the cookies the server's answers set and sends
  * them back; the access key; and `device`, which gives another browser's `fetch` on the same server,
