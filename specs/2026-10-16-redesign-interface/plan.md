@@ -402,7 +402,7 @@ git commit -m "feat(redesign-interface): items and their steps come from their c
   - `ura status` and `ura next` refresh once before reading; `ura status` prints
     "pull-request-unknown" as its step name.
 
-- [ ] **Step 1: Move the process runner out of `git.rs`**
+- [x] **Step 1: Move the process runner out of `git.rs`**
 
 Move `Git::output`'s process handling into `git/process.rs` as `run(program, args, dir)`, used by
 `output`, so `git.rs` shrinks.
