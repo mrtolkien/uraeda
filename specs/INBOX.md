@@ -37,6 +37,10 @@
 
 ## UI
 
+- Inbox/Priorities need icons
+- The folded left sidebar should keep icons for the main categories, and also unfold temporarily on
+  hover
+
 ## Flow
 
 - Settings page didn't show as "finished" in the UI after the last message -> might be fixed by the
