@@ -15,6 +15,7 @@ use crate::today;
 mod branches;
 mod links;
 mod paths;
+mod problem;
 mod read;
 
 use read::read_feature;
@@ -24,6 +25,7 @@ pub use links::{EntryLink, LinkedFile, RunningFeature, resolve};
 use links::priority_entries;
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
+pub use problem::Problem;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WorkspaceError {
@@ -123,18 +125,6 @@ pub struct WorkflowFile {
     pub status: Option<String>,
     /// The first line of its `> [!IMPORTANT]` block: what is asked of the human.
     pub waiting_line: Option<String>,
-}
-
-/// A problem in a workflow file.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Problem {
-    /// From the repository's top level.
-    pub file: String,
-    pub line: Option<usize>,
-    /// A stable id, like `frontmatter.status`.
-    pub rule: String,
-    pub message: String,
 }
 
 /// A started feature or change.
