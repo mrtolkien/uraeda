@@ -561,3 +561,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 10, `__tests__/review.test.tsx`, `__browser__/story-comments.test.tsx`,
   `__browser__/story-embed.test.tsx`, `__browser__/layout.test.tsx`, `vite.browser.config.ts`,
   `scripts/shots.ts`
+
+## R65: The workspace reads skip the checks that walk the branch's history
+
+- **Decision**: `check::check` runs every rule, `decision.unapproved` included, and `ura check`
+  calls it. `check::check_files` runs the rules on the files alone; the API's `checked()`, run for
+  every feature on every workspace or feature read, calls it.
+- **Rationale**: `decision.unapproved` walks the branch's first-parent history and reads old
+  decisions, on every read, for warnings `checked()` drops: it keeps errors only (R1).
+- **Alternatives considered**: an option argument on `check`: every caller would pass it, and the
+  existing tests call `check` as `ura check` does.
+- **If wrong**: `check_with` in `crates/core/src/check/mod.rs`, and `checked` in
+  `crates/core/src/api.rs`.
+- **Where**: the review's fixes

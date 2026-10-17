@@ -4,7 +4,7 @@ mod common;
 
 use common::repo::TestRepo;
 use common::texts::{decision, spec};
-use uraeda_core::check::check;
+use uraeda_core::check::{check, check_files};
 use uraeda_core::workspace::{Problem, Severity};
 
 const SPEC: &str = "specs/2026-10-10-feature/spec.md";
@@ -244,4 +244,21 @@ fn a_decision_added_before_the_approval_then_deleted_is_reported() {
         warnings(&repo, "specs"),
         ["warning: specs/decisions/tui.md: tui.md changed after the spec's approval"]
     );
+}
+
+#[test]
+fn the_files_alone_are_checked_without_the_branch_s_history() {
+    let repo = feature();
+    approve(&repo);
+    repo.write(
+        GIT,
+        &decision("active").replace("A choice.", "Another choice."),
+    );
+    repo.commit("docs(feature): edit git");
+    let specs = repo.path().join("specs");
+    assert_eq!(
+        unapproved(&check_files(repo.path(), &specs).unwrap()),
+        Vec::<String>::new()
+    );
+    assert_eq!(warnings(&repo, "specs").len(), 1);
 }
