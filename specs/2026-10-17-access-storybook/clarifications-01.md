@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Storybook's full interface in Uraeda
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 3 questions, about 10 minutes.
+> Answered on 2026-10-17.
 >
 > - The fix is one Storybook setting, now safe because of basic security's frame secret. It was
 >   checked live in Chromium and WebKit: stories render, controls and hot reload work.
@@ -69,7 +69,7 @@ code and your Uraeda session moves.
   - [pro] no work.
   - [con] the page stays broken.
 
-**Answer:**
+**Answer:** A
 
 ### Q1.A: Where is the setting turned on?
 
@@ -92,7 +92,7 @@ Storybook start.
   - [pro] other projects keep Storybook's defaults.
   - [con] other projects' Storybook pages stay broken until each adds the setting itself.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Can you save stories and create them from Storybook's interface?
 
@@ -124,7 +124,7 @@ browser, and who else could then write.
   - [con] new proxy code that must keep the interface's page unreadable to the stories it runs,
     untested; opening in the editor stays useless on a remote server.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
