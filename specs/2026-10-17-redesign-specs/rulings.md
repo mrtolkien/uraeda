@@ -636,3 +636,58 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `stepsOf` and `StoryCard` in `packages/web/src/spec/StoryCard.tsx`; task 14 may drop
   `mockup` from the props in `SpecPage.tsx`.
 - **Where**: task 11
+
+## R75: A criterion's sentence is its item's spans after the core's id and measure
+
+- **Decision**: the page draws a criterion's id and measure from `Criterion`, then its sentence: the
+  item's spans without the first, the bold id, and without the text up to the `):` that ends the
+  measure, or the `:` after an id without one, cut where the core reads them. The cut keeps the
+  spans' marks, so code and links in the sentence stay drawn.
+- **Rationale**: the plan asks for the measure as a pill, out of the sentence, and the core sends
+  the id and measure, not the sentence apart (as for the answers, R62). The cut reads the plain text
+  of spans already parsed, never markdown.
+- **Alternatives considered**: a `sentence` field of `Criterion` in the core: a change to task 2's
+  types in a wave where task 12 owns only the web's parts. Drawing the whole item after its pills,
+  as the answers are: the id and measure would show twice, which the plan's test refuses.
+- **If wrong**: add the field in `crates/core/src/files/spec.rs` (`criteria`), and draw it in
+  `sentenceOf`, `packages/web/src/spec/BuiltParts.tsx`.
+- **Where**: task 12, `packages/web/src/spec/BuiltParts.tsx`
+
+## R76: How the parts after the stories draw what the plan leaves open
+
+- **Decision**: the niche edge cases fold behind an Astryx `Collapsible`, "N niche cases" ("1 niche
+  case"), open while a pending comment or the selection is on one of them, and closable then; its
+  state is the component's, not the history entry's. An importance other than high, normal, or
+  niche, which `ura check` refuses, shows its cell's text, between the normal and the niche ones.
+  The edge cases' "What happens" is drawn as written, not capitalized as in the mockup: a cell
+  starting with code would change its code. The units are a grid of `min(n, 3)` columns on a wide
+  screen, one on the phone; the paragraph "Tradeoffs:" is not drawn, the "Cost" pills name them.
+  Blocks of a part outside its items, like the architecture's diagram, draw in their order as the
+  spec's blocks, each taking a comment. "Data" draws each level-2 section of `data-model.md` as a
+  part named by its heading, id `data-<anchor>`, after the text before the first; a "Change" cell
+  reading another text than New, Changed, or Removed is drawn as written. A data table's columns are
+  equal, and scroll in their own region on the phone, as a document's tables do.
+- **Rationale**: a comment on a folded row must show; the spec's folds (`useSpecFolds`) exist only
+  for a spec whose stories have more scenarios. Astryx's narrowest columns at 402 px cut the
+  meanings' words in the middle ("complete d").
+- **Alternatives considered**: a niche fold in the history entry, as a story's: no folds list to
+  hold it without the stories'. A phone layout of each field as a row of its own: a second drawing
+  of the table, which the mockup did not ask for.
+- **If wrong**: `EdgeList`, `Architecture` in `spec/BuiltParts.tsx`; `DataTable` in
+  `spec/DataPart.tsx`.
+- **Where**: task 12, `packages/web/src/spec/`
+
+## R77: The data model's colours, and the parts' layout, are checked in WebKit
+
+- **Decision**: `__browser__/spec-parts.test.tsx` checks at 1440 × 900 that the units are three
+  cards side by side, and that "New", "Changed", and "Removed" have each their own background,
+  green, yellow, and red, apart from the table's; at both sizes, the parts' text and boxes (the
+  layout helpers on each part's region) and axe on the page. The unit test of the data model checks
+  each cell's change, and the browser test its colour.
+- **Rationale**: happy-dom draws no colour, and a pill and plain text read the same by role and
+  text, so the plan's break, "the change cell drawn as plain text", is caught only where the colour
+  is drawn. `checkControlHeights` reads the whole page, whose stories and history are other tasks'.
+- **Alternatives considered**: an icon in each pill to tell it by its label: a second cue the mockup
+  did not ask for, read twice by screen readers.
+- **If wrong**: the colour test is the second of `__browser__/spec-parts.test.tsx`.
+- **Where**: task 12, `packages/web/src/__browser__/spec-parts.test.tsx`
