@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Redesign and reword specs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 12 questions, about 45 minutes.
+> Answered on 2026-10-17.
 >
 > - Verdict: worth building, with changes. Specs and decisions now; plans and data models only where
 >   they meet the spec.
@@ -79,7 +79,8 @@ Why it matters: it sets the feature's size, and whether decisions wait for a fea
   - [pro] one pass over every page.
   - [con] the largest feature, mostly on pages you never review.
 
-**Answer:**
+**Answer:** A: Also add data model at the spec step: it’s a good way to visualize the changes and
+new data in the system
 
 ## Q2: How does a spec write a change to a decision?
 
@@ -108,7 +109,9 @@ compares.
   - [pro] no change for agents.
   - [con] the longest to write, and a reworded rule looks removed and added.
 
-**Answer:**
+**Answer:** A: This has the added bonus of being deterministic: the decision changes view and diff
+at the top can be based on the actual decision changes proposed in files, there’s no complex parsing
+to do
 
 ## Q3: How does a decision's change show on the spec page?
 
@@ -145,7 +148,12 @@ Under every option, you comment on any changed part, and a new decision shows in
   - [pro] the cleanest read of the result.
   - [con] the change itself takes a tap to see.
 
-**Answer:**
+**Answer:** A and C: I picked C because it’s the only where we can cleanly see deletions
+
+With A a deletion would be struck out, with B it’d be weird, but with C we can have a “Deleted X
+lines” toggle to see removed lines. Make a mockup in the spec.
+
+If you think A could properly show removed lines too, I’m also ok with it
 
 ## Q4: When may an agent create or change a decision?
 
@@ -172,7 +180,12 @@ C can come on top of A or B.
   - [pro] changes in fix or chore commits show up.
   - [con] a warning only: a hurried agent can ignore it.
 
-**Answer:**
+**Answer:** A: Every single line in decisions must have been approved by a human, so it’s ok to add
+a bit more friction
+
+We should also make decisions lighter and shorter, they already grew out of control. I feel like
+decisions should focus more on intent and less on specifics, except when specifics are real hard
+constraints.
 
 ## Q5: What shape does a decision take?
 
@@ -198,7 +211,10 @@ Why it matters: decisions are read by every agent on every feature, and by you o
   - [pro] no change.
   - [con] decisions keep growing.
 
-**Answer:**
+**Answer:** A: I’m not sure we need a hard limit to rules, I think generally rules should be
+naturally fewer if we focus on big picture and intent instead of specifics
+
+Maybe put 10 as a soft maximum, we issue a warning when there are more rules
 
 ## Q6: When are the 18 existing decisions rewritten?
 
@@ -221,7 +237,8 @@ once.
   - [pro] no dedicated work.
   - [con] untouched decisions stay long for good.
 
-**Answer:**
+**Answer:** B: I’ll actually judge the success of this branch based on the quality of the rewritten
+decisions you suggest
 
 ## Q7: In what order does the spec page show its parts?
 
@@ -246,7 +263,7 @@ Why it matters: what comes first gets reviewed most.
   - [pro] the easiest thing to check comes first.
   - [con] decisions are no longer first.
 
-**Answer:**
+**Answer:** A: Edge cases and more needs to be restructured for readability
 
 ## Q8: How does the spec page look?
 
@@ -276,7 +293,12 @@ polish.
   - [pro] the most compact, and close to the file as written.
   - [con] stories run into each other.
 
-**Answer:**
+**Answer:** A: I like A on desktop, but it’s unusable on mobile, way too much wasted space
+
+Make sure mobile uses as much of the width of possible while keeping clear hierarchy
+
+Similar to clarifications we can have a sticky header of the current paragraph we are viewing, with
+breadcrumbs
 
 ## Q9: Does a spec have a length budget?
 
@@ -301,7 +323,9 @@ Why it matters: it decides whether specs actually get shorter.
   - [pro] specs stay short.
   - [con] a large feature must split even when it should not.
 
-**Answer:**
+**Answer:** A: I want context in the clarifications to take the right decisions
+
+Normally specs should only require a few short comments, if the flow is good and the model powerful
 
 ## Q10: What moves from the spec to the plan?
 
@@ -326,7 +350,7 @@ Why it matters: it decides what you see before approving, and what only the agen
   - [pro] the details have a home of their own.
   - [con] a third file, and a new template.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: What goes in the right column on a wide screen?
 
@@ -350,7 +374,7 @@ Why it matters: it sets how you move through a long spec, and whether Approve st
   - [pro] decisions stay in view.
   - [con] no way to jump to a story.
 
-**Answer:**
+**Answer:** A
 
 ## Q12: How are data models written?
 
@@ -375,7 +399,7 @@ Why it matters: data formats outlive features, and are what migrations change.
   - [pro] no change.
   - [con] bullets with inline types.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -417,3 +441,10 @@ Why it matters: data formats outlive features, and are what migrations change.
 - **The reading measure** of the spec page is 75 characters, as the round's, for the same reasons.
 
 **Notes:**
+
+- **The constitution check**: Make it a small table with checks
+
+  I | II | |✅|✅|
+
+- **Cuts**: “Relied on” can be a small table imo (decision > impact on spec), will look better than
+  just a sea of links
