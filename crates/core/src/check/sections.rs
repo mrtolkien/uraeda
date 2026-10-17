@@ -1,6 +1,8 @@
 //! `sections.*`: a file has its template's title, every required section at its level, in the
-//! template's order, and no level-2 section the template does not have. A template section whose
-//! placeholder starts with `[Optional` may be left out.
+//! template's order, and no level-2 section the template does not have, nor, in a round, a level-3
+//! heading under a section whose template has only fixed ones. A template section whose placeholder starts with
+//! `[Optional` may be left out, and one starting `[Optional, required from round 02` only in a
+//! first round. `settled.*`: a round's settled points sit in groups.
 
 use crate::embedded;
 use crate::files::inbox;
@@ -44,6 +46,8 @@ struct TemplateHeading {
     text: String,
     slot: Slot,
     optional: bool,
+    /// Optional in a first round, required from round 02 on, like `### Since the last round`.
+    later_rounds: bool,
 }
 
 fn item_prefix(text: &str) -> Option<String> {
@@ -71,6 +75,10 @@ fn template(kind: Checked) -> Option<Vec<TemplateHeading>> {
             let l = l.trim_start();
             l.starts_with("[Optional") || l.starts_with("- [Optional")
         });
+        let later_rounds = body.is_some_and(|l| {
+            l.trim_start()
+                .starts_with("[Optional, required from round 02")
+        });
         // The template's raw heading text keeps its placeholders, which the parser turns into
         // links or text: read it from the line itself.
         let raw = lines[heading.line - 1]
@@ -93,6 +101,7 @@ fn template(kind: Checked) -> Option<Vec<TemplateHeading>> {
             text: raw,
             slot,
             optional,
+            later_rounds,
         });
     }
     Some(headings)
@@ -133,20 +142,46 @@ pub(super) fn check_sections(file: &File<'_>, document: &Document, problems: &mu
     let Some(slots) = template(file.kind) else {
         return;
     };
-    // The title.
-    if let Some(Slot::Title(prefix)) = slots.first().map(|s| &s.slot) {
-        match document.headings.iter().find(|h| h.level == 1) {
-            None => problems.push(file.problem(None, "sections.title", "no title")),
-            Some(title) if !title.text.starts_with(prefix.as_str()) => problems.push(file.problem(
-                Some(title.line),
-                "sections.title",
-                format!("the title starts with \"{prefix}\""),
-            )),
-            Some(_) => {}
-        }
+    check_title(file, document, &slots, problems);
+    check_required(file, document, &slots, problems);
+    check_unknown(file, document, &slots, problems);
+    check_order(file, document, &slots, problems);
+}
+
+fn check_title(
+    file: &File<'_>,
+    document: &Document,
+    slots: &[TemplateHeading],
+    problems: &mut Vec<Problem>,
+) {
+    let Some(Slot::Title(prefix)) = slots.first().map(|s| &s.slot) else {
+        return;
+    };
+    match document.headings.iter().find(|h| h.level == 1) {
+        None => problems.push(file.problem(None, "sections.title", "no title")),
+        Some(title) if !title.text.starts_with(prefix.as_str()) => problems.push(file.problem(
+            Some(title.line),
+            "sections.title",
+            format!("the title starts with \"{prefix}\""),
+        )),
+        Some(_) => {}
     }
-    // Required sections and items. A heading under an optional level-2 section is required only
-    // when that section is there.
+}
+
+/// The file's round, from its name like `clarifications-02.md`: 1 for any other file.
+fn round_of(file: &File<'_>) -> u32 {
+    let name = file.path.rsplit('/').next().unwrap_or_default();
+    FileKind::of(name).and_then(|(_, round)| round).unwrap_or(1)
+}
+
+/// Required sections and items. A heading under an optional level-2 section is required only when
+/// that section is there, and one required from round 02 on only in a later round.
+fn check_required(
+    file: &File<'_>,
+    document: &Document,
+    slots: &[TemplateHeading],
+    problems: &mut Vec<Problem>,
+) {
     let mut parent: Option<&TemplateHeading> = None;
     let mut absent_parents = Vec::new();
     for (index, slot) in slots.iter().enumerate() {
@@ -163,10 +198,12 @@ pub(super) fn check_sections(file: &File<'_>, document: &Document, problems: &mu
             absent_parents.push(index);
         }
     }
+    let later_round = round_of(file) > 1;
+    let required = |slot: &TemplateHeading| !slot.optional || (slot.later_rounds && later_round);
     for (_, slot) in slots
         .iter()
         .enumerate()
-        .filter(|(index, s)| !s.optional && s.level >= 2 && !absent_parents.contains(index))
+        .filter(|(index, s)| required(s) && s.level >= 2 && !absent_parents.contains(index))
     {
         let present = match &slot.slot {
             Slot::Fixed(_) | Slot::Item(_) => document
@@ -185,25 +222,80 @@ pub(super) fn check_sections(file: &File<'_>, document: &Document, problems: &mu
             ));
         }
     }
-    // Unknown level-2 sections, unless the template lets any heading in.
+}
+
+/// The template's level-3 headings under its level-2 section matching `heading`, when they are all
+/// fixed headings: then a file's level-3 headings there must be among them.
+fn fixed_children<'a>(slots: &'a [TemplateHeading], heading: &Heading) -> Option<Vec<&'a str>> {
+    let index = slots
+        .iter()
+        .position(|s| s.level == 2 && matches(&s.slot, heading))?;
+    let children: Vec<&TemplateHeading> = slots[index + 1..]
+        .iter()
+        .take_while(|s| s.level > 2)
+        .filter(|s| s.level == 3)
+        .collect();
+    let texts: Vec<&str> = children
+        .iter()
+        .filter_map(|s| match &s.slot {
+            Slot::Fixed(text) => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    (!texts.is_empty() && texts.len() == children.len()).then_some(texts)
+}
+
+/// Unknown level-2 sections, unless the template lets any heading in, and in a round, unknown
+/// level-3 headings under a section whose template has only fixed ones: the Context and the
+/// settled points.
+fn check_unknown(
+    file: &File<'_>,
+    document: &Document,
+    slots: &[TemplateHeading],
+    problems: &mut Vec<Problem>,
+) {
     let free_level_2 = slots
         .iter()
         .any(|s| s.level == 2 && matches!(s.slot, Slot::Free));
-    if !free_level_2 {
-        for heading in document.headings.iter().filter(|h| h.level == 2) {
-            let known = slots
-                .iter()
-                .any(|s| s.level == 2 && matches(&s.slot, heading));
-            if !known {
-                problems.push(file.problem(
-                    Some(heading.line),
-                    "sections.unknown",
-                    format!("unknown section \"## {}\"", heading.text),
-                ));
+    let round = file.kind == Checked::Workflow(FileKind::Clarifications);
+    let mut parent: Option<&Heading> = None;
+    for heading in &document.headings {
+        if heading.level == 2 {
+            parent = Some(heading);
+        }
+        let known = match heading.level {
+            2 => {
+                free_level_2
+                    || slots
+                        .iter()
+                        .any(|s| s.level == 2 && matches(&s.slot, heading))
             }
+            3 if round => parent
+                .and_then(|parent| fixed_children(slots, parent))
+                .is_none_or(|children| children.contains(&heading.text.as_str())),
+            _ => true,
+        };
+        if !known {
+            problems.push(file.problem(
+                Some(heading.line),
+                "sections.unknown",
+                format!(
+                    "unknown section \"{} {}\"",
+                    hashes(heading.level),
+                    heading.text
+                ),
+            ));
         }
     }
-    // The order of the fixed sections.
+}
+
+/// The order of the fixed sections.
+fn check_order(
+    file: &File<'_>,
+    document: &Document,
+    slots: &[TemplateHeading],
+    problems: &mut Vec<Problem>,
+) {
     let mut last: Option<(usize, &Heading)> = None;
     for heading in &document.headings {
         let Some(index) = slots.iter().position(|s| {
@@ -229,6 +321,46 @@ pub(super) fn check_sections(file: &File<'_>, document: &Document, problems: &mu
             continue;
         }
         last = Some((index, heading));
+    }
+}
+
+/// `settled.group`: in a round, every settled point sits under a group, `### Check these`,
+/// `### Behaviour`, or `### Under the hood`: a list item between `## Settled without the human`
+/// and its first sub-heading, or its notes, is in none.
+pub(super) fn check_settled_groups(
+    file: &File<'_>,
+    document: &Document,
+    problems: &mut Vec<Problem>,
+) {
+    let Some(index) = document
+        .headings
+        .iter()
+        .position(|h| h.level == 2 && h.text == "Settled without the human")
+    else {
+        return;
+    };
+    let start = document.headings[index].line;
+    let end = document
+        .headings
+        .get(index + 1)
+        .map_or(usize::MAX, |next| next.line);
+    let mut fenced = false;
+    for (offset, line) in file.text.lines().enumerate().skip(start) {
+        let number = offset + 1;
+        if number >= end || line.starts_with("**Notes:**") {
+            break;
+        }
+        if line.trim_start().starts_with("```") {
+            fenced = !fenced;
+        }
+        let item = ["- ", "* ", "+ "].iter().any(|mark| line.starts_with(mark));
+        if item && !fenced {
+            problems.push(file.problem(
+                Some(number),
+                "settled.group",
+                "a settled point outside a group: put it under \"### Check these\", \"### Behaviour\", or \"### Under the hood\"",
+            ));
+        }
     }
 }
 

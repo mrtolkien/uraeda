@@ -244,8 +244,9 @@ key on their bold subject; Submit flips the block's first paragraph only
   purpose, which keep only their intended problem,
   `specs/2026-10-17-redesign-clarifications/clarifications-01.md` and
   `specs/backlog/benchmarks/clarifications-01.md` (content, answers, and notes kept)
-- Create: `fixtures/round-mockup/clarifications-01.md`, from `.storybook/roundMockup.ts`, which
-  reads it ([R5](rulings.md#r5-the-mockups-round-becomes-a-fixture-file))
+- Create: `fixtures/round-mockup/clarifications-01.md` and its `proposal.md`, from
+  `.storybook/roundMockup.ts`, which moves into `.storybook/fixture.ts`, reading them
+  ([R5](rulings.md#r5-the-mockups-round-becomes-a-fixture-file))
 - Modify: `specs/2026-10-17-redesign-clarifications/proposal.md`, its broken link
   ([R6](rulings.md#r6-the-proposals-broken-link-is-fixed))
 - Test: `crates/core/tests/check.rs`
@@ -258,7 +259,7 @@ key on their bold subject; Submit flips the block's first paragraph only
   `### Behaviour`, `### Under the hood`, each `[Optional ...`. New rule ids `settled.group`, and
   `sections.unknown` for `###` headings. `texts::clarifications()` writes the new format.
 
-- [ ] **Step 1: Write the failing tests** in `check.rs`, on a copy of the example round:
+- [x] **Step 1: Write the failing tests** in `check.rs`, on a copy of the example round:
   - US1.1: the example and the template's skeleton filled with text report nothing.
   - US1.2: without `### Sources`: `sections.missing` for `"### Sources"`, and `ura check` exits 1
     (in `crates/cli/tests/check.rs`).
@@ -270,15 +271,16 @@ key on their bold subject; Submit flips the block's first paragraph only
     `### Goal`, nothing. After `### Goal`: `sections.order`.
   - The triage with a free Context and no settled section reports nothing.
   - R4: a record with `#### Context` and `##### Goal` under `### Round 01` reports nothing.
-- [ ] **Step 2: Run them to check they fail**: `cargo nextest run -p uraeda-core --test check`:
+- [x] **Step 2: Run them to check they fail**: `cargo nextest run -p uraeda-core --test check`:
       FAIL, the template has no `### Sources` yet.
-- [ ] **Step 3: Implement**: the template; in `sections.rs`, a `###` heading under a level-2 section
-      whose template children are fixed headings must be one of them; "Since the last round"
+- [x] **Step 3: Implement**: the template; in `sections.rs`, in a round, a `###` heading under a
+      level-2 section whose template children are fixed headings must be one of them
+      ([R7](rulings.md#r7-unknown--headings-are-reported-in-rounds-only)); "Since the last round"
       required when the file's round number is above 1; `settled.group` for a list under the settled
       section before its first `###`. Then rewrite every round listed above, and the helper.
-- [ ] **Step 4: Run the project's validation**: `nix develop -c vp run ready`, with `specs:check`
+- [x] **Step 4: Run the project's validation**: `nix develop -c vp run ready`, with `specs:check`
       failing only on `specs/drafts/look-and-feel/proposal.md`. PASS otherwise.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
       `feat(redesign-clarifications): the round's new format, every round rewritten in it`
 
 ## Task 4: The core sends the context parts, the settled groups, and "Why it matters"
