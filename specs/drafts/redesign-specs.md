@@ -26,6 +26,9 @@ READABILITY: rewording and redesign go together, the skill and the templates cha
 - Sometimes the spec quotes "Your Q4 answer" but I don't remember what it was: the spec should be
   fully readable WITHOUT ANY CONTEXT.
 - TODO: Define what goes in the right sidebar on desktop!
+- From a spec's revision 2 on, the answers to my review comments ("C1: done", ...) must be clearly
+  separated from the spec itself, not mixed into its opening block (asked in the spec review of the
+  clarifications redesign).
 - Sometimes when I comment the page jumps around. Might be due to storybook embeds loading or
   something?
 
