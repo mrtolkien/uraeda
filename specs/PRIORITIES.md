@@ -12,14 +12,16 @@
   from comments early
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
 - [Redesign session](drafts/redesign-session.md)
+- [Review home](drafts/review-home.md)
 
 - [Review the overall flow of all user stories](drafts/flow-review.md)
 
+- Empty inbox
+
+- [Look and feel pass](drafts/look-and-feel/proposal.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
-- Review home
-- [Look and feel pass](drafts/look-and-feel/proposal.md)
 
 ## Next
 
