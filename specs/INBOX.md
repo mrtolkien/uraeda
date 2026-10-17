@@ -153,3 +153,5 @@
 - [agent] [questions-first] The round's in-page index is announced as Questions three times, nav,
   heading, and list: label the nav by its heading and drop the list's label there (RoundNav.tsx
   RoundIndex)
+- [agent] [questions-first] RoundPage's comment on navigates names the column and the top bar, not
+  the phone's in-page index (RoundPage.tsx)
