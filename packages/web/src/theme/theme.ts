@@ -155,6 +155,11 @@ export const uraedaTheme = defineTheme({
     "--size-composer-input": "154px",
     // The round's index, a column beside its questions on wide screens.
     "--size-round-index": "240px",
+    // A question card at least this wide puts its options beside its title and context.
+    "--size-round-split": "840px",
+    // About 75 characters of text a line, on the round page and the triage, which hold their
+    // reading text to it in place of the reading measure.
+    "--size-round-measure": "75ch",
     // The settings page's list of categories, beside the open category on wide screens.
     "--size-settings-index": "240px",
     // The session's column of progress and changes, beside its transcript on wide screens.

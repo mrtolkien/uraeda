@@ -220,3 +220,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/uraeda`, whose build is later in the graph.
 - **If wrong**: the build test, and review focus 5's wording.
 - **Where**: task 8, step 1; review focus 5.
+
+## R18: The answered round's story tests scroll to their embed
+
+- **Decision**: the two US3.4 tests of `packages/web/src/__browser__/story-variants.test.tsx` scroll
+  the "Thin line" embed into view before waiting for its frame, as the file's other tests do.
+- **Rationale**: an embed loads its frames once on screen. "Why it matters" in its muted box makes
+  each question taller, and the answered round reopens with the embed just below the window, so its
+  frame never loaded. The tests check what an answered round's embeds show, not where the page
+  opens.
+- **Alternatives considered**: a box without its inset, which sets "Why it matters" apart less than
+  US2.3 asks.
+- **If wrong**: the two tests' scroll.
+- **Where**: task 9, step 5.

@@ -136,6 +136,8 @@ test("a variant removed after the answer says so, and the one kept still shows (
   expect(
     await within(grip).findByText("This variant was removed after your answer.", {}, READY),
   ).toBeTruthy();
+  // An embed loads its frames once on screen (R18).
+  screen.getByRole("figure", { name: "Thin line" }).scrollIntoView();
   await expect.poll(() => commands.frameText("Thin line, desktop"), READY).toContain("ThinLine");
   expect(screen.getAllByText("This variant was removed after your answer.")).toHaveLength(1);
 });
@@ -202,6 +204,8 @@ test("an answered round's stories take no comment (US3.4, R10)", async () => {
   await show(ROUND, Q2);
 
   const thin = await screen.findByRole("figure", { name: "Thin line" });
+  // An embed loads its frames once on screen (R18).
+  thin.scrollIntoView();
   await expect.poll(() => commands.frameText("Thin line, desktop"), READY).toContain("ThinLine");
   expect(within(thin).queryByRole("button", { name: "Pick an element" })).toBeNull();
   expect(within(thin).queryByRole("button", { name: "Comment" })).toBeNull();

@@ -335,6 +335,8 @@
     --size-message-image: 120px;
     --size-composer-input: 154px;
     --size-round-index: 240px;
+    --size-round-split: 840px;
+    --size-round-measure: 75ch;
     --size-settings-index: 240px;
     --size-session-aside: 320px;
     --size-form: 560px;
