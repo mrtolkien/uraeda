@@ -77,3 +77,6 @@
   failing clone of target/, cp printing one error per file until spawnSync's 1 MB buffer kills it,
   and prints 'not seeded' until cargo creates target/: probe a one-file clone first
   (packages/server/scripts/worktree-seed.ts, seedTarget)
+- [agent] [symlinks] worktree-seed's publish swallows a lost rename and still reports 'seeded'; a
+  main checkout task cache with no files also reports 'seeded' and retries at every shell
+  (packages/server/scripts/worktree-seed.ts)
