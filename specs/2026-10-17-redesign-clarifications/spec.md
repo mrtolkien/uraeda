@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign clarifications
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Changes requested on 2026-10-17: 5 comments in spec-review.md.
 >
 > - Two new decisions:
 >   - [Diagrams](../decisions/diagrams.md): Mermaid in workflow files, drawn in a sandboxed frame.
