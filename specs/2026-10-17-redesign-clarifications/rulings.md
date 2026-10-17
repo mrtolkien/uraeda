@@ -294,3 +294,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   would no longer cover a folded group's comments.
 - **If wrong**: the tests' helpers.
 - **Where**: task 11, step 2.
+
+## R23: The example round's points that depend on Q2 move into its options
+
+- **Decision**: in the example's round, "Deleting a repeating task" and "Undoing a completion" move
+  from the settled points into the options of Q2 they depend on, and the block counts three settled
+  points. `crates/core/tests/items.rs` no longer expects them among the example's settled points.
+  The fixture copies under `2026-10-12-cli-tuis` and `2026-10-13-plan-review` follow the example;
+  the copy under `2026-10-06-recurring-tasks` keeps both points, since `settled.test.tsx` and
+  `leave.test.tsx` comment on them.
+- **Rationale**: the writing reference puts a point that depends on an answer into that option, and
+  agents copy the example. The test pinned the example's old text, not a behaviour.
+- **Alternatives considered**: keeping the points settled, which teaches agents the opposite of the
+  reference; changing the web tests to another round's points, which no fixture holds with comments.
+- **If wrong**: the example's round and the items test's settled subjects.
+- **Where**: final review.
