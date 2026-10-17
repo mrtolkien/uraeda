@@ -257,58 +257,61 @@ git commit -m "feat(access-storybook): the helper turns on Storybook's iframe me
 **Files:**
 
 - Modify: `packages/web/scripts/validate-storybook.ts` (its header, `check`, a new
-  `checkInterface(browser: Browser, address: string, base: string): Promise<void>`)
+  `checkInterface(browser: Browser, address: string, base: string): Promise<void>`, and its helpers
+  `inCanvas`, `canvasText`, `listsControls`, and `checkPhone`)
 
 **Interfaces:**
 
 - Consumes: task 2's `security` under `URAEDA_PREVIEW_BASE`, through Uraeda's own `main.ts`.
 
-- [ ] **Step 1: Build the binding, and run the script before the change**
+- [x] **Step 1: Build the binding, and run the script before the change**
 
 - Run: `nix develop -c vp run ready` (or the binding's build alone), then
   `nix develop -c node packages/web/scripts/validate-storybook.ts`
 - Expected: PASS on the four existing lines, with task 2's setting in place.
 
-- [ ] **Step 2: Add `checkInterface`, called by `check` after the edit check, on the same browser**
+- [x] **Step 2: Add `checkInterface`, called by `check` after the edit check, on the same browser**
 
 In WebKit at 1440 × 900, it opens `${address}${base}?path=/story/storyembed--ready`, Storybook's
 interface served top-level through Uraeda, so the proxy's `sandbox` header gives it the `null`
 origin the page's frame gives it. The canvas is the frame `#storybook-preview-iframe`. One `PASS`
 line per check, `fail` with what the canvas or panel shows otherwise, each wait up to `SHOW_MS`:
 
-1. The canvas shows "Dragging the handle": `PASS the Storybook page's canvas shows the Ready story`
-   (US1.1, SC-001).
+1. The canvas shows "Dragging the handle", and the controls panel lists the `Ready` story's `folder`
+   and `story`: `PASS the Storybook page's canvas shows the Ready story` (US1.1, SC-001). The
+   controls are needed, since the story frame renders its story from its own address even when
+   Storybook's messages are dropped (R4).
 2. Clicking "Removed" under "StoryEmbed" in the sidebar shows "This variant was removed after your
    answer." in the canvas, and the controls panel lists `folder`, `removed`, and `story` (US1.2).
-3. Turning the `removed` control off shows "No story “Resizing” in
-   packages/web/src/SidebarHandle.stories.tsx on this branch." in the canvas, with a marker set on
-   the interface's `window` still there, so no reload happened (US1.3).
+3. Turning the `removed` control off, by a click dispatched on its input, which Storybook's switch
+   draws over, shows "No story “Resizing” in packages/web/src/SidebarHandle.stories.tsx on this
+   branch." in the canvas, with a marker set on the interface's `window` still there, so no reload
+   happened (US1.3).
 4. With `whileEdited` adding
    `export const Added: Story = { args: { folder: CHECKOUTS.ready, story: dragging } };` to
    `StoryEmbed.stories.tsx`, the sidebar lists "Added" without a reload, and clicking it shows
    "Dragging the handle" in the canvas (US1.4).
 5. At 402 × 874, a new page on the same address shows "Dragging the handle" in the canvas, and the
-   script writes its screenshot to the temporary data folder and prints its path: the phone's width
-   is checked by looking at it.
+   script writes its screenshot to the system's temporary folder, which outlives the script's data
+   folder, and prints its path: the phone's width is checked by looking at it.
 
 Update the header's first paragraph to say it also opens Storybook's interface and what it checks
 there.
 
-- [ ] **Step 3: Check that the script catches the blank canvas**
+- [x] **Step 3: Check that the script catches the blank canvas**
 
 Remove the `security` key from the helper's returned config, run the script, and put it back.
 
-- Expected: `FAIL the Storybook page's canvas shows the Ready story`, the canvas stuck on "Content
-  is loading…" or empty.
+- Expected: `FAIL the Storybook page's canvas shows the Ready story`, the controls panel empty.
 
-- [ ] **Step 4: Run the script and the project's validation**
+- [x] **Step 4: Run the script and the project's validation**
 
 - Run: `nix develop -c node packages/web/scripts/validate-storybook.ts`, then
   `nix develop -c vp check`
 - Expected: PASS on every line; the 402 px screenshot shows Storybook's narrow layout with the
   story. A broken narrow layout goes to the inbox as a follow-up, as the spec's assumptions say.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/scripts/validate-storybook.ts specs/2026-10-17-access-storybook/plan.md
