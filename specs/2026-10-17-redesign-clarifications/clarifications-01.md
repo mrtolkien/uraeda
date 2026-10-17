@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Redesign clarifications
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 10 questions and 1 follow-up, about 35 minutes.
+> Answered on 2026-10-17.
 >
 > - Verdict: worth building, with two cuts: the session in a side column, and diagrams, each move to
 >   a later feature.
@@ -78,7 +78,7 @@ for rounds alone or for every page.
   - [pro] you never leave the round.
   - [con] a larger feature, a change to the layout decision, and the follow-up below.
 
-**Answer:**
+**Answer:** A: Put it in later
 
 ### Q1.B: Can you keep saving answers while the agent replies in the side column?
 
@@ -128,7 +128,7 @@ message.
   - [pro] the verdict needs your explicit answer.
   - [con] a question even when there is no pushback, and the block keeps its previews.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which parts follow the block, and how are they marked?
 
@@ -167,7 +167,7 @@ Why it matters: these parts become the template of every round, and of the specs
   - [pro] the shortest opening.
   - [con] no list of what was read, which the proposal asks for.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How are the settled points grouped?
 
@@ -198,7 +198,7 @@ Why it matters: it decides what you check before answering, and how long the end
   - [pro] the shortest round.
   - [con] you meet the other points only when approving the spec.
 
-**Answer:**
+**Answer:** A: This will also allow us to separate them visually, with icons
 
 ## Q5: How does the skill make every model write the same round?
 
@@ -230,7 +230,7 @@ B can come on top of A or C.
   - [pro] the first pass researches without format constraints.
   - [con] one more agent run per round, and two files that can disagree.
 
-**Answer:**
+**Answer:** A and B
 
 ## Q6: How does a question's card use a wide screen?
 
@@ -272,7 +272,7 @@ every option is one column.
   - [con] long options wrap in narrow columns, and the recommended one looks no different from the
     others.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How does a follow-up show once its option is picked?
 
@@ -299,7 +299,7 @@ Why it matters: it is how dependent questions read, in every round that has one.
   - [pro] cause and effect side by side.
   - [con] a card inside a card, and the parent's other options pushed down.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: When does the agent write a follow-up?
 
@@ -319,7 +319,7 @@ Why it matters: it trades words you skip against a new round when your answer su
   - [pro] every branch is fully asked.
   - [con] about a third of follow-ups go unread.
 
-**Answer:**
+**Answer:** B
 
 ## Q9: How are a question's context and options written?
 
@@ -340,7 +340,10 @@ Why it matters: it is the bulk of every round, 74% of its words.
   - [pro] the most compact.
   - [con] table rows make poor cards on a phone, and the core must read options from a table.
 
-**Answer:**
+**Answer:** A: No no no I want MORE context if anything, do not limit it
+
+For example the “why it matters” could be visually different, and context could include links to
+sources or quotes, …
 
 ## Q10: Can a round hold a diagram?
 
@@ -362,7 +365,7 @@ Why it matters: it adds a dependency, which becomes a decision.
   - [pro] flows and states drawn now.
   - [con] a 500 KB dependency, and its advisories to follow.
 
-**Answer:**
+**Answer:** B: A round could ask to pick between multiple flows
 
 ## Settled without the human
 
@@ -400,3 +403,8 @@ Why it matters: it adds a dependency, which becomes a decision.
   and `SettledPoints.tsx`. See [discovery](discovery-01.md#likely-changes).
 
 **Notes:**
+
+- **Older rounds stay valid**: No we can just drop that, don’t keep backward compatibility before
+  v1.0
+
+  This is an important decision, write it down
