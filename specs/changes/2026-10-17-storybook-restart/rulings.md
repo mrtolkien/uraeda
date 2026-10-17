@@ -16,8 +16,11 @@ decisions. None binds future work: those are decisions.
   covers uncommitted edits but misses the server and binding code that Uraeda's own Storybook runs,
   and needs debouncing and recursive watches.
 - **If wrong**: an uncommitted change to Storybook's configuration still needs "Try again", as
-  before. Undo by reverting the `view` branch in
-  [`runner.ts`](/packages/server/src/preview/runner.ts).
+  before. Every commit restarts at the next view, the web UI's own included: submitting answers in a
+  feature's worktree, or committing the inbox or the priorities on the main checkout, sends that
+  checkout's embeds back to "starting" for a few seconds, though only `specs/` changed. Skipping
+  commits that change only `specs/` would need a diff read in the core. Undo by reverting the `view`
+  branch in [`runner.ts`](/packages/server/src/preview/runner.ts).
 - **Where**: [`runner.ts`](/packages/server/src/preview/runner.ts),
   [`fate/preview.ts`](/packages/server/src/fate/preview.ts)
 

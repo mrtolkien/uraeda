@@ -12,7 +12,7 @@ import {
 } from "uraeda-binding/test-utils";
 import { UNREADABLE_INDEX } from "../preview/index.ts";
 import { IDLE_MS } from "../preview/runner.ts";
-import { byId, type Data, fixtureRepo, mutate, testApp, testServer } from "./helpers.ts";
+import { byId, type Data, fixtureRepo, mutate, running, testApp, testServer } from "./helpers.ts";
 import { connect, subscribe } from "./live-stream.ts";
 
 const STORY = `${STORY_FEATURE}:packages/web/src/SidebarHandle.stories.tsx#Dragging`;
@@ -257,7 +257,9 @@ test("a view after a new commit in the checkout restarts its Storybook, and upda
 
   expect(story.state).toBe("starting");
   expect(await updates.arrival('"state":"ready"', before), "no update to ready").toBeDefined();
-  expect(previewStarts(log!)).toHaveLength(2);
+  const [first, second] = previewStarts(log!);
+  expect(second).toBeDefined();
+  await expect.poll(() => running(first!.pid), WAIT).toBe(false);
   await byId(app, "Story", [STORY], FIELDS);
   expect(previewStarts(log!), "a view at the same commit restarted it").toHaveLength(2);
   await updates.close();
