@@ -79,6 +79,12 @@ export declare function branchChanges(repo: string, folder: string): Promise<Bra
  */
 export declare function checkedPort(typed: string): number
 
+/**
+ * The commit the checkout at `checkout` has checked out, as a full hash: `null` before its first
+ * commit. Its preview starts again once it moves.
+ */
+export declare function checkoutCommit(checkout: string): Promise<string | null>
+
 /** Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into. */
 export declare function commitChanges(repo: string): Promise<void>
 

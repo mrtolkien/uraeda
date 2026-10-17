@@ -4,7 +4,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { addStoryFeature, previewStarts, STORY_FEATURE } from "uraeda-binding/test-utils";
+import {
+  addStoryFeature,
+  commitOnBranch,
+  previewStarts,
+  STORY_FEATURE,
+} from "uraeda-binding/test-utils";
 import { UNREADABLE_INDEX } from "../preview/index.ts";
 import { IDLE_MS } from "../preview/runner.ts";
 import { byId, type Data, fixtureRepo, mutate, testApp, testServer } from "./helpers.ts";
@@ -235,6 +240,26 @@ test("a restart still updates the stories read before it", async () => {
   ).toBeDefined();
   expect(await updates.arrival('"state":"ready"', before), "no update to ready").toBeDefined();
   expect(previewStarts(log!)).toHaveLength(2);
+  await updates.close();
+});
+
+test("a view after a new commit in the checkout restarts its Storybook, and updates its stories", async () => {
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  const { app, name } = await testApp(repo);
+  const updates = await liveUpdates(app, name, "Story", STORY);
+  await byId(app, "Story", [STORY], FIELDS);
+  expect(await updates.arrival('"state":"ready"'), "no live update to ready").toBeDefined();
+  commitOnBranch(repo, STORY_FEATURE, { "packages/web/.storybook/fixture.ts": "// changed\n" });
+  const before = updates.mark();
+
+  const [story] = await byId(app, "Story", [STORY], FIELDS);
+
+  expect(story.state).toBe("starting");
+  expect(await updates.arrival('"state":"ready"', before), "no update to ready").toBeDefined();
+  expect(previewStarts(log!)).toHaveLength(2);
+  await byId(app, "Story", [STORY], FIELDS);
+  expect(previewStarts(log!), "a view at the same commit restarted it").toHaveLength(2);
   await updates.close();
 });
 

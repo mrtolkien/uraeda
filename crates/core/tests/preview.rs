@@ -64,3 +64,37 @@ fn a_worktree_reads_its_own_copy() {
     assert_eq!(api::preview(&worktree).unwrap(), web(command));
     assert_eq!(api::preview(repo.path()).unwrap(), None);
 }
+
+/// A preview starts again once its checkout's commit moves: each checkout has its own.
+#[test]
+fn a_checkout_commit_is_its_own_and_moves_with_a_commit() {
+    let repo = TestRepo::new();
+    repo.branch(BRANCH);
+    let worktree = repo.path().join(".worktrees").join(BRANCH);
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        worktree.to_str().unwrap(),
+        BRANCH,
+    ]);
+    let main = api::checkout_commit(repo.path()).unwrap();
+    let before = api::checkout_commit(&worktree).unwrap();
+
+    let dir = worktree.to_str().unwrap();
+    repo.git(&[
+        "-C",
+        dir,
+        "commit",
+        "--quiet",
+        "--allow-empty",
+        "-m",
+        "chore: a commit",
+    ]);
+
+    let after = api::checkout_commit(&worktree).unwrap();
+    assert_eq!(before, main);
+    assert_ne!(after, before);
+    assert_eq!(after.as_deref().map(str::len), Some(40));
+    assert_eq!(api::checkout_commit(repo.path()).unwrap(), main);
+}

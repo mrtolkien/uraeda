@@ -260,6 +260,17 @@ test("a view keeps a failed Storybook failed until it is restarted", async () =>
   expect(previewStarts(log)).toHaveLength(1);
 });
 
+test("a view at a new commit starts a failed Storybook again; one at an unknown commit does not", async () => {
+  const { checkout, log } = await storyCheckout({ mode: "fail" });
+  const runner = previews();
+  runner.view({ ...checkout, commit: "a" });
+  await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
+
+  expect(runner.view(checkout).state).toBe("failed");
+  expect(runner.view({ ...checkout, commit: "b" }).state).toBe("starting");
+  await expect.poll(() => previewStarts(log).length, WAIT).toBe(2);
+});
+
 test("each checkout has its own Storybook", async () => {
   const { checkout, log, repo } = await storyCheckout();
   const main = await checkoutOf(repo, "/r/repo/preview/main/");

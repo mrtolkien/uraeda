@@ -42,7 +42,7 @@ pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use inbox_edits::*;
 pub(crate) use ledger::ledger_hash;
 pub use ledger::{Constitution, Decision, Ledger, Principle, read_ledger};
-pub use preview::preview;
+pub use preview::{checkout_commit, preview};
 pub(crate) use priority_edits::joined_priorities;
 pub use priority_edits::{
     add_priority, add_priority_and_commit, commit_priorities, discard_priorities, edit_priority,
