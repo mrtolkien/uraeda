@@ -302,17 +302,17 @@ key on their bold subject; Submit flips the block's first paragraph only
   `behaviour`, `hood`, replacing `settled`; `QuestionItem.why: Option<u32>`, left out of `context`.
   In TypeScript, `ContextPart`, `SettledGroup`, and `QuestionItem.why`.
 
-- [ ] **Step 1: Write the failing tests**: on the example round, `context` titles are
+- [x] **Step 1: Write the failing tests**: on the example round, `context` titles are
       `["Goal", "Today", "Scope", "Sources"]`; a `clarifications-02.md` gives
       `"Since the last round"` first (US2.2's data); Q1's `why` is the paragraph starting "Why it
       matters" and is not in its context; the groups' kinds are in file order with their points;
       review focus 3: a subject repeated in two groups points its comment at the first.
-- [ ] **Step 2: Run them to check they fail**: FAIL, no field `why`.
-- [ ] **Step 3: Implement** in `round.rs`, keeping sub-headings, then regenerate the binding
+- [x] **Step 2: Run them to check they fail**: FAIL, no field `why`.
+- [x] **Step 3: Implement** in `round.rs`, keeping sub-headings, then regenerate the binding
       (`vp run binding:build`) and make the web draw each part's heading and blocks, and each
       group's blocks, as it draws today.
-- [ ] **Step 4: Run the project's validation**: `cargo nextest run`, `vp check`, the unit tests.
-- [ ] **Step 5: Commit** `feat(redesign-clarifications): the core sends a round's parts and groups`
+- [x] **Step 4: Run the project's validation**: `cargo nextest run`, `vp check`, the unit tests.
+- [x] **Step 5: Commit** `feat(redesign-clarifications): the core sends a round's parts and groups`
 
 ## Task 5: Warnings, and the writing limits in one module
 

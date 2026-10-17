@@ -583,6 +583,16 @@ export interface Constitution {
   document: Document
 }
 
+/** A part of a round's context: a `###` sub-heading and its blocks. */
+export interface ContextPart {
+  /** Its heading's block, or none for the triage's one free part. */
+  heading?: number
+  /** Its heading's text, empty without a heading. */
+  title: string
+  /** Its top-level blocks. */
+  blocks: Array<number>
+}
+
 export interface Criterion {
   /** `SC-001`. */
   id: string
@@ -1001,8 +1011,13 @@ export interface QuestionItem {
   startLine: number
   endLine: number
   headingBlock: number
-  /** Its context: the blocks between its heading and its answer, options aside. */
+  /**
+   * Its context: the blocks between its heading and its answer, options and "Why it matters"
+   * aside.
+   */
   context: Array<number>
+  /** Its paragraph starting "Why it matters". */
+  why?: number
   options: Array<Choice>
   answer: string
   /** The answer split as the UI composes it. */
@@ -1041,11 +1056,14 @@ export interface RoundItems {
   status?: string
   /** The `> [!IMPORTANT]` block, or its `> [!NOTE]` record. */
   block?: number
-  /** The blocks of the round's context section. */
-  context: Array<number>
+  /** The parts of the round's context section, in file order. */
+  context: Array<ContextPart>
   questions: Array<QuestionItem>
-  /** The blocks of the points settled without the human, up to the `**Notes:**` line. */
-  settled: Array<number>
+  /**
+   * The groups of the points settled without the human, in file order, up to the `**Notes:**`
+   * line.
+   */
+  settledGroups: Array<SettledGroup>
   /** The settled points that start in bold, which take comments. */
   settledPoints: Array<SettledPoint>
   /** The free notes, trimmed, without the comments on settled points. */
@@ -1112,6 +1130,16 @@ export interface SettledComment {
   point: number
   /** Its text, without the bullet, the subject, or the indentation. */
   text: string
+}
+
+/** A group of the points settled without the human: a `###` sub-heading and its blocks. */
+export interface SettledGroup {
+  /** Its heading's block. */
+  heading: number
+  /** `check`, `behaviour`, or `hood`, from "Check these", "Behaviour", and "Under the hood". */
+  kind: string
+  /** Its top-level blocks, before the `**Notes:**` line. */
+  blocks: Array<number>
 }
 
 /** A point settled without the human, by its bold start. */

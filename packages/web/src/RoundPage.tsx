@@ -2,7 +2,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
-import type { QuestionItem } from "uraeda-binding";
+import type { ContextPart, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
@@ -49,6 +49,13 @@ const styles = stylex.create({
     marginBlockEnd: spacingVars["--spacing-3"],
   },
 });
+
+/** The context's blocks: each part's heading, when it has one, then its blocks. */
+function contextBlocks(parts: ReadonlyArray<ContextPart>): Array<number> {
+  return parts.flatMap((part) =>
+    part.heading === undefined ? part.blocks : [part.heading, ...part.blocks],
+  );
+}
 
 /**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
@@ -101,7 +108,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         </Heading>
       )}
       {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
-      <Blocks document={document} ids={round.context} />
+      <Blocks document={document} ids={contextBlocks(round.context)} />
       {questions
         .filter((q) => !q.parent)
         .map((question) => (

@@ -245,7 +245,10 @@ function QuestionCard({
   const head = (
     <VStack gap={3}>
       {wide && title}
-      <RichBlocks document={document} ids={question.context} />
+      <RichBlocks
+        document={document}
+        ids={question.why === undefined ? question.context : [...question.context, question.why]}
+      />
     </VStack>
   );
   const answering = (

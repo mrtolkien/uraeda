@@ -1,7 +1,10 @@
 //! A clarifications round's items: its questions and their options, its context, the points
 //! settled without the human, and the notes.
 
-use super::{Choice, QuestionItem, RoundItems, SettledComment, SettledPoint, headings, section};
+use super::{
+    Choice, ContextPart, QuestionItem, RoundItems, SettledComment, SettledGroup, SettledPoint,
+    headings, section,
+};
 use crate::files::clarifications::{self, Applicability};
 use crate::files::document::{Block, BlockKind, Document, ItemMarker, plain};
 use crate::files::frontmatter;
@@ -13,6 +16,72 @@ fn named_section(doc: &Document, title: &str) -> Vec<u32> {
         .find(|(_, level, text)| *level == 2 && text == title)
         .map(|(index, _, _)| section(doc, index, 2))
         .unwrap_or_default()
+}
+
+/// The parts of the level-2 section titled `title`, in order: the blocks before its first `###`
+/// sub-heading when there are some, then each sub-heading's index in blocks and its top-level
+/// blocks. Deeper headings are left out, as `section` leaves them.
+fn parts(doc: &Document, title: &str) -> Vec<(Option<usize>, Vec<u32>)> {
+    let Some((start, _, _)) = headings(doc)
+        .into_iter()
+        .find(|(_, level, text)| *level == 2 && text == title)
+    else {
+        return Vec::new();
+    };
+    let mut parts: Vec<(Option<usize>, Vec<u32>)> = vec![(None, Vec::new())];
+    for (index, block) in doc.blocks.iter().enumerate().skip(start + 1) {
+        let level = block.level.unwrap_or(1);
+        if block.kind == BlockKind::Heading && level <= 2 {
+            break;
+        }
+        if block.kind == BlockKind::Heading && level == 3 {
+            parts.push((Some(index), Vec::new()));
+        } else if block.parent.is_none() && block.kind != BlockKind::Heading {
+            parts.last_mut().expect("a part").1.push(block.id);
+        }
+    }
+    if parts[0].1.is_empty() {
+        parts.remove(0);
+    }
+    parts
+}
+
+/// The round's context parts: its `###` sub-headings, or the triage's one free part.
+fn context_parts(doc: &Document) -> Vec<ContextPart> {
+    parts(doc, "Context")
+        .into_iter()
+        .map(|(heading, blocks)| ContextPart {
+            heading: heading.map(|i| doc.blocks[i].id),
+            title: heading.map_or_else(String::new, |i| plain(&doc.blocks[i].spans)),
+            blocks,
+        })
+        .collect()
+}
+
+/// The settled groups by their sub-heading, with their blocks before the `**Notes:**` line. An
+/// unknown sub-heading, which `ura check` reports, makes no group.
+fn settled_groups(doc: &Document, notes_line: usize) -> Vec<SettledGroup> {
+    parts(doc, "Settled without the human")
+        .into_iter()
+        .filter_map(|(heading, blocks)| {
+            let heading = &doc.blocks[heading?];
+            let kind = match plain(&heading.spans).as_str() {
+                "Check these" => "check",
+                "Behaviour" => "behaviour",
+                "Under the hood" => "hood",
+                _ => return None,
+            };
+            let blocks = blocks
+                .into_iter()
+                .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
+                .collect();
+            Some(SettledGroup {
+                heading: heading.id,
+                kind: kind.to_string(),
+                blocks,
+            })
+        })
+        .collect()
 }
 
 /// The top-level blocks of the points settled without the human, before the `**Notes:**` line.
@@ -117,22 +186,8 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
             Some(Applicability::No) => "no",
             _ => "yes",
         };
-        let mut context = Vec::new();
-        let mut options = Vec::new();
-        for block in &doc.blocks[*index + 1..end_index] {
-            if block.parent.is_some() || block.kind == BlockKind::Heading {
-                continue;
-            }
-            if answer_line > 0 && block.start_line >= answer_line {
-                continue;
-            }
-            let choices = choices(doc, block);
-            if choices.is_empty() {
-                context.push(block.id);
-            } else {
-                options.extend(choices);
-            }
-        }
+        let (context, why, options) =
+            question_blocks(doc, &doc.blocks[*index + 1..end_index], answer_line);
         let parent_id = parent.as_ref().map(|(p, _)| p.clone());
         questions.push(QuestionItem {
             id,
@@ -143,6 +198,7 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
             end_line,
             heading_block: heading.id,
             context,
+            why,
             options,
             answer,
             letters: picked,
@@ -162,14 +218,46 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
     RoundItems {
         status,
         block,
-        context: named_section(doc, "Context"),
+        context: context_parts(doc),
         questions,
-        settled: settled_section(doc, notes_line),
+        settled_groups: settled_groups(doc, notes_line),
         settled_points,
         notes: free,
         notes_line: notes.map(|(line, _)| line as u32),
         settled_comments: settled_comments.unwrap_or_default(),
     }
+}
+
+/// A question's top-level blocks before its answer, split into its context, its "Why it matters"
+/// paragraph, and its options.
+fn question_blocks(
+    doc: &Document,
+    blocks: &[Block],
+    answer_line: u32,
+) -> (Vec<u32>, Option<u32>, Vec<Choice>) {
+    let mut context = Vec::new();
+    let mut why = None;
+    let mut options = Vec::new();
+    for block in blocks {
+        if block.parent.is_some() || block.kind == BlockKind::Heading {
+            continue;
+        }
+        if answer_line > 0 && block.start_line >= answer_line {
+            continue;
+        }
+        let choices = choices(doc, block);
+        if why.is_none()
+            && block.kind == BlockKind::Paragraph
+            && plain(&block.spans).starts_with("Why it matters")
+        {
+            why = Some(block.id);
+        } else if choices.is_empty() {
+            context.push(block.id);
+        } else {
+            options.extend(choices);
+        }
+    }
+    (context, why, options)
 }
 
 /// The options of a list whose items are `- **A. ...**`, or nothing for any other block.
