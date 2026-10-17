@@ -69,6 +69,10 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
   (`no matches found: --include=*.ts`). Quote globs, `--include='*.ts'`, or use `rg -g '*.ts'`.
 - Run the toolchain inside the dev shell, `nix develop -c <command>`: outside it, `cargo nextest`,
   `stylua`, and other pinned tools are missing.
+- In a new worktree, the dev shell clones the main checkout's `target/` and Vite Task cache once, so
+  the first build compiles only the workspace's crates: see
+  `packages/server/scripts/worktree-seed.ts`. `du` counts the clone's shared blocks;
+  `btrfs filesystem du` does not.
 - The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:
   it rewrote the section unwrapped, which fails the format check. Edit it by hand, or copy a newer
   version from `node_modules/vite-plus/AGENTS.md`.
