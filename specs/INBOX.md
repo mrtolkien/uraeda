@@ -80,3 +80,6 @@
 - [agent] [symlinks] worktree-seed's publish swallows a lost rename and still reports 'seeded'; a
   main checkout task cache with no files also reports 'seeded' and retries at every shell
   (packages/server/scripts/worktree-seed.ts)
+- [agent] [symlinks] The dev shell's seed hook assumes the current repository is Uraeda: nix develop
+  on this flake from another project's worktree prints a module-not-found error at every shell, and
+  the hook overwrites a 'root' variable (flake.nix shellHook)
