@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Storybook's full interface in Uraeda
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 8 minutes.
+> Approved on 2026-10-17.
 >
 > - **A Storybook guard is relaxed, in every project Uraeda previews.** The skill's helper turns on
 >   `security.insecureIframeMessaging` when Uraeda serves a Storybook. Storybook's interface then
