@@ -199,9 +199,17 @@ function ArchivedChats({ pathname, rows }: { pathname: string; rows: Array<Row> 
   );
 }
 
-/** The flow's rows: the inbox and the priorities, with their counts and their ＋. */
+/**
+ * The flow's rows: the inbox and the priorities, with their counts and their ＋. Now counts its
+ * entries whose feature or change does not run, as the priorities page does.
+ */
 function Flow({ data, pathname }: { data: Data; pathname: string }) {
-  const now = (data.workspace?.priorities ?? []).filter((entry) => entry.section === "now").length;
+  const running = new Set(
+    (data.workspace?.features ?? []).filter(inFlight).map((feature) => feature.folder),
+  );
+  const now = (data.workspace?.priorities ?? []).filter(
+    (entry) => entry.section === "now" && !(entry.feature && running.has(entry.feature)),
+  ).length;
   return (
     <>
       <Item
