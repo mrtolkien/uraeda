@@ -113,3 +113,5 @@
   such frames no contentDocument) and the guard to allow Origin: null reads of /assets/*
 - [agent] [redesign-clarifications] The settled fold reads "Show the 1 points" for a single point
   under the hood
+- [agent] [redesign-clarifications] block.count warns on a round sent back for blank answers, whose
+  first line names the blank questions ("2 questions still need an answer: Q3 and Q5")
