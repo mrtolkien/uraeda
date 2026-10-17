@@ -751,8 +751,8 @@ git commit -m "feat(redesign-specs): the core compares two versions of a decisio
 
 **Files:**
 
-- Modify: `packages/web/src/useCommentDraft.ts`, `packages/web/src/StoryFrames.tsx`; create a hook
-  under `packages/web/src/` if the place keeping is its own unit
+- Modify: `packages/web/src/useCommentDraft.ts`, `packages/web/src/StoryFrames.tsx`
+- Create: `packages/web/src/keepPlace.ts`, the place kept across a change (R25)
 - Test: `packages/web/src/__browser__/reading-place.test.tsx`
 
 Do not touch `ReviewPage.tsx` or `Folds.tsx`: task 2 changes them in the same wave.
@@ -764,7 +764,7 @@ Do not touch `ReviewPage.tsx` or `Folds.tsx`: task 2 changes them in the same wa
   or closes, at both widths. Its signature does not change. A story frame keeps its last height
   until its story reports a new one.
 
-- [ ] **Step 1: Check scroll anchoring in WebKit**
+- [x] **Step 1: Check scroll anchoring in WebKit**
 
 The spec marks it unverified in Safari. Write the browser test first, on a plain page: a 560 px
 block above the screen grows to 700 px, and the text on screen moves by at most 4 px with the
@@ -773,7 +773,10 @@ fix relies on it and keeps the test. If it fails, the page keeps your place itse
 allows: measure the tapped or top block before the change and scroll by the difference after it.
 Write the outcome as a ruling.
 
-- [ ] **Step 2: Write the failing tests**
+Outcome: it fails, on every page drawn after the first (R25). The page keeps your place itself, and
+the plain-page check is not kept as a test.
+
+- [x] **Step 2: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/reading-place.test.tsx
@@ -786,36 +789,43 @@ test("saving a comment keeps the heading you read in place", async () => {
   expect(Math.abs((await topOf(heading("US2"))) - before)).toBeLessThanOrEqual(4);
 }); // atSize("both")
 
+test("the form moving down to the block you tap leaves that block in place", async () => {
+  // On a desktop: tap US2's first block, then its third, under which the form moves.
+  expect(Math.abs((await topOf(third)) - before)).toBeLessThanOrEqual(4);
+});
+
 test("a story frame above you that grows does not move the text", async () => {
   // A frame above the screen reports 560 px, then 700 px.
   expect(Math.abs(moved)).toBeLessThanOrEqual(4);
 });
 ```
 
-The break each test catches:
+The break each test catches (R26):
 
-- Saving: the form's height removed from above the block without scrolling back.
-- Growing frame: the frame's height set to `auto` before the story measures, or anchoring turned off
-  by `overflow-anchor: none` on the page.
+- Saving: on the phone, the tapped block moved to the sheet's top though the sheet does not hide it.
+- Form moving: the form's height removed from above the tapped block without scrolling back.
+- Growing frame: the frame's growth above the screen not scrolled back.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `nix develop -c vp run browser:desktop`, `nix develop -c vp run browser:phone`
 - Expected: FAIL, `expected 96 to be less than or equal to 4`, or similar, on saving
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 Measure the tapped block's top before the form opens, moves, or closes, and restore it after the
 layout settles, at both widths: on the phone, after the sheet settles, as `placeAboveSheet` does
-today. A story frame keeps the last height it was given until the story reports another.
+today, moving it above the sheet only when the sheet hides it (R26). A story frame keeps the last
+height it was given until the story reports another, and a frame wholly above the screen keeps the
+text below it in place as it grows.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp run ts:test`,
   `nix develop -c vp run browser:phone`, `nix develop -c vp run browser:desktop`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/src
