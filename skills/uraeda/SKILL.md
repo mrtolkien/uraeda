@@ -142,7 +142,7 @@ step. By hand:
 | `spec.md` is `approved`, and there is no `plan.md`                                              | [Plan](references/plan.md)                                   |
 | `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`                 | [Plan](references/plan.md), revision                         |
 | `plan.md` is `changes-requested`                                                                | [Plan](references/plan.md), revision                         |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                | [Implementation](references/implementation.md), next task    |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                | [Implementation](references/implementation.md), next wave    |
 | Every step of `plan.md` is checked, and the pull request is a draft                             | [Finish](references/finish.md)                               |
 | Every step of `plan.md` is checked, and the branch has no pull request                          | [Implementation](references/implementation.md), final review |
 | The branch's pull request has changes requested                                                 | [Implementation](references/implementation.md), changes      |

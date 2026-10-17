@@ -182,6 +182,16 @@ The decisions this plan relies on, and where it follows them:
 | `renderApp` and its helpers, in `tests/helpers/`        | Each integration test stays a few lines long                                              | Setting up the database, clock, and timezone in each test buries what it checks |
 | The failing store, in `renderApp`                       | Tests "Could not save" through the real app                                               | Mocking the store in one test would test the mock, not the error path           |
 
+## Waves
+
+The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
+
+1. Task 1: calendar-day due dates and their upgrade, which every later task is built on.
+2. Task 2: completing a repeating task, which defines `RepeatPattern` and `RepeatRule`.
+3. Task 3: the repeat menu, whose `setRepeat` and `pickRepeat` tasks 4 and 5 use.
+4. Tasks 4 and 5: the custom screen changes the components, and the title parser the repeat module
+   and the store. Both add their own helpers to `tests/helpers/app.tsx`.
+
 ---
 
 ## Task 1: Calendar-day due dates, and their upgrade
