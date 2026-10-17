@@ -29,10 +29,6 @@ READABILITY: rewording and redesign go together, the skill and the templates cha
 - Sometimes when I comment the page jumps around. Might be due to storybook embeds loading or
   something?
 
-- When I pick an element and try to comment on storybook, sometimes the element name seems
-  problematic:
-  - "Story WorkList.stories.tsx#Selected, desktop, element"
-
 ## Why
 
 Approving a spec is the human's most important job, and today it's a sea of bullet points.

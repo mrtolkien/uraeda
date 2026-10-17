@@ -89,7 +89,13 @@ const styles = stylex.create({
 export type Width = "phone" | "desktop";
 
 /** A message from a frame, which the embed reads only from its own frame's window. */
-type FrameMessage = { height?: unknown; name?: unknown; role?: unknown; uraeda: unknown };
+type FrameMessage = {
+  height?: unknown;
+  name?: unknown;
+  role?: unknown;
+  text?: unknown;
+  uraeda: unknown;
+};
 
 const SANDBOX = "allow-scripts allow-popups";
 
@@ -111,10 +117,10 @@ function heightOf(message: FrameMessage): number | undefined {
   return typeof height === "number" && Number.isFinite(height) && height > 0 ? height : undefined;
 }
 
-/** The element a `picked` message names, when it gives its role and name as text. */
-function pickedOf({ name, role }: FrameMessage): Picked | undefined {
+/** The element a `picked` message names, when it gives its role and name as text, with its text. */
+function pickedOf({ name, role, text }: FrameMessage): Picked | undefined {
   return typeof role === "string" && role !== "" && typeof name === "string"
-    ? { name, role }
+    ? { name, role, ...(typeof text === "string" && text !== "" ? { text } : {}) }
     : undefined;
 }
 
