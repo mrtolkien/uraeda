@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { keepPlace } from "./keepPlace.ts";
 import type { Picked } from "./storyComment.ts";
 
 const styles = stylex.create({
@@ -125,6 +126,18 @@ function pickedOf({ name, role, text }: FrameMessage): Picked | undefined {
 }
 
 /**
+ * Gives the frame a new height with `resize`. A frame wholly above the window's top would move the
+ * text read below it by the change: that text is kept in place (US7 2 of the spec redesign).
+ */
+function resizeKeepingPlace(stage: HTMLElement | null, resize: () => void) {
+  if (!stage || stage.getBoundingClientRect().bottom > 0) {
+    resize();
+    return;
+  }
+  void keepPlace(() => stage.getBoundingClientRect().bottom, resize);
+}
+
+/**
  * Pick mode, as the embed holds it: whether it is on, and what the frame says. The frame says it is
  * ready, which shows that its Storybook loads the pick script; that an element was picked in it;
  * or that Escape inside it stopped pick mode.
@@ -137,11 +150,11 @@ export type PickMode = {
 };
 
 /**
- * The frame's window, and the height its story reports. A frame that says `ready`, again after a
- * reload, is sent the colour mode, which it is sent again when it changes, and pick mode when on;
- * it is sent pick mode as it turns on or off.
+ * The frame's window, and the height its story reports, kept until it reports another. A frame that
+ * says `ready`, again after a reload, is sent the colour mode, which it is sent again when it
+ * changes, and pick mode when on; it is sent pick mode as it turns on or off.
  */
-function useFrame(pick: PickMode) {
+function useFrame(pick: PickMode, stage: RefObject<HTMLElement | null>) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [reported, setReported] = useState<number>();
   const { mode } = useTheme();
@@ -163,7 +176,7 @@ function useFrame(pick: PickMode) {
     } else if (event.data.uraeda === "size") {
       const height = heightOf(event.data);
       if (height !== undefined) {
-        setReported(height);
+        resizeKeepingPlace(stage.current, () => setReported(height));
       }
     } else if (event.data.uraeda === "picked") {
       const picked = pickedOf(event.data);
@@ -309,10 +322,13 @@ export function StoryFrames({
   const stage = useRef<HTMLDivElement>(null);
   const seen = useSeen(stage);
   const shownWidth: Width = wide ? width : "phone";
-  const { frame, reported } = useFrame({
-    ...pick,
-    onPicked: (picked) => pick.onPicked(wide ? { ...picked, width: shownWidth } : picked),
-  });
+  const { frame, reported } = useFrame(
+    {
+      ...pick,
+      onPicked: (picked) => pick.onPicked(wide ? { ...picked, width: shownWidth } : picked),
+    },
+    stage,
+  );
   const space = useStage(stage);
   const desktop = shownWidth === "desktop";
   const scale = desktop && space ? space.width / space.desktop : 1;
