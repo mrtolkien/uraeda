@@ -22,7 +22,7 @@ import {
 const TITLE = "Centre the x in failure circles";
 const BODY = "In failures the x sits low in its circle.";
 /** The start of the change's first run, as the server writes it. */
-const RUN = "/uraeda:uraeda Continue the change specs/changes/";
+const RUN = "/uraeda Continue the change specs/changes/";
 /** The page's line under its heading. */
 const INTRO = "Describe the bug or the change. The first line is its title.";
 

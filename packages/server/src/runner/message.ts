@@ -65,7 +65,7 @@ export function runMessage(input: {
 }): string {
   const { stop, work } = goal(input.step, input.planReview);
   return (
-    `/uraeda:uraeda Continue the ${subject(input.feature)} on branch ${input.branch}: ` +
+    `/uraeda Continue the ${subject(input.feature)} on branch ${input.branch}: ` +
     `${work}, starting with ${input.reference}.\n` +
     `Stop when ${stop}, and earlier only if you need a decision from me.\n`
   );

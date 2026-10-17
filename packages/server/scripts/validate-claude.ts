@@ -488,14 +488,14 @@ try {
     // 2. A first run, with the skill.
     const sessionId = randomUUID();
     const first = await run(
-      "/uraeda:uraeda Reply with the single word ready, and do nothing else.",
+      "/uraeda Reply with the single word ready, and do nothing else.",
       sessionId,
       false,
     );
     const init = find(first, "init");
     const result = find(first, "result");
     report(
-      "a first run loads the uraeda plugin, runs /uraeda:uraeda, and ends with an ok result",
+      "a first run loads the uraeda plugin, runs /uraeda, and ends with an ok result",
       init?.sessionId === sessionId &&
         init.plugins.includes("uraeda") &&
         init.pluginErrors.length === 0 &&

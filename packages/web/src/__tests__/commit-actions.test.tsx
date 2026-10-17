@@ -23,13 +23,13 @@ const SPEC = `/f/${RECURRING}/spec.md`;
 
 /** The workflow's message once round 01 of the web UI is answered. */
 const ANSWERED = [
-  `/uraeda:uraeda Continue the feature specs/${WEB_UI}/ on branch ${WEB_UI}: Write the spec from the answers, starting with skills/uraeda/references/spec.md.`,
+  `/uraeda Continue the feature specs/${WEB_UI}/ on branch ${WEB_UI}: Write the spec from the answers, starting with skills/uraeda/references/spec.md.`,
   "Stop when the spec waits for my review, and earlier only if you need a decision from me.",
 ].join("\n");
 
 /** The workflow's message when the human asks the CLI's agent to continue. */
 const MANUAL = [
-  `/uraeda:uraeda Continue the feature specs/${CLI}/ on branch ${CLI}: Write the plan, starting with skills/uraeda/references/plan.md.`,
+  `/uraeda Continue the feature specs/${CLI}/ on branch ${CLI}: Write the plan, starting with skills/uraeda/references/plan.md.`,
   "Stop when the plan waits for my review, and earlier only if you need a decision from me.",
 ].join("\n");
 

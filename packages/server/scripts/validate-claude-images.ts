@@ -167,7 +167,7 @@ export async function imageChecks(
   );
   const linkedPath = join(cwd, attached.path);
   const asked = await run(
-    `/uraeda:uraeda Do not continue the workflow, and change no file. What does ${proposal} ask for? Answer in two sentences.`,
+    `/uraeda Do not continue the workflow, and change no file. What does ${proposal} ask for? Answer in two sentences.`,
     randomUUID(),
     false,
   );

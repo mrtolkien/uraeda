@@ -39,7 +39,7 @@ const PLAN = {
 
 test("the message names the skill, the goal, the reference, and where to stop", () => {
   expect(runMessage({ ...PLAN, planReview: false })).toBe(
-    "/uraeda:uraeda Continue the feature specs/2026-10-12-cli-tuis/ on branch 2026-10-12-cli-tuis: " +
+    "/uraeda Continue the feature specs/2026-10-12-cli-tuis/ on branch 2026-10-12-cli-tuis: " +
       "Write the plan, then implement it, starting with skills/uraeda/references/plan.md.\n" +
       "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
   );
@@ -77,7 +77,7 @@ test("a change's message names its folder under specs/changes/", () => {
       step: "change",
     }),
   ).toBe(
-    "/uraeda:uraeda Continue the change specs/changes/2026-10-16-centred-x/ on branch " +
+    "/uraeda Continue the change specs/changes/2026-10-16-centred-x/ on branch " +
       "change/2026-10-16-centred-x: Investigate it, then make the change, starting with " +
       "skills/uraeda/references/change.md.\n" +
       "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
@@ -138,9 +138,9 @@ test('a chat of text and images is titled by its text, and of images alone "Imag
 /** US4 1 and 3 of the inbox: the skill's inbox reference answers these two messages. */
 test("the inbox's triage messages", () => {
   expect(ORGANIZE_INBOX).toBe(
-    "/uraeda:uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
+    "/uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
   );
   expect(APPLY_TRIAGE).toBe(
-    "/uraeda:uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
+    "/uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
   );
 });

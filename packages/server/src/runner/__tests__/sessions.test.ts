@@ -369,7 +369,7 @@ test("US2.2: a workflow message starts a workflow turn", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
-  const text = "/uraeda:uraeda Continue the feature.\nKeep the plan short.";
+  const text = "/uraeda Continue the feature.\nKeep the plan short.";
 
   const { turn } = await sessions.send(repo, session.id, {
     text,
