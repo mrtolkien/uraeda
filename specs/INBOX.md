@@ -121,3 +121,5 @@
   points even when there are none, as on the triage
 - [agent] [redesign-clarifications] A #### heading in a round Context is dropped from the page, and
   ura check says nothing
+- [agent] [redesign-clarifications] section() in items.rs stops at a quoted ## heading, cutting the
+  settled points after it
