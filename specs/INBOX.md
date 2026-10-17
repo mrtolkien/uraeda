@@ -145,3 +145,6 @@
 - [agent] [redesign-clarifications] Round card tests leave the 5 to 6 ratio, the follow-up joint and
   indent, the phone follow-up accent, and the option focus ring untested, and some find elements by
   Astryx class names
+- [agent] [redesign-clarifications] specs/backlog/benchmarks/clarifications-01.md has 4 sentences
+  over 25 words, and follow-ups shared by two options (Only if you picked A or C), which the core
+  shows for one letter only
