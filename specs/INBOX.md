@@ -115,3 +115,5 @@
   under the hood
 - [agent] [redesign-clarifications] block.count warns on a round sent back for blank answers, whose
   first line names the blank questions ("2 questions still need an answer: Q3 and Q5")
+- [agent] [redesign-clarifications] A comment saved with no letter picked but starting like "A: ..."
+  or "B, ..." reads back as that letter picked, and opens its follow-ups: the web UI could warn
