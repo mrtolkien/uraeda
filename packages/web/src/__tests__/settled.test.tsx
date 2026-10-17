@@ -144,7 +144,7 @@ test("Under the hood stays open when an answer is saved", async () => {
   await point(HOOD);
 
   const q2 = document.getElementById("Q2") as HTMLElement;
-  await click(within(q2).getByRole("checkbox", { name: "Option A" }));
+  await click(within(q2).getByRole("checkbox", { name: /^Option A\b/ }));
   await waitFor(() => expect(text(repo)).toContain("**Answer:** A"));
   await waitFor(() => expect(within(q2).getByText("saved ✓")).toBeTruthy());
 

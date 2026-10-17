@@ -17,7 +17,7 @@ import { useContext } from "react";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { StaticImages } from "./ImageView.tsx";
-import { Spans } from "./Spans.tsx";
+import { plain, Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import type { useAnswer } from "./useAnswer.ts";
 import { holdsStory, type Stories, StoryContext } from "./stories.tsx";
@@ -158,6 +158,12 @@ function Points({ choice, document }: { choice: Choice; document: Document }) {
   );
 }
 
+/** An option's accessible name: its letter, "recommended" when it is, and its sentence. */
+function optionName(choice: Choice) {
+  const recommended = choice.recommended ? " (recommended)" : "";
+  return `Option ${choice.letter}${recommended}: ${plain(choice.summary)}`;
+}
+
 /**
  * An option as a card the human picks: "Recommended", its letter and sentence, its points, and its
  * other blocks; its stories under the card, never inside it, where their frames would be inert.
@@ -185,7 +191,7 @@ function OptionCard({
       <SelectableCard
         isDisabled={disabled}
         isSelected={selected}
-        label={`Option ${choice.letter}`}
+        label={optionName(choice)}
         onChange={onToggle}
         padding={wide ? 3 : 4}
         xstyle={[!wide && styles.optionPhone, disabled && styles.optionReadOnly]}

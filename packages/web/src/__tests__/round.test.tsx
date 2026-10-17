@@ -63,7 +63,7 @@ function question(id: string) {
 /** The option of a question, by its letter: its card's checkbox, checked once picked. */
 function option(id: string, letter: string) {
   return within(question(id)).getByRole("checkbox", {
-    name: `Option ${letter}`,
+    name: new RegExp(String.raw`^Option ${letter}\b`),
   }) as HTMLInputElement;
 }
 
@@ -366,6 +366,19 @@ test("every question and option shows in full", async () => {
   expect(q2).toContain("any page you browse can.");
   expect(q2).not.toContain("…");
   expect(screen.queryByText("more")).toBeNull();
+});
+
+/** A screen reader hears an option's letter, whether it is recommended, and its sentence. */
+test("an option's checkbox is named by its letter and its sentence", async () => {
+  await renderPage(PAGE);
+  await screen.findByText("How does your iPhone reach the server?");
+
+  expect(option("Q1", "B").getAttribute("aria-label")).toBe(
+    "Option B: Answering and reviewing only.",
+  );
+  expect(option("Q1", "A").getAttribute("aria-label")).toMatch(
+    /^Option A \(recommended\): Every human step: answering, reviewing specs/,
+  );
 });
 
 /** Review focus 5: a comment saved, then a tap before its save returns, is not a conflict. */

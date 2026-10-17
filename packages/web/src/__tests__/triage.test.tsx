@@ -49,7 +49,7 @@ function question(id: string) {
 /** The option of a question, by its letter: its card's checkbox. */
 function option(id: string, letter: string) {
   return within(question(id)).getByRole("checkbox", {
-    name: `Option ${letter}`,
+    name: new RegExp(String.raw`^Option ${letter}\b`),
   }) as HTMLInputElement;
 }
 
