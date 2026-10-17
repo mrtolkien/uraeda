@@ -247,7 +247,7 @@ fn fixed_children<'a>(slots: &'a [TemplateHeading], heading: &Heading) -> Option
 
 /// Unknown level-2 sections, unless the template lets any heading in, and in a round, unknown
 /// level-3 headings under a section whose template has only fixed ones: the Context and the
-/// settled points.
+/// settled points. A heading in a quote or a callout is the quote's, and left out.
 fn check_unknown(
     file: &File<'_>,
     document: &Document,
@@ -259,7 +259,7 @@ fn check_unknown(
         .any(|s| s.level == 2 && matches!(s.slot, Slot::Free));
     let round = file.kind == Checked::Workflow(FileKind::Clarifications);
     let mut parent: Option<&Heading> = None;
-    for heading in &document.headings {
+    for heading in document.headings.iter().filter(|h| !h.quoted) {
         if heading.level == 2 {
             parent = Some(heading);
         }

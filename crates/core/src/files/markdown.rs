@@ -10,6 +10,8 @@ pub struct Heading {
     pub level: u8,
     pub text: String,
     pub line: usize,
+    /// Whether it sits in a quote or a callout, like a source's quoted heading.
+    pub quoted: bool,
 }
 
 /// A link: a markdown link's or image's destination, or a wikilink's target.
@@ -95,6 +97,7 @@ impl Document {
                         level: heading_level(level),
                         text: String::new(),
                         line: lines.of(range.start),
+                        quoted: quote_depth > 0,
                     });
                 }
                 Event::End(TagEnd::Heading(_)) => {
