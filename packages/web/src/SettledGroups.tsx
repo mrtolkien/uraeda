@@ -105,8 +105,8 @@ function Group({
 
 /**
  * The points a round settled without the human, under "Settled without you", in the groups the
- * round has: a card on a wide screen, none on the phone, after the page's band. `points` draws a
- * group's blocks.
+ * round has: a card on a wide screen, and none on the phone, after the page's band there. `points`
+ * draws a group's blocks.
  */
 export function SettledGroups({
   document,

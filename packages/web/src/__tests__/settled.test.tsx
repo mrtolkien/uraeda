@@ -104,6 +104,39 @@ async function addComment(subject: string, comment: string) {
   await click(formButton("Add comment"));
 }
 
+/**
+ * What comes right before the settled section in the page: the section is the page's child that
+ * holds "Settled without you", and its siblings hold the questions.
+ */
+function beforeSettled() {
+  let section: HTMLElement = screen.getByRole("heading", { level: 2, name: "Settled without you" });
+  while (section.parentElement && !section.parentElement.querySelector("#Q1")) {
+    section = section.parentElement;
+  }
+  return section.previousElementSibling as HTMLElement;
+}
+
+/** The spec's SettledGroups: a card on a wide screen, after the questions with no band. */
+test("on a wide screen, the settled card follows the questions without a band", async () => {
+  atWidth(1440);
+  await renderPage(PAGE, round({ settled: groupedSettled }));
+  await point(UNDO);
+
+  expect(beforeSettled().querySelector("#Q3")).toBeTruthy();
+});
+
+/** The spec's SettledGroups: on the phone, a band, then the points with no card. */
+test("on the phone, a band comes before the settled points", async () => {
+  atWidth(402);
+  await renderPage(PAGE, round({ settled: groupedSettled }));
+  await point(UNDO);
+
+  const band = beforeSettled();
+  expect(band.querySelector("#Q3")).toBeNull();
+  expect(band.childElementCount).toBe(0);
+  expect(band.textContent).toBe("");
+});
+
 /** Redesign US4.1: the groups, "Under the hood" folded with the count of its points. */
 test("the settled points show in their groups, Under the hood folded", async () => {
   await renderPage(PAGE, round({ settled: groupedSettled }));
