@@ -108,7 +108,8 @@ source of truth.
   quotes its lines, as a quote block, then says what it has to say.
 - **A comment on a story**, written from Uraeda, starts with `Story <file name>#<export>`. When the
   human picked an element, `, <phone or desktop>, <role> “<name>”` follows: the width only while
-  both showed, and the role alone when the element has no name. Then `: ` and the text:
+  both showed; without a name, `<role> with “<its text's first 40 characters>”`, or the role alone
+  when it has no text either. Then `: ` and the text:
   `Story RepeatMenu.stories.tsx#Open, phone, button “Weekly”: Too small to tap.` On a question's
   variant, the same line is added to its answer, and in a session to the human's message.
 - **Changes requested** need at least one comment.
