@@ -32,6 +32,21 @@ READABILITY: rewording and redesign go together, the skill and the templates cha
 - Sometimes when I comment the page jumps around. Might be due to storybook embeds loading or
   something?
 
+## Decisions
+
+Review decisions creation and meaning -> right now they are too verbose and not human-checked enough
+This deserves a dedicated diff view with the spec step
+
+## Hierarchy
+
+First should be a decisions list where I can easily see the diff against existing decision in case
+of an edit. It should be easy to comment on the changes to decisions.
+
+Then we have a clear, linear document that can be read smoothly by a human in one setting with close
+to no extra context. Remove the big links to mockups now that they are embedded. In the case of a v2
+or more spec, make sure the comments responses are present with the comments, in a clear “Comments
+feedback” card at the top
+
 ## Why
 
 Approving a spec is the human's most important job, and today it's a sea of bullet points.
