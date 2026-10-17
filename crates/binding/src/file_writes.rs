@@ -4,6 +4,7 @@ use std::path::Path;
 
 use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
+use uraeda_core::actions::review::DecisionTarget;
 use uraeda_core::api;
 use uraeda_core::view::{CommitView, FileView};
 
@@ -104,7 +105,8 @@ pub fn retry_commit(repo: String, folder: String, name: String) -> AsyncTask<Job
     job(move || api::retry_commit(Path::new(&repo), &folder, &name))
 }
 
-/// Comments on lines of a file as committed, or on the whole file without lines.
+/// Comments on lines of a file as committed, on lines of the decision `decision` names for a
+/// spec, or on the whole file without lines.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn add_comment(
     repo: String,
@@ -113,9 +115,10 @@ pub fn add_comment(
     start_line: Option<u32>,
     end_line: Option<u32>,
     text: String,
+    decision: Option<DecisionTarget>,
 ) -> AsyncTask<Job<FileView>> {
     let lines = start_line.map(|start| (start, end_line.unwrap_or(start)));
-    job(move || api::add_comment(Path::new(&repo), &folder, &file, lines, &text))
+    job(move || api::add_comment(Path::new(&repo), &folder, &file, lines, &text, decision))
 }
 
 /// Replaces the text of a pending comment.

@@ -70,7 +70,7 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
             );
         };
         let lines = lines(range).map_err(refused)?;
-        let added = review::comment(&git, &place, feature, &file, lines, text)
+        let added = review::comment(&git, &place, feature, &file, lines, text, None)
             .map_err(|e| refused(e.to_string()))?;
         output::say_place(&git, &place);
         if added.replaced {
@@ -84,6 +84,7 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
             Anchor::Lines(start, end, heading) => {
                 format!("on lines {start}–{end}, under \"{heading}\"")
             }
+            decision => format!("on {decision}"),
         };
         println!("C{} added to {}, {where_}.", added.number, added.review);
         return Ok(ExitCode::SUCCESS);

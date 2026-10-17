@@ -421,6 +421,44 @@ fn review_single_line_anchor() {
     );
 }
 
+const DECISION_REVIEW: &str = "---\nverdict: pending\ncommit: a1b2c3d\n---\n\n# Review: Spec, Recurring tasks\n\n## C1: Decision task-storage, lines 19–20, under \"Rules\"\n\n> - An upgrade that cannot read a saved value MUST clear it and log it, and MUST NOT delete a\n>   task.\n\nLog it where I can see it.\n\n## C2: Decision task-storage, line 19, under \"Rules\"\n\n> - A rule.\n\nShorter.\n\n## C3: Decision task-storage, lines 14–15 removed, under \"Rules\"\n\n> - A rule merged away.\n\nKeep it.\n";
+
+#[test]
+fn review_comments_on_a_decision_round_trip() {
+    let parsed = review::parse(DECISION_REVIEW).unwrap();
+
+    let decision = |start, end, removed| Anchor::Decision {
+        name: "task-storage".into(),
+        start,
+        end,
+        heading: "Rules".into(),
+        removed,
+    };
+    let anchors: Vec<_> = parsed.comments.iter().map(|c| c.anchor.clone()).collect();
+    assert_eq!(
+        anchors,
+        [
+            decision(19, 20, false),
+            decision(19, 19, false),
+            decision(14, 15, true)
+        ]
+    );
+    assert_eq!(
+        review::render(&parsed, "Review: Spec, Recurring tasks"),
+        DECISION_REVIEW
+    );
+}
+
+#[test]
+fn a_decision_comment_without_its_name_is_a_bad_anchor() {
+    let text = DECISION_REVIEW.replace("Decision task-storage, line 19", "Decision line 19");
+
+    assert!(matches!(
+        review::parse(&text),
+        Err(review::ReviewError::BadAnchor { line: 15, .. })
+    ));
+}
+
 #[test]
 fn priorities_entries_of_a_real_file() {
     let text = repository_file("fixtures/PRIORITIES.md");

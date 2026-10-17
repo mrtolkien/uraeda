@@ -108,7 +108,14 @@ export const fileMutations = {
       ctx,
       input,
       select,
-    }: Resolver<FileInput & { endLine?: number; startLine?: number; text: string }>) => {
+    }: Resolver<
+      FileInput & {
+        decision?: { name: string; removed: boolean };
+        endLine?: number;
+        startLine?: number;
+        text: string;
+      }
+    >) => {
       await writable(ctx, input);
       return file(
         ctx,
@@ -120,6 +127,7 @@ export const fileMutations = {
             input.startLine,
             input.endLine,
             input.text,
+            input.decision,
           ),
         ),
         select,
