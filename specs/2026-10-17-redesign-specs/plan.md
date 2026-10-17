@@ -646,7 +646,7 @@ git commit -m "feat(redesign-specs): specs open with their decisions, and storie
 
 - Create: `crates/core/src/decisions.rs` and `crates/core/src/decisions/change.rs`,
   `crates/core/src/decisions/strength.rs`
-- Modify: `crates/core/src/lib.rs` (`mod decisions`), `crates/core/src/git.rs` (`merge_base`)
+- Modify: `crates/core/src/lib.rs` (`pub mod decisions`), `crates/core/src/git.rs` (`merge_base`)
 - Test: `crates/core/tests/decision_change.rs`, `crates/core/tests/git.rs`
 
 **Interfaces:**
@@ -663,13 +663,15 @@ git commit -m "feat(redesign-specs): specs open with their decisions, and storie
     `DecisionChange { name: String, title: String, kind: String, listed: bool, compared: bool, sections: Vec<SectionChange> }`,
     `SectionChange { title: String, parts: Vec<PartChange> }`,
     `PartChange { kind: String, strength: Option<String>, before: Option<LineRange>, after: Option<LineRange>, runs: Vec<Run> }`,
-    `LineRange { start: u32, end: u32 }`, `Run { kind: String, text: String }`. `kind` of a change:
-    `new`, `changed`, or `removed`; of a part: `kept`, `changed`, `added`, or `removed`; of a run:
-    `kept`, `added`, or `removed`. `listed` is false and `compared` true from `compare`: task 7 sets
-    them. The intent's section has the title `""`.
+    `LineRange { start: u32, end: u32 }` (the document tree's,
+    [R20](rulings.md#r20-a-decisions-parts-compare-their-plain-text-and-reuse-the-documents-linerange)),
+    `Run { kind: String, text: String }`. `kind` of a change: `new`, `changed`, or `removed`; of a
+    part: `kept`, `changed`, `added`, or `removed`; of a run: `kept`, `added`, or `removed`.
+    `listed` is false and `compared` true from `compare`: task 7 sets them. The intent's section has
+    the title `""`.
   - `Git::merge_base(&self, a: ObjectId, b: ObjectId) -> Result<Option<ObjectId>>`, in `git.rs`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 A table of cases, each a before text, an after text, and the parts expected, written as
 `(section, kind, runs)` with the runs as `"=kept +added -removed"`:
@@ -714,12 +716,12 @@ The break each test catches:
 - Frontmatter: the frontmatter cut into parts.
 - Merge base: the tip of `main` returned instead of the common commit.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test decision_change --test git`
 - Expected: FAIL, `unresolved import uraeda_core::decisions`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Parse each version with the core's markdown parser, the frontmatter left out. A part is a top-level
 paragraph or list item, its text with every run of whitespace made one space; a section is the
@@ -732,13 +734,13 @@ the shorter part's words, best pair first; the rest stay added and removed. A pa
 order of the branch's version, removed parts at the place they held. `merge_base` wraps gix's
 `merge_base`, `None` when the two share no commit.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core`,
   `nix develop -c cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/decisions.rs crates/core/src/decisions crates/core/src/lib.rs crates/core/src/git.rs crates/core/tests/decision_change.rs crates/core/tests/git.rs
