@@ -290,16 +290,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: nothing else depends on it.
 - **Where**: task 5
 
-## R32: Changes made while a place is kept join that place
+## R32: Changes made while a place is kept join that place, and only that place
 
-- **Decision**: `keepPlace` keeps one place at a time. A change made before the place being kept is
-  put back joins it: the first place read is put back once, two frames after the last change. A
+- **Decision**: `keepPlace` keeps each place on its own, by its reader. A change made before the
+  place being kept is put back joins it when it keeps the same place, read with the same function:
+  the first place read is put back once, two frames after the last change. `topOf` and `bottomOf`
+  give the same reader for the same element. A place read with another reader is kept on its own,
+  from where it is read then; each correction reads the page after the corrections run before it. A
   place that read NaN when kept is not joined: the new change keeps its own.
 - **Rationale**: each call measured its place before its own change and put it back two frames
   later, so a second change drawn meanwhile was corrected twice: a story frame above the screen
-  reporting 560, 700, then 720 px left the text 140 px off.
+  reporting 560, 700, then 720 px left the text 140 px off. The first fix joined any change to the
+  place kept, whatever its place: a comment tap while a story frame's size was being kept put the
+  frame's place back, not the tapped block's, which the review's fixes found.
 - **Alternatives considered**: each call keeping its own place, its measure shifted by the
-  corrections still pending: the pending changes' moves at another place are not known.
+  corrections still pending: the pending changes' moves at another place are not known. A keep for
+  another place replacing the pending one: the replaced place's own change would never be corrected.
 - **If wrong**: `keepPlace` in `packages/web/src/keepPlace.ts`.
 - **Where**: the review's fixes
 
