@@ -83,3 +83,5 @@
 - [agent] [symlinks] The dev shell's seed hook assumes the current repository is Uraeda: nix develop
   on this flake from another project's worktree prints a module-not-found error at every shell, and
   the hook overwrites a 'root' variable (flake.nix shellHook)
+- [agent] [symlinks] The first dev shell in a new worktree blocks about 8 s while target/ is cloned,
+  without saying so: print a line before the clone (packages/server/scripts/worktree-seed.ts)
