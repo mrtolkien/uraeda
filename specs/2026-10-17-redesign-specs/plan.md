@@ -922,7 +922,7 @@ git commit -m "fix(redesign-specs): the edit box hides the frontmatter its contr
   part. The warnings and the problem of the global constraints.
   `pub const SPEC_WORDS: usize = 2_500`, `pub const DECISION_RULES: usize = 10`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/check.rs
@@ -956,7 +956,7 @@ fn the_example_and_its_data_model_have_no_problem_nor_warning() { /* US1 3 */ }
 fn the_example_spec_is_at_most_2000_words() { /* SC-001: reviewed_words(example spec) <= 2_000 */ }
 
 #[test]
-fn every_decision_of_the_repository_holds_at_most_10_rules() { /* SC-002: no decision.rules over specs/decisions/, and the 17 rewritten hold at most 9,400 words together */ }
+fn every_decision_of_the_repository_holds_at_most_10_rules() { /* SC-002: no decision.rules over specs/decisions/, and the 18 decisions the spec lists hold at most 9,400 words together (R42) */ }
 ```
 
 The `each_rule` table gains a row per new code.
@@ -970,29 +970,30 @@ The break each test catches:
 - 12 rules: nested items counted as rules.
 - Order: comparing keywords alphabetically, or MUST NOT ranked after SHOULD.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test check`
 - Expected: FAIL, `cannot find function reviewed_words`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `check/spec.rs`: on a spec, `edges.importance` on each edge row whose importance is not `high`,
 `normal`, or `niche`, at any status. On a waiting spec only: `spec.length` past `SPEC_WORDS`, its
 number written with a thousands comma, and `block.items` past 7, sharing the round's count. The
 reviewed words are those of every measured block after the title, by `writing.rs`'s `measured_text`,
-tables included, code and the block excluded, `## History` and the stories' `more` lists left out.
-`check/decision.rs`: on a decision and the preview decision, at any status, `decision.rules` past
-`DECISION_RULES`, on the `## Rules` heading's line, and `decision.order` on the first rule weaker
-than the one before it, its message naming both rules' keywords. `check_file` calls both by kind.
+tables included, code and the block excluded, `## History` and the stories' `more` lists left out
+(R41). `check/decision.rs`: on a decision and the preview decision, at any status, `decision.rules`
+past `DECISION_RULES`, on the `## Rules` heading's line, and `decision.order` on the first rule
+stronger than the rule with a keyword before it, its message naming both rules' keywords (R40).
+`check_file` calls both by kind.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core`, `nix develop -c vp run ready`
 - Expected: PASS. `ura check specs` prints `decision.order` warnings for `compatibility.md` and
   `diagrams.md`, whose approved text this feature keeps: note them for the pull request.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core

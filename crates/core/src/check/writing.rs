@@ -33,8 +33,10 @@ fn check_block(
     block: u32,
     problems: &mut Vec<Problem>,
 ) {
-    let children: Vec<&Block> = document.children(block).collect();
-    if let Some(first) = children.iter().find(|b| b.kind == BlockKind::Paragraph) {
+    if let Some(first) = document
+        .children(block)
+        .find(|b| b.kind == BlockKind::Paragraph)
+    {
         let follow_ups = items
             .questions
             .iter()
@@ -55,8 +57,19 @@ fn check_block(
             ));
         }
     }
-    let listed: Vec<&Block> = children
-        .iter()
+    check_block_items(file, document, block, problems);
+}
+
+/// Warns when a block, a round's or a spec's, holds more than `BLOCK_ITEMS` items in its lists
+/// (`block.items`), on the first item past the limit.
+pub(super) fn check_block_items(
+    file: &File<'_>,
+    document: &Document,
+    block: u32,
+    problems: &mut Vec<Problem>,
+) {
+    let listed: Vec<&Block> = document
+        .children(block)
         .filter(|b| b.kind == BlockKind::List)
         .flat_map(|list| document.children(list.id))
         .filter(|b| b.kind == BlockKind::Item)
@@ -187,7 +200,7 @@ fn check_sentences(
 }
 
 /// The text of spans that is measured: links' text, code, and images count for nothing.
-fn measured_text(spans: &[Span]) -> String {
+pub(super) fn measured_text(spans: &[Span]) -> String {
     spans
         .iter()
         .map(|span| {
@@ -219,7 +232,7 @@ fn sentences(text: &str) -> Vec<Vec<&str>> {
 }
 
 /// Whether a token is a word: it holds a letter or a digit, so a dash is not one.
-fn is_word(token: &str) -> bool {
+pub(super) fn is_word(token: &str) -> bool {
     token.chars().any(char::is_alphanumeric)
 }
 
