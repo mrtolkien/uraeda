@@ -396,16 +396,16 @@ key on their bold subject; Submit flips the block's first paragraph only
 - Modify: `packages/web/src/Blocks.tsx` (`TableNode`; split `blockElement` first if it grows)
 - Test: `packages/web/src/__browser__/blocks.test.tsx` (new)
 
-- [ ] **Step 1: Write the failing tests** (US2.5, edge case wide table), phone and desktop: a
+- [x] **Step 1: Write the failing tests** (US2.5, edge case wide table), phone and desktop: a
       3-column table in a round: each header cell at least 144 px wide, the table's region
-      `scrollWidth > clientWidth`, and `document.documentElement.scrollWidth` equal to the window's
-      width; cells keep their links.
-- [ ] **Step 2: Run them to check they fail**: `vp test --project phone`: FAIL, a column under 144.
-- [ ] **Step 3: Implement** with Astryx's `columns`, each `proportional(1, { minWidth: 144 })`,
+      `scrollWidth > clientWidth` on the phone, and a table of 8 columns' on the desktop (R16), and
+      `document.documentElement.scrollWidth` equal to the window's width; cells keep their links.
+- [x] **Step 2: Run them to check they fail**: `vp test --project phone`: FAIL, a column under 144.
+- [x] **Step 3: Implement** with Astryx's `columns`, each `proportional(1, { minWidth: 144 })`,
       keeping cells' spans and the selection toggles.
-- [ ] **Step 4: Run the project's validation**: `vp check`, the unit tests,
+- [x] **Step 4: Run the project's validation**: `vp check`, the unit tests,
       `vp test --project     phone`, `vp test --project desktop`.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
       `feat(redesign-clarifications): tables keep their columns and scroll in place`
 
 ## Task 8: Diagrams

@@ -190,3 +190,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   would fail `ura check`, and the test would show an error the plugin's users never see.
 - **If wrong**: the helper's round, and the screenshot regenerated from it.
 - **Where**: after task 6, found running `vp run test:nvim`.
+
+## R16: A table of 8 columns tests the scroll on a wide screen
+
+- **Decision**: the browser test of task 7 writes the mockup's round on the recurring tasks branch,
+  its 3-column table with a link in a cell, and adds a table of 8 columns. Both tables keep 144 px
+  per column at both sizes; the 3-column table's region scrolls on the phone, and the 8-column
+  table's on the desktop.
+- **Rationale**: the plan asked the 3-column table's region to scroll at both sizes, but 3 columns
+  of 144 px fit the round's region at 1440 px: only a table wider than the region scrolls in it, as
+  the spec's edge case "A table wider than its region on a wide screen" says.
+- **Alternatives considered**: a narrower desktop window: the desktop project runs at 1440 px, and
+  the edge case is about a wide screen.
+- **If wrong**: the test's tables, or the plan's step.
+- **Where**: task 7, step 1.
