@@ -60,17 +60,24 @@ function question(id: string) {
   return document.getElementById(id) as HTMLElement;
 }
 
-/** The option of a question, not of its follow-ups, by the letter it shows. */
+/** The option of a question, by its letter: its card's checkbox, checked once picked. */
 function option(id: string, letter: string) {
-  const options = within(question(id))
-    .getAllByRole("button")
-    .filter((b) => b.hasAttribute("aria-pressed") && b.closest("section") === question(id));
-  return options.find((b) => within(b).queryByText(letter, { exact: true })) as HTMLElement;
+  return within(question(id)).getByRole("checkbox", {
+    name: `Option ${letter}`,
+  }) as HTMLInputElement;
 }
 
-/** The comment field of a question, not of its follow-ups. */
+/** The card of a question's option, which a tap anywhere on toggles. */
+function optionCard(id: string, letter: string) {
+  return option(id, letter).closest(".astryx-selectable-card") as HTMLElement;
+}
+
+/** The comment field's label, which says a comment alone answers. */
+const COMMENT = "Comment, or your own answer instead of a letter";
+
+/** The comment field of a question. */
 function comment(id: string) {
-  return within(question(id)).getAllByLabelText("Comment")[0];
+  return within(question(id)).getByLabelText(COMMENT);
 }
 
 /** The button saving a question's comment, not its follow-ups'. */
@@ -99,7 +106,7 @@ test("a tapped option is saved as the answer", async () => {
 
   await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** A"));
   expect(await within(question("Q2")).findByText("saved ✓")).toBeTruthy();
-  expect(option("Q2", "A").getAttribute("aria-pressed")).toBe("true");
+  expect(option("Q2", "A").checked).toBe(true);
 });
 
 /** US2.2 */
@@ -145,14 +152,14 @@ test("an answer read back selects its letters and fills its comment", async () =
   await renderPage(PAGE, answered({ Q2: "B and C: weekdays matter" }));
   await screen.findByText("How does your iPhone reach the server?");
 
-  expect(option("Q2", "A").getAttribute("aria-pressed")).toBe("false");
-  expect(option("Q2", "B").getAttribute("aria-pressed")).toBe("true");
-  expect(option("Q2", "C").getAttribute("aria-pressed")).toBe("true");
+  expect(option("Q2", "A").checked).toBe(false);
+  expect(option("Q2", "B").checked).toBe(true);
+  expect(option("Q2", "C").checked).toBe(true);
   expect((comment("Q2") as HTMLTextAreaElement).value).toBe("weekdays matter");
 });
 
-/** US2.6 */
-test("a follow-up shows inside its parent once it applies", async () => {
+/** US2.6; redesign US3.5 */
+test("a follow-up shows as a card of its own after its parent's once it applies", async () => {
   const repo = answered({ Q1: "A" });
   await renderPage(PAGE, repo);
   await screen.findByText("Which human steps does the UI perform?");
@@ -163,7 +170,114 @@ test("a follow-up shows inside its parent once it applies", async () => {
   await tap(option("Q1", "B"));
 
   await waitFor(() => expect(question("Q1.B")).toBeTruthy());
-  expect(question("Q1").contains(question("Q1.B"))).toBe(true);
+  expect(question("Q1").contains(question("Q1.B"))).toBe(false);
+  expect(before(question("Q1"), question("Q1.B"))).toBe(true);
+  expect(before(question("Q1.B"), question("Q2"))).toBe(true);
+  expect(
+    within(question("Q1.B")).getByText("Q1.B · follows Q1, because you picked B"),
+  ).toBeTruthy();
+});
+
+/** Redesign US3.6 */
+test("tapping B again removes the follow-up's card, and the index lists Q1 alone", async () => {
+  const repo = answered({ Q1: "B" });
+  await renderPage(PAGE, repo);
+  await waitFor(() => expect(question("Q1.B")).toBeTruthy());
+  const index = screen.getByRole("navigation", { name: "Questions" });
+  expect(within(index).getByRole("button", { name: /Q1\.B/ })).toBeTruthy();
+
+  await tap(option("Q1", "B"));
+
+  await waitFor(() => expect(question("Q1.B")).toBeNull());
+  await waitFor(() => expect(within(index).queryByRole("button", { name: /Q1\.B/ })).toBeNull());
+  expect(within(index).getByRole("button", { name: /Q1/ })).toBeTruthy();
+});
+
+/** Redesign review focus 1: a follow-up of each letter, after the parent, in letter order. */
+test("a parent answered A and B shows both follow-ups after it, in letter order", async () => {
+  const repo = answered({ Q1: "A and B" });
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  // Q1.A written after Q1.B: the page orders them by letter.
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace(
+      "## Q2:",
+      [
+        "### Q1.A: Which step comes first?",
+        "",
+        "Only if you picked A in Q1.",
+        "",
+        "- **A (recommended). Answering.**",
+        "  - [pro] the most frequent.",
+        "- **B. Reviewing.**",
+        "  - [con] rarer.",
+        "",
+        "**Answer:**",
+        "",
+        "## Q2:",
+      ].join("\n"),
+    ),
+  );
+  await renderPage(PAGE, repo);
+  await waitFor(() => expect(question("Q1.A")).toBeTruthy());
+
+  expect(question("Q1.B")).toBeTruthy();
+  expect(question("Q1").contains(question("Q1.A"))).toBe(false);
+  expect(before(question("Q1"), question("Q1.A"))).toBe(true);
+  expect(before(question("Q1.A"), question("Q1.B"))).toBe(true);
+  expect(before(question("Q1.B"), question("Q2"))).toBe(true);
+  expect(
+    within(question("Q1.A")).getByText("Q1.A · follows Q1, because you picked A"),
+  ).toBeTruthy();
+  expect(
+    within(question("Q1.B")).getByText("Q1.B · follows Q1, because you picked B"),
+  ).toBeTruthy();
+});
+
+/** Redesign edge case: a parent's answer changed from B to C. */
+test("B changed to C removes the follow-up's card, and keeps its answer on disk", async () => {
+  const repo = answered({ Q1: "B", "Q1.B": "A" });
+  await renderPage(PAGE, repo);
+  await waitFor(() => expect(question("Q1.B")).toBeTruthy());
+
+  await tap(option("Q1", "B"));
+  await tap(option("Q1", "C"));
+
+  await waitFor(() => expect(answerLine(repo, "Q1")).toBe("**Answer:** C"));
+  await waitFor(() => expect(question("Q1.B")).toBeNull());
+  expect(answerLine(repo, "Q1.B")).toBe("**Answer:** A");
+});
+
+/** Redesign edge case: an answered round is read-only. */
+test("an answered round's options cannot be tapped", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace("status: awaiting-human", "status: answered"),
+  );
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+
+  expect(option("Q2", "B").getAttribute("aria-disabled")).toBe("true");
+  await tap(optionCard("Q2", "B"));
+  await tap(option("Q2", "B"));
+
+  expect(option("Q2", "B").checked).toBe(false);
+  expect(option("Q2", "A").checked).toBe(true);
+  expect(answerLine(repo, "Q2")).toBe("**Answer:** A");
+});
+
+/** Redesign US5.1 */
+test("the comment field says a comment alone answers", async () => {
+  await renderPage(PAGE);
+  await screen.findByText("Which human steps does the UI perform?");
+
+  expect(
+    within(question("Q1")).getByRole("textbox", {
+      name: "Comment, or your own answer instead of a letter",
+    }),
+  ).toBeTruthy();
 });
 
 /** US5.2 */
@@ -337,7 +451,7 @@ test("an answer changed elsewhere shows when the page reads again", async () => 
     document.dispatchEvent(new Event("visibilitychange"));
   });
 
-  await waitFor(() => expect(option("Q2", "C").getAttribute("aria-pressed")).toBe("true"));
+  await waitFor(() => expect(option("Q2", "C").checked).toBe(true));
   await type(comment("Q2"), "mine");
   await tap(saveButton("Q2"));
   await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** C: mine"));
@@ -642,14 +756,14 @@ test("an option's image is part of the option's toggle", async () => {
   );
   await renderPage(PAGE, repo);
   await screen.findByText("How does your iPhone reach the server?");
-  const a = option("Q2", "A");
+  const a = optionCard("Q2", "A");
   const image = within(a).getByRole("img", { name: "Login" });
   // A toggle holds no link: the image does not open on its own.
   expect(within(a).queryByRole("link")).toBeNull();
 
   await tap(image);
 
-  expect(option("Q2", "A").getAttribute("aria-pressed")).toBe("true");
+  expect(option("Q2", "A").checked).toBe(true);
   expect(screen.queryByRole("dialog", { name: "Login" })).toBeNull();
   await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** A"));
 });

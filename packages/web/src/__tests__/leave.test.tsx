@@ -35,7 +35,7 @@ afterEach(() => {
 /** Q3's comment field, not its follow-ups'. */
 const q3Comment = () =>
   within(document.getElementById("Q3") as HTMLElement).getAllByLabelText(
-    "Comment",
+    "Comment, or your own answer instead of a letter",
   )[0] as HTMLTextAreaElement;
 
 /** The breadcrumb's link to the feature's page. */

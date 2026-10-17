@@ -71,7 +71,7 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
     ROUND,
     "How does your iPhone reach the server?",
     // Question titles, and the options' text.
-    '[role="main"] section h2, [role="main"] section [aria-pressed]',
+    '[role="main"] section h2, [role="main"] section .astryx-selectable-card',
   ],
   [
     "a spec under review",
@@ -157,7 +157,9 @@ describe("on the desktop", () => {
     await page.viewport(800, 900);
     try {
       await show(ROUND, "How does your iPhone reach the server?");
-      const field = screen.getAllByRole("textbox", { name: "Comment" })[2] as HTMLTextAreaElement;
+      const field = screen.getAllByRole("textbox", {
+        name: "Comment, or your own answer instead of a letter",
+      })[2] as HTMLTextAreaElement;
       await userEvent.click(field);
       await userEvent.keyboard("Only from home");
       await page.viewport(700, 900);
@@ -749,7 +751,9 @@ test.each(MODES)(
 test.each(MODES)("a round's answer holding an image's link, in $mode", async ({ mode }) => {
   await colorScheme(mode);
   await show(ROUND, "How does your iPhone reach the server?");
-  const field = within(document.getElementById("Q3")!).getByRole("textbox", { name: "Comment" });
+  const field = within(document.getElementById("Q3")!).getByRole("textbox", {
+    name: "Comment, or your own answer instead of a letter",
+  });
   await userEvent.click(field);
   paste([await image("phone.png", "image.png")], field);
   await expect.poll(() => (field as HTMLTextAreaElement).value, LIVE).toContain("(images/");
@@ -834,7 +838,7 @@ test.each(MODES)("the Leave page? confirmation, in $mode", async ({ mode }) => {
   await act(async () => navigate(atRepo(ROUND)));
   await screen.findByText(QUESTION);
   const comment = within(document.getElementById("Q3")!).getAllByRole("textbox", {
-    name: "Comment",
+    name: "Comment, or your own answer instead of a letter",
   })[0] as HTMLTextAreaElement;
   await userEvent.fill(comment, "Neither, keep it simple");
   window.history.back();

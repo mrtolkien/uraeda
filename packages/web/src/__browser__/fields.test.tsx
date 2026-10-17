@@ -41,7 +41,7 @@ const area = (label: string, root: HTMLElement = document.body) =>
 /** The first question's comment field, not its follow-ups'. */
 const questionComment = () =>
   within(document.getElementById("Q1")!).getAllByRole("textbox", {
-    name: "Comment",
+    name: "Comment, or your own answer instead of a letter",
   })[0] as HTMLTextAreaElement;
 
 /**
