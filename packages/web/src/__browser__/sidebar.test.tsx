@@ -54,9 +54,10 @@ describe("on a desktop, folding and resizing", () => {
     await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Expand sidebar");
     await expect.poll(() => width()).toBeLessThan(80);
     expect(at(foldButton())).toEqual(before);
-    // Each card in the rail: its step's icon, with its status.
-    const card = within(nav()).getByRole("link", { name: /^cli-tuis, / });
-    expect(within(card).getByRole("img", { name: "Idle" })).toBeTruthy();
+    // Each card in the rail: its step's icon, its status read in its name, with no mark while it
+    // does not need the human.
+    const card = within(nav()).getByRole("link", { name: /^cli-tuis, .*, Idle\b/ });
+    expect(within(card).queryByRole("img", { name: "Idle" })).toBeNull();
 
     await userEvent.click(foldButton());
     await expect.poll(() => width()).toBeGreaterThan(150);
