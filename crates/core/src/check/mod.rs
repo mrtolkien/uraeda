@@ -7,6 +7,7 @@ mod links;
 mod names;
 mod sections;
 mod spec;
+mod unapproved;
 mod values;
 mod writing;
 
@@ -98,6 +99,7 @@ pub fn check(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
         problems.retain(|p| p.file == relative(&root, &target));
     } else {
         walk(&root, &target, &mut problems);
+        unapproved::check_unapproved(&root, &target, &mut problems);
     }
     problems.sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
     Ok(problems)

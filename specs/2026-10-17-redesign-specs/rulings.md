@@ -447,3 +447,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `usePlacedComments` and `where` in `packages/web/src/ReviewComments.tsx`,
   `on_the_file` in `crates/lsp/src/requests.rs`.
 - **Where**: task 8
+
+## R55: A spec approved before the branch has no approval commit on it
+
+- **Decision**: `Git::approval_commit` returns `None` when the spec at the merge base reads
+  `status: approved` already: the branch did not approve it, so `decision.unapproved` reports
+  nothing for it.
+- **Rationale**: the data model's approval commit is "the branch's commit whose spec first reads
+  `status: approved`". Taking the first commit of the branch that touches an already approved spec,
+  like the example's spec rewritten by task 2, would date an approval the branch never made, and
+  warn on every later edit of the example's decisions.
+- **Alternatives considered**: the merge base as the approval commit: every decision the branch
+  changes would warn.
+- **If wrong**: drop the first check of `approval_commit` in `crates/core/src/git/log.rs`.
+- **Where**: task 9
+
+## R56: A decision the same as at the merge base is not the branch's change
+
+- **Decision**: `decision.unapproved` reports a decision whose checkout text differs from both its
+  text at the approval commit and at the merge base, beyond `status` and `approved-by`.
+- **Rationale**: merging the default branch after the approval brings its decisions in. On this
+  branch, the merge of `main` brought `compatibility.md` and `diagrams.md` as they are on `main`:
+  comparing with the approval commit alone warned on both, though the branch does not change them.
+  `stack.md`, which the merge folded a rule into (R1), differs from both and still warns, as the
+  plan expects.
+- **Alternatives considered**: the approval commit alone, as the plan said: it warns on the default
+  branch's own changes.
+- **If wrong**: compare with `[approval]` only in `check/unapproved.rs`.
+- **Where**: task 9
