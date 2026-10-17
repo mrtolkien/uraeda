@@ -49,8 +49,11 @@ pub struct QuestionItem {
     pub start_line: u32,
     pub end_line: u32,
     pub heading_block: u32,
-    /// Its context: the blocks between its heading and its answer, options aside.
+    /// Its context: the blocks between its heading and its answer, options and "Why it matters"
+    /// aside.
     pub context: Vec<u32>,
+    /// Its paragraph starting "Why it matters".
+    pub why: Option<u32>,
     pub options: Vec<Choice>,
     pub answer: String,
     /// The answer split as the UI composes it.
@@ -71,11 +74,12 @@ pub struct RoundItems {
     pub status: Option<String>,
     /// The `> [!IMPORTANT]` block, or its `> [!NOTE]` record.
     pub block: Option<u32>,
-    /// The blocks of the round's context section.
-    pub context: Vec<u32>,
+    /// The parts of the round's context section, in file order.
+    pub context: Vec<ContextPart>,
     pub questions: Vec<QuestionItem>,
-    /// The blocks of the points settled without the human, up to the `**Notes:**` line.
-    pub settled: Vec<u32>,
+    /// The groups of the points settled without the human, in file order, up to the `**Notes:**`
+    /// line.
+    pub settled_groups: Vec<SettledGroup>,
     /// The settled points that start in bold, which take comments.
     pub settled_points: Vec<SettledPoint>,
     /// The free notes, trimmed, without the comments on settled points.
@@ -83,6 +87,32 @@ pub struct RoundItems {
     pub notes_line: Option<u32>,
     /// The comments on settled points, written at the end of the notes.
     pub settled_comments: Vec<SettledComment>,
+}
+
+/// A part of a round's context: a `###` sub-heading and its blocks.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextPart {
+    /// Its heading's block, or none for the triage's one free part.
+    pub heading: Option<u32>,
+    /// Its heading's text, empty without a heading.
+    pub title: String,
+    /// Its top-level blocks.
+    pub blocks: Vec<u32>,
+}
+
+/// A group of the points settled without the human: a `###` sub-heading and its blocks.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettledGroup {
+    /// Its heading's block.
+    pub heading: u32,
+    /// `check`, `behaviour`, or `hood`, from "Check these", "Behaviour", and "Under the hood".
+    pub kind: String,
+    /// Its top-level blocks, before the `**Notes:**` line.
+    pub blocks: Vec<u32>,
 }
 
 /// A point settled without the human, by its bold start.

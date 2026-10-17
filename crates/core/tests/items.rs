@@ -100,7 +100,14 @@ fn a_round_has_its_questions_and_options() {
 
     assert_eq!(round.status.as_deref(), Some("answered"));
     assert!(round.block.is_some());
-    assert!(!round.context.is_empty());
+    let titles: Vec<&str> = round.context.iter().map(|p| p.title.as_str()).collect();
+    assert_eq!(titles, ["Goal", "Today", "Scope", "Sources"]);
+    for part in &round.context {
+        let heading = part.heading.unwrap();
+        assert_eq!(doc.text(heading), part.title);
+        assert!(!part.blocks.is_empty());
+        assert!(!part.blocks.contains(&heading));
+    }
     let q1 = &round.questions[0];
     assert_eq!(q1.id, "Q1");
     assert_eq!(q1.title, "How should users pick when a task repeats?");
@@ -116,16 +123,60 @@ fn a_round_has_its_questions_and_options() {
     assert!(q1.options[0].why.is_some());
     assert_eq!(q1.letters, strings(&["B", "C"]));
     assert!(q1.comment.starts_with("we need to easily handle weekdays"));
-    // Its context holds the paragraphs before the options, not the answer.
+    // Its context holds the paragraphs before the options, not the answer, and "Why it matters"
+    // stands apart.
+    let why = q1.why.unwrap();
+    assert!(doc.text(why).starts_with("Why it matters"));
+    assert!(!q1.context.contains(&why));
     let context: Vec<String> = q1.context.iter().map(|&id| doc.text(id)).collect();
-    assert!(context.iter().any(|t| t.starts_with("Why it matters")));
+    assert!(!context.is_empty());
+    assert!(context.iter().all(|t| !t.starts_with("Why it matters")));
     assert!(context.iter().all(|t| !t.starts_with("Answer:")));
 
     let follow_up = round.questions.iter().find(|q| q.id == "Q2.B").unwrap();
     assert_eq!(follow_up.parent.as_deref(), Some("Q2"));
     assert_eq!(follow_up.parent_letter.as_deref(), Some("B"));
     assert_eq!(follow_up.applies, "no");
-    assert!(!round.settled.is_empty());
+    let kinds: Vec<&str> = round
+        .settled_groups
+        .iter()
+        .map(|g| g.kind.as_str())
+        .collect();
+    assert_eq!(kinds, ["check", "behaviour"]);
+    let subjects = |group: &uraeda_core::files::items::SettledGroup| -> Vec<String> {
+        round
+            .settled_points
+            .iter()
+            .filter(|p| {
+                group
+                    .blocks
+                    .iter()
+                    .any(|&b| doc.children(b).any(|i| i.id == p.block))
+            })
+            .map(|p| p.subject.clone())
+            .collect()
+    };
+    assert_eq!(
+        subjects(&round.settled_groups[0]),
+        strings(&["Skipping one occurrence", "Deleting a repeating task"])
+    );
+    assert_eq!(
+        subjects(&round.settled_groups[1]),
+        strings(&[
+            "Undoing a completion",
+            "Monthly repeats on the 29th to 31st",
+            "Repeating tasks show a repeat icon"
+        ])
+    );
+    for group in &round.settled_groups {
+        assert_eq!(
+            doc.text(group.heading),
+            match group.kind.as_str() {
+                "check" => "Check these",
+                _ => "Behaviour",
+            }
+        );
+    }
     assert!(round.notes.is_some());
 }
 
@@ -379,8 +430,13 @@ fn the_settled_section_ends_at_the_notes_and_takes_comments() {
     let notes_line = round.notes_line.unwrap();
 
     // The section's blocks stop before the **Notes:** line.
-    assert!(!round.settled.is_empty());
-    for &id in &round.settled {
+    let blocks: Vec<u32> = round
+        .settled_groups
+        .iter()
+        .flat_map(|g| g.blocks.clone())
+        .collect();
+    assert!(!blocks.is_empty());
+    for &id in &blocks {
         let block = doc.blocks.iter().find(|block| block.id == id).unwrap();
         assert!(block.start_line < notes_line, "{}", doc.text(id));
     }
@@ -425,4 +481,86 @@ fn the_settled_section_ends_at_the_notes_and_takes_comments() {
             ),
         ]
     );
+}
+
+fn round_of(name: &str, text: &str) -> (uraeda_core::files::items::RoundItems, document::Document) {
+    let doc = document::parse(text, EXAMPLE);
+    let round = items(name, text, &doc).clarifications.unwrap();
+    (round, doc)
+}
+
+const PARTS: &str = "\
+## Context
+
+### Goal
+
+A goal.
+
+### Today
+
+Today.
+
+### Scope
+
+A scope.
+
+### Sources
+
+- The code.
+";
+
+#[test]
+fn a_later_round_opens_with_what_changed_since_the_last() {
+    let text = format!(
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 02: Title\n\n{}",
+        PARTS.replace(
+            "## Context\n",
+            "## Context\n\n### Since the last round\n\nQ1 is answered.\n"
+        )
+    );
+    let (round, doc) = round_of("clarifications-02.md", &text);
+    let titles: Vec<&str> = round.context.iter().map(|p| p.title.as_str()).collect();
+    assert_eq!(
+        titles,
+        ["Since the last round", "Goal", "Today", "Scope", "Sources"]
+    );
+    let first: Vec<String> = round.context[0]
+        .blocks
+        .iter()
+        .map(|&b| doc.text(b))
+        .collect();
+    assert_eq!(first, ["Q1 is answered."]);
+}
+
+#[test]
+fn the_triage_context_is_one_free_part() {
+    let text = "---\nstatus: awaiting-human\n---\n\n# Inbox triage\n\n## Context\n\nThe inbox holds 3 notes.\n\nI read the code.\n";
+    let (round, _) = round_of("clarifications-01.md", text);
+    assert_eq!(round.context.len(), 1);
+    assert_eq!(round.context[0].heading, None);
+    assert_eq!(round.context[0].title, "");
+    assert_eq!(round.context[0].blocks.len(), 2);
+    assert!(round.settled_groups.is_empty());
+}
+
+#[test]
+fn a_subject_repeated_across_groups_takes_its_comment_on_the_first() {
+    let text = format!(
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
+## Settled without the human\n\n### Check these\n\n- **Same subject** first.\n\n\
+### Under the hood\n\n- **Same subject** second.\n- **Other** point.\n\n\
+**Notes:**\n\n- **Same subject**: A comment.\n"
+    );
+    let (round, doc) = round_of("clarifications-01.md", &text);
+    let kinds: Vec<&str> = round
+        .settled_groups
+        .iter()
+        .map(|g| g.kind.as_str())
+        .collect();
+    assert_eq!(kinds, ["check", "hood"]);
+    let first = round.settled_groups[0].blocks[0];
+    let point = doc.children(first).next().unwrap().id;
+    assert_eq!(round.settled_comments.len(), 1);
+    assert_eq!(round.settled_comments[0].point, point);
+    assert_eq!(round.settled_points[0].block, point);
 }

@@ -83,3 +83,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   change to discoveries and specs that no spec asks for.
 - **If wrong**: one condition in `check_unknown`, in `crates/core/src/check/sections.rs`.
 - **Where**: task 3.
+
+## R8: Two core tests follow the round's new data
+
+- **Decision**: `a_round_has_its_questions_and_options` now expects "Why it matters" in Q1's `why`,
+  out of its context, and `the_settled_section_ends_at_the_notes_and_takes_comments` reads the
+  settled blocks from `settled_groups`, since `settled` is gone.
+- **Rationale**: the spec's [Data](spec.md#data) moves "Why it matters" out of `context` and
+  replaces `settled` with `settled_groups`. Both tests keep what they check: the context holds no
+  answer, and the settled blocks stop before the notes.
+- **Alternatives considered**: keeping `settled` beside the groups: a field the spec removes.
+- **If wrong**: the two tests' assertions, in `crates/core/tests/items.rs`.
+- **Where**: task 4.
