@@ -115,8 +115,12 @@ function useFrontmatter(path: string, head: string) {
   }, [head, key]);
   return {
     head: () => frontmatter.current,
+    // A write answered without its file leaves the frontmatter as it was: an empty one would
+    // write the next save without it.
     take: (fresh: Parameters<typeof splitDraft>[0]) => {
-      frontmatter.current = splitDraft(fresh).head;
+      if (fresh) {
+        frontmatter.current = splitDraft(fresh).head;
+      }
     },
   };
 }
