@@ -1446,7 +1446,7 @@ git commit -m "feat(redesign-specs): the spec page opens with what you approve, 
   `StoryCard`'s props (task 10).
 - Produces: nothing other tasks use.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/spec-stories.test.tsx
@@ -1471,24 +1471,24 @@ The break each test catches:
 - Mockups: the old mockup buttons kept, or an HTML mockup framed.
 - No more: a "0 more scenarios" button.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/spec-stories.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "3 more scenarios"`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Each story is a `Panel`: its id and priority as a badge, its title, its journey, its mockup live
 through the existing story embed, then its key scenarios as **Given**, **When**, and **Then** rows,
 and the others behind "N more scenarios", which reads "Fold the other scenarios" once open. The open
 state is the history entry's, as `useOpenKeys` keeps folds.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/spec/StoryCard.tsx packages/web/src/__tests__/spec-stories.test.tsx

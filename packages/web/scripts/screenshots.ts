@@ -383,7 +383,7 @@ async function takeReviews(each: Each, first: Page) {
 
   await each("review-comment", async ({ page, size }) => {
     await show(page, SPEC, "Complete a repeating task");
-    await page.getByRole("button", { exact: true, name: "More scenarios (2)" }).first().click();
+    await page.getByRole("button", { exact: true, name: "2 more scenarios" }).first().click();
     // The element itself: once pressed, the locator would find the next block.
     const block = (await page
       .getByRole("button", { name: /Given a weekly task/, pressed: false })

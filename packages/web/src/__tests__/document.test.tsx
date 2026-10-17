@@ -56,13 +56,13 @@ test("opens workflow files in the UI, code as text, and the web in a new tab", a
 test("an approved spec shows the same folds", async () => {
   await renderPage("/f/2026-10-13-plan-review/spec.md");
 
-  await screen.findAllByRole("button", { name: /^More scenarios \(\d\)$/ });
-  const scenarios = screen.getAllByRole("button", { name: /^More scenarios \(\d\)$/ });
+  await screen.findAllByRole("button", { name: /^\d more scenarios?$/ });
+  const scenarios = screen.getAllByRole("button", { name: /^\d more scenarios?$/ });
   expect(scenarios.map((trigger) => trigger.textContent)).toEqual([
-    "More scenarios (1)",
-    "More scenarios (2)",
-    "More scenarios (1)",
-    "More scenarios (2)",
+    "1 more scenario",
+    "2 more scenarios",
+    "1 more scenario",
+    "2 more scenarios",
   ]);
   for (const trigger of scenarios) {
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
