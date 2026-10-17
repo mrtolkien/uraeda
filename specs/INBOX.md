@@ -21,6 +21,8 @@
   draft_files)
 - [agent] [storybook-restart] specs/drafts/look-and-feel/proposal.md links flow-review.md, which is
   ../flow-review.md: ura check specs fails on main
+- [agent] [symlinks] cargo clippy fails on main with int_plus_one at
+  crates/core/src/files/priorities/edits.rs:105, so vp run ready fails
 
 ## Prompts
 
