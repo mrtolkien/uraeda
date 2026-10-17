@@ -118,6 +118,15 @@ uncapped run started many large workers together while other checkouts were acti
 is an unsuitable memory budget. Browser runs retain their existing machine-wide two-slot limit. This
 does not claim a universal memory bound across arbitrary concurrent checkouts.
 
+Cancellation testing exposed a process-lifecycle defect in `scripts/test-run.ts`. After another
+check failed, the wrapper could stop `vp` while its Vitest child remained alive. Its temporary
+folder was then treated as stale by the next run, which failed with `ENOTEMPTY` while the orphan was
+still creating files. Commands now start in their own process group; cancellation signals the group,
+and any remaining group members are stopped before cleanup and lock release. A regression test runs
+a real launcher and child, waits for the child's readiness, cancels the wrapper, and checks that the
+child exited and its files were removed. Bounded filesystem-removal retries handle deletions in
+progress; tests themselves are never retried.
+
 ### CI policy and diagnostics
 
 Coverage was described as non-enforcing but its instrumented test failures still failed the

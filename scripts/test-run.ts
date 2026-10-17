@@ -60,6 +60,20 @@ export function runFolder(parent: string): string {
   return mkdtempSync(join(parent, `${RUN_PREFIX}${process.pid}-`));
 }
 
+/** Signals the command and its descendants, which share the process group it starts. */
+function signalGroup(pid: number | undefined, signal: NodeJS.Signals) {
+  if (pid === undefined) {
+    return;
+  }
+  try {
+    process.kill(-pid, signal);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+      throw error;
+    }
+  }
+}
+
 /** Who holds a slot: the script's process and the folder it was started from. */
 type Owner = { cwd: string; pid: number };
 
@@ -173,12 +187,14 @@ async function main() {
   sweep(parent);
   const folder = runFolder(parent);
   const child = spawn(command[0]!, command.slice(1), {
+    // Vite Task can cancel this wrapper when another check fails. A separate process group
+    // lets cancellation reach the actual runner behind `vp`, not just that launcher.
+    detached: true,
     env: { ...process.env, TEMP: folder, TMP: folder, TMPDIR: folder },
     stdio: "inherit",
   });
-  // A Ctrl-C reaches the command too, in the same process group: the run ends with it.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
-    process.on(signal, () => child.kill(signal));
+    process.on(signal, () => signalGroup(child.pid, signal));
   }
   const [code, signal] = await new Promise<[number | null, NodeJS.Signals | null]>((resolve) => {
     child.once("exit", (code, signal) => resolve([code, signal]));
@@ -187,8 +203,14 @@ async function main() {
       resolve([127, null]);
     });
   });
-  rmSync(folder, { force: true, recursive: true });
-  release();
+  // A launcher can exit before its runner does, especially during cancellation. No process in
+  // its group may keep writing into a folder this run or the next run's sweep removes.
+  signalGroup(child.pid, "SIGKILL");
+  try {
+    rmSync(folder, { force: true, maxRetries: 3, recursive: true, retryDelay: 50 });
+  } finally {
+    release();
+  }
   process.exit(code ?? 128 + (signal ? constants.signals[signal] : 0));
 }
 
