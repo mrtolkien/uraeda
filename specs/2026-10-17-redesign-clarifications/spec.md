@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign clarifications
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 10 minutes: the phone layout changed, and two rules were added.
+> Approved on 2026-10-17.
 >
 > - C1: done. An agent that finds files failing `ura check` after a format change rewrites them in
 >   the new format before its step goes on. This is a new rule of the
