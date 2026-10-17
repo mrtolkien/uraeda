@@ -214,3 +214,34 @@ fn a_decision_merged_in_from_the_default_branch_is_not_the_branch_s_change() {
     repo.git(&["merge", "--quiet", "--no-edit", "main"]);
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
 }
+
+#[test]
+fn a_decision_put_back_to_the_default_branch_s_text_after_the_approval_is_reported() {
+    let repo = feature();
+    repo.write(
+        GIT,
+        &decision("proposed").replace("A choice.", "A branch choice."),
+    );
+    repo.commit("docs(feature): propose git");
+    approve(&repo);
+    repo.write(GIT, &decision("active"));
+    repo.commit("docs(feature): put git back");
+    assert_eq!(
+        warnings(&repo, "specs"),
+        ["warning: specs/decisions/git.md: git.md changed after the spec's approval"]
+    );
+}
+
+#[test]
+fn a_decision_added_before_the_approval_then_deleted_is_reported() {
+    let repo = feature();
+    repo.write("specs/decisions/tui.md", &decision("proposed"));
+    repo.commit("docs(feature): propose tui");
+    approve(&repo);
+    repo.remove("specs/decisions/tui.md");
+    repo.commit("docs(feature): drop tui");
+    assert_eq!(
+        warnings(&repo, "specs"),
+        ["warning: specs/decisions/tui.md: tui.md changed after the spec's approval"]
+    );
+}
