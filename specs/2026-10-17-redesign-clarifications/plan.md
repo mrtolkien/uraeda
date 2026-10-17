@@ -169,11 +169,11 @@ key on their bold subject; Submit flips the block's first paragraph only
 
 - Modify: `specs/drafts/redesign-specs.md`, on the default branch, in the main checkout
 
-- [ ] **Step 1: Add a line under the draft's `## What`**: from a spec's revision 2 on, the answers
+- [x] **Step 1: Add a line under the draft's `## What`**: from a spec's revision 2 on, the answers
       to the human's review comments ("C1: done", ...) are set apart from the spec itself, rather
       than mixed into its opening block. Name the spec review of the clarifications redesign as
       where it was asked.
-- [ ] **Step 2: Commit on the default branch**, after checking its checkout has no other change:
+- [x] **Step 2: Commit on the default branch**, after checking its checkout has no other change:
       `chore: the specs redesign separates review answers from the spec`
 
 ## Task 2: One reading of an answer's letters
