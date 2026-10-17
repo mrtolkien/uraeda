@@ -140,3 +140,5 @@
   trees), on every keystroke through ura lsp
 - [agent] [redesign-clarifications] settled_points still reads the settled section on its own,
   beside the groups: two readings of one section
+- [agent] [redesign-clarifications] The round cards accent lines use --spacing-1, which scales to
+  about 4.8 px from 1024 px where the spec says 4 px; the split threshold is read once on mount
