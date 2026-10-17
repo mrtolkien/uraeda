@@ -462,19 +462,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: drop the first check of `approval_commit` in `crates/core/src/git/log.rs`.
 - **Where**: task 9
 
-## R56: A decision the same as at the merge base is not the branch's change
+## R56: A decision the branch had not touched at the approval, and reads as the default branch's, is not the branch's change
 
-- **Decision**: `decision.unapproved` reports a decision whose checkout text differs from both its
-  text at the approval commit and at the merge base, beyond `status` and `approved-by`.
+- **Decision**: `decision.unapproved` reports a decision whose checkout text differs from its text
+  at the approval commit, beyond `status` and `approved-by`, except when the branch had not touched
+  it at the approval (its text at the approval commit equals its text where the approval commit left
+  the default branch) and the checkout's text equals the current merge base's.
 - **Rationale**: merging the default branch after the approval brings its decisions in. On this
   branch, the merge of `main` brought `compatibility.md` and `diagrams.md` as they are on `main`:
   comparing with the approval commit alone warned on both, though the branch does not change them.
-  `stack.md`, which the merge folded a rule into (R1), differs from both and still warns, as the
-  plan expects.
+  `stack.md`, which the merge folded a rule into (R1), still warns, as the plan expects. The first
+  version of this ruling skipped any decision the same as at the merge base: it missed a branch that
+  changed a decision, had it approved, then put it back to the default branch's text, or deleted a
+  decision it had added and had approved. The review's fixes replaced that reasoning.
 - **Alternatives considered**: the approval commit alone, as the plan said: it warns on the default
-  branch's own changes.
-- **If wrong**: compare with `[approval]` only in `check/unapproved.rs`.
-- **Where**: task 9
+  branch's own changes. A decision different from both the approval commit and the merge base: it
+  misses a change back to the default branch's text.
+- **If wrong**: `changed_decisions` in `check/unapproved.rs`.
+- **Where**: task 9, the review's fixes
 
 ## R60: The page reads the branch's decision changes once the file view carries them
 
