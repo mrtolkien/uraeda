@@ -289,3 +289,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none that keeps the frontmatter.
 - **If wrong**: nothing else depends on it.
 - **Where**: task 5
+
+## R32: Changes made while a place is kept join that place
+
+- **Decision**: `keepPlace` keeps one place at a time. A change made before the place being kept is
+  put back joins it: the first place read is put back once, two frames after the last change. A
+  place that read NaN when kept is not joined: the new change keeps its own.
+- **Rationale**: each call measured its place before its own change and put it back two frames
+  later, so a second change drawn meanwhile was corrected twice: a story frame above the screen
+  reporting 560, 700, then 720 px left the text 140 px off.
+- **Alternatives considered**: each call keeping its own place, its measure shifted by the
+  corrections still pending: the pending changes' moves at another place are not known.
+- **If wrong**: `keepPlace` in `packages/web/src/keepPlace.ts`.
+- **Where**: the review's fixes
