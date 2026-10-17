@@ -8,7 +8,6 @@
 
 - [Redesign + reword clarifications](/specs/2026-10-17-redesign-clarifications/proposal.md)
 - [Redesign + reword specs](/specs/2026-10-17-redesign-specs/proposal.md)
-- [Access Storybook's full interface from Uraeda: its page lists stories but renders none, since Storybook's dev mode pins its messages to an origin the sandboxed frame lacks (security.insecureIframeMessaging). Look at it as a change, see round 04 of the UI iteration flow](/specs/2026-10-17-access-storybook/proposal.md)
 
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
 - [Redesign session](drafts/redesign-session.md)
