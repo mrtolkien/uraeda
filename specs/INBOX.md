@@ -136,3 +136,5 @@
   test_jumps.lua and test_waiting.lua): new tests will copy them
 - [agent] [redesign-clarifications] SettledGroup.kind is a string rather than the spec SettledKind
   enum, so the web gets no exhaustiveness check
+- [agent] [redesign-clarifications] ura check parses a waiting round twice (markdown and document
+  trees), on every keystroke through ura lsp
