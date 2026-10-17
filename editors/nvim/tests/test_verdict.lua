@@ -70,13 +70,15 @@ local function waiting_spec()
   return spec
 end
 
---- A round of questions waiting for the human, one question per answer, as the server's tests
+--- A round of questions waiting for the human, one question per answer, as the core's tests
 --- write it.
 local function round(answers)
   local text = "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Feature\n\n"
     .. "> [!IMPORTANT]\n>\n> "
     .. #answers
-    .. " questions.\n>\n> - A point.\n\n## Context\n\nContext.\n"
+    .. " questions.\n>\n> - A point.\n\n## Context\n\n"
+    .. "### Since the last round\n\nAnswers.\n\n### Goal\n\nA goal.\n\n### Today\n\nToday.\n\n"
+    .. "### Scope\n\nA scope.\n\n### Sources\n\n- The code.\n"
   for index, answer in ipairs(answers) do
     text = text
       .. ("\n## Q%d: Question %d?\n\nWhy.\n\n"):format(index, index)
@@ -85,7 +87,8 @@ local function round(answers)
       .. (answer == "" and "" or " " .. answer)
       .. "\n"
   end
-  return text .. "\n## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n"
+  return text
+    .. "\n## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n"
 end
 
 local function read(path)

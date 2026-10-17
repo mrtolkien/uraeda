@@ -175,3 +175,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   would check a state the example no longer shows.
 - **If wrong**: the expected hint, or the test's copy of the example.
 - **Where**: task 6.
+
+## R15: The Neovim verdict tests write a round in the new format
+
+- **Decision**: the `round()` helper in `editors/nvim/tests/test_verdict.lua` writes a round with
+  the new Context subsections and a settled group, as the core's `clarifications()` test helper
+  does, and the reference screenshot of `the window looks right | submit with blanks` is regenerated
+  to show it.
+- **Rationale**: the helper still wrote the old round, which `ura check` now rejects, so the
+  screenshot gained an error sign on line 1. The spec keeps no old format
+  ([compatibility](../decisions/compatibility.md)). The window under test is unchanged: only the
+  file behind it reads differently.
+- **Alternatives considered**: keeping the old screenshot by dropping the new sections: the round
+  would fail `ura check`, and the test would show an error the plugin's users never see.
+- **If wrong**: the helper's round, and the screenshot regenerated from it.
+- **Where**: after task 6, found running `vp run test:nvim`.
