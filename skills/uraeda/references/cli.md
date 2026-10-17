@@ -27,9 +27,11 @@ one waiting for that action.
 
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of
-[Writing for the human](writing.md) on files waiting for the human: `block.count`, `block.items`,
-and `writing.sentence`. It exits with an error when it found a problem, and with success when it
-found only warnings. `ura lsp` sends warnings to editors with the Warning severity.
+[Writing for the human](writing.md): `block.count`, `block.items`, `writing.sentence`, and
+`spec.length` on files waiting for the human, and `decision.rules` and `decision.order` on
+decisions. `decision.unapproved` warns on a decision edited on a branch after its spec's approval.
+It exits with an error when it found a problem, and with success when it found only warnings.
+`ura lsp` sends warnings to editors with the Warning severity.
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
 runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through

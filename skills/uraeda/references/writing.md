@@ -1,18 +1,28 @@
 # Writing for the human
 
 The writing rules of every document written for the human: a round of questions, the inbox triage, a
-spec, a plan waiting for review, and a pull request's description. Each rule says why it exists, and
-the limit it sets. The steps link here instead of repeating the rules.
+spec, a decision, a plan to review, and a pull request. Each rule says why it exists, and the limit
+it sets. The steps link here instead of repeating the rules.
 
 The human reads a document once, top to bottom, when they have time, often days after the step that
 wrote it. They have not read the discovery, the code, or the agent's session. Every rule below
 serves that reader: their time goes into deciding, not into searching or decoding.
 
-With `ura`, `ura check` measures some of these rules on a file waiting for the human
-(`status: awaiting-human`), as warnings: `block.count`, `block.items`, and `writing.sentence`.
-Warnings do not fail the check, but a waiting file should have none. The round's parts are errors:
-`sections.missing` for a missing Context part, `sections.unknown` for a sub-heading the template
-does not have, and `settled.group` for a settled point outside a group. See [The `ura` CLI](cli.md).
+With `ura`, `ura check` measures some of these rules as warnings:
+
+- on a file waiting for the human (`status: awaiting-human`): `block.count`, `block.items`, and
+  `writing.sentence`, and on a spec, `spec.length`;
+- on every decision: `decision.rules` and `decision.order`;
+- on a decision edited on a branch after its spec's approval: `decision.unapproved`.
+
+Warnings do not fail the check, but a waiting file should have none. The parts are errors:
+
+- `sections.missing` for a missing Context part, `sections.unknown` for a heading the template does
+  not have, and `sections.order` for one out of order;
+- `settled.group` for a settled point outside a group;
+- `edges.importance` for an edge case's importance other than high, normal, or niche.
+
+See [The `ura` CLI](cli.md).
 
 ## Every document
 
@@ -146,6 +156,55 @@ its settled points, which it has none of.
 24. **A settled point starts with its bold subject**, continued by what was chosen and why, then a
     link to its source: `- **Undoing a completion** puts back what completing changed. See ...`.
     Subjects are unique in the round: the human comments on a point by its subject.
+
+## A spec
+
+A spec, `spec.md`, is written from
+[its template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec.md), in the order
+[Spec and decisions](spec.md#spec-document) gives. The human approves it in one sitting, without
+opening anything else, so each rule below keeps it short and whole.
+
+25. **The block's first item starts "You approve".** It says in one sentence what approving commits
+    to. The human knows what is at stake before any detail. The first line still gives the time.
+26. **At most 7 items, "You approve" included.** Then what most needs attention, most important
+    first, as for a round. `block.items` warns on an eighth item.
+27. **The time counts the reviewed part.** The reviewed part is every section but the "More
+    scenarios" lists and `## History`. Count its words at 250 a minute. Add a minute per mockup and
+    per changed decision. Round up to the next 5 minutes. A reviewed part of 1,800 words with 2
+    mockups and 1 changed decision is 7.2 plus 3, about 15 minutes.
+28. **Answers paraphrased, never cited by number.** The block and the spec say what the human chose,
+    in words: "the due date moves", not "A in Q2". A review comment is named by its subject, never
+    "C1" alone. The human reads the spec days after the round, without it open.
+29. **Git chores stay out of the block.** A rewritten file, a merge, or a rebase is no choice to
+    approve: the commits record it. An item spent on one hides an item that mattered.
+30. **Each rule stated once.** A rule lives in one part of the spec, or in a decision, and every
+    other mention links to it. Two copies drift, and the human reviews the same rule twice.
+31. **The reviewed part aims at 2,000 words.** Length goes to what the human decides. The build's
+    details are the plan's, and the rarer scenarios go under "More scenarios". `spec.length` warns
+    past 2,500 words on a spec waiting for review.
+32. **The split rule: past 6 stories, 30 scenarios, or 2 changed decisions, the discovery proposes a
+    split.** A larger spec cannot be approved in one sitting. The split is a question of the round,
+    with the recommended split as option A.
+
+## A decision
+
+A decision, in `specs/decisions/`, is written from
+[its template](../assets/templates/specs/decisions/decision-topic.md), as
+[writing a decision](spec.md#writing-a-decision) describes. Agents read it before every task it
+applies to, and the human approves each of its lines.
+
+33. **The intent first.** Two or three sentences before `## Rules`: the choice and what it protects.
+    Specifics appear only where they are hard constraints. A reader who stops there knows what the
+    decision is for.
+34. **One sentence per rule**, then how it is checked: "Checked by review." A rule holding two ideas
+    is two rules, or one too detailed.
+35. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come
+    first, then SHOULD and SHOULD NOT, then MAY, the most important first within a strength.
+    `decision.order` warns on a rule stronger than the one before it.
+36. **At most 10 rules.** Past 10, merge rules by concept, or split the topic into two decisions.
+    `decision.rules` warns on an eleventh rule.
+37. **The history stays in the record.** How the choice came about, and the investigation behind it,
+    stay in the feature's record, linked from **Why**. The decision says what holds now.
 
 ## Self-review
 

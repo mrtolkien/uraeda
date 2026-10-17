@@ -53,8 +53,8 @@ A rule only a reader remembers is followed until someone forgets it. A rule a to
 - **Each rule of a decision ends with how it is checked**: a lint, a test, `ura check`, or "Checked
   by review." when no tool can. Review only is an honest answer: it tells the next agent that
   nothing else guards the rule.
-- **A spec proposing a decision** whose rules a tool can check includes that check in its
-  **Testing**, so the plan has a task that adds it.
+- **A decision a tool can check**, proposed by a spec, gets that check in the plan's **Test map**.
+  The plan then has a task that adds it.
 - **A custom lint rule or structural test says the fix in its message**: "split this file by
   responsibility", not only "file too long". The agent that hits it reads the message, not the
   decision.
@@ -86,8 +86,8 @@ project has one, does the same on the changed lines.
 A UI story is only done when it works in a browser, through the real app: components tested alone
 miss the routing, the styles, and the server.
 
-- **The spec's Testing** runs each UI story's scenarios in the project's browser runner, through the
-  real app, driven as a user does: by roles, labels, and visible text.
+- **The plan's Test map** runs each UI story's scenarios in the project's browser runner, through
+  the real app. They drive it as a user does: by roles, labels, and visible text.
 - **A project without a browser runner**: adding one is a new dependency, so a question for the
   human in discovery, like any other.
 

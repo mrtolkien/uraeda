@@ -91,6 +91,10 @@ split the first question of the round: the independent pieces, how they relate, 
 them, with the recommended split as option A. Investigate the first piece in depth, and leave the
 others for their own features.
 
+A proposal can also be one subsystem too large for one spec. When the spec it leads to would pass
+[the split rule](writing.md#a-spec), past 6 stories, 30 scenarios, or 2 changed decisions, propose a
+split the same way.
+
 ## Investigate in depth
 
 Build a full understanding of the problem, beyond the current project and beyond what you already
@@ -281,7 +285,8 @@ Ask only what only the human can decide:
 - Tradeoffs between their goals, like simplicity against coverage.
 - Visual direction.
 - Any choice that would become a [decision](spec.md#what-is-a-decision), including adding a
-  dependency.
+  dependency, or a change to an active one. The spec step creates or changes a decision only from an
+  answer, so a choice not asked here cannot become one.
 - A conflict with an active decision or with the constitution.
 - Loosening a security guard, said as what an attacker could then do.
 - Dropping or shrinking the feature, when the evidence says its cost outweighs its gain.

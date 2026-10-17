@@ -6,15 +6,14 @@ neither the codebase nor the spec.
 
 - **Runs when**: `spec.md` is `approved` and its decisions are active, and there is no `plan.md`, or
   its `spec-revision` is lower than the spec's `revision`; or `plan.md` is `changes-requested`
-- **Writes**: `plan.md`, `rulings.md` when there are rulings, and `data-model.md` or `contracts/`
-  when needed
+- **Writes**: `plan.md`, `rulings.md` when there are rulings, and `contracts/` when needed
 - **Ends at**: a human gate (`awaiting-human`), the [implementation](implementation.md) step
   (`auto-approved`), or, rarely, a new round of questions (see
   [Stopping to go back to the human](#stopping-to-go-back-to-the-human))
 
-Read this file in full before writing. Beyond the tasks, the plan holds the parts an asynchronous,
-file-based workflow needs: the review block, the code read, the constitution check, the decisions,
-and complexity tracking.
+Read this file in full before writing. Beyond the tasks, the plan holds the parts an asynchronous
+workflow needs: the review block, the code read, the constitution check, complexity tracking, and
+the test map.
 
 ## Overview
 
@@ -31,8 +30,8 @@ context it needs without prescribing choices the implementer can make from the c
 
 ## Read first
 
-1. `spec.md` in full, especially its **Architecture**, **Assumptions**, and **Details**, with the
-   **Testing** table, and the decisions it lists.
+1. `spec.md` in full, especially its **Architecture**, **Edge cases**, and **Assumptions**. Then its
+   `data-model.md`, and the decisions it lists, as the branch has them.
 2. The constitution, and the active decisions that apply to the code you will touch, as they are
    now: a human may have changed one since the spec was approved. If one now conflicts with the
    spec, start a new round of questions, following
@@ -187,11 +186,7 @@ task's requirements implicitly include this section.]
 
 ## Constitution check
 
-[Every principle of the constitution, against the plan.]
-
-## Decisions
-
-[Only the decisions the plan relies on, each with where the plan follows it.]
+[A one-row table: every principle of the constitution, against the plan.]
 
 ## Complexity tracking
 
@@ -202,6 +197,10 @@ exception the human accepted.]
 
 [Only when the spec was approved with comments: each comment of `spec-review.md`, and the task that
 carries it out.]
+
+## Test map
+
+[Each scenario, edge case, and success criterion of the spec, and the task and test that cover it.]
 
 ## Waves
 
@@ -228,9 +227,9 @@ What goes in each section:
   existing guarantee established by code and tests, describe it and link the evidence.
 - **Code read**: claims about the code rest on this section. Name the test setup and its layout, the
   validation commands, and every place that reads or writes data the feature changes.
-- **Constitution check**: a table with one row per principle, all of them: principles always apply.
-  Decisions are not part of it.
-- **Decisions**: the decisions that apply to the code this plan touches, not the whole ledger.
+- **Constitution check**: a one-row table, one column per principle, all of them: principles always
+  apply. Each cell is ✅, or ⚠️ for a tension, then one line per tension. Decisions are not part of
+  it: the ones that apply are in **Global constraints**, word for word.
 - **Review comments**: only when the spec was approved with comments in `spec-review.md`: each
   comment, by its number, and the task that carries it out. The approved spec is not changed for
   them.
@@ -241,14 +240,19 @@ What goes in each section:
   limit, for the plan's review to approve. Each row says why it is needed, and the simpler
   alternative rejected. Name the callers, shared rule, or approved variation it serves: unspecified
   future features do not justify an abstraction. "None." when there is none.
+- **Test map**: a table mapping each acceptance scenario, edge case, and success criterion of the
+  spec to its task and test. The review-focus items join it. It opens with a sentence on how the
+  integration tests run: what they render, on which store, with which clock. The spec's
+  [Tests](spec.md#tests) rules say how to write them. An error the code handles but no edge case
+  names gets its row too.
 - **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
   the shared files they each add to, if any. The implementation reads this section to decide what
   runs at the same time.
 
-Add `data-model.md` when the feature adds or changes entities beyond a few fields: fields,
-relationships, validation rules, state transitions. Smaller changes stay in the spec's **Data**,
-under **Details**. Add `contracts/` when the feature exposes an interface to users or other systems:
-API schemas, CLI commands, file formats, written in the format the project already uses for them.
+`data-model.md` is the spec's: the human reviewed it, and the plan follows it as written. Types
+internal to the code are the plan's, in the task that defines them. Add `contracts/` when the
+feature exposes an interface to users or other systems: API schemas or CLI commands, written in the
+format the project already uses for them.
 
 ## Task structure
 
@@ -355,9 +359,9 @@ function no task defines. The self-review catches both.
 After writing the complete plan, read the spec again with fresh eyes, check the plan against it, and
 fix what you find inline. This is a checklist you run yourself.
 
-1. **Spec coverage**: skim each user story, acceptance scenario, edge case, success criterion, line
-   of the **Testing** table, and global constraint. Can you point to a task and a test that asserts
-   it, exact text and timings included? Add a task for any requirement without one.
+1. **Spec coverage**: skim each user story, acceptance scenario, edge case, success criterion, and
+   global constraint. Can you point to its row of the test map, a task, and a test that asserts it,
+   exact text and timings included? Add a task for any requirement without one.
 2. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
    that decides nothing is a gap; private code the implementer can choose is unnecessary
    prescription. Fix both. Explain an algorithm when correctness depends on it.
@@ -459,8 +463,9 @@ the plan, the implementation step turns the block into a record, as for the spec
 When `plan.md` is `changes-requested`, read `plan-review.md`, apply its comments, and set the status
 again from the table. The previous block becomes a record of the request, as described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human), and the new block says how each
-comment was handled: "C1: done", "C2: declined, because ..." If the feedback needs a new decision,
-start a new round of questions, following
+comment was handled. It names each comment by its subject: "C1 (undo too short): done", "C2 (a sync
+option): declined, because ..." If the feedback needs a new decision, start a new round of
+questions, following
 [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 
 When the spec's `revision` is higher than the plan's `spec-revision`, update the plan to match the

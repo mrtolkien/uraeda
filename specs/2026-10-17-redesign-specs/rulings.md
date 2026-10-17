@@ -51,3 +51,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   first wave.
 - **If wrong**: nothing: task 2 changes only the plan's headings.
 - **Where**: `plan.md`
+
+## R5: A decision's rule is one sentence, then its check
+
+- **Decision**: the skill reads "one sentence each, ending 'Checked by ...'" as one sentence for the
+  rule, followed by how it is checked: "Checked by review." A rule holding two ideas is two rules.
+- **Rationale**: the 18 rewritten decisions, approved with the spec, write every rule this way.
+  Reading the data model's wording strictly would make each of them break the rule it states.
+- **Alternatives considered**: the rule and its check in one sentence, joined by a comma. The
+  sentences would pass the 25-word limit, and every decision would be rewritten again.
+- **If wrong**: reword `writing.md`'s "A decision" and `spec.md`'s "Writing a decision".
+- **Where**: `skills/uraeda/references/writing.md`, `skills/uraeda/references/spec.md`
+
+## R6: The README's quoted spec block gains a "You approve" line
+
+- **Decision**: the README quotes the example spec's block as it was submitted. Task 1 adds a "You
+  approve" first item to that quote, so the README shows the new block, without waiting for task 2.
+- **Rationale**: the README must not show a format the skill no longer writes. Task 2 rewrites the
+  example's block at the same time, in another worktree.
+- **Alternatives considered**: leaving the quote unchanged until task 2 merges: the README would
+  contradict the skill in between.
+- **If wrong**: when merging tasks 1 and 2, copy the example's "You approve" item into the README's
+  quote word for word.
+- **Where**: `README.md`, "Its spec opened like this when it was submitted"
