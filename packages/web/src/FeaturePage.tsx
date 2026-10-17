@@ -4,6 +4,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Link } from "@astryxdesign/core/Link";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -81,7 +82,7 @@ export function FeaturePage({ folder }: { folder: string }) {
   );
 }
 
-/** The feature's branch and worktree, or that it was merged. */
+/** The feature's branch and worktree, or that it was merged, then its pull request once opened. */
 function BranchLine({ feature }: { feature: FeatureData }) {
   return (
     <Text display="block" type="supporting">
@@ -99,6 +100,14 @@ function BranchLine({ feature }: { feature: FeatureData }) {
         "Merged into the default branch"
       )}
       {feature.uncommitted && " · uncommitted changes"}
+      {feature.pullRequest && (
+        <>
+          {" · "}
+          <Link hasUnderline href={feature.pullRequest.url}>
+            Pull request #{feature.pullRequest.number}
+          </Link>
+        </>
+      )}
     </Text>
   );
 }
