@@ -22,6 +22,8 @@
   - Setup with agent (checks project and creates relevant files)
 - Review home
 - Review decisions wording + existing decisions here
+- I want the clarifications to start with a list of all questions, so I don’t answer later questions
+  from comments early
 
 ## Next
 
