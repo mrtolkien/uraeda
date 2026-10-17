@@ -249,7 +249,7 @@ const commands = {
    * Moves the pointer over the element of a role and name in a frame of the page, by its `title`,
    * and says whether the pick script outlines it: a box drawn over the page, at the element's place.
    */
-  async frameOutlined(context: Context, title: string, role: "button", name: string) {
+  async frameOutlined(context: Context, title: string, role: FrameRole, name?: string) {
     const target = (await frameTitled(context, title)).getByRole(role, { name });
     await target.hover();
     return target.evaluate((element) => {
@@ -386,7 +386,7 @@ export type RepoCommands = {
   fixtureText: (name: string) => Promise<string>;
   frameAttribute: (title: string, selector: string, name: string) => Promise<string | null>;
   frameClick: (title: string, role: FrameRole, name?: string, force?: boolean) => Promise<void>;
-  frameOutlined: (title: string, role: "button", name: string) => Promise<boolean>;
+  frameOutlined: (title: string, role: FrameRole, name?: string) => Promise<boolean>;
   framePress: (title: string, key: string) => Promise<void>;
   frameReload: (title: string) => Promise<void>;
   frameRun: (title: string, script: string) => Promise<void>;
@@ -454,6 +454,13 @@ export default defineConfig({
         { browser: "webkit", name: "desktop", viewport: { height: 900, width: 1440 } },
       ],
       provider: playwright(),
+      // Failure screenshots are automatic. Full DOM/network tracing is opt-in: recording every
+      // passing test made CI much slower. Use URAEDA_TEST_TRACE=1 with an uncached browser task.
+      screenshotDirectory: ".vitest/screenshots",
+      trace:
+        process.env.URAEDA_TEST_TRACE === "1"
+          ? { mode: "retain-on-failure", tracesDir: ".vitest/traces" }
+          : "off",
     },
     // CI's WebKit draws without a GPU, and its scrolling and animations take longer than a desktop's.
     expect: { poll: { timeout: 5000 } },

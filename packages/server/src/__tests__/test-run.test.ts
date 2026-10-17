@@ -1,12 +1,13 @@
 // The test tasks' runner, `scripts/test-run.ts`: each run in its own temporary folder, removed when
 // it ends, and at most a few runs of a kind at once on the machine.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { acquire, sweep } from "../../../../scripts/test-run.ts";
+import { acquire, alive, sweep } from "../../../../scripts/test-run.ts";
 
 const SCRIPT = fileURLToPath(new URL("../../../../scripts/test-run.ts", import.meta.url));
 
@@ -81,3 +82,37 @@ test("a free slot is taken at once, next to a held one", async () => {
   release();
   expect(readdirSync(dir)).toEqual(["browser-0.lock"]);
 });
+
+test.each(["SIGTERM", "SIGKILL"] as const)(
+  "cancelling a run with %s stops its launcher and runner before cleanup",
+  async (signal) => {
+    const parent = temporaryFolder("uraeda-parent");
+    // Like `vp test`: the launcher's child owns the actual work and inherits its output.
+    const runner = `console.log(JSON.stringify({ pid: process.pid, folder: require('os').tmpdir() })); setInterval(() => {}, 1000)`;
+    const launcher = `require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(runner)}], { stdio: 'inherit' });`;
+    const child = spawn(process.execPath, [SCRIPT, process.execPath, "-e", launcher], {
+      env: { ...process.env, TMPDIR: parent },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let pid: number | undefined;
+    try {
+      const [data] = await once(child.stdout!, "data");
+      const started = JSON.parse(String(data).trim()) as { folder: string; pid: number };
+      pid = started.pid;
+      expect(alive(pid)).toBe(true);
+      expect(existsSync(started.folder)).toBe(true);
+      const exited = once(child, "exit");
+
+      child.kill(signal);
+
+      expect(await exited).toEqual(signal === "SIGTERM" ? [143, null] : [null, "SIGKILL"]);
+      await expect.poll(() => alive(started.pid)).toBe(false);
+      await expect.poll(() => readdirSync(parent)).toEqual([]);
+    } finally {
+      child.kill("SIGKILL");
+      if (pid !== undefined && alive(pid)) {
+        process.kill(pid, "SIGKILL");
+      }
+    }
+  },
+);

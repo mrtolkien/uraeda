@@ -50,6 +50,15 @@ export function sweep(parent: string): Array<string> {
     if (pid === undefined || alive(Number(pid))) {
       return false;
     }
+    // A force-killed wrapper's guard may still be stopping its command before cleanup.
+    try {
+      const guard = Number(readFileSync(join(parent, name, ".guard-pid"), "utf8"));
+      if (guard > 0 && alive(guard)) {
+        return false;
+      }
+    } catch {
+      // An older run had no guard, or its guard already removed the folder.
+    }
     rmSync(join(parent, name), { force: true, recursive: true });
     return true;
   });
@@ -58,6 +67,37 @@ export function sweep(parent: string): Array<string> {
 /** A new run folder in `parent`, named after this process. */
 export function runFolder(parent: string): string {
   return mkdtempSync(join(parent, `${RUN_PREFIX}${process.pid}-`));
+}
+
+/** Signals the command and its descendants, which share the process group it starts. */
+function signalGroup(pid: number | undefined, signal: NodeJS.Signals) {
+  if (pid === undefined) {
+    return;
+  }
+  try {
+    process.kill(-pid, signal);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Runs in a separate Node process. IPC disconnects even if Vite Task force-kills the wrapper,
+ * when no signal handler can run. Its source and signalGroup's are passed to the guard.
+ */
+function guardRun(pid: number, folder: string) {
+  const stop = async () => {
+    signalGroup(pid, "SIGKILL");
+    const { rmSync } = await import("node:fs");
+    rmSync(folder, { force: true, maxRetries: 3, recursive: true, retryDelay: 50 });
+    process.exit(0);
+  };
+  process.on("disconnect", () => void stop());
+  if (!process.connected) {
+    void stop();
+  }
 }
 
 /** Who holds a slot: the script's process and the folder it was started from. */
@@ -173,12 +213,28 @@ async function main() {
   sweep(parent);
   const folder = runFolder(parent);
   const child = spawn(command[0]!, command.slice(1), {
+    // Vite Task can cancel this wrapper when another check fails. A separate process group
+    // lets cancellation reach the actual runner behind `vp`, not just that launcher.
+    detached: true,
     env: { ...process.env, TEMP: folder, TMP: folder, TMPDIR: folder },
     stdio: "inherit",
   });
-  // A Ctrl-C reaches the command too, in the same process group: the run ends with it.
+  if (child.pid !== undefined) {
+    const guard = spawn(
+      process.execPath,
+      [
+        "-e",
+        `const signalGroup = ${signalGroup.toString()}; (${guardRun.toString()})(${child.pid}, ${JSON.stringify(folder)})`,
+      ],
+      {
+        detached: true,
+        stdio: ["ignore", "ignore", "inherit", "ipc"],
+      },
+    );
+    writeFileSync(join(folder, ".guard-pid"), String(guard.pid));
+  }
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
-    process.on(signal, () => child.kill(signal));
+    process.on(signal, () => signalGroup(child.pid, signal));
   }
   const [code, signal] = await new Promise<[number | null, NodeJS.Signals | null]>((resolve) => {
     child.once("exit", (code, signal) => resolve([code, signal]));
@@ -187,8 +243,14 @@ async function main() {
       resolve([127, null]);
     });
   });
-  rmSync(folder, { force: true, recursive: true });
-  release();
+  // A launcher can exit before its runner does, especially during cancellation. No process in
+  // its group may keep writing into a folder this run or the next run's sweep removes.
+  signalGroup(child.pid, "SIGKILL");
+  try {
+    rmSync(folder, { force: true, maxRetries: 3, recursive: true, retryDelay: 50 });
+  } finally {
+    release();
+  }
   process.exit(code ?? 128 + (signal ? constants.signals[signal] : 0));
 }
 

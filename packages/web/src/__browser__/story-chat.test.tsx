@@ -65,9 +65,14 @@ test("a comment on a story in the chat goes to the composer, unsent (US4.3)", as
   await expect.poll(() => commands.frameText(DESKTOP), READY).toContain("Dragging");
   await userEvent.fill(composer(), "Also, the colours.");
 
+  // Typing scrolls the composer into view; bring the story above it before picking.
+  (await embed()).scrollIntoView({ block: "start" });
   await userEvent.click(
     await within(await embed()).findByRole("button", { name: "Pick an element" }, READY),
   );
+  // The frame receives pick mode asynchronously. Its visible outline proves it heard the
+  // request before the click; the parent button's pressed state alone does not.
+  await expect.poll(() => commands.frameOutlined(DESKTOP, "separator"), READY).toBe(true);
   await commands.frameClick(DESKTOP, "separator");
   await screen.findByText(`Comment on ${LABEL}, desktop, separator`);
   await userEvent.keyboard("Larger hit area.");

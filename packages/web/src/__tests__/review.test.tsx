@@ -915,14 +915,14 @@ test("an image picked for a comment does not go into a comment edited during its
 });
 
 /**
- * A repository whose spec, at its branch's tip, holds 300 more blocks before its stories: one
+ * A repository whose spec, at its branch's tip, holds extra blocks before its stories: one
  * paragraph on every other line from line 32, "Paragraph 5 of the long spec." on line 40 and
  * "Paragraph 11 of the long spec." on line 52.
  */
-function longSpec() {
+function longSpec(blocks = 30) {
   const r = fixtureRepo();
   const paragraphs = Array.from(
-    { length: 300 },
+    { length: blocks },
     (_, index) => `Paragraph ${index + 1} of the long spec.\n\n`,
   );
   commitSpec(r, (text) =>
@@ -947,7 +947,9 @@ async function reload(r: string) {
 
 /** US3 1, SC-002: a keystroke renders the comment form, not the document. */
 test("typing a comment renders none of the document's blocks (US3 1, SC-002)", async () => {
-  await renderPage(PAGE, longSpec());
+  // This scenario needs the large document. The save and restore scenarios need only the lines
+  // they select: rendering 300 blocks for each of them multiplied coverage's work needlessly.
+  await renderPage(PAGE, longSpec(300));
   await click(await scenario(LINE_40));
   const field = await screen.findByLabelText("Comment text");
   await act(async () => {});
