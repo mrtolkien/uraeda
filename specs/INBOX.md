@@ -47,6 +47,7 @@
 - Inbox/Priorities need icons
 - The folded left sidebar should keep icons for the main categories, and also unfold temporarily on
   hover
+- [redesign-clarifications] Constitution check in specs looks pretty bad
 
 ## Flow
 
