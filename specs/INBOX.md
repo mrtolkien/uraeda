@@ -96,3 +96,6 @@
   the hook overwrites a 'root' variable (flake.nix shellHook)
 - [agent] [symlinks] The first dev shell in a new worktree blocks about 8 s while target/ is cloned,
   without saying so: print a line before the clone (packages/server/scripts/worktree-seed.ts)
+- [agent] [access-storybook] storybook-preview.test.ts pins neither that the helper's security
+  forwards Storybook's options to a project's preset function, nor a head preset returning undefined
+  (uraeda-preview.js run callers)
