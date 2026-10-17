@@ -7,12 +7,13 @@ import { useFile } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { ReviewPage } from "./ReviewPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
+import { SpecPage } from "./spec/SpecPage.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { StoriesProvider } from "./stories.tsx";
 
 /**
- * A workflow file, on the page its kind needs: a round to answer, a file to review, or a document to
- * read, its story links embedded.
+ * A workflow file, on the page its kind needs: a spec, waiting for review or not; a round to answer;
+ * a plan to review; or a document to read, its story links embedded.
  */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);
@@ -38,8 +39,10 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
       </Page>
     );
   }
-  const reviewed = ["spec", "plan"].includes(file.kind);
-  if (reviewed && file.status === "awaiting-human") {
+  if (file.kind === "spec") {
+    return <SpecPage file={file} />;
+  }
+  if (file.kind === "plan" && file.status === "awaiting-human") {
     return <ReviewPage file={file} />;
   }
   // A round and a document draw the file as it is now, with the stories it embeds: a story gone

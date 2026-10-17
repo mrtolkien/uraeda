@@ -249,40 +249,6 @@ test("a fold's trigger opens it and selects no block", async () => {
   expect(document.querySelector("button[aria-pressed='true']")).toBeNull();
 });
 
-/** Review C2: the mockups, the easiest part of a spec to check, open from the top of its review. */
-test("the mockups are first on a spec under review", async () => {
-  await renderPage(PAGE, repo());
-
-  const mockups = await screen.findByRole("region", { name: "Mockups" });
-  const story = screen.getByRole("heading", { name: "User stories" });
-  expect(mockups.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  const push = vi.spyOn(window.history, "pushState");
-  await click(within(mockups).getByRole("button", { name: "Open the mockup: Repeat" }));
-  // Opened in the page's own repository, not through the most recently opened one's redirect.
-  expect(push).toHaveBeenCalledWith(
-    expect.anything(),
-    "",
-    atRepo(`/f/${FOLDER}/mockups/repeat.html`),
-  );
-  expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/mockups/repeat.html`));
-  push.mockRestore();
-});
-
-/** Review C2: a spec without mockups has no place for them. */
-test("a spec without mockups has no mockups region", async () => {
-  const r = fixtureRepo();
-  commitSpec(r, (text) =>
-    text.replace(
-      "The [Repeat](mockups/repeat.html) mockup shows the menu open, the custom screen, and the undo.\n\n",
-      "",
-    ),
-  );
-  await renderPage(PAGE, r);
-
-  await screen.findByRole("heading", { name: "User stories" });
-  expect(screen.queryByRole("region", { name: "Mockups" })).toBeNull();
-});
-
 /** US3.1 */
 test("a tapped block takes a comment on its lines", async () => {
   const r = repo();

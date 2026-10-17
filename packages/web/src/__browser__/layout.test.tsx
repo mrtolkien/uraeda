@@ -634,6 +634,8 @@ test.each(MODES)("a spec with a story embedded, ready, in $mode", async ({ mode 
   await colorScheme(mode);
   await commands.addStoryFeature();
   await show("/f/2026-10-20-sidebar-resize/spec.md", "Resize the sidebar");
+  // Scrolled to, as the reader scrolls to its story: what you approve comes first on the page.
+  screen.getByRole("figure", { name: "Dragging the handle" }).scrollIntoView({ block: "center" });
   await expect
     .poll(
       () =>
