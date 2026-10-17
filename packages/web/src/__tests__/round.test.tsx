@@ -1082,3 +1082,89 @@ test("an unsaved comment of a round answered elsewhere stays, with the notice", 
     within(question("Q3")).queryByText("The round was answered.", { exact: false }),
   ).toBeNull();
 });
+
+/** A repository whose round, written in the feature's worktree as `name`, is `edit` of round 01. */
+function rewritten(edit: (round: string) => string, name = "clarifications-01.md") {
+  const repo = answered({});
+  writeFileSync(join(repo, ".worktrees", FOLDER, `specs/${FOLDER}/${name}`), edit(text(repo)));
+  return repo;
+}
+
+/** Whether `first` comes before `second` in the page. */
+function before(first: Node, second: Node) {
+  return (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+}
+
+/** Redesign US2.1 */
+test("the round opens with its block, then the Context's parts under their headings", async () => {
+  await renderPage(PAGE);
+  const block = await screen.findByText("Verdict: worth building as proposed.", { exact: false });
+
+  const headings = ["Goal", "Today", "Scope", "Sources"].map((name) =>
+    screen.getByRole("heading", { level: 3, name }),
+  );
+  expect(before(block, headings[0] as HTMLElement)).toBe(true);
+  for (const [index, heading] of headings.slice(1).entries()) {
+    expect(before(headings[index] as HTMLElement, heading)).toBe(true);
+  }
+  expect(before(headings[3] as HTMLElement, question("Q1"))).toBe(true);
+});
+
+/** Redesign US2.2 */
+test("a later round shows Since the last round above Goal", async () => {
+  const repo = rewritten(
+    (round) =>
+      round
+        .replace("round 01:", "round 02:")
+        .replace(
+          "### Goal",
+          "### Since the last round\n\nRound 01 settled the human steps.\n\n### Goal",
+        ),
+    "clarifications-02.md",
+  );
+  await renderPage(`/f/${FOLDER}/clarifications-02.md`, repo);
+
+  const since = await screen.findByRole("heading", { level: 3, name: "Since the last round" });
+  expect(before(since, screen.getByRole("heading", { level: 3, name: "Goal" }))).toBe(true);
+  expect(screen.getByText("Round 01 settled the human steps.")).toBeTruthy();
+});
+
+/** Redesign US2.3 */
+test("Why it matters shows in a muted box after the context, not within it", async () => {
+  await renderPage(PAGE);
+  const context = await screen.findByText("Today, every human step happens in a text editor.");
+
+  const box = within(question("Q1")).getByRole("note", { name: "Why it matters" });
+  expect(box.textContent).toBe("Why it matters: it sets the size of the feature.");
+  expect(box.contains(context)).toBe(false);
+  expect(before(context, box)).toBe(true);
+  expect(before(box, option("Q1", "A"))).toBe(true);
+});
+
+/** Redesign US2.4 */
+test("a table and a quote in a question's context show in its card", async () => {
+  const repo = rewritten((round) =>
+    round.replace(
+      "## Q3: Which repositories does the UI open now?\n",
+      [
+        "## Q3: Which repositories does the UI open now?",
+        "",
+        "| Tool   | Repositories |",
+        "| ------ | ------------ |",
+        "| ura    | the one here |",
+        "",
+        '> "One repository at a time." The proposal.',
+        "",
+      ].join("\n"),
+    ),
+  );
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+
+  const q3 = within(question("Q3"));
+  expect(q3.getByRole("table")).toBeTruthy();
+  expect(q3.getByText("the one here")).toBeTruthy();
+  expect(
+    q3.getByText('"One repository at a time." The proposal.').closest("blockquote"),
+  ).toBeTruthy();
+});

@@ -148,6 +148,13 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
   },
   why: { color: colorVars["--color-warning"] },
+  whyBox: {
+    // Its paragraph's own margin below makes the inset at its foot.
+    backgroundColor: colorVars["--color-background-muted"],
+    borderRadius: radiusVars["--radius-element"],
+    paddingBlockStart: spacingVars["--spacing-3"],
+    paddingInline: spacingVars["--spacing-3"],
+  },
 });
 
 export const statusStyles = stylex.create({
@@ -220,6 +227,20 @@ function Option({
       )}
       <Divider />
     </div>
+  );
+}
+
+/** A question's context, then its "Why it matters" in a muted box, set apart from it. */
+function QuestionContext({ document, question }: { document: Document; question: QuestionItem }) {
+  return (
+    <>
+      <Blocks document={document} ids={question.context} />
+      {question.why !== undefined && (
+        <div aria-label="Why it matters" role="note" {...stylex.props(styles.whyBox)}>
+          <Blocks document={document} ids={[question.why]} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -335,10 +356,7 @@ export function Question({
         <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
           {question.title}
         </Heading>
-        <Blocks
-          document={document}
-          ids={question.why === undefined ? question.context : [...question.context, question.why]}
-        />
+        <QuestionContext document={document} question={question} />
         <Options answer={answer} document={document} question={question} readOnly={readOnly} />
         <AnswerComment
           answer={answer}
