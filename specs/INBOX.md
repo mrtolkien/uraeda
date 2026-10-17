@@ -61,6 +61,8 @@
 - The folded left sidebar should keep icons for the main categories, and also unfold temporarily on
   hover
 - [redesign-clarifications] Constitution check in specs looks pretty bad
+- Make a coherence pass in the UI: why is the sidebar on the right in mobile? And look at Kiro Crew
+  UI and see what we could use ourselves
 
 ## Flow
 
