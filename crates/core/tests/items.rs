@@ -160,12 +160,11 @@ fn a_round_has_its_questions_and_options() {
     };
     assert_eq!(
         subjects(&round.settled_groups[0]),
-        strings(&["Skipping one occurrence", "Deleting a repeating task"])
+        strings(&["Skipping one occurrence"])
     );
     assert_eq!(
         subjects(&round.settled_groups[1]),
         strings(&[
-            "Undoing a completion",
             "Monthly repeats on the 29th to 31st",
             "Repeating tasks show a repeat icon"
         ])
