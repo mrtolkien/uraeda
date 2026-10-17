@@ -63,6 +63,10 @@
 - [redesign-clarifications] Constitution check in specs looks pretty bad
 - Make a coherence pass in the UI: why is the sidebar on the right in mobile? And look at Kiro Crew
   UI and see what we could use ourselves
+- [agent] [redesign-specs] A spec's decision changes, and a branch's decision page, are not sent
+  live when only a decision of `specs/decisions/` changes on the branch: the watch updates the
+  feature, not its `spec.md` or the `BranchDecision`, and an uncommitted edit of a decision not at
+  all
 
 ## Flow
 
