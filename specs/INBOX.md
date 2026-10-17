@@ -25,6 +25,8 @@
   crates/core/src/files/priorities/edits.rs:105, so vp run ready fails
 - [agent] [symlinks] The commit hook type-checks root TypeScript files alone, without Node's types
   (no root tsconfig or @types/node): any commit touching vite.tasks.ts or scripts/*.ts is refused
+- [agent] [symlinks] In the main checkout, ts:check and specs:check read .worktrees/ as inputs
+  (their ** globs do not exclude it), so any worktree edit misses their cache there (vite.tasks.ts)
 
 ## Prompts
 
