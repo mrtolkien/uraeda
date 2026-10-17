@@ -21,6 +21,11 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
   `[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)`. With an active preview decision, a
   story link alone in its paragraph shows the story live in Uraeda, and anywhere else opens it in
   Storybook. A variant's story link is a paragraph of its option.
+- **Diagrams**: a fenced code block whose language is `mermaid`, for a flow, a sequence, or states
+  that a list would make hard to follow: a `flowchart`, a `sequenceDiagram`, or a `stateDiagram-v2`.
+  It reads as text anywhere, and renders on GitHub and in Uraeda. Never an image of a diagram, an
+  ASCII drawing, or another diagram language. See
+  [Writing for the human](writing.md#every-document).
 - **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
   committed with it. Each is re-encoded once as WebP, with no metadata and at most 2576 pixels on
   its long edge (JPEG and lossy WebP at quality 80, the rest near-lossless); an animated GIF stays a
@@ -43,22 +48,24 @@ Templates are strict where tools and agents need to find things, and free elsewh
 - **Everything else**, inside sections, is free text.
 
 With `ura`, run `ura check` before every commit of workflow files: it verifies the rules of this
-file, and reports each problem with its file and line. In short: folder names `YYYY-MM-DD-<slug>`
-with a real date, and rounds with two digits; the frontmatter fields of each file, with the values
-of the [status table](#workflow-status), `plan-review` `true` or `false`, a spec's `clarifications`
-at most its last round, and a plan's `spec-revision` at most the spec's `revision`; the template's
-title, sections, and order, and no level-2 section the template does not have; the structured items
-above; an answer for every question that applies once a round is `answered`; the `> [!IMPORTANT]`
-block of a file waiting for the human; a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date,
-its numbered rounds and questions, and its opening `> [!NOTE]` block; `PRIORITIES.md`'s `## Now`,
-`## Next`, `## Later`, and `## Blocked`; `specs/INBOX.md`'s title, `# Inbox`, and each non-empty
-category named once, when the file exists; `specs/INBOX-TRIAGE.md` as a round of questions, with its
-template's title and sections, its `status`, its answers, and its block; links and images to
-markdown files and into `specs/` that resolve, anchors included, except links from `PRIORITIES.md`
-and `INBOX.md` into a started feature's or change's folder, whose files live on its branch; the
-[review files](#review-files) rules; and the preview decision's two fields, both or neither, a
-`preview-folder` that is `.` or a relative path without `..`, and a `preview-command` holding
-`{port}`.
+file, and reports each problem with its file and line. It also warns, without failing, when a file
+waiting for the human drifts from the limits of [Writing for the human](writing.md). In short:
+folder names `YYYY-MM-DD-<slug>` with a real date, and rounds with two digits; the frontmatter
+fields of each file, with the values of the [status table](#workflow-status), `plan-review` `true`
+or `false`, a spec's `clarifications` at most its last round, and a plan's `spec-revision` at most
+the spec's `revision`; the template's title, sections, and order, and no level-2 section the
+template does not have, nor a `###` heading in a round's Context or settled points; each settled
+point in one of its groups; the structured items above; an answer for every question that applies
+once a round is `answered`; the `> [!IMPORTANT]` block of a file waiting for the human; a record's
+name, `YYYY-MM-DD-<slug>.md`, its `finished` date, its numbered rounds and questions, and its
+opening `> [!NOTE]` block; `PRIORITIES.md`'s `## Now`, `## Next`, `## Later`, and `## Blocked`;
+`specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
+`specs/INBOX-TRIAGE.md` as a round of questions, with its template's title and sections, its
+`status`, its answers, and its block; links and images to markdown files and into `specs/` that
+resolve, anchors included, except links from `PRIORITIES.md` and `INBOX.md` into a started feature's
+or change's folder, whose files live on its branch; the [review files](#review-files) rules; and the
+preview decision's two fields, both or neither, a `preview-folder` that is `.` or a relative path
+without `..`, and a `preview-command` holding `{port}`.
 
 ## Workflow status
 

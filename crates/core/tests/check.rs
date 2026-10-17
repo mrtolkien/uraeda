@@ -1481,3 +1481,22 @@ fn the_example_round_holds_to_the_writing_limits() {
 
     assert_eq!(summary(&round_problems(&text)), Vec::<String>::new());
 }
+
+/// US1.8, for a change: the example change's round waits for the human, and reports neither a
+/// problem nor a warning. A change has no discovery file, so its Sources link none.
+#[test]
+fn the_example_change_round_passes() {
+    let example = Example::new();
+    let path = format!("{CHANGE}/clarifications-01.md");
+    let text = example.read(&path);
+    let problems: Vec<Problem> = example
+        .problems()
+        .into_iter()
+        .filter(|p| p.file == path)
+        .collect();
+
+    assert_eq!(summary(&problems), Vec::<String>::new());
+    assert!(text.contains("status: awaiting-human"));
+    assert!(text.contains("> [!IMPORTANT]"));
+    assert!(!text.contains("discovery-0"), "a change has no discovery");
+}

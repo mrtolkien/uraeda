@@ -47,7 +47,8 @@ says what to do by hand, and names the command that does it, to use when `ura` i
    round is only for unknowns their answers created.
 5. **Write for a human reading top to bottom.** Humans read a document once, in order: never refer
    to something before it is introduced, and give the context each part needs where it is needed,
-   with links to the code, documentation, and web pages it relies on.
+   with links to the code, documentation, and web pages it relies on. Follow
+   [Writing for the human](references/writing.md) in every file the human reads.
 6. **Come back with a clear message.** Every file waiting for the human opens with what is asked of
    them, how long it takes, and where their attention matters most: see
    [Coming back to the human](#coming-back-to-the-human).
@@ -156,6 +157,12 @@ For a change branch, see [Change](references/change.md).
    the implementation. Do not stop between steps to report or to check in. If you cannot go on, say
    why in your last message: the next run finds the step with this same table.
 
+**A file in an old format.** When a workflow file of the target fails `ura check`, or the rules of
+[Conventions](references/conventions.md#markdown), because the skill changed its format, rewrite it
+in the new format first, from its template. Keep its content, and the human's answers, notes, and
+comments, word for word. Commit it on its own, `chore(<slug>): rewrite <file> in the new format`,
+then run the step. An answered round stays answered: only its form changes.
+
 The last two rows of the table are for pull requests opened before the
 [Finish](references/finish.md) step existed. When a merged feature still has a worktree or a local
 branch, tell the human to run `ura clean`, or give them the commands of
@@ -186,6 +193,10 @@ comes back to the human the same way every time, so they see at once what is ask
      outside behaviour not verified yet, a relaxed security guard said as what an attacker could do,
      a cost. The block orients the human: the details stay in the file.
    - On a revision: what changed since their last review.
+
+   A round of questions adds a count in digits and a verdict first, as
+   [the block](references/writing.md#the-block) describes.
+
 2. **The commit message body repeats the block's first line**, so `git log` and any git listener
    show what is waiting, and for how long.
 3. **In a chat session**, say the same in one or two sentences, with the file's path. If you were
@@ -210,10 +221,10 @@ this skill do. Never bury something the human must decide in prose: it is a ques
 clarifications file, or an item in the block.
 
 The workflow only moves on when every question is answered. A follow-up `Q2.B` needs an answer only
-when its parent's answer starts with its letter: "B", "B and C: ...", "A, B". When the parent's
-answer names no letter, the follow-up needs one, `-` if it does not apply. If a clarifications file
-is `answered` with questions left blank, set its status back to `awaiting-human`, name the blank
-questions in the first line of its block, and commit.
+when its parent's answer starts with its letter: "B", "B and C: ...", "A, B". A parent answered
+without a letter, in the human's own words, closes its follow-ups: they need no answer. If a
+clarifications file is `answered` with questions left blank, set its status back to
+`awaiting-human`, name the blank questions in the first line of its block, and commit.
 
 The human may also write under **Notes:**, at the end of the questions, about the points settled
 without them: the spec step reads the notes like answers. A comment on one settled point is a bullet
@@ -237,6 +248,8 @@ Read a step's reference before running it, and the others when the step needs th
   to its pull request.
 - [Code quality](references/code-quality.md): the five code-quality concepts each step links to, and
   how a project sets up its checks.
+- [Writing for the human](references/writing.md): the writing rules of every file the human reads,
+  and the shape of a round of questions; read it before writing one.
 - [Conventions](references/conventions.md): markdown, the status table, review files, branches and
   worktrees, and commits; read it before writing or committing a workflow file.
 - [Inbox](references/inbox.md): the inbox's format, writing notes, organizing them by hand or with a

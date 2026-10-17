@@ -29,7 +29,8 @@ change, the root cause or the approach, and the code it touched.]
 ## Questions
 
 [Optional, absent for a change without rounds: every round, every question with its heading as it
-was, so links keep their anchors.]
+was, so links keep their anchors. A round's Context or settled points, when quoted, go under
+`#### Context` or `#### Settled without the human`, their sub-headings at `#####`.]
 
 ### Round [NN]
 

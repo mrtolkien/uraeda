@@ -46,12 +46,14 @@ answers win. A settled point the human objected to in an answer or a note follow
 the notes starting with a settled point's bold subject, `- **<subject>**: <comment>`, is the human's
 answer to that point. An answer can be:
 
-- **One or more option letters.** Letters from options that exclude each other, when the question
-  does not say they combine, are ambiguous: ask again in a new round.
+- **One or more option letters**, at the answer's start, joined by `, `, `and`, or `, and `, and
+  ended by `:`, `,`, `.`, or the end: "B", "A and C: ...". "C but with napi-rs" names no letter.
+  Letters from options that exclude each other, when the question does not say they combine, are
+  ambiguous: ask again in a new round.
 - **Free text, alone or after letters**: the human's own answer, which wins over the option's
   wording. When it can be read more than one way, either ask again in a new round, with your reading
   as the recommended answer, or, when the readings differ little, pick one and say so in the spec's
-  `> [!IMPORTANT]` block.
+  `> [!IMPORTANT]` block. An answer without a letter closes the question's follow-ups.
 
 A follow-up like `Q2.B` only needs an answer if the human picked that letter in its parent: ignore
 it otherwise. The workflow only moves on once every other question is answered: see
@@ -199,7 +201,8 @@ clarifications.]
 
 `## Mockups` is left out when the feature has no UI work.
 
-The `> [!IMPORTANT]` block, as described in
+Write the spec as [Writing for the human](writing.md#every-document) says for every document. The
+`> [!IMPORTANT]` block, as described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human): how long the review takes, then
 what most needs attention, one line each: the new and changed decisions, the answers you read one
 way among several, the riskiest assumptions, the risk tier and whether the plan waits for a review,

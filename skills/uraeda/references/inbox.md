@@ -138,11 +138,13 @@ checkout, and need no feature.
    the backlog, and the open feature and change branches. A note may be done already, a duplicate,
    or part of a draft.
 3. **Write `specs/INBOX-TRIAGE.md`** from [the template](../assets/templates/specs/INBOX-TRIAGE.md),
-   with `status: awaiting-human`:
+   with `status: awaiting-human`, following [Writing for the human](writing.md) as a round of
+   questions does, but for its free Context and its lack of settled points:
    - The `> [!IMPORTANT]` block, as in
      [Coming back to the human](../SKILL.md#coming-back-to-the-human): its first line gives the
-     questions, the notes they cover, and the time, about two minutes a question: "8 questions on 11
-     notes, about 16 minutes".
+     questions, the notes they cover, and the time, computed as
+     [the time estimate](writing.md#the-time-estimate) says: "8 questions on 11 notes, about 15
+     minutes".
    - **Context**: how many notes the inbox holds, how many the triage covers, and what you read.
      Cover every note; when they are too many for one sitting, cover whole categories, and say which
      wait for a later triage.
