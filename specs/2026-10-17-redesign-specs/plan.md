@@ -53,6 +53,11 @@ interactions with existing behaviour. Each gets a test in the task that owns the
 7. **A spec at revision 2 whose review file is gone**, after approval: each answer shows without a
    quote, never an error. Task 10.
 8. **Two `## Decisions` items for the same decision** count it once. Task 2.
+9. **An approved revision whose review file now holds the approval's comments**: the answers of
+   `## Your review` answer the review that requested changes, so they show without a quote; only a
+   review file whose verdict is `changes-requested` lends its comments' quotes. Task 10.
+10. **A text save after the file changed on disk** is still refused, as any stale save is today, now
+    that the editor joins the frontmatter back. The wave 1 fixes, on task 5's code.
 
 ## Global constraints
 
@@ -1341,6 +1346,10 @@ test("a revision 1 has no answers card", async () => {});
 
 test("an answer whose comment is gone shows without a quote", async () => {
   /* review focus 7 */
+});
+
+test("an approved revision does not quote the approval's comments", async () => {
+  /* review focus 9: spec-review.md approved, with its own C1: the answer C1 shows no quote */
 });
 
 test("an approved spec is the same page, read-only, with its approval record", async () => {
