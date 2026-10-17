@@ -117,3 +117,5 @@
   first line names the blank questions ("2 questions still need an answer: Q3 and Q5")
 - [agent] [redesign-clarifications] A comment saved with no letter picked but starting like "A: ..."
   or "B, ..." reads back as that letter picked, and opens its follow-ups: the web UI could warn
+- [agent] [redesign-clarifications] On the phone, the round page draws its band before the settled
+  points even when there are none, as on the triage
