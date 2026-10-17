@@ -88,6 +88,26 @@ function Menu({ current }: { current: string | null }) {
 }
 
 /**
+ * The navigation footer's first row: the constitution and the decisions, above the done items,
+ * selected on their pages. Folded, its icon alone, named "Decisions".
+ */
+function DecisionsItem({ path }: { path: string }) {
+  const here = useRepoPath();
+  return (
+    <SideNavItem
+      href={here("/decisions")}
+      icon={<Icon icon="uraeda:decision-ruler" />}
+      isSelected={path === "/decisions" || path.startsWith("/decisions/")}
+      label="Decisions"
+      onClick={(event: React.MouseEvent) => {
+        event.preventDefault();
+        navigate(here("/decisions"));
+      }}
+    />
+  );
+}
+
+/**
  * The navigation's footer: Settings, selected on its pages. Folded, its icon alone, named
  * "Settings".
  */
@@ -158,6 +178,7 @@ function Nav({ slot }: { slot: ReactNode }) {
       collapsible={{ hasButton: false }}
       footer={
         <>
+          <DecisionsItem path={path} />
           <DoneArea
             allHref={here("/#done")}
             content={rows}

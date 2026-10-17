@@ -20,7 +20,6 @@ _functional_ part of the UI: the goal here is for it to look _good_.
   "archive" option + only take one line with `...`
 - The right sidebar is not resizable, at least in priorities -> it was an important feature so not
   sure where that went
-- The constitution and decisions view is a bit _too_ hidden, likely deserves a small sidebar entry
 
 ## Why
 
