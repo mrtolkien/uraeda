@@ -118,10 +118,13 @@ decisions, as [discovery](discovery.md#what-to-ask-and-what-to-settle) says. A c
 Ask in a round: `clarifications-NN.md` alone, with no discovery file, from
 [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md), with
 `status: awaiting-human`. Its questions follow the
-[question structure](discovery.md#question-structure), recommended option first. Its Context section
-carries what you found, with links to the code, since the human reads this one file: leave out the
-template's links to a discovery file. Its block opens as
-[Coming back to the human](../SKILL.md#coming-back-to-the-human) says. Then stop at the gate.
+[question structure](discovery.md#question-structure), recommended option first, and the round
+follows [Writing for the human](writing.md), as a feature's round does. Its four Context parts carry
+what you found, with links to the code, since the human reads this one file. Its Sources link the
+code and documentation read: leave out the template's links to a discovery file, there and in the
+questions. Its block's verdict weighs the proposal from your investigation. The
+[example change's round](../assets/example/specs/changes/2026-10-14-tasks-reappear/clarifications-01.md)
+shows one. Then stop at the gate.
 
 Once the round is answered, turn its block into a record, in the next commit, and continue from the
 answers.

@@ -25,6 +25,12 @@ one waiting for that action.
 | `ura lsp`                                                             | Serves workflow files to editors: diagnostics, completion, outline, actions             |
 | `ura add [folder]`                                                    | Adds the repository holding a folder to the web UI's list                               |
 
+`ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
+`warning: <file>:<line>: <message>`. Warnings measure the limits of
+[Writing for the human](writing.md) on files waiting for the human: `block.count`, `block.items`,
+and `writing.sentence`. It exits with an error when it found a problem, and with success when it
+found only warnings. `ura lsp` sends warnings to editors with the Warning severity.
+
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
 runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through
 its worktree (see [Branches](conventions.md#branches)); `ura start --switch` switches the checkout

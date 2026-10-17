@@ -317,20 +317,20 @@ Write a new file for the round, from
 move on until they have.
 
 The human reads the file once, from top to bottom, without the discovery open next to it. Write it
-so it reads linearly, with every piece of context they need at the point they need it:
+as [Writing for the human](writing.md) says: its rules for every document, and for a round of
+questions, set the block, the Context's parts, each question's card, the settled groups, and the
+time estimate. In order:
 
-1. **The `> [!IMPORTANT]` block**, as described in
-   [Coming back to the human](../SKILL.md#coming-back-to-the-human). It names subjects, not question
-   numbers: the reader has not seen "Q4" yet. Its first line gives the number of questions and an
-   honest time to think them through: count two to five minutes per question, depending on its
-   weight, and say "about". Then, one line each: the choices that last beyond the feature, the
-   questions that work together, the gaps found in the proposal, and how many points you settled.
-2. **A short Context section**: what the proposal asks for, and what exists today, with links to the
-   code. It writes back your understanding: the human can see at once if you misread their intent.
-   In a later round, what happened since the last one, and why new questions came up.
+1. **The `> [!IMPORTANT]` block**, as [the block](writing.md#the-block) describes. Its verdict comes
+   from the discovery's **Worth it and feasibility**: "not as proposed" when the evidence says the
+   cost outweighs the gain, and "worth building, with changes" when the proposal cannot be met as
+   written. Its time follows [the time estimate](writing.md#the-time-estimate).
+2. **The Context section**, its four parts as [the Context](writing.md#the-context) describes. In a
+   later round, `### Since the last round` first.
 3. **The questions**, sorted by impact, most important first, each followed by its follow-ups.
-4. **Settled without the human**, at the end, then the line `**Notes:**`, left empty for the human's
-   notes on the settled points.
+4. **Settled without the human**, its points in the three groups of
+   [settled without the human](writing.md#settled-without-the-human), then the line `**Notes:**`,
+   left empty for the human's notes on the settled points.
 
 ## Question structure
 
@@ -343,8 +343,8 @@ The app cannot create tasks while it is closed. Todoist keeps a single task and 
 on completion. This choice also decides what editing, deleting, and undoing mean for a repeating
 task. More in [discovery](discovery-01.md#generating-occurrences).
 
-Why it matters: it decides whether users see future tasks, whether completed ones stay as a history,
-and whether the app needs a notion of series.
+Why it matters: it decides whether future tasks show, whether completed ones stay as a history, and
+whether the app needs a notion of series.
 
 - **A (recommended). Create the next occurrence as a new task when the current one is completed.
   Editing a task changes that task only.**
@@ -367,27 +367,20 @@ and whether the app needs a notion of series.
 Only if you picked B in Q2. [...]
 ```
 
-The rules behind it:
+The card's parts, its context, "Why it matters", and its options, follow
+[questions](writing.md#questions) and [options](writing.md#options): as much context as deciding
+needs, self-contained option sentences, the recommended one first. The asking rules:
 
-- **Context, two or three sentences**: what exists today and how others do it, with links to the
-  sources and to the discovery topic for more. Then one "Why it matters" sentence. Keep the depth in
-  the discovery file.
-- **Each option is a self-contained sentence**, readable without the context: "Create the next
-  occurrence as a new task when the current one is completed", not "On completion". Name every
-  detail that matters, like the field a rule is typed in. Under it, a `[pro]` line and a `[con]`
-  line.
-- **The recommended option comes first, as A**, labelled "A (recommended)", with a "Why recommended"
-  line under its pros and cons. It is your best reading of the evidence, not an answer to
-  rubber-stamp: the questions exist because they need the human's judgement. When the best answer is
-  a combination of options that combine, the "Why recommended" line names it: "A, with C on top".
 - **Options exclude each other**, unless the question says which ones combine, before the options:
-  "C can come on top of A or B".
+  "C can come on top of A or B". When the best answer is a combination, the "Why recommended" line
+  names it: "A, with C on top".
 - **Questions that depend on each other say so**, in the context of both: "Where the choice appears
-  is Q6", "With A or C in Q3, ...".
+  is Q6", "With a due date counted from the previous one (A in Q3), ...".
 - **A question that only matters for one answer is a follow-up**, right after its parent, numbered
-  by the answer it depends on: `Q2.B`, starting with "Only if you picked B in Q2". When it depends
-  on several answers, number it by the first and list them all: `Q1.B`, "Only if you picked B or C
-  in Q1". Never ask a separate question that an earlier answer already decides.
+  by the answer it depends on: `Q2.B`, starting with "Only if you picked B in Q2". Ask it under
+  every option that needs one, each its own follow-up. When it depends on several answers, number it
+  by the first and list them all: `Q1.B`, "Only if you picked B or C in Q1". Never ask a separate
+  question that an earlier answer already decides.
 - **Number questions from Q1 in each round.** Refer to an earlier round's question by file and
   number: "Q2 of [round 01](clarifications-01.md)".
 - **Conflicts**: when the proposal conflicts with an active decision, say so, and ask whether to
@@ -396,9 +389,9 @@ The rules behind it:
   changing the proposal. An exception is possible only if the human explicitly accepts it in their
   answer: it is then spelled out in the plan, and the plan waits for their review.
 - **Leave each `**Answer:**` empty.** The human answers with one or more option letters, or their
-  own words.
-- **Settled points** say what was chosen and why, with a link to their discovery section. A point
-  that depends on an answer says so: "with A in Q2, ...".
+  own words. An answer without a letter answers the question, and its follow-ups then do not apply.
+- **Settled points** say what was chosen and why, with a link to their discovery section, in their
+  group. A point that depends on an answer goes into that answer's option instead.
 
 If nothing needs a human answer, write a file with a single question confirming the scope: "A
 (recommended). Go ahead with the scope above". The human still sets `answered`.
@@ -446,16 +439,16 @@ Before committing, read both files again with fresh eyes, and fix what you find 
    in exactly one question or settled point.
 3. **Sources**: every claim in the questions is backed by the discovery or a linked source, and
    every link resolves to an existing heading.
-4. **Linear reading**: nothing is referred to before it is introduced, and each question can be
-   answered without opening the discovery.
-5. **Options**: each one is a self-contained sentence; the recommended one is first; combinations
-   and dependencies are stated; no question is decided by an earlier answer.
+4. **Each card alone**: the [writing self-review](writing.md#self-review): each question's card read
+   alone can be answered, and the sentences, the block, and the parts hold to their rules.
+5. **Options**: the recommended one is first; combinations and dependencies are stated; no question
+   is decided by an earlier answer; a follow-up sits under every option that needs one.
 6. **What is asked**: no question you could have settled, and no settled point that only the human
    can decide, like a scope boundary or a new dependency.
 7. **Worth it and feasible**: the cost of the feature is weighed against its gain, the outside
    behaviour it relies on is checked or named as unverified, and each relaxed guard says what an
    attacker could do.
-8. **The block**: the time estimate is honest, and every item names a subject, not a number.
+8. **The block**: its verdict follows the discovery's **Worth it and feasibility**.
 
 ## Red flags
 
@@ -471,6 +464,7 @@ Before committing, read both files again with fresh eyes, and fix what you find 
 | "The library surely supports this"                        | Check it with a small experiment, or name it as unverified so the plan checks it first.           |
 | "I'll ask this one now and the follow-up in a next round" | Every round costs the human a context switch. Anticipate, and ask the follow-up now.              |
 | "The options are clear enough as short labels"            | The human reads each option without the context. Write each as a full sentence.                   |
+| "Three sentences of context will do"                      | Context has no length limit: give the card what deciding needs, and cut what weighs no option.    |
 | "I'll recommend in the discovery, it saves time"          | Discovery holds evidence. Recommendations go with the questions, where the human weighs them.     |
 | "Nobody will notice I didn't read that page"              | The next agent builds on your sources. Cite what you read; list the rest under **Not checked**.   |
 

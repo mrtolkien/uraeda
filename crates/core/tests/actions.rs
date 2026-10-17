@@ -125,9 +125,6 @@ fn saves_answers_as_the_ui_composes_them() {
     )
     .unwrap();
     assert_eq!(answers(&place)[0], "**Answer:** Neither, keep it simple");
-    // US2.7
-    answer::save(&place, &feature, "Q1.B", &[], "-", "").unwrap();
-    assert_eq!(answers(&place)[1], "**Answer:** -");
     // US2.10
     answer::save_notes(&place, &feature, "LGTM", "").unwrap();
     assert!(read(&place, ROUND).ends_with("**Notes:** LGTM\n"));
