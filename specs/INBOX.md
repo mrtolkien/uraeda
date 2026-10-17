@@ -73,3 +73,7 @@
 - [agent] [storybook-restart] Two views racing a commit can restart a Storybook back to the older
   commit, then forward again: restart only for a commit read after the Storybook started (runner.ts
   view)
+- [agent] [symlinks] Without file clones (ext4), every dev shell in a new worktree retries the
+  failing clone of target/, cp printing one error per file until spawnSync's 1 MB buffer kills it,
+  and prints 'not seeded' until cargo creates target/: probe a one-file clone first
+  (packages/server/scripts/worktree-seed.ts, seedTarget)
