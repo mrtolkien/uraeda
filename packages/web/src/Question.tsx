@@ -1,8 +1,9 @@
 import { Button } from "@astryxdesign/core/Button";
-import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { SelectableCard } from "@astryxdesign/core/SelectableCard";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 import {
   borderVars,
   colorVars,
@@ -18,33 +19,11 @@ import { Blocks } from "./Blocks.tsx";
 import { StaticImages } from "./ImageView.tsx";
 import { Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { useAnswer } from "./useAnswer.ts";
-import { AnswerComment } from "./QuestionComment.tsx";
-import type { RoundTarget } from "./roundTarget.ts";
-import { holdsStory, StoryContext } from "./stories.tsx";
+import type { useAnswer } from "./useAnswer.ts";
+import { holdsStory, type Stories, StoryContext } from "./stories.tsx";
 
 const styles = stylex.create({
-  belowBar: {
-    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
-  },
-  belowNothing: {
-    scrollMarginTop: spacingVars["--spacing-4"],
-  },
-  bleed: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
-  },
-  bleedFollowUp: {
-    marginInlineEnd: `calc(-1 * ${spacingVars["--spacing-4"]})`,
-    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})`,
-  },
   con: { color: colorVars["--color-error"] },
-  followUp: {
-    borderInlineStartColor: colorVars["--color-accent"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    marginBlockStart: spacingVars["--spacing-4"],
-    paddingInlineStart: spacingVars["--spacing-3"],
-  },
   letter: {
     alignItems: "center",
     borderColor: colorVars["--color-text-secondary"],
@@ -53,13 +32,12 @@ const styles = stylex.create({
     borderWidth: spacingVars["--spacing-0-5"],
     boxSizing: "border-box",
     color: colorVars["--color-text-secondary"],
-    display: "flex",
-    float: "left",
+    display: "inline-flex",
+    flexShrink: 0,
     fontSize: typeScaleVars["--text-supporting-size"],
     fontWeight: fontWeightVars["--font-weight-bold"],
     height: spacingVars["--spacing-7"],
     justifyContent: "center",
-    marginInlineEnd: spacingVars["--spacing-2"],
     width: spacingVars["--spacing-7"],
   },
   letterOn: {
@@ -67,84 +45,75 @@ const styles = stylex.create({
     borderColor: colorVars["--color-accent"],
     color: colorVars["--color-on-accent"],
   },
-  option: {
-    backgroundColor: "transparent",
-    borderInlineStartColor: "transparent",
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    borderWidth: 0,
-    boxSizing: "border-box",
-    color: "inherit",
-    cursor: "pointer",
-    display: "block",
-    font: "inherit",
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-    margin: 0,
-    paddingBlock: spacingVars["--spacing-3"],
-    paddingInlineEnd: spacingVars["--spacing-4"],
-    paddingInlineStart: spacingVars["--spacing-3"],
-    textAlign: "start",
-    textWrap: "pretty",
-    width: "100%",
+  optionPhone: {
+    // On the phone, options run to the screen's edges, as today, split by hairlines.
+    borderBlockStartWidth: 0,
+    borderInlineWidth: 0,
+    borderRadius: 0,
   },
-  optionOff: {
-    cursor: "default",
+  optionReadOnly: {
+    // An answered round's options show their letters as picked, at full contrast, untappable.
+    opacity: 1,
   },
-  optionOn: {
-    backgroundColor: colorVars["--color-accent-muted"],
-    borderInlineStartColor: colorVars["--color-accent"],
-  },
-  // An option's stories, under its button, at its text's inset: on the phone, the embed takes it
-  // back, to the screen's edges.
-  options: {
-    // Options run to the screen's edges on the phone, split by hairlines.
+  optionsPhone: {
     borderBlockStartColor: colorVars["--color-border"],
     borderBlockStartStyle: "solid",
     borderBlockStartWidth: borderVars["--border-width"],
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
+  // A follow-up's options on the phone reach its accent line, not past it.
+  optionsPhoneFollowUp: {
+    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})`,
+  },
+  optionsSpaced: {
     marginBlockStart: spacingVars["--spacing-3"],
   },
   point: {
-    marginBlockStart: spacingVars["--spacing-1"],
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
     paddingInlineStart: spacingVars["--spacing-5"],
     position: "relative",
   },
   points: {
-    clear: "left",
     listStyle: "none",
-    marginBlock: spacingVars["--spacing-1-5"],
-    marginInline: 0,
+    margin: 0,
     maxWidth: "var(--size-reading-measure)",
     padding: 0,
   },
   pro: { color: colorVars["--color-success"] },
-  question: {
-    // A jump puts the question at the top, below the phone's top bar, which stays in view.
-    marginBlockStart: 0,
-  },
   sign: {
     fontWeight: fontWeightVars["--font-weight-bold"],
     insetInlineStart: 0,
     position: "absolute",
   },
   summary: {
-    // An option's text keeps the reading measure, its row as wide as the question.
-    display: "block",
+    // An option's text keeps the reading measure, its card as wide as its column.
+    fontSize: "var(--text-reading-size)",
     fontWeight: fontWeightVars["--font-weight-semibold"],
+    lineHeight: "var(--text-reading-line)",
     maxWidth: "var(--size-reading-measure)",
+    textWrap: "pretty",
   },
   tag: {
     color: colorVars["--color-warning"],
-    display: "block",
     fontSize: typeScaleVars["--text-supporting-size"],
     fontWeight: fontWeightVars["--font-weight-semibold"],
-    marginBlockEnd: spacingVars["--spacing-1"],
   },
   title: {
+    // The question, larger than a section's heading: the first thing read on its card.
+    fontSize: typeScaleVars["--text-heading-1-size"],
+    lineHeight: typeScaleVars["--text-heading-1-leading"],
     marginBlockEnd: spacingVars["--spacing-2"],
     marginBlockStart: spacingVars["--spacing-0-5"],
   },
+  titlePhone: {
+    fontSize: typeScaleVars["--text-heading-3-size"],
+    lineHeight: typeScaleVars["--text-heading-3-leading"],
+    marginBlock: 0,
+  },
   variants: {
+    // An option's stories, under its card, at its text's inset: on the phone, the embed takes it
+    // back, to the screen's edges.
     paddingInline: spacingVars["--spacing-4"],
   },
   why: { color: colorVars["--color-warning"] },
@@ -162,7 +131,38 @@ export const statusStyles = stylex.create({
   saved: { color: colorVars["--color-success"] },
 });
 
-function Option({
+/** Whether one of a question's options holds a story, drawn under its card. */
+export function holdsVariants(stories: Stories | null, document: Document, question: QuestionItem) {
+  return question.options.some((choice) =>
+    choice.other.some((id) => holdsStory(stories, document, id)),
+  );
+}
+
+/** An option's pros, cons, and why, each after its sign. */
+function Points({ choice, document }: { choice: Choice; document: Document }) {
+  const point = (id: number, sign: string, tone: stylex.StyleXStyles) => (
+    <li key={`${sign}${id}`} {...stylex.props(styles.point)}>
+      <span {...stylex.props(styles.sign, tone)}>{sign}</span>
+      <Spans spans={document.blocks[id]?.spans ?? []} />
+    </li>
+  );
+  if (choice.pros.length === 0 && choice.cons.length === 0 && choice.why === undefined) {
+    return null;
+  }
+  return (
+    <ul {...stylex.props(styles.points)}>
+      {choice.pros.map((id) => point(id, "+", styles.pro))}
+      {choice.cons.map((id) => point(id, "−", styles.con))}
+      {choice.why !== undefined && point(choice.why, "★", styles.why)}
+    </ul>
+  );
+}
+
+/**
+ * An option as a card the human picks: "Recommended", its letter and sentence, its points, and its
+ * other blocks; its stories under the card, never inside it, where their frames would be inert.
+ */
+function OptionCard({
   choice,
   disabled,
   document,
@@ -175,63 +175,90 @@ function Option({
   onToggle: () => void;
   selected: boolean;
 }) {
-  // A story, or a block holding one, is drawn after the button, never inside it, where its frames
-  // would be inert.
+  const wide = useWidthClass() === "wide";
   const stories = useContext(StoryContext);
   const isStory = (id: number) => holdsStory(stories, document, id);
   const other = choice.other.filter((id) => !isStory(id));
   const variants = choice.other.filter(isStory);
-  const spans = (id: number) => <Spans spans={document.blocks[id]?.spans ?? []} />;
-  const point = (id: number, sign: string, tone: stylex.StyleXStyles) => (
-    <li key={`${sign}${id}`} {...stylex.props(styles.point)}>
-      <span {...stylex.props(styles.sign, tone)}>{sign}</span>
-      {spans(id)}
-    </li>
-  );
   return (
-    // An option and its variants' stories, split from the next by Astryx's divider: a border of
-    // the app's own would write the atomic rule of a list's dividers again, unlayered, and every
-    // list's last row would keep its divider.
     <div>
-      {/* oxlint-disable-next-line react/forbid-elements -- a full-width toggle holding paragraphs and lists, which no Astryx component draws (an Astryx gap, see the plan) */}
-      <button
-        aria-pressed={selected}
-        disabled={disabled}
-        onClick={onToggle}
-        type="button"
-        {...stylex.props(styles.option, selected && styles.optionOn, disabled && styles.optionOff)}
+      <SelectableCard
+        isDisabled={disabled}
+        isSelected={selected}
+        label={`Option ${choice.letter}`}
+        onChange={onToggle}
+        padding={wide ? 3 : 4}
+        xstyle={[!wide && styles.optionPhone, disabled && styles.optionReadOnly]}
       >
-        {/* A toggle holds its images alone: a link in it is invalid, and a tap is the toggle's. */}
+        {/* A tap on an image picks the option: its images open no lightbox. */}
         <StaticImages>
-          {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
-          <span {...stylex.props(styles.summary)}>
-            <span {...stylex.props(styles.letter, selected && styles.letterOn)}>
-              {choice.letter}
-            </span>{" "}
-            <Spans spans={choice.summary} />
-          </span>
-          {(choice.pros.length > 0 || choice.cons.length > 0 || choice.why !== undefined) && (
-            <ul {...stylex.props(styles.points)}>
-              {choice.pros.map((id) => point(id, "+", styles.pro))}
-              {choice.cons.map((id) => point(id, "−", styles.con))}
-              {choice.why !== undefined && point(choice.why, "★", styles.why)}
-            </ul>
-          )}
-          {other.length > 0 && <Blocks document={document} ids={other} />}
+          <VStack gap={2}>
+            {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
+            <HStack align="start" gap={2}>
+              <span {...stylex.props(styles.letter, selected && styles.letterOn)}>
+                {choice.letter}
+              </span>
+              <span {...stylex.props(styles.summary)}>
+                <Spans spans={choice.summary} />
+              </span>
+            </HStack>
+            <Points choice={choice} document={document} />
+            {other.length > 0 && <Blocks document={document} ids={other} />}
+          </VStack>
         </StaticImages>
-      </button>
+      </SelectableCard>
       {variants.length > 0 && (
         <div {...stylex.props(styles.variants)}>
           <Blocks document={document} ids={variants} />
         </div>
       )}
-      <Divider />
     </div>
   );
 }
 
+/**
+ * A question's header: its id, or a follow-up's "Q1.B · follows Q1, because you picked B", and
+ * "Ask the agent", then its title, which a jump focuses.
+ */
+export function QuestionHead({
+  onAsk,
+  question,
+}: {
+  onAsk?: (question: QuestionItem) => void;
+  question: QuestionItem;
+}) {
+  const wide = useWidthClass() === "wide";
+  const { id, parent, parentLetter } = question;
+  return (
+    <>
+      <HStack align="center" gap={2} justify="between" wrap="wrap">
+        <Text color="secondary" type="supporting" weight="semibold">
+          {parent ? `${id} · follows ${parent}, because you picked ${parentLetter}` : id}
+        </Text>
+        {onAsk && (
+          <Button label="Ask the agent" onClick={() => onAsk(question)} size="sm" variant="ghost" />
+        )}
+      </HStack>
+      <Heading
+        id={`${id}-title`}
+        level={2}
+        tabIndex={-1}
+        xstyle={wide ? styles.title : styles.titlePhone}
+      >
+        {question.title}
+      </Heading>
+    </>
+  );
+}
+
 /** A question's context, then its "Why it matters" in a muted box, set apart from it. */
-function QuestionContext({ document, question }: { document: Document; question: QuestionItem }) {
+export function QuestionContext({
+  document,
+  question,
+}: {
+  document: Document;
+  question: QuestionItem;
+}) {
   return (
     <>
       <Blocks document={document} ids={question.context} />
@@ -244,14 +271,19 @@ function QuestionContext({ document, question }: { document: Document; question:
   );
 }
 
-/** A question's options, each a toggle of its letter. */
-function Options({
+/**
+ * A question's options, each a card toggling its letter: beside the title in a card of two
+ * columns, `beside`, else after the context, and on the phone to the screen's edges.
+ */
+export function Options({
   answer,
+  beside,
   document,
   question,
   readOnly,
 }: {
   answer: ReturnType<typeof useAnswer>;
+  beside: boolean;
   document: Document;
   question: QuestionItem;
   readOnly: boolean;
@@ -261,14 +293,16 @@ function Options({
     return null;
   }
   return (
-    <div
-      {...stylex.props(
-        styles.options,
-        !wide && (question.parent ? styles.bleedFollowUp : styles.bleed),
-      )}
+    <VStack
+      gap={wide ? 3 : 0}
+      xstyle={[
+        !beside && styles.optionsSpaced,
+        !wide && styles.optionsPhone,
+        !wide && question.parent !== undefined && styles.optionsPhoneFollowUp,
+      ]}
     >
       {question.options.map((choice) => (
-        <Option
+        <OptionCard
           choice={choice}
           disabled={readOnly}
           document={document}
@@ -277,119 +311,6 @@ function Options({
           selected={answer.letters.includes(choice.letter)}
         />
       ))}
-    </div>
-  );
-}
-
-/** A question's header, its id and "Ask the agent", then its title, which a jump focuses. */
-function QuestionHead({
-  onAsk,
-  question,
-}: {
-  onAsk?: (question: QuestionItem) => void;
-  question: QuestionItem;
-}) {
-  return (
-    <>
-      <HStack align="center" gap={2} justify="between" wrap="wrap">
-        <Text color="secondary" type="supporting" weight="semibold">
-          {question.id}
-          {question.parent &&
-            question.applies === "yes" &&
-            ` · because you picked ${question.parentLetter}`}
-        </Text>
-        {onAsk && (
-          <Button label="Ask the agent" onClick={() => onAsk(question)} size="sm" variant="ghost" />
-        )}
-      </HStack>
-      <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
-        {question.title}
-      </Heading>
-    </>
-  );
-}
-
-/**
- * A question in full: its context, every option with its text, pros, cons, and why, and a comment.
- * A tap on an option toggles its letter and saves the answer, with the comment as typed; the comment
- * alone saves with its button, or with Submit. With `onAsk`, it and its follow-ups offer "Ask the
- * agent".
- */
-export function Question({
-  document,
-  followUps,
-  onAsk,
-  path,
-  question,
-  readOnly,
-  takes,
-  target,
-}: {
-  document: Document;
-  followUps: ReadonlyArray<QuestionItem>;
-  onAsk?: (question: QuestionItem) => void;
-  /** The round's file, which the comments' images are attached to. */
-  path: string;
-  question: QuestionItem;
-  readOnly: boolean;
-  /** Whether the round's file takes images, as the core says. */
-  takes: boolean;
-  /** The round the answer is written in. */
-  target: RoundTarget;
-}) {
-  const answer = useAnswer(question, target, path);
-  const parent = question.parent;
-  const wide = useWidthClass() === "wide";
-  // A comment on one of its stories joins its answer, on a line of its own, while it can be
-  // answered. Its unsaved text is the question's own: another question of the round may embed the
-  // same story.
-  const stories = useContext(StoryContext);
-  const comments =
-    stories && !readOnly
-      ? {
-          ...stories,
-          comment: {
-            path: `${path}#${question.id}`,
-            save: (_: unknown, text: string) => answer.appendLine(text),
-          },
-        }
-      : stories;
-
-  return (
-    <StoryContext value={comments}>
-      <section
-        id={question.id}
-        {...stylex.props(
-          styles.question,
-          wide ? styles.belowNothing : styles.belowBar,
-          parent !== undefined && styles.followUp,
-        )}
-      >
-        <QuestionHead question={question} {...(onAsk ? { onAsk } : {})} />
-        <QuestionContext document={document} question={question} />
-        <Options answer={answer} document={document} question={question} readOnly={readOnly} />
-        <AnswerComment
-          answer={answer}
-          id={question.id}
-          path={path}
-          readOnly={readOnly}
-          saved={question.comment}
-          takes={takes}
-        />
-        {followUps.map((followUp) => (
-          <Question
-            document={document}
-            followUps={[]}
-            key={followUp.id}
-            path={path}
-            question={followUp}
-            readOnly={readOnly}
-            takes={takes}
-            target={target}
-            {...(onAsk ? { onAsk } : {})}
-          />
-        ))}
-      </section>
-    </StoryContext>
+    </VStack>
   );
 }

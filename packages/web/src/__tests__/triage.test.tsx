@@ -46,13 +46,11 @@ function question(id: string) {
   return document.getElementById(id) as HTMLElement;
 }
 
-/** The option of a question, by the letter it shows. */
+/** The option of a question, by its letter: its card's checkbox. */
 function option(id: string, letter: string) {
-  return within(question(id))
-    .getAllByRole("button")
-    .find(
-      (b) => b.hasAttribute("aria-pressed") && within(b).queryByText(letter, { exact: true }),
-    ) as HTMLElement;
+  return within(question(id)).getByRole("checkbox", {
+    name: `Option ${letter}`,
+  }) as HTMLInputElement;
 }
 
 /** The `**Answer:**` line of a question of the triage. */

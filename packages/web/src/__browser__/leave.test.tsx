@@ -22,7 +22,7 @@ const overlayEntry = () => (window.history.state as { overlay?: string } | null)
 /** Q3's comment field, not its follow-ups'. */
 const q3Comment = () =>
   within(document.getElementById("Q3")!).getAllByRole("textbox", {
-    name: "Comment",
+    name: "Comment, or your own answer instead of a letter",
   })[0] as HTMLTextAreaElement;
 
 /** Goes back, as the browser's Back button, and waits for the asking dialog. */

@@ -308,7 +308,10 @@ test("a live stream that closes on a sign-out elsewhere shows the sign-in screen
 });
 
 /** The comment field of the round's Q3. */
-const comment = () => within(document.getElementById("Q3")!).getAllByLabelText("Comment")[0];
+const comment = () =>
+  within(document.getElementById("Q3")!).getAllByLabelText(
+    "Comment, or your own answer instead of a letter",
+  )[0];
 
 /** The edge case of a text being written when the session ends. */
 test("unsaved text survives a sign-out", async () => {

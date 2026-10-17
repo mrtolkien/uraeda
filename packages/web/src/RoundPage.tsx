@@ -1,11 +1,10 @@
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
-import type { Document, QuestionItem } from "uraeda-binding";
+import type { QuestionItem } from "uraeda-binding";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { Question } from "./Question.tsx";
+import { Band, followUpsOf, QuestionCards } from "./QuestionCards.tsx";
 import { RoundOpening } from "./RoundOpening.tsx";
 import { type NavQuestion, RoundNav } from "./RoundNav.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
@@ -21,15 +20,6 @@ import { type useFile, useAgent } from "./data.ts";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 const styles = stylex.create({
-  band: {
-    // A band between sibling questions; on the phone, to the screen's edges.
-    backgroundColor: colorVars["--color-background-muted"],
-    height: spacingVars["--spacing-2"],
-    marginBlock: spacingVars["--spacing-5"],
-  },
-  bandBleed: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
-  },
   columns: {
     // On wide screens, the questions and the index beside them, side by side in the middle.
     alignItems: "flex-start",
@@ -47,49 +37,6 @@ const styles = stylex.create({
     minWidth: 0,
   },
 });
-
-/** The muted band between sibling questions; on the phone, to the screen's edges. */
-function Band() {
-  const wide = useWidthClass() === "wide";
-  return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
-}
-
-/** The round's questions, each after a band, its follow-ups that apply inside it. */
-function RoundQuestions({
-  document,
-  onAsk,
-  path,
-  questions,
-  readOnly,
-  takes,
-  target,
-}: {
-  document: Document;
-  onAsk?: (question: QuestionItem) => void;
-  path: string;
-  questions: ReadonlyArray<QuestionItem>;
-  readOnly: boolean;
-  takes: boolean;
-  target: RoundTarget;
-}) {
-  return questions
-    .filter((q) => !q.parent)
-    .map((question) => (
-      <div key={question.id}>
-        <Band />
-        <Question
-          document={document}
-          followUps={questions.filter((q) => q.parent === question.id && q.asked)}
-          path={path}
-          question={question}
-          readOnly={readOnly}
-          takes={takes}
-          target={target}
-          {...(onAsk ? { onAsk } : {})}
-        />
-      </div>
-    ));
-}
 
 /**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
@@ -139,7 +86,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         round={round}
         {...(triage ? {} : { crumbs: { folder: file.folder, name: file.name } })}
       />
-      <RoundQuestions
+      <QuestionCards
         document={document}
         path={file.path}
         questions={questions}
@@ -192,10 +139,10 @@ function toSubmit(end: RefObject<HTMLDivElement | null>, row: RefObject<HTMLDivE
     ?.focus({ preventScroll: true });
 }
 
-/** The applicable questions in the page's order, each follow-up after its parent. */
+/** The applicable questions in the page's order, each follow-up after its parent, by letter. */
 function navOf(questions: ReadonlyArray<QuestionItem>): Array<NavQuestion> {
   return questions
-    .flatMap((q) => (q.parent ? [] : [q, ...questions.filter((f) => f.parent === q.id && f.asked)]))
+    .flatMap((q) => (q.parent ? [] : [q, ...followUpsOf(questions, q.id)]))
     .map((q) => ({
       answered: q.answer.trim() !== "",
       id: q.id,

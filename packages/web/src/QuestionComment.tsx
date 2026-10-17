@@ -146,7 +146,7 @@ export function CommentField({
       <DropHint hint={images.hint} isLabelled>
         <TextField
           kind="comment"
-          label="Comment"
+          label="Comment, or your own answer instead of a letter"
           onChange={onChange}
           onSubmit={onSubmit}
           value={comment}

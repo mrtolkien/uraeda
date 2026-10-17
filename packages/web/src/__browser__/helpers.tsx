@@ -342,12 +342,12 @@ function averageCharacter(element: Element) {
 
 /**
  * No line of reading text holds more than about 110 characters, the theme's reading measure (the UI
- * layout decision): paragraphs, and the toggles that hold text of their own, like a question's
- * options.
+ * layout decision): paragraphs, and the toggles that hold text of their own, like a review's
+ * blocks and a question's option cards.
  */
 export function checkMeasure(root?: Element) {
   const main = region(root);
-  const toggles = [...main.querySelectorAll("[aria-pressed]")].filter(
+  const toggles = [...main.querySelectorAll("[aria-pressed], .astryx-selectable-card")].filter(
     (toggle) => toggle.textContent?.trim() && toggle.getBoundingClientRect().width > 4,
   );
   for (const paragraph of [...paragraphs(root), ...toggles]) {

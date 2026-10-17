@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import {
@@ -58,11 +58,11 @@ function answerQ1(repo: string) {
   writeFileSync(file(repo), text(repo).replace(/\*\*Answer:\*\*\n/, "**Answer:** A\n"));
 }
 
-/** Q1's option A, pressed once the page read Q1's answer. */
+/** Q1's option A, checked once the page read Q1's answer. */
 function q1A() {
-  return (document.getElementById("Q1") as HTMLElement).querySelector(
-    "button[aria-pressed]",
-  ) as HTMLElement;
+  return within(document.getElementById("Q1") as HTMLElement).getByRole("checkbox", {
+    name: "Option A",
+  }) as HTMLInputElement;
 }
 
 const notesField = () => screen.getByLabelText("Notes") as HTMLTextAreaElement;
@@ -94,7 +94,7 @@ test("notes typed are kept while the file changes, and not saved", async () => {
 
   await type(notesField(), "Keep the undo ");
   answerQ1(repo);
-  await refreshUntil(() => expect(q1A().getAttribute("aria-pressed")).toBe("true"));
+  await refreshUntil(() => expect(q1A().checked).toBe(true));
   expect(notesField().value).toBe("Keep the undo ");
   await type(notesField(), "Keep the undo please");
 
@@ -102,7 +102,7 @@ test("notes typed are kept while the file changes, and not saved", async () => {
   expect(screen.getByText("Unsaved changes")).toBeTruthy();
   // Another read of the file, the notes still not saved.
   answerQ1(repo);
-  await refreshUntil(() => expect(q1A().getAttribute("aria-pressed")).toBe("true"));
+  await refreshUntil(() => expect(q1A().checked).toBe(true));
   expect(notesOnDisk(repo)).toBe("");
 });
 
@@ -127,7 +127,7 @@ test("unsaved notes stay as the round is answered elsewhere", async () => {
   await type(await screen.findByLabelText("Notes"), "Draft one");
 
   answerQ1(repo);
-  await refreshUntil(() => expect(q1A().getAttribute("aria-pressed")).toBe("true"));
+  await refreshUntil(() => expect(q1A().checked).toBe(true));
 
   expect(notesField().value).toBe("Draft one");
 });
@@ -228,7 +228,7 @@ test("notes typed are kept as the notes change on disk", async () => {
   setNotes(repo, "theirs");
   // Q1 answered too, which shows once the page read the file, with the notes changed.
   answerQ1(repo);
-  await refreshUntil(() => expect(q1A().getAttribute("aria-pressed")).toBe("true"));
+  await refreshUntil(() => expect(q1A().checked).toBe(true));
 
   expect(notesField().value).toBe("Bigger icon");
   expect(screen.getByText("Unsaved changes")).toBeTruthy();
