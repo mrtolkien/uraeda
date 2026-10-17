@@ -324,8 +324,10 @@ key on their bold subject; Submit flips the block's first paragraph only
   `crates/core/src/api.rs` (`checked()` keeps errors,
   [R1](rulings.md#r1-warnings-stay-out-of-a-features-problems-in-the-web-ui-and-the-steps)),
   `crates/cli/src/check.rs`, `crates/lsp/src/diagnostics.rs`
+- Create: `crates/core/src/workspace/problem.rs`: `Problem` moves there, re-exported, since
+  `workspace.rs` is over 500 lines and may only shrink
 - Test: `crates/core/tests/check.rs`, `crates/cli/tests/check.rs`, `crates/lsp/tests/`,
-  `crates/core/tests/actions.rs`
+  `crates/core/tests/actions.rs`, `crates/core/tests/api.rs` (R1)
 
 **Interfaces:**
 
@@ -335,7 +337,7 @@ key on their bold subject; Submit flips the block's first paragraph only
   `check_writing(file, document, problems)`, run on clarifications and triage files with
   `status: awaiting-human`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - US1.4: block "3 questions and 1 follow-up, about 15 minutes." over 3 questions and 2 follow-ups:
     warning `block.count` "the block says 1 follow-up, the round has 2", and `ura check` exits 0,
     printing `warning: <file>:<line>: <message>` after the errors.
@@ -350,12 +352,12 @@ key on their bold subject; Submit flips the block's first paragraph only
   - US1.7 (`actions.rs`): submitting a waiting round whose first block item starts "Verdict:" gives
     "> [!NOTE]", "Answered on 2026-10-18.", and keeps the verdict item.
   - The language server sends a warning with `DiagnosticSeverity::WARNING`.
-- [ ] **Step 2: Run them to check they fail**: FAIL, no field `severity`.
-- [ ] **Step 3: Implement** the severity, the three warnings, the CLI's output and exit code, the
+- [x] **Step 2: Run them to check they fail**: FAIL, no field `severity`.
+- [x] **Step 3: Implement** the severity, the three warnings, the CLI's output and exit code, the
       language server's severity, and `checked()`'s filter.
-- [ ] **Step 4: Run the project's validation**: `cargo nextest run`,
+- [x] **Step 4: Run the project's validation**: `cargo nextest run`,
       `cargo clippy --workspace     --all-targets -- -D warnings`, `vp check`.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
       `feat(redesign-clarifications): ura check warns when a round's writing drifts`
 
 ## Task 6: The writing reference, and the skill's text

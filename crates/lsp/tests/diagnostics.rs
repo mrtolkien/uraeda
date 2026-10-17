@@ -183,3 +183,31 @@ fn bench_diagnostics_arrive_within_300_ms() {
     assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
     assert!(elapsed.as_millis() < 300, "{elapsed:?}");
 }
+
+/// A warning of `ura check` is sent with the Warning severity.
+#[test]
+fn a_warning_is_sent_as_a_warning() {
+    let repo = TestRepo::new();
+    write_example(&repo);
+    repo.commit("feature");
+    let path = repo.path().join(FEATURE).join("clarifications-01.md");
+    let text = std::fs::read_to_string(&path)
+        .unwrap()
+        .replacen("status: answered", "status: awaiting-human", 1)
+        .replacen("> [!NOTE]", "> [!IMPORTANT]", 1)
+        .replacen(
+            "> Answered on 2026-10-08.",
+            "> 1 question and 1 follow-up, about 5 minutes.",
+            1,
+        );
+    let mut session = Session::start(repo.path());
+
+    session.open(&path, &text);
+    let diagnostics = session.diagnostics(&path);
+
+    assert_eq!(
+        messages(&diagnostics),
+        [(8, "the block says 1 question, the round has 7".to_string())]
+    );
+    assert_eq!(diagnostics[0].severity, Some(DiagnosticSeverity::WARNING));
+}

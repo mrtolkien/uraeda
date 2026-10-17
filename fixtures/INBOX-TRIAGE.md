@@ -18,8 +18,11 @@ priorities, and the drafts. The other notes wait for a later triage.
 
 ## Q1: What to do with the notes about how the UI looks
 
-"In failures the `x` is not centered in the circle", "Icons are blurry on retina screens", and
-"Text input feels laggy on the sessions page" are small fixes to the look and feel of the web UI.
+Three notes are small fixes to the look and feel of the web UI:
+
+- "In failures the `x` is not centered in the circle"
+- "Icons are blurry on retina screens"
+- "Text input feels laggy on the sessions page"
 The draft Look and feel pass lists fixes of the same kind.
 
 Why it matters: grouped in one draft, they are fixed in one feature instead of three.

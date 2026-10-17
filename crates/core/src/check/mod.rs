@@ -6,16 +6,18 @@ mod links;
 mod names;
 mod sections;
 mod values;
+mod writing;
 
 pub(crate) use names::change_holds;
 pub use values::{Action, Choice, Field, FieldKind, allowed_values};
+pub use writing::{BLOCK_ITEMS, SENTENCE_WORDS};
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::files::{frontmatter, markdown, review};
-use crate::workspace::{FileKind, Problem};
+use crate::workspace::{FileKind, Problem, Severity};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CheckError {
@@ -58,6 +60,15 @@ impl File<'_> {
             line,
             rule: rule.to_string(),
             message: message.into(),
+            severity: Severity::Error,
+        }
+    }
+
+    /// A problem that does not fail the check.
+    pub fn warning(&self, line: Option<usize>, rule: &str, message: impl Into<String>) -> Problem {
+        Problem {
+            severity: Severity::Warning,
+            ..self.problem(line, rule, message)
         }
     }
 }
@@ -255,6 +266,7 @@ fn check_folder_files_with(
                     line: None,
                     rule: "file.utf8".into(),
                     message: "not UTF-8".into(),
+                    severity: Severity::Error,
                 });
             }
         }
@@ -346,6 +358,15 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     }
     if let Some(front) = &front {
         let waiting = front.text("status") == Some("awaiting-human");
+        if waiting
+            && matches!(
+                file.kind,
+                Checked::Workflow(FileKind::Clarifications) | Checked::Triage
+            )
+        {
+            let tree = crate::files::document::parse(file.text, "");
+            writing::check_writing(file, &tree, &mut problems);
+        }
         let has_block = document
             .callout
             .as_ref()

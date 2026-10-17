@@ -8,8 +8,8 @@ status: awaiting-human
 >
 > [N] questions on [M] notes, about [T] minutes.
 >
-> - [Where your attention matters most, named by subject, not by question number: notes that may be
->   done already, duplicates, groups of notes that go together, a note to start as a change]
+> - [Where your attention matters most, named by subject, not by question number. It may be notes
+>   done already, duplicates, notes that go together, or a note to start as a change]
 
 ## Context
 
@@ -23,9 +23,9 @@ about them in the code, the priorities, and the drafts, with links.]
 
 Why it matters: [what this outcome costs or saves later].
 
-- **A (recommended). [An outcome, as a self-contained sentence: a priorities section, a new draft
-  with its title and the priorities section that links it, an existing draft named by its title, a
-  change with its draft's title and slug, deletion, or keeping it in the inbox.]**
+- **A (recommended). [An outcome, as a self-contained sentence. It may be a priorities section, a
+  new draft with its title and the priorities section that links it, or an existing draft by title.
+  It may also be a change with its draft's title and slug, deletion, or keeping it in the inbox.]**
   - [pro] [...]
   - [con] [...]
   - Why recommended: [...]

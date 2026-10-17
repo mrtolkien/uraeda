@@ -17,7 +17,7 @@ use crate::view::{
     CommitView, FeatureView, FileView, NextView, PriorityLink, StepView, VersionView, WaitingFile,
     WorkspaceView,
 };
-use crate::workspace::{Feature, FileKind, Problem, Source, Workspace, WorkspaceError};
+use crate::workspace::{Feature, FileKind, Problem, Severity, Source, Workspace, WorkspaceError};
 
 mod answers;
 mod default_branch;
@@ -147,17 +147,19 @@ fn feature_dir(git: &Git, feature: &Feature) -> Option<PathBuf> {
     })
 }
 
-/// The problems `ura check` finds in a feature read from disk.
+/// The errors `ura check` finds in a feature read from disk: its warnings stay out of the
+/// feature's problems (R1).
 fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
     let Some(root) = feature_dir(git, feature) else {
         return Vec::new();
     };
     let mut problems = check::check(&root, &root.join(feature.checked_path())).unwrap_or_default();
     problems.retain(|problem| {
-        !feature
-            .problems
-            .iter()
-            .any(|known| known.file == problem.file && known.rule == problem.rule)
+        problem.severity == Severity::Error
+            && !feature
+                .problems
+                .iter()
+                .any(|known| known.file == problem.file && known.rule == problem.rule)
     });
     problems
 }

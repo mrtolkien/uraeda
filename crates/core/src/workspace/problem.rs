@@ -2,6 +2,15 @@
 
 use serde::Serialize;
 
+/// How much a problem matters: an error fails `ura check`, a warning does not.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Severity {
+    #[default]
+    Error,
+    Warning,
+}
+
 /// A problem in a workflow file.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -12,4 +21,5 @@ pub struct Problem {
     /// A stable id, like `frontmatter.status`.
     pub rule: String,
     pub message: String,
+    pub severity: Severity,
 }

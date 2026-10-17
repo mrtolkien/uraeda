@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::workspace::{FileKind, Problem, folder_slug};
+use crate::workspace::{FileKind, Problem, Severity, folder_slug};
 
 fn name(path: &Path) -> String {
     path.file_name()
@@ -51,6 +51,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
                 message: "specs/bugs/ is no longer used: bugs are changes. Move its folders to \
                           specs/changes/, and delete it if empty."
                     .into(),
+                severity: Severity::Error,
             });
             continue;
         }
@@ -61,6 +62,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
             message: format!(
                 "\"{folder}\" is not a feature folder: YYYY-MM-DD-<slug>, with a real date"
             ),
+            severity: Severity::Error,
         });
     }
 }
@@ -96,6 +98,7 @@ fn change_file_problem(root: &Path, dir: &Path, entry: &str) -> Problem {
             "\"{entry}\" has no place in a change: its folder holds proposal.md, \
              clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
         ),
+        severity: Severity::Error,
     }
 }
 
@@ -155,6 +158,7 @@ pub(super) fn check_rounds(root: &Path, dir: &Path, names: &[String], problems: 
                 line: None,
                 rule: "names.round".into(),
                 message: format!("rounds have two digits: {expected}"),
+                severity: Severity::Error,
             });
         }
     }
