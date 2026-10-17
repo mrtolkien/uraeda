@@ -1,5 +1,6 @@
 //! `textDocument/inlayHint` on `PRIORITIES.md`: each entry linked to a feature ends with its step
-//! and who it waits on, each linked to a draft with `draft`.
+//! and who it waits on, each linked to a draft with `draft`, and each linked to a backlog file with
+//! `backlog`.
 
 use lsp_types::{InlayHint, InlayHintLabel, InlayHintParams, Position};
 use uraeda_core::api;
@@ -29,6 +30,7 @@ pub(crate) fn hints(documents: &Documents, params: InlayHintParams) -> Vec<Inlay
             }
             let label = match (&link.step, &link.draft) {
                 (Some(step), _) => format!("{} · waits on {}", step.name, who(&step.waits_on)),
+                (None, Some(path)) if path.starts_with("specs/backlog/") => "backlog".to_string(),
                 (None, Some(_)) => "draft".to_string(),
                 (None, None) => return None,
             };
