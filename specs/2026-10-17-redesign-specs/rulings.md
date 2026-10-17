@@ -574,3 +574,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `check_with` in `crates/core/src/check/mod.rs`, and `checked` in
   `crates/core/src/api.rs`.
 - **Where**: the review's fixes
+
+## R66: The answers quote the review the revision answered, read from the history
+
+- **Decision**: `FileView.answered`, for `spec.md` at revision 2 or later, is `spec-review.md` as it
+  stood at the first commit, on the branch's first-parent history from its tip (the default branch's
+  without a branch), whose spec reads the current revision, kept only when its verdict is
+  `changes-requested`. "Your review, answered" takes its quotes and words from it, never from the
+  review file as it is now. Review focus 9 changes: an approved revision quotes the review it
+  answered. Task 10's test of focus 9 is renamed, and builds the approval as a commit after the
+  revision; the test "an answer whose comment is gone" drops C2 in the commit that starts a revision
+  3, since a C2 removed later from the file no longer matters.
+- **Rationale**: once you comment on the revision, `spec-review.md` is a new pending review, and
+  after approval it is the approval's: the answers lost their quotes while you still read them. The
+  core reads the history, the web draws (the stack decision).
+- **Alternatives considered**: the review file while its verdict is `changes-requested`, as before:
+  the quotes vanish at the first comment on the revision.
+- **If wrong**: `crates/core/src/api/answered.rs`, and `answeredComments` in
+  `packages/web/src/spec/ReviewAnswers.tsx`.
+- **Where**: the review's fixes

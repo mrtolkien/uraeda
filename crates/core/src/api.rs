@@ -19,6 +19,7 @@ use crate::view::{
 };
 use crate::workspace::{Feature, FileKind, Problem, Severity, Source, Workspace, WorkspaceError};
 
+mod answered;
 mod answers;
 mod decision;
 mod default_branch;
@@ -344,6 +345,7 @@ fn file_view(
         .as_ref()
         .map(|spec| decision::changes(git, feature, tip, &decision::listed(spec)))
         .unwrap_or_default();
+    let answered = answered::answered(git, feature, tip, name, &current.text);
     Ok(FileView {
         id: format!("{}/{name}", feature.folder),
         folder: feature.folder.clone(),
@@ -358,6 +360,7 @@ fn file_view(
         review_stale,
         takes_images: true,
         decision_changes,
+        answered,
     })
 }
 
