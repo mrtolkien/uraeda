@@ -123,3 +123,5 @@
   ura check says nothing
 - [agent] [redesign-clarifications] section() in items.rs stops at a quoted ## heading, cutting the
   settled points after it
+- [agent] [redesign-clarifications] Diagram measures its width once: a diagram fixed by a live edit
+  after failing never gets its keyboard-scrollable region
