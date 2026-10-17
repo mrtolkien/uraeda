@@ -6,7 +6,8 @@
 >
 > Features for v1.0.0
 
-- [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
+- [Redesign + reword clarifications](/specs/2026-10-17-redesign-clarifications/proposal.md)
+
 - [Redesign + reword specs](drafts/redesign-specs.md)
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
 - [Redesign session](drafts/redesign-session.md)
