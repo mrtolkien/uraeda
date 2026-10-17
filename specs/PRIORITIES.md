@@ -8,20 +8,18 @@
 
 - [Redesign + reword specs](/specs/2026-10-17-redesign-specs/proposal.md)
 
+- I want the clarifications to start with a list of all questions, so I don’t answer later questions
+  from comments early
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
 - [Redesign session](drafts/redesign-session.md)
 
 - [Review the overall flow of all user stories](drafts/flow-review.md)
 
-- [Look and feel pass](drafts/look-and-feel/proposal.md)
-
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
 - Review home
-- Review decisions wording + existing decisions here
-- I want the clarifications to start with a list of all questions, so I don’t answer later questions
-  from comments early
+- [Look and feel pass](drafts/look-and-feel/proposal.md)
 
 ## Next
 
