@@ -44,8 +44,10 @@ so the web UI embeds live stories in sandboxed frames.
   checkout, in that checkout, bound to 127.0.0.1 on a free port. It MUST forward only that process's
   GET and HEAD requests and WebSocket upgrades, under `/r/<repository>/preview/<secret>/<folder>/`,
   with `Access-Control-Allow-Origin: *` and a `Content-Security-Policy` of
-  `sandbox allow-scripts allow-popups` on every response. It MUST stop the process when the server
-  stops. Checked by the preview proxy's and runner's tests.
+  `sandbox allow-scripts allow-popups` on every response. It MUST forward Storybook's channel,
+  `storybook-server-channel`, only as a preview's, `page=preview`, whatever role the upgrade asks,
+  so no frame can save, create, or open files through Storybook. It MUST stop the process when the
+  server stops. Checked by the preview proxy's and runner's tests.
 - The web UI MAY show a preview's pages only in frames sandboxed without `allow-same-origin`. It
   MUST accept messages only from those frames' windows, and MUST NOT give a frame any data beyond
   the story to show, its colour mode, and whether pick mode is on. Checked by the embed's tests.
@@ -120,6 +122,16 @@ secret
 a proxy, so the 127.0.0.1 rule stays
 ([Q5](../done/2026-10-16-basic-security.md#q5-how-does-a-public-server-reach-uraeda)).
 
+Storybook trusts whatever role a channel connection claims, and Uraeda cannot tell Storybook's
+interface from a story's own code, so letting the interface save files lets every story write them.
+The human kept writes off, since the agent writes the stories and the human comments on them
+([Q2](../2026-10-17-access-storybook/clarifications-01.md#q2-can-you-save-stories-and-create-them-from-storybooks-interface),
+[the channel's roles](../2026-10-17-access-storybook/discovery-01.md#storybooks-server-channel-and-its-roles)).
+The interface needs Storybook's `security.insecureIframeMessaging` inside a sandboxed frame, and the
+frame secret keeps every other website away from it
+([Q1](../2026-10-17-access-storybook/clarifications-01.md#q1-how-should-the-storybook-page-render-stories),
+[worth it](../2026-10-17-access-storybook/discovery-01.md#worth-it-and-feasibility)).
+
 ## Alternatives considered
 
 - All TypeScript, the CLI shipped with Bun: one toolchain, but an 80 MB binary.
@@ -162,82 +174,14 @@ a proxy, so the 127.0.0.1 rule stays
   forwards its traffic.
 - A story's code can read any path under `/r/<repository>/preview/<secret>/` and
   `/r/<repository>/mockups/<secret>/`, of any checkout, but nothing else of the server.
+- Storybook's full interface works through Uraeda, with its message origin checks off, set by the
+  skill's `uraeda-preview.js` only when Uraeda serves the Storybook: a story's code can make the
+  interface show another story or change its controls, and nothing more.
+- Through Uraeda, saving a story from its controls, creating a story, and opening a file in an
+  editor fail with Storybook's own errors; Storybook's own port still offers them, locally.
 
 ## Applies to
 
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
 - [`editors/`](/editors/), and every feature that adds an editor integration
-
-## Proposed change (2026-10-17-access-storybook)
-
-Proposed by the [spec](../2026-10-17-access-storybook/spec.md). The proxy's rule that Storybook's
-channel is forwarded only as a preview's, so file writes stay off through Uraeda, becomes a rule of
-this decision. Storybook's full interface works through Uraeda, with its message origin checks
-turned off by the skill's helper.
-
-The rules become:
-
-- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
-  [`crates/core`](/crates/core/). Checked by review.
-- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
-  NOT need Node or any other runtime to run. Checked by review.
-- The server MUST be written in TypeScript, run on Node, and live in
-  [`packages/server`](/packages/server/). Checked by review.
-- TypeScript code MUST reach the core only through the binding,
-  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
-  states. Checked by review.
-- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
-  binding. They MUST NOT be redeclared by hand in TypeScript. Checked by review.
-- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate. Checked by review.
-- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
-  their markdown, with a library or by hand. It MAY render an agent's messages, which are not
-  workflow files, with Astryx's `Markdown` component. Checked by review.
-- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or an allowed host name: the `--allowed-hosts` flag, else
-  `URAEDA_ALLOWED_HOSTS`, else the settings file's `allowed_hosts`, as the [settings](settings.md)
-  decision orders them, with a change to the file applied to the next request. It MUST reject
-  requests whose `Origin`, when present, is not the server's own, `https://` and an allowed host
-  name, or an allowed origin, except GET and HEAD requests and WebSocket upgrades under
-  `/r/<repository>/preview/<secret>/` and `/r/<repository>/mockups/<secret>/` with the current frame
-  secret, which MAY carry `Origin: null`. Checked by the guard's tests.
-- The server MAY start the command of a project's active [preview](preview.md) decision, read from a
-  checkout, in that checkout, bound to 127.0.0.1 on a free port. It MUST forward only that process's
-  GET and HEAD requests and WebSocket upgrades, under `/r/<repository>/preview/<secret>/<folder>/`,
-  with `Access-Control-Allow-Origin: *` and a `Content-Security-Policy` of
-  `sandbox allow-scripts allow-popups` on every response. It MUST forward Storybook's channel,
-  `storybook-server-channel`, only as a preview's, `page=preview`, whatever role the upgrade asks,
-  so no frame can save, create, or open files through Storybook. It MUST stop the process when the
-  server stops. Checked by the preview proxy's and runner's tests.
-- The web UI MAY show a preview's pages only in frames sandboxed without `allow-same-origin`. It
-  MUST accept messages only from those frames' windows, and MUST NOT give a frame any data beyond
-  the story to show, its colour mode, and whether pick mode is on. Checked by the embed's tests.
-- The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
-  files only through the core. Checked by review.
-- The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
-  runtime. Checked by review.
-- Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
-  `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
-  library or by hand. Checked by review.
-- The language server's completions and code actions MUST only edit the open document. Actions that
-  write another file or commit MUST be commands the user runs explicitly, never code actions.
-  Checked by review.
-
-Why: Storybook trusts whatever role a channel connection claims, and Uraeda cannot tell Storybook's
-interface from a story's own code, so letting the interface save files lets every story write them.
-The human kept writes off, since the agent writes the stories and the human comments on them
-([Q2](../2026-10-17-access-storybook/clarifications-01.md#q2-can-you-save-stories-and-create-them-from-storybooks-interface),
-[the channel's roles](../2026-10-17-access-storybook/discovery-01.md#storybooks-server-channel-and-its-roles)).
-The interface needs Storybook's `security.insecureIframeMessaging` inside a sandboxed frame, and the
-frame secret keeps every other website away from it
-([Q1](../2026-10-17-access-storybook/clarifications-01.md#q1-how-should-the-storybook-page-render-stories),
-[worth it](../2026-10-17-access-storybook/discovery-01.md#worth-it-and-feasibility)).
-
-The consequences gain:
-
-- Storybook's full interface works through Uraeda, with its message origin checks off, set by the
-  skill's `uraeda-preview.js` only when Uraeda serves the Storybook: a story's code can make the
-  interface show another story or change its controls, and nothing more.
-- Through Uraeda, saving a story from its controls, creating a story, and opening a file in an
-  editor fail with Storybook's own errors; Storybook's own port still offers them, locally.
