@@ -7,7 +7,6 @@
 > Features for v1.0.0
 
 - [Redesign + reword clarifications](/specs/2026-10-17-redesign-clarifications/proposal.md)
-- [Restart a Storybook when its checkout's commit changes](/specs/changes/2026-10-17-storybook-restart/proposal.md)
 
 - [Redesign + reword specs](drafts/redesign-specs.md)
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
