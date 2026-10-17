@@ -34,6 +34,7 @@ instead.
 
 - An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`, and a review
   comment with a line starting with `#`: they would read as a new heading or answer.
-- A commit while other files are staged, since it would carry them; with `--switch`, a branch switch
-  over uncommitted changes; a worktree whose folder is taken by something else.
+- A commit while other files are staged, since it would carry them, but for `ura note`'s, which
+  commits `INBOX.md` alone; with `--switch`, a branch switch over uncommitted changes; a worktree
+  whose folder is taken by something else.
 - A review file that does not parse: it may hold the human's comments, and is never overwritten.

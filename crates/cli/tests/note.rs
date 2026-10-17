@@ -264,18 +264,18 @@ fn without_a_main_checkout_it_commits_in_a_worktree() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// Other staged files would ride along with the commit: refused before writing.
+/// Other staged files stay staged, out of the note's commit, as the web UI's Add and commit does.
 #[test]
-fn other_staged_files_are_refused_before_writing() {
+fn other_staged_files_stay_out_of_the_commit() {
     let repo = repo();
     repo.write("README.md", "# Changed\n");
     repo.git(&["add", "README.md"]);
 
     let output = note(&repo, &["Hints flicker on save"]);
 
-    assert_eq!(output.code, 1);
-    assert!(output.stderr.contains("README.md"), "{}", output.stderr);
-    assert!(!repo.read(INBOX).contains("Hints flicker"));
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(repo.read(INBOX).contains("Hints flicker"));
+    assert_eq!(repo.porcelain(), "M  README.md\n");
 }
 
 /// A refused note leaves nothing behind: no `.worktrees/main` created for it.

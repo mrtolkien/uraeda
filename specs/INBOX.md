@@ -61,8 +61,6 @@
 - [agent] [redesign-priorities] Decisions page: when the default branch is checked out nowhere, a
   decision's links are checked against the current checkout, not the default branch's tree, so a
   valid link can read as broken
-- [agent] [redesign-priorities] ura note still refuses when other files are staged, while the web
-  UI's Add and commit commits the file alone
 - [agent] [redesign-priorities] Discard keeps a priority's draft on disk when the line's children
   changed since the last commit
 - [agent] [redesign-priorities] The decisions page runs one git log per decision, and the watch
