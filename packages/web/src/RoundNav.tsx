@@ -1,4 +1,5 @@
 import { Button } from "@astryxdesign/core/Button";
+import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -36,6 +37,9 @@ const styles = stylex.create({
   },
   followUp: {
     paddingInlineStart: spacingVars["--spacing-4"],
+  },
+  inPage: {
+    marginBlockEnd: spacingVars["--spacing-6"],
   },
   label: {
     // An index row's text wraps: no title is cut.
@@ -198,6 +202,19 @@ function Index({
         />
       ))}
     </List>
+  );
+}
+
+/**
+ * On narrow screens, the round's index at its start, under its block: the human sees every question
+ * before answering the first, and a later one's answer does not go into an earlier comment.
+ */
+export function RoundIndex({ questions }: { questions: ReadonlyArray<NavQuestion> }) {
+  return (
+    <nav aria-label="Questions" {...stylex.props(styles.inPage)}>
+      <Heading level={2}>Questions</Heading>
+      <Index current={undefined} onPick={(id) => jumpTo(id)} questions={questions} />
+    </nav>
   );
 }
 
