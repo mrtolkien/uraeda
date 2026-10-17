@@ -36,6 +36,10 @@ const styles = stylex.create({
     display: "flex",
     justifyContent: "center",
   },
+  measure: {
+    // The round's reading text, the triage's too, holds to the round's measure.
+    "--size-reading-measure": "var(--size-round-measure)",
+  },
   questions: {
     flexGrow: 1,
     flexShrink: 1,
@@ -129,7 +133,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
     askAbout(file.folder, quoted(`About ${question.id} of ${file.path}:`, [question.title]));
 
   const content = (
-    <>
+    <div {...stylex.props(styles.measure)}>
       <RoundOpening
         document={document}
         round={round}
@@ -156,7 +160,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         submitting={submitting}
         target={target}
       />
-    </>
+    </div>
   );
 
   return (

@@ -449,16 +449,16 @@ key on their bold subject; Submit flips the block's first paragraph only
 - [x] **Step 1: Structural: split `RoundPage` into the opening, the questions, and the end**, no
       behaviour change; tests PASS before and after. Commit
       `refactor(redesign-clarifications): the round page in three parts`.
-- [ ] **Step 2: Write the failing tests**: US2.1 headings "Goal", "Today", "Scope", "Sources" in
+- [x] **Step 2: Write the failing tests**: US2.1 headings "Goal", "Today", "Scope", "Sources" in
       order under the block; US2.2 "Since the last round" above "Goal"; US2.3 the "Why it matters"
       paragraph in a muted box after the context, not within it; US2.4 a table and a quote in a
       question's card.
-- [ ] **Step 3: Run them to check they fail**.
-- [ ] **Step 4: Implement**: `RoundOpening` draws the block then each part;
+- [x] **Step 3: Run them to check they fail**.
+- [x] **Step 4: Implement**: `RoundOpening` draws the block then each part;
       `--size-round-split:     840px` and `--size-round-measure: 75ch`; the stories render the real
       `RoundPage`.
-- [ ] **Step 5: Run the project's validation**.
-- [ ] **Step 6: Commit**
+- [x] **Step 5: Run the project's validation**.
+- [x] **Step 6: Commit**
       `feat(redesign-clarifications): the round opens with its verdict and its parts`
 
 ## Task 10: Question cards

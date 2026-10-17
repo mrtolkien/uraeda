@@ -16,7 +16,7 @@ import {
 import { FakeAdapter } from "uraeda-server/testing";
 import type { Plugin } from "vite-plus";
 import { uraedaServer } from "../vite.config.ts";
-import { CHECKOUTS } from "./checkouts.ts";
+import { CHECKOUTS, ROUND_MOCKUPS } from "./checkouts.ts";
 import { fateOverGet } from "./fateOverGet.ts";
 
 /** The date of every commit the fixture is built with. */
@@ -47,23 +47,25 @@ function addFeature(
   }
 }
 
-/** The round page's mockup feature, its folder and branch. */
-const ROUND_MOCKUP = "2026-10-17-round-mockup";
-
 /** A file of the round page's mockup feature, from `fixtures/round-mockup/` (R5). */
 function roundMockupFile(name: string): string {
   return readFileSync(fixture(`round-mockup/${name}`), "utf8");
 }
 
 /**
- * Adds the round page's mockup feature, its round in the clarifications redesign's format, on its
- * own branch, from `main`, without a worktree.
+ * Adds a round page's mockup feature, its round in the clarifications redesign's format with its
+ * Q1 answered `answer`, on its own branch, from `main`, without a worktree.
  */
-function addRoundMockup(repo: string) {
-  git(repo, "branch", ROUND_MOCKUP, "main");
-  commitOnBranch(repo, ROUND_MOCKUP, {
-    [`specs/${ROUND_MOCKUP}/clarifications-01.md`]: roundMockupFile("clarifications-01.md"),
-    [`specs/${ROUND_MOCKUP}/proposal.md`]: roundMockupFile("proposal.md"),
+function addRoundMockup(repo: string, folder: string, answer: string) {
+  git(repo, "branch", folder, "main");
+  // Q1's answer line is the round's first.
+  const round = roundMockupFile("clarifications-01.md").replace(
+    "**Answer:**\n",
+    `**Answer:** ${answer}\n`,
+  );
+  commitOnBranch(repo, folder, {
+    [`specs/${folder}/clarifications-01.md`]: round,
+    [`specs/${folder}/proposal.md`]: roundMockupFile("proposal.md"),
   });
 }
 
@@ -95,7 +97,12 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
     addFeature(repo, CHECKOUTS.failed, { mode: "fail", worktree: true });
     addFeature(repo, CHECKOUTS.noWorktree, { mode: "ok", worktree: false });
     // The round page's mockups, in the clarifications redesign's format.
-    addRoundMockup(repo);
+    addRoundMockup(repo, ROUND_MOCKUPS.waiting, "B");
+    addRoundMockup(
+      repo,
+      ROUND_MOCKUPS.commentOnly,
+      "Neither: keep a single task, but keep the last 10 completions.",
+    );
     return {
       configDir: temporaryFolder("uraeda-storybook-config"),
       dataDir: temporaryFolder("uraeda-storybook-data"),

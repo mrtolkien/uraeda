@@ -1,4 +1,6 @@
-// The fixture's checkouts that `StoryEmbed.stories.tsx` shows, by state: `fixture.ts` builds each.
+// The fixture's features that stories show, by state: `fixture.ts` builds each.
+
+/** The checkouts `StoryEmbed.stories.tsx` shows. */
 export const CHECKOUTS = {
   /** The test feature of the story embeds, `addStoryFeature`'s, its fake Storybook ready. */
   ready: "2026-10-20-sidebar-resize",
@@ -8,4 +10,13 @@ export const CHECKOUTS = {
   failed: "2026-10-22-broken-preview",
   /** A feature with no worktree. */
   noWorktree: "2026-10-23-no-worktree",
+} as const;
+
+/**
+ * The round page's mockup features, `RoundPage.stories.tsx`'s, without a worktree: `Waiting`'s, its
+ * Q1 answered B, and `CommentOnly`'s, its Q1 answered with a comment alone.
+ */
+export const ROUND_MOCKUPS = {
+  commentOnly: "2026-10-17-round-mockup-comment",
+  waiting: "2026-10-17-round-mockup",
 } as const;
