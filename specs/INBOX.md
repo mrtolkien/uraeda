@@ -138,3 +138,5 @@
   enum, so the web gets no exhaustiveness check
 - [agent] [redesign-clarifications] ura check parses a waiting round twice (markdown and document
   trees), on every keystroke through ura lsp
+- [agent] [redesign-clarifications] settled_points still reads the settled section on its own,
+  beside the groups: two readings of one section
