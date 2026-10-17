@@ -125,4 +125,19 @@ test("a diagram wider than its card scrolls inside it, never the page (edge case
   expect(getComputedStyle(scroller).overflowX).toBe("auto");
   expect(scroller.scrollWidth).toBeGreaterThan(scroller.clientWidth);
   expect(document.documentElement.scrollWidth).toBe(window.innerWidth);
+  // The keyboard reaches it, to scroll it: a region named for what it holds.
+  await expect.poll(() => scroller.tabIndex).toBe(0);
+  expect(scroller.getAttribute("role")).toBe("region");
+  expect(scroller.getAttribute("aria-label")).toBe("Diagram, scrolls sideways");
+});
+
+test("a diagram that fits its card is not a stop of the keyboard", async () => {
+  await writeRound("flowchart TB\n  a[A] --> b[B]");
+  await show(ROUND, "When does the next occurrence appear?");
+
+  const frame = await diagramFrame();
+  const scroller = frame.parentElement!;
+  expect(scroller.scrollWidth).toBeLessThanOrEqual(scroller.clientWidth);
+  expect(scroller.hasAttribute("tabindex")).toBe(false);
+  expect(scroller.hasAttribute("role")).toBe(false);
 });

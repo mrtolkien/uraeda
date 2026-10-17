@@ -526,16 +526,21 @@ key on their bold subject; Submit flips the block's first paragraph only
 
 **Files:**
 
-- Modify: `packages/web/src/TriagePage.tsx` if needed, `packages/web/scripts/screenshots.ts`
+- Create: `packages/web/scripts/round-shots.ts` (the round's views, over the round page's mockup
+  feature)
+- Modify: `packages/web/src/TriagePage.tsx` if needed, `packages/web/src/Diagram.tsx` (a diagram
+  that scrolls is a keyboard stop; no white backdrop in the dark mode),
+  `packages/web/scripts/screenshots.ts`, `packages/web/scripts/inbox-shots.ts`
 - Delete: `packages/web/src/mockups/RoundMockup.tsx`, `packages/web/src/mockups/RichBlocks.tsx`
-- Test: `packages/web/src/__tests__/triage.test.tsx`, `packages/web/src/__browser__/round.test.tsx`
+- Test: `packages/web/src/__tests__/triage.test.tsx`, `packages/web/src/__browser__/round.test.tsx`,
+  `packages/web/src/__browser__/diagram.test.tsx`, `packages/web/src/__browser__/inbox.test.tsx`
 - Create: `specs/2026-10-17-redesign-clarifications/screenshots/`
 
-- [ ] **Step 1: Write the failing tests**: the triage's questions are cards, its Context free, and
+- [x] **Step 1: Write the failing tests**: the triage's questions are cards, its Context free, and
       it shows no settled groups; SC-004 axe passes on the round in light and dark, with a diagram,
       a follow-up, and every group open.
-- [ ] **Step 2: Run them to check they fail**.
-- [ ] **Step 3: Implement** what fails, remove the TEMPORARY mockups, and take the screenshots of
+- [x] **Step 2: Run them to check they fail**.
+- [x] **Step 3: Implement** what fails, remove the TEMPORARY mockups, and take the screenshots of
       the round and the triage at both sizes in both themes.
-- [ ] **Step 4: Run the project's validation**: `nix develop -c vp run ready`.
-- [ ] **Step 5: Commit** `feat(redesign-clarifications): the triage takes the new round page`
+- [x] **Step 4: Run the project's validation**: `nix develop -c vp run ready`.
+- [x] **Step 5: Commit** `feat(redesign-clarifications): the triage takes the new round page`

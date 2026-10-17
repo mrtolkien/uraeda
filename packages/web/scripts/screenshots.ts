@@ -26,6 +26,7 @@ import base, { uraedaServer } from "../vite.config.ts";
 import { takeChanges } from "./change-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
+import { addRoundMockup, takeRound } from "./round-shots.ts";
 import { type Serve, takeSettings } from "./settings-shots.ts";
 import { takeShell } from "./shell-shots.ts";
 import { takeSignIn } from "./sign-in-shots.ts";
@@ -56,7 +57,6 @@ const out = join(root, "specs", folder, "screenshots");
 /** The views to take, by name, after the folder: every view when none is named. */
 const views = process.argv.slice(3);
 
-const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const MOCKUP = "/f/2026-10-06-recurring-tasks/mockups/repeat.html";
 
 /** The fixture, with the fixture HTML mockup committed on the recurring tasks' branch. */
@@ -72,6 +72,8 @@ function repository() {
   git(repo, "add", "--all");
   git(repo, "commit", "--quiet", "--no-verify", "--message", "docs: mockup repeat.html");
   git(repo, "switch", "--quiet", "main");
+  // The round page's mockup feature, whose round holds a diagram, a follow-up, and every group.
+  addRoundMockup(repo);
   return repo;
 }
 
@@ -375,28 +377,9 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
   await forgetAll(shots);
 }
 
-/** Rounds, reviews, a mockup, a missing file, the editor, and the hand-over to the agent. */
+/** A round, reviews, a mockup, a missing file, the editor, and the hand-over to the agent. */
 async function takeReviews(each: Each, first: Page) {
-  await each(
-    "round-index",
-    async ({ page }) => {
-      await show(page, ROUND, "How does your iPhone reach the server?");
-      await page.getByRole("button", { name: /^\d+\/\d+$/ }).click();
-      await page.getByRole("dialog", { name: "Questions" }).waitFor();
-      await settle(page);
-    },
-    "phone",
-  );
-  await each(
-    "round",
-    async ({ page }) => {
-      await show(page, ROUND, "How does your iPhone reach the server?");
-      // The next unanswered question, at the top.
-      await page.keyboard.press("n");
-      await settle(page);
-    },
-    "desktop",
-  );
+  await takeRound(each);
 
   await each("review-comment", async ({ page, size }) => {
     await show(page, SPEC, "Complete a repeating task");

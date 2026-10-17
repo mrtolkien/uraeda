@@ -7,7 +7,8 @@ import { Text } from "@astryxdesign/core/Text";
 import { useTheme } from "@astryxdesign/core/theme";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useWidthOf } from "./layout/useWidthOf.ts";
 
 const styles = stylex.create({
   block: {
@@ -19,6 +20,9 @@ const styles = stylex.create({
   },
   frame: (width: string, height: string) => ({
     borderWidth: 0,
+    // The frame's document has no colour scheme of its own: the frame says the same, or the
+    // browser paints it an opaque white backdrop in the dark mode.
+    colorScheme: "light",
     display: "block",
     height,
     // As wide as the diagram, and the card at least: past the card, the card scrolls, not the page.
@@ -81,6 +85,8 @@ export function Diagram({ source }: { source: string }) {
   // An id of letters, digits, and dashes, unique on the page: Mermaid selects by it.
   const id = `diagram-${useId().replaceAll(/[^\w-]/g, "")}`;
   const [drawn, setDrawn] = useState<Drawn | "failed" | undefined>(undefined);
+  const scroller = useRef<HTMLDivElement>(null);
+  const room = useWidthOf(scroller);
   useEffect(() => {
     let live = true;
     draw(id, source, dark).then(
@@ -101,8 +107,16 @@ export function Diagram({ source }: { source: string }) {
       </div>
     );
   }
+  // Wider than its card, it scrolls: the keyboard reaches it, as a region named for what it holds.
+  const scrolls = drawn !== undefined && room > 0 && drawn.width > room;
   return (
-    <div {...stylex.props(styles.block, styles.scroller)}>
+    <div
+      ref={scroller}
+      {...(scrolls
+        ? { "aria-label": "Diagram, scrolls sideways", role: "region", tabIndex: 0 }
+        : {})}
+      {...stylex.props(styles.block, styles.scroller)}
+    >
       {drawn && (
         <iframe
           sandbox={SANDBOX}
