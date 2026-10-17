@@ -4,9 +4,13 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { Blocks } from "../Blocks.tsx";
+import { decisionIcon } from "../theme/icons.ts";
 import {
   type LedgerConstitution,
   type LedgerPrinciple,
@@ -14,6 +18,13 @@ import {
   versionLine,
 } from "./ConstitutionRegion.tsx";
 import type { LedgerDecision } from "./model.ts";
+
+const styles = stylex.create({
+  icon: {
+    color: colorVars["--color-text-secondary"],
+    display: "inline-flex",
+  },
+});
 
 const STATUSES: Record<string, string> = {
   active: "Active",
@@ -60,7 +71,7 @@ export function PrincipleDetail({
 }
 
 /**
- * A decision: its title, status, and approver, the first problem `ura check` finds in it, as an
+ * A decision: its icon and title, status, and approver, the first problem `ura check` finds in it, as an
  * error when it cannot be parsed and a warning otherwise, then its document past its title.
  */
 export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
@@ -75,7 +86,12 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
     <article aria-label={decision.title}>
       <VStack gap={4}>
         <VStack gap={2}>
-          <Heading level={2}>{decision.title}</Heading>
+          <HStack align="center" gap={2}>
+            <span {...stylex.props(styles.icon)}>
+              <Icon icon={decisionIcon(decision.icon)} />
+            </span>
+            <Heading level={2}>{decision.title}</Heading>
+          </HStack>
           {(decision.status !== null || decision.approvedBy !== null) && (
             <HStack align="center" gap={2} wrap="wrap">
               {decision.status !== null && (
