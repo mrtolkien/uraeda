@@ -43,24 +43,20 @@ task's requirements include these:
 
 ## Constitution check
 
-| Principle      | Complies | Notes |
-| -------------- | -------- | ----- |
-| I. [Principle] | yes      |       |
+| I. [Principle] | II. [Principle] |
+| -------------- | --------------- |
+| ✅             | ✅              |
 
-## Decisions
-
-The decisions this plan relies on, and where it follows them:
-
-- [Topic](../decisions/decision-topic.md): [how the plan follows it (task N)]
+[A line per tension, its principle's cell reading ⚠️ instead.]
 
 ## Complexity tracking
 
 [Every new abstraction: a type, module, layer, wrapper, or helper shared by several parts, tests
-included, even when the spec's architecture or details introduced it. Every function or file a task
-grows past the project's limits, or leaves over them. Every constitution exception: one the human
-accepted in the questions, or a new marker on code over a limit, for the plan's review to approve.
-Name the callers, shared rule, or approved variation that needs each one, and the simpler
-alternative rejected. "None." otherwise.]
+included, even when the spec's architecture introduced it. Every function or file a task grows past
+the project's limits, or leaves over them. Every constitution exception: one the human accepted in
+the questions, or a new marker on code over a limit, for the plan's review to approve. Name the
+callers, shared rule, or approved variation that needs each one, and the simpler alternative
+rejected. "None." otherwise.]
 
 | Abstraction or exception | Why it is needed | Simpler alternative rejected because |
 | ------------------------ | ---------------- | ------------------------------------ |
@@ -69,6 +65,14 @@ alternative rejected. "None." otherwise.]
 
 [Optional: only when the spec was approved with comments, each comment of `spec-review.md`, and the
 task that carries it out. State which spec clause it supersedes when it explicitly changes one.]
+
+## Test map
+
+Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+
+| Spec                                     | Task | Test                       |
+| ---------------------------------------- | ---- | -------------------------- |
+| [US1 1, 2, more 1; an edge case; SC-001] | [N]  | [`tests/exact/path`, what] |
 
 ## Waves
 

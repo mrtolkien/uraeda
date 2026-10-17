@@ -300,8 +300,10 @@ const commands = {
     const port = Number(new URL(context.page.url()).port);
     const proxy = await forwardingProxy(port);
     const browser = context.page.context().browser()!;
+    // At the desktop project's size: the embed loads once on screen.
     const opened = await browser.newContext({
       proxy: { server: `http://127.0.0.1:${proxy.port}` },
+      viewport: { height: 900, width: 1440 },
     });
     try {
       const page = await opened.newPage();

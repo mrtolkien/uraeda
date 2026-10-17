@@ -50,13 +50,22 @@ const ItemsSelection = {
   review: { comments: true, commit: true, summary: true, verdict: true },
   rulings: true,
   spec: {
+    answers: true,
+    approve: true,
+    block: true,
     criteria: true,
-    details: true,
+    decisions: true,
+    edges: true,
+    minutes: true,
     mockups: true,
+    parts: true,
     planReview: true,
+    principles: true,
     riskTier: true,
     stories: true,
     tiers: true,
+    tradeoffs: true,
+    units: true,
   },
 } as const;
 

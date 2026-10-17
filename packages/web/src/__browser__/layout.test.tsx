@@ -112,12 +112,12 @@ test.each(CASES)("$name, in $mode", async ({ insets, mode, path, text }) => {
 });
 
 /**
- * Opens a spec's folds, its stories' scenarios and its Details, so the checks reach what they hold:
- * the scenarios' insets among them. Their triggers are controls, measured with the others.
+ * Opens a spec's folds, its stories' more scenarios, so the checks reach what they hold: the
+ * scenarios' insets among them. Their triggers are controls, measured with the others.
  */
 async function openFolds() {
   const closed = screen
-    .queryAllByRole("button", { name: /^(Scenarios \(\d+\)|Details)$/ })
+    .queryAllByRole("button", { name: /^More scenarios \(\d+\)$/ })
     .filter((trigger) => trigger.getAttribute("aria-expanded") === "false");
   for (const trigger of closed) {
     await userEvent.click(trigger);

@@ -295,7 +295,7 @@ fn comment(
 ) -> Result<Value, lsp_server::ResponseError> {
     session.command(
         "uraeda.comment",
-        json!({ "uri": uri(path), "line": 52, "endLine": 54, "text": text }),
+        json!({ "uri": uri(path), "line": 75, "endLine": 77, "text": text }),
     )
 }
 
@@ -313,7 +313,7 @@ fn a_comment_quotes_its_lines() {
     let review = repo.read(&format!("{NVIM}/spec-review.md"));
     assert!(review.contains("verdict: pending"), "{review}");
     assert!(
-        review.contains("## C1: Lines 52–54, under \"US2: Complete a repeating task (P1)\""),
+        review.contains("## C1: Lines 75–77, under \"US2: Complete a repeating task (P1)\""),
         "{review}"
     );
     assert!(

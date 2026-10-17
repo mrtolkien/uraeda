@@ -55,14 +55,14 @@ function commitSpec(repo: string, edit: (text: string) => string) {
   );
 }
 
-/** A repository whose spec has scenario 1 of US2 on lines 92 and 93, and risk tier medium. */
+/** A repository whose spec has more scenario 1 of US2 on lines 92 and 93, and risk tier medium. */
 function repo() {
   const repo = fixtureRepo();
   commitSpec(repo, (text) =>
     text
       .replace("risk-tier: high", "risk-tier: medium")
       .replace("plan-review: true", "plan-review: false")
-      .replace("## User stories\n", `${"Padding.\n\n".repeat(17)}## User stories\n`),
+      .replace("## User stories\n", `${"Padding.\n\n".repeat(4)}## User stories\n`),
   );
   const lines = git(repo, "show", `${FOLDER}:${SPEC}`).split("\n");
   expect(lines[91]).toMatch(/^1\. \*\*Given\*\* a weekly task due Monday the 5th/);
@@ -126,7 +126,7 @@ const nested = () => screen.findByRole("button", { name: "Nested item" });
 
 /**
  * A fold's trigger, by its label: the first with it, in the page's order, unless told otherwise.
- * Its state is open or closed, where a block's toggle is pressed or not, as the Details heading's.
+ * Its state is open or closed, where a block's toggle is pressed or not.
  */
 async function fold(name: string, index = 0) {
   return waitFor(() => {
@@ -146,8 +146,8 @@ async function openFold(name: string, index = 0) {
   }
 }
 
-/** Opens US2's scenarios, the first "Scenarios (4)" of the page: US4's come after. */
-const openUS2 = () => openFold("Scenarios (4)");
+/** Opens US2's more scenarios, the first "More scenarios (2)" of the page: US4's come after. */
+const openUS2 = () => openFold("More scenarios (2)");
 
 /**
  * Whether an element is folded away: inside the region a closed trigger controls, which a screen
@@ -169,28 +169,28 @@ function pendingComment(r: string, start: number, end: number) {
   );
 }
 
-/** The line of the spec's Testing table holding a phrase, at its branch's tip. */
+/** The line of the spec holding a phrase, at its branch's tip. */
 function lineOf(r: string, phrase: string) {
   const lines = git(r, "show", `${FOLDER}:${SPEC}`).split("\n");
   return lines.findIndex((line) => line.includes(phrase)) + 1;
 }
 
 /** US1.1, SC-001 */
-test("a spec under review shows each story's scenarios and its details folded", async () => {
+test("a spec under review shows each story's more scenarios folded", async () => {
   await renderPage(PAGE, repo());
 
-  for (const name of ["Scenarios (3)", "Scenarios (4)", "Details"]) {
+  for (const name of ["More scenarios (1)", "More scenarios (2)"]) {
     expect((await fold(name)).getAttribute("aria-expanded")).toBe("false");
   }
-  expect(screen.getAllByRole("button", { name: /^Scenarios \(\d\)$/ })).toHaveLength(4);
+  expect(screen.getAllByRole("button", { name: /^More scenarios \(\d\)$/ })).toHaveLength(4);
   const why = screen.getByText(
     "Why this priority: this is what saves users from recreating tasks.",
   );
   expect(folded(why)).toBe(false);
-  for (const scenario of screen.getAllByText(/a weekly task due Monday the 5th/)) {
+  expect(folded(screen.getByText(/completes it on Wednesday the 14th/))).toBe(false);
+  for (const scenario of screen.getAllByText(/completes it on (Monday the 5th|Thursday the 8th)/)) {
     expect(folded(scenario)).toBe(true);
   }
-  expect(folded(screen.getByRole("heading", { name: "Data" }))).toBe(true);
 });
 
 /** US1.2 */
@@ -212,23 +212,11 @@ test("a pending comment opens its fold", async () => {
   await renderPage(PAGE, r);
 
   const pending = await screen.findByRole("group", { name: "C1 · lines 92–93" });
-  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("true");
-  expect((await fold("Scenarios (3)")).getAttribute("aria-expanded")).toBe("false");
+  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("More scenarios (1)")).getAttribute("aria-expanded")).toBe("false");
   expect(folded(pending)).toBe(false);
   expect(folded(within(pending).getByRole("button", { name: "Edit" }))).toBe(false);
   expect(folded(within(pending).getByRole("button", { name: "Remove" }))).toBe(false);
-});
-
-/** The edge case of a pending comment inside Details. */
-test("a pending comment in the details opens them", async () => {
-  const r = repo();
-  const line = lineOf(r, "| Upgrade of version 1 data");
-  pendingComment(r, line, line);
-  await renderPage(PAGE, r);
-
-  const pending = await screen.findByRole("group", { name: `C1 · line ${line}` });
-  expect((await fold("Details")).getAttribute("aria-expanded")).toBe("true");
-  expect(folded(pending)).toBe(false);
 });
 
 /** Review focus 1 */
@@ -238,12 +226,12 @@ test("closing a fold keeps the draft", async () => {
   await click(await scenario(FIRST));
   await typeComment("Twice?");
 
-  await click(await fold("Scenarios (4)"));
-  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("false");
+  await click(await fold("More scenarios (2)"));
+  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("false");
   expect(folded(screen.getByLabelText("Comment text"))).toBe(true);
-  await click(await fold("Scenarios (4)"));
+  await click(await fold("More scenarios (2)"));
 
-  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("true");
   const field = screen.getByLabelText("Comment text") as HTMLTextAreaElement;
   expect(folded(field)).toBe(false);
   expect(field.value).toBe("Twice?");
@@ -252,11 +240,11 @@ test("closing a fold keeps the draft", async () => {
 test("a fold's trigger opens it and selects no block", async () => {
   await renderPage(PAGE, repo());
 
-  await click(await fold("Details"));
-  await click(await fold("Scenarios (4)"));
+  await click(await fold("More scenarios (1)"));
+  await click(await fold("More scenarios (2)"));
 
-  expect((await fold("Details")).getAttribute("aria-expanded")).toBe("true");
-  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("More scenarios (1)")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("true");
   expect(screen.queryByLabelText("Comment text")).toBeNull();
   expect(document.querySelector("button[aria-pressed='true']")).toBeNull();
 });
@@ -283,7 +271,12 @@ test("the mockups are first on a spec under review", async () => {
 /** Review C2: a spec without mockups has no place for them. */
 test("a spec without mockups has no mockups region", async () => {
   const r = fixtureRepo();
-  commitSpec(r, (text) => text.replace(/## Mockups\n[\s\S]*?(?=## Assumptions)/, ""));
+  commitSpec(r, (text) =>
+    text.replace(
+      "The [Repeat](mockups/repeat.html) mockup shows the menu open, the custom screen, and the undo.\n\n",
+      "",
+    ),
+  );
   await renderPage(PAGE, r);
 
   await screen.findByRole("heading", { name: "User stories" });
@@ -457,15 +450,16 @@ test("a general comment is edited, then removed", async () => {
 test("a table row takes a comment on its line", async () => {
   const r = repo();
   await renderPage(PAGE, r);
-  await openFold("Details");
-  const row = await scenario("Upgrade of version 1 data");
+  const row = await scenario("The upgrade meets a saved due date");
 
   await click(row);
   await comment("Which version?");
 
   await saved(/^C1 · line \d+$/, "Which version?");
   const review = read(r, REVIEW);
-  expect(review).toMatch(/## C1: Line \d+, under "[^"]+"\n\n> \| Upgrade of version 1 data/);
+  expect(review).toMatch(
+    /## C1: Line \d+, under "[^"]+"\n\n> \| High +\| The upgrade meets a saved due date/,
+  );
   expect(review).toContain("\nWhich version?\n");
 });
 
@@ -581,13 +575,12 @@ test("US6.1: Ask the agent opens the session with the selected lines quoted", as
 test("Ask the agent on one line names that line", async () => {
   const r = repo();
   await renderPage(PAGE, r, { agent: true });
-  await openFold("Details");
-  await click(await scenario("Upgrade of version 1 data"));
+  await click(await scenario("The upgrade meets a saved due date"));
 
   await click(await screen.findByRole("button", { name: "Ask the agent" }));
 
   const lines = git(r, "show", `${FOLDER}:${SPEC}`).split("\n");
-  const at = lines.findIndex((line) => line.includes("| Upgrade of version 1 data"));
+  const at = lines.findIndex((line) => line.includes("| The upgrade meets a saved due date"));
   const box = await composer();
   await waitFor(() =>
     expect(box.textContent).toBe(`About ${SPEC}, line ${at + 1}:\n> ${lines[at]}\n\n`),
@@ -915,7 +908,7 @@ test("an image picked for a comment does not go into a comment edited during its
 });
 
 /**
- * A repository whose spec, at its branch's tip, holds extra blocks before its stories: one
+ * A repository whose spec, at its branch's tip, holds extra blocks before its decisions: one
  * paragraph on every other line from line 32, "Paragraph 5 of the long spec." on line 40 and
  * "Paragraph 11 of the long spec." on line 52.
  */
@@ -925,9 +918,7 @@ function longSpec(blocks = 30) {
     { length: blocks },
     (_, index) => `Paragraph ${index + 1} of the long spec.\n\n`,
   );
-  commitSpec(r, (text) =>
-    text.replace("## User stories\n", `\n${paragraphs.join("")}## User stories\n`),
-  );
+  commitSpec(r, (text) => text.replace("## Decisions\n", `\n${paragraphs.join("")}## Decisions\n`));
   expect(lineOf(r, "Paragraph 5 of the long spec.")).toBe(40);
   expect(lineOf(r, "Paragraph 11 of the long spec.")).toBe(52);
   return r;
