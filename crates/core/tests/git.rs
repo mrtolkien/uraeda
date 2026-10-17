@@ -278,3 +278,36 @@ fn is_ancestor_of_a_merged_branch() {
     assert!(git.is_ancestor(main, branch));
     assert!(!git.is_ancestor(branch, main));
 }
+
+#[test]
+fn the_merge_base_of_a_branch_and_main() {
+    let repo = TestRepo::new();
+    let start = repo.git(&["rev-parse", "HEAD"]);
+    repo.switch_new("2026-10-10-a");
+    repo.write("x.md", "branch\n");
+    repo.commit("on the branch");
+    repo.switch("main");
+    repo.write("y.md", "main\n");
+    repo.commit("on main");
+
+    let git = Git::discover(repo.path()).unwrap();
+    let branch = git.tip("2026-10-10-a").unwrap();
+    let main = git.tip("main").unwrap();
+
+    let base = git.merge_base(main, branch).unwrap().unwrap();
+    assert_eq!(base.to_string(), start.trim());
+}
+
+#[test]
+fn two_histories_without_a_common_commit_have_no_merge_base() {
+    let repo = TestRepo::new();
+    repo.git(&["switch", "--quiet", "--orphan", "2026-10-10-a"]);
+    repo.write("x.md", "alone\n");
+    repo.commit("alone");
+
+    let git = Git::discover(repo.path()).unwrap();
+    let branch = git.tip("2026-10-10-a").unwrap();
+    let main = git.tip("main").unwrap();
+
+    assert_eq!(git.merge_base(main, branch).unwrap(), None);
+}
