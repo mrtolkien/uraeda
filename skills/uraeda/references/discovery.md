@@ -378,9 +378,8 @@ needs, self-contained option sentences, the recommended one first. The asking ru
   is Q6", "With a due date counted from the previous one (A in Q3), ...".
 - **A question that only matters for one answer is a follow-up**, right after its parent, numbered
   by the answer it depends on: `Q2.B`, starting with "Only if you picked B in Q2". Ask it under
-  every option that needs one, each its own follow-up. When it depends on several answers, number it
-  by the first and list them all: `Q1.B`, "Only if you picked B or C in Q1". Never ask a separate
-  question that an earlier answer already decides.
+  every option that needs one, each its own follow-up: `Q1.B` and `Q1.C`, never one shared by both.
+  Never ask a separate question that an earlier answer already decides.
 - **Number questions from Q1 in each round.** Refer to an earlier round's question by file and
   number: "Q2 of [round 01](clarifications-01.md)".
 - **Conflicts**: when the proposal conflicts with an active decision, say so, and ask whether to
