@@ -123,3 +123,18 @@ not high, normal, or niche, "importance is high, normal, or niche".
 
 The reviewed part of a spec is every section but "More scenarios" lists and `## History`. The
 approval commit is the branch's commit whose spec first reads `status: approved`.
+
+## Sent to the spec page
+
+The core sends the page:
+
+- `SpecItems` gains `answers`, each `## Your review` item with its comment number and verdict;
+  `decisions`, each decision change; `parts`, each level-2 section with its title, anchor, and
+  blocks; and `history`. A `Story` gains `key` and `more`, its two scenario lists, and loses
+  `details`. `SpecItems.details` goes. `mockups` holds the story and HTML links found in the
+  stories.
+- A decision change holds the file's name and title, its kind (new, changed, removed), the note of
+  its `## Decisions` item, whether the spec lists it, and its changed sections. Each section holds
+  its parts, each with its kind, its lines in either version, and its runs of kept, added, and
+  removed words.
+- The page reads `data-model.md` as its own file, as today.

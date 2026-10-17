@@ -54,37 +54,6 @@ interactions with existing behaviour. Each gets a test in the task that owns the
    quote, never an error. Task 10.
 8. **Two `## Decisions` items for the same decision** count it once. Task 2.
 
-### Test map
-
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
-
-| Spec                                                           | Task | Test                                                         |
-| -------------------------------------------------------------- | ---- | ------------------------------------------------------------ |
-| US1 1, more 1; US6 4                                           | 2    | `crates/core/tests/check.rs`, the sections of the new format |
-| US1 2, more 2; US2 more 2; US6 1; US8 more 1                   | 6    | `crates/core/tests/check.rs`, the new warnings and problem   |
-| US1 3; SC-001; SC-002                                          | 6    | `crates/core/tests/check.rs`, the example and the decisions  |
-| US6 2                                                          | 2    | `crates/core/tests/steps.rs`, approval from listed items     |
-| US6 3                                                          | 9    | `crates/core/tests/unapproved.rs`                            |
-| Edge cases: rewritten rule, rewrap, 60%                        | 3    | `crates/core/tests/decision_change.rs`, table-driven         |
-| Edge cases: merge base, merged default branch, deleted, equal  | 7    | `crates/core/tests/decision_change.rs`, over branches        |
-| Edge case: old format fails `ura check`                        | 2    | `crates/core/tests/check.rs`                                 |
-| US2 3; edge case: comment on a removed part                    | 8    | `crates/core/tests/actions.rs`; `review.rs` round trip       |
-| US2 1, 2, more 1, 3, 4, 6; edge cases: removed and equal cards | 13   | `packages/web/src/__tests__/spec-decisions.test.tsx`         |
-| US2 more 5, 7                                                  | 13   | `packages/web/src/__tests__/links.test.ts`, `spec-decisions` |
-| US2 more 3                                                     | 13   | `packages/web/src/__browser__/spec.test.tsx`                 |
-| US3 1, 2, 3; edge case: no "More scenarios"                    | 11   | `packages/web/src/__tests__/spec-stories.test.tsx`           |
-| US4 1, 2; edge cases: revision 1, approved spec                | 10   | `packages/web/src/__tests__/spec-page.test.tsx`              |
-| US5 1, more 1, more 2                                          | 10   | `packages/web/src/__tests__/spec-page.test.tsx`              |
-| US5 2, 3                                                       | 10   | `packages/web/src/__browser__/spec.test.tsx`                 |
-| US7 1, 2                                                       | 4    | `packages/web/src/__browser__/reading-place.test.tsx`        |
-| US7 3; edge case: unsaved draft                                | 5    | `packages/web/src/__tests__/editor.test.tsx`                 |
-| US8 1, 2, 3, 4, more 2                                         | 12   | `packages/web/src/__tests__/spec-parts.test.tsx`             |
-| SC-003                                                         | 7    | `packages/server/src/__tests__/spec.bench.ts`                |
-| SC-004                                                         | 14   | `packages/web/src/__browser__/spec.test.tsx`, accessibility  |
-| Error handling: a decision's old version unreadable            | 7    | `crates/core/tests/decision_change.rs`                       |
-| Error handling: an answer naming a missing comment             | 10   | `packages/web/src/__tests__/spec-page.test.tsx`              |
-| Edge case: a comment's lines changed after the review          | 8    | existing behaviour, kept: `crates/core/tests/actions.rs`     |
-
 ## Global constraints
 
 The approved rules and existing guarantees the change must preserve, with their sources. Every
@@ -269,27 +238,9 @@ Existing guarantees to keep:
 
 ## Constitution check
 
-| Principle                 | Complies | Notes                                                                    |
-| ------------------------- | -------- | ------------------------------------------------------------------------ |
-| I. Humans stay in control | yes      | decisions change only on their branch, `decision.unapproved` warns after |
-| II. Git and plain text    | yes      | a decision's change is computed from git, never stored                   |
-| III. Asynchronous         | yes      | every task ends with a commit                                            |
-| IV. Review effort         | yes      | the page and the limits are the feature                                  |
-| V. Tools optional         | yes      | without Uraeda, `git diff` shows a decision's change                     |
-| VI. Checked, maintainable | yes      | tests per scenario; `ReviewPage.tsx` and `items.rs` split before growing |
-
-## Decisions
-
-The decisions this plan relies on, and where it follows them:
-
-- [Stack](../decisions/stack.md): the core parses and compares, the web draws (tasks 2, 3, 7).
-- [Git](../decisions/git.md): the merge base and the approval commit through `git.rs` (tasks 3, 9).
-- [Compatibility](../decisions/compatibility.md): templates, example, fixtures, and this feature's
-  own spec and plan rewritten in task 2.
-- [Code quality](../decisions/code-quality.md): the structural steps of tasks 2 and 10.
-- [UI layout](../decisions/ui-layout.md), [UI components](../decisions/ui-components.md),
-  [UI checks](../decisions/ui-checks.md): tasks 10 to 14.
-- [Preview](../decisions/preview.md): the stories of task 14 over the fixture.
+| I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional | VI. Checked code |
+| -------------------- | -------------- | ---------- | ----------------- | ----------------- | ---------------- |
+| ✅                   | ✅             | ✅         | ✅                | ✅                | ✅               |
 
 ## Complexity tracking
 
@@ -313,6 +264,37 @@ No new marker. No constitution exception.
   Task 13.
 - **C2** (the chevron in "What you approve"): the chevron before the "You approve" sentence sits on
   its first line, next to the text, at the gap of the page's other icons. Task 10.
+
+## Test map
+
+Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+
+| Spec                                                           | Task | Test                                                         |
+| -------------------------------------------------------------- | ---- | ------------------------------------------------------------ |
+| US1 1, more 1; US6 4                                           | 2    | `crates/core/tests/check.rs`, the sections of the new format |
+| US1 2, more 2; US2 more 2; US6 1; US8 more 1                   | 6    | `crates/core/tests/check.rs`, the new warnings and problem   |
+| US1 3; SC-001; SC-002                                          | 6    | `crates/core/tests/check.rs`, the example and the decisions  |
+| US6 2                                                          | 2    | `crates/core/tests/steps.rs`, approval from listed items     |
+| US6 3                                                          | 9    | `crates/core/tests/unapproved.rs`                            |
+| Edge cases: rewritten rule, rewrap, 60%                        | 3    | `crates/core/tests/decision_change.rs`, table-driven         |
+| Edge cases: merge base, merged default branch, deleted, equal  | 7    | `crates/core/tests/decision_change.rs`, over branches        |
+| Edge case: old format fails `ura check`                        | 2    | `crates/core/tests/check.rs`                                 |
+| US2 3; edge case: comment on a removed part                    | 8    | `crates/core/tests/actions.rs`; `review.rs` round trip       |
+| US2 1, 2, more 1, 3, 4, 6; edge cases: removed and equal cards | 13   | `packages/web/src/__tests__/spec-decisions.test.tsx`         |
+| US2 more 5, 7                                                  | 13   | `packages/web/src/__tests__/links.test.ts`, `spec-decisions` |
+| US2 more 3                                                     | 13   | `packages/web/src/__browser__/spec.test.tsx`                 |
+| US3 1, 2, 3; edge case: no "More scenarios"                    | 11   | `packages/web/src/__tests__/spec-stories.test.tsx`           |
+| US4 1, 2; edge cases: revision 1, approved spec                | 10   | `packages/web/src/__tests__/spec-page.test.tsx`              |
+| US5 1, more 1, more 2                                          | 10   | `packages/web/src/__tests__/spec-page.test.tsx`              |
+| US5 2, 3                                                       | 10   | `packages/web/src/__browser__/spec.test.tsx`                 |
+| US7 1, 2                                                       | 4    | `packages/web/src/__browser__/reading-place.test.tsx`        |
+| US7 3; edge case: unsaved draft                                | 5    | `packages/web/src/__tests__/editor.test.tsx`                 |
+| US8 1, 2, 3, 4, more 2                                         | 12   | `packages/web/src/__tests__/spec-parts.test.tsx`             |
+| SC-003                                                         | 7    | `packages/server/src/__tests__/spec.bench.ts`                |
+| SC-004                                                         | 14   | `packages/web/src/__browser__/spec.test.tsx`, accessibility  |
+| Error handling: a decision's old version unreadable            | 7    | `crates/core/tests/decision_change.rs`                       |
+| Error handling: an answer naming a missing comment             | 10   | `packages/web/src/__tests__/spec-page.test.tsx`              |
+| Edge case: a comment's lines changed after the review          | 8    | existing behaviour, kept: `crates/core/tests/actions.rs`     |
 
 ## Waves
 
@@ -632,7 +614,7 @@ with a ruling: the "Details" fold is gone with its section.
 - Run: `nix develop -c cargo nextest run -p uraeda-core`, then `nix develop -c vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 7: Rewrite the fixtures and this feature's files in the new format**
+- [x] **Step 7: Rewrite the fixtures and this feature's files in the new format**
 
 The fixture specs and plan listed in **Files**, from the new templates, keeping their stories. The
 compatibility decision makes this feature's own spec fail `specs:check` once the template changes:
@@ -646,7 +628,7 @@ The mockups' notes join `## Assumptions`. Then rewrite this `plan.md` in the new
 `## Test map`. Commit these two on their own:
 `chore(redesign-specs): rewrite spec.md and plan.md in the new format`.
 
-- [ ] **Step 8: Run the project's validation**
+- [x] **Step 8: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS, `specs:check` included

@@ -12,38 +12,10 @@ plan-review: false
 >
 > Approved on 2026-10-17.
 >
-> - C1: done. A decision reads at the page's measure, wherever it is drawn.
-> - C2: done. A rule removed whole is tinted red, readable, never struck. Removed words inside a
->   changed rule are tinted red with a dotted underline, not struck either: a second cue besides
->   colour, which accessibility requires.
-> - C3: done. A decision's intent is its largest text. Each rule has an icon of its strength, its
->   check on a muted line, and rules come strongest first. Four decisions were reordered so.
-> - C4: done. Every card's title comes before its pills.
-> - C5 and C6: done. Each part after the stories has its own format and drawing. Edge cases carry an
->   importance, high, normal, or niche, and the niche ones fold. Risk and the constitution move up
->   into what you approve.
-> - New story: US8, "The parts after the stories read at a glance". The block's time counts what
->   changed since your review.
-
-> [!NOTE]
->
-> Changes requested on 2026-10-17: 6 comments in spec-review.md.
->
 > - You approve specs that open with what you approve, then the decisions with their changes marked
 >   in place, then the stories as cards. You also approve all 18 decisions, rewritten intent first.
-> - The rewrites take the decisions from 18,728 words to 9,375, and from 201 rules to 141. Security
->   and data-safety guarantees stay. Each row of the decisions table says what its rewrite dropped.
-> - Each rewritten decision is `proposed` on this branch until you approve, as you chose. The
->   preview decision stays `active`, since this branch's Storybook runs only with an active one.
-> - New, from your "every line approved by a human": `ura check` warns when a branch edits a
->   decision after its spec's approval.
-> - Removed parts of a decision fold behind "N removed" at the end of their section. They count
->   parts, rules or paragraphs, not lines.
-> - Unverified: keeping your place while commenting relies on scroll anchoring in Safari. The plan's
->   first task checks it, and the page keeps your place itself if it fails.
-> - This spec breaks its own limits: 7 stories and 18 changed decisions are past the split
->   threshold, and its reviewed part is about 3,900 words. Risk tier `high`, since it rewrites every
->   decision; the plan does not wait.
+> - New story: US8, "The parts after the stories read at a glance". The block's time counts what
+>   changed since your review.
 
 A spec becomes a page you approve in one sitting, without opening anything else. What you approve
 comes first, then the decisions, each change shown in place, then the stories as cards, the data,
@@ -51,6 +23,76 @@ and the rest. Agents write it from one writing reference, with the build details
 Decisions become short statements of intent, created only from your answers. This spec is the last
 one written in today's format. See the [proposal](proposal.md), [discovery](discovery-01.md), and
 [clarifications](clarifications-01.md).
+
+## Your review
+
+- **C1** (a decision's width): done. A decision reads at the page's measure, wherever it is drawn.
+- **C2** (no strikethrough): done. A rule removed whole is tinted red, readable, never struck.
+  Removed words inside a changed rule are tinted red with a dotted underline, not struck either: a
+  second cue besides colour, which accessibility requires.
+- **C3** (hierarchy and icons for rules): done. A decision's intent is its largest text. Each rule
+  has an icon of its strength, its check on a muted line, and rules come strongest first. Four
+  decisions were reordered so.
+- **C4** (title before the pills): done. Every card's title comes before its pills.
+- **C5** (edge cases' importance): done. Edge cases carry an importance, high, normal, or niche, and
+  the niche ones fold.
+- **C6** (a drawing for each part): done. Each part after the stories has its own format and
+  drawing. Risk and the constitution move up into what you approve.
+
+## Decisions
+
+Changed, applied when this spec is approved: all 18, rewritten intent first, as you asked. Each is
+`proposed` on this branch. `git diff main -- specs/decisions/` shows every change until this
+feature's view exists.
+
+- **Changed: [Agents](../decisions/agents.md)**. 2,217 → 693 words, 14 → 10 rules: rules merged by
+  concept; the session's field list and history dropped.
+- **Changed: [Attachments](../decisions/attachments.md)**. 762 → 539 words, 9 → 7 rules: encoder
+  settings left to the core's tests; limits and headers kept.
+- **Changed: [CLI](../decisions/cli.md)**. 742 → 549 words, 10 → 9 rules: same rules, each with its
+  check; examples of target names dropped.
+- **Changed: [Code quality](../decisions/code-quality.md)**. 674 → 445 words, 9 → 7 rules: the four
+  limits and marker forms kept; lint rule names dropped.
+- **Changed: [Distribution](../decisions/distribution.md)**. 847 → 519 words, 8 → 8 rules: same
+  rules; history and smoke-test details dropped.
+- **Changed: [Git](../decisions/git.md)**. 1,540 → 611 words, 19 → 10 rules: 19 rules become 10
+  concepts; every data-safety guarantee kept.
+- **Changed: [Notifications](../decisions/notifications.md)**. 584 → 389 words, 8 → 5 rules: the
+  list of what notifies left to its tests.
+- **Changed: [Preview](../decisions/preview.md)**. 658 → 475 words, 9 → 7 rules: rules point to its
+  two fields; stays `active` for this branch's Storybook.
+- **Changed: [Repositories](../decisions/repositories.md)**. 860 → 452 words, 8 → 7 rules: name and
+  colour limits left to the core; now says sign-in protects the server.
+- **Changed: [Settings](../decisions/settings.md)**. 813 → 540 words, 9 → 8 rules: now says where
+  the data folder is; its file list dropped.
+- **Changed: [Sign-in](../decisions/sign-in.md)**. 832 → 614 words, 11 → 9 rules: every guarantee
+  kept; the key's prefix and file name left to tests.
+- **Changed: [Stack](../decisions/stack.md)**. 1,661 → 669 words, 14 → 10 rules: every boundary and
+  security rule kept; exact paths shortened.
+- **Changed: [Toolchain](../decisions/toolchain.md)**. 1,574 → 620 words, 18 → 10 rules: history and
+  tool lists dropped; the `--workspace` trap kept.
+- **Changed: [TUI](../decisions/tui.md)**. 398 → 341 words, 5 → 5 rules: same rules, each with its
+  check.
+- **Changed: [UI behaviour](../decisions/ui-behaviour.md)**. 1,857 → 554 words, 20 → 9 rules: UI
+  strings, row heights, and timings dropped; errors, hover, keys kept.
+- **Changed: [UI checks](../decisions/ui-checks.md)**. 759 → 451 words, 7 → 5 rules: viewport sizes
+  left to the config; the investigation in one line.
+- **Changed: [UI components](../decisions/ui-components.md)**. 578 → 364 words, 9 → 6 rules: the
+  component list dropped; lint-checked rules merged.
+- **Changed: [UI layout](../decisions/ui-layout.md)**. 1,372 → 550 words, 14 → 9 rules: concepts
+  first, as you asked; the sidebar card's details dropped.
+
+Relied on:
+
+| Decision                                       | What it means for this spec                                      |
+| ---------------------------------------------- | ---------------------------------------------------------------- |
+| [Stack](../decisions/stack.md)                 | the core owns the format and the comparison; the page draws them |
+| [UI layout](../decisions/ui-layout.md)         | "Contents" folds and resizes, its state kept in the browser      |
+| [UI components](../decisions/ui-components.md) | Astryx `Card`, `Badge`, `Link`, `Collapsible`, StyleX tokens     |
+| [Git](../decisions/git.md)                     | the merge base's version is read with gix, never checked out     |
+| [Preview](../decisions/preview.md)             | the mockups are stories over the fixture server                  |
+| [UI checks](../decisions/ui-checks.md)         | browser tests at both sizes, axe, and screenshots                |
+| [Code quality](../decisions/code-quality.md)   | `document.rs`, `Blocks.tsx`, and `ReviewPage.tsx` split first    |
 
 ## User stories
 
@@ -233,6 +275,38 @@ More scenarios:
 2. **Given** a data table with a "Change" column, **When** you open the spec, **Then** "New",
    "Changed", and "Removed" show as green, yellow, and red pills.
 
+## Architecture
+
+The format has one owner, the core, and the skill describes it once. A decision's change is never
+written down: the core computes it from git, comparing the decision on the branch with the default
+branch's, at their merge base. The page draws the core's parts as cards. See the
+[discovery's approaches](discovery-01.md#approaches).
+
+```mermaid
+flowchart LR
+    A[spec.md and data-model.md] --> C[core: the spec's parts]
+    B[each decision, on the branch and at the merge base] --> D[core: decision changes]
+    C --> E[spec page]
+    D --> E
+```
+
+- **The skill** holds the spec's order, the decision shape and its creation rule, and the plan's
+  test map. The writing reference, from the clarifications redesign, gains the limits of specs and
+  decisions.
+- **The core** reads the spec's parts, the review answers, and the stories' key scenarios. A new
+  module compares a decision's two versions by paragraph and list item, then word by word.
+  `ura check` gains the warnings.
+- **The web** splits the review page into its groups, a decision card, a story card, and the
+  "Contents" column. An approved spec draws the same page, read-only.
+- **Where each rule lives**: the format in the templates and the core's parser; the limits in the
+  writing reference, measured by the core's `check/writing` module; a decision's change in the
+  core's comparison; the card layout in one panel component.
+
+Tradeoffs:
+
+- A large feature across the skill, the core, and the web.
+- Every spec and decision in the old format fails `ura check` until rewritten.
+
 ## Edge cases
 
 | Importance | Situation                                                     | What happens                                                              |
@@ -261,50 +335,6 @@ More scenarios:
   server than today.
 - **SC-004**: The spec page passes axe in light and dark, at 402 × 874 and 1440 × 900, with a
   decision change, a review answered, the niche edge cases, and every fold open.
-
-## Architecture
-
-The format has one owner, the core, and the skill describes it once. A decision's change is never
-written down: the core computes it from git, comparing the decision on the branch with the default
-branch's, at their merge base. The page draws the core's parts as cards. See the
-[discovery's approaches](discovery-01.md#approaches).
-
-```mermaid
-flowchart LR
-    A[spec.md and data-model.md] --> C[core: the spec's parts]
-    B[each decision, on the branch and at the merge base] --> D[core: decision changes]
-    C --> E[spec page]
-    D --> E
-```
-
-- **The skill** holds the spec's order, the decision shape and its creation rule, and the plan's
-  test map. The writing reference, from the clarifications redesign, gains the limits of specs and
-  decisions.
-- **The core** reads the spec's parts, the review answers, and the stories' key scenarios. A new
-  module compares a decision's two versions by paragraph and list item, then word by word.
-  `ura check` gains the warnings.
-- **The web** splits the review page into its groups, a decision card, a story card, and the
-  "Contents" column. An approved spec draws the same page, read-only.
-- **Where each rule lives**: the format in the templates and the core's parser; the limits in the
-  writing reference, measured by the core's `check/writing` module; a decision's change in the
-  core's comparison; the card layout in one panel component.
-- **Tradeoffs**: a large feature across the skill, the core, and the web. Every spec and decision in
-  the old format fails `ura check` until rewritten.
-
-## Mockups
-
-- [Spec page](/packages/web/src/SpecPage.stories.tsx#Waiting): a revision 2 of the skill's recurring
-  tasks, rewritten. It holds what you approve, your review answered, new, changed, removed, and
-  unlisted decisions, four story cards, the data model with its change pills, then the architecture,
-  edge cases by importance, success criteria, assumptions, and "History". On a wide screen,
-  "Contents" with comment counts; on the phone, sticky titles with breadcrumbs.
-- [Decision change](/packages/web/src/mockups/DecisionChange.stories.tsx#Change): task storage with
-  a reworded rule, a new rule and consequence, unchanged parts folded, and a rule merged away under
-  "1 removed", each rule with its strength's icon, at the page's measure.
-
-Each story's mockup shows as a box with its name: the real page embeds it live. The strength icons
-are Lucide's chevrons, drawn in the mockup: the implementation adds them to the theme's icons. The
-decision texts come from constants, since the server cannot read a branch's decisions yet.
 
 ## Assumptions
 
@@ -350,45 +380,23 @@ Settled while writing this spec:
   `2026-10-17-access-storybook`, with a spec and a `## Proposed change` on stack, and
   `2026-10-17-redesign-clarifications`, with a spec and a plan. Whichever of this feature and
   access-storybook merges second folds the other's stack rule in.
+- Components, error handling, and testing are in the [plan](plan.md): its tasks, and its
+  [test map](plan.md#test-map).
 
-## Decisions
+The mockups:
 
-Changed, applied when this spec is approved: all 18, rewritten intent first, as you asked. Each is
-`proposed` on this branch. `git diff main -- specs/decisions/` shows every change until this
-feature's view exists.
+- [Spec page](/packages/web/src/SpecPage.stories.tsx#Waiting): a revision 2 of the skill's recurring
+  tasks, rewritten. It holds what you approve, your review answered, new, changed, removed, and
+  unlisted decisions, four story cards, the data model with its change pills, then the architecture,
+  edge cases by importance, success criteria, assumptions, and "History". On a wide screen,
+  "Contents" with comment counts; on the phone, sticky titles with breadcrumbs.
+- [Decision change](/packages/web/src/mockups/DecisionChange.stories.tsx#Change): task storage with
+  a reworded rule, a new rule and consequence, unchanged parts folded, and a rule merged away under
+  "1 removed", each rule with its strength's icon, at the page's measure.
 
-| Decision                                       | Words       | Rules   | What the rewrite does                                                         |
-| ---------------------------------------------- | ----------- | ------- | ----------------------------------------------------------------------------- |
-| [Agents](../decisions/agents.md)               | 2,217 → 693 | 14 → 10 | rules merged by concept; the session's field list and history dropped         |
-| [Attachments](../decisions/attachments.md)     | 762 → 539   | 9 → 7   | encoder settings left to the core's tests; limits and headers kept            |
-| [CLI](../decisions/cli.md)                     | 742 → 549   | 10 → 9  | same rules, each with its check; examples of target names dropped             |
-| [Code quality](../decisions/code-quality.md)   | 674 → 445   | 9 → 7   | the four limits and marker forms kept; lint rule names dropped                |
-| [Distribution](../decisions/distribution.md)   | 847 → 519   | 8 → 8   | same rules; history and smoke-test details dropped                            |
-| [Git](../decisions/git.md)                     | 1,540 → 611 | 19 → 10 | 19 rules become 10 concepts; every data-safety guarantee kept                 |
-| [Notifications](../decisions/notifications.md) | 584 → 389   | 8 → 5   | the list of what notifies left to its tests                                   |
-| [Preview](../decisions/preview.md)             | 658 → 475   | 9 → 7   | rules point to its two fields; stays `active` for this branch's Storybook     |
-| [Repositories](../decisions/repositories.md)   | 860 → 452   | 8 → 7   | name and colour limits left to the core; now says sign-in protects the server |
-| [Settings](../decisions/settings.md)           | 813 → 540   | 9 → 8   | now says where the data folder is; its file list dropped                      |
-| [Sign-in](../decisions/sign-in.md)             | 832 → 614   | 11 → 9  | every guarantee kept; the key's prefix and file name left to tests            |
-| [Stack](../decisions/stack.md)                 | 1,661 → 669 | 14 → 10 | every boundary and security rule kept; exact paths shortened                  |
-| [Toolchain](../decisions/toolchain.md)         | 1,574 → 620 | 18 → 10 | history and tool lists dropped; the `--workspace` trap kept                   |
-| [TUI](../decisions/tui.md)                     | 398 → 341   | 5 → 5   | same rules, each with its check                                               |
-| [UI behaviour](../decisions/ui-behaviour.md)   | 1,857 → 554 | 20 → 9  | UI strings, row heights, and timings dropped; errors, hover, keys kept        |
-| [UI checks](../decisions/ui-checks.md)         | 759 → 451   | 7 → 5   | viewport sizes left to the config; the investigation in one line              |
-| [UI components](../decisions/ui-components.md) | 578 → 364   | 9 → 6   | the component list dropped; lint-checked rules merged                         |
-| [UI layout](../decisions/ui-layout.md)         | 1,372 → 550 | 14 → 9  | concepts first, as you asked; the sidebar card's details dropped              |
-
-Relied on:
-
-| Decision                                       | What it means for this spec                                      |
-| ---------------------------------------------- | ---------------------------------------------------------------- |
-| [Stack](../decisions/stack.md)                 | the core owns the format and the comparison; the page draws them |
-| [UI layout](../decisions/ui-layout.md)         | "Contents" folds and resizes, its state kept in the browser      |
-| [UI components](../decisions/ui-components.md) | Astryx `Card`, `Badge`, `Link`, `Collapsible`, StyleX tokens     |
-| [Git](../decisions/git.md)                     | the merge base's version is read with gix, never checked out     |
-| [Preview](../decisions/preview.md)             | the mockups are stories over the fixture server                  |
-| [UI checks](../decisions/ui-checks.md)         | browser tests at both sizes, axe, and screenshots                |
-| [Code quality](../decisions/code-quality.md)   | `document.rs`, `Blocks.tsx`, and `ReviewPage.tsx` split first    |
+Each story's mockup shows as a box with its name: the real page embeds it live. The strength icons
+are Lucide's chevrons, drawn in the mockup: the implementation adds them to the theme's icons. The
+decision texts come from constants, since the server cannot read a branch's decisions yet.
 
 ## Constitution check
 
@@ -403,90 +411,24 @@ any git tool draws.
 
 **High**: it rewrites every decision, and changes the format of every spec, plan, and decision.
 
-## Details
+## History
 
-### Data
-
-The file formats and the warnings are in the [data model](data-model.md). The core sends the page:
-
-- `SpecItems` gains `answers`, each `## Your review` item with its comment number and verdict;
-  `decisions`, each decision change; `parts`, each level-2 section with its title, anchor, and
-  blocks; and `history`. A `Story` gains `key` and `more`, its two scenario lists, and loses
-  `details`. `SpecItems.details` goes. `mockups` holds the story and HTML links found in the
-  stories.
-- A decision change holds the file's name and title, its kind (new, changed, removed), the note of
-  its `## Decisions` item, whether the spec lists it, and its changed sections. Each section holds
-  its parts, each with its kind, its lines in either version, and its runs of kept, added, and
-  removed words.
-- The page reads `data-model.md` as its own file, as today.
-
-### Components
-
-- **Skill**: [`references/spec.md`](/skills/uraeda/references/spec.md),
-  [`approval.md`](/skills/uraeda/references/approval.md),
-  [`plan.md`](/skills/uraeda/references/plan.md),
-  [`change.md`](/skills/uraeda/references/change.md),
-  [`finish.md`](/skills/uraeda/references/finish.md),
-  [`projects.md`](/skills/uraeda/references/projects.md), [`SKILL.md`](/skills/uraeda/SKILL.md), and
-  `writing.md`. Then the templates of the spec, the plan, the data model, the decision, and
-  [`specs/README.md`](/skills/uraeda/assets/templates/specs/README.md). The example gains a
-  `data-model.md`, a revision's "Your review", and records without ruling IDs.
-- **Core spec parts** ([`files/spec.rs`](/crates/core/src/files/spec.rs),
-  [`items.rs`](/crates/core/src/files/items.rs)): the parts, answers, history, and key and more
-  scenarios.
-- **Core decision changes** (`crates/core/src/decisions/change.rs`, new): the comparison, and the
-  branch's changed decisions read at the merge base through [`git/`](/crates/core/src/git/).
-- **Core checks** ([`check/`](/crates/core/src/check/)): the new sections, `decision.unapproved`,
-  `decision.order`, `edges.importance`, and the writing warnings.
-  [`workspace/read.rs`](/crates/core/src/workspace/read.rs)'s pending decisions read only the
-  `## Decisions` items, without the `## Proposed change` case.
-- **Review comments** ([`files/review.rs`](/crates/core/src/files/review.rs),
-  [`actions/review.rs`](/crates/core/src/actions/review.rs)): the decision anchor.
-- **Links** ([`workspace/links.rs`](/crates/core/src/workspace/links.rs),
-  [`links.tsx`](/packages/web/src/links.tsx)): keep the anchor, and open a decision as the linking
-  file's branch has it.
-- **Spec page** ([`ReviewPage.tsx`](/packages/web/src/ReviewPage.tsx), split, and
-  [`DocumentPage.tsx`](/packages/web/src/DocumentPage.tsx)): the panel, decision, story, answers,
-  and "Contents" components. [`ReviewMockups.tsx`](/packages/web/src/ReviewMockups.tsx) goes;
-  [`Folds.tsx`](/packages/web/src/Folds.tsx), [`useOpenKeys.ts`](/packages/web/src/useOpenKeys.ts),
-  and [`MockupPage.tsx`](/packages/web/src/MockupPage.tsx) follow the new parts.
-- **Reading place** ([`useCommentDraft.ts`](/packages/web/src/useCommentDraft.ts),
-  [`StoryFrames.tsx`](/packages/web/src/StoryFrames.tsx)): the tapped block keeps its place when the
-  form opens, moves, or closes; a frame keeps its last height until it measures.
-- **Parts after the stories**: one component each for the architecture, edge cases, criteria,
-  assumptions, and the principles strip, drawn from the core's parts. The strength icons join
-  [`theme/icons.ts`](/packages/web/src/theme/icons.ts).
-- **Editor** ([`pane/useDraftEditor.ts`](/packages/web/src/pane/useDraftEditor.ts)): the text box
-  holds the text after the frontmatter, joined back on save.
-- **Fixtures**: the specs under `fixtures/repo/branches/` and `fixtures/preview/`, and the
-  pending-decision fixtures, in the new format.
-
-### Error handling
-
-- A decision's old version cannot be read, for example in a shallow clone: the card shows the
-  branch's text, under "Could not compare with the default branch."
-- A `## Your review` item names a comment the review file lacks: its answer shows without a quote.
-- A save whose file changed on disk meanwhile is refused, as any stale save is today.
-
-### Testing
-
-The core's tests read fixture specs, decisions, and branches. The comparison has a table-driven
-test. The web's tests render the spec page over the fixture server: in happy-dom for behaviour, and
-in WebKit at 402 × 874 and 1440 × 900 for layout and axe.
-
-| What                                      | Test                                                         |
-| ----------------------------------------- | ------------------------------------------------------------ |
-| US1, US6 1, 3, 4, SC-001, SC-002          | core check tests over fixture specs, decisions, and branches |
-| US6 2                                     | core approval test                                           |
-| US2 1, 2, more 1, edge cases on parts     | core table-driven comparison test, then a web decision test  |
-| US2 3, edge case on removed parts         | core review test: the decision anchor; web review test       |
-| US2 more 2, 4                             | web link tests from a spec and from a change's round         |
-| US2 more 3, edge cases on the merge base  | core tests over fixture branches                             |
-| US3, US4, edge cases on stories and specs | web review tests over a revision 2 fixture spec              |
-| US5, SC-004                               | browser tests at both sizes, with axe in light and dark      |
-| US7 1, 2                                  | browser tests: a heading's place after a comment and a draw  |
-| US7 3, edge case on drafts                | web editor tests                                             |
-| US8 1, 2, 3, 4, more 2                    | web review tests over the revision 2 fixture spec            |
-| US8 more 1, US2 more 2                    | core check tests over fixture specs and decisions            |
-| US2 more 1, 3                             | web decision test; browser test of the card's measure        |
-| SC-003                                    | a server benchmark over a fixture branch with 5 changes      |
+> [!NOTE]
+>
+> Changes requested on 2026-10-17: 6 comments in spec-review.md.
+>
+> - You approve specs that open with what you approve, then the decisions with their changes marked
+>   in place, then the stories as cards. You also approve all 18 decisions, rewritten intent first.
+> - The rewrites take the decisions from 18,728 words to 9,375, and from 201 rules to 141. Security
+>   and data-safety guarantees stay. Each row of the decisions table says what its rewrite dropped.
+> - Each rewritten decision is `proposed` on this branch until you approve, as you chose. The
+>   preview decision stays `active`, since this branch's Storybook runs only with an active one.
+> - New, from your "every line approved by a human": `ura check` warns when a branch edits a
+>   decision after its spec's approval.
+> - Removed parts of a decision fold behind "N removed" at the end of their section. They count
+>   parts, rules or paragraphs, not lines.
+> - Unverified: keeping your place while commenting relies on scroll anchoring in Safari. The plan's
+>   first task checks it, and the page keeps your place itself if it fails.
+> - This spec breaks its own limits: 7 stories and 18 changed decisions are past the split
+>   threshold, and its reviewed part is about 3,900 words. Risk tier `high`, since it rewrites every
+>   decision; the plan does not wait.
