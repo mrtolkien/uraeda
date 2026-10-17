@@ -124,30 +124,39 @@ const SECOND = "completes it on Thursday the 8th, Then it is due Monday the 12th
 /** The nested item's toggle. A parent's toggle is named by its text, its nested item's included. */
 const nested = () => screen.findByRole("button", { name: "Nested item" });
 
+/** A story's title, by its id, in the fixture's spec. */
+const STORIES = {
+  US1: "Make a task repeat",
+  US2: "Complete a repeating task",
+  US3: "Repeat on a custom schedule",
+  US4: "Type a repeat in the title",
+};
+
 /**
- * A fold's trigger, by its label: the first with it, in the page's order, unless told otherwise.
- * Its state is open or closed, where a block's toggle is pressed or not.
+ * The trigger of a story's more scenarios, in its card: "N more scenarios" closed, "Fold the other
+ * scenarios" open. Its state is open or closed, where a block's toggle is pressed or not.
  */
-async function fold(name: string, index = 0) {
+async function fold(story: keyof typeof STORIES) {
   return waitFor(() => {
-    const triggers = screen
-      .getAllByRole("button", { name })
+    const card = screen.getByRole("region", { name: STORIES[story] });
+    const triggers = within(card)
+      .getAllByRole("button", { name: /^(\d+ more scenarios?|Fold the other scenarios)$/ })
       .filter((button) => button.hasAttribute("aria-expanded"));
-    expect(triggers.length).toBeGreaterThan(index);
-    return triggers[index]!;
+    expect(triggers).toHaveLength(1);
+    return triggers[0]!;
   });
 }
 
-/** Opens a fold, as the human taps its trigger, unless it is open already. */
-async function openFold(name: string, index = 0) {
-  const trigger = await fold(name, index);
+/** Opens a story's more scenarios, as the human taps their trigger, unless they are open already. */
+async function openFold(story: keyof typeof STORIES) {
+  const trigger = await fold(story);
   if (trigger.getAttribute("aria-expanded") !== "true") {
     await click(trigger);
   }
 }
 
-/** Opens US2's more scenarios, the first "More scenarios (2)" of the page: US4's come after. */
-const openUS2 = () => openFold("More scenarios (2)");
+/** Opens US2's more scenarios. */
+const openUS2 = () => openFold("US2");
 
 /**
  * Whether an element is folded away: inside the region a closed trigger controls, which a screen
@@ -179,10 +188,14 @@ function lineOf(r: string, phrase: string) {
 test("a spec under review shows each story's more scenarios folded", async () => {
   await renderPage(PAGE, repo());
 
-  for (const name of ["More scenarios (1)", "More scenarios (2)"]) {
-    expect((await fold(name)).getAttribute("aria-expanded")).toBe("false");
+  for (const [story, name] of [
+    ["US1", "1 more scenario"],
+    ["US2", "2 more scenarios"],
+  ] as const) {
+    expect((await fold(story)).getAttribute("aria-expanded")).toBe("false");
+    expect((await fold(story)).textContent).toBe(name);
   }
-  expect(screen.getAllByRole("button", { name: /^More scenarios \(\d\)$/ })).toHaveLength(4);
+  expect(screen.getAllByRole("button", { name: /^\d more scenarios?$/ })).toHaveLength(4);
   const why = screen.getByText(
     "Why this priority: this is what saves users from recreating tasks.",
   );
@@ -212,8 +225,8 @@ test("a pending comment opens its fold", async () => {
   await renderPage(PAGE, r);
 
   const pending = await screen.findByRole("group", { name: "C1 · lines 92–93" });
-  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("true");
-  expect((await fold("More scenarios (1)")).getAttribute("aria-expanded")).toBe("false");
+  expect((await fold("US2")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("US1")).getAttribute("aria-expanded")).toBe("false");
   expect(folded(pending)).toBe(false);
   expect(folded(within(pending).getByRole("button", { name: "Edit" }))).toBe(false);
   expect(folded(within(pending).getByRole("button", { name: "Remove" }))).toBe(false);
@@ -226,12 +239,12 @@ test("closing a fold keeps the draft", async () => {
   await click(await scenario(FIRST));
   await typeComment("Twice?");
 
-  await click(await fold("More scenarios (2)"));
-  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("false");
+  await click(await fold("US2"));
+  expect((await fold("US2")).getAttribute("aria-expanded")).toBe("false");
   expect(folded(screen.getByLabelText("Comment text"))).toBe(true);
-  await click(await fold("More scenarios (2)"));
+  await click(await fold("US2"));
 
-  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("US2")).getAttribute("aria-expanded")).toBe("true");
   const field = screen.getByLabelText("Comment text") as HTMLTextAreaElement;
   expect(folded(field)).toBe(false);
   expect(field.value).toBe("Twice?");
@@ -240,11 +253,11 @@ test("closing a fold keeps the draft", async () => {
 test("a fold's trigger opens it and selects no block", async () => {
   await renderPage(PAGE, repo());
 
-  await click(await fold("More scenarios (1)"));
-  await click(await fold("More scenarios (2)"));
+  await click(await fold("US1"));
+  await click(await fold("US2"));
 
-  expect((await fold("More scenarios (1)")).getAttribute("aria-expanded")).toBe("true");
-  expect((await fold("More scenarios (2)")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("US1")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("US2")).getAttribute("aria-expanded")).toBe("true");
   expect(screen.queryByLabelText("Comment text")).toBeNull();
   expect(document.querySelector("button[aria-pressed='true']")).toBeNull();
 });

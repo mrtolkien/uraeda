@@ -599,3 +599,40 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `crates/core/src/api/answered.rs`, and `answeredComments` in
   `packages/web/src/spec/ReviewAnswers.tsx`.
 - **Where**: the review's fixes
+
+## R70: A story's more scenarios fold behind an Astryx disclosure, and the tests find it by story
+
+- **Decision**: a story's more scenarios sit in an Astryx `Collapsible` whose trigger reads "N more
+  scenarios" ("1 more scenario" for one) closed and "Fold the other scenarios" open. Its state is
+  the spec's fold keyed by the story's id (`Folds`), so the history entry keeps it, and a pending
+  comment, the selection, or a hash still open it. The existing tests that found the fold by the old
+  label "More scenarios (n)" find it now in its story's card by the new labels:
+  `__tests__/review.test.tsx`, `__tests__/document.test.tsx`, `__browser__/review.test.tsx`,
+  `__browser__/attach.test.tsx`, `__browser__/layout.test.tsx`, and the screenshot scripts. Their
+  assertions are unchanged.
+- **Rationale**: the spec renames the button (US3 1, 2); with the open label shared by every open
+  story, a test can only tell the folds apart by their card. A disclosure keeps the folded scenarios
+  in the page, hidden, as the fold did, which the comment placement and the existing tests rely on;
+  the UI components decision asks for Astryx's component over the mockup's button.
+- **Alternatives considered**: the mockup's ghost `Button`, the scenarios drawn only when open: a
+  hand-made disclosure, without `aria-expanded`, and a pending comment's field unmounted on fold.
+- **If wrong**: `MoreScenarios` and `useMoreOpen` in `packages/web/src/spec/StoryCard.tsx`.
+- **Where**: task 11
+
+## R71: A scenario's rows come from its bold step words; the mockup draws through the story's blocks
+
+- **Decision**: a scenario's Given, When, and Then rows are cut at its bold spans reading `Given`,
+  `When`, or `Then`, from the core's tree, each row keeping its text as written, its trailing comma
+  included; spans before the first step word make a row without a word. The story's other blocks
+  (journey, mockup, "Why this priority") draw in the file's order through `Blocks`: a story link
+  embeds its story live, an HTML mockup is its paragraph's link. `StoryCardProps.mockup` is left
+  unused. The paragraphs "Key scenarios:" and "More scenarios:" are not drawn; what follows them in
+  a review, like a pending comment, shows before their scenarios.
+- **Rationale**: the stack decision: no parsing of markdown, only the tree's spans. Keeping the
+  commas keeps each scenario's accessible name its sentence, which the review tests read. `Blocks`
+  already embeds a story link with its comments, so the card needs no second path for it.
+- **Alternatives considered**: the step words split by the core: a new item for drawing alone;
+  drawing the mockup from `mockup`: a second copy of the story embed's wiring.
+- **If wrong**: `stepsOf` and `StoryCard` in `packages/web/src/spec/StoryCard.tsx`; task 14 may drop
+  `mockup` from the props in `SpecPage.tsx`.
+- **Where**: task 11
