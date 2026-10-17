@@ -173,7 +173,7 @@ fn check_sentences(
             last: block.end_line as usize,
         };
         for sentence in sentences(&measured_text(&block.spans)) {
-            let line = cursor.find(&lines, sentence.first().copied().unwrap_or_default());
+            let line = cursor.pass(&lines, &sentence);
             let words = sentence.iter().filter(|w| is_word(w)).count();
             if words > SENTENCE_WORDS {
                 problems.push(file.warning(
@@ -231,24 +231,43 @@ struct Cursor {
 }
 
 impl Cursor {
-    /// The line of the first match of a sentence's first word, at or after the cursor, which moves
-    /// past it; the cursor's line when it is not found.
-    fn find(&mut self, lines: &[&str], word: &str) -> usize {
+    /// The line a sentence starts on, at or after the cursor, which moves past each of its words
+    /// in order; the cursor's line when its first word is not found.
+    fn pass(&mut self, lines: &[&str], sentence: &[&str]) -> usize {
+        let start = self.line;
+        let mut first = None;
+        for word in sentence {
+            let line = self.find(lines, word);
+            first = first.or(line);
+        }
+        first.unwrap_or(start)
+    }
+
+    /// The line of the first whole-word match of a word, at or after the cursor, which moves past
+    /// it; none when it is not found.
+    fn find(&mut self, lines: &[&str], word: &str) -> Option<usize> {
         let needle = word.trim_matches(|c: char| !c.is_alphanumeric());
         if needle.is_empty() {
-            return self.line;
+            return None;
         }
         for line in self.line..=self.last.min(lines.len()) {
             let from = if line == self.line { self.offset } else { 0 };
-            let found = lines[line - 1]
-                .get(from..)
-                .and_then(|rest| rest.find(needle));
-            if let Some(at) = found {
+            let rest = lines[line - 1].get(from..).unwrap_or_default();
+            if let Some(at) = whole_word(rest, needle) {
                 self.line = line;
                 self.offset = from + at + needle.len();
-                return line;
+                return Some(line);
             }
         }
-        self.line
+        None
     }
+}
+
+/// Where a word first stands whole in a text, not inside a longer word.
+fn whole_word(text: &str, word: &str) -> Option<usize> {
+    let alphanumeric = |c: Option<char>| c.is_some_and(char::is_alphanumeric);
+    text.match_indices(word).map(|(at, _)| at).find(|&at| {
+        !alphanumeric(text[..at].chars().next_back())
+            && !alphanumeric(text[at + word.len()..].chars().next())
+    })
 }
