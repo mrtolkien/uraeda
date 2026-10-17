@@ -58,6 +58,24 @@ impl Git {
         Ok((!date.is_empty()).then(|| date.to_string()))
     }
 
+    /// The commits of the first-parent history from `tip` that touch `path`, a path from the top
+    /// level, the newest first.
+    pub fn first_parent_changes(
+        &self,
+        tip: ObjectId,
+        path: &str,
+    ) -> Result<Vec<ObjectId>, GitError> {
+        let tip = tip.to_string();
+        let output = self.output(
+            "log",
+            &["log", "--first-parent", "--format=%H", &tip, "--", path],
+        )?;
+        Ok(output
+            .lines()
+            .filter_map(|line| ObjectId::from_hex(line.trim().as_bytes()).ok())
+            .collect())
+    }
+
     /// The commit that approved the spec at `spec`, a path from the top level: the oldest commit on
     /// the first-parent history from `base` to `tip` whose spec reads `status: approved`. `None`
     /// when no commit there does, or when the spec at `base` reads it already: the approval was

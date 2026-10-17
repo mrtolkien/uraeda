@@ -133,6 +133,7 @@ export const BranchChangesView = view<BranchChanges>()({
 });
 
 export const FileView = view<WorkflowFile>()({
+  answered: { comments: true, commit: true, summary: true, verdict: true },
   committed: VersionSelection,
   current: VersionSelection,
   decisionChanges: true,

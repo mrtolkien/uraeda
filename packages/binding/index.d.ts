@@ -834,6 +834,12 @@ export interface FileView {
    * listed ones first, in the items' order, then the others by name. Empty for other files.
    */
   decisionChanges: Array<DecisionChange>
+  /**
+   * For `spec.md` at revision 2 or later, the review that requested the revision, as it stood
+   * when the revision was first committed: the one `## Your review` answers, whatever the review
+   * file holds now. `None` when that review did not request changes.
+   */
+  answered?: ReviewItems
 }
 
 /** `INBOX.md` read for editing. */

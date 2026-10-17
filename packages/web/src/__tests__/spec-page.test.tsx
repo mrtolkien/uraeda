@@ -172,6 +172,19 @@ test("your review comes back answered", async () => {
   expect(card.textContent).toContain("The undo now stays 5 seconds, in the task row.");
 });
 
+/** US4 1: the answers answer the review that asked for the revision, not the one under way. */
+test("your review stays answered, its quotes kept, once you comment on the revision", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  pendingReview(repo, [lineOf(repo, "**SC-001**")]);
+  await renderPage(PAGE, repo);
+
+  const card = await region("Your review, answered");
+  expect(card.textContent).toContain("so for 3 seconds, with an undo button.");
+  expect(card.textContent).toContain("3 seconds is too short to reach the button.");
+  expect(card.textContent).not.toContain("Why?");
+});
+
 /** US4 2 */
 test("a revision 3 keeps one record above the first part, the others in History", async () => {
   const repo = fixtureRepo();
@@ -209,8 +222,11 @@ test("an answer whose comment is gone shows without a quote", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   const review = git(repo, "show", `${SPEC_FEATURE}:${REVIEW}`);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  // The revision answers the review its first commit holds: there, the review has no C2.
   commitOnBranch(repo, SPEC_FEATURE, {
     [REVIEW]: review.replace(/## C2:[\s\S]*?(?=## C3)/, ""),
+    [SPEC]: spec.replace(/^revision: .*$/m, "revision: 3"),
   });
   await renderPage(PAGE, repo);
 
@@ -238,13 +254,20 @@ test("an approved spec whose review file is gone shows each answer without a quo
 });
 
 /** Review focus 9 */
-test("an approved revision does not quote the approval's comments", async () => {
+test("an approved revision quotes the review it answered, never the approval's comments", async () => {
   const repo = fixtureRepo();
-  addSpecFeature(repo, { status: "approved" });
+  addSpecFeature(repo);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [REVIEW]: `---\nverdict: approved\ncommit: 9b1d2e7\n---\n\n# Review: Spec, Recurring tasks\n\n## C1: Line 70, under "US2: Complete a repeating task (P1)"\n\n> instead of marking it done.\n\nApproval's own comment, quoted nowhere else.\n`,
+    [SPEC]: spec.replace(/^status: .*$/m, "status: approved"),
+  });
   await renderPage(PAGE, repo);
 
   const card = await region("Your review, answered");
   expect(card.textContent).toContain("C1 · add weekends");
+  expect(card.textContent).toContain("I water the garden on weekends.");
+  expect(card.textContent).toContain("so for 3 seconds, with an undo button.");
   expect(card.textContent).not.toContain("Approval's own comment");
   expect(card.textContent).not.toContain("instead of marking it done");
 });
