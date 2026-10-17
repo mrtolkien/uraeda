@@ -205,7 +205,7 @@ T["priorities show their hints"] = function() -- C1
   open(repo .. "/specs/PRIORITIES.md")
 
   local hints = child.lua([[
-    vim.wait(5000, function() return #vim.lsp.inlay_hint.get({ bufnr = 0 }) >= 3 end, 20)
+    vim.wait(5000, function() return #vim.lsp.inlay_hint.get({ bufnr = 0 }) >= 4 end, 20)
     return vim.tbl_map(function(item)
       local hint = item.inlay_hint
       return { hint.position.line + 1, hint.label }
@@ -218,6 +218,7 @@ T["priorities show their hints"] = function() -- C1
     { 5, "change · waits on agent" },
     { 9, "draft" },
     { 10, "draft" },
+    { 15, "backlog" },
   })
   eq(child.lua_get("vim.lsp.inlay_hint.is_enabled({ bufnr = 0 })"), true)
 end
