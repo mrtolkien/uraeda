@@ -72,7 +72,7 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
   const reviewing = spec && !spec.missing && spec.status === "awaiting-human";
   const version = spec && (spec.committed ?? spec.current);
   const document = version?.document;
-  // The block of the spec's Mockups section that links the mockup.
+  // The block of the spec's story that links the mockup.
   const link = version?.items.spec?.mockups.find((mockup) => mockup.path === `mockups/${name}`);
   const line = link && document?.blocks[link.block];
 

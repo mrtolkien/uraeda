@@ -15,7 +15,10 @@ mod spec;
 
 pub(crate) use round::round;
 pub(crate) use round::settled_points;
-pub use spec::{Criterion, MockupLink, Scenario, SpecItems, Story, TierChoice};
+pub use spec::{
+    Criterion, EdgeCase, ListedDecision, MockupLink, Principle, ReviewAnswer, Scenario, SpecItems,
+    SpecPart, Story, TierChoice,
+};
 
 /// An option of a question.
 #[cfg_attr(feature = "napi", napi(object))]

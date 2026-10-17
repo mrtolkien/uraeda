@@ -94,7 +94,7 @@ describe("on a desktop", () => {
       );
     // The embed's own line in the spec.
     expect(await commands.readRepo(REVIEW)).toContain(
-      '## C1: Line 27, under "US1: Resize the sidebar (P1)"',
+      '## C1: Line 31, under "US1: Resize the sidebar (P1)"',
     );
   });
 
@@ -264,11 +264,12 @@ describe("on a desktop, around the embed", () => {
 
   test("the Mockups button opens the fold holding its story's embed, and scrolls to it (edge case)", async () => {
     await commands.addStoryFeature();
-    // The embed moved from US1 into the Details fold, closed when the page opens.
+    // The embed moved from US1's top into its more scenarios, folded when the page opens.
     const path = `specs/${FEATURE}/spec.md`;
     const spec = await commands.readRepo(`.worktrees/${FEATURE}/${path}`);
     const line = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n\n";
-    const moved = spec.replace(line, "").replace("### Components\n\n", `### Components\n\n${line}`);
+    const end = "it stops at 200 pixels wide.\n";
+    const moved = spec.replace(line, "").replace(end, `${end}\n   ${line}`);
     await commands.commitOnBranch(FEATURE, { [path]: moved });
     await show(SPEC, "Resize the sidebar");
     expect(screen.queryByRole("figure", { name: LABEL })).toBeNull();
@@ -309,14 +310,13 @@ describe("on a desktop, as embeds settle", () => {
 
   test("the Mockups button scrolls to an embed below another one in the fold, once they settle (edge case)", async () => {
     await commands.addStoryFeature();
-    // Both embeds in the Details fold, the button's story below the other.
+    // Both embeds in US1's more scenarios, folded, the button's story below the other.
     const path = `specs/${FEATURE}/spec.md`;
     const spec = await commands.readRepo(`.worktrees/${FEATURE}/${path}`);
     const line = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n\n";
     const above = "[The thin line](/packages/web/src/SidebarHandle.stories.tsx#ThinLine)\n\n";
-    const moved = spec
-      .replace(line, "")
-      .replace("### Components\n\n", `### Components\n\n${above}${line}`);
+    const end = "it stops at 200 pixels wide.\n";
+    const moved = spec.replace(line, "").replace(end, `${end}\n   ${above}   ${line}`);
     await commands.commitOnBranch(FEATURE, { [path]: moved });
     await show(SPEC, "Resize the sidebar");
 

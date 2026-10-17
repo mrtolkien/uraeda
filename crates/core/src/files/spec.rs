@@ -1,9 +1,11 @@
-//! The user stories and success criteria of a spec.
+//! The items of a spec: its parts, its stories and their scenarios, and its success criteria.
 
-use super::document::{Block, BlockKind, Document, SpanLink};
+use super::document::{Block, BlockKind, Document, SpanLink, plain};
 use super::items::{
     Criterion, MockupLink, Scenario, SpecItems, Story, TierChoice, headings, section,
 };
+
+mod parts;
 use super::stories::StoryTarget;
 use crate::check::allowed_values;
 use crate::workspace::FileKind;
@@ -54,8 +56,39 @@ pub(crate) fn story_heading(text: &str) -> Option<(String, String, String)> {
     ))
 }
 
-/// The stories, `### US1: Title (P1)`, and the criteria, `- **SC-001**: ...`, of a spec.
+/// The items of a spec: its parts and what they hold, its stories, and its criteria,
+/// `- **SC-001** (measure): ...`.
 pub fn items(doc: &Document) -> SpecItems {
+    let parts = parts::parts(doc);
+    let (block, minutes, approve) = parts::block(doc);
+    let (units, tradeoffs) = parts::architecture(doc, parts::part(&parts, "Architecture"));
+    let stories = stories(doc);
+    SpecItems {
+        mockups: stories
+            .iter()
+            .flat_map(|story| story_mockups(doc, story))
+            .collect(),
+        stories,
+        criteria: criteria(doc),
+        risk_tier: None,
+        plan_review: None,
+        tiers: Vec::new(),
+        block,
+        minutes,
+        approve,
+        answers: parts::answers(doc, parts::part(&parts, "Your review")),
+        decisions: parts::decisions(doc, parts::part(&parts, "Decisions")),
+        edges: parts::edges(doc, parts::part(&parts, "Edge cases")),
+        units,
+        tradeoffs,
+        principles: parts::principles(doc, parts::part(&parts, "Constitution check")),
+        parts,
+    }
+}
+
+/// The stories, `### US1: Title (P1)`, with their "Why this priority" paragraph, their mockup, and
+/// their key and more scenarios.
+fn stories(doc: &Document) -> Vec<Story> {
     let mut stories = Vec::new();
     for (index, level, text) in headings(doc) {
         let Some((id, title, priority)) = (level == 3).then(|| story_heading(&text)).flatten()
@@ -67,86 +100,93 @@ pub fn items(doc: &Document) -> SpecItems {
             .iter()
             .copied()
             .find(|&id| doc.text(id).starts_with("Why this priority"));
-        let intro = blocks
+        let mockup = blocks
             .iter()
-            .position(|&id| doc.text(id).trim_end().ends_with("scenarios:"));
-        let list = intro
-            .and_then(|intro| blocks[intro + 1..].first().copied())
-            .filter(|&list| doc.blocks[list as usize].kind == BlockKind::List);
-        let details = intro
-            .zip(list)
-            .map(|(intro, list)| vec![blocks[intro], list])
-            .unwrap_or_default();
-        let scenarios = list
-            .map(|list| {
-                let start = doc.blocks[list as usize].start.unwrap_or(1);
-                doc.children(list)
-                    .enumerate()
-                    .map(|(n, item)| Scenario {
-                        number: start + n as u32,
-                        block: item.id,
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+            .copied()
+            .find(|&id| alone_mockup(&doc.blocks[id as usize]));
         stories.push(Story {
             id,
             title,
             priority,
             heading_block: doc.blocks[index].id,
-            blocks,
             why,
-            scenarios,
-            details,
+            mockup,
+            key: scenarios(doc, &blocks, "Key scenarios:"),
+            more: scenarios(doc, &blocks, "More scenarios:"),
+            blocks,
         });
     }
-    let criteria = doc
-        .blocks
+    stories
+}
+
+/// The scenarios of the list right after the paragraph `intro`, numbered from the list's start.
+fn scenarios(doc: &Document, blocks: &[u32], intro: &str) -> Vec<Scenario> {
+    let list = blocks
+        .iter()
+        .position(|&id| doc.text(id).trim() == intro)
+        .and_then(|at| blocks.get(at + 1).copied())
+        .filter(|&list| doc.blocks[list as usize].kind == BlockKind::List);
+    let Some(list) = list else {
+        return Vec::new();
+    };
+    let start = doc.blocks[list as usize].start.unwrap_or(1);
+    doc.children(list)
+        .enumerate()
+        .map(|(n, item)| Scenario {
+            number: start + n as u32,
+            block: item.id,
+        })
+        .collect()
+}
+
+/// Whether a block is a paragraph holding only one link, to a story or an HTML mockup.
+fn alone_mockup(block: &Block) -> bool {
+    let Some(link) = block.spans.first().and_then(|s| s.link.as_ref()) else {
+        return false;
+    };
+    block.kind == BlockKind::Paragraph
+        && block.spans.iter().all(|s| s.link.as_ref() == Some(link))
+        && mockup(link).is_some()
+}
+
+/// The criteria, `- **SC-001** (measure): ...`, with their measure when they have one.
+fn criteria(doc: &Document) -> Vec<Criterion> {
+    doc.blocks
         .iter()
         .filter(|b| b.kind == BlockKind::Item)
         .filter_map(|b| {
-            let first = b.spans.first().filter(|s| s.strong)?;
+            let (first, rest) = b.spans.split_first().filter(|(s, _)| s.strong)?;
             let id = first.text.trim_end_matches(':').trim();
             let number = id.strip_prefix("SC-")?;
-            (!number.is_empty() && number.bytes().all(|c| c.is_ascii_digit())).then(|| Criterion {
+            if number.is_empty() || !number.bytes().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
+            let rest = plain(rest);
+            let measure = rest
+                .trim_start()
+                .strip_prefix('(')
+                .and_then(|rest| rest.split_once("):"))
+                .map(|(measure, _)| measure.trim().to_string());
+            Some(Criterion {
                 id: id.to_string(),
+                measure,
                 block: b.id,
             })
         })
-        .collect();
-    SpecItems {
-        stories,
-        criteria,
-        risk_tier: None,
-        plan_review: None,
-        tiers: Vec::new(),
-        details: details(doc),
-        mockups: mockups(doc),
-    }
+        .collect()
 }
 
-/// The blocks of the level-2 section titled `title`, nested ones included, as a range of indices.
-fn section_range(doc: &Document, title: &str) -> Option<std::ops::Range<usize>> {
-    let all = headings(doc);
-    let position = all
+/// The story and HTML mockups a story links, in order, each with the block a review comment on it
+/// lands on: its blocks, nested ones included, up to the next heading of level 3 or above. A link
+/// whose text has several marks, several spans, is one.
+fn story_mockups(doc: &Document, story: &Story) -> Vec<MockupLink> {
+    let start = story.heading_block as usize + 1;
+    let end = doc.blocks[start..]
         .iter()
-        .position(|(_, level, text)| *level == 2 && text == title)?;
-    let end = all[position + 1..]
-        .iter()
-        .find(|(_, level, _)| *level <= 2)
-        .map_or(doc.blocks.len(), |(index, _, _)| *index);
-    Some(all[position].0..end)
-}
-
-/// The links of the `## Mockups` section to stories and to HTML files under `mockups/`, in order,
-/// each with the block a review comment on it lands on. A link whose text has several marks,
-/// several spans, is one.
-fn mockups(doc: &Document) -> Vec<MockupLink> {
-    let Some(range) = section_range(doc, "Mockups") else {
-        return Vec::new();
-    };
+        .position(|b| b.kind == BlockKind::Heading && b.level.unwrap_or(1) <= 3)
+        .map_or(doc.blocks.len(), |at| start + at);
     let mut links: Vec<MockupLink> = Vec::new();
-    for block in &doc.blocks[range] {
+    for block in &doc.blocks[start..end] {
         let mut previous = None;
         for span in &block.spans {
             let link = span.link.as_ref();
@@ -189,17 +229,4 @@ fn holder(doc: &Document, block: &Block) -> u32 {
         current = &doc.blocks[parent as usize];
     }
     current.id
-}
-
-/// The `## Details` heading and the top-level blocks after it, its subheadings included, up to the
-/// next level-1 or level-2 heading.
-fn details(doc: &Document) -> Vec<u32> {
-    let Some(range) = section_range(doc, "Details") else {
-        return Vec::new();
-    };
-    doc.blocks[range]
-        .iter()
-        .filter(|b| b.parent.is_none())
-        .map(|b| b.id)
-        .collect()
 }

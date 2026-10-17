@@ -445,9 +445,9 @@ test("US3.1: a drop on the review page opens a general comment holding its link"
 
 test("US3.2: a pasted image goes to the open line comment at its cursor", async () => {
   await reviewSpec();
-  // The scenarios are folded: US2's open first.
+  // The more scenarios are folded: US2's open first.
   const scenarios = screen
-    .getAllByRole("button", { name: "Scenarios (4)" })
+    .getAllByRole("button", { name: "More scenarios (2)" })
     .find((b) => b.hasAttribute("aria-expanded")) as HTMLElement;
   await userEvent.click(scenarios);
   const block = screen

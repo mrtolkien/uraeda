@@ -90,7 +90,8 @@ future.
 
 ## Changes after approval
 
-- A repeat phrase in a title needs a space before it: "Gymevery day" stays as typed (ruling R3).
+- A repeat phrase in a title needs a space before it: "Gymevery day" stays as typed, since a phrase
+  glued to a word is more likely a typo than a rule.
 
 ## Follow-ups
 

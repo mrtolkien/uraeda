@@ -47,6 +47,20 @@ impl Example {
         self.write(path, &text.replacen(from, to, 1));
     }
 
+    /// Moves the level-2 section headed `heading`, up to the next level-2 heading, to just before
+    /// the heading `before`.
+    fn move_section(&self, path: &str, heading: &str, before: &str) {
+        let text = self.read(path);
+        let start = text.find(&format!("{heading}\n")).unwrap();
+        let end = text[start + heading.len()..]
+            .find("\n## ")
+            .map_or(text.len(), |at| start + heading.len() + at + 1);
+        let section = &text[start..end];
+        let rest = format!("{}{}", &text[..start], &text[end..]);
+        let at = rest.find(&format!("{before}\n")).unwrap();
+        self.write(path, &format!("{}{section}{}", &rest[..at], &rest[at..]));
+    }
+
     fn problems(&self) -> Vec<Problem> {
         check::check(self.root(), &self.root().join("specs")).unwrap()
     }
@@ -89,35 +103,71 @@ fn the_example_has_no_problems() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
-/// US2.2: a spec in the old layout, with Data, Components, Error handling, and Testing under
-/// `## Design`, says which sections to move.
+/// US1 1: a spec whose `## Decisions` comes after its stories, as the old format had it, reports
+/// the order.
 #[test]
-fn a_spec_in_the_old_layout_reports_its_moved_sections() {
+fn decisions_after_the_stories_are_out_of_order() {
     let example = Example::new();
     let spec = format!("{FEATURE}/spec.md");
-    let text = example.read(&spec);
-    let (text, details) = text.split_once("## Details\n\n").unwrap();
-    let old = text
-        .replace("## Architecture", "## Design")
-        .replace("## Assumptions", &format!("{details}\n## Assumptions"));
-    example.write(&spec, &old);
+    example.move_section(&spec, "## Decisions", "## Architecture");
 
     let problems = summary(&example.problems());
 
-    let line = |needle: &str| old.lines().position(|l| l == needle).unwrap() + 1;
-    for expected in [
-        format!("{spec}: missing section \"## Details\""),
-        format!(
-            "{spec}:{}: unknown section \"## Design\"",
-            line("## Design")
-        ),
-        format!(
-            "{spec}:{}: \"## Assumptions\" must come before \"### Testing\", as in the template",
-            line("## Assumptions")
-        ),
-    ] {
-        assert!(problems.contains(&expected), "{expected}\nin {problems:#?}");
+    let line = example
+        .read(&spec)
+        .lines()
+        .position(|l| l == "## Decisions")
+        .unwrap()
+        + 1;
+    let expected = format!(
+        "{spec}:{line}: \"## Decisions\" must come before \"## User stories\", as in the template"
+    );
+    assert!(problems.contains(&expected), "{expected}\nin {problems:#?}");
+}
+
+/// US1 more 1: the old format's `## Details` and `## Mockups` are unknown sections.
+#[test]
+fn a_spec_with_details_or_mockups_has_an_unknown_section() {
+    for section in ["Details", "Mockups"] {
+        let example = Example::new();
+        let spec = format!("{FEATURE}/spec.md");
+        example.edit(
+            &spec,
+            "## Risk tier",
+            &format!("## {section}\n\nThe old format.\n\n## Risk tier"),
+        );
+
+        let problems = example.problems();
+
+        let unknown = problems
+            .iter()
+            .find(|p| p.rule == "sections.unknown")
+            .map(|p| p.message.as_str());
+        assert_eq!(
+            unknown,
+            Some(format!("unknown section \"## {section}\"").as_str())
+        );
     }
+}
+
+/// US6 4: a decision's change is made in place, so a `## Proposed change` section is unknown.
+#[test]
+fn a_proposed_change_section_is_unknown_in_a_decision() {
+    let example = Example::new();
+    let decision = "specs/decisions/task-storage.md";
+    let text = example.read(decision);
+    example.write(
+        decision,
+        &format!("{text}\n## Proposed change (2026-10-06-recurring-tasks)\n\nA change.\n"),
+    );
+
+    let problems = summary(&example.problems());
+
+    let line = text.lines().count() + 2;
+    let expected = format!(
+        "{decision}:{line}: unknown section \"## Proposed change (2026-10-06-recurring-tasks)\""
+    );
+    assert!(problems.contains(&expected), "{expected}\nin {problems:#?}");
 }
 
 /// One row per rule: how to break the example, and the problem expected.

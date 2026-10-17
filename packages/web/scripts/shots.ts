@@ -99,9 +99,8 @@ async function scrollToTop(page: Page, locator: ReturnType<Page["getByText"]>) {
 const story = (page: Page) => page.getByText(/^US1( ·|:)/).first();
 
 /**
- * A spec under review at its top, its mockups first. A spec's folds: under review, closed, with
- * US2's scenarios open, and with Details opened from a link to its Data; an approved spec's,
- * closed, then with Details open.
+ * A spec under review at its top, its mockups first. A spec's folds: under review, closed, and with
+ * US2's more scenarios open; an approved spec's, closed.
  */
 export async function takeFolds(each: Each) {
   await each("spec-mockups", ({ page }) => show(page, SPEC, "Open the mockup: Repeat"));
@@ -111,18 +110,11 @@ export async function takeFolds(each: Each) {
   });
   await each("spec-scenarios", async ({ page }) => {
     await show(page, SPEC, "Complete a repeating task");
-    await page.getByRole("button", { exact: true, name: "Scenarios (4)" }).first().click();
+    await page.getByRole("button", { exact: true, name: "More scenarios (2)" }).first().click();
     await scrollToTop(page, page.getByText("US2 · P1"));
   });
-  await each("spec-details", ({ page }) => show(page, `${SPEC}#data`, "Complete a repeating task"));
   await each("spec-approved", async ({ page }) => {
     await show(page, APPROVED, "Complete a repeating task");
     await scrollToTop(page, story(page));
-  });
-  await each("spec-approved-details", async ({ page }) => {
-    await show(page, APPROVED, "Complete a repeating task");
-    const details = page.getByRole("button", { exact: true, name: "Details" });
-    await details.click();
-    await scrollToTop(page, details);
   });
 }

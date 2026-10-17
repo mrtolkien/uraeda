@@ -36,7 +36,7 @@ export function useOpenKeys(): OpenKeys {
  * forced fold the human closes stays closed until opened again.
  */
 export function useSpecFolds(
-  spec: Pick<SpecItems, "details" | "stories"> | undefined,
+  spec: Pick<SpecItems, "stories"> | undefined,
   forced: (folds: ReadonlyArray<Fold>) => ReadonlyArray<string> = () => [],
 ): Folds | undefined {
   const keys = useOpenKeys();

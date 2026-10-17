@@ -35,21 +35,25 @@ export type Folds = {
 };
 
 /**
- * A spec's folds, as the core finds them: each story's scenarios, keyed by the story's id, then
- * the Details section.
+ * A spec's folds, as the core finds them: each story's more scenarios, keyed by the story's id,
+ * their paragraph "More scenarios:" and their list. A block's id is its place in the document, so
+ * the list is the story's last top-level block before its first scenario.
  */
-export function specFolds(spec: Pick<SpecItems, "details" | "stories">): Array<Fold> {
-  const folds: Array<Fold> = spec.stories
-    .filter((story) => story.details.length > 0)
-    .map((story) => ({
-      ids: story.details,
-      key: story.id,
-      label: `Scenarios (${story.scenarios.length})`,
-    }));
-  if (spec.details.length > 0) {
-    folds.push({ ids: spec.details, key: "details", label: "Details" });
-  }
-  return folds;
+export function specFolds(spec: Pick<SpecItems, "stories">): Array<Fold> {
+  return spec.stories.flatMap((story) => {
+    const first = story.more[0]?.block;
+    const at = first === undefined ? -1 : story.blocks.findLastIndex((id) => id < first);
+    if (at < 1) {
+      return [];
+    }
+    return [
+      {
+        ids: story.blocks.slice(at - 1, at + 1),
+        key: story.id,
+        label: `More scenarios (${story.more.length})`,
+      },
+    ];
+  });
 }
 
 /** The top-level block a block lies in, itself when it is one. */
@@ -197,8 +201,7 @@ export function useRevealBlock(document: Document, folds: Folds | undefined) {
 
 /**
  * A fold: its toggle, named by its label, in place of its first block, its `title`, like the
- * scenarios' intro or the Details heading, whose anchor it takes; then what it holds, drawn while
- * it is open.
+ * paragraph "More scenarios:", whose anchor it takes; then what it holds, drawn while it is open.
  */
 export function FoldNode({
   children,

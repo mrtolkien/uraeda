@@ -19,7 +19,7 @@ function review(repo: string) {
   return existsSync(path) ? readFileSync(path, "utf8") : "";
 }
 
-/** The recurring tasks' spec, whose Mockups section links `mockups/repeat.html`, with the file. */
+/** The recurring tasks' spec, whose first story links `mockups/repeat.html`, with the file. */
 function specWithMockup() {
   const repo = fixtureRepo();
   addMockup(repo, FOLDER, "repeat.html");
@@ -46,7 +46,7 @@ test("a mockup shows in the UI, and a comment lands on the line that links it (C
 
   await waitFor(() =>
     expect(review(repo)).toMatch(
-      /## C1: Lines? [\d–]+, under "Mockups"\n\n> - \[Repeat\]\(mockups\/repeat\.html\)/,
+      /## C1: Line \d+, under "US1: Make a task repeat \(P1\)"\n\n> The \[Repeat\]\(mockups\/repeat\.html\) mockup/,
     ),
   );
   expect(review(repo)).toContain("\nThe menu needs a Never option\n");

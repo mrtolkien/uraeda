@@ -9,7 +9,7 @@ import { storybookHref, storyEmbedId } from "./stories.tsx";
 
 /**
  * The spec's mockups, at the top of its review: the easiest part of a spec to check, one large
- * button per mockup its Mockups section links, each opening the mockup's page, or scrolling to the
+ * button per mockup its stories link, each opening the mockup's page, or scrolling to the
  * embed of a story, opening its fold first, else opening the story in the Storybook page; without a
  * preview decision, a story's opens its file, as its link does. Nothing without mockups.
  */
