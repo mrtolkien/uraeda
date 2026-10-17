@@ -10,7 +10,6 @@ A full pass on the feature page, and the change pages: the feature page is horre
 
 - In a "done" feature, we should have a nice view of all its info, not just a dirty link to the
   report
-- Show the PR URL
 - Need a small "look at PR comments" button in features that restarts the agent and pushes it to
   check the comments + make sure it's part of the workflow (post-PR step)
 - "Commit and start the agent" took many seconds for me in the bugfixing flow...
