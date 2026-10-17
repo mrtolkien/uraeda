@@ -427,7 +427,11 @@ fn check_review(file: &File<'_>, problems: &mut Vec<Problem>) {
                 format!("C{} should be C{}", comment.number, index + 1),
             ));
         }
-        if matches!(comment.anchor, review::Anchor::Lines(..)) && comment.quote.is_empty() {
+        let on_lines = matches!(
+            comment.anchor,
+            review::Anchor::Lines(..) | review::Anchor::Decision { .. }
+        );
+        if on_lines && comment.quote.is_empty() {
             problems.push(file.problem(
                 Some(comment.line),
                 "reviews.quote",

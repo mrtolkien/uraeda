@@ -107,6 +107,28 @@ fn comments_come_with_their_lines_and_text() {
     );
 }
 
+/// A comment on a decision's lines is not on the spec's: it is neither drawn nor jumped to there.
+#[test]
+fn a_comment_on_a_decision_has_no_line_of_the_spec() {
+    let review = format!(
+        "{REVIEW}\n## C4: Decision task-storage, lines 50–51, under \"Rules\"\n\n> - A rule.\n\nOn the rule.\n"
+    );
+    let (repo, path) = spec_under_review(Some(&review));
+    let mut session = Session::start(repo.path());
+
+    assert_eq!(
+        request(&mut session, "uraeda/comments", &path)[3],
+        json!({ "number": 4, "text": "On the rule." })
+    );
+    assert_eq!(
+        request(&mut session, "uraeda/items", &path),
+        json!([
+            { "kind": "comment", "label": "C3", "line": 12, "endLine": 12 },
+            { "kind": "comment", "label": "C1", "line": 50, "endLine": 52 },
+        ])
+    );
+}
+
 #[test]
 fn an_open_review_is_read_from_its_text() {
     let (repo, path) = spec_under_review(Some(REVIEW));

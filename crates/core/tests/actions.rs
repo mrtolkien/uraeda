@@ -1,9 +1,9 @@
 mod common;
 
-use common::repo::TestRepo;
+use common::repo::{TestRepo, run_git};
 use common::texts::{proposal, spec};
 use uraeda_core::actions::place::{self, Place};
-use uraeda_core::actions::review::{self, Tier};
+use uraeda_core::actions::review::{self, DecisionTarget, Tier};
 use uraeda_core::actions::{ActionError, answer, draft, start, text};
 use uraeda_core::embedded;
 use uraeda_core::files::clarifications::AnswerError;
@@ -487,6 +487,7 @@ fn pending_comments_are_edited_and_removed() {
         "spec.md",
         Some((9, 9)),
         "Say what the row shows",
+        None,
     )
     .unwrap();
 
@@ -502,6 +503,230 @@ fn pending_comments_are_edited_and_removed() {
 
     review::remove(&place, &feature, "spec.md", 1).unwrap();
     assert!(!place.root.join(REVIEW).exists());
+}
+
+const DECISION: &str = "specs/decisions/task-storage.md";
+
+/// Task storage on `main`, its rule merged away on line 12.
+const DECISION_ON_MAIN: &str = "---\nstatus: active\n---\n\n# Task storage\n\nWhere tasks live.\n\n## Rules\n\n- Data MUST be stored in IndexedDB.\n- A rule merged away MUST go.\n\n## Why\n\nBecause.\n";
+
+/// Task storage on the feature's branch: a new rule on lines 12–13.
+const DECISION_ON_BRANCH: &str = "---\nstatus: proposed\n---\n\n# Task storage\n\nWhere tasks live.\n\n## Rules\n\n- Data MUST be stored in IndexedDB.\n- An upgrade that cannot read a saved value MUST clear it and log it,\n  and MUST NOT delete a task.\n\n## Why\n\nBecause.\n";
+
+/// A feature whose spec waits for a review, its branch changing task storage, and `main` moved on
+/// since, its own task storage rewritten.
+fn decision_repo() -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n");
+    repo.write(DECISION, DECISION_ON_MAIN);
+    repo.commit("chore: specs");
+    repo.switch_new(FOLDER);
+    repo.write("specs/2026-10-11-web-ui/proposal.md", &proposal());
+    repo.write(SPEC, &spec("awaiting-human", 1, 1));
+    repo.write(DECISION, DECISION_ON_BRANCH);
+    repo.commit("spec(web-ui): web UI");
+    repo.switch("main");
+    repo.write(
+        DECISION,
+        &DECISION_ON_MAIN.replace("merged away", "of main"),
+    );
+    repo.commit("chore: main moves on");
+    repo
+}
+
+/// Commits a file on the feature's branch, at its place.
+fn commit_at(place: &Place, path: &str, text: &str) {
+    put(place, path, text.as_bytes());
+    run_git(&place.root, &["add", path]);
+    run_git(
+        &place.root,
+        &["commit", "--quiet", "--no-verify", "-m", "chore: more"],
+    );
+}
+
+fn on_decision(removed: bool) -> Option<DecisionTarget> {
+    Some(DecisionTarget {
+        name: "task-storage".into(),
+        removed,
+    })
+}
+
+/// US2.3
+#[test]
+fn a_comment_on_a_decision_part() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+
+    let commented = review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((12, 13)),
+        "Log it where I can see it",
+        on_decision(false),
+    )
+    .unwrap();
+
+    assert_eq!(commented.number, 1);
+    let text = read(&place, REVIEW);
+    assert!(text.contains("## C1: Decision task-storage, lines 12–13, under \"Rules\"\n"));
+    assert!(text.contains(
+        "\n> - An upgrade that cannot read a saved value MUST clear it and log it,\n>   and MUST NOT delete a task.\n\nLog it where I can see it\n"
+    ));
+}
+
+/// Edge case: a comment on a removed part.
+#[test]
+fn a_comment_on_a_removed_part_points_to_the_merge_base_lines() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((12, 12)),
+        "Keep it",
+        on_decision(true),
+    )
+    .unwrap();
+
+    let text = read(&place, REVIEW);
+    assert!(text.contains("## C1: Decision task-storage, line 12 removed, under \"Rules\"\n"));
+    assert!(text.contains("\n> - A rule merged away MUST go.\n"));
+}
+
+#[test]
+fn a_decision_comment_on_an_unknown_name_or_lines_is_refused() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    let target = |name: &str| {
+        Some(DecisionTarget {
+            name: name.into(),
+            removed: false,
+        })
+    };
+
+    commit_at(&place, "specs/decisions/two words.md", DECISION_ON_BRANCH);
+
+    for name in ["git", "../2026-10-11-web-ui/spec", "", "two words"] {
+        let refused = review::comment(
+            &git,
+            &place,
+            &feature,
+            "spec.md",
+            Some((1, 1)),
+            "No",
+            target(name),
+        );
+        assert!(matches!(refused, Err(ActionError::Refused(_))), "{name}");
+    }
+    let past_its_end = review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((12, 30)),
+        "No",
+        on_decision(false),
+    );
+    assert!(matches!(past_its_end, Err(ActionError::Refused(_))));
+    assert!(!place.root.join(REVIEW).exists());
+}
+
+/// Review focus 6: a pending review stays while the spec is unchanged since its commit.
+#[test]
+fn a_decision_comment_keeps_a_fresh_review_only() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    let comment = |text: &str| {
+        review::comment(
+            &git,
+            &place,
+            &feature,
+            "spec.md",
+            Some((12, 13)),
+            text,
+            on_decision(false),
+        )
+        .unwrap()
+    };
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((9, 9)),
+        "On the spec",
+        None,
+    )
+    .unwrap();
+    let first = read(&place, REVIEW);
+
+    let kept = comment("At the same commit");
+    commit_at(
+        &place,
+        "specs/2026-10-11-web-ui/proposal.md",
+        "# Proposal\n\nOther.\n",
+    );
+    let still = comment("The spec unchanged since");
+
+    assert!(!kept.replaced && !still.replaced);
+    assert_eq!(still.number, 3);
+    assert!(read(&place, REVIEW).starts_with(&first[..first.find("## C1").unwrap()]));
+    commit_at(
+        &place,
+        SPEC,
+        &spec("awaiting-human", 1, 1).replace("A feature.", "A feature, changed."),
+    );
+    let replaced = comment("The spec changed");
+    assert!(replaced.replaced);
+    assert_eq!(replaced.number, 1);
+}
+
+/// A pending review whose commit holds another version of the decision: its lines would not be
+/// those of the review's commit.
+#[test]
+fn a_comment_on_a_decision_changed_since_the_pending_review_is_refused() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((9, 9)),
+        "On the spec",
+        None,
+    )
+    .unwrap();
+    let before = read(&place, REVIEW);
+    commit_at(
+        &place,
+        DECISION,
+        &DECISION_ON_BRANCH.replace("Because.", "Because, still."),
+    );
+
+    let refused = review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((12, 13)),
+        "Too late",
+        on_decision(false),
+    );
+
+    assert!(matches!(refused, Err(ActionError::Refused(_))));
+    assert_eq!(read(&place, REVIEW), before);
 }
 
 /// US6.1
@@ -960,6 +1185,7 @@ fn us3_3_a_verdict_commits_the_review_images() {
         "spec.md",
         None,
         "As here: ![shot](images/shot.webp)",
+        None,
     )
     .unwrap();
     put(&place, &format!("{IMAGES}/shot.webp"), b"shot");
@@ -997,6 +1223,7 @@ fn a_replaced_review_keeps_images_another_file_links() {
         "spec.md",
         None,
         "![shot](images/shot.webp)",
+        None,
     )
     .unwrap();
     append(&place, SPEC, "A new version.");
@@ -1005,7 +1232,7 @@ fn a_replaced_review_keeps_images_another_file_links() {
         &["commit", "--quiet", "--no-verify", "-am", "spec"],
     );
     let git = Git::discover(repo.path()).unwrap();
-    let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.").unwrap();
+    let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.", None).unwrap();
     assert!(replaced.replaced);
 
     review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
@@ -1235,6 +1462,7 @@ fn a_replaced_review_drops_the_images_only_it_linked() {
         "spec.md",
         None,
         "![shot](images/shot.webp)",
+        None,
     )
     .unwrap();
     put(&place, &format!("{IMAGES}/shot.webp"), b"shot");
@@ -1244,7 +1472,7 @@ fn a_replaced_review_drops_the_images_only_it_linked() {
         &["commit", "--quiet", "--no-verify", "-am", "spec"],
     );
     let git = Git::discover(repo.path()).unwrap();
-    let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.").unwrap();
+    let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.", None).unwrap();
     assert!(replaced.replaced);
 
     review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
@@ -1266,6 +1494,7 @@ fn a_request_for_changes_commits_the_review_images() {
         "spec.md",
         Some((1, 1)),
         "Like this: ![shot](images/shot.webp)",
+        None,
     )
     .unwrap();
     put(&place, &format!("{IMAGES}/shot.webp"), b"shot");

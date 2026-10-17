@@ -399,6 +399,22 @@ test("a new version under pending comments is said", async () => {
   expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
 });
 
+/** A comment on a decision's lines is not on the spec's: it is listed, never placed by its lines. */
+test("a comment on a decision is listed in your review, not under the spec's lines", async () => {
+  const r = repo();
+  const tip = git(r, "rev-parse", "--short=7", FOLDER).trim();
+  writeFileSync(
+    join(r, WORKTREE, REVIEW),
+    `---\nverdict: pending\ncommit: ${tip}\n---\n\n# Review: Spec, Recurring tasks\n\n## C1: Decision git, lines 92–93 removed, under "Rules"\n\n> - A rule.\n\nSay which store.\n`,
+  );
+
+  await renderPage(PAGE, r);
+
+  expect(await screen.findByText("C1 · decision git, lines 92–93 removed")).toBeTruthy();
+  expect(screen.getByText("Say which store.")).toBeTruthy();
+  expect(screen.queryByRole("group", { name: /^C1/ })).toBeNull();
+});
+
 /** Review focus 4: a spec without stories still renders, and its blocks take comments. */
 test("a spec without stories still takes comments", async () => {
   const r = fixtureRepo();

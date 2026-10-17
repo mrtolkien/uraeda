@@ -380,6 +380,7 @@ fn comment(documents: &Documents, args: CommentArgs) -> Result<Outcome, Response
         &file.name,
         lines,
         &args.text,
+        None,
     ))?;
     Ok(Outcome {
         opened: None,

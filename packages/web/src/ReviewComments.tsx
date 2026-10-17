@@ -23,21 +23,32 @@ const styles = stylex.create({
   },
 });
 
-/** Where a comment points: `C2 · lines 4–6`, or `C3 · general`. */
+/**
+ * Where a comment points: `C2 · lines 4–6`, `C3 · general`, or, on lines of a decision's file,
+ * `C4 · decision git, lines 15–16`, with ` removed` after a removed part's lines.
+ */
 export function where(comment: CommentItem) {
   if (comment.general) {
     return `C${comment.number} · general`;
   }
-  return comment.startLine === comment.endLine
-    ? `C${comment.number} · line ${comment.startLine}`
-    : `C${comment.number} · lines ${comment.startLine}–${comment.endLine}`;
+  const lines =
+    comment.startLine === comment.endLine
+      ? `line ${comment.startLine}`
+      : `lines ${comment.startLine}–${comment.endLine}`;
+  if (comment.decision !== undefined) {
+    return `C${comment.number} · decision ${comment.decision}, ${lines}${comment.removed ? " removed" : ""}`;
+  }
+  return `C${comment.number} · ${lines}`;
 }
 
-/** The comments on lines, by the block each shows under: the smallest tappable block holding its last line. */
+/**
+ * The comments on lines of the file, by the block each shows under: the smallest tappable block
+ * holding its last line. A comment on a decision's lines is not on the file's: it is left out.
+ */
 export function usePlacedComments(comments: ReadonlyArray<CommentItem>, tree: Document) {
   return useMemo(() => {
     const map = new Map<number, Array<CommentItem>>();
-    for (const comment of comments.filter((c) => !c.general)) {
+    for (const comment of comments.filter((c) => !c.general && c.decision === undefined)) {
       const holder = holderOf(tree, comment.endLine);
       if (holder) {
         map.set(holder.id, [...(map.get(holder.id) ?? []), comment]);

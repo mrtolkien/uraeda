@@ -181,6 +181,11 @@ pub struct CommentItem {
     pub end_line: u32,
     pub heading: Option<String>,
     pub general: bool,
+    /// The decision whose file the lines are of, `specs/decisions/<name>.md`, not the reviewed
+    /// file's.
+    pub decision: Option<String>,
+    /// Whether the lines are of a part the branch removed from the decision, at the merge base.
+    pub removed: bool,
     pub quote: Vec<String>,
     pub text: String,
 }
@@ -312,18 +317,25 @@ fn review_items(text: &str) -> Option<ReviewItems> {
             .comments
             .into_iter()
             .map(|comment| {
-                let (start, end, heading) = match comment.anchor {
-                    review::Anchor::Lines(start, end, heading) => {
-                        (start as u32, end as u32, Some(heading))
-                    }
-                    review::Anchor::General => (0, 0, None),
+                let (start, end, heading, decision) = match comment.anchor {
+                    review::Anchor::Lines(start, end, heading) => (start, end, Some(heading), None),
+                    review::Anchor::Decision {
+                        name,
+                        start,
+                        end,
+                        heading,
+                        removed,
+                    } => (start, end, Some(heading), Some((name, removed))),
+                    review::Anchor::General => (0, 0, None, None),
                 };
                 CommentItem {
                     number: comment.number,
-                    start_line: start,
-                    end_line: end,
+                    start_line: start as u32,
+                    end_line: end as u32,
                     general: heading.is_none(),
                     heading,
+                    removed: decision.as_ref().is_some_and(|(_, removed)| *removed),
+                    decision: decision.map(|(name, _)| name),
                     quote: comment.quote,
                     text: comment.text,
                 }

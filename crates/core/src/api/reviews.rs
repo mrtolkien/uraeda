@@ -4,24 +4,26 @@ use std::path::Path;
 
 use super::{Result, reach, read_file, refused, write_lock};
 use crate::actions::place;
-use crate::actions::review::{self, Tier};
+use crate::actions::review::{self, DecisionTarget, Tier};
 use crate::git::Git;
 use crate::today;
 use crate::view::FileView;
 use crate::workspace::Feature;
 
-/// Adds a comment on lines of the committed file, or on all of it.
+/// Adds a comment on lines of the committed file, on lines of a decision the spec's branch
+/// changes, or on all of the file.
 pub fn add_comment(
     repo: &Path,
     folder: &str,
     file: &str,
     lines: Option<(u32, u32)>,
     text: &str,
+    decision: Option<DecisionTarget>,
 ) -> Result<FileView> {
     let _lock = write_lock();
     let (git, feature, place) = reach(repo, folder)?;
     let lines = lines.map(|(start, end)| (start as usize, end as usize));
-    review::comment(&git, &place, &feature, file, lines, text)?;
+    review::comment(&git, &place, &feature, file, lines, text, decision)?;
     read_file(repo, folder, file)
 }
 

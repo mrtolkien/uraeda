@@ -13,6 +13,10 @@ use super::images::{images_folder, linked_images};
 use super::place::Place;
 use super::{ActionError, Change};
 
+mod decision;
+
+pub use decision::DecisionTarget;
+
 /// The file of a feature waiting for a review: the one named, or the one at its gate.
 pub fn reviewed_file(feature: &Feature, named: Option<&str>) -> Result<String, ActionError> {
     let name = match named {
@@ -89,8 +93,35 @@ pub struct Commented {
     pub replaced: bool,
 }
 
-/// Adds a comment to the pending review of a file, on lines of its committed version, or on the
-/// whole file. Commits nothing.
+/// The nearest heading at or above line `start` of a file's text, and its lines `start` to
+/// `end`; refused past the file's end.
+fn quoted(
+    text: &str,
+    file: &str,
+    start: usize,
+    end: usize,
+) -> Result<(String, Vec<String>), ActionError> {
+    let count = text.lines().count();
+    if start == 0 || end < start || end > count {
+        return Err(ActionError::Refused(format!("{file} has {count} lines")));
+    }
+    let heading = markdown::Document::parse(text)
+        .headings
+        .into_iter()
+        .rfind(|h| h.line <= start)
+        .map(|h| h.text)
+        .unwrap_or_default();
+    let quote = text
+        .lines()
+        .skip(start - 1)
+        .take(end - start + 1)
+        .map(String::from)
+        .collect();
+    Ok((heading, quote))
+}
+
+/// Adds a comment to the pending review of a file, on lines of its committed version, on lines of
+/// a decision the branch changes, or on the whole file. Commits nothing.
 pub fn comment(
     git: &Git,
     place: &Place,
@@ -98,6 +129,7 @@ pub fn comment(
     file: &str,
     lines: Option<(usize, usize)>,
     text: &str,
+    decision: Option<DecisionTarget>,
 ) -> Result<Commented, ActionError> {
     if text.lines().any(|line| line.trim_start().starts_with('#')) {
         return Err(ActionError::Refused(
@@ -115,27 +147,13 @@ pub fn comment(
         .read_file(tip, &path)?
         .and_then(|bytes| String::from_utf8(bytes).ok())
         .ok_or_else(|| ActionError::Refused(format!("{file} is not committed")))?;
-    let (anchor, quote) = match lines {
-        None => (Anchor::General, Vec::new()),
-        Some((start, end)) => {
-            let count = committed.lines().count();
-            if start == 0 || end < start || end > count {
-                return Err(ActionError::Refused(format!("{file} has {count} lines")));
-            }
-            let heading = markdown::Document::parse(&committed)
-                .headings
-                .into_iter()
-                .rfind(|h| h.line <= start)
-                .map(|h| h.text)
-                .unwrap_or_default();
-            let quote = committed
-                .lines()
-                .skip(start - 1)
-                .take(end - start + 1)
-                .map(String::from)
-                .collect();
+    let (anchor, quote) = match (lines, &decision) {
+        (None, None) => (Anchor::General, Vec::new()),
+        (Some((start, end)), None) => {
+            let (heading, quote) = quoted(&committed, file, start, end)?;
             (Anchor::Lines(start, end, heading), quote)
         }
+        (lines, Some(target)) => decision::anchored(git, tip, file, target, lines)?,
     };
     let review_path = format!("{}/{}", feature.path, review_name(file));
     let on_disk = place.root.join(&review_path);
@@ -144,6 +162,9 @@ pub fn comment(
     let current = existing.as_ref().is_some_and(|r| {
         r.verdict == Verdict::Pending && fresh(git, r, &path, tip, committed.as_bytes())
     });
+    if let (true, Some(review), Some(target)) = (current, &existing, &decision) {
+        decision::unchanged_since(git, review, tip, target)?;
+    }
     let replaced = existing
         .as_ref()
         .is_some_and(|r| r.verdict == Verdict::Pending && !current);

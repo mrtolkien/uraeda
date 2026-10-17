@@ -293,6 +293,11 @@ fn each_rule() {
             format!("{FEATURE}/spec-review.md:8: C1 quotes no line"),
         ),
         (
+            "decision comment without its quote",
+            |e| e.write(&format!("{FEATURE}/spec-review.md"), "---\nverdict: pending\ncommit: a1b2c3d\n---\n\n# Review: Spec, Recurring tasks\n\n## C1: Decision task-storage, lines 15–16 removed, under \"Rules\"\n\nKeep it.\n"),
+            format!("{FEATURE}/spec-review.md:8: C1 quotes no line"),
+        ),
+        (
             "record without kind",
             |e| e.edit(RECORD, "kind: feature\n", ""),
             format!("{RECORD}: no \"kind\" field"),

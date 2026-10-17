@@ -1105,10 +1105,15 @@ git commit -m "feat(redesign-specs): a spec's view carries its branch's decision
 
 - Modify: `crates/core/src/files/review.rs` (`Anchor`, its `Display` and parser),
   `crates/core/src/actions/review.rs` (`comment`), `crates/core/src/api/reviews.rs` (`add_comment`),
-  `crates/binding/src/lib.rs` (`addComment`), `packages/binding/index.d.ts` (generated),
-  `packages/server/src/fate/file-mutations.ts` (`review.comment`)
-- Test: `crates/core/tests/actions.rs`, `crates/core/src/files/review.rs`' tests or
-  `crates/core/tests/files.rs`
+  `crates/binding/src/file_writes.rs` (`addComment`), `packages/binding/index.d.ts` (generated),
+  `packages/server/src/fate/file-mutations.ts` (`review.comment`); the readers of a comment's lines
+  (R52): `crates/core/src/files/items.rs` (`CommentItem`), `crates/core/src/check/mod.rs`
+  (`check_review`), `crates/lsp/src/requests.rs`, `crates/cli/src/review.rs`,
+  `packages/web/src/ReviewComments.tsx`
+- Create: `crates/core/src/actions/review/decision.rs` (`DecisionTarget`, the decision's text)
+- Test: `crates/core/tests/actions.rs`, `crates/core/tests/files.rs`, `crates/core/tests/check.rs`,
+  `crates/lsp/tests/reads.rs`, `packages/server/src/__tests__/fate.test.ts`,
+  `packages/web/src/__tests__/review.test.tsx`
 
 **Interfaces:**
 
@@ -1124,7 +1129,7 @@ git commit -m "feat(redesign-specs): a spec's view carries its branch's decision
     heading come from that text.
   - The `review.comment` mutation takes `decision?: { name: string; removed: boolean }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/actions.rs
@@ -1134,14 +1139,17 @@ fn a_comment_on_a_decision_part() {
     let commented = comment(&git, &place, &feature, "spec.md", Some((19, 20)), "Log it where I can see it",
         Some(DecisionTarget { name: "task-storage".into(), removed: false }));
     assert!(review_text().contains("## C1: Decision task-storage, lines 19–20, under \"Rules\""));
-    assert!(review_text().contains("> > - An upgrade that cannot read"));
+    assert!(review_text().contains("> - An upgrade that cannot read")); // R51
 }
 
 #[test]
-fn a_comment_on_a_removed_part_points_to_mains_lines() { /* "lines 14–15 removed", quote from main's text */ }
+fn a_comment_on_a_removed_part_points_to_the_merge_base_lines() { /* "line 12 removed", quote from the merge base's text */ }
 
 #[test]
 fn a_decision_comment_keeps_a_fresh_review_only() { /* review focus 6 */ }
+
+#[test]
+fn a_comment_on_a_decision_changed_since_the_pending_review_is_refused() { /* R50 */ }
 ```
 
 Plus a round trip of the three headings through `review::parse` and `review::render`.
@@ -1153,21 +1161,21 @@ The break each test catches:
 - Freshness: a decision comment starting a new review while one is pending at the same commit.
 - Round trip: "removed" dropped, or the en dash written as a hyphen.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test actions --test files`
 - Expected: FAIL, `cannot find struct DecisionTarget`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 As the **Produces** says. `comment` keeps its freshness rule on the spec file.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run binding:build`, `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding/index.d.ts packages/server/src/fate/file-mutations.ts
