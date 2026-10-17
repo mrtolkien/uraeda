@@ -3,8 +3,7 @@
 mod letters;
 mod notes;
 
-use letters::picked_letters;
-pub use letters::{compose_answer, split_answer};
+pub use letters::{compose_answer, letters, split_answer};
 pub use notes::{RoundNotes, join_notes, notes, round_notes, set_notes, split_notes};
 
 const ANSWER: &str = "**Answer:**";
@@ -35,23 +34,20 @@ pub struct Question {
 pub enum Applicability {
     Yes,
     No,
-    /// The parent's answer names no option letter.
-    Unclear,
 }
 
 impl Question {
-    /// A question applies unless it is a follow-up whose parent's answer picked other options.
+    /// A question applies unless it is a follow-up whose parent's answer does not pick its letter:
+    /// a parent answered with a comment alone closes its follow-ups. A follow-up with no parent
+    /// question applies.
     pub fn applies(&self, all: &[Question]) -> Applicability {
         let (Some(parent), Some(letter)) = (&self.parent, self.letter) else {
             return Applicability::Yes;
         };
         let Some(parent) = all.iter().find(|question| &question.id == parent) else {
-            return Applicability::Unclear;
+            return Applicability::Yes;
         };
-        let picked = picked_letters(&parent.answer, &parent.options);
-        if picked.is_empty() {
-            Applicability::Unclear
-        } else if picked.contains(&letter) {
+        if letters(&parent.answer, &parent.options).contains(&letter) {
             Applicability::Yes
         } else {
             Applicability::No

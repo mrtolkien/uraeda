@@ -125,10 +125,10 @@ export function useAnswer(question: QuestionItem, target: RoundTarget, path: str
   });
 
   /** Sets the letters, and saves them with the comment as saved. */
-  const pick = (next: ReadonlyArray<string>, comment?: string) => {
+  const pick = (next: ReadonlyArray<string>) => {
     picked.current = next;
     setLetters(next);
-    void send(() => ({ comment: comment ?? savedComment.current, letters: next }));
+    void send(() => ({ comment: savedComment.current, letters: next }));
   };
   return {
     /** Saves the answer with `line` after the comment saved: why it was refused, or nothing. */
@@ -136,11 +136,6 @@ export function useAnswer(question: QuestionItem, target: RoundTarget, path: str
       saveWithLine(line, { comment: savedComment, field, letters: picked, run, write }),
     field,
     letters,
-    /** Marks a follow-up as not applying, its comment typed dropped: its answer is "-". */
-    notApplying: () => {
-      field.discard();
-      pick([], "-");
-    },
     /** Keeps the text with its images, and saves the answer with it once they are added. */
     onImages: (text: string, added: boolean) => {
       field.change(text);

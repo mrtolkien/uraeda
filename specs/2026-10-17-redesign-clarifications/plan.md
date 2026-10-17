@@ -202,7 +202,7 @@ key on their bold subject; Submit flips the block's first paragraph only
       unit tests, into `clarifications/letters.rs`.** Run `cargo nextest run -p uraeda-core`, PASS
       before and after. Commit
       `refactor(redesign-clarifications): answers' letters in a module of     their own`.
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
   - `items.rs`, table-driven `answers_are_split_into_letters_and_comment`, rows replaced:
     `("C, we want a simple feature", ["C"], "we want a simple feature")`,
     `("B, let's not overload the interface", ["B"], "let's not overload the interface")`,
@@ -220,15 +220,15 @@ key on their bold subject; Submit flips the block's first paragraph only
     becomes "a comment alone closes its follow-ups" (US5.2): answer Q1 with the comment "Neither:
     keep the last 10 completions" and no letter; Q1.B is not on the page, there is no "Does not
     apply" button, and "1 question left" does not count Q1.B.
-- [ ] **Step 3: Run them to check they fail**: `cargo nextest run -p uraeda-core`: FAIL on
+- [x] **Step 3: Run them to check they fail**: `cargo nextest run -p uraeda-core`: FAIL on
       `"C, we want a simple feature"`, expected `["C"]`.
-- [ ] **Step 4: Implement** `letters()` per the global constraints, `split_answer` on it,
+- [x] **Step 4: Implement** `letters()` per the global constraints, `split_answer` on it,
       `applies()` without `Unclear` (no letter: `No`), `check_answers` without the `-` hint,
       `round.rs` without `"unclear"`; remove `notApplying`, the "Does not apply" button, and the
       "names no option" label from the web.
-- [ ] **Step 5: Run the project's validation**: `cargo nextest run`, `vp check`,
+- [x] **Step 5: Run the project's validation**: `cargo nextest run`, `vp check`,
       `vp test --project '!phone' --project '!desktop'`: PASS.
-- [ ] **Step 6: Commit** `feat(redesign-clarifications): an answer's letters are read one way`
+- [x] **Step 6: Commit** `feat(redesign-clarifications): an answer's letters are read one way`
 
 ## Task 3: The round's new format, and every round rewritten in it
 

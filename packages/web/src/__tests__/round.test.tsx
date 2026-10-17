@@ -166,15 +166,21 @@ test("a follow-up shows inside its parent once it applies", async () => {
   expect(question("Q1").contains(question("Q1.B"))).toBe(true);
 });
 
-/** US2.7 */
-test("a follow-up whose parent names no option can be marked as not applying", async () => {
-  const repo = answered({ Q1: "keep it simple" });
+/** US5.2 */
+test("a comment alone closes its follow-ups", async () => {
+  const repo = answered({ Q2: "A" });
   await renderPage(PAGE, repo);
-  await waitFor(() => expect(question("Q1.B")).toBeTruthy());
+  await screen.findByText("Which human steps does the UI perform?");
 
-  await tap(within(question("Q1.B")).getByRole("button", { name: "Does not apply" }));
+  await type(comment("Q1"), "Neither: keep the last 10 completions");
+  await tap(saveButton("Q1"));
 
-  await waitFor(() => expect(answerLine(repo, "Q1.B")).toBe("**Answer:** -"));
+  await waitFor(() =>
+    expect(answerLine(repo, "Q1")).toBe("**Answer:** Neither: keep the last 10 completions"),
+  );
+  expect(await screen.findByText("1 question left:", { exact: false })).toBeTruthy();
+  expect(question("Q1.B")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Does not apply" })).toBeNull();
 });
 
 /** US2.8 */
