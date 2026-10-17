@@ -34,7 +34,7 @@ writing rules; the other references link to it.
    as today: subjects stay unique. Task 4.
 4. **A sentence warning inside a nested list item** is reported on that item's own line, not the
    list's first line. Task 5.
-5. **The mermaid chunk is never in the main bundle**: a test reads the build's manifest. Task 8.
+5. **The mermaid chunk is never in the main bundle**: a test reads the build's page (R17). Task 8.
 6. **A round saved while its "Under the hood" fold is open** keeps the fold open after the save
    reloads the round. Task 11.
 
@@ -414,12 +414,15 @@ key on their bold subject; Submit flips the block's first paragraph only
 
 **Files:**
 
-- Create: `packages/web/src/Diagram.tsx`
-- Modify: `packages/web/src/Blocks.tsx`
+- Create: `packages/web/src/Diagram.tsx`, `packages/web/src/BlockTable.tsx` (the tables, moved out
+  of `Blocks.tsx` first)
+- Modify: `packages/web/src/Blocks.tsx`, `packages/web/vite.browser.config.ts` (`mermaid` bundled
+  ahead, R17)
 - Test: `packages/web/src/__browser__/diagram.test.tsx` (new),
-  `packages/web/src/__tests__/build.test.ts`
+  `packages/web/src/__tests__/build.test.ts`, `packages/web/src/__tests__/diagram.test.tsx` (a
+  `mermaid` that fails to load)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - US6.1: a question with a flowchart: an `iframe` titled "Diagram" whose `sandbox` has neither
     `allow-scripts` nor `allow-same-origin`.
   - US6.2: "flowchart LR\n A -->": "This diagram could not be drawn." over the source as code.
@@ -427,12 +430,12 @@ key on their bold subject; Submit flips the block's first paragraph only
   - Edge: a wide diagram scrolls inside its card; the page does not scroll sideways.
   - US6.3, SC-003, review focus 5: a spec page with no diagram requests no `mermaid` chunk, and the
     build's main chunk does not contain mermaid.
-- [ ] **Step 2: Run them to check they fail**: FAIL, the block shows as code.
-- [ ] **Step 3: Implement** `Diagram`: `import("mermaid")` on demand, `securityLevel: "sandbox"`,
+- [x] **Step 2: Run them to check they fail**: FAIL, the block shows as code.
+- [x] **Step 3: Implement** `Diagram`: `import("mermaid")` on demand, `securityLevel: "sandbox"`,
       `neutral` or `dark` by colour mode, the fallback on parse or load errors.
-- [ ] **Step 4: Run the project's validation**: `vp check`, unit tests, both browser projects,
+- [x] **Step 4: Run the project's validation**: `vp check`, unit tests, both browser projects,
       `vp run web:build`.
-- [ ] **Step 5: Commit** `feat(redesign-clarifications): Mermaid diagrams in a sandboxed frame`
+- [x] **Step 5: Commit** `feat(redesign-clarifications): Mermaid diagrams in a sandboxed frame`
 
 ## Task 9: The round's opening
 

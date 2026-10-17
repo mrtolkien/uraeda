@@ -204,3 +204,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the edge case is about a wide screen.
 - **If wrong**: the test's tables, or the plan's step.
 - **Where**: task 7, step 1.
+
+## R17: The build's page, not a manifest, names the main bundle
+
+- **Decision**: `packages/web/src/__tests__/build.test.ts` reads `dist/index.html`, whose entry
+  script and preloaded modules are the main bundle, and checks that none holds Mermaid's code, and
+  that another chunk does. It runs in `vp run ts:test`, which builds the web UI first; run alone, it
+  asks for `vp run web:build`. The browser test of SC-003 checks what the page requests once loaded,
+  and the browser tests bundle `mermaid` ahead, as they do StyleX's runtime.
+- **Rationale**: Vite writes a manifest only with `build.manifest`, into `dist/`, which the server
+  serves: the page already lists the modules loaded at once. A static import of `mermaid` reaches
+  the test page before any test runs, so only the build can show it in the main bundle. Bundled
+  late, on a cold cache, `mermaid` reloaded the browser and failed the diagram tests.
+- **Alternatives considered**: `build.manifest: true`, a file served for this test only; a test in
+  `packages/uraeda`, whose build is later in the graph.
+- **If wrong**: the build test, and review focus 5's wording.
+- **Where**: task 8, step 1; review focus 5.
