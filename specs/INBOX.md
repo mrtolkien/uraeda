@@ -12,6 +12,9 @@
 - When there's multiple "blocked by auto mode", we should be able to allow them ALL at once!
 - We need a "restart stopped agents" button after a crash, that just sends "continue" in all
   sessions
+- [redesign-clarifications] Proposal often shows up as having errors when it’s stuff like linking
+  files in worktrees. Generally we don’t really care about small problems to proposal + our flow
+  should not create errors.
 
 ## Prompts
 
