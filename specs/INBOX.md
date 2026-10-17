@@ -148,3 +148,5 @@
 - [agent] [redesign-clarifications] specs/backlog/benchmarks/clarifications-01.md has 4 sentences
   over 25 words, and follow-ups shared by two options (Only if you picked A or C), which the core
   shows for one letter only
+- [agent] [questions-first] On a phone, the round's in-page Questions index has no test that it is
+  hidden on an answered round, nor that it sits after the block (round.test.tsx)
