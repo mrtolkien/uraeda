@@ -19,6 +19,8 @@
   (specs/drafts/<slug>/proposal.md) starts it as a file draft: only proposal.md moves, and its
   images/ stay behind, breaking the proposal's image links (crates/core/src/actions/start/plan.rs,
   draft_files)
+- [agent] [storybook-restart] specs/drafts/look-and-feel/proposal.md links flow-review.md, which is
+  ../flow-review.md: ura check specs fails on main
 
 ## Prompts
 
