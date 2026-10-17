@@ -1,21 +1,18 @@
-import { Heading } from "@astryxdesign/core/Heading";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
-import type { ContextPart, QuestionItem } from "uraeda-binding";
-import { Blocks } from "./Blocks.tsx";
-import { Crumbs } from "./Crumbs.tsx";
+import type { Document, QuestionItem } from "uraeda-binding";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { Question } from "./Question.tsx";
+import { RoundOpening } from "./RoundOpening.tsx";
 import { type NavQuestion, RoundNav } from "./RoundNav.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
 import { isTriage, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { askAbout, quoted } from "./sessions.ts";
-import { plain } from "./Spans.tsx";
 import { SettledPoints } from "./SettledPoints.tsx";
 import { PendingSaves } from "./useAnswer.ts";
 import { useRoundPosition } from "./useRoundPosition.ts";
@@ -45,16 +42,49 @@ const styles = stylex.create({
     maxWidth: "var(--size-page-max)",
     minWidth: 0,
   },
-  title: {
-    marginBlockEnd: spacingVars["--spacing-3"],
-  },
 });
 
-/** The context's blocks: each part's heading, when it has one, then its blocks. */
-function contextBlocks(parts: ReadonlyArray<ContextPart>): Array<number> {
-  return parts.flatMap((part) =>
-    part.heading === undefined ? part.blocks : [part.heading, ...part.blocks],
-  );
+/** The muted band between sibling questions; on the phone, to the screen's edges. */
+function Band() {
+  const wide = useWidthClass() === "wide";
+  return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
+}
+
+/** The round's questions, each after a band, its follow-ups that apply inside it. */
+function RoundQuestions({
+  document,
+  onAsk,
+  path,
+  questions,
+  readOnly,
+  takes,
+  target,
+}: {
+  document: Document;
+  onAsk?: (question: QuestionItem) => void;
+  path: string;
+  questions: ReadonlyArray<QuestionItem>;
+  readOnly: boolean;
+  takes: boolean;
+  target: RoundTarget;
+}) {
+  return questions
+    .filter((q) => !q.parent)
+    .map((question) => (
+      <div key={question.id}>
+        <Band />
+        <Question
+          document={document}
+          followUps={questions.filter((q) => q.parent === question.id && q.asked)}
+          path={path}
+          question={question}
+          readOnly={readOnly}
+          takes={takes}
+          target={target}
+          {...(onAsk ? { onAsk } : {})}
+        />
+      </div>
+    ));
 }
 
 /**
@@ -86,7 +116,6 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const keyOf = (q: QuestionItem) => unsavedKey(repo, `${file.path}#${q.id}`);
   const typed = useUnsavedOf(questions.map(keyOf));
   const blank = questions.filter((q) => q.asked && !q.answer.trim() && !typed.has(keyOf(q)));
-  const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
   const nav = navOf(questions);
   useRoundPosition(file.folder, file.name, nav);
   if (!round) {
@@ -101,32 +130,21 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
 
   const content = (
     <>
-      {!triage && <Crumbs current={file.name} folder={file.folder} />}
-      {title && (
-        <Heading level={1} xstyle={styles.title}>
-          {plain(title.spans)}
-        </Heading>
-      )}
-      {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
-      <Blocks document={document} ids={contextBlocks(round.context)} />
-      {questions
-        .filter((q) => !q.parent)
-        .map((question) => (
-          <div key={question.id}>
-            <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
-            <Question
-              document={document}
-              followUps={questions.filter((q) => q.parent === question.id && q.asked)}
-              path={file.path}
-              question={question}
-              readOnly={readOnly}
-              takes={file.takesImages}
-              target={target}
-              {...(agent?.available && !triage ? { onAsk: ask } : {})}
-            />
-          </div>
-        ))}
-      <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
+      <RoundOpening
+        document={document}
+        round={round}
+        {...(triage ? {} : { crumbs: { folder: file.folder, name: file.name } })}
+      />
+      <RoundQuestions
+        document={document}
+        path={file.path}
+        questions={questions}
+        readOnly={readOnly}
+        takes={file.takesImages}
+        target={target}
+        {...(agent?.available && !triage ? { onAsk: ask } : {})}
+      />
+      <Band />
       <SettledPoints file={file} readOnly={readOnly} />
       <RoundEnd
         blank={blank}
