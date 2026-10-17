@@ -129,3 +129,5 @@
   (diagram-_r_0_); allow-top-navigation-by-user-activation lets a diagram link replace the app tab;
   viewBox not clamped; no loading state; every frame titled "Diagram"; a failed draw can leave
   Mermaid temporary frame in the page
+- [agent] [redesign-clarifications] conventions.md reads as if every ### heading in a round Context
+  or settled points were refused: add "that the template does not have"
