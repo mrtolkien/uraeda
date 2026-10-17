@@ -127,9 +127,6 @@ const styles = stylex.create({
     insetInlineStart: 0,
     position: "absolute",
   },
-  spaced: {
-    marginBlockStart: spacingVars["--spacing-3"],
-  },
   summary: {
     // An option's text keeps the reading measure, its row as wide as the question.
     display: "block",
@@ -226,10 +223,7 @@ function Option({
   );
 }
 
-/**
- * A question's options, each a toggle of its letter, and "Does not apply" for a follow-up whose
- * parent's answer names no option.
- */
+/** A question's options, each a toggle of its letter. */
 function Options({
   answer,
   document,
@@ -242,31 +236,27 @@ function Options({
   readOnly: boolean;
 }) {
   const wide = useWidthClass() === "wide";
-  const parent = question.parent;
+  if (question.options.length === 0) {
+    return null;
+  }
   return (
-    <>
-      {question.options.length > 0 && (
-        <div
-          {...stylex.props(styles.options, !wide && (parent ? styles.bleedFollowUp : styles.bleed))}
-        >
-          {question.options.map((choice) => (
-            <Option
-              choice={choice}
-              disabled={readOnly}
-              document={document}
-              key={choice.letter}
-              onToggle={() => answer.toggle(choice.letter)}
-              selected={answer.letters.includes(choice.letter)}
-            />
-          ))}
-        </div>
+    <div
+      {...stylex.props(
+        styles.options,
+        !wide && (question.parent ? styles.bleedFollowUp : styles.bleed),
       )}
-      {question.applies === "unclear" && !readOnly && (
-        <HStack gap={2} xstyle={styles.spaced}>
-          <Button label="Does not apply" onClick={answer.notApplying} />
-        </HStack>
-      )}
-    </>
+    >
+      {question.options.map((choice) => (
+        <Option
+          choice={choice}
+          disabled={readOnly}
+          document={document}
+          key={choice.letter}
+          onToggle={() => answer.toggle(choice.letter)}
+          selected={answer.letters.includes(choice.letter)}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -299,7 +289,6 @@ export function Question({
   target: RoundTarget;
 }) {
   const answer = useAnswer(question, target, path);
-  const unclear = question.applies === "unclear";
   const parent = question.parent;
   const wide = useWidthClass() === "wide";
   // A comment on one of its stories joins its answer, on a line of its own, while it can be
@@ -333,7 +322,6 @@ export function Question({
             {parent &&
               question.applies === "yes" &&
               ` · because you picked ${question.parentLetter}`}
-            {parent && unclear && ` · ${parent} names no option`}
           </Text>
           {onAsk && (
             <Button

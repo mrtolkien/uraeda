@@ -237,9 +237,9 @@ fn follow_up_applicability() {
         ("B and C: we need weekdays", Applicability::Yes),
         ("A, B", Applicability::Yes),
         ("B", Applicability::Yes),
-        ("We'll see", Applicability::Unclear),
-        ("I think A", Applicability::Unclear),
-        ("", Applicability::Unclear),
+        ("keep it simple", Applicability::No),
+        ("I think A", Applicability::No),
+        ("", Applicability::No),
     ];
     for (parent_answer, expected) in cases {
         let text = QUESTIONS.replace("B, we'll do it later", parent_answer);
@@ -253,13 +253,13 @@ fn follow_up_applicability() {
     }
 }
 
-/// A follow-up is asked once its parent's answer makes it apply, or leaves it unclear.
+/// A follow-up is asked once its parent's answer picks its letter: a comment alone closes it.
 #[test]
 fn a_follow_up_is_asked_once_its_parent_is_answered() {
     let cases = [
         ("C, we want a simple feature", false),
         ("B and C: we need weekdays", true),
-        ("We'll see", true),
+        ("keep it simple", false),
         ("", false),
     ];
     for (parent_answer, expected) in cases {

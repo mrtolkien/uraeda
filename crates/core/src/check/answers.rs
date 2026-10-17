@@ -51,17 +51,16 @@ pub(super) fn check_answers(
         return;
     }
     for question in &questions {
-        if !question.answer.is_empty() || question.answer_line == 0 {
+        if !question.answer.is_empty()
+            || question.answer_line == 0
+            || question.applies(&questions) == Applicability::No
+        {
             continue;
         }
-        let message = match question.applies(&questions) {
-            Applicability::No => continue,
-            Applicability::Yes => format!("{} has no answer", question.id),
-            Applicability::Unclear => format!(
-                "{} has no answer (may not apply: answer \"-\" if so)",
-                question.id
-            ),
-        };
-        problems.push(file.problem(Some(question.answer_line), "answers.blank", message));
+        problems.push(file.problem(
+            Some(question.answer_line),
+            "answers.blank",
+            format!("{} has no answer", question.id),
+        ));
     }
 }

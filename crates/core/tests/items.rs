@@ -1,6 +1,6 @@
 mod common;
 
-use uraeda_core::files::clarifications::{compose_answer, split_answer};
+use uraeda_core::files::clarifications::{compose_answer, letters, split_answer};
 use uraeda_core::files::document::{self, plain};
 use uraeda_core::files::items::{Items, items};
 use uraeda_core::files::review::{edit_comment, remove_comment};
@@ -38,28 +38,46 @@ fn answers_are_composed_as_the_ui_writes_them() {
     }
 }
 
+/// Review focus 2: letters stop at the first word that is not an option letter followed by a
+/// joint or an end mark, and `letters()` and `split_answer()` read them the same way.
 #[test]
 fn answers_are_split_into_letters_and_comment() {
     let options = ['A', 'B', 'C'];
-    let cases: [(&str, &[&str], &str); 7] = [
-        ("B and C: weekdays matter", &["B", "C"], "weekdays matter"),
-        ("A", &["A"], ""),
-        ("A, B and C", &["A", "B", "C"], ""),
-        ("A, B, and C: all", &["A", "B", "C"], "all"),
+    let cases: [(&str, &[&str], &str); 13] = [
         (
             "C, we want a simple feature",
-            &[],
-            "C, we want a simple feature",
+            &["C"],
+            "we want a simple feature",
         ),
+        (
+            "B, let's not overload the interface",
+            &["B"],
+            "let's not overload the interface",
+        ),
+        ("B.", &["B"], ""),
+        (
+            "A mix of both would be better",
+            &[],
+            "A mix of both would be better",
+        ),
+        ("C but with napi-rs", &[], "C but with napi-rs"),
+        ("A, B and C", &["A", "B", "C"], ""),
+        ("B and C: weekdays matter", &["B", "C"], "weekdays matter"),
+        ("B, C and D", &["B", "C"], "and D"),
+        ("A", &["A"], ""),
+        ("A, B, and C: all", &["A", "B", "C"], "all"),
         ("Neither", &[], "Neither"),
         ("-", &[], "-"),
+        ("", &[], ""),
     ];
-    for (answer, letters, comment) in cases {
+    for (answer, picked, comment) in cases {
         assert_eq!(
             split_answer(answer, &options),
-            (strings(letters), comment.to_string()),
+            (strings(picked), comment.to_string()),
             "{answer}"
         );
+        let chars: Vec<char> = picked.iter().flat_map(|letter| letter.chars()).collect();
+        assert_eq!(letters(answer, &options), chars, "{answer}");
     }
 }
 

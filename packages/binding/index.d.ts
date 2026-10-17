@@ -1008,7 +1008,7 @@ export interface QuestionItem {
   /** The answer split as the UI composes it. */
   letters: Array<string>
   comment: string
-  /** `yes`, `no`, or `unclear`: whether it needs an answer, from its parent's. */
+  /** `yes` or `no`: whether it needs an answer, from its parent's letters. */
   applies: string
   /** Whether the round asks it now: it may apply, and a follow-up's parent has an answer. */
   asked: boolean
