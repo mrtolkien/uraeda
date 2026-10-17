@@ -70,3 +70,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: leaving it: `specs:check` stays red for the whole branch.
 - **If wrong**: nothing: the folder becomes a record at finish.
 - **Where**: task 3.
+
+## R7: Unknown `###` headings are reported in rounds only
+
+- **Decision**: `sections.unknown` reports a `###` heading under a level-2 section whose template
+  children are all fixed headings in a round of questions only: its Context and its settled points.
+  Other files keep today's rule, level-2 sections only.
+- **Rationale**: the spec names the edge case for "Context or the settled points". Applied to every
+  template, the rule also reached a discovery's "The code" and a spec's "Details", and failed this
+  feature's own discovery, on two headings the discovery reference allows.
+- **Alternatives considered**: the rule for every file, as the plan's step 3 first read: a format
+  change to discoveries and specs that no spec asks for.
+- **If wrong**: one condition in `check_unknown`, in `crates/core/src/check/sections.rs`.
+- **Where**: task 3.

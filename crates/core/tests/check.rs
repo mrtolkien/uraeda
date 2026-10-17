@@ -1005,3 +1005,175 @@ fn the_triages_answered_status_submits() {
         ]
     );
 }
+
+const ROUND: &str = "specs/2026-10-06-recurring-tasks/clarifications-01.md";
+
+/// The line of the first line of `text` that is `needle`, from 1.
+fn line_in(text: &str, needle: &str) -> usize {
+    text.lines().position(|line| line == needle).unwrap() + 1
+}
+
+/// US1.1: the template's skeleton, its placeholders left as text and its topic links pointed at the
+/// example's discovery, has no problems. The links of other files to the example's questions are
+/// left out.
+#[test]
+fn the_rounds_template_has_no_problems() {
+    let example = Example::new();
+    let template = repository_file(
+        "skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md",
+    )
+    .replace("#topic", "#next-due-date");
+    example.write(ROUND, &template);
+
+    let problems: Vec<Problem> = example
+        .problems()
+        .into_iter()
+        .filter(|p| p.file == ROUND)
+        .collect();
+
+    assert_eq!(summary(&problems), Vec::<String>::new());
+}
+
+/// US1.2, US1.3, and the edge case on `###` headings: one row per break of the example round,
+/// with every problem it causes.
+#[test]
+fn the_rounds_parts() {
+    type Break = fn(&str) -> String;
+    type Expected = fn(&str) -> Vec<String>;
+    let rows: Vec<(&str, Break, Expected)> = vec![
+        (
+            "no Sources",
+            |text| text.replacen("### Sources\n\n", "", 1),
+            |_| vec![format!("{ROUND}: missing section \"### Sources\"")],
+        ),
+        (
+            "a point outside a group",
+            |text| {
+                text.replacen(
+                    "## Settled without the human\n\n",
+                    "## Settled without the human\n\n- **A loose point** settled.\n\n",
+                    1,
+                )
+            },
+            |text| {
+                vec![format!(
+                    "{ROUND}:{}: a settled point outside a group: put it under \"### Check these\", \"### Behaviour\", or \"### Under the hood\"",
+                    line_in(text, "- **A loose point** settled.")
+                )]
+            },
+        ),
+        (
+            "an unknown part of the Context",
+            |text| text.replacen("### Sources\n", "### Risks\n\nNone.\n\n### Sources\n", 1),
+            |text| {
+                vec![format!(
+                    "{ROUND}:{}: unknown section \"### Risks\"",
+                    line_in(text, "### Risks")
+                )]
+            },
+        ),
+        (
+            "an unknown group of settled points",
+            |text| {
+                text.replacen(
+                    "**Notes:**",
+                    "### Risks\n\n- **A risk** none.\n\n**Notes:**",
+                    1,
+                )
+            },
+            |text| {
+                vec![format!(
+                    "{ROUND}:{}: unknown section \"### Risks\"",
+                    line_in(text, "### Risks")
+                )]
+            },
+        ),
+    ];
+    for (name, break_it, expected) in rows {
+        let example = Example::new();
+        let text = break_it(&example.read(ROUND));
+        example.write(ROUND, &text);
+
+        assert_eq!(summary(&example.problems()), expected(&text), "{name}");
+    }
+}
+
+/// A round after the first opens its Context with what happened since the last round.
+#[test]
+fn a_later_round_says_what_happened_since_the_last() {
+    let later = format!("{FEATURE}/clarifications-02.md");
+    let since = "### Since the last round\n\nRound 01 was answered.\n\n";
+    type Edit = fn(&str, &str) -> String;
+    type Expected = fn(&str) -> Vec<String>;
+    let rows: Vec<(&str, Edit, Expected)> = vec![
+        (
+            "without it",
+            |text, _| text.to_string(),
+            |_| vec!["missing section \"### Since the last round\"".to_string()],
+        ),
+        (
+            "first",
+            |text, since| text.replacen("### Goal\n", &format!("{since}### Goal\n"), 1),
+            |_| vec![],
+        ),
+        (
+            "after the goal",
+            |text, since| text.replacen("### Today\n", &format!("{since}### Today\n"), 1),
+            |text| {
+                vec![format!(
+                    "{}: \"### Since the last round\" must come before \"### Goal\", as in the template",
+                    line_in(text, "### Since the last round")
+                )]
+            },
+        ),
+    ];
+    for (name, edit, expected) in rows {
+        let example = Example::new();
+        let text = edit(&example.read(ROUND), since);
+        example.write(&later, &text);
+
+        let problems: Vec<String> = example
+            .problems()
+            .into_iter()
+            .filter(|p| p.file == later)
+            .map(|p| match p.line {
+                Some(line) => format!("{line}: {}", p.message),
+                None => p.message,
+            })
+            .collect();
+
+        assert_eq!(problems, expected(&text), "{name}");
+    }
+}
+
+/// The triage keeps a free Context, sub-headings included, and has no settled points.
+#[test]
+fn a_triages_context_is_free() {
+    let example = Example::new();
+    example.write(
+        TRIAGE,
+        &triage().replacen(
+            "## Q1:",
+            "### What I read\n\nThe code and the drafts.\n\n## Q1:",
+            1,
+        ),
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// R4: a round recorded at finish keeps its parts as `#####` headings, under `#### Context` and
+/// `#### Settled without the human`.
+#[test]
+fn a_record_keeps_a_rounds_parts() {
+    let example = Example::new();
+    let text = record("feature", "Recurring tasks").replacen(
+        "### Round 01\n\n",
+        "### Round 01\n\n#### Context\n\n##### Goal\n\nA goal.\n\n##### Sources\n\n- The code.\n\n\
+         #### Settled without the human\n\n##### Behaviour\n\n- **A point** settled.\n\n",
+        1,
+    );
+    example.write("specs/done/2026-10-20-recurring-tasks.md", &text);
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}

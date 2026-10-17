@@ -8,11 +8,26 @@ status: awaiting-human
 >
 > 1 question, about 2 minutes.
 >
+> - Verdict: worth building as proposed.
 > - A point.
 
 ## Context
 
-Context.
+### Goal
+
+A goal.
+
+### Today
+
+Today.
+
+### Scope
+
+A scope.
+
+### Sources
+
+- The code.
 
 ## Q1: Question 1?
 
@@ -26,6 +41,8 @@ Why.
 **Answer:**
 
 ## Settled without the human
+
+### Behaviour
 
 - **Undoing a completion** puts back what completing changed.
 - **Deleting a repeating task** ends the repetition.

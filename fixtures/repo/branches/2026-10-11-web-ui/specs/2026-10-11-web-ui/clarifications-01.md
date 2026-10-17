@@ -8,11 +8,26 @@ status: awaiting-human
 >
 > 11 questions on the web UI, about 35 minutes.
 >
+> - Verdict: worth building as proposed.
 > - Two choices last beyond this feature.
 
 ## Context
 
+### Goal
+
 The [proposal](proposal.md) asks for a web UI, reached from a phone.
+
+### Today
+
+Every human step happens in a text editor.
+
+### Scope
+
+The human steps, and how the phone reaches the server.
+
+### Sources
+
+- The proposal, and the stack decision.
 
 ## Q1: Which human steps does the UI perform?
 
@@ -84,6 +99,8 @@ Why it matters: it amends an active decision, which every later server feature f
 **Answer:**
 
 ## Settled without the human
+
+### Under the hood
 
 - **The actions' commits move into the core**: answering and reviewing commit in the core, shared
   by `ura` and the server, with the same messages.

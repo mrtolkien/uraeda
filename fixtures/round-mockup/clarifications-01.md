@@ -1,19 +1,4 @@
-// A feature whose round of questions is written in the format of the clarifications redesign
-// (`specs/2026-10-17-redesign-clarifications/spec.md`), for the round page's mockups in
-// `QuestionCard.stories.tsx`: the skill's recurring tasks round, rewritten.
-import { commitOnBranch, git } from "uraeda-binding/test-utils";
-
-/** The mockup feature's folder and branch. */
-export const ROUND_MOCKUP = "2026-10-17-round-mockup";
-
-const PROPOSAL = `# Recurring tasks
-
-## What
-
-Tasks that come back once completed, like "water the plants" every week, in two clicks.
-`;
-
-const ROUND = `---
+---
 status: awaiting-human
 ---
 
@@ -23,7 +8,7 @@ status: awaiting-human
 >
 > 3 questions and 1 follow-up, about 12 minutes.
 >
-> - Verdict: worth building, with one change: the proposal's two clicks take three today.
+> - Verdict: worth building, with changes: the proposal's two clicks take three today.
 > - Storing due dates as calendar days changes the due dates decision, for every later feature with
 >   dates.
 > - A task without a due date has no date to repeat from: settled, check it.
@@ -53,9 +38,9 @@ next in the priorities.
 
 ### Sources
 
-- The task store and the edit panel, in \`src/store/tasks.ts\` and \`src/components/EditPanel.tsx\`.
+- The task store and the edit panel, in `src/store/tasks.ts` and `src/components/EditPanel.tsx`.
 - The help pages of Microsoft To Do, Todoist, and Google Calendar.
-- date-fns' \`addMonths\`, and MDN on Temporal.
+- date-fns' `addMonths`, and MDN on Temporal.
 
 ## Q1: When does the next occurrence appear?
 
@@ -65,13 +50,13 @@ on completion:
 > "When you complete a recurring task, it will automatically reschedule to the next date." Todoist
 > help, Introduction to recurring dates.
 
-\`\`\`mermaid
+```mermaid
 flowchart LR
   done[Task completed] --> repeats{Repeats?}
   repeats -- no --> closed[Marked done]
   repeats -- "yes, with A" --> next[New task, next date]
   repeats -- "yes, with C" --> moved[Same task, due date moved]
-\`\`\`
+```
 
 Why it matters: it decides whether completed occurrences stay as a history, and whether the app
 needs a notion of series.
@@ -113,11 +98,11 @@ Why it matters: it decides whether the store keeps per-occurrence changes.
 
 Due dates are timestamps at local midnight. A local day lasts 23 or 25 hours when daylight saving
 time changes, so adding 7 times 24 hours can land on the day before. date-fns, already a
-dependency, fixes the month overflow with \`addMonths\`.
+dependency, fixes the month overflow with `addMonths`.
 
 Why it matters: reminders, and every later feature with dates, will follow this choice.
 
-- **A (recommended). Store due dates as calendar days (\`2026-10-12\`), without a time, computed
+- **A (recommended). Store due dates as calendar days (`2026-10-12`), without a time, computed
   with date-fns.**
   - [pro] daylight saving cannot shift a calendar day.
   - [con] a one-time upgrade of saved tasks.
@@ -165,13 +150,3 @@ Why it matters: an end date adds two fields to the repeat setting.
 - **Tests set the clock**, to cover daylight saving changes and month ends.
 
 **Notes:**
-`;
-
-/** Adds the mockup feature on its own branch, from `main`, without a worktree. */
-export function addRoundMockup(repo: string) {
-  git(repo, "branch", ROUND_MOCKUP, "main");
-  commitOnBranch(repo, ROUND_MOCKUP, {
-    [`specs/${ROUND_MOCKUP}/clarifications-01.md`]: ROUND,
-    [`specs/${ROUND_MOCKUP}/proposal.md`]: PROPOSAL,
-  });
-}

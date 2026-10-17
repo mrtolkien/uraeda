@@ -8,11 +8,26 @@ status: awaiting-human
 >
 > 2 questions on the sidebar's handle, about 5 minutes.
 >
+> - Verdict: worth building as proposed.
 > - Q2 shows each handle live: pick the one you want.
 
 ## Context
 
+### Goal
+
 The [proposal](proposal.md) asks for a sidebar the human resizes by dragging its edge.
+
+### Today
+
+The sidebar has a fixed width.
+
+### Scope
+
+The sidebar's width and its handle.
+
+### Sources
+
+- The sidebar's handle, in two stories.
 
 ## Q1: How wide can the sidebar get?
 
@@ -49,6 +64,8 @@ Why it matters: the handle is always on screen.
 **Answer:**
 
 ## Settled without the human
+
+### Behaviour
 
 - **The handle's colour** is the sidebar's border colour.
 

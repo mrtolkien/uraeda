@@ -44,6 +44,30 @@ fn problems_exit_with_one() {
     assert_eq!(output.code, 1);
 }
 
+/// US1.2: a round whose Context has no Sources fails.
+#[test]
+fn a_round_without_its_sources_fails() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    let round = clarifications("awaiting-human", "1 question, about 5 minutes.", &[""]);
+    assert!(round.contains("### Sources\n"), "{round}");
+    repo.write(
+        "specs/2026-10-10-x/clarifications-01.md",
+        &round.replacen("### Sources\n", "", 1),
+    );
+
+    let output = ura(&repo, &["check", "specs/2026-10-10-x/clarifications-01.md"]);
+
+    assert_eq!(
+        output.stdout,
+        "specs/2026-10-10-x/clarifications-01.md: missing section \"### Sources\"\n1 problem\n"
+    );
+    assert_eq!(output.code, 1);
+}
+
 #[test]
 fn json_lists_problems() {
     let repo = TestRepo::new();

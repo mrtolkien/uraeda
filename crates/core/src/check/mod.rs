@@ -341,6 +341,9 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     if let Checked::Workflow(FileKind::Clarifications) | Checked::Triage = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);
     }
+    if file.kind == Checked::Workflow(FileKind::Clarifications) {
+        sections::check_settled_groups(file, &document, &mut problems);
+    }
     if let Some(front) = &front {
         let waiting = front.text("status") == Some("awaiting-human");
         let has_block = document
