@@ -67,6 +67,3 @@
   reads every decision on each pass
 - [agent] [redesign-priorities] List keys under an open menu or dialog are handled but untested:
   only an open Selector is tested
-- [agent] [redesign-priorities] Under the full browser run, story-variants' comment test sometimes
-  fails: userEvent.click turns the found element back into a locator by its label, which matches
-  both variants' Pick buttons
