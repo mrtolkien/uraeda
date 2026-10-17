@@ -94,51 +94,123 @@ describe("on a desktop, where the form opens under the block", () => {
   });
 });
 
-test("a story frame above you that grows does not move the text (US7 2)", async () => {
+/**
+ * A story frame scrolled wholly above the screen, the text read at the window's top, `send`, which
+ * makes the frame's story report a height, as its `size` message does, and `leave`, which takes the
+ * frame and the text off the page, as leaving it does. Runs `check`, then removes what it added to
+ * the page.
+ */
+async function withFrameAbove(
+  check: (
+    send: (height: number) => void,
+    frame: HTMLIFrameElement,
+    text: HTMLElement,
+    leave: () => void,
+  ) => Promise<void>,
+) {
   const container = document.createElement("div");
   // Room below the text, to scroll the frame above the screen.
   const below = document.createElement("div");
   below.style.height = "3000px";
   document.body.append(container, below);
+  // The browser's scroll anchoring off, as once a page's content is replaced (R25): the page alone
+  // keeps the place.
+  document.documentElement.style.overflowAnchor = "none";
   const root = createRoot(container);
-  const pick = { onPicked() {}, onPickStopped() {}, onReady() {}, picking: false };
-  root.render(
-    <Theme mode="light" theme={uraedaTheme}>
-      <StoryFrames
-        label="Growing"
-        pick={pick}
-        src="about:blank"
-        wide={window.innerWidth >= 768}
-        width="phone"
-      />
-      <p>The text read</p>
-    </Theme>,
-  );
-  const frame = (await screen.findByTitle("Growing, phone")) as HTMLIFrameElement;
-  /** The frame's story reports its height, as its `size` message does. */
-  const report = async (height: number) => {
-    await act(async () => {
+  let left = false;
+  const leave = () => {
+    if (left) {
+      return;
+    }
+    left = true;
+    root.unmount();
+    container.remove();
+  };
+  try {
+    const pick = { onPicked() {}, onPickStopped() {}, onReady() {}, picking: false };
+    root.render(
+      <Theme mode="light" theme={uraedaTheme}>
+        <StoryFrames
+          label="Growing"
+          pick={pick}
+          src="about:blank"
+          wide={window.innerWidth >= 768}
+          width="phone"
+        />
+        <p>The text read</p>
+      </Theme>,
+    );
+    const frame = (await screen.findByTitle("Growing, phone")) as HTMLIFrameElement;
+    const send = (height: number) => {
       window.dispatchEvent(
         new MessageEvent("message", {
           data: { height, uraeda: "size" },
           source: frame.contentWindow,
         }),
       );
-    });
-    await expect.poll(() => frame.getBoundingClientRect().height).toBe(height);
+    };
     await drawn();
-  };
-  await drawn();
-  const text = screen.getByText("The text read");
-  // The frame above the screen, the text at its top.
-  window.scrollBy(0, text.getBoundingClientRect().top + 1);
-  await drawn();
-  expect(frame.getBoundingClientRect().bottom).toBeLessThan(0);
-  const before = text.getBoundingClientRect().top;
+    const text = screen.getByText("The text read");
+    // The frame above the screen, the text at its top.
+    window.scrollBy(0, text.getBoundingClientRect().top + 1);
+    await drawn();
+    expect(frame.getBoundingClientRect().bottom).toBeLessThan(0);
+    await check(send, frame, text, leave);
+  } finally {
+    leave();
+    below.remove();
+    document.documentElement.style.overflowAnchor = "";
+  }
+}
 
-  await report(560);
-  await report(700);
+test("a story frame above you that grows does not move the text (US7 2)", async () => {
+  await withFrameAbove(async (send, frame, text) => {
+    const before = text.getBoundingClientRect().top;
+    /** The story reports its height, and the frame has taken it. */
+    const report = async (height: number) => {
+      await act(async () => send(height));
+      await expect.poll(() => frame.getBoundingClientRect().height).toBe(height);
+      await drawn();
+    };
 
-  expect(Math.abs(text.getBoundingClientRect().top - before)).toBeLessThanOrEqual(MOVE);
-  root.unmount();
+    await report(560);
+    await report(700);
+
+    expect(Math.abs(text.getBoundingClientRect().top - before)).toBeLessThanOrEqual(MOVE);
+  });
+});
+
+test("a story frame above you that reports sizes in a burst does not move the text", async () => {
+  await withFrameAbove(async (dispatch, frame, text) => {
+    // The frame far enough above that it stays above the screen as it grows.
+    window.scrollBy(0, 400);
+    await drawn();
+    const before = text.getBoundingClientRect().top;
+
+    // Three sizes, each drawn before the next comes, all before a place is put back: each place is
+    // kept while the ones before are still in flight.
+    for (const height of [560, 700, 720]) {
+      act(() => dispatch(height));
+    }
+    await expect.poll(() => frame.getBoundingClientRect().height).toBe(720);
+    await drawn();
+    await drawn();
+
+    expect(Math.abs(text.getBoundingClientRect().top - before)).toBeLessThanOrEqual(MOVE);
+  });
+});
+
+test("leaving the page as a story frame above you grows scrolls nothing", async () => {
+  await withFrameAbove(async (send, _frame, _text, leave) => {
+    window.scrollBy(0, 400);
+    await drawn();
+    act(() => send(700));
+    act(leave);
+    const before = window.scrollY;
+
+    await drawn();
+    await drawn();
+
+    expect(window.scrollY).toBe(before);
+  });
 });
