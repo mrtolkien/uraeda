@@ -1,7 +1,8 @@
 // The preview runner: the only code that starts, watches, and stops Storybook processes, one per
 // checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view starts the checkout's Storybook, which
-// is ready once its index answers; it stops after 30 minutes without a view, when its checkout or
-// its repository is removed, and with the server. Its state lives in memory, and its process groups
+// is ready once its index answers; a view after its checkout's commit moved starts it again; it
+// stops after 30 minutes without a view, when its checkout or its repository is removed, and with
+// the server. Its state lives in memory, and its process groups
 // in a record the next start reads, should the server be killed.
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
@@ -21,9 +22,16 @@ export type PreviewState =
 
 /**
  * A checkout to run a Storybook in: its folder, `dir`, its preview decision's `preview-folder` and
- * `preview-command`, and the path it is served under, `/r/<name>/preview/<secret>/<folder>/`.
+ * `preview-command`, the path it is served under, `/r/<name>/preview/<secret>/<folder>/`, and the
+ * commit it has checked out, when it was read.
  */
-export type Checkout = { base: string; command: string; dir: string; folder: string };
+export type Checkout = {
+  base: string;
+  command: string;
+  commit?: string;
+  dir: string;
+  folder: string;
+};
 
 /** How often a starting Storybook's index is read. */
 export const POLL_MS = 500;
@@ -123,6 +131,11 @@ function keepLines(stream: NodeJS.ReadableStream | null, lines: Array<string>) {
   stream?.on("end", () => keep(partial));
 }
 
+/** Whether the checkout's commit moved since `started` was read: unknown commits never moved. */
+function moved(started: Checkout, now: Checkout): boolean {
+  return started.commit !== undefined && now.commit !== undefined && started.commit !== now.commit;
+}
+
 /** Whether `path` is a folder. */
 function isFolder(path: string): boolean {
   try {
@@ -164,14 +177,22 @@ export class Previews {
   /**
    * The checkout's state, its Storybook started when none runs, and the view recorded. A Storybook
    * under the same base in another folder, a removed repository's whose folder name another one
-   * took, is stopped, and one started in the checkout. Once the runner is stopped, failed with
+   * took, is stopped, and one started in the checkout. One started at another commit of the checkout,
+   * which may have changed what Storybook only reads as it starts, such as its configuration or its
+   * dependencies, is started again, its records kept. Once the runner is stopped, failed with
    * `NOT_RUNNING`, and nothing starts.
    */
   view(checkout: Checkout): PreviewState {
     if (this.#closed) {
       return { error: NOT_RUNNING, state: "failed" };
     }
-    const entry = this.#entry(checkout) ?? this.#start(checkout);
+    const current = this.#entry(checkout);
+    const entry =
+      current === undefined
+        ? this.#start(checkout)
+        : moved(current.checkout, checkout)
+          ? this.#replace(current, checkout)
+          : current;
     entry.lastView = this.#now();
     return entry.state;
   }
@@ -249,6 +270,16 @@ export class Previews {
       return undefined;
     }
     return entry;
+  }
+
+  /**
+   * Starts the checkout's Storybook in place of the entry's, then stops the entry's: its base never
+   * goes without a state, so the records read for it stay, and get the new one's updates.
+   */
+  #replace(entry: Entry, checkout: Checkout): Entry {
+    const started = this.#start(checkout);
+    void this.#stop(entry);
+    return started;
   }
 
   #start(checkout: Checkout): Entry {

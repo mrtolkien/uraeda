@@ -84,6 +84,13 @@ pub fn preview(checkout: String) -> AsyncTask<Job<Option<Preview>>> {
     job(move || api::preview(Path::new(&checkout)))
 }
 
+/// The commit the checkout at `checkout` has checked out, as a full hash: `null` before its first
+/// commit. Its preview starts again once it moves.
+#[napi(ts_return_type = "Promise<string | null>")]
+pub fn checkout_commit(checkout: String) -> AsyncTask<Job<Option<String>>> {
+    job(move || api::checkout_commit(Path::new(&checkout)))
+}
+
 /// Every feature, change, and priority of the repository at `repo`.
 #[napi(ts_return_type = "Promise<WorkspaceView>")]
 pub fn read_workspace(repo: String) -> AsyncTask<Job<WorkspaceView>> {

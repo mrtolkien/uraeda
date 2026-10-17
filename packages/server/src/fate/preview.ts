@@ -150,7 +150,7 @@ export function takeWatched(previews: Previews): Array<Watched> {
 
 /**
  * A folder's checkout to run, under its base, `/r/<name>/preview/<secret>/<folder>/`, with the
- * current frame secret, or null without one or without a decision.
+ * current frame secret, at its current commit, or null without one or without a decision.
  */
 async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | null> {
   const checkout = await checkoutOf(ctx, folder);
@@ -158,13 +158,22 @@ async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | nu
   if (checkout === null || name === undefined) {
     return null;
   }
-  const found = await ctx.binding.preview(checkout.dir).catch(() => null);
+  const [found, commit] = await Promise.all([
+    ctx.binding.preview(checkout.dir).catch(() => null),
+    ctx.binding.checkoutCommit(checkout.dir).catch(() => null),
+  ]);
   if (found === null) {
     return null;
   }
   const secret = ctx.frames.current();
   const base = `/r/${encodeURIComponent(name)}/preview/${secret}/${encodeURIComponent(folder)}/`;
-  return { base, command: found.command, dir: checkout.dir, folder: found.folder };
+  return {
+    base,
+    command: found.command,
+    commit: commit ?? undefined,
+    dir: checkout.dir,
+    folder: found.folder,
+  };
 }
 
 /** A preview's record from its state. */
