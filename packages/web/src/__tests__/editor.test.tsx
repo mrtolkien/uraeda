@@ -225,6 +225,25 @@ test("the discovery control sets the frontmatter, and the text box keeps its tex
   await waitFor(() => expect(readFileSync(file, "utf8")).toBe(`${set}\nMore.\n`));
 });
 
+/** Redesign-specs review focus 10: the frontmatter joined back, a stale save is still refused. */
+test("a save over a change made elsewhere is refused, its frontmatter joined back", async () => {
+  const { file, repo } = withFrontmatter();
+  await renderPage(`/edit/${LISTENER}`, repo);
+  const field = await edit();
+  const elsewhere = `${FRONTMATTER}# Changed elsewhere\n`;
+  writeFileSync(file, elsewhere);
+
+  await type(field, "# Mine\n");
+  await saveText();
+
+  expect(
+    await screen.findByText(
+      "git-listener.md changed on disk since you opened it. Your text was not saved.",
+    ),
+  ).toBeTruthy();
+  expect(readFileSync(file, "utf8")).toBe(elsewhere);
+});
+
 /** US4.3 */
 test("a draft is committed with the priorities it changed", async () => {
   const repo = fixtureRepo();
