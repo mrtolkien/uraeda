@@ -56,7 +56,7 @@ pub struct QuestionItem {
     /// The answer split as the UI composes it.
     pub letters: Vec<String>,
     pub comment: String,
-    /// `yes`, `no`, or `unclear`: whether it needs an answer, from its parent's.
+    /// `yes` or `no`: whether it needs an answer, from its parent's letters.
     pub applies: String,
     /// Whether the round asks it now: it may apply, and a follow-up's parent has an answer.
     pub asked: bool,

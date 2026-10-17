@@ -115,7 +115,6 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
         let (picked, comment) = clarifications::split_answer(&answer, &letters);
         let applies = match found.map(|q| q.applies(&parsed)) {
             Some(Applicability::No) => "no",
-            Some(Applicability::Unclear) => "unclear",
             _ => "yes",
         };
         let mut context = Vec::new();

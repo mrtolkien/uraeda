@@ -479,22 +479,17 @@ fn spec_line(needle: &str) -> usize {
 }
 
 #[test]
-fn unclear_follow_up() {
+fn a_follow_up_of_a_comment_alone_needs_no_answer() {
     let example = Example::new();
     example.edit(
         &format!("{FEATURE}/clarifications-01.md"),
         "**Answer:** C, we want a simple feature.",
-        "**Answer:** We'll see.",
+        "**Answer:** keep it simple",
     );
 
     let problems = summary(&example.problems());
 
-    assert!(
-        problems
-            .iter()
-            .any(|p| p.ends_with("Q2.B has no answer (may not apply: answer \"-\" if so)")),
-        "{problems:#?}"
-    );
+    assert_eq!(problems, Vec::<String>::new());
 }
 
 #[test]
