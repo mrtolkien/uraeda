@@ -446,7 +446,7 @@ key on their bold subject; Submit flips the block's first paragraph only
   `packages/web/src/RoundPage.stories.tsx` (the real page over the mockup fixture)
 - Test: `packages/web/src/__tests__/round.test.tsx`
 
-- [ ] **Step 1: Structural: split `RoundPage` into the opening, the questions, and the end**, no
+- [x] **Step 1: Structural: split `RoundPage` into the opening, the questions, and the end**, no
       behaviour change; tests PASS before and after. Commit
       `refactor(redesign-clarifications): the round page in three parts`.
 - [ ] **Step 2: Write the failing tests**: US2.1 headings "Goal", "Today", "Scope", "Sources" in
