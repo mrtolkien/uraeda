@@ -150,3 +150,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: skipping placeholders in brackets: a rule for templates only.
 - **If wrong**: the wording of those lines.
 - **Where**: task 5.
+
+## R13: The web UI's "Does not apply" save leaves the actions test
+
+- **Decision**: the step labelled US2.7 in `saves_answers_as_the_ui_composes_them`, in
+  `crates/core/tests/actions.rs`, which saved `-` on a follow-up, is removed.
+- **Rationale**: it checked the web UI's "Does not apply" button, US2.7 of the
+  [web UI's record](../done/2026-10-11-web-ui.md), which writes `-`. The spec removes the button and
+  the skill's `-` answer: a parent answered without a letter closes its follow-ups. Saving a comment
+  stays checked by the test's other steps.
+- **Alternatives considered**: relabelling it as a comment saved on a follow-up: it would keep `-`
+  as the example of an answer that no longer means anything.
+- **If wrong**: the three lines come back, with a comment other than `-`.
+- **Where**: task 6.
+
+## R14: The Neovim hint of the example change follows its waiting round
+
+- **Decision**: `priorities show their hints`, in `editors/nvim/tests/test_inline.lua`, expects the
+  example change's hint to read "human-gate · waits on you" instead of "change · waits on agent".
+- **Rationale**: the spec gives the example change a round waiting for the human
+  ([Template and examples](spec.md#components)), so its step is a human gate. The test reads the
+  example as it is.
+- **Alternatives considered**: removing the round from the test's copy of the example: the test
+  would check a state the example no longer shows.
+- **If wrong**: the expected hint, or the test's copy of the example.
+- **Where**: task 6.

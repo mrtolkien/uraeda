@@ -67,7 +67,7 @@ async function saveWithLine(line: string, answer: LineSave): Promise<string | un
 /**
  * A question's answer as the page shows it, its letters and its comment, and how it saves. The
  * comment is a field of the unsaved store, `<path>#<id>`, over the comment the file holds: a tap on
- * an option or "Does not apply" saves at once with the comment as saved, the comment typed saves
+ * an option saves at once with the comment as saved, the comment typed saves
  * with its button or Ctrl+Enter, its images at once with the text as typed, and Submit what is
  * still unsaved. `target` is the round the answer is written in, a feature's or the triage.
  */

@@ -375,18 +375,18 @@ key on their bold subject; Submit flips the block's first paragraph only
 - Test: `crates/core/tests/check.rs` (the example change round reports nothing; the skill's links
   resolve, through the existing skill link test)
 
-- [ ] **Step 1: Write the failing test**: the example change's round passes `ura check` with no
+- [x] **Step 1: Write the failing test**: the example change's round passes `ura check` with no
       warning, and its Sources has no discovery link.
-- [ ] **Step 2: Run it to check it fails**: FAIL, no such file.
-- [ ] **Step 3: Write** `writing.md`: numbered rules, each with its reason and limit: the block's
+- [x] **Step 2: Run it to check it fails**: FAIL, no such file.
+- [x] **Step 3: Write** `writing.md`: numbered rules, each with its reason and limit: the block's
       shape (count line, verdict first, at most 7 items), the Context's parts and what each holds,
       sentences of at most 25 words, terms defined at first use, never an ID from a file the reader
       has not seen, never an answer cited by number alone, adequate context as its own rule (no
       length limit, no padding, tables, quotes, diagrams), the settled groups and their order, the
       time estimate's formula, and the self-review reading each card alone. Numbers match
       `writing.rs`. Then the other references, linking to it instead of repeating it.
-- [ ] **Step 4: Run the project's validation**: `cargo nextest run -p uraeda-core`, `vp check`.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run the project's validation**: `cargo nextest run -p uraeda-core`, `vp check`.
+- [x] **Step 5: Commit**
       `docs(redesign-clarifications): the writing reference, shared by every document for the human`
 
 ## Task 7: Tables keep a column floor and scroll in their own region

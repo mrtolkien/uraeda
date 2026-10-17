@@ -18,8 +18,8 @@ outcome: the code, `PRIORITIES.md`, the drafts and the backlog, and the open bra
 
 ## Q1: [What to do with "note text", or with the notes about subject]
 
-[The notes it covers, each quoted by its text. Two or three sentences of context: what you found
-about them in the code, the priorities, and the drafts, with links.]
+[The notes it covers, each quoted by its text. Then as much context as deciding needs: what you
+found about them in the code, the priorities, and the drafts, with links.]
 
 Why it matters: [what this outcome costs or saves later].
 
