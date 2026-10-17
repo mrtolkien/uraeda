@@ -1,7 +1,7 @@
 // The toolchain decision's rules a tool can read (see `specs/decisions/toolchain.md`): each check is
 // a pure function, shown to fire on a fixture that breaks it, then run on the repository's files.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 import config from "../../../../vite.config.ts";
@@ -125,10 +125,35 @@ function readyGroups(): Record<string, Task> {
  * CI runs every check without Vite Task's cache. A commented-out step runs nothing.
  */
 function notInCi(tasks: Record<string, Task>, ci: string): Array<string> {
+  // Only run steps count. A job name, an echo, or a comment naming a task executes no check.
+  // Read the inline command or the indented body of a YAML run block, failing closed on other
+  // shell wrappers: a new wrapper must teach this check how it invokes the task.
+  const lines = uncommented("ci.yml", ci).split("\n");
+  const commands = lines.flatMap((line, index) => {
+    const step = /^( *)(?:- )?run:\s*(.*)$/.exec(line);
+    if (!step) {
+      return [];
+    }
+    if (!/^[|>][-+]?\s*$/.test(step[2])) {
+      return [step[2]];
+    }
+    const body: Array<string> = [];
+    for (const next of lines.slice(index + 1)) {
+      if (next.trim() && next.length - next.trimStart().length <= step[1].length) {
+        break;
+      }
+      body.push(next.trim());
+    }
+    return body;
+  });
   const run = new Set(
-    [...uncommented("ci.yml", ci).matchAll(/\bvp run --no-cache ([\w:@/.-]+)/g)].map(
-      ([, task]) => task,
-    ),
+    commands.flatMap((command) => {
+      const task =
+        /^(?:nix develop (?:-c|--command) )?(?:pnpm exec )?vp run --no-cache ([\w:@/.-]+)(?:\s|$)/.exec(
+          command.trim(),
+        )?.[1];
+      return task ? [task] : [];
+    }),
   );
   return Object.keys(tasks)
     .filter((name) => !run.has(name))
@@ -561,6 +586,60 @@ test("CI runs every group of ready", () => {
   expect(
     notInCi(readyGroups(), readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8")),
   ).toEqual([]);
+});
+
+test("a job name or echo naming a ready task does not count as running it", () => {
+  const ci = `jobs:
+  rust:
+    name: vp run --no-cache ready:rust
+    steps:
+      - run: echo 'vp run --no-cache ready:rust'
+      - run: |
+          nix develop --command pnpm exec vp run --no-cache ready:typescript
+`;
+  expect(
+    notInCi({ "ready:rust": { command: "true" }, "ready:typescript": { command: "true" } }, ci),
+  ).toHaveLength(1);
+  expect(notInCi({ "ready:typescript": { command: "true" } }, ci)).toEqual([]);
+});
+
+/** Whether explicit include and exclude globs fingerprint a file. Excludes always win. */
+function tracks(task: string, file: string): boolean {
+  const cache = allTasks()[task].cache;
+  const inputs =
+    typeof cache === "object"
+      ? (cache.input?.filter((input): input is string => typeof input === "string") ?? [])
+      : [];
+  return (
+    inputs.some((input) => !input.startsWith("!") && matchesGlob(file, input)) &&
+    !inputs.some((input) => input.startsWith("!") && matchesGlob(file, input.slice(1)))
+  );
+}
+
+test.each(["ts:test", "browser:phone", "browser:desktop"])(
+  "%s invalidates on native binding changes",
+  (task) => {
+    expect(tracks(task, "crates/core/src/lib.rs")).toBe(true);
+    expect(tracks(task, "crates/binding/src/lib.rs")).toBe(true);
+    expect(tracks(task, "Cargo.lock")).toBe(true);
+  },
+);
+
+test("cached checks track the dev shell and ignore generated reports", () => {
+  for (const [name, { cache }] of Object.entries(readyTasks())) {
+    if (typeof cache !== "object") {
+      continue;
+    }
+    expect(tracks(name, "flake.lock"), `${name} tracks its pinned tools`).toBe(true);
+    for (const file of [
+      "coverage/report.md",
+      "packages/web/.vitest/traces/failed.zip",
+      "packages/web/storybook-static/index.html",
+    ]) {
+      expect(tracks(name, file), `${name} ignores ${file}`).toBe(false);
+    }
+  }
+  expect(allTasks()["ts:check"].dependsOn).toContain("binding:build");
 });
 
 test("the repository's toolchain follows the decision", () => {

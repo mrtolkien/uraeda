@@ -7,10 +7,10 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A newer run of a branch cancels the older one; `main`'s runs all finish, each keeping its coverage.
+# Only the latest revision of a branch needs validation, including on main.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -57,6 +57,15 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run the browser tests at the phone's size
         run: nix develop --command pnpm exec vp run --no-cache ready:browser-phone
+      - name: Keep browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-phone-failures
+          path: packages/web/.vitest/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain
@@ -70,6 +79,15 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run the browser tests at the desktop's size
         run: nix develop --command pnpm exec vp run --no-cache ready:browser-desktop
+      - name: Keep browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-desktop-failures
+          path: packages/web/.vitest/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain
@@ -109,27 +127,6 @@ jobs:
           size=$(stat -c %s target/release/ura)
           echo "ura: $size bytes"
 
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  coverage:
-    # A report kept for each push to `main`, never a check: a drop fails nothing.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Report the coverage
-        run: nix develop --command pnpm exec vp run --no-cache coverage
-      - uses: actions/upload-artifact@v7
-        with:
-          name: coverage
-          path: coverage/
-          retention-days: 30
-          if-no-files-found: error
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain

@@ -10,8 +10,8 @@ One command, `vp run ready`, runs every format check, lint, type check, test, an
 repository, as a graph of cached Vite Task tasks: it only reruns the checks whose inputs changed,
 and runs independent ones in parallel. CI runs the same tasks, uncached, across parallel jobs inside
 the Nix dev shell, on Linux x64. Every tool is pinned, no test is ever retried, and coverage is
-reported, never enforced. The web UI is compiled with React Compiler, so its components are memoized
-by the build, not by hand.
+available on demand. The web UI is compiled with React Compiler, so its components are memoized by
+the build, not by hand.
 
 ## Rules
 
@@ -20,6 +20,9 @@ by the build, not by hand.
 - Each check of `ready` MUST be a task of `vite.tasks.ts`, cached by Vite Task, with its inputs
   listed in `cache.input`: a check MUST NOT rely on automatic input tracking. Checked by the test of
   the toolchain's configuration.
+- Test tasks loading the native binding MUST track its Rust sources as inputs as well as their
+  TypeScript sources. Cached checks MUST track the pinned toolchain they run with. Generated reports
+  and failure evidence MUST NOT invalidate checks. Checked by the toolchain tests.
 - CI MUST run every check of `ready`, without Vite Task's cache, inside the `flake.nix` dev shell,
   on Linux x64, split across parallel jobs, and MUST fail when a job leaves the working tree
   changed. Other platforms are built by the release matrix, not validated. Checked by the test of
@@ -48,9 +51,14 @@ by the build, not by hand.
 - Test runners MUST NOT retry a failed test: cargo-nextest, Vitest, and mini.test run each test
   once. A test that fails without a bug MUST be fixed or rewritten in the pull request that finds
   it. Checked by the test of the toolchain's configuration, and by review.
-- Coverage of the Rust and TypeScript unit tests MUST be reported by `vp run coverage`, and CI MUST
-  keep the report of each push to `main` as an artifact. A coverage drop MUST NOT fail a check.
-  Checked by review.
+- Coverage of the Rust and TypeScript unit tests MAY be collected with `vp run coverage`. It MUST
+  stay outside `ready` and CI: an instrumented second run is optional diagnostic work, not a merge
+  gate. A coverage drop MUST NOT fail a check. Checked by review.
+- Vitest MUST bound its worker count to at most four and no more than the machine's available CPUs,
+  keeping file isolation. Browser failures MUST retain screenshots and Playwright traces, uploaded
+  by CI even when the test command fails, without retrying the test. Checked by review.
+- A newer revision MUST cancel an older CI run on the same branch, including `main`: old revisions
+  have no coverage artifact to preserve. Checked by review.
 - The Rust toolchain MUST be pinned in `rust-toolchain.toml`, with the 2024 edition; Node and pnpm
   MUST be pinned in `package.json`'s `devEngines`; cargo-nextest and cargo-llvm-cov MUST be pinned
   by the flake. Checked by review.
@@ -94,6 +102,13 @@ Neovim tests out of the default run, and a coverage report without thresholds
 ([Q1](../done/2026-10-14-testing-review.md#q1-what-does-this-feature-cover),
 [Q1.A](../done/2026-10-14-testing-review.md#q1a-what-does-coverage-do-once-it-is-measured)).
 
+The [October 17 CI review](/docs/testing-review-2026-10-17.md) found an instrumented duplicate of
+the test suite could fail `main` after all validation jobs passed. The human explicitly made
+coverage optional. It stays available on demand, and CI validates the latest revision with failure
+evidence instead of preserving every revision's coverage artifact. The review also found that test
+caches missed changes to the Rust binding sources and toolchain pins, while generated reports
+invalidated unrelated checks; the task inputs and regression tests now cover those cases.
+
 Several worktrees run their tests at once on one machine. Their temporary folders filled a 16 GB
 `/tmp`, which read as flaky tests; their servers and previews took the same ports; their browser
 tests, all at once, slowed each other past their timeouts; and after a pull, `vp dev` and the tests
@@ -127,8 +142,9 @@ experimental.
 
 ## Consequences
 
-- A green `vp run ready` locally means a green CI, except for committed generated files, the CI-only
-  checks, and an input missing from a task's list, which CI's uncached run catches.
+- A green `vp run ready` locally runs the same validation as CI, apart from the CI-only checks.
+  Different resource limits, generated files left uncommitted, a race, or a missing cache input can
+  still produce a different result; CI's uncached run remains necessary.
 - A task's inputs are a second list to keep with the code: a test reading a new folder needs it
   added, or `ready` reuses a stale result locally.
 - CI sets up the dev shell once per job: more runner minutes, less waiting.
@@ -136,7 +152,7 @@ experimental.
 - A browser test run waits while two others run on the machine, and says so; on CI, alone on its
   machine, it never waits.
 - A test reading `os.tmpdir()` across runs finds nothing there: each run starts with an empty one.
-- Coverage can go down unnoticed, until someone reads the report.
+- Coverage is collected only when someone asks for it, and can go down unnoticed.
 - A bug specific to macOS or arm64 is only caught by the release builds, or by a contributor.
 - Generated declarations show up in diffs, so a reviewer sees every change to the types crossing
   from Rust.
