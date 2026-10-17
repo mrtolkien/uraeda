@@ -68,3 +68,6 @@
 - [agent] [storybook-restart] A Storybook whose first commit read failed never restarts on a commit
   until it idles out: a view at an unknown commit keeps it, and one at a known commit after it
   should restart once (runner.ts moved)
+- [agent] [storybook-restart] Two views racing a commit can restart a Storybook back to the older
+  commit, then forward again: restart only for a commit read after the Storybook started (runner.ts
+  view)
