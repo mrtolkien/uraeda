@@ -98,6 +98,26 @@ const CASES: &[Case] = &[
             ("Rules", "kept", "=Lists MAY be shared."),
         ],
     ),
+    case(
+        "the strongest rule moved first",
+        "# T\n\n## Rules\n\n- Lists SHOULD be shared.\n- Tasks MUST stay local.\n- Exports MAY be JSON.\n",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n- Lists SHOULD be shared.\n- Exports MAY be JSON.\n",
+        &[
+            ("Rules", "kept", "=Tasks MUST stay local."),
+            ("Rules", "kept", "=Lists SHOULD be shared."),
+            ("Rules", "kept", "=Exports MAY be JSON."),
+        ],
+    ),
+    case(
+        "a rule moved to the end",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n- Lists SHOULD be shared.\n- Exports MAY be JSON.\n",
+        "# T\n\n## Rules\n\n- Lists SHOULD be shared.\n- Exports MAY be JSON.\n- Tasks MUST stay local.\n",
+        &[
+            ("Rules", "kept", "=Lists SHOULD be shared."),
+            ("Rules", "kept", "=Exports MAY be JSON."),
+            ("Rules", "kept", "=Tasks MUST stay local."),
+        ],
+    ),
 ];
 
 /// A part's runs, written `=kept +added -removed`.
@@ -264,4 +284,35 @@ fn a_strength_has_its_rank_and_name() {
     for (strength, rank, name) in all {
         assert_eq!((strength.rank(), strength.as_str()), (rank, name));
     }
+}
+
+#[test]
+fn a_rule_merged_into_the_one_before_shows_removed() {
+    let merged = "---
+status: active
+---
+
+# Task storage
+
+Tasks live in the browser,
+behind the store.
+
+## Rules
+
+- Data MUST NOT be sent to a server, and components SHOULD read through `src/store/`. Checked by
+  review.
+";
+    let change = compare("task-storage", Some(STORAGE), Some(merged));
+
+    let kinds: Vec<(String, String)> = parts(&change)
+        .into_iter()
+        .map(|(section, kind, _)| (section, kind))
+        .collect();
+    let expected = [("", "kept"), ("Rules", "changed"), ("Rules", "removed")];
+    assert_eq!(
+        kinds,
+        expected.map(|(section, kind)| (section.to_string(), kind.to_string()))
+    );
+    let removed = &change.sections[1].parts[1];
+    assert_eq!(removed.before, Some(LineRange { start: 13, end: 13 }));
 }
