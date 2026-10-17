@@ -25,6 +25,7 @@
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
 - Review home
+- Review decisions wording + existing decisions here
 
 ## Next
 
