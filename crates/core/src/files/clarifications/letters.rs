@@ -26,51 +26,37 @@ fn first_letter<'a>(text: &'a str, options: &[char]) -> Option<(char, &'a str)> 
     Some((letter, chars.as_str()))
 }
 
-/// Whether a text starts with an option letter followed by a joint, an end mark, or the end.
-fn starts_with_letter(text: &str, options: &[char]) -> bool {
-    first_letter(text, options).is_some_and(|(_, after)| {
-        after.is_empty()
-            || after.starts_with(END_MARKS)
-            || JOINTS.iter().any(|joint| after.starts_with(joint))
-    })
-}
-
 /// The letters and the comment of an answer. Letters are joined by `, `, `and`, or `, and `, and
-/// ended by `:`, `,`, `.`, or the end. A comma is a joint only when an option letter follows it,
-/// itself followed by a joint, an end mark, or the end: otherwise it ends the letters. They stop at
-/// the first word that is not an option letter followed by a joint or an end mark: with options A
-/// to C, "B, C and D" is B and C, with the comment "and D", and "C but ..." has no letter.
+/// ended by `:`, `,`, `.`, or the end: the letters are the longest run of joined letters followed
+/// by an end mark or the end, and everything after that mark is the comment. With options A to C,
+/// "B, C and D" is B, with the comment "C and D", since no run ends after C; "A and B are both
+/// bad" and "C but ..." have no letter, and the whole answer is the comment.
 fn read(answer: &str, options: &[char]) -> (Vec<char>, String) {
     let answer = answer.trim();
-    let mut picked = Vec::new();
+    let mut run = Vec::new();
+    let mut longest: Option<(usize, &str)> = None;
     let mut rest = answer;
-    // Every letter after the first is followed by a joint, an end mark, or the end: only the first
-    // can be followed by a word, which leaves the answer a comment.
     while let Some((letter, after)) = first_letter(rest, options) {
+        run.push(letter);
         if after.is_empty() {
-            picked.push(letter);
-            return (picked, String::new());
-        }
-        let joined = JOINTS.iter().find_map(|joint| {
-            after
-                .strip_prefix(joint)
-                .filter(|next| starts_with_letter(next, options))
-        });
-        if let Some(next) = joined {
-            picked.push(letter);
-            rest = next;
-        } else if let Some(comment) = after.strip_prefix(END_MARKS) {
-            picked.push(letter);
-            return (picked, comment.trim().to_string());
-        } else if after.starts_with(" and ") {
-            // A joint to a word that is no option letter: the word starts the comment.
-            picked.push(letter);
-            return (picked, after.trim().to_string());
-        } else {
+            longest = Some((run.len(), ""));
             break;
         }
+        if let Some(comment) = after.strip_prefix(END_MARKS) {
+            longest = Some((run.len(), comment));
+        }
+        match JOINTS.iter().find_map(|joint| after.strip_prefix(joint)) {
+            Some(next) => rest = next,
+            None => break,
+        }
     }
-    (Vec::new(), answer.to_string())
+    match longest {
+        Some((count, comment)) => {
+            run.truncate(count);
+            (run, comment.trim().to_string())
+        }
+        None => (Vec::new(), answer.to_string()),
+    }
 }
 
 /// An answer from the letters picked and a comment, as the web UI composes it: `A`, `B and C`,
