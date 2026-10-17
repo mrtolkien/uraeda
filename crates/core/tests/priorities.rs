@@ -135,7 +135,8 @@ fn a_line_is_edited_as_typed() {
 }
 
 /// Every move keeps the rest of the file byte for byte, on a file written by hand, with blank lines
-/// between groups of lines and nested lines: the file without the moved line's lines is the same.
+/// between groups of lines and nested lines: the file without the moved line's lines is the same,
+/// but for the blank line that goes with a line alone between two.
 #[test]
 fn moves_keep_every_other_line() {
     let text = common::repository_file("fixtures/PRIORITIES-grouped.md");
@@ -146,7 +147,7 @@ fn moves_keep_every_other_line() {
             .position(|window| window == lines)
             .unwrap();
         rest.drain(at..at + lines.len());
-        rest.join("\n")
+        rest.join("\n").replace("\n\n\n", "\n\n")
     };
     let read = priorities::read(&text, None);
     let entries: Vec<_> = read.sections.iter().flat_map(|s| &s.entries).collect();

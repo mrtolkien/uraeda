@@ -323,7 +323,7 @@ fn edits_keep_every_other_line() {
     let back = inbox::move_to(text, "note-3", None).unwrap();
     assert_eq!(
         back,
-        text.replace("- Icons\r\n", "")
+        text.replace("- Icons\r\n\r\n", "")
             .replace("  - sub\r\n", "  - sub\r\n- Icons\r\n")
     );
     assert_eq!(inbox::edit(text, "note-9", "x"), None);

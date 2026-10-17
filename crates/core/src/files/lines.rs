@@ -207,10 +207,16 @@ pub(crate) fn replace(text: &str, item: &Item, lines: &[String]) -> String {
     all.join("\n")
 }
 
-/// Removes an item, sub-items included. Takes and gives `\n` line endings.
+/// Removes an item, sub-items included. When blank lines were on both sides of it, before more
+/// text, one goes with it. Takes and gives `\n` line endings.
 pub(crate) fn remove(text: &str, item: &Item) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
-    lines.drain(item.line - 1..item.end);
+    let at = item.line - 1;
+    lines.drain(at..item.end);
+    let blank = |line: Option<&&str>| line.is_some_and(|line| line.trim().is_empty());
+    if at > 0 && at + 1 < lines.len() && blank(lines.get(at - 1)) && blank(lines.get(at)) {
+        lines.remove(at);
+    }
     lines.join("\n")
 }
 

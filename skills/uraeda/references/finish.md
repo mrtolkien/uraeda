@@ -98,8 +98,9 @@ reports every link that does not resolve.
 ## The finishing commit
 
 In one commit: the record, the deletion of the whole folder, its images included, the rewritten
-links, and the removal of the feature's entry from `PRIORITIES.md`, if the branch still has it. Its
-message: `finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
+links, and the removal of the feature's entry from `PRIORITIES.md`, if the branch still has it, with
+the blank line after it when it was the last started entry. Its message:
+`finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
 
 ## Mark the pull request ready
 
