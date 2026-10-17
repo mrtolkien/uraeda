@@ -30,6 +30,9 @@
 - [agent] [symlinks] Under load from other worktrees, home.test.tsx 'on a phone, the counts and the
   cards come in the same order' and shell.test.tsx '＋ adds to Later with a toast and Undo' failed
   in a full ts:test run, and passed alone
+- [agent] [access-storybook] Approval removes a decision's applied '## Proposed change (<folder>)'
+  section, leaving the spec's link to its anchor dead (ura check fails); approval.md should say to
+  repoint it, e.g. to the decision's #rules
 
 ## Prompts
 
