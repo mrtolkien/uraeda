@@ -23,6 +23,8 @@
   ../flow-review.md: ura check specs fails on main
 - [agent] [symlinks] cargo clippy fails on main with int_plus_one at
   crates/core/src/files/priorities/edits.rs:105, so vp run ready fails
+- [agent] [symlinks] The commit hook type-checks root TypeScript files alone, without Node's types
+  (no root tsconfig or @types/node): any commit touching vite.tasks.ts or scripts/*.ts is refused
 
 ## Prompts
 
