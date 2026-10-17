@@ -53,5 +53,3 @@
   changed since the last commit
 - [agent] [redesign-priorities] The decisions page runs one git log per decision, and the watch
   reads every decision on each pass
-- [agent] [redesign-priorities] List keys under an open menu or dialog are handled but untested:
-  only an open Selector is tested
