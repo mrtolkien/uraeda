@@ -65,8 +65,6 @@ test("the contents list every part, decision, and story, with Approve at their f
   await renderPage(PAGE, repo);
 
   const column = await contents();
-  // The unlisted change, "Due dates", joins the decisions once the file view carries the branch's
-  // changes (R60).
   expect(entriesOf(column)).toEqual([
     "What you approve",
     "Your review, answered",
@@ -74,6 +72,7 @@ test("the contents list every part, decision, and story, with Approve at their f
     "Repeating tasks",
     "Task storage",
     "Task history",
+    "Due dates",
     "What changes for users",
     "US1 Make a task repeat",
     "US2 Complete a repeating task",

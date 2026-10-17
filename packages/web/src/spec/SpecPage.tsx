@@ -68,12 +68,6 @@ const STATUSES: Record<string, { label: string; variant: "neutral" | "success" |
  * The branch's changes to decisions, which the file view carries once task 7 of the specs redesign
  * adds them; none before.
  */
-function changesOf(file: File): ReadonlyArray<DecisionChange> {
-  return "decisionChanges" in file && Array.isArray(file.decisionChanges)
-    ? (file.decisionChanges as ReadonlyArray<DecisionChange>)
-    : [];
-}
-
 /** A group of the spec's parts: on the phone, after a band; its title, then its parts. */
 function Group({
   children,
@@ -209,7 +203,7 @@ function SpecLayout({
   if (!items) {
     return null;
   }
-  const changes = changesOf(file);
+  const changes = file.decisionChanges;
   const comments = review?.comments ?? [];
   const document = version.document;
   const part: PartProps = {
