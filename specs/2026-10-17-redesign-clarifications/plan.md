@@ -198,7 +198,7 @@ key on their bold subject; Submit flips the block's first paragraph only
   `letters`. `Applicability` is `Yes | No`. `QuestionItem.applies` is `"yes"` or `"no"`.
   `compose_answer` moves with them, unchanged.
 
-- [ ] **Step 1: Structural: move `picked_letters`, `split_answer`, and `compose_answer`, with their
+- [x] **Step 1: Structural: move `picked_letters`, `split_answer`, and `compose_answer`, with their
       unit tests, into `clarifications/letters.rs`.** Run `cargo nextest run -p uraeda-core`, PASS
       before and after. Commit
       `refactor(redesign-clarifications): answers' letters in a module of     their own`.
