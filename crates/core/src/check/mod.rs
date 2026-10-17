@@ -2,13 +2,17 @@
 //! Every rule here is written in the skill (see `specs/decisions/cli.md`).
 
 mod answers;
+mod decision;
 mod links;
 mod names;
 mod sections;
+mod spec;
 mod values;
 mod writing;
 
+pub use decision::DECISION_RULES;
 pub(crate) use names::change_holds;
+pub use spec::{SPEC_WORDS, reviewed_words};
 pub use values::{Action, Choice, Field, FieldKind, allowed_values};
 pub use writing::{BLOCK_ITEMS, SENTENCE_WORDS};
 
@@ -321,6 +325,18 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
         Checked::Inbox => sections::check_inbox(file, &document, &mut problems),
         Checked::Workflow(FileKind::Review) => check_review(file, &mut problems),
         _ => sections::check_sections(file, &document, &mut problems),
+    }
+    match file.kind {
+        Checked::Workflow(FileKind::Spec) => {
+            let waiting = front
+                .as_ref()
+                .is_some_and(|front| front.text("status") == Some("awaiting-human"));
+            spec::check_spec(file, waiting, &mut problems);
+        }
+        Checked::Decision | Checked::PreviewDecision => {
+            decision::check_decision(file, &mut problems);
+        }
+        _ => {}
     }
     if file.kind == Checked::Record {
         sections::check_record_numbering(file, &document, &mut problems);

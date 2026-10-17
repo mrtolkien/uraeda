@@ -302,3 +302,40 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   corrections still pending: the pending changes' moves at another place are not known.
 - **If wrong**: `keepPlace` in `packages/web/src/keepPlace.ts`.
 - **Where**: the review's fixes
+
+## R40: `decision.order` warns on the first rule stronger than the rule before it
+
+- **Decision**: `decision.order` is reported once per decision, on the first top-level rule of
+  `## Rules` whose strength ranks above the last rule before it that has a keyword, naming both
+  keywords: "a MUST NOT rule after a SHOULD NOT one: put the strongest first". A rule without an RFC
+  2119 keyword is skipped. The plan's text said "the first rule weaker than the one before it": its
+  own message and the data model's ("a rule weaker than the one after it", on the MUST's line) say
+  the opposite, and the plan's task now says what was built.
+- **Rationale**: the warning sits on the rule to move up, which is what the spec's message names.
+  One warning per decision is enough to make the agent reorder the whole list.
+- **Alternatives considered**: a warning on each rule out of order: one move often fixes several.
+- **If wrong**: `check_decision` in `crates/core/src/check/decision.rs`.
+- **Where**: task 6
+
+## R41: What a spec's reviewed part counts
+
+- **Decision**: `reviewed_words` counts the words of every heading, paragraph, list item, and table
+  cell after the title, through `writing.rs`'s `measured_text`, so links' text and code spans count
+  nothing, as in a round's sentences. It leaves out the block, code and HTML blocks, each story's
+  "More scenarios" list (its "More scenarios:" paragraph stays), and `## History` with its heading.
+  `spec.length` has no line: it is the whole file's. The example spec counts 1,028 words.
+- **Rationale**: the plan names `measured_text`; the fold's label stays visible on the page, its
+  list does not.
+- **Alternatives considered**: counting link text: the plan shares the round's measure instead.
+- **If wrong**: `reviewed_words` in `crates/core/src/check/spec.rs`.
+- **Where**: task 6
+
+## R42: SC-002 counts the 18 decisions the spec lists
+
+- **Decision**: `every_decision_of_the_repository_holds_at_most_10_rules` reads the decisions from
+  this feature's `spec.md` `## Decisions` items, 18 as the spec says, not the plan's 17, and counts
+  their words after the frontmatter, split on white space: 9,324, under 9,400.
+- **Rationale**: the spec's SC-002 names 18; reading the list keeps the test right if it changes.
+- **Alternatives considered**: a fixed list of names in the test.
+- **If wrong**: the test in `crates/core/tests/check.rs`.
+- **Where**: task 6

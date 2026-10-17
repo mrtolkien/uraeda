@@ -332,6 +332,37 @@ fn each_rule() {
             |e| e.edit("specs/PRIORITIES.md", "## Blocked", "## Elsewhere"),
             "specs/PRIORITIES.md: missing section \"## Blocked\"".into(),
         ),
+        (
+            "edge case importance",
+            |e| e.edit(SPEC, "| Normal     | A repeating task is deleted", "| Urgent     | A repeating task is deleted"),
+            format!("{spec}:{}: importance is high, normal, or niche", spec_line("| Normal     | A repeating task is deleted")),
+        ),
+        (
+            "spec length",
+            |e| {
+                e.waiting(SPEC);
+                e.append_words(SPEC, "## Architecture", 3_100 - check::reviewed_words(&e.read(SPEC)));
+            },
+            format!("warning: {spec}: the spec's reviewed part is 3,100 words: aim at 2,000"),
+        ),
+        (
+            "spec block items",
+            |e| {
+                e.waiting(SPEC);
+                e.edit(SPEC, "> - Risk tier `high`", "> - One more point.\n> - Another point.\n> - Risk tier `high`");
+            },
+            format!("warning: {spec}:{}: the block has 8 items: keep at most 7", spec_line("> - Risk tier `high`") + 2),
+        ),
+        (
+            "decision rules",
+            |e| with_rules(e, &rules(12)),
+            format!("warning: {DECISION}:{}: 12 rules: keep at most 10, or split the topic", line_of(DECISION, "## Rules")),
+        ),
+        (
+            "decision order",
+            |e| with_rules(e, "- A rule SHOULD hold.\n- A rule MUST hold.\n"),
+            format!("warning: {DECISION}:{}: a MUST rule after a SHOULD one: put the strongest first", line_of(DECISION, "## Rules") + 3),
+        ),
     ];
     for (name, break_it, expected) in rows {
         let example = Example::new();
@@ -1642,4 +1673,299 @@ fn the_example_change_round_passes() {
     assert!(text.contains("status: awaiting-human"));
     assert!(text.contains("> [!IMPORTANT]"));
     assert!(!text.contains("discovery-0"), "a change has no discovery");
+}
+
+const SPEC: &str = "specs/2026-10-06-recurring-tasks/spec.md";
+
+impl Example {
+    /// Sets the example spec waiting for the human, its block an `> [!IMPORTANT]` one.
+    fn waiting(&self, path: &str) {
+        self.edit(path, "status: approved", "status: awaiting-human");
+        self.edit(path, "> [!NOTE]", "> [!IMPORTANT]");
+        self.edit(path, "> Approved on 2026-10-09.", "> About 10 minutes.");
+    }
+
+    /// Adds a paragraph of `count` words at the end of the level-2 section `heading`.
+    fn append_words(&self, path: &str, heading: &str, count: usize) {
+        let text = self.read(path);
+        let start = text.find(&format!("\n{heading}\n")).unwrap() + 1;
+        let end = text[start..]
+            .find("\n## ")
+            .map_or(text.len(), |at| start + at + 1);
+        let words = vec!["word"; count].join(" ");
+        let text = format!("{}{words}\n\n{}", &text[..end], &text[end..]);
+        self.write(path, &text);
+    }
+
+    fn warnings(&self) -> Vec<String> {
+        let warnings: Vec<Problem> = self
+            .problems()
+            .into_iter()
+            .filter(|p| p.severity == Severity::Warning)
+            .collect();
+        summary(&warnings)
+    }
+}
+
+/// US1 2: a waiting spec whose reviewed part runs past 2,500 words warns, with the count.
+#[test]
+fn a_long_waiting_spec_is_reported() {
+    let example = Example::new();
+    example.waiting(SPEC);
+    let words = check::reviewed_words(&example.read(SPEC));
+    example.append_words(SPEC, "## Architecture", 3_100 - words);
+
+    let problems = example.problems();
+
+    assert_eq!(check::reviewed_words(&example.read(SPEC)), 3_100);
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "warning: {SPEC}: the spec's reviewed part is 3,100 words: aim at 2,000"
+        )]
+    );
+    assert_eq!(problems[0].rule, "spec.length");
+}
+
+/// A spec at the limit, or an answered one past it, does not warn.
+#[test]
+fn a_spec_at_the_limit_or_approved_is_not_reported() {
+    let at_limit = Example::new();
+    at_limit.waiting(SPEC);
+    let words = check::reviewed_words(&at_limit.read(SPEC));
+    at_limit.append_words(SPEC, "## Architecture", check::SPEC_WORDS - words);
+    let approved = Example::new();
+    approved.append_words(SPEC, "## Architecture", 3_000);
+
+    assert_eq!(at_limit.warnings(), Vec::<String>::new());
+    assert_eq!(approved.warnings(), Vec::<String>::new());
+}
+
+/// US1: the reviewed part leaves out the "More scenarios" lists and `## History`.
+#[test]
+fn more_scenarios_and_history_are_not_reviewed() {
+    let example = Example::new();
+    let before = check::reviewed_words(&example.read(SPEC));
+    let more = format!("\n2. {}\n", vec!["word"; 600].join(" "));
+    example.edit(
+        SPEC,
+        "\n1. **Given** a repeating task, **When** the user picks \"never\", **Then** it stops repeating, keeps\n   its due date, and loses the icon.\n",
+        &format!("\n1. **Given** a repeating task, **When** the user picks \"never\", **Then** it stops repeating, keeps\n   its due date, and loses the icon.{more}"),
+    );
+    example.append_words(SPEC, "## History", 600);
+
+    assert_eq!(check::reviewed_words(&example.read(SPEC)), before);
+    example.append_words(SPEC, "## Risk tier", 600);
+    assert_eq!(check::reviewed_words(&example.read(SPEC)), before + 600);
+}
+
+/// US1 more 2: a waiting spec's block of 8 items warns on the eighth, and its first line is no
+/// round's count.
+#[test]
+fn a_spec_block_of_8_items() {
+    let example = Example::new();
+    example.waiting(SPEC);
+    example.edit(
+        SPEC,
+        "> - Risk tier `high`",
+        "> - One more point.\n> - Another point.\n> - Risk tier `high`",
+    );
+    example.edit(
+        SPEC,
+        "> About 10 minutes.",
+        "> About 10 minutes, 3 questions.",
+    );
+    let line = example
+        .read(SPEC)
+        .lines()
+        .position(|l| l.starts_with("> - Risk tier `high`"))
+        .unwrap()
+        + 1;
+
+    let problems = example.problems();
+
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "warning: {SPEC}:{line}: the block has 8 items: keep at most 7"
+        )]
+    );
+    assert_eq!(problems[0].rule, "block.items");
+}
+
+/// US8 more 1: an edge case's importance is high, normal, or niche, whatever its case.
+#[test]
+fn an_edge_case_of_unknown_importance() {
+    let example = Example::new();
+    example.edit(
+        SPEC,
+        "| Normal     | A repeating task is deleted",
+        "| Urgent     | A repeating task is deleted",
+    );
+    let line = example
+        .read(SPEC)
+        .lines()
+        .position(|l| l.starts_with("| Urgent"))
+        .unwrap()
+        + 1;
+
+    let problems = example.problems();
+
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "{SPEC}:{line}: importance is high, normal, or niche"
+        )]
+    );
+    assert_eq!(problems[0].rule, "edges.importance");
+    assert_eq!(problems[0].severity, Severity::Error);
+}
+
+const DECISION: &str = "specs/decisions/task-storage.md";
+
+/// `count` rules, each a MUST, one with a nested item.
+fn rules(count: usize) -> String {
+    (1..=count)
+        .map(|n| format!("- Rule {n} MUST hold. Checked by review.\n"))
+        .collect::<String>()
+        .replacen(
+            "- Rule 1 MUST hold. Checked by review.\n",
+            "- Rule 1 MUST hold. Checked by review.\n  - A nested point.\n  - Another.\n",
+            1,
+        )
+}
+
+fn with_rules(example: &Example, rules: &str) {
+    let text = example.read(DECISION);
+    let start = text.find("## Rules\n\n").unwrap() + "## Rules\n\n".len();
+    let end = text.find("\n## Why").unwrap();
+    example.write(
+        DECISION,
+        &format!("{}{rules}{}", &text[..start], &text[end..]),
+    );
+}
+
+/// US6 1: a decision of 12 rules warns on its `## Rules` heading; nested items are no rules.
+#[test]
+fn a_decision_of_12_rules() {
+    let example = Example::new();
+    with_rules(&example, &rules(12));
+    let line = line_in(&example.read(DECISION), "## Rules");
+
+    let problems = example.problems();
+
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "warning: {DECISION}:{line}: 12 rules: keep at most 10, or split the topic"
+        )]
+    );
+    assert_eq!(problems[0].rule, "decision.rules");
+    let ten = Example::new();
+    with_rules(&ten, &rules(check::DECISION_RULES));
+    assert_eq!(ten.warnings(), Vec::<String>::new());
+}
+
+/// US2 more 2: a rule stronger than the one before it warns, on its line, naming both keywords.
+#[test]
+fn a_must_after_a_should() {
+    let cases = [
+        ("SHOULD", "MUST", "a MUST rule after a SHOULD one"),
+        (
+            "SHOULD NOT",
+            "MUST NOT",
+            "a MUST NOT rule after a SHOULD NOT one",
+        ),
+        ("MAY", "SHOULD", "a SHOULD rule after a MAY one"),
+    ];
+    for (weaker, stronger, message) in cases {
+        let example = Example::new();
+        with_rules(
+            &example,
+            &format!(
+                "- The first rule MUST hold.\n- A rule {weaker} hold.\n- A rule {stronger} hold.\n- A rule MAY hold.\n"
+            ),
+        );
+        let line = line_in(
+            &example.read(DECISION),
+            &format!("- A rule {stronger} hold."),
+        );
+
+        assert_eq!(
+            example.warnings(),
+            [format!(
+                "warning: {DECISION}:{line}: {message}: put the strongest first"
+            )],
+            "{weaker} then {stronger}"
+        );
+    }
+    let ordered = Example::new();
+    with_rules(
+        &ordered,
+        "- A MUST NOT.\n- A MUST.\n- A MUST NOT.\n- A SHOULD.\n- A SHOULD NOT.\n- No keyword.\n- A SHOULD.\n- A MAY.\n",
+    );
+    assert_eq!(ordered.warnings(), Vec::<String>::new());
+}
+
+/// US1 3: the example spec and its data model report neither a problem nor a warning, the spec
+/// measured as if it waited too.
+#[test]
+fn the_example_and_its_data_model_have_no_problem_nor_warning() {
+    let example = Example::new();
+    let data_model = format!("{FEATURE}/data-model.md");
+    assert!(example.root().join(&data_model).is_file());
+    let mine = |problems: Vec<Problem>| -> Vec<String> {
+        let mine: Vec<Problem> = problems
+            .into_iter()
+            .filter(|p| p.file == SPEC || p.file == data_model)
+            .collect();
+        summary(&mine)
+    };
+
+    assert_eq!(mine(example.problems()), Vec::<String>::new());
+    let waiting = Example::new();
+    waiting.waiting(SPEC);
+    assert_eq!(mine(waiting.problems()), Vec::<String>::new());
+}
+
+/// SC-001: the example spec's reviewed part is at most 2,000 words.
+#[test]
+fn the_example_spec_is_at_most_2000_words() {
+    let text = repository_file(&format!("skills/uraeda/assets/example/{SPEC}"));
+
+    let words = check::reviewed_words(&text);
+
+    assert!(words <= 2_000, "{words} words");
+}
+
+/// SC-002: no decision of the repository holds more than 10 rules, and the decisions this
+/// feature's spec rewrites hold at most 9,400 words together, their frontmatter aside.
+#[test]
+fn every_decision_of_the_repository_holds_at_most_10_rules() {
+    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let decisions = repository.join("specs/decisions");
+
+    let problems = check::check(&repository, &decisions).unwrap();
+
+    let over: Vec<&Problem> = problems
+        .iter()
+        .filter(|p| p.rule == "decision.rules")
+        .collect();
+    assert!(over.is_empty(), "{over:#?}");
+    let spec = repository_file("specs/2026-10-17-redesign-specs/spec.md");
+    let listed = uraeda_core::files::spec::items(&uraeda_core::files::document::parse(
+        &spec,
+        "specs/2026-10-17-redesign-specs",
+    ))
+    .decisions;
+    assert_eq!(listed.len(), 18);
+    let words: usize = listed
+        .iter()
+        .map(|d| {
+            let text = repository_file(&format!("specs/decisions/{}.md", d.name));
+            let body = text.splitn(3, "---\n").nth(2).unwrap();
+            body.split_whitespace().count()
+        })
+        .sum();
+    assert!(words <= 9_400, "{words} words");
 }
