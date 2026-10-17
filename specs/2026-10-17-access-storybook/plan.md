@@ -127,7 +127,7 @@ setting it only on 10.6.2 and later.
 
 - Modify: `specs/2026-10-17-access-storybook/rulings.md`
 
-- [ ] **Step 1: Start Storybook 10.6.1 with the setting, outside the repository**
+- [x] **Step 1: Start Storybook 10.6.1 with the setting, outside the repository**
 
 In a new empty folder under the system's temporary folder, install `storybook@10.6.1`,
 `@storybook/react-vite@10.6.1`, `react`, `react-dom`, and `vite`, with one story and a
@@ -136,12 +136,12 @@ In a new empty folder under the system's temporary folder, install `storybook@10
 
 - Expected: it exits 0, with no error or warning naming `security`.
 
-- [ ] **Step 2: Record the result in `rulings.md`**
+- [x] **Step 2: Record the result in `rulings.md`**
 
 The versions, the command, and its outcome, as a ruling on why the helper sets the key whatever the
 Storybook version.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add specs/2026-10-17-access-storybook/rulings.md specs/2026-10-17-access-storybook/plan.md
