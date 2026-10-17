@@ -17,6 +17,7 @@ import type { Plugin } from "vite-plus";
 import { uraedaServer } from "../vite.config.ts";
 import { CHECKOUTS } from "./checkouts.ts";
 import { fateOverGet } from "./fateOverGet.ts";
+import { addRoundMockup } from "./roundMockup.ts";
 
 /** The date of every commit the fixture is built with. */
 const DATE = "2026-10-16T09:00:00Z";
@@ -73,6 +74,8 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
     addFeature(repo, CHECKOUTS.starting, { mode: "hang", worktree: true });
     addFeature(repo, CHECKOUTS.failed, { mode: "fail", worktree: true });
     addFeature(repo, CHECKOUTS.noWorktree, { mode: "ok", worktree: false });
+    // The round page's mockups, in the clarifications redesign's format.
+    addRoundMockup(repo);
     return {
       configDir: temporaryFolder("uraeda-storybook-config"),
       dataDir: temporaryFolder("uraeda-storybook-data"),
