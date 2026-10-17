@@ -510,16 +510,17 @@ key on their bold subject; Submit flips the block's first paragraph only
 
 - [x] **Step 1: Structural: move the settled point's form and notices out of `SettledPoints.tsx`.**
       Commit.
-- [ ] **Step 2: Write the failing tests**: US4.1 "Check these" and "Behaviour" show their points,
+- [x] **Step 2: Write the failing tests**: US4.1 "Check these" and "Behaviour" show their points,
       "Under the hood" shows "Show the 2 points"; US4.2 open, reload, still open; review focus 6:
       open, save an answer, still open; US4.3 a comment on a hood point writes
       `- **Next dates are computed by date-fns**: Use Temporal instead`; US4.4 the notes field is
       labelled "Anything else"; a missing group is not drawn.
-- [ ] **Step 3: Run them to check they fail**.
-- [ ] **Step 4: Implement**: "Settled without you", each group with its icon and heading; the fold
-      in the URL's hash through `useHashFold`.
-- [ ] **Step 5: Run the project's validation**.
-- [ ] **Step 6: Commit** `feat(redesign-clarifications): settled points grouped by what you check`
+- [x] **Step 3: Run them to check they fail**.
+- [x] **Step 4: Implement**: "Settled without you", each group with its icon and heading; the fold
+      kept in the history entry through `useOpenKeys`, and opened by a link through `useHashFold`
+      (R21).
+- [x] **Step 5: Run the project's validation**.
+- [x] **Step 6: Commit** `feat(redesign-clarifications): settled points grouped by what you check`
 
 ## Task 12: The triage, accessibility, and screenshots
 

@@ -65,14 +65,14 @@ function q1A() {
   }) as HTMLInputElement;
 }
 
-const notesField = () => screen.getByLabelText("Notes") as HTMLTextAreaElement;
+const notesField = () => screen.getByLabelText("Anything else") as HTMLTextAreaElement;
 const saveNotes = () => screen.getByRole("button", { name: "Save notes" });
 
 /** The page shown again, as after a reload: the store reads `localStorage` anew. */
 async function reload(repo: string) {
   forgetUnsaved();
   await renderPage(PAGE, repo, { reload: true });
-  return screen.findByLabelText("Notes") as Promise<HTMLTextAreaElement>;
+  return screen.findByLabelText("Anything else") as Promise<HTMLTextAreaElement>;
 }
 
 /** The time the tests type at, which the restore notice says. */
@@ -90,7 +90,7 @@ function keptKeys() {
 test("notes typed are kept while the file changes, and not saved", async () => {
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await screen.findByLabelText("Notes");
+  await screen.findByLabelText("Anything else");
 
   await type(notesField(), "Keep the undo ");
   answerQ1(repo);
@@ -110,7 +110,7 @@ test("notes typed are kept while the file changes, and not saved", async () => {
 test("Save notes writes the notes, and says saved", async () => {
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Keep the undo please");
+  await type(await screen.findByLabelText("Anything else"), "Keep the undo please");
 
   await click(saveNotes());
 
@@ -124,7 +124,7 @@ test("Save notes writes the notes, and says saved", async () => {
 test("unsaved notes stay as the round is answered elsewhere", async () => {
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Draft one");
+  await type(await screen.findByLabelText("Anything else"), "Draft one");
 
   answerQ1(repo);
   await refreshUntil(() => expect(q1A().checked).toBe(true));
@@ -136,7 +136,7 @@ test("unsaved notes stay as the round is answered elsewhere", async () => {
 test("saved notes show once, in their field", async () => {
   await renderPage(PAGE, roundWith("Keep the undo please"));
 
-  expect((await screen.findByLabelText<HTMLTextAreaElement>("Notes")).value).toBe(
+  expect((await screen.findByLabelText<HTMLTextAreaElement>("Anything else")).value).toBe(
     "Keep the undo please",
   );
   expect(
@@ -148,7 +148,7 @@ test("saved notes show once, in their field", async () => {
 test("Ctrl+Enter in the notes saves them", async () => {
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Line one");
+  await type(await screen.findByLabelText("Anything else"), "Line one");
 
   await act(async () => {
     fireEvent.keyDown(notesField(), { ctrlKey: true, key: "Enter" });
@@ -160,7 +160,7 @@ test("Ctrl+Enter in the notes saves them", async () => {
 /** US2 8 */
 test("with nothing changed, Save notes is disabled and nothing is unsaved", async () => {
   await renderPage(PAGE, roundWith("Fine"));
-  await screen.findByLabelText("Notes");
+  await screen.findByLabelText("Anything else");
 
   expect(saveNotes().hasAttribute("disabled")).toBe(true);
   expect(screen.queryByText("Unsaved changes")).toBeNull();
@@ -171,7 +171,7 @@ test("unsaved notes are restored after a reload, until discarded", async () => {
   at1432();
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Bigger icon");
+  await type(await screen.findByLabelText("Anything else"), "Bigger icon");
 
   const restored = await reload(repo);
 
@@ -191,7 +191,7 @@ test("notes typed after a restored text was discarded show no notice", async () 
   at1432();
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Bigger icon");
+  await type(await screen.findByLabelText("Anything else"), "Bigger icon");
   await reload(repo);
   await click(screen.getByRole("button", { name: "Discard" }));
 
@@ -206,7 +206,7 @@ test("notes typed after a restored text was saved show no notice", async () => {
   at1432();
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Bigger icon");
+  await type(await screen.findByLabelText("Anything else"), "Bigger icon");
   await reload(repo);
   await click(saveNotes());
   await waitFor(() => expect(notesOnDisk(repo)).toBe("Bigger icon"));
@@ -222,7 +222,7 @@ test("notes typed after a restored text was saved show no notice", async () => {
 test("notes typed are kept as the notes change on disk", async () => {
   const repo = roundWith("Fine");
   await renderPage(PAGE, repo);
-  await screen.findByLabelText("Notes");
+  await screen.findByLabelText("Anything else");
   await type(notesField(), "Bigger icon");
 
   setNotes(repo, "theirs");
@@ -239,7 +239,7 @@ test("notes restored over notes changed since say so", async () => {
   at1432();
   const repo = roundWith("Fine");
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Bigger icon");
+  await type(await screen.findByLabelText("Anything else"), "Bigger icon");
   setNotes(repo, "Fine, thanks");
 
   expect((await reload(repo)).value).toBe("Bigger icon");
@@ -255,7 +255,7 @@ test("notes restored over notes changed since say so", async () => {
 test("an image added to unsaved notes saves them, and nothing is restored", async () => {
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Typed");
+  await type(await screen.findByLabelText("Anything else"), "Typed");
 
   const input = screen.getByLabelText("Add image to the notes", { selector: "input" });
   const png = new File([readFileSync(fixture("images/phone.png"))], "login.png", {
@@ -275,7 +275,7 @@ test("an image added to unsaved notes saves them, and nothing is restored", asyn
 test("notes whose save is refused are restored after a reload", async () => {
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "mine");
+  await type(await screen.findByLabelText("Anything else"), "mine");
   // The notes change on disk, unread by the page.
   setNotes(repo, "theirs");
 
@@ -291,7 +291,7 @@ test("notes whose save is refused are restored after a reload", async () => {
 test("notes differing only by spaces at their ends are not unsaved", async () => {
   const repo = roundWith("Fine");
   await renderPage(PAGE, repo);
-  await screen.findByLabelText("Notes");
+  await screen.findByLabelText("Anything else");
 
   await type(notesField(), "Fine \n");
 
@@ -306,7 +306,7 @@ test("unsaved notes of a round answered elsewhere stay, with the notice", async 
   at1432();
   const repo = roundWith();
   await renderPage(PAGE, repo);
-  await type(await screen.findByLabelText("Notes"), "Too late");
+  await type(await screen.findByLabelText("Anything else"), "Too late");
 
   writeFileSync(file(repo), text(repo).replace("status: awaiting-human", "status: answered"));
   await refreshUntil(() =>

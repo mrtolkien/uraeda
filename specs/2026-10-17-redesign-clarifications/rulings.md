@@ -263,3 +263,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   checkbox, and a second state would contradict it.
 - **If wrong**: the tests' helpers.
 - **Where**: task 10, step 2.
+
+## R21: "Under the hood" open is kept in the history entry, as the spec's folds are
+
+- **Decision**: whether "Under the hood" is open is kept in the history entry's open items, through
+  `useOpenKeys`, as a spec's scenarios and Details are, and `useHashFold` opens it for a link to a
+  block in it. A comment form on one of its points, restored after a reload, opens it too, until the
+  human folds it.
+- **Rationale**: the spec says "kept in the URL's hash, as the page's other folds are". The page's
+  other folds are not in the hash: they are in the history entry, which a reload and Back keep
+  (US4.2), and the hash names the block a link points to. Writing the fold into the hash would
+  replace that anchor.
+- **Alternatives considered**: a `#hood` hash, which a link to a block would drop, and which no
+  other fold uses.
+- **If wrong**: `useHoodFold` in `packages/web/src/SettledGroups.tsx`.
+- **Where**: task 11, step 4.
+
+## R22: The tests open "Under the hood" and find the notes as "Anything else"
+
+- **Decision**: the tests that found the notes field by the label "Notes" use "Anything else"
+  (`notes`, `round`, `triage`, `settled`, and the browser's `attach`, `fields`, `layout`). The tests
+  and the screenshot script that tap the web-ui fixture's settled points open "Under the hood"
+  first: `round.test.tsx`'s `settledPoint` and `editThenLeave`, `layout.test.tsx`'s `settledPoint`,
+  `fields.test.tsx`, and `scripts/text-input-shots.ts`.
+- **Rationale**: US4.4 gives the field its new label, and every settled point of that fixture sits
+  under "Under the hood", which US4.1 starts folded. The tests check the same behaviour once the
+  points show.
+- **Alternatives considered**: moving the fixture's points into "Behaviour": the fixture's round
+  would no longer cover a folded group's comments.
+- **If wrong**: the tests' helpers.
+- **Where**: task 11, step 2.

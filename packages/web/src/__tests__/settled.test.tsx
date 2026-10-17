@@ -37,6 +37,13 @@ const recurringSettled = (() => {
   return round.slice(round.indexOf(SETTLED), round.indexOf("**Notes:**"));
 })();
 
+/** The round mockup's settled points: 2 to check, 3 of behaviour, and 2 under the hood. */
+const groupedSettled = (() => {
+  const round = readFileSync(fixture("round-mockup/clarifications-01.md"), "utf8");
+  return round.slice(round.indexOf(SETTLED), round.indexOf("**Notes:**"));
+})();
+const HOOD = "Next dates are computed by date-fns";
+
 /** The round's file in the feature's worktree. */
 const file = (repo: string) => join(repo, ".worktrees", FOLDER, ROUND);
 
@@ -53,11 +60,19 @@ function notesOnDisk(repo: string) {
  * A repository whose round, in the feature's worktree, settles the recurring-tasks example's
  * points, with these notes and these answers.
  */
-function round({ answers = {}, notes = "" }: { answers?: Record<string, string>; notes?: string }) {
+function round({
+  answers = {},
+  notes = "",
+  settled = recurringSettled,
+}: {
+  answers?: Record<string, string>;
+  notes?: string;
+  settled?: string;
+}) {
   const repo = fixtureRepo();
   git(repo, "worktree", "add", "--quiet", join(".worktrees", FOLDER), FOLDER);
   let all = text(repo);
-  all = `${all.slice(0, all.indexOf(SETTLED))}${recurringSettled}**Notes:**${notes ? ` ${notes}` : ""}\n`;
+  all = `${all.slice(0, all.indexOf(SETTLED))}${settled}**Notes:**${notes ? ` ${notes}` : ""}\n`;
   for (const [id, answer] of Object.entries(answers)) {
     const lines = all.split("\n");
     const heading = lines.findIndex((line) => line.startsWith(`## ${id}:`));
@@ -80,7 +95,7 @@ const commentField = () => screen.getByLabelText("Comment text") as HTMLTextArea
 /** The open comment form's own button. */
 const formButton = (name: string) =>
   within(commentField().closest("form") as HTMLElement).getByRole("button", { name });
-const notesField = () => screen.getByLabelText("Notes") as HTMLTextAreaElement;
+const notesField = () => screen.getByLabelText("Anything else") as HTMLTextAreaElement;
 
 /** Taps a point, types a comment, and adds it. */
 async function addComment(subject: string, comment: string) {
@@ -88,6 +103,85 @@ async function addComment(subject: string, comment: string) {
   await type(commentField(), comment);
   await click(formButton("Add comment"));
 }
+
+/** Redesign US4.1: the groups, "Under the hood" folded with the count of its points. */
+test("the settled points show in their groups, Under the hood folded", async () => {
+  await renderPage(PAGE, round({ settled: groupedSettled }));
+  await point(UNDO);
+
+  expect(screen.getByRole("heading", { level: 2, name: "Settled without you" })).toBeTruthy();
+  const headings = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+  expect(
+    headings.filter((h) => ["Check these", "Behaviour", "Under the hood"].includes(h ?? "")),
+  ).toEqual(["Check these", "Behaviour", "Under the hood"]);
+  expect(await point("A task without a due date")).toBeTruthy();
+  expect(await point("Repeating tasks show a repeat icon")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: new RegExp(`^${HOOD}`) })).toBeNull();
+  expect(screen.getByRole("button", { name: "Show the 2 points" })).toBeTruthy();
+});
+
+/** Redesign US4.2: "Under the hood" open stays open after a reload, Fold closing it. */
+test("Under the hood opened stays open after a reload", async () => {
+  const repo = round({ settled: groupedSettled });
+  await renderPage(PAGE, repo);
+  await click(await screen.findByRole("button", { name: "Show the 2 points" }));
+  expect(await point(HOOD)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Fold" })).toBeTruthy();
+
+  await renderPage(PAGE, repo, { reload: true });
+
+  expect(await point(HOOD)).toBeTruthy();
+  await click(screen.getByRole("button", { name: "Fold" }));
+  expect(screen.queryByRole("button", { name: new RegExp(`^${HOOD}`) })).toBeNull();
+  expect(screen.getByRole("button", { name: "Show the 2 points" })).toBeTruthy();
+});
+
+/** Redesign review focus 6: an answer saved reads the round again, the fold kept open. */
+test("Under the hood stays open when an answer is saved", async () => {
+  const repo = round({ settled: groupedSettled });
+  await renderPage(PAGE, repo);
+  await click(await screen.findByRole("button", { name: "Show the 2 points" }));
+  await point(HOOD);
+
+  const q2 = document.getElementById("Q2") as HTMLElement;
+  await click(within(q2).getByRole("checkbox", { name: "Option A" }));
+  await waitFor(() => expect(text(repo)).toContain("**Answer:** A"));
+  await waitFor(() => expect(within(q2).getByText("saved ✓")).toBeTruthy());
+
+  expect(await point(HOOD)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Fold" })).toBeTruthy();
+});
+
+/** Redesign US4.3: a point under the hood takes a comment, as every point does. */
+test("a comment on a point under the hood is written at the end of the notes", async () => {
+  const repo = round({ settled: groupedSettled });
+  await renderPage(PAGE, repo);
+  await click(await screen.findByRole("button", { name: "Show the 2 points" }));
+
+  await addComment(HOOD, "Use Temporal instead");
+
+  await waitFor(() => expect(notesOnDisk(repo)).toBe(`- **${HOOD}**: Use Temporal instead`));
+});
+
+/** Redesign US4.4: the notes are "Anything else" on the page, `**Notes:**` in the file. */
+test("the notes field is labelled Anything else", async () => {
+  await renderPage(PAGE, round({}));
+  await point(UNDO);
+
+  expect(notesField()).toBeTruthy();
+  expect(screen.queryByLabelText("Notes")).toBeNull();
+});
+
+/** Redesign edge case: a round with an empty group shows only the groups present. */
+test("a group the round leaves out is not drawn", async () => {
+  await renderPage(PAGE, round({}));
+  await point(UNDO);
+
+  expect(screen.getByRole("heading", { level: 3, name: "Check these" })).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 3, name: "Behaviour" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Under the hood" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Show the/ })).toBeNull();
+});
 
 /** US4 1 */
 test("a comment on a settled point is written at the end of the notes, and shows under it", async () => {

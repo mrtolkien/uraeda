@@ -70,12 +70,20 @@ async function commentOn(phrase: string) {
   return (await screen.findAllByLabelText("Comment text"))[0] as HTMLTextAreaElement;
 }
 
+/** The fixture's settled point, under "Under the hood", opened first. */
+async function settledPoint() {
+  await userEvent.click(await screen.findByRole("button", { name: /^Show the \d+ points$/ }), {
+    force: true,
+  });
+  return screen.findByRole("button", { name: new RegExp(`^${SETTLED}`) });
+}
+
 test("a round's comments are 7 rows and its notes 12, empty or full (US6 1, 2, 4)", async () => {
   await show(ROUND, QUESTION);
   await checkRows(questionComment(), 7);
-  await checkRows(area("Notes"), 12);
+  await checkRows(area("Anything else"), 12);
 
-  const point = await screen.findByRole("button", { name: new RegExp(`^${SETTLED}`) });
+  const point = await settledPoint();
   await userEvent.click(point, { force: true });
   await checkRows((await screen.findAllByLabelText("Comment text"))[0] as HTMLTextAreaElement, 7);
 });
@@ -114,7 +122,7 @@ test.each([
     "a settled point's",
     async () => {
       await show(ROUND, QUESTION);
-      const point = await screen.findByRole("button", { name: new RegExp(`^${SETTLED}`) });
+      const point = await settledPoint();
       await userEvent.click(point, { force: true });
       return (await screen.findAllByLabelText("Comment text"))[0] as HTMLTextAreaElement;
     },
