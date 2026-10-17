@@ -61,7 +61,7 @@ function answerQ1(repo: string) {
 /** Q1's option A, checked once the page read Q1's answer. */
 function q1A() {
   return within(document.getElementById("Q1") as HTMLElement).getByRole("checkbox", {
-    name: "Option A",
+    name: /^Option A\b/,
   }) as HTMLInputElement;
 }
 
