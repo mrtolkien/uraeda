@@ -25,7 +25,7 @@ pub use links::{EntryLink, LinkedFile, RunningFeature, resolve};
 use links::priority_entries;
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
-pub use problem::Problem;
+pub use problem::{Problem, Severity};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WorkspaceError {
@@ -619,6 +619,7 @@ impl Feature {
                                 ),
                                 None => "no status field".into(),
                             },
+                            severity: Severity::Error,
                         }),
                     },
                     Err(error) => problems.push(Problem {
@@ -626,6 +627,7 @@ impl Feature {
                         line: Some(1),
                         rule: "frontmatter.parse".into(),
                         message: error.to_string(),
+                        severity: Severity::Error,
                     }),
                 }
             }
@@ -683,6 +685,7 @@ impl Feature {
                         line: front.line("kind"),
                         rule: "frontmatter.kind".into(),
                         message: "kind is not one of feature, change".into(),
+                        severity: Severity::Error,
                     });
                 }
             }
@@ -691,6 +694,7 @@ impl Feature {
                 line: Some(1),
                 rule: "frontmatter.parse".into(),
                 message: error.to_string(),
+                severity: Severity::Error,
             }),
         }
         let mut feature = Feature {

@@ -1,11 +1,11 @@
-//! Diagnostics: `ura check`'s problems for the open text of a file under `specs/`, each covering
+//! Diagnostics: `ura check`'s problems, errors and warnings, for the open text of a file under `specs/`, each covering
 //! its whole line.
 
 use std::path::Path;
 
 use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range, Uri};
 use uraeda_core::check;
-use uraeda_core::workspace::Problem;
+use uraeda_core::workspace::{Problem, Severity};
 
 use crate::documents::Documents;
 
@@ -37,7 +37,10 @@ fn diagnostic(text: &str, problem: Problem) -> Diagnostic {
             Position::new(line, 0),
             Position::new(line, u32::try_from(end).unwrap_or(u32::MAX)),
         ),
-        severity: Some(DiagnosticSeverity::ERROR),
+        severity: Some(match problem.severity {
+            Severity::Error => DiagnosticSeverity::ERROR,
+            Severity::Warning => DiagnosticSeverity::WARNING,
+        }),
         source: Some("uraeda".to_string()),
         message: problem.message,
         ..Diagnostic::default()

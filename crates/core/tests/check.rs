@@ -8,7 +8,7 @@ use common::texts::record;
 use tempfile::TempDir;
 use uraeda_core::check;
 use uraeda_core::files::markdown::{Document, slug};
-use uraeda_core::workspace::Problem;
+use uraeda_core::workspace::{Problem, Severity};
 
 /// A copy of the skill's example `specs/` folder, valid as written.
 struct Example {
@@ -65,12 +65,19 @@ fn copy(from: &Path, to: &Path) {
     }
 }
 
+/// The problems as `ura check` prints them, a warning's prefixed `warning: `.
 fn summary(problems: &[Problem]) -> Vec<String> {
     problems
         .iter()
-        .map(|p| match p.line {
-            Some(line) => format!("{}:{line}: {}", p.file, p.message),
-            None => format!("{}: {}", p.file, p.message),
+        .map(|p| {
+            let prefix = match p.severity {
+                Severity::Error => "",
+                Severity::Warning => "warning: ",
+            };
+            match p.line {
+                Some(line) => format!("{prefix}{}:{line}: {}", p.file, p.message),
+                None => format!("{prefix}{}: {}", p.file, p.message),
+            }
         })
         .collect()
 }
@@ -1176,4 +1183,301 @@ fn a_record_keeps_a_rounds_parts() {
     example.write("specs/done/2026-10-20-recurring-tasks.md", &text);
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// A waiting round of `questions` questions, the first with `follow_ups` follow-ups, each with
+/// options A and B, whose block opens with `first_line`.
+fn waiting_round(first_line: &str, questions: usize, follow_ups: usize) -> String {
+    let answers = vec![""; questions];
+    let mut text = common::texts::clarifications("awaiting-human", first_line, &answers);
+    let follow_up = |letter: char| {
+        format!(
+            "\n### Q1.{letter}: Then what?\n\nOnly if you picked {letter} in Q1.\n\n\
+             - **A (recommended). Yes.**\n  - [pro] p\n- **B. No.**\n  - [con] c\n\n**Answer:**\n"
+        )
+    };
+    let added: String = ['A', 'B', 'C'][..follow_ups]
+        .iter()
+        .map(|l| follow_up(*l))
+        .collect();
+    if let Some(at) = text.find("\n## Q2:").or_else(|| text.find("\n## Settled")) {
+        text.insert_str(at, &added);
+    }
+    text
+}
+
+/// The problems of the round at `ROUND`, in the example, when it holds `text`.
+fn round_problems(text: &str) -> Vec<Problem> {
+    let example = Example::new();
+    example.write(ROUND, text);
+    example
+        .problems()
+        .into_iter()
+        .filter(|p| p.file == ROUND)
+        .collect()
+}
+
+/// A sentence of `n` words, with its full stop.
+fn sentence(n: usize) -> String {
+    let words: Vec<String> = (1..=n).map(|i| format!("word{i}")).collect();
+    format!("{}.", words.join(" "))
+}
+
+/// US1.4 and R3: the block's counts against the round's, a warning that does not fail the check.
+#[test]
+fn the_blocks_counts_are_the_rounds() {
+    let rows = [
+        (
+            "3 questions and 1 follow-up, about 15 minutes.",
+            vec!["the block says 1 follow-up, the round has 2"],
+        ),
+        ("3 questions and 2 follow-ups, about 15 minutes.", vec![]),
+        (
+            "2 questions and 2 follow-ups, about 15 minutes.",
+            vec!["the block says 2 questions, the round has 3"],
+        ),
+        (
+            "3 questions, about 15 minutes.",
+            vec!["the block says 0 follow-ups, the round has 2"],
+        ),
+        ("Three questions, about 15 minutes.", vec![]),
+    ];
+    for (first_line, expected) in rows {
+        let text = waiting_round(first_line, 3, 2);
+        let line = line_in(&text, &format!("> {first_line}"));
+        let expected: Vec<String> = expected
+            .iter()
+            .map(|message| format!("warning: {ROUND}:{line}: {message}"))
+            .collect();
+
+        let problems = round_problems(&text);
+
+        assert_eq!(summary(&problems), expected, "{first_line}");
+        assert!(
+            problems.iter().all(|p| p.rule == "block.count"),
+            "{problems:?}"
+        );
+    }
+}
+
+/// US1.5, R2, and review focus 4: a sentence over 25 words, on its own line, outside quotes,
+/// tables, code, links' text, and the answers.
+#[test]
+fn a_long_sentence_is_reported_on_its_line() {
+    // Each row replaces a text of the round, `LONG` standing for the sentence of 31 words, and
+    // gives the start of the line the warning is on, or none.
+    let rows: [(&str, &str, &str, Option<&str>); 11] = [
+        (
+            "an option",
+            "**A (recommended). One.**",
+            "**A (recommended). LONG**",
+            Some("- **A (recommended). "),
+        ),
+        (
+            "a nested item, second in its list",
+            "  - [pro] p\n",
+            "  - [pro] p\n  - [con] LONG\n",
+            Some("  - [con] word1"),
+        ),
+        (
+            "the second line of a paragraph",
+            "A goal.\n",
+            "A goal. Short.\nLONG\n",
+            Some("word1 "),
+        ),
+        (
+            "the block",
+            "> - A point.\n",
+            "> - A point. LONG\n",
+            Some("> - A point. "),
+        ),
+        (
+            "a settled point",
+            "- **A point** settled.",
+            "- **A point** settled. LONG",
+            Some("- **A point** "),
+        ),
+        ("a quote", "Why.\n", "Why.\n\n> LONG\n", None),
+        (
+            "a table",
+            "Why.\n",
+            "Why.\n\n| A |\n| - |\n| LONG |\n",
+            None,
+        ),
+        ("code", "Why.\n", "Why.\n\n```\nLONG\n```\n", None),
+        (
+            "a link's text",
+            "Why.\n",
+            "Why it matters: [LONG](proposal.md).\n",
+            None,
+        ),
+        ("an answer", "**Answer:**\n", "**Answer:** LONG\n", None),
+        ("the notes", "**Notes:**\n", "**Notes:** LONG\n", None),
+    ];
+    for (name, from, to, line_start) in rows {
+        let text = waiting_round("2 questions, about 10 minutes.", 2, 0).replacen(
+            from,
+            &to.replace("LONG", &sentence(31)),
+            1,
+        );
+        let expected: Vec<String> = line_start
+            .map(|start| {
+                let line = text.lines().position(|l| l.starts_with(start)).unwrap() + 1;
+                format!("warning: {ROUND}:{line}: a sentence of 31 words: split it at 25")
+            })
+            .into_iter()
+            .collect();
+
+        let problems = round_problems(&text);
+
+        assert_eq!(summary(&problems), expected, "{name}");
+        assert!(
+            problems.iter().all(|p| p.rule == "writing.sentence"),
+            "{name}: {problems:?}"
+        );
+    }
+}
+
+/// A sentence of 25 words is at the limit, and is not reported.
+#[test]
+fn a_sentence_of_25_words_is_kept() {
+    let text = waiting_round("1 question, about 5 minutes.", 1, 0).replacen(
+        "A goal.\n",
+        &format!("{}\n", sentence(25)),
+        1,
+    );
+
+    assert_eq!(summary(&round_problems(&text)), Vec::<String>::new());
+}
+
+/// US1.6: a block of 8 items, reported on the eighth.
+#[test]
+fn a_block_of_more_than_7_items_is_reported() {
+    let items: String = (2..=8).map(|i| format!("> - Point {i}.\n")).collect();
+    let text = waiting_round("1 question, about 5 minutes.", 1, 0).replacen(
+        "> - A point.\n",
+        &format!("> - A point.\n{items}"),
+        1,
+    );
+    let line = line_in(&text, "> - Point 8.");
+
+    let problems = round_problems(&text);
+
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "warning: {ROUND}:{line}: the block has 8 items: keep at most 7"
+        )]
+    );
+    assert_eq!(problems[0].rule, "block.items");
+    let seven = text.replacen("> - Point 8.\n", "", 1);
+    assert_eq!(summary(&round_problems(&seven)), Vec::<String>::new());
+}
+
+/// The warnings run on waiting rounds only.
+#[test]
+fn an_answered_round_has_no_warning() {
+    let items: String = (2..=8).map(|i| format!("> - Point {i}.\n")).collect();
+    let text = common::texts::clarifications("answered", "Answered on 2026-10-18.", &["A"])
+        .replacen(
+            "> - A point.\n",
+            &format!("> - A point. {}\n{items}", sentence(31)),
+            1,
+        )
+        .replacen("A goal.", &sentence(40), 1);
+
+    assert_eq!(summary(&round_problems(&text)), Vec::<String>::new());
+}
+
+/// The triage is measured as a round is.
+#[test]
+fn a_waiting_triage_is_measured() {
+    let example = Example::new();
+    let text = triage().replacen("## Q1:", &format!("{}\n\n## Q1:", sentence(30)), 1);
+    example.write(TRIAGE, &text);
+    let line = line_in(&text, &sentence(30));
+
+    assert_eq!(
+        summary(&example.problems()),
+        [format!(
+            "warning: {TRIAGE}:{line}: a sentence of 30 words: split it at 25"
+        )]
+    );
+}
+
+/// The fixture rounds checked by `every_fixture_round_passes`, from the repository's top level.
+/// The repository-branch copies of the example, under `fixtures/repo/branches/`, are checked in
+/// place, where their fixture repository lacks the discovery, the priorities, and the
+/// constitution they link to: for them only, `links.file` problems are left out. The rounds of
+/// `fixtures/specs/` are stubs for the workspace's tests, and `fixtures/broken/` is broken on
+/// purpose: neither is listed.
+const FIXTURE_ROUNDS: [&str; 7] = [
+    "fixtures/round-mockup/clarifications-01.md",
+    "fixtures/settled-comments/clarifications-01.md",
+    "fixtures/preview/feature/specs/2026-10-20-sidebar-resize/clarifications-01.md",
+    "fixtures/repo/branches/2026-10-06-recurring-tasks/specs/2026-10-06-recurring-tasks/clarifications-01.md",
+    "fixtures/repo/branches/2026-10-11-web-ui/specs/2026-10-11-web-ui/clarifications-01.md",
+    "fixtures/repo/branches/2026-10-12-cli-tuis/specs/2026-10-12-cli-tuis/clarifications-01.md",
+    "fixtures/repo/branches/2026-10-13-plan-review/specs/2026-10-13-plan-review/clarifications-01.md",
+];
+
+/// US1.8 and SC-002: the example round, the templates, and every fixture round report neither a
+/// problem nor a warning. The template and the triages are checked in the example, as the
+/// template's own test does; the fixture rounds in place, as `FIXTURE_ROUNDS` says.
+#[test]
+fn every_fixture_round_passes() {
+    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for path in FIXTURE_ROUNDS {
+        let in_branch = path.starts_with("fixtures/repo/branches/");
+        let problems: Vec<Problem> = check::check(&repository, &repository.join(path))
+            .unwrap()
+            .into_iter()
+            .filter(|p| !(in_branch && p.rule == "links.file"))
+            .collect();
+
+        assert_eq!(summary(&problems), Vec::<String>::new(), "{path}");
+    }
+    let example = Example::new();
+    let template = repository_file(
+        "skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md",
+    )
+    .replace("#topic", "#next-due-date");
+    example.write(ROUND, &template);
+    let template_problems: Vec<Problem> = example
+        .problems()
+        .into_iter()
+        .filter(|p| p.file == ROUND)
+        .collect();
+    assert_eq!(
+        summary(&template_problems),
+        Vec::<String>::new(),
+        "template"
+    );
+    for triage in [
+        "fixtures/INBOX-TRIAGE.md",
+        "skills/uraeda/assets/templates/specs/INBOX-TRIAGE.md",
+    ] {
+        let example = Example::new();
+        example.write(TRIAGE, &repository_file(triage));
+
+        assert_eq!(
+            summary(&example.problems()),
+            Vec::<String>::new(),
+            "{triage}"
+        );
+    }
+    assert_eq!(summary(&Example::new().problems()), Vec::<String>::new());
+}
+
+/// SC-005: the example round, measured as if it waited, has no sentence over 25 words and at most
+/// 7 block items.
+#[test]
+fn the_example_round_holds_to_the_writing_limits() {
+    let example = Example::new();
+    let text = example
+        .read(ROUND)
+        .replacen("status: answered", "status: awaiting-human", 1)
+        .replacen("> [!NOTE]", "> [!IMPORTANT]", 1);
+
+    assert_eq!(summary(&round_problems(&text)), Vec::<String>::new());
 }

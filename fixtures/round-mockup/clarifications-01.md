@@ -134,8 +134,8 @@ Why it matters: an end date adds two fields to the repeat setting.
 
 ### Check these
 
-- **A task without a due date** gets today as its due date when it is set to repeat, so the quick
-  path works on every task.
+- **A task without a due date** gets today as its due date when set to repeat, so the quick path
+  works on every task.
 - **Skipping one occurrence** gets no action of its own: users move its due date, as in Todoist.
 
 ### Behaviour

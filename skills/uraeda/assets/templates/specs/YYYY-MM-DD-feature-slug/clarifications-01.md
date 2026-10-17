@@ -10,8 +10,8 @@ status: awaiting-human
 >
 > - Verdict: [worth building as proposed | worth building, with changes | not as proposed], [and
 >   why, in a sentence].
-> - [Where your attention matters most, named by subject, not by question number: choices that last
->   beyond this feature, gaps in the proposal, points to check among the settled ones]
+> - [Where your attention matters most, named by subject, not by question number. It may be choices
+>   that last beyond this feature, gaps in the proposal, or settled points to check]
 
 ## Context
 

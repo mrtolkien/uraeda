@@ -111,3 +111,42 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `read` in `crates/core/src/files/clarifications/letters.rs`, and the table in
   `crates/core/tests/items.rs`.
 - **Where**: the review fix after task 4.
+
+## R10: The web UI fixture round gives its true counts
+
+- **Decision**: the block of `fixtures/repo/branches/2026-10-11-web-ui/.../clarifications-01.md` now
+  opens "3 questions and 1 follow-up on the web UI, about 35 minutes.", and the home page's test in
+  `packages/web/src/__tests__/home.test.tsx` expects that line.
+- **Rationale**: the round holds 3 questions and 1 follow-up, while its block said 11 questions.
+  SC-002 asks every fixture round to pass with no warning, and `block.count` flags the old line. The
+  test asserted the fixture's text, which the new warning shows was wrong.
+- **Alternatives considered**: leaving the fixture out of the SC-002 test: the spec names every
+  fixture round.
+- **If wrong**: the fixture's first line and the test's expected text.
+- **Where**: task 5.
+
+## R11: Which fixture rounds SC-002 checks, and how
+
+- **Decision**: `every_fixture_round_passes` in `crates/core/tests/check.rs` checks the example, the
+  round and triage templates, the triage fixture, the mockup round, `fixtures/settled-comments`, the
+  preview's round, and the four rounds of `fixtures/repo/branches/`. Those four are checked in
+  place, without their `links.file` problems: their fixture repository lacks the discovery, the
+  priorities, and the constitution they link to. The rounds of `fixtures/specs/` are stubs for the
+  workspace's tests, and `fixtures/broken/` is broken on purpose: neither is checked.
+- **Rationale**: SC-002 says "every fixture round"; the stubs and the broken files are not rounds an
+  agent writes, and the branch copies' missing targets belong to their fixture repository, not to
+  the round format.
+- **Alternatives considered**: copying the branch rounds into the example: they are copies of an
+  older example round, and their checks would read the example's files instead of theirs.
+- **If wrong**: the test's list and its filter.
+- **Where**: task 5.
+
+## R12: The templates' and fixtures' long sentences are split
+
+- **Decision**: the sentences over 25 words in the round and triage templates' placeholders, the
+  triage fixture, the mockup round, and the web UI round are rewritten under the limit, their
+  meaning kept. The triage fixture's three quoted notes become a list.
+- **Rationale**: SC-002: the templates and every fixture round pass with no warning.
+- **Alternatives considered**: skipping placeholders in brackets: a rule for templates only.
+- **If wrong**: the wording of those lines.
+- **Where**: task 5.

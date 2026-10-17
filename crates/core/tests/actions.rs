@@ -187,6 +187,28 @@ fn submits_and_commits_on_the_features_branch() {
     assert_eq!(repo.current_branch(), "main");
 }
 
+/// US1.7: Submit keeps the block's verdict item under the new first line.
+#[test]
+fn submitting_keeps_the_verdict() {
+    let verdict = "> - Verdict: worth building as proposed, since it is small.\n";
+    let repo = repo_with(&round("B", "A", "A").replacen(
+        "> - A point.\n",
+        &format!("{verdict}> - A point.\n"),
+        1,
+    ));
+    let (feature, place) = reach(&repo);
+
+    answer::submit_and_commit(&place, &feature, Date::parse("2026-10-18").unwrap()).unwrap();
+
+    let text = read(&place, ROUND);
+    assert!(
+        text.contains(&format!(
+            "> [!NOTE]\n>\n> Answered on 2026-10-18.\n>\n{verdict}> - A point.\n"
+        )),
+        "{text}"
+    );
+}
+
 #[test]
 fn a_refused_commit_keeps_the_answers_and_can_be_tried_again() {
     let repo = repo_with(&round("B", "A", "A"));

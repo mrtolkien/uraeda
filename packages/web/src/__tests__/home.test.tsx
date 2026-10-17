@@ -96,7 +96,9 @@ test("Needs you lists what waits on the human, by action", async () => {
   const list = needs.getByRole("list", { name: "Needs you" });
   const web = row(list, /Web UI for the workflow files/).row;
   expect(web.getByText("Answer")).toBeTruthy();
-  expect(web.getByText("11 questions on the web UI, about 35 minutes.")).toBeTruthy();
+  expect(
+    web.getByText("3 questions and 1 follow-up on the web UI, about 35 minutes."),
+  ).toBeTruthy();
   expect(row(list, /Recurring tasks/).row.getByText("Review")).toBeTruthy();
 });
 
