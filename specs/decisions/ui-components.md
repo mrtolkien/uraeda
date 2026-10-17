@@ -1,68 +1,48 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: component
 ---
 
 # UI components
 
-The web UI is built from Astryx components wherever one exists, and the few styles of its own are
-written in StyleX, next to the component that uses them, with Astryx's tokens only. There is no
-global stylesheet besides Astryx's own. Lint enforces it, so an agent gets a precise message instead
-of a taste to guess.
+The web UI looks and behaves as one product because it is built from one design system, Astryx, and
+styled only through its theme. An agent never guesses a size, a colour, or which component to use:
+lint tells it.
 
 ## Rules
 
-- Views MUST use an Astryx component wherever one exists for the job: buttons, links, inputs, text
-  areas, menus, sheets, dialogs, toasts, banners, lists and rows, headings and text, outlines,
-  breadcrumbs, and the shell.
-- Raw `button`, `input`, `textarea`, `select`, and `dialog` elements MUST NOT be written in
-  `packages/web/src`. Lint (`react/forbid-elements`) names the Astryx component to use instead.
-- A raw element MAY be used where no Astryx component fits, only with a lint suppression on its line
-  giving the reason, and the plan MUST list it as an Astryx gap.
-- Components MUST NOT take a `style` prop, and Astryx components MUST NOT take a `className`. Their
-  own styles go through `xstyle`.
-- The app's own styles MUST be written with `stylex.create`, in the file of the component that uses
-  them, and MUST use Astryx's tokens for colours, spacing, sizes, radii, borders, and type. Raw
-  values are allowed only for `0`, percentages, `auto`, and layout keywords. StyleX's lint plugin
-  (`valid-styles`) enforces it.
-- No stylesheet MAY be imported besides Astryx's reset, core, and theme stylesheets.
-- Sizes MUST come from the theme. A size the theme lacks is added to the theme, not written in a
-  component.
-- Reordering by drag MUST use `@dnd-kit/react`. No other drag-and-drop library MAY be added.
-- Astryx, `@dnd-kit/react`, and StyleX MUST be pinned to exact versions, and upgraded deliberately.
+- Views MUST use an Astryx component wherever one fits the job. Checked by lint, which names the
+  component to use for a raw button, input, text area, select, or dialog.
+- A raw element MAY stand in for a missing Astryx component, with a lint suppression that gives the
+  reason, and the plan MUST list it as an Astryx gap. Checked by lint and review.
+- Styles MUST be written with StyleX, in the file of the component that uses them, from the theme's
+  tokens and sizes, raw values only for `0`, percentages, `auto`, and keywords. Checked by lint.
+- Components MUST NOT take a `style` prop, and only Astryx's stylesheets MAY be imported. Checked by
+  lint and review.
+- Drag and drop MUST use `@dnd-kit/react`. Checked by review.
+- Astryx, StyleX, and `@dnd-kit/react` MUST be pinned to exact versions. Checked by review.
 
 ## Why
 
-The web UI's spec named the right Astryx components, like `Outline`, `Toast`, and `List`. The pages
-drifted to 533 lines of global CSS in px anyway, and grew text smaller on desktop than on the phone.
-No rule or check caught it, and the human found the views "mostly good but also very scuffed"
-([proposal](../done/2026-10-12-ui-improvements.md),
-[Q1](../done/2026-10-12-ui-improvements.md#q1-how-should-this-apps-ui-be-built),
-[how the UI is built](../done/2026-10-12-ui-improvements.md#q1-how-should-this-apps-ui-be-built)).
-Design systems hold the line with lint: one vocabulary, whose sizes and colours follow the theme in
-light and dark. Dragging that animates well on touch is a lot of code to write by hand, and dnd-kit
-is the maintained choice for React 19
-([Q9](../done/2026-10-12-ui-improvements.md#q9-how-should-dragging-a-line-work),
-[reordering](../done/2026-10-12-ui-improvements.md)).
+The first pages drifted to 533 lines of global CSS in pixels, with text smaller on desktop than on
+the phone, though their spec named the right components. Lint holds the line where written
+guidelines did not, and the theme's tokens keep light and dark consistent. dnd-kit is the maintained
+choice for dragging on touch screens in React 19
+([UI improvements](../done/2026-10-12-ui-improvements.md#q1-how-should-this-apps-ui-be-built)).
 
 ## Alternatives considered
 
-- Astryx components checked by lint, with the reading layout kept in one global stylesheet in
-  tokens: less to rewrite, but two ways to style, and nothing checks the global file.
-- Written guidelines only: what produced today's pages.
-- The hand-written pointer drag, with an animation after the drop: no dependency, but nothing moves
-  under the finger.
+- Written guidelines only: what produced the first pages.
+- A global stylesheet in tokens beside Astryx: two ways to style, and nothing checks the global
+  file.
+- A hand-written pointer drag: no dependency, but nothing moves under the finger.
 
 ## Consequences
 
-- Every page's styles move from `styles.css` to StyleX, and the web package compiles StyleX with its
-  Vite plugin.
 - A size or a colour changes in one place, the theme, and reaches every view.
-- An agent meets a lint error, with the component to use, the moment it writes a raw element.
-- StyleX's lint plugin runs through oxlint's JavaScript plugins, which are in alpha: an oxlint
-  upgrade may need care.
-- `@dnd-kit/react` is pre-1.0: its upgrades may change its API.
+- StyleX's lint runs through oxlint's JavaScript plugins, still in alpha: an oxlint upgrade may need
+  care.
 - Astryx gaps are listed in plans, so they can be reported upstream.
 
 ## Applies to

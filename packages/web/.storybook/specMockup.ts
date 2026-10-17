@@ -45,10 +45,10 @@ plan-review: false
 
 ## Your review
 
-- **C1**: done. "Weekends" sits next to "weekdays" in the repeat menu.
-- **C2**: done. The undo now stays 5 seconds, in the task row.
-- **C3**: declined. The title parser knows English phrases only: other languages need their own
-  feature, with a list of phrases per language.
+- **C1** (add weekends): done. "Weekends" sits next to "weekdays" in the repeat menu.
+- **C2** (undo too short): done. The undo now stays 5 seconds, in the task row.
+- **C3** (French phrases): declined. The title parser knows English phrases only: other languages
+  need their own feature, with a list of phrases per language.
 
 ## Decisions
 
@@ -56,9 +56,16 @@ plan-review: false
   due date moves when it is completed. No history of completions is kept.
 - **Changed: [Task storage](../decisions/task-storage.md)**. An upgrade that cannot read a saved
   value clears it and logs it, and never deletes a task.
+- **Removed: Task history** (\`task-history.md\`). Repeating tasks keep no history of completions,
+  so the decision has nothing left to govern.
 
-Relied on: [due dates](../decisions/due-dates.md), [UI components](../decisions/ui-components.md),
-and [preview](../decisions/preview.md).
+Relied on:
+
+| Decision                                         | What it means for this spec                       |
+| ------------------------------------------------ | ------------------------------------------------- |
+| [Due dates](../decisions/due-dates.md)           | next dates are counted in calendar days           |
+| [UI components](../decisions/ui-components.md)   | the menu is Astryx's \`Select\`                    |
+| [Preview](../decisions/preview.md)               | the mockups are stories of the real components    |
 
 ## User stories
 
@@ -130,11 +137,11 @@ Key scenarios:
 
 ## Edge cases
 
-- A monthly task due on the 31st is due on the last day of shorter months, and back on the 31st
-  after them.
-- Moving a repeating task's due date by hand restarts its schedule from the new date. This is how
-  users skip an occurrence.
-- A title made only of a repeat phrase, like "every monday", stays a title, without a repeat.
+| Situation                                          | What happens                                      |
+| -------------------------------------------------- | ------------------------------------------------- |
+| A monthly task due on the 31st, in a shorter month | due on the month's last day, back on the 31st after |
+| The due date moved by hand                         | the schedule restarts from the new date           |
+| A title made only of "every monday"                | it stays a title, without a repeat                |
 
 ## Success criteria
 
@@ -160,12 +167,41 @@ written there. Settled while writing this spec:
 
 ## Constitution check
 
-No principle is in tension: one menu in the existing panel and one new screen, nothing leaves the
-device, and the list does not grow.
+| I. Simple | II. Local first | III. Fast |
+| :-------: | :-------------: | :-------: |
+|    ✅     |       ✅        |    ✅     |
 
 ## Risk tier
 
 **High**: it converts every saved due date, in an app that keeps no backup of users' data.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-08: add weekends, a longer undo, and French phrases in titles.
+`;
+
+const DATA_MODEL = `# Data model: Recurring tasks
+
+Entities that the feature adds or changes.
+
+## Task
+
+| Field     | Type                       | Meaning                                    | Change  |
+| --------- | -------------------------- | ------------------------------------------ | ------- |
+| \`title\`   | text                       | what the task is                           |         |
+| \`dueDate\` | calendar day, or none      | the day it is due, \`2026-10-12\`            | Changed |
+| \`repeat\`  | repeat rule, or none       | how it comes back once completed           | New     |
+
+## Repeat rule
+
+| Field      | Type                         | Meaning                                  | Change |
+| ---------- | ---------------------------- | ---------------------------------------- | ------ |
+| \`unit\`     | day, week, month, or year    | what the interval counts                 | New    |
+| \`interval\` | whole number, at least 1     | every N units                            | New    |
+| \`weekdays\` | days of the week, or none    | the chosen days, for weekly rules        | New    |
+| \`from\`     | calendar day                 | the date the schedule counts from        | New    |
 `;
 
 const REVIEW = `---
@@ -201,6 +237,7 @@ export function addSpecMockup(repo: string) {
   commitOnBranch(repo, "main", { "specs/decisions/task-storage.md": TASK_STORAGE_BEFORE });
   git(repo, "branch", SPEC_MOCKUP, "main");
   commitOnBranch(repo, SPEC_MOCKUP, {
+    [`specs/${SPEC_MOCKUP}/data-model.md`]: DATA_MODEL,
     [`specs/${SPEC_MOCKUP}/proposal.md`]: PROPOSAL,
     [`specs/${SPEC_MOCKUP}/spec-review.md`]: REVIEW,
     [`specs/${SPEC_MOCKUP}/spec.md`]: SPEC,
