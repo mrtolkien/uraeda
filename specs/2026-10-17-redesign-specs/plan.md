@@ -1298,7 +1298,7 @@ git commit -m "feat(redesign-specs): ura check warns when a decision changes aft
   - `FilePage` opens `SpecPage` for every `spec.md`, waiting or not; a plan keeps `ReviewPage` and
     `DocumentPage`.
 
-- [ ] **Step 1: Split the review hooks out of `ReviewPage.tsx`**
+- [x] **Step 1: Split the review hooks out of `ReviewPage.tsx`**
 
 Move `useReviewDraft`, `useStoryComments`, `CommentSheet`, and `useReviewSelection` into
 `packages/web/src/review/`, unchanged, imported back by `ReviewPage`.
