@@ -64,6 +64,9 @@ async function commentOnSeparator(label: string, text: string) {
   // A click on the element itself: userEvent finds the button again by its label, which matches
   // both variants' Pick buttons.
   (await within(embed).findByRole("button", { name: "Pick an element" }, READY)).click();
+  await expect
+    .poll(() => commands.frameOutlined(`${label}, desktop`, "separator"), READY)
+    .toBe(true);
   await commands.frameClick(`${label}, desktop`, "separator");
   expect(await within(embed).findByText(`Comment on ${label}, desktop, separator`)).toBeTruthy();
   await userEvent.keyboard(text);
@@ -109,10 +112,12 @@ test("a comment on a variant joins the question's answer, on a line of its own (
   await userEvent.type(q2Comment(), " Not sent yet.");
 
   const grip = screen.getByRole("figure", { name: "Grip" });
+  grip.scrollIntoView({ block: "start" });
   await expect.poll(() => commands.frameText("Grip, desktop"), READY).toContain("Grip");
   // A click on the element itself: userEvent finds the button again by its label, which matches
   // both variants' Pick buttons.
   (await within(grip).findByRole("button", { name: "Pick an element" }, READY)).click();
+  await expect.poll(() => commands.frameOutlined("Grip, desktop", "separator"), READY).toBe(true);
   await commands.frameClick("Grip, desktop", "separator");
   expect(await within(grip).findByText("Comment on Grip, desktop, separator")).toBeTruthy();
   await userEvent.keyboard("Thicker grip.");

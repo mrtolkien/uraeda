@@ -249,7 +249,7 @@ const commands = {
    * Moves the pointer over the element of a role and name in a frame of the page, by its `title`,
    * and says whether the pick script outlines it: a box drawn over the page, at the element's place.
    */
-  async frameOutlined(context: Context, title: string, role: "button", name: string) {
+  async frameOutlined(context: Context, title: string, role: FrameRole, name?: string) {
     const target = (await frameTitled(context, title)).getByRole(role, { name });
     await target.hover();
     return target.evaluate((element) => {
@@ -386,7 +386,7 @@ export type RepoCommands = {
   fixtureText: (name: string) => Promise<string>;
   frameAttribute: (title: string, selector: string, name: string) => Promise<string | null>;
   frameClick: (title: string, role: FrameRole, name?: string, force?: boolean) => Promise<void>;
-  frameOutlined: (title: string, role: "button", name: string) => Promise<boolean>;
+  frameOutlined: (title: string, role: FrameRole, name?: string) => Promise<boolean>;
   framePress: (title: string, key: string) => Promise<void>;
   frameReload: (title: string) => Promise<void>;
   frameRun: (title: string, script: string) => Promise<void>;

@@ -87,6 +87,15 @@ was observed failing before the fix and passing after it; the full session flow 
 [four review screenshots](ci-reliability/screenshots/) show keyboard focus on the remaining
 thumbnail after removal at both sizes and in both themes. They were visually reviewed.
 
+A subsequent hosted desktop run caught the same readiness mistake across a frame boundary: the
+story-comment test clicked its separator immediately after enabling pick mode in the parent page.
+Pick mode arrives in the iframe by `postMessage`, so the frame can receive the click first. Typing
+in the composer had also scrolled the story behind it. The test and the matching variant flows now
+bring the story into view and wait for the script's visible outline before clicking, reusing the
+existing outline probe for separators as well as buttons. CI retained the failure screenshot and it
+was downloaded and inspected. The comment text, unsent composer contents, and send count remain the
+required outcomes.
+
 The tests intentionally use real git frequently, which costs time but verifies Uraeda's central
 contract. Browser fixtures already build a template once and copy it for each test, with a fresh
 repository name and a serialized fake-runner turn. Happy-dom tests have file-level temporary folders
