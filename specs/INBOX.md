@@ -107,3 +107,7 @@
 - [agent] [access-storybook] validate-storybook.ts: the 'an added export shows in the sidebar,
   without a reload' failure prints 'got false' whether the export was never listed or the page
   reloaded
+- [agent] [redesign-clarifications] Mermaid draws each diagram first in a temporary frame of the app
+  origin that runs scripts, so a sanitiser bypass reaches the app despite the diagrams decision:
+  running it in an opaque-origin frame needs the decision amended (strict level, as WebKit gives
+  such frames no contentDocument) and the guard to allow Origin: null reads of /assets/*
