@@ -8,6 +8,7 @@ import type { Device } from "./sign-in/check.ts";
 import {
   agentDataView,
   branchChangesDataView,
+  branchDecisionDataView,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -33,6 +34,7 @@ import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-re
 export {
   agentDataView,
   branchChangesDataView,
+  branchDecisionDataView,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -74,6 +76,7 @@ export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
 export type Feature = Entity<typeof featureDataView, "Feature">;
 export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
+export type BranchDecision = Entity<typeof branchDecisionDataView, "BranchDecision">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
 /** An entry of the priorities, as the record sends it. */
 export type PriorityEntry = Priorities["sections"][number]["entries"][number];

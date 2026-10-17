@@ -441,3 +441,30 @@ test("a branch whose changes cannot be read is answered as failed, and logged", 
   expect(logged.mock.calls.flat().join(" ")).toContain("git: not found");
   expect(logged.mock.calls.flat().join(" ")).not.toContain("second line");
 });
+
+test("a spec sends its branch's decision changes, and a branch's decision reads by its name", async () => {
+  const repo = fixtureRepo();
+  const feature = "2026-10-06-recurring-tasks";
+  const path = "specs/decisions/git.md";
+  const text = readFileSync(join(repo, path), "utf8");
+  commitOnBranch(repo, feature, { [path]: text.replace("through gix", "through gix alone") });
+  const { app } = await testApp(repo);
+
+  const [spec] = await byId(app, "WorkflowFile", [`${feature}/spec.md`], ["decisionChanges"]);
+  expect(
+    spec.decisionChanges.map(({ kind, listed, name }: Record<string, unknown>) => ({
+      kind,
+      listed,
+      name,
+    })),
+  ).toEqual([{ kind: "changed", listed: false, name: "git" }]);
+  const [decision, missing] = await byId(
+    app,
+    "BranchDecision",
+    [`${feature}/git`, `${feature}/none`],
+    ["id", "name", "folder", "missing", "change"],
+  );
+  expect(decision).toMatchObject({ folder: feature, id: `${feature}/git`, missing: null });
+  expect(decision.change.title).toBe("Git");
+  expect(missing).toMatchObject({ id: `${feature}/none`, missing: true });
+});

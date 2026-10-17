@@ -135,6 +135,7 @@ export const BranchChangesView = view<BranchChanges>()({
 export const FileView = view<WorkflowFile>()({
   committed: VersionSelection,
   current: VersionSelection,
+  decisionChanges: true,
   folder: true,
   id: true,
   kind: true,

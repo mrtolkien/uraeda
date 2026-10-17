@@ -223,6 +223,12 @@ export declare function proposalHints(): Promise<Array<ProposalHint>>
  */
 export declare function proposeSlug(text: string): string
 
+/**
+ * A decision of `specs/decisions/`, by its name, as a feature's branch has it, with its change
+ * against the merge base of the branch and the default branch.
+ */
+export declare function readDecision(repo: string, folder: string, name: string): Promise<BranchDecision>
+
 /** A draft, by its path from the top level. */
 export declare function readDraft(repo: string, path: string): Promise<DraftView>
 
@@ -497,6 +503,20 @@ export interface BranchChanges {
   count: number
   added: number
   removed: number
+}
+
+/**
+ * A decision as a feature's branch has it, and its change against the merge base of the branch
+ * and the default branch.
+ */
+export interface BranchDecision {
+  /** The file's name, without `.md`. */
+  name: string
+  /** The feature's folder. */
+  folder: string
+  change: DecisionChange
+  /** The branch's version of the file. */
+  document: Document
 }
 
 export type CalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution' | 'question'
@@ -790,6 +810,11 @@ export interface FileView {
    * triage, committed alone, cannot.
    */
   takesImages: boolean
+  /**
+   * For `spec.md`, the decisions its branch changed, and those its `## Decisions` lists: the
+   * listed ones first, in the items' order, then the others by name. Empty for other files.
+   */
+  decisionChanges: Array<DecisionChange>
 }
 
 /** `INBOX.md` read for editing. */
