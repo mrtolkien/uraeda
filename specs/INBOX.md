@@ -119,3 +119,5 @@
   or "B, ..." reads back as that letter picked, and opens its follow-ups: the web UI could warn
 - [agent] [redesign-clarifications] On the phone, the round page draws its band before the settled
   points even when there are none, as on the triage
+- [agent] [redesign-clarifications] A #### heading in a round Context is dropped from the page, and
+  ura check says nothing
