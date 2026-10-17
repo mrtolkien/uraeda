@@ -2,6 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useSta
 import { useFateClient } from "react-fate";
 import type { useDraft } from "../data.ts";
 import { unsavedKey, writeUnsaved } from "../fields/unsaved.ts";
+import { splitDraft } from "../pane/draftText.ts";
 import { redirect, repoPath, useRepository, useRepositoryPath } from "../routes.tsx";
 import type { useTextField } from "../fields/useTextField.ts";
 import type { useSave } from "../useSave.ts";
@@ -19,12 +20,6 @@ type Draft = ReturnType<typeof useDraft>;
  */
 const movedTexts = new Map<string, Linked & { status?: AttachStatus }>();
 
-/**
- * A file's text as its field holds it: a text field's value has LF line breaks, whatever the file
- * has, and the cursor's positions count them so (R50).
- */
-export const asTyped = (text: string) => text.replaceAll(/\r\n?/g, "\n");
-
 /** Reads a draft's text and hash from the server, past what the page holds. */
 export async function readDraft(fate: Fate, path: string) {
   const { draft: ref } = await fate.request(
@@ -36,7 +31,7 @@ export async function readDraft(fate: Fate, path: string) {
   }
   // fate does not infer the view's type through `readView`: these are its fields.
   const fresh = (await fate.readView(DraftView, ref)) as unknown as {
-    data: { hash: string; text: string };
+    data: { document: { frontmatterLines?: { end: number } }; hash: string; text: string };
   };
   return fresh.data;
 }
@@ -52,8 +47,9 @@ export function useMovedText(path: string) {
 
 /**
  * Where a run of uploads that moved the draft ends: on its new page, its text with the links kept
- * there as the editor's unsaved text over `base`, the draft's text before, which that page saves at
- * once; or, once the human left, its text saved at the new path, over its version now.
+ * there as the editor's unsaved text over `base`, the draft's text before after its frontmatter,
+ * which that page saves at once; or, once the human left, its text saved at the new path, over its
+ * version now.
  */
 function useOnMoved(release: () => void, base: string) {
   const fate = useFateClient();
@@ -84,7 +80,12 @@ function useOnMoved(release: () => void, base: string) {
         const moved = await readDraft(fate, next);
         if (moved) {
           await fate.mutations.text.save({
-            input: { hash: moved.hash, path: next, text: linked.text },
+            // The field's text is the one after the frontmatter, which stays the file's.
+            input: {
+              hash: moved.hash,
+              path: next,
+              text: `${splitDraft(moved).head}${linked.text}`,
+            },
             view: DraftView,
           });
         }
@@ -149,14 +150,11 @@ export function useEditorImages({
     initialStatus: moved?.status,
     label: path.split("/").at(-1) ?? path,
     onLinks: field.change,
-    onMoved: useOnMoved(
-      () => {
-        holding.current = false;
-        // The text, typed during the run included, goes to the new path.
-        field.discard();
-      },
-      asTyped(draft?.text ?? ""),
-    ),
+    onMoved: useOnMoved(() => {
+      holding.current = false;
+      // The text, typed during the run included, goes to the new path.
+      field.discard();
+    }, splitDraft(draft).body),
     onStart: async () => {
       holding.current = true;
       setDrawn(false);

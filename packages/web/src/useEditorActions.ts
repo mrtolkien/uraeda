@@ -3,6 +3,7 @@ import { useFateClient } from "react-fate";
 import type { useDraft } from "./data.ts";
 import type { useTextField } from "./fields/useTextField.ts";
 import { refusal } from "./errors.ts";
+import type { splitDraft } from "./pane/draftText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import type { useSave } from "./useSave.ts";
@@ -10,26 +11,24 @@ import { DraftView, FeatureView } from "./views.ts";
 
 type Draft = NonNullable<ReturnType<typeof useDraft>>;
 
-/**
- * The editor's actions on its draft or proposal, each after the text typed in `field` is saved:
- * commit it, start it as a feature under the slug typed in `slug`, and set its discovery effort,
- * in the save queue. `message` says what the last one did, or why it did not.
- */
-export function useEditorActions({
-  draft,
-  field,
-  path,
-  save,
-  setConflict,
-  slug,
-}: {
+/** What the editor's actions act on, and what they tell it. */
+type Editor = {
   draft: Draft | undefined;
   field: ReturnType<typeof useTextField>;
   path: string;
   save: ReturnType<typeof useSave<string>>;
   setConflict: (conflict: string) => void;
   slug: ReturnType<typeof useTextField>;
-}) {
+  written: (fresh: Parameters<typeof splitDraft>[0]) => void;
+};
+
+/**
+ * The editor's actions on its draft or proposal, each after the text typed in `field` is saved:
+ * commit it, start it as a feature under the slug typed in `slug`, and set its discovery effort,
+ * in the save queue. `written` takes the file the discovery effort was written into. `message`
+ * says what the last one did, or why it did not.
+ */
+export function useEditorActions({ draft, field, path, save, setConflict, slug, written }: Editor) {
   const fate = useFateClient();
   const here = useRepoPath();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
@@ -104,6 +103,7 @@ export function useEditorActions({
         }
         return { message: failed.message, ok: false };
       }
+      written(result.result ?? null);
       return { ok: true, saved: result.result?.hash ?? previous };
     });
     if (!wrote) {

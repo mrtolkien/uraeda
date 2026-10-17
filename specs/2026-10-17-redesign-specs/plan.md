@@ -836,8 +836,9 @@ git commit -m "fix(redesign-specs): commenting keeps your reading place"
 
 **Files:**
 
-- Modify: `packages/web/src/pane/useDraftEditor.ts`, `packages/web/src/EditorPage.tsx` or
-  `packages/web/src/pane/DraftEditor.tsx` where the box is filled
+- Create: `packages/web/src/pane/draftText.ts`, the split and the stored text's cut (R28, R30)
+- Modify: `packages/web/src/pane/useDraftEditor.ts`, `packages/web/src/useEditorActions.ts` (R29),
+  `packages/web/src/attach/useEditorImages.ts` (R31)
 - Test: `packages/web/src/__tests__/editor.test.tsx`
 
 **Interfaces:**
@@ -847,7 +848,7 @@ git commit -m "fix(redesign-specs): commenting keeps your reading place"
   current frontmatter back before the text, so `fate.mutations.text.save` still receives the whole
   file.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/editor.test.tsx
@@ -877,25 +878,25 @@ The break each test catches:
 - Discovery control: the frontmatter joined from the box's first load, overwriting the control's
   change.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/editor.test.tsx`
 - Expected: FAIL, `expected false to be true` on the title
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Split the text at the frontmatter's end line when the field is filled, and when an unsaved text is
 restored. Join the frontmatter the file has at save time, so the discovery control's change is kept.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web/src/pane packages/web/src/EditorPage.tsx packages/web/src/__tests__/editor.test.tsx
+git add packages/web/src/pane packages/web/src/useEditorActions.ts packages/web/src/attach packages/web/src/__tests__/editor.test.tsx
 git commit -m "fix(redesign-specs): the edit box hides the frontmatter its controls set"
 ```
 
