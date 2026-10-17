@@ -258,9 +258,9 @@ test("on a phone, the counts and the cards come in the same order", async () => 
   try {
     await renderPage();
 
-    const counts = (await main())
-      .getAllByRole("group")
-      .map((group) => group.getAttribute("aria-label"));
+    const counts = (await (await main()).findAllByRole("group")).map((group) =>
+      group.getAttribute("aria-label"),
+    );
     expect(counts).toEqual(["Needs you", "Agents", "Now", "Inbox"]);
     expect(await headings()).toEqual([
       expect.stringMatching(/^Needs you/),

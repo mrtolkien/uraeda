@@ -46,6 +46,8 @@ test("＋ adds to Later with a toast and Undo, and the bar does not change (US6 
   while (!within(bar).queryByRole("button", { name: "Add to the priorities" })) {
     bar = bar.parentElement!;
   }
+  // The inbox's count loads on its own: the bar is whole once it shows.
+  await waitFor(() => expect(bar.textContent).toContain("Inbox10"));
   const before = bar.textContent;
 
   const undo = await addToLater("Show the agent's last commit");

@@ -121,7 +121,8 @@ test("Edit opens the line and the draft's text in place", async () => {
   const line = (await paneDrawn()).getByRole("textbox", { name: "Line" });
   expect(line).toHaveProperty("value", "[Git listener process](drafts/git-listener.md)");
   expect(document.activeElement).toBe(line);
-  const text = (await paneDrawn()).getByRole("textbox", { name: "Text" });
+  // The draft's text loads after its line.
+  const text = await (await paneDrawn()).findByRole("textbox", { name: "Text" });
   expect(text).toHaveProperty("value", read(repo, DRAFT));
   expect(text.getAttribute("rows")).toBe("20");
   expect(detail().getByText("Enter saves · Escape cancels")).toBeTruthy();
@@ -149,7 +150,8 @@ test("the draft's text saves in place, and commits", async () => {
   const { repo } = await renderPage("/priorities/git-listener");
   await pressEdit();
   const typed = read(repo, DRAFT).replace("Run the next step", "Run the agent's next step");
-  const text = (await paneDrawn()).getByRole("textbox", { name: "Text" });
+  // The draft's text loads after its line.
+  const text = await (await paneDrawn()).findByRole("textbox", { name: "Text" });
 
   await type(text, typed);
   await act(async () => {
