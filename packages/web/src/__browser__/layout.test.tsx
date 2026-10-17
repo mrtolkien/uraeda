@@ -208,7 +208,7 @@ describe("on the desktop", () => {
   });
 
   // The inbox's spec: the sidebar's ＋ buttons show only while it is unfolded.
-  test("the folded navigation keeps Home and the repository menu, its ＋ unfolded (US6 4; US1)", async () => {
+  test("the folded navigation keeps Home, its repository menu and ＋ unfolded (US6 4; US1)", async () => {
     try {
       await show("/priorities", "Claude Code runner");
       await userEvent.click(within(nav()).getByRole("button", { name: "Collapse sidebar" }));
@@ -217,12 +217,9 @@ describe("on the desktop", () => {
         .toBeTruthy();
 
       expect(within(nav()).queryByRole("button", { name: "Add to the priorities" })).toBeNull();
-      // Folded, the heading's icon opens the menu.
-      await userEvent.click(within(nav()).getByRole("button", { name: `Uraeda ${repository()}` }));
-      const menu = await screen.findByRole("dialog", { name: "Repositories" });
-      expect(within(menu).getByRole("list", { name: "Repositories" })).toBeTruthy();
-      await userEvent.keyboard("{Escape}");
-      await expect.poll(() => screen.queryByRole("dialog", { name: "Repositories" })).toBeNull();
+      // Folded: no repository menu, and no ＋ rows without their label.
+      expect(within(nav()).queryByRole("button", { name: `Uraeda ${repository()}` })).toBeNull();
+      expect(within(nav()).queryByRole("link", { name: /New change/ })).toBeNull();
       await userEvent.click(within(nav()).getByRole("link", { name: "Home" }));
       await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
 

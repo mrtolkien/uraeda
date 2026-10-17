@@ -20,6 +20,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { SessionStatus } from "uraeda-server/fate";
 import { ProgressRing } from "../ProgressRing.tsx";
 import { StatusMark } from "../StatusMark.tsx";
+import { needsYou } from "./cards.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 
 /** The colours a feature can be given, from the theme's palette. */
@@ -76,19 +77,15 @@ const styles = stylex.create({
     // atomic class would reorder against the transcript's own.
     flexShrink: 0,
   },
-  mark: {
-    // The status over the step's icon's corner, in the folded rail.
-    insetBlockStart: `calc(-1 * ${spacingVars["--spacing-1"]})`,
-    insetInlineEnd: `calc(-1 * ${spacingVars["--spacing-2"]})`,
-    position: "absolute",
-  },
   progressText: {
     flexGrow: 1,
     minWidth: 0,
   },
   railIcon: {
+    alignItems: "center",
     display: "inline-flex",
-    position: "relative",
+    flexDirection: "column",
+    gap: spacingVars["--spacing-1"],
   },
   stripe: {
     borderInlineStartWidth: spacingVars["--spacing-1"],
@@ -147,22 +144,23 @@ function Status({ item }: { item: CardItem }) {
   );
 }
 
-/** The step's icon; in the folded rail, with the status over its corner. */
+/**
+ * The step's icon; in the folded rail, with a warning under it while the item needs the human, its
+ * status read in the card's name.
+ */
 function CardIcon({ item }: { item: CardItem }) {
   const { isCollapsed } = useSideNavCollapse();
-  if (!isCollapsed) {
+  if (!isCollapsed || !needsYou(item.status)) {
     return <StepIcon step={item.step.kind} />;
   }
   return (
     <span {...stylex.props(styles.railIcon)}>
       <StepIcon step={item.step.kind} />
-      <span {...stylex.props(styles.mark)}>
-        {item.pending ? (
-          <Spinner label={item.pending} size="sm" />
-        ) : (
-          <StatusMark label={item.status.label} small status={item.status.status} />
-        )}
-      </span>
+      <Icon
+        color={item.status.status === "attention" ? "error" : "warning"}
+        icon="warning"
+        size="sm"
+      />
     </span>
   );
 }

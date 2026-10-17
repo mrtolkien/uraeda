@@ -65,7 +65,10 @@ export function Item({
   );
 }
 
-/** A "＋" row opening a new item's page at `path`, like "New change" or "New chat". */
+/**
+ * A "＋" row opening a new item's page at `path`, like "New change" or "New chat"; left out of the
+ * folded navigation, where it would be a ＋ with no label.
+ */
 export function NewRow({
   label,
   path,
@@ -76,6 +79,10 @@ export function NewRow({
   pathname: string;
 }) {
   const here = useRepoPath();
+  const { isCollapsed } = useSideNavCollapse();
+  if (isCollapsed) {
+    return null;
+  }
   return (
     <SideNavItem
       href={here(path)}

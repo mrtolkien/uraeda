@@ -431,7 +431,7 @@ test("a feature leaving its implementation loses its task", async () => {
   expect(row("cli-tuis")).toBeTruthy();
 });
 
-test("the folded sidebar hides the cards' tasks", async () => {
+test("the folded sidebar hides the cards' tasks and status marks", async () => {
   const repo = fixtureRepo();
   addPlan(repo, CLI, ELEVEN);
   await renderPage("/", repo, { agent: await fakeAgent() });
@@ -441,7 +441,9 @@ test("the folded sidebar hides the cards' tasks", async () => {
 
   await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
   expect(nav().queryByText("7/11 · Session column")).toBeNull();
-  expect(statusOf(row("cli-tuis"))).toBe("Idle");
+  // The status is read in the card's name, and drawn only as a warning while it needs the human.
+  expect(row("cli-tuis").getAttribute("aria-label")).toContain(", Idle");
+  expect(within(row("cli-tuis")).queryByRole("img")).toBeNull();
 });
 
 test.each([
