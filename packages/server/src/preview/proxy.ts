@@ -209,7 +209,8 @@ const CHANNEL = "/storybook-server-channel";
 /**
  * An upgrade's query for Storybook: to its channel, always a preview's, `page=preview`, whatever
  * `page` it asked, as Storybook gives a manager's channel, or one without a page or an `Origin`, the
- * right to write files in the worktree (R51). Its token, and the rest, go as asked.
+ * right to write files in the worktree (R51, and the [stack](/specs/decisions/stack.md) decision's
+ * rule). Its token, and the rest, go as asked.
  */
 function upstreamSearch(path: string, url: URL): string {
   if (path !== CHANNEL) {

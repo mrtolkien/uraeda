@@ -7,8 +7,11 @@
 //   export default uraedaPreview({ framework: "@storybook/react-vite", stories: [...] });
 //
 // Uraeda sets `URAEDA_PREVIEW_BASE` to that path when it starts the preview decision's command.
-// Without it, the config is left as it is, so `storybook dev` runs as usual. It needs Storybook's
-// Vite builder, and stops a Storybook built with webpack.
+// Without it, the config is left as it is, so `storybook dev` runs as usual. Under Uraeda, it also
+// turns on Storybook's `security.insecureIframeMessaging`: Uraeda shows Storybook's interface in a
+// sandboxed frame, which has no origin of its own, and only Uraeda's pages, which hold the preview
+// path's secret, can reach it. It needs Storybook's Vite builder, and stops a Storybook built with
+// webpack.
 
 import process from "node:process";
 
@@ -27,6 +30,12 @@ import process from "node:process";
  */
 
 /**
+ * Storybook's security settings, as far as the helper reads and writes them: it keeps the others.
+ *
+ * @typedef {{ insecureIframeMessaging?: boolean } & Record<string, any>} Security
+ */
+
+/**
  * A Storybook config, as far as the helper reads and writes it.
  *
  * @typedef {object} StorybookConfig
@@ -34,6 +43,7 @@ import process from "node:process";
  * @property {{ builder?: string | { name: string } }} [core]
  * @property {Preset<string>} [previewHead]
  * @property {Preset<string>} [managerHead]
+ * @property {Preset<Security>} [security]
  * @property {(config: any, options: any) => any} [viteFinal]
  */
 
@@ -43,12 +53,13 @@ const NEEDS_VITE = "uraeda-preview.js needs Storybook's Vite builder.";
  * The config of a Storybook that Uraeda serves under `env.URAEDA_PREVIEW_BASE`, or `config` itself
  * when it is unset. With it, Vite's `base` is the path, the two script tags Storybook adds after
  * Vite's own rewriting take it too, and both live sockets, Storybook's channel and Vite's hot
- * reload, open on the page's own address, the channel under the path.
+ * reload, open on the page's own address, the channel under the path. Its `security` turns on
+ * iframe messaging, over the project's own settings.
  *
  * @template {StorybookConfig} T
  * @param {T} config
  * @param {Record<string, string | undefined>} [env]
- * @returns {T & { previewHead: (head: string, options: unknown) => Promise<string>, managerHead: (head: string, options: unknown) => Promise<string>, viteFinal: (config: any, options: unknown) => Promise<any>, webpackFinal: (config: unknown, options: unknown) => never }}
+ * @returns {T & { previewHead: (head: string, options: unknown) => Promise<string>, managerHead: (head: string, options: unknown) => Promise<string>, security: (value: Security | undefined, options: unknown) => Promise<Security>, viteFinal: (config: any, options: unknown) => Promise<any>, webpackFinal: (config: unknown, options: unknown) => never }}
  */
 export default function uraedaPreview(config, env = process.env) {
   const base = env.URAEDA_PREVIEW_BASE;
@@ -61,8 +72,14 @@ export default function uraedaPreview(config, env = process.env) {
   const patch = socketPatch(base);
   return {
     ...config,
-    managerHead: async (head, options) => patch + (await run(config.managerHead, head, options)),
-    previewHead: async (head, options) => patch + (await run(config.previewHead, head, options)),
+    managerHead: async (head, options) =>
+      patch + ((await run(config.managerHead, head, options)) ?? ""),
+    previewHead: async (head, options) =>
+      patch + ((await run(config.previewHead, head, options)) ?? ""),
+    security: async (value, options) => ({
+      ...(await run(config.security, value, options)),
+      insecureIframeMessaging: true,
+    }),
     viteFinal: async (vite, options) => {
       /** @type {ViteConfig} */
       const own = config.viteFinal ? await config.viteFinal(vite, options) : vite;
@@ -114,18 +131,20 @@ function nameOf(value) {
 }
 
 /**
- * The value a preset makes of `value`: empty when it makes none.
+ * The value a preset makes of `value`, the earlier presets' value: `value` itself when there is no
+ * preset.
  *
- * @param {Preset<string> | undefined} preset
- * @param {string} value
+ * @template T
+ * @param {Preset<T>} preset
+ * @param {T} value
  * @param {unknown} options
- * @returns {Promise<string>}
+ * @returns {Promise<T | undefined>}
  */
 async function run(preset, value, options) {
   if (preset === undefined) {
     return value;
   }
-  return (typeof preset === "function" ? await preset(value, options) : preset) ?? "";
+  return typeof preset === "function" ? await preset(value, options) : preset;
 }
 
 /**
