@@ -24,6 +24,16 @@ const ROUND_PATH = `specs/${FOLDER}/clarifications-01.md`;
 /** A question's card, or its section on the phone. */
 const card = (id: string) => document.getElementById(id)!;
 
+/** An element's content box's width: its width without its padding and borders. */
+function contentWidth(element: Element) {
+  const style = getComputedStyle(element);
+  return (
+    element.clientWidth -
+    Number.parseFloat(style.paddingLeft) -
+    Number.parseFloat(style.paddingRight)
+  );
+}
+
 /** A question's title. */
 const titleOf = (id: string) => document.getElementById(`${id}-title`)!;
 
@@ -126,8 +136,9 @@ describe("on the desktop", () => {
       const priorities = screen.getByRole("link", { name: "Priorities" }).getBoundingClientRect();
       expect(priorities.width).toBeGreaterThan(100);
       expect(screen.getByRole("navigation", { name: "Questions" })).toBeTruthy();
-      // The question's card, which holds its title inside its padding (R19).
-      expect(card("Q2").getBoundingClientRect().width).toBeGreaterThanOrEqual(600);
+      // The question's card holds its title inside its padding (R19): its content box, the
+      // padding and the borders taken out, keeps the 600 px.
+      expect(contentWidth(card("Q2"))).toBeGreaterThanOrEqual(600);
     } finally {
       await page.viewport(1440, 900);
     }
