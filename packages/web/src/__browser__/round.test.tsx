@@ -179,7 +179,7 @@ describe("question cards on the desktop", () => {
     );
 
     await userEvent.tab();
-    const a = within(card("Q3")).getByRole("checkbox", { name: "Option A" }) as HTMLInputElement;
+    const a = within(card("Q3")).getByRole("checkbox", { name: /^Option A\b/ }) as HTMLInputElement;
     expect(document.activeElement).toBe(a);
     await userEvent.keyboard(" ");
 
