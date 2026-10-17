@@ -150,12 +150,14 @@ fn feature_dir(git: &Git, feature: &Feature) -> Option<PathBuf> {
 }
 
 /// The errors `ura check` finds in a feature read from disk: its warnings stay out of the
-/// feature's problems (R1).
+/// feature's problems (R1). The rules reading the branch's history give warnings only, and are not
+/// run (R65).
 fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
     let Some(root) = feature_dir(git, feature) else {
         return Vec::new();
     };
-    let mut problems = check::check(&root, &root.join(feature.checked_path())).unwrap_or_default();
+    let mut problems =
+        check::check_files(&root, &root.join(feature.checked_path())).unwrap_or_default();
     problems.retain(|problem| {
         problem.severity == Severity::Error
             && !feature
