@@ -13,6 +13,7 @@
   "devDependencies": {
     "@nkzw/eslint-plugin": "catalog:",
     "@nkzw/oxlint-config": "catalog:",
+    "@types/node": "^24.19.1",
     "@vitest/coverage-v8": "catalog:",
     "eslint-plugin-no-only-tests": "catalog:",
     "eslint-plugin-perfectionist": "catalog:",

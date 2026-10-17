@@ -25,8 +25,18 @@ fn ura_with_a_terminal(dir: &Path, command: &str) -> String {
         .current_dir(dir)
         .env("URA_TODAY", "2026-10-11")
         .env("NO_COLOR", "1")
+        // `script` provides a terminal, but inherits TERM=dumb from headless callers. These
+        // scenarios exercise an interactive terminal regardless of the caller's environment.
+        .env("TERM", "xterm-256color")
+        .env("SHELL", "/bin/sh")
         .output()
         .expect("util-linux's script runs: install it to run the terminal tests");
+    assert!(
+        output.status.success(),
+        "terminal command failed: {}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     String::from_utf8_lossy(&output.stdout).replace('\r', "")
 }
 

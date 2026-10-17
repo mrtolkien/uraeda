@@ -205,6 +205,9 @@ importers:
       '@nkzw/oxlint-config':
         specifier: 'catalog:'
         version: 2.0.1(eslint@10.12.0(jiti@2.7.0))(oxlint@1.85.0(oxlint-tsgolint@7.0.2003)(vite-plus@1.0.0(@types/node@24.19.1)(@vitest/browser-playwright@5.0.1)(@vitest/coverage-v8@5.0.1)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.6)(jiti@2.7.0)(typescript@6.0.3)))(typescript@6.0.3)
+      '@types/node':
+        specifier: ^24.19.1
+        version: 24.19.1
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.1(@vitest/browser@5.0.1)(vitest@5.0.1)
