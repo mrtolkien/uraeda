@@ -1,12 +1,28 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
 ---
 
 # Spec: Redesign clarifications
+
+> [!IMPORTANT]
+>
+> Spec to review again, about 10 minutes: the phone layout changed, and two rules were added.
+>
+> - C1: done. An agent that finds files failing `ura check` after a format change rewrites them in
+>   the new format before its step goes on. This is a new rule of the
+>   [compatibility](../decisions/compatibility.md) decision.
+> - C2: done. The writing reference asks for adequate context: what the question needs to be decided
+>   from its card alone, without padding. The self-review checks each question that way.
+> - C3: done. On the phone, a question's title stays at the top of the screen while its question
+>   scrolls.
+> - C4: done. Tables keep columns of at least 144 px, and scroll sideways in their own region, on
+>   every page. The page itself never scrolls sideways.
+> - C5: done. On the phone, questions lose their card, borders, and inset. Bands separate questions,
+>   options run to the screen's edges, and a follow-up keeps today's accent line, as today.
 
 > [!NOTE]
 >
@@ -87,12 +103,19 @@ Acceptance scenarios:
    paragraph shows in a muted box after the context, and not within it.
 4. **Given** a question whose context holds a table and a quote, **When** the human opens the round,
    **Then** both show in the question's card.
+5. **Given** a table of 3 columns, at 402 px, **When** the human opens the round, **Then** each
+   column is at least 144 px wide, the table scrolls sideways in its own region, and the page does
+   not.
 
 ### US3: Each question is a card, its follow-up a card of its own (P1)
 
-Each question is a card with a large title. On a wide card, the title and context sit on the left,
-and the options and comment on the right. Options are cards to tap. A follow-up shows as its own
-card once its letter is picked, after its parent's, joined to it by a line.
+On a wide screen, each question is a card with a large title. On a wide card, the title and context
+sit on the left, and the options and comment on the right. Options are cards to tap. A follow-up
+shows as its own card once its letter is picked, after its parent's, joined to it by a line.
+
+On a phone, the page stays close to today's: no card, bands between questions, and options to the
+screen's edges. A follow-up keeps today's accent line on its side. The question's title stays at the
+top of the screen while its question scrolls.
 
 [Question cards](/packages/web/src/QuestionCard.stories.tsx#TwoColumns)
 
@@ -103,14 +126,17 @@ Acceptance scenarios:
 1. **Given** a window 1440 px wide with the sidebar and the question index open, **When** the human
    opens a round, **Then** each question's options start to the right of its title.
 2. **Given** a window 402 px wide, **When** the human opens the same round, **Then** each question's
-   options follow its context, in one column.
-3. **Given** a question with an option that holds story variants, at 1440 px, **When** the human
+   options follow its context, in one column, with no card around the question, and options as wide
+   as the screen.
+3. **Given** a window 402 px wide, **When** the human scrolls to Q1's option C, **Then** Q1's title
+   shows at the top of the screen.
+4. **Given** a question with an option that holds story variants, at 1440 px, **When** the human
    opens the round, **Then** that question's card is one column.
-4. **Given** Q1 with a follow-up Q1.B, **When** the human taps option B of Q1, **Then** a card
+5. **Given** Q1 with a follow-up Q1.B, **When** the human taps option B of Q1, **Then** a card
    headed "Q1.B · follows Q1, because you picked B" shows after Q1's card, outside it.
-5. **Given** Q1 answered B with Q1.B shown, **When** the human taps option B again, **Then** Q1.B's
+6. **Given** Q1 answered B with Q1.B shown, **When** the human taps option B again, **Then** Q1.B's
    card goes, and the index lists Q1 alone.
-6. **Given** an option card, **When** the human focuses it with Tab and presses Space, **Then** its
+7. **Given** an option card, **When** the human focuses it with Tab and presses Space, **Then** its
    letter is picked and the answer saves.
 
 ### US4: Settled points are grouped by what you check (P1)
@@ -196,13 +222,18 @@ Acceptance scenarios:
 - A diagram wider than its card scrolls inside its frame, and never scrolls the page sideways.
 - A round recorded at finish: its Context and settled sub-headings become `#####` headings in the
   record, under `#### Context` and `#### Settled without the human`.
-- An old-format round on a branch in flight fails `ura check` until it is rewritten, as the
-  [compatibility](../decisions/compatibility.md) decision allows.
+- An old-format round on a branch in flight fails `ura check` once the branch catches up with the
+  default branch. The agent that runs the branch's next step rewrites it in the new format first, as
+  the [compatibility](../decisions/compatibility.md) decision asks.
+- A table wider than its region on a wide screen scrolls inside it too, with the same column floor.
+- A question title of three lines on a phone stays whole at the top of the screen: the sticky title
+  is never cut.
 
 ## Success criteria
 
 - **SC-001**: At 1440 × 900, with the sidebar and the index open, every question card of the example
-  round draws in two columns. At 402 × 874, every card draws in one column, with no sideways scroll.
+  round draws in two columns. At 402 × 874, every question draws in one column, without a card, with
+  no sideways scroll of the page.
 - **SC-002**: The example round, the template, and every fixture round pass `ura check` with no
   problem and no warning.
 - **SC-003**: A page without a diagram loads no `mermaid` chunk.
@@ -233,8 +264,10 @@ page draws what the core sends. See the [discovery's approaches](discovery-01.md
   - the writing limits: in the writing reference, measured by the core's warnings, with the numbers
     in one module of the core;
   - the 840 px split: in a theme size.
-- **Tradeoffs**: two layouts to keep working in the card, a dependency with a security record, and
-  rounds in the old format failing `ura check`.
+- **Tables** get a floor of 144 px per column from Astryx's own column widths, in `Blocks`, so a
+  table scrolls inside its region on every page, rounds and specs alike.
+- **Tradeoffs**: two layouts on wide screens and a third on the phone, a dependency with a security
+  record, and rounds in the old format failing `ura check` until an agent rewrites them.
 
 ## Mockups
 
@@ -247,8 +280,10 @@ page draws what the core sends. See the [discovery's approaches](discovery-01.md
 - [Question cards](/packages/web/src/QuestionCard.stories.tsx#TwoColumns): the picked card layout
   over the fixture's web UI round, with a follow-up.
 
-Uraeda shows each at a phone's width and a desktop's. The mockups leave out the question index,
-which is unchanged, and the settled points' comment forms, which work as today.
+Uraeda shows each at a phone's width and a desktop's: on the phone, the page without cards, the
+sticky title, and a table scrolling sideways. The mockups leave out the question index, which is
+unchanged, and the settled points' comment forms, which work as today. Their tables show cells as
+plain text: the implementation keeps their links and formatting.
 
 ## Assumptions
 
@@ -270,7 +305,8 @@ Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
 - `clarifications.rs`, `RoundPage.tsx`, `Question.tsx`, and `SettledPoints.tsx` are split before
   they grow.
 - Settled in the round, then overturned by your note: older rounds no longer stay valid. The
-  [compatibility](../decisions/compatibility.md) decision replaces that point.
+  [compatibility](../decisions/compatibility.md) decision replaces that point, and an agent that
+  meets an old-format file rewrites it (C1 of the review).
 
 Settled while writing this spec:
 
@@ -369,9 +405,14 @@ heading the template does not have, in Context or the settled points.
 - **Writing reference** (`skills/uraeda/references/writing.md`, new): the numbered rules and their
   reasons. It covers the block's shape and limits, the Context's parts and what each holds,
   sentences of at most 25 words, terms defined at first use, never an ID from a file the reader has
-  not seen, and never an answer cited by its number alone. It also covers context as long as the
-  decision needs, with links to sources, quotes, tables when comparing, and diagrams for flows. Then
-  the settled groups and their order, and the time estimate's formula.
+  not seen, and never an answer cited by its number alone. Then the settled groups and their order,
+  and the time estimate's formula.
+  - **Adequate context**, a rule of its own: a question's context holds what deciding it needs,
+    without the discovery open. That is what exists today, how others do it, the sources linked or
+    quoted, and what each answer leads to. It has no length limit, and no padding: a sentence that
+    changes no option's weight is cut. Tables carry comparisons, quotes carry what a source says,
+    and diagrams carry flows. The self-review reads each question's card alone, and asks whether it
+    can be answered from it.
 - **Discovery** ([`references/discovery.md`](/skills/uraeda/references/discovery.md)): its
   questions-file sections link to the writing reference, and keep the asking rules. Follow-ups stay
   as today, under every option that needs one. The verdict comes from the discovery's "worth it and
@@ -397,24 +438,32 @@ heading the template does not have, in Context or the settled points.
   `sections.unknown` cases, and a `writing` module that owns the limits and the three warnings.
 - **`RoundPage`** ([`RoundPage.tsx`](/packages/web/src/RoundPage.tsx), split): the opening
   (`RoundOpening`), the cards (`QuestionCards`), and the end. The index stays beside the cards.
-- **`QuestionCard`** (new, from [`Question.tsx`](/packages/web/src/Question.tsx)): an Astryx `Card`.
-  Its header holds the id, or "Q1.B · follows Q1, because you picked B", and "Ask the agent". The
-  title is at level-1 heading size, then the context, then "Why it matters" in a muted box. The
-  options are `SelectableCard`s with the letter, "Recommended", the sentence, and +, −, ★ points.
-  The comment is labelled "Comment, or your own answer instead of a letter". It is two columns, 5 to
-  6, when the card is at least `--size-round-split` (840 px) wide and no option holds story
-  variants, from a `useWidthOf` hook in `layout/`.
-- **Follow-up cards**: after their parent's card, indented by `--spacing-6`, joined by a 4 px accent
-  line. "Does not apply" is removed.
-- **`SettledGroups`** (from [`SettledPoints.tsx`](/packages/web/src/SettledPoints.tsx)): a card with
-  the heading "Settled without you", then each group with its icon and heading. "Under the hood" is
-  folded behind "Show the N points", with "Fold" once open. Comments work as today.
+- **`QuestionCard`** (new, from [`Question.tsx`](/packages/web/src/Question.tsx)): on a wide screen,
+  an Astryx `Card`. Its header holds the id, or "Q1.B · follows Q1, because you picked B", and "Ask
+  the agent". The title is at level-1 heading size, then the context, then "Why it matters" in a
+  muted box. The options are `SelectableCard`s with the letter, "Recommended", the sentence, and +,
+  −, ★ points. The comment is labelled "Comment, or your own answer instead of a letter". It is two
+  columns, 5 to 6, when the card is at least `--size-round-split` (840 px) wide and no option holds
+  story variants, from a `useWidthOf` hook in `layout/`. On the phone, it has no card. Its header,
+  the id and the title at level-3 heading size, sticks at the top of the screen, below the top bar,
+  over the page's background. The options are as wide as the screen, without radius or side borders,
+  and the muted band separates questions, as today.
+- **Follow-up cards**: on a wide screen, after their parent's card, indented by `--spacing-6`,
+  joined by a 4 px accent line. On the phone, a 4 px accent line on their side, with `--spacing-3`
+  of inset, as today. "Does not apply" is removed.
+- **`SettledGroups`** (from [`SettledPoints.tsx`](/packages/web/src/SettledPoints.tsx)): a card on a
+  wide screen, and a band then no card on the phone, with the heading "Settled without you", then
+  each group with its icon and heading. "Under the hood" is folded behind "Show the N points", with
+  "Fold" once open. Comments work as today.
 - **Notes**: the field's label becomes "Anything else".
 - **`Diagram`** (new, `packages/web/src/Diagram.tsx`): `Blocks` sends it every `code` block whose
   language is `mermaid`. It imports `mermaid` on demand, at `securityLevel: "sandbox"`, with the
   `neutral` or `dark` theme by colour mode. It gives the frame the title "Diagram" and lets it
   scroll sideways inside the card. On a parse error, it shows the source under "This diagram could
   not be drawn."
+- **Tables** ([`Blocks.tsx`](/packages/web/src/Blocks.tsx)): drawn with Astryx's `columns`, each
+  `proportional(1, { minWidth: 144 })`, so Astryx's own region scrolls sideways once the floors do
+  not fit. Cells keep their spans and words whole, and header cells wrap rather than cut.
 - **Theme** ([`theme.ts`](/packages/web/src/theme/theme.ts)): `--size-round-split: 840px` and
   `--size-round-measure: 75ch`.
 
@@ -437,23 +486,25 @@ agent, in happy-dom for behaviour, and in WebKit at 402 × 874 and 1440 × 900 f
 and axe. Screenshots of the round page and the triage, at both sizes and in both themes, are
 committed.
 
-| What                                    | Test                                                                    |
-| --------------------------------------- | ----------------------------------------------------------------------- |
-| US1.1, US1.2, US1.3, edge case on `###` | core check tests over fixture rounds                                    |
-| US1.4, US1.5, US1.6                     | core check tests: warnings, and the CLI's exit code                     |
-| US1.7                                   | core action test: submit keeps the verdict item                         |
-| US1.8, SC-002, SC-005                   | core test checking the skill's example, the template, and every fixture |
-| US2.1, US2.2, US2.3, US2.4              | web round test: parts and "Why it matters"                              |
-| US3.1, US3.2, US3.3, SC-001             | browser round test: columns at both sizes                               |
-| US3.4, US3.5, edge case "A and B"       | web round test: follow-up cards and the index                           |
-| US3.6                                   | browser round test: keyboard on an option card                          |
-| US4.1, US4.2, US4.3, US4.4              | web settled test: groups, fold in the URL, comments, "Anything else"    |
-| US5.1, US5.2                            | web round test: the label, a comment alone closing the follow-up        |
-| US5.3, US5.4, edge case "C but with"    | core table-driven test of `letters()`                                   |
-| US6.1, US6.2, US6.4, edge case wide     | browser diagram test: the frame's sandbox, the fallback, the dark theme |
-| US6.3, SC-003                           | browser test: a spec page requests no `mermaid` chunk                   |
-| SC-004                                  | browser axe test of the round page, light and dark                      |
-| Edge case: B to C                       | web round test: the card goes, the answer stays on disk                 |
-| Edge case: answered round               | web round test: options are not tappable                                |
-| Edge case: triage                       | web triage test: cards, free Context, no groups                         |
-| Edge case: record at finish             | core finish test: the sub-headings' levels in the record                |
+| What                                    | Test                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| US1.1, US1.2, US1.3, edge case on `###` | core check tests over fixture rounds                                     |
+| US1.4, US1.5, US1.6                     | core check tests: warnings, and the CLI's exit code                      |
+| US1.7                                   | core action test: submit keeps the verdict item                          |
+| US1.8, SC-002, SC-005                   | core test checking the skill's example, the template, and every fixture  |
+| US2.1, US2.2, US2.3, US2.4              | web round test: parts and "Why it matters"                               |
+| US2.5, edge case wide table             | browser blocks test: column floors, the table's scroll, none of the page |
+| US3.1, US3.2, US3.4, SC-001             | browser round test: columns at both sizes, no card on the phone          |
+| US3.3, edge case three-line title       | browser round test: the sticky title on the phone                        |
+| US3.5, US3.6, edge case "A and B"       | web round test: follow-up cards and the index                            |
+| US3.7                                   | browser round test: keyboard on an option card                           |
+| US4.1, US4.2, US4.3, US4.4              | web settled test: groups, fold in the URL, comments, "Anything else"     |
+| US5.1, US5.2                            | web round test: the label, a comment alone closing the follow-up         |
+| US5.3, US5.4, edge case "C but with"    | core table-driven test of `letters()`                                    |
+| US6.1, US6.2, US6.4, edge case wide     | browser diagram test: the frame's sandbox, the fallback, the dark theme  |
+| US6.3, SC-003                           | browser test: a spec page requests no `mermaid` chunk                    |
+| SC-004                                  | browser axe test of the round page, light and dark                       |
+| Edge case: B to C                       | web round test: the card goes, the answer stays on disk                  |
+| Edge case: answered round               | web round test: options are not tappable                                 |
+| Edge case: triage                       | web triage test: cards, free Context, no groups                          |
+| Edge case: record at finish             | core finish test: the sub-headings' levels in the record                 |
