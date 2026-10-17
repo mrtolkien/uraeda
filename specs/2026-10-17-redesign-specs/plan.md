@@ -54,8 +54,9 @@ interactions with existing behaviour. Each gets a test in the task that owns the
    quote, never an error. Task 10.
 8. **Two `## Decisions` items for the same decision** count it once. Task 2.
 9. **An approved revision whose review file now holds the approval's comments**: the answers of
-   `## Your review` answer the review that requested changes, so they show without a quote; only a
-   review file whose verdict is `changes-requested` lends its comments' quotes. Task 10.
+   `## Your review` answer the review that requested changes, so their quotes come from the review
+   the revision answered (the review file at the revision's first commit, when its verdict is
+   `changes-requested`), never from the approval's comments. Task 10, the review's fixes (R66).
 10. **A text save after the file changed on disk** is still refused, as any stale save is today, now
     that the editor joins the frontmatter back. The wave 1 fixes, on task 5's code.
 
@@ -1365,8 +1366,8 @@ test("an answer whose comment is gone shows without a quote", async () => {
   /* review focus 7 */
 });
 
-test("an approved revision does not quote the approval's comments", async () => {
-  /* review focus 9: spec-review.md approved, with its own C1: the answer C1 shows no quote */
+test("an approved revision quotes the review it answered, never the approval's comments", async () => {
+  /* review focus 9: spec-review.md approved, with its own C1: the answers quote the review the revision answered */
 });
 
 test("an approved spec is the same page, read-only, with its approval record", async () => {

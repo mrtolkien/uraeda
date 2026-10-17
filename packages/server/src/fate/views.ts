@@ -82,7 +82,14 @@ export type FileRecord = Record_<FileView> & { missing?: boolean };
  * field an answer leaves out, so a review removed or a version committed would stay on screen.
  */
 export function sentFile(record: FileRecord): FileRecord {
-  const cleared = { committed: null, missing: null, review: null, status: null, tip: null };
+  const cleared = {
+    answered: null,
+    committed: null,
+    missing: null,
+    review: null,
+    status: null,
+    tip: null,
+  };
   return { ...cleared, ...record } as unknown as FileRecord;
 }
 /**
@@ -278,6 +285,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
 });
 
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
+  answered: true,
   committed: true,
   current: true,
   decisionChanges: true,

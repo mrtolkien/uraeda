@@ -1,7 +1,7 @@
-// "Your review, answered": each comment of the last review, its quote and your words, beside the
-// spec's answer to it, done or declined. The quote and the words come from the review file only
-// while it is the review that requested changes: once a new review starts, or the spec is
-// approved, the file holds other comments, and each answer shows without them.
+// "Your review, answered": each comment of the review that asked for this revision, its quote and
+// your words, beside the spec's answer to it, done or declined. The quote and the words come from
+// that review as the revision's first commit had it, which the core reads: once a new review
+// starts, or the spec is approved, the review file holds other comments, never shown here.
 import { Badge } from "@astryxdesign/core/Badge";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -39,10 +39,9 @@ const styles = stylex.create({
   },
 });
 
-/** The comments whose quotes the answers show: those of a review that requested changes. */
+/** The comments whose quotes the answers show: those of the review the revision answers. */
 export function answeredComments(file: File): ReadonlyArray<CommentItem> {
-  const review = file.review?.review;
-  return review?.verdict === "changes-requested" ? review.comments : [];
+  return file.answered?.comments ?? [];
 }
 
 /** Your comment: its number and summary, its quote, and your words, when the file still has them. */
