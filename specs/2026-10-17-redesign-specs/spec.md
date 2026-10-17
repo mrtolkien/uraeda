@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign and reword specs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, revision 2, about 25 minutes: the page's mockups and the stories that changed.
+> Approved on 2026-10-17.
 >
 > - C1: done. A decision reads at the page's measure, wherever it is drawn.
 > - C2: done. A rule removed whole is tinted red, readable, never struck. Removed words inside a
