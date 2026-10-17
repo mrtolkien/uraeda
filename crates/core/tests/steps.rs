@@ -2,11 +2,13 @@ mod common;
 
 use std::collections::BTreeMap;
 
+use common::repo::TestRepo;
 use common::texts::*;
+use uraeda_core::git::Git;
 use uraeda_core::pulls::{PullRequestState, PullRequestView, PullRequests};
 use uraeda_core::steps::{PullRequest, Step, StepName, TaskProgress, WaitsOn};
 use uraeda_core::view::StepView;
-use uraeda_core::workspace::{Feature, Kind};
+use uraeda_core::workspace::{Feature, Kind, Workspace};
 
 /// A feature's files: names and texts.
 type Files = Vec<(&'static str, String)>;
@@ -289,6 +291,71 @@ fn approval_when_a_decision_is_pending() {
         feature.step.reference.as_deref(),
         Some("skills/uraeda/references/approval.md")
     );
+}
+
+const LISTED: &str = "2026-10-10-listed";
+
+/// A feature on its branch, its spec approved with `decisions` as its `## Decisions` section, and
+/// a `proposed` decision at each path of `proposed`: its step once read from the repository.
+fn approved_with(decisions: &str, proposed: &[&str]) -> StepName {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.commit("chore: specs");
+    repo.switch_new(LISTED);
+    let approved = spec("approved", 1, 1).replace("Relied on:\n\n- None.\n", decisions);
+    for (name, text) in [
+        ("proposal.md", proposal()),
+        ("clarifications-01.md", answered()),
+        ("spec.md", approved),
+    ] {
+        repo.write(&format!("specs/{LISTED}/{name}"), &text);
+    }
+    for path in proposed {
+        repo.write(path, &decision("proposed"));
+    }
+    repo.commit("spec(listed): approve");
+    repo.switch("main");
+    let workspace = Workspace::read(&Git::discover(repo.path()).unwrap()).unwrap();
+    let mut feature = workspace.feature(LISTED).unwrap().clone();
+    feature.with_pull_request(PullRequest::Unknown);
+    feature.step.name
+}
+
+/// US6 2: a decision named by an item of `## Decisions`, still `proposed`, waits for the approval
+/// step, even listed twice.
+#[test]
+fn approval_when_a_listed_decision_is_proposed() {
+    let items = "- **New: [Due dates](../decisions/due-dates.md)**. Calendar days.\n\
+        - **New: [Due dates](../decisions/due-dates.md#rules)**. Listed twice.\n";
+
+    let step = approved_with(items, &["specs/decisions/due-dates.md"]);
+
+    assert_eq!(step, StepName::Approval);
+}
+
+/// Review focus 4: the "Relied on" table's links never make the approval step pending.
+#[test]
+fn a_relied_on_link_to_a_proposed_decision_is_not_pending() {
+    let table = "Relied on:\n\n| Decision | What it means |\n| --- | --- |\n\
+        | [Due dates](../decisions/due-dates.md) | calendar days |\n";
+
+    let step = approved_with(table, &["specs/decisions/due-dates.md"]);
+
+    assert_eq!(step, StepName::Plan);
+}
+
+/// Review focus 3: an item linking outside the decisions folder is not a listed decision, even when
+/// a proposed decision has its file's name.
+#[test]
+fn an_item_outside_the_decisions_folder_is_not_pending() {
+    let item = "- **New: [Due dates](../notes/due-dates.md)**. Calendar days.\n";
+
+    let step = approved_with(
+        item,
+        &["specs/notes/due-dates.md", "specs/decisions/due-dates.md"],
+    );
+
+    assert_eq!(step, StepName::Plan);
 }
 
 #[test]

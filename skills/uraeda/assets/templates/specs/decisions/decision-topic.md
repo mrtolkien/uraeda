@@ -6,12 +6,13 @@ icon:
 
 # [Topic]
 
-[The choice and what it means for the project, in two or three plain sentences.]
+[The intent: the choice and what it means for the project, in two or three plain sentences.]
 
 ## Rules
 
-- [Rule written with MUST, SHOULD, or MUST NOT.] Checked by [a lint, a test, `ura check`, or
-  review].
+- [One sentence with MUST or MUST NOT: the strongest rules first.] Checked by [a lint, a test,
+  `ura check`, or review].
+- [Then the rules with SHOULD or SHOULD NOT, then MAY, at most 10 in all.] Checked by [...].
 
 ## Why
 
@@ -34,19 +35,3 @@ discovery topic.]
 ## Revisit when
 
 [Optional: the condition or date that ends a temporary decision.]
-
-## Proposed change ([YYYY-MM-DD-feature-slug])
-
-[Optional, only on an active decision, while a spec proposes to change it. On approval, this section
-replaces the decision's text.]
-
-Proposed by the [spec](../YYYY-MM-DD-feature-slug/spec.md). [The change, in a sentence or two.]
-
-The rules become:
-
-- [Every rule of the decision as it would read after the change, not only the new ones, each with
-  how it is checked]
-
-Why: [the problem, with links to the clarification question and the discovery topic].
-
-[Each consequence that changes.]

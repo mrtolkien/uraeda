@@ -1,6 +1,6 @@
 ---
 status: approved
-spec-revision: 1
+spec-revision: 2
 ---
 
 # Plan: Recurring tasks
@@ -52,8 +52,8 @@ From the decisions and the spec, word for word. Every task's requirements includ
 
 Existing behaviour to preserve, from [the store](/src/store/tasks.ts): completing a task without a
 repeat marks it done. Task 2 checks this through the app on an upgraded task. The spec's
-[error handling](spec.md#error-handling) also requires a failed save to keep the previous due date;
-task 2 checks that together with the error shown.
+[edge cases](spec.md#edge-cases) also require a failed save to keep the previous due date; task 2
+checks that together with the error shown.
 
 From [due dates](../decisions/due-dates.md):
 
@@ -149,38 +149,33 @@ From [the spec](spec.md):
 
 ## Constitution check
 
-| Principle                         | Complies | Notes                                                                  |
-| --------------------------------- | -------- | ---------------------------------------------------------------------- |
-| I. Simple for non-technical users | yes      | As in the spec: one menu, one new screen                               |
-| II. Local first                   | yes      | The new dependency only runs in tests                                  |
-| III. Fast with thousands of tasks | yes      | Every task that changes the row compares the benchmark to its baseline |
-
-## Decisions
-
-The decisions this plan relies on, and where it follows them:
-
-- [Repeating tasks](../decisions/repeating-tasks.md): `completeTask` moves the due date, and never
-  creates a task (task 2).
-- [Due dates](../decisions/due-dates.md): only `src/lib/dates.ts` turns due dates into `Date` values
-  (task 1).
-- [Task storage](../decisions/task-storage.md): upgrade 2, tested on version 1 data (tasks 1 and 2).
-- [UI components](../decisions/ui-components.md): the menu uses `Select`, and the custom screen is
-  built in the project (tasks 3 and 4).
-- [Preview](../decisions/preview.md): the menu and the custom screen start from the components the
-  spec's stories `Open` and `Custom` show, in `src/tasks/RepeatMenu.stories.tsx`, not a rewrite.
-  Each task adds its scenarios' tests, then wires the component into the app, and the stories stay
-  as the views' states (tasks 3 and 4).
-- [Code quality](../decisions/code-quality.md): `updateTask` is split, and its marker removed,
-  before task 2 changes it.
+| I. Simple for non-technical users | II. Local first | III. Fast with thousands of tasks |
+| --------------------------------- | --------------- | --------------------------------- |
+| ✅                                | ✅              | ✅                                |
 
 ## Complexity tracking
 
 | Abstraction or exception                                | Why it is needed                                                                          | Simpler alternative rejected because                                            |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `src/lib/dates.ts` and `CalendarDay`                    | The one place where due dates meet `Date`, as the due dates decision requires             | date-fns calls spread in components would convert due dates everywhere          |
-| `RepeatPattern` and `RepeatRule`, shared by every entry | One format for the menu, the screen, and the parser, from the [spec's data](spec.md#data) | Three formats would need three versions of `nextDueDate`                        |
+| `RepeatPattern` and `RepeatRule`, shared by every entry | One format for the menu, the screen, and the parser, from the [data model](data-model.md) | Three formats would need three versions of `nextDueDate`                        |
 | `renderApp` and its helpers, in `tests/helpers/`        | Each integration test stays a few lines long                                              | Setting up the database, clock, and timezone in each test buries what it checks |
 | The failing store, in `renderApp`                       | Tests "Could not save" through the real app                                               | Mocking the store in one test would test the mock, not the error path           |
+
+## Test map
+
+Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+
+| Spec                                                     | Task | Test                                                             |
+| -------------------------------------------------------- | ---- | ---------------------------------------------------------------- |
+| Edge case: a saved due date that is not a date           | 1    | `tests/recurring-tasks/upgrade.test.tsx`                         |
+| US2 1, 2, more 1, 2; edge cases: moved, deleted, 31st    | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`       |
+| Edge case: a failed save                                 | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`       |
+| US1 1, 2, more 1; SC-001                                 | 3    | `tests/recurring-tasks/make-a-task-repeat.test.tsx`              |
+| US3 1, 2, more 1                                         | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                 |
+| US4 1, 2, more 1, 2; edge cases: a phrase alone, unknown | 5    | `tests/recurring-tasks/repeat-in-title.test.tsx`                 |
+| SC-003                                                   | 5    | `tests/recurring-tasks/parse-repeat.test.ts`, one row a phrase   |
+| SC-002                                                   | 1–5  | the [list benchmark](/bench/list.bench.ts), against its baseline |
 
 ## Waves
 

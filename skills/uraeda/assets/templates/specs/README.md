@@ -37,11 +37,12 @@ Without it, the file names and their `status` fields still tell where each featu
   - `discovery-NN.md`: the agent's investigation of the code and outside sources, with the options
     found, never decisions
   - `clarifications-NN.md`: the questions only a human can decide, with their answers
-  - `spec.md`: the feature's behaviour and architecture for the human to approve, then the details
-    the agents build from, amended in place
+  - `spec.md`: what the human approves, amended in place: what you approve, your last review
+    answered, the decisions, the user stories, then how it is built and its limits
   - `spec-review.md`, `plan-review.md`: a human's review comments, when the latest review has any
   - `plan.md`: the implementation tasks, with the files and tests of each, amended in place
-  - `data-model.md` and `contracts/`: entities and interfaces, when needed
+  - `data-model.md`: the stored data and file formats the spec adds or changes, written with it
+  - `contracts/`: the interfaces the plan builds on, when needed
   - `mockups/`: what users will see, for any UI work: HTML mockups, or the stories of a mockups
     Storybook. With the project's own Storybook, mockups are stories in the code instead.
 
@@ -63,9 +64,9 @@ A spec's `risk-tier`, `low`, `medium`, or `high`, tells how much the feature can
 `plan-review`, `false` by default whatever the tier, says whether its plan waits for a human, who
 decides it when approving the spec.
 
-Decisions are `proposed` or `active`. A change to an active decision is proposed in a
-`## Proposed change (YYYY-MM-DD-feature-slug)` section at the end of its file, and applied when that
-feature's spec is approved.
+Decisions are `proposed` or `active`. A feature creates or changes a decision in place, on its
+branch, where it is `proposed` until the feature's spec is approved: `git diff` against the default
+branch shows the change.
 
 ## Review blocks
 

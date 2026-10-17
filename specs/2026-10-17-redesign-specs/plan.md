@@ -479,7 +479,7 @@ git add crates/core/src/files/items.rs crates/core/src/files/items/spec.rs
 git commit -m "refactor(redesign-specs): the spec's item types in a file of their own"
 ```
 
-- [ ] **Step 2: Write the new templates and the example**
+- [x] **Step 2: Write the new templates and the example**
 
 The templates follow the [data model](data-model.md) and step 2 of task 1:
 
@@ -508,16 +508,15 @@ one-row constitution check and a `## Test map`, and its links to `spec.md#error-
 `spec.md#data` point to its own sections and to `data-model.md`. The example record's "(ruling R3)"
 becomes the change in words.
 
-- [ ] **Step 3: Write the failing tests**
+- [x] **Step 3: Write the failing tests**
 
 ```rust
 // crates/core/tests/check.rs
 #[test]
 fn decisions_after_the_stories_are_out_of_order() {
     let example = Example::new();
-    example.edit(SPEC, "## Decisions", "## Decisions moved");
     // Put the section back after the stories, as the old format did.
-    example.move_section(SPEC, "## Decisions moved", "## Architecture", "## Decisions");
+    example.move_section(SPEC, "## Decisions", "## Architecture");
     assert!(summary(&example.problems()).iter().any(|p| p.contains("\"## Decisions\" must come before")));
 }
 
@@ -528,7 +527,8 @@ fn a_spec_with_details_or_mockups_has_an_unknown_section() { /* "## Details" and
 fn a_proposed_change_section_is_unknown_in_a_decision() { /* "## Proposed change (2026-10-06-recurring-tasks)" appended to task-storage.md: sections.unknown */ }
 ```
 
-`Example::move_section` is a new helper of the test file, moving a level-2 section before another.
+`Example::move_section` is a new helper of the test file, moving a level-2 section before another
+heading.
 
 ```rust
 // crates/core/tests/items.rs, over the example spec
@@ -590,12 +590,12 @@ The break each test catches:
 - Approval: a link in the table, or outside `specs/decisions/`, making the step pending (review
   focus 3 and 4); a decision listed twice counted twice (review focus 8).
 
-- [ ] **Step 4: Run them to check they fail**
+- [x] **Step 4: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test items --test check --test steps`
 - Expected: FAIL, first `no field key on type &Story` at compile time
 
-- [ ] **Step 5: Implement the parser**
+- [x] **Step 5: Implement the parser**
 
 In `files/spec.rs`, and new files under `files/spec/` if it passes 500 lines:
 
@@ -620,11 +620,11 @@ In `files/spec.rs`, and new files under `files/spec/` if it passes 500 lines:
 `workspace/read.rs`'s `decisions_pending` reads `spec::items(&document).decisions` instead of the
 section's links, and drops the `## Proposed change` case.
 
-- [ ] **Step 6: Bring the web along**
+- [x] **Step 6: Bring the web along**
 
 Regenerate the binding: `nix develop -c vp run binding:build`. In `views.ts`, select the new fields
 of `SpecItems` and `Story`, and drop `details` and `scenarios`. `specFolds` folds each story's
-`more` behind "More scenarios", and nothing else. `ReviewMockups` reads `mockups` as before, now
+`more` behind "More scenarios (n)", and nothing else. `ReviewMockups` reads `mockups` as before, now
 from the stories. `MockupPage` comments on the line of the story's mockup link. Fix
 `packages/web/src/__tests__/review.test.tsx`'s tests of the "Details" fold and the mockups section,
 with a ruling: the "Details" fold is gone with its section.
@@ -651,7 +651,7 @@ The mockups' notes join `## Assumptions`. Then rewrite this `plan.md` in the new
 - Run: `nix develop -c vp run ready`
 - Expected: PASS, `specs:check` included
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add skills/uraeda/assets specs/README.md fixtures crates/core packages/binding/index.d.ts packages/web/src

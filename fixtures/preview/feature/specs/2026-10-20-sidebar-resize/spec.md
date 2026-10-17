@@ -11,12 +11,16 @@ risk-tier: low
 >
 > Spec to review, about 5 minutes.
 >
-> - The handle is a thin line, as you picked in
+> - You approve a handle the human drags, a thin line, as you picked in
 >   [Q2](clarifications-01.md#q2-what-does-the-handle-look-like).
 
 The sidebar's edge is a handle the human drags to resize it. Its stories are in
 [the stories file](/packages/web/src/SidebarHandle.stories.tsx). See the [proposal](proposal.md)
 and the [clarifications](clarifications-01.md).
+
+## Decisions
+
+Relied on: none.
 
 ## User stories
 
@@ -28,62 +32,43 @@ Dragging the sidebar's edge resizes it, between 200 and 480 pixels wide.
 
 Why this priority: it is the proposal.
 
-Acceptance scenarios:
+Key scenarios:
 
 1. **Given** the sidebar 280 pixels wide, **When** the human drags its edge 100 pixels to the right,
    **Then** it is 380 pixels wide.
 
-## Edge cases
+More scenarios:
 
-- A drag past 480 pixels stops at 480.
-
-## Success criteria
-
-- **SC-001**: A drag follows the pointer within one frame.
+1. **Given** the sidebar 280 pixels wide, **When** the human drags its edge 100 pixels to the left,
+   **Then** it stops at 200 pixels wide.
 
 ## Architecture
 
-The handle is a component of the sidebar, `SidebarHandle`, which keeps the width in the layout.
+The handle is a component of the sidebar, which keeps the width in the layout.
 
-## Mockups
+- **Sidebar handle** draws the handle, and its drag:
+  [Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging).
 
-- [Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging): the handle as the
-  human drags it.
+## Edge cases
+
+| Importance | Situation                 | What happens   |
+| ---------- | ------------------------- | -------------- |
+| Normal     | A drag past 480 pixels    | it stops there |
+
+## Success criteria
+
+- **SC-001** (one frame): A drag follows the pointer within one frame.
 
 ## Assumptions
 
 - The width is not saved between visits.
 
-## Decisions
-
-Relied on: none.
-
 ## Constitution check
 
-| Principle                 | Complies | Notes                       |
-| ------------------------- | -------- | --------------------------- |
-| I. Humans stay in control | yes      | The human drags the handle. |
+| I. Humans stay in control |
+| ------------------------- |
+|            ✅             |
 
 ## Risk tier
 
 **Low**: one component, no data.
-
-## Details
-
-### Data
-
-The sidebar's width, in pixels, held by the layout.
-
-### Components
-
-- **Sidebar handle** (`packages/web/src/SidebarHandle.tsx`, new): the handle, and its drag.
-
-### Error handling
-
-None: a drag cannot fail.
-
-### Testing
-
-| What | Test                                    |
-| ---- | --------------------------------------- |
-| US1  | Browser test: drag the handle, read it. |

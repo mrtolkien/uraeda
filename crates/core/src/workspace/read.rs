@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 
 use super::{
     Feature, FileKind, Kind, Problem, ReadFrom, Reader, Severity, Source, first_file,
-    folder_branch, folder_path, record_kind, record_path, resolve,
+    folder_branch, folder_path, record_kind, record_path,
 };
-use crate::files::{frontmatter, markdown};
+use crate::files::{document, frontmatter, spec};
 use crate::git::ObjectId;
 use crate::steps::{self, PullRequest, Step};
 
@@ -176,45 +176,23 @@ fn read_folder(
     feature.decisions_pending = feature
         .texts
         .get("spec.md")
-        .is_some_and(|spec| decisions_pending(reader, from, &path, folder, spec));
+        .is_some_and(|spec| decisions_pending(reader, from, &path, spec));
     feature
 }
 
-/// Whether a decision the spec links is `proposed`, or has a proposed change for this folder.
-fn decisions_pending(
-    reader: &Reader<'_>,
-    from: ReadFrom,
-    dir: &str,
-    folder: &str,
-    spec: &str,
-) -> bool {
-    let document = markdown::Document::parse(spec);
-    let start = document
-        .headings
+/// Whether a decision the spec lists as new or changed, in an item of its `## Decisions`, is
+/// `proposed`. The "Relied on" table's links do not count.
+fn decisions_pending(reader: &Reader<'_>, from: ReadFrom, dir: &str, spec: &str) -> bool {
+    let document = document::parse(spec, dir);
+    spec::items(&document)
+        .decisions
         .iter()
-        .find(|h| h.level == 2 && h.text == "Decisions")
-        .map(|h| h.line);
-    let Some(start) = start else {
-        return false;
-    };
-    let end = document
-        .headings
-        .iter()
-        .find(|h| h.level <= 2 && h.line > start)
-        .map_or(usize::MAX, |h| h.line);
-    let change = format!("## Proposed change ({folder})");
-    document
-        .links
-        .iter()
-        .filter(|link| link.line > start && link.line < end && !link.wiki)
-        .filter_map(|link| resolve(dir, &link.target))
-        .filter(|path| path.starts_with("specs/decisions/"))
-        .any(|path| {
-            let Some(text) = reader.read(from, &path) else {
-                return false;
-            };
-            let proposed = frontmatter::parse(&text)
-                .is_ok_and(|front| front.text("status") == Some("proposed"));
-            proposed || text.lines().any(|line| line.trim_end() == change)
+        .filter(|decision| decision.kind != "removed")
+        .any(|decision| {
+            let path = format!("specs/decisions/{}.md", decision.name);
+            reader.read(from, &path).is_some_and(|text| {
+                frontmatter::parse(&text)
+                    .is_ok_and(|front| front.text("status") == Some("proposed"))
+            })
         })
 }

@@ -72,12 +72,12 @@ fn first_feature_of_now_with_work_for_an_agent() {
 }
 
 #[test]
-fn approval_when_a_linked_decision_is_proposed() {
+fn approval_when_a_listed_decision_is_proposed() {
     let repo = TestRepo::new();
     specs(&repo, PRIORITIES);
     let approved = spec("approved", 1, 1).replace(
         "- None.",
-        "- [Git](../decisions/git.md): tools run the system git.",
+        "- **Changed: [Git](../decisions/git.md)**. Tools run the system git.",
     );
     repo.switch_new("2026-10-10-cli-core");
     repo.write("specs/decisions/git.md", &decision("proposed"));

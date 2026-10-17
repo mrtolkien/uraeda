@@ -56,21 +56,21 @@ test("opens workflow files in the UI, code as text, and the web in a new tab", a
 test("an approved spec shows the same folds", async () => {
   await renderPage("/f/2026-10-13-plan-review/spec.md");
 
-  const details = await screen.findByRole("button", { name: "Details" });
-  const scenarios = screen.getAllByRole("button", { name: /^Scenarios \(\d\)$/ });
+  await screen.findAllByRole("button", { name: /^More scenarios \(\d\)$/ });
+  const scenarios = screen.getAllByRole("button", { name: /^More scenarios \(\d\)$/ });
   expect(scenarios.map((trigger) => trigger.textContent)).toEqual([
-    "Scenarios (3)",
-    "Scenarios (4)",
-    "Scenarios (3)",
-    "Scenarios (4)",
+    "More scenarios (1)",
+    "More scenarios (2)",
+    "More scenarios (1)",
+    "More scenarios (2)",
   ]);
-  for (const trigger of [...scenarios, details]) {
+  for (const trigger of scenarios) {
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
   }
 
-  fireEvent.click(details);
-  await waitFor(() => expect(details.getAttribute("aria-expanded")).toBe("true"));
-  expect(screen.getByRole("heading", { name: "Data" })).toBeTruthy();
+  fireEvent.click(scenarios[1]!);
+  await waitFor(() => expect(scenarios[1]!.getAttribute("aria-expanded")).toBe("true"));
+  expect(screen.getByText(/completes it on Thursday the 8th/)).toBeTruthy();
 });
 
 const IMAGES = `# Login banner

@@ -12,14 +12,31 @@ plan-review: false
 >
 > Spec to review, about [M] minutes.
 >
-> - [Where your attention matters most, one line each: new and changed decisions, risky assumptions,
->   outside behaviour not verified yet, a relaxed guard as what an attacker could do, the risk tier,
->   costs or migrations]
->   - [Each point must stand by itself and be easy to read: children bullet points and links to
->     sources are welcome]
+> - You approve [what users get, and the choices that outlive this feature, in a sentence or two].
+> - [Where your attention matters most, one line each, at most 7 items in all: new and changed
+>   decisions, risky assumptions, outside behaviour not verified yet, a relaxed guard as what an
+>   attacker could do, the risk tier, costs or migrations]
 
 [One paragraph: what the feature does, for whom, and why. Links to the [proposal](proposal.md),
 [discovery](discovery-01.md), and [clarifications](clarifications-01.md).]
+
+## Your review
+
+[Optional, from revision 2 on: one item per comment of the last review, with its answer.]
+
+- **C1** ([the comment in a few words]): [done | declined]. [What was done, or why not.]
+
+## Decisions
+
+- **New: [[Topic]](../decisions/decision-topic.md)**. [The rule, in a sentence.]
+- **Changed: [[Topic]](../decisions/decision-topic.md)**. [What changed, in a sentence.]
+- **Removed: [Topic]** (`decision-topic.md`). [Why it goes.]
+
+Relied on:
+
+| Decision                                  | What it means for this spec |
+| ----------------------------------------- | --------------------------- |
+| [[Topic]](../decisions/decision-topic.md) | [how the spec follows it]   |
 
 ## User stories
 
@@ -27,88 +44,63 @@ plan-review: false
 
 [The user's journey, in plain language, in one or two sentences.]
 
-Why this priority: [reason]
+[[State](/path/to/Component.stories.tsx#State) or [Screen](mockups/screen-name.html): UI work only,
+the story's mockup, alone in its paragraph]
 
-Acceptance scenarios:
+Why this priority: [only when the order is not obvious]
+
+Key scenarios:
 
 1. **Given** [state], **When** [action], **Then** [outcome]
 
-## Edge cases
+More scenarios:
 
-- [What happens when ...]
-
-## Success criteria
-
-- **SC-001**: [Measurable outcome]
+1. **Given** [state], **When** [action], **Then** [outcome]
 
 ## Architecture
 
-[The chosen approach in a few sentences, and why it fits: the main units, where each new rule lives,
-and the tradeoffs. Links to the decisions and discovery topics behind it.]
+[The chosen approach in a few sentences, and why it fits. Links to the decisions and discovery
+topics behind it.]
 
-## Mockups
+- **[Unit]** [what it does, and the rules it owns].
 
-[Optional, UI work only: remove this section otherwise. With an active preview decision, each story
-of the spec, also embedded alone in its paragraph where it illustrates.]
+Tradeoffs:
 
-- [[State](/path/to/Component.stories.tsx#State) or [Screen](mockups/screen-name.html): what it
-  shows]
+- [A cost the approach accepts]
+
+## Edge cases
+
+| Importance                | Situation       | What happens        |
+| ------------------------- | --------------- | ------------------- |
+| [High \| Normal \| Niche] | [The situation] | [What happens then] |
+
+## Success criteria
+
+- **SC-001** ([measure in a few words]): [Measurable outcome]
 
 ## Assumptions
 
-Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
-
-- [Each point settled without the human, in a sentence]
-
-Settled while writing this spec:
+The points settled in the [clarifications](clarifications-01.md#settled-without-the-human) hold as
+written there. Settled while writing this spec:
 
 - [Each point you settled yourself, in a sentence, with a link to its source]
 
-## Decisions
-
-New, applied when this spec is approved:
-
-- [Topic](../decisions/decision-topic.md): [the rule, in a sentence]
-
-Changed, applied when this spec is approved:
-
-- [Topic](../decisions/decision-topic.md): [the proposed change, in a sentence. Link to its
-  `## Proposed change (YYYY-MM-DD-feature-slug)` section]
-
-Relied on:
-
-- [Topic](../decisions/decision-topic.md): [how the spec follows it]
-
 ## Constitution check
 
-| Principle      | Complies | Notes |
-| -------------- | -------- | ----- |
-| I. [Principle] | yes      |       |
+| I. [Principle] | II. [Principle] |
+| -------------- | --------------- |
+| ✅             | ✅              |
+
+[A line per tension, its principle's cell reading ⚠️ instead.]
 
 ## Risk tier
 
 **[Tier]**: [one-line reason]
 
-## Details
+## History
 
-### Data
+[Optional: the records of earlier reviews, oldest last.]
 
-[What is stored or changes, with exact types, the rules that apply to it, and how it flows between
-the components.]
-
-### Components
-
-- **[Unit]** ([`path`](/path)): [what it does, how it is used, what it depends on]
-
-### Error handling
-
-- [What can fail, and what the user sees]
-
-### Testing
-
-[How the integration tests run: what they render, on which store, with which clock, and how they
-drive the feature like a user.]
-
-| What                                       | Test                                             |
-| ------------------------------------------ | ------------------------------------------------ |
-| [Acceptance scenarios, edge cases, SC-00x] | [Integration test, table-driven test, benchmark] |
+> [!NOTE]
+>
+> Changes requested on [YYYY-MM-DD]: [what was asked].

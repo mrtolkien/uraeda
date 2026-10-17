@@ -49,8 +49,8 @@ shortened.]
 
 ## Changes after approval
 
-[Optional: the rulings that change behaviour, the spec's revisions after its approval, and the
-changes asked on the pull request, one line each.]
+[Optional: the changes made after the spec's approval that change behaviour, the spec's revisions,
+and the changes asked on the pull request, one line each, said in words, without ruling IDs.]
 
 ## Follow-ups
 

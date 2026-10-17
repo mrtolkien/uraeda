@@ -2,7 +2,7 @@ mod common;
 
 use uraeda_core::files::clarifications::{compose_answer, letters, split_answer};
 use uraeda_core::files::document::{self, plain};
-use uraeda_core::files::items::{Items, items};
+use uraeda_core::files::items::{Items, SpecItems, items};
 use uraeda_core::files::review::{edit_comment, remove_comment};
 
 const EXAMPLE: &str = "skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks";
@@ -189,16 +189,17 @@ fn a_spec_has_its_stories_and_criteria() {
     let us2 = spec.stories.iter().find(|s| s.id == "US2").unwrap();
     assert_eq!(us2.title, "Complete a repeating task");
     assert_eq!(us2.priority, "P1");
-    assert!(doc.text(us2.why.unwrap()).starts_with("Why this priority"));
+    let us3 = spec.stories.iter().find(|s| s.id == "US3").unwrap();
+    assert!(doc.text(us3.why.unwrap()).starts_with("Why this priority"));
     let scenarios: Vec<(u32, u32, u32)> = us2
-        .scenarios
+        .key
         .iter()
         .map(|s| {
             let block = &doc.blocks[s.block as usize];
             (s.number, block.start_line, block.end_line)
         })
         .collect();
-    assert_eq!(&scenarios[..2], [(1, 62, 63), (2, 64, 65)]);
+    assert_eq!(scenarios, [(1, 82, 83), (2, 84, 85)]);
     assert_eq!(spec.criteria[0].id, "SC-001");
 }
 
@@ -210,7 +211,7 @@ fn a_spec_without_stories_has_none() {
     let spec = items("spec.md", text, &doc).spec.unwrap();
 
     assert_eq!(spec.stories.len(), 1);
-    assert!(spec.stories[0].scenarios.is_empty());
+    assert!(spec.stories[0].key.is_empty());
     let empty = "# Spec: X\n\n## User stories\n";
     let doc = document::parse(empty, "specs/x");
     assert!(
@@ -222,61 +223,212 @@ fn a_spec_without_stories_has_none() {
     );
 }
 
-/// The first lines of US2's details, and the first and last lines of the spec's details.
-type Folds = (Vec<u32>, Option<(u32, u32)>);
-
-fn folds(text: &str) -> Folds {
+/// The spec items of a text, with its document tree, as a spec of `specs/x` reads.
+fn spec_of(text: &str) -> (SpecItems, document::Document) {
     let doc = document::parse(text, "specs/x");
-    let spec = items("spec.md", text, &doc).spec.unwrap();
-    let line = |id: &u32| doc.blocks[*id as usize].start_line;
-    let story = spec.stories.iter().find(|s| s.id == "US2").unwrap();
-    let details = spec
-        .details
-        .first()
-        .zip(spec.details.last())
-        .map(|(first, last)| (line(first), line(last)));
-    (story.details.iter().map(line).collect(), details)
+    (items("spec.md", text, &doc).spec.unwrap(), doc)
 }
 
-/// US1.1 and review focus 3: the folds are a story's scenarios with their intro, and the
-/// `## Details` section up to the next level-2 heading.
+/// US3 1: a story's key scenarios and its more scenarios are two lists, and its mockup the
+/// paragraph holding only its story link.
 #[test]
-fn a_spec_has_its_folds() {
-    let example = common::repository_file(&format!("{EXAMPLE}/spec.md"));
-    let story = "# Spec: X\n\n## User stories\n\n### US2: Y (P1)\n\nText.\n\n";
-    let scenario = "1. **Given** a, **When** b, **Then** c.\n";
-    let cases: [(&str, String, Folds); 5] = [
-        ("the example", example, (vec![60, 62], Some((205, 261)))),
-        (
-            "a story with no scenarios",
-            format!("{story}Acceptance scenarios:\n\nNone yet.\n"),
-            (vec![], None),
-        ),
-        (
-            "a list with no scenarios intro",
-            format!("{story}{scenario}"),
-            (vec![], None),
-        ),
-        (
-            "details before another section",
-            format!("{story}## Details\n\n### Data\n\nA table.\n\n## Appendix\n\nMore.\n"),
-            (vec![], Some((9, 13))),
-        ),
-        (
-            "a spec without details",
-            format!("{story}Acceptance scenarios:\n\n{scenario}\n## Risk tier\n\nLow.\n"),
-            (vec![9, 11], None),
-        ),
-    ];
-    for (case, text, expected) in cases {
-        assert_eq!(folds(&text), expected, "{case}");
-    }
+fn a_story_has_its_key_and_more_scenarios() {
+    let (_, items, doc) = example("spec.md");
+    let spec = items.spec.unwrap();
+
+    let us2 = &spec.stories[1];
+    assert_eq!((us2.key.len(), us2.more.len()), (2, 2));
+    let line = |block: u32| doc.blocks[block as usize].start_line;
+    assert_eq!(line(us2.more[0].block), 89);
+    assert_eq!(us2.more[1].number, 2);
+    assert_eq!(line(us2.mockup.unwrap()), 78);
+    assert!(spec.stories[3].mockup.is_none());
+
+    let text = "# Spec: X\n\n## User stories\n\n### US1: Y (P1)\n\nKey scenarios:\n\n\
+        1. **Given** a, **When** b, **Then** c.\n";
+    let (spec, _) = spec_of(text);
+    assert_eq!(
+        (spec.stories[0].key.len(), spec.stories[0].more.len()),
+        (1, 0)
+    );
 }
 
-/// C2: the mockups the review opens first are the links of the `## Mockups` section, each with the
-/// block a comment on it lands on.
+/// US4 1: a revision has the answers to the last review, by comment number and verdict, and the
+/// spec's parts run from "Your review" to "History".
 #[test]
-fn a_spec_has_its_mockups() {
+fn a_revision_has_its_answers_parts_and_history() {
+    let (_, items, doc) = example("spec.md");
+    let spec = items.spec.unwrap();
+
+    assert_eq!(spec.answers[1].number, 2);
+    assert_eq!(spec.answers[1].verdict, "done");
+    assert_eq!(spec.answers[1].summary, "undo too short");
+    assert!(
+        doc.text(spec.answers[1].block)
+            .starts_with("C2 (undo too short)")
+    );
+    let titles: Vec<&str> = spec.parts.iter().map(|p| p.title.as_str()).collect();
+    assert_eq!(titles.first(), Some(&"Your review"));
+    assert_eq!(titles.last(), Some(&"History"));
+    assert_eq!(titles.len(), 10);
+    let stories = spec
+        .parts
+        .iter()
+        .find(|p| p.title == "User stories")
+        .unwrap();
+    assert_eq!(stories.anchor, "user-stories");
+    assert_eq!(doc.text(stories.heading), "User stories");
+
+    let text = "# Spec: X\n\n## Your review\n\n\
+        - **C1** (French phrases): declined. English only.\n\
+        - **C3** (a note (with brackets)): done. Done.\n\
+        - C4 (not bold): done. Ignored.\n";
+    let (spec, _) = spec_of(text);
+    let answers: Vec<(u32, &str, &str)> = spec
+        .answers
+        .iter()
+        .map(|a| (a.number, a.summary.as_str(), a.verdict.as_str()))
+        .collect();
+    assert_eq!(
+        answers,
+        [
+            (1, "French phrases", "declined"),
+            (3, "a note (with brackets)", "done")
+        ]
+    );
+}
+
+/// US6 2 and review focus 3, 4, and 8: the `## Decisions` items are listed, once each, and only
+/// when they link into the decisions folder; the "Relied on" table's links are not.
+#[test]
+fn the_decisions_items_are_listed_and_the_table_is_not() {
+    let (_, items, _) = example("spec.md");
+    let listed: Vec<(String, String, String)> = items
+        .spec
+        .unwrap()
+        .decisions
+        .into_iter()
+        .map(|d| (d.kind, d.name, d.title))
+        .collect();
+    let row = |kind: &str, name: &str, title: &str| (kind.into(), name.into(), title.into());
+    assert_eq!(
+        listed,
+        [
+            row("new", "repeating-tasks", "Repeating tasks"),
+            row("new", "due-dates", "Due dates"),
+        ]
+    );
+
+    let text = "# Spec: X\n\n## Decisions\n\n\
+        - **Changed: [Task storage](../decisions/task-storage.md)**. Clears what it cannot read.\n\
+        - **Removed: Task history** (`task-history.md`). Nothing left to govern.\n\
+        - **New: [A spec](../2026-10-06-x/spec.md)**. Not a decision.\n\
+        - **Changed: [Storage again](../decisions/task-storage.md#rules)**. Listed twice.\n\
+        - [Due dates](../decisions/due-dates.md): an old list item.\n\n\
+        Relied on:\n\n\
+        | Decision | What it means |\n| --- | --- |\n\
+        | [Preview](../decisions/preview.md) | stories |\n";
+    let (spec, doc) = spec_of(text);
+    let listed: Vec<(&str, &str, &str, u32)> = spec
+        .decisions
+        .iter()
+        .map(|d| {
+            let line = doc.blocks[d.block as usize].start_line;
+            (d.kind.as_str(), d.name.as_str(), d.title.as_str(), line)
+        })
+        .collect();
+    assert_eq!(
+        listed,
+        [
+            ("changed", "task-storage", "Task storage", 5),
+            ("removed", "task-history", "Task history", 6),
+        ]
+    );
+}
+
+/// US8 1 to 4: the edge cases' importance, a criterion's measure, the architecture's units and
+/// tradeoffs, and the constitution's principles.
+#[test]
+fn edge_cases_criteria_architecture_and_principles() {
+    let (_, items, doc) = example("spec.md");
+    let spec = items.spec.unwrap();
+
+    let importance: Vec<&str> = spec.edges.iter().map(|e| e.importance.as_str()).collect();
+    assert_eq!(
+        importance,
+        [
+            "high", "high", "normal", "normal", "normal", "niche", "niche"
+        ]
+    );
+    let cells: Vec<String> = doc
+        .children(spec.edges[0].row)
+        .map(|c| plain(&c.spans))
+        .collect();
+    assert!(cells[1].contains("not a date"), "{cells:?}");
+    assert_eq!(spec.criteria[0].measure.as_deref(), Some("two clicks"));
+    assert_eq!(spec.criteria[2].measure.as_deref(), Some("every phrase"));
+    let starts = |ids: &[u32]| -> Vec<String> {
+        ids.iter()
+            .map(|&id| {
+                doc.text(id)
+                    .split_whitespace()
+                    .take(2)
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .collect()
+    };
+    assert_eq!(
+        starts(&spec.units),
+        ["Date helpers", "Repeat rules", "The task", "The edit"]
+    );
+    assert_eq!(starts(&spec.tradeoffs), ["One task", "Due dates"]);
+    let principles: Vec<(&str, bool)> = spec
+        .principles
+        .iter()
+        .map(|p| (p.label.as_str(), p.ok))
+        .collect();
+    assert_eq!(
+        principles,
+        [
+            ("I. Simple for non-technical users", true),
+            ("II. Local first", true),
+            ("III. Fast with thousands of tasks", true),
+        ]
+    );
+
+    let text = "# Spec: X\n\n## Success criteria\n\n- **SC-001**: No measure.\n\n\
+        ## Constitution check\n\n| I. One | II. Two |\n| :-: | :-: |\n| ✅ | ⚠️ |\n";
+    let (spec, _) = spec_of(text);
+    assert_eq!(spec.criteria[0].measure, None);
+    let ok: Vec<bool> = spec.principles.iter().map(|p| p.ok).collect();
+    assert_eq!(ok, [true, false]);
+}
+
+/// US8 and the block: its minutes, and its item starting "You approve".
+#[test]
+fn the_block_gives_its_minutes_and_what_you_approve() {
+    let (_, items, doc) = example("spec.md");
+    let spec = items.spec.unwrap();
+
+    assert_eq!(doc.blocks[spec.block.unwrap() as usize].start_line, 11);
+    assert_eq!(spec.minutes, None);
+    assert!(
+        doc.text(spec.approve.unwrap())
+            .starts_with("You approve tasks")
+    );
+
+    let text = "# Spec: X\n\n> [!IMPORTANT]\n>\n> Spec to review, revision 2, about 10 minutes.\n\
+        > You approve nothing here.\n>\n> - Risk first.\n> - You approve it all.\n\n## Decisions\n";
+    let (spec, doc) = spec_of(text);
+    assert_eq!(spec.minutes, Some(10));
+    assert_eq!(doc.text(spec.approve.unwrap()), "You approve it all.");
+}
+
+/// US3 3: the mockups are the story and HTML links found in the stories, each with the block a
+/// comment on it lands on.
+#[test]
+fn the_mockups_are_found_in_the_stories() {
     let (_, example, doc) = example("spec.md");
     let mockups = example.spec.unwrap().mockups;
 
@@ -300,72 +452,29 @@ fn a_spec_has_its_mockups() {
     let block = &doc.blocks[mockups[0].block as usize];
     assert_eq!(
         (block.start_line, block.heading.as_deref()),
-        (147, Some("Mockups"))
+        (59, Some("US1: Make a task repeat (P1)"))
     );
 
-    let story = "# Spec: X\n\n## User stories\n\n### US1: Y (P1)\n\nSee [it](mockups/a.html).\n";
-    let doc = document::parse(story, "specs/x");
-    assert!(
-        items("spec.md", story, &doc)
-            .spec
-            .unwrap()
-            .mockups
-            .is_empty()
-    );
-
-    let section = "## Mockups\n\n- [**Big** board](./mockups/b.html#top), [data](data.md)\n";
-    let text = format!("{story}\n{section}");
-    let doc = document::parse(&text, "specs/x");
-    let links: Vec<(String, String)> = items("spec.md", &text, &doc)
-        .spec
-        .unwrap()
+    let text = "# Spec: X\n\n[Outside](mockups/z.html)\n\n## User stories\n\n### US1: Y (P1)\n\n\
+        [**Big** board](./mockups/b.html#top), [data](data.md)\n\n\
+        - [Dragging](/packages/web/src/SidebarHandle.stories.tsx#Dragging): the handle held.\n";
+    let (spec, _) = spec_of(text);
+    let links: Vec<(String, String, bool)> = spec
         .mockups
         .into_iter()
-        .map(|m| (m.path, m.label))
-        .collect();
-    assert_eq!(links, [("mockups/b.html".into(), "Big board".into())]);
-}
-
-/// `## Mockups` lists stories as list items, and links written from the repository's root.
-#[test]
-fn the_mockups_section_takes_story_links_and_links_from_the_root() {
-    let text = "# Spec: Sidebar resize\n\n## Mockups\n\n\
-        - [Dragging](/packages/web/src/SidebarHandle.stories.tsx#Dragging): the handle held.\n\
-        - [Old](/specs/2026-10-20-sidebar-resize/mockups/old.html): the first sketch.\n";
-    let doc = document::parse(text, "specs/2026-10-20-sidebar-resize");
-
-    let mockups = items("spec.md", text, &doc).spec.unwrap().mockups;
-
-    let found: Vec<_> = mockups
-        .iter()
-        .map(|m| {
-            (
-                m.path.as_str(),
-                m.label.as_str(),
-                m.story
-                    .as_ref()
-                    .map(|s| (s.path.as_str(), s.export.as_str())),
-            )
-        })
+        .map(|m| (m.path, m.label, m.story.is_some()))
         .collect();
     assert_eq!(
-        found,
+        links,
         [
+            ("mockups/b.html".into(), "Big board".into(), false),
             (
-                "packages/web/src/SidebarHandle.stories.tsx",
-                "Dragging",
-                Some(("packages/web/src/SidebarHandle.stories.tsx", "Dragging"))
+                "packages/web/src/SidebarHandle.stories.tsx".into(),
+                "Dragging".into(),
+                true
             ),
-            ("mockups/old.html", "Old", None),
         ]
     );
-    let items: Vec<u32> = doc
-        .blocks
-        .iter()
-        .filter(|b| b.kind == document::BlockKind::Item)
-        .map(|b| b.id)
-        .collect();
-    assert_eq!(mockups.iter().map(|m| m.block).collect::<Vec<_>>(), items);
 }
 
 #[test]

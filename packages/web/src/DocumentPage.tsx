@@ -17,7 +17,7 @@ const styles = stylex.create({
   },
 });
 
-/** A workflow file, drawn from the core's document tree, a spec's scenarios and details folded. */
+/** A workflow file, drawn from the core's document tree, a spec's more scenarios folded. */
 export function DocumentPage({ file }: { file: File }) {
   const here = useRepoPath();
   const folds = useSpecFolds(file.current.items.spec);

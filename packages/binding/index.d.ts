@@ -596,6 +596,8 @@ export interface ContextPart {
 export interface Criterion {
   /** `SC-001`. */
   id: string
+  /** The few words in parentheses after its id, `two clicks`. */
+  measure?: string
   block: number
 }
 
@@ -662,6 +664,14 @@ export interface DraftView {
   written: boolean
   /** The headings of its `##` sections that hold no text yet. */
   emptySections: Array<string>
+}
+
+/** A row of the `## Edge cases` table. */
+export interface EdgeCase {
+  /** Its first cell's text, lowercased: `high`, `normal`, or `niche` when it is valid. */
+  importance: string
+  /** Its row's block. */
+  row: number
 }
 
 /** An entry of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines. */
@@ -876,7 +886,19 @@ export interface LinkedFile {
   backlog: boolean
 }
 
-/** A link of a spec's `## Mockups` section to an HTML file under `mockups/`, or to a story. */
+/** An item of `## Decisions`: a decision the spec creates, changes, or removes. */
+export interface ListedDecision {
+  /** `new`, `changed`, or `removed`. */
+  kind: string
+  /** The decision file's stem, `task-storage`. */
+  name: string
+  /** Its link's text, or a removed decision's bold title. */
+  title: string
+  /** Its list item. */
+  block: number
+}
+
+/** A link of a spec's story to an HTML file under `mockups/`, or to a story. */
 export interface MockupLink {
   /**
    * `mockups/repeat.html`, from the spec's folder, or a story's stories file, from the
@@ -944,6 +966,14 @@ export interface Principle {
    * level or above, in the constitution's document.
    */
   blocks: Array<number>
+}
+
+/** A principle of the `## Constitution check` table: a header cell, and the cell below it. */
+export interface Principle {
+  /** The header cell's text, `I. Humans in control`. */
+  label: string
+  /** Whether the cell below holds ✅. */
+  ok: boolean
 }
 
 /** `PRIORITIES.md` read for editing. */
@@ -1043,6 +1073,21 @@ export interface Repository {
   missing: boolean
   /** Its features' and changes' names and colours in the sidebar. */
   items: Array<ItemSettingsView>
+}
+
+/**
+ * An answer of `## Your review` to a comment of the last review:
+ * `- **C2** (undo too short): done. The undo stays 5 seconds.`
+ */
+export interface ReviewAnswer {
+  /** The comment's number in the last review file. */
+  number: number
+  /** The comment in a few words, from the parentheses. */
+  summary: string
+  /** `done` or `declined`. */
+  verdict: string
+  /** Its list item. */
+  block: number
 }
 
 export interface ReviewItems {
@@ -1192,13 +1237,42 @@ export interface SpecItems {
   planReview?: boolean
   /** The risk tiers an approval may pick, from the least risk to the most. */
   tiers: Array<TierChoice>
-  /**
-   * The blocks the web UI folds: the `## Details` heading and every top-level block after it,
-   * up to the next level-1 or level-2 heading, or none.
-   */
-  details: Array<number>
-  /** The mockups the `## Mockups` section links, in its order. */
+  /** The story and HTML mockups the stories link, in file order. */
   mockups: Array<MockupLink>
+  /** The block: the first top-level callout before the first level-2 heading. */
+  block?: number
+  /** The block's time, the number before "minutes" in its first paragraph. */
+  minutes?: number
+  /** The block's first list item starting "You approve". */
+  approve?: number
+  /** The items of `## Your review`. */
+  answers: Array<ReviewAnswer>
+  /** The items of `## Decisions`, each decision once; not the "Relied on" table. */
+  decisions: Array<ListedDecision>
+  /** Each level-2 section, in file order. */
+  parts: Array<SpecPart>
+  /** The rows of the `## Edge cases` table, its header aside. */
+  edges: Array<EdgeCase>
+  /** The bold-led list items of `## Architecture` before its paragraph "Tradeoffs:". */
+  units: Array<number>
+  /** The list items of `## Architecture` after its paragraph "Tradeoffs:". */
+  tradeoffs: Array<number>
+  /** The principles of the `## Constitution check` table. */
+  principles: Array<Principle>
+}
+
+/** A level-2 section of a spec, in file order. */
+export interface SpecPart {
+  title: string
+  /** Its heading's anchor, `user-stories`. */
+  anchor: string
+  /** Its heading's block. */
+  heading: number
+  /**
+   * Its top-level blocks after the heading, deeper headings included, up to the next level-1
+   * or level-2 heading.
+   */
+  blocks: Array<number>
 }
 
 /** A feature started. */
@@ -1243,9 +1317,12 @@ export interface Story {
   blocks: Array<number>
   /** Its "Why this priority" paragraph. */
   why?: number
-  scenarios: Array<Scenario>
-  /** The blocks the web UI folds: its scenarios' intro paragraph and their list, or none. */
-  details: Array<number>
+  /** Its first paragraph holding only a story link, or a link to an HTML mockup. */
+  mockup?: number
+  /** The list after its paragraph "Key scenarios:". */
+  key: Array<Scenario>
+  /** The list after its paragraph "More scenarios:", which the page folds. */
+  more: Array<Scenario>
 }
 
 /** A paragraph that embeds a story. */

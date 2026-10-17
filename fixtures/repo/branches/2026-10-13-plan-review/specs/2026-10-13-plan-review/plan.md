@@ -98,32 +98,32 @@ From [the spec](spec.md):
 
 ## Constitution check
 
-| Principle                         | Complies | Notes                                                                  |
-| --------------------------------- | -------- | ---------------------------------------------------------------------- |
-| I. Simple for non-technical users | yes      | As in the spec: one menu, one new screen                               |
-| II. Local first                   | yes      | The new dependency only runs in tests                                  |
-| III. Fast with thousands of tasks | yes      | Every task that changes the row compares the benchmark to its baseline |
-
-## Decisions
-
-The decisions this plan relies on, and where it follows them:
-
-- [Repeating tasks](../decisions/repeating-tasks.md): `completeTask` moves the due date, and never
-  creates a task (task 2).
-- [Due dates](../decisions/due-dates.md): only `src/lib/dates.ts` turns due dates into `Date` values
-  (task 1).
-- [Task storage](../decisions/task-storage.md): upgrade 2, tested on version 1 data (tasks 1 and 2).
-- [UI components](../decisions/ui-components.md): the menu uses `Select`, and the custom screen is
-  built in the project (tasks 3 and 4).
+| I. Simple for non-technical users | II. Local first | III. Fast with thousands of tasks |
+| --------------------------------- | --------------- | --------------------------------- |
+|                ✅                 |       ✅        |                ✅                 |
 
 ## Complexity tracking
 
 | Abstraction or exception                                | Why it is needed                                                                          | Simpler alternative rejected because                                            |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `src/lib/dates.ts` and `CalendarDay`                    | The one place where due dates meet `Date`, as the due dates decision requires             | date-fns calls spread in components would convert due dates everywhere          |
-| `RepeatPattern` and `RepeatRule`, shared by every entry | One format for the menu, the screen, and the parser, from the [spec's data](spec.md#data) | Three formats would need three versions of `nextDueDate`                        |
+| `RepeatPattern` and `RepeatRule`, shared by every entry | One format for the menu, the screen, and the parser, from the [spec's architecture](spec.md#architecture) | Three formats would need three versions of `nextDueDate`                        |
 | `renderApp` and its helpers, in `tests/helpers/`        | Each integration test stays a few lines long                                              | Setting up the database, clock, and timezone in each test buries what it checks |
 | The failing store, in `renderApp`                       | Tests "Could not save" through the real app                                               | Mocking the store in one test would test the mock, not the error path           |
+
+## Test map
+
+Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+
+| Spec                              | Task | Test                                                       |
+| --------------------------------- | ---- | ---------------------------------------------------------- |
+| Edge case: a corrupted due date   | 1    | `tests/recurring-tasks/upgrade.test.tsx`                   |
+| US2 1, 2, more 1, 2               | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx` |
+| Edge cases: moved, deleted, 31st  | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx` |
+| US1 1, 2, more 1; SC-001          | 3    | `tests/recurring-tasks/make-a-task-repeat.test.tsx`        |
+| US3 1, 2, more 1                  | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`           |
+| US4 1, 2, more 1, 2; SC-003       | 5    | `tests/recurring-tasks/repeat-in-title.test.tsx`           |
+| SC-002                            | 1–5  | the [list benchmark](/bench/list.bench.ts)                 |
 
 ---
 
