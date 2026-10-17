@@ -47,7 +47,6 @@
 
 - [agent] [redesign-priorities] Once the interface and priorities redesigns are merged, review the
   sidebar: a grey count of inbox notes on the Inbox row, and a Decisions row above Done
-- Add icons to decisions?
 
 ## Flow
 
