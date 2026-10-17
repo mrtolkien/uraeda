@@ -54,6 +54,7 @@
 - Settings page didn't show as "finished" in the UI after the last message -> might be fixed by the
   interface review feature
 - Decisions are hard to read and too long, will need a pass
+- Clarifications during implementation can resume implementation
 
 ## Deferred fixes
 

@@ -18,7 +18,7 @@
   (`security.insecureIframeMessaging`). Look at it as a change, see round 04 of the UI iteration
   flow
 
-- [Look and feel pass](drafts/look-and-feel.md)
+- [Look and feel pass](drafts/look-and-feel/proposal.md)
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
@@ -47,8 +47,6 @@
 - Git listener process
 
 - Neovim plugin: an "open priorities" shortcut, and review its shortcuts, they are very bad atm
-- Review moving the UI tests to Storybook's test format, once the UI iteration flow brings Storybook
-  in
 
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
