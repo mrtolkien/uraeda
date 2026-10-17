@@ -61,16 +61,27 @@ function ownersOf(document: Document, items: SpecItems): Map<number, string> {
   return owners;
 }
 
-/** The number of comments on each entry: a comment counts for the innermost entry of its block. */
+/**
+ * The entry a comment counts for: its decision's, for a decision comment, whose lines are the
+ * decision's own; else the innermost entry of its block in the spec.
+ */
+function ownerOf(document: Document, owners: Map<number, string>, comment: CommentItem) {
+  if (comment.decision != null) {
+    return decisionId(comment.decision);
+  }
+  let block: Block | undefined = holderOf(document, comment.endLine);
+  while (block && !owners.has(block.id)) {
+    block = block.parent == null ? undefined : document.blocks[block.parent];
+  }
+  return block && owners.get(block.id);
+}
+
+/** The number of comments on each entry. */
 function countsOf(document: Document, items: SpecItems, comments: ReadonlyArray<CommentItem>) {
   const owners = ownersOf(document, items);
   const counts = new Map<string, number>();
   for (const comment of comments.filter((c) => !c.general)) {
-    let block: Block | undefined = holderOf(document, comment.endLine);
-    while (block && !owners.has(block.id)) {
-      block = block.parent == null ? undefined : document.blocks[block.parent];
-    }
-    const owner = block && owners.get(block.id);
+    const owner = ownerOf(document, owners, comment);
     if (owner) {
       counts.set(owner, (counts.get(owner) ?? 0) + 1);
     }
