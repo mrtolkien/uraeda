@@ -8,6 +8,7 @@ import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useContext, useMemo } from "react";
 import type { Block, Document } from "uraeda-binding";
+import { Diagram } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
 import { After, Selectable, type Selection } from "./Selection.tsx";
@@ -257,7 +258,9 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       // Drawn by their table.
       return null;
     case "code":
-      return (
+      return block.language === "mermaid" ? (
+        <Diagram source={block.text ?? ""} />
+      ) : (
         <div {...stylex.props(styles.block)}>
           <CodeBlock code={block.text ?? ""} language={block.language} width="100%" />
         </div>
