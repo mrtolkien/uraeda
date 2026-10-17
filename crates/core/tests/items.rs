@@ -38,12 +38,12 @@ fn answers_are_composed_as_the_ui_writes_them() {
     }
 }
 
-/// Review focus 2: letters stop at the first word that is not an option letter followed by a
-/// joint or an end mark, and `letters()` and `split_answer()` read them the same way.
+/// Review focus 2: the letters are the longest run of joined letters followed by an end mark or
+/// the end, with no letter when no run is, and `letters()` and `split_answer()` read them the same way.
 #[test]
 fn answers_are_split_into_letters_and_comment() {
     let options = ['A', 'B', 'C'];
-    let cases: [(&str, &[&str], &str); 13] = [
+    let cases: [(&str, &[&str], &str); 15] = [
         (
             "C, we want a simple feature",
             &["C"],
@@ -63,7 +63,9 @@ fn answers_are_split_into_letters_and_comment() {
         ("C but with napi-rs", &[], "C but with napi-rs"),
         ("A, B and C", &["A", "B", "C"], ""),
         ("B and C: weekdays matter", &["B", "C"], "weekdays matter"),
-        ("B, C and D", &["B", "C"], "and D"),
+        ("B, C and D", &["B"], "C and D"),
+        ("A and B are both bad", &[], "A and B are both bad"),
+        ("C and then more", &[], "C and then more"),
         ("A", &["A"], ""),
         ("A, B, and C: all", &["A", "B", "C"], "all"),
         ("Neither", &[], "Neither"),

@@ -95,3 +95,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: keeping `settled` beside the groups: a field the spec removes.
 - **If wrong**: the two tests' assertions, in `crates/core/tests/items.rs`.
 - **Where**: task 4.
+
+## R9: Letters end only at an end mark
+
+- **Decision**: an answer's letters are the longest run of joined letters followed by an end mark or
+  the end; when no run is, the whole answer is the comment. "B, C and D" with options A to C is B,
+  with the comment "C and D", and "A and B are both bad" has no letter. The test's row for "B, C and
+  D" and review focus 2 now say so.
+- **Rationale**: the plan's row, B and C with the comment "and D", contradicted the spec's rule in
+  the plan's Global constraints: letters are ended by `:`, `,`, `.`, or the end, and everything
+  after the letters and their end mark is the comment. Reading "and" as an end made "A and B are
+  both bad" pick A.
+- **Alternatives considered**: keeping " and <word>" as an end for "B, C and D" alone: no rule tells
+  it apart from "A and B are both bad".
+- **If wrong**: `read` in `crates/core/src/files/clarifications/letters.rs`, and the table in
+  `crates/core/tests/items.rs`.
+- **Where**: the review fix after task 4.

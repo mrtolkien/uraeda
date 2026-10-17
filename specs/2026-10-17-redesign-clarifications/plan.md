@@ -27,8 +27,9 @@ writing rules; the other references link to it.
 1. **A follow-up of a parent answered "A and B"**: both follow-ups show, in letter order, each a
    card after the parent's. Task 10.
 2. **An answer whose letters end with a full stop and nothing after it**, "B.", picks B with an
-   empty comment, and "B, C and D" with D not an option picks nothing past C: letters stop at the
-   first word that is not an option letter followed by a joint or an end mark. Task 2.
+   empty comment, and "B, C and D" with D not an option picks B, with the comment "C and D": the
+   letters are the longest run of joined letters followed by an end mark or the end, and "A and B
+   are both bad" has none. Task 2.
 3. **A settled point whose subject repeats across two groups** keeps its comment on the first one,
    as today: subjects stay unique. Task 4.
 4. **A sentence warning inside a nested list item** is reported on that item's own line, not the
@@ -208,9 +209,9 @@ key on their bold subject; Submit flips the block's first paragraph only
     `("B, let's not overload the interface", ["B"], "let's not overload the interface")`,
     `("B.", ["B"], "")`, `("A mix of both would be better", [], "A mix of both would be better")`,
     `("C but with napi-rs", [], "C but with napi-rs")`, `("A, B and C", ["A","B","C"], "")`,
-    `("B and C: weekdays matter", ["B","C"], "weekdays matter")`,
-    `("B, C and D", ["B","C"], "and D")` with options A to C (review focus 2). Breaks caught: a
-    comma read as a joint swallowing "let's"; a letter followed by a word read as picked.
+    `("B and C: weekdays matter", ["B","C"], "weekdays matter")`, `("B, C and D", ["B"], "C and D")`
+    with options A to C (review focus 2, R9). Breaks caught: a comma read as a joint swallowing
+    "let's"; a letter followed by a word read as picked.
   - `files.rs`, replacing the unclear rows: a follow-up whose parent answered "keep it simple"
     `applies` is `No`, and it is not `asked`. Break: a comment-only parent leaving its follow-ups
     waiting.
