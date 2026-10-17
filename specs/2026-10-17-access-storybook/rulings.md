@@ -50,3 +50,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an older Storybook would fail to start under Uraeda only, with Storybook's own error
   naming the key.
 - **Where**: task 1.
+
+## R4: The interface's first check also needs the story's controls
+
+- **Decision**: the validation script's check that the Storybook page's canvas shows the `Ready`
+  story also waits for the controls panel to list its `folder` and `story` args.
+- **Rationale**: with the setting removed, the canvas check alone passed: the story frame renders
+  the story named in its own address, `iframe.html?id=...`, without any message from the interface,
+  and Playwright finds its text under Storybook's loading overlay. The controls panel fills only
+  from the story frame's messages. With them in the check, removing the setting fails it, as task
+  3's step 3 shows.
+- **Alternatives considered**: checking that Storybook's loading overlay is gone: it ties the script
+  to a selector of Storybook's markup, where the controls are what the human uses.
+- **If wrong**: the script misses a blank canvas; step 3 of task 3 is how to see it.
+- **Where**: task 3, `packages/web/scripts/validate-storybook.ts`, `listsControls`.
+
+## R5: Storybook's narrow layout works through Uraeda
+
+- **Decision**: no follow-up for a phone's width.
+- **Rationale**: at 402 × 874 in WebKit, Storybook's interface shows its narrow layout through
+  Uraeda: the toolbar on top, the story in the canvas, and the sidebar and panel behind the bottom
+  bar, "StoryEmbed/Ready". The spec's assumptions asked for a follow-up only if it broke.
+- **Alternatives considered**: none.
+- **If wrong**: a follow-up feature on Storybook's mobile layout.
+- **Where**: task 3, `checkPhone`.
