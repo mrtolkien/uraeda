@@ -75,8 +75,8 @@ export function ComposerImages({
                 isIconOnly
                 label={`Remove ${image.name}${alt ? ` — ${alt}` : ""}`}
                 onClick={() => {
-                  onRemove(image.key);
                   focusAt.current = index;
+                  onRemove(image.key);
                 }}
                 size="sm"
                 variant="ghost"

@@ -454,9 +454,13 @@ export default defineConfig({
         { browser: "webkit", name: "desktop", viewport: { height: 900, width: 1440 } },
       ],
       provider: playwright(),
-      // Preserve the first failure without retrying it. Keep evidence out of tracked sources.
+      // Failure screenshots are automatic. Full DOM/network tracing is opt-in: recording every
+      // passing test made CI much slower. Use URAEDA_TEST_TRACE=1 with an uncached browser task.
       screenshotDirectory: ".vitest/screenshots",
-      trace: { mode: "retain-on-failure", tracesDir: ".vitest/traces" },
+      trace:
+        process.env.URAEDA_TEST_TRACE === "1"
+          ? { mode: "retain-on-failure", tracesDir: ".vitest/traces" }
+          : "off",
     },
     // CI's WebKit draws without a GPU, and its scrolling and animations take longer than a desktop's.
     expect: { poll: { timeout: 5000 } },

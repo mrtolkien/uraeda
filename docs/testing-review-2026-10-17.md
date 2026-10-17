@@ -78,6 +78,15 @@ fixture now has 30 paragraphs, with the same selected lines and exact outcome as
 render-efficiency test still requests all 300. The failing restoration scenario remains in the
 suite; neither its assertions nor its timeout were loosened.
 
+Further validation found an ambiguous notifier query: both the sidebar and Home have a group called
+"Needs you". Its test now counts links within the navigation and declares the initial document
+title, so running it alone does not depend on another test's teardown. A thumbnail-focus failure was
+a product race: removal could synchronously update the image store before the focus target was
+recorded. Recording it first fixes the order. A focused regression forces a synchronous commit and
+was observed failing before the fix and passing after it; the full session flow stays. The
+[four review screenshots](ci-reliability/screenshots/) show keyboard focus on the remaining
+thumbnail after removal at both sizes and in both themes. They were visually reviewed.
+
 The tests intentionally use real git frequently, which costs time but verifies Uraeda's central
 contract. Browser fixtures already build a template once and copy it for each test, with a fresh
 repository name and a serialized fake-runner turn. Happy-dom tests have file-level temporary folders
@@ -124,8 +133,16 @@ folder was then treated as stale by the next run, which failed with `ENOTEMPTY` 
 still creating files. Commands now start in their own process group; cancellation signals the group,
 and any remaining group members are stopped before cleanup and lock release. A regression test runs
 a real launcher and child, waits for the child's readiness, cancels the wrapper, and checks that the
-child exited and its files were removed. Bounded filesystem-removal retries handle deletions in
-progress; tests themselves are never retried.
+child exited and its files were removed. A separate IPC guard handles a force-killed wrapper: its
+disconnect handler stops the command group and cleans the run folder even when SIGKILL prevents the
+wrapper's own handlers from running. Both SIGTERM and SIGKILL have subprocess regressions. Bounded
+filesystem-removal retries handle deletions in progress; tests themselves are never retried.
+
+Complexity tracking: the guard adds one short-lived Node process per test command. This is needed
+because a JavaScript signal handler cannot run after SIGKILL; a signal handler alone reproduced the
+orphan under Vite Task's cancellation. IPC avoids polling and shell- or Linux-specific supervisor
+tools. The group-signalling implementation is shared with the wrapper and serialized with the guard
+so it remains one rule, without adding another script to every test task's input list.
 
 ### CI policy and diagnostics
 
@@ -140,19 +157,24 @@ Superseded `main` runs now cancel just as superseded PR runs do. Preserving ever
 coverage artifact no longer justifies occupying runners for revisions already replaced. The workflow
 still has no path filters and still checks the working tree after successful validation.
 
-Browser failures retain screenshots and Playwright traces under ignored `.vitest/` paths and upload
-them as per-size artifacts even after a failed test command. Traces record the failing attempt; no
-retry is needed. This adds browser tracing overhead, accepted in return for evidence of DOM,
-interaction, and network state that a stack trace cannot provide. Successful traces are discarded.
-Vitest's [trace configuration](https://vitest.dev/config/browser/trace) documents this mode. The
-pinned runner's implementation and types were also checked.
+Browser failures retain screenshots under ignored `.vitest/` paths and upload them as per-size
+artifacts even after a failed test command. An intentional temporary failure verified both
+screenshot and trace generation and was removed. Recording full DOM/network traces for every passing
+test made validation much slower: the phone job took over 12 minutes, compared with about seven in
+the latest baseline run. Traces therefore stay opt-in, with
+`URAEDA_TEST_TRACE=1 nix develop -c vp run --no-cache browser:desktop` (or `browser:phone`). That
+mode keeps the failing attempt's trace and discards successful traces, without a test retry.
+Instrumentation can change timing and should be used for a focused investigation. Vitest's
+[trace configuration](https://vitest.dev/config/browser/trace) documents this mode. The pinned
+runner's implementation and types were also checked.
 
 ## Boundaries and remaining risks
 
 - This review preserves Linux x64 validation and WebKit, as the active toolchain and UI decisions
   require. Release builds on other platforms do not substitute for running their tests.
 - A passing accessibility/layout check does not prove visual design quality. The existing manual
-  screenshot-review requirement remains for product UI changes. This change alters no product view.
+  screenshot-review requirement remains for product UI changes. Thumbnail focus ordering changes;
+  its layout does not.
 - Broader fixture changes can still invalidate literal hint/count expectations in several layers.
   Update them with the intended behavior; do not replace exact expectations with permissive ones.
 - Explicit cache inputs remain a maintained dependency map. Representative regression cases guard
