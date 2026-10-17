@@ -74,7 +74,8 @@ test("shows the four counts, then the cards in their order", async () => {
   // checkouts of the story embeds, has four and four (R15).
   expect(await count("Needs you")).toMatch(/^Needs you3/);
   expect(await count("Agents")).toMatch(/^Agents1/);
-  expect(await count("Now")).toMatch(/^Now4/);
+  // The four entries of Now are started, so none waits.
+  expect(await count("Now")).toMatch(/^Now04 ongoing/);
   expect(await count("Inbox")).toMatch(/^Inbox10/);
   expect(await headings()).toEqual([
     expect.stringMatching(/^Needs you/),

@@ -315,10 +315,10 @@ export function HomeHub() {
           variant="blue"
         />
         <Tile
-          caption={`${started} of ${now.length} started`}
+          caption={`${started} ongoing`}
           href={here("/priorities")}
           label="Now"
-          value={now.length}
+          value={now.length - started}
           variant="green"
         />
         <Tile

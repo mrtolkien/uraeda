@@ -44,8 +44,9 @@ test("the sidebar reads in the flow's order, the inbox's and Now's counts, and n
   await waitFor(() =>
     expect(nav().getByRole("link", { name: /^Inbox/ }).textContent).toContain("10"),
   );
-  // The count of the entries under Now (C1), seen beside the row's label.
-  expect(links[at("Priorities")]).toBe("Priorities4");
+  // The count of the entries under Now (C1), seen beside the row's label: the fixture's four are
+  // started, and started entries are left out, as on the priorities page.
+  expect(links[at("Priorities")]).toBe("Priorities0");
   expect(nav().queryByText(/Drafts?/)).toBeNull();
 });
 
