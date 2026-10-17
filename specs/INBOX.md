@@ -134,3 +134,5 @@
 - [agent] [redesign-clarifications] Old-format rounds remain as inline test inputs
   (crates/core/tests/actions.rs, crates/lsp/tests reads.rs and editing.rs, web change.test.tsx, nvim
   test_jumps.lua and test_waiting.lua): new tests will copy them
+- [agent] [redesign-clarifications] SettledGroup.kind is a string rather than the spec SettledKind
+  enum, so the web gets no exhaustiveness check
