@@ -6,7 +6,12 @@
  * its base from the checkout's `Preview` record;
  * the story shows the fixture's data, which its fate client reads through GETs (R4), and its frame the
  * fixture's story, through Uraeda (R43); then an edit of
- * the stories file shows in the frame without a reload, and the file is restored.
+ * the stories file shows in the frame without a reload, and the file is restored. Then it opens
+ * Storybook's own interface through Uraeda, `<base>?path=/story/storyembed--ready`, sandboxed by the
+ * proxy's header as the Storybook page's frame is: its canvas shows the `Ready` story, picking
+ * `Removed` and turning its `removed` control off update the canvas, an export added to the stories
+ * file shows in the sidebar and renders, and the canvas renders at a phone's width, whose screenshot
+ * it writes to the system's temporary folder for a look.
  *
  * Run it by hand, inside `nix develop` for WebKit, after `vp install`:
  * `node packages/web/scripts/validate-storybook.ts`. It is not part of `vp test` or `vp run ready`:
@@ -22,7 +27,7 @@ import { createServer, type Server as HttpServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type Frame, type Page, webkit } from "playwright";
+import { type Browser, type Frame, type FrameLocator, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
 import { devHandler, devUpgrade, stopDevRuns } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
@@ -36,6 +41,12 @@ const EDITED = `${LABEL}, edited`;
 /** How long Storybook may take to start, and a story or an edit to show. */
 const START_MS = 120_000;
 const SHOW_MS = 30_000;
+/** The export the interface's check adds to the stories file, and its story's id. */
+const ADDED = `\nexport const Added: Story = { args: { folder: CHECKOUTS.ready, story: dragging } };\n`;
+const ADDED_ID = "storyembed--added";
+/** The text of the `Removed` story, and of the `Missing` one it shows with `removed` off. */
+const REMOVED = "This variant was removed after your answer.";
+const MISSING = "No story “Resizing” in packages/web/src/SidebarHandle.stories.tsx on this branch.";
 
 /** The checkout's folder: its feature's in a worktree, else `main`. */
 function checkoutFolder(): string {
@@ -173,9 +184,125 @@ async function check(address: string, name: string, folder: string) {
         pass("an edit of the stories file shows in the frame, without a reload");
       },
     );
+    await checkInterface(browser, address, state.base ?? "");
   } finally {
     await browser.close();
   }
+}
+
+/** Whether `text` shows in Storybook's canvas, the story frame of its interface, within `SHOW_MS`. */
+function inCanvas(canvas: FrameLocator, text: string): Promise<boolean> {
+  return canvas
+    .getByText(text)
+    .first()
+    .waitFor({ timeout: SHOW_MS })
+    .then(
+      () => true,
+      () => false,
+    );
+}
+
+/** The text of Storybook's canvas, for a failure. */
+function canvasText(canvas: FrameLocator): Promise<string> {
+  return canvas
+    .locator("body")
+    .innerText({ timeout: 1000 })
+    .catch(() => "");
+}
+
+/**
+ * Whether Storybook's controls panel lists each of `args` within `SHOW_MS`: it learns them only from
+ * the story frame's messages, which the frame renders without, from its own address.
+ */
+async function listsControls(page: Page, args: Array<string>): Promise<boolean> {
+  const panel = page.locator("#storybook-panel-root");
+  const listed = await Promise.all(
+    args.map((arg) =>
+      panel
+        .getByText(arg, { exact: true })
+        .first()
+        .waitFor({ timeout: SHOW_MS })
+        .then(
+          () => true,
+          () => false,
+        ),
+    ),
+  );
+  return !listed.includes(false);
+}
+
+/**
+ * Checks Storybook's own interface, as the Storybook page frames it (US1.1 to US1.4): opened through
+ * Uraeda's address, where the proxy's `sandbox` header gives it no origin of its own.
+ */
+async function checkInterface(browser: Browser, address: string, base: string) {
+  const url = `${address}${base}?path=/story/storyembed--ready`;
+  const page = await browser.newPage({ viewport: { height: 900, width: 1440 } });
+  const canvas = page.frameLocator("#storybook-preview-iframe");
+  await page.goto(url);
+  if (!(await inCanvas(canvas, LABEL)) || !(await listsControls(page, ["folder", "story"]))) {
+    fail("the Storybook page's canvas shows the Ready story", await canvasText(canvas));
+  }
+  pass("the Storybook page's canvas shows the Ready story");
+  await page.evaluate(() => {
+    (window as { uraedaLoaded?: boolean }).uraedaLoaded = true;
+  });
+
+  await page.locator("#storyembed--removed").click();
+  if (
+    !(await inCanvas(canvas, REMOVED)) ||
+    !(await listsControls(page, ["folder", "removed", "story"]))
+  ) {
+    fail("picking Removed shows it, with its controls", await canvasText(canvas));
+  }
+  pass("picking Removed in the sidebar shows it, with its folder, removed, and story controls");
+
+  // Storybook's switch draws over its input, which takes the click itself.
+  await page.locator("#control-removed").dispatchEvent("click");
+  const reloaded = async () =>
+    (await page.evaluate(() => (window as { uraedaLoaded?: boolean }).uraedaLoaded)) !== true;
+  if (!(await inCanvas(canvas, MISSING)) || (await reloaded())) {
+    fail("turning removed off shows the missing story", await canvasText(canvas));
+  }
+  pass("turning the removed control off shows the missing story, without a reload");
+
+  await whileEdited(
+    STORIES,
+    (original) => original + ADDED,
+    async () => {
+      const listed = await page
+        .locator(`#${ADDED_ID}`)
+        .waitFor({ timeout: SHOW_MS })
+        .then(
+          () => true,
+          () => false,
+        );
+      if (!listed || (await reloaded())) {
+        fail("an added export shows in the sidebar, without a reload", listed);
+      }
+      await page.locator(`#${ADDED_ID}`).click();
+      if (!(await inCanvas(canvas, LABEL))) {
+        fail("the added export renders", await canvasText(canvas));
+      }
+      pass("an export added to the stories file shows in the sidebar, and renders");
+    },
+  );
+  await page.close();
+  await checkPhone(browser, url);
+}
+
+/** Checks Storybook's interface at a phone's width, and writes its screenshot for a look. */
+async function checkPhone(browser: Browser, url: string) {
+  const page = await browser.newPage({ viewport: { height: 874, width: 402 } });
+  const canvas = page.frameLocator("#storybook-preview-iframe");
+  await page.goto(url);
+  if (!(await inCanvas(canvas, LABEL))) {
+    fail("the canvas shows the Ready story at 402 px", await canvasText(canvas));
+  }
+  const screenshot = join(tmpdir(), "uraeda-validate-storybook-402.png");
+  await page.screenshot({ path: screenshot });
+  await page.close();
+  pass(`the canvas shows the Ready story at 402 px, screenshot in ${screenshot}`);
 }
 
 async function main(): Promise<number> {
