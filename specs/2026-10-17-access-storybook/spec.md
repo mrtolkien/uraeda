@@ -169,10 +169,9 @@ Settled while writing the spec:
 
 Changed:
 
-- [Stack](../decisions/stack.md#proposed-change-2026-10-17-access-storybook): the preview rule adds
-  that the proxy forwards Storybook's channel only as a preview's, so no frame can write files
-  through Storybook; its consequences add what Storybook's interface can and cannot do through
-  Uraeda.
+- [Stack](../decisions/stack.md#rules): the preview rule adds that the proxy forwards Storybook's
+  channel only as a preview's, so no frame can write files through Storybook; its consequences add
+  what Storybook's interface can and cannot do through Uraeda.
 
 Relied on:
 
