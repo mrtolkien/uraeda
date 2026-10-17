@@ -62,7 +62,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: browser-phone-failures
-          path: packages/web/.vitest/
+          path: |
+            .vitest/
+            packages/web/.vitest/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
@@ -84,7 +86,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: browser-desktop-failures
-          path: packages/web/.vitest/
+          path: |
+            .vitest/
+            packages/web/.vitest/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
