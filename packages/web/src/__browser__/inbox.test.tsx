@@ -326,6 +326,11 @@ test("the triage's banner and its answering view pass the layout checks", async 
   await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
   await drawn();
   await checkLayout();
+  // Its questions are the round's cards: a card with a border on a wide screen, none on the phone.
+  for (const id of ["Q1", "Q2", "Q3"]) {
+    const card = document.querySelector(`#${id} > div`)!;
+    expect(getComputedStyle(card).borderTopWidth === "0px", id).toBe(narrow());
+  }
 });
 
 /** US4 1 and 3: "Organize with an agent", then the answered triage's banner and its button. */

@@ -9,6 +9,8 @@ import { page, userEvent } from "vite-plus/test/browser";
 import {
   atRepo,
   atSize,
+  checkAccessibility,
+  colorScheme,
   commands,
   drawn,
   repository,
@@ -253,5 +255,42 @@ describe("on the phone", () => {
       expect(title.contains(document.elementFromPoint(box.left + 8, y))).toBe(true);
     }
     expect(getComputedStyle(head).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  });
+});
+
+describe("accessibility", () => {
+  atSize("both");
+
+  const MOCKUP_FOLDER = "2026-10-06-recurring-tasks";
+
+  /** The mockup round, its Q1 answered B: a diagram, a follow-up, and the three settled groups. */
+  async function fullRound() {
+    const round = await commands.fixtureText("round-mockup/clarifications-01.md");
+    const answered = round.replace(
+      /(## Q1:[\s\S]*?)\*\*Answer:\*\*\n/,
+      (_, before: string) => `${before}**Answer:** B\n`,
+    );
+    await commands.commitOnBranch(MOCKUP_FOLDER, {
+      [`specs/${MOCKUP_FOLDER}/clarifications-01.md`]: answered,
+    });
+    await show(`/f/${MOCKUP_FOLDER}/clarifications-01.md`, "When does the next occurrence appear?");
+    await expect
+      .poll(() => document.querySelector('iframe[title="Diagram"]'), { timeout: 15_000 })
+      .toBeTruthy();
+    expect(card("Q1.B")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Show the 2 points" }));
+    expect(await screen.findByText(/Next dates are computed by date-fns/)).toBeTruthy();
+    for (const group of ["Check these", "Behaviour", "Under the hood"]) {
+      expect(screen.getByRole("heading", { level: 3, name: group })).toBeTruthy();
+    }
+  }
+
+  test("the round with a diagram, a follow-up, and every group open passes axe in light and dark (SC-004)", async () => {
+    await fullRound();
+    for (const mode of ["light", "dark"] as const) {
+      await colorScheme(mode);
+      await drawn();
+      await checkAccessibility();
+    }
   });
 });

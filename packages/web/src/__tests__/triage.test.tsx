@@ -236,3 +236,32 @@ test("without an agent, an answered triage gives its apply message to copy", asy
   ).toBeTruthy();
   expect(screen.getByRole("button", { name: "Copy the message" })).toBeTruthy();
 });
+
+/** The redesign's edge case: the triage takes the round's page, with its Context free and no groups. */
+test("the triage's questions are cards, its Context free, and it shows no settled groups", async () => {
+  await renderPage("/inbox/triage", withTriage(), { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
+
+  // The Context, a paragraph under no part's heading.
+  expect(
+    screen.getByText(/^The inbox holds 10 notes: this triage covers the 5 under UI\./),
+  ).toBeTruthy();
+  for (const part of ["Goal", "Today", "Scope", "Sources"]) {
+    expect(screen.queryByRole("heading", { level: 3, name: part })).toBeNull();
+  }
+  // Each question a card: its title, its "Why it matters", and its options as cards to pick.
+  for (const id of ["Q1", "Q2", "Q3"]) {
+    const card = question(id);
+    expect(card.tagName, id).toBe("SECTION");
+    expect(within(card).getByRole("heading", { level: 2 }), id).toBeTruthy();
+    expect(within(card).getByRole("note").textContent, id).toMatch(/^Why it matters/);
+    expect(card.querySelectorAll(".astryx-selectable-card").length, id).toBe(2);
+    expect(option(id, "A").getAttribute("aria-label"), id).toMatch(/^Option A \(recommended\): /);
+  }
+  // No settled points, so no "Settled without you", and the notes are "Anything else".
+  expect(screen.queryByRole("heading", { name: "Settled without you" })).toBeNull();
+  for (const group of ["Check these", "Behaviour", "Under the hood"]) {
+    expect(screen.queryByRole("heading", { name: group })).toBeNull();
+  }
+  expect(screen.getByRole("textbox", { name: "Anything else" })).toBeTruthy();
+});
