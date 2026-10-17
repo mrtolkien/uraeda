@@ -42,9 +42,14 @@ Templates are strict where tools and agents need to find things, and free elsewh
 - **Structured items**: fixed patterns, so they can be found and rendered: questions `## Q1: ...`,
   numbered from Q1, each with its `**Answer:**` line, and follow-ups `### Q1.B: ...`, on an option
   of their parent; options `- **A (recommended). ...**` with `[pro]` and `[con]` bullets; user
-  stories `### US1: Title (P1)`; acceptance scenarios with **Given**, **When**, **Then**; success
-  criteria `SC-001`; plan tasks `## Task 1: ...`; rulings `## R1: ...`; review comments
-  `## C1: ...`.
+  stories `### US1: Title (P1)`, their scenarios in a "Key scenarios:" list and an optional "More
+  scenarios:" list, each with **Given**, **When**, **Then**; success criteria
+  `- **SC-001** (<measure>): <outcome>.`, the measure optional; edge cases as a table whose
+  importance is `High`, `Normal`, or `Niche`; a spec's answers to its last review
+  `- **C2** (<the comment in a few words>): <done or declined>. <what was done, or why not>.`; a
+  spec's decisions `- **New: [<title>](../decisions/<name>.md)**. <sentence>`, the same with
+  `Changed:`, and ``- **Removed: <title>** (`<name>.md`). <why>``; plan tasks `## Task 1: ...`;
+  rulings `## R1: ...`; review comments `## C1: ...`.
 - **Everything else**, inside sections, is free text.
 
 With `ura`, run `ura check` before every commit of workflow files: it verifies the rules of this
@@ -92,6 +97,10 @@ Workflow files track their state in frontmatter fields.
 A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
 See [Change](change.md). A decision's `icon` that the web UI does not know shows a default icon.
 
+A decision is `proposed` while a branch creates or changes it, an active one included: the branch
+edits it in place, and empties its `approved-by`. The default branch keeps the active text until the
+branch merges. The approval of the spec, or of a change's round, sets it back to `active`.
+
 Only set a human status when the human expressly asks you to in the session, for example "the spec
 is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
 so in its body: "Approved by the human in chat." When the human changes a spec's `risk-tier` on
@@ -113,6 +122,10 @@ source of truth.
   `Lines 50–52, under "<heading>"`, `Line 50, under "<heading>"`, or `General`: the line numbers are
   those of the version at `commit`, and the heading is the nearest one above them. A line comment
   quotes its lines, as a quote block, then says what it has to say.
+- **A comment on a decision** the spec lists points into the decision's file:
+  `## C4: Decision task-storage, lines 20–21, under "Rules"`. The lines are those of the decision's
+  file at `commit`, on the branch. A comment on a part the branch removed points to the default
+  branch's lines, with `removed` after them: `lines 18–19 removed`.
 - **A comment on a story**, written from Uraeda, starts with `Story <file name>#<export>`. When the
   human picked an element, `, <phone or desktop>, <role> “<name>”` follows: the width only while
   both showed; without a name, `<role> with “<its text's first 40 characters>”`, or the role alone

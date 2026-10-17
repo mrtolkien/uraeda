@@ -351,7 +351,7 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
 - Produces: the anchors other files link to: `spec.md#new-decision-or-change`, `spec.md#mockups`,
   `spec.md#tests`, and `spec.md#what-is-a-decision` stay. `writing.md` gains a `## A spec` section.
 
-- [ ] **Step 1: Rewrite `approval.md`**
+- [x] **Step 1: Rewrite `approval.md`**
 
 The step runs when `spec.md` is `approved` and a decision named by an item of its `## Decisions`
 section is `proposed`. It sets each such decision `active`, new or changed, and `approved-by` to the
@@ -361,7 +361,7 @@ commit. A removed decision is already deleted on the branch: nothing to do. The 
 needs the human's approval again, and that this step's own two fields do not count. Remove every
 `## Proposed change` passage. Keep the review record and the review settings sections.
 
-- [ ] **Step 2: Rewrite `spec.md` and `writing.md`**
+- [x] **Step 2: Rewrite `spec.md` and `writing.md`**
 
 `spec.md`: the new order of the [data model](data-model.md#spec-file), section by section, as the
 global constraints copy it. Its skeleton is the new template's (task 2 writes the template: the
@@ -386,7 +386,7 @@ discovery proposes a split". A `## A decision` section: intent first, one senten
 strongest first, at most 10. Its list of warnings names `spec.length`, `decision.rules`,
 `decision.order`, `decision.unapproved`, and the problem `edges.importance`.
 
-- [ ] **Step 3: Update the other references and `SKILL.md`**
+- [x] **Step 3: Update the other references and `SKILL.md`**
 
 In each file, every passage on a proposed change, `## Details`, the spec's Testing, the full
 constitution table, or ruling IDs in records: `SKILL.md`'s folder layout, the paragraph on proposed
@@ -402,13 +402,13 @@ structured items of the global constraints, the decision comment heading, and a 
 to `proposed` on a branch. `discovery.md`: the split rule, linked to `writing.md`. `cli.md`: the new
 warnings. `code-quality.md` and `implementation.md`: the spec's Testing becomes the plan's test map.
 
-- [ ] **Step 4: Check the links**
+- [x] **Step 4: Check the links**
 
 - Run: `nix develop -c cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`, and
   `rg -n 'Proposed change|## Details|Testing\*\*' skills/uraeda/references skills/uraeda/SKILL.md`
 - Expected: no problems; no match but the history of this feature, if any
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills/uraeda/references skills/uraeda/SKILL.md README.md

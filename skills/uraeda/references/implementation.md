@@ -300,7 +300,8 @@ description, written when it is marked ready, reads like a file waiting for the 
   edited during the work, a new dependency, a failure that was already there, a final review done
   without a fresh reviewer.
 - **Links** to the record, and to `spec.md` and `plan.md` at the commit before finishing.
-- **Tests**: each acceptance scenario and review-focus item, with the test that covers it.
+- **Tests**: each acceptance scenario and review-focus item, with the test that covers it, from the
+  plan's test map.
 - **Size**: each function and file the branch grew, with its length before and after.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Review comments**: when the plan was approved with comments, how each was carried out.

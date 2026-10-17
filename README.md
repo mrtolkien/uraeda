@@ -26,9 +26,9 @@ once in a file, and you answer in a few words when you have time.
   options with pros and cons, a recommended answer with its reason. Every file waiting for you opens
   with what is asked, an honest time estimate, and what needs your attention.
 - **A ledger of your decisions.** High-impact choices, like how dates are stored, become short
-  decision files that every later feature must follow. An agent cannot work around one: when a new
-  feature needs to change it, the agent proposes the change in that feature's spec, and it only
-  takes effect when you approve the spec.
+  decision files that every later feature must follow. An agent cannot work around one: a feature
+  that needs to change it edits it on its own branch, and lists it in its spec. The change takes
+  effect when you approve the spec, and you see it marked in place.
 - **Review scales with risk.** The agent proposes a risk tier in each spec, with its reason. By
   default, the plan does not wait for your review, whatever the tier: when you approve the spec, you
   can turn plan review on. When the plan does not wait for you, the approved spec goes to a pull
@@ -94,10 +94,11 @@ feature went through the whole workflow:
    ```
 
 4. **It writes the [spec](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/spec.md)**:
-   user stories with acceptance scenarios, the architecture, the build details last, and two new
-   decisions, [due dates](skills/uraeda/assets/example/specs/decisions/due-dates.md) and
-   [repeating tasks](skills/uraeda/assets/example/specs/decisions/repeating-tasks.md). You approve
-   it, and the decisions become active.
+   what you approve first, then two new decisions,
+   [due dates](skills/uraeda/assets/example/specs/decisions/due-dates.md) and
+   [repeating tasks](skills/uraeda/assets/example/specs/decisions/repeating-tasks.md), the user
+   stories with their key scenarios, and the architecture. The build details go to the plan. You
+   approve it, and the decisions become active.
 5. **It writes the [plan](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**,
    in the style of superpowers: tasks with the files they touch, their interfaces, and their failing
    tests written out. The spec's risk tier is high, since every saved due date is upgraded, so it
@@ -117,6 +118,8 @@ look at first. Its spec opened like this when it was submitted:
 >
 > Spec to review, about 20 minutes.
 >
+> - You approve repeating tasks: a menu, a custom screen, or a rule typed in the title, and
+>   completing a task moves its due date.
 > - Two new decisions: repeating tasks, one task whose due date moves, with no history of
 >   completions; and due dates, calendar days for every feature with dates.
 > - Every saved due date is converted once, when users get the new version. [...]
@@ -149,7 +152,7 @@ specs/
     proposal.md                # you: what and why
     discovery-01.md            # agent: findings and options
     clarifications-01.md       # agent: questions; you: answers
-    spec.md                    # agent: behaviour, architecture, details; you: approval
+    spec.md                    # agent: decisions, stories, architecture; you: approval
     plan.md                    # agent: implementation tasks and tests
     images/                    # your screenshots, linked from your files
 ```

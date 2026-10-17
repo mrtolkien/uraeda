@@ -83,12 +83,12 @@ specs/
     clarifications-01.md    # agent questions, human answers and notes
     discovery-02.md         # a later round, when one is needed
     clarifications-02.md
-    spec.md                 # agent: behaviour, architecture, then details; human-approved, amended
+    spec.md                 # agent: what you approve, decisions, stories, architecture; amended
     spec-review.md          # human: comments on the spec, with the verdict, when there are any
     plan.md                 # agent: tasks with files and test-first steps, checked off as built
     plan-review.md          # human: comments on the plan, when it is reviewed with comments
     rulings.md              # agent: low-impact choices made while planning and building
-    data-model.md           # agent, when needed
+    data-model.md           # agent, with the spec: the stored data or file formats it changes
     contracts/              # agent, when needed
     mockups/                # agent: HTML mockups, or the stories of a mockups Storybook
     images/                 # images a human attached, linked from their files
@@ -103,9 +103,11 @@ apply to your work: their **Applies to** section says where. The constitution wi
 and decisions win over specs and plans. Decisions are high-impact choices made by the human, and
 they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
 
-An active decision is never edited before approval: changes are proposed in a `## Proposed change`
-section at the end of the file, and applied when the spec that links to them is approved, or, for a
-change, once its round approves them: see [Change](references/change.md#decisions).
+A decision changes only on the branch that asks for it, edited in place. It stays `proposed` until
+the human approves the spec that lists it, or a change's round. The default branch keeps the active
+text until the branch merges. See
+[new decision or change](references/spec.md#new-decision-or-change) and
+[Change](references/change.md#decisions).
 
 Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
 for a todo app, is in `assets/example/specs/`: `2026-10-06-recurring-tasks/` is the model of every
@@ -128,25 +130,25 @@ step. By hand:
    [Branches](references/conventions.md#branches)). In its spec folder, `NN` is the highest
    clarifications round. Go down this table and run the first row that matches.
 
-| State of the spec folder                                                                        | Step                                                         |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `proposal.md` is not committed, and the branch has no record in `specs/done/`                   | **Human gate**: the human writes it, then commits it         |
-| The record is in `specs/done/`, and no pull request is ready                                    | [Finish](references/finish.md)                               |
-| The record, and the pull request has changes requested                                          | [Implementation](references/implementation.md), changes      |
-| The record, and the pull request is ready for review                                            | **Human gate**: the review happens on the pull request       |
-| A file has `status: awaiting-human`                                                             | **Human gate**: stop                                         |
-| No `clarifications-01.md`                                                                       | [Discovery](references/discovery.md), round 01               |
-| `clarifications-NN.md` is `answered`, and there is no `spec.md`, or its `clarifications` < NN   | [Spec and decisions](references/spec.md)                     |
-| `spec.md` is `changes-requested`                                                                | [Spec](references/spec.md), revision                         |
-| `spec.md` is `approved`, and a decision it links is `proposed`, or has a proposed change for it | [Approval](references/approval.md)                           |
-| `spec.md` is `approved`, and there is no `plan.md`                                              | [Plan](references/plan.md)                                   |
-| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`                 | [Plan](references/plan.md), revision                         |
-| `plan.md` is `changes-requested`                                                                | [Plan](references/plan.md), revision                         |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                | [Implementation](references/implementation.md), next wave    |
-| Every step of `plan.md` is checked, and the pull request is a draft                             | [Finish](references/finish.md)                               |
-| Every step of `plan.md` is checked, and the branch has no pull request                          | [Implementation](references/implementation.md), final review |
-| The branch's pull request has changes requested                                                 | [Implementation](references/implementation.md), changes      |
-| The branch has an open pull request                                                             | **Human gate**: the review happens on the pull request       |
+| State of the spec folder                                                                      | Step                                                         |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `proposal.md` is not committed, and the branch has no record in `specs/done/`                 | **Human gate**: the human writes it, then commits it         |
+| The record is in `specs/done/`, and no pull request is ready                                  | [Finish](references/finish.md)                               |
+| The record, and the pull request has changes requested                                        | [Implementation](references/implementation.md), changes      |
+| The record, and the pull request is ready for review                                          | **Human gate**: the review happens on the pull request       |
+| A file has `status: awaiting-human`                                                           | **Human gate**: stop                                         |
+| No `clarifications-01.md`                                                                     | [Discovery](references/discovery.md), round 01               |
+| `clarifications-NN.md` is `answered`, and there is no `spec.md`, or its `clarifications` < NN | [Spec and decisions](references/spec.md)                     |
+| `spec.md` is `changes-requested`                                                              | [Spec](references/spec.md), revision                         |
+| `spec.md` is `approved`, and a decision an item of its `## Decisions` names is `proposed`     | [Approval](references/approval.md)                           |
+| `spec.md` is `approved`, and there is no `plan.md`                                            | [Plan](references/plan.md)                                   |
+| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`               | [Plan](references/plan.md), revision                         |
+| `plan.md` is `changes-requested`                                                              | [Plan](references/plan.md), revision                         |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                              | [Implementation](references/implementation.md), next wave    |
+| Every step of `plan.md` is checked, and the pull request is a draft                           | [Finish](references/finish.md)                               |
+| Every step of `plan.md` is checked, and the branch has no pull request                        | [Implementation](references/implementation.md), final review |
+| The branch's pull request has changes requested                                               | [Implementation](references/implementation.md), changes      |
+| The branch has an open pull request                                                           | **Human gate**: the review happens on the pull request       |
 
 For a change branch, see [Change](references/change.md).
 
@@ -195,7 +197,8 @@ comes back to the human the same way every time, so they see at once what is ask
    - On a revision: what changed since their last review.
 
    A round of questions adds a count in digits and a verdict first, as
-   [the block](references/writing.md#the-block) describes.
+   [the block](references/writing.md#the-block) describes. A spec's first item starts "You approve",
+   as [a spec](references/writing.md#a-spec) describes.
 
 2. **The commit message body repeats the block's first line**, so `git log` and any git listener
    show what is waiting, and for how long.
@@ -212,9 +215,11 @@ commit: it is the only edit allowed in an answered round of questions. `ura answ
 `ura review` do it.
 
 **When the human requests changes, the block becomes a record too**: `> [!NOTE]`, with "Changes
-requested on <date>" and their feedback in one line, the review's summary, under the new
-`> [!IMPORTANT]` block of the revision. The new block says how each comment of the review file was
-handled: "C1: done", "C2: declined, because ...".
+requested on <date>" and their feedback in one line, the review's summary. A plan keeps it under the
+new `> [!IMPORTANT]` block of the revision. A spec moves it to the top of its `## History` section,
+and answers each comment of the review file in `## Your review`:
+`- **C2** (undo too short): done. The undo stays 5 seconds.` See
+[Revising](references/spec.md#revising).
 
 Documents never explain how to use the workflow ("set `status: approved` and commit"): tools and
 this skill do. Never bury something the human must decide in prose: it is a question in a
