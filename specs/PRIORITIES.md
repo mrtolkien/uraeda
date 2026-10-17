@@ -7,8 +7,8 @@
 > Features for v1.0.0
 
 - [Redesign + reword clarifications](/specs/2026-10-17-redesign-clarifications/proposal.md)
+- [Redesign + reword specs](/specs/2026-10-17-redesign-specs/proposal.md)
 
-- [Redesign + reword specs](drafts/redesign-specs.md)
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
 - [Redesign session](drafts/redesign-session.md)
 
@@ -20,13 +20,11 @@
   flow
 
 - [Look and feel pass](drafts/look-and-feel/proposal.md)
-- Review decisions creation and meaning -> right now they are too verbose and not human-checked
-  enough
-  - Might deserve a dedicated diff view with the spec step
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
+- Review home
 
 ## Next
 
