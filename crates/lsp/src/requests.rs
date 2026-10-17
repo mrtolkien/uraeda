@@ -204,7 +204,7 @@ pub(crate) fn items_of(documents: &Documents, params: FileParams) -> Vec<Item> {
     let mut comments: Vec<Item> = file
         .pending_comments(documents)
         .into_iter()
-        .filter(|comment| !comment.general)
+        .filter(on_the_file)
         .map(|comment| Item {
             kind: "comment",
             label: format!("C{}", comment.number),
@@ -225,11 +225,17 @@ pub(crate) fn comments(documents: &Documents, params: FileParams) -> Vec<Comment
         .into_iter()
         .map(|comment| Comment {
             number: comment.number,
-            line: (!comment.general).then_some(comment.start_line),
-            end_line: (!comment.general).then_some(comment.end_line),
+            line: on_the_file(&comment).then_some(comment.start_line),
+            end_line: on_the_file(&comment).then_some(comment.end_line),
             text: comment.text,
         })
         .collect()
+}
+
+/// Whether a comment points to lines of the reviewed file: not a general one, nor one on lines of
+/// a decision's file.
+fn on_the_file(comment: &CommentItem) -> bool {
+    !comment.general && comment.decision.is_none()
 }
 
 /// `uraeda/verdict { uri }`: the verdict a spec, a plan, or a round of questions would get, with

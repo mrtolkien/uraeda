@@ -18,8 +18,11 @@ export declare class WatchHandle {
 /** Adds a host name, in lower case, to the allowed host names. */
 export declare function addAllowedHost(dir: string, name: string): Promise<Settings>
 
-/** Comments on lines of a file as committed, or on the whole file without lines. */
-export declare function addComment(repo: string, folder: string, file: string, startLine: number | undefined | null, endLine: number | undefined | null, text: string): Promise<FileView>
+/**
+ * Comments on lines of a file as committed, on lines of the decision `decision` names for a
+ * spec, or on the whole file without lines.
+ */
+export declare function addComment(repo: string, folder: string, file: string, startLine: number | undefined | null, endLine: number | undefined | null, text: string, decision?: DecisionTarget | undefined | null): Promise<FileView>
 
 /**
  * Adds a note at the end of a category, or of the notes without one, marked with the slug of the
@@ -579,6 +582,13 @@ export interface CommentItem {
   endLine: number
   heading?: string
   general: boolean
+  /**
+   * The decision whose file the lines are of, `specs/decisions/<name>.md`, not the reviewed
+   * file's.
+   */
+  decision?: string
+  /** Whether the lines are of a part the branch removed from the decision, at the merge base. */
+  removed: boolean
   quote: Array<string>
   text: string
 }
@@ -659,6 +669,15 @@ export interface DecisionChange {
   /** Whether both versions could be read. */
   compared: boolean
   sections: Array<SectionChange>
+}
+
+/**
+ * The decision a comment points into: its file's stem, `specs/decisions/<name>.md`, and whether
+ * the lines are of a part the branch removed.
+ */
+export interface DecisionTarget {
+  name: string
+  removed: boolean
 }
 
 /** The tree of one workflow file. */

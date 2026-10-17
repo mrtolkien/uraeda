@@ -29,11 +29,30 @@ impl Verdict {
     }
 }
 
-/// Where a comment points: lines of the reviewed file under a heading, or the whole file.
+/// Where a comment points: lines of the reviewed file under a heading, lines of a decision's
+/// file, or the whole file.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Anchor {
     Lines(usize, usize, String),
+    /// Lines of `specs/decisions/<name>.md` at the review's commit, or at the merge base with the
+    /// default branch when the branch `removed` them.
+    Decision {
+        name: String,
+        start: usize,
+        end: usize,
+        heading: String,
+        removed: bool,
+    },
     General,
+}
+
+/// `lines 19–20`, or `line 19`.
+fn lines(start: usize, end: usize) -> String {
+    if start == end {
+        format!("line {start}")
+    } else {
+        format!("lines {start}–{end}")
+    }
 }
 
 impl std::fmt::Display for Anchor {
@@ -45,6 +64,17 @@ impl std::fmt::Display for Anchor {
             }
             Anchor::Lines(start, end, heading) => {
                 write!(f, "Lines {start}–{end}, under \"{heading}\"")
+            }
+            Anchor::Decision {
+                name,
+                start,
+                end,
+                heading,
+                removed,
+            } => {
+                let removed = if *removed { " removed" } else { "" };
+                let lines = lines(*start, *end);
+                write!(f, "Decision {name}, {lines}{removed}, under \"{heading}\"")
             }
         }
     }
@@ -80,7 +110,7 @@ pub enum ReviewError {
     #[error("no commit field")]
     NoCommit,
     #[error(
-        "line {line}: \"{heading}\" is not \"Lines N–M, under \\\"<heading>\\\"\", \"Line N, under \\\"<heading>\\\"\", or \"General\""
+        "line {line}: \"{heading}\" is not \"Lines N–M, under \\\"<heading>\\\"\", \"Line N, under \\\"<heading>\\\"\", \"Decision <name>, lines N–M, under \\\"<heading>\\\"\", or \"General\""
     )]
     BadAnchor { line: usize, heading: String },
     #[error("no comment C{0}")]
@@ -97,11 +127,39 @@ fn anchor(text: &str) -> Option<Anchor> {
     if text == "General" {
         return Some(Anchor::General);
     }
+    if let Some(rest) = text.strip_prefix("Decision ") {
+        return decision_anchor(rest);
+    }
     let (lines, heading) = text.split_once(", under \"")?;
     let heading = heading.strip_suffix('"')?.to_string();
-    let range = lines
-        .strip_prefix("Lines ")
-        .or_else(|| lines.strip_prefix("Line "))?;
+    let (start, end) = range(lines, ["Lines ", "Line "])?;
+    Some(Anchor::Lines(start, end, heading))
+}
+
+/// `task-storage, lines 19–20 removed, under "Rules"`, after `Decision `.
+fn decision_anchor(text: &str) -> Option<Anchor> {
+    let (name, rest) = text.split_once(", ")?;
+    let (lines, heading) = rest.split_once(", under \"")?;
+    let heading = heading.strip_suffix('"')?.to_string();
+    let (lines, removed) = match lines.strip_suffix(" removed") {
+        Some(lines) => (lines, true),
+        None => (lines, false),
+    };
+    let (start, end) = range(lines, ["lines ", "line "])?;
+    (!name.is_empty() && !name.contains(char::is_whitespace)).then(|| Anchor::Decision {
+        name: name.to_string(),
+        start,
+        end,
+        heading,
+        removed,
+    })
+}
+
+/// `Lines 50–52` or `Line 50`, with either prefix of `prefixes`, as the first and last line.
+fn range(text: &str, prefixes: [&str; 2]) -> Option<(usize, usize)> {
+    let range = text
+        .strip_prefix(prefixes[0])
+        .or_else(|| text.strip_prefix(prefixes[1]))?;
     let (start, end) = match range.split_once(['–', '-']) {
         Some((start, end)) => (start.trim().parse().ok()?, end.trim().parse().ok()?),
         None => {
@@ -109,7 +167,7 @@ fn anchor(text: &str) -> Option<Anchor> {
             (line, line)
         }
     };
-    (start <= end && start > 0).then_some(Anchor::Lines(start, end, heading))
+    (start <= end && start > 0).then_some((start, end))
 }
 
 /// Parses a review file.

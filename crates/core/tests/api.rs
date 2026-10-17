@@ -628,6 +628,7 @@ fn try_again_drops_an_image_staged_then_unlinked() {
         "spec.md",
         None,
         "![shot](images/shot.webp)",
+        None,
     )
     .unwrap();
     repo.write(

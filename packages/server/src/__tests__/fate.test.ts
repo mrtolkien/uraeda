@@ -321,6 +321,32 @@ test("a file without a review is sent with none, so a removed review leaves the 
   expect(read).toHaveProperty("review", null);
 });
 
+test("a comment on a decision's lines is saved with the decision it points into", async () => {
+  const { app } = await testApp();
+  const file = { file: "spec.md", folder: "2026-10-06-recurring-tasks" };
+
+  const commented = await mutate(
+    app,
+    "review.comment",
+    {
+      ...file,
+      decision: { name: "git", removed: false },
+      endLine: 15,
+      startLine: 15,
+      text: "Say which store.",
+    },
+    ["id", "review"],
+  );
+
+  expect(commented.data.review.review.comments[0]).toMatchObject({
+    decision: "git",
+    heading: "Rules",
+    quote: ["- Rust tools MUST read git through gix. Checked by review."],
+    removed: false,
+    startLine: 15,
+  });
+});
+
 const CLI = "2026-10-12-cli-tuis";
 
 test("a feature at its implementation sends its progress, and null once every box is checked", async () => {

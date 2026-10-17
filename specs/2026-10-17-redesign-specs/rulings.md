@@ -401,3 +401,49 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   after.
 - **If wrong**: `BASELINE_MS` in the benchmark.
 - **Where**: task 7
+
+## R50: A comment on a decision changed since the pending review is refused
+
+- **Decision**: a pending review is kept for a decision comment by the spec's freshness rule, as the
+  plan says, and the comment is refused when the decision's file differs between the review's
+  `commit` and the branch's tip: "task-storage.md changed since the pending review's commit: start
+  over to comment on it". A comment on a removed part is never refused this way: its lines are the
+  merge base's.
+- **Rationale**: the lines are read at the tip, and the data model says they are those of the
+  decision at the review's `commit`. With the spec unchanged and the decision changed, keeping the
+  review writes lines of another version; replacing it would drop the human's comments on the spec
+  without the page saying so, since its stale banner follows the spec only.
+- **Alternatives considered**: keeping the review, the quote showing what was meant; replacing it.
+- **If wrong**: `decision::unchanged_since` in `crates/core/src/actions/review/decision.rs`.
+- **Where**: task 8
+
+## R51: A decision comment quotes its lines once, and names a decision of the branch
+
+- **Decision**: the quote is the decision's lines under one `> `, as a spec line comment's is, not
+  the data model example's `> > `, which quotes a rule that is a list item, not a quote. A removed
+  part's lines are read at the merge base of the branch's tip and the default branch's, the version
+  the comparison shows, which the data model calls "the default branch's lines". A decision comment
+  is refused on a plan, without lines, past the decision's end, on a decision the branch (or the
+  merge base, for a removed part) does not hold, and on a name with a space or a comma, which the
+  heading could not hold. `ura review --comment` takes no decision.
+- **Rationale**: the plan's **Produces**; the review file parses back what it writes.
+- **Alternatives considered**: none.
+- **If wrong**: `crates/core/src/actions/review/decision.rs`.
+- **Where**: task 8
+
+## R52: A comment on a decision is not placed on the spec's lines until task 13
+
+- **Decision**: `CommentItem` gains `decision` (the decision's name) and `removed`. Its lines stay
+  in `startLine` and `endLine`, `general` false. The web leaves it out of `usePlacedComments` and
+  lists it in "Your review" as `C1 · decision git, lines 15–16`, with ` removed` after a removed
+  part's lines, without Edit and Remove there; task 13 places it on its card. `ura lsp` sends it
+  without lines in `uraeda/comments` and leaves it out of `uraeda/items`, so the Neovim plugin
+  neither draws it nor jumps to it. `reviews.quote` applies to it. The existing calls of
+  `review::comment` and `api::add_comment` in the tests take `None`, their new argument.
+- **Rationale**: its lines are a decision's: placed by them, it would show under an unrelated block
+  of the spec.
+- **Alternatives considered**: sending it as a general comment from the core: its decision would be
+  lost for task 13, and its label would say "general".
+- **If wrong**: `usePlacedComments` and `where` in `packages/web/src/ReviewComments.tsx`,
+  `on_the_file` in `crates/lsp/src/requests.rs`.
+- **Where**: task 8
