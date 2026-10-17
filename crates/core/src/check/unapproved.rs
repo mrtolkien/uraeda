@@ -1,7 +1,8 @@
 //! `decision.unapproved`: a decision whose text changed on the branch after its spec's approval.
 //! The approval commit is the branch's first-parent commit whose spec first reads
 //! `status: approved`; the decision there is compared with the checkout, beyond the two fields the
-//! approval step sets, `status` and `approved-by`.
+//! approval step sets, `status` and `approved-by`. A decision the branch had not touched at the
+//! approval, and that reads as the default branch's now, is the default branch's change, merged in.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -36,10 +37,17 @@ pub(super) fn check_unapproved(root: &Path, target: &Path, problems: &mut Vec<Pr
         ) else {
             continue;
         };
-        let Ok(Some(approval)) = git.approval_commit(base.0, base.1, &spec) else {
+        let Ok(Some(approval)) = git.approval_commit(base.tip, base.base, &spec) else {
             continue;
         };
-        changed.extend(changed_decisions(&git, [approval, base.1], &decisions));
+        let Ok(Some(forked)) = git.merge_base(approval, base.default) else {
+            continue;
+        };
+        changed.extend(changed_decisions(
+            &git,
+            [approval, forked, base.base],
+            &decisions,
+        ));
     }
     for path in changed {
         let name = path.file_name().unwrap_or_default().to_string_lossy();
@@ -74,13 +82,20 @@ fn feature_folders(target: &Path) -> Vec<PathBuf> {
     folders
 }
 
+/// The checkout's tip, the default branch's tip, and their merge base.
+struct BranchBase {
+    tip: ObjectId,
+    default: ObjectId,
+    base: ObjectId,
+}
+
 /// The checkout's tip and its merge base with the default branch's tip. On the default branch, the
 /// base is the tip: no commit is the branch's own.
-fn branch_base(git: &Git) -> Option<(ObjectId, ObjectId)> {
+fn branch_base(git: &Git) -> Option<BranchBase> {
     let tip = git.head()?;
     let default = git.tip(&git.default_branch()?)?;
     let base = git.merge_base(tip, default).ok()??;
-    Some((tip, base))
+    Some(BranchBase { tip, default, base })
 }
 
 fn approved(text: &str) -> bool {
@@ -93,10 +108,15 @@ fn from_top(git: &Git, path: &Path) -> Option<String> {
     Some(path.to_string_lossy().replace('\\', "/"))
 }
 
-/// The decisions of `dir` whose text in the checkout differs from both the approval commit's and
-/// the merge base's, a decision added or deleted since included. One the same as at the merge base
-/// is the default branch's, merged in, not the branch's change.
-fn changed_decisions(git: &Git, [approval, base]: [ObjectId; 2], dir: &Path) -> Vec<PathBuf> {
+/// The decisions of `dir` whose text in the checkout differs from the approval commit's, a decision
+/// added or deleted since included. One the branch had not touched at the approval (the same at the
+/// approval as at `forked`, where the approval left the default branch) and the same now as at the
+/// checkout's merge base `base` is the default branch's change, merged in, not the branch's.
+fn changed_decisions(
+    git: &Git,
+    [approval, forked, base]: [ObjectId; 3],
+    dir: &Path,
+) -> Vec<PathBuf> {
     let Some(top) = from_top(git, dir) else {
         return Vec::new();
     };
@@ -123,9 +143,12 @@ fn changed_decisions(git: &Git, [approval, base]: [ObjectId; 2], dir: &Path) -> 
             let path = format!("{top}/{name}");
             let after = fs::read_to_string(dir.join(name)).ok();
             let after = after.as_deref().map(approved_text);
-            [approval, base]
-                .into_iter()
-                .all(|commit| text_at(git, commit, &path) != after)
+            let approved = text_at(git, approval, &path);
+            if approved == after {
+                return false;
+            }
+            let untouched = approved == text_at(git, forked, &path);
+            !(untouched && text_at(git, base, &path) == after)
         })
         .map(|name| dir.join(name))
         .collect()
