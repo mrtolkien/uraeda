@@ -3,16 +3,6 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
-import {
-  proportional,
-  resolveColumnWidths,
-  Table,
-  type TableColumn,
-  TableBody,
-  TableCell,
-  TableHeaderCell,
-  TableRow,
-} from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -20,7 +10,8 @@ import { type ReactNode, useContext, useMemo } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
-import { After, Selectable, type Selection, useSelect } from "./Selection.tsx";
+import { After, Selectable, type Selection } from "./Selection.tsx";
+import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
 import { StoryEmbed } from "./StoryEmbed.tsx";
 import { embedComment, StoryContext, storyEmbedId, useStoryAt } from "./stories.tsx";
@@ -63,7 +54,6 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
   calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
-  center: { textAlign: "center" },
   con: { color: colorVars["--color-error"] },
   doc: {
     // Reading text: its own size, about 120 characters at most, left-aligned, its lines balanced.
@@ -74,16 +64,6 @@ const styles = stylex.create({
     textWrap: "pretty",
     // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
     "--container-padding-inline-start": spacingVars["--spacing-4"],
-  },
-  // A column's width and its floor, Astryx's own, on its first cell: the columns share the table.
-  column: (width: string, minWidth: string) => ({ minWidth, width }),
-  headerCell: {
-    // A header cell wraps its text, as a body cell does, instead of cutting it.
-    maxWidth: "none",
-    overflow: "visible",
-    overflowWrap: "break-word",
-    textOverflow: "clip",
-    whiteSpace: "normal",
   },
   heading: {
     marginBlockEnd: spacingVars["--spacing-2"],
@@ -105,7 +85,6 @@ const styles = stylex.create({
     marginBlockStart: 0,
   },
   pro: { color: colorVars["--color-success"] },
-  right: { textAlign: "end" },
   row: {
     // A list's row, as tall as its text: a touch screen's 44 px rows (`theme.ts`) are for controls,
     // and would push a one-line item's text below its marker.
@@ -117,12 +96,6 @@ const styles = stylex.create({
   },
   warning: { color: colorVars["--color-warning"] },
 });
-
-/** A table column's alignment, from its separator row. */
-const ALIGN_STYLES: Record<string, stylex.StyleXStyles> = {
-  center: styles.center,
-  right: styles.right,
-};
 
 const CALLOUT_STYLES: Record<string, stylex.StyleXStyles> = {
   caution: styles.calloutWarning,
@@ -151,7 +124,7 @@ function useChildren(document: Document) {
   }, [document]);
 }
 
-type Context = {
+export type BlockContext = {
   children: Map<number | undefined, Array<Block>>;
   document: Document;
   /** Draws a block its own way, when it returns something. */
@@ -161,7 +134,7 @@ type Context = {
   staticImages: boolean;
 };
 
-function Children({ block, context }: { block: Block; context: Context }) {
+function Children({ block, context }: { block: Block; context: BlockContext }) {
   return (context.children.get(block.id) ?? []).map((child) => (
     <BlockNode block={child} context={context} key={child.id} />
   ));
@@ -176,7 +149,7 @@ function signOf(block: Block) {
   return marker in SIGNS ? SIGNS[marker] : undefined;
 }
 
-function ListNode({ block, context }: { block: Block; context: Context }) {
+function ListNode({ block, context }: { block: Block; context: BlockContext }) {
   const items = context.children.get(block.id) ?? [];
   // A list of typed bullets shows their signs only.
   const signed = items.length > 0 && items.every((item) => signOf(item) !== undefined);
@@ -217,101 +190,11 @@ function ListNode({ block, context }: { block: Block; context: Context }) {
   );
 }
 
-/**
- * A table row, tapped in place, its comments following it as a row of their own. The first row's
- * cells carry the columns' widths.
- */
-function RowNode({
-  context,
-  row,
-  widths,
-}: {
-  context: Context;
-  row: Block;
-  widths?: ReadonlyArray<stylex.StyleXStyles>;
-}) {
-  const cells = context.children.get(row.id) ?? [];
-  const select = useSelect(row, context.selection);
-  const after = select && context.selection?.after?.(row);
-  const Cell = row.header ? TableHeaderCell : TableCell;
-  return (
-    <>
-      <TableRow {...select?.block} id={select?.textId} xstyle={select?.row ?? []}>
-        {cells.map((cell, index) => (
-          <Cell
-            key={cell.id}
-            xstyle={[
-              widths?.[index],
-              row.header && styles.headerCell,
-              ALIGN_STYLES[cell.align ?? ""],
-              index === 0 && select?.cell,
-            ]}
-          >
-            {index === 0 && select?.toggle}
-            <span {...select?.above}>
-              <Spans spans={cell.spans} />
-            </span>
-          </Cell>
-        ))}
-      </TableRow>
-      {after && (
-        <TableRow>
-          <TableCell colSpan={cells.length}>
-            <After>{after}</After>
-          </TableCell>
-        </TableRow>
-      )}
-    </>
-  );
-}
-
-/** A table's columns: each takes an equal share, and at least 144 px, past which it scrolls. */
-function tableColumns(count: number): Array<TableColumn<Record<string, unknown>>> {
-  return Array.from({ length: count }, (_, index) => ({
-    key: `c${index}`,
-    width: proportional(1, { minWidth: 144 }),
-  }));
-}
-
-/**
- * A table drawn by its rows, its columns' widths Astryx's own: the table is as wide as their floors
- * at least, scrolling sideways in its own region past its width, and its first row's cells carry
- * each column's width.
- */
-function TableNode({ block, context }: { block: Block; context: Context }) {
-  const rows = context.children.get(block.id) ?? [];
-  const count = Math.max(0, ...rows.map((row) => context.children.get(row.id)?.length ?? 0));
-  const columns = useMemo(() => tableColumns(count), [count]);
-  const widths = useMemo(() => {
-    const resolved = resolveColumnWidths(columns).columns;
-    return columns.map((column) => {
-      const style = resolved.get(column.key)?.style;
-      return styles.column(String(style?.width ?? "auto"), String(style?.minWidth ?? 0));
-    });
-  }, [columns]);
-  return (
-    <div {...stylex.props(styles.block)}>
-      <Table columns={columns} dividers="rows" textOverflow="wrap" verticalAlign="top">
-        <TableBody>
-          {rows.map((row, index) => (
-            <RowNode
-              context={context}
-              key={row.id}
-              row={row}
-              widths={index === 0 ? widths : undefined}
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
 /** The kinds drawn whole by a node of their own, or by their parent's: never selected alone. */
 const UNWRAPPED = new Set<Block["kind"]>(["list", "item", "table", "row", "cell"]);
 
 /** A block's element, by its kind, without its selection. */
-function blockElement(block: Block, context: Context): ReactNode {
+function blockElement(block: Block, context: BlockContext): ReactNode {
   const spans = <Spans spans={block.spans} />;
   switch (block.kind) {
     case "heading":
@@ -364,7 +247,11 @@ function blockElement(block: Block, context: Context): ReactNode {
         </Blockquote>
       );
     case "table":
-      return <TableNode block={block} context={context} />;
+      return (
+        <div {...stylex.props(styles.block)}>
+          <TableNode block={block} context={context} />
+        </div>
+      );
     case "row":
     case "cell":
       // Drawn by their table.
@@ -396,7 +283,7 @@ function blockElement(block: Block, context: Context): ReactNode {
  * A paragraph that embeds a story: the story, then what follows the block in a review, like its
  * pending comments. The embed is not selected as lines are: its comments come from its own controls.
  */
-function StoryNode({ block, context }: { block: Block; context: Context }) {
+function StoryNode({ block, context }: { block: Block; context: BlockContext }) {
   const stories = useContext(StoryContext)!;
   const story = useStoryAt(block)!;
   const after = context.selection?.after?.(block);
@@ -415,7 +302,7 @@ function StoryNode({ block, context }: { block: Block; context: Context }) {
   );
 }
 
-function BlockNode({ block, context }: { block: Block; context: Context }): ReactNode {
+function BlockNode({ block, context }: { block: Block; context: BlockContext }): ReactNode {
   const story = useStoryAt(block);
   const own = context.override?.(block);
   if (own !== undefined) {
