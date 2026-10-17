@@ -1,5 +1,7 @@
 # Inbox
 
+- [redesign-specs] Auto-restart agent on rate limit hits
+
 ## Quickfixes
 
 - Fix " ├╴ Link to non-existent document '/specs/2026-10-13-image-attachments/proposal.md' Marksman
