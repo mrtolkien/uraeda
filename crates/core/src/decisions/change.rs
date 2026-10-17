@@ -188,16 +188,23 @@ fn section_titles(old: &Version, new: &Version) -> Vec<String> {
     titles
 }
 
-/// The parts of one section: equal texts matched in order, and between two matches, removed and
-/// added parts paired when they are the same part.
+/// The parts of one section: equal texts matched in order, then equal texts left over matched
+/// wherever they moved within the section, kept at the branch's place; between two matches,
+/// removed and added parts paired when they are the same part.
 fn compare_section(old: &[Part], new: &[Part]) -> Vec<PartChange> {
     let old_texts: Vec<&str> = old.iter().map(|p| p.text.as_str()).collect();
     let new_texts: Vec<&str> = new.iter().map(|p| p.text.as_str()).collect();
+    let matches = common(&old_texts, &new_texts);
+    let (moved, taken) = moved(old, new, &matches);
     let mut changes = Vec::new();
     let (mut i, mut j) = (0, 0);
     let end = (old.len(), new.len());
-    for (mi, mj) in common(&old_texts, &new_texts).into_iter().chain([end]) {
-        gap(&old[i..mi], &new[j..mj], &mut changes);
+    for (mi, mj) in matches.into_iter().chain([end]) {
+        let removed: Vec<&Part> = (i..mi).filter(|&k| !taken[k]).map(|k| &old[k]).collect();
+        let added: Vec<(&Part, Option<&Part>)> = (j..mj)
+            .map(|k| (&new[k], moved[k].map(|r| &old[r])))
+            .collect();
+        gap(&removed, &added, &mut changes);
         if (mi, mj) != end {
             changes.push(part_change(Some(&old[mi]), Some(&new[mj])));
         }
@@ -206,13 +213,37 @@ fn compare_section(old: &[Part], new: &[Part]) -> Vec<PartChange> {
     changes
 }
 
+/// For each of the branch's parts left out of `matches`, the merge base's part left out with the
+/// same text, first come first matched; and which of the merge base's parts are matched.
+fn moved(
+    old: &[Part],
+    new: &[Part],
+    matches: &[(usize, usize)],
+) -> (Vec<Option<usize>>, Vec<bool>) {
+    let mut taken = vec![false; old.len()];
+    let mut moved = vec![None; new.len()];
+    let mut matched = vec![false; new.len()];
+    for &(i, j) in matches {
+        taken[i] = true;
+        matched[j] = true;
+    }
+    for (j, part) in new.iter().enumerate().filter(|(j, _)| !matched[*j]) {
+        let same = (0..old.len()).find(|&i| !taken[i] && old[i].text == part.text);
+        if let Some(i) = same {
+            taken[i] = true;
+            moved[j] = Some(i);
+        }
+    }
+    (moved, taken)
+}
+
 /// The parts between two matches: each removed and added pair that keeps at least 60% of the
-/// shorter one's words is changed, best pair first; the added parts come in order, then the
-/// removed ones left.
-fn gap(removed: &[Part], added: &[Part], changes: &mut Vec<PartChange>) {
+/// shorter one's words is changed, best pair first; the added parts come in order, a moved one
+/// with its match, then the removed ones left.
+fn gap(removed: &[&Part], added: &[(&Part, Option<&Part>)], changes: &mut Vec<PartChange>) {
     let mut candidates = Vec::new();
     for (r, old) in removed.iter().enumerate() {
-        for (a, new) in added.iter().enumerate() {
+        for (a, (new, _)) in added.iter().enumerate().filter(|(_, (_, m))| m.is_none()) {
             let (before, after) = (words(&old.text), words(&new.text));
             let kept = common(&before, &after).len();
             let shorter = before.len().min(after.len());
@@ -235,8 +266,9 @@ fn gap(removed: &[Part], added: &[Part], changes: &mut Vec<PartChange>) {
             paired[r] = true;
         }
     }
-    for (new, pair) in added.iter().zip(&pair_of) {
-        changes.push(part_change(pair.map(|r| &removed[r]), Some(new)));
+    for ((new, moved), pair) in added.iter().zip(&pair_of) {
+        let old = moved.or(pair.map(|r| removed[r]));
+        changes.push(part_change(old, Some(new)));
     }
     for (old, _) in removed.iter().zip(&paired).filter(|(_, p)| !**p) {
         changes.push(part_change(Some(old), None));
