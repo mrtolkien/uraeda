@@ -19,22 +19,34 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useId, useRef, useState } from "react";
-import type { Block, Choice, Document, QuestionItem } from "uraeda-binding";
+import { useState } from "react";
+import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { useFile } from "../data.ts";
 import { TextField } from "../fields/TextField.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import { plain, Spans } from "../Spans.tsx";
+import { RichBlocks } from "./RichBlocks.tsx";
 
 const styles = stylex.create({
-  con: { color: colorVars["--color-error"] },
-  diagram: {
-    // A diagram scrolls inside its frame rather than the page sideways.
-    overflowX: "auto",
+  band: {
+    // On the phone, a band between questions, to the screen's edges, as today.
+    backgroundColor: colorVars["--color-background-muted"],
+    height: spacingVars["--spacing-2"],
+    marginBlock: spacingVars["--spacing-4"],
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
+  con: { color: colorVars["--color-error"] },
   followUp: {
     marginInlineStart: spacingVars["--spacing-6"],
+  },
+  followUpPhone: {
+    // On the phone, a follow-up keeps today's accent line on its side, and little inset.
+    borderInlineStartColor: colorVars["--color-accent"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    marginBlockStart: spacingVars["--spacing-4"],
+    paddingInlineStart: spacingVars["--spacing-3"],
   },
   joint: {
     // The line from a question's card to its follow-up's.
@@ -65,6 +77,12 @@ const styles = stylex.create({
     borderColor: colorVars["--color-accent"],
     color: colorVars["--color-on-accent"],
   },
+  optionPhone: {
+    // On the phone, options run to the screen's edges, as today, split by hairlines.
+    borderRadius: 0,
+    borderWidth: 0,
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
   page: {
     boxSizing: "border-box",
     flexGrow: 1,
@@ -74,7 +92,7 @@ const styles = stylex.create({
     padding: spacingVars["--spacing-6"],
   },
   pagePhone: {
-    padding: spacingVars["--spacing-3"],
+    padding: spacingVars["--spacing-4"],
   },
   point: {
     fontSize: "var(--text-reading-size)",
@@ -103,6 +121,16 @@ const styles = stylex.create({
     display: "grid",
     gridTemplateColumns: "minmax(0, 5fr) minmax(0, 6fr)",
   },
+  stickyHead: {
+    // On the phone, the question's title stays in view while its options scroll under it.
+    backgroundColor: colorVars["--color-background-body"],
+    insetBlockStart: 0,
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-4"],
+    position: "sticky",
+    zIndex: 1,
+  },
   summary: {
     fontSize: "var(--text-reading-size)",
     fontWeight: fontWeightVars["--font-weight-semibold"],
@@ -119,65 +147,13 @@ const styles = stylex.create({
     lineHeight: typeScaleVars["--text-heading-1-leading"],
     marginBlock: 0,
   },
-  why: { color: colorVars["--color-warning"] },
-  whyBox: {
-    // "Why it matters", set apart from the context it follows.
-    backgroundColor: colorVars["--color-background-muted"],
-    borderRadius: radiusVars["--radius-element"],
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-3"],
+  titlePhone: {
+    fontSize: typeScaleVars["--text-heading-3-size"],
+    lineHeight: typeScaleVars["--text-heading-3-leading"],
+    marginBlock: 0,
   },
+  why: { color: colorVars["--color-warning"] },
 });
-
-/** A Mermaid diagram, drawn on demand at Mermaid's strict security level. */
-function Diagram({ source }: { source: string }) {
-  const frame = useRef<HTMLDivElement>(null);
-  const id = `diagram-${useId().replaceAll(":", "")}`;
-  useEffect(() => {
-    let live = true;
-    void import("mermaid").then(async ({ default: mermaid }) => {
-      mermaid.initialize({ securityLevel: "sandbox", startOnLoad: false, theme: "neutral" });
-      const { svg } = await mermaid.render(id, source);
-      if (live && frame.current) {
-        frame.current.innerHTML = svg;
-      }
-    });
-    return () => {
-      live = false;
-    };
-  }, [id, source]);
-  return <div aria-label="Diagram" ref={frame} role="img" {...stylex.props(styles.diagram)} />;
-}
-
-/** A block that starts with the words "Why it matters". */
-function isWhy(block: Block | undefined): boolean {
-  return block?.kind === "paragraph" && plain(block.spans).startsWith("Why it matters");
-}
-
-/**
- * Blocks of the document, with a `mermaid` code block drawn as a diagram, and "Why it matters" set
- * apart.
- */
-function RichBlocks({ document, ids }: { document: Document; ids: ReadonlyArray<number> }) {
-  return (
-    <VStack gap={3}>
-      {ids.map((id) => {
-        const block = document.blocks[id];
-        if (block?.kind === "code" && block.language === "mermaid") {
-          return <Diagram key={id} source={block.text ?? ""} />;
-        }
-        if (isWhy(block)) {
-          return (
-            <div key={id} {...stylex.props(styles.whyBox)}>
-              <Blocks document={document} ids={[id]} />
-            </div>
-          );
-        }
-        return <Blocks document={document} ids={[id]} key={id} />;
-      })}
-    </VStack>
-  );
-}
 
 /** An option's pros, cons, and why, each after its sign. */
 function Points({ choice, document }: { choice: Choice; document: Document }) {
@@ -208,12 +184,14 @@ function OptionCard({
   onToggle: () => void;
   picked: boolean;
 }) {
+  const wide = useWidthClass() === "wide";
   return (
     <SelectableCard
       isSelected={picked}
       label={`Option ${choice.letter}`}
       onChange={onToggle}
-      padding={3}
+      padding={wide ? 3 : 4}
+      {...(wide ? {} : { xstyle: styles.optionPhone })}
     >
       <VStack gap={2}>
         {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
@@ -251,17 +229,22 @@ function QuestionCard({
 }) {
   const wide = useWidthClass() === "wide";
   const answer = answers[question.id] ?? { letters: [] };
-  const head = (
-    <VStack gap={3}>
+  const title = (
+    <VStack gap={wide ? 3 : 1}>
       <HStack align="center" gap={2} justify="between">
         <Text color="secondary" type="supporting" weight="semibold">
           {header}
         </Text>
         <Button label="Ask the agent" size="sm" variant="ghost" />
       </HStack>
-      <Heading level={2} xstyle={styles.title}>
+      <Heading level={2} xstyle={wide ? styles.title : styles.titlePhone}>
         {question.title}
       </Heading>
+    </VStack>
+  );
+  const head = (
+    <VStack gap={3}>
+      {wide && title}
       <RichBlocks document={document} ids={question.context} />
     </VStack>
   );
@@ -283,19 +266,24 @@ function QuestionCard({
       />
     </VStack>
   );
-  return (
-    <Card padding={wide ? 6 : 4}>
-      {wide ? (
-        <div {...stylex.props(styles.split)}>
-          {head}
-          {answering}
-        </div>
-      ) : (
+  if (!wide) {
+    // On the phone, no card: the title sticks at the top while the question scrolls.
+    return (
+      <section>
+        <div {...stylex.props(styles.stickyHead)}>{title}</div>
         <VStack gap={4}>
           {head}
           {answering}
         </VStack>
-      )}
+      </section>
+    );
+  }
+  return (
+    <Card padding={6}>
+      <div {...stylex.props(styles.split)}>
+        {head}
+        {answering}
+      </div>
     </Card>
   );
 }
@@ -315,8 +303,9 @@ export function QuestionCards({
   onToggle: (id: string, letter: string) => void;
   questions: ReadonlyArray<QuestionItem>;
 }) {
+  const wide = useWidthClass() === "wide";
   return (
-    <VStack gap={8}>
+    <VStack gap={wide ? 8 : 0}>
       {questions
         .filter((q) => !q.parent)
         .map((question) => {
@@ -326,6 +315,7 @@ export function QuestionCards({
           );
           return (
             <div key={question.id}>
+              {!wide && <div {...stylex.props(styles.band)} />}
               <QuestionCard
                 answers={answers}
                 document={document}
@@ -335,8 +325,8 @@ export function QuestionCards({
               />
               {followUps.map((followUp) => (
                 <div key={followUp.id}>
-                  <div {...stylex.props(styles.joint)} />
-                  <div {...stylex.props(styles.followUp)}>
+                  {wide && <div {...stylex.props(styles.joint)} />}
+                  <div {...stylex.props(wide ? styles.followUp : styles.followUpPhone)}>
                     <QuestionCard
                       answers={answers}
                       document={document}
@@ -473,9 +463,16 @@ export function RoundMockup({ folder, initial }: { folder: string; initial: Answ
             onToggle={toggle}
             questions={round.questions}
           />
-          <Card padding={wide ? 6 : 4}>
-            <SettledGroups document={document} />
-          </Card>
+          {wide ? (
+            <Card padding={6}>
+              <SettledGroups document={document} />
+            </Card>
+          ) : (
+            <>
+              <div {...stylex.props(styles.band)} />
+              <SettledGroups document={document} />
+            </>
+          )}
           <TextField kind="notes" label="Anything else" />
           <HStack gap={2}>
             <Button label="Submit answers" variant="primary" />

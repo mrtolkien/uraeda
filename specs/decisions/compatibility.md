@@ -21,6 +21,9 @@ until they are.
   Checked by `ura check`.
 - Files on other branches in flight MAY fail `ura check` after such a change is merged, until their
   branch catches up with the default branch. Checked by review.
+- An agent that finds a workflow file failing `ura check` because its format changed MUST rewrite it
+  in the new format, from the template, keeping its content and the human's answers and comments,
+  before its step goes on. Checked by `ura check`.
 - A spec that changes a format MUST say which files it updates, and which in-flight branches the
   change makes fail. Checked by review.
 
@@ -29,14 +32,17 @@ until they are.
 You asked not to keep backward compatibility before version 1.0, and to write it down as a decision,
 when the clarifications redesign changed the round's format (the Notes of
 [round 01](../2026-10-17-redesign-clarifications/clarifications-01.md#settled-without-the-human)).
-Uraeda is a proof of concept whose formats still move feature after feature: code that reads old
-formats would grow with each of them, for files that live a few days on a branch.
+Reviewing the spec, you added that an agent meeting a file that fails `ura check` fixes it anyway
+(C1 of the [spec's review](../2026-10-17-redesign-clarifications/spec.md)). Uraeda is a proof of
+concept whose formats still move feature after feature: code that reads old formats would grow with
+each of them, for files that live a few days on a branch.
 
 ## Consequences
 
 - Format changes stay small: one reader, one template, no versions.
 - A branch in flight when a format changes fails `ura check` until it catches up with the default
-  branch, and its files are updated then.
+  branch. The agent running its next step then rewrites its files: a small cost per branch, paid
+  once.
 - Records in `specs/done/` are not converted: they are history, read by humans, and `ura check`
   reads them only for their own record format.
 
