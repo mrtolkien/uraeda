@@ -22,21 +22,27 @@ status: answered
 
 ## Context
 
-**Goal.** A spec you approve in one sitting, without opening anything else. What you approve comes
-first, then the decisions, each change shown as a diff you can comment on. Then one linear document,
-with cards, tables, colour, and hierarchy. "Readable" also means any model writes it the same way.
+### Goal
 
-**Today.** Specs run 3,900 to 7,700 words, and take about 15 minutes to approve against blocks
-claiming 20 to 45. All 37 review comments so far landed on the block, the mockups, or the spec as a
-whole: none on architecture, details, or a decision file. Every spec created or changed about two
-decisions, and a one-rule change restates every rule. Decision links open the default branch, where
-a proposed decision does not exist yet. The page draws a spec as plain markdown, with folds.
+A spec you approve in one sitting, without opening anything else. What you approve comes first, then
+the decisions, each change shown as a diff you can comment on. Then one linear document, with cards,
+tables, colour, and hierarchy. "Readable" also means any model writes it the same way.
 
-**Scope.** This round covers the spec's wording and page, decisions, and where plans and data models
-meet them. It also covers two bugs from the proposal: the frontmatter in the edit box, and the page
-jumping when you comment.
+### Today
 
-**Sources.**
+Specs run 3,900 to 7,700 words, and take about 15 minutes to approve against blocks claiming 20
+to 45. All 37 review comments so far landed on the block, the mockups, or the spec as a whole: none
+on architecture, details, or a decision file. Every spec created or changed about two decisions, and
+a one-rule change restates every rule. Decision links open the default branch, where a proposed
+decision does not exist yet. The page draws a spec as plain markdown, with folds.
+
+### Scope
+
+This round covers the spec's wording and page, decisions, and where plans and data models meet them.
+It also covers two bugs from the proposal: the frontmatter in the edit box, and the page jumping
+when you comment.
+
+### Sources
 
 - 24 specs and their reviews, 18 decisions and their history, 24 plans, from every branch.
 - The core's spec parser and checks, the review page, the decisions page, and the editor.
@@ -403,11 +409,25 @@ Why it matters: data formats outlive features, and are what migrations change.
 
 ## Settled without the human
 
+### Check these
+
 - **Builds on the clarifications redesign** its writing reference, warnings, diagrams, and table
   floors. This feature's plan starts once that branch merges, and extends them rather than copying
   them. See [discovery](discovery-01.md#the-clarifications-redesign).
 - **Branches in flight** rewrite their spec in the new format when they next move, as the
   compatibility decision asks. The spec names which branches are hit.
+- **The constitution check** becomes one line, or a list of the principles in tension, each with its
+  tradeoff. The constitution asks for a check, not a table.
+- **Cuts**: "Relied on" decisions become one line of links. "Why this priority" stays only when the
+  order is not obvious. Points settled in the clarifications are linked, not restated. UI strings
+  stay only where the behaviour is the string.
+- **Plans** drop the constitution table and the decisions list they copy from the spec. Their page
+  keeps today's task badges.
+- **No second writing pass**: an agent writing a draft and another rewriting it for you was declined
+  in the clarifications redesign, for two files that can disagree.
+
+### Behaviour
+
 - **Answers to your last review** sit in a "Your review" section, on revisions only. Each names the
   comment in a few words, then says done or declined, and why. The page shows each beside your
   comment and its quote. Earlier review records move to the end of the spec, folded.
@@ -415,30 +435,24 @@ Why it matters: data formats outlive features, and are what migrations change.
   are paraphrased, never cited by number. Git chores leave the block.
 - **Decision links** open the branch's version of the decision, with its change and its anchor.
   Comments on a decision go in `spec-review.md`, pointing to the decision's file and lines.
-- **The constitution check** becomes one line, or a list of the principles in tension, each with its
-  tradeoff. The constitution asks for a check, not a table.
-- **Cuts**: "Relied on" decisions become one line of links. "Why this priority" stays only when the
-  order is not obvious. Points settled in the clarifications are linked, not restated. UI strings
-  stay only where the behaviour is the string.
-- **Records** cite no ruling IDs: they say what changed, in words. Their format is unchanged
-  otherwise, so the 26 records stay valid.
 - **The time estimate** uses the clarifications redesign's formula: the reviewed words at 250 a
   minute, plus a minute per mockup and per changed decision, rounded up to 5.
 - **Scenarios** keep Given, When, and Then, which the tests map to. Each stays at most 3 or 4 steps,
   as Cucumber recommends.
-- **The writing reference** gains the spec's rules: no "C1" or "Q4" alone, each rule stated once in
-  the spec, and terms defined at first use. The template stays a bare skeleton, and the example
-  shows the shape.
 - **The page jump** is fixed by keeping your reading place: the comment form no longer moves, and
   story frames above you resize without moving the text. Scroll anchoring is checked in WebKit
   first. See [discovery](discovery-01.md#scroll-anchoring).
 - **The edit box** hides the frontmatter: the controls above it set those fields, and saving keeps
   them.
-- **Plans** drop the constitution table and the decisions list they copy from the spec. Their page
-  keeps today's task badges.
-- **No second writing pass**: an agent writing a draft and another rewriting it for you was declined
-  in the clarifications redesign, for two files that can disagree.
 - **The reading measure** of the spec page is 75 characters, as the round's, for the same reasons.
+
+### Under the hood
+
+- **Records** cite no ruling IDs: they say what changed, in words. Their format is unchanged
+  otherwise, so the 26 records stay valid.
+- **The writing reference** gains the spec's rules: no "C1" or "Q4" alone, each rule stated once in
+  the spec, and terms defined at first use. The template stays a bare skeleton, and the example
+  shows the shape.
 
 **Notes:**
 
