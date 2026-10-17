@@ -111,3 +111,5 @@
   origin that runs scripts, so a sanitiser bypass reaches the app despite the diagrams decision:
   running it in an opaque-origin frame needs the decision amended (strict level, as WebKit gives
   such frames no contentDocument) and the guard to allow Origin: null reads of /assets/*
+- [agent] [redesign-clarifications] The settled fold reads "Show the 1 points" for a single point
+  under the hood
