@@ -7,7 +7,6 @@ import { sources } from "./fate/sources.ts";
 import type { Device } from "./sign-in/check.ts";
 import {
   agentDataView,
-  branchChangesDataView,
   branchDecisionDataView,
   draftDataView,
   featureDataView,
@@ -28,6 +27,7 @@ import {
 import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { settingsDataView } from "./fate/settings.ts";
+import { branchChangesDataView } from "./fate/views-branch.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
 

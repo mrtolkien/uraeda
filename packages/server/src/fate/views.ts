@@ -3,9 +3,7 @@
 import { dataView, list } from "@nkzw/fate/server";
 import type {
   AddCommit,
-  BranchChanges,
   BranchDecision,
-  ChangedFile,
   DraftView,
   EntryItem,
   FeatureView,
@@ -33,6 +31,7 @@ import type { ItemLook } from "./items.ts";
 import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { settingsDataView } from "./settings.ts";
+import { branchChangesDataView } from "./views-branch.ts";
 import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
 
@@ -99,37 +98,6 @@ export function sentBranchDecision(decision: BranchDecision): BranchDecisionReco
     id: `${decision.folder}/${decision.name}`,
     missing: null,
   } as unknown as BranchDecisionRecord;
-}
-/** A file changed on a feature's branch, its lines null for a binary file. */
-export type ChangedFileRecord = Omit<ChangedFile, "added" | "removed"> & {
-  added: number | null;
-  removed: number | null;
-};
-/**
- * A feature's branch changes, by its folder: null when it has no branch, is merged, or the default
- * branch is unknown, and when they `failed` to be read.
- */
-export type BranchChangesRecord = {
-  changes: (Omit<BranchChanges, "files"> & { files: Array<ChangedFileRecord> }) | null;
-  failed: boolean;
-  id: string;
-};
-
-/**
- * Branch changes as they are sent: a binary file's lines sent as null, for the client's cache
- * keeps a field an answer leaves out.
- */
-export function sentChanges(changes: BranchChanges | null): BranchChangesRecord["changes"] {
-  return (
-    changes && {
-      ...changes,
-      files: changes.files.map((file) => ({
-        ...file,
-        added: file.added ?? null,
-        removed: file.removed ?? null,
-      })),
-    }
-  );
 }
 /** An entry, the step of its running feature sent as `sentStep` sends it. */
 type EntryRecord = Omit<EntryItem, "running"> & {
@@ -307,12 +275,6 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   title: true,
   uncommitted: true,
   worktree: true,
-});
-
-export const branchChangesDataView = dataView<BranchChangesRecord>("BranchChanges")({
-  changes: true,
-  failed: true,
-  id: true,
 });
 
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
