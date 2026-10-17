@@ -22,13 +22,19 @@ const READY = { interval: 100, timeout: 20_000 };
 
 /** Q2's comment field: Q1's comes first. */
 const q2Comment = () =>
-  screen.getAllByRole("textbox", { name: "Comment" })[1] as HTMLTextAreaElement;
+  screen.getAllByRole("textbox", {
+    name: "Comment, or your own answer instead of a letter",
+  })[1] as HTMLTextAreaElement;
+
+/** An option's card, by its sentence. */
+const optionCard = (text: RegExp) =>
+  screen.getByText(text).closest<HTMLElement>(".astryx-selectable-card")!;
 
 test("each variant shows under its option's button, which still picks it (US3.1)", async () => {
   await commands.addStoryFeature();
   await show(ROUND, Q2);
 
-  const a = screen.getByRole("button", { name: /A thin line/ });
+  const a = optionCard(/A thin line/);
   const thin = await screen.findByRole("figure", { name: "Thin line" });
   expect(a.contains(thin)).toBe(false);
   expect(a.compareDocumentPosition(thin) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -39,7 +45,7 @@ test("each variant shows under its option's button, which still picks it (US3.1)
   await expect.poll(() => commands.frameText("Thin line, desktop"), READY).toContain("ThinLine");
 
   await userEvent.click(a);
-  expect(a.getAttribute("aria-pressed")).toBe("true");
+  expect((within(a).getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
   await expect.poll(() => commands.readRepo(ROUND_FILE)).toMatch(/\*\*Answer:\*\* A\n\n## Settled/);
 });
 
@@ -78,8 +84,8 @@ test("a variant nested in its option's quote or list shows outside its button (U
   );
   await show(ROUND, Q2);
 
-  const a = screen.getByRole("button", { name: /A thin line/ });
-  const b = screen.getByRole("button", { name: /A grip of three dots/ });
+  const a = optionCard(/A thin line/);
+  const b = optionCard(/A grip of three dots/);
   const thin = await screen.findByRole("figure", { name: "Thin line" });
   expect(a.contains(thin)).toBe(false);
   // B's item, its text and its story, shows too.
@@ -95,7 +101,7 @@ test("a variant nested in its option's quote or list shows outside its button (U
 test("a comment on a variant joins the question's answer, on a line of its own (US3.2)", async () => {
   await commands.addStoryFeature();
   await show(ROUND, Q2);
-  await userEvent.click(screen.getByRole("button", { name: /A grip of three dots/ }));
+  await userEvent.click(optionCard(/A grip of three dots/));
   await userEvent.click(q2Comment());
   await userEvent.keyboard("Keep it visible.");
   await userEvent.keyboard("{Control>}{Enter}{/Control}");

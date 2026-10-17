@@ -233,3 +233,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   US2.3 asks.
 - **If wrong**: the two tests' scroll.
 - **Where**: task 9, step 5.
+
+## R19: A follow-up's card takes its parent's columns
+
+- **Decision**: a question and its follow-ups split into two columns together, once the parent's
+  card is at least `--size-round-split` wide: `useWidthOf` measures the question's group, not each
+  card. The C3 test of `packages/web/src/__browser__/round.test.tsx` measures Q2's card, not its
+  title, against its 600 px.
+- **Rationale**: at 1440 × 900 with the sidebar and the index open, a question's card is 843 px
+  wide, and a follow-up's, indented by `--spacing-6`, 814 px: measured alone, the follow-up would
+  draw in one column, against SC-001's "every question card draws in two columns". The title now
+  sits inside the card's padding, and the card is what the questions' column holds.
+- **Alternatives considered**: a lower split, or no indent: both are numbers the spec sets.
+- **If wrong**: the measured element in `QuestionCards.tsx`, and the C3 test's element.
+- **Where**: task 10, step 5.
+
+## R20: The round's tests find options by their card's checkbox
+
+- **Decision**: the tests that picked an option by its `aria-pressed` button find its
+  `SelectableCard`'s checkbox, named "Option B", and read `checked`; the layout checks' measure and
+  insets read `.astryx-selectable-card`. The tests that found a question's comment by the label
+  "Comment" use "Comment, or your own answer instead of a letter". The test "a follow-up shows
+  inside its parent once it applies" becomes "a follow-up shows as a card of its own after its
+  parent's once it applies".
+- **Rationale**: the spec makes options Astryx selectable cards, whose control is a checkbox, gives
+  the comment field its new label (US5.1), and moves a follow-up after its parent's card, outside it
+  (US3.5). The tests check the same behaviour through the new controls.
+- **Alternatives considered**: keeping `aria-pressed` on the cards: Astryx's card draws its own
+  checkbox, and a second state would contradict it.
+- **If wrong**: the tests' helpers.
+- **Where**: task 10, step 2.

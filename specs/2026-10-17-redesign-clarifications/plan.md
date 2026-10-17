@@ -477,7 +477,7 @@ key on their bold subject; Submit flips the block's first paragraph only
 - Produces: `useWidthOf(ref: RefObject<HTMLElement | null>): number`.
 
 - [x] **Step 1: Structural: split `Question` into its header, options, and comment.** Commit.
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
   - US3.1, SC-001: at 1440 × 900 with the sidebar and index open, each option's left is right of its
     title's right.
   - US3.2, SC-001: at 402 × 874, options follow the context, no card around the question, options as
@@ -491,12 +491,12 @@ key on their bold subject; Submit flips the block's first paragraph only
   - US5.1: the comment field is labelled "Comment, or your own answer instead of a letter".
   - Edges: B to C removes Q1.B's card and keeps its answer on disk; an answered round's options
     cannot be tapped.
-- [ ] **Step 3: Run them to check they fail**.
-- [ ] **Step 4: Implement** the card, from `RoundMockup`'s `QuestionCard`: a `Card` on wide screens,
+- [x] **Step 3: Run them to check they fail**.
+- [x] **Step 4: Implement** the card, from `RoundMockup`'s `QuestionCard`: a `Card` on wide screens,
       two columns 5 to 6 at `--size-round-split`; the phone's sticky head below the top bar;
       follow-up cards; the index entries unchanged.
-- [ ] **Step 5: Run the project's validation**, both browser projects included.
-- [ ] **Step 6: Commit**
+- [x] **Step 5: Run the project's validation**, both browser projects included.
+- [x] **Step 6: Commit**
       `feat(redesign-clarifications): each question a card, its follow-up a card of its own`
 
 ## Task 11: Settled groups, and "Anything else"

@@ -478,7 +478,9 @@ async function showRound() {
 test("US4.1: a pasted image goes into the focused answer's comment", async () => {
   await showRound();
   const q3 = document.getElementById("Q3")!;
-  const field = within(q3).getByRole("textbox", { name: "Comment" }) as HTMLTextAreaElement;
+  const field = within(q3).getByRole("textbox", {
+    name: "Comment, or your own answer instead of a letter",
+  }) as HTMLTextAreaElement;
   await userEvent.click(field);
 
   paste([await image("phone.png", "image.png")], field);
