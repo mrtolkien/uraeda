@@ -85,8 +85,19 @@ fn relative(root: &Path, path: &Path) -> String {
         .into_owned()
 }
 
-/// Checks a `specs/` folder, any folder under it, or one file, against the skill's rules.
+/// Checks a `specs/` folder, any folder under it, or one file, against the skill's rules, the
+/// branch's history included: `decision.unapproved` walks it. `ura check` shows its warnings.
 pub fn check(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
+    check_with(root, target, true)
+}
+
+/// `check` without the rules that read the branch's history: the files on disk alone. For callers
+/// that keep only errors, on every read.
+pub fn check_files(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
+    check_with(root, target, false)
+}
+
+fn check_with(root: &Path, target: &Path, history: bool) -> Result<Vec<Problem>, CheckError> {
     let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let target = fs::canonicalize(target).map_err(|_| CheckError::Missing(target.into()))?;
     let mut problems = Vec::new();
@@ -99,7 +110,9 @@ pub fn check(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
         problems.retain(|p| p.file == relative(&root, &target));
     } else {
         walk(&root, &target, &mut problems);
-        unapproved::check_unapproved(&root, &target, &mut problems);
+        if history {
+            unapproved::check_unapproved(&root, &target, &mut problems);
+        }
     }
     problems.sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
     Ok(problems)
