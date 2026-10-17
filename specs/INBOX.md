@@ -99,3 +99,6 @@
 - [agent] [access-storybook] storybook-preview.test.ts pins neither that the helper's security
   forwards Storybook's options to a project's preset function, nor a head preset returning undefined
   (uraeda-preview.js run callers)
+- [agent] [access-storybook] validate-storybook.ts opens Storybook's interface top-level through the
+  proxy, not inside Uraeda's /f/<folder>/storybook page: a regression only in the page's frame
+  (pathOf's ?path= forwarding) would not show
