@@ -27,11 +27,27 @@ status: awaiting-human
 
 > [!IMPORTANT]
 >
-> 1 question on the header, about 2 minutes.
+> 1 question on the header, about 5 minutes.
+>
+> - Verdict: worth building as proposed.
 
 ## Context
 
+### Goal
+
 The [proposal](proposal.md) asks for a logo in the header.
+
+### Today
+
+The header shows the repository's name, and no logo.
+
+### Scope
+
+The header, at every width.
+
+### Sources
+
+- The proposal, and the header's layout at 402 px.
 
 ## Q1: Does the logo replace the repository's name at 402 px?
 
@@ -43,6 +59,14 @@ Why it matters: the header has no room for both.
   - [con] no logo on phones.
 
 **Answer:**
+
+## Settled without the human
+
+### Under the hood
+
+- **The logo is an SVG** in the header's component, sized by the header's height.
+
+**Notes:**
 `;
 
 /** The record of the finished change, its pull request #31. */

@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, settle, show, SPEC, wait } from "./shots.ts";
+import { COMMENT_FIELD, type Each, here, settle, show, SPEC, wait } from "./shots.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
@@ -193,7 +193,7 @@ async function roundShots(each: Each, repo: string) {
   await each("round-image", async ({ page }) => {
     resetRound();
     await show(page, ROUND, "How does your iPhone reach the server?");
-    const field = page.locator("#Q3").getByRole("textbox", { name: "Comment" });
+    const field = page.locator("#Q3").getByRole("textbox", { name: COMMENT_FIELD });
     await field.click();
     await dragImages(page, "#Q3 textarea", [fixtureImage("phone.png", "screen.png")]);
     await page
