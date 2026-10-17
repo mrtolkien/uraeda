@@ -2,8 +2,8 @@
  * The screenshots' views of the inbox: its page, with notes and empty; a note open, beside the list
  * on the desktop and as a page on the phone; the add form, plain, with its category menu, and with
  * an image; Home's Inbox group; the sidebar's ＋; the priorities' commit bar holding a move from the
- * inbox; the triage's banners; and the triage's answering view. Each change made to the
- * repository is taken back once its view is taken.
+ * inbox; the triage's banners; and the triage's answering view, at its top and at a question. Each
+ * change made to the repository is taken back once its view is taken.
  */
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -89,6 +89,19 @@ async function takeTriage(each: Each, repo: string) {
       show(page, "/inbox", "An inbox triage waits for your answers"),
     );
     await each("triage", ({ page }) => show(page, "/inbox/triage", "Inbox triage"));
+    // Its second question's card, near the top, below the phone's top bar.
+    await each("triage-question", async ({ page }) => {
+      await show(page, "/inbox/triage", "Inbox triage");
+      await page
+        .locator("#Q2")
+        .evaluate((element) =>
+          window.scrollBy(
+            0,
+            element.getBoundingClientRect().top - (window.innerWidth < 768 ? 64 : 16),
+          ),
+        );
+      await settle(page);
+    });
   });
   const answered = triage()
     .replace("status: awaiting-human", "status: answered")
