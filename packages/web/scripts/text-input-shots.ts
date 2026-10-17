@@ -5,7 +5,7 @@
  * Save, and the chat composer holding 10 lines.
  */
 import type { Page } from "playwright";
-import { type Each, settle, show, wait } from "./shots.ts";
+import { COMMENT_FIELD, type Each, settle, show, wait } from "./shots.ts";
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const FEATURE = "/f/2026-10-11-web-ui";
@@ -59,7 +59,7 @@ const openHood = (page: Page) =>
 
 /** The first question's comment field, not its follow-ups'. */
 const comment = (page: Page, question = "Q1") =>
-  page.locator(`#${question}`).getByRole("textbox", { name: "Comment" }).first();
+  page.locator(`#${question}`).getByRole("textbox", { name: COMMENT_FIELD }).first();
 
 /** The round with a comment under its first settled point, added once, and the second's form open. */
 async function settledComments(page: Page) {

@@ -12,6 +12,8 @@ type Mode = "light" | "dark";
 export type Shot = { context: BrowserContext; mode: Mode; page: Page; size: Size };
 
 export const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
+/** A question's comment field's label, which says a comment alone answers. */
+export const COMMENT_FIELD = "Comment, or your own answer instead of a letter";
 const APPROVED = "/f/2026-10-13-plan-review/spec.md";
 
 export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
