@@ -138,6 +138,11 @@ export const tasks = {
     ],
     dependsOn: ["binding:touch", "web:build"],
   },
+  // The HTML reports `vp run coverage` last wrote, opened in the browser.
+  "coverage:open": {
+    cache: false,
+    command: "xdg-open coverage/rust/html/index.html && xdg-open coverage/typescript/index.html",
+  },
   "lua:fmt": {
     cache: { input: ["editors/nvim/**"], output: [] },
     command: "stylua --check editors/nvim",
