@@ -354,7 +354,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
         answers::check_answers(file, front.as_ref(), &mut problems);
     }
     if file.kind == Checked::Workflow(FileKind::Clarifications) {
-        sections::check_settled_groups(file, &document, &mut problems);
+        sections::check_settled_groups(file, &mut problems);
     }
     if let Some(front) = &front {
         let waiting = front.text("status") == Some("awaiting-human");
