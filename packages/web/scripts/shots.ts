@@ -109,7 +109,7 @@ export async function takeFolds(each: Each) {
   });
   await each("spec-scenarios", async ({ page }) => {
     await show(page, SPEC, "Complete a repeating task");
-    await page.getByRole("button", { exact: true, name: "More scenarios (2)" }).first().click();
+    await page.getByRole("button", { exact: true, name: "2 more scenarios" }).first().click();
     await scrollToTop(page, page.getByRole("heading", { name: "Complete a repeating task" }));
   });
   await each("spec-approved", async ({ page }) => {

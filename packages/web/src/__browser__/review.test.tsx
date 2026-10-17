@@ -20,10 +20,20 @@ function blockOf(phrase: string) {
 
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 
-/** A fold's trigger, by its label: the first with it, US2's for "More scenarios (2)". */
-function fold(name: string) {
-  return screen
-    .getAllByRole("button", { name })
+/** A story's title, by its id, in the fixture's spec. */
+const STORIES = {
+  US1: "Make a task repeat",
+  US2: "Complete a repeating task",
+  US3: "Repeat on a custom schedule",
+};
+
+/**
+ * The trigger of a story's more scenarios, in its card: "N more scenarios" closed, "Fold the other
+ * scenarios" open.
+ */
+function fold(story: keyof typeof STORIES) {
+  return within(screen.getByRole("region", { name: STORIES[story] }))
+    .getAllByRole("button", { name: /^(\d+ more scenarios?|Fold the other scenarios)$/ })
     .find((b) => b.hasAttribute("aria-expanded")) as HTMLElement;
 }
 
@@ -50,7 +60,7 @@ function barBottom() {
 
 test("the selected block stays visible above the sheet, quoted (US2 1, 2)", async () => {
   await show(SPEC, "Complete a repeating task");
-  await userEvent.click(fold("More scenarios (2)"));
+  await userEvent.click(fold("US2"));
   const block = blockOf("Given a weekly task");
   block.scrollIntoView({ block: "end" });
   await tap(block);
@@ -95,8 +105,8 @@ test("a block taller than the space above the sheet starts under the bar", async
 test("open folds survive Back (US1 4)", async () => {
   await show(SPEC, "Complete a repeating task");
   expect(shows(/completes it on Monday the 5th/)).toBe(false);
-  await userEvent.click(fold("More scenarios (2)"));
-  await userEvent.click(fold("More scenarios (1)"));
+  await userEvent.click(fold("US2"));
+  await userEvent.click(fold("US1"));
   expect(shows(/completes it on Monday the 5th/)).toBe(true);
 
   // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
@@ -104,21 +114,23 @@ test("open folds survive Back (US1 4)", async () => {
   await expect.poll(() => window.location.pathname).toBe(atRepo("/f/2026-10-06-recurring-tasks"));
   // The spec page gone, so Back mounts its folds again from the history entry.
   await expect
-    .poll(() => screen.queryAllByRole("button", { name: /^More scenarios/ }).length)
+    .poll(
+      () =>
+        screen.queryAllByRole("button", {
+          name: /^(\d+ more scenarios?|Fold the other scenarios)$/,
+        }).length,
+    )
     .toBe(0);
   await act(async () => window.history.back());
   await expect.poll(() => window.location.pathname).toBe(atRepo(SPEC));
 
-  await expect.poll(() => fold("More scenarios (2)")?.getAttribute("aria-expanded")).toBe("true");
-  expect(fold("More scenarios (1)").getAttribute("aria-expanded")).toBe("true");
-  const us3 = screen
-    .getAllByRole("button", { name: "More scenarios (1)" })
-    .filter((b) => b.hasAttribute("aria-expanded"))[1]!;
-  expect(us3.getAttribute("aria-expanded")).toBe("false");
+  await expect.poll(() => fold("US2")?.getAttribute("aria-expanded")).toBe("true");
+  expect(fold("US1").getAttribute("aria-expanded")).toBe("true");
+  expect(fold("US3").getAttribute("aria-expanded")).toBe("false");
 });
 
 test("a hash that is not a valid escape leaves the page drawn", async () => {
   await show(`${SPEC}#100%`, "Complete a repeating task");
 
-  expect(fold("More scenarios (2)").getAttribute("aria-expanded")).toBe("false");
+  expect(fold("US2").getAttribute("aria-expanded")).toBe("false");
 });

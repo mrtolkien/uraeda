@@ -117,7 +117,7 @@ test.each(CASES)("$name, in $mode", async ({ insets, mode, path, text }) => {
  */
 async function openFolds() {
   const closed = screen
-    .queryAllByRole("button", { name: /^More scenarios \(\d+\)$/ })
+    .queryAllByRole("button", { name: /^\d+ more scenarios?$/ })
     .filter((trigger) => trigger.getAttribute("aria-expanded") === "false");
   for (const trigger of closed) {
     await userEvent.click(trigger);
