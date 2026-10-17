@@ -102,3 +102,6 @@
 - [agent] [access-storybook] validate-storybook.ts opens Storybook's interface top-level through the
   proxy, not inside Uraeda's /f/<folder>/storybook page: a regression only in the page's frame
   (pathOf's ?path= forwarding) would not show
+- [agent] [access-storybook] validate-storybook.ts: the 'an added export shows in the sidebar,
+  without a reload' failure prints 'got false' whether the export was never listed or the page
+  reloaded
