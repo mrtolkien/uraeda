@@ -274,7 +274,7 @@ export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolea
     () => setOpen(undefined),
     (number) => setOpen(afterRemoval(number)),
   );
-  if (!round || round.settled.length === 0) {
+  if (!round || round.settledGroups.length === 0) {
     return null;
   }
   const shown = readOnly ? undefined : open;
@@ -333,7 +333,7 @@ export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolea
       </Heading>
       <Blocks
         document={file.current.document}
-        ids={round.settled}
+        ids={round.settledGroups.flatMap((group) => [group.heading, ...group.blocks])}
         selection={{
           after,
           canSelect: (block) => !readOnly && pointOf(block) !== undefined,

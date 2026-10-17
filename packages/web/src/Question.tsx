@@ -335,7 +335,10 @@ export function Question({
         <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
           {question.title}
         </Heading>
-        <Blocks document={document} ids={question.context} />
+        <Blocks
+          document={document}
+          ids={question.why === undefined ? question.context : [...question.context, question.why]}
+        />
         <Options answer={answer} document={document} question={question} readOnly={readOnly} />
         <AnswerComment
           answer={answer}
