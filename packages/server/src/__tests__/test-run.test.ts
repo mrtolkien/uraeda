@@ -83,33 +83,36 @@ test("a free slot is taken at once, next to a held one", async () => {
   expect(readdirSync(dir)).toEqual(["browser-0.lock"]);
 });
 
-test("cancelling a run stops the runner behind its launcher before removing its files", async () => {
-  const parent = temporaryFolder("uraeda-parent");
-  // Like `vp test`: the launcher's child owns the actual work and inherits its output.
-  const runner = `console.log(JSON.stringify({ pid: process.pid, folder: require('os').tmpdir() })); setInterval(() => {}, 1000)`;
-  const launcher = `require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(runner)}], { stdio: 'inherit' });`;
-  const child = spawn(process.execPath, [SCRIPT, process.execPath, "-e", launcher], {
-    env: { ...process.env, TMPDIR: parent },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let pid: number | undefined;
-  try {
-    const [data] = await once(child.stdout!, "data");
-    const started = JSON.parse(String(data).trim()) as { folder: string; pid: number };
-    pid = started.pid;
-    expect(alive(pid)).toBe(true);
-    expect(existsSync(started.folder)).toBe(true);
-    const exited = once(child, "exit");
+test.each(["SIGTERM", "SIGKILL"] as const)(
+  "cancelling a run with %s stops its launcher and runner before cleanup",
+  async (signal) => {
+    const parent = temporaryFolder("uraeda-parent");
+    // Like `vp test`: the launcher's child owns the actual work and inherits its output.
+    const runner = `console.log(JSON.stringify({ pid: process.pid, folder: require('os').tmpdir() })); setInterval(() => {}, 1000)`;
+    const launcher = `require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(runner)}], { stdio: 'inherit' });`;
+    const child = spawn(process.execPath, [SCRIPT, process.execPath, "-e", launcher], {
+      env: { ...process.env, TMPDIR: parent },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let pid: number | undefined;
+    try {
+      const [data] = await once(child.stdout!, "data");
+      const started = JSON.parse(String(data).trim()) as { folder: string; pid: number };
+      pid = started.pid;
+      expect(alive(pid)).toBe(true);
+      expect(existsSync(started.folder)).toBe(true);
+      const exited = once(child, "exit");
 
-    child.kill("SIGTERM");
+      child.kill(signal);
 
-    expect((await exited)[0]).toBe(143);
-    await expect.poll(() => alive(started.pid)).toBe(false);
-    expect(readdirSync(parent)).toEqual([]);
-  } finally {
-    child.kill("SIGKILL");
-    if (pid !== undefined && alive(pid)) {
-      process.kill(pid, "SIGKILL");
+      expect(await exited).toEqual(signal === "SIGTERM" ? [143, null] : [null, "SIGKILL"]);
+      await expect.poll(() => alive(started.pid)).toBe(false);
+      await expect.poll(() => readdirSync(parent)).toEqual([]);
+    } finally {
+      child.kill("SIGKILL");
+      if (pid !== undefined && alive(pid)) {
+        process.kill(pid, "SIGKILL");
+      }
     }
-  }
-});
+  },
+);

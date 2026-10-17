@@ -86,6 +86,7 @@ beforeEach(() => {
   answer = "granted";
   asked.mockClear();
   visibility = "hidden";
+  document.title = "Uraeda";
   vi.stubGlobal("Notification", FakeNotification);
   Object.defineProperty(navigator, "locks", { configurable: true, value: fakeLocks() });
   Object.defineProperty(document, "visibilityState", { configurable: true, get: () => visibility });
@@ -209,7 +210,8 @@ test("the tab's title counts what needs the human", async () => {
   permission = "default";
   window.localStorage.setItem("uraeda.notifications", "dismissed");
   await renderPage("/");
-  const needsYou = within(await screen.findByRole("group", { name: "Needs you" }));
+  const nav = within(await screen.findByRole("navigation", { name: "Side navigation" }));
+  const needsYou = within(await nav.findByRole("group", { name: "Needs you" }));
   const count = needsYou.getAllByRole("link").length;
 
   await refreshUntil(() => expect(document.title).toBe(`(${count}) Uraeda`));
