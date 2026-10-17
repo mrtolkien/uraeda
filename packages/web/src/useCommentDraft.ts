@@ -1,5 +1,6 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Block } from "uraeda-binding";
+import { frame, keepPlace, topOf } from "./keepPlace.ts";
 
 /** Lines of the reviewed file, and the heading above them. */
 export type Range = { end: number; heading: string; start: number };
@@ -13,8 +14,6 @@ export type CommentDraft =
 function reducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }
-
-const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 /**
  * The top of the comment sheet once it has stopped moving, or after 5 seconds on a device too
@@ -43,18 +42,30 @@ async function restingTop(sheet: RefObject<HTMLElement | null>) {
 }
 
 /**
- * Brings a selected block into the space between the top bar and the comment sheet, once the sheet
- * has stopped moving: its bottom just above the sheet, or its top under the bar when it is taller
- * than that space.
+ * Keeps a selected block where it was read, `top` px from the window's top, once the comment sheet
+ * has stopped moving, and brings it into the space between the top bar and the sheet when the
+ * sheet hides it: its bottom just above the sheet, or its top under the bar when it is taller than
+ * that space.
  */
-async function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElement | null>) {
-  const top = await restingTop(sheet);
-  if (top === undefined || !element.isConnected) {
+async function placeAboveSheet(
+  element: HTMLElement,
+  sheet: RefObject<HTMLElement | null>,
+  top: number,
+) {
+  const sheetTop = await restingTop(sheet);
+  if (sheetTop === undefined || !element.isConnected) {
     return;
+  }
+  const moved = element.getBoundingClientRect().top - top;
+  if (Math.abs(moved) >= 0.5) {
+    window.scrollBy({ behavior: "instant", top: moved });
   }
   const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
   const box = element.getBoundingClientRect();
-  const by = box.height > top - bar ? box.top - bar : box.bottom - top;
+  if (box.top >= bar && box.bottom <= sheetTop) {
+    return;
+  }
+  const by = box.height > sheetTop - bar ? box.top - bar : box.bottom - sheetTop;
   window.scrollBy({ behavior: reducedMotion() ? "auto" : "smooth", top: by });
 }
 
@@ -63,8 +74,9 @@ async function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElemen
  * tapped, under which the field opens on wide screens. Its text is the field's, in the unsaved
  * store: `onSelect` says where it goes as the lines change, for the store to keep them with it.
  * `restored` is the comment the page opens as it is drawn; `writing` says which comment is written,
- * a new one at each close and each edit started. On the phone, the last tapped block goes
- * above the comment sheet, as it opens and at each tap.
+ * a new one at each close and each edit started. The last tapped block keeps its place on screen
+ * as the form opens under it, moves, or closes (US7 1 of the spec redesign); on the phone, it goes
+ * above the comment sheet when the sheet would hide it, as it opens and at each tap.
  */
 export function useCommentDraft(
   wide: boolean,
@@ -77,6 +89,8 @@ export function useCommentDraft(
   // Which comment is written: a new one with each close and each edit started (R71).
   const [writing, setWriting] = useState(0);
   const lastElement = useRef<HTMLElement>(null);
+  // Where the last tapped block was on screen as it was tapped, px from the window's top.
+  const tappedTop = useRef(0);
   const sheet = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,8 +98,17 @@ export function useCommentDraft(
     if (wide || draft?.kind !== "lines" || !element) {
       return;
     }
-    void placeAboveSheet(element, sheet);
+    void placeAboveSheet(element, sheet, tappedTop.current);
   }, [wide, draft?.kind, selection]);
+
+  /** Keeps the last tapped block in place as the form leaves it, then forgets it. */
+  const leave = () => {
+    const element = lastElement.current;
+    if (element) {
+      void keepPlace(topOf(element));
+    }
+    lastElement.current = null;
+  };
 
   /** Adds a tapped block to the selection, or starts one with it. */
   const tap = (block: Block, element: HTMLElement) => {
@@ -96,6 +119,11 @@ export function useCommentDraft(
           start: Math.min(selection.start, block.startLine),
         }
       : { end: block.endLine, heading: block.heading ?? "", start: block.startLine };
+    // On a wide screen, the form opens under the block, or moves to it from a block above it.
+    if (wide) {
+      void keepPlace(topOf(element));
+    }
+    tappedTop.current = element.getBoundingClientRect().top;
     setSelection(next);
     setLast(block.id);
     lastElement.current = element;
@@ -107,6 +135,7 @@ export function useCommentDraft(
 
   /** Starts a comment on the whole file, or an edit of a pending comment. */
   const start = (next: Exclude<CommentDraft, { kind: "lines" }>) => {
+    leave();
     setSelection(undefined);
     setLast(undefined);
     setDraft(next);
@@ -122,7 +151,7 @@ export function useCommentDraft(
     setDraft(undefined);
     setSelection(undefined);
     setLast(undefined);
-    lastElement.current = null;
+    leave();
   };
 
   /** Once comment `number` is removed: its edit closes, and an edit of one after it follows it. */

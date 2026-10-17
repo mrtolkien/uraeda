@@ -198,3 +198,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the old rule before the new one.
 - **If wrong**: the order is set in `gap` and `section_titles`, the strength in `part_change`.
 - **Where**: `crates/core/src/decisions/change.rs`
+
+## R25: WebKit's scroll anchoring fails the check: the page keeps your place itself
+
+- **Decision**: step 1's check failed. In the browser tests' WebKit, a 560 px block above the screen
+  that grows to 700 px leaves the text read in place only on the first page a test file draws; on
+  every later one, whose content replaced the earlier page's, the text moves by the full 140 px,
+  even on a plain page with nothing but three elements. So the page keeps your place itself, as the
+  spec allows: `keepPlace` in `packages/web/src/keepPlace.ts` reads a place before a change, and two
+  frames after it, scrolls back by what it moved. Where a browser's own anchoring already kept it,
+  nothing is left to move. The plain-page check is not kept as a test: it would test the browser,
+  and it fails.
+- **Rationale**: the app replaces a page's content at each change of page, so the browser's
+  anchoring cannot be relied on in Safari.
+- **Alternatives considered**: relying on anchoring, as the plan hoped: the frame and the comment
+  tests fail with 140 px. Turning anchoring off with `overflow-anchor: none` and always scrolling:
+  it would lose the browsers' anchoring everywhere else on the page.
+- **If wrong**: a frame or a form that moves the page shows one frame at the wrong place before it
+  is put back; removing `keepPlace` returns to the browser's behaviour.
+- **Where**: task 4, `keepPlace.ts`, `useCommentDraft.ts`, `StoryFrames.tsx`
+
+## R26: On the phone, a tapped block the sheet does not hide stays where it is
+
+- **Decision**: `placeAboveSheet` scrolls the tapped block above the comment sheet only when the
+  sheet or the top bar hides it; otherwise it stays where it was tapped. Before, it always moved the
+  block's bottom to the sheet's top, which scrolled the page by about 140 px for a block near the
+  top of the screen, and is what moved US2's heading in US7's first scenario. The breaks the tests
+  name differ from the plan's, which assumed the browser's anchoring: the saving test catches the
+  old placement, a desktop test catches the form moving down without its block kept, and the frame
+  test catches a frame's growth not scrolled back.
+- **Rationale**: the spec's scenario taps a block of US2 with its heading at the top; the block is
+  then already in view above the sheet.
+- **Alternatives considered**: keeping the move to the sheet's top and scrolling back once saved:
+  the page would jump twice.
+- **If wrong**: the existing tests of the sheet, a block scrolled to the screen's end and a block
+  taller than the space, still bring it into view.
+- **Where**: task 4, `useCommentDraft.ts`, `__browser__/reading-place.test.tsx`
