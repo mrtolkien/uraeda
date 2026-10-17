@@ -97,10 +97,10 @@ again from the repository.
 3. **Run the validation the step needs**, the smallest first:
    - **While working**: the tests the task adds or touches, by file or project, and the fast checks
      (formatter, linter, type checker).
-   - **Before each commit**: the project's validation once. When it is one cached command, such as
-     `vp run ready`, run it whole: its cache skips what the task did not change. Otherwise, run its
-     slow suites, such as browser tests and screenshots, only when the task changes what they cover:
-     a UI behaviour, a layout, a route.
+   - **Before each commit**: the project's validation once. When it is one cached command, run it
+     whole: its cache skips what the task did not change. Otherwise, run its slow suites, such as
+     browser tests and screenshots, only when the task changes what they cover: a UI behaviour, a
+     layout, a route.
    - **At the final review**: every check the project runs locally, slow suites included.
 
    A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
