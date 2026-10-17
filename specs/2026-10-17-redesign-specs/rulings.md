@@ -475,3 +475,84 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   branch's own changes.
 - **If wrong**: compare with `[approval]` only in `check/unapproved.rs`.
 - **Where**: task 9
+
+## R60: The page reads the branch's decision changes once the file view carries them
+
+- **Decision**: `SpecPage` reads `decisionChanges` from the file when it has the field, and passes
+  `[]` otherwise; "Contents" lists the listed decisions, then the changes not listed. Task 10's
+  contents test lists the fixture's three listed decisions only. When task 7's `decisionChanges`
+  joins the `FileView` selection, the test's expected list gains "Due dates" after "Task history",
+  and `changesOf` in `spec/SpecPage.tsx` reads `file.decisionChanges` directly.
+- **Rationale**: tasks 7 and 10 run in the same wave: the field does not exist on task 10's branch,
+  and the test cannot expect an entry the server does not send yet.
+- **Alternatives considered**: a test that skips the decisions' entries: it would not catch a
+  decision missing from "Contents".
+- **If wrong**: drop `changesOf`'s guard and add the entry to the test's list at the merge.
+- **Where**: task 10, `spec/SpecPage.tsx`, `__tests__/spec-page.test.tsx`
+
+## R61: The placeholders take the page's context, and the data part takes its tree
+
+- **Decision**: every part takes `PartProps` from `spec/parts.ts`: the spec's `document`, the
+  review's `selection` (none once the spec waits no more), `wide`, the `folder`, the pending
+  `comments`, and the `folds` the review opens. `StoryCard` adds `story` and its `mockup` link,
+  `BuiltParts` the spec's `items`, `DecisionCards` the listed `items`, the branch's `changes`, and
+  the `## Decisions` `part`. `DataPart` takes `data-model.md`'s `document`, with `folder` and
+  `wide`, not the folder alone: the page reads the data model to know whether "Contents" lists
+  "Data", and draws no data part without it.
+- **Rationale**: one place reads the data model, and the three tasks of the next wave rewrite their
+  file without changing `SpecPage`.
+- **Alternatives considered**: `DataPart({ folder })` reading the file itself: "Contents" would read
+  it a second time to know whether the part exists.
+- **If wrong**: `DataPart` reads the file, and `SpecPage` keeps its own read for "Contents".
+- **Where**: task 10, `packages/web/src/spec/`
+
+## R62: An answer is drawn whole beside its badge, and "Contents" is a list of links
+
+- **Decision**: an answer of `## Your review` is drawn as its whole item, "**C2** (undo too short):
+  done. The undo…", after a "done" or "declined" badge, and the comment it answers is named "C2 ·
+  undo too short" from the core's `number` and `summary`. "Contents" is an Astryx `List` of link
+  rows, each a tap jumping to its part as the round's index does, its pending comments a badge
+  inside the link, read "2 comments". Astryx's `Outline` is not used.
+- **Rationale**: the core sends the answer's number, summary, and verdict, not the answer's text
+  apart: cutting the item's text in the web would parse markdown, which the stack decision forbids.
+  `Outline` takes text labels only, so no count, and pushes a history entry that would drop the open
+  folds kept in the current one.
+- **Alternatives considered**: an `answer` field of `ReviewAnswer` in the core: a change to task 2's
+  types, for a repetition of a few words.
+- **If wrong**: add the field in `files/spec/parts.rs` and draw it in `spec/ReviewAnswers.tsx`.
+- **Where**: task 10, `spec/ReviewAnswers.tsx`, `spec/SpecContents.tsx`
+
+## R63: The spec page takes the review's machinery as one hook, and the page's inset as a variable
+
+- **Decision**: `review/useReview.tsx` holds the hooks of step 1 together, with `ReviewHost`,
+  `ReviewIntro`, and `ReviewEnd`, which the plan's review page and the spec page both draw.
+  `YourReview` takes `hasVerdict`, and `YourVerdict` draws the verdict in "Contents". `Page` takes
+  `isTight`, the phone's 12 px inset, and sets `--page-inset` and `--page-bleed`, which bands,
+  sticky heads, and a story's embed on the phone read to reach the screen's edges, 16 px outside a
+  page. The column's shown state is `useStoredShown(key)`, out of `SessionAside`'s own. "Contents"
+  is 440 px wide at first, 420 px at least (`SideColumn`'s new `sizes`): the verdict's longest
+  button, "Request changes and start the agent", shows uncut.
+- **Rationale**: the plan asks for the comment machinery shared, not copied, and the bands written
+  for a 16 px inset would overflow a 12 px one.
+- **Alternatives considered**: the spec page calling the four hooks itself: a second copy of the
+  review page's wiring.
+- **If wrong**: the hooks stay apart in `review/`; only `ReviewPage` and `SpecPage` call them.
+- **Where**: task 10, `packages/web/src/review/`, `layout/Page.tsx`, `layout/useStoredShown.ts`,
+  `layout/SideColumn.tsx`, `StoryEmbed.tsx`
+
+## R64: The tests of the mockup buttons go with them, and the embed tests scroll to the story
+
+- **Decision**: the two review tests of the "Mockups" region and the four browser tests of the "Open
+  the mockup" button are deleted, and the screenshot script no longer takes `spec-mockups`; its
+  story locators read the cards' titles. The browser tests that open the test feature's spec and
+  wait for its story's frames scroll the embed into view first (`showSpec` in
+  `story-embed.test.tsx`, `readyEmbed` in `story-comments.test.tsx`, the layout test of a spec with
+  a story, and `openThroughHost`), all but the test of an embed below the window.
+- **Rationale**: the plan deletes `ReviewMockups.tsx`: each story embeds its mockup in its card,
+  which task 11 tests. A frame loads once on screen, and the spec page now opens with what you
+  approve and the decisions, which push US1's embed below a 900 px window.
+- **Alternatives considered**: none: the behaviour is gone.
+- **If wrong**: the tests are in git before task 10's commit.
+- **Where**: task 10, `__tests__/review.test.tsx`, `__browser__/story-comments.test.tsx`,
+  `__browser__/story-embed.test.tsx`, `__browser__/layout.test.tsx`, `vite.browser.config.ts`,
+  `scripts/shots.ts`

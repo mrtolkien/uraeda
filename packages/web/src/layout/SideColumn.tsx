@@ -59,6 +59,7 @@ export function SideColumn({
   isShown,
   label,
   onShownChange,
+  sizes = { default: 320, min: 280 },
   storageKey,
 }: {
   /** The column's own content. */
@@ -71,15 +72,17 @@ export function SideColumn({
   /** Its name, "Progress": its heading, and its buttons' names. */
   label: string;
   onShownChange: (shown: boolean) => void;
+  /** Its width at first and its least, in px: 320 and 280 unless its content needs more. */
+  sizes?: { default: number; min: number };
   /** Where its width is kept in the browser. */
   storageKey: string;
 }) {
   const wide = useWidthClass() === "wide";
   const resizable = useResizable({
     autoSaveId: storageKey,
-    defaultSize: 320,
+    defaultSize: sizes.default,
     maxSize: 560,
-    minSize: 280,
+    minSize: sizes.min,
   });
   const [pointer, setPointer] = useState(false);
   const revealed = revealedByStory ?? pointer;

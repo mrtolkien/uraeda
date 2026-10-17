@@ -1292,9 +1292,11 @@ git commit -m "feat(redesign-specs): ura check warns when a decision changes aft
     history removed, and due dates changed without an item. It returns the folder.
   - `Panel({ id, title, badges?, crumbs, children, variant? })`: a card on a wide screen; on the
     phone, no card, its title sticky under the top bar with `crumbs` joined by " › ".
-  - The placeholder files export `StoryCard({ story, … })`, `BuiltParts({ items, … })`,
-    `DataPart({ folder })`, and `DecisionCards({ items, changes, … })`, which tasks 11, 12, and 13
-    rewrite. Their props are the context each needs: the document, the selection, and the width.
+  - The placeholder files export `StoryCard({ story, mockup, … })`, `BuiltParts({ items, … })`,
+    `DataPart({ document, folder, wide })`, and `DecisionCards({ items, changes, part, … })`, which
+    tasks 11, 12, and 13 rewrite. Their props are the context each needs, `PartProps` of
+    `spec/parts.ts`: the document, the selection, the width, the folder, the pending comments, and
+    the folds (R61).
   - `FilePage` opens `SpecPage` for every `spec.md`, waiting or not; a plan keeps `ReviewPage` and
     `DocumentPage`.
 
@@ -1311,7 +1313,7 @@ git add packages/web/src/ReviewPage.tsx packages/web/src/review
 git commit -m "refactor(redesign-specs): the review page's comment hooks in files of their own"
 ```
 
-- [ ] **Step 2: Write the failing tests, and `addSpecFeature`**
+- [x] **Step 2: Write the failing tests, and `addSpecFeature`**
 
 ```tsx
 // packages/web/src/__tests__/spec-page.test.tsx
@@ -1397,12 +1399,12 @@ The break each test catches:
 - Pills and principles: the principle's ⚠️ read as ok.
 - Phone: the sticky title under the top bar's height, or the card's padding kept.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/spec-page.test.tsx`
 - Expected: FAIL, `Unable to find role="region" and name "Contents"`
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 From the mockup, with the core's items instead of its walks of the tree: `SpecOpening` draws the
 block's record or request, the time and the risk tier as pills, the "You approve" item as the large
@@ -1416,13 +1418,13 @@ and "History", folded, with a band between groups on the phone. `SpecContents` i
 its foot. Delete `ReviewMockups.tsx`: each story embeds its own mockup. The comment form, selection,
 and story comments are the hooks of step 1.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp run ts:test`,
   `nix develop -c vp run browser:phone`, `nix develop -c vp run browser:desktop`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web fixtures/spec-page packages/binding/test-utils.ts
