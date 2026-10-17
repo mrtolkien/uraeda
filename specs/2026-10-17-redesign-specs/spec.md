@@ -1,12 +1,29 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: high
 plan-review: false
 ---
 
 # Spec: Redesign and reword specs
+
+> [!IMPORTANT]
+>
+> Spec to review, revision 2, about 25 minutes: the page's mockups and the stories that changed.
+>
+> - C1: done. A decision reads at the page's measure, wherever it is drawn.
+> - C2: done. A rule removed whole is tinted red, readable, never struck. Removed words inside a
+>   changed rule are tinted red with a dotted underline, not struck either: a second cue besides
+>   colour, which accessibility requires.
+> - C3: done. A decision's intent is its largest text. Each rule has an icon of its strength, its
+>   check on a muted line, and rules come strongest first. Four decisions were reordered so.
+> - C4: done. Every card's title comes before its pills.
+> - C5 and C6: done. Each part after the stories has its own format and drawing. Edge cases carry an
+>   importance, high, normal, or niche, and the niche ones fold. Risk and the constitution move up
+>   into what you approve.
+> - New story: US8, "The parts after the stories read at a glance". The block's time counts what
+>   changed since your review.
 
 > [!NOTE]
 >
@@ -62,32 +79,41 @@ More scenarios:
 
 ### US2: Decisions come first, each change marked in place (P1)
 
-After what you approve, each decision is a card. A new one shows its intent and rules. A changed one
-shows its changed parts, words added underlined and words removed struck. Its unchanged parts fold
-behind a count, and its removed parts behind "N removed". You comment on any part.
+After what you approve, each decision is a card: its title, its pills, its intent in large text,
+then its rules, strongest first, each with its strength's icon and its check on a muted line. A
+changed one marks added words green and underlined, removed words red with a dotted underline, never
+struck. Unchanged parts fold behind a count, removed parts behind "N removed". You comment on any
+part.
 
 [Decision change](/packages/web/src/mockups/DecisionChange.stories.tsx#Change)
 
 Key scenarios:
 
 1. **Given** a branch where task storage's second rule reads "every earlier version" instead of "the
-   previous version", **When** you open the spec, **Then** that rule shows "every earlier" marked
-   added and "the previous" struck, under a "Changed" badge.
+   previous version", **When** you open the spec, **Then** that rule shows "every earlier" green and
+   underlined, and "the previous" red with a dotted underline, unstruck, under a "Changed" badge.
 2. **Given** a branch that merges task storage's second rule into its first, **When** you tap "1
-   removed", **Then** the merged-away rule shows struck through.
+   removed", **Then** the merged-away rule shows whole on a red tint, unstruck.
 3. **Given** a changed decision card, **When** you tap its third rule and save "Log it where I can
    see it", **Then** `spec-review.md` holds a comment headed
    `## C1: Decision task-storage, lines 19–20, under "Rules"`.
 
 More scenarios:
 
-1. **Given** a decision paragraph rewrapped without a word changed, **When** you open the spec,
+1. **Given** a decision whose rules hold a MUST, a SHOULD, and a MUST NOT, **When** you open its
+   card, **Then** each rule shows its icon: two chevrons up, one chevron up, two chevrons down,
+   named "Must", "Should", and "Must not" for screen readers.
+2. **Given** a decision whose second rule is a MUST after a SHOULD, **When** `ura check` runs,
+   **Then** it warns `decision.order` "a MUST rule after a SHOULD one: put the strongest first".
+3. **Given** a window 1440 px wide, **When** a decision card draws, **Then** its text lines hold at
+   most 75 characters.
+4. **Given** a decision paragraph rewrapped without a word changed, **When** you open the spec,
    **Then** that paragraph counts as unchanged.
-2. **Given** a spec's link to `../decisions/task-storage.md#rules`, **When** you follow it, **Then**
+5. **Given** a spec's link to `../decisions/task-storage.md#rules`, **When** you follow it, **Then**
    the decision opens as the branch has it, at its rules, with its change marked.
-3. **Given** a branch that changes `due-dates.md` without listing it in `## Decisions`, **When** you
+6. **Given** a branch that changes `due-dates.md` without listing it in `## Decisions`, **When** you
    open the spec, **Then** a "Changed" card for it shows, marked "Not listed in the spec".
-4. **Given** a change's round whose question links a decision the change edits, **When** you open
+7. **Given** a change's round whose question links a decision the change edits, **When** you open
    the round, **Then** the link opens the decision with its change marked.
 
 ### US3: Stories read as cards (P1)
@@ -133,7 +159,8 @@ Key scenarios:
 
 1. **Given** a window 1440 px wide, **When** you open a waiting spec, **Then** "Contents" lists
    "What you approve", "Your review, answered", "Decisions", each decision, "What changes for
-   users", each story, "Data", and "What else to weigh", with Approve at its foot.
+   users", each story, "Data", "Architecture", "Edge cases", "Success criteria", and "Assumptions",
+   with Approve at its foot.
 2. **Given** a window 402 px wide, **When** you scroll into US2's scenarios, **Then** "What changes
    for users" and "US2 Complete a repeating task" show at the top of the screen.
 3. **Given** a window 402 px wide, **When** you open the spec, **Then** no part has a card, and text
@@ -178,23 +205,51 @@ Key scenarios:
 3. **Given** a proposal with `discovery: high` in its frontmatter, **When** you open it in the
    editor, **Then** the text box starts at its title, and saving keeps `discovery: high`.
 
+### US8: The parts after the stories read at a glance (P2)
+
+What you approve holds the time and the risk tier as pills, the "You approve" sentence large, and
+the constitution as a strip of principles. After the stories and the data come "How it is built, and
+its limits": the architecture, the edge cases, the success criteria, and the assumptions, each drawn
+for what it holds.
+
+Key scenarios:
+
+1. **Given** edge cases rated 2 high, 1 normal, and 2 niche, **When** you open the spec, **Then**
+   the high ones show first, then the normal one, then "2 niche cases", folded.
+2. **Given** the criterion `- **SC-001** (two clicks): Setting a preset repeat takes two clicks.`,
+   **When** you open the spec, **Then** it shows the pills "SC-001" and "two clicks", then its
+   sentence.
+3. **Given** an architecture with three units and two tradeoffs, **When** you open the spec at 1440
+   px, **Then** the units show as three small cards side by side, and each tradeoff with a "Cost"
+   pill.
+4. **Given** a constitution check whose third principle reads ⚠️, **When** you open the spec,
+   **Then** "What you approve" shows that principle's pill with a warning icon, the others with a
+   check.
+
+More scenarios:
+
+1. **Given** an edge case whose importance reads "Urgent", **When** `ura check` runs, **Then** it
+   reports `edges.importance` "importance is high, normal, or niche".
+2. **Given** a data table with a "Change" column, **When** you open the spec, **Then** "New",
+   "Changed", and "Removed" show as green, yellow, and red pills.
+
 ## Edge cases
 
-| Situation                                                     | What happens                                                           |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| A rule rewritten from scratch                                 | under 60% of its words kept: it shows as new, the old one as removed   |
-| A decision the branch deletes                                 | a "Removed" card, its old text folded and struck; the item has no link |
-| The default branch changes a decision after the branch starts | the card compares with the merge base, so only the branch's edits show |
-| The branch merges the default branch in                       | the merge base moves, and the card compares with the new one           |
-| A decision listed as changed, equal to the default branch's   | its card says "No change against the default branch"                   |
-| A revision of the spec                                        | each card shows the whole change against the merge base                |
-| A comment on a removed part                                   | it points to the default branch's lines, with `removed` after them     |
-| A comment's lines changed after the review's commit           | it keeps its quote, as line comments do today                          |
-| A spec at revision 1                                          | no "Your review, answered" card                                        |
-| An approved spec                                              | the same page, read-only; "What you approve" holds the approval record |
-| A story without "More scenarios:"                             | no fold button                                                         |
-| A spec or decision in the old format on a branch in flight    | it fails `ura check` until an agent rewrites it                        |
-| A draft's unsaved text, kept from before this change          | its frontmatter is split off when the editor opens it                  |
+| Importance | Situation                                                     | What happens                                                              |
+| ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| High       | A rule rewritten from scratch                                 | under 60% of its words kept: it shows as new, the old one as removed      |
+| High       | A decision the branch deletes                                 | a "Removed" card, its old text tinted red, unstruck; the item has no link |
+| High       | The default branch changes a decision after the branch starts | the card compares with the merge base, so only the branch's edits show    |
+| High       | A spec or decision in the old format on a branch in flight    | it fails `ura check` until an agent rewrites it                           |
+| Normal     | The branch merges the default branch in                       | the merge base moves, and the card compares with the new one              |
+| Normal     | A revision of the spec                                        | each card shows the whole change against the merge base                   |
+| Normal     | A comment on a removed part                                   | it points to the default branch's lines, with `removed` after them        |
+| Normal     | A spec at revision 1                                          | no "Your review, answered" card                                           |
+| Normal     | An approved spec                                              | the same page, read-only; "What you approve" holds the approval record    |
+| Niche      | A decision listed as changed, equal to the default branch's   | its card says "No change against the default branch"                      |
+| Niche      | A comment's lines changed after the review's commit           | it keeps its quote, as line comments do today                             |
+| Niche      | A story without "More scenarios:"                             | no fold button                                                            |
+| Niche      | A draft's unsaved text, kept from before this change          | its frontmatter is split off when the editor opens it                     |
 
 ## Success criteria
 
@@ -205,7 +260,7 @@ Key scenarios:
 - **SC-003**: Opening a spec whose branch changes 5 decisions takes at most 200 ms longer on the
   server than today.
 - **SC-004**: The spec page passes axe in light and dark, at 402 × 874 and 1440 × 900, with a
-  decision change, a review answered, and every fold open.
+  decision change, a review answered, the niche edge cases, and every fold open.
 
 ## Architecture
 
@@ -240,14 +295,16 @@ flowchart LR
 
 - [Spec page](/packages/web/src/SpecPage.stories.tsx#Waiting): a revision 2 of the skill's recurring
   tasks, rewritten. It holds what you approve, your review answered, new, changed, removed, and
-  unlisted decisions, four story cards, the data model, the rest, and "History". On a wide screen,
+  unlisted decisions, four story cards, the data model with its change pills, then the architecture,
+  edge cases by importance, success criteria, assumptions, and "History". On a wide screen,
   "Contents" with comment counts; on the phone, sticky titles with breadcrumbs.
 - [Decision change](/packages/web/src/mockups/DecisionChange.stories.tsx#Change): task storage with
   a reworded rule, a new rule and consequence, unchanged parts folded, and a rule merged away under
-  "1 removed".
+  "1 removed", each rule with its strength's icon, at the page's measure.
 
-Each story's mockup shows as a box with its name: the real page embeds it live. The decision texts
-come from constants, since the server cannot read a branch's decisions yet.
+Each story's mockup shows as a box with its name: the real page embeds it live. The strength icons
+are Lucide's chevrons, drawn in the mockup: the implementation adds them to the theme's icons. The
+decision texts come from constants, since the server cannot read a branch's decisions yet.
 
 ## Assumptions
 
@@ -269,6 +326,13 @@ Settled while writing this spec:
   one's words. Otherwise, one is new and the other removed.
 - The approval step activates every `proposed` decision the spec lists, new or changed, and records
   the approver when it is known. The approval's commit is where `decision.unapproved` starts.
+- Rules come strongest first: MUST and MUST NOT, then SHOULD and SHOULD NOT, then MAY. Within a
+  strength, the spec step orders them by importance; `ura check` only checks the strengths.
+- The parts after the stories follow the order architecture, edge cases, success criteria,
+  assumptions, under "How it is built, and its limits". The file keeps the same order.
+- The spec step rates each edge case: high when it can lose data or mislead, niche when few users
+  meet it, normal otherwise.
+- A criterion's measure is the few words in parentheses after its id, and is optional.
 - The plan gains a `## Test map`: each scenario, edge case, and criterion with its test.
 - The time estimate counts the reviewed part at 250 words a minute, plus a minute per mockup and per
   changed decision, rounded up to 5.
@@ -373,8 +437,9 @@ The file formats and the warnings are in the [data model](data-model.md). The co
 - **Core decision changes** (`crates/core/src/decisions/change.rs`, new): the comparison, and the
   branch's changed decisions read at the merge base through [`git/`](/crates/core/src/git/).
 - **Core checks** ([`check/`](/crates/core/src/check/)): the new sections, `decision.unapproved`,
-  and the writing warnings. [`workspace/read.rs`](/crates/core/src/workspace/read.rs)'s pending
-  decisions read only the `## Decisions` items, without the `## Proposed change` case.
+  `decision.order`, `edges.importance`, and the writing warnings.
+  [`workspace/read.rs`](/crates/core/src/workspace/read.rs)'s pending decisions read only the
+  `## Decisions` items, without the `## Proposed change` case.
 - **Review comments** ([`files/review.rs`](/crates/core/src/files/review.rs),
   [`actions/review.rs`](/crates/core/src/actions/review.rs)): the decision anchor.
 - **Links** ([`workspace/links.rs`](/crates/core/src/workspace/links.rs),
@@ -388,6 +453,9 @@ The file formats and the warnings are in the [data model](data-model.md). The co
 - **Reading place** ([`useCommentDraft.ts`](/packages/web/src/useCommentDraft.ts),
   [`StoryFrames.tsx`](/packages/web/src/StoryFrames.tsx)): the tapped block keeps its place when the
   form opens, moves, or closes; a frame keeps its last height until it measures.
+- **Parts after the stories**: one component each for the architecture, edge cases, criteria,
+  assumptions, and the principles strip, drawn from the core's parts. The strength icons join
+  [`theme/icons.ts`](/packages/web/src/theme/icons.ts).
 - **Editor** ([`pane/useDraftEditor.ts`](/packages/web/src/pane/useDraftEditor.ts)): the text box
   holds the text after the frontmatter, joined back on save.
 - **Fixtures**: the specs under `fixtures/repo/branches/` and `fixtures/preview/`, and the
@@ -418,4 +486,7 @@ in WebKit at 402 × 874 and 1440 × 900 for layout and axe.
 | US5, SC-004                               | browser tests at both sizes, with axe in light and dark      |
 | US7 1, 2                                  | browser tests: a heading's place after a comment and a draw  |
 | US7 3, edge case on drafts                | web editor tests                                             |
+| US8 1, 2, 3, 4, more 2                    | web review tests over the revision 2 fixture spec            |
+| US8 more 1, US2 more 2                    | core check tests over fixture specs and decisions            |
+| US2 more 1, 3                             | web decision test; browser test of the card's measure        |
 | SC-003                                    | a server benchmark over a fixture branch with 5 changes      |

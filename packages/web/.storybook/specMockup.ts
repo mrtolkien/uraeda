@@ -41,7 +41,6 @@ plan-review: false
 > - Every saved due date is converted once, from a timestamp to a calendar day.
 > - You said rules are typed "when editing the task's title". This spec reads every title typed, at
 >   creation too, as Todoist does.
-> - Risk tier high: the conversion touches every saved task, and the app keeps no backup.
 
 ## Your review
 
@@ -135,27 +134,34 @@ Key scenarios:
 2. **Given** a task, **When** the user saves "Read every so often", **Then** the title is
    unchanged, and nothing repeats.
 
-## Edge cases
-
-| Situation                                          | What happens                                      |
-| -------------------------------------------------- | ------------------------------------------------- |
-| A monthly task due on the 31st, in a shorter month | due on the month's last day, back on the 31st after |
-| The due date moved by hand                         | the schedule restarts from the new date           |
-| A title made only of "every monday"                | it stays a title, without a repeat                |
-
-## Success criteria
-
-- **SC-001**: Setting a preset repeat takes two clicks from the open task.
-- **SC-002**: A list of 5,000 tasks renders no slower than before the feature.
-
 ## Architecture
 
-A repeating task stays a normal task with a repeat rule. Rules are plain data, and pure functions
-compute them, so the menu, the custom screen, and the title parser all make the same rule.
+A repeating task stays a normal task with a repeat rule. Rules are plain data computed by pure
+functions, so the menu, the custom screen, and the title parser all make the same rule.
 
 - **Date helpers** compute calendar days, and own every date calculation.
 - **Repeat rules** hold the presets, the next due date, and the title parser.
 - **The task store** completes tasks, and runs the one-time upgrade of saved due dates.
+
+Tradeoffs:
+
+- No history of completions, as the repeating tasks decision accepts.
+- Every saved due date is converted once, with no way back.
+
+## Edge cases
+
+| Importance | Situation                                          | What happens                                        |
+| ---------- | -------------------------------------------------- | --------------------------------------------------- |
+| High       | The due date moved by hand                         | the schedule restarts from the new date             |
+| High       | A save fails after a completion                    | the task keeps its date, and the row says "Could not save" |
+| Normal     | A monthly task due on the 31st, in a shorter month | due on the month's last day, back on the 31st after |
+| Niche      | A title made only of "every monday"                | it stays a title, without a repeat                  |
+| Niche      | A repeat phrase in capitals, "EVERY MONDAY"        | it is read like "every monday"                      |
+
+## Success criteria
+
+- **SC-001** (two clicks): Setting a preset repeat takes two clicks from the open task.
+- **SC-002** (no slower): A list of 5,000 tasks renders no slower than before the feature.
 
 ## Assumptions
 

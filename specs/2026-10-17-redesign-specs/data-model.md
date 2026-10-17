@@ -24,9 +24,9 @@ The sections of `spec.md`, in order. "Change" compares with today's template.
 | `## Your review`           | revision 2 on: one item per comment of the last review, with its answer       | New     |
 | `## Decisions`             | the new, changed, and removed decisions, then a "Relied on" table             | Moved   |
 | `## User stories`          | `### US1: <title> (P1)` stories, each with key and more scenarios             | Changed |
-| `## Edge cases`            | a table: situation, what happens                                              | Changed |
-| `## Success criteria`      | `SC-001` items                                                                |         |
-| `## Architecture`          | the units, where each rule lives, the tradeoffs, a diagram for a flow         |         |
+| `## Architecture`          | the approach, its units as bold-led items, then "Tradeoffs:" and their list   | Changed |
+| `## Edge cases`            | a table: importance (high, normal, niche), situation, what happens            | Changed |
+| `## Success criteria`      | `SC-001` items, each with its measure in parentheses, optional                | Changed |
 | `## Assumptions`           | a link to the settled points, then what the spec step settled                 | Changed |
 | `## Constitution check`    | a one-row table of the principles, then a line per tension                    | Changed |
 | `## Risk tier`             | the tier and its reason                                                       |         |
@@ -47,6 +47,12 @@ A `## Your review` item:
 `- **C2** (<the comment in a few words>): <done or declined>. <what was done, or why not>.` Its
 number is the comment's in the last review file.
 
+An edge case row: `| High | <situation> | <what happens> |`. A criterion:
+`- **SC-001** (<measure in a few words>): <the outcome>.` A unit of the architecture:
+`- **<Unit>** <what it does, and the rules it owns>.`, then the paragraph `Tradeoffs:` and one item
+per cost. A rule's strength is its first RFC 2119 keyword; rules order MUST and MUST NOT first, then
+SHOULD and SHOULD NOT, then MAY.
+
 A `## Decisions` item:
 `- **<New or Changed>: [<title>](../decisions/<name>.md)**. <One sentence: the rule, or what changed.>`
 A removed decision's file is gone, so its item names it without a link:
@@ -58,14 +64,14 @@ links.
 
 The headings stay. What changes is how a change is written and how long a decision is.
 
-| Part                            | Rule                                                                   | Change  |
-| ------------------------------- | ---------------------------------------------------------------------- | ------- |
-| `status`                        | `proposed` on the branch, new or changed, until approval sets `active` | Changed |
-| `approved-by`                   | empty while `proposed`; the approver, set at approval                  | Changed |
-| intent                          | two or three sentences, before `## Rules`                              | Changed |
-| `## Rules`                      | one sentence each, ending "Checked by ..."; a warning past 10          | Changed |
-| `## Why`                        | a few sentences, with descriptive links                                | Changed |
-| `## Proposed change (<folder>)` | gone: the spec step edits the file on its branch                       | Removed |
+| Part                            | Rule                                                                           | Change  |
+| ------------------------------- | ------------------------------------------------------------------------------ | ------- |
+| `status`                        | `proposed` on the branch, new or changed, until approval sets `active`         | Changed |
+| `approved-by`                   | empty while `proposed`; the approver, set at approval                          | Changed |
+| intent                          | two or three sentences, before `## Rules`                                      | Changed |
+| `## Rules`                      | one sentence each, ending "Checked by ..."; strongest first; a warning past 10 | Changed |
+| `## Why`                        | a few sentences, with descriptive links                                        | Changed |
+| `## Proposed change (<folder>)` | gone: the spec step edits the file on its branch                               | Removed |
 
 A decision's change is the difference between its file on the feature's branch and at the merge base
 of the branch and the default branch. Both versions are cut into parts, each a paragraph or a list
@@ -104,12 +110,16 @@ stored data or a file format, at any size. Internal types are the plan's.
 
 The warnings come from the clarifications redesign's `check/writing` module. This feature adds:
 
-| Code                  | When                                                            | Message                                                 |
-| --------------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
-| `spec.length`         | a waiting spec's reviewed part is over 2,500 words              | "the spec's reviewed part is 3,100 words: aim at 2,000" |
-| `block.items`         | a waiting spec's block has more than 7 items                    | "the block has 8 items: keep at most 7"                 |
-| `decision.rules`      | a decision has more than 10 rules                               | "12 rules: keep at most 10, or split the topic"         |
-| `decision.unapproved` | a decision changed on a branch after its spec's approval commit | "git.md changed after the spec's approval"              |
+| Code                  | When                                                                       | Message                                                   |
+| --------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `spec.length`         | a waiting spec's reviewed part is over 2,500 words                         | "the spec's reviewed part is 3,100 words: aim at 2,000"   |
+| `block.items`         | a waiting spec's block has more than 7 items                               | "the block has 8 items: keep at most 7"                   |
+| `decision.rules`      | a decision has more than 10 rules                                          | "12 rules: keep at most 10, or split the topic"           |
+| `decision.order`      | a rule weaker than the one after it: SHOULD before MUST, MAY before SHOULD | "a MUST rule after a SHOULD one: put the strongest first" |
+| `decision.unapproved` | a decision changed on a branch after its spec's approval commit            | "git.md changed after the spec's approval"                |
+
+`ura check` also reports one problem, an error: `edges.importance`, an edge case whose importance is
+not high, normal, or niche, "importance is high, normal, or niche".
 
 The reviewed part of a spec is every section but "More scenarios" lists and `## History`. The
 approval commit is the branch's commit whose spec first reads `status: approved`.
