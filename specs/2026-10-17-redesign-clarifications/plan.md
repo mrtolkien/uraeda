@@ -476,7 +476,7 @@ key on their bold subject; Submit flips the block's first paragraph only
 
 - Produces: `useWidthOf(ref: RefObject<HTMLElement | null>): number`.
 
-- [ ] **Step 1: Structural: split `Question` into its header, options, and comment.** Commit.
+- [x] **Step 1: Structural: split `Question` into its header, options, and comment.** Commit.
 - [ ] **Step 2: Write the failing tests**
   - US3.1, SC-001: at 1440 × 900 with the sidebar and index open, each option's left is right of its
     title's right.
