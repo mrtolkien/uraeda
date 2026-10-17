@@ -339,3 +339,65 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a fixed list of names in the test.
 - **If wrong**: the test in `crates/core/tests/check.rs`.
 - **Where**: task 6
+
+## R45: An unlisted decision shows only when one of its parts changed
+
+- **Decision**: `FileView.decision_changes` holds every listed decision found on either side, and
+  every unlisted one that is new, removed, uncompared, or has a part that is not `kept`. A decision
+  whose text differs only by a rewrap, its frontmatter, or its `# ` title shows only when listed. A
+  listed decision found on neither side has no change: the page draws it from `SpecItems.decisions`.
+- **Rationale**: the data model says "a rewrap is no change", and the approval step's edit of
+  `status` and `approved-by` is no change either (review focus 1). An unlisted card with every part
+  kept would say "Not listed in the spec" over nothing to read.
+- **Alternatives considered**: keeping every decision whose text differs: rewraps and status edits
+  would draw empty unlisted cards.
+- **If wrong**: `differs` in `crates/core/src/decisions/branch.rs`.
+- **Where**: task 7
+
+## R46: A decision without its merge base's version is new, uncompared
+
+- **Decision**: without a merge base, without a default branch, or when the merge base's file is not
+  UTF-8 text or git fails to read it, the change has `compared: false`, every part of the branch's
+  text `added`, and the kind `new`; `removed`, without parts, when the branch has no such file.
+  Without a merge base, every decision of the branch shows, since none can be told unchanged. The
+  branch's side is read as lossy UTF-8. A feature without a branch, merged, has no changes.
+- **Rationale**: the plan asks for the branch's text as added parts; `compare` names such a change
+  `new`, and the page says "Could not compare with the default branch" from `compared`, not from the
+  kind.
+- **Alternatives considered**: kind `changed` for an unreadable old version: it would claim a change
+  the core could not see.
+- **If wrong**: `BranchSides::change` in `crates/core/src/decisions/branch.rs`.
+- **Where**: task 7
+
+## R47: A branch's decision is the fate type `BranchDecision`, by `<folder>/<name>`
+
+- **Decision**: the server's `branchDecisionDataView` (`fate/views.ts`, type `BranchDecision`, list
+  `branchDecisions`) serves `binding.readDecision` by the id `<folder>/<name>`, split at the first
+  `/`. A decision the branch does not have, or a name with `/`, `\`, `:`, or a leading `.`, is
+  refused by the core as `<folder> has no decision <name>`, which the source answers as a record
+  marked `missing`, as a missing file is. Its document's links resolve from `specs/decisions`. As
+  `FileView`'s items, the changes' nested optional fields, `strength`, `before`, and `after`, are
+  sent as the binding gives them, not as null: `decisionChanges` and `change` are selected whole and
+  replaced whole. A test in `packages/server/src/__tests__/fate.test.ts`, outside the plan's list,
+  checks the field and the source.
+- **Rationale**: Task 13's decision page reads one decision by the link it was opened from, and
+  waits for no answer that never comes.
+- **Alternatives considered**: a file of its own: the plan names `views.ts`, which stays under 500
+  lines.
+- **If wrong**: `branchDecision` in `fate/sources.ts`, `sentBranchDecision` in `fate/views.ts`.
+- **Where**: task 7
+
+## R48: SC-003's benchmark times `readFile` alone, against a measured baseline
+
+- **Decision**: `packages/server/src/__tests__/spec.bench.ts` opens the recurring tasks spec through
+  `binding.readFile`, on a branch rewording a rule of each of the fixture's 5 decisions, and fails
+  past the baseline measured before the change, 20.6 ms, plus 200 ms. It checks first that the 5
+  changes are read. The baseline and the result were taken with
+  `vp test bench --run packages/server/src/__tests__/spec.bench.ts`, twice each, keeping the lower
+  mean; `vp run bench` runs it with the other benchmarks.
+- **Rationale**: `vp run bench` also builds the UI and times the installed package, which says
+  nothing of this change; the machine is shared, so the lower of two runs is the fairer mean.
+- **Alternatives considered**: timing the fate endpoint: the server adds the same cost before and
+  after.
+- **If wrong**: `BASELINE_MS` in the benchmark.
+- **Where**: task 7

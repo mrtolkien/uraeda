@@ -32,6 +32,8 @@ import {
   agentDataView,
   type BranchChangesRecord,
   branchChangesDataView,
+  branchDecisionDataView,
+  type BranchDecisionRecord,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -45,6 +47,7 @@ import {
   proposalHintsDataView,
   type FeatureRecord,
   type FileRecord,
+  sentBranchDecision,
   sentChanges,
   sentFile,
   sentStep,
@@ -140,6 +143,7 @@ export function repositoriesRecord(ctx: Context, added: string | null = null): R
 function missingFile(id: string, folder: string, name: string): FileRecord {
   return {
     current: { document: { blocks: [], hash: "" }, items: {}, stories: [], text: "" },
+    decisionChanges: [],
     folder,
     id,
     kind: "",
@@ -149,6 +153,38 @@ function missingFile(id: string, folder: string, name: string): FileRecord {
     reviewStale: false,
     takesImages: false,
   };
+}
+
+/** The record of a decision a feature's branch does not have: marked missing, its fields empty. */
+function missingDecision(id: string, folder: string, name: string): BranchDecisionRecord {
+  return {
+    change: { compared: false, kind: "", listed: false, name, sections: [], title: "" },
+    document: { blocks: [], hash: "" },
+    folder,
+    id,
+    missing: true,
+    name,
+  };
+}
+
+/**
+ * A decision as a feature's branch has it, by `<folder>/<name>`: one the branch does not have, or
+ * of a folder that is no feature's, is answered missing, so the page says so instead of waiting.
+ */
+async function branchDecision(
+  { binding, repo }: RepoContext,
+  id: string,
+): Promise<BranchDecisionRecord> {
+  const slash = id.indexOf("/");
+  const [folder, name] = slash < 0 ? [id, ""] : [id.slice(0, slash), id.slice(slash + 1)];
+  try {
+    return sentBranchDecision(await binding.readDecision(repo, folder, name));
+  } catch (error) {
+    if (isMissing(error)) {
+      return missingDecision(id, folder, name);
+    }
+    throw error;
+  }
 }
 
 /** The record of a folder that is not a feature's: marked missing, its other fields empty. */
@@ -274,6 +310,10 @@ export const sources = createSources<Context>([
     repository({
       byIds: async (ctx, ids) => Promise.all(ids.map((id) => branchChanges(ctx, id))),
     }),
+  ),
+  fileSource(
+    branchDecisionDataView,
+    repository({ byIds: (ctx, ids) => each(ids, (id) => branchDecision(ctx, id)) }),
   ),
   fileSource(
     prioritiesDataView,

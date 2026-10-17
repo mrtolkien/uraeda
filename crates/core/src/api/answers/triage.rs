@@ -60,6 +60,7 @@ fn view(text: String, committed: Option<String>, tip: Option<ObjectId>) -> FileV
         review: None,
         review_stale: false,
         takes_images: false,
+        decision_changes: Vec::new(),
     }
 }
 

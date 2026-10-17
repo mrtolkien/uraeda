@@ -20,6 +20,7 @@ use crate::view::{
 use crate::workspace::{Feature, FileKind, Problem, Severity, Source, Workspace, WorkspaceError};
 
 mod answers;
+mod decision;
 mod default_branch;
 mod drafts;
 mod files;
@@ -33,6 +34,7 @@ mod reviews;
 mod start;
 
 pub use answers::*;
+pub use decision::{BranchDecision, read_decision};
 use default_branch::{default_checkout, on_default, reach_default, reach_default_from};
 pub use default_branch::{default_root, on_default_branch};
 pub use drafts::{
@@ -333,6 +335,13 @@ fn file_view(
         .find(|file| file.name == name)
         .and_then(|file| file.status.clone());
     let kind = crate::view::kind_name(FileKind::of(name).map(|(kind, _)| kind));
+    let current = VersionView::new(name, text, &feature.path);
+    let decision_changes = current
+        .items
+        .spec
+        .as_ref()
+        .map(|spec| decision::changes(git, feature, tip, &decision::listed(spec)))
+        .unwrap_or_default();
     Ok(FileView {
         id: format!("{}/{name}", feature.folder),
         folder: feature.folder.clone(),
@@ -340,12 +349,13 @@ fn file_view(
         path,
         kind,
         status,
-        current: VersionView::new(name, text, &feature.path),
+        current,
         tip: tip.map(|tip| tip.to_hex_with_len(7).to_string()),
         committed,
         review,
         review_stale,
         takes_images: true,
+        decision_changes,
     })
 }
 
