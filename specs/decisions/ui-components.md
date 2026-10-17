@@ -14,14 +14,14 @@ lint tells it.
 
 - Views MUST use an Astryx component wherever one fits the job. Checked by lint, which names the
   component to use for a raw button, input, text area, select, or dialog.
-- A raw element MAY stand in for a missing Astryx component, with a lint suppression that gives the
-  reason, and the plan MUST list it as an Astryx gap. Checked by lint and review.
 - Styles MUST be written with StyleX, in the file of the component that uses them, from the theme's
   tokens and sizes, raw values only for `0`, percentages, `auto`, and keywords. Checked by lint.
 - Components MUST NOT take a `style` prop, and only Astryx's stylesheets MAY be imported. Checked by
   lint and review.
 - Drag and drop MUST use `@dnd-kit/react`. Checked by review.
 - Astryx, StyleX, and `@dnd-kit/react` MUST be pinned to exact versions. Checked by review.
+- A raw element MAY stand in for a missing Astryx component, with a lint suppression that gives the
+  reason, and the plan MUST list it as an Astryx gap. Checked by lint and review.
 
 ## Why
 

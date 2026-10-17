@@ -10,9 +10,15 @@ import { Code } from "@astryxdesign/core/Code";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  colorVars,
+  radiusVars,
+  spacingVars,
+  typeScaleVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
+import { RuleLine, splitCheck, strengthOf } from "./RuleLine.tsx";
 
 const styles = stylex.create({
   added: {
@@ -45,12 +51,29 @@ const styles = stylex.create({
     lineHeight: "var(--text-reading-line)",
     margin: 0,
   },
+  lead: {
+    // A decision's intent, the first thing read: larger than its rules.
+    fontSize: typeScaleVars["--text-large-size"],
+    lineHeight: typeScaleVars["--text-large-leading"],
+    margin: 0,
+  },
+  measure: {
+    // A decision reads at the page's measure, wherever it is drawn.
+    maxWidth: "var(--size-reading-measure)",
+  },
   removed: {
-    // Deleted words: a red tint and struck through.
+    // Removed words: a red tint and a dotted underline, never struck, so they stay readable.
     backgroundColor: colorVars["--color-background-red"],
     color: "inherit",
     textDecorationColor: colorVars["--color-error"],
-    textDecorationLine: "line-through",
+    textDecorationLine: "underline",
+    textDecorationStyle: "dotted",
+  },
+  removedPart: {
+    // A part removed whole: a red tint over the whole part, readable.
+    backgroundColor: colorVars["--color-background-red"],
+    borderRadius: radiusVars["--radius-element"],
+    padding: spacingVars["--spacing-2"],
   },
 });
 
@@ -196,7 +219,7 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-/** The compared words of a changed part, added ones marked, removed ones struck. */
+/** The compared words of a changed part, added ones underlined in green, removed ones tinted red. */
 function Redline({ after, before }: { after: string; before: string }) {
   return (
     <>
@@ -241,16 +264,54 @@ function kindOf(change: Change): "same" | "changed" | "new" | "removed" {
   return change.before === change.after ? "same" : "changed";
 }
 
+/** A part as it reads: a rule with its strength's icon, or a paragraph, the intent's larger. */
+function PartText({ section, text }: { section: string; text: ReactNode | string }) {
+  if (section === "Rules" && typeof text === "string") {
+    const { check, rule } = splitCheck(text);
+    return (
+      <RuleLine check={check} strength={strengthOf(rule)}>
+        <Inline text={rule} />
+      </RuleLine>
+    );
+  }
+  const content = typeof text === "string" ? <Inline text={text} /> : text;
+  return <p {...stylex.props(section === "" ? styles.lead : styles.item)}>{content}</p>;
+}
+
+/** A changed rule: its words compared, then its check compared on its muted line. */
+function ChangedRule({ after, before }: { after: string; before: string }) {
+  const now = splitCheck(after);
+  const was = splitCheck(before);
+  const check =
+    now.check === was.check ? (
+      now.check
+    ) : (
+      <Redline after={now.check ?? ""} before={was.check ?? ""} />
+    );
+  return (
+    <RuleLine check={check} strength={strengthOf(now.rule)}>
+      <Redline after={now.rule} before={was.rule} />
+    </RuleLine>
+  );
+}
+
 /** A part as it reads now: kept, changed with its words marked, or new. */
 function NowPart({ change }: { change: Change }) {
   const kind = kindOf(change);
   if (kind === "same") {
-    return (
-      <p {...stylex.props(styles.item, change.item && styles.bullet)}>
-        <Inline text={change.after ?? ""} />
-      </p>
-    );
+    return <PartText section={change.section} text={change.after ?? ""} />;
   }
+  const marked =
+    kind === "new" ? (
+      <PartText section={change.section} text={change.after ?? ""} />
+    ) : change.section === "Rules" ? (
+      <ChangedRule after={change.after ?? ""} before={change.before ?? ""} />
+    ) : (
+      <PartText
+        section={change.section}
+        text={<Redline after={change.after ?? ""} before={change.before ?? ""} />}
+      />
+    );
   return (
     <div {...stylex.props(styles.bullet, kind === "new" ? styles.bulletNew : styles.bulletChanged)}>
       <VStack gap={1}>
@@ -260,13 +321,7 @@ function NowPart({ change }: { change: Change }) {
             variant={kind === "new" ? "success" : "warning"}
           />
         </HStack>
-        <p {...stylex.props(styles.item)}>
-          {kind === "new" ? (
-            <Inline text={change.after ?? ""} />
-          ) : (
-            <Redline after={change.after ?? ""} before={change.before ?? ""} />
-          )}
-        </p>
+        {marked}
       </VStack>
     </div>
   );
@@ -275,12 +330,11 @@ function NowPart({ change }: { change: Change }) {
 /** A run of unchanged parts, folded behind a count. */
 function Unchanged({ changes }: { changes: ReadonlyArray<Change> }) {
   const [open, setOpen] = useState(false);
-  const count = changes.length;
   return (
     <VStack gap={2}>
       <HStack>
         <Button
-          label={open ? "Fold the unchanged" : `${count} unchanged`}
+          label={open ? "Fold the unchanged" : `${changes.length} unchanged`}
           onClick={() => setOpen(!open)}
           size="sm"
           variant="ghost"
@@ -291,15 +345,14 @@ function Unchanged({ changes }: { changes: ReadonlyArray<Change> }) {
   );
 }
 
-/** The parts the change removes, folded behind their count, struck once shown. */
+/** The parts the change removes, folded behind their count, tinted red once shown, never struck. */
 function Removed({ changes }: { changes: ReadonlyArray<Change> }) {
   const [open, setOpen] = useState(false);
-  const count = changes.length;
   return (
     <div {...stylex.props(styles.bullet, styles.bulletRemoved)}>
-      <VStack gap={1}>
+      <VStack gap={2}>
         <HStack align="center" gap={2}>
-          <Badge label={`${count} removed`} variant="error" />
+          <Badge label={`${changes.length} removed`} variant="error" />
           <Button
             label={open ? "Hide what is removed" : "Show what is removed"}
             onClick={() => setOpen(!open)}
@@ -309,11 +362,9 @@ function Removed({ changes }: { changes: ReadonlyArray<Change> }) {
         </HStack>
         {open &&
           changes.map((change, index) => (
-            <p key={index} {...stylex.props(styles.item)}>
-              <del {...stylex.props(styles.removed)}>
-                <Inline text={change.before ?? ""} />
-              </del>
-            </p>
+            <div key={index} {...stylex.props(styles.removedPart)}>
+              <PartText section={change.section} text={change.before ?? ""} />
+            </div>
           ))}
       </VStack>
     </div>
@@ -331,7 +382,7 @@ export function DecisionChange({ after, before }: { after: string; before: strin
     changes.some((c) => c.section === section && kindOf(c) !== "same"),
   );
   return (
-    <VStack gap={4}>
+    <VStack gap={4} xstyle={styles.measure}>
       {sections.map((section) => {
         const inSection = changes.filter((c) => c.section === section);
         const runs: Array<ReactNode> = [];
@@ -365,16 +416,23 @@ export function DecisionChange({ after, before }: { after: string; before: strin
   );
 }
 
-/** A new decision's rules, its summary first. */
+/** A new decision's intent and rules, its rules with their strength. */
 export function NewDecision({ text }: { text: string }) {
   const parts = partsOf(text).filter((p) => p.section === "" || p.section === "Rules");
   return (
-    <VStack gap={2}>
+    <VStack gap={3} xstyle={styles.measure}>
       {parts.map((part, index) => (
-        <p key={index} {...stylex.props(styles.item, part.item && styles.bullet)}>
-          <Inline text={part.text} />
-        </p>
+        <PartText key={index} section={part.section} text={part.text} />
       ))}
     </VStack>
+  );
+}
+
+/** A decision the branch removes: its intent and rules as they read, tinted red, never struck. */
+export function RemovedDecision({ text }: { text: string }) {
+  return (
+    <div {...stylex.props(styles.removedPart, styles.measure)}>
+      <NewDecision text={text} />
+    </div>
   );
 }

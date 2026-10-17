@@ -41,16 +41,24 @@ const styles = stylex.create({
     minHeight: "var(--size-message-image)",
   },
   scenario: {
+    // A scenario, set apart from the one before by a hairline.
+    borderBlockStartColor: colorVars["--color-border"],
+    borderBlockStartStyle: "solid",
+    borderBlockStartWidth: spacingVars["--spacing-0-5"],
     columnGap: spacingVars["--spacing-3"],
     display: "grid",
     fontSize: "var(--text-reading-size)",
     gridTemplateColumns: "4.5em minmax(0, 1fr)",
     lineHeight: "var(--text-reading-line)",
+    paddingBlockStart: spacingVars["--spacing-3"],
     rowGap: spacingVars["--spacing-1"],
   },
   step: {
+    // Given, When, and Then, lighter than the scenario they frame.
     color: colorVars["--color-text-secondary"],
-    fontWeight: fontWeightVars["--font-weight-semibold"],
+    fontSize: typeScaleVars["--text-supporting-size"],
+    fontWeight: fontWeightVars["--font-weight-normal"],
+    paddingBlockStart: spacingVars["--spacing-0-5"],
   },
   stickyHead: {
     // On the phone, the panel's title and breadcrumbs stay at the top while it scrolls, over the
@@ -173,9 +181,9 @@ function PanelHead({
       {!wide && crumbs.length > 0 && (
         <span {...stylex.props(styles.crumbs)}>{crumbs.join(" › ")}</span>
       )}
-      <HStack align="center" gap={2}>
-        {badges}
+      <HStack align="center" gap={2} wrap="wrap">
         <Heading level={3}>{title}</Heading>
+        {badges}
       </HStack>
     </VStack>
   );

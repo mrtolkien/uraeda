@@ -19,8 +19,6 @@ spec says why.
   read from the shared hook or theme, never their own media queries. Checked by review.
 - On narrow screens, a view MUST open as its own page, and menus and short forms as bottom sheets;
   on wide screens, they MUST be popovers and dialogs. Checked by the browser tests.
-- On wide screens, a detail glanced at from a list SHOULD open in a pane beside it, and a view the
-  human follows, like a session, SHOULD be a page of its own. Checked by review.
 - A column that takes room from a view's main content MUST be foldable and resizable, keeping its
   state in the browser. Checked by the browser tests.
 - An open detail, tab, or sheet MUST be in the URL, so a reload, Back, or a change of width keeps
@@ -29,6 +27,8 @@ spec says why.
   tall under a coarse pointer. Checked by the browser tests.
 - Reading text MUST stay left-aligned, never justified, and no wider than about 120 characters.
   Checked by the browser tests.
+- On wide screens, a detail glanced at from a list SHOULD open in a pane beside it, and a view the
+  human follows, like a session, SHOULD be a page of its own. Checked by review.
 - The sidebar SHOULD show each feature and change as a short, visual card, and MUST fold to a rail
   on wide screens and give each card its full words as its accessible name. Checked by the UI tests.
 

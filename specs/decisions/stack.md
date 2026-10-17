@@ -26,8 +26,6 @@ gave a secret.
 - The server MUST reject a present `Origin` other than its own, `https://` on an allowed host name,
   or an allowed origin; only GET, HEAD, and WebSocket upgrades on preview and mockup paths with the
   current [frame secret](sign-in.md) MAY send `Origin: null`. Checked by the guard's tests.
-- The server MAY run a checkout's active [preview](preview.md) command in that checkout, on
-  127.0.0.1 and a free port, and MUST stop it when the server stops. Checked by the runner's tests.
 - The server MUST forward only that process's GET, HEAD, and WebSocket upgrades, on its preview
   path, with `Access-Control-Allow-Origin: *` and
   `Content-Security-Policy: sandbox allow-scripts allow-popups` on every response. It MUST forward
@@ -40,6 +38,8 @@ gave a secret.
   only through the core, over stdio, on `lsp-server` without an async runtime. Checked by review.
 - Completions and code actions MUST edit only the open document: writing another file or committing
   MUST be a command the user runs. Checked by review.
+- The server MAY run a checkout's active [preview](preview.md) command in that checkout, on
+  127.0.0.1 and a free port, and MUST stop it when the server stops. Checked by the runner's tests.
 
 ## Why
 
