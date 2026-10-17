@@ -198,8 +198,7 @@ pub enum Noted {
 }
 
 /// Adds a note, as `ura note` does, and commits `INBOX.md` alone when `commit` is set and the file
-/// had no uncommitted change. When it will commit, other staged files are refused before anything
-/// is written.
+/// had no uncommitted change. Other staged files stay staged, out of the commit.
 pub fn note(
     place: &Place,
     category: Option<&str>,
@@ -209,9 +208,6 @@ pub fn note(
 ) -> Result<Noted, ActionError> {
     checked_note(marks, text)?;
     let clean = commit::is_clean(place, PATH);
-    if commit && clean {
-        super::place::ensure_only_staged(place, &[PATH.to_string()])?;
-    }
     add(place, category, marks, text, None)?;
     match (commit, clean) {
         (false, _) => return Ok(Noted::Written),
