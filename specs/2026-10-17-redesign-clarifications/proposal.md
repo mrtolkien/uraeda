@@ -10,24 +10,24 @@ I want to redesign clarifications. The goal is READABILITY and EFFICIENCY.
 
 Desktop + mobile:
 
+- Clarifications should start with a review of the proposal quality and feasability: it should push
+  back against it if it would result in bad or hard to maintain code
 - The first paragraphs should be structured
   - 0 fluff or info that's not needed for decision making
-  - Clear categories:
+  - Clear data types:
     - Sources (code/web)
     - Goal (big picture)
     - Current state of the codebase compared to the goal
-    - PROPOSE CATEGORIES BASED ON REVIEWING ALL CLARIFICATIONS ROUND SO FAR
+    - YOU SHOULD PROPOSE CATEGORIES BASED ON REVIEWING ALL CLARIFICATIONS ROUND SO FAR
 - The page needs to be EASY TO PROCESS LINEARLY FOR A HUMAN
   - Right now it starts with a TL;DR that lacks context, then a pointless retelling of the proposal
     in different terms, then sometimes some ramblings, ...
 - There needs to be better ways to represent the information when it's relevant. Right now it's
-  verbose and hard to navigate as it's a sea of bullet points:
+  verbose and hard to navigate as it's a sea of top-level bullet points:
   - We could have tables, mermaid charts, priority levels for "settled without you", ...
   - Even when using bullet points, we could use sub-headers for grouping and structure
-  - This is about the intro, the questions, and the outro ("settled without you"). They all are hard
-    to digest for a human.
-- Storybooks embed didn't work here:
-  http://127.0.0.1:4310/r/uraeda/f/2026-10-16-redesign-priorities/clarifications-01.md
+  - This is about the intro, the questions bodies, and the outro ("settled without you"). They all
+    are hard to digest for a human.
 
 Desktop:
 
