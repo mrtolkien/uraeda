@@ -281,6 +281,34 @@ function Options({
   );
 }
 
+/** A question's header, its id and "Ask the agent", then its title, which a jump focuses. */
+function QuestionHead({
+  onAsk,
+  question,
+}: {
+  onAsk?: (question: QuestionItem) => void;
+  question: QuestionItem;
+}) {
+  return (
+    <>
+      <HStack align="center" gap={2} justify="between" wrap="wrap">
+        <Text color="secondary" type="supporting" weight="semibold">
+          {question.id}
+          {question.parent &&
+            question.applies === "yes" &&
+            ` · because you picked ${question.parentLetter}`}
+        </Text>
+        {onAsk && (
+          <Button label="Ask the agent" onClick={() => onAsk(question)} size="sm" variant="ghost" />
+        )}
+      </HStack>
+      <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
+        {question.title}
+      </Heading>
+    </>
+  );
+}
+
 /**
  * A question in full: its context, every option with its text, pros, cons, and why, and a comment.
  * A tap on an option toggles its letter and saves the answer, with the comment as typed; the comment
@@ -337,25 +365,7 @@ export function Question({
           parent !== undefined && styles.followUp,
         )}
       >
-        <HStack align="center" gap={2} justify="between" wrap="wrap">
-          <Text color="secondary" type="supporting" weight="semibold">
-            {question.id}
-            {parent &&
-              question.applies === "yes" &&
-              ` · because you picked ${question.parentLetter}`}
-          </Text>
-          {onAsk && (
-            <Button
-              label="Ask the agent"
-              onClick={() => onAsk(question)}
-              size="sm"
-              variant="ghost"
-            />
-          )}
-        </HStack>
-        <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
-          {question.title}
-        </Heading>
+        <QuestionHead question={question} {...(onAsk ? { onAsk } : {})} />
         <QuestionContext document={document} question={question} />
         <Options answer={answer} document={document} question={question} readOnly={readOnly} />
         <AnswerComment
