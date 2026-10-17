@@ -210,7 +210,7 @@ export const uraedaTheme = {
     "--size-viewport-height": "100dvh",
     "--size-image-max-height": "80dvh",
     "--size-message-image": "120px",
-    "--size-composer-input": "88px",
+    "--size-composer-input": "154px",
     "--size-round-index": "240px",
     "--size-settings-index": "240px",
     "--size-session-aside": "320px",

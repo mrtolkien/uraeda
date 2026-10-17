@@ -150,8 +150,9 @@ export const uraedaTheme = defineTheme({
     "--size-image-max-height": "80dvh",
     // A chat message's image, a preview the human opens full screen.
     "--size-message-image": "120px",
-    // The chat composer's field: 4 rows of Astryx's composer lines, 22 px at every size.
-    "--size-composer-input": "88px",
+    // The chat composer's field at its smallest: 7 rows of Astryx's composer lines, 22 px at every
+    // size.
+    "--size-composer-input": "154px",
     // The round's index, a column beside its questions on wide screens.
     "--size-round-index": "240px",
     // The settings page's list of categories, beside the open category on wide screens.

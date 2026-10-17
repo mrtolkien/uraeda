@@ -39,9 +39,10 @@ ends; the UI never guesses a status.
   UI tests.
 - Every multi-line text field MUST have a fixed height, set by what it holds, a little larger than
   its usual text, and the same wherever that kind of field appears: 20 rows for the editor of drafts
-  and proposals, 12 for notes, 7 for every comment and summary, 4 for the chat composer, and 3 for a
-  line that may wrap. A field MUST NOT grow or shrink with its text: past its height, it scrolls. It
-  MAY keep the browser's resize handle, for the human to drag it taller. Every multi-line field
+  and proposals, 12 for notes, 7 for every comment and summary, and 3 for a line that may wrap. A
+  field MUST NOT grow or shrink with its text: past its height, it scrolls. It MAY keep the
+  browser's resize handle, for the human to drag it taller. The chat composer is the one exception:
+  7 rows, it MUST grow upward with its text up to 20 rows, then scroll. Every multi-line field
   except the chat composer MUST use the app's one text area. Checked by the UI tests.
 - A modal sheet or dialog MUST be used only to confirm an irreversible action or to fill a short
   form, like adding a line. Everything else happens in the page. Checked by review.

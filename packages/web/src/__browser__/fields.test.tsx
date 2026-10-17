@@ -178,19 +178,29 @@ test("quick add's field is 3 rows (US6 6)", async () => {
   await checkRows(area("Priority", overlay), 3);
 });
 
-test("the chat composer is 4 rows, empty or with 10 lines, and scrolls past them (US6 7)", async () => {
+test("the chat composer is 7 rows, grows upward to 20, and scrolls past them (US6 7)", async () => {
   await show("/f/2026-10-12-cli-tuis/session", "CLI TUIs");
   const input = await screen.findByRole("textbox", { name: "Message Claude Code" });
   // The field is the composer's input as a whole, of its own text's rows: its editable region
   // holds the text and scrolls inside it.
   const field = input.parentElement!;
   await drawn();
-  expect(rows(field, input)).toBeCloseTo(4, 1);
+  expect(rows(field, input)).toBeCloseTo(7, 1);
+  // It grows upward: the composer is held at the window's bottom once the transcript fills it.
+  let docked: HTMLElement | null = field;
+  while (docked && getComputedStyle(docked).position !== "sticky") {
+    docked = docked.parentElement;
+  }
+  expect(docked && getComputedStyle(docked).bottom).toBe("0px");
 
-  await userEvent.fill(input, lines(10));
+  await userEvent.fill(input, lines(12));
   await drawn();
-  expect(input.textContent).toContain("Line 10");
-  expect(rows(field, input)).toBeCloseTo(4, 1);
+  expect(rows(field, input)).toBeCloseTo(12, 1);
+
+  await userEvent.fill(input, lines(30));
+  await drawn();
+  expect(input.textContent).toContain("Line 30");
+  expect(rows(field, input)).toBeCloseTo(20, 1);
   // The text scrolls inside the field, never past its edge.
   expect(input.getBoundingClientRect().bottom).toBeLessThanOrEqual(
     field.getBoundingClientRect().bottom,

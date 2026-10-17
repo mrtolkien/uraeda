@@ -33,15 +33,15 @@ import { SessionView } from "./views.ts";
 import { clearPending, markPending } from "./writes/store.ts";
 
 const styles = stylex.create({
-  input: { height: "var(--size-composer-input)" },
+  input: { minHeight: "var(--size-composer-input)" },
 });
 
 /**
- * The composer's field: 4 rows, the same empty or full (the UI behaviour decision), its text
- * scrolling inside them.
+ * The composer's field: 7 rows empty, growing upward with its text up to 20 (the UI behaviour
+ * decision), its text scrolling inside them past that.
  */
 function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">) {
-  return <ChatComposerInput {...props} maxRows={4} xstyle={styles.input} />;
+  return <ChatComposerInput {...props} maxRows={20} xstyle={styles.input} />;
 }
 
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
