@@ -67,7 +67,9 @@ export function cloneFolder(from: string, to: string): boolean {
 
 /**
  * Removes the fingerprints of `packages` from the build folder `target`, in every profile and
- * target triple: Cargo builds a unit without one again, and every unit depending on it.
+ * target triple: Cargo builds a unit without one again, and every unit depending on it. Removes the
+ * files next to each `.fingerprint` too, the binaries and libraries Cargo copies there from the
+ * workspace's units, so the main checkout's `ura` does not stand for the worktree's before it builds.
  */
 export function forgetPackages(target: string, packages: Array<string>) {
   // Package names hold only letters, digits, `-`, and `_`.
@@ -81,6 +83,11 @@ export function forgetPackages(target: string, packages: Array<string>) {
       if (entry.name !== ".fingerprint") {
         visit(path);
         continue;
+      }
+      for (const output of readdirSync(dir, { withFileTypes: true })) {
+        if (!output.isDirectory()) {
+          rmSync(join(dir, output.name), { force: true });
+        }
       }
       for (const unit of readdirSync(path)) {
         if (fingerprint.test(unit)) {
@@ -119,12 +126,18 @@ export function seedTarget(
   if (packages === null) {
     return "target/ not seeded: cargo could not read the workspace's packages";
   }
+  // Ignored by `.gitignore`, so a seed killed midway leaves no untracked folder.
   const seeding = `${to}.seeding-${process.pid}`;
-  if (!clone(from, seeding)) {
+  try {
+    if (!clone(from, seeding)) {
+      rmSync(seeding, { force: true, recursive: true });
+      return "target/ not seeded: this filesystem cannot clone files";
+    }
+    forgetPackages(seeding, packages);
+  } catch (error) {
     rmSync(seeding, { force: true, recursive: true });
-    return "target/ not seeded: this filesystem cannot clone files";
+    return `target/ not seeded: ${(error as Error).message}`;
   }
-  forgetPackages(seeding, packages);
   publish(seeding, to);
   return "target/ seeded from the main checkout's";
 }
@@ -140,7 +153,7 @@ function files(dir: string): Array<string> {
  * Seeds the worktree's Vite Task cache from the main checkout's, once its dependencies are
  * installed; what was done, or null when there was nothing to do. Its databases are read through
  * SQLite, so a write in progress in the main checkout does not tear them, and before the archives
- * they list, so each one they list is copied.
+ * are listed, so each archive they list is copied.
  */
 export function seedTaskCache(main: string, root: string): string | null {
   const from = join(main, TASK_CACHE);
@@ -154,16 +167,15 @@ export function seedTaskCache(main: string, root: string): string | null {
   }
   const seeding = `${to}.seeding-${process.pid}`;
   try {
-    const all = files(from);
-    const databases = all.filter((path) => path.endsWith(".db"));
-    const journals = new Set(databases.flatMap((path) => [`${path}-wal`, `${path}-shm`]));
+    const databases = files(from).filter((path) => path.endsWith(".db"));
     for (const path of databases) {
       mkdirSync(dirname(join(seeding, path)), { recursive: true });
       const database = new DatabaseSync(join(from, path), { readOnly: true });
       database.prepare("VACUUM INTO ?").run(join(seeding, path));
       database.close();
     }
-    for (const path of all.filter((path) => !path.endsWith(".db") && !journals.has(path))) {
+    const copied = new Set(databases.flatMap((path) => [path, `${path}-wal`, `${path}-shm`]));
+    for (const path of files(from).filter((path) => !copied.has(path))) {
       mkdirSync(dirname(join(seeding, path)), { recursive: true });
       copyFileSync(join(from, path), join(seeding, path), constants.COPYFILE_FICLONE);
     }

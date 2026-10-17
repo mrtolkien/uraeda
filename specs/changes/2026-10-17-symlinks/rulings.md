@@ -16,18 +16,23 @@ decisions. None binds future work: those are decisions.
   make builds in several worktrees wait on one lock; sccache, which saves the dependencies' CPU but
   keeps a full copy of each in every worktree and in its own cache, and adds a tool to the flake.
 - **If wrong**: a worktree builds alone after its first build, so two worktrees still compile the
-  same new dependency twice. Undo by removing the shell hook from [`flake.nix`](/flake.nix).
+  same new dependency twice. The clone does not wait for a build running in the main checkout: a
+  dependency rebuilt there during the clone's few seconds can reach the worktree half copied, and
+  fail its first build, which `cargo clean -p <crate>` fixes; the workspace's crates are rebuilt
+  whatever the clone holds. Undo by removing the shell hook from [`flake.nix`](/flake.nix).
 - **Where**: [`worktree-seed.ts`](/packages/server/scripts/worktree-seed.ts),
   [`flake.nix`](/flake.nix)
 
 ## R2: The clone forgets the workspace's own crates
 
 - **Decision**: the clone loses the fingerprints of the workspace's packages, read with
-  `cargo metadata --no-deps`, in every profile and target folder, before it becomes `target/`. Cargo
-  builds them, and what depends on them, again; the dependencies stay built.
+  `cargo metadata --no-deps`, in every profile and target folder, and the binaries and libraries
+  Cargo copied next to them, before it becomes `target/`. Cargo builds them, and what depends on
+  them, again; the dependencies stay built.
 - **Rationale**: the clone keeps the main checkout's times. A worktree whose files are older than
   the main checkout's last build, as when the shell first runs days after the worktree was made,
-  would otherwise reuse the main checkout's build of its crates. The dependencies come from the
+  would otherwise reuse the main checkout's build of its crates, and the Neovim plugin's tests, run
+  by hand, would run the main checkout's `target/debug/ura`. The dependencies come from the
   registry, the same files in every checkout.
 - **Alternatives considered**: touching every tracked file of the worktree, which rewrites the times
   of files that are not the build's.
@@ -74,3 +79,16 @@ decisions. None binds future work: those are decisions.
 - **If wrong**: entries recorded in the main checkout read `.worktrees/` files as inputs (see the
   pull request), so fewer of them hit than the same files would allow.
 - **Where**: `seedTaskCache` in [`worktree-seed.ts`](/packages/server/scripts/worktree-seed.ts)
+
+## R6: The script lives with the server's development scripts
+
+- **Decision**: the script is `packages/server/scripts/worktree-seed.ts`, next to `dev.ts`, not in
+  the root's `scripts/` next to `test-run.ts`.
+- **Rationale**: the root's `scripts/` has no TypeScript project, so the commit hook type-checks a
+  new file there without Node's types and refuses it; the server's project includes its `scripts/`,
+  so the script is type-checked like the rest.
+- **Alternatives considered**: a TypeScript project for the root's `scripts/`, which would also
+  type-check `test-run.ts` and `coverage-summary.ts`, outside this change.
+- **If wrong**: the script moves with its test's two imports and the shell hook's path.
+- **Where**: [`worktree-seed.ts`](/packages/server/scripts/worktree-seed.ts),
+  [`flake.nix`](/flake.nix)

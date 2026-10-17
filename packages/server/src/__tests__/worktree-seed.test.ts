@@ -10,6 +10,7 @@ import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { mainCheckout, seedTarget, seedTaskCache } from "../../scripts/worktree-seed.ts";
 
 const SCRIPT = fileURLToPath(new URL("../../scripts/worktree-seed.ts", import.meta.url));
+const ROOT = fileURLToPath(new URL("../../../..", import.meta.url));
 
 /** Writes files under `root`, their paths from it. */
 function write(root: string, files: Record<string, string>) {
@@ -42,13 +43,18 @@ function checkouts() {
   return { main, worktree };
 }
 
-/** The main checkout's build: the crate's units, a dependency's, and one named like the crate. */
+/**
+ * The main checkout's build: the crate's units and its binary, a dependency's, and one named like
+ * the crate.
+ */
 const BUILD = {
   "target/debug/.fingerprint/itoa-0123456789abcdef/lib-itoa": "",
   "target/debug/.fingerprint/seeded-app-0123456789abcdef/lib-seeded_app": "",
   "target/debug/.fingerprint/seeded-app-fedcba9876543210/test-integration-test-t": "",
   "target/debug/.fingerprint/seeded-app-macros-0123456789abcdef/lib-seeded_app_macros": "",
   "target/debug/deps/libitoa-0123456789abcdef.rlib": "",
+  "target/debug/seeded-app": "",
+  "target/debug/seeded-app.d": "",
   "target/x86_64-unknown-linux-gnu/debug/.fingerprint/seeded-app-0123456789abcdef/lib-seeded_app":
     "",
 };
@@ -80,6 +86,8 @@ test("a worktree's build starts from the main checkout's, without the workspace'
     [],
   );
   expect(existsSync(join(worktree, "target/debug/deps/libitoa-0123456789abcdef.rlib"))).toBe(true);
+  // The main checkout's binary does not stand for the worktree's before its first build.
+  expect(readdirSync(join(worktree, "target/debug")).sort()).toEqual([".fingerprint", "deps"]);
   expect(readdirSync(join(main, "target/debug/.fingerprint"))).toHaveLength(4);
 });
 
@@ -103,6 +111,19 @@ test("a worktree with a build of its own, or on a filesystem without clones, kee
     "target/ not seeded: this filesystem cannot clone files",
   );
   expect(readdirSync(bare).filter((name) => name.startsWith("target"))).toEqual([]);
+
+  const failing = (_from: string, to: string): boolean => {
+    write(to, { half: "" });
+    throw new Error("no space left");
+  };
+  expect(seedTarget(other, bare, failing)).toBe("target/ not seeded: no space left");
+  expect(readdirSync(bare).filter((name) => name.startsWith("target"))).toEqual([]);
+});
+
+test("a seed killed midway leaves a folder git ignores", () => {
+  const seeding = `target.seeding-${process.pid}/`;
+
+  expect(git(ROOT, "check-ignore", seeding).trim()).toBe(seeding);
 });
 
 test("the script seeds a new worktree with clones, and says so, or says why it could not", () => {
