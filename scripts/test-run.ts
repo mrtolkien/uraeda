@@ -50,6 +50,15 @@ export function sweep(parent: string): Array<string> {
     if (pid === undefined || alive(Number(pid))) {
       return false;
     }
+    // A force-killed wrapper's guard may still be stopping its command before cleanup.
+    try {
+      const guard = Number(readFileSync(join(parent, name, ".guard-pid"), "utf8"));
+      if (guard > 0 && alive(guard)) {
+        return false;
+      }
+    } catch {
+      // An older run had no guard, or its guard already removed the folder.
+    }
     rmSync(join(parent, name), { force: true, recursive: true });
     return true;
   });
@@ -71,6 +80,23 @@ function signalGroup(pid: number | undefined, signal: NodeJS.Signals) {
     if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
       throw error;
     }
+  }
+}
+
+/**
+ * Runs in a separate Node process. IPC disconnects even if Vite Task force-kills the wrapper,
+ * when no signal handler can run. Its source and signalGroup's are passed to the guard.
+ */
+function guardRun(pid: number, folder: string) {
+  const stop = async () => {
+    signalGroup(pid, "SIGKILL");
+    const { rmSync } = await import("node:fs");
+    rmSync(folder, { force: true, maxRetries: 3, recursive: true, retryDelay: 50 });
+    process.exit(0);
+  };
+  process.on("disconnect", () => void stop());
+  if (!process.connected) {
+    void stop();
   }
 }
 
@@ -193,6 +219,20 @@ async function main() {
     env: { ...process.env, TEMP: folder, TMP: folder, TMPDIR: folder },
     stdio: "inherit",
   });
+  if (child.pid !== undefined) {
+    const guard = spawn(
+      process.execPath,
+      [
+        "-e",
+        `const signalGroup = ${signalGroup.toString()}; (${guardRun.toString()})(${child.pid}, ${JSON.stringify(folder)})`,
+      ],
+      {
+        detached: true,
+        stdio: ["ignore", "ignore", "inherit", "ipc"],
+      },
+    );
+    writeFileSync(join(folder, ".guard-pid"), String(guard.pid));
+  }
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
     process.on(signal, () => signalGroup(child.pid, signal));
   }

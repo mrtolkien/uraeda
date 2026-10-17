@@ -31,6 +31,7 @@ const testEnv = [
   "FONTCONFIG_FILE",
   "__EGL_VENDOR_LIBRARY_DIRS",
   "MINI_TEST",
+  "URAEDA_TEST_TRACE",
 ];
 
 /**

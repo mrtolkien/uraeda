@@ -55,8 +55,10 @@ the build, not by hand.
   stay outside `ready` and CI: an instrumented second run is optional diagnostic work, not a merge
   gate. A coverage drop MUST NOT fail a check. Checked by review.
 - Vitest MUST bound its worker count to at most four and no more than the machine's available CPUs,
-  keeping file isolation. Browser failures MUST retain screenshots and Playwright traces, uploaded
-  by CI even when the test command fails, without retrying the test. Checked by review.
+  keeping file isolation. Browser failures MUST retain screenshots, uploaded by CI even when the
+  test command fails, without retrying the test. Full Playwright traces MAY be collected with
+  `URAEDA_TEST_TRACE=1` and an uncached browser task; recording every passing test is too costly for
+  default validation. Checked by review.
 - A newer revision MUST cancel an older CI run on the same branch, including `main`: old revisions
   have no coverage artifact to preserve. Checked by review.
 - The Rust toolchain MUST be pinned in `rust-toolchain.toml`, with the 2024 edition; Node and pnpm
