@@ -1,26 +1,18 @@
-// TEMPORARY: a decision's change as the specs redesign's mockups show it
-// (`specs/2026-10-17-redesign-specs/clarifications-01.md`), drawn by `DecisionChange.stories.tsx`
-// and `SpecPage.stories.tsx`, in three ways: the new text with the words that changed marked in
-// place, the old and the new side by side, or the new text with each changed part marked and its
-// old wording behind a toggle. It cuts both versions into paragraphs and list items, so a line
-// wrapped anew is no change, and compares their words. The implementation computes the change in
-// the core, from the default branch's and the feature branch's files.
+// TEMPORARY: a decision's change as the specs redesign shows it (`specs/2026-10-17-redesign-specs/`),
+// drawn by `DecisionChange.stories.tsx` and `SpecPage.stories.tsx`: the new text with the words that
+// changed marked in place, new parts marked new, and removed parts folded behind their count. It
+// cuts both versions into paragraphs and list items, so a line wrapped anew is no change, and
+// compares their words. The implementation computes the change in the core, from the default
+// branch's and the feature branch's files.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import {
-  colorVars,
-  radiusVars,
-  spacingVars,
-  typeScaleVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
-import { useWidthClass } from "../layout/useWidthClass.ts";
 
 const styles = stylex.create({
   added: {
@@ -44,19 +36,14 @@ const styles = stylex.create({
     borderInlineStartColor: colorVars["--color-success"],
     borderInlineStartWidth: spacingVars["--spacing-1"],
   },
-  columns: {
-    columnGap: spacingVars["--spacing-4"],
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+  bulletRemoved: {
+    borderInlineStartColor: colorVars["--color-error"],
+    borderInlineStartWidth: spacingVars["--spacing-1"],
   },
   item: {
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
     margin: 0,
-  },
-  old: {
-    color: colorVars["--color-text-secondary"],
-    fontSize: typeScaleVars["--text-supporting-size"],
   },
   removed: {
     // Deleted words: a red tint and struck through.
@@ -65,15 +52,7 @@ const styles = stylex.create({
     textDecorationColor: colorVars["--color-error"],
     textDecorationLine: "line-through",
   },
-  side: {
-    backgroundColor: colorVars["--color-background-muted"],
-    borderRadius: radiusVars["--radius-element"],
-    padding: spacingVars["--spacing-2"],
-  },
 });
-
-/** How the change shows. */
-export type ChangeMode = "inline" | "sideBySide" | "marked";
 
 /** A part of a decision: a paragraph or a list item, under its section, its lines joined. */
 type Part = { item: boolean; section: string; text: string };
@@ -156,12 +135,14 @@ function wordDiff(before: string, after: string): Array<Piece> {
   return pieces;
 }
 
-/** The share of words two texts keep in common. */
+/** The share of the shorter text's words that the other keeps: a rule merged into a longer one
+ * still pairs with it. */
 function likeness(before: string, after: string): number {
   const pieces = wordDiff(before, after);
   const words = (kind: Piece["kind"]) =>
     pieces.filter((p) => p.kind === kind).reduce((n, p) => n + p.text.split(" ").length, 0);
-  return words("same") / Math.max(1, words("same") + words("added") + words("removed"));
+  const shorter = Math.min(words("same") + words("removed"), words("same") + words("added"));
+  return words("same") / Math.max(1, shorter);
 }
 
 /** A part of the new text, with the part of the old text it replaces, if any. */
@@ -173,7 +154,7 @@ function changesOf(before: string, after: string): Array<Change> {
   const paired = new Set<number>();
   const changes: Array<Change> = partsOf(after).map((part) => {
     let best = -1;
-    let score = 0.4;
+    let score = 0.6;
     old.forEach((candidate, index) => {
       if (paired.has(index) || candidate.section !== part.section) {
         return;
@@ -260,13 +241,8 @@ function kindOf(change: Change): "same" | "changed" | "new" | "removed" {
   return change.before === change.after ? "same" : "changed";
 }
 
-const LABELS = { changed: "Changed", new: "New", removed: "Removed" } as const;
-const VARIANTS = { changed: "warning", new: "success", removed: "error" } as const;
-
-/** A changed part, drawn the way `mode` asks. */
-function ChangedPart({ change, mode }: { change: Change; mode: ChangeMode }) {
-  const [showOld, setShowOld] = useState(false);
-  const wide = useWidthClass() === "wide";
+/** A part as it reads now: kept, changed with its words marked, or new. */
+function NowPart({ change }: { change: Change }) {
   const kind = kindOf(change);
   if (kind === "same") {
     return (
@@ -275,62 +251,22 @@ function ChangedPart({ change, mode }: { change: Change; mode: ChangeMode }) {
       </p>
     );
   }
-  const badge = <Badge label={LABELS[kind]} variant={VARIANTS[kind]} />;
-  const border = [styles.bullet, kind === "new" ? styles.bulletNew : styles.bulletChanged];
-  if (mode === "inline") {
-    return (
-      <div {...stylex.props(border)}>
-        <p {...stylex.props(styles.item)}>
-          <Redline after={change.after ?? ""} before={change.before ?? ""} />
-        </p>
-      </div>
-    );
-  }
-  if (mode === "sideBySide") {
-    const column = (title: string, text: string | undefined) => (
-      <VStack gap={1}>
-        <Text color="secondary" type="supporting" weight="semibold">
-          {title}
-        </Text>
-        <div {...stylex.props(styles.side)}>
-          <p {...stylex.props(styles.item)}>
-            {text === undefined ? <Text color="secondary">Nothing</Text> : <Inline text={text} />}
-          </p>
-        </div>
-      </VStack>
-    );
-    return (
-      <VStack gap={1}>
-        <HStack>{badge}</HStack>
-        <div {...stylex.props(wide && styles.columns)}>
-          {column("Before", change.before)}
-          {column("After", change.after)}
-        </div>
-      </VStack>
-    );
-  }
   return (
-    <div {...stylex.props(border)}>
+    <div {...stylex.props(styles.bullet, kind === "new" ? styles.bulletNew : styles.bulletChanged)}>
       <VStack gap={1}>
-        <HStack align="center" gap={2}>
-          {badge}
-          {kind === "changed" && (
-            <Button
-              label={showOld ? "Hide the previous wording" : "Show the previous wording"}
-              onClick={() => setShowOld(!showOld)}
-              size="sm"
-              variant="ghost"
-            />
-          )}
+        <HStack>
+          <Badge
+            label={kind === "new" ? "New" : "Changed"}
+            variant={kind === "new" ? "success" : "warning"}
+          />
         </HStack>
-        <p {...stylex.props(styles.item, kind === "removed" && styles.old)}>
-          <Inline text={change.after ?? change.before ?? ""} />
+        <p {...stylex.props(styles.item)}>
+          {kind === "new" ? (
+            <Inline text={change.after ?? ""} />
+          ) : (
+            <Redline after={change.after ?? ""} before={change.before ?? ""} />
+          )}
         </p>
-        {showOld && (
-          <p {...stylex.props(styles.item, styles.old)}>
-            Before: <Inline text={change.before ?? ""} />
-          </p>
-        )}
       </VStack>
     </div>
   );
@@ -339,37 +275,57 @@ function ChangedPart({ change, mode }: { change: Change; mode: ChangeMode }) {
 /** A run of unchanged parts, folded behind a count. */
 function Unchanged({ changes }: { changes: ReadonlyArray<Change> }) {
   const [open, setOpen] = useState(false);
-  if (open) {
-    return (
-      <VStack gap={2}>
-        {changes.map((change, index) => (
-          <ChangedPart change={change} key={index} mode="inline" />
-        ))}
-      </VStack>
-    );
-  }
-  const items = changes.filter((c) => c.item).length;
-  const label = items > 0 ? `${changes.length} unchanged, show them` : "Unchanged, show it";
+  const count = changes.length;
   return (
-    <HStack>
-      <Button label={label} onClick={() => setOpen(true)} size="sm" variant="ghost" />
-    </HStack>
+    <VStack gap={2}>
+      <HStack>
+        <Button
+          label={open ? "Fold the unchanged" : `${count} unchanged`}
+          onClick={() => setOpen(!open)}
+          size="sm"
+          variant="ghost"
+        />
+      </HStack>
+      {open && changes.map((change, index) => <NowPart change={change} key={index} />)}
+    </VStack>
+  );
+}
+
+/** The parts the change removes, folded behind their count, struck once shown. */
+function Removed({ changes }: { changes: ReadonlyArray<Change> }) {
+  const [open, setOpen] = useState(false);
+  const count = changes.length;
+  return (
+    <div {...stylex.props(styles.bullet, styles.bulletRemoved)}>
+      <VStack gap={1}>
+        <HStack align="center" gap={2}>
+          <Badge label={`${count} removed`} variant="error" />
+          <Button
+            label={open ? "Hide what is removed" : "Show what is removed"}
+            onClick={() => setOpen(!open)}
+            size="sm"
+            variant="ghost"
+          />
+        </HStack>
+        {open &&
+          changes.map((change, index) => (
+            <p key={index} {...stylex.props(styles.item)}>
+              <del {...stylex.props(styles.removed)}>
+                <Inline text={change.before ?? ""} />
+              </del>
+            </p>
+          ))}
+      </VStack>
+    </div>
   );
 }
 
 /**
- * A decision's change: each section that changed, with its changed parts drawn the way `mode`
- * asks, and its unchanged parts folded. Sections without a change are left out.
+ * A decision's change, section by section: changed parts with their words marked in place, new
+ * parts marked new, unchanged runs folded behind their count, and removed parts folded at the
+ * section's end. Sections without a change are left out.
  */
-export function DecisionChange({
-  after,
-  before,
-  mode,
-}: {
-  after: string;
-  before: string;
-  mode: ChangeMode;
-}) {
+export function DecisionChange({ after, before }: { after: string; before: string }) {
   const changes = changesOf(before, after);
   const sections = [...new Set(changes.map((c) => c.section))].filter((section) =>
     changes.some((c) => c.section === section && kindOf(c) !== "same"),
@@ -387,18 +343,21 @@ export function DecisionChange({
           same = [];
         };
         inSection.forEach((change, index) => {
-          if (kindOf(change) === "same") {
+          const kind = kindOf(change);
+          if (kind === "same") {
             same.push(change);
-          } else {
+          } else if (kind !== "removed") {
             flush();
-            runs.push(<ChangedPart change={change} key={index} mode={mode} />);
+            runs.push(<NowPart change={change} key={index} />);
           }
         });
         flush();
+        const removed = inSection.filter((c) => kindOf(c) === "removed");
         return (
           <VStack gap={2} key={section}>
-            <Heading level={4}>{section || "Summary"}</Heading>
+            <Heading level={4}>{section || "Intent"}</Heading>
             {runs}
+            {removed.length > 0 && <Removed changes={removed} />}
           </VStack>
         );
       })}
