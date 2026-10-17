@@ -238,8 +238,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a question and its follow-ups split into two columns together, once the parent's
   card is at least `--size-round-split` wide: `useWidthOf` measures the question's group, not each
-  card. The C3 test of `packages/web/src/__browser__/round.test.tsx` measures Q2's card, not its
-  title, against its 600 px.
+  card. The C3 test of `packages/web/src/__browser__/round.test.tsx` measures Q2's card's content
+  box, its padding and borders taken out, not its title, against its 600 px: the guarantee stays the
+  questions' text column, which the title no longer spans in two columns.
 - **Rationale**: at 1440 × 900 with the sidebar and the index open, a question's card is 843 px
   wide, and a follow-up's, indented by `--spacing-6`, 814 px: measured alone, the follow-up would
   draw in one column, against SC-001's "every question card draws in two columns". The title now
