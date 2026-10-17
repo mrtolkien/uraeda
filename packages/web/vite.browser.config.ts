@@ -454,6 +454,9 @@ export default defineConfig({
         { browser: "webkit", name: "desktop", viewport: { height: 900, width: 1440 } },
       ],
       provider: playwright(),
+      // Preserve the first failure without retrying it. Keep evidence out of tracked sources.
+      screenshotDirectory: ".vitest/screenshots",
+      trace: { mode: "retain-on-failure", tracesDir: ".vitest/traces" },
     },
     // CI's WebKit draws without a GPU, and its scrolling and animations take longer than a desktop's.
     expect: { poll: { timeout: 5000 } },

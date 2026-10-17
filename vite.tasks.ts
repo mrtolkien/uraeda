@@ -3,8 +3,22 @@ import { statSync } from "node:fs";
 import { join } from "node:path";
 import { SOURCES } from "./packages/server/src/binding.ts";
 
+/** The pinned tools used by cached checks, in the dev shell and package runtime. */
+const toolchainInputs = [
+  "flake.nix",
+  "flake.lock",
+  "package.json",
+  "pnpm-workspace.yaml",
+  "rust-toolchain.toml",
+];
 /** The root config files, which every task loading the root config reads. */
-const rootConfig = ["vite.config.ts", "vite.tasks.ts"];
+const rootConfig = [
+  "vite.config.ts",
+  "vite.tasks.ts",
+  "tsconfig.json",
+  "tsconfig.base.json",
+  ...toolchainInputs,
+];
 
 /**
  * The dev shell's variables the tests need, which Vite Task does not pass to a task unless listed:
@@ -47,26 +61,29 @@ const rustSources = [
   "clippy.toml",
   "rust-toolchain.toml",
   "skills/uraeda/**",
-];
-
-/** What the TypeScript tests read: the packages, the fixtures, and the skill the core embeds. */
-const tsTestInputs = [
-  "packages/**",
-  "fixtures/**",
-  "skills/uraeda/**",
-  ...rootConfig,
-  "pnpm-lock.yaml",
-  "!**/node_modules/**",
-  "!**/dist/**",
-  "!**/.vitest/**",
-  // Built by `ui:build`, from what the tests read already.
-  "!packages/uraeda/{plugin,web}/**",
+  ...toolchainInputs,
 ];
 
 /** The binding's sources, from `binding.ts`'s list, a folder standing for every file under it. */
 const bindingInputs = SOURCES.map((source) =>
   statSync(join(import.meta.dirname, source)).isDirectory() ? `${source}/**` : source,
 );
+
+/** What the TypeScript tests read: the packages, the fixtures, and the skill the core embeds. */
+const tsTestInputs = [
+  "packages/**",
+  "fixtures/**",
+  "skills/uraeda/**",
+  ...bindingInputs,
+  ...rootConfig,
+  "pnpm-lock.yaml",
+  "!**/node_modules/**",
+  "!**/dist/**",
+  "!**/.vitest/**",
+  "!packages/web/storybook-static/**",
+  // Built by `ui:build`, from what the tests read already.
+  "!packages/uraeda/{plugin,web}/**",
+];
 
 /**
  * The checks of `vp run ready`, as a graph of cached tasks (see `specs/decisions/toolchain.md`):
@@ -93,6 +110,7 @@ export const tasks = {
         "packages/binding/package.json",
         "pnpm-lock.yaml",
         "rust-toolchain.toml",
+        ...toolchainInputs,
       ],
       output: [
         "packages/binding/*.node",
@@ -144,7 +162,7 @@ export const tasks = {
     command: "xdg-open coverage/rust/html/index.html && xdg-open coverage/typescript/index.html",
   },
   "lua:fmt": {
-    cache: { input: ["editors/nvim/**"], output: [] },
+    cache: { input: ["editors/nvim/**", ...toolchainInputs], output: [] },
     command: "stylua --check editors/nvim",
   },
   ready: {
@@ -177,11 +195,23 @@ export const tasks = {
   },
   // `ura` never builds napi: a binding built into the other crates' tests would not link.
   "rust:features": {
-    cache: { input: ["crates/*/Cargo.toml", "Cargo.toml", "Cargo.lock"], output: [] },
+    cache: {
+      input: [
+        "crates/*/Cargo.toml",
+        "Cargo.toml",
+        "Cargo.lock",
+        "rust-toolchain.toml",
+        ...toolchainInputs,
+      ],
+      output: [],
+    },
     command: "! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v'",
   },
   "rust:fmt": {
-    cache: { input: ["crates/**", "rustfmt.toml", "rust-toolchain.toml"], output: [] },
+    cache: {
+      input: ["crates/**", "rustfmt.toml", "rust-toolchain.toml", ...toolchainInputs],
+      output: [],
+    },
     command: "cargo fmt --check",
   },
   "rust:test": {
@@ -196,7 +226,18 @@ export const tasks = {
   // `ura check` follows the specs' links to any Markdown file of the repository.
   "specs:check": {
     cache: {
-      input: [...rustSources, "specs/**", "**/*.md", "!**/node_modules/**", "!target/**"],
+      input: [
+        ...rustSources,
+        "specs/**",
+        "**/*.md",
+        "!**/node_modules/**",
+        "!target/**",
+        "!coverage/**",
+        "!**/.vitest/**",
+        "!**/dist/**",
+        "!packages/uraeda/{plugin,web}/**",
+        "!packages/web/storybook-static/**",
+      ],
       output: [],
     },
     command: [
@@ -221,6 +262,7 @@ export const tasks = {
         "packages/binding/test-utils.ts",
         "fixtures/preview/**",
         "pnpm-lock.yaml",
+        ...rootConfig,
         "!packages/web/node_modules/.cache/storybook/**",
       ],
       output: ["packages/web/storybook-static/**"],
@@ -243,16 +285,21 @@ export const tasks = {
   "ts:check": {
     cache: {
       input: [
+        ...toolchainInputs,
         "**/*.{ts,tsx,js,mjs,cjs,json,jsonc,md,toml,yml,yaml,html,css}",
         "!**/node_modules/**",
         "!target/**",
         "!**/dist/**",
         "!fixtures/**",
         "!packages/web/storybook-static/**",
+        "!coverage/**",
+        "!**/.vitest/**",
+        "!packages/uraeda/{plugin,web}/**",
       ],
       output: [],
     },
     command: "vp check",
+    dependsOn: ["binding:build"],
   },
   "ts:test": {
     cache: {
@@ -265,13 +312,13 @@ export const tasks = {
         "crates/*/src/lib.rs",
         // `vp run coverage`'s summary, tested with the server's tests.
         "scripts/**",
-        // The server's tests start it on the built web UI.
-        "packages/web/dist/**",
       ],
       output: [],
       untrackedEnv: testEnv,
     },
     // Every project but the browser's, by exclusion: a package added to `test.projects` runs here.
+    // The built web UI is read by server tests; its source and toolchain inputs above determine
+    // it. Listing dist here would have no effect: the explicit dist exclusion always wins.
     command: `${testRun()} ${isolatedGit} vp test --project '!phone' --project '!desktop'`,
     dependsOn: ["binding:touch", "web:build"],
   },
@@ -302,6 +349,10 @@ export const tasks = {
         "packages/uraeda/**",
         "packages/binding/*.node",
         "packages/server/src/free-port.ts",
+        "packages/binding/index.js",
+        "Cargo.toml",
+        ...rootConfig,
+        "pnpm-lock.yaml",
         "scripts/test-run.ts",
         "!**/node_modules/**",
       ],
@@ -320,6 +371,8 @@ export const tasks = {
         "pnpm-lock.yaml",
         "!**/node_modules/**",
         "!**/dist/**",
+        "!**/.vitest/**",
+        "!packages/web/storybook-static/**",
       ],
       output: ["packages/web/dist/**"],
     },
@@ -328,7 +381,10 @@ export const tasks = {
     dependsOn: ["binding:touch"],
   },
   "web:theme": {
-    cache: { input: ["packages/web/src/theme/**"], output: [] },
+    cache: {
+      input: ["packages/web/src/theme/**", "pnpm-lock.yaml", ...toolchainInputs],
+      output: [],
+    },
     command:
       "node_modules/.bin/astryx theme build src/theme/theme.ts --out src/theme/built/uraeda.css --check",
     cwd: "packages/web",
