@@ -125,3 +125,7 @@
   settled points after it
 - [agent] [redesign-clarifications] Diagram measures its width once: a diagram fixed by a live edit
   after failing never gets its keyboard-scrollable region
+- [agent] [redesign-clarifications] Diagram frames: Mermaid working id can equal a heading anchor
+  (diagram-_r_0_); allow-top-navigation-by-user-activation lets a diagram link replace the app tab;
+  viewBox not clamped; no loading state; every frame titled "Diagram"; a failed draw can leave
+  Mermaid temporary frame in the page
