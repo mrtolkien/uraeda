@@ -374,7 +374,7 @@ fn priorities_entries_hint_only_existing_drafts() {
         [
             (4, "discovery · waits on agent".to_string()),
             (8, "draft".to_string()),
-            (15, "draft".to_string()),
+            (15, "backlog".to_string()),
         ]
     );
 }
