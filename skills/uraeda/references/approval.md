@@ -1,38 +1,44 @@
 # Approval
 
-Applies the decisions of an approved spec, and records the human's review.
+Activates the decisions of an approved spec, and records the human's review.
 
-- **Runs when**: `spec.md` is `approved`, and a decision it links to is `proposed`, or has a
-  `## Proposed change (<spec folder>)` section for this spec
-- **Writes**: the decisions linked in the spec's **Decisions** section, and the record of the spec's
-  review
+- **Runs when**: `spec.md` is `approved`, and a decision named by an item of its `## Decisions`
+  section is `proposed`
+- **Writes**: the frontmatter of those decisions, and the record of the spec's review
 - **Ends at**: the [plan](plan.md) step
 
-The human's approval of the spec is the explicit request to apply its decisions. Only apply what the
-spec links to: leave other proposed decisions and changes unchanged.
+The human's approval of the spec is the explicit request to activate its decisions. The spec step
+already wrote each one in place on the branch, new or changed: the human approved them as they
+stand.
 
 ## Apply the decisions
 
-For each decision linked in the spec:
+Only the items of the spec's `## Decisions` section count: `- **New: ...**`, `- **Changed: ...**`,
+and `- **Removed: ...**`. The links of its "Relied on" table do not, even to a `proposed` decision.
+Leave every decision the items do not name unchanged.
+
+For each decision a New or Changed item names:
 
 - **`status: proposed`**: set `status: active`.
-- **`## Proposed change (<this spec folder>)`**: rewrite the decision to include the change, and
-  remove the section. If the change reverses an earlier choice, add the earlier choice to
-  **Alternatives considered**, with why it was abandoned. If the change is "Delete this decision",
-  delete the file.
+- **`approved-by`**: set it to the human who approved the spec, when you know who. Read it from the
+  human's message, or from the author of the `spec(<slug>): approve` commit. Otherwise leave it
+  empty: git history records the approval anyway.
 
-If the human edited a decision or a proposed change before approving the spec, keep their wording.
+Change nothing else in the file: if the human edited a decision before approving, their wording is
+what they approved. A Removed item needs nothing: the spec step already deleted its file on the
+branch.
 
-Set `approved-by` on each decision you apply only if you know who approved the spec, for example
-from the human's message. Otherwise leave it as it is: an approval tool or the human fills it in,
-and git history records the approval anyway.
+The approval commit, `spec(<slug>): approve`, is the branch's first commit whose spec reads
+`status: approved`. From there on, a decision edited again on the branch needs the human's approval
+again, and `ura check` warns `decision.unapproved` on it. This step's own two fields, `status` and
+`approved-by`, do not count as an edit.
 
 ## Record the review
 
 Turn the spec's `> [!IMPORTANT]` block into a record, if the human or a tool did not already, as
 `ura review --approve` does: see [Coming back to the human](../SKILL.md#coming-back-to-the-human).
-When an approved spec links no decision to apply, this step does not run, and the plan step records
-the review instead.
+When an approved spec lists no decision to activate, this step does not run, and the plan step
+records the review instead.
 
 ## Check the review settings
 

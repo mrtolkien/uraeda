@@ -135,16 +135,19 @@ Decisions hold the human's intent, and they change with it. A change may need on
 decision changed: that is normal work, approved in a round, not a reason to upgrade. A brand-new
 decision is a reason to upgrade.
 
-1. **Propose it.** In the same commit as the round, add a `## Proposed change (<folder>)` section at
-   the end of the decision, as the spec step's
-   [new decision or change](spec.md#new-decision-or-change) describes, with every rule as it would
-   read after the change. A change has no spec and no discovery file: who proposes it links the
-   change's proposal, and its why links the round's question. The round asks to approve it, with "A
-   (recommended). Approve the change" first, before any pull request.
-2. **On "A"**, rewrite the decision with the proposed change and remove the section, as
-   [approval](approval.md#apply-the-decisions) does, set `approved-by` to the human, and commit
-   `decision(<slug>): apply <topic>`. Then continue.
-3. **On another answer**, remove the section, and make the change within the decision as it is.
+1. **Propose it.** In the same commit as the round, edit the decision in place on the change's
+   branch, as the spec step's [new decision or change](spec.md#new-decision-or-change) describes:
+   `status: proposed`, `approved-by` empty. A change has no discovery file: its why links the
+   round's question. The round links the decision, whose change the human sees against the default
+   branch. It asks to approve it, with "A (recommended). Approve the change" first, before any pull
+   request.
+2. **On "A"**, set `status: active`, and `approved-by` to the human, as
+   [approval](approval.md#apply-the-decisions) does, and commit `decision(<slug>): apply <topic>`.
+   Then continue.
+3. **On another answer**, revert the edit: restore the decision's text at the branch's merge base
+   with the default branch,
+   `git checkout $(git merge-base HEAD <default>) -- specs/decisions/<topic>.md`. Then make the
+   change within the decision as it is.
 
 ## Upgrading
 
@@ -172,11 +175,10 @@ When one item of a batch needs it, the round offers to split that item out inste
      only, and the feature proposes it again. Revert them with `git revert --no-commit`, newest
      first, and commit `revert(<slug>): undo the change before its upgrade`, its body listing the
      reverted commits.
-  2. The branch's last commit moves the folder to `specs/drafts/<slug>/`, its files unchanged,
-     removes the `## Proposed change (<folder>)` sections the change added, the ones the revert
-     brought back included, and relinks **Now**'s entry to `drafts/<slug>/proposal.md`, moved first
-     after **Now**'s started entries and their blank line, since it is started no more:
-     `chore(<slug>): upgrade to a feature`.
+  2. The branch's last commit moves the folder to `specs/drafts/<slug>/`, its files unchanged. It
+     restores every decision the change edited to its text at the merge base. It relinks **Now**'s
+     entry to `drafts/<slug>/proposal.md`, moved first after **Now**'s started entries and their
+     blank line, since it is started no more: `chore(<slug>): upgrade to a feature`.
   3. Merge the branch into the default branch, from the main checkout. The human's "A" asks for the
      cleanup too, and `ura clean` cannot do it, since the merge leaves no record or change folder:
      remove the change's worktree and delete its branch as

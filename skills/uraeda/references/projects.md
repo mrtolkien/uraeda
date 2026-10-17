@@ -101,11 +101,12 @@ Do these only when a human asks.
   `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
 - **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
   `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
-  rounds, and the questions, answered or not, stay as they are. Delete the feature's `proposed`
-  decisions, and the `## Proposed change` sections it added. In the same commit, move the
-  `PRIORITIES.md` entry to the right section, with the reason when it is blocked, and link it to the
-  folder's `proposal.md`. Commit with `chore(<slug>): postpone <feature name>`, merge the branch
-  into the default branch, and delete it.
+  rounds, and the questions, answered or not, stay as they are. Revert the branch's edits to the
+  decisions: delete the ones it created. Restore the ones it changed or removed to their text at the
+  merge base with the default branch. In the same commit, move the `PRIORITIES.md` entry to the
+  right section, with the reason when it is blocked, and link it to the folder's `proposal.md`.
+  Commit with `chore(<slug>): postpone <feature name>`, merge the branch into the default branch,
+  and delete it.
 - **Drop**: delete the branch, and the `PRIORITIES.md` entry, after the human confirms.
 
 ## Finishing a feature
