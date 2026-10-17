@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.7.0 - 2026-10-17
+
+### Features
+
+- **[Auth and login for basic security](https://github.com/mrtolkien/uraeda/blob/v0.7.0/specs/done/2026-10-16-basic-security.md)**
+  ([#22](https://github.com/mrtolkien/uraeda/pull/22)): The human wanted to use Uraeda remotely,
+  from a phone and a laptop, with "basic security": a single user, easy to sign in from several
+  places, with a key that stays stable across restarts, "simple _but_ secure enough to start running
+  uraeda on a public, internet-accessible server". Until then the server's only protection was its
+  `Host` and `Origin` checks and the tailnet. It also had to close the hole the UI iteration flow
+  left open on purpose: any website could read a running Storybook preview by sending `Origin: null`
+  from a sandboxed frame.
+- **[Redesign sidebars and global interface](https://github.com/mrtolkien/uraeda/blob/v0.7.0/specs/done/2026-10-16-redesign-interface.md)**
+  ([#25](https://github.com/mrtolkien/uraeda/pull/25)): A functional pass over what every page
+  shares: the sidebars, the navigation, and the agents' statuses, before the look and feel pass. The
+  sidebar had to make the flow's hierarchy obvious, Inbox, Priorities, Changes, Features, and to
+  tell the human when they are needed; the statuses were iffy, "waiting on you" before a run had
+  fully ended, "pull request ready" before one was opened, and items that never followed the
+  workflow showed. Git writes took seconds with no feedback.
+- **[Redesign home, inbox, and priorities](https://github.com/mrtolkien/uraeda/blob/v0.7.0/specs/done/2026-10-16-redesign-priorities.md)**
+  ([#26](https://github.com/mrtolkien/uraeda/pull/26)): A functional pass on the pages every piece
+  of work starts from: home, the inbox, and the priorities. The most standard paths had to be the
+  fastest, and looking at them had to help the human organize the remaining work: editing a priority
+  took four clicks with its commit, a priority added from the phone's home took six taps to commit,
+  running and drafted entries looked like the rest, the inbox and the priorities looked and behaved
+  differently, and home was "a list of grey bullet points". The human also asked for a readable view
+  of the constitution and decisions, and for the whole to be one coherent UI, obvious to newcomers.
+- **[Settings page](https://github.com/mrtolkien/uraeda/blob/v0.7.0/specs/done/2026-10-16-settings-page.md)**
+  ([#24](https://github.com/mrtolkien/uraeda/pull/24)): The human did not want important values,
+  like allowed host names, set only by flags and `.env`, and needed a settings page anyway for the
+  many settings to come: a model per step, run options, review settings. The page had to be "clean
+  from the start", with categories and placeholders that show its structure. The settings live in "a
+  simple format that can be backed up/added to dotfiles simply", flags still change them for a
+  start, "useful for starting a server headless", and Uraeda's data, "it grew organically so far",
+  was to be organized coherently.
+
+### Changes
+
+- **[Faster story embeds](https://github.com/mrtolkien/uraeda/blob/v0.7.0/specs/done/2026-10-16-storybook-warmup.md)**
+  ([#23](https://github.com/mrtolkien/uraeda/pull/23)): Opening the settings page's spec froze the
+  whole site: its 12 story frames loaded at once, about 1,800 requests through the server, while the
+  worktree's Storybook was still starting. Story embeds now load their frames only once on screen,
+  and a feature's Storybook starts before its stories are embedded. One Storybook per worktree
+  stays, as the preview decision says: putting everything on the default branch until code was
+  weighed and dropped, since redesign mockups edit existing components.
+
 ## 0.6.0 - 2026-10-16
 
 ### Features
