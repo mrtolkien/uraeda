@@ -1266,7 +1266,7 @@ fn the_blocks_counts_are_the_rounds() {
 fn a_long_sentence_is_reported_on_its_line() {
     // Each row replaces a text of the round, `LONG` standing for the sentence of 31 words, and
     // gives the start of the line the warning is on, or none.
-    let rows: [(&str, &str, &str, Option<&str>); 11] = [
+    let rows: [(&str, &str, &str, Option<&str>); 13] = [
         (
             "an option",
             "**A (recommended). One.**",
@@ -1283,6 +1283,18 @@ fn a_long_sentence_is_reported_on_its_line() {
             "the second line of a paragraph",
             "A goal.\n",
             "A goal. Short.\nLONG\n",
+            Some("word1 "),
+        ),
+        (
+            "a line after a sentence holding the first word",
+            "A goal.\n",
+            "Short word1 here.\nLONG\n",
+            Some("word1 "),
+        ),
+        (
+            "a line after code holding the first word in a longer one",
+            "A goal.\n",
+            "Short here. `password1s`\nLONG\n",
             Some("word1 "),
         ),
         (
