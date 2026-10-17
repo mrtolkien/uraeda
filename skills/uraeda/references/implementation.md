@@ -1,7 +1,7 @@
 # Implementation
 
-Builds the plan one task at a time, one commit per task, then delivers the branch as a pull request
-for the human to review.
+Builds the plan wave by wave, the tasks of a wave at the same time, one commit per task, then
+delivers the branch as a pull request for the human to review.
 
 - **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
   checked and the branch has no pull request; or its pull request has changes requested
@@ -18,8 +18,9 @@ a chat: do not stop to check in between tasks. Git is the only memory: the check
 
 ## Before the first task
 
-1. Read `plan.md` in full. Its **Global constraints** apply to every task, and its **Review focus**
-   lists the behaviours the plan adds to the spec.
+1. Read `plan.md` in full. Its **Global constraints** apply to every task, its **Review focus**
+   lists the behaviours the plan adds to the spec, and its **Waves** say which tasks are built at
+   the same time.
 2. Read `spec.md` and, when present, `spec-review.md`: a human's approval comment supersedes the
    clause it explicitly changes. Check the plan's **Review comments** against them. This approved
    behaviour wins when the plan disagrees; conflicts with the constitution or active decisions still
@@ -35,18 +36,41 @@ a chat: do not stop to check in between tasks. Git is the only memory: the check
 5. Run the project's validation once, before any change: formatter, linter, type checker, tests. A
    failure that is already there is reported in the pull request, not fixed in passing.
 
-**Resuming**: start at the first task with an unchecked step; with `ura`, `ura next` names it.
-Commits are the only progress: a task whose boxes are checked is done, even if you do not remember
-doing it. Changes left uncommitted by an interrupted session are not trusted: read them, and redo
-that task from its first step.
+**Resuming**: start at the first wave with an unchecked step; with `ura`, `ura next` names its first
+unchecked task. The feature branch is the only progress: a task whose boxes are checked on it is
+done, even if you do not remember doing it. A task branch left by an interrupted session, whose
+commits check all its task's boxes, is merged as if its implementer had just finished; any other
+task branch, and changes left uncommitted, are not trusted: read them, delete them, and redo that
+task from its first step. A wave merged without its review, because the session ended, is reviewed
+now.
 
-## For each task, in order
+## For each wave
 
-One task at a time, in the plan's order: each task is built and tested on what the earlier ones
-made. If your harness can run agents, give each task to a fresh implementer agent, with
-[its brief](#the-implementers-brief), but not your session's history. Otherwise, implement it
-yourself. You coordinate: when an implementer stops or is interrupted, give the task to a fresh one,
-told to resume from the commits and the checked boxes, rather than building it in your own session.
+The plan's **Waves** group the tasks that can be built without seeing each other's code. Each wave
+is built on what the earlier waves made, so it starts once the previous wave is merged, not once it
+is reviewed: the review of a wave runs while the next one is built.
+
+1. **Build its tasks at the same time.** If your harness can run agents, give each task of the wave
+   to a fresh implementer agent, with [its brief](#the-implementers-brief) but not your session's
+   history, all at once. Each works in its own worktree, on a task branch made from the feature
+   branch as it is now, `<feature-branch>-task-N`, and follows [each task](#each-task). Task
+   branches stay local: they are never pushed. Otherwise, build the wave's tasks yourself, one after
+   the other, in the plan's order, on the feature branch.
+2. **Merge them, in the plan's order**, a task that finishes early waiting for those before it:
+   rebase its task branch on the feature branch, fast-forward the feature branch to it, then remove
+   its worktree and branch. The history stays linear, one commit per task, as if the tasks had been
+   built one after the other. A conflict outside the shared files the plan's **Waves** names means
+   the tasks were not independent: give the later task to a fresh implementer, to rebuild on the
+   merged code, and write a ruling. In `plan.md`, keep both sides' checked boxes.
+3. **Run the project's validation** on the merged wave. A failure its tasks passed alone is a
+   problem of their combination: give it to a fresh implementer, as [the code is wrong](#each-task)
+   says, before the next wave starts.
+4. **Start the review of the wave** in the background, as [review the waves](#review-the-waves)
+   says, and **start the next wave** without waiting for it.
+
+You coordinate: you merge, validate, and hand out the work. When an implementer stops or is
+interrupted, give its task to a fresh one, in the same worktree, told to resume from its commits and
+checked boxes, rather than building it in your own session.
 
 ### The implementer's brief
 
@@ -61,12 +85,14 @@ it open the rest at the sections it needs:
 - the discovery's map of the code the task touches: its
   [important reads](discovery.md#the-discovery-file) and likely changes;
 - what earlier tasks produced that it consumes: names, interfaces, files;
-- the findings left from the last review of the tasks, to fix first, when there are any: see
-  [review the tasks](#review-the-tasks).
+- the worktree and task branch it works in, when the wave has several tasks: it commits there, and
+  never merges, rebases, or touches the feature branch.
 
 Write the parts every task shares once, in a file outside the repository, and give each implementer
 its path with its task's own parts. The brief is not workflow state: a resumed session writes it
 again from the repository.
+
+### Each task
 
 1. **Read the task**, all of it, even one you remember: its text has the exact values. Check its
    **Consumes** against what the earlier tasks actually produced in the code, and trace the affected
@@ -111,31 +137,33 @@ again from the repository.
 4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
    plan's commit message. Check a box only for a step that ran, with the output the plan expects:
    the next agent trusts it without running it again.
-5. **Review**, after every second or third task, or after a risky one: see
-   [review the tasks](#review-the-tasks).
 
 In the messages that report your work, link each story you wrote or changed, alone in its paragraph,
 with a blank line before and after, as a [story link](conventions.md#markdown): Uraeda shows it live
 in the session, where the human can try it and comment on it.
 
-### Review the tasks
+### Review the waves
 
-When your harness can run a fresh reviewer agent, review the tasks as they are built, so their
-problems are fixed while their context is fresh, not all at the final review. Review every two or
-three tasks, on the diff of their commits, and a risky task on its own: one that changes security,
-the format of stored data or its migration, concurrency, or a rule several callers share. Give the
-reviewer the tasks' text, the spec's sections they implement and its approval comments, the global
-constraints, and the diff. It derives expected behaviour from the approved requirements before
-checking the implementation and tests, then reviews the changed responsibilities and their callers.
-It gives two verdicts, spec compliance first, then quality, with the criteria of
-[Review the branch](#review-the-branch) scaled to the tasks, and flags what the tasks grew, not
-sizes that were already there ([extract, don't grow](code-quality.md#extract-dont-grow)).
+When your harness can run a fresh reviewer agent, review each wave once it is merged, so its
+problems are fixed while their context is fresh, not all at the final review. The review covers
+every task the wave merged, on the diff of their commits, with the fix commits merged since the last
+review; a risky task, one that changes security, the format of stored data or its migration,
+concurrency, or a rule several callers share, gets a reviewer of its own, at the same time. The
+review runs in the background while the next wave is built. Give the reviewer the tasks' text, the
+spec's sections they implement and its approval comments, the global constraints, and the diff. It
+derives expected behaviour from the approved requirements before checking the implementation and
+tests, then reviews the changed responsibilities and their callers. It gives two verdicts, spec
+compliance first, then quality, with the criteria of [Review the branch](#review-the-branch) scaled
+to the tasks, and flags what the tasks grew, not sizes that were already there
+([extract, don't grow](code-quality.md#extract-dont-grow)).
 
 Its findings are [graded](#grade-the-findings) like the final review's: only the critical and
-important ones are fixed. Give them to the next task's implementer, to fix first, each behaviour fix
-with a test that fails first, in its own commit; after the last task, to a fresh implementer.
-Structural fixes must keep behavioural tests passing and satisfy explicit architectural constraints.
-A finding still open after two reviews of the tasks is ruled on, in `rulings.md`.
+important ones are fixed. Once the review ends, fix them at the next point between two waves, after
+a wave is merged and before the next one starts: give them to a fresh implementer on the feature
+branch, each behaviour fix with a test that fails first, in its own commit. After the last wave, fix
+them as soon as the review ends. The next review checks those fix commits with its wave. Structural
+fixes must keep behavioural tests passing and satisfy explicit architectural constraints. A finding
+still open after two reviews is ruled on, in `rulings.md`.
 
 ### Rulings
 
@@ -164,8 +192,9 @@ needs:
 - An irreversible or destructive operation, a security-sensitive action, or a side effect outside
   the branch: deleting real data, pushing to another branch, publishing
 
-Never work around it. The tasks already committed stay checked. Once the human answers, the spec is
-amended and approved, and the plan revised: the unchecked tasks follow the new plan.
+Never work around it. Let the other implementers of the wave finish, and merge their tasks: the
+tasks already committed stay checked. Once the human answers, the spec is amended and approved, and
+the plan revised: the unchecked tasks follow the new plan.
 
 ## Final review
 
@@ -202,7 +231,7 @@ branch, there is nothing to do.
 
 ### Review the branch
 
-Once the branch is caught up, review the whole branch, even when each task was reviewed. Give a
+Once the branch is caught up, review the whole branch, even when each wave was reviewed. Give a
 fresh reviewer agent, on the most capable model available, the diff since the branch started, the
 spec and its approval comments, the plan, its **Review focus** to check one item at a time, and
 `rulings.md`. Without a reviewer agent, review the branch yourself as a separate pass, and say so in
@@ -298,5 +327,6 @@ stays `approved`: the human asked for the change.
 ## Commit
 
 One commit per task, with the plan's message, following [Commits](conventions.md#commits): its code,
-its tests, and its checked boxes in `plan.md`. A structural step is a commit of its own, before.
-Fixes from reviews are separate commits with the same scope.
+its tests, and its checked boxes in `plan.md`. A structural step is a commit of its own, before. The
+tasks of a wave are rebased onto the feature branch in the plan's order, so its history reads as if
+they were built one after the other. Fixes from reviews are separate commits with the same scope.

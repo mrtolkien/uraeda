@@ -70,6 +70,14 @@ alternative rejected. "None." otherwise.]
 [Optional: only when the spec was approved with comments, each comment of `spec-review.md`, and the
 task that carries it out. State which spec clause it supersedes when it explicitly changes one.]
 
+## Waves
+
+The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
+
+1. Task 1: [why it comes alone, such as a data change every later task builds on]
+2. Tasks [2] and [3]: [the different parts of the code each touches, and any shared file each adds
+   its own part to]
+
 ---
 
 ## Task 1: [Component or deliverable]

@@ -106,14 +106,33 @@ task boundaries:
   deliverable needs them. A helper is created in the first task whose tests use it.
 - Split only where a reviewer could meaningfully reject one task while approving its neighbour.
 - Order the tasks so each one is built and tested on what the earlier ones made: data changes come
-  before the code that relies on them.
+  before the code that relies on them. Then group them into [waves](#waves).
 - When the spec names unverified outside behaviour, the first task checks it, with a test through
   the real library, browser, or tool. If the check fails, the build stops there and goes back to the
   human, before any work relies on it.
 - Mark the risky tasks, the ones that change security, the format of stored data or its migration,
   concurrency, or a rule several callers share, with a **Risky** line saying why: each is
-  [reviewed on its own](implementation.md#review-the-tasks).
+  [reviewed on its own](implementation.md#review-the-waves).
 - Each task ends with an independently testable deliverable, and leaves the project working.
+
+## Waves
+
+The implementation builds the tasks of a wave at the same time, each in its own worktree, then
+merges them and reviews them while the next wave starts: see
+[implementation](implementation.md#for-each-wave). A wave is a set of tasks that can be built
+without seeing each other's code:
+
+- **No task consumes another task of its wave**: everything in its **Consumes** comes from earlier
+  waves.
+- **They touch different parts of the code**: no file in common, except separate additions to a
+  shared file, such as each task adding its own helpers to a test helpers module, which a merge
+  keeps side by side. Two tasks that change the same function, type, or rule are in different waves.
+- **Each one leaves the project working** on its own, on top of the earlier waves.
+
+Number the tasks in wave order, so the tasks of a wave are consecutive. A task that the next tasks
+all build on, such as a data change, is a wave on its own. Do not split or merge tasks to make
+waves: draw the tasks first, then group them. A plan whose tasks all depend on each other has one
+task per wave, and is built in sequence.
 
 ## Step granularity
 
@@ -184,6 +203,10 @@ exception the human accepted.]
 [Only when the spec was approved with comments: each comment of `spec-review.md`, and the task that
 carries it out.]
 
+## Waves
+
+[The tasks grouped into waves, in order, and why the tasks of each wave are independent.]
+
 ---
 
 [The tasks, in order.]
@@ -218,6 +241,9 @@ What goes in each section:
   limit, for the plan's review to approve. Each row says why it is needed, and the simpler
   alternative rejected. Name the callers, shared rule, or approved variation it serves: unspecified
   future features do not justify an abstraction. "None." when there is none.
+- **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
+  the shared files they each add to, if any. The implementation reads this section to decide what
+  runs at the same time.
 
 Add `data-model.md` when the feature adds or changes entities beyond a few fields: fields,
 relationships, validation rules, state transitions. Smaller changes stay in the spec's **Data**,
@@ -348,8 +374,9 @@ fix what you find inline. This is a checklist you run yourself.
    test added to the owning task. An empty section means you checked and found none, not that you
    skipped the check.
 6. **Order**: each task can be built and tested with what the earlier tasks made, and each expected
-   failure is the first one its run will actually hit. Outside behaviour the spec marks unverified
-   is checked by the first task, and each risky task has its **Risky** line.
+   failure is the first one its run will actually hit. No two tasks of a wave consume each other or
+   change the same function, type, or rule. Outside behaviour the spec marks unverified is checked
+   by the first task, and each risky task has its **Risky** line.
 7. **Proportion**: compare the plan's length to the code it describes. If code blocks are most of
    the document, replace private bodies with responsibilities, required contracts, test names, and
    assertions. Keep instructions that change a decision or make an outcome checkable; link shared
@@ -393,8 +420,8 @@ Stop when the plan would need:
 - **A new limit or rule** the spec does not state, like a maximum, that users would notice.
 
 Do not stop for what you can settle within the spec, the constitution, and the active decisions:
-names, files, libraries already in the project, test helpers, the order of tasks, an algorithm the
-spec's data already determines.
+names, files, libraries already in the project, test helpers, the order of tasks and their waves, an
+algorithm the spec's data already determines.
 
 To stop: do not commit a `plan.md`. Start a new round instead, following
 [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions): a new
