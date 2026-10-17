@@ -168,7 +168,7 @@ git commit -m "chore(access-storybook): an older Storybook ignores insecureIfram
   `insecureIframeMessaging: true` written last: the project's object, or what its preset function
   returns from `(value, options)`, or `value` when the project has none.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test.each([
@@ -221,13 +221,13 @@ The break each test catches:
 - Turned off: the project's key spread after the helper's (review focus 2).
 - Without the variable: the setting added outside Uraeda (US2.3, SC-003).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/storybook-preview.test.ts`
 - Expected: FAIL, `wrapped.security is not a function` on the five rows; the last test passes, as it
   pins preserved behaviour.
 
-- [ ] **Step 3: Implement `security` in `uraedaPreview`**
+- [x] **Step 3: Implement `security` in `uraedaPreview`**
 
 In the object returned under `URAEDA_PREVIEW_BASE`, add `security` as described in **Produces**.
 Reuse the way `run` calls a project's preset, without changing what `run` returns for the heads. Add
@@ -239,12 +239,12 @@ clause saying it turns on iframe messaging.
 In `proxy.ts`, add to `upstreamSearch`'s comment a link to the rule: "the
 [stack](/specs/decisions/stack.md) decision's rule". No code change.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp check` and `nix develop -c vp test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills/uraeda/assets/storybook/uraeda-preview.js packages/server/src/preview/proxy.ts \

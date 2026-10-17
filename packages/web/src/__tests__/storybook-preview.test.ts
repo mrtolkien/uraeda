@@ -160,3 +160,42 @@ test("the config's own heads and viteFinal still run", async () => {
   expect(final.plugins).toContain(own);
   expect(final.base).toBe(BASE);
 });
+
+test.each([
+  ["no security of its own", vite, undefined, { insecureIframeMessaging: true }],
+  [
+    "its own security, kept",
+    { ...vite, security: { insecureRemoteIframeEmbed: true } },
+    undefined,
+    { insecureIframeMessaging: true, insecureRemoteIframeEmbed: true },
+  ],
+  [
+    "its own security as a preset function, given the earlier value",
+    { ...vite, security: (value?: object) => ({ ...value, insecureRemoteIframeEmbed: true }) },
+    { earlier: true },
+    { earlier: true, insecureIframeMessaging: true, insecureRemoteIframeEmbed: true },
+  ],
+  [
+    "the earlier presets' security, without one of its own",
+    vite,
+    { earlier: true },
+    { earlier: true, insecureIframeMessaging: true },
+  ],
+  [
+    "its own insecureIframeMessaging turned off",
+    { ...vite, security: { insecureIframeMessaging: false } },
+    undefined,
+    { insecureIframeMessaging: true },
+  ],
+])("under Uraeda, %s, iframe messaging is on", async (_, config, earlier, expected) => {
+  const wrapped = uraedaPreview(config, { URAEDA_PREVIEW_BASE: BASE });
+
+  expect(await wrapped.security(earlier, {})).toEqual(expected);
+});
+
+test("without the variable, a project's security is left as it is", () => {
+  const config = { ...vite, security: { insecureRemoteIframeEmbed: true } };
+
+  expect(uraedaPreview(config, {})).toBe(config);
+  expect(config.security).toEqual({ insecureRemoteIframeEmbed: true });
+});
