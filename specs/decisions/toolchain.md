@@ -1,174 +1,79 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: wrench
 ---
 
 # Toolchain
 
-One command, `vp run ready`, runs every format check, lint, type check, test, and build of the
-repository, as a graph of cached Vite Task tasks: it only reruns the checks whose inputs changed,
-and runs independent ones in parallel. CI runs the same tasks, uncached, across parallel jobs inside
-the Nix dev shell, on Linux x64. Every tool is pinned, no test is ever retried, and coverage is
-available on demand. The web UI is compiled with React Compiler, so its components are memoized by
-the build, not by hand.
+One command checks the whole repository and reruns only what a change can affect, so an agent runs
+it after every task without losing time. CI runs the same checks uncached, so a green local run
+means a green CI. Tools are pinned, tests are never retried, coverage is available on demand, and
+the web UI is memoized by its compiler, not by hand.
 
 ## Rules
 
-- `vp run ready` MUST run every check of the repository, except the CI-only checks below. A new
-  language, package, crate, or tool MUST add its checks to it. Checked by review.
-- Each check of `ready` MUST be a task of `vite.tasks.ts`, cached by Vite Task, with its inputs
-  listed in `cache.input`: a check MUST NOT rely on automatic input tracking. Checked by the test of
-  the toolchain's configuration.
-- Test tasks loading the native binding MUST track its Rust sources as inputs as well as their
-  TypeScript sources. Cached checks MUST track the pinned toolchain they run with. Generated reports
-  and failure evidence MUST NOT invalidate checks. Checked by the toolchain tests.
-- CI MUST run every check of `ready`, without Vite Task's cache, inside the `flake.nix` dev shell,
-  on Linux x64, split across parallel jobs, and MUST fail when a job leaves the working tree
-  changed. Other platforms are built by the release matrix, not validated. Checked by the test of
-  the toolchain's configuration, which compares `ready`'s tasks with the tasks CI's jobs run.
-- Checks too slow or too secondary for every local run MAY run on CI only: today the Neovim plugin's
-  tests, the release plan, and the release binary's size. Each MUST stay runnable locally with
-  `vp run <task>`. Checked by review.
-- Rust code MUST pass `cargo fmt --check`, `cargo clippy` with warnings as errors, and its tests,
-  run with cargo-nextest. Checked by `ready`.
-- A bare `cargo nextest run` or `cargo test` MUST test every crate except the Node binding, through
-  the workspace's `default-members`; the binding's tests MUST run from TypeScript. `--workspace` is
-  not supported: selecting the binding turns on the core's `napi` feature for every crate, and their
-  test binaries then fail to link napi's symbols, which only Node provides. Checked by `ready`.
-- Library crates MUST set `doctest = false`, since cargo-nextest does not run doctests. Checked by
-  the test of the toolchain's configuration.
-- Each task running tests MUST run its command through `scripts/test-run.ts`, in a temporary folder
-  of its own, removed when the command ends, passed or failed. The browser tests' tasks MUST also
-  take its machine-wide lock, so at most two browser runs execute at once across checkouts, and the
-  others wait. Checked by the test of the toolchain's configuration.
-- Tests and the servers and previews they start MUST NOT listen on a fixed port: they take one from
-  `freePort`, below the ports the system hands out by itself. Checked by the test of the toolchain's
-  configuration, for the test runners' configurations and the tasks, and by review.
-- The Vite configs of the packages loading the native binding MUST import `fresh-binding` first, so
-  `vp dev` and the tests rebuild a binding older than the Rust core before loading it. Checked by
-  the test of the toolchain's configuration.
-- Test runners MUST NOT retry a failed test: cargo-nextest, Vitest, and mini.test run each test
-  once. A test that fails without a bug MUST be fixed or rewritten in the pull request that finds
-  it. Checked by the test of the toolchain's configuration, and by review.
-- Coverage of the Rust and TypeScript unit tests MAY be collected with `vp run coverage`. It MUST
-  stay outside `ready` and CI: an instrumented second run is optional diagnostic work, not a merge
-  gate. A coverage drop MUST NOT fail a check. Checked by review.
-- Vitest MUST bound its worker count to at most four and no more than the machine's available CPUs,
-  keeping file isolation. Browser failures MUST retain screenshots, uploaded by CI even when the
-  test command fails, without retrying the test. Full Playwright traces MAY be collected with
-  `URAEDA_TEST_TRACE=1` and an uncached browser task; recording every passing test is too costly for
-  default validation. Checked by review.
-- A newer revision MUST cancel an older CI run on the same branch, including `main`: old revisions
-  have no coverage artifact to preserve. Checked by review.
-- The Rust toolchain MUST be pinned in `rust-toolchain.toml`, with the 2024 edition; Node and pnpm
-  MUST be pinned in `package.json`'s `devEngines`; cargo-nextest and cargo-llvm-cov MUST be pinned
-  by the flake. Checked by review.
-- Files generated by napi-rs MUST be committed, and MUST NOT be edited by hand. Checked by CI's
-  clean working tree.
-- Windows MUST NOT be assumed supported until a decision adds it. Checked by review.
-- The web UI MUST be compiled with React Compiler, in its build, its dev server, and its tests,
-  through `babel-plugin-react-compiler` with `@vitejs/plugin-react`'s `reactCompilerPreset` and
-  `@rolldown/plugin-babel`. These packages and `@babel/core` MUST be pinned to exact versions.
-- Web UI code SHOULD NOT add `memo`, `useMemo`, or `useCallback` to make rendering faster: the
-  compiler memoizes. They MAY stay where a value's identity matters to an effect or a subscription.
-- New web UI code MUST follow the Rules of React that the compiler relies on: no reading or writing
-  a ref's `current` during render, and no mutation of props, state, or values a render captured.
-  Code that changes an existing component that breaks them SHOULD fix it.
+- `vp run ready` MUST run every check of the repository, each cached on inputs it lists itself, the
+  binding's Rust sources and the pinned toolchain included, never on reports or failure evidence;
+  checks too slow for every run MAY run on CI only, and stay runnable locally. Checked by the
+  toolchain configuration's test.
+- A new language, package, crate, or tool MUST add its checks to `ready`. Checked by review.
+- CI MUST run every check of `ready` uncached, in the Nix dev shell, on Linux x64, cancel an older
+  run of the same branch, and fail when a job leaves the working tree changed; Windows MUST NOT be
+  assumed supported. Checked by the toolchain configuration's test.
+- Rust code MUST pass rustfmt, clippy with warnings as errors, and its tests under cargo-nextest on
+  the workspace's default members, never `--workspace`, which links the napi binding into every test
+  binary; the binding's tests run from TypeScript. Checked by `ready`.
+- Tests MUST stay isolated between checkouts on one machine: temporary folders they remove, no fixed
+  port, a shared limit on browser runs, and at most four Vitest workers. Checked by the toolchain
+  configuration's test.
+- Test runners MUST NOT retry a failed test, a browser failure MUST keep its screenshots, uploaded
+  by CI, and a test failing without a bug MUST be fixed in the pull request that finds it. Checked
+  by the toolchain configuration's test and review.
+- Every tool and runtime MUST be pinned, in `rust-toolchain.toml`, `package.json`'s `devEngines`, or
+  the flake, and files generated by napi-rs MUST be committed, never edited by hand. Checked by
+  review and CI's clean working tree.
+- The web UI MUST be compiled by `babel-plugin-react-compiler` through `@vitejs/plugin-react`'s
+  preset, pinned exactly, in its build, dev server, and tests. Checked by review.
+- New web UI code MUST follow the Rules of React, and SHOULD NOT memoize by hand for speed; `memo`
+  MAY stay where a value's identity matters. Checked by review.
+- Coverage MAY be collected with `vp run coverage`, outside `ready` and CI, and a coverage drop MUST
+  NOT fail a check. Checked by review.
 
 ## Why
 
-The human asked for a single root command running every test and check
-([proposal](../done/2026-10-10-stack-decision.md)), run through `vp` so it stays the only entry
-point ([Q9](../done/2026-10-10-stack-decision.md#q9-which-single-command-runs-every-check)), a Nix
-dev shell that CI uses
-([Q10](../done/2026-10-10-stack-decision.md#q10-how-do-contributors-and-agents-get-the-toolchain)),
-and Linux and macOS first
-([Q5](../done/2026-10-10-stack-decision.md#q5-which-platforms-are-supported)), validated on Linux
-x64 only, as the human asked when reviewing the [spec](../done/2026-10-10-stack-decision.md). Agents
-check their own work: one command they cannot forget a part of keeps them honest
-([monorepo tooling](../done/2026-10-10-stack-decision.md)).
-
-An agent runs `ready` after every task, and `ready` reran every step one after the other, so a
-feature lost an hour to checks its changes could not affect; CI took up to 15 minutes in one job on
-4 vCPUs, and 43 of its last 100 runs failed ([proposal](../done/2026-10-14-testing-review.md),
-[what fails on CI](../done/2026-10-14-testing-review.md#q2-what-happens-when-a-test-fails-without-a-bug)).
-The human chose cached tasks over a narrower rule in the skill
-([Q4](../done/2026-10-14-testing-review.md#q4-how-does-a-task-skip-the-work-its-change-cannot-affect)),
-parallel CI jobs without path filters
-([Q5](../done/2026-10-14-testing-review.md#q5-how-should-ci-run-the-checks)), cargo-nextest for its
-process per test and timeouts
-([Q6](../done/2026-10-14-testing-review.md#q6-should-rust-tests-run-with-cargo-nextest)), no retries
-([Q2](../done/2026-10-14-testing-review.md#q2-what-happens-when-a-test-fails-without-a-bug)), the
-Neovim tests out of the default run, and a coverage report without thresholds
-([Q1](../done/2026-10-14-testing-review.md#q1-what-does-this-feature-cover),
-[Q1.A](../done/2026-10-14-testing-review.md#q1a-what-does-coverage-do-once-it-is-measured)).
-
-The [October 17 CI review](/docs/testing-review-2026-10-17.md) found an instrumented duplicate of
-the test suite could fail `main` after all validation jobs passed. The human explicitly made
-coverage optional. It stays available on demand, and CI validates the latest revision with failure
-evidence instead of preserving every revision's coverage artifact. The review also found that test
-caches missed changes to the Rust binding sources and toolchain pins, while generated reports
-invalidated unrelated checks; the task inputs and regression tests now cover those cases.
-
-Several worktrees run their tests at once on one machine. Their temporary folders filled a 16 GB
-`/tmp`, which read as flaky tests; their servers and previews took the same ports; their browser
-tests, all at once, slowed each other past their timeouts; and after a pull, `vp dev` and the tests
-ran, or refused, a binding built from the old core. The human asked for each run to clean up after
-itself, for free ports, for a cap on browser runs across checkouts, and for the binding to be
-rebuilt instead of refused.
-
-The web UI is compiled with React Compiler: typing a review comment redrew the whole spec at each
-keystroke, and nothing in the web UI was memoized. The human chose to fix it for every page with
-React Compiler, rather than by hand where it shows
-([Q7](../done/2026-10-14-text-inputs.md#q7-should-the-comment-lag-be-fixed-in-the-review-page-or-for-the-whole-ui),
-[the comment lag](../done/2026-10-14-text-inputs.md#q7-should-the-comment-lag-be-fixed-in-the-review-page-or-for-the-whole-ui)).
-The Babel route runs the compiler React ships as stable; `@vitejs/plugin-react` marks its Rust port
-experimental.
+Agents check their own work, and one command they cannot forget a part of keeps them honest
+([the single command](../done/2026-10-10-stack-decision.md#q9-which-single-command-runs-every-check)).
+Caching, parallel CI jobs, nextest, and no retries fix slow runs and failing CI at their cause
+([what fails on CI](../done/2026-10-14-testing-review.md#q2-what-happens-when-a-test-fails-without-a-bug)).
+Several worktrees test on one machine at once, so runs must not collide. The
+[October 17 CI review](/docs/testing-review-2026-10-17.md) found that an instrumented second run
+could fail `main` after every check passed, so coverage became optional. React Compiler fixed typing
+lag on every page at once
+([the comment lag](../done/2026-10-14-text-inputs.md#q7-should-the-comment-lag-be-fixed-in-the-review-page-or-for-the-whole-ui)).
 
 ## Alternatives considered
 
-- A `justfile` with a `ready` recipe, the pattern of Vite+, oxc, and Biome: readable recipes, but a
-  second entry point next to `vp`.
-- `ready` as one `package.json` script, the first choice: simple, but never cached, and its steps
-  ran one after the other.
-- One CI job running `vp run ready`, the first choice: simple, but bound by one runner's 4 vCPUs,
-  with the browser tests as the critical path.
-- `cargo test`, the first choice: no new tool, but tests share a process, so one test's environment
-  races another's, and a hung test hangs the run.
-- Retries reporting flaky tests: they hide real races, which the tests had already found
-  ([Google](../done/2026-10-14-testing-review.md)).
-- The Rust port of the compiler, `oxc-transform-react`, through `react({ compiler: true })`: one
-  package instead of three, but experimental.
-- Hand memoization of the slow pages only: no dependency, but each large page fixed one by one.
+- A `justfile` with a `ready` recipe: a second entry point next to `vp`.
+- One CI job running `ready`: bound by one runner's CPUs.
+- `cargo test`: tests share a process, so they race, and a hung test hangs the run.
+- Retries reporting flaky tests: they hide real races.
+- The compiler's experimental Rust port, or memoizing slow pages by hand: not stable, or one page at
+  a time.
 
 ## Consequences
 
-- A green `vp run ready` locally runs the same validation as CI, apart from the CI-only checks.
-  Different resource limits, generated files left uncommitted, a race, or a missing cache input can
-  still produce a different result; CI's uncached run remains necessary.
-- A task's inputs are a second list to keep with the code: a test reading a new folder needs it
-  added, or `ready` reuses a stale result locally.
-- CI sets up the dev shell once per job: more runner minutes, less waiting.
-- A change breaking only the Neovim plugin is found on CI, not by `ready`.
-- A browser test run waits while two others run on the machine, and says so; on CI, alone on its
-  machine, it never waits.
-- A test reading `os.tmpdir()` across runs finds nothing there: each run starts with an empty one.
+- A task's inputs are a second list to keep with the code. A missing one reuses a stale result
+  locally, and only CI catches it.
 - Coverage is collected only when someone asks for it, and can go down unnoticed.
-- A bug specific to macOS or arm64 is only caught by the release builds, or by a contributor.
-- Generated declarations show up in diffs, so a reviewer sees every change to the types crossing
-  from Rust.
-- The web package gains four development dependencies, and its build runs Babel on its components.
-- A component that breaks the Rules of React is silently left uncompiled, and runs as before.
-- The compiler's upgrades may change how components re-render: they are deliberate, like Astryx's.
+- Bugs specific to macOS or arm64 surface late, in release builds, and Windows stays unsupported
+  until a decision adds it.
+- A component that breaks the Rules of React is silently left uncompiled.
 
 ## Applies to
 
-- [`packages/web/vite.config.ts`](/packages/web/vite.config.ts), and web UI code, for React Compiler
 - [`package.json`](/package.json), [`vite.config.ts`](/vite.config.ts), [`flake.nix`](/flake.nix),
-  [`rust-toolchain.toml`](/rust-toolchain.toml), `.config/nextest.toml`,
-  [`scripts/test-run.ts`](/scripts/test-run.ts),
-  [`free-port.ts`](/packages/server/src/free-port.ts),
-  [`fresh-binding.ts`](/packages/server/src/fresh-binding.ts),
-  [`.github/workflows/`](/.github/workflows/), every feature that adds a package, a crate, or a
-  tool, and every feature that adds a test reading files outside its own package or crate
+  [`rust-toolchain.toml`](/rust-toolchain.toml), [`scripts/test-run.ts`](/scripts/test-run.ts),
+  [`packages/web/vite.config.ts`](/packages/web/vite.config.ts),
+  [`.github/workflows/`](/.github/workflows/), and every feature that adds a package, a crate, a
+  tool, or a test reading files outside its own package

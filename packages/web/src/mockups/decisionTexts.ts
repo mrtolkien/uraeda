@@ -43,8 +43,8 @@ changes must be upgraded in place, from one place.
 
 /** Task storage as the mockup's spec would leave it, on its branch. */
 export const TASK_STORAGE_AFTER = `---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: database
 ---
 
@@ -56,9 +56,8 @@ so users never lose their tasks when the app updates.
 
 ## Rules
 
-- Data MUST be stored in IndexedDB, through \`src/store/\`. Checked by review.
-- Components MUST NOT call IndexedDB or the \`idb\` library directly. Checked by ESLint's
-  \`no-restricted-imports\` and \`no-restricted-globals\` in \`src/components/\`.
+- Data MUST be stored in IndexedDB, only through \`src/store/\`: components never reach the database
+  themselves. Checked by ESLint's \`no-restricted-imports\` in \`src/components/\`.
 - A change to stored data MUST come with a versioned upgrade in \`src/store/upgrades.ts\`, tested on
   data saved by every earlier version. Checked by the upgrade's own test.
 - An upgrade that cannot read a saved value MUST clear it and log it, and MUST NOT delete a task.
@@ -114,4 +113,55 @@ You chose a single task whose date moves: "we're a todo app, not a calendar".
 ## Applies to
 
 - [The task store](/src/store/tasks.ts), and any feature that reads due dates or completion
+`;
+
+/** A decision the mockup's spec removes: its text on the default branch. */
+export const TASK_HISTORY = `---
+status: active
+approved-by: mrtolkien
+icon: history
+---
+
+# Task history
+
+Completed tasks stay in a history that users can browse and restore from, so nothing done is lost.
+
+## Rules
+
+- Completing a task MUST keep it, marked done, in the history. Checked by the store's tests.
+- The history MUST be browsable by day. Checked by the UI tests.
+`;
+
+/** Due dates on the default branch, which the mockup's branch changes without listing it. */
+export const DUE_DATES_BEFORE = `---
+status: active
+approved-by: mrtolkien
+icon: calendar-clock
+---
+
+# Due dates
+
+Due dates are calendar days, like \`2026-10-12\`, without a time or a timezone.
+
+## Rules
+
+- Due dates MUST be stored as \`YYYY-MM-DD\` strings. Checked by the \`CalendarDay\` type.
+- Date arithmetic MUST go through \`src/lib/dates.ts\`. Checked by review.
+`;
+
+/** Due dates as the mockup's branch leaves it, though its spec does not list the change. */
+export const DUE_DATES_AFTER = `---
+status: proposed
+approved-by:
+icon: calendar-clock
+---
+
+# Due dates
+
+Due dates are calendar days, like \`2026-10-12\`, without a time or a timezone.
+
+## Rules
+
+- Due dates MUST be stored as \`YYYY-MM-DD\` strings. Checked by the \`CalendarDay\` type.
+- Date arithmetic MUST go through \`src/lib/dates.ts\` or \`date-fns\`. Checked by review.
 `;

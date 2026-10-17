@@ -1,6 +1,7 @@
-// TEMPORARY: the user stories of the spec page's mockups for the specs redesign, drawn by
-// `SpecMockup.tsx`: each story as a card, its scenarios as Given, When, and Then rows, or as a band
-// of the document, its scenarios as today's list.
+// TEMPORARY: the panels and user stories of the spec page's mockups for the specs redesign, drawn
+// by `SpecMockup.tsx`. On a wide screen, a panel is a card. On the phone, it has no card and takes
+// the screen's width, its title sticking at the top under its breadcrumbs while it scrolls. Each
+// story is a panel, its scenarios as Given, When, and Then rows.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
@@ -13,24 +14,21 @@ import {
   fontWeightVars,
   radiusVars,
   spacingVars,
+  typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import { useWidthClass } from "../layout/useWidthClass.ts";
 import { plain, Spans } from "../Spans.tsx";
 
-/** How the page lays out the spec's parts. */
-export type SpecLayout = "cards" | "document";
-
 const styles = stylex.create({
-  band: {
-    backgroundColor: colorVars["--color-background-muted"],
-    borderRadius: radiusVars["--radius-element"],
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-3"],
-  },
   contents: { display: "contents" },
+  crumbs: {
+    color: colorVars["--color-text-secondary"],
+    fontSize: typeScaleVars["--text-supporting-size"],
+  },
   mockup: {
     alignItems: "center",
     backgroundColor: colorVars["--color-background-muted"],
@@ -53,6 +51,20 @@ const styles = stylex.create({
   step: {
     color: colorVars["--color-text-secondary"],
     fontWeight: fontWeightVars["--font-weight-semibold"],
+  },
+  stickyHead: {
+    // On the phone, the panel's title and breadcrumbs stay at the top while it scrolls, over the
+    // page's background, to the screen's edges.
+    backgroundColor: colorVars["--color-background-body"],
+    borderBlockEndColor: colorVars["--color-border"],
+    borderBlockEndStyle: "solid",
+    borderBlockEndWidth: spacingVars["--spacing-0-5"],
+    insetBlockStart: 0,
+    marginInline: `calc(-1 * ${spacingVars["--spacing-3"]})`,
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-3"],
+    position: "sticky",
+    zIndex: 1,
   },
 });
 
@@ -119,7 +131,6 @@ function Scenarios({ items }: { items: ReadonlyArray<Block> }) {
 function storyParts(document: Document, ids: ReadonlyArray<number>) {
   const journey: Array<number> = [];
   let mockup: string | undefined;
-  let mockupId: number | undefined;
   let key: Array<Block> = [];
   let more: Array<Block> = [];
   let into: "key" | "more" | undefined;
@@ -128,7 +139,6 @@ function storyParts(document: Document, ids: ReadonlyArray<number>) {
     const text = block?.kind === "paragraph" ? plain(block.spans) : "";
     if (storyLabel(block)) {
       mockup = storyLabel(block);
-      mockupId = id;
     } else if (text === "Key scenarios:") {
       into = "key";
     } else if (text === "More scenarios:") {
@@ -144,38 +154,109 @@ function storyParts(document: Document, ids: ReadonlyArray<number>) {
       journey.push(id);
     }
   }
-  return { journey, key, mockup, mockupId, more };
+  return { journey, key, mockup, more };
 }
 
-/** A user story, as a card or a band of the document. */
+/** A panel's head: its badges, its title, and on the phone, the breadcrumbs above it. */
+function PanelHead({
+  badges,
+  crumbs,
+  title,
+}: {
+  badges?: ReactNode;
+  crumbs: ReadonlyArray<string>;
+  title: string;
+}) {
+  const wide = useWidthClass() === "wide";
+  return (
+    <VStack gap={1}>
+      {!wide && crumbs.length > 0 && (
+        <span {...stylex.props(styles.crumbs)}>{crumbs.join(" › ")}</span>
+      )}
+      <HStack align="center" gap={2}>
+        {badges}
+        <Heading level={3}>{title}</Heading>
+      </HStack>
+    </VStack>
+  );
+}
+
+/**
+ * A part of the spec: a card on a wide screen, with `variant`'s tint; on the phone, no card, its
+ * head sticking at the top with its breadcrumbs.
+ */
+export function Panel({
+  badges,
+  children,
+  crumbs,
+  id,
+  title,
+  variant = "default",
+}: {
+  badges?: ReactNode;
+  children: ReactNode;
+  crumbs: ReadonlyArray<string>;
+  id?: string;
+  title: string;
+  variant?: "blue" | "default" | "purple";
+}) {
+  const wide = useWidthClass() === "wide";
+  const head = <PanelHead badges={badges} crumbs={crumbs} title={title} />;
+  if (!wide) {
+    return (
+      <section id={id}>
+        <div {...stylex.props(styles.stickyHead)}>{head}</div>
+        <VStack gap={3}>
+          <span />
+          {children}
+        </VStack>
+      </section>
+    );
+  }
+  return (
+    <section id={id}>
+      <Card padding={6} variant={variant}>
+        <VStack gap={3}>
+          {head}
+          {children}
+        </VStack>
+      </Card>
+    </section>
+  );
+}
+
+/** A user story, as a panel: its journey, its mockup, its key scenarios, then the others. */
 function Story({
+  crumbs,
   document,
   heading,
   ids,
-  layout,
 }: {
+  crumbs: ReadonlyArray<string>;
   document: Document;
   heading: Block;
   ids: ReadonlyArray<number>;
-  layout: SpecLayout;
 }) {
   const [open, setOpen] = useState(false);
   const match = /^(US\d+): (.*) \((P\d)\)$/.exec(plain(heading.spans));
-  const [, id, title, priority] = match ?? ["", "", plain(heading.spans), ""];
-  const { journey, key, mockup, mockupId, more } = storyParts(document, ids);
-  const body = (
-    <VStack gap={3}>
+  const [, id = "", title = "", priority = ""] = match ?? ["", "", plain(heading.spans), ""];
+  const { journey, key, mockup, more } = storyParts(document, ids);
+  return (
+    <Panel
+      badges={
+        <>
+          <Badge label={id} variant="neutral" />
+          <Badge label={priority} variant={priority === "P1" ? "info" : "neutral"} />
+        </>
+      }
+      crumbs={crumbs}
+      id={id.toLowerCase()}
+      title={title}
+    >
       <Blocks document={document} ids={journey} />
       {mockup && <MockupBox label={mockup} />}
-      {layout === "cards" ? (
-        <Scenarios items={key} />
-      ) : (
-        <Blocks
-          document={document}
-          ids={ids.filter((i) => !journey.includes(i) && i !== mockupId)}
-        />
-      )}
-      {layout === "cards" && more.length > 0 && (
+      <Scenarios items={key} />
+      {more.length > 0 && (
         <VStack gap={3}>
           <HStack>
             <Button
@@ -188,48 +269,23 @@ function Story({
           {open && <Scenarios items={more} />}
         </VStack>
       )}
-    </VStack>
-  );
-  if (layout === "document") {
-    return (
-      <VStack gap={2}>
-        <div {...stylex.props(styles.band)}>
-          <Text color="secondary" type="supporting">
-            {id} · {priority}
-          </Text>
-          <Heading level={3}>{title}</Heading>
-        </div>
-        {body}
-      </VStack>
-    );
-  }
-  return (
-    <Card padding={6}>
-      <VStack gap={3}>
-        <HStack align="center" gap={2}>
-          <Badge label={id} variant="neutral" />
-          <Badge label={priority} variant={priority === "P1" ? "info" : "neutral"} />
-        </HStack>
-        <Heading level={3}>{title}</Heading>
-        {body}
-      </VStack>
-    </Card>
+    </Panel>
   );
 }
 
 /** The user stories, each from its heading to the next. */
 export function StoryList({
+  crumbs,
   document,
   ids,
-  layout,
 }: {
+  crumbs: ReadonlyArray<string>;
   document: Document;
   ids: ReadonlyArray<number>;
-  layout: SpecLayout;
 }) {
   const headings = ids.filter((id) => document.blocks[id]?.kind === "heading");
   return (
-    <VStack gap={layout === "cards" ? 6 : 8}>
+    <VStack gap={6}>
       {headings.map((headingId, index) => {
         const end = headings[index + 1];
         const inStory = ids.filter((id) => id > headingId && (end === undefined || id < end));
@@ -237,15 +293,26 @@ export function StoryList({
         return (
           heading && (
             <Story
+              crumbs={crumbs}
               document={document}
               heading={heading}
               ids={inStory}
               key={headingId}
-              layout={layout}
             />
           )
         );
       })}
     </VStack>
   );
+}
+
+/** The story headings among `ids`: their id, like `US1`, and their title. */
+export function storyHeadings(document: Document, ids: ReadonlyArray<number>) {
+  return ids
+    .map((id) => document.blocks[id])
+    .filter((b) => b?.kind === "heading")
+    .map((b) => {
+      const match = /^(US\d+): (.*) \(P\d\)$/.exec(plain(b?.spans ?? []));
+      return { id: match?.[1] ?? "", title: match?.[2] ?? "" };
+    });
 }
