@@ -511,7 +511,7 @@ fn started_entries_go_on_top() {
                 "1. [A](/specs/2026-10-16-a/proposal.md)",
                 "2. [C](/specs/2026-10-17-c/proposal.md)",
                 "",
-                "2. B",
+                "3. B",
             ],
         ),
     ];

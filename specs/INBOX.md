@@ -61,8 +61,6 @@
 - [agent] [redesign-priorities] Decisions page: when the default branch is checked out nowhere, a
   decision's links are checked against the current checkout, not the default branch's tree, so a
   valid link can read as broken
-- [agent] [redesign-priorities] In a numbered Now, a newly started entry repeats the next number (2.
-  C, blank line, 2. B)
 - [agent] [redesign-priorities] Home's Now count includes started entries, while the priorities
   page's Now · N leaves them out
 - [agent] [redesign-priorities] ura note still refuses when other files are staged, while the web
