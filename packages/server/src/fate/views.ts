@@ -4,6 +4,7 @@ import { dataView, list } from "@nkzw/fate/server";
 import type {
   AddCommit,
   BranchChanges,
+  BranchDecision,
   ChangedFile,
   DraftView,
   EntryItem,
@@ -84,6 +85,20 @@ export type FileRecord = Record_<FileView> & { missing?: boolean };
 export function sentFile(record: FileRecord): FileRecord {
   const cleared = { committed: null, missing: null, review: null, status: null, tip: null };
   return { ...cleared, ...record } as unknown as FileRecord;
+}
+/**
+ * A decision as a feature's branch has it, by `<folder>/<name>`, with its change; or `missing`
+ * alone when the branch has no such decision.
+ */
+export type BranchDecisionRecord = Record_<BranchDecision> & { id: string; missing?: boolean };
+
+/** A branch's decision as it is sent: `missing` sent as null, for the client's cache. */
+export function sentBranchDecision(decision: BranchDecision): BranchDecisionRecord {
+  return {
+    ...decision,
+    id: `${decision.folder}/${decision.name}`,
+    missing: null,
+  } as unknown as BranchDecisionRecord;
 }
 /** A file changed on a feature's branch, its lines null for a binary file. */
 export type ChangedFileRecord = Omit<ChangedFile, "added" | "removed"> & {
@@ -303,6 +318,7 @@ export const branchChangesDataView = dataView<BranchChangesRecord>("BranchChange
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   committed: true,
   current: true,
+  decisionChanges: true,
   folder: true,
   id: true,
   kind: true,
@@ -314,6 +330,15 @@ export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   status: true,
   takesImages: true,
   tip: true,
+});
+
+export const branchDecisionDataView = dataView<BranchDecisionRecord>("BranchDecision")({
+  change: true,
+  document: true,
+  folder: true,
+  id: true,
+  missing: true,
+  name: true,
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
@@ -444,6 +469,7 @@ export const PROPOSAL_HINTS_ID = "proposal";
 export const Root = {
   agents: list(agentDataView),
   branchChangesList: list(branchChangesDataView),
+  branchDecisions: list(branchDecisionDataView),
   drafts: list(draftDataView),
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),

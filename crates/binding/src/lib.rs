@@ -12,7 +12,7 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::actions::commit::PrioritiesAdded;
-use uraeda_core::api::{self, ApiError, Ledger};
+use uraeda_core::api::{self, ApiError, BranchDecision, Ledger};
 use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::preview::Preview;
 use uraeda_core::files::priorities::Priorities;
@@ -107,6 +107,13 @@ pub fn read_feature(repo: String, folder: String) -> AsyncTask<Job<FeatureView>>
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn read_file(repo: String, folder: String, name: String) -> AsyncTask<Job<FileView>> {
     job(move || api::read_file(Path::new(&repo), &folder, &name))
+}
+
+/// A decision of `specs/decisions/`, by its name, as a feature's branch has it, with its change
+/// against the merge base of the branch and the default branch.
+#[napi(ts_return_type = "Promise<BranchDecision>")]
+pub fn read_decision(repo: String, folder: String, name: String) -> AsyncTask<Job<BranchDecision>> {
+    job(move || api::read_decision(Path::new(&repo), &folder, &name))
 }
 
 /// `PRIORITIES.md`, with its changes since the last commit.

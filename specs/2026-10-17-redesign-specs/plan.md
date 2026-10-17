@@ -1027,13 +1027,13 @@ git commit -m "feat(redesign-specs): ura check warns on long specs and on decisi
     merge base's side is read with `Git::read_file`. When the merge base or its file cannot be read,
     the change has `compared: false` and the branch's text as `added` parts.
 
-- [ ] **Step 1: Record the benchmark's baseline**
+- [x] **Step 1: Record the benchmark's baseline**
 
 Write `packages/server/src/__tests__/spec.bench.ts`: open a spec through `binding.readFile` on a
 fixture branch that changes 5 decisions, built with `commitOnBranch`. Run it before any change:
 `nix develop -c vp run bench`. Write the mean in the task's commit body.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```rust
 // crates/core/tests/decision_change.rs, over TestRepo branches
@@ -1071,12 +1071,12 @@ The break each test catches:
 - Rename: a rename detection pairing different decisions.
 - No merge base: an error instead of an uncompared card.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test decision_change`
 - Expected: FAIL, `no field decision_changes on type FileView`
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 `decisions/branch.rs` lists `specs/decisions/*.md` on both sides, with `Git::list_files` at the
 merge base and on disk or at the tip on the branch, compares each pair, and keeps those that differ,
@@ -1084,13 +1084,13 @@ plus the listed ones. `file_view` fills `decision_changes` for `spec.md`. `api/d
 `read_decision`. The server lists `decisionChanges` in `fileDataView`, and serves a branch decision
 as a fate source by `<folder>/<name>`; the web selects `decisionChanges` whole.
 
-- [ ] **Step 5: Run the project's validation, and the benchmark**
+- [x] **Step 5: Run the project's validation, and the benchmark**
 
 - Run: `nix develop -c vp run ready`, then `nix develop -c vp run bench`
 - Expected: PASS, and the spec opens at most 200 ms slower than the baseline: write both means in
   the commit body
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates packages/binding/index.d.ts packages/server packages/web/src/views.ts

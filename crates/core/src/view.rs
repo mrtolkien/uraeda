@@ -5,6 +5,7 @@
 use napi_derive::napi;
 use serde::Serialize;
 
+use crate::decisions::DecisionChange;
 use crate::files::document::{Document, Span};
 use crate::files::items::Items;
 use crate::files::markdown;
@@ -102,6 +103,9 @@ pub struct FileView {
     /// Whether images can be attached to it: a feature's or a change's file can, the inbox's
     /// triage, committed alone, cannot.
     pub takes_images: bool,
+    /// For `spec.md`, the decisions its branch changed, and those its `## Decisions` lists: the
+    /// listed ones first, in the items' order, then the others by name. Empty for other files.
+    pub decision_changes: Vec<DecisionChange>,
 }
 
 /// The name of a file's kind, as the web UI reads it: empty for none.

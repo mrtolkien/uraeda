@@ -1,3 +1,8 @@
+mod common;
+
+use common::repo::TestRepo;
+use common::texts::spec;
+use uraeda_core::api;
 use uraeda_core::decisions::{DecisionChange, PartChange, Strength, compare, strength};
 use uraeda_core::files::document::LineRange;
 
@@ -315,4 +320,399 @@ behind the store.
     );
     let removed = &change.sections[1].parts[1];
     assert_eq!(removed.before, Some(LineRange { start: 13, end: 13 }));
+}
+
+const FOLDER: &str = "2026-10-11-web-ui";
+const SPEC: &str = "specs/2026-10-11-web-ui/spec.md";
+
+/// A decision titled after its name, with an intent and one rule.
+fn decision(name: &str, intent: &str, rule: &str) -> String {
+    format!(
+        "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# {name}\n\n{intent}\n\n## Rules\n\n- {rule} Checked by review.\n"
+    )
+}
+
+fn path(name: &str) -> String {
+    format!("specs/decisions/{name}.md")
+}
+
+/// A spec whose `## Decisions` lists these decisions as changed, in this order.
+fn listing(names: &[&str]) -> String {
+    let items: String = names
+        .iter()
+        .map(|name| format!("- **Changed: [{name}](../decisions/{name}.md)**. It changes.\n"))
+        .collect();
+    spec("awaiting-human", 1, 1).replace("Relied on:", &format!("{items}\nRelied on:"))
+}
+
+/// `main` with the decisions `a`, `b`, and `c`, and the feature's branch from it, its spec listing
+/// `listed`, the checkout left on `main`.
+fn repo(listed: &[&str]) -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    for name in ["a", "b", "c"] {
+        repo.write(
+            &path(name),
+            &decision(name, "Tasks stay local.", "Tasks MUST sync."),
+        );
+    }
+    repo.commit("chore: specs");
+    repo.switch_new(FOLDER);
+    repo.write(SPEC, &listing(listed));
+    repo.commit("spec");
+    repo.switch("main");
+    repo
+}
+
+/// Commits files on the feature's branch, `None` removing one, and comes back to `main`.
+fn on_branch(repo: &TestRepo, files: &[(&str, Option<String>)]) {
+    repo.switch(FOLDER);
+    for (path, text) in files {
+        match text {
+            Some(text) => repo.write(path, text),
+            None => repo.remove(path),
+        }
+    }
+    repo.commit("work");
+    repo.switch("main");
+}
+
+fn changes(repo: &TestRepo) -> Vec<DecisionChange> {
+    api::read_file(repo.path(), FOLDER, "spec.md")
+        .unwrap()
+        .decision_changes
+}
+
+/// Each change's `(name, kind, listed)`.
+fn kinds(changes: &[DecisionChange]) -> Vec<(&str, &str, bool)> {
+    changes
+        .iter()
+        .map(|change| (change.name.as_str(), change.kind.as_str(), change.listed))
+        .collect()
+}
+
+/// A change's parts, `(section, kind)`.
+fn part_kinds(change: &DecisionChange) -> Vec<(String, String)> {
+    parts(change)
+        .into_iter()
+        .map(|(section, kind, _)| (section, kind))
+        .collect()
+}
+
+fn owned(parts: &[(&str, &str)]) -> Vec<(String, String)> {
+    parts
+        .iter()
+        .map(|(section, kind)| (section.to_string(), kind.to_string()))
+        .collect()
+}
+
+#[test]
+fn a_branch_shows_its_new_changed_and_removed_decisions() {
+    let repo = repo(&[]);
+    on_branch(
+        &repo,
+        &[
+            (
+                &path("a"),
+                Some(decision(
+                    "a",
+                    "Tasks stay local.",
+                    "Tasks MUST sync hourly.",
+                )),
+            ),
+            (&path("b"), None),
+            (
+                &path("d"),
+                Some(decision("d", "Lists are shared.", "Lists MAY be shared.")),
+            ),
+        ],
+    );
+
+    let changes = changes(&repo);
+
+    assert_eq!(
+        kinds(&changes),
+        [
+            ("a", "changed", false),
+            ("b", "removed", false),
+            ("d", "new", false)
+        ]
+    );
+    assert!(changes.iter().all(|change| change.compared));
+}
+
+#[test]
+fn a_change_on_main_after_the_branch_started_is_not_the_branchs() {
+    let repo = repo(&[]);
+    on_branch(
+        &repo,
+        &[(
+            &path("a"),
+            Some(decision(
+                "a",
+                "Tasks stay local.",
+                "Tasks MUST sync hourly.",
+            )),
+        )],
+    );
+    repo.write(
+        &path("a"),
+        &decision("a", "Tasks stay on the device.", "Tasks MUST sync."),
+    );
+    repo.write(
+        &path("c"),
+        &decision("c", "Tasks stay local.", "Tasks MUST NOT sync."),
+    );
+    repo.commit("main moves on");
+
+    let changes = changes(&repo);
+
+    assert_eq!(kinds(&changes), [("a", "changed", false)]);
+    assert_eq!(
+        part_kinds(&changes[0]),
+        owned(&[("", "kept"), ("Rules", "changed")])
+    );
+}
+
+#[test]
+fn merging_main_in_moves_the_comparison() {
+    let repo = repo(&[]);
+    on_branch(
+        &repo,
+        &[(
+            &path("a"),
+            Some(decision(
+                "a",
+                "Tasks stay local.",
+                "Tasks MUST sync hourly.",
+            )),
+        )],
+    );
+    repo.write(
+        &path("a"),
+        &decision("a", "Tasks stay on the device.", "Tasks MUST sync."),
+    );
+    repo.write(
+        &path("c"),
+        &decision("c", "Tasks stay local.", "Tasks MUST NOT sync."),
+    );
+    repo.commit("main moves on");
+    assert_eq!(kinds(&changes(&repo)), [("a", "changed", false)]);
+
+    repo.switch(FOLDER);
+    repo.git(&["merge", "--quiet", "--no-verify", "--no-edit", "main"]);
+    repo.switch("main");
+    let changes = changes(&repo);
+
+    assert_eq!(kinds(&changes), [("a", "changed", false)]);
+    assert_eq!(
+        part_kinds(&changes[0]),
+        owned(&[("", "kept"), ("Rules", "changed")])
+    );
+}
+
+#[test]
+fn a_listed_decision_equal_to_main_shows_no_change() {
+    let repo = repo(&["c"]);
+
+    let changes = changes(&repo);
+
+    assert_eq!(kinds(&changes), [("c", "changed", true)]);
+    assert_eq!(
+        part_kinds(&changes[0]),
+        owned(&[("", "kept"), ("Rules", "kept")])
+    );
+}
+
+#[test]
+fn an_unlisted_change_is_not_listed() {
+    let repo = repo(&["c", "a"]);
+    on_branch(
+        &repo,
+        &[
+            (
+                &path("a"),
+                Some(decision(
+                    "a",
+                    "Tasks stay local.",
+                    "Tasks MUST sync hourly.",
+                )),
+            ),
+            (
+                &path("b"),
+                Some(decision("b", "Tasks stay local.", "Tasks SHOULD sync.")),
+            ),
+            (
+                &path("c"),
+                Some(decision("c", "Tasks stay local.", "Tasks MAY sync.")),
+            ),
+        ],
+    );
+
+    assert_eq!(
+        kinds(&changes(&repo)),
+        [
+            ("c", "changed", true),
+            ("a", "changed", true),
+            ("b", "changed", false)
+        ]
+    );
+}
+
+#[test]
+fn a_rewrap_alone_is_no_change() {
+    let repo = repo(&[]);
+    let rewrapped = decision("a", "Tasks stay local.", "Tasks MUST sync.")
+        .replace("Tasks stay local.", "Tasks stay\nlocal.");
+    on_branch(&repo, &[(&path("a"), Some(rewrapped))]);
+
+    assert_eq!(kinds(&changes(&repo)), []);
+}
+
+#[test]
+fn a_renamed_decision_is_removed_and_new() {
+    let repo = repo(&[]);
+    repo.switch(FOLDER);
+    repo.git(&["mv", &path("a"), &path("e")]);
+    repo.commit("rename");
+    repo.switch("main");
+
+    let changes = changes(&repo);
+
+    assert_eq!(
+        kinds(&changes),
+        [("a", "removed", false), ("e", "new", false)]
+    );
+    assert!(changes.iter().all(|change| change.compared));
+}
+
+#[test]
+fn without_a_merge_base_the_branchs_text_shows_uncompared() {
+    let repo = repo(&[]);
+    repo.git(&["branch", "--quiet", "-D", FOLDER]);
+    repo.git(&["switch", "--quiet", "--orphan", FOLDER]);
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        &path("a"),
+        &decision("a", "Tasks stay local.", "Tasks MUST sync."),
+    );
+    repo.write(SPEC, &listing(&[]));
+    repo.commit("an unrelated history");
+    repo.switch("main");
+
+    let changes = changes(&repo);
+
+    assert_eq!(kinds(&changes), [("a", "new", false)]);
+    assert!(!changes[0].compared);
+    assert_eq!(
+        part_kinds(&changes[0]),
+        owned(&[("", "added"), ("Rules", "added")])
+    );
+}
+
+#[test]
+fn a_decision_unreadable_at_the_merge_base_shows_uncompared() {
+    let repo = repo(&[]);
+    std::fs::write(repo.path().join(path("b")), b"# b\n\nNot UTF-8: \xff\n").unwrap();
+    repo.commit("an unreadable decision");
+    repo.git(&["branch", "--quiet", "--force", FOLDER, "main"]);
+    repo.switch(FOLDER);
+    repo.write(SPEC, &listing(&[]));
+    repo.write(
+        &path("b"),
+        &decision("b", "Tasks stay local.", "Tasks MUST sync."),
+    );
+    repo.commit("spec");
+    repo.switch("main");
+
+    let changes = changes(&repo);
+
+    assert_eq!(kinds(&changes), [("b", "new", false)]);
+    assert!(!changes[0].compared);
+    assert_eq!(
+        part_kinds(&changes[0]),
+        owned(&[("", "added"), ("Rules", "added")])
+    );
+}
+
+#[test]
+fn the_branch_is_read_from_its_checkout() {
+    let repo = repo(&[]);
+    repo.switch(FOLDER);
+    repo.write(
+        &path("a"),
+        &decision("a", "Tasks stay local.", "Tasks MUST sync hourly."),
+    );
+
+    assert_eq!(kinds(&changes(&repo)), [("a", "changed", false)]);
+}
+
+#[test]
+fn only_a_spec_has_decision_changes() {
+    let repo = repo(&[]);
+    on_branch(
+        &repo,
+        &[(
+            &path("a"),
+            Some(decision(
+                "a",
+                "Tasks stay local.",
+                "Tasks MUST sync hourly.",
+            )),
+        )],
+    );
+
+    repo.add_on_branch(
+        FOLDER,
+        "specs/2026-10-11-web-ui/proposal.md",
+        "# Proposal\n",
+    );
+    let view = api::read_file(repo.path(), FOLDER, "proposal.md").unwrap();
+    assert!(view.decision_changes.is_empty());
+}
+
+#[test]
+fn a_decision_reads_as_the_branch_has_it() {
+    let repo = repo(&["a"]);
+    on_branch(
+        &repo,
+        &[
+            (
+                &path("a"),
+                Some(decision(
+                    "a",
+                    "Tasks stay local.",
+                    "Tasks MUST sync hourly.",
+                )),
+            ),
+            (&path("b"), None),
+        ],
+    );
+
+    let read = api::read_decision(repo.path(), FOLDER, "a").unwrap();
+
+    assert_eq!((read.name.as_str(), read.folder.as_str()), ("a", FOLDER));
+    assert_eq!(
+        (
+            read.change.kind.as_str(),
+            read.change.listed,
+            read.change.compared
+        ),
+        ("changed", true, true)
+    );
+    assert_eq!(
+        part_kinds(&read.change),
+        owned(&[("", "kept"), ("Rules", "changed")])
+    );
+    let rule = read.document.blocks.last().unwrap();
+    assert_eq!(rule.start_line, 12);
+    let unchanged = api::read_decision(repo.path(), FOLDER, "c").unwrap();
+    assert_eq!(
+        part_kinds(&unchanged.change),
+        owned(&[("", "kept"), ("Rules", "kept")])
+    );
+    let error = api::read_decision(repo.path(), FOLDER, "b").unwrap_err();
+    assert_eq!(error.message, format!("{FOLDER} has no decision b"));
+    let error = api::read_decision(repo.path(), FOLDER, "../decisions/a").unwrap_err();
+    assert_eq!(error.code, "refused");
 }
