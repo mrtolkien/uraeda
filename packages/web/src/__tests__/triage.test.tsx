@@ -86,7 +86,7 @@ test("Organize with an agent starts a chat in the main checkout with the triage'
 
   await waitFor(() => expect(agent.sent).toHaveLength(1));
   expect(agent.sent[0].text).toBe(
-    "/uraeda:uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
+    "/uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
   );
   expect(realpathSync(agent.opens[0].cwd)).toBe(realpathSync(repo));
   await waitFor(() =>
@@ -144,7 +144,7 @@ test("an answered triage is applied in a new chat", async () => {
 
   await waitFor(() => expect(agent.sent).toHaveLength(1));
   expect(agent.sent[0].text).toBe(
-    "/uraeda:uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
+    "/uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
   );
 });
 
@@ -220,7 +220,7 @@ test("without an agent, the inbox gives the triage's messages to copy", async ()
 
   expect(
     screen.getByText(
-      "/uraeda:uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
+      "/uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
     ),
   ).toBeTruthy();
   expect(screen.getByRole("button", { name: "Copy the message" })).toBeTruthy();
@@ -233,7 +233,7 @@ test("without an agent, an answered triage gives its apply message to copy", asy
   expect(screen.queryByRole("button", { name: "Apply the answers" })).toBeNull();
   expect(
     screen.getByText(
-      "/uraeda:uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
+      "/uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
     ),
   ).toBeTruthy();
   expect(screen.getByRole("button", { name: "Copy the message" })).toBeTruthy();

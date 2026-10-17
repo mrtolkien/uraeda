@@ -26,7 +26,7 @@ const WEB_UI = "2026-10-11-web-ui";
 
 /** The workflow's message when the human asks the CLI's agent to continue. */
 const MANUAL = [
-  `/uraeda:uraeda Continue the feature specs/${CLI}/ on branch ${CLI}: Write the plan, starting with skills/uraeda/references/plan.md.`,
+  `/uraeda Continue the feature specs/${CLI}/ on branch ${CLI}: Write the plan, starting with skills/uraeda/references/plan.md.`,
   "Stop when the plan waits for my review, and earlier only if you need a decision from me.",
 ].join("\n");
 

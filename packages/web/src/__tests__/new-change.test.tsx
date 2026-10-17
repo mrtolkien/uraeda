@@ -35,7 +35,7 @@ test("without the agent, the change's page opens with its message unsent", async
   // The session's composer, holding the workflow's message, unsent.
   await waitFor(() =>
     expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toMatch(
-      new RegExp(`^/uraeda:uraeda Continue the change specs/changes/${FOLDER}/`),
+      new RegExp(`^/uraeda Continue the change specs/changes/${FOLDER}/`),
     ),
   );
   expect(screen.getByRole("button", { name: "Start the agent" })).toBeTruthy();

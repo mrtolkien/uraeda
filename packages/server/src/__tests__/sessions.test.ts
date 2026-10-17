@@ -264,7 +264,7 @@ test("US2.1: WorkflowMessage gives the message the composer is filled with", asy
     refusal: null,
     step: "plan",
     text:
-      `/uraeda:uraeda Continue the feature specs/${AGENT}/ on branch ${AGENT}: ` +
+      `/uraeda Continue the feature specs/${AGENT}/ on branch ${AGENT}: ` +
       "Write the plan, starting with skills/uraeda/references/plan.md.\n" +
       "Stop when the plan waits for my review, and earlier only if you need a decision from me.\n",
   });
@@ -294,7 +294,7 @@ test("US2.2: session.send with the workflow's message starts a workflow turn", a
 
   const session = await send(server, {
     folder: AGENT,
-    text: "/uraeda:uraeda Continue.\nKeep the plan short.",
+    text: "/uraeda Continue.\nKeep the plan short.",
     workflow: { trigger: "manual" },
   });
   await settle(server, session);
@@ -322,7 +322,7 @@ test("session.send with a fresh workflow message starts a new agent session in t
 
   const session = await send(server, {
     folder: AGENT,
-    text: "/uraeda:uraeda Continue.",
+    text: "/uraeda Continue.",
     workflow: { fresh: true, trigger: "manual" },
   });
   await settle(server, session);
@@ -832,7 +832,7 @@ test("session.send refuses images with the workflow's message", async () => {
     await refusalOf(server, {
       folder: AGENT,
       images: [image],
-      text: "/uraeda:uraeda Continue.",
+      text: "/uraeda Continue.",
       workflow: { trigger: "manual" },
     }),
   ).toBe("refused: The workflow's message takes no images.");
@@ -894,7 +894,7 @@ test("US1.1: change.start starts a change and sends its first run, its images in
     expect.objectContaining({
       images: [],
       text:
-        `/uraeda:uraeda Continue the change specs/changes/${folder}/ on branch ${branch}: ` +
+        `/uraeda Continue the change specs/changes/${folder}/ on branch ${branch}: ` +
         "Investigate it, then make the change, starting with skills/uraeda/references/change.md.\n" +
         "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
     }),
