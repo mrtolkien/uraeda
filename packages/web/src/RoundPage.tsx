@@ -6,7 +6,7 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { Band, followUpsOf, QuestionCards } from "./QuestionCards.tsx";
 import { RoundOpening } from "./RoundOpening.tsx";
-import { type NavQuestion, RoundNav } from "./RoundNav.tsx";
+import { type NavQuestion, RoundIndex, RoundNav } from "./RoundNav.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
 import { isTriage, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
@@ -74,6 +74,8 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   }
 
   const toEnd = () => toSubmit(end, submitRow);
+  // The round's navigation, while it waits on answers: a column on wide screens, else the top bar.
+  const navigates = !readOnly && nav.length > 0;
 
   /** Opens the feature's session with a question's title quoted. */
   const ask = (question: { id: string; title: string }) =>
@@ -85,7 +87,9 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         document={document}
         round={round}
         {...(triage ? {} : { crumbs: { folder: file.folder, name: file.name } })}
-      />
+      >
+        {navigates && !wide && <RoundIndex questions={nav} />}
+      </RoundOpening>
       <QuestionCards
         document={document}
         path={file.path}
@@ -114,15 +118,15 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   return (
     <RoundHash value={hash}>
       <PendingSaves value={pending}>
-        {readOnly || nav.length === 0 ? (
-          <Page>{content}</Page>
-        ) : (
+        {navigates ? (
           <div {...stylex.props(wide && styles.columns)}>
             <div {...stylex.props(styles.questions)}>
               <Page>{content}</Page>
             </div>
             <RoundNav onSubmit={toEnd} questions={nav} />
           </div>
+        ) : (
+          <Page>{content}</Page>
         )}
       </PendingSaves>
     </RoundHash>
