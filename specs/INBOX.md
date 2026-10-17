@@ -27,6 +27,9 @@
   (no root tsconfig or @types/node): any commit touching vite.tasks.ts or scripts/*.ts is refused
 - [agent] [symlinks] In the main checkout, ts:check and specs:check read .worktrees/ as inputs
   (their ** globs do not exclude it), so any worktree edit misses their cache there (vite.tasks.ts)
+- [agent] [symlinks] Under load from other worktrees, home.test.tsx 'on a phone, the counts and the
+  cards come in the same order' and shell.test.tsx '＋ adds to Later with a toast and Undo' failed
+  in a full ts:test run, and passed alone
 
 ## Prompts
 
