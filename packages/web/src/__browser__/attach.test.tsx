@@ -496,7 +496,7 @@ test("US4.1: a pasted image goes into the focused answer's comment", async () =>
 
 test("US4.2: a drop with no field focused goes to the end of the notes", async () => {
   await showRound();
-  const notes = screen.getByRole("textbox", { name: "Notes" }) as HTMLTextAreaElement;
+  const notes = screen.getByRole("textbox", { name: "Anything else" }) as HTMLTextAreaElement;
 
   drop([await image("phone.png", "shot.png")]);
 

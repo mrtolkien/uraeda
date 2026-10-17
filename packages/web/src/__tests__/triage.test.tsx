@@ -119,7 +119,7 @@ test("the triage's answers are submitted in one commit, and the inbox offers to 
   await renderPage("/inbox/triage", repo, { agent: true });
   await answerAll(repo);
   // Notes typed and not saved: Submit saves them first, over the triage as the page wrote it.
-  await type(screen.getByLabelText("Notes"), "Start with the bug.");
+  await type(screen.getByLabelText("Anything else"), "Start with the bug.");
   await submit();
 
   await waitFor(() =>
@@ -160,7 +160,7 @@ test("a triage answered on another page since is not submitted unseen", async ()
     read(repo, TRIAGE).replace(/(## Q2:[^]*?)\*\*Answer:\*\* A\n/, "$1**Answer:** B\n"),
   );
 
-  await type(screen.getByLabelText("Notes"), "Start with the bug.");
+  await type(screen.getByLabelText("Anything else"), "Start with the bug.");
   await submit();
 
   expect(
