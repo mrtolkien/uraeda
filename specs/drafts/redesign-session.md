@@ -12,7 +12,6 @@ A functional pass on the session page.
   passed the last X messages by default
 - Text input still feels a bit laggy on sessions page, might be due to the huge page height
 - The text box is too small: it should be 7 lines by default and expand UP up to ~20 lines
-- Links in messages (https://github.com/mrtolkien/uraeda/pull/21) should be clickable
 - Reading the messages on mobile is extremely hard, take inspiration from Gemini/Claude/ChatGPT
   mobile UIs.
 

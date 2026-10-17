@@ -162,7 +162,12 @@ function AgentMessage({ streaming, text }: { streaming: boolean; text: string })
     <ChatMessage sender="assistant">
       <ChatMessageBubble width={shown > 0 ? "100%" : undefined}>
         <MessageStories value={stories}>
-          <Markdown components={agentStories} density="compact" headingLevelStart={4}>
+          <Markdown
+            autolink="gfm"
+            components={agentStories}
+            density="compact"
+            headingLevelStart={4}
+          >
             {text}
           </Markdown>
         </MessageStories>
