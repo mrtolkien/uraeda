@@ -125,12 +125,12 @@ a proxy, so the 127.0.0.1 rule stays
 Storybook trusts whatever role a channel connection claims, and Uraeda cannot tell Storybook's
 interface from a story's own code, so letting the interface save files lets every story write them.
 The human kept writes off, since the agent writes the stories and the human comments on them
-([Q2](../2026-10-17-access-storybook/clarifications-01.md#q2-can-you-save-stories-and-create-them-from-storybooks-interface),
-[the channel's roles](../2026-10-17-access-storybook/discovery-01.md#storybooks-server-channel-and-its-roles)).
-The interface needs Storybook's `security.insecureIframeMessaging` inside a sandboxed frame, and the
-frame secret keeps every other website away from it
-([Q1](../2026-10-17-access-storybook/clarifications-01.md#q1-how-should-the-storybook-page-render-stories),
-[worth it](../2026-10-17-access-storybook/discovery-01.md#worth-it-and-feasibility)).
+([Q2](../done/2026-10-17-access-storybook.md#q2-can-you-save-stories-and-create-them-from-storybooks-interface),
+[the channel's roles](../done/2026-10-17-access-storybook.md)). The interface needs Storybook's
+`security.insecureIframeMessaging` inside a sandboxed frame, and the frame secret keeps every other
+website away from it
+([Q1](../done/2026-10-17-access-storybook.md#q1-how-should-the-storybook-page-render-stories),
+[worth it](../done/2026-10-17-access-storybook.md#q1-how-should-the-storybook-page-render-stories)).
 
 ## Alternatives considered
 
