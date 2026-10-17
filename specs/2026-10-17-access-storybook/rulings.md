@@ -33,3 +33,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   finish step replaces it with its record.
 - **If wrong**: a one-link edit to undo.
 - **Where**: `spec.md`, **Decisions**.
+
+## R3: The helper sets the key whatever the Storybook version
+
+- **Decision**: `uraedaPreview` sets `security.insecureIframeMessaging` on every Storybook it
+  serves, without reading Storybook's version.
+- **Rationale**: the spec left unverified that an older Storybook ignores the key. Checked on
+  2026-10-17, in an empty folder outside the repository: `storybook@10.6.1` and
+  `@storybook/react-vite@10.6.1`, with Vite 7, one story, and
+  `security: { insecureIframeMessaging: true }` in `.storybook/main.ts`.
+  `storybook dev --ci --smoke-test` printed "Smoke tests passed, exiting.", and `storybook dev`
+  served the story in `index.json` with no error or warning in its log. Neither `storybook` nor
+  `@storybook/builder-vite` 10.6.1 mentions the key in its `dist/`: it is ignored.
+- **Alternatives considered**: setting it only on 10.6.2 and later, the spec's fallback: it needs
+  the helper to read Storybook's version, for no gain.
+- **If wrong**: an older Storybook would fail to start under Uraeda only, with Storybook's own error
+  naming the key.
+- **Where**: task 1.
