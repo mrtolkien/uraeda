@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign and reword specs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 60 minutes: about 35 of them on the 18 rewritten decisions.
+> Changes requested on 2026-10-17: 6 comments in spec-review.md.
 >
 > - You approve specs that open with what you approve, then the decisions with their changes marked
 >   in place, then the stories as cards. You also approve all 18 decisions, rewritten intent first.
