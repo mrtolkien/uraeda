@@ -466,7 +466,7 @@ uses, and which decisions make the approval step pending.
 - Produces: `decisions_pending` is true only when a `ListedDecision` of kind `new` or `changed`
   names a decision whose file is `proposed`.
 
-- [ ] **Step 1: Move the spec's item types to `files/items/spec.rs`**
+- [x] **Step 1: Move the spec's item types to `files/items/spec.rs`**
 
 Move `Scenario`, `Story`, `Criterion`, `SpecItems`, `MockupLink`, and `TierChoice` out of `items.rs`
 into `files/items/spec.rs`, re-exported with `pub use`, as `round.rs` is. Nothing else changes.
