@@ -1,7 +1,7 @@
 // US2 and review focus 5, on the desktop: the shared list moves its selection with the keyboard, ↑ ↓
 // or j k, Home and End, the pane beside it following; Enter edits the selected item in its pane, and
-// Escape closes the field, then the pane. No key acts while a text field or an open Selector has
-// the focus. Each test takes the repository in turn, on a fresh copy of the fixture.
+// Escape closes the field, then the pane. No key acts while a text field has the focus, or while a
+// Selector, a menu, or a dialog is open. Each test takes the repository in turn, on a fresh copy of the fixture.
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
@@ -170,6 +170,41 @@ test("keys do nothing while a Selector is open (review focus 5)", async () => {
     expect(window.location.pathname).toBe(at);
   }
   expect(screen.getByRole("region", { name: "Detail" })).toBeTruthy();
+});
+
+test("keys do nothing while a menu is open (review focus 5)", async () => {
+  await show("/inbox/we-need-a-home-icon", "Note, in No category");
+  const at = window.location.pathname;
+  await userEvent.click(screen.getByRole("button", { name: "Move to priorities" }));
+  await screen.findByRole("menu");
+  // Off its items, the keys reach the page: the open menu still keeps them from the list.
+  (document.activeElement as HTMLElement | null)?.blur();
+  expect(screen.getByRole("menu")).toBeTruthy();
+
+  for (const key of ["{ArrowDown}", "j", "{End}"]) {
+    await userEvent.keyboard(key);
+    await drawn();
+    expect(window.location.pathname).toBe(at);
+  }
+  await userEvent.keyboard("{Escape}");
+  await drawn();
+  expect(window.location.pathname).toBe(at);
+  expect(screen.getByRole("region", { name: "Detail" })).toBeTruthy();
+});
+
+test("keys do nothing while a dialog is open (review focus 5)", async () => {
+  await show("/inbox/we-need-a-home-icon", "Note, in No category");
+  const at = window.location.pathname;
+  await userEvent.click(screen.getByRole("button", { name: "Add a note to the inbox" }));
+  await screen.findByRole("dialog", { name: "Add a note" });
+  // Off its text field, the keys reach the page: the open dialog still keeps them from the list.
+  (document.activeElement as HTMLElement | null)?.blur();
+
+  for (const key of ["{ArrowDown}", "j", "{End}"]) {
+    await userEvent.keyboard(key);
+    await drawn();
+    expect(window.location.pathname).toBe(at);
+  }
 });
 
 /** Two lines, each with enough children to make its pane scroll. */
