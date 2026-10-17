@@ -19,6 +19,9 @@
   flow
 
 - [Look and feel pass](drafts/look-and-feel/proposal.md)
+- Review decisions creation and meaning -> right now they are too verbose and not human-checked
+  enough
+  - Might deserve a dedicated diff view with the spec step
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
