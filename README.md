@@ -118,8 +118,8 @@ look at first. Its spec opened like this when it was submitted:
 >
 > Spec to review, about 20 minutes.
 >
-> - You approve repeating tasks: a menu, a custom screen, or a rule typed in the title, and
->   completing a task moves its due date.
+> - You approve tasks that repeat from a menu, a custom screen, or a phrase at the end of their
+>   title. Completing one moves it to its next due date, and keeps no history of completions.
 > - Two new decisions: repeating tasks, one task whose due date moves, with no history of
 >   completions; and due dates, calendar days for every feature with dates.
 > - Every saved due date is converted once, when users get the new version. [...]
