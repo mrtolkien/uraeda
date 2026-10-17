@@ -55,7 +55,7 @@ Approving a spec is the human's most important job, and today it's a sea of bull
 
 - I'll do page-by-page passes on the formatting.
 - Same model-agnostic wording work as in the
-  [clarifications redesign](redesign-clarifications/proposal.md).
+  [clarifications redesign](/specs/done/2026-10-17-redesign-clarifications.md).
 
 ## Findings from the workflow review
 
