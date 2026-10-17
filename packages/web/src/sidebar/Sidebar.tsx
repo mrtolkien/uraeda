@@ -2,6 +2,7 @@
 // the priorities with their counts; the changes and the features in flight, each in the workflow's
 // order; the Claude allowance; then the chats. During a search, only the cards and chats it found.
 import { Badge } from "@astryxdesign/core/Badge";
+import { Icon } from "@astryxdesign/core/Icon";
 import { SideNavItem, SideNavSection, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -286,12 +287,7 @@ function Rows({
   return (
     <>
       {!found && (
-        <Item
-          foldedIcon={<span aria-hidden="true">⌂</span>}
-          label="Home"
-          pathname={pathname}
-          to="/"
-        />
+        <Item foldedIcon={<Icon icon="uraeda:home" />} label="Home" pathname={pathname} to="/" />
       )}
       <Cards {...section} features={waiting} tagged title="Needs you" />
       {!found && <Flow data={data} pathname={pathname} />}

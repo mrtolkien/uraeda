@@ -1,7 +1,7 @@
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Icon } from "@astryxdesign/core/Icon";
-import { SideNav, SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
+import { SideNav, SideNavItem } from "@astryxdesign/core/SideNav";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -80,12 +80,6 @@ const styles = stylex.create({
 
 /** The milliseconds the sidebar's width eases over as it folds or unfolds. */
 const FOLD_MS = 200;
-
-/** The repository menu, its trigger an icon while the navigation is folded. */
-function Menu({ current }: { current: string | null }) {
-  const { isCollapsed } = useSideNavCollapse();
-  return <RepositoryMenu current={current} isFolded={isCollapsed} />;
-}
 
 /**
  * The navigation footer's first row: the constitution and the decisions, above the done items,
@@ -193,7 +187,7 @@ function Nav({ slot }: { slot: ReactNode }) {
           homeHref={here("/")}
           isHome={pathname === "/"}
           isRevealed={pointer}
-          menu={<Menu current={current} />}
+          menu={<RepositoryMenu current={current} />}
           onFold={fold}
           slot={slot}
         />

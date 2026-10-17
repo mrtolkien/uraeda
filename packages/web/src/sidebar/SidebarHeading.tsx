@@ -1,7 +1,7 @@
 // The sidebar's heading. On wide screens, one button folds the sidebar to its rail and unfolds it,
 // at the heading's start in both states, so it never moves under the pointer (C3): shown under the
 // pointer while unfolded, and always to the keyboard and on touch; `[` does the same. Then the
-// repository menu, and the page's own controls. On the phone, where Astryx draws the heading as the
+// repository menu, left out of the folded rail, and the page's own controls. On the phone, where Astryx draws the heading as the
 // top bar: the way home first, then the repository menu.
 import { HStack } from "@astryxdesign/core/HStack";
 import { useHotkeys } from "@astryxdesign/core/hooks";
@@ -119,7 +119,6 @@ export function SidebarHeading({
     return (
       <VStack align="center" gap={1} xstyle={styles.folded}>
         <FoldButton isRevealed onFold={onFold} />
-        {menu}
         {slot}
       </VStack>
     );

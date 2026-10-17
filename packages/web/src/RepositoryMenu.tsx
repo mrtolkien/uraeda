@@ -220,19 +220,12 @@ function Menu({
 
 /**
  * The navigation's heading as the menu's trigger: "Uraeda" over the current repository's name, or
- * alone on a page of none, with a chevron; folded, an icon. It opens the menu, and the menu the add
- * form.
+ * alone on a page of none, with a chevron. It opens the menu, and the menu the add form.
  */
-export function RepositoryMenu({
-  current,
-  isFolded = false,
-}: {
-  current: string | null;
-  isFolded?: boolean;
-}) {
+export function RepositoryMenu({ current }: { current: string | null }) {
   return (
     <OnListClient>
-      <MenuTrigger current={current} isFolded={isFolded} />
+      <MenuTrigger current={current} />
     </OnListClient>
   );
 }
@@ -271,7 +264,7 @@ function Drawn({
 const MENU = "Repositories";
 const FORM = "Add a repository";
 
-function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: boolean }) {
+function MenuTrigger({ current }: { current: string | null }) {
   const wide = useWidthClass() === "wide";
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -297,15 +290,7 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
     </Suspense>
   );
 
-  const trigger = isFolded ? (
-    <Button
-      icon={<Icon icon="arrowsUpDown" />}
-      isIconOnly
-      label={label}
-      onClick={wide ? undefined : () => setOpen(true)}
-      variant="ghost"
-    />
-  ) : (
+  const trigger = (
     <Button
       endContent={<Icon icon="chevronDown" />}
       label={label}
@@ -336,7 +321,7 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
           label={MENU}
           onOpenChange={setOpen}
           padding={2}
-          placement={isFolded ? "end" : "below"}
+          placement="below"
           width="var(--size-menu)"
         >
           {trigger}
