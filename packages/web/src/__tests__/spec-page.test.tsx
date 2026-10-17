@@ -108,6 +108,33 @@ test("a part's pending comments are counted in the contents", async () => {
   expect(within(column).getByRole("link", { name: "US2 Complete a repeating task" })).toBeTruthy();
 });
 
+/** A decision comment is counted on its decision, never on the spec's block at the same lines. */
+test("a decision's pending comment is counted on the decision alone", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const tip = git(repo, "rev-parse", "--short=7", SPEC_FEATURE).trim();
+  const comment = [
+    '## C1: Decision task-storage, lines 19–20, under "Rules"',
+    "",
+    "> - An upgrade that cannot read a saved value MUST clear it and log it, and MUST NOT delete a task.",
+    ">   Checked by the upgrade's test on corrupted data.",
+    "",
+    "Log it where I can see it.",
+    "",
+  ].join("\n");
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [REVIEW]: `---\nverdict: pending\ncommit: ${tip}\n---\n\n# Review: Spec, Recurring tasks\n\n${comment}`,
+  });
+  await renderPage(PAGE, repo);
+
+  const column = await contents();
+  await waitFor(() =>
+    expect(entriesOf(column).filter((label) => label?.includes("comment"))).toEqual([
+      "Task storage 1 comment",
+    ]),
+  );
+});
+
 /** US5 more 2 */
 test("hidden contents stay hidden after a reload, with the verdict at the page's end", async () => {
   const repo = fixtureRepo();
