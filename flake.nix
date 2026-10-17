@@ -57,6 +57,13 @@
               export TMPDIR TMP="$TMPDIR" TEMP="$TMPDIR" TEMPDIR="$TMPDIR"
               unset NIX_BUILD_TOP
             fi
+            # A worktree, whose `.git` is a file, without a build or a task cache yet starts from
+            # the main checkout's: see `packages/server/scripts/worktree-seed.ts`.
+            root=$(git rev-parse --show-toplevel 2>/dev/null)
+            if [ -f "$root/.git" ] && { [ ! -e "$root/target" ] || [ ! -e "$root/node_modules/.vite/task-cache" ]; }; then
+              node "$root/packages/server/scripts/worktree-seed.ts" "$root" || true
+            fi
+            unset root
           '';
           # mini.test, which the Neovim plugin's tests run on, pinned by the flake's lock.
           MINI_TEST = "${pkgs.vimPlugins.mini-test}";
