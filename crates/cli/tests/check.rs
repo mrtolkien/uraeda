@@ -68,6 +68,52 @@ fn a_round_without_its_sources_fails() {
     assert_eq!(output.code, 1);
 }
 
+/// US1.4: warnings print after the errors, prefixed `warning: `, and alone exit with success.
+#[test]
+fn warnings_print_after_errors_and_exit_with_success() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    let path = "specs/2026-10-10-x/clarifications-01.md";
+    let round = clarifications(
+        "awaiting-human",
+        "1 question and 1 follow-up, about 5 minutes.",
+        &[""],
+    );
+    repo.write(path, &round);
+
+    let output = ura(&repo, &["check", path]);
+
+    assert_eq!(
+        output.stdout,
+        format!("warning: {path}:9: the block says 1 follow-up, the round has 0\n1 warning\n")
+    );
+    assert_eq!(output.code, 0);
+
+    repo.write(path, &round.replacen("### Sources\n", "", 1));
+
+    let output = ura(&repo, &["check", path]);
+
+    assert_eq!(
+        output.stdout,
+        format!(
+            "{path}: missing section \"### Sources\"\n\
+             warning: {path}:9: the block says 1 follow-up, the round has 0\n\
+             1 problem, 1 warning\n"
+        )
+    );
+    assert_eq!(output.code, 1);
+
+    let output = ura(&repo, &["check", "--json", path]);
+
+    let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
+    assert_eq!(json["problems"][0]["severity"], "error");
+    assert_eq!(json["problems"][1]["severity"], "warning");
+    assert_eq!(json["problems"][1]["rule"], "block.count");
+}
+
 #[test]
 fn json_lists_problems() {
     let repo = TestRepo::new();

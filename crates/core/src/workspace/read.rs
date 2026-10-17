@@ -4,8 +4,8 @@
 use std::collections::BTreeMap;
 
 use super::{
-    Feature, FileKind, Kind, Problem, ReadFrom, Reader, Source, first_file, folder_branch,
-    folder_path, record_kind, record_path, resolve,
+    Feature, FileKind, Kind, Problem, ReadFrom, Reader, Severity, Source, first_file,
+    folder_branch, folder_path, record_kind, record_path, resolve,
 };
 use crate::files::{frontmatter, markdown};
 use crate::git::ObjectId;
@@ -60,6 +60,7 @@ fn read_record(
                 "kind is {said}, but {} is a {branch} branch",
                 folder_branch(kind, folder)
             ),
+            severity: Severity::Error,
         });
         feature.step = Step::none();
     }
@@ -157,6 +158,7 @@ fn read_folder(
             line: None,
             rule: "file.utf8".into(),
             message: "not UTF-8".into(),
+            severity: Severity::Error,
         });
     }
     feature.branch = branch;

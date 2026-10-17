@@ -673,3 +673,30 @@ fn try_again_refuses_other_staged_files_before_deleting_images() {
     );
     assert!(repo.exists(&image));
 }
+
+/// R1: a feature's problems in the web UI hold `ura check`'s errors, never its warnings.
+#[test]
+fn a_features_problems_leave_its_warnings_out() {
+    let repo = repo();
+    repo.switch(FOLDER);
+    let round = format!("specs/{FOLDER}/clarifications-01.md");
+    repo.write(
+        &round,
+        &clarifications(
+            "awaiting-human",
+            "1 question and 1 follow-up, about 5 minutes.",
+            &[""],
+        ),
+    );
+
+    let checked = uraeda_core::check::check(repo.path(), &repo.path().join(&round)).unwrap();
+    let problems = api::read_feature(repo.path(), FOLDER).unwrap().problems;
+
+    assert_eq!(checked.len(), 1, "{checked:?}");
+    assert_eq!(checked[0].rule, "block.count");
+    assert!(!problems.is_empty(), "the stub spec's errors are read");
+    assert!(
+        problems.iter().all(|problem| problem.file != round),
+        "{problems:?}"
+    );
+}

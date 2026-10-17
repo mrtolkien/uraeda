@@ -7,7 +7,7 @@ use serde::Serialize;
 use uraeda_core::check;
 use uraeda_core::git::Git;
 use uraeda_core::target::{Purpose, Target};
-use uraeda_core::workspace::Problem;
+use uraeda_core::workspace::{Problem, Severity};
 
 use crate::output;
 
@@ -62,18 +62,40 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
         }
         println!("{shown}: no problems");
     } else {
-        for problem in &problems {
-            match problem.line {
-                Some(line) => println!("{}:{line}: {}", problem.file, problem.message),
-                None => println!("{}: {}", problem.file, problem.message),
-            }
-        }
-        let plural = if problems.len() == 1 { "" } else { "s" };
-        println!("{} problem{plural}", problems.len());
+        print_problems(&problems);
     }
-    Ok(if problems.is_empty() {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::FAILURE
-    })
+    Ok(
+        if problems
+            .iter()
+            .any(|problem| problem.severity == Severity::Error)
+        {
+            ExitCode::FAILURE
+        } else {
+            ExitCode::SUCCESS
+        },
+    )
+}
+
+/// The errors, then the warnings, each `warning: ` first, then their counts.
+fn print_problems(problems: &[Problem]) {
+    let (errors, warnings): (Vec<&Problem>, Vec<&Problem>) = problems
+        .iter()
+        .partition(|problem| problem.severity == Severity::Error);
+    for (problem, prefix) in errors
+        .iter()
+        .map(|problem| (problem, ""))
+        .chain(warnings.iter().map(|problem| (problem, "warning: ")))
+    {
+        match problem.line {
+            Some(line) => println!("{prefix}{}:{line}: {}", problem.file, problem.message),
+            None => println!("{prefix}{}: {}", problem.file, problem.message),
+        }
+    }
+    let count = |n: usize, noun: &str| format!("{n} {noun}{}", if n == 1 { "" } else { "s" });
+    let counts: Vec<String> = [(errors.len(), "problem"), (warnings.len(), "warning")]
+        .into_iter()
+        .filter(|(n, _)| *n > 0)
+        .map(|(n, noun)| count(n, noun))
+        .collect();
+    println!("{}", counts.join(", "));
 }
