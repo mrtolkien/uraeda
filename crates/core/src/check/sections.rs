@@ -5,8 +5,9 @@
 //! first round. `settled.*`: a round's settled points sit in groups.
 
 use crate::embedded;
-use crate::files::inbox;
+use crate::files::document::{self, Block, BlockKind, plain};
 use crate::files::markdown::{Document, Heading};
+use crate::files::{clarifications, inbox};
 use crate::workspace::{FileKind, Problem};
 
 use super::{Checked, File};
@@ -325,42 +326,31 @@ fn check_order(
 }
 
 /// `settled.group`: in a round, every settled point sits under a group, `### Check these`,
-/// `### Behaviour`, or `### Under the hood`: a list item between `## Settled without the human`
-/// and its first sub-heading, or its notes, is in none.
-pub(super) fn check_settled_groups(
-    file: &File<'_>,
-    document: &Document,
-    problems: &mut Vec<Problem>,
-) {
-    let Some(index) = document
-        .headings
-        .iter()
-        .position(|h| h.level == 2 && h.text == "Settled without the human")
-    else {
+/// `### Behaviour`, or `### Under the hood`: a top-level list item between `## Settled without the
+/// human` and its first top-level sub-heading, or its notes, is in none.
+pub(super) fn check_settled_groups(file: &File<'_>, problems: &mut Vec<Problem>) {
+    let tree = document::parse(file.text, "");
+    let top_heading = |b: &Block, level: u32| {
+        b.parent.is_none() && b.kind == BlockKind::Heading && b.level.is_some_and(|l| l <= level)
+    };
+    let Some(start) = tree.blocks.iter().position(|b| {
+        top_heading(b, 2) && b.level == Some(2) && plain(&b.spans) == "Settled without the human"
+    }) else {
         return;
     };
-    let start = document.headings[index].line;
-    let end = document
-        .headings
-        .get(index + 1)
-        .map_or(usize::MAX, |next| next.line);
-    let mut fenced = false;
-    for (offset, line) in file.text.lines().enumerate().skip(start) {
-        let number = offset + 1;
-        if number >= end || line.starts_with("**Notes:**") {
-            break;
-        }
-        if line.trim_start().starts_with("```") {
-            fenced = !fenced;
-        }
-        let item = ["- ", "* ", "+ "].iter().any(|mark| line.starts_with(mark));
-        if item && !fenced {
-            problems.push(file.problem(
-                Some(number),
-                "settled.group",
-                "a settled point outside a group: put it under \"### Check these\", \"### Behaviour\", or \"### Under the hood\"",
-            ));
-        }
+    let notes_line = clarifications::notes(file.text).map_or(u32::MAX, |(line, _)| line as u32);
+    let loose = tree.blocks[start + 1..]
+        .iter()
+        .filter(|b| b.parent.is_none())
+        .take_while(|b| !top_heading(b, 3) && b.start_line < notes_line)
+        .filter(|b| b.kind == BlockKind::List)
+        .flat_map(|list| tree.children(list.id));
+    for item in loose {
+        problems.push(file.problem(
+            Some(item.start_line as usize),
+            "settled.group",
+            "a settled point outside a group: put it under \"### Check these\", \"### Behaviour\", or \"### Under the hood\"",
+        ));
     }
 }
 

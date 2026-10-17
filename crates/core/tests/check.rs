@@ -1121,6 +1121,71 @@ fn the_rounds_parts() {
     }
 }
 
+/// `settled.group` reads the settled section's top-level list items before its first group, up to
+/// the notes in either form: one row per round, with the lines of the problems it causes.
+#[test]
+fn settled_points_outside_a_group() {
+    type Edit = fn(&str) -> String;
+    type Expected = fn(&str) -> Vec<usize>;
+    fn settled(text: &str, section: &str) -> String {
+        let start = text.find("## Settled without the human").unwrap();
+        format!("{}{section}", &text[..start])
+    }
+    let rows: Vec<(&str, Edit, Expected)> = vec![
+        (
+            "notes in the other form after a group",
+            |text| text.replacen("**Notes:**", "**Notes**:", 1),
+            |_| vec![],
+        ),
+        (
+            "notes in the other form and no group",
+            |text| {
+                settled(
+                    text,
+                    "## Settled without the human\n\n**Notes**:\n\n- A note.\n- **Another**: one.\n",
+                )
+            },
+            |_| vec![],
+        ),
+        (
+            "a tilde fence before the first group",
+            |text| {
+                text.replacen(
+                    "## Settled without the human\n\n",
+                    "## Settled without the human\n\n~~~\n- not a point\n~~~\n\n",
+                    1,
+                )
+            },
+            |_| vec![],
+        ),
+        (
+            "an ordered item before the first group",
+            |text| {
+                text.replacen(
+                    "## Settled without the human\n\n",
+                    "## Settled without the human\n\n1. **A loose point** settled.\n\n",
+                    1,
+                )
+            },
+            |text| vec![line_in(text, "1. **A loose point** settled.")],
+        ),
+    ];
+    for (name, edit, expected) in rows {
+        let example = Example::new();
+        let text = edit(&example.read(ROUND));
+        example.write(ROUND, &text);
+
+        let lines: Vec<usize> = example
+            .problems()
+            .into_iter()
+            .filter(|p| p.rule == "settled.group")
+            .filter_map(|p| p.line)
+            .collect();
+
+        assert_eq!(lines, expected(&text), "{name}");
+    }
+}
+
 /// A round after the first opens its Context with what happened since the last round.
 #[test]
 fn a_later_round_says_what_happened_since_the_last() {
