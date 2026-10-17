@@ -111,6 +111,15 @@ function publish(from: string, to: string) {
   }
 }
 
+/**
+ * Where this process clones `target/` before moving it into place: a `target/` folder, which the
+ * repository's `.gitignore` ignores at any depth, so a seed killed midway leaves nothing `git
+ * status` shows, nor anything that keeps `git worktree remove` from removing the worktree.
+ */
+function seedingFolder(root: string): string {
+  return join(root, `.target-seeding-${process.pid}`);
+}
+
 /** Seeds `root/target` from `main/target`; what was done, or null when there was nothing to do. */
 export function seedTarget(
   main: string,
@@ -126,19 +135,20 @@ export function seedTarget(
   if (packages === null) {
     return "target/ not seeded: cargo could not read the workspace's packages";
   }
-  // Ignored by `.gitignore`, so a seed killed midway leaves no untracked folder.
-  const seeding = `${to}.seeding-${process.pid}`;
+  const parent = seedingFolder(root);
+  const seeding = join(parent, "target");
   try {
+    mkdirSync(parent, { recursive: true });
     if (!clone(from, seeding)) {
-      rmSync(seeding, { force: true, recursive: true });
       return "target/ not seeded: this filesystem cannot clone files";
     }
     forgetPackages(seeding, packages);
+    publish(seeding, to);
   } catch (error) {
-    rmSync(seeding, { force: true, recursive: true });
     return `target/ not seeded: ${(error as Error).message}`;
+  } finally {
+    rmSync(parent, { force: true, recursive: true });
   }
-  publish(seeding, to);
   return "target/ seeded from the main checkout's";
 }
 
