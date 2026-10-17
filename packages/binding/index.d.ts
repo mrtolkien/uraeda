@@ -626,6 +626,21 @@ export interface Decision {
   unreadable: boolean
 }
 
+/** The change of one decision, from its version at the merge base to the branch's. */
+export interface DecisionChange {
+  /** The file's name, without `.md`. */
+  name: string
+  /** Its `# ` heading, from the branch's version when it has one. */
+  title: string
+  /** `new`, `changed`, or `removed`. */
+  kind: string
+  /** Whether the spec's `## Decisions` lists it. */
+  listed: boolean
+  /** Whether both versions could be read. */
+  compared: boolean
+  sections: Array<SectionChange>
+}
+
 /** The tree of one workflow file. */
 export interface Document {
   blocks: Array<Block>
@@ -942,6 +957,19 @@ export interface NextView {
   step: NextStepView
 }
 
+/** A paragraph or a list item of a decision, compared. */
+export interface PartChange {
+  /** `kept`, `changed`, `added`, or `removed`. */
+  kind: string
+  /** A list item's strength, as `Strength::as_str` names it. */
+  strength?: string
+  /** Its lines in the merge base's version, from the file's first line. */
+  before?: LineRange
+  /** Its lines in the branch's version, from the file's first line. */
+  after?: LineRange
+  runs: Array<Run>
+}
+
 export interface PlanItems {
   tasks: Array<TaskItem>
 }
@@ -1126,6 +1154,12 @@ export interface Ruling {
   blocks: Array<number>
 }
 
+/** Words of a part, joined with single spaces, all `kept`, `added`, or `removed`. */
+export interface Run {
+  kind: string
+  text: string
+}
+
 /** The feature or change a priorities entry links, while its step is not `done`. */
 export interface RunningFeature {
   folder: string
@@ -1143,6 +1177,12 @@ export interface RunSettings {
 export interface Scenario {
   number: number
   block: number
+}
+
+/** A section of a decision: the intent before the first `##`, titled `""`, then each `##`. */
+export interface SectionChange {
+  title: string
+  parts: Array<PartChange>
 }
 
 export interface SectionItems {
