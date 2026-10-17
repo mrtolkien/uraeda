@@ -142,3 +142,6 @@
   beside the groups: two readings of one section
 - [agent] [redesign-clarifications] The round cards accent lines use --spacing-1, which scales to
   about 4.8 px from 1024 px where the spec says 4 px; the split threshold is read once on mount
+- [agent] [redesign-clarifications] Round card tests leave the 5 to 6 ratio, the follow-up joint and
+  indent, the phone follow-up accent, and the option focus ring untested, and some find elements by
+  Astryx class names
