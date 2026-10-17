@@ -1,4 +1,5 @@
-// The round page of the clarifications redesign (`specs/2026-10-17-redesign-clarifications/spec.md`),
+// The round page of the clarifications redesign
+// (`specs/done/2026-10-17-redesign-clarifications.md`),
 // as the app draws it, over the mockup features' rounds, written in the redesign's format (see
 // `fixtures/round-mockup/` and `.storybook/fixture.ts`): its data comes from Uraeda's server in
 // Storybook, through fate.
