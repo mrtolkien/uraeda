@@ -15,6 +15,10 @@
 - [redesign-clarifications] Proposal often shows up as having errors when it’s stuff like linking
   files in worktrees. Generally we don’t really care about small problems to proposal + our flow
   should not create errors.
+- [agent] [redesign-clarifications] Starting a draft folder from its proposal.md
+  (specs/drafts/<slug>/proposal.md) starts it as a file draft: only proposal.md moves, and its
+  images/ stay behind, breaking the proposal's image links (crates/core/src/actions/start/plan.rs,
+  draft_files)
 
 ## Prompts
 
