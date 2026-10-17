@@ -23,7 +23,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { keepPlace } from "./keepPlace.ts";
+import { bottomOf, keepPlace } from "./keepPlace.ts";
 import type { Picked } from "./storyComment.ts";
 
 const styles = stylex.create({
@@ -135,8 +135,7 @@ function resizeKeepingPlace(stage: HTMLElement | null, resize: () => void) {
     return;
   }
   // The stage's bottom, NaN once the page is left: nothing to keep then.
-  const bottom = () => (stage.isConnected ? stage.getBoundingClientRect().bottom : Number.NaN);
-  void keepPlace(bottom, resize);
+  void keepPlace(bottomOf(stage), resize);
 }
 
 /**
