@@ -7,6 +7,7 @@ import { join } from "node:path";
 import {
   addStoryFeature,
   commitOnBranch,
+  fixture,
   fixtureRepo,
   git,
   previewDecision,
@@ -17,7 +18,6 @@ import type { Plugin } from "vite-plus";
 import { uraedaServer } from "../vite.config.ts";
 import { CHECKOUTS } from "./checkouts.ts";
 import { fateOverGet } from "./fateOverGet.ts";
-import { addRoundMockup } from "./roundMockup.ts";
 
 /** The date of every commit the fixture is built with. */
 const DATE = "2026-10-16T09:00:00Z";
@@ -45,6 +45,26 @@ function addFeature(
   if (worktree) {
     git(repo, "worktree", "add", "--quiet", join(".worktrees", folder), folder);
   }
+}
+
+/** The round page's mockup feature, its folder and branch. */
+const ROUND_MOCKUP = "2026-10-17-round-mockup";
+
+/** A file of the round page's mockup feature, from `fixtures/round-mockup/` (R5). */
+function roundMockupFile(name: string): string {
+  return readFileSync(fixture(`round-mockup/${name}`), "utf8");
+}
+
+/**
+ * Adds the round page's mockup feature, its round in the clarifications redesign's format, on its
+ * own branch, from `main`, without a worktree.
+ */
+function addRoundMockup(repo: string) {
+  git(repo, "branch", ROUND_MOCKUP, "main");
+  commitOnBranch(repo, ROUND_MOCKUP, {
+    [`specs/${ROUND_MOCKUP}/clarifications-01.md`]: roundMockupFile("clarifications-01.md"),
+    [`specs/${ROUND_MOCKUP}/proposal.md`]: roundMockupFile("proposal.md"),
+  });
 }
 
 /** The children of the inbox's note the `Note` pane story shows, committed on `main`. */

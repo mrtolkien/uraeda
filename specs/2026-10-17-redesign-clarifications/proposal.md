@@ -55,4 +55,4 @@ It's hard to read and overwhelming at the moment.
   clarifications: rewording and redesign go together
 - An important piece of work is making the clarifications wording and style model-agnostic. We need
   to be extremely clear as to the format expected, the tone, ... Same work as in the
-  [specs redesign](../redesign-specs.md)
+  [specs redesign](../drafts/redesign-specs.md)

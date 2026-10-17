@@ -8,8 +8,8 @@ status: awaiting-human
 >
 > 11 questions and 2 follow-ups on the benchmark, about 45 minutes.
 >
-> - What a run measures, and what it is compared against, are what turn "not completely stupid" into
->   a result you can read. Everything else follows from them.
+> - Verdict: worth building, with changes: what a run measures, and what it is compared against, are
+>   what turn "not completely stupid" into a result you can read. Everything else follows from them.
 > - Where the cases come from, and what the simulated human knows, work together: the recommended
 >   source ships a human-written list of requirements that becomes the simulated human's brief.
 > - Opus 5.5 playing both the agent and the human is the setup most prone to an "easy mode"
@@ -25,6 +25,8 @@ status: awaiting-human
 
 ## Context
 
+### Goal
+
 The [proposal](proposal.md) asks for a first benchmark of the full Uraeda flow on 5 real software
 cases, to check that the workflow holds up:
 
@@ -33,12 +35,21 @@ cases, to check that the workflow holds up:
 - a loose dependency on Claude Code, since Codex and pi-durable come later;
 - results saved in the repository, with the skill's SHA, the models, and the harness versions.
 
-Today, the repository holds the [skill](/skills/uraeda/SKILL.md) and a TypeScript toolchain, with no
-code. Each step of the workflow expects a `specs/` folder, a constitution, and a remote to push to,
-which a benchmark repository does not have. Most well-known benchmarks are small bug fixes with
-clear texts. A handful of recent ones are feature-sized and leave decisions open.
+### Today
 
-The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
+The repository holds the [skill](/skills/uraeda/SKILL.md) and a TypeScript toolchain, with no code.
+Each step of the workflow expects a `specs/` folder, a constitution, and a remote to push to, which
+a benchmark repository does not have. Most well-known benchmarks are small bug fixes with clear
+texts. A handful of recent ones are feature-sized and leave decisions open.
+
+### Scope
+
+The benchmark's cases, its runner, the simulated human at each gate, and how results are recorded.
+Codex and pi-durable come later.
+
+### Sources
+
+- The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
 
 ## Q1: What should a run measure?
 
@@ -382,6 +393,41 @@ repository grows.
 
 ## Settled without the human
 
+### Check these
+
+- **Only the feature flow is benchmarked.** The bug flow stays out, since the proposal asks for the
+  full flow. See [discovery](discovery-01.md#needs-no-choice).
+- **The 5 cases are picked in the spec, against fixed criteria:**
+  - a reference change of at least 100 lines across 3 files;
+  - at least 3 failing tests to fix;
+  - 5 different repositories, across the source's languages;
+  - no `specs/` folder of their own;
+  - no future git history in the image.
+
+  See [discovery](discovery-01.md#where-the-cases-come-from).
+
+- **Opus 5.5 plays the human too**, as the proposal decided. Studies show the simulated user's model
+  shifts scores by up to 9 points: the results will say so. See
+  [discovery](discovery-01.md#opus-55-everywhere).
+
+### Behaviour
+
+- **The proposal of each case is the task's own text, verbatim.** The runner commits it as
+  `proposal.md`, playing the human who starts the feature, so the baselines get exactly the same
+  input. With A in Q3, the expected interface is included, since the tests call those exact names.
+  See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
+- **The simulated human edits files and commits, as a human without tools would.** It sets
+  `answered` or `approved` itself, rather than asking the agent to, and turns the `> [!IMPORTANT]`
+  block into a record. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
+- **Each case has a local bare repository as its remote**, so the implementation step's push
+  succeeds. With no pull request host, the step puts the description in the last commit, as the
+  skill already says, and the run ends there. See [discovery](discovery-01.md#important-reads).
+- **The task's grader runs once the flow ends**, on the pushed branch, in a fresh container. A run
+  stopped by a cap is graded on what it pushed, and counts as a failure if nothing was pushed. See
+  [discovery](discovery-01.md#needs-no-choice).
+
+### Under the hood
+
 - **The benchmark lives in a new `benchmarks/` folder** at the repository's root, with:
   - its README;
   - the simulated human's guidelines;
@@ -392,27 +438,9 @@ repository grows.
   The repository layout in [`AGENTS.md`](/AGENTS.md) gains it. See
   [discovery](discovery-01.md#likely-changes).
 
-- **Only the feature flow is benchmarked.** The bug flow stays out, since the proposal asks for the
-  full flow. See [discovery](discovery-01.md#needs-no-choice).
-- **The proposal of each case is the task's own text, verbatim.** The runner commits it as
-  `proposal.md`, playing the human who starts the feature, so the baselines get exactly the same
-  input. With A in Q3, the expected interface is included, since the tests call those exact names.
-  See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
-- **The 5 cases are picked in the spec, against fixed criteria:**
-  - a reference change of at least 100 lines across 3 files;
-  - at least 3 failing tests to fix;
-  - 5 different repositories, across the source's languages;
-  - no `specs/` folder of their own;
-  - no future git history in the image.
-
-  See [discovery](discovery-01.md#where-the-cases-come-from).
-
 - **Each step and each human turn is a fresh session, never a resumed one.** The workflow is built
   for it, and resumed sessions count their cost twice. The agent's prompt starts with `/uraeda` and
   "continue the feature". See [discovery](discovery-01.md#claude-code-in-headless-mode).
-- **The simulated human edits files and commits, as a human without tools would.** It sets
-  `answered` or `approved` itself, rather than asking the agent to, and turns the `> [!IMPORTANT]`
-  block into a record. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 - **The skill comes from git, not from the working tree.** Each run copies `skills/uraeda` from a
   named commit into its configuration folder, and records the commit and whether the tree was clean.
   Today, the installed skill is a symlink to the working tree. See
@@ -427,15 +455,6 @@ repository grows.
   If Opus 5.5 hands a request to another model, `modelUsage` shows it, and it is recorded. See
   [discovery](discovery-01.md#claude-code-in-headless-mode).
 
-- **Opus 5.5 plays the human too**, as the proposal decided. Studies show the simulated user's model
-  shifts scores by up to 9 points: the results will say so. See
-  [discovery](discovery-01.md#opus-55-everywhere).
-- **Each case has a local bare repository as its remote**, so the implementation step's push
-  succeeds. With no pull request host, the step puts the description in the last commit, as the
-  skill already says, and the run ends there. See [discovery](discovery-01.md#important-reads).
-- **The task's grader runs once the flow ends**, on the pushed branch, in a fresh container. A run
-  stopped by a cap is graded on what it pushed, and counts as a failure if nothing was pushed. See
-  [discovery](discovery-01.md#needs-no-choice).
 - **Each run records the fields benchmarks share:**
   - the commit of this repository and of the skill, each with a dirty flag;
   - the harness name and version;
@@ -446,3 +465,5 @@ repository grows.
   - the outcome of each grader.
 
   See [discovery](discovery-01.md#recording-results).
+
+**Notes:**

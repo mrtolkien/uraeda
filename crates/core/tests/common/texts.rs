@@ -17,10 +17,13 @@ fn block(status: &str, first_line: &str) -> String {
     format!("> [!{kind}]\n>\n> {first_line}\n>\n> - A point.\n")
 }
 
-/// A round of questions: one question per answer, each with options A and B.
+/// A round of questions: one question per answer, each with options A and B. Its Context says what
+/// happened since the last round, so it serves as any round's file.
 pub fn clarifications(status: &str, first_line: &str, answers: &[&str]) -> String {
     let mut text = format!(
-        "---\nstatus: {status}\n---\n\n# Clarifications, round 01: Feature\n\n{}\n## Context\n\nContext.\n",
+        "---\nstatus: {status}\n---\n\n# Clarifications, round 01: Feature\n\n{}\n## Context\n\n\
+         ### Since the last round\n\nAnswers.\n\n### Goal\n\nA goal.\n\n### Today\n\nToday.\n\n\
+         ### Scope\n\nA scope.\n\n### Sources\n\n- The code.\n",
         block(status, first_line)
     );
     for (index, answer) in answers.iter().enumerate() {
@@ -31,7 +34,9 @@ pub fn clarifications(status: &str, first_line: &str, answers: &[&str]) -> Strin
             index + 1
         ));
     }
-    text.push_str("\n## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n");
+    text.push_str(
+        "\n## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n",
+    );
     text
 }
 

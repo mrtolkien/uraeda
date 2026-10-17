@@ -8,31 +8,50 @@ status: answered
 >
 > Answered on 2026-10-08.
 >
-> - Two choices last beyond this feature: how users pick a repeat, which decides what "every 2
->   weeks" would cost later, and how due dates are stored, which every future feature with dates
->   will follow.
+> - Verdict: worth building, with changes: the proposal's two clicks take three today, and a task
+>   without a due date has nothing to repeat from.
+> - Two choices last beyond this feature: how users pick a repeat, and how due dates are stored,
+>   which every later feature with dates follows.
 > - When the next occurrence appears decides what editing, deleting, and undoing a repeating task
 >   mean. One of its answers comes with a follow-up.
-> - Two questions come from gaps in the proposal: its two-click path takes three clicks today, and a
->   task without a due date has no date to repeat from.
-> - Five points are settled without you, at the end: check them.
+> - Five points are settled without you, at the end: check the two under "Check these".
 
 ## Context
 
-The [proposal](proposal.md) asks for tasks that come back once completed, like "water the plants"
-every week, in two clicks, while the app stays simple for the people who use it.
+### Goal
 
-Today, a task has a title, an optional due date, and a done flag, stored in IndexedDB by the
-[task store](/src/store/tasks.ts), and edited in a panel with two fields
+The [proposal](proposal.md) asks for tasks that come back once completed, like "water the plants"
+every week. Users set them in two clicks, and the app stays simple for the people who use it.
+
+### Today
+
+A task has a title, an optional due date, and a done flag, stored in IndexedDB by the
+[task store](/src/store/tasks.ts). It is edited in a panel with two fields
 ([edit panel](/src/components/EditPanel.tsx)). The app only runs while it is open.
 
-The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
+| Product         | How users pick a repeat            | Where the repeat is set             |
+| --------------- | ---------------------------------- | ----------------------------------- |
+| Microsoft To Do | presets, and a custom option       | the task's details, by its due date |
+| Todoist         | a rule typed in the due date field | the due date field                  |
+| Google Calendar | a menu, and a custom screen        | next to "Does not repeat"           |
+
+### Scope
+
+Repeating a task, its next due date, and how the list shows it. Reminders are left out: they are
+next in the [priorities](../PRIORITIES.md).
+
+### Sources
+
+- The task store and the edit panel, linked above.
+- The help pages of Microsoft To Do, Todoist, and Google Calendar, linked in the discovery.
+- date-fns' `addMonths`, and MDN on Temporal.
+- The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
 
 ## Q1: How should users pick when a task repeats?
 
-Microsoft To Do offers presets (daily, weekdays, weekly, monthly, yearly) plus a custom option,
-Todoist a rule typed in the due date field, like "every 3 months", and Google Calendar a custom
-screen, which the proposal names as what to avoid. Where the choice appears is Q6. More in
+Microsoft To Do offers presets (daily, weekdays, weekly, monthly, yearly) plus a custom option.
+Todoist reads a rule typed in the due date field, like "every 3 months". Google Calendar has a
+custom screen, which the proposal names as what to avoid. Where the choice appears is Q6. More in
 [discovery](discovery-01.md#recurrence-rules).
 
 Why it matters: this sets how complex the edit panel gets, and what "every 2 weeks" would cost
@@ -65,8 +84,16 @@ on completion. This choice also decides what editing, deleting, and undoing mean
 task. More in [discovery](discovery-01.md#generating-occurrences) and
 [editing occurrences](discovery-01.md#editing-occurrences).
 
-Why it matters: it decides whether users see future tasks, whether completed ones stay as a history,
-and whether the app needs a notion of series.
+```mermaid
+flowchart LR
+  done[Task completed] --> repeats{Repeats?}
+  repeats -- no --> closed[Marked done]
+  repeats -- "yes, with A" --> next[New task, next date]
+  repeats -- "yes, with C" --> moved[Same task, due date moved]
+```
+
+Why it matters: it decides whether future tasks show, whether completed ones stay as a history, and
+whether the app needs a notion of series.
 
 - **A (recommended). Create the next occurrence as a new task when the current one is completed.
   Editing a task changes that task only.**
@@ -129,8 +156,8 @@ stays a Monday task.
 ## Q4: How should the app store due dates?
 
 Due dates are timestamps at local midnight. A local day lasts 23 or 25 hours when daylight saving
-time changes, so adding 7 × 24 hours can land on the day before, and the native `Date` turns January
-31 plus a month into March. date-fns, already a dependency, fixes the month overflow with
+time changes, so adding 7 × 24 hours can land on the day before. The native `Date` also turns
+January 31 plus a month into March. date-fns, already a dependency, fixes the month overflow with
 `addMonths`. More in [discovery](discovery-01.md#date-handling).
 
 Why it matters: reminders, next in the [priorities](../PRIORITIES.md), and every later feature with
@@ -215,14 +242,20 @@ Why it matters: it decides whether the quick path from Q6 works on every task.
 
 ## Settled without the human
 
-- **Undoing a completion** puts back what completing changed: it removes the occurrence created with
-  A in Q2, or restores the previous due date with C. Otherwise undo leaves the list in a state the
-  user never saw. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
-- **Deleting a repeating task** ends the repetition with A or C in Q2, since it is the only pending
-  occurrence. With B, the follow-up Q2.B decides. Same section of the discovery.
+### Check these
+
 - **Skipping one occurrence** gets no dedicated action: users move its due date, or complete it, as
   in Todoist. A skip action can come later without changing stored tasks. See
   [Todoist](discovery-01.md#todoist).
+- **Deleting a repeating task** ends the repetition with A or C in Q2, since it is the only pending
+  occurrence. With B, the follow-up Q2.B decides. See
+  [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
+
+### Behaviour
+
+- **Undoing a completion** puts back what completing changed: it removes the occurrence created with
+  A in Q2, or restores the previous due date with C. Otherwise undo leaves the list in a state the
+  user never saw. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 - **Monthly repeats on the 29th to 31st** fall on the last day of shorter months, which is what
   date-fns' `addMonths` does. See [discovery](discovery-01.md#dates-in-javascript).
 - **Repeating tasks show a repeat icon** in the list, next to the due date, with the project's

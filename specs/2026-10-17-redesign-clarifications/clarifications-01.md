@@ -21,24 +21,29 @@ status: answered
 
 ## Context
 
-**Goal.** A round you can read once, top to bottom, and answer quickly. It says what the feature is
-for and whether it is a good idea before asking anything. Facts are grouped by kind, comparisons are
-tables, and each question stands apart. "Readable" here means that a different model, following the
-same rules, writes the same file.
+### Goal
 
-**Today.** The 26 answered rounds average 2,829 words, 1.5 times the skill's example. All of them
-open by retelling the proposal. None states the goal or gives a verdict on the proposal, and five
-misread its intent, which only your answers revealed. Pushback with evidence was followed every time
-it was given. 279 settled points form flat lists, of which 11 drew a reaction, and scope cuts draw
+A round you can read once, top to bottom, and answer quickly. It says what the feature is for and
+whether it is a good idea before asking anything. Facts are grouped by kind, comparisons are tables,
+and each question stands apart. "Readable" here means that a different model, following the same
+rules, writes the same file.
+
+### Today
+
+The 26 answered rounds average 2,829 words, 1.5 times the skill's example. All of them open by
+retelling the proposal. None states the goal or gives a verdict on the proposal, and five misread
+its intent, which only your answers revealed. Pushback with evidence was followed every time it was
+given. 279 settled points form flat lists, of which 11 drew a reaction, and scope cuts draw
 reactions four times as often as the rest. On the page, an 8 px band is all that separates
 questions, a follow-up sits inside its parent with a 4 px border, and text runs to about 110
 characters. More in [discovery](discovery-01.md#the-rounds-so-far).
 
-**Scope.** The round's wording and format: the skill, its template, and its example. Then the
-round's page, which the inbox triage shares. The specs redesign comes next, and reuses the writing
-rules.
+### Scope
 
-**Sources.**
+The round's wording and format: the skill, its template, and its example. Then the round's page,
+which the inbox triage shares. The specs redesign comes next, and reuses the writing rules.
+
+### Sources
 
 - Every round in this repository, read as asked and as answered.
 - The core's parser ([`round.rs`](/crates/core/src/files/items/round.rs)) and the round page
@@ -369,6 +374,8 @@ Why it matters: it adds a dependency, which becomes a decision.
 
 ## Settled without the human
 
+### Check these
+
 - **Check: a comment alone is an answer, and the page says so.** The comment field reads "Comment,
   or your own answer instead of a letter". When a question is answered without a letter, its
   follow-ups do not apply, and you no longer mark each one "Does not apply". This changes the
@@ -381,6 +388,9 @@ Why it matters: it adds a dependency, which becomes a decision.
 - **Check: git chores leave the round.** Branches, merges, and features in flight go in the agent's
   last message. A round only names another feature when your answer depends on it. See
   [discovery](discovery-01.md#the-opening).
+
+### Behaviour
+
 - **The time estimate is computed**: the words at 250 a minute, plus a minute per question.
   Follow-ups are counted apart from questions. Claimed times were off by half for long rounds, and
   by three to seven times for short ones. See [discovery](discovery-01.md#size-and-time).
@@ -393,10 +403,13 @@ Why it matters: it adds a dependency, which becomes a decision.
   layout decision's 120. See [discovery](discovery-01.md#forms-and-questions).
 - **Options become Astryx selectable cards**, which closes the raw button gap in `Question.tsx`. The
   mockups use them. See [discovery](discovery-01.md#important-reads).
-- **Older rounds stay valid**: every new part is optional for `ura check`, so rounds on other
-  branches pass unchanged. See [discovery](discovery-01.md#likely-changes).
 - **The inbox triage** takes the new page and the new writing rules, since it reuses both. See
   [discovery](discovery-01.md#important-reads).
+
+### Under the hood
+
+- **Older rounds stay valid**: every new part is optional for `ura check`, so rounds on other
+  branches pass unchanged. See [discovery](discovery-01.md#likely-changes).
 - **The skill's example round is rewritten** in the new format, with the core tests that read it.
   See [discovery](discovery-01.md#likely-changes).
 - **Files at their limits are split first**: `clarifications.rs`, `RoundPage.tsx`, `Question.tsx`,

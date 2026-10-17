@@ -1,6 +1,6 @@
 // Mockups of the round page in the clarifications redesign
 // (`specs/2026-10-17-redesign-clarifications/spec.md`), over the mockup feature's round, written in
-// the redesign's format (see `.storybook/roundMockup.ts`).
+// the redesign's format (see `fixtures/round-mockup/`).
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { RoundMockup } from "./mockups/RoundMockup.tsx";
 
