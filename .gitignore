@@ -7,4 +7,3 @@ dist/
 coverage/
 packages/web/storybook-static/
 storybook-static/
-/target.seeding-*/

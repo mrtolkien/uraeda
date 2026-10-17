@@ -10,7 +10,6 @@ import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { mainCheckout, seedTarget, seedTaskCache } from "../../scripts/worktree-seed.ts";
 
 const SCRIPT = fileURLToPath(new URL("../../scripts/worktree-seed.ts", import.meta.url));
-const ROOT = fileURLToPath(new URL("../../../..", import.meta.url));
 
 /** Writes files under `root`, their paths from it. */
 function write(root: string, files: Record<string, string>) {
@@ -32,7 +31,8 @@ function checkouts() {
     git(main, "config", key, value);
   }
   write(main, {
-    ".gitignore": "/target/\n/node_modules/\n/.worktrees/\n",
+    // The repository's own rules for its build and dependencies.
+    ".gitignore": "node_modules/\ntarget/\n/.worktrees/\n",
     "Cargo.toml": '[package]\nname = "seeded-app"\nversion = "0.1.0"\nedition = "2024"\n',
     "src/lib.rs": "",
   });
@@ -110,20 +110,30 @@ test("a worktree with a build of its own, or on a filesystem without clones, kee
   expect(seedTarget(other, bare, partial)).toBe(
     "target/ not seeded: this filesystem cannot clone files",
   );
-  expect(readdirSync(bare).filter((name) => name.startsWith("target"))).toEqual([]);
+  expect(readdirSync(bare).filter((name) => name.includes("target"))).toEqual([]);
 
   const failing = (_from: string, to: string): boolean => {
     write(to, { half: "" });
     throw new Error("no space left");
   };
   expect(seedTarget(other, bare, failing)).toBe("target/ not seeded: no space left");
-  expect(readdirSync(bare).filter((name) => name.startsWith("target"))).toEqual([]);
+  expect(readdirSync(bare).filter((name) => name.includes("target"))).toEqual([]);
 });
 
-test("a seed killed midway leaves a folder git ignores", () => {
-  const seeding = `target.seeding-${process.pid}/`;
+test("a seed killed midway leaves nothing git shows", () => {
+  const { main, worktree } = checkouts();
+  write(main, BUILD);
+  let status = "";
+  // What git shows while the clone is under way, as when a Ctrl-C stops it there.
+  const killed = (_from: string, to: string) => {
+    write(to, { "debug/deps/libitoa-0123456789abcdef.rlib": "" });
+    status = git(worktree, "status", "--porcelain", "--untracked-files=all");
+    return false;
+  };
 
-  expect(git(ROOT, "check-ignore", seeding).trim()).toBe(seeding);
+  seedTarget(main, worktree, killed);
+
+  expect(status).toBe("");
 });
 
 test("the script seeds a new worktree with clones, and says so, or says why it could not", () => {
