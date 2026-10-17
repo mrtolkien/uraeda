@@ -102,7 +102,7 @@ pub fn add_started(text: &str, link_text: &str, target: &str) -> String {
         let shift = added.len();
         lines.splice(at..at, added);
         // The numbered entries after it count it in.
-        for entry in now.iter().filter(|entry| entry.line - 1 >= at) {
+        for entry in now.iter().filter(|entry| entry.line > at) {
             let line = &lines[entry.line - 1 + shift];
             if let Some((Marker::Number(number), rest)) = lines::item_marker(line) {
                 lines[entry.line - 1 + shift] =

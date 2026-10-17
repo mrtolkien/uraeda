@@ -765,7 +765,8 @@ test("the draft's text typed in the pane opens on the editor page", async () => 
   const typed = "# Git listener process\n\n## What\n\nTyped in the pane.\n";
   await renderPage("/priorities/git-listener");
   await click(await screen.findByRole("button", { name: "Edit" }));
-  await type(screen.getByRole("textbox", { name: "Text" }), typed);
+  // The draft's text loads after its line.
+  await type(await screen.findByRole("textbox", { name: "Text" }), typed);
 
   await click(screen.getByRole("link", { name: "Open draft" }));
   await click(
