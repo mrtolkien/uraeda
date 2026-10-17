@@ -31,11 +31,11 @@ until they are.
 
 You asked not to keep backward compatibility before version 1.0, and to write it down as a decision,
 when the clarifications redesign changed the round's format (the Notes of
-[round 01](../2026-10-17-redesign-clarifications/clarifications-01.md#settled-without-the-human)).
-Reviewing the spec, you added that an agent meeting a file that fails `ura check` fixes it anyway
-(C1 of the [spec's review](../2026-10-17-redesign-clarifications/spec.md)). Uraeda is a proof of
-concept whose formats still move feature after feature: code that reads old formats would grow with
-each of them, for files that live a few days on a branch.
+[round 01](../done/2026-10-17-redesign-clarifications.md)). Reviewing the spec, you added that an
+agent meeting a file that fails `ura check` fixes it anyway (C1 of the
+[spec's review](../done/2026-10-17-redesign-clarifications.md)). Uraeda is a proof of concept whose
+formats still move feature after feature: code that reads old formats would grow with each of them,
+for files that live a few days on a branch.
 
 ## Consequences
 

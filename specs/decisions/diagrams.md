@@ -33,15 +33,15 @@ app.
 ## Why
 
 You chose diagrams for rounds of questions, since "a round could ask to pick between multiple flows"
-([Q10](../2026-10-17-redesign-clarifications/clarifications-01.md#q10-can-a-round-hold-a-diagram)).
-Mermaid's source stays readable as plain text, which the
+([Q10](../done/2026-10-17-redesign-clarifications.md#q10-can-a-round-hold-a-diagram)). Mermaid's
+source stays readable as plain text, which the
 [constitution's principle II](../CONSTITUTION.md#ii-git-and-plain-text-first) requires, and GitHub
 and GitLab render it in Markdown files
-([Markdown rendering](../2026-10-17-redesign-clarifications/discovery-01.md#markdown-rendering)).
-The library has had a critical XSS advisory and several HTML injection advisories, and the web UI
-can commit and start agents: drawing each diagram in a sandboxed frame keeps a crafted diagram from
-reaching the app, whatever the library's next bug. The sandbox level was checked to render in
-WebKit, in the spec's mockups.
+([Markdown rendering](../done/2026-10-17-redesign-clarifications.md)). The library has had a
+critical XSS advisory and several HTML injection advisories, and the web UI can commit and start
+agents: drawing each diagram in a sandboxed frame keeps a crafted diagram from reaching the app,
+whatever the library's next bug. The sandbox level was checked to render in WebKit, in the spec's
+mockups.
 
 ## Alternatives considered
 

@@ -1,5 +1,5 @@
 // The question cards of the clarifications redesign
-// (`specs/2026-10-17-redesign-clarifications/spec.md`), as the round page draws them: two columns
+// (`specs/done/2026-10-17-redesign-clarifications.md`), as the round page draws them: two columns
 // on a wide screen, a follow-up its own card after its parent's. Over the round page's mockup
 // feature, its Q1 answered B so that its follow-up shows; its data comes from Uraeda's server in
 // Storybook, through fate.
