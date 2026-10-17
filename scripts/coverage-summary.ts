@@ -46,5 +46,5 @@ if (import.meta.main) {
   const root = join(import.meta.dirname, "..");
   const read = (path: string) => readFileSync(join(root, path), "utf8");
   const lines = summary(read("coverage/rust.lcov"), read("coverage/typescript/lcov.info"));
-  process.stdout.write(`${lines.join("\n")}\n`);
+  process.stdout.write(`${lines.join("\n")}\nThe HTML reports: vp run coverage:open\n`);
 }
