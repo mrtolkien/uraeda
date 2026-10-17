@@ -19,14 +19,14 @@ through the core.
   replacing the file whole through a renamed temporary file. Checked by the core's tests and review.
 - Each entry MUST be a git repository's main checkout, by absolute path, listed once, under a unique
   name of letters, digits, `.`, `_`, and `-`. Checked by the core's tests.
-- An entry MAY hold sidebar names and colours for its features and changes, which belong to the UI:
-  workflow rules MUST NOT read them. Checked by the core's tests and review.
 - Removing a repository from the list MUST NOT change its files or its cached sessions. Checked by
   the core's tests.
 - One server process MUST serve every listed repository, and every UI page and server route that
   reads or writes a repository's data MUST start with `/r/<name>/`. Checked by the server's tests.
 - Each repository MUST have its own fate endpoint and live updates; only the global `/fate` MAY span
   every repository. Checked by the server's tests.
+- An entry MAY hold sidebar names and colours for its features and changes, which belong to the UI:
+  workflow rules MUST NOT read them. Checked by the core's tests and review.
 
 ## Why
 
