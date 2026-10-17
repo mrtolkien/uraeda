@@ -6,16 +6,32 @@
 /** Resolves on the next animation frame. */
 export const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
+/** A place being kept: where it was before the first change, and the last change's number. */
+type Keep = { before: number; last: number; read: () => number };
+
+/** The place kept while a change is drawn, which the changes made meanwhile join. */
+let pending: Keep | undefined;
+
 /**
  * Reads a place on screen with `read`, a distance from the window's top in px, makes `change`, and
- * once two frames have drawn it, scrolls the window so the place is back where it was.
+ * once two frames have drawn it, scrolls the window so the place is back where it was. A change
+ * made while another's place is being kept joins it: that place is put back once, two frames
+ * after the last change, so no change is corrected twice.
  */
 export async function keepPlace(read: () => number, change?: () => void) {
-  const before = read();
+  // A place already gone keeps nothing: a new one is kept instead.
+  const keep =
+    pending && Number.isFinite(pending.before) ? pending : { before: read(), last: 0, read };
+  pending = keep;
+  const mine = ++keep.last;
   change?.();
   await frame();
   await frame();
-  const moved = read() - before;
+  if (keep.last !== mine) {
+    return;
+  }
+  pending = undefined;
+  const moved = keep.read() - keep.before;
   // A place gone from the page reads NaN: nothing to keep.
   if (Number.isFinite(moved) && Math.abs(moved) >= 0.5) {
     window.scrollBy({ behavior: "instant", top: moved });

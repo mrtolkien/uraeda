@@ -134,7 +134,9 @@ function resizeKeepingPlace(stage: HTMLElement | null, resize: () => void) {
     resize();
     return;
   }
-  void keepPlace(() => stage.getBoundingClientRect().bottom, resize);
+  // The stage's bottom, NaN once the page is left: nothing to keep then.
+  const bottom = () => (stage.isConnected ? stage.getBoundingClientRect().bottom : Number.NaN);
+  void keepPlace(bottom, resize);
 }
 
 /**
