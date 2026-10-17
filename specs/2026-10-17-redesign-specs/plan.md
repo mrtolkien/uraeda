@@ -1501,7 +1501,8 @@ git commit -m "feat(redesign-specs): stories read as cards, with their key scena
 
 - Start from: `packages/web/src/mockups/SpecParts.tsx`
 - Modify: `packages/web/src/spec/BuiltParts.tsx`, `packages/web/src/spec/DataPart.tsx`
-- Test: `packages/web/src/__tests__/spec-parts.test.tsx`
+- Test: `packages/web/src/__tests__/spec-parts.test.tsx`,
+  `packages/web/src/__browser__/spec-parts.test.tsx` (R77)
 
 **Interfaces:**
 
@@ -1509,7 +1510,7 @@ git commit -m "feat(redesign-specs): stories read as cards, with their key scena
   `addSpecFeature`, and the placeholders' props (task 10).
 - Produces: nothing other tasks use.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/spec-parts.test.tsx
@@ -1532,6 +1533,12 @@ test("the data model's changes are coloured pills", async () => {
 test("a spec without a data model has no Data part", async () => {
   /* review focus 5 */
 });
+
+// Commenting kept on the parts' own drawings: a pending comment on a niche case opens its fold;
+// a unit's card takes a comment on its line.
+
+// packages/web/src/__browser__/spec-parts.test.tsx (R77): the units side by side at 1440 px; the
+// pills' colours; the parts' layout at both sizes.
 ```
 
 The break each test catches:
@@ -1539,15 +1546,15 @@ The break each test catches:
 - Edge cases: the file's order kept, or niche cases shown.
 - Criterion: the measure left in the sentence.
 - Architecture: tradeoffs drawn as units.
-- Data: the change cell drawn as plain text.
+- Data: the change cell drawn as plain text (the browser test, R77).
 - No data model: an empty "Data" part, and its entry in "Contents".
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/spec-parts.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "2 niche cases"`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Under "How it is built, and its limits": the architecture's units as small cards in a row on a wide
 screen, then each tradeoff with a "Cost" pill; the edge cases by importance, high, then normal, then
@@ -1555,15 +1562,15 @@ the niche ones behind "N niche cases"; each criterion's id and measure as pills 
 the assumptions as their blocks. "Data" draws `data-model.md` when it exists, its "Change" column as
 green "New", yellow "Changed", and red "Removed" pills, and nothing otherwise.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web/src/spec/BuiltParts.tsx packages/web/src/spec/DataPart.tsx packages/web/src/__tests__/spec-parts.test.tsx
+git add packages/web/src/spec/BuiltParts.tsx packages/web/src/spec/DataPart.tsx packages/web/src/__tests__/spec-parts.test.tsx packages/web/src/__browser__/spec-parts.test.tsx
 git commit -m "feat(redesign-specs): the parts after the stories, each drawn for what it holds"
 ```
 
