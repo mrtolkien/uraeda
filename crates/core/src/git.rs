@@ -274,6 +274,15 @@ impl Git {
         self.repo.head_id().ok().map(|id| id.detach())
     }
 
+    /// The best common ancestor of two commits, or `None` when their histories share no commit.
+    pub fn merge_base(&self, a: ObjectId, b: ObjectId) -> Result<Option<ObjectId>, GitError> {
+        let base = self
+            .repo
+            .merge_base(a, b)
+            .map_err(read_error("the merge base"))?;
+        Ok(base.map(|id| id.detach()))
+    }
+
     /// A file's content at a commit, or `None` when the commit has no such file.
     pub fn read_file(&self, commit: ObjectId, path: &str) -> Result<Option<Vec<u8>>, GitError> {
         let tree = self.tree(commit)?;

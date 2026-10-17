@@ -171,3 +171,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: one commit for both: the plan asks for the rewrite on its own.
 - **If wrong**: squash the two commits.
 - **Where**: task 2, steps 7 and 9
+
+## R20: A decision's parts compare their plain text, and reuse the document's `LineRange`
+
+- **Decision**: a part's text, and so its runs, is the plain text of its parsed spans: code keeps
+  its words without backticks, a link keeps its text without its target. `PartChange.before` and
+  `after` use the document tree's `LineRange`, not a second type of the same name.
+- **Rationale**: the stack decision forbids the web from parsing markdown, and runs of raw markdown
+  would carry backticks and link syntax to draw. napi-rs generates one TypeScript interface per
+  name, so a second `LineRange` would clash with the document's.
+- **Alternatives considered**: comparing the markdown source, as the mockup's `partsOf` does: the
+  web would parse it to draw code and links.
+- **If wrong**: a link's target changed alone shows no change; runs would carry spans instead of
+  text, a change local to `decisions/change.rs` and the card.
+- **Where**: `crates/core/src/decisions/change.rs`
+
+## R21: Where removed parts and sections sit, and which parts have a strength
+
+- **Decision**: between two matched parts, the branch's parts come first, then the removed ones
+  left; a section only the merge base has comes after the section that preceded it there. Only a
+  list item has a strength. A part whose text is equal but moved within its section is `kept`. A
+  decision without a `# ` heading takes its name as title.
+- **Rationale**: the plan says "removed parts at the place they held" and lists the rewritten rule
+  as added, then removed. Paragraphs are the intent and the reasons, never rules.
+- **Alternatives considered**: removed parts first, as a line diff shows them: the reader would meet
+  the old rule before the new one.
+- **If wrong**: the order is set in `gap` and `section_titles`, the strength in `part_change`.
+- **Where**: `crates/core/src/decisions/change.rs`
