@@ -503,11 +503,12 @@ key on their bold subject; Submit flips the block's first paragraph only
 
 **Files:**
 
-- Create: `packages/web/src/SettledGroups.tsx`
+- Create: `packages/web/src/SettledGroups.tsx`, `packages/web/src/SettledForm.tsx` (the form and
+  notices), `packages/web/src/settledWrites.ts` (the comments' writes and `useSaveSettled`)
 - Modify: `packages/web/src/SettledPoints.tsx` (split first), `packages/web/src/RoundNotes.tsx`
 - Test: `packages/web/src/__tests__/settled.test.tsx`
 
-- [ ] **Step 1: Structural: move the settled point's form and notices out of `SettledPoints.tsx`.**
+- [x] **Step 1: Structural: move the settled point's form and notices out of `SettledPoints.tsx`.**
       Commit.
 - [ ] **Step 2: Write the failing tests**: US4.1 "Check these" and "Behaviour" show their points,
       "Under the hood" shows "Show the 2 points"; US4.2 open, reload, still open; review focus 6:

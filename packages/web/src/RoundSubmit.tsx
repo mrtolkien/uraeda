@@ -18,7 +18,7 @@ import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx"
 import { type Hashes, isTriage, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { navigateHere } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
-import { useSaveSettled } from "./SettledPoints.tsx";
+import { useSaveSettled } from "./settledWrites.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 type Notes = ReturnType<typeof useRoundNotes>;
