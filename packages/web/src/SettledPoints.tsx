@@ -1,4 +1,3 @@
-import { Heading } from "@astryxdesign/core/Heading";
 import {
   borderVars,
   colorVars,
@@ -7,7 +6,8 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
-import type { Block } from "uraeda-binding";
+import type { Block, Document, SettledGroup, SettledPoint } from "uraeda-binding";
+import { topBlock } from "./Folds.tsx";
 import { Blocks } from "./Blocks.tsx";
 import type { useFile } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -21,6 +21,7 @@ import {
   SettledForm,
   SettledNote,
 } from "./SettledForm.tsx";
+import { SettledGroups } from "./SettledGroups.tsx";
 import { useSettledWrites } from "./settledWrites.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -35,36 +36,27 @@ const styles = stylex.create({
     marginBlock: spacingVars["--spacing-2"],
     padding: spacingVars["--spacing-3"],
   },
-  title: {
-    marginBlockEnd: spacingVars["--spacing-3"],
-  },
 });
 
 /**
- * The points a round settled without the human, with their comments under them. While the round
- * awaits the human, a point that starts in bold is tapped to comment on it, in a form under it on
- * wide screens and in a sheet on the phone, and its comments have Edit and Remove. Each form's
- * text is kept in the unsaved store; the one holding text when the page is drawn opens again.
+ * The comment form open on a round's settled points, `shown` while the round awaits the human, and
+ * the writes it makes: the one holding unsaved text when the page is drawn opens again, and a
+ * write done or a removal closes or follows it.
  */
-export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolean }) {
-  const wide = useWidthClass() === "wide";
+function useSettledForm(file: File, readOnly: boolean) {
   const repo = useRepositoryPath();
   const round = file.current.items.clarifications;
-  const points = round?.settledPoints ?? [];
-  const comments = round?.settledComments ?? [];
   const [open, setOpen] = useState<Open | undefined>(() =>
-    readOnly ? undefined : restoredForm(repo, file.path, points, comments),
+    readOnly
+      ? undefined
+      : restoredForm(repo, file.path, round?.settledPoints ?? [], round?.settledComments ?? []),
   );
   const writes = useSettledWrites(
     file,
     () => setOpen(undefined),
     (number) => setOpen(afterRemoval(number)),
   );
-  if (!round || round.settledGroups.length === 0) {
-    return null;
-  }
   const shown = readOnly ? undefined : open;
-
   const form = shown && (
     <SettledForm
       onClose={() => setOpen(undefined)}
@@ -73,6 +65,34 @@ export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolea
       writes={writes}
     />
   );
+  return { form, setOpen, shown, writes };
+}
+
+/** Whether a point lies under "Under the hood". */
+function inHood(document: Document, groups: ReadonlyArray<SettledGroup>, point: SettledPoint) {
+  const top = topBlock(document, document.blocks[point.block])?.id;
+  const hood = groups.find((group) => group.kind === "hood");
+  return top !== undefined && hood !== undefined && hood.blocks.includes(top);
+}
+
+/**
+ * The points a round settled without the human, in their groups, with their comments under them.
+ * While the round awaits the human, a point that starts in bold is tapped to comment on it, in a
+ * form under it on wide screens and in a sheet on the phone, and its comments have Edit and
+ * Remove. Each form's text is kept in the unsaved store; the one holding text when the page is
+ * drawn opens again, "Under the hood" opened for it.
+ */
+export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolean }) {
+  const wide = useWidthClass() === "wide";
+  const round = file.current.items.clarifications;
+  const document = file.current.document;
+  const points = round?.settledPoints ?? [];
+  const comments = round?.settledComments ?? [];
+  const { form, setOpen, shown, writes } = useSettledForm(file, readOnly);
+  if (!round || round.settledGroups.length === 0) {
+    return null;
+  }
+
   const inPage = (here: boolean) =>
     wide && here && <div {...stylex.props(styles.inline)}>{form}</div>;
   const pointOf = (block: Block) => points.find((p) => p.block === block.id);
@@ -111,26 +131,25 @@ export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolea
       </>
     );
   };
+  const selection = {
+    after,
+    canSelect: (block: Block) => !readOnly && pointOf(block) !== undefined,
+    isSelected: newOn,
+    onTap: (block: Block) => {
+      const point = pointOf(block);
+      if (point && !newOn(block)) {
+        setOpen({ kind: "new", point });
+      }
+    },
+  };
 
   return (
     <>
-      <Heading level={2} xstyle={styles.title}>
-        Settled without you
-      </Heading>
-      <Blocks
-        document={file.current.document}
-        ids={round.settledGroups.flatMap((group) => [group.heading, ...group.blocks])}
-        selection={{
-          after,
-          canSelect: (block) => !readOnly && pointOf(block) !== undefined,
-          isSelected: newOn,
-          onTap: (block) => {
-            const point = pointOf(block);
-            if (point && !newOn(block)) {
-              setOpen({ kind: "new", point });
-            }
-          },
-        }}
+      <SettledGroups
+        document={document}
+        groups={round.settledGroups}
+        hoodForced={shown !== undefined && inHood(document, round.settledGroups, shown.point)}
+        points={(group) => <Blocks document={document} ids={group.blocks} selection={selection} />}
       />
       {inPage(gone)}
       {!wide && !readOnly && (

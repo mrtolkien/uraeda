@@ -347,7 +347,7 @@ test("the notes are saved as the last line", async () => {
   const { repo } = await renderPage(PAGE);
   await screen.findByText("Settled without you");
 
-  await type(screen.getByLabelText("Notes"), "LGTM");
+  await type(screen.getByLabelText("Anything else"), "LGTM");
   await tap(screen.getByRole("button", { name: "Save notes" }));
 
   await waitFor(() => expect(text(repo).trimEnd().endsWith("**Notes:** LGTM")).toBe(true));
@@ -461,7 +461,7 @@ test("an answer changed elsewhere shows when the page reads again", async () => 
 test("Submit waits for the notes being typed", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
   await renderPage(PAGE, repo);
-  const notes = await screen.findByLabelText("Notes");
+  const notes = await screen.findByLabelText("Anything else");
 
   await type(notes, "LGTM");
   await tap(screen.getByRole("button", { name: "Submit answers" }));
@@ -517,7 +517,7 @@ test("Submit saves a comment not saved yet", async () => {
 test("notes changed elsewhere show when the page reads again", async () => {
   const repo = answered({});
   await renderPage(PAGE, repo);
-  const notes = (await screen.findByLabelText("Notes")) as HTMLTextAreaElement;
+  const notes = (await screen.findByLabelText("Anything else")) as HTMLTextAreaElement;
   const path = join(repo, ".worktrees", FOLDER, ROUND);
   writeFileSync(
     path,
@@ -847,7 +847,7 @@ test("Add image on an answer links the image in its comment, saved at once", asy
 test("Add image on the notes links the image at their end, saved", async () => {
   const repo = answered({});
   await renderPage(PAGE, repo);
-  const notes = (await screen.findByLabelText("Notes")) as HTMLTextAreaElement;
+  const notes = (await screen.findByLabelText("Anything else")) as HTMLTextAreaElement;
   await type(notes, "See:");
 
   await pick("Add image to the notes", [png("login.png")]);
@@ -956,9 +956,19 @@ test("a tap saves the letters with the comment as saved, and Save comment the co
 const COMMITS = "The actions' commits move into the core";
 const WRITTEN = "An answer is written";
 
+/** Opens "Under the hood", which holds the fixture's settled points, unless it is open. */
+async function openHood() {
+  const toggle = await screen.findByRole("button", { name: /^(Show the \d+ points|Fold)$/ });
+  if (toggle.textContent !== "Fold") {
+    await tap(toggle);
+  }
+}
+
 /** A settled point's toggle, named by its text, which starts with its bold subject. */
-const settledPoint = (subject: string) =>
-  screen.findByRole("button", { name: new RegExp(`^${subject}`) });
+async function settledPoint(subject: string) {
+  await openHood();
+  return screen.findByRole("button", { name: new RegExp(`^${subject}`) });
+}
 
 /** The comment field of the settled point's form open. */
 const settledField = () => screen.getByLabelText("Comment text") as HTMLTextAreaElement;
@@ -969,7 +979,7 @@ test("Submit saves a comment, the notes, and a settled point's comment typed, th
   await renderPage(PAGE, repo);
   await screen.findByText("Which repositories does the UI open now?");
   await type(comment("Q3"), "keep it simple");
-  await type(screen.getByLabelText("Notes"), "LGTM");
+  await type(screen.getByLabelText("Anything else"), "LGTM");
   await tap(await settledPoint(COMMITS));
   await type(settledField(), "Good.");
 
@@ -1079,6 +1089,7 @@ const settledComment = (subject: string) =>
 
 /** Edits a settled point's comment, then taps the other point: the edit stays unsaved. */
 async function editThenLeave(subject: string, text: string, other: string) {
+  await openHood();
   await tap(
     within(await waitFor(() => settledComment(subject))).getByRole("button", { name: "Edit" }),
   );

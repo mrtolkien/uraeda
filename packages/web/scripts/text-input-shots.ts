@@ -49,8 +49,13 @@ async function centre(page: Page, locator: ReturnType<Page["getByText"]>) {
 }
 
 /** A settled point's toggle, by the bold subject its name starts with. */
-const point = (page: Page, subject: string) =>
-  page.getByRole("button", { name: new RegExp(`^${subject}`) }).first();
+function point(page: Page, subject: string) {
+  return page.getByRole("button", { name: new RegExp(`^${subject}`) }).first();
+}
+
+/** Opens "Under the hood", which holds the round's settled points. */
+const openHood = (page: Page) =>
+  page.getByRole("button", { name: /^Show the \d+ points$/ }).click({ force: true });
 
 /** The first question's comment field, not its follow-ups'. */
 const comment = (page: Page, question = "Q1") =>
@@ -59,6 +64,7 @@ const comment = (page: Page, question = "Q1") =>
 /** The round with a comment under its first settled point, added once, and the second's form open. */
 async function settledComments(page: Page) {
   await fresh(page, ROUND, QUESTION);
+  await openHood(page);
   const added = page.getByRole("group", { name: `Your comment on "${COMMITS}"` });
   if ((await added.count()) === 0) {
     await point(page, COMMITS).click({ force: true });
@@ -100,18 +106,18 @@ async function roundShots(each: Each) {
     await page.getByRole("form", { name: "Comment" }).waitFor({ state: "detached" });
     await settle(page);
     await page
-      .getByRole("textbox", { name: "Notes" })
+      .getByRole("textbox", { name: "Anything else" })
       .fill("Overall fine, but say where answers go.");
-    await centre(page, page.getByRole("textbox", { name: "Notes" }));
+    await centre(page, page.getByRole("textbox", { name: "Anything else" }));
   });
   await each("text-restored", async ({ page }) => {
     await fresh(page, ROUND, QUESTION);
     await page
-      .getByRole("textbox", { name: "Notes" })
+      .getByRole("textbox", { name: "Anything else" })
       .fill("Overall fine, but say where answers go.");
     await page.reload();
     await page.getByText(/^Unsaved text restored from/).waitFor();
-    await centre(page, page.getByRole("textbox", { name: "Notes" }));
+    await centre(page, page.getByRole("textbox", { name: "Anything else" }));
   });
 }
 
@@ -126,6 +132,7 @@ async function dialogShots(each: Each) {
   });
   await each("text-discard", async ({ page }) => {
     await fresh(page, ROUND, QUESTION);
+    await openHood(page);
     await point(page, ANSWER).click({ force: true });
     await page.getByLabel("Comment text").fill("Keep the comment after the letters.");
     await page.getByRole("button", { name: "Cancel" }).click();

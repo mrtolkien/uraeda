@@ -113,7 +113,7 @@ export function NotesField({
       <DropHint hint={images.hint} isLabelled>
         <TextField
           kind="notes"
-          label="Notes"
+          label="Anything else"
           onChange={field.change}
           onSubmit={saveNow}
           value={field.text}

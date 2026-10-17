@@ -767,8 +767,14 @@ const COMMITS = "The actions' commits move into the core";
 const ANSWER = "An answer is written";
 
 /** A settled point of the round, by the bold subject its toggle's name starts with. */
-const settledPoint = (subject: string) =>
-  screen.findByRole("button", { name: new RegExp(`^${subject}`) });
+async function settledPoint(subject: string) {
+  // The fixture's settled points are under "Under the hood", folded until opened.
+  const toggle = await screen.findByRole("button", { name: /^(Show the \d+ points|Fold)$/ });
+  if (toggle.textContent !== "Fold") {
+    await userEvent.click(toggle, { force: true });
+  }
+  return screen.findByRole("button", { name: new RegExp(`^${subject}`) });
+}
 
 /** The comment form open: under its point on a wide screen, in a sheet on the phone. */
 async function settledForm() {
@@ -823,10 +829,13 @@ test.each(MODES)(
   async ({ mode }) => {
     await colorScheme(mode);
     await show(ROUND, QUESTION);
-    await userEvent.fill(screen.getByLabelText("Notes"), "Overall fine, but say where answers go.");
+    await userEvent.fill(
+      screen.getByLabelText("Anything else"),
+      "Overall fine, but say where answers go.",
+    );
     await reload(QUESTION);
     await screen.findByText(/^Unsaved text restored from \d\d:\d\d\./);
-    screen.getByLabelText("Notes").scrollIntoView({ block: "center" });
+    screen.getByLabelText("Anything else").scrollIntoView({ block: "center" });
     await drawn();
     await checkLayout();
   },
