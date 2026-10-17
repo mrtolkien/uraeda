@@ -11,6 +11,7 @@ import { addRepository, removeRepository } from "uraeda-binding";
 import {
   addChange,
   addPlan,
+  addSpecFeature,
   addStoryFeature,
   commitOnBranch,
   ELEVEN,
@@ -198,6 +199,13 @@ const commands = {
   addStoryFeature(_context: unknown, options: Parameters<typeof addStoryFeature>[1] = {}) {
     previewLog = addStoryFeature(repoFolder(), options).log;
   },
+  /**
+   * Adds the spec page's feature, `2026-10-17-spec-page`, with its decisions changed on its branch,
+   * as `addSpecFeature` does.
+   */
+  addSpecFeature(_context: unknown, options: Parameters<typeof addSpecFeature>[1] = {}) {
+    addSpecFeature(repoFolder(), options);
+  },
   /** Each start of the test feature's fake preview: its base path, folder, process, and port. */
   previewStarts() {
     return previewLog === undefined ? [] : previewStarts(previewLog);
@@ -300,7 +308,7 @@ const commands = {
     const port = Number(new URL(context.page.url()).port);
     const proxy = await forwardingProxy(port);
     const browser = context.page.context().browser()!;
-    // At the desktop project's size: the embed loads once on screen.
+    // At the desktop project's size: the embed loads once on screen, which it is scrolled to.
     const opened = await browser.newContext({
       proxy: { server: `http://127.0.0.1:${proxy.port}` },
       viewport: { height: 900, width: 1440 },
@@ -308,6 +316,8 @@ const commands = {
     try {
       const page = await opened.newPage();
       await page.goto(`http://${LISTED_HOST}:${port}/r/${shared.uraedaRepo!.name}${path}`);
+      // Scrolled to, as the reader scrolls to its story: the spec page opens with what you approve.
+      await page.locator(`iframe[title="${title}"]`).scrollIntoViewIfNeeded({ timeout: 20_000 });
       const body = page.locator(`iframe[title="${title}"]`).contentFrame().locator("body");
       await body.filter({ hasText: text }).waitFor({ timeout: 20_000 });
       return await body.innerText();
@@ -375,6 +385,7 @@ const commands = {
 export type RepoCommands = {
   addChange: (folder: string, files: Record<string, string>) => Promise<void>;
   addPlan: (folder: string) => Promise<void>;
+  addSpecFeature: (options?: Parameters<typeof addSpecFeature>[1]) => Promise<void>;
   addStoryFeature: (options?: Parameters<typeof addStoryFeature>[1]) => Promise<void>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;

@@ -349,3 +349,96 @@ export function addStoryFeature(
   }
   return { log };
 }
+
+/** The spec page's feature: its branch and folder. */
+export const SPEC_FEATURE = "2026-10-17-spec-page";
+
+/** Every file under `fixtures/spec-page/<side>/`, by its path from the repository's top level. */
+function specPageFiles(side: "branch" | "main"): Record<string, string | null> {
+  const root = fixture(`spec-page/${side}`);
+  const files: Record<string, string | null> = {};
+  for (const path of readdirSync(root, { recursive: true, withFileTypes: true })) {
+    if (path.isFile()) {
+      const full = join(path.parentPath, path.name);
+      files[full.slice(root.length + 1)] = readFileSync(full, "utf8");
+    }
+  }
+  return files;
+}
+
+/** An earlier review's record, for a revision 3's `## History`, after the last one. */
+const OLDER_RECORD = `
+> [!NOTE]
+>
+> Changes requested on 2026-10-07: 1 comment in spec-review.md.
+>
+> - You approve tasks that repeat from a menu.
+`;
+
+/** The review an approval leaves: its verdict, and a comment of its own on the spec's lines. */
+const APPROVAL_REVIEW = `---
+verdict: approved
+commit: 9b1d2e7
+---
+
+# Review: Spec, Recurring tasks
+
+## C1: Lines 70–71, under "US2: Complete a repeating task (P1)"
+
+> Completing a repeating task moves it to its next due date, instead of marking it done. The row says
+> so for 5 seconds, with an undo button.
+
+Approval's own comment, quoted nowhere else.
+`;
+
+/** The spec at `revision`, waiting or approved, as its revision and status make it read. */
+function specText(text: string, status: string, revision: number): string {
+  let spec = text
+    .replace(/^status: .*$/m, `status: ${status}`)
+    .replace(/^revision: .*$/m, `revision: ${revision}`)
+    .replace("revision 2, about", `revision ${revision}, about`);
+  if (status === "approved") {
+    spec = spec
+      .replace("> [!IMPORTANT]", "> [!NOTE]")
+      .replace(/Spec to review, revision \d+, about \d+ minutes\./, "Approved on 2026-10-18.");
+  }
+  if (revision === 1) {
+    spec = spec.replace(/## Your review\n[\s\S]*?(?=## Decisions)/, "");
+    spec = spec.replace(/\n## History\n[\s\S]*$/, "");
+  }
+  return revision >= 3 ? `${spec}${OLDER_RECORD}` : spec;
+}
+
+/**
+ * Builds the spec page's feature, `2026-10-17-spec-page`, from `fixtures/spec-page/`: commits the
+ * decisions of `main/` on `main`, then the branch with the files of `branch/`: its spec, the review
+ * that asked for this revision, its data model, an HTML mockup, and the decisions it changes. Task
+ * storage changes (its second rule says "every earlier version" for "the previous version", and a
+ * rule is merged away), repeating tasks is new, task history is removed, and due dates changes
+ * without an item of `## Decisions`. `status` and `revision` rewrite the spec: an approved one has
+ * its approval record and the approval's review, with a comment of its own; a revision 1 has no
+ * `## Your review`, no review file, and no `## History`; a revision 3 has two records in its
+ * history. Returns the folder.
+ */
+export function addSpecFeature(
+  repo: string,
+  {
+    revision = 2,
+    status = "awaiting-human",
+  }: { revision?: number; status?: "approved" | "awaiting-human" } = {},
+): string {
+  commitOnBranch(repo, "main", specPageFiles("main"));
+  git(repo, "branch", SPEC_FEATURE, "main");
+  const files = specPageFiles("branch");
+  const spec = `specs/${SPEC_FEATURE}/spec.md`;
+  const review = `specs/${SPEC_FEATURE}/spec-review.md`;
+  files[spec] = specText(files[spec]!, status, revision);
+  if (revision === 1) {
+    delete files[review];
+  } else if (status === "approved") {
+    files[review] = APPROVAL_REVIEW;
+  }
+  files["specs/decisions/task-history.md"] = null;
+  commitOnBranch(repo, SPEC_FEATURE, files);
+  return SPEC_FEATURE;
+}

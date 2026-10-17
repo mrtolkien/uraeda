@@ -36,15 +36,37 @@ export function StaleBanner({
   );
 }
 
+/** The verdict of a review, which the comment being written, and its images, may hold back. */
+export function YourVerdict({
+  comments,
+  file,
+  refusals,
+}: {
+  /** How many comments are pending. */
+  comments: number;
+  file: File;
+  refusals: Refusals;
+}) {
+  const images = use(ReviewImagesContext);
+  return (
+    <ReviewVerdict
+      comments={comments}
+      file={file}
+      refusals={{ ...refusals, hides: images?.hides, hold: images?.hold }}
+    />
+  );
+}
+
 /**
  * The review's own part, after the file: its comments, each where it points, the general ones
- * with Edit and Remove, a general comment's field, and the verdict, which the comment being written
- * may hold back.
+ * with Edit and Remove, a general comment's field, and the verdict, unless `hasVerdict` is false,
+ * when the page shows it elsewhere.
  */
 export function YourReview({
   comments,
   file,
   general,
+  hasVerdict = true,
   onGeneral,
   pendingNote,
   refusals,
@@ -53,12 +75,12 @@ export function YourReview({
   comments: ReadonlyArray<CommentItem>;
   file: File;
   general: ReactNode;
+  hasVerdict?: boolean;
   onGeneral: () => void;
   pendingNote: (comment: CommentItem) => ReactNode;
   refusals: Refusals;
   wide: boolean;
 }) {
-  const images = use(ReviewImagesContext);
   return (
     <>
       <Band wide={wide} />
@@ -85,11 +107,7 @@ export function YourReview({
         <Button label="Add a general comment" onClick={onGeneral} />
       </HStack>
       {general}
-      <ReviewVerdict
-        comments={comments.length}
-        file={file}
-        refusals={{ ...refusals, hides: images?.hides, hold: images?.hold }}
-      />
+      {hasVerdict && <YourVerdict comments={comments.length} file={file} refusals={refusals} />}
     </>
   );
 }

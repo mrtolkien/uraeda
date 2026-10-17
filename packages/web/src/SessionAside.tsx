@@ -8,13 +8,14 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { Component, Fragment, type ReactNode, Suspense, useState } from "react";
+import { Component, Fragment, type ReactNode, Suspense } from "react";
 import type { Feature } from "uraeda-server/fate";
 import { ChangeAside } from "./ChangeAside.tsx";
 import { useBranchChanges, useFeature, useFile } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { stepLabel, waiting } from "./labels.ts";
 import { SideColumn } from "./layout/SideColumn.tsx";
+import { type Shown, useStoredShown } from "./layout/useStoredShown.ts";
 import { statusStyles } from "./Question.tsx";
 import { useRepoPath } from "./routes.tsx";
 import { StatusMark } from "./StatusMark.tsx";
@@ -30,41 +31,15 @@ const styles = stylex.create({
 /** Where the column's folded state is kept, for every session: `"shown"` or `"hidden"`. */
 const KEY = "uraeda.sessionAside";
 
-/**
- * The choice made in this document when storage refused it: pages are drawn anew at each address,
- * and keep it until the document goes.
- */
-let refusedChoice: boolean | undefined;
-
 /** Whether the column shows, and the function that shows or hides it. */
-export type AsideShown = [boolean, (shown: boolean) => void];
+export type AsideShown = Shown;
 
 /**
  * Whether the session's column shows, kept in `localStorage` for every session. Where the browser
  * refuses storage, the choice lasts for the page's life.
  */
 export function useAsideShown(): AsideShown {
-  const [shown, setShown] = useState(() => {
-    if (refusedChoice !== undefined) {
-      return refusedChoice;
-    }
-    try {
-      return window.localStorage.getItem(KEY) !== "hidden";
-    } catch {
-      return true;
-    }
-  });
-  const set = (next: boolean) => {
-    try {
-      window.localStorage.setItem(KEY, next ? "shown" : "hidden");
-      refusedChoice = undefined;
-    } catch {
-      // Private windows may refuse storage: the choice lasts until the document reloads.
-      refusedChoice = next;
-    }
-    setShown(next);
-  };
-  return [shown, set];
+  return useStoredShown(KEY);
 }
 
 /**

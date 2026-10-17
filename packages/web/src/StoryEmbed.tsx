@@ -46,11 +46,12 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
   },
-  // On narrow screens, the embed takes the page's inset back: the phone's width is the screen's.
+  // On narrow screens, the embed takes the page's inset back (see `Page`), 16 px outside a page: the
+  // phone's width is the screen's.
   bleed: {
     borderInlineWidth: 0,
     borderRadius: 0,
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    marginInline: `var(--page-bleed, calc(-1 * ${spacingVars["--spacing-4"]}))`,
   },
   embed: {
     backgroundColor: colorVars["--color-background-surface"],

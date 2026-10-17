@@ -95,15 +95,14 @@ async function scrollToTop(page: Page, locator: ReturnType<Page["getByText"]>) {
   await wait(300);
 }
 
-/** A spec's first story: its band's text under review, its heading once approved. */
-const story = (page: Page) => page.getByText(/^US1( ·|:)/).first();
+/** A spec's first story: its card's title. */
+const story = (page: Page) => page.getByRole("heading", { name: "Make a task repeat" }).first();
 
 /**
- * A spec under review at its top, its mockups first. A spec's folds: under review, closed, and with
- * US2's more scenarios open; an approved spec's, closed.
+ * A spec's folds: under review, closed, and with US2's more scenarios open; an approved spec's,
+ * closed.
  */
 export async function takeFolds(each: Each) {
-  await each("spec-mockups", ({ page }) => show(page, SPEC, "Open the mockup: Repeat"));
   await each("spec-folded", async ({ page }) => {
     await show(page, SPEC, "Complete a repeating task");
     await scrollToTop(page, story(page));
@@ -111,7 +110,7 @@ export async function takeFolds(each: Each) {
   await each("spec-scenarios", async ({ page }) => {
     await show(page, SPEC, "Complete a repeating task");
     await page.getByRole("button", { exact: true, name: "More scenarios (2)" }).first().click();
-    await scrollToTop(page, page.getByText("US2 · P1"));
+    await scrollToTop(page, page.getByRole("heading", { name: "Complete a repeating task" }));
   });
   await each("spec-approved", async ({ page }) => {
     await show(page, APPROVED, "Complete a repeating task");

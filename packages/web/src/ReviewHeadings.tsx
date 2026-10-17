@@ -17,7 +17,8 @@ const styles = stylex.create({
     marginBlock: spacingVars["--spacing-5"],
   },
   bandBleed: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    // The page's inset, taken back (see `Page`).
+    marginInline: "var(--page-bleed)",
   },
   task: {
     marginBlock: spacingVars["--spacing-4"],

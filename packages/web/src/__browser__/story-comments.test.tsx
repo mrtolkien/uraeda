@@ -6,10 +6,10 @@
 // 2), the width named on wide screens, where either can show, pending comments under the embed, the Mockups buttons,
 // and the phone's icons and sheet (US1.5).
 import { screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, test, vi } from "vite-plus/test";
+import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { hasDrawnUnsaved } from "../fields/unsaved.ts";
-import { atRepo, atSize, commands, drawn, reload, show } from "./helpers.tsx";
+import { atSize, commands, drawn, reload, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-20-sidebar-resize";
 const SPEC = `/f/${FEATURE}/spec.md`;
@@ -40,6 +40,8 @@ async function storyShown(title: string) {
 async function readyEmbed(options: Parameters<typeof commands.addStoryFeature>[0] = {}) {
   await commands.addStoryFeature(options);
   await show(SPEC, "Resize the sidebar");
+  // Scrolled to, as the reader scrolls to its story: what you approve comes first on the page.
+  embed().scrollIntoView({ block: "center" });
   // The desktop's width on a wide screen, the phone's on a narrow one.
   await storyShown(window.innerWidth >= 768 ? DESKTOP : PHONE);
 }
@@ -247,89 +249,6 @@ describe("on a desktop, around the embed", () => {
     expect(within(note).getByRole("button", { name: "Edit" })).toBeTruthy();
     expect(within(note).getByRole("button", { name: "Remove" })).toBeTruthy();
     expect(embed().compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  test("the Mockups button scrolls to its story's embed (edge case)", async () => {
-    await readyEmbed();
-    const page = window.location.pathname;
-    expect(embed().getBoundingClientRect().top).toBeGreaterThan(200);
-
-    await userEvent.click(screen.getByRole("button", { name: `Open the mockup: ${LABEL}` }));
-
-    await expect.poll(() => embed().getBoundingClientRect().top).toBeLessThan(200);
-    expect(embed().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
-    expect(window.location.pathname).toBe(page);
-    expect(page).toBe(atRepo(SPEC));
-  });
-
-  test("the Mockups button opens the fold holding its story's embed, and scrolls to it (edge case)", async () => {
-    await commands.addStoryFeature();
-    // The embed moved from US1's top into its more scenarios, folded when the page opens.
-    const path = `specs/${FEATURE}/spec.md`;
-    const spec = await commands.readRepo(`.worktrees/${FEATURE}/${path}`);
-    const line = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n\n";
-    const end = "it stops at 200 pixels wide.\n";
-    const moved = spec.replace(line, "").replace(end, `${end}\n   ${line}`);
-    await commands.commitOnBranch(FEATURE, { [path]: moved });
-    await show(SPEC, "Resize the sidebar");
-    expect(screen.queryByRole("figure", { name: LABEL })).toBeNull();
-
-    await userEvent.click(screen.getByRole("button", { name: `Open the mockup: ${LABEL}` }));
-
-    await screen.findByRole("figure", { name: LABEL });
-    await expect.poll(() => embed().getBoundingClientRect().top).toBeLessThan(200);
-    expect(embed().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
-    expect(window.location.pathname).toBe(atRepo(SPEC));
-  });
-});
-
-describe("on a desktop, without a preview decision", () => {
-  atSize("desktop");
-
-  test("without a preview decision, the Mockups button opens the stories file (edge case)", async () => {
-    await commands.addStoryFeature({ preview: false });
-    await show(SPEC, "Resize the sidebar");
-    const open = vi.spyOn(window, "open").mockReturnValue(null);
-    try {
-      await userEvent.click(screen.getByRole("button", { name: `Open the mockup: ${LABEL}` }));
-
-      expect(open).toHaveBeenCalledWith(
-        atRepo("/raw/packages/web/src/SidebarHandle.stories.tsx"),
-        "_blank",
-        "noreferrer",
-      );
-      expect(window.location.pathname).toBe(atRepo(SPEC));
-    } finally {
-      open.mockRestore();
-    }
-  });
-});
-
-describe("on a desktop, as embeds settle", () => {
-  atSize("desktop");
-
-  test("the Mockups button scrolls to an embed below another one in the fold, once they settle (edge case)", async () => {
-    await commands.addStoryFeature();
-    // Both embeds in US1's more scenarios, folded, the button's story below the other.
-    const path = `specs/${FEATURE}/spec.md`;
-    const spec = await commands.readRepo(`.worktrees/${FEATURE}/${path}`);
-    const line = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n\n";
-    const above = "[The thin line](/packages/web/src/SidebarHandle.stories.tsx#ThinLine)\n\n";
-    const end = "it stops at 200 pixels wide.\n";
-    const moved = spec.replace(line, "").replace(end, `${end}\n   ${above}   ${line}`);
-    await commands.commitOnBranch(FEATURE, { [path]: moved });
-    await show(SPEC, "Resize the sidebar");
-
-    await userEvent.click(screen.getByRole("button", { name: `Open the mockup: ${LABEL}` }));
-
-    await screen.findByRole("figure", { name: LABEL });
-    await storyShown(DESKTOP);
-    // The embed above, scrolled past, never on screen, loads nothing.
-    expect(screen.getByTitle("The thin line, desktop").getAttribute("src")).toBeNull();
-    await drawn();
-    // A little below the top bar, where the button scrolled it.
-    const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
-    expect(Math.abs(embed().getBoundingClientRect().top - (Math.max(bar, 0) + 16))).toBeLessThan(4);
   });
 });
 

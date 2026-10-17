@@ -28,6 +28,15 @@ const READY = { interval: 100, timeout: 20_000 };
 /** The embed of the test feature's story, by its label. */
 const embed = () => screen.getByRole("figure", { name: LABEL });
 
+/**
+ * Shows the test feature's spec, its story's embed scrolled into view, as the reader scrolls to its
+ * story: what you approve and the decisions come first on the spec page.
+ */
+async function showSpec() {
+  await show(SPEC, "Resize the sidebar");
+  embed().scrollIntoView({ block: "center" });
+}
+
 /** Waits until a frame shows its story. */
 async function storyShown(title: string, options = READY) {
   await expect.poll(() => commands.frameText(title), options).toContain("Dragging");
@@ -53,7 +62,7 @@ describe("on a desktop", () => {
 
   test("a story link alone starts the branch's Storybook, and shows the story at the desktop's width (US1.1)", async () => {
     await commands.addStoryFeature({ preview: { delay: 1500 } });
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
 
     expect(await within(embed()).findByText("Starting Storybook for this branch…")).toBeTruthy();
     // Said, as it changes, to a screen reader too.
@@ -79,7 +88,7 @@ describe("on a desktop", () => {
 
   test("Phone and Desktop resize the one frame, which keeps its story as it is, unreloaded (US1.2)", async () => {
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
     const frame = within(embed()).getByTitle(DESKTOP);
     // The desktop width, scaled to the whole embed.
@@ -110,7 +119,7 @@ describe("on a desktop, the embed's sizes", () => {
 
   test("at the phone's width, the story is centred, framed as a phone's screen, on its own background", async () => {
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
     const frame = within(embed()).getByTitle(DESKTOP);
     const stage = frame.parentElement!.parentElement!;
@@ -129,7 +138,7 @@ describe("on a desktop, the embed's sizes", () => {
 
   test("the handle under the story makes its frame taller or shorter, by keyboard too", async () => {
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
     const frame = within(embed()).getByTitle(DESKTOP);
     const before = frame.getBoundingClientRect().height;
@@ -146,7 +155,7 @@ describe("on a desktop, the embed's sizes", () => {
 
   test("Full screen shows the story on the whole screen, and leaves it", async () => {
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
     if (!document.fullscreenEnabled) {
       // A browser without full screen for an element offers none.
@@ -177,7 +186,7 @@ describe("on a desktop, the embed's sizes", () => {
     await page.viewport(1920, 1080);
     try {
       await commands.addStoryFeature();
-      await show(SPEC, "Resize the sidebar");
+      await showSpec();
       await storyShown(DESKTOP);
       const column = embed().parentElement!.getBoundingClientRect();
 
@@ -195,7 +204,7 @@ describe("on a desktop, the embed's sizes", () => {
 
   test("a second page uses the running Storybook, ready within 2 seconds (US1.7, SC-001)", async () => {
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
 
     await show(PROPOSAL, "Long feature names are cut");
@@ -215,7 +224,7 @@ describe("on a desktop, as embeds load", () => {
     // No story is embedded on the feature's page.
     expect(screen.queryByRole("figure", { name: LABEL })).toBeNull();
     await expect.poll(() => commands.previewStarts(), READY).toHaveLength(1);
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
     expect(await commands.previewStarts()).toHaveLength(1);
   });
@@ -263,7 +272,7 @@ describe("on a desktop, the frames and their messages", () => {
   test("the story is drawn in Uraeda's colour mode, and follows it (US1.4)", async () => {
     await colorScheme("dark");
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("dark");
 
@@ -276,7 +285,7 @@ describe("on a desktop, the frames and their messages", () => {
   test("after Storybook reloads a frame, it gets the colour mode again (review focus 2)", async () => {
     await colorScheme("dark");
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await expect
       .poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode"), READY)
       .toBe("dark");
@@ -289,7 +298,7 @@ describe("on a desktop, the frames and their messages", () => {
 
   test("a size that is not a number above 0 is ignored (review focus 6)", async () => {
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
     await atPhoneWidth();
     await expect
@@ -313,7 +322,7 @@ describe("on a desktop, the frames and their messages", () => {
 
   test("a story that never reports its height is 560 px tall", async () => {
     await commands.addStoryFeature({ preview: { mode: "no-pick" } });
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
     await storyShown(DESKTOP);
 
     await atPhoneWidth();
@@ -418,7 +427,7 @@ describe("on the phone", () => {
 
   test("on the phone, the embed is as wide as the page, at the phone width, with named icons (US1.5)", async () => {
     await commands.addStoryFeature();
-    await show(SPEC, "Resize the sidebar");
+    await showSpec();
 
     const phone = await within(embed()).findByTitle(PHONE, {}, READY);
     await storyShown(PHONE);
@@ -432,7 +441,7 @@ describe("on the phone", () => {
 
 test("an approved spec and a proposal embed their stories (US1.6, other workflow files)", async () => {
   await commands.addStoryFeature({ specStatus: "approved" });
-  await show(SPEC, "Resize the sidebar");
+  await showSpec();
   // The desktop's width on a wide screen, the phone's on a narrow one.
   const shown = window.innerWidth >= 768 ? DESKTOP : PHONE;
   await storyShown(shown);
@@ -444,7 +453,7 @@ test("an approved spec and a proposal embed their stories (US1.6, other workflow
 
 test("each state says why the story does not show", async () => {
   await commands.addStoryFeature({ preview: { mode: "fail" } });
-  await show(SPEC, "Resize the sidebar");
+  await showSpec();
   expect(
     await within(embed()).findByText(
       "Storybook did not start: Error: Cannot find module 'storybook'",
@@ -483,7 +492,7 @@ test("a story the branch does not have says so, with Open in Storybook", async (
 
 test("a feature without a worktree says its stories cannot run", async () => {
   await commands.addStoryFeature({ worktree: false });
-  await show(SPEC, "Resize the sidebar");
+  await showSpec();
 
   expect(
     await within(embed()).findByText(
@@ -506,7 +515,7 @@ test("without a preview decision, a story link is a plain link (edge case)", asy
 
 test("a story link in a list item, or without an export, is a link (edge case)", async () => {
   await commands.addStoryFeature({ specStatus: "approved" });
-  await show(SPEC, "Resize the sidebar");
+  await showSpec();
 
   const mockups = screen.getAllByRole("link", { name: LABEL });
   expect(mockups.map((link) => link.getAttribute("href"))).toEqual([
