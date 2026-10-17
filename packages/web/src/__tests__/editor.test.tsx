@@ -153,6 +153,78 @@ test("quick discovery changes and Commit all land, in order", async () => {
   expect(screen.queryByText(/changed/)).toBeNull();
 });
 
+/** The frontmatter of a proposal written from the template, its comment included. */
+const FRONTMATTER =
+  "---\ndiscovery: high # low, medium, or high: how far the agent researches before asking\n---\n\n";
+const LISTENER = "specs/drafts/git-listener.md";
+
+/** A repository whose draft `git-listener.md` starts with `FRONTMATTER`, and its text after it. */
+function withFrontmatter() {
+  const repo = fixtureRepo();
+  const file = join(repo, LISTENER);
+  const body = readFileSync(file, "utf8");
+  writeFileSync(file, `${FRONTMATTER}${body}`);
+  return { body, file, repo };
+}
+
+/** Redesign-specs US7 3 */
+test("the text box starts at the proposal's title, and saving keeps its frontmatter", async () => {
+  const { body, file, repo } = withFrontmatter();
+  await renderPage(`/edit/${LISTENER}`, repo);
+  const field = (await edit()) as HTMLTextAreaElement;
+
+  expect(field.value).toBe(body);
+  await type(field, `${body}\nMore.\n`);
+  await saveText();
+
+  await waitFor(() => expect(readFileSync(file, "utf8")).toBe(`${FRONTMATTER}${body}\nMore.\n`));
+  expect(field.value).toBe(`${body}\nMore.\n`);
+});
+
+/** Redesign-specs edge case: a draft's unsaved text, kept from before this change. */
+test("an unsaved text kept with its frontmatter shows without it, and saves once", async () => {
+  const { body, file, repo } = withFrontmatter();
+  const path = `/edit/${LISTENER}`;
+  await renderPage(path, repo);
+  await type(await edit(), "# Git listener process\n\nTyped.\n");
+  // The store as the editor left it before: the whole file, its frontmatter included.
+  const key = Object.keys(window.localStorage).find((name) => name.endsWith("#editor"));
+  const typed = "# Git listener process\n\nNot saved yet.\n";
+  window.localStorage.setItem(
+    key ?? "",
+    JSON.stringify({
+      at: new Date().toISOString(),
+      base: `${FRONTMATTER}${body}`,
+      text: `${FRONTMATTER}${typed}`,
+    }),
+  );
+
+  await reload(path, repo);
+
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  expect(field.value).toBe(typed);
+  expect(screen.getByText(/^Unsaved text restored from/)).toBeTruthy();
+  expect(screen.queryByText(/The file changed since/)).toBeNull();
+  await saveText();
+  await waitFor(() => expect(readFileSync(file, "utf8")).toBe(`${FRONTMATTER}${typed}`));
+});
+
+/** Redesign-specs US7: the control sets the frontmatter, which a later save keeps. */
+test("the discovery control sets the frontmatter, and the text box keeps its text", async () => {
+  const { body, file, repo } = withFrontmatter();
+  await renderPage(`/edit/${LISTENER}`, repo);
+  const field = (await edit()) as HTMLTextAreaElement;
+
+  await click(await screen.findByRole("radio", { name: "Low" }));
+  await waitFor(() => expect(readFileSync(file, "utf8")).toMatch(/^---\ndiscovery: low/));
+  const set = readFileSync(file, "utf8");
+  expect(field.value).toBe(body);
+  await type(field, `${body}\nMore.\n`);
+  await saveText();
+
+  await waitFor(() => expect(readFileSync(file, "utf8")).toBe(`${set}\nMore.\n`));
+});
+
 /** US4.3 */
 test("a draft is committed with the priorities it changed", async () => {
   const repo = fixtureRepo();

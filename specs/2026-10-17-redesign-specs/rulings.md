@@ -234,3 +234,58 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the existing tests of the sheet, a block scrolled to the screen's end and a block
   taller than the space, still bring it into view.
 - **Where**: task 4, `useCommentDraft.ts`, `__browser__/reading-place.test.tsx`
+
+## R28: The edit box hides the blank lines after the frontmatter too
+
+- **Decision**: the box holds the text from the first line after the frontmatter's closing line and
+  the blank lines after it, cut at the core's `document.frontmatterLines.end`. Those lines, kept
+  byte for byte, are joined back before the box's text on each save.
+- **Rationale**: the spec's scenario says the box "starts at its title"; the blank line after the
+  frontmatter is part of what the controls own, and keeping it in the head keeps the saved file
+  byte-identical when the text is unchanged.
+- **Alternatives considered**: cutting exactly at the closing line: the box would start with an
+  empty line.
+- **If wrong**: change `cut` in `packages/web/src/pane/draftText.ts`.
+- **Where**: task 5
+
+## R29: A save joins the frontmatter last read or last written by the discovery control
+
+- **Decision**: the frontmatter a save joins is kept in a ref, set from the draft each time the page
+  draws it, and from the discovery control's result as soon as its write returns, through a new
+  `written` callback of `useEditorActions`.
+- **Rationale**: the save queue runs a save queued after the discovery write before React draws the
+  write's result; joining the drawn draft's frontmatter would undo the control's change. The test
+  "the discovery control sets the frontmatter" fails without it.
+- **Alternatives considered**: reading the file again before each save: one more request per save.
+- **If wrong**: only `useFrontmatter` in `pane/useDraftEditor.ts` and `setDiscovery` change.
+- **Where**: task 5
+
+## R30: An unsaved text from before is recognised by its own frontmatter
+
+- **Decision**: when the editor opens a file that has a frontmatter, an unsaved entry whose text and
+  base both open with `---` and hold a closing `---` line is rewritten in place, both cut after that
+  closing line and the blank lines after it. The cut uses the stored text's own closing line, not
+  the core's lines of the file.
+- **Rationale**: the spec's edge case "A draft's unsaved text, kept from before this change". The
+  file's frontmatter may have changed since the text was stored, so its line count may differ; an
+  entry written after this change has a base without frontmatter, so it is never cut. The stored
+  text is the browser's, not a workflow file the core reads, so the stack decision's "never parsing
+  their markdown" is kept.
+- **Alternatives considered**: cutting at the file's `frontmatterLines.end`: a frontmatter that
+  gained a line since would leave a `---` in the box, and a save would write two frontmatters.
+  Changing the store's key: the old entries would be lost.
+- **If wrong**: drop `storedBody` and its use in `useFrontmatter` once no such entry is left (they
+  are pruned after 30 days).
+- **Where**: task 5, `pane/draftText.ts` and `pane/useDraftEditor.ts`
+
+## R31: The image upload's text is the box's text too
+
+- **Decision**: `attach/useEditorImages.ts`, outside the plan's files, changes: the unsaved text a
+  draft moved into a folder brings has the box's text as its base, and an upload that ends after the
+  page was left joins the moved file's frontmatter before its text. `asTyped` moves to
+  `pane/draftText.ts`, which `useEditorImages` imports, so the two modules do not import each other.
+- **Rationale**: both paths save or store the box's text; left as they were, a draft with a
+  frontmatter that gets an image would lose it, or show "The file changed since".
+- **Alternatives considered**: none that keeps the frontmatter.
+- **If wrong**: nothing else depends on it.
+- **Where**: task 5
