@@ -14,7 +14,7 @@ status: answered
 >   which every later feature with dates follows.
 > - When the next occurrence appears decides what editing, deleting, and undoing a repeating task
 >   mean. One of its answers comes with a follow-up.
-> - Five points are settled without you, at the end: check the two under "Check these".
+> - Three points are settled without you, at the end: check the one under "Check these".
 
 ## Context
 
@@ -100,14 +100,17 @@ whether the app needs a notion of series.
   - [pro] completed tasks stay in the list as a history; no notion of series to learn.
   - [con] the list grows by one task per completion.
   - Why recommended: it keeps the history with the simplest model.
+  - Deleting the pending task ends the repetition. Undoing a completion removes the task it created.
 - **B. Create the next 4 occurrences in advance, so they are always visible.**
   - [pro] users can plan ahead.
   - [con] four times more repeating tasks in the list, and editing one occurrence needs the
     follow-up question below.
+  - Deleting one occurrence follows that follow-up's answer, like editing one.
 - **C. Keep a single task, and move its due date to the next occurrence when it is completed, like
   Todoist. Editing the task changes the whole repetition.**
   - [pro] the list never grows.
   - [con] completed occurrences disappear, and one occurrence can never differ from the others.
+  - Deleting the task ends the repetition. Undoing a completion restores the previous due date.
 
 **Answer:** C, we want a simple feature. The repetition is more about time management and
 organization than history (we're a todo app, not a calendar)
@@ -202,9 +205,9 @@ Why it matters: an end date adds fields to the repeat setting.
 ## Q6: Where do the two clicks start?
 
 The proposal asks for two clicks: "task -> recurrence -> weekly". With the app's current menus,
-opening the task, opening a repeat menu, and picking "weekly" takes three. With B in Q1, the custom
-screen opens from a "Custom..." entry, whatever the answer here. More in
-[discovery](discovery-01.md#two-clicks).
+opening the task, opening a repeat menu, and picking "weekly" takes three. With the custom screen
+for intervals and days (B in Q1), it opens from a "Custom..." entry, whatever the answer here. More
+in [discovery](discovery-01.md#two-clicks).
 
 Why it matters: it decides where the repeat setting lives.
 
@@ -223,8 +226,8 @@ Why it matters: it decides where the repeat setting lives.
 
 ## Q7: What happens when a task without a due date is set to repeat?
 
-Due dates are optional, and the proposal's path does not set one. With A or C in Q3, the next date
-counts from a due date, so a task without one has nothing to count from. More in
+Due dates are optional, and the proposal's path does not set one. When the next date counts from
+the previous due date (A or C in Q3), a task without one has nothing to count from. More in
 [discovery](discovery-01.md#repeating-a-task-without-a-due-date).
 
 Why it matters: it decides whether the quick path from Q6 works on every task.
@@ -247,15 +250,9 @@ Why it matters: it decides whether the quick path from Q6 works on every task.
 - **Skipping one occurrence** gets no dedicated action: users move its due date, or complete it, as
   in Todoist. A skip action can come later without changing stored tasks. See
   [Todoist](discovery-01.md#todoist).
-- **Deleting a repeating task** ends the repetition with A or C in Q2, since it is the only pending
-  occurrence. With B, the follow-up Q2.B decides. See
-  [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 
 ### Behaviour
 
-- **Undoing a completion** puts back what completing changed: it removes the occurrence created with
-  A in Q2, or restores the previous due date with C. Otherwise undo leaves the list in a state the
-  user never saw. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 - **Monthly repeats on the 29th to 31st** fall on the last day of shorter months, which is what
   date-fns' `addMonths` does. See [discovery](discovery-01.md#dates-in-javascript).
 - **Repeating tasks show a repeat icon** in the list, next to the due date, with the project's
