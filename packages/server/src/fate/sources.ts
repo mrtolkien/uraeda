@@ -30,8 +30,6 @@ import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import {
   AGENT_ID,
   agentDataView,
-  type BranchChangesRecord,
-  branchChangesDataView,
   branchDecisionDataView,
   type BranchDecisionRecord,
   draftDataView,
@@ -48,7 +46,6 @@ import {
   type FeatureRecord,
   type FileRecord,
   sentBranchDecision,
-  sentChanges,
   sentFile,
   sentStep,
   SESSION_LIST_ID,
@@ -64,6 +61,7 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+import { type BranchChangesRecord, branchChangesDataView, sentChanges } from "./views-branch.ts";
 import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";
 import {
   folderSuggestionsDataView,
