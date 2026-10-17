@@ -65,3 +65,6 @@
   changed since the last commit
 - [agent] [redesign-priorities] The decisions page runs one git log per decision, and the watch
   reads every decision on each pass
+- [agent] [storybook-restart] A Storybook whose first commit read failed never restarts on a commit
+  until it idles out: a view at an unknown commit keeps it, and one at a known commit after it
+  should restart once (runner.ts moved)
