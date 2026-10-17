@@ -1197,11 +1197,12 @@ git commit -m "feat(redesign-specs): a review comment can point into a decision"
 - Produces:
   `Git::approval_commit(&self, tip: ObjectId, base: ObjectId, spec: &str) -> Result<Option<ObjectId>>`,
   the oldest commit on the first-parent history from `base` to `tip` whose `spec` reads
-  `status: approved`. `check::check` reports `decision.unapproved` for each feature folder in its
-  target whose spec is approved, on each decision whose text, without the frontmatter's `status` and
-  `approved-by` lines, differs between the approval commit and the checkout.
+  `status: approved`, `None` when the spec at `base` reads it already (R55). `check::check` reports
+  `decision.unapproved` for each feature folder in its target whose spec is approved, on each
+  decision whose text in the checkout, without the frontmatter's `status` and `approved-by` lines,
+  differs from both its text at the approval commit and at the merge base (R56).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/unapproved.rs
@@ -1226,31 +1227,36 @@ fn a_decision_added_or_deleted_after_the_approval_is_reported() { /* both */ }
 
 The break each test catches:
 
-- Edited after: comparing with the merge base instead of the approval commit.
+- Before, and activating: comparing with the merge base instead of the approval commit.
 - Activating: the whole file compared.
-- Before: the newest approved commit taken, not the first.
 - Added or deleted: only files present on both sides compared.
 
-- [ ] **Step 2: Run them to check they fail**
+Built with five more tests, each filtering `check`'s problems by `decision.unapproved`: an
+uncommitted edit counts (the commit compared, not the checkout), a later edit of the approved spec
+keeps the first approval (the newest approved commit taken), a spec approved before the branch has
+no approval on it (R55), a decision merged in from the default branch is not reported (the approval
+commit alone compared, R56), and the default branch or a single file target reports nothing.
+
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test unapproved`
 - Expected: FAIL, `assertion failed`, an empty summary
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `approval_commit` runs `git log --first-parent --format=%H --reverse <base>..<tip> -- <spec>`
 through `Git::output`, and reads the spec at each commit until one reads `status: approved`.
 `check/unapproved.rs` opens the repository at the root, skips quietly when there is no git, and
 compares as the **Produces** says. The CLI prints the warnings as any other.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS. On this branch, `ura check specs` warns
   `stack.md changed after the spec's approval`: the merge of `main` folded access-storybook's rule
   in after the approval. Note it for the pull request.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core
