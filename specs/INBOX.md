@@ -131,3 +131,6 @@
   Mermaid temporary frame in the page
 - [agent] [redesign-clarifications] conventions.md reads as if every ### heading in a round Context
   or settled points were refused: add "that the template does not have"
+- [agent] [redesign-clarifications] Old-format rounds remain as inline test inputs
+  (crates/core/tests/actions.rs, crates/lsp/tests reads.rs and editing.rs, web change.test.tsx, nvim
+  test_jumps.lua and test_waiting.lua): new tests will copy them
