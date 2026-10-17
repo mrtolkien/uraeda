@@ -20,23 +20,26 @@ fn named_section(doc: &Document, title: &str) -> Vec<u32> {
 
 /// The parts of the level-2 section titled `title`, in order: the blocks before its first `###`
 /// sub-heading when there are some, then each sub-heading's index in blocks and its top-level
-/// blocks. Deeper headings are left out, as `section` leaves them.
+/// blocks. Deeper headings are left out, as `section` leaves them. Only top-level headings delimit
+/// the section and its parts: one in a quote or a callout, like a source's, is the quote's.
 fn parts(doc: &Document, title: &str) -> Vec<(Option<usize>, Vec<u32>)> {
-    let Some((start, _, _)) = headings(doc)
-        .into_iter()
-        .find(|(_, level, text)| *level == 2 && text == title)
-    else {
+    let Some((start, _, _)) = headings(doc).into_iter().find(|(index, level, text)| {
+        *level == 2 && text == title && doc.blocks[*index].parent.is_none()
+    }) else {
         return Vec::new();
     };
     let mut parts: Vec<(Option<usize>, Vec<u32>)> = vec![(None, Vec::new())];
     for (index, block) in doc.blocks.iter().enumerate().skip(start + 1) {
+        if block.parent.is_some() {
+            continue;
+        }
         let level = block.level.unwrap_or(1);
         if block.kind == BlockKind::Heading && level <= 2 {
             break;
         }
         if block.kind == BlockKind::Heading && level == 3 {
             parts.push((Some(index), Vec::new()));
-        } else if block.parent.is_none() && block.kind != BlockKind::Heading {
+        } else if block.kind != BlockKind::Heading {
             parts.last_mut().expect("a part").1.push(block.id);
         }
     }

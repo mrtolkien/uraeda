@@ -1095,6 +1095,22 @@ fn the_rounds_parts() {
                 )]
             },
         ),
+        (
+            "a quoted heading in the Context and in a settled point's source",
+            |text| {
+                text.replacen(
+                    "### Sources\n",
+                    "> ### Risks\n>\n> A quoted source.\n\n### Sources\n",
+                    1,
+                )
+                .replacen(
+                    "### Behaviour\n\n",
+                    "### Behaviour\n\n> ### Risks\n>\n> A quoted source.\n\n",
+                    1,
+                )
+            },
+            |_| vec![],
+        ),
     ];
     for (name, break_it, expected) in rows {
         let example = Example::new();

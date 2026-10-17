@@ -565,3 +565,33 @@ fn a_subject_repeated_across_groups_takes_its_comment_on_the_first() {
     assert_eq!(round.settled_comments[0].point, point);
     assert_eq!(round.settled_points[0].block, point);
 }
+
+#[test]
+fn a_quoted_heading_starts_no_part_nor_group() {
+    let text = format!(
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{}\n\
+## Settled without the human\n\n### Behaviour\n\n- **First** point.\n\n\
+> ### Under the hood\n>\n> A quoted source.\n\n- **Second** point.\n",
+        PARTS.replace(
+            "A scope.\n",
+            "A scope.\n\n> ### Scope\n>\n> A quoted scope.\n"
+        )
+    );
+    let (round, _) = round_of("clarifications-01.md", &text);
+    let titles: Vec<&str> = round.context.iter().map(|p| p.title.as_str()).collect();
+    assert_eq!(titles, ["Goal", "Today", "Scope", "Sources"]);
+    assert_eq!(round.context[2].blocks.len(), 2);
+    let kinds: Vec<&str> = round
+        .settled_groups
+        .iter()
+        .map(|g| g.kind.as_str())
+        .collect();
+    assert_eq!(kinds, ["behaviour"]);
+    let points: Vec<&str> = round
+        .settled_points
+        .iter()
+        .map(|p| p.subject.as_str())
+        .collect();
+    assert_eq!(points, ["First", "Second"]);
+    assert_eq!(round.settled_groups[0].blocks.len(), 3);
+}
