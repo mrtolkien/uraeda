@@ -21,6 +21,7 @@
     "@dnd-kit/react": "0.5.0",
     "@nkzw/fate": "1.7.7",
     "@stylexjs/stylex": "0.19.1",
+    "mermaid": "12.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-fate": "1.7.7",
