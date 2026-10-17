@@ -7,9 +7,8 @@
 > Features for v1.0.0
 
 - [Redesign + reword specs](/specs/2026-10-17-redesign-specs/proposal.md)
+- [I want the clarifications to start with a list/index of all questions, so I don’](/specs/changes/2026-10-17-questions-first/proposal.md)
 
-- I want the clarifications to start with a list of all questions, so I don’t answer later questions
-  from comments early
 - [Redesign feature and change pages](drafts/redesign-feature-page.md)
 - [Redesign session](drafts/redesign-session.md)
 - [Review home](drafts/review-home.md)
