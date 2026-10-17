@@ -163,8 +163,8 @@ describe("on the desktop", () => {
       await userEvent.click(field);
       await userEvent.keyboard("Only from home");
       await page.viewport(700, 900);
-      // The narrow layout is drawn: the round's index leaves its column for the bar.
-      await expect.poll(() => screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
+      // The narrow layout is drawn: the round's count moves to the bar, and its index into the page.
+      await expect.poll(() => screen.queryByRole("button", { name: /^\d+\/\d+$/ })).not.toBeNull();
       expect(field.isConnected).toBe(true);
       expect(field.value).toBe("Only from home");
       expect(document.activeElement).toBe(field);

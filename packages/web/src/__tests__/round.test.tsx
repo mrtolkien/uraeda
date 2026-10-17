@@ -661,6 +661,27 @@ test("the index lists the questions with their state, and jumps (US1 5)", async 
   await waitFor(() => expect(focused()).toContain("Which repositories does the UI open now?"));
 });
 
+/** The questions-first change: on the phone, every question shows before the first is answered. */
+test("on the phone, the round starts with its questions, before its context, and jumps", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({ Q1: "A" }));
+  const index = await screen.findByRole("navigation", { name: "Questions" });
+  const rows = within(index).getAllByRole("button", { name: /^[✓○] Q/ });
+  expect(rows.map((row) => row.textContent?.slice(0, 4))).toEqual(["✓ Q1", "○ Q2", "○ Q3"]);
+  expect(before(index, screen.getByRole("heading", { name: "Goal" }))).toBe(true);
+
+  await tap(within(index).getByRole("button", { name: /^○ Q3/ }));
+
+  await waitFor(() => expect(focused()).toContain("Which repositories does the UI open now?"));
+});
+
+/** On wide screens, the column beside the questions is the round's only index. */
+test("on wide screens, the round has one index, beside its questions", async () => {
+  await renderPage(PAGE, answered({ Q1: "A" }));
+  await screen.findByText("Which human steps does the UI perform?");
+  expect(screen.getAllByRole("navigation", { name: "Questions" })).toHaveLength(1);
+});
+
 /** US1 9 */
 test("the round reopens where it was left (US1 9)", async () => {
   const repo = answered({});

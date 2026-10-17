@@ -1,6 +1,7 @@
 import { Heading } from "@astryxdesign/core/Heading";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import type { ReactNode } from "react";
 import type { ContextPart, Document, RoundItems } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
@@ -21,13 +22,16 @@ function contextBlocks(parts: ReadonlyArray<ContextPart>): Array<number> {
 
 /**
  * A round's opening: the feature's crumbs, unless it is the triage, the round's title, its block,
- * then its context.
+ * `children`, then its context.
  */
 export function RoundOpening({
+  children,
   crumbs,
   document,
   round,
 }: {
+  /** What comes between the block and the context: the round's index, on narrow screens. */
+  children?: ReactNode;
   /** The feature's folder and the round's name, for its crumbs; none for the triage. */
   crumbs?: { folder: string; name: string };
   document: Document;
@@ -43,6 +47,7 @@ export function RoundOpening({
         </Heading>
       )}
       {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
+      {children}
       <Blocks document={document} ids={contextBlocks(round.context)} />
     </>
   );
