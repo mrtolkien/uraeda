@@ -151,11 +151,11 @@ const code = (count: number) =>
   Array.from({ length: count }, (_, index) => `// line ${index + 1}`).join("\n");
 
 /**
- * A change's page, its column's first section shown on the desktop, and its progress line on the
- * phone, at the top of the page unless the transcript's latest is wanted.
+ * A change's session, its column's first section shown on the desktop, and its progress line on
+ * the phone, at the top of the page unless the transcript's latest is wanted.
  */
 async function changePage(page: Page, folder: string, title: string, section: string, top = true) {
-  await show(page, `/f/${folder}`, title);
+  await show(page, `/f/${folder}/session`, title);
   if (page.viewportSize()!.width >= 768) {
     await page
       .getByRole("complementary", { name: "Progress" })

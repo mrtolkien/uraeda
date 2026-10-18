@@ -114,6 +114,8 @@ export default defineConfig({
   ],
   server: devServer(loadEnv(root, process.env, sources)),
   test: {
+    // The feature page's times are in the browser's time zone: the tests read them in UTC.
+    env: { TZ: "UTC" },
     environment: "happy-dom",
     // A mockup's frame is not loaded: the server in process answers only the UI's own requests.
     environmentOptions: {

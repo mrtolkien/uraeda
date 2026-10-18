@@ -104,26 +104,58 @@ function worktreeOf(repo: string, branch: string): string | undefined {
  * files there. A file given `null` is removed.
  */
 export function commitOnBranch(repo: string, branch: string, files: Record<string, string | null>) {
+  commitsAt(repo, branch, [{ files, message: `work on ${branch}` }]);
+}
+
+/** A commit `commitsAt` makes: its files, its message, and its author and committer times. */
+export type DatedCommit = {
+  /** The author time, RFC 3339; the commit's own time when left out. */
+  at?: string;
+  /** The committer time, RFC 3339; `at` when left out. */
+  committed?: string;
+  files: Record<string, string | null>;
+  message: string;
+};
+
+/**
+ * Commits on a branch of a fixture repository, as `commitOnBranch` does, one commit per entry,
+ * each with its message, dated `at`: a feature's stages are read from its typed commits' times.
+ */
+export function commitsAt(repo: string, branch: string, commits: Array<DatedCommit>) {
   const held = worktreeOf(repo, branch);
   const worktree = held ?? join(temporaryFolder("uraeda-branch"), "worktree");
   if (!held) {
     git(repo, "worktree", "add", "--quiet", worktree, branch);
   }
   try {
-    for (const [path, text] of Object.entries(files)) {
-      if (text === null) {
-        rmSync(join(worktree, path), { force: true });
-        continue;
-      }
-      mkdirSync(dirname(join(worktree, path)), { recursive: true });
-      writeFileSync(join(worktree, path), text);
+    for (const commit of commits) {
+      writeFiles(worktree, commit.files);
+      git(worktree, "add", "--all", "--", ...Object.keys(commit.files));
+      const dates = commit.at
+        ? { GIT_AUTHOR_DATE: commit.at, GIT_COMMITTER_DATE: commit.committed ?? commit.at }
+        : {};
+      execFileSync("git", ["commit", "--quiet", "--no-verify", "--message", commit.message], {
+        cwd: worktree,
+        env: { ...process.env, ...dates },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
     }
-    git(worktree, "add", "--all", "--", ...Object.keys(files));
-    git(worktree, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
   } finally {
     if (!held) {
       git(repo, "worktree", "remove", "--force", worktree);
     }
+  }
+}
+
+/** Writes files in a folder, their paths from it; a file given `null` is removed. */
+function writeFiles(folder: string, files: Record<string, string | null>) {
+  for (const [path, text] of Object.entries(files)) {
+    if (text === null) {
+      rmSync(join(folder, path), { force: true });
+      continue;
+    }
+    mkdirSync(dirname(join(folder, path)), { recursive: true });
+    writeFileSync(join(folder, path), text);
   }
 }
 

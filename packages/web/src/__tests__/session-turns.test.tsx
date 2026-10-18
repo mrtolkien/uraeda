@@ -1,21 +1,16 @@
-// The feature page's agent: its session's status, its latest turn, Stop, "Open the session", and
-// "Review and start the agent", which opens the session with the workflow's message (US2), unless
-// the latest turn needs the human's attention. The transcript's tool calls, its long turns, and a blocked action (US5) are checked on the session.
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+// A feature's session and its turns, moved from the old agent panel's tests: the workflow's message
+// queued after a chat turn (US2.5), a run that ends at a gate (US2.3), a blocked action (US5), the
+// transcript's tool calls, and its long turns. The feature page's agent card is checked in
+// `feature-page.test.tsx`.
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
-import { startFeature } from "uraeda-binding";
 import {
   atRepo,
-  answered,
   atWidth,
   click,
   type Fake,
   fakeAgent,
   fixtureRepo,
-  git,
-  record,
   refreshUntil,
   renderPage,
   today,
@@ -90,12 +85,12 @@ async function cachedRun(
   return id;
 }
 
-/** The feature page's agent panel. */
+/** The feature page's agent card. */
 function panel() {
   return within(screen.getByRole("region", { name: "Agent" }));
 }
 
-/** Opens the feature's page from the session's crumbs, and waits for its agent panel. */
+/** Opens the feature's page from the session's crumbs, and waits for its agent card. */
 async function openFeaturePage(title: string) {
   const crumbs = within(screen.getByRole("navigation", { name: "Breadcrumbs" }));
   await click(crumbs.getByRole("link", { name: title }));
@@ -121,120 +116,6 @@ async function opensWith(folder: string, text: string) {
   await waitFor(() => expect(box.textContent).toBe(text));
 }
 
-/** The composer of the feature's session, once it is open. */
-async function opensEmpty(folder: string) {
-  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${folder}/session`)));
-  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
-  expect(box.textContent).toBe("");
-}
-
-/** US1, US2 */
-test("a run that ends before a human gate needs attention, and opens its session unfilled", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  // The fake agent commits nothing: the plan step still waits on the agent.
-  await seedRun(fake, repo, CLI, [{ text: "Planned.", type: "text" }]);
-
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
-
-  await waitFor(() => expect(panel().getByText("Needs attention")).toBeTruthy());
-  expect(panel().getByRole("img", { name: "Needs attention" })).toBeTruthy();
-  expect(panel().getByText(/Run: Plan/)).toBeTruthy();
-  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
-  await click(panel().getByRole("link", { name: "Open the session" }));
-
-  await opensEmpty(CLI);
-  expect(await screen.findByText("The agent stopped before a human gate.")).toBeTruthy();
-});
-
-test("the feature page shows the session's status and Open the session", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [{ text: "Planned.", type: "text" }]);
-
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
-
-  await waitFor(() => expect(panel().getByText(/Run: Plan/)).toBeTruthy());
-  expect(panel().getByRole("link", { name: "Open the session" }).getAttribute("href")).toBe(
-    atRepo(`/f/${CLI}/session`),
-  );
-  expect(screen.queryByRole("list", { name: "Runs" })).toBeNull();
-});
-
-test("a feature waiting on you, with no session yet, opens its session to chat", async () => {
-  await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: true });
-
-  expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
-});
-
-test("Stop stops the turn, which then needs attention, without a message to send", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await liveRun(fake, repo);
-  const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
-  // The agent runs the step: starting it again would run it twice.
-  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
-
-  await click(panel().getByRole("button", { name: "Stop" }));
-
-  await waitFor(() => expect(agent.interrupts).toBe(1));
-  await refreshUntil(() => expect(panel().getByText(/Run: Plan · Stopped/)).toBeTruthy());
-  expect(panel().getByText("Needs attention")).toBeTruthy();
-  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
-  await click(panel().getByRole("link", { name: "Open the session" }));
-
-  await opensEmpty(CLI);
-  expect(await screen.findByText("You stopped the agent.")).toBeTruthy();
-  expect(agent.sent).toHaveLength(1);
-});
-
-test("a Stop that fails says why in the panel", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await liveRun(fake, repo);
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
-  vi.spyOn(fake.sessions, "stop").mockImplementation(() => {
-    throw new Error("refused: The agent did not take the interrupt.");
-  });
-
-  await click(panel().getByRole("button", { name: "Stop" }));
-
-  expect(await panel().findByText("The agent did not take the interrupt.")).toBeTruthy();
-});
-
-/** US2.7 */
-test("Home shows a working agent", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  // A feature started from its draft, whose worktree passes the core's checks.
-  const { folder } = await startFeature(repo, "specs/drafts/git-listener.md", "git-listener");
-  await startTurn(fake, repo, folder);
-
-  await renderPage("/", repo, { agent: fake });
-
-  const main = within(await screen.findByRole("list", { name: "Agents at work" }));
-  // The row is the list item whose link leads to the feature.
-  await main.findByRole("link", { name: /Git listener process/ });
-  const row = main
-    .getAllByRole("listitem")
-    .find((item) => within(item).queryByRole("link", { name: /Git listener process/ }))!;
-  expect(within(row).getByText("Working")).toBeTruthy();
-  expect(within(row).getByText("Discovery")).toBeTruthy();
-});
-
-/** US2 */
-test("Review and start the agent opens the session with the message, unsent", async () => {
-  const { agent } = await renderPage(`/f/${CLI}`, fixtureRepo(), { agent: true });
-
-  await click(await screen.findByRole("button", { name: "Review and start the agent" }));
-
-  await opensWith(CLI, MANUAL);
-  expect(window.location.search).toBe("?continue=manual");
-  expect(agent.sent).toHaveLength(0);
-});
-
 /** US2.5 */
 test("US2.5: during a chat turn, the agent's start queues the workflow's message after it", async () => {
   const repo = fixtureRepo();
@@ -243,10 +124,9 @@ test("US2.5: during a chat turn, the agent's start queues the workflow's message
   await fake.sessions.send(repo, session.id, { text: "Why plan first?" });
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
+  // The session opened to continue the feature, as a hand-over opens it.
+  await renderPage(`/f/${CLI}/session?continue=manual`, repo, { agent: fake });
 
-  await click(panel().getByRole("button", { name: "Review and start the agent" }));
   await opensWith(CLI, MANUAL);
   await click(await screen.findByRole("button", { name: "Start once this turn ends" }));
 
@@ -261,43 +141,6 @@ test("US2.5: during a chat turn, the agent's start queues the workflow's message
   fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(2));
   expect(fake.adapter.sent[1].text).toBe(MANUAL);
-});
-
-test("a failed run needs attention, and opens its session unfilled", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [
-    { denials: [], errors: ["Rate limit reached"], interrupted: false, ok: false, type: "result" },
-  ]);
-  const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(panel().getByText(/Run: Plan · Failed/)).toBeTruthy());
-  expect(panel().getByText("Needs attention")).toBeTruthy();
-  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
-
-  await click(panel().getByRole("link", { name: "Open the session" }));
-
-  await opensEmpty(CLI);
-  expect(await screen.findByText("The agent's run failed.")).toBeTruthy();
-  expect(agent.sent).toHaveLength(1);
-});
-
-test("a feature waiting on you has no Review and start the agent", async () => {
-  await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: true });
-
-  expect(await screen.findByText("Answer questions")).toBeTruthy();
-  // The agent section is drawn, with its way into the session: it offers no start.
-  const section = await screen.findByRole("region", { name: "Agent" });
-  expect(within(section).getByRole("link", { name: "Open the session" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
-});
-
-test("without claude, a feature waiting on an agent has no panel", async () => {
-  await renderPage(`/f/${CLI}`, fixtureRepo());
-
-  expect(await screen.findByText("CLI TUIs", { selector: "h1" })).toBeTruthy();
-  await answered("Agent");
-  expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 });
 
 /** US2.3 */
@@ -318,9 +161,14 @@ test("US2.3: a run ending at a gate shows its closing text last, and Needs you",
   const text = screen.getByRole("log", { name: "Conversation" }).textContent ?? "";
   expect(text.trimEnd().endsWith(closing.textContent ?? "")).toBe(true);
   expect(sidebarStatus("web-ui")).toBe("Needs you");
+  // The feature page says what waits on the human; the agent rests.
   await openFeaturePage("Web UI for the workflow files");
-  expect(panel().getByText("Needs you")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
+  expect(
+    within(screen.getByRole("region", { name: "Next" })).getByRole("heading", {
+      name: "You answer the questions",
+    }),
+  ).toBeTruthy();
+  expect(panel().getByText("Idle")).toBeTruthy();
 });
 
 /** US5.1, US5.2 */
@@ -460,41 +308,4 @@ test("250 items of a turn show in order", async () => {
   await (await log()).findByText("Event 250.");
   const texts = (await log()).getAllByText(/^Event \d+\.$/).map((element) => element.textContent);
   expect(texts).toEqual(Array.from({ length: 250 }, (_, index) => `Event ${index + 1}.`));
-});
-
-test("a merged feature shows its session, and no button that starts the agent", async () => {
-  const repo = fixtureRepo();
-  git(repo, "switch", "--quiet", "--create", "2026-10-09-dark-mode", "main");
-  mkdirSync(join(repo, "specs/done"), { recursive: true });
-  writeFileSync(join(repo, "specs/done/2026-10-09-dark-mode.md"), record("Dark mode"));
-  git(repo, "add", "--all");
-  git(repo, "commit", "--quiet", "--no-verify", "--message", "finish(dark-mode): dark mode");
-  git(repo, "switch", "--quiet", "main");
-  git(repo, "merge", "--quiet", "--no-ff", "--no-edit", "2026-10-09-dark-mode");
-  const fake = await fakeAgent();
-  const folder = "2026-10-09-dark-mode";
-  await cachedRun(fake, repo, folder, { state: "done", step: "finish", text: "Finished." });
-
-  await renderPage(`/f/${folder}`, repo, { agent: fake });
-
-  expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
-  expect(screen.queryByRole("list", { name: "Runs" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
-});
-
-test("a merged feature without a session has no panel", async () => {
-  const repo = fixtureRepo();
-  git(repo, "switch", "--quiet", "--create", "2026-10-09-dark-mode", "main");
-  mkdirSync(join(repo, "specs/done"), { recursive: true });
-  writeFileSync(join(repo, "specs/done/2026-10-09-dark-mode.md"), record("Dark mode"));
-  git(repo, "add", "--all");
-  git(repo, "commit", "--quiet", "--no-verify", "--message", "finish(dark-mode): dark mode");
-  git(repo, "switch", "--quiet", "main");
-  git(repo, "merge", "--quiet", "--no-ff", "--no-edit", "2026-10-09-dark-mode");
-
-  await renderPage("/f/2026-10-09-dark-mode", repo, { agent: true });
-
-  expect(await screen.findByText("Merged into the default branch")).toBeTruthy();
-  expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
 });
