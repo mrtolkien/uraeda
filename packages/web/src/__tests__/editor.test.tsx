@@ -666,6 +666,45 @@ test("an upload that ends after the page was left saves its link, where it moved
   expect(window.location.pathname).toBe(atRepo("/"));
 });
 
+/** Redesign-specs R31: the image that moves a draft keeps its frontmatter, and its box its body. */
+test("a draft with a frontmatter that gets an image keeps it, and its box starts at the title", async () => {
+  const { body, repo } = withFrontmatter();
+  await renderPage(`/edit/${LISTENER}`, repo);
+  const field = (await edit()) as HTMLTextAreaElement;
+  field.setSelectionRange(field.value.length, field.value.length);
+
+  await pick([png("login.png")]);
+
+  const moved = "specs/drafts/git-listener/proposal.md";
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${moved}`)));
+  const linked = `${body}\n![login](images/login.webp)\n`;
+  await waitFor(() =>
+    expect((screen.getByRole("textbox", { name: "Text" }) as HTMLTextAreaElement).value).toBe(
+      linked,
+    ),
+  );
+  await waitFor(() => expect(read(repo, moved)).toBe(`${FRONTMATTER}${linked}`));
+  expect(screen.queryByText(/changed since/i)).toBeNull();
+});
+
+/** Redesign-specs R31: an upload that ends after the page was left joins the frontmatter back. */
+test("an upload ending after the page was left keeps the moved draft's frontmatter", async () => {
+  const { body, repo } = withFrontmatter();
+  const held = holdUploads(repo);
+  await renderPage(`/edit/${LISTENER}`, repo, { fetch: held.fetch });
+  await edit();
+
+  await pick([png("login.png")]);
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  await act(async () => navigate("/"));
+  await held.release();
+
+  const moved = "specs/drafts/git-listener/proposal.md";
+  await waitFor(() =>
+    expect(read(repo, moved)).toBe(`${FRONTMATTER}${body}\n![login](images/login.webp)\n`),
+  );
+});
+
 /** Review: what is typed during an upload is saved once it ends, and leaving before asks. */
 test("typing during an upload shows saving, and leaving the page asks", async () => {
   const repo = fixtureRepo();
