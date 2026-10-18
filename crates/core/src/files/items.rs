@@ -16,8 +16,8 @@ mod spec;
 pub(crate) use round::round;
 pub(crate) use round::settled_points;
 pub use spec::{
-    Criterion, EdgeCase, ListedDecision, MockupLink, Principle, ReviewAnswer, Scenario, SpecItems,
-    SpecPart, Story, TierChoice,
+    Criterion, EdgeCase, ListedDecision, MockupLink, Principle, ReviewAnswer, Scenario,
+    ScenarioStep, SpecItems, SpecPart, Story, TierChoice,
 };
 
 /// An option of a question.
