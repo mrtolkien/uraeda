@@ -2,8 +2,8 @@
 //! settled without the human, and the notes.
 
 use super::{
-    Choice, ContextPart, QuestionItem, RoundItems, SettledComment, SettledGroup, SettledPoint,
-    headings,
+    Choice, ContextPart, QuestionItem, RoundItems, SettledComment, SettledGroup, SettledKind,
+    SettledPoint, headings,
 };
 use crate::files::clarifications::{self, Applicability};
 use crate::files::document::{Block, BlockKind, Document, ItemMarker, plain};
@@ -78,14 +78,14 @@ fn settled_groups(doc: &Document, parts: &SettledParts) -> Vec<SettledGroup> {
         .filter_map(|(heading, blocks)| {
             let heading = &doc.blocks[(*heading)?];
             let kind = match plain(&heading.spans).as_str() {
-                "Check these" => "check",
-                "Behaviour" => "behaviour",
-                "Under the hood" => "hood",
+                "Check these" => SettledKind::Check,
+                "Behaviour" => SettledKind::Behaviour,
+                "Under the hood" => SettledKind::Hood,
                 _ => return None,
             };
             Some(SettledGroup {
                 heading: heading.id,
-                kind: kind.to_string(),
+                kind,
                 blocks: blocks.clone(),
             })
         })
