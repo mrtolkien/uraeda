@@ -10,7 +10,6 @@
 - [Worktree toolchain fixes](/specs/changes/2026-10-18-worktree-toolchain/proposal.md)
 - [Decision review fixes](/specs/changes/2026-10-18-decision-review-fixes/proposal.md)
 - [Spec page fixes](/specs/changes/2026-10-18-spec-page-fixes/proposal.md)
-- [Round fixes](/specs/changes/2026-10-18-round-fixes/proposal.md)
 - [Diagram frames](/specs/changes/2026-10-18-diagram-frames/proposal.md)
 
 - [Redesign session](drafts/redesign-session.md)
