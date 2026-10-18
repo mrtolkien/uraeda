@@ -246,8 +246,8 @@ export async function testApp<SignedIn extends boolean = false>(
 export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
   const opened = await testHosts([repo], { installed });
   await opened.sessions.check();
-  const { settings } = await appSettings();
-  return { ...opened, ...app(settings, opened), name: opened.names[0], repo };
+  const { configDir, settings } = await appSettings();
+  return { ...opened, ...app(settings, opened), configDir, name: opened.names[0], repo, settings };
 }
 
 /**

@@ -1,7 +1,7 @@
 // Handing a feature over to the agent: the workflow's message an address asks for, read for the
 // session page's composer, and whether its run builds in a fresh session.
 import { Switch } from "@astryxdesign/core/Switch";
-import { type ReactNode, useEffect, useState } from "react";
+import { Component, type ReactNode, Suspense, useEffect, useState } from "react";
 import type { Trigger } from "uraeda-server/fate";
 import { useSettings, useWorkflowMessage } from "./data.ts";
 
@@ -20,11 +20,38 @@ export function useFreshDefault(step: string | null | undefined): boolean | unde
   return step && FRESH_STEPS.has(step) ? settings?.runs.buildInFreshSession.inForce : undefined;
 }
 
+/** Draws nothing once its children fail: what they read stays unread. */
+class Unread extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 /**
  * Reads whether a run at `step` builds in a fresh session by default, and gives it to `onRead`:
- * under a `Suspense` of its own, it lets the page draw before the settings are read.
+ * under a `Suspense` of its own, it lets the page draw before the settings are read. A failed read
+ * gives nothing, and draws nothing: the run sent without `fresh` follows the setting on the server.
  */
-export function FreshDefault({
+export function FreshDefault(props: {
+  onRead: (fresh: boolean | undefined) => void;
+  step: string;
+}) {
+  return (
+    <Unread>
+      <Suspense fallback={null}>
+        <ReadFreshDefault {...props} />
+      </Suspense>
+    </Unread>
+  );
+}
+
+function ReadFreshDefault({
   onRead,
   step,
 }: {
