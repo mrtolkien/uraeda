@@ -231,6 +231,8 @@ export const tasks = {
         ...rustSources,
         "specs/**",
         "**/*.md",
+        // In the main checkout, every worktree's files: an edit there is not this checkout's.
+        "!.worktrees/**",
         "!**/node_modules/**",
         "!target/**",
         "!coverage/**",
@@ -288,6 +290,8 @@ export const tasks = {
       input: [
         ...toolchainInputs,
         "**/*.{ts,tsx,js,mjs,cjs,json,jsonc,md,toml,yml,yaml,html,css}",
+        // In the main checkout, every worktree's files: an edit there is not this checkout's.
+        "!.worktrees/**",
         "!**/node_modules/**",
         "!target/**",
         "!**/dist/**",
