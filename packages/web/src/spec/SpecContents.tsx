@@ -194,9 +194,15 @@ function Entries({ entries }: { entries: ReadonlyArray<Entry> }) {
 /** Where the column's folded state is kept, for every spec. */
 const KEY = "uraeda.specContents";
 
+/**
+ * The narrowest window where "Contents" shows at first: 420 px of it leave the page under 350 px
+ * in a window of 768 px, so a narrower one starts without it, to show with its button.
+ */
+const SHOWN_FROM = 1100;
+
 /** Whether "Contents" shows, kept in the browser for every spec. */
 export function useContentsShown() {
-  return useStoredShown(KEY);
+  return useStoredShown(KEY, () => window.innerWidth >= SHOWN_FROM);
 }
 
 /**

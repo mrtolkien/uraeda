@@ -89,6 +89,29 @@ test("the contents list every part, decision, and story, with Approve at their f
   expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(1);
 });
 
+/** On a tablet, 420 px of "Contents" would leave the page under 350 px: it starts hidden. */
+test("on a window under 1100 px wide, the contents start hidden, until you show them", async () => {
+  atWidth(800);
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  await region("What you approve");
+  expect(screen.queryByRole("complementary", { name: "Contents" })).toBeNull();
+  await click(screen.getByRole("button", { name: "Show contents" }));
+  expect(await contents()).toBeTruthy();
+});
+
+test("a window of 1100 px shows the contents at first, and keeps your choice", async () => {
+  atWidth(1100);
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+  expect(await contents()).toBeTruthy();
+  await click(screen.getByRole("button", { name: "Hide contents" }));
+  expect(window.localStorage.getItem("uraeda.specContents")).toBe("hidden");
+});
+
 /** US5 more 1 */
 test("a part's pending comments are counted in the contents", async () => {
   const repo = fixtureRepo();
