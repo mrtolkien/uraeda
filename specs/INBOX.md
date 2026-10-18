@@ -90,3 +90,6 @@
   read (unreadItems), while ura check has the core's unread_items, and a duplicate decision item
   shows as a raw block without a check problem; KNOWN_PARTS is a fourth copy of the spec's part
   titles. Send both from the core.
+- [agent] [spec-page-fixes] Git: api/answered.rs reads the review at the oldest run of commits
+  reading the revision in topo order, which can stop at a conflict-resolving merge when two branches
+  both change spec.md.
