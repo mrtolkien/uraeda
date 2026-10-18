@@ -1,5 +1,7 @@
 import { Code } from "@astryxdesign/core/Code";
 import { Link } from "@astryxdesign/core/Link";
+import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useContext } from "react";
 import type { Span } from "uraeda-binding";
 import { MAIN_CHECKOUT } from "./data.ts";
@@ -7,6 +9,15 @@ import { ImageView } from "./ImageView.tsx";
 import { pathLink } from "./links.tsx";
 import { repoPath, useRepository } from "./routes.tsx";
 import { StoryContext, storybookHref } from "./stories.tsx";
+
+const styles = stylex.create({
+  alone: {
+    // A link alone on its line, set apart from text: a control's height, for a finger.
+    alignItems: "center",
+    display: "inline-flex",
+    minHeight: sizeVars["--size-element-md"],
+  },
+});
 
 function Marked({ span }: { span: Span }) {
   let node: React.ReactNode = span.text;
@@ -28,9 +39,18 @@ function Marked({ span }: { span: Span }) {
 /**
  * A link of the document: a workflow file or a draft in the UI, a story in its checkout's Storybook
  * page when the checkout has a preview decision, other files and the web in a new tab. It shows its
- * text, or `children`, like an image it holds.
+ * text, or `children`, like an image it holds; `isAlone` when alone on its line.
  */
-function SpanLink({ children, span }: { children?: ReactNode; span: Span }) {
+function SpanLink({
+  children,
+  isAlone = false,
+  span,
+}: {
+  children?: ReactNode;
+  isAlone?: boolean;
+  span: Span;
+}) {
+  const xstyle = isAlone ? styles.alone : undefined;
   const link = span.link!;
   const repo = useRepository();
   const stories = useContext(StoryContext);
@@ -41,6 +61,7 @@ function SpanLink({ children, span }: { children?: ReactNode; span: Span }) {
         hasUnderline
         href={repoPath(repo, storybookHref(stories.folder, link.story))}
         type="inherit"
+        xstyle={xstyle}
       >
         {text}
       </Link>
@@ -52,18 +73,25 @@ function SpanLink({ children, span }: { children?: ReactNode; span: Span }) {
       stories && stories.folder !== MAIN_CHECKOUT ? { folder: stories.folder } : undefined;
     const { href, inApp } = pathLink(link.path, repo, link.anchor, from);
     return inApp ? (
-      <Link hasUnderline href={href} type="inherit">
+      <Link hasUnderline href={href} type="inherit" xstyle={xstyle}>
         {text}
       </Link>
     ) : (
-      <Link hasUnderline href={href} rel="noreferrer" target="_blank" type="inherit">
+      <Link
+        hasUnderline
+        href={href}
+        rel="noreferrer"
+        target="_blank"
+        type="inherit"
+        xstyle={xstyle}
+      >
         {text}
       </Link>
     );
   }
   if (link.target.startsWith("#")) {
     return (
-      <Link hasUnderline href={link.target} type="inherit">
+      <Link hasUnderline href={link.target} type="inherit" xstyle={xstyle}>
         {text}
       </Link>
     );
@@ -72,7 +100,14 @@ function SpanLink({ children, span }: { children?: ReactNode; span: Span }) {
     return text;
   }
   return (
-    <Link hasUnderline href={link.target} rel="noreferrer" target="_blank" type="inherit">
+    <Link
+      hasUnderline
+      href={link.target}
+      rel="noreferrer"
+      target="_blank"
+      type="inherit"
+      xstyle={xstyle}
+    >
       {text}
     </Link>
   );
@@ -118,13 +153,22 @@ function SpanImage({ span }: { span: Span }) {
   return <SpanLink span={{ ...span, image: undefined, link: { ...image, wiki: false } }} />;
 }
 
-/** The spans of a block's text, with their marks, links, and images. */
-export function Spans({ spans }: { spans: ReadonlyArray<Span> }) {
+/**
+ * The spans of a block's text, with their marks, links, and images; `isAlone` for a block whose
+ * one link is all its text, a control's height.
+ */
+export function Spans({
+  isAlone = false,
+  spans,
+}: {
+  isAlone?: boolean;
+  spans: ReadonlyArray<Span>;
+}) {
   return spans.map((span, index) =>
     span.image ? (
       <SpanImage key={index} span={span} />
     ) : span.link ? (
-      <SpanLink key={index} span={span} />
+      <SpanLink isAlone={isAlone && spans.length === 1} key={index} span={span} />
     ) : (
       <Marked key={index} span={span} />
     ),

@@ -20,3 +20,12 @@ export const ROUND_MOCKUPS = {
   commentOnly: "2026-10-17-round-mockup-comment",
   waiting: "2026-10-17-round-mockup",
 } as const;
+
+/**
+ * The spec page's features, `SpecPage.stories.tsx`'s, built by `addSpecFeature` without a worktree:
+ * its spec waiting for review, and the same spec approved.
+ */
+export const SPEC_PAGES = {
+  approved: "2026-10-17-spec-page-approved",
+  waiting: "2026-10-17-spec-page",
+} as const;

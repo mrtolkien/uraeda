@@ -3,26 +3,10 @@
 // as the app draws it, over the mockup features' rounds, written in the redesign's format (see
 // `fixtures/round-mockup/` and `.storybook/fixture.ts`): its data comes from Uraeda's server in
 // Storybook, through fate.
-import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ROUND_MOCKUPS } from "../.storybook/checkouts.ts";
-import { useWorkspace } from "./data.ts";
+import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
 import { FilePage } from "./FilePage.tsx";
-import { RepositoryPathContext } from "./routes.tsx";
-
-/** The fixture's folder, as `App` sets it: what keeps the answers' unsaved text apart. */
-function InRepositoryFolder({ children }: { children: ReactNode }) {
-  const root = useWorkspace()?.root;
-  return root === undefined ? null : (
-    <RepositoryPathContext value={root}>{children}</RepositoryPathContext>
-  );
-}
-
-const inRepositoryFolder: Decorator = (Story) => (
-  <InRepositoryFolder>
-    <Story />
-  </InRepositoryFolder>
-);
 
 const meta = {
   args: { folder: ROUND_MOCKUPS.waiting, name: "clarifications-01.md" },
