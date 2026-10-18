@@ -13,7 +13,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
-import type { Block, Document, Span } from "uraeda-binding";
+import type { Block, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import type { Folds } from "../Folds.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
@@ -62,59 +62,26 @@ export type StoryCardProps = PartProps & {
 
 type Story = SpecItems["stories"][number];
 
-/** The words that start a step of a scenario, in bold in the spec. */
-const STEPS = new Set(["Given", "When", "Then"]);
-
-/** A run of spans without the comma and spaces a step's word leaves before it. */
-function trimmed(spans: ReadonlyArray<Span>): Array<Span> {
-  const out = spans.map((span) => ({ ...span }));
-  const first = out[0];
-  if (first) {
-    const text = first.text.trimStart();
-    first.text = text.startsWith(",") ? text.slice(1).trimStart() : text;
-  }
-  return out.filter((span) => span.text !== "" || span.image);
-}
-
-/**
- * A scenario's steps, from its bold Given, When, and Then, each with the spans up to the next, and
- * the place of its first span in the scenario. The spans before the first step, if any, make a
- * step without a word.
- */
-function stepsOf(spans: ReadonlyArray<Span>) {
-  const steps: Array<{ at: number; spans: Array<Span>; step: string }> = [];
-  spans.forEach((span, at) => {
-    const word = span.strong ? span.text.trim() : "";
-    const last = steps.at(-1);
-    if (STEPS.has(word)) {
-      steps.push({ at, spans: [], step: word });
-    } else if (last) {
-      last.spans.push(span);
-    } else {
-      steps.push({ at, spans: [span], step: "" });
-    }
-  });
-  return steps.map((step) => ({ ...step, spans: trimmed(step.spans) }));
-}
-
 /** A scenario, its Given, When, and Then each on a row, then its nested blocks; tappable. */
 function ScenarioNode({
   block,
   document,
   selection,
+  steps,
 }: {
   block: Block;
   document: Document;
   selection: Selection | undefined;
+  steps: Story["key"][number]["steps"];
 }) {
   const nested = document.blocks.filter((b) => b.parent === block.id).map((b) => b.id);
   return (
     <Selectable block={block} selection={selection}>
       <div {...stylex.props(styles.scenario)}>
-        {stepsOf(block.spans).map(({ at, spans, step }) => (
+        {steps.map(({ spans, word }, at) => (
           // The spaces between the cells, which the grid drops, keep the words apart when read.
           <div key={at} {...stylex.props(styles.contents)}>
-            <span {...stylex.props(styles.step)}>{step}</span>{" "}
+            <span {...stylex.props(styles.step)}>{word}</span>{" "}
             <span>
               <Spans spans={spans} />
             </span>{" "}
@@ -142,11 +109,17 @@ function Scenarios({
   return (
     <VStack gap={3}>
       {title && selection?.after && <After>{selection.after(title)}</After>}
-      {scenarios.map(({ block }) => {
+      {scenarios.map(({ block, steps }) => {
         const item = document.blocks[block];
         return (
           item && (
-            <ScenarioNode block={item} document={document} key={block} selection={selection} />
+            <ScenarioNode
+              block={item}
+              document={document}
+              key={block}
+              selection={selection}
+              steps={steps}
+            />
           )
         );
       })}

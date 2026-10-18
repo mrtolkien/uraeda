@@ -2,7 +2,7 @@
 
 use super::document::{Block, BlockKind, Document, Span, SpanLink, plain};
 use super::items::{
-    Criterion, MockupLink, Scenario, SpecItems, Story, TierChoice, headings, section,
+    Criterion, MockupLink, Scenario, ScenarioStep, SpecItems, Story, TierChoice, headings, section,
 };
 
 mod parts;
@@ -151,9 +151,53 @@ fn scenarios(doc: &Document, blocks: &[u32], intro: &str) -> (Vec<Scenario>, Vec
         .map(|(n, item)| Scenario {
             number: start + n as u32,
             block: item.id,
+            steps: steps(&item.spans),
         })
         .collect();
     (scenarios, vec![paragraph, list])
+}
+
+/// The words that start a step of a scenario, in bold in the spec.
+const STEPS: [&str; 3] = ["Given", "When", "Then"];
+
+/// A scenario's steps, from its bold Given, When, and Then, each with the spans up to the next. The
+/// spans before the first step, if any, make a step without a word.
+fn steps(spans: &[Span]) -> Vec<ScenarioStep> {
+    let mut steps: Vec<ScenarioStep> = Vec::new();
+    for span in spans {
+        let word = span.text.trim();
+        if span.strong && STEPS.contains(&word) {
+            steps.push(ScenarioStep {
+                word: word.to_string(),
+                spans: Vec::new(),
+            });
+        } else if let Some(last) = steps.last_mut() {
+            last.spans.push(span.clone());
+        } else {
+            steps.push(ScenarioStep {
+                word: String::new(),
+                spans: vec![span.clone()],
+            });
+        }
+    }
+    for step in &mut steps {
+        trim_step(&mut step.spans);
+    }
+    steps
+}
+
+/// A step's spans without the comma and blanks its word leaves before them, and without the spans
+/// left empty, but for an image's.
+fn trim_step(spans: &mut Vec<Span>) {
+    if let Some(first) = spans.first_mut() {
+        let text = first.text.trim_start();
+        first.text = text
+            .strip_prefix(',')
+            .unwrap_or(text)
+            .trim_start()
+            .to_string();
+    }
+    spans.retain(|span| !span.text.is_empty() || span.image.is_some());
 }
 
 /// Whether a block is a paragraph holding only one link, to a story or an HTML mockup.

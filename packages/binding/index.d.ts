@@ -1290,6 +1290,18 @@ export interface RunSettings {
 export interface Scenario {
   number: number
   block: number
+  /** Its steps, from its bold Given, When, and Then. */
+  steps: Array<ScenarioStep>
+}
+
+/**
+ * A step of a scenario: its word, and the spans up to the next step, without the blanks and the
+ * comma the word leaves before them.
+ */
+export interface ScenarioStep {
+  /** Given, When, or Then; empty for the spans before the first step. */
+  word: string
+  spans: Array<Span>
 }
 
 /** A section of a decision: the intent before the first `##`, titled `""`, then each `##`. */

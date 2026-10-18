@@ -805,3 +805,42 @@ fn a_quoted_heading_starts_no_part_nor_group() {
     assert_eq!(points, ["First", "Second"]);
     assert_eq!(round.settled_groups[0].blocks.len(), 3);
 }
+
+/// A scenario's steps, each from its bold Given, When, or Then with the spans up to the next, a
+/// bold word that is no step staying in its step, and the spans before a first step, a step with no
+/// word.
+#[test]
+fn a_scenario_has_its_steps() {
+    let text = "# Spec: X\n\n## User stories\n\n### US1: Y (P1)\n\nKey scenarios:\n\n\
+        1. **Given** a **bold** task, **When** it is `done`, **Then** it _goes_.\n\
+        2. Before, **Given** a, **When** b\n";
+    let (spec, _) = spec_of(text);
+    let steps = |n: usize| -> Vec<(String, String)> {
+        spec.stories[0].key[n]
+            .steps
+            .iter()
+            .map(|step| {
+                let text: String = step.spans.iter().map(|s| s.text.as_str()).collect();
+                (step.word.clone(), text)
+            })
+            .collect()
+    };
+
+    assert_eq!(
+        steps(0),
+        [
+            ("Given".into(), "a bold task, ".into()),
+            ("When".into(), "it is done, ".into()),
+            ("Then".into(), "it goes.".into()),
+        ]
+    );
+    assert!(spec.stories[0].key[0].steps[0].spans[1].strong);
+    assert_eq!(
+        steps(1),
+        [
+            ("".into(), "Before, ".into()),
+            ("Given".into(), "a, ".into()),
+            ("When".into(), "b".into()),
+        ]
+    );
+}
