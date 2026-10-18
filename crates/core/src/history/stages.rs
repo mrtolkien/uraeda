@@ -128,3 +128,53 @@ pub(crate) fn current(step: &Step, stages: &[Stage], starts: &[Option<i64>]) -> 
         .unwrap_or(0);
     index as u32
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn step(name: StepName, file: Option<&str>) -> Step {
+        Step {
+            name,
+            file: file.map(String::from),
+            ..Step::none()
+        }
+    }
+
+    #[test]
+    fn each_step_is_in_its_stage() {
+        let feature = of(Kind::Feature, true);
+        let change = of(Kind::Change, false);
+        let none = vec![None; feature.len()];
+        let gate = |file| step(StepName::HumanGate, Some(file));
+        let cases = [
+            (gate("proposal.md"), "proposal"),
+            (gate("clarifications-01.md"), "questions"),
+            (gate("spec.md"), "spec"),
+            (gate("plan.md"), "plan"),
+            (step(StepName::Discovery, None), "questions"),
+            (step(StepName::Spec, None), "spec"),
+            (step(StepName::SpecRevision, None), "spec"),
+            (step(StepName::Approval, None), "plan"),
+            (step(StepName::Plan, None), "plan"),
+            (step(StepName::PlanRevision, None), "plan"),
+            (step(StepName::Implementation, None), "build"),
+            (step(StepName::FinalReview, None), "build"),
+            (step(StepName::Finish, None), "pull-request"),
+            (step(StepName::PullRequest, None), "pull-request"),
+            (step(StepName::PullRequestChanges, None), "pull-request"),
+            (step(StepName::PullRequestUnknown, None), "pull-request"),
+        ];
+        for (step, stage) in cases {
+            let index = current(&step, &feature, &none) as usize;
+            assert_eq!(feature[index].as_str(), stage, "{:?}", step.name);
+        }
+        let fix = current(&step(StepName::Change, None), &change, &none);
+        assert_eq!(change[fix as usize], Stage::Fix);
+        assert_eq!(current(&Step::done(), &feature, &none), 7);
+        let mut starts = none.clone();
+        starts[..3].fill(Some(1));
+        assert_eq!(current(&Step::none(), &feature, &starts), 2);
+        assert_eq!(current(&Step::none(), &feature, &none), 0);
+    }
+}
