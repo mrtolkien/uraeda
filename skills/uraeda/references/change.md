@@ -1,8 +1,8 @@
 # Change
 
-The light flow, for a bug fix or a small change: investigates the proposal, asks only what the human
-must decide, makes the change with tests that fail first, has it reviewed, and opens a pull request,
-all in one session.
+The light flow, for a bug fix or a small change. In one session, it investigates the proposal and
+asks only what the human must decide. It makes the change with tests that fail first, has it
+reviewed, and opens a pull request.
 
 - **Runs when**: a change branch, `change/YYYY-MM-DD-<slug>`, is at its `change` step, or its pull
   request has changes requested
@@ -13,15 +13,19 @@ all in one session.
 
 A change has no discovery file, no spec, and no plan. The proposal is its approved scope: the human
 wrote it, and nothing else waits for their approval. The investigation lives in the commits: each
-code commit's body states the root cause or the approach, and what stays unchanged, so an agent
+code commit's body states the root cause or the approach, and what stays unchanged. An agent
 resuming the change reads it with `git log`. The human reads the pull request's description and the
 record. A file waits on the human only when there is something to decide: a round of questions.
 
 ## What a change is
 
-A change is a bug, behaviour that differs from what its spec, its record, its documentation, or a
-reasonable user expects; or a small change to behaviour or UI, within the active decisions. One
-proposal may list several related items, like three tweaks to the same sidebar: they make one
+A change is one of two things:
+
+- a bug, behaviour that differs from what its spec, its record, its documentation, or a reasonable
+  user expects;
+- a small change to behaviour or UI, within the active decisions.
+
+One proposal may list several related items, like three tweaks to the same sidebar. They make one
 change, with one commit each and one pull request.
 
 A proposal that needs more than this is an [upgrade](#upgrading) to a feature, not a bigger change.
@@ -33,8 +37,8 @@ A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
 
 ## Starting a change
 
-Only when a human asks. A change starts like a feature, with its own names, from the web UI's "New
-change", with `ura start <draft> --slug <slug> --change`, or by hand: see **Start as a change** in
+Only when a human asks. A change starts like a feature, with its own names: from the web UI's "New
+change", with `ura start <draft> --slug <slug> --change`, or by hand. See **Start as a change** in
 [Projects](projects.md#starting-postponing-and-dropping-a-feature).
 
 **From a chat on the main checkout**, a request for a code change is offered as a change, not
@@ -78,8 +82,8 @@ proposal is read as it is now: the human may have edited it between two runs.
 
 ## Investigating
 
-Read the proposal, the constitution, the active decisions whose **Applies to** covers the code
-involved, and the record or spec of the feature the change touches, if there is one. Then the
+Read the proposal and the constitution. Read the active decisions whose **Applies to** covers the
+code involved. Read the record or spec of the feature the change touches, if there is one. Then the
 investigation depends on what the proposal asks.
 
 **A bug.** No fix without the root cause first, and no fix without a failing test that reproduces
@@ -110,8 +114,8 @@ the field matters again if the change is upgraded.
 Ask only what the human must decide, and settle the rest within the constitution and the active
 decisions, as [discovery](discovery.md#what-to-ask-and-what-to-settle) says. A change asks for:
 
-- **Intent the human would notice** in the result, that the proposal leaves open: what the header
-  drops on a phone, which of two behaviours a fix keeps.
+- **Intent the human would notice** in the result, that the proposal leaves open. Examples: what the
+  header drops on a phone, which of two behaviours a fix keeps.
 - **A change to an active decision**, to approve: see [Decisions](#decisions).
 - **The upgrade**, when one of its reasons applies: see [Upgrading](#upgrading).
 
@@ -170,30 +174,30 @@ When one item of a batch needs it, the round offers to split that item out inste
 - **On "A"**: the folder is postponed, as a feature's is
   ([Projects](projects.md#starting-postponing-and-dropping-a-feature)).
   1. One commit reverts what the branch committed outside the folder, so the merge brings only the
-     folder: the code commits, with their rulings and screenshots, and every
-     `decision(<slug>): apply <topic>` commit, since the human approved that change for this change
-     only, and the feature proposes it again. Revert them with `git revert --no-commit`, newest
-     first, and commit `revert(<slug>): undo the change before its upgrade`, its body listing the
-     reverted commits.
+     folder. It reverts the code commits, with their rulings and screenshots. It also reverts every
+     `decision(<slug>): apply <topic>` commit: the human approved that change for this change only,
+     and the feature proposes it again. Revert them with `git revert --no-commit`, newest first.
+     Commit `revert(<slug>): undo the change before its upgrade`, its body listing the reverted
+     commits.
   2. The branch's last commit moves the folder to `specs/drafts/<slug>/`, its files unchanged. It
      restores every decision the change edited to its text at the merge base. It relinks **Now**'s
      entry to `drafts/<slug>/proposal.md`, moved first after **Now**'s started entries and their
      blank line, since it is started no more: `chore(<slug>): upgrade to a feature`.
   3. Merge the branch into the default branch, from the main checkout. The human's "A" asks for the
-     cleanup too, and `ura clean` cannot do it, since the merge leaves no record or change folder:
-     remove the change's worktree and delete its branch as
+     cleanup too. `ura clean` cannot do it, since the merge leaves no record or change folder.
+     Remove the change's worktree and delete its branch as
      [after the merge](finish.md#after-the-merge) says, never forced, or give the human those
      commands when you cannot. The human starts the draft as a feature.
 
   The started feature has an answered round and no discovery file, so its first step is the
-  [spec](spec.md#is-the-scope-clear): it reads the change's rounds, which settled the change, not
-  the feature's scope, and starts a new round, with its discovery file, at the proposal's
+  [spec](spec.md#is-the-scope-clear). It reads the change's rounds, which settled the change, not
+  the feature's scope. It starts a new round, with its discovery file, at the proposal's
   [discovery effort](discovery.md#discovery-effort).
 
 - **On "A", for one item of a batch**: on the default branch, write that item's text as
-  `specs/drafts/<item-slug>.md`, add its entry to **Now**, first after its started entries and their
-  blank line, not nested under the change's entry, and commit `chore: draft <Name>`. Then make the
-  other items. Finish removes the change's entry with its nested lines, and the
+  `specs/drafts/<item-slug>.md`. Add its entry to **Now**, first after its started entries and their
+  blank line, not nested under the change's entry. Commit `chore: draft <Name>`. Then make the other
+  items. Finish removes the change's entry with its nested lines, and the
   [catch-up](implementation.md#catch-up-with-the-default-branch) brings the draft's line into the
   branch before it, so the draft's entry stays.
 - **On another answer**: keep the change within that answer, or stop if it leaves nothing to do, and
@@ -212,28 +216,28 @@ time, one commit per item:
   behaviour keep passing. Once the new test passes, make the break it exists for, see it fail, and
   revert it, as [tests that can fail](code-quality.md#tests-that-can-fail) says. A bug's fix commits
   the reproduction test with it.
-- **The commit's body** states the root cause, for a bug, or the approach, for a change, and the
-  behaviour that stays unchanged, with the test that checks it. A resumed agent and the reviewer
-  read it there.
+- **The commit's body** states the root cause, for a bug, or the approach, for a change. It also
+  states the behaviour that stays unchanged, with the test that checks it. A resumed agent and the
+  reviewer read it there.
 - **Structure first.** A function or file over the project's limit is split in a structural commit
   before the item grows it ([extract, don't grow](code-quality.md#extract-dont-grow)). A new lint
   marker is a reason to upgrade.
 - **Benchmarks.** When the change touches what the constitution says to benchmark, record a baseline
   before the change, and compare after it, in the pull request.
-- **UI work.** Run the browser tests through the real app, look at screenshots of each changed view,
-  and commit them in the change's `screenshots/` when the project's decisions ask for them. In the
-  messages that report your work, link each story you wrote or changed, alone in its paragraph, with
-  a blank line before and after, as a [story link](conventions.md#markdown): Uraeda shows it live in
-  the session, where the human can try it and comment on it. Before linking a story, set the
-  worktree up as the project's git decision asks, like its install: a new worktree has none of its
-  dependencies, and its Storybook does not start without them. Then check that each story you link
-  renders, in Uraeda or with the decision's `preview-command`.
+- **UI work.** Run the browser tests through the real app, and look at screenshots of each changed
+  view. Commit them in the change's `screenshots/` when the project's decisions ask for them. In the
+  messages that report your work, link each story you wrote or changed. Use a
+  [story link](conventions.md#markdown), alone in its paragraph, with a blank line before and after.
+  Uraeda shows it live in the session, where the human can try it and comment on it. Before linking
+  a story, set the worktree up as the project's git decision asks, like its install. A new worktree
+  has none of its dependencies, and its Storybook does not start without them. Then check that each
+  story you link renders, in Uraeda or with the decision's `preview-command`.
 - **Rulings.** The choices a later reader would want explained go in the change's `rulings.md`, from
   [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit,
   as the [implementation step](implementation.md#rulings) describes.
 - **Findings outside the proposal.** A problem found outside the proposal's items is not fixed in
-  passing, and not dropped: note it in the inbox, as [agents' notes](inbox.md#agents-notes) says,
-  with the change's slug, and name it in the pull request's description.
+  passing, and not dropped. Note it in the inbox, as [agents' notes](inbox.md#agents-notes) says,
+  with the change's slug. Name it in the pull request's description.
 
 Before each commit, run the validation the step needs, as the implementation step's
 [validation](implementation.md#each-task) says. When something only the human can decide comes up
@@ -245,10 +249,11 @@ Once every item is committed, catch up with the default branch, as the implement
 [catch-up](implementation.md#catch-up-with-the-default-branch) describes. Then review the branch,
 open its draft pull request, and run the finish step, as
 [review the branch](implementation.md#review-the-branch) and
-[grade the findings](implementation.md#grade-the-findings) describe, with what differs for a change:
-the reviewer is given the proposal and its answered rounds in place of the spec and the plan, and
-there were no per-item reviews before it, so this one review is the change's only one. Fixes use the
-change's scope.
+[grade the findings](implementation.md#grade-the-findings) describe. What differs for a change:
+
+- the reviewer is given the proposal and its answered rounds in place of the spec and the plan;
+- there were no per-item reviews before it, so this one review is the change's only one;
+- fixes use the change's scope.
 
 ## The pull request
 
@@ -275,15 +280,15 @@ Changes requested on the pull request are handled as for a feature, as
 
 - **The record and `rulings.md` stand for the spec and the plan.** A change applied directly updates
   the record, as for a feature. When the folder is brought back, the record's changes noted before
-  the revert go into `rulings.md`, one ruling each, since the proposal stays the human's words: the
+  the revert go into `rulings.md`, one ruling each, since the proposal stays the human's words. The
   next record lists them under **Changes after approval**.
 - **A new question** is a round as in [Asking](#asking): `clarifications-NN.md` alone, with no
   discovery file.
 - **A new decision** is the [upgrade](#upgrading) offer, and a change to an active decision is
   proposed as in [Decisions](#decisions).
-- **Once the round is answered**, the pull request is still a draft, and `ura` names finish: the
+- **Once the round is answered**, the pull request is still a draft, and `ura` names finish. The
   [table](#finding-the-step)'s row for a folder that came back makes the change from the answers
-  first, and reviews it, then finishes.
+  first, reviews it, then finishes.
 
 ## Red flags
 

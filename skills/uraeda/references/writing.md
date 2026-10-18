@@ -1,8 +1,8 @@
 # Writing for the human
 
-The writing rules of every document written for the human: a round of questions, the inbox triage, a
-spec, a decision, a plan to review, and a pull request. Each rule says why it exists, and the limit
-it sets. The steps link here instead of repeating the rules.
+The writing rules of every document written for the human. They cover a round of questions, the
+inbox triage, a spec, a decision, a plan to review, and a pull request. Each rule says why it
+exists, and the limit it sets. The steps link here instead of repeating the rules.
 
 The human reads a document once, top to bottom, when they have time, often days after the step that
 wrote it. They have not read the discovery, the code, or the agent's session. Every rule below
@@ -37,15 +37,15 @@ See [The `ura` CLI](cli.md).
    does not use gets a definition in the sentence that first uses it. A name from the code is linked
    to it. The reader learns the term once, where it appears, instead of guessing.
 4. **Never an ID from a file the reader has not seen.** A ruling "R7", a discovery topic, a comment
-   "C3" of an old review, or an approach's code name means nothing to someone who never opened that
+   "C3" of an old review, or an approach's code name means nothing. The reader never opened that
    file. Name the subject instead, and link the file for more.
 5. **Never cite an answer by its number alone.** "With B in Q2" makes the reader scroll back to find
    what B was. Say what it chose: "with a single task whose due date moves (B in Q2)".
 6. **One way to show each kind of content.** Tables carry comparisons, across products or options.
    Quotes carry what a source says, in its words, with its link. Diagrams carry flows, sequences,
    and states. Prose carries the rest. The reader recognizes the kind at a glance.
-7. **Diagrams are Mermaid code blocks.** A flow, a sequence, or states that a list would make hard
-   to follow are drawn in a fenced code block whose language is `mermaid`: a `flowchart`, a
+7. **Diagrams are Mermaid code blocks.** Draw a flow, a sequence, or states that a list would make
+   hard to follow in a fenced code block whose language is `mermaid`. Use a `flowchart`, a
    `sequenceDiagram`, or a `stateDiagram-v2`. It reads as text in any editor, and renders on GitHub
    and in Uraeda. A diagram never repeats as a list what the text around it says. See
    [Markdown](conventions.md#markdown).
@@ -68,8 +68,8 @@ shows a change's round waiting for the human. In order, a round holds:
 - `## Settled without the human`, with its points under `###` groups;
 - the line `**Notes:**`, left empty for the human.
 
-The inbox triage follows the same rules, but for its Context, which is free text without parts, and
-its settled points, which it has none of.
+The inbox triage follows the same rules, with two exceptions. Its Context is free text without
+parts. It has no settled points.
 
 ### The block
 
@@ -82,10 +82,16 @@ its settled points, which it has none of.
     sentence, why. The human learns first whether their proposal holds, before any question. It
     comes from the discovery's **Worth it and feasibility**, and for a change from the
     investigation. The verdict stays when the block becomes a record.
-11. **Then what matters most, by subject.** One line each, most important first: the choices that
-    last beyond the feature, the questions that work together, the gaps in the proposal, a risk, a
-    relaxed guard said as what an attacker could do, and the settled points to check. Each names a
-    subject, never a question number: the reader has not seen "Q4" yet.
+11. **Then what matters most, by subject.** One line each, most important first:
+    - the choices that last beyond the feature;
+    - the questions that work together;
+    - the gaps in the proposal;
+    - a risk;
+    - a relaxed guard, said as what an attacker could do;
+    - the settled points to check.
+
+    Each names a subject, never a question number: the reader has not seen "Q4" yet.
+
 12. **At most 7 items, the verdict included.** A longer block stops orienting: the reader skims it,
     and misses the line that mattered. The details stay in the file. `block.items` warns on an
     eighth item.
@@ -122,8 +128,8 @@ its settled points, which it has none of.
     sentences, after the context and before the options. It tells the human how much thought the
     question deserves.
 18. **Adequate context.** A question's context holds what deciding it needs, without the discovery
-    open: what exists today, how others do it, the sources linked or quoted, and what each answer
-    leads to. The human answers from the card, and opens a link only to dig deeper.
+    open. That is what exists today, how others do it, the sources linked or quoted, and what each
+    answer leads to. The human answers from the card, and opens a link only to dig deeper.
     - It has no length limit: a hard question gets the paragraphs, tables, quotes, and diagrams it
       needs. The 25-word sentence limit still applies.
     - It has no padding: a sentence that changes no option's weight is cut.
@@ -215,8 +221,8 @@ Before committing a document for the human, read it again as its reader, and fix
 1. **Each question's card alone.** Read each question, its context, "Why it matters", and its
    options, as if nothing else were on the page. Can it be answered from that card? If not, the
    missing fact goes into the card, not into a link.
-2. **The block.** The counts match the round, the time follows the formula, the verdict comes first
-   with one of its three phrases, and every item names a subject. At most 7 items.
+2. **The block.** The counts match the round, and the time follows the formula. The verdict comes
+   first with one of its three phrases, and every item names a subject. At most 7 items.
 3. **Sentences.** None over 25 words, no term undefined at its first use, no ID from an unseen file,
    no answer cited by its number alone.
 4. **Padding.** Every sentence changes how the reader decides or what they check.

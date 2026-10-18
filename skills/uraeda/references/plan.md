@@ -1,8 +1,8 @@
 # Plan
 
 Turns the approved spec into an implementation plan: bite-sized tasks, with their responsibilities,
-required interfaces, behavioural tests, commands, and commits, written for an agent who has seen
-neither the codebase nor the spec.
+required interfaces, behavioural tests, commands, and commits. It is written for an agent who has
+seen neither the codebase nor the spec.
 
 - **Runs when**: `spec.md` is `approved` and its decisions are active, and there is no `plan.md`, or
   its `spec-revision` is lower than the spec's `revision`; or `plan.md` is `changes-requested`
@@ -12,20 +12,20 @@ neither the codebase nor the spec.
   [Stopping to go back to the human](#stopping-to-go-back-to-the-human))
 
 Read this file in full before writing. Beyond the tasks, the plan holds the parts an asynchronous
-workflow needs: the review block, the code read, the constitution check, complexity tracking, and
-the test map.
+workflow needs. They are the review block, the code read, the constitution check, complexity
+tracking, and the test map.
 
 ## Overview
 
 Write the plan for an engineer who has not seen this codebase or this spec. Assume they write
 idiomatic code in the project's language once they know the required behaviour and interfaces.
-Document what they cannot infer: the approved constraints, who owns each responsibility, contracts
-between tasks, and the tests that prove the change and preserve existing behaviour. Public and
-cross-task contracts need exact names and signatures; private helpers and internal decomposition can
-evolve when implementation reveals a simpler design within those contracts.
+Document what they cannot infer. That is the approved constraints, who owns each responsibility,
+contracts between tasks, and the tests that prove the change and preserve existing behaviour. Public
+and cross-task contracts need exact names and signatures; private helpers and internal decomposition
+can evolve when implementation reveals a simpler design within those contracts.
 
-In Uraeda, this is literally true: the implementation runs later, often in another session, often by
-another agent, and each task may go to a fresh agent that sees only that task. Give each task the
+In Uraeda, this is literally true. The implementation runs later, often in another session, often by
+another agent. Each task may go to a fresh agent that sees only that task. Give each task the
 context it needs without prescribing choices the implementer can make from the code.
 
 ## Read first
@@ -33,7 +33,7 @@ context it needs without prescribing choices the implementer can make from the c
 1. `spec.md` in full, especially its **Architecture**, **Edge cases**, and **Assumptions**. Then its
    `data-model.md`, and the decisions it lists, as the branch has them.
 2. The constitution, and the active decisions that apply to the code you will touch, as they are
-   now: a human may have changed one since the spec was approved. If one now conflicts with the
+   now. A human may have changed one since the spec was approved. If one now conflicts with the
    spec, start a new round of questions, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 3. `spec-review.md`, when the spec was approved with comments: the plan carries out each one, and
@@ -42,21 +42,25 @@ context it needs without prescribing choices the implementer can make from the c
    approved behaviour. Conflicts with the constitution or active decisions still need the human's
    explicit resolution.
 4. The discovery files of every round: their map of the code is your starting point.
-5. The code itself: its structure and patterns, the test setup and existing helpers, every place
-   that reads or writes data the feature changes, and the commands that validate the project
-   (formatter, linter, type checker, tests, benchmarks). Read it: do not plan from the discovery's
-   summary alone. Start from the discovery's map rather than mapping the code again: read what it
-   lists, and look further only for what it lacks. Agents you give parts of the code to get the
-   map's sections for them, and are asked only what the map does not answer.
+5. The code itself:
+   - its structure and patterns;
+   - the test setup and existing helpers;
+   - every place that reads or writes data the feature changes;
+   - the commands that validate the project (formatter, linter, type checker, tests, benchmarks).
+
+   Read it: do not plan from the discovery's summary alone. Start from the discovery's map rather
+   than mapping the code again: read what it lists, and look further only for what it lacks. Agents
+   you give parts of the code to get the map's sections for them, and are asked only what the map
+   does not answer.
 
 If `spec.md` still opens with a `> [!IMPORTANT]` block, the approval step did not run, for example
-because the spec proposes no decision: turn the block into a record, as described in
+because the spec proposes no decision. Turn the block into a record, as described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human), in the plan's commit.
 
 ## Scope check
 
 If the spec covers several independent subsystems, it should have been split before approval. If it
-was not, do not write one plan for all of them: stop, as described in
+was not, do not write one plan for all of them. Stop, as described in
 [Stopping to go back to the human](#stopping-to-go-back-to-the-human), with a question proposing the
 split, the recommended split as option A. Each plan must produce working, testable software on its
 own.
@@ -69,8 +73,8 @@ when the implementation shows a better fit.
 
 - Trace the changed rules and data through their readers, writers, and entry points. Identify what
   changes and what must remain true, including existing validation, failure behaviour, and
-  compatibility. A shared guarantee needs one enforcement point used by all its callers, or an
-  explanation of why separate enforcement is necessary and how it stays consistent.
+  compatibility. A shared guarantee needs one enforcement point used by all its callers. Otherwise,
+  explain why separate enforcement is necessary and how it stays consistent.
 - Give state transitions and business rules an explicit owner. For asynchronous or multi-process
   work, distinguish authoritative state from local or cached views, and say who may modify it. For
   resources, name who acquires and releases them on success, failure, and cancellation; this applies
@@ -83,19 +87,19 @@ when the implementation shows a better fit.
 - In an existing codebase, follow its established patterns, and do not restructure what the feature
   does not touch. A task that touches a function or file over the project's limit starts with a
   structural step that splits it: see [extract, don't grow](code-quality.md#extract-dont-grow).
-- Tests are code too. They follow the project's test layout, and share helpers, fixtures, and fakes
+- Tests are code too. They follow the project's test layout. They share helpers, fixtures, and fakes
   (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
   The [writing tests](code-quality.md#writing-tests) rules apply: integration tests by default,
   Arrange, Act, Assert.
 - A view whose mockups are stories of the project's own Storybook starts from them: the picked
   variant's component is the starting point, not a rewrite. The first task of that view names the
-  story in its **Files**, as `Start from`, adds the tests of the view's scenarios, then wires the
+  story in its **Files**, as `Start from`. It adds the tests of the view's scenarios, then wires the
   component into the app. A mockups Storybook's stories are a reference only.
 
-Put the ownership in **Architecture**, the affected callers in **Code read**, preserved guarantees
-in **Global constraints**, and the risky sequences in **Review focus** and their tasks. Scale this
-analysis to the change; no separate document is needed. Each task produces self-contained changes
-that make sense on their own.
+Put the ownership in **Architecture** and the affected callers in **Code read**. Put preserved
+guarantees in **Global constraints**, and the risky sequences in **Review focus** and their tasks.
+Scale this analysis to the change; no separate document is needed. Each task produces self-contained
+changes that make sense on their own.
 
 ## Task right-sizing
 
@@ -105,28 +109,28 @@ task boundaries:
 - Fold setup, configuration, scaffolding, test helpers, and documentation into the task whose
   deliverable needs them. A helper is created in the first task whose tests use it.
 - Split only where a reviewer could meaningfully reject one task while approving its neighbour.
-- Order the tasks so each one is built and tested on what the earlier ones made: data changes come
+- Order the tasks so each one is built and tested on what the earlier ones made. Data changes come
   before the code that relies on them. Then group them into [waves](#waves).
 - When the spec names unverified outside behaviour, the first task checks it, with a test through
   the real library, browser, or tool. If the check fails, the build stops there and goes back to the
   human, before any work relies on it.
-- Mark the risky tasks, the ones that change security, the format of stored data or its migration,
-  concurrency, or a rule several callers share, with a **Risky** line saying why: each is
+- Mark the risky tasks with a **Risky** line saying why. They are the ones that change security, the
+  format of stored data or its migration, concurrency, or a rule several callers share. Each is
   [reviewed on its own](implementation.md#review-the-waves).
 - Each task ends with an independently testable deliverable, and leaves the project working.
 
 ## Waves
 
-The implementation builds the tasks of a wave at the same time, each in its own worktree, then
+The implementation builds the tasks of a wave at the same time, each in its own worktree. It then
 merges them and reviews them while the next wave starts: see
 [implementation](implementation.md#for-each-wave). A wave is a set of tasks that can be built
 without seeing each other's code:
 
 - **No task consumes another task of its wave**: everything in its **Consumes** comes from earlier
   waves.
-- **They touch different parts of the code**: no file in common, except separate additions to a
-  shared file, such as each task adding its own helpers to a test helpers module, which a merge
-  keeps side by side. Two tasks that change the same function, type, or rule are in different waves.
+- **They touch different parts of the code**: no file in common. The exception is separate additions
+  to a shared file, such as each task adding its own helpers to a test helpers module. A merge keeps
+  them side by side. Two tasks that change the same function, type, or rule are in different waves.
 - **Each one leaves the project working** on its own, on top of the earlier waves.
 
 Number the tasks in wave order, so the tasks of a wave are consecutive. A task that the next tasks
@@ -215,17 +219,17 @@ carries it out.]
 What goes in each section:
 
 - **Review focus**: the spec is a vision document. It says what the software must do, not everything
-  it will meet, and its silence on an input is not permission for that input to break the program.
-  Write the list here, once, with the spec in front of you. Then, for each line, add the test that
-  pins it to the task that owns the code, in that task's own step style. These are the only
-  behaviours the plan adds to the spec, which is why they come first, and why the review block
-  always mentions them. A review-focus item never narrows a rule of the spec: a new limit, like a
-  maximum length or count, is a question for the human, not a review-focus item.
+  it will meet. Its silence on an input is not permission for that input to break the program. Write
+  the list here, once, with the spec in front of you. Then, for each line, add the test that pins it
+  to the task that owns the code, in that task's own step style. These are the only behaviours the
+  plan adds to the spec, which is why they come first, and why the review block always mentions
+  them. A review-focus item never narrows a rule of the spec. A new limit, like a maximum length or
+  count, is a question for the human, not a review-focus item.
 - **Global constraints**: copy approved rules, do not paraphrase. When a decision says "Components
   MUST NOT call IndexedDB or the `idb` library directly", the plan says exactly that. When an
-  approval comment replaces a spec clause, use that comment with its source, and explain the
-  replacement in **Review comments**; do not also carry the superseded rule as a constraint. For an
-  existing guarantee established by code and tests, describe it and link the evidence.
+  approval comment replaces a spec clause, use that comment with its source. Explain the replacement
+  in **Review comments**; do not also carry the superseded rule as a constraint. For an existing
+  guarantee established by code and tests, describe it and link the evidence.
 - **Code read**: claims about the code rest on this section. Name the test setup and its layout, the
   validation commands, and every place that reads or writes data the feature changes.
 - **Constitution check**: a one-row table, one column per principle, all of them: principles always
@@ -234,13 +238,17 @@ What goes in each section:
 - **Review comments**: only when the spec was approved with comments in `spec-review.md`: each
   comment, by its number, and the task that carries it out. The approved spec is not changed for
   them.
-- **Complexity tracking**: every new abstraction, meaning a type, module, layer, wrapper, or helper
-  shared by several parts, tests included, even when the spec's architecture or details introduced
-  it; every function or file a task grows past the project's limits, or leaves over them; and every
-  constitution exception: one the human accepted in the questions, or a new marker on code over a
-  limit, for the plan's review to approve. Each row says why it is needed, and the simpler
-  alternative rejected. Name the callers, shared rule, or approved variation it serves: unspecified
-  future features do not justify an abstraction. "None." when there is none.
+- **Complexity tracking**: a row for each of these:
+  - every new abstraction, meaning a type, module, layer, wrapper, or helper shared by several
+    parts, tests included. It counts even when the spec's architecture or details introduced it;
+  - every function or file a task grows past the project's limits, or leaves over them;
+  - every constitution exception: one the human accepted in the questions, or a new marker on code
+    over a limit, for the plan's review to approve.
+
+  Each row says why it is needed, and the simpler alternative rejected. Name the callers, shared
+  rule, or approved variation it serves: unspecified future features do not justify an abstraction.
+  "None." when there is none.
+
 - **Test map**: a table mapping each acceptance scenario, edge case, and success criterion of the
   spec to its task and test. A review-focus item gets its row, named "Review focus:" with its
   subject. It opens with a sentence on how the integration tests run: what they render, on which
@@ -252,8 +260,8 @@ What goes in each section:
 
 `data-model.md` is the spec's: the human reviewed it, and the plan follows it as written. Types
 internal to the code are the plan's, in the task that defines them. Add `contracts/` when the
-feature exposes an interface to users or other systems: API schemas or CLI commands, written in the
-format the project already uses for them.
+feature exposes an interface to users or other systems, such as API schemas or CLI commands. Write
+the contracts in the format the project already uses for them.
 
 ## Task structure
 
@@ -320,8 +328,8 @@ git commit -m "feat(recurring-tasks): complete a repeating task"
 ```
 ````
 
-Adapt the steps to the task when needed: a first task may record a benchmark baseline before any
-change; a task that touches what the constitution says to benchmark runs the benchmark in its last
+Adapt the steps to the task when needed. A first task may record a benchmark baseline before any
+change. A task that touches what the constitution says to benchmark runs the benchmark in its last
 run step. Keep one action per step.
 
 ## What a step contains
@@ -331,7 +339,7 @@ meet them. State the decisions and evidence the implementer needs, and leave roo
 simpler private design from what the code shows:
 
 - **A structural step**: first in a task that touches a unit over the project's limit. It only
-  restructures the unit, removes its marker, runs the tests, which pass before and after, and
+  restructures the unit, removes its marker, and runs the tests, which pass before and after. It
   commits on its own with a `refactor` message, before the failing test of the new behaviour. See
   [extract, don't grow](code-quality.md#extract-dont-grow).
 - **A test step**: the tests' names and their assertions, as code, with the spec's exact values in
@@ -343,16 +351,16 @@ simpler private design from what the code shows:
   helper. Checks of preserved behaviour may already pass before the change.
 - **A run step**: the command to run, and the output that means it worked. For a failing run, the
   first failure the run will actually hit: not "the test fails", but the message.
-- **A code step**: the responsibility, the files it belongs in, the specific values the spec pins,
-  and exact signatures where callers or other tasks rely on them. Do not prescribe private helpers
-  or function bodies unless a particular algorithm is needed for correctness, like date arithmetic.
+- **A code step**: the responsibility, the files it belongs in, the specific values the spec pins.
+  Exact signatures go where callers or other tasks rely on them. Do not prescribe private helpers or
+  function bodies unless a particular algorithm is needed for correctness, like date arithmetic.
 - **A commit step**: the files to add, and the message, following [Commits](conventions.md#commits).
 - **A reference to another task**: that task's Interfaces block says what to use. The plan does not
   repeat that task's code.
 
 A plan is the set of decisions the implementer cannot make alone. A plan longer than the code it
-describes has written the code instead. Lines that decide nothing are the opposite failure: "TBD",
-"handle edge cases", "add appropriate validation", "write tests for the above", or a type or
+describes has written the code instead. Lines that decide nothing are the opposite failure. They are
+"TBD", "handle edge cases", "add appropriate validation", "write tests for the above", or a type or
 function no task defines. The self-review catches both.
 
 ## Self-review
@@ -378,7 +386,7 @@ fix what you find inline. This is a checklist you run yourself.
    tests exercise it? The most consequential uncovered ones go in **Review focus**, each with its
    test added to the owning task. An empty section means you checked and found none, not that you
    skipped the check.
-6. **Order**: each task can be built and tested with what the earlier tasks made, and each expected
+6. **Order**: each task can be built and tested with what the earlier tasks made. Each expected
    failure is the first one its run will actually hit. No two tasks of a wave consume each other or
    change the same function, type, or rule. Outside behaviour the spec marks unverified is checked
    by the first task, and each risky task has its **Risky** line.
@@ -387,7 +395,7 @@ fix what you find inline. This is a checklist you run yourself.
    assertions. Keep instructions that change a decision or make an outcome checkable; link shared
    context rather than repeating it in tasks.
 8. **The spec itself**: when two of its sections disagree, or an edge case cannot be met with its
-   data, do not pick one: stop, as described in
+   data, do not pick one. Stop, as described in
    [Stopping to go back to the human](#stopping-to-go-back-to-the-human).
 9. **Ownership and change cost**: each changed rule and resource has an owner, its affected callers
    are covered, and the necessary simplification stays within the feature. Justify any duplicated
@@ -397,12 +405,12 @@ fix what you find inline. This is a checklist you run yourself.
 ## Rulings while planning
 
 Planning settles many small technical choices the spec leaves open: a library call, a data
-structure, a file's name. Settle them yourself: that is the plan's job. When a later reader would
-want one explained, because it was a close call or because it bends a pattern of the codebase, write
-it in the feature's `rulings.md`, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md): what was decided, why,
-the alternatives, and what it costs if wrong. A ruling never binds future work: a choice that would
-is a decision, and a reason to stop.
+structure, a file's name. Settle them yourself: that is the plan's job. A later reader may want one
+explained: it was a close call, or it bends a pattern of the codebase. Then write it in the
+feature's `rulings.md`, from
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md). It holds what was
+decided, why, the alternatives, and what it costs if wrong. A ruling never binds future work: a
+choice that would is a decision, and a reason to stop.
 
 ## Stopping to go back to the human
 
@@ -414,26 +422,26 @@ plan itself.
 Stop when the plan would need:
 
 - **A new [decision](spec.md#what-is-a-decision)**, or to go against an active one.
-- **A constitution exception** the human has not accepted in the questions, other than a new marker
-  on code over a limit, which the plan's own review approves.
+- **A constitution exception** the human has not accepted in the questions. A new marker on code
+  over a limit does not count: the plan's own review approves it.
 - **A different behaviour than the spec**: the spec cannot be built as written, because the code, a
-  dependency, or a platform does not allow it, and every way around it changes what users get.
+  dependency, or a platform does not allow it. Every way around it changes what users get.
 - **To pick between two sections of the spec that disagree**, or to meet an edge case its data
   cannot support.
 - **A split** of a spec that covers several independent subsystems (see
   [Scope check](#scope-check)).
 - **A new limit or rule** the spec does not state, like a maximum, that users would notice.
 
-Do not stop for what you can settle within the spec, the constitution, and the active decisions:
-names, files, libraries already in the project, test helpers, the order of tasks and their waves, an
-algorithm the spec's data already determines.
+Do not stop for what you can settle within the spec, the constitution, and the active decisions.
+That covers names, files, libraries already in the project, and test helpers. It also covers the
+order of tasks and their waves, and an algorithm the spec's data already determines.
 
 To stop: do not commit a `plan.md`. Start a new round instead, following
-[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions): a new
-`discovery-NN.md` with what you found, the code and sources included, and a new
-`clarifications-NN.md` with the questions, each with its options and recommendation, in one commit.
-Once the human answers, the spec is amended and approved again, and the plan is written from the new
-revision.
+[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions). Write a new
+`discovery-NN.md` with what you found, the code and sources included. Write a new
+`clarifications-NN.md` with the questions, each with its options and recommendation. Put both in one
+commit. Once the human answers, the spec is amended and approved again, and the plan is written from
+the new revision.
 
 Constitution exceptions are exceptional: only one the human accepted in the questions, or a new
 marker on code over a limit, is allowed. It is spelled out in **Complexity tracking**: which
@@ -450,14 +458,14 @@ human's review, whatever the spec's `plan-review`.
 
 An auto-approved plan is not a stop: commit it, then start the implementation in the same session.
 
-A spec with no `plan-review` has `false`, whatever its tier: the plan waits only when the human
+A spec with no `plan-review` has `false`, whatever its tier. The plan waits only when the human
 turned plan review on when approving the spec, or when it lists a constitution exception.
 
 When the plan waits for a review, open it with the `> [!IMPORTANT]` block described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human). What most needs attention is where
-the plan goes beyond the spec: always the review focus, then any new dependency, even one used only
-by tests, and the order of risky tasks. An auto-approved plan has no block. Once the human approves
-the plan, the implementation step turns the block into a record, as for the spec.
+the plan goes beyond the spec. That is always the review focus, then any new dependency, even one
+used only by tests, and the order of risky tasks. An auto-approved plan has no block. Once the human
+approves the plan, the implementation step turns the block into a record, as for the spec.
 
 ## Revising
 
