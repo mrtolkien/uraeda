@@ -180,8 +180,8 @@ fn read_folder(
     feature
 }
 
-/// Whether a decision the spec lists as new or changed, in an item of its `## Decisions`, is
-/// `proposed`. The "Relied on" table's links do not count.
+/// Whether a decision the spec lists as new or changed, in an item of its `## Decisions`, and
+/// links in the repository's `specs/decisions/`, is `proposed`. The "Relied on" table's links do not count.
 fn decisions_pending(reader: &Reader<'_>, from: ReadFrom, dir: &str, spec: &str) -> bool {
     let document = document::parse(spec, dir);
     spec::items(&document)
@@ -190,9 +190,15 @@ fn decisions_pending(reader: &Reader<'_>, from: ReadFrom, dir: &str, spec: &str)
         .filter(|decision| decision.kind != "removed")
         .any(|decision| {
             let path = format!("specs/decisions/{}.md", decision.name);
-            reader.read(from, &path).is_some_and(|text| {
-                frontmatter::parse(&text)
-                    .is_ok_and(|front| front.text("status") == Some("proposed"))
-            })
+            // A link into another `specs/decisions/` tree names no decision of this repository.
+            let linked = document.blocks[decision.block as usize]
+                .spans
+                .iter()
+                .find_map(|span| span.link.as_ref()?.path.as_deref());
+            linked == Some(path.as_str())
+                && reader.read(from, &path).is_some_and(|text| {
+                    frontmatter::parse(&text)
+                        .is_ok_and(|front| front.text("status") == Some("proposed"))
+                })
         })
 }
