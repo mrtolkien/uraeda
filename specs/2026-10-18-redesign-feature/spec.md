@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign feature and change pages
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-10-18: 11 comments in spec-review.md.
 >
 > - You approve one page for every feature and change: its stages with their dates, what's next, the
 >   agent, and what it produced. A done one adds its figures and its record, drawn in place.
