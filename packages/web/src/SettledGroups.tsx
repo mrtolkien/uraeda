@@ -68,6 +68,9 @@ const pointCount = (document: Document, group: SettledGroup) =>
     (b) => b.kind === "item" && b.parent !== undefined && group.blocks.includes(b.parent),
   ).length;
 
+/** The label of the fold's button, "Show the point" for one point. */
+const showLabel = (count: number) => (count === 1 ? "Show the point" : `Show the ${count} points`);
+
 /** A group: its icon and heading, then its points, "Under the hood" folded until opened. */
 function Group({
   children,
@@ -91,7 +94,7 @@ function Group({
         <Heading level={3}>{heading ? plain(heading.spans) : ""}</Heading>
         {folded && (
           <Button
-            label={open ? "Fold" : `Show the ${pointCount(document, group)} points`}
+            label={open ? "Fold" : showLabel(pointCount(document, group))}
             onClick={() => folds.onOpenChange(HOOD, !open)}
             size="sm"
             variant="ghost"
