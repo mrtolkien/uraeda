@@ -87,3 +87,58 @@ fn a_revision_whose_review_did_not_request_changes_answers_none() {
     );
     assert_eq!(answered(&repo), None);
 }
+
+/// The review's comments as the file view gives them with the repository as it stands.
+fn answered_here(repo: &TestRepo) -> Option<Vec<String>> {
+    let file = api::read_file(repo.path(), FOLDER, "spec.md").unwrap();
+    file.answered
+        .map(|review| review.comments.into_iter().map(|c| c.text).collect())
+}
+
+/// The revised branch, approved, with its review file now holding the approval.
+fn approved() -> TestRepo {
+    let repo = revised();
+    repo.write(SPEC, &spec("approved", 2, 0));
+    repo.write(REVIEW, &review("approved", "The approval's own comment."));
+    repo.commit("docs(feature): approve the spec");
+    repo
+}
+
+/// Once the branch is merged with a merge commit, the default branch's first-parent history holds
+/// the merge alone, whose review file says approved: the review the revision answers is read on the
+/// merged branch's own history.
+#[test]
+fn a_merged_revision_keeps_the_review_it_answers() {
+    let repo = approved();
+    repo.switch("main");
+    repo.git(&["merge", "--no-ff", "-m", "Merge the feature", FOLDER]);
+    repo.delete_branch(FOLDER);
+
+    assert_eq!(answered_here(&repo), Some(vec!["Too vague.".to_string()]));
+}
+
+/// A squash merge keeps none of the branch's commits: the review that requested the changes is in
+/// no commit of the default branch, so there is nothing to quote.
+#[test]
+fn a_squash_merged_revision_has_no_review_to_quote() {
+    let repo = approved();
+    repo.switch("main");
+    repo.git(&["merge", "--squash", FOLDER]);
+    repo.commit("feat(feature): the feature");
+    repo.delete_branch(FOLDER);
+
+    assert_eq!(answered_here(&repo), None);
+}
+
+/// A revision edited and not committed yet answers the review the branch's tip holds: the quotes
+/// show as the agent writes it.
+#[test]
+fn an_uncommitted_revision_shows_the_review_it_answers() {
+    let repo = feature(
+        &spec("awaiting-human", 1, 0),
+        &review("changes-requested", "Too vague."),
+    );
+    repo.write(SPEC, &spec("awaiting-human", 2, 0));
+
+    assert_eq!(answered_here(&repo), Some(vec!["Too vague.".to_string()]));
+}
