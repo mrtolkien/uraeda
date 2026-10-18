@@ -60,3 +60,5 @@
   twice, in HandOver.tsx and runner/sessions.ts
 - [agent] [redesign-feature] Tokens: agent session starts are found by their system line's words:
   rewording a line loses the markers already stored
+- [agent] [redesign-feature] Tokens: a late report from a closing process can count for the next
+  turn; the session's total stays right
