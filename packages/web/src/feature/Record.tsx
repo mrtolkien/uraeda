@@ -1,8 +1,8 @@
 // A done feature's record, drawn in place: its what and why and its behaviour, its decisions drawn
 // as the spec page draws them, its questions folded, then its follow-ups and its file.
 import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
+import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
@@ -101,7 +101,12 @@ function Questions({
       <Collapsible
         isOpen={keys.open.includes(QUESTIONS_KEY)}
         onOpenChange={(isOpen: boolean) => keys.onOpenChange(QUESTIONS_KEY, isOpen)}
-        trigger={<Heading level={2}>{title}</Heading>}
+        trigger={
+          // A button holds no heading: the section is named, as the spec's folded history.
+          <Text size="xl" weight="semibold">
+            {title}
+          </Text>
+        }
       >
         <Blocks document={document} ids={body} />
       </Collapsible>

@@ -247,6 +247,9 @@ test("the record shows in place, its questions folded", async () => {
   expect(screen.getByText("Keyboard navigation, left for later.")).toBeTruthy();
   const questions = screen.getByRole("button", { name: "Questions · 10 in 1 round" });
   expect(questions.getAttribute("aria-expanded")).toBe("false");
+  // A button holds no heading: its region is named instead.
+  expect(within(questions).queryByRole("heading")).toBeNull();
+  expect(within(region("Questions")).getByRole("button")).toBe(questions);
   expect(screen.getByRole("link", { name: "Questions: 10, 1 round" }).getAttribute("href")).toBe(
     "#questions",
   );
