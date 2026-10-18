@@ -4,6 +4,7 @@ import { view } from "react-fate";
 import type {
   Agent,
   BranchChanges,
+  BranchDecision,
   Draft,
   Feature,
   FolderSuggestions,
@@ -130,6 +131,16 @@ export const BranchChangesView = view<BranchChanges>()({
   changes: { added: true, count: true, files: true, removed: true },
   failed: true,
   id: true,
+});
+
+/** A decision as a feature's branch has it, with its change against the default branch. */
+export const BranchDecisionView = view<BranchDecision>()({
+  change: { compared: true, kind: true, listed: true, name: true, sections: true, title: true },
+  document: { blocks: true, hash: true },
+  folder: true,
+  id: true,
+  missing: true,
+  name: true,
 });
 
 export const FileView = view<WorkflowFile>()({

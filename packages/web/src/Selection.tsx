@@ -3,6 +3,7 @@ import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
 import type { Block } from "uraeda-binding";
+import type { Range } from "./useCommentDraft.ts";
 
 /**
  * How a review selects blocks: which are selected, what a tap does, given the block and the element
@@ -14,7 +15,22 @@ export type Selection = {
   canSelect?: (block: Block) => boolean;
   isSelected: (block: Block) => boolean;
   onTap: (block: Block, element: HTMLElement) => void;
+  /** How a review selects the parts of the decisions a spec changes, which are not its blocks. */
+  parts?: PartSelection;
 };
+
+/**
+ * How a review selects a part of a decision, by its lines in the decision's file, `range`, whose
+ * `decision` names the file: what follows it, whether it is selected, and what a tap does.
+ */
+export type PartSelection = {
+  after: (range: DecisionRange) => ReactNode;
+  isSelected: (range: DecisionRange) => boolean;
+  onTap: (range: DecisionRange, element: HTMLElement) => void;
+};
+
+/** Lines of a decision's file, the decision named. */
+export type DecisionRange = Range & { decision: NonNullable<Range["decision"]> };
 
 const styles = stylex.create({
   above: {
@@ -73,6 +89,46 @@ export function selectable(block: Block) {
 }
 
 /**
+ * What a tap on a selectable element does: it selects it, `onTap`, but on a link or a button of its
+ * text, or on what follows a nested element, like its comment field. `lines` marks the element.
+ */
+function tapProps(lines: string, onTap: (element: HTMLElement) => void) {
+  return {
+    "data-lines": lines,
+    onClick: (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+      // What follows a nested block, like its comment field, belongs to that block, not this one.
+      if ((event.target as Element).closest("[data-lines], [data-after]") !== event.currentTarget) {
+        return;
+      }
+      // A link or a button in the block does its own job: the block is not selected on the way.
+      // The block's toggle, the one button with a pressed state, selects it.
+      const control = (event.target as Element).closest("a[href], button:not([aria-pressed])");
+      if (control && event.currentTarget.contains(control)) {
+        return;
+      }
+      onTap(event.currentTarget);
+    },
+  };
+}
+
+/**
+ * A selectable element's toggle, for the keyboard and screen readers: named by its text, `textId`,
+ * or by `label` when it has no text.
+ */
+function Toggle({ label, pressed, textId }: { label?: string; pressed: boolean; textId: string }) {
+  return (
+    // oxlint-disable-next-line react/forbid-elements -- the review's selectable block, a toggle as large as a block of document text, which no Astryx component draws (an Astryx gap, see the plan)
+    <button
+      aria-pressed={pressed}
+      type="button"
+      {...(label === undefined ? { "aria-labelledby": textId } : { "aria-label": label })}
+      {...stylex.props(focusOutlineStyles.focusVisible, styles.toggle)}
+    />
+  );
+}
+
+/**
  * What makes a block tappable in a review, or nothing outside one. A tap anywhere on the block
  * selects it, but on a link of its text; the keyboard and screen readers have its toggle, a button
  * named by the block's text, beside the text rather than around it, so its links stay reachable.
@@ -86,39 +142,19 @@ export function useSelect(block: Block, selection: Selection | undefined) {
   const pressed = selection.isSelected(block);
   return {
     above: stylex.props(styles.above),
-    block: {
-      "data-lines": `${block.startLine}-${block.endLine}`,
-      onClick: (event: React.MouseEvent<HTMLElement>) => {
-        event.stopPropagation();
-        // What follows a nested block, like its comment field, belongs to that block, not this one.
-        if (
-          (event.target as Element).closest("[data-lines], [data-after]") !== event.currentTarget
-        ) {
-          return;
-        }
-        // A link or a button in the block does its own job: the block is not selected on the way.
-        // The block's toggle, the one button with a pressed state, selects it.
-        const control = (event.target as Element).closest("a[href], button:not([aria-pressed])");
-        if (control && event.currentTarget.contains(control)) {
-          return;
-        }
-        selection.onTap(block, event.currentTarget);
-      },
-    },
+    block: tapProps(`${block.startLine}-${block.endLine}`, (element) =>
+      selection.onTap(block, element),
+    ),
     cell: styles.cell,
     pressed,
     row: [styles.selectable, pressed && styles.selectedRow],
     textId,
+    // A rule has no text: its lines name it.
     toggle: (
-      // oxlint-disable-next-line react/forbid-elements -- the review's selectable block, a toggle as large as a block of document text, which no Astryx component draws (an Astryx gap, see the plan)
-      <button
-        aria-pressed={pressed}
-        type="button"
-        // A rule has no text: its lines name it.
-        {...(block.kind === "rule"
-          ? { "aria-label": `Line ${block.startLine}` }
-          : { "aria-labelledby": textId })}
-        {...stylex.props(focusOutlineStyles.focusVisible, styles.toggle)}
+      <Toggle
+        label={block.kind === "rule" ? `Line ${block.startLine}` : undefined}
+        pressed={pressed}
+        textId={textId}
       />
     ),
   };
@@ -167,6 +203,40 @@ export function Selectable({
         </div>
       </div>
       <After>{selection?.after?.(block)}</After>
+    </>
+  );
+}
+
+/**
+ * Something else than a block a review can tap, like a part of a decision: selected as a block is,
+ * `pressed` once selected, with what follows it, `after`. `lines` names the lines it holds.
+ */
+export function Tappable({
+  after,
+  children,
+  lines,
+  onTap,
+  pressed,
+}: {
+  after?: ReactNode;
+  children: ReactNode;
+  lines: string;
+  onTap: (element: HTMLElement) => void;
+  pressed: boolean;
+}) {
+  const textId = useId();
+  return (
+    <>
+      <div
+        {...tapProps(lines, onTap)}
+        {...stylex.props(styles.selectable, pressed && styles.selected)}
+      >
+        <Toggle pressed={pressed} textId={textId} />
+        <div id={textId} {...stylex.props(styles.above)}>
+          {children}
+        </div>
+      </div>
+      <After>{after}</After>
     </>
   );
 }

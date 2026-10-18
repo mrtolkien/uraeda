@@ -2,8 +2,50 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Block } from "uraeda-binding";
 import { frame, keepPlace, topOf } from "./keepPlace.ts";
 
-/** Lines of the reviewed file, and the heading above them. */
-export type Range = { end: number; heading: string; start: number };
+/**
+ * Lines of the reviewed file, and the heading above them; or, with `decision`, lines of a decision
+ * the reviewed spec changes, `removed` for lines of a part the branch removed, at the merge base.
+ */
+export type Range = {
+  decision?: { name: string; removed: boolean };
+  end: number;
+  heading: string;
+  start: number;
+};
+
+/**
+ * The last tapped element, under which the form opens: a block of the reviewed file, by its id, or
+ * a part of a decision, by the decision and the part's last line.
+ */
+export type Last = number | { decision: string; line: number; removed: boolean };
+
+/** Whether two ranges are of the same file: the reviewed file, or the same side of a decision. */
+function sameFile(a: Range, b: Range) {
+  return a.decision?.name === b.decision?.name && a.decision?.removed === b.decision?.removed;
+}
+
+/**
+ * The selection once lines are tapped: the lines added to it, under the heading of the first, or a
+ * new one with them when they are of another file than its.
+ */
+function selected(selection: Range | undefined, range: Range): Range {
+  if (!selection || !sameFile(selection, range)) {
+    return range;
+  }
+  return {
+    ...selection,
+    end: Math.max(selection.end, range.end),
+    heading: range.start < selection.start ? range.heading : selection.heading,
+    start: Math.min(selection.start, range.start),
+  };
+}
+
+/** Where the form opens once a part of a decision is tapped: under that part. */
+const partLast = ({ decision, end }: Range & { decision: NonNullable<Range["decision"]> }) => ({
+  decision: decision.name,
+  line: end,
+  removed: decision.removed,
+});
 
 /** The comment being written: on the selected lines, on the whole file, or an edit of one. */
 export type CommentDraft =
@@ -81,11 +123,11 @@ async function placeAboveSheet(
 export function useCommentDraft(
   wide: boolean,
   onSelect: (selection: Range | undefined) => void,
-  restored?: { draft: CommentDraft; last?: number; selection?: Range },
+  restored?: { draft: CommentDraft; last?: Last; selection?: Range },
 ) {
   const [selection, setSelection] = useState<Range | undefined>(restored?.selection);
   const [draft, setDraft] = useState<CommentDraft | undefined>(restored?.draft);
-  const [last, setLast] = useState<number | undefined>(restored?.last);
+  const [last, setLast] = useState<Last | undefined>(restored?.last);
   // Which comment is written: a new one with each close and each edit started (R71).
   const [writing, setWriting] = useState(0);
   const lastElement = useRef<HTMLElement>(null);
@@ -110,28 +152,34 @@ export function useCommentDraft(
     lastElement.current = null;
   };
 
-  /** Adds a tapped block to the selection, or starts one with it. */
-  const tap = (block: Block, element: HTMLElement) => {
-    const next = selection
-      ? {
-          end: Math.max(selection.end, block.endLine),
-          heading: block.startLine < selection.start ? (block.heading ?? "") : selection.heading,
-          start: Math.min(selection.start, block.startLine),
-        }
-      : { end: block.endLine, heading: block.heading ?? "", start: block.startLine };
+  /** Adds tapped lines to the selection, or starts one with them. */
+  const select = (range: Range, tapped: Last, element: HTMLElement) => {
+    const next = selected(selection, range);
     // On a wide screen, the form opens under the block, or moves to it from a block above it.
     if (wide) {
       void keepPlace(topOf(element));
     }
     tappedTop.current = element.getBoundingClientRect().top;
     setSelection(next);
-    setLast(block.id);
+    setLast(tapped);
     lastElement.current = element;
     if (draft?.kind !== "lines") {
       setDraft({ kind: "lines" });
     }
     onSelect(next);
   };
+
+  /** Adds a tapped block to the selection, or starts one with it. */
+  const tap = (block: Block, element: HTMLElement) =>
+    select(
+      { end: block.endLine, heading: block.heading ?? "", start: block.startLine },
+      block.id,
+      element,
+    );
+
+  /** Adds a tapped part of a decision to the selection, or starts one with it. */
+  const tapPart = (range: Parameters<typeof partLast>[0], element: HTMLElement) =>
+    select(range, partLast(range), element);
 
   /** Starts a comment on the whole file, or an edit of a pending comment. */
   const start = (next: Exclude<CommentDraft, { kind: "lines" }>) => {
@@ -166,5 +214,5 @@ export function useCommentDraft(
     }
   };
 
-  return { close, draft, last, removed, selection, sheet, start, tap, writing };
+  return { close, draft, last, removed, selection, sheet, start, tap, tapPart, writing };
 }

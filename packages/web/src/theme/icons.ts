@@ -336,6 +336,32 @@ const fileText = outline(
   h("path", { d: "M16 17H8" }),
 );
 
+/**
+ * A decision rule's strength, by the core's name for it (`Strength::as_str`): Lucide's
+ * `chevrons-up` for MUST, `chevron-up` for SHOULD, `chevron-down` for SHOULD NOT, `chevrons-down`
+ * for MUST NOT, and a dot for MAY.
+ */
+const STRENGTH_ICONS = {
+  may: outline(h("circle", { cx: 12, cy: 12, fill: "currentColor", r: 3 })),
+  must: outline(h("path", { d: "m17 11-5-5-5 5" }), h("path", { d: "m17 18-5-5-5 5" })),
+  "must-not": outline(h("path", { d: "m7 6 5 5 5-5" }), h("path", { d: "m7 13 5 5 5-5" })),
+  should: outline(h("path", { d: "m18 15-6-6-6 6" })),
+  "should-not": outline(h("path", { d: "m6 9 6 6 6-6" })),
+};
+
+/** A strength the core names, as the core's `Strength::as_str` names it. */
+export type Strength = keyof typeof STRENGTH_ICONS;
+
+/** Whether a name is one of the core's strengths. */
+export function isStrength(name: string | null | undefined): name is Strength {
+  return name != null && Object.hasOwn(STRENGTH_ICONS, name);
+}
+
+/** The registered name of a strength's icon. */
+export function strengthIcon(strength: Strength): `uraeda:strength-${Strength}` {
+  return `uraeda:strength-${strength}`;
+}
+
 /** A decision's icons, by the Lucide name its frontmatter's `icon` gives. */
 const DECISION_ICONS = {
   bell,
@@ -393,5 +419,8 @@ export const uraedaIcons = {
   "uraeda:terminal": terminal,
   ...Object.fromEntries(
     Object.entries(DECISION_ICONS).map(([name, icon]) => [`uraeda:decision-${name}`, icon]),
+  ),
+  ...Object.fromEntries(
+    Object.entries(STRENGTH_ICONS).map(([name, icon]) => [`uraeda:strength-${name}`, icon]),
   ),
 };

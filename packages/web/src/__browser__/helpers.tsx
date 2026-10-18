@@ -345,13 +345,13 @@ function averageCharacter(element: Element) {
  * layout decision): paragraphs, and the toggles that hold text of their own, like a review's
  * blocks and a question's option cards.
  */
-export function checkMeasure(root?: Element) {
+export function checkMeasure(root?: Element, limit = 115) {
   const main = region(root);
   const toggles = [...main.querySelectorAll("[aria-pressed], .astryx-selectable-card")].filter(
     (toggle) => toggle.textContent?.trim() && toggle.getBoundingClientRect().width > 4,
   );
   for (const paragraph of [...paragraphs(root), ...toggles]) {
-    expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(115);
+    expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(limit);
   }
 }
 

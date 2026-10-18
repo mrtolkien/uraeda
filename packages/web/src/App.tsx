@@ -27,6 +27,7 @@ import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
 import { InboxPage } from "./InboxPage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
+import { BranchDecisionPage } from "./decisions/BranchDecision.tsx";
 import { NewChangePage } from "./NewChangePage.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
@@ -146,6 +147,8 @@ function RoutePage({ route }: { route: Route }) {
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":
       return <MockupPage folder={route.folder} name={route.name} />;
+    case "branch-decision":
+      return <BranchDecisionPage folder={route.folder} name={route.name} />;
     case "session":
       return <SessionRoute folder={route.folder} />;
     case "storybook":

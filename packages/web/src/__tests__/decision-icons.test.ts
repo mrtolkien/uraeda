@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { decisionIcon, uraedaIcons } from "../theme/icons.ts";
+import { decisionIcon, isStrength, strengthIcon, uraedaIcons } from "../theme/icons.ts";
 
 const root = join(import.meta.dirname, "../../../..");
 
@@ -35,4 +35,20 @@ test("a decision's icon is its own when registered, else the default one", () =>
     expect(decisionIcon(name)).toBe("uraeda:decision-file-text");
   }
   expect(Object.hasOwn(uraedaIcons, "uraeda:decision-file-text")).toBe(true);
+});
+
+/**
+ * US2 more 1: each strength the core names (`Strength::as_str`) has its icon registered; the web
+ * reads no strength of its own, and a name the core does not give draws none.
+ */
+test("each strength of the core has a registered icon", () => {
+  for (const name of ["must", "must-not", "should", "should-not", "may"]) {
+    expect(isStrength(name), name).toBe(true);
+    if (isStrength(name)) {
+      expect(Object.hasOwn(uraedaIcons, strengthIcon(name)), name).toBe(true);
+    }
+  }
+  for (const name of ["MUST", "mustNot", "", null, undefined]) {
+    expect(isStrength(name)).toBe(false);
+  }
 });

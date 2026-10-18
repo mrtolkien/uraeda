@@ -39,7 +39,9 @@ export function useReviewActions(
     return new Promise<{ error?: unknown }>((resolve) =>
       startTransition(async () => {
         setAdding({ range, text });
-        const extent = range ? { endLine: range.end, startLine: range.start } : {};
+        const extent = range
+          ? { decision: range.decision, endLine: range.end, startLine: range.start }
+          : {};
         resolve(
           await fate.mutations.review.comment({
             input: { ...input, text, ...extent },

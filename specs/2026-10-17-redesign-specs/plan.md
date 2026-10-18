@@ -1589,7 +1589,9 @@ git commit -m "feat(redesign-specs): the parts after the stories, each drawn for
   (generated)
 - Test: `packages/web/src/__tests__/spec-decisions.test.tsx`,
   `packages/web/src/__tests__/links.test.ts`, `packages/web/src/__tests__/decision-icons.test.ts`,
-  `packages/web/src/__browser__/spec.test.tsx`
+  `packages/web/src/__tests__/routes.test.ts`, `packages/web/src/__browser__/spec.test.tsx`,
+  `crates/core/tests/document.rs` (`SpanLink.anchor`); `__tests__/decisions.test.tsx` waits for the
+  redirect to the decisions page (R85)
 
 **Interfaces:**
 
@@ -1600,7 +1602,7 @@ git commit -m "feat(redesign-specs): the parts after the stories, each drawn for
   `pathLink(path, repo, anchor?, from?: { folder: string })`: a decision link from an item's file
   opens that item's branch decision page, at its anchor.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/spec-decisions.test.tsx
@@ -1676,13 +1678,14 @@ The break each test catches:
 - Links: the anchor dropped, or the default branch's decision opened.
 - Measure: the page's 90-character measure inside the card.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/web/src/__tests__/spec-decisions.test.tsx packages/web/src/__tests__/links.test.ts`
-- Expected: FAIL, `Unable to find role="region" and name "Task storage"`
+- Expected: FAIL, `Unable to find an accessible element with the role "group" and name "Rules"` (the
+  placeholder already draws each card as a region)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `DecisionCards` draws, after "What you approve" and the answers, one `DecisionCard` per change:
 listed ones in the order of the items, then the unlisted ones. A card is a `Panel` with the title,
@@ -1696,12 +1699,12 @@ most 75 characters. A tap on a part opens the comment form, saving with the part
 decision's name, `removed` for a removed part. The branch decision page draws one `DecisionCard`,
 read from `readDecision`, scrolled to the anchor. In the core, `SpanLink` keeps its anchor.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run binding:build`, `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/files/document packages/binding/index.d.ts packages/web/src

@@ -172,7 +172,9 @@ test("a spec's link to a decision opens it on the decisions page", async () => {
 
   await click(await screen.findByRole("link", { name: "the git decision" }));
 
-  expect(window.location.pathname).toBe(atRepo("/decisions/git"));
+  // The link opens the decision as the feature's branch has it: without a branch, the decisions
+  // page (R85).
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/git")));
   expect((await pane()).getByRole("heading", { level: 2, name: "Git" })).toBeTruthy();
 });
 

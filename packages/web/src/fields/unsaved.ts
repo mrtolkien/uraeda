@@ -7,8 +7,14 @@ export type Unsaved = {
   at: string;
   /** The saved text when the edit began. */
   base: string;
-  /** A review comment's lines, and the commit they were on. */
-  extra?: { commit: string; end: number; heading: string; start: number };
+  /** A review comment's lines, the decision they are of when not the file's, and their commit. */
+  extra?: {
+    commit: string;
+    decision?: { name: string; removed: boolean };
+    end: number;
+    heading: string;
+    start: number;
+  };
   /** The element picked in an embedded story, which a comment on it names. */
   picked?: Picked;
   /**

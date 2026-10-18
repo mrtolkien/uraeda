@@ -2,6 +2,7 @@ import { Code } from "@astryxdesign/core/Code";
 import { Link } from "@astryxdesign/core/Link";
 import { type ReactNode, useContext } from "react";
 import type { Span } from "uraeda-binding";
+import { MAIN_CHECKOUT } from "./data.ts";
 import { ImageView } from "./ImageView.tsx";
 import { pathLink } from "./links.tsx";
 import { repoPath, useRepository } from "./routes.tsx";
@@ -46,7 +47,10 @@ function SpanLink({ children, span }: { children?: ReactNode; span: Span }) {
     );
   }
   if (link.path) {
-    const { href, inApp } = pathLink(link.path, repo);
+    // From an item's file, a decision opens as the item's branch has it; not from a draft.
+    const from =
+      stories && stories.folder !== MAIN_CHECKOUT ? { folder: stories.folder } : undefined;
+    const { href, inApp } = pathLink(link.path, repo, link.anchor, from);
     return inApp ? (
       <Link hasUnderline href={href} type="inherit">
         {text}

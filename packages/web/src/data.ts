@@ -7,6 +7,7 @@ import type { Draft, Inbox, Priorities, Trigger } from "uraeda-server/fate";
 import {
   AgentView,
   BranchChangesView,
+  BranchDecisionView,
   DraftTitleView,
   DraftView,
   FeatureView,
@@ -76,6 +77,14 @@ export function useBranchChanges(folder: string) {
   const { branchChanges } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(BranchChangesView, branchChanges);
+}
+
+/** Decision `name` as the branch of the feature in `folder` has it, with its change. */
+export function useBranchDecision(folder: string, name: string) {
+  const request = { branchDecision: { id: `${folder}/${name}`, view: BranchDecisionView } };
+  const { branchDecision } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(BranchDecisionView, branchDecision);
 }
 
 export function useFile(folder: string, name: string) {
