@@ -109,6 +109,28 @@ test("a pending comment on a niche case shows it, its fold open", async () => {
   expect(folded(comment)).toBe(false);
 });
 
+/** A comment on a niche case keeps its fold open, whatever the fold was left at before it. */
+test("a niche case under a comment keeps its fold open, though it was closed by hand", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const part = await region("Edge cases");
+  const fold = within(part).getByRole("button", { name: "2 niche cases" });
+  await click(fold);
+  await click(fold);
+  expect(fold.getAttribute("aria-expanded")).toBe("false");
+  await click(fold);
+  const niche = rowsOf(part, 1)[0]!;
+  await click(within(niche).getByRole("button"));
+  await waitFor(() => expect(screen.getByLabelText("Comment text")).toBeTruthy());
+
+  await click(fold);
+
+  expect(fold.getAttribute("aria-expanded")).toBe("true");
+  expect(folded(niche)).toBe(false);
+});
+
 /** US8 2 */
 test("a criterion shows its id and measure as pills, then its sentence", async () => {
   const repo = fixtureRepo();
