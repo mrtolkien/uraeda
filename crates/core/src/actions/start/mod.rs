@@ -7,6 +7,7 @@ use std::path::Path;
 
 use crate::git::{Git, GitError};
 use crate::images::Encoded;
+use crate::target;
 use crate::today::Date;
 use crate::workspace::{Kind, Workspace};
 
@@ -57,13 +58,15 @@ pub enum StartError {
 pub fn run(
     git: &Git,
     workspace: &Workspace,
-    draft: &str,
+    draft_arg: &str,
     slug: Option<&str>,
     kind: Kind,
     today: Date,
     switch: bool,
 ) -> Result<Started, StartError> {
-    let source = Source::Draft(draft);
+    // A postponed folder's `proposal.md` starts the whole folder, images included.
+    let draft = target::draft_to_start(draft_arg);
+    let source = Source::Draft(draft.as_deref().unwrap_or(draft_arg));
     begin(git, workspace, source, kind, slug, today, switch)
 }
 

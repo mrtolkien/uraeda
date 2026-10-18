@@ -932,6 +932,43 @@ fn start_accepts_a_draft_with_placeholders_or_empty_sections() {
     }
 }
 
+/// Starting a draft folder from its `proposal.md` path, as the web UI does, starts the whole
+/// folder: its images move with the proposal.
+#[test]
+fn start_from_a_draft_folders_proposal_moves_the_whole_folder() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [X](drafts/x/proposal.md)\n\n## Later\n\n## Blocked\n",
+    );
+    repo.write(
+        "specs/drafts/x/proposal.md",
+        "# X\n\n## What\n\n![a](images/a.png)\n",
+    );
+    repo.write("specs/drafts/x/images/a.png", "png");
+    repo.commit("chore: draft X");
+    let git = Git::discover(repo.path()).unwrap();
+    let workspace = Workspace::read(&git).unwrap();
+
+    let started = start::run(
+        &git,
+        &workspace,
+        "specs/drafts/x/proposal.md",
+        Some("x"),
+        Kind::Feature,
+        today(),
+        false,
+    )
+    .unwrap();
+
+    let worktree = repo.path().join(started.worktree.unwrap());
+    let folder = worktree.join(format!("specs/{}", started.folder));
+    assert!(folder.join("proposal.md").exists());
+    assert!(folder.join("images/a.png").exists());
+    assert!(!worktree.join("specs/drafts/x").exists());
+}
+
 /// US4 scenario 4: starting a Next draft writes its entry after the started entries on top of
 /// Now, before the blank line and the rest.
 #[test]
