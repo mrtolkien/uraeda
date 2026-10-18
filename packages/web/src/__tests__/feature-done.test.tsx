@@ -466,4 +466,6 @@ test("a record with its pull request leads Lines changed to its files", async ()
 
   const lineCard = await screen.findByRole("link", { name: /^Lines changed/ });
   expect(lineCard.getAttribute("href")).toBe("https://github.com/o/r/pull/30/files");
+  // In a new tab, as "Open pull request #30".
+  expect(lineCard.getAttribute("target")).toBe("_blank");
 });
