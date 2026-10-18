@@ -569,6 +569,22 @@ fn rulings_have_their_ids() {
     assert!(!rulings[0].blocks.is_empty());
 }
 
+/// A `##` heading inside a quote is the quote's: the ruling goes on to the blocks after it.
+#[test]
+fn a_quoted_heading_does_not_end_a_ruling() {
+    let text =
+        "# Rulings\n\n## R1: First\n\nBefore.\n\n> ## Quoted\n\nAfter.\n\n## R2: Second\n\nText.\n";
+    let doc = document::parse(text, "specs/x");
+    let rulings = items("rulings.md", text, &doc).rulings.unwrap();
+
+    let first: Vec<String> = rulings[0].blocks.iter().map(|&b| doc.text(b)).collect();
+    assert_eq!(
+        first.last().map(String::as_str),
+        Some("After."),
+        "{first:?}"
+    );
+}
+
 const REVIEW: &str = "---\nverdict: pending\ncommit: a1b2c3d\n---\n\n# Review: Spec, Recurring tasks\n\n## C1: Lines 58–59, under \"US2: Complete a repeating task (P1)\"\n\n> one\n> two\n\nSay what the row shows\n\n## C2: General\n\nShorter, please\n";
 
 #[test]

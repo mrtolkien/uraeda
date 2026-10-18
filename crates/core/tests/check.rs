@@ -157,6 +157,7 @@ fn a_deeper_heading_in_a_round_is_an_unknown_section() {
     let rows = [
         ("Goal", "#### Detail\n\nA detail.\n\n", true),
         ("Goal", "> #### Quoted\n\n", false),
+        ("Behaviour", "#### Detail\n\nA detail.\n\n", true),
     ];
     for (after, heading, reported) in rows {
         let example = Example::new();
