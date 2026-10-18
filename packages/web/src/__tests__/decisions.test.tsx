@@ -5,7 +5,7 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { atRepo, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 /** Commits every change of the repository, dated `date`. */
@@ -176,6 +176,28 @@ test("a spec's link to a decision opens it on the decisions page", async () => {
   // page (R85).
   await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/git")));
   expect((await pane()).getByRole("heading", { level: 2, name: "Git" })).toBeTruthy();
+});
+
+/** R85: the link's anchor survives the redirect, and the page scrolls to it. */
+test("a link to a decision's section keeps its anchor on the decisions page", async () => {
+  const repo = fixtureRepo();
+  const proposal = join(repo, "specs/2026-10-10-stack-decision/proposal.md");
+  writeFileSync(
+    proposal,
+    `${readFileSync(proposal, "utf8")}\nSee [the git rules](../decisions/git.md#rules).\n`,
+  );
+  commitOn(repo, "docs: link the git decision's rules", "2026-10-16");
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
+  await renderPage("/f/2026-10-10-stack-decision/proposal.md", repo);
+
+  await click(await screen.findByRole("link", { name: "the git rules" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/git")));
+  expect(window.location.hash).toBe("#rules");
+  await waitFor(() => expect(scrolled).toHaveBeenCalled());
+  const heading = scrolled.mock.contexts[0] as HTMLElement;
+  expect(heading.id).toBe("rules");
 });
 
 /** US8 7 */
