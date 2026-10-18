@@ -30,6 +30,7 @@ import type { SessionStatus, StatusReason } from "../runner/status.ts";
 import type { ItemLook } from "./items.ts";
 import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
+import { recommendedDataView } from "./recommended.ts";
 import { settingsDataView } from "./settings.ts";
 import { branchChangesDataView } from "./views-branch.ts";
 import { historyDataView } from "./views-history.ts";
@@ -452,6 +453,7 @@ export const Root = {
   previews: list(previewDataView),
   prioritiesList: list(prioritiesDataView),
   proposalHintsList: list(proposalHintsDataView),
+  recommendedMessages: list(recommendedDataView),
   repositoriesList: list(repositoriesDataView),
   sessionLists: list(sessionListDataView),
   sessions: list(sessionDataView),

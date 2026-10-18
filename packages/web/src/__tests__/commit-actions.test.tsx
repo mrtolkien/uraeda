@@ -129,8 +129,8 @@ test("US2.2: Start the agent hands over, with the note", async () => {
   expect((await composer()).textContent).toBe("");
 });
 
-/** US2.4 */
-test("US2.4: a feature that waits on you again refuses the message, and keeps it", async () => {
+/** US4 more 1: a message that no longer applies is sent as a chat, no longer refused. */
+test("US2.4: a feature that waits on you again sends the message as a chat", async () => {
   const repo = answeredRepo();
   const { agent } = await renderPage(ROUND, repo, { agent: true });
   await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
@@ -140,11 +140,8 @@ test("US2.4: a feature that waits on you again refuses the message, and keeps it
 
   await click(startInComposer());
 
-  expect(
-    await screen.findByText("The feature waits on you now: there is nothing to continue."),
-  ).toBeTruthy();
-  expect((await composer()).textContent).toBe(ANSWERED);
-  expect(agent.sent).toHaveLength(0);
+  expect(await screen.findByText("Sent as a chat: the feature now waits on you.")).toBeTruthy();
+  await waitFor(() => expect(agent.sent).toHaveLength(1));
 });
 
 test("US2.4: a hand-over refused once read keeps Start the agent, disabled, never a chat's Send", async () => {

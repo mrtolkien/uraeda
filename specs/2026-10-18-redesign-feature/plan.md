@@ -907,14 +907,16 @@ git commit -m "feat(redesign-feature): each turn stores its own tokens, sub-agen
 
 **Files:**
 
-- Create: `packages/server/src/fate/recommended.ts` (the record, view, and source)
+- Create: `packages/server/src/fate/recommended.ts` (the record, view, and reader)
 - Modify: `packages/server/src/runner/message.ts` (`runMessage`'s `trigger`, the comments message,
-  `recommendedMessage`), `packages/server/src/runner/events.ts` (`Trigger`: `comments`),
-  `packages/server/src/fate/sessions.ts` (`TRIGGERS`), `packages/server/src/runner/send-input.ts`
-  (`workflow.step`), `packages/server/src/runner/sessions.ts` (`#send`),
-  `packages/server/src/runner/session-state.ts` (`SENT_AS_CHAT`, `SENT_AS_CHAT_NO_PULL_REQUEST`),
-  `packages/server/src/fate/views.ts` and `sources.ts` (`Root`: `recommendedMessages`),
-  `packages/server/src/fate/mutations.ts` (the `step` of `session.send`'s workflow)
+  `recommendedMessage`, `sentAsChat`), `packages/server/src/runner/events.ts` (`Trigger`:
+  `comments`), `packages/server/src/fate/sessions.ts` (`TRIGGERS`),
+  `packages/server/src/runner/send-input.ts` (`workflow.step`, `sendPlace`),
+  `packages/server/src/runner/sessions.ts` (`#send`), `packages/server/src/runner/session-state.ts`
+  (`SENT_AS_CHAT`, `SENT_AS_CHAT_NO_PULL_REQUEST`), `packages/server/src/fate/views.ts` and
+  `sources.ts` (`Root`: `recommendedMessages`), `packages/server/src/fate/mutations.ts` (the `step`
+  of `session.send`'s workflow), `packages/server/src/fate.ts` (`RecommendedMessage`),
+  `packages/server/src/live.ts` (its live update, beside the feature's)
 - Test: `packages/server/src/runner/__tests__/recommended.test.ts`,
   `packages/server/src/runner/__tests__/message.test.ts`,
   `packages/server/src/runner/__tests__/sessions.test.ts`,
@@ -937,7 +939,7 @@ git commit -m "feat(redesign-feature): each turn stores its own tokens, sub-agen
     refreshed when the feature is.
   - `SendInput.workflow.step?: string`: the step its message was read at.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/runner/__tests__/recommended.test.ts
@@ -1036,38 +1038,41 @@ refusal tests of `packages/server/src/__tests__/sessions.test.ts` (285, 312) and
 - Moved on: today's refusal kept, nothing sent.
 - Comments without a pull request: a workflow run started on nothing.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test --run packages/server/src/runner/__tests__/recommended.test.ts`
 - Expected: FAIL, `recommendedMessage` is not exported
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `recommendedMessage`, in order: no branch → `REFUSALS.noBranch`; no agent → "`<name>` is not
-available on this machine."; a step waiting on the agent, with a reference, other than `none` and
-`done` → the step's message, named "Continue, " and its work with a lower-case first letter, trigger
-`manual`, except `pull-request-changes`, the comments message; a pull request `open`, `draft`, or
+available on this machine."; a step waiting on the agent, with a reference, other than `none`,
+`done`, and `pull-request-unknown` (R10) → the step's message, named "Continue, " and its work with a
+lower-case first letter, without the ", then implement it" a plan step adds, trigger `manual`,
+except `pull-request-changes`, the comments message; a pull request `open`, `draft`, or
 `changes-requested` in `feature.pullRequest` → the comments message, named "Address the pull
 request's comments", trigger `comments`, reference `skills/uraeda/references/implementation.md` for
 a feature and `skills/uraeda/references/change.md` for a change; otherwise "No recommended message:
 the feature waits on you".
 
-The source reads `nextStep`, `readFeature`, and the adapter's availability. In `#send`, a workflow
-message applies when `recommendedMessage` gives a message of the same trigger family: `comments` for
-`comments`, otherwise a step message whose `step` equals `workflow.step` when given, the existing
-check of a step waiting on the agent kept for the hand-overs. One that does not apply runs as a chat
-turn, with `SENT_AS_CHAT` ("Sent as a chat: the feature now waits on you.") or, for `comments`,
-`SENT_AS_CHAT_NO_PULL_REQUEST` ("Sent as a chat: no pull request is open.") appended as a `system`
-item; the chat opening is not added to it. `readWorkflowMessage` keeps its refusal text for a
-hand-over read: task 7 turns it into a notice.
+The source reads `nextStep`, `readFeature`, and the adapter's availability; a folder that is no
+feature's has no record. In `#send`, through `sendPlace` in `send-input.ts` and `sentAsChat` in
+`message.ts`, a workflow message applies when `recommendedMessage` gives a message of the same
+trigger family: `comments` for `comments`, otherwise a step message whose `step` equals
+`workflow.step` when given, the existing check of a step waiting on the agent kept for the
+hand-overs. One that does not apply runs as a chat turn, with `SENT_AS_CHAT` ("Sent as a chat: the
+feature now waits on you.") or, for `comments`, `SENT_AS_CHAT_NO_PULL_REQUEST` ("Sent as a chat: no
+pull request is open.") appended as a `system` item after its message; the chat opening is not added
+to it, and it is never steered into a running turn. `readWorkflowMessage` keeps its refusal text for
+a hand-over read: task 7 turns it into a notice.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS; `runner/sessions.ts` stays under 500 lines (move `#send`'s decision into
   `message.ts` or `session-state.ts` if it would not)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src

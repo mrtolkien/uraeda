@@ -115,6 +115,7 @@ test("a feature's change through git is published to its session, its branch's c
     expect.arrayContaining([
       "Feature 2026-10-12-cli-tuis",
       "BranchChanges 2026-10-12-cli-tuis",
+      "RecommendedMessage 2026-10-12-cli-tuis",
       "Feature 2026-10-11-web-ui",
       "BranchChanges 2026-10-11-web-ui",
       "SessionList all",
@@ -173,7 +174,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test("a session's status change is published at once, with the list, its feature, and the workspace", () => {
+test("a session's status change is published at once, with the list, its feature, its recommended message, and the workspace", () => {
   const { cache, session, turn } = sessionWithItems(150);
   const host = hostAt("/repo");
   const sent = published(host.live);
@@ -188,6 +189,7 @@ test("a session's status change is published at once, with the list, its feature
     `TurnLog ${turn}:1`,
     "SessionList all",
     "Feature 2026-10-12-cli-tuis",
+    "RecommendedMessage 2026-10-12-cli-tuis",
     "Workspace workspace",
   ]);
 });
@@ -285,6 +287,7 @@ test("SC-002: items are published at most every 250 ms", () => {
     ...once,
     "SessionList all",
     "Feature 2026-10-12-cli-tuis",
+    "RecommendedMessage 2026-10-12-cli-tuis",
     "Workspace workspace",
   ]);
 });

@@ -309,9 +309,9 @@ const repositoryMutations = {
       text: string;
       /**
        * The workflow's message, which starts the feature's step: in a new agent session when
-       * `fresh`.
+       * `fresh`. `step` is the step it was read at: once the feature moved on, it runs as a chat.
        */
-      workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
+      workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
     }>) => {
       const { workflow } = input;
       if (workflow && !TRIGGERS.includes(workflow.trigger)) {
@@ -343,6 +343,7 @@ const repositoryMutations = {
                   trigger: workflow.trigger,
                   ...(workflow.file === undefined ? {} : { file: workflow.file }),
                   ...(workflow.fresh === true ? { fresh: true } : {}),
+                  ...(workflow.step === undefined ? {} : { step: workflow.step }),
                 },
               }),
         }),

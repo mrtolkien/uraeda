@@ -270,6 +270,41 @@ test("US2.1: WorkflowMessage gives the message the composer is filled with", asy
   });
 });
 
+const RECOMMENDED_FIELDS = ["id", "name", "reason", "step", "text", "trigger"];
+
+/** US4.1, US4.2 */
+test("RecommendedMessage gives the feature's one message, or why there is none", async () => {
+  const server = await testServer();
+
+  const [plan, human] = await byId(
+    server.app,
+    "RecommendedMessage",
+    [AGENT, HUMAN],
+    RECOMMENDED_FIELDS,
+  );
+
+  expect(plan).toEqual({
+    id: AGENT,
+    name: "Continue, write the plan",
+    reason: null,
+    step: "plan",
+    text:
+      `/uraeda Continue the feature specs/${AGENT}/ on branch ${AGENT}: ` +
+      "Write the plan, starting with skills/uraeda/references/plan.md.\n" +
+      "Stop when the plan waits for my review, and earlier only if you need a decision from me.\n",
+    trigger: "manual",
+  });
+  expect(human).toEqual({
+    id: HUMAN,
+    name: null,
+    reason: "No recommended message: the feature waits on you",
+    step: null,
+    text: "",
+    trigger: null,
+  });
+  expect(await byId(server.app, "RecommendedMessage", ["no-such-folder"], ["id"])).toEqual([]);
+});
+
 test("US2.4: WorkflowMessage on a feature waiting on the human is empty, with the refusal", async () => {
   const server = await testServer();
 
@@ -301,15 +336,27 @@ test("US2.2: session.send with the workflow's message starts a workflow turn", a
 
   const [turn] = await byId(server.app, "Turn", session.turns, TURN_FIELDS);
   expect(turn).toMatchObject({ kind: "workflow", state: "done", step: "plan", trigger: "manual" });
-  const refused = await mutate(
-    server.app,
-    "session.send",
-    { folder: HUMAN, text: "Continue", workflow: { trigger: "manual" } },
-    ["id"],
-  );
-  expect(refused.error).toEqual({
-    code: "BAD_REQUEST",
-    message: "refused: The feature waits on you now: there is nothing to continue.",
+});
+
+/** US4 more 1 */
+test("session.send with a step's message the feature moved on from sends it as a chat", async () => {
+  const server = await testServer();
+  server.adapter.script([]);
+
+  const session = await send(server, {
+    folder: HUMAN,
+    text: "/uraeda Continue.",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  await settle(server, session);
+
+  const [turn] = await byId(server.app, "Turn", session.turns, TURN_FIELDS);
+  expect(turn).toMatchObject({ kind: "chat", state: "done", step: null, trigger: null });
+  const [log] = await byId(server.app, "TurnLog", [`${session.turns[0]}:0`], ["id", "items"]);
+  expect(log?.items).toContainEqual({
+    kind: "system",
+    seq: 1,
+    text: "Sent as a chat: the feature now waits on you.",
   });
 });
 

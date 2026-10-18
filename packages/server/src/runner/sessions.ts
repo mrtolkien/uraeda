@@ -6,7 +6,7 @@ import type { TurnActivity, TurnKind, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatOpening, chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
-import { checkSend, messageItem, type SendInput } from "./send-input.ts";
+import { checkSend, messageItem, type SendInput, sendPlace } from "./send-input.ts";
 import {
   type Live,
   type Message,
@@ -196,8 +196,8 @@ export class Sessions {
   /**
    * Sends a message to the session, and returns its turn. Idle, it starts a turn, opening the
    * process when it is closed. During a turn, the human's message is steered into it, and the
-   * workflow's is queued after it. A workflow message is refused unless the feature waits on the
-   * agent. A message may be images alone, at most 10, to an agent that declares images; the
+   * workflow's is queued after it. A workflow message that no longer applies, as `sentAsChat`
+   * decides, runs as a chat, with the line saying so. A message may be images alone, at most 10, to an agent that declares images; the
    * workflow's message takes none.
    */
   async send(repo: string, session: string, input: SendInput): Promise<{ turn: number }> {
@@ -209,26 +209,11 @@ export class Sessions {
 
   async #send(
     live: Live,
-    { held, paths, text, workflow }: ReturnType<typeof checkSend>,
+    { held, paths, text, workflow: sent }: ReturnType<typeof checkSend>,
   ): Promise<{ turn: number }> {
     const { adapter, binding, cache, changed, processes, turns } = this.#context;
-    let step: string | null = null;
-    let branch: string | undefined;
-    if (live.folder !== null) {
-      const next = await binding.nextStep(live.repo, live.folder);
-      if (next.branch === undefined) {
-        throw refused(REFUSALS.noBranch);
-      }
-      branch = next.branch;
-      if (workflow) {
-        if (next.step.waitsOn !== "agent") {
-          throw refused(REFUSALS.human);
-        }
-        step = next.step.name;
-      }
-    } else if (workflow) {
-      throw new Error("a chat has no workflow to continue");
-    }
+    const { asChat, branch, step } = await sendPlace(binding, live, sent);
+    const workflow = asChat === undefined ? sent : undefined;
     this.#available();
     const row = rowOf(cache, live);
     if (row.folder === null && row.title === null) {
@@ -240,7 +225,7 @@ export class Sessions {
     const id = randomUUID();
     const origin = workflow ? "workflow" : "human";
     // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
-    if (live.turn && !live.turn.stop && !workflow && adapter.capabilities.steer) {
+    if (live.turn && !live.turn.stop && !sent && adapter.capabilities.steer) {
       const item: Message = { ...messageItem(id, origin, text), ...held };
       const seq = cache.appendItem(live.turn.id, item);
       live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
@@ -252,7 +237,7 @@ export class Sessions {
     const kind: TurnKind = workflow ? "workflow" : "chat";
     const fresh = workflow?.fresh === true;
     const opening =
-      kind === "chat" && live.folder !== null && branch !== undefined && this.#opens(live)
+      !sent && live.folder !== null && branch !== undefined && this.#opens(live)
         ? chatOpening({ branch, feature: await binding.readFeature(live.repo, live.folder) })
         : undefined;
     const item: Message = {
@@ -278,6 +263,9 @@ export class Sessions {
       const queued = cache.addTurn({ sessionId: live.id, ...turn, state: "queued" });
       turns.track(queued);
       const seq = cache.appendItem(queued, item);
+      if (asChat !== undefined) {
+        cache.appendItem(queued, { kind: "system", text: asChat });
+      }
       live.messages.set(id, { item, seq, turn: queued, written: false });
       live.queue.push({ ...(fresh ? { fresh } : {}), id: queued, message });
       changed(live, queued, "queued");
@@ -285,7 +273,11 @@ export class Sessions {
     }
 
     const { line } = await processes.open(live, { fresh });
-    return { turn: turns.begin(live, { ...turn, item, line, message }) };
+    const started = turns.begin(live, { ...turn, item, line, message });
+    if (asChat !== undefined) {
+      cache.appendItem(started, { kind: "system", text: asChat });
+    }
+    return { turn: started };
   }
 
   /** Whether a chat message starts with the opening line: first, or after a workflow run. */

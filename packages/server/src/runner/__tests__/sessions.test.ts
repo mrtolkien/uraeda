@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import { fixtureRepo } from "uraeda-binding/test-utils";
+import { addPlan, ELEVEN, fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentEvent } from "../events.ts";
 import { IDLE_CLOSE_MS, OUTPUT_LIMIT, TERMINATE_AFTER_MS, WATCHDOG_MS } from "../sessions.ts";
 import { flush, testSessions } from "./helpers.ts";
@@ -389,15 +389,129 @@ test("US2.2: a workflow message starts a workflow turn", async () => {
   expect(message).not.toHaveProperty("opening");
 });
 
-test("US2.4: a workflow message on a feature waiting on the human is refused", async () => {
+test("US2.4: a hand-over's message on a feature waiting on the human is sent as a chat", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, HUMAN);
+  adapter.script([]);
 
-  await expect(
-    sessions.send(repo, session.id, { text: "Continue", workflow: { trigger: "manual" } }),
-  ).rejects.toThrow("refused: The feature waits on you now: there is nothing to continue.");
-  expect(adapter.opens).toEqual([]);
-  expect(cache.turns(session.id)).toEqual([]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Continue",
+    workflow: { trigger: "manual" },
+  });
+  await sessions.settled(turn);
+
+  expect(adapter.sent[0]?.text).toBe("Continue");
+  expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
+  expect(cache.items(turn, 0, 10)).toEqual([
+    expect.objectContaining({ kind: "message", origin: "human", text: "Continue" }),
+    { kind: "system", seq: 1, text: "Sent as a chat: the feature now waits on you." },
+  ]);
+});
+
+/** US4 more 1 */
+test("a message inserted for a step that moved on is sent as a chat", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  // Read at plan; the plan is written, and waits on the human, before it is sent.
+  addPlan(repo, AGENT, ELEVEN, "awaiting-human");
+  adapter.script([]);
+
+  const text = "/uraeda Continue the feature: Write the plan.";
+  const { turn } = await sessions.send(repo, session.id, {
+    text,
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  await sessions.settled(turn);
+
+  // Sent as it was written: no chat opening is added to it.
+  expect(adapter.sent[0]?.text).toBe(text);
+  expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
+  const items = cache.items(turn, 0, 10);
+  expect(items[0]).toMatchObject({ kind: "message", origin: "human", text });
+  expect(items[0]).not.toHaveProperty("opening");
+  expect(items).toContainEqual({
+    kind: "system",
+    seq: 1,
+    text: "Sent as a chat: the feature now waits on you.",
+  });
+});
+
+test("a message inserted for the step it still waits at starts a workflow run", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Continue",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ kind: "workflow", step: "plan", trigger: "manual" });
+  expect(cache.itemsOf(turn, "system")).toEqual([]);
+});
+
+/** A binding whose feature `AGENT` has pull request #31 in `state`, at `step`. */
+function withPullRequest(state: "open" | "draft" | undefined, step: string) {
+  return {
+    ...binding,
+    nextStep: async (...args: Parameters<typeof binding.nextStep>) => {
+      const next = await binding.nextStep(...args);
+      return {
+        ...next,
+        step: { name: step, waitsOn: step === "pull-request" ? "human" : "agent" },
+      };
+    },
+    readFeature: async (...args: Parameters<typeof binding.readFeature>) => {
+      const feature = await binding.readFeature(...args);
+      return state === undefined
+        ? feature
+        : {
+            ...feature,
+            pullRequest: { number: 31, state, url: "https://github.com/o/r/pull/31" },
+          };
+    },
+  } as typeof binding;
+}
+
+test("the comments message without a pull request is sent as a chat", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: withPullRequest(undefined, "plan"),
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Address the comments",
+    workflow: { step: "pull-request", trigger: "comments" },
+  });
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
+  expect(cache.itemsOf(turn, "system")).toEqual([
+    { kind: "system", seq: 1, text: "Sent as a chat: no pull request is open." },
+  ]);
+});
+
+test("a comments run carries its trigger", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: withPullRequest("open", "pull-request"),
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Address the comments",
+    workflow: { step: "pull-request", trigger: "comments" },
+  });
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({
+    kind: "workflow",
+    step: "pull-request",
+    trigger: "comments",
+  });
+  expect(cache.items(turn, 0, 1)[0]).toMatchObject({ origin: "workflow" });
 });
 
 test("US2.5: a workflow message during a chat turn is queued, and starts after it", async () => {
