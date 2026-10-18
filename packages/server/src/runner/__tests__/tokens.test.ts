@@ -191,6 +191,18 @@ test("/clear starts a new agent session in the process: its total is the turn's 
   expect(cache.itemsOf(clear, "system").map((item) => item.text)).toEqual([CLEARED]);
 });
 
+test("/clear's new agent session counts its whole total, even above the old one's", async () => {
+  const { adapter, cache, send } = await featureSession();
+  adapter.script([TOTAL(10, 10, 10, 10)]);
+  await send("First");
+
+  adapter.script([cleared("cleared-1"), TOTAL(30, 30, 30, 30)]);
+  const clear = await send("/clear");
+
+  expect(adapter.opens).toHaveLength(1);
+  expect(cache.turn(clear)?.tokens).toEqual(counts(30, 30, 30, 30));
+});
+
 test("a process resumed after /clear starts from the new agent session's turns", async () => {
   const { adapter, cache, send, session } = await featureSession();
   adapter.script([TOTAL(2, 7791, 11_304, 4)]);

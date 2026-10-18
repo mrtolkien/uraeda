@@ -87,6 +87,7 @@ export class Transcript {
     // `/clear` starts a new agent session in the same process.
     if (event.sessionId !== "" && event.sessionId !== rowOf(cache, live).nativeId) {
       cache.updateSession(live.id, { nativeId: event.sessionId });
+      this.#context.processes.cleared(proc);
       // Its line marks where the agent session's tokens start, for a process resuming it.
       if (turn) {
         cache.appendItem(turn.id, { kind: "system", text: CLEARED });
