@@ -34,14 +34,19 @@ export type DecisionCardsProps = PartProps & {
 
 /**
  * What an item says of its decision: its spans after the bold lead, `**Changed: [Title](…)**`,
- * which the card's title and pill already say, without the lead's closing period.
+ * which the card's title and pill already say, without the lead's closing period. A removed one's
+ * lead goes on with its file's name, `` (`name.md`) ``, which the card under its title skips (R88).
  */
 function noteOf(spans: ReadonlyArray<Span>): Array<Span> {
   const at = spans.findIndex((span) => !span.strong);
   if (at < 0) {
     return [];
   }
-  const [first, ...rest] = spans.slice(at);
+  let after = spans.slice(at);
+  if (after[0]!.text.trim() === "(" && after[1]?.code && after[2]?.text.startsWith(")")) {
+    after = [{ ...after[2], text: after[2].text.slice(1) }, ...after.slice(3)];
+  }
+  const [first, ...rest] = after;
   const text = first!.code ? first!.text : first!.text.replace(/^[\s.]+/, "");
   return text ? [{ ...first!, text }, ...rest] : rest;
 }

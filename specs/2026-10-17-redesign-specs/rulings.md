@@ -831,3 +831,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `runsOf`, `Leftover`, `Nested`, and `Unit` in
   `packages/web/src/spec/BuiltParts.tsx`.
 - **Where**: review fixes, `spec/BuiltParts.tsx`, `__tests__/spec-parts.test.tsx`
+
+## R88: A removed decision's sentence leaves out its file's name
+
+- **Decision**: a removed item's file name, ``(`name.md`)`` after its bold lead, is part of the
+  lead: its card's sentence starts at the reason, "Repeating tasks keep no history…", not at
+  "(task-history.md).".
+- **Rationale**: the screenshots of task 14: the card's sentence opened on a parenthesis and a file
+  name the card's title already names as a decision.
+- **Alternatives considered**: the file name kept: a sentence that starts mid-punctuation.
+- **If wrong**: `noteOf` in `packages/web/src/spec/DecisionCards.tsx`.
+- **Where**: task 14, `spec/DecisionCards.tsx`, `__tests__/spec-decisions.test.tsx`
