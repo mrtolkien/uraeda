@@ -153,6 +153,15 @@ test("the settled points show in their groups, Under the hood folded", async () 
   expect(screen.getByRole("button", { name: "Show the 2 points" })).toBeTruthy();
 });
 
+/** One point under the hood reads "Show the point", not "Show the 1 points". */
+test("a single point under the hood is folded as one point", async () => {
+  const settled = `${SETTLED}\n\n### Under the hood\n\n- **${HOOD}**, in the date helpers.\n\n`;
+  await renderPage(PAGE, round({ settled }));
+
+  expect(await screen.findByRole("button", { name: "Show the point" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^Show the 1 points$/ })).toBeNull();
+});
+
 /** Redesign US4.2: "Under the hood" open stays open after a reload, Fold closing it. */
 test("Under the hood opened stays open after a reload", async () => {
   const repo = round({ settled: groupedSettled });
