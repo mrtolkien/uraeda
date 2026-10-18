@@ -62,6 +62,15 @@ test("the composer inserts the step's message, unsent", async () => {
   expect(screen.queryByRole("button", { name: /^Insert: / })).toBeNull();
 });
 
+/** The ui-behaviour decision: the keyboard path goes on in the field once the button is gone. */
+test("inserting moves the focus to the composer's field", async () => {
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: true });
+
+  await click(await insertPlan());
+
+  await waitFor(async () => expect(document.activeElement).toBe(await composer()));
+});
+
 /** US4.2 */
 test("a feature waiting on you recommends nothing, and a typed message still sends", async () => {
   const { agent } = await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: true });
