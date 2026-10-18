@@ -30,7 +30,9 @@ function cut(text: string, end: number | undefined) {
     at += 1;
   }
   if (at >= lines.length) {
-    return { body: "", head: text };
+    // Only a frontmatter: its head ends its line, whether the file did or not, for the typed text
+    // to start the next one.
+    return { body: "", head: text.endsWith("\n") ? text : `${text}\n` };
   }
   return { body: lines.slice(at).join("\n"), head: `${lines.slice(0, at).join("\n")}\n` };
 }
@@ -40,10 +42,14 @@ export function splitDraft(draft: Read | undefined) {
   return cut(asTyped(draft?.text ?? ""), draft?.document.frontmatterLines?.end ?? undefined);
 }
 
+/** A line a frontmatter may hold: a field, a list item or a continued value, a comment, or a blank. */
+const FIELD = /^([A-Za-z_][\w-]*:(\s|$)|\s+\S|- |#|\s*$)/;
+
 /**
  * The text an editor stored before its box hid the frontmatter, without it: `undefined` when
  * `text` opens no frontmatter. The core's lines are the file's, which may have changed since: the
- * stored text's own closing line ends it.
+ * stored text's own closing line ends it. Text opening with a thematic break, `---`, around lines
+ * that are no fields is a body, not a frontmatter.
  */
 export function storedBody(text: string): string | undefined {
   const lines = text.split("\n");
@@ -51,5 +57,8 @@ export function storedBody(text: string): string | undefined {
     return undefined;
   }
   const closing = lines.indexOf(FENCE, 1);
-  return closing === -1 ? undefined : cut(text, closing + 1).body;
+  if (closing === -1 || !lines.slice(1, closing).every((line) => FIELD.test(line))) {
+    return undefined;
+  }
+  return cut(text, closing + 1).body;
 }
