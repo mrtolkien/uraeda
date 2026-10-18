@@ -64,3 +64,5 @@
   turn; the session's total stays right
 - [agent] [redesign-feature] Feature page: the stages' walk stops at the folder's date minus a day:
   commits made earlier, or reachable only through an older-dated commit, are missed
+- [agent] [redesign-feature] Feature page: a feature fast-forwarded into main locally is timed as
+  merged at its finish, not at the merge
