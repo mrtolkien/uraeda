@@ -3,6 +3,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 use tempfile::TempDir;
 use uraeda_core::workspace::Severity;
@@ -87,7 +88,8 @@ fn sc001_drift_is_never_a_problem() {
     assert!(snapshots > 0, "main has no commit in the window");
 }
 
-/// SC-004: 25 of the 30 records of `specs/done/` show timed stages.
+/// SC-004: 25 of the 30 records of `specs/done/` show timed stages. Prints the slowest read too,
+/// for SC-002 on an old feature: measured, not asserted, as this repository's history grows.
 #[test]
 #[ignore = "this repository's history"]
 fn sc004_past_features_show_timed_stages() {
@@ -103,8 +105,11 @@ fn sc004_past_features_show_timed_stages() {
 
     let mut timed = 0;
     let mut without = Vec::new();
+    let mut slowest = (Duration::ZERO, "");
     for folder in &folders {
+        let start = Instant::now();
         let history = api::read_history(&root, folder).unwrap();
+        slowest = slowest.max((start.elapsed(), folder.as_str()));
         let started = history
             .stages
             .iter()
@@ -118,6 +123,7 @@ fn sc004_past_features_show_timed_stages() {
 
     println!("{timed} of {} records show timed stages", folders.len());
     println!("Without: {}", without.join(", "));
+    println!("Slowest read: {} in {:?}", slowest.1, slowest.0);
     assert!(
         timed >= 25,
         "{timed} records with timed stages; without: {without:?}"

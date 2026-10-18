@@ -4,7 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
-use super::{Kind, ReadFrom, Reader, folder_slug, record_kind, record_path};
+use super::{Kind, ReadFrom, Reader, folder_path, folder_slug, record_kind, record_path};
 use crate::git::ObjectId;
 
 impl Reader<'_> {
@@ -23,6 +23,32 @@ impl Reader<'_> {
             }
         }
         records
+    }
+
+    /// The record of `folder` at a commit, as [`Reader::records`] has it.
+    fn record(&self, commit: ObjectId, folder: &str) -> BTreeMap<(Kind, String), String> {
+        let from = ReadFrom::Commit(commit);
+        let text = folder_slug(folder).and(self.read(from, &record_path(folder)));
+        text.map(|text| ((record_kind(&text), folder.to_string()), text))
+            .into_iter()
+            .collect()
+    }
+
+    /// The feature or change folder `folder` at a commit, as [`Reader::folders`] has it.
+    fn folder(&self, commit: ObjectId, folder: &str) -> BTreeSet<(Kind, String)> {
+        [Kind::Feature, Kind::Change]
+            .into_iter()
+            .filter(|kind| {
+                let path = folder_path(*kind, folder);
+                folder_slug(folder).is_some()
+                    && !self
+                        .git
+                        .list_files(commit, &path)
+                        .unwrap_or_default()
+                        .is_empty()
+            })
+            .map(|kind| (kind, folder.to_string()))
+            .collect()
     }
 
     /// The feature and change folders under `specs/`.
@@ -69,14 +95,21 @@ pub(super) struct Merged {
 }
 
 impl Merged {
-    pub(super) fn read(reader: &Reader<'_>, tips: &[ObjectId]) -> Merged {
+    /// What each tip merged, or only the folder `only`'s record and folders.
+    pub(super) fn read(reader: &Reader<'_>, tips: &[ObjectId], only: Option<&str>) -> Merged {
         let records: Vec<BTreeMap<(Kind, String), String>> = tips
             .iter()
-            .map(|tip| reader.records(ReadFrom::Commit(*tip)))
+            .map(|tip| match only {
+                Some(folder) => reader.record(*tip, folder),
+                None => reader.records(ReadFrom::Commit(*tip)),
+            })
             .collect();
         let folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)> = tips
             .iter()
-            .map(|tip| (*tip, reader.folders(ReadFrom::Commit(*tip))))
+            .map(|tip| match only {
+                Some(folder) => (*tip, reader.folder(*tip, folder)),
+                None => (*tip, reader.folders(ReadFrom::Commit(*tip))),
+            })
             .collect();
         let keys = records
             .iter()

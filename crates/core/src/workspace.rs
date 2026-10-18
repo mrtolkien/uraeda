@@ -355,6 +355,8 @@ struct Reading<'a> {
     /// The branches checked out in other working trees, read from their disk.
     checked_out: BTreeMap<String, PathBuf>,
     merged: Merged,
+    /// The one folder read, when not the whole workspace.
+    only: Option<&'a str>,
 }
 
 impl Reading<'_> {
@@ -417,6 +419,15 @@ impl Reading<'_> {
 impl Workspace {
     /// Reads the workspace of the repository `git` is open in.
     pub fn read(git: &Git) -> Result<Workspace, WorkspaceError> {
+        Workspace::read_only(git, None)
+    }
+
+    /// Reads the workspace with only the feature or change in `folder`, as the whole read has it.
+    pub fn read_folder(git: &Git, folder: &str) -> Result<Workspace, WorkspaceError> {
+        Workspace::read_only(git, Some(folder))
+    }
+
+    fn read_only(git: &Git, only: Option<&str>) -> Result<Workspace, WorkspaceError> {
         let root = git.root();
         let default_branch = git.default_branch();
         let current_branch = git.current_branch();
@@ -463,11 +474,12 @@ impl Workspace {
             .collect();
         let reading = Reading {
             git,
-            merged: Merged::read(&reader, &tips),
+            merged: Merged::read(&reader, &tips, only),
             reader,
             root,
             main_root: git.main_root(),
             checked_out,
+            only,
         };
         let branches = git.branches()?;
         let mut features = reading.working_tree_features(current_branch.as_deref());
