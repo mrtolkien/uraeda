@@ -68,3 +68,17 @@
   merged at its finish, not at the merge
 - [agent] [redesign-feature] Feature page: a done item read from its folder, with no record, walks
   the default branch from its tip to the folder's date
+- [agent] [decision-review-fixes] Decision comparison: a `###` heading, or a second `#`, is dropped,
+  so a change only there shows no card; a loose item's continuation paragraph has no strength; a
+  parent item's lines cover its nested items; callout titles and HTML blocks are untested
+- [agent] [decision-review-fixes] Decision fields: a change inside a multi-line frontmatter value
+  (`>`, `|`, a list) shows no field, and ` #` cuts a value, as `frontmatter::raw` reads one line
+- [agent] [decision-review-fixes] Check: `ura check specs/decisions` reports no
+  `decision.unapproved`, though each file checked alone does; features under `specs/changes/` are
+  never checked for it
+- [agent] [decision-review-fixes] Decision comparison: nothing tests that an unchanged unlisted
+  decision skips its parse; the SC-003 bench is the only guard
+- [agent] [decision-review-fixes] Watch: each burst reads every decision of every branch to hash it,
+  about 40 blob reads per feature: measure it, and hash blob ids instead of texts
+- [agent] [decision-review-fixes] Decision comparison: a check whose "Checked" or "by" is the
+  changed word spans two runs, so it shows inline in the rule's text
