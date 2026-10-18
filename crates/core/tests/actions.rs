@@ -768,6 +768,44 @@ fn a_verdict_on_a_review_of_a_decision_changed_since_is_refused() {
     assert_eq!(read(&place, REVIEW), before);
 }
 
+/// The web's view says a review is stale when a decision it comments on changed since, as the
+/// verdicts refuse it.
+#[test]
+fn a_review_of_a_decision_changed_since_is_stale_in_the_view() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((12, 13)),
+        "Log it",
+        on_decision(false),
+    )
+    .unwrap();
+    run_git(&place.root, &["add", REVIEW]);
+    run_git(
+        &place.root,
+        &["commit", "--quiet", "--no-verify", "-m", "chore: review"],
+    );
+    let stale = || {
+        uraeda_core::api::read_file(repo.path(), FOLDER, "spec.md")
+            .unwrap()
+            .review_stale
+    };
+    assert!(!stale());
+
+    commit_at(
+        &place,
+        DECISION,
+        &DECISION_ON_BRANCH.replace("Because.", "Because, still."),
+    );
+
+    assert!(stale());
+}
+
 /// A removed part's lines are the merge base's, at any commit: a decision edited since leaves
 /// the review current.
 #[test]

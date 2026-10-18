@@ -273,7 +273,6 @@ fn plain(path: &str) -> bool {
         .all(|part| !part.is_empty() && !part.starts_with('.') && !part.contains(['\\', ':']))
 }
 
-/// The feature or change whose folder holds `path`.
 /// Whether the decisions a file's pending review comments on are as at its commit.
 fn decisions_current(git: &Git, feature: &Feature, name: &str, tip: crate::git::ObjectId) -> bool {
     feature
@@ -282,6 +281,7 @@ fn decisions_current(git: &Git, feature: &Feature, name: &str, tip: crate::git::
         .is_none_or(|parsed| review::comments_current(git, &parsed, tip))
 }
 
+/// The feature or change whose folder holds `path`.
 fn feature_of<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a Feature> {
     workspace
         .features
