@@ -48,3 +48,16 @@ The low-impact choices made while building [the change](proposal.md), inside the
   command for.
 - **If wrong**: the card's width stops following a resize after a failed draw, as before.
 - **Where**: [`diagram.test.tsx`](/packages/web/src/__browser__/diagram.test.tsx).
+
+## R5: A link opens through `window.open`, not by a `target` on the SVG
+
+- **Decision**: a click handler on the diagram opens any link with
+  `window.open(href, "_blank", "noopener,noreferrer")`, and cancels the click.
+- **Rationale**: Pele writes `target="_blank"` only when the source asks for it, and the diagram is
+  now part of the page, so a plain link would replace the app. The handler covers keyboard use too,
+  since Enter fires a click. Pele itself limits links to relative ones, `http`, `https`, `mailto`,
+  and `tel`.
+- **Alternatives considered**: rewriting the SVG string to add `target` and `rel`, which edits the
+  library's output by pattern.
+- **If wrong**: a popup blocker may stop `window.open` after an async gap: it runs inside the click.
+- **Where**: [`Diagram.tsx`](/packages/web/src/Diagram.tsx), `openLinkInNewTab`.
