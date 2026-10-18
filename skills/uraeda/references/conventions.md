@@ -79,9 +79,9 @@ checks:
 - `specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
 - `specs/INBOX-TRIAGE.md` as a round of questions, with its template's title and sections, its
   `status`, its answers, and its block;
-- links and images to markdown files and into `specs/` that resolve, anchors included, except links
-  from `PRIORITIES.md` and `INBOX.md` into a started feature's or change's folder, whose files live
-  on its branch;
+- links and images to markdown files and into `specs/` that resolve, anchors included. Links from
+  `PRIORITIES.md` and `INBOX.md` into a started feature's or change's folder, whose files live on
+  its branch, are exempt;
 - the [review files](#review-files) rules;
 - the preview decision's two fields, both or neither: a `preview-folder` that is `.` or a relative
   path without `..`, and a `preview-command` holding `{port}`.
