@@ -563,8 +563,37 @@ test("a feature's tokens sum its turns, cache reads left out, since its first co
 });
 
 /** A turn, with only what its tokens read. */
-const turn = (startedAt: string, tokens: TurnRow["tokens"], endedAt: string | null) =>
-  ({ endedAt, startedAt, tokens }) as TurnRow;
+const turn = (
+  startedAt: string | null,
+  tokens: TurnRow["tokens"],
+  endedAt: string | null,
+  state: TurnRow["state"] = endedAt ? "done" : "queued",
+) => ({ endedAt, startedAt, state, tokens }) as TurnRow;
+
+test("a turn killed, stopped, or failed before the first counted turn leaves the tokens whole", () => {
+  const counts = { cacheRead: 1, cacheWrite: 2, input: 3, output: 4 };
+
+  // The next turn of the same agent session absorbs its work (review focus 5).
+  for (const state of ["failed", "stopped"] as const) {
+    expect(
+      featureTokens([
+        turn("2026-10-18T09:00:00.000Z", null, "2026-10-18T09:01:00.000Z", state),
+        turn("2026-10-18T10:00:00.000Z", counts, "2026-10-18T10:05:00.000Z"),
+      ]),
+    ).toEqual({ input: 5, output: 4, partial: false, since: "2026-10-18T10:00:00.000Z" });
+  }
+});
+
+test("tokens counted from a turn never started say since its end", () => {
+  const counts = { cacheRead: 1, cacheWrite: 2, input: 3, output: 4 };
+
+  expect(featureTokens([turn(null, counts, "2026-10-18T10:05:00.000Z")])).toEqual({
+    input: 5,
+    output: 4,
+    partial: false,
+    since: "2026-10-18T10:05:00.000Z",
+  });
+});
 
 test("a feature's tokens are whole when every ended turn has counts", () => {
   const counts = { cacheRead: 1, cacheWrite: 2, input: 3, output: 4 };
