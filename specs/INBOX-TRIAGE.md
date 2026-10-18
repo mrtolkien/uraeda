@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Inbox triage
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 22 questions on 67 notes, about 45 minutes.
+> Answered on 2026-10-18.
 >
 > - Seven notes are done or already written in a draft: deleting them is the quick win.
 > - Nine changes are offered for the 44 bug and test notes, mostly agents' deferred fixes. Answering
@@ -59,7 +59,7 @@ Why it matters: these notes cost reading time at every triage and fix nothing.
   - [pro] The flaky tests stay in sight.
   - [con] A note nobody acts on stays in the inbox.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Should the two notes already written in the Worker lifecycle draft be deleted?
 
@@ -80,7 +80,7 @@ Why it matters: the draft is linked from **Next**, so deleting the notes loses n
   - [pro] The draft keeps your exact words.
   - [con] The draft says each point twice.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Where should "allow all the blocked by auto mode" go?
 
@@ -103,7 +103,7 @@ Why it matters: a bulk action is a design choice for the session page, best made
   - [pro] Ships sooner.
   - [con] The session redesign may move the button again.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What should become of the notes about links to a feature's branch?
 
@@ -142,7 +142,7 @@ branch's file shows an error.
   - [pro] No new draft.
   - [con] Proposals still fail `ura check`.
 
-**Answer:**
+**Answer:** C
 
 ## Q5: Where should "Draft to proposal on mobile went 404" go?
 
@@ -168,7 +168,7 @@ Why it matters: an unreproduced bug makes a poor change, but it fits a functiona
   - [pro] The inbox gets shorter.
   - [con] The bug may still be there.
 
-**Answer:**
+**Answer:** C
 
 ## Q6: Should the images left behind by a started draft folder be a change?
 
@@ -191,7 +191,7 @@ Why it matters: the next start of one of these drafts breaks its images.
   - [pro] Nothing to review now.
   - [con] Starting a folder draft from its proposal loses its images.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Should the six worktree and toolchain notes be one change?
 
@@ -221,7 +221,7 @@ Why it matters: these slow down or break every agent working in a worktree, whic
   - [pro] Nothing to review now.
   - [con] Cache misses and killed runs continue.
 
-**Answer:**
+**Answer:** A: Only fix the important ones, delete the rest
 
 ## Q8: Should the five Storybook preview notes be one change?
 
@@ -252,7 +252,7 @@ Why it matters: a stale Storybook shows mockups from the wrong commit during a s
   - [pro] Nothing to review now.
   - [con] A stale Storybook stays possible.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: Should the three priorities and decisions page notes be one change?
 
@@ -280,7 +280,7 @@ Why it matters: small, but a false broken link teaches you to ignore the real on
   - [pro] Nothing to review now.
   - [con] The false broken links stay.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: What should become of the four notes on decision reviews?
 
@@ -316,7 +316,7 @@ Why it matters: a decision change that the comparison misses is one you approve 
   - [pro] Nothing to review now.
   - [con] Changes in code blocks, tables, and titles stay invisible in reviews.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: Should the four notes on the spec page and its editor be one change?
 
@@ -345,7 +345,7 @@ Why it matters: these hit you while reviewing specs, the step you spend the most
   - [pro] Nothing to review now.
   - [con] The scroll jumps and the lost quotes stay.
 
-**Answer:**
+**Answer:** A
 
 ## Q12: Should the fifteen notes on rounds of questions be one change?
 
@@ -390,7 +390,7 @@ Why it matters: the comment misread as a letter can change which follow-ups the 
   - [pro] Nothing to review now.
   - [con] The misread comments stay possible.
 
-**Answer:**
+**Answer:** A
 
 ## Q13: What should become of the three notes on diagrams?
 
@@ -423,7 +423,7 @@ Why it matters: a workflow file written by an agent, or from a pull request, can
   - [pro] Nothing to review now.
   - [con] The gap stays open.
 
-**Answer:**
+**Answer:** A
 
 ## Q14: Should the three wording notes be one change?
 
@@ -452,7 +452,7 @@ step.
   - [pro] Nothing to review now.
   - [con] Agents keep reading the misleading lines.
 
-**Answer:**
+**Answer:** A
 
 ## Q15: Should the four layout notes go to the draft Some layout reviews?
 
@@ -480,7 +480,7 @@ Why it matters: grouped, the layout is designed once instead of in four passes.
   - [pro] That draft is about how things look.
   - [con] It comes last, and the folding and phone sidebar are function, not looks.
 
-**Answer:**
+**Answer:** A
 
 ## Q16: Should "Inbox/Priorities need icons" go to the draft Look and feel pass?
 
@@ -500,7 +500,7 @@ Why it matters: icons are a visual identity choice, which the look and feel pass
   - [pro] No duplicate.
   - [con] Inbox and Priorities are not named there.
 
-**Answer:**
+**Answer:** A
 
 ## Q17: Where should the settings page that did not show as finished go?
 
@@ -522,7 +522,7 @@ Why it matters: a feature that does not show as finished hides the next step fro
   - [pro] The inbox gets shorter.
   - [con] Nothing checks that it was fixed.
 
-**Answer:**
+**Answer:** B
 
 ## Q18: Where should the testing setup reference go?
 
@@ -545,7 +545,10 @@ Why it matters: a reference read only at setup keeps the other steps short.
   - [pro] Both are about Storybook tests.
   - [con] That draft is about this repository, and is linked from no priority.
 
-**Answer:**
+**Answer:** Rewrite it a bit better: I want a _stable_ dev env that I can navigate to check UI
+interactively. This is a "next" feature. Ideally I'd like to be able to navigate the UI with a
+stable seed that then behaves "normally", and be able to comment on issues in the app with an
+element picker and have them fixed directly.
 
 ## Q19: Should later questions resume the current step?
 
@@ -569,7 +572,7 @@ Why it matters: every late question today costs a full spec and plan revision.
   - [pro] **Now** stays as it is.
   - [con] Late questions keep costing revisions until then.
 
-**Answer:**
+**Answer:** A
 
 ## Q20: Where should the review of past session transcripts go?
 
@@ -591,7 +594,7 @@ benchmarks.
   - [pro] Skill fixes land before v1.0.0.
   - [con] One more item in **Now**.
 
-**Answer:**
+**Answer:** Delete it
 
 ## Q21: Where should the idea of writing files in two passes go?
 
@@ -614,7 +617,7 @@ Why it matters: it would change how every step writes, so it needs evidence firs
   - [pro] Stays in sight.
   - [con] The inbox does not empty.
 
-**Answer:**
+**Answer:** Delete it
 
 ## Q22: Should the two decision notes become a decisions pass draft?
 
@@ -636,6 +639,6 @@ Why it matters: decisions bind every step, so unreadable or conflicting ones mis
   - [pro] Readable decisions before v1.0.0.
   - [con] One more item in **Now**.
 
-**Answer:**
+**Answer:** B
 
 **Notes:**
