@@ -203,25 +203,51 @@ pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Drafts) 
             found.paths.extend([old, path]);
             continue;
         }
-        if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path)) {
-            let nested = nested_of(&text(&texts.priorities.1), &title);
+        if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path))
+            && let Some(written) = written_by_move(place, &path, &title)
+        {
             found.undo.push(Undo::Created {
                 path: path.clone(),
-                written: draft::from_note(&path, &title, &nested),
+                written,
             });
         }
         found.paths.push(path);
     }
 }
 
-/// The nested lines of the entry of `priorities` without a link whose text is `title`, as a draft
-/// of it takes them: none when there is no such entry.
-fn nested_of(priorities: &str, title: &str) -> Vec<String> {
-    priorities::parse(priorities)
-        .into_iter()
-        .find(|entry| entry.link.is_none() && entry.text == title)
-        .map(|entry| entry.nested(priorities))
-        .unwrap_or_default()
+/// What a move wrote in the draft at `path` titled `title`, read from the draft itself: the lines
+/// between its title line and its next section are the entry's children, which may have changed
+/// since the last commit, so any list lines stand for them. `None` when anything else stands
+/// there, or in the sections: the human typed in it.
+fn written_by_move(place: &Place, path: &str, title: &str) -> Option<String> {
+    const MARK: &str = "\u{1}children";
+    let text = fs::read_to_string(place.root.join(path)).ok()?;
+    let bare = draft::from_note(path, title, &[]);
+    if text == bare {
+        return Some(bare);
+    }
+    let marked = draft::from_note(path, title, &[MARK.to_string()]);
+    let (head, tail) = marked.split_once(MARK)?;
+    let middle = text
+        .strip_prefix(head)?
+        .strip_suffix(tail.trim_start_matches('\n'))?;
+    let children: Vec<&str> = middle
+        .lines()
+        .filter(|line| crate::files::proposal::image_file(line).is_none())
+        .collect();
+    let listed = children.iter().all(|line| {
+        let line = line.trim_start();
+        line.is_empty() || lines::item_marker(line).is_some()
+    });
+    let children = children.join("\n");
+    let children = children.trim_matches('\n');
+    // The children as they stand, links included: they were rebased when the draft was written.
+    let written = if children.is_empty() {
+        bare
+    } else {
+        format!("{head}{children}{tail}")
+    };
+    listed.then_some(written)
 }
 
 /// The committed single-file draft the folder draft `path` was made from by an attached image: the
