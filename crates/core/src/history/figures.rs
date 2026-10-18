@@ -138,8 +138,11 @@ pub(crate) fn produced(
     done: bool,
 ) -> Result<(LinesView, Vec<DecisionChange>), GitError> {
     let mut files: BTreeMap<String, (u32, u32)> = BTreeMap::new();
-    for diff in diffs {
-        let changed = git.numstat(diff.base, diff.tip, diff.range)?;
+    let ranges: Vec<_> = diffs
+        .iter()
+        .map(|diff| (diff.base, diff.tip, diff.range))
+        .collect();
+    for changed in git.numstats(&ranges)? {
         for file in changed
             .into_iter()
             .filter(|file| outside(feature, &file.path))
@@ -187,13 +190,26 @@ fn decisions<'p>(
         let bytes = git.read_file(commit, &format!("{DECISIONS}{name}.md"))?;
         Ok(bytes.map(|bytes| String::from_utf8_lossy(&bytes).into_owned()))
     };
-    let mut changes = Vec::new();
+    let mut texts = Vec::new();
     for name in names {
-        let (old, new) = (text(before, name)?, text(Some(tip), name)?);
-        let mut change = compare(name, old.as_deref(), new.as_deref());
-        change.listed = true;
-        changes.push(change);
+        texts.push((name, text(before, name)?, text(Some(tip), name)?));
     }
+    // Each comparison on its own thread: a feature that rewrote every decision waits for one.
+    let mut changes: Vec<DecisionChange> = std::thread::scope(|scope| {
+        let compares: Vec<_> = texts
+            .iter()
+            .map(|(name, old, new)| scope.spawn(|| compare(name, old.as_deref(), new.as_deref())))
+            .collect();
+        compares
+            .into_iter()
+            .map(|compare| {
+                compare
+                    .join()
+                    .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+            })
+            .collect()
+    });
+    changes.iter_mut().for_each(|change| change.listed = true);
     changes.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(changes)
 }

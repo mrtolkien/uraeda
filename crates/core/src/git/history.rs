@@ -4,7 +4,9 @@
 use gix::revision::walk::Sorting;
 use gix::traverse::commit::simple::CommitTimeOrder;
 
-use super::{Git, GitError, ObjectId, read_error};
+use std::path::Path;
+
+use super::{Git, GitError, ObjectId, output_in, read_error};
 use crate::changes::ChangedFile;
 
 /// The commits a diff compares.
@@ -71,15 +73,45 @@ impl Git {
         tip: ObjectId,
         range: Range,
     ) -> Result<Vec<ChangedFile>, GitError> {
-        let (base, tip) = (base.to_string(), tip.to_string());
-        let three_dot = format!("{base}...{tip}");
-        let mut args = vec!["diff", "--numstat", "-z", "-M", "--no-ext-diff"];
-        match range {
-            Range::TwoDot => args.extend([base.as_str(), tip.as_str()]),
-            Range::ThreeDot => args.push(&three_dot),
-        }
-        Ok(parse(&self.output("diff", &args)?))
+        numstat_in(&self.root, base, tip, range)
     }
+
+    /// `numstat` of each of `diffs`, `(base, tip, range)`, their processes run at once.
+    pub fn numstats(
+        &self,
+        diffs: &[(ObjectId, ObjectId, Range)],
+    ) -> Result<Vec<Vec<ChangedFile>>, GitError> {
+        let root = self.root.as_path();
+        std::thread::scope(|scope| {
+            let reads: Vec<_> = diffs
+                .iter()
+                .map(|&(base, tip, range)| scope.spawn(move || numstat_in(root, base, tip, range)))
+                .collect();
+            reads
+                .into_iter()
+                .map(|read| {
+                    read.join()
+                        .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+                })
+                .collect()
+        })
+    }
+}
+
+fn numstat_in(
+    root: &Path,
+    base: ObjectId,
+    tip: ObjectId,
+    range: Range,
+) -> Result<Vec<ChangedFile>, GitError> {
+    let (base, tip) = (base.to_string(), tip.to_string());
+    let three_dot = format!("{base}...{tip}");
+    let mut args = vec!["diff", "--numstat", "-z", "-M", "--no-ext-diff"];
+    match range {
+        Range::TwoDot => args.extend([base.as_str(), tip.as_str()]),
+        Range::ThreeDot => args.push(&three_dot),
+    }
+    Ok(parse(&output_in(root, "diff", &args)?))
 }
 
 /// NUL-separated records: `added\tremoved\tpath`, or, for a rename, `added\tremoved\t` followed by

@@ -353,3 +353,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a review fix pushed more than ten minutes after the rebase left out, or a fix
   committed straight to `main` within ten minutes counted; `BATCH_SECONDS` in `history/figures.rs`.
 - **Where**: task 6, fixed after its review
+
+## R82: A done item's diffs and decision comparisons run at once
+
+- **Decision**: `Git::numstats` runs the `git diff --numstat` of each run of commits at once, one
+  thread per process, and `history/figures.rs` compares each changed decision on its own thread.
+- **Rationale**: with every run counted (R80, R81), `2026-10-17-redesign-specs` needs three diffs
+  and 18 comparisons, and read in 113 ms in a release build, 378 ms in a debug one; at once, 57 ms
+  and 163 ms. `2026-10-16-redesign-interface` reads in 67 ms, `2026-10-17-redesign-clarifications`
+  in 49 ms, and SC-002's benchmark in 13 ms, all release builds. A `Git` holds a gix repository no
+  thread can share, so the threads run `git` in its root.
+- **Alternatives considered**: gix's own diff, which counts lines through a blob diff the core does
+  not have; one process per run, in turn, as before.
+- **If wrong**: a slower page for a feature of many runs or decisions; `Git::numstats` and
+  `decisions` in `history/figures.rs`.
+- **Where**: task 6, fixed after its review

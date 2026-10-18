@@ -1110,8 +1110,9 @@ git commit -m "feat(redesign-feature): the server recommends one message, and se
   `scope_type`; `decisions::compare`.
 - Produces: `pub enum Range { TwoDot, ThreeDot }`;
   `Git::numstat(&self, base: ObjectId, tip: ObjectId, range: Range) -> Result<Vec<ChangedFile>, GitError>`,
-  `changes.rs`'s `numstat` and `parse` moved; `HistoryView`'s `total_seconds`, `lines`, `questions`,
-  and `decisions` filled.
+  `changes.rs`'s `numstat` and `parse` moved; `Git::numstats`, several at once (R82);
+  `Git::first_parent_line(&self, tip, since, until) -> Result<Vec<CommitInfo>, GitError>` (R80);
+  `HistoryView`'s `total_seconds`, `lines`, `questions`, and `decisions` filled.
 
 - [x] **Step 1: Write the failing tests**
 
@@ -1214,7 +1215,9 @@ unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the re
 - Expected: PASS, the benchmark under 100 ms
 - Ran: the benchmark, median 73 ms in a debug build, then 24 ms once the history read its folder
   alone (R14), and SC-004, 27 of 31 records; `vp run ready` was left to the merge of the wave, with
-  `vp check`, `rust:test`, `rust:clippy`, `ts:test`, and `specs:check` run instead
+  `vp check`, `rust:test`, `rust:clippy`, `ts:test`, and `specs:check` run instead. After the
+  review's fixes (R80 to R82): the benchmark 28 ms in a debug build, 13 ms in a release one;
+  `2026-10-17-redesign-specs` 163 ms and 57 ms
 
 - [x] **Step 5: Commit**
 
