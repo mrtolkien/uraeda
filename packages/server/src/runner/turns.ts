@@ -1,6 +1,7 @@
 import { working } from "./activity.ts";
 import type { Outgoing } from "./adapter.ts";
 import type { Trigger, TurnKind, TurnState } from "./events.ts";
+import { recheckQueued } from "./send-input.ts";
 import {
   IDLE_CLOSE_MS,
   type Live,
@@ -231,6 +232,7 @@ export class Turns {
     }
     let line: string | undefined;
     try {
+      await recheckQueued(this.#context, live, queued);
       ({ line } = await processes.open(live, { fresh: queued.fresh === true }));
     } catch (error) {
       // The turns cannot run: each fails with why.

@@ -271,6 +271,13 @@ export class SessionCache {
     });
   }
 
+  /** Changes a queued turn's kind, step, and trigger: a workflow run that starts as a chat. */
+  retypeTurn(id: number, as: { kind: TurnKind; step: string | null; trigger: Trigger | null }) {
+    this.db
+      .prepare("UPDATE turns SET kind = ?, step = ?, trigger = ? WHERE id = ?")
+      .run(as.kind, as.step, as.trigger, id);
+  }
+
   /** Makes an ended turn run again, as its agent went on after it ended. */
   reopenTurn(id: number): void {
     transaction(this.db, () => {
