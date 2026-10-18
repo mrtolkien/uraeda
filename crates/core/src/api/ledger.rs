@@ -134,14 +134,20 @@ fn tip_texts(git: &Git, tip: ObjectId) -> Texts {
     }
 }
 
+/// The checkout the default branch's files are read from: the default branch's, or this one when
+/// there is no default branch.
+fn checkout_of(git: &Git, default: Option<&str>) -> Option<PathBuf> {
+    match default {
+        Some(default) => default_checkout(git, default),
+        None => Some(git.root().to_path_buf()),
+    }
+}
+
 /// Where the default branch's files are read: its checkout, this one when there is no default
 /// branch, else its tip. With the folder `ura check` resolves links from, and the tip whose tree
 /// it resolves them against instead when no checkout has the default branch.
 fn source(git: &Git, default: Option<&str>) -> (Texts, PathBuf, Option<ObjectId>) {
-    let checkout = match default {
-        Some(default) => default_checkout(git, default),
-        None => Some(git.root().to_path_buf()),
-    };
+    let checkout = checkout_of(git, default);
     match (checkout, default.and_then(|default| git.tip(default))) {
         (Some(root), _) => (disk_texts(&root), root, None),
         (None, Some(tip)) => (tip_texts(git, tip), git.root().to_path_buf(), Some(tip)),
@@ -156,17 +162,45 @@ fn source(git: &Git, default: Option<&str>) -> (Texts, PathBuf, Option<ObjectId>
     }
 }
 
-/// What the ledger is read from, by hash, for the watch: the files as read, and as committed on
-/// the default branch, whose commits change the decisions' dates.
+/// A file's size and modification time, as the watch sees it change without reading it.
+fn stamp(path: &Path) -> Option<(u64, std::time::SystemTime)> {
+    let meta = std::fs::metadata(path).ok()?;
+    Some((meta.len(), meta.modified().ok()?))
+}
+
+/// The files of the constitution and the decisions under `root`, by name, as the watch sees them
+/// change.
+fn disk_stamps(root: &Path) -> Vec<(String, Option<(u64, std::time::SystemTime)>)> {
+    let mut stamps: Vec<_> = std::fs::read_dir(root.join(DECISIONS))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|entry| {
+            let name = entry.file_name().into_string().ok()?;
+            Some((name, stamp(&entry.path())))
+        })
+        .collect();
+    stamps.push((CONSTITUTION.to_string(), stamp(&root.join(CONSTITUTION))));
+    stamps.sort();
+    stamps
+}
+
+/// What the ledger is read from, by hash, for the watch, without reading the files: the checkout's
+/// files by size and modification time, and the default branch's tip by the ids of its decisions
+/// folder and constitution, which change with its commits and so with the decisions' dates.
 pub(crate) fn ledger_hash(git: &Git) -> String {
     let default = git.default_branch();
-    let (read, ..) = source(git, default.as_deref());
+    let on_disk = checkout_of(git, default.as_deref()).map(|root| disk_stamps(&root));
     let committed = default
         .as_deref()
         .and_then(|default| git.tip(default))
-        .map(|tip| tip_texts(git, tip));
-    let texts = |texts: &Texts| (texts.constitution.clone(), texts.decisions.clone());
-    hash(&serde_json::to_string(&(texts(&read), committed.as_ref().map(texts))).unwrap_or_default())
+        .map(|tip| {
+            (
+                git.entry_id(tip, DECISIONS),
+                git.entry_id(tip, CONSTITUTION),
+            )
+        });
+    hash(&format!("{on_disk:?}{committed:?}"))
 }
 
 /// The constitution and the decisions of the default branch.
@@ -183,16 +217,16 @@ pub fn read_ledger(repo: &Path) -> Result<Ledger> {
     for problems in found.values_mut() {
         problems.sort_by_key(|problem| problem.line);
     }
+    let dates = default
+        .as_deref()
+        .and_then(|default| git.last_changes(default, DECISIONS).ok())
+        .unwrap_or_default();
     let decisions = texts
         .decisions
         .iter()
         .map(|(file, text)| {
             let problems = found.get(file).map(Vec::as_slice).unwrap_or_default();
-            let date = default.as_deref().and_then(|default| {
-                git.last_change(default, &format!("{DECISIONS}/{file}"))
-                    .ok()
-                    .flatten()
-            });
+            let date = dates.get(&format!("{DECISIONS}/{file}")).cloned();
             decision(file, text, date, problems)
         })
         .collect();
