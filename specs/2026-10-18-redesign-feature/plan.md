@@ -1585,17 +1585,21 @@ git commit -m "feat(redesign-feature): one page for features and changes: stages
   the first counted turn's start, `partial` whether an ended turn before it has no counts; null when
   no turn has counts.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/feature-done.test.tsx
 /** US1 more 4 */
 test("lines changed read in green and red, with the files", async () => {
   // A branch adding 1,204 lines and removing 310 over 23 files outside its folder.
-  const lines = await screen.findByRole("link", { name: /^Lines changed/ });
-  expect(within(lines).getByText("+1,204")).toBeTruthy();
-  expect(within(lines).getByText("−310")).toBeTruthy();
-  expect(within(lines).getByText("23 files")).toBeTruthy();
+  expect((await screen.findByRole("link", { name: /^Lines changed/ })).getAttribute("href")).toBe(
+    "#files",
+  );
+  // The card's link is hidden inside it: its text is read from its group (R60).
+  const lines = within(figureCard("Lines changed"));
+  expect(lines.getByText("+1,204")).toBeTruthy();
+  expect(lines.getByText("−310")).toBeTruthy();
+  expect(lines.getByText("23 files")).toBeTruthy();
 });
 
 /** US2.1 */
@@ -1615,9 +1619,10 @@ test("tokens leave cache reads out, on two lines", async () => {
 /** US2.3 */
 test("Decisions leads to the decisions, drawn as changes", async () => {
   // The branch adds specs/decisions/diagrams.md.
-  await click(await screen.findByRole("link", { name: /^Decisions/ }));
+  // The figure's, not the sidebar's "Decisions" (R60).
+  await click(produced().getByRole("link", { name: /^Decisions/ }));
   expect(location.hash).toBe("#decisions");
-  expect(within(region("Decisions")).getByText("new")).toBeTruthy();
+  expect(within(region("Decisions")).getByText("New")).toBeTruthy();
 });
 
 /** US2 more 1 */
@@ -1662,27 +1667,30 @@ The break each test catches:
 - Squash: zero shown as a count.
 - Plain card: a link to `undefined/files`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test --run packages/web/src/__tests__/feature-done.test.tsx`
 - Expected: FAIL, `Unable to find role="link" and name /^Lines changed/`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-`Figures` follows the mockup's grid: live, "Lines changed" (`+N` in the success colour, `−N` in the
-error colour, U+2212, "N files", leading to the files below) and "Tokens"; done, "Total time"
-(caption "10:52 to 22:03", leading to `#stages`), "Lines changed" (leading to `<pull request>/files`
-when the record has one), "Tokens", "Questions" (the count, "1 round", leading to `#questions`), and
-"Decisions" (the count, "new or changed", leading to `#decisions`). Tokens format with
-`Intl.NumberFormat`'s compact notation rules of the spec: "5.2 M", "113 k", "2.7 k", under 1,000 as
-is; caption "cache reads left out", or "since Oct 19" when `partial`; "Not recorded" when null. A
-done item not found reads "Not found on the default branch" in place of its figures.
+`Figures` follows the mockup's grid, each figure a group named by its label, inside its card or its
+clickable card (R60): live, "Lines changed" (`+N` in the success colour, `−N` in the error colour,
+U+2212, "N files", leading to the files below, `#files`) and "Tokens"; done, "Total time" (caption
+"10:52 to 22:03", leading to `#stages`), "Lines changed" (leading to `<pull request>/files` when the
+record has one), "Tokens", "Questions" (the count, "1 round", leading to `#questions`), and
+"Decisions" (the count, "new or changed", leading to `#decisions`); "Questions" only after a round,
+"Decisions" only when one changed (R61). Tokens format with `Intl.NumberFormat`'s compact notation
+rules of the spec: "5.2 M", "113 k", "2.7 k", under 1,000 as is; caption "cache reads left out", or
+"since Oct 19" when `partial`; "Not recorded" when null, without a caption. A done item not found
+reads "Not found on the default branch" in place of all its figures, tokens included (R61).
 
 `Record` draws the record's document, read with `useFile(folder, "<folder>.md")`, with `Blocks` by
 its `##` sections' block ids, found by the headings' anchors: `what-and-why`, `behaviour`, then the
 decisions as `DecisionCard`s from `history.decisions`, in a section `#decisions`, then `questions`
 folded under "Questions · N in R round(s)", then `follow-ups`, then "Open the record file". The
-page's section title reads "What it produced" once done.
+page's section title reads "What it produced" once done, and keeps the files under the figures, the
+record's row included, as task 8's test expects (R61).
 
 The server's `tokens` sums the session's turns in `fate/tokens.ts`, from `cache.turns`.
 
@@ -1690,8 +1698,13 @@ The server's `tokens` sums the session's turns in `fate/tokens.ts`, from `cache.
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
+- Ran instead, other tasks building in parallel: `vp check`, `vp run ts:test`, and
+  `vp run specs:check`, which pass, and `__browser__/layout.test.tsx` and `change.test.tsx` at both
+  sizes, which pass but for the desktop's "a session at 1024 px with the sidebar and the column
+  open", which fails the same on the feature branch without this task. `vp run ready` is left to the
+  coordinator, after the merge: the box stays unchecked.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web packages/server/src/fate
