@@ -851,3 +851,14 @@ fn a_gate_names_the_kind_of_its_file() {
         assert_eq!(step.file_kind.as_deref(), expected, "{:?}", step.file);
     }
 }
+
+/// A link into another `specs/decisions/` tree, like the skill's example, names no decision of this
+/// repository: its namesake here, `proposed`, does not make the approval pending.
+#[test]
+fn a_link_into_another_decisions_tree_is_not_this_repositorys_decision() {
+    let items = "- **New: [Due dates](../../skills/uraeda/assets/example/specs/decisions/due-dates.md)**. Calendar days.\n";
+
+    let step = approved_with(items, &["specs/decisions/due-dates.md"]);
+
+    assert_eq!(step, StepName::Plan);
+}
