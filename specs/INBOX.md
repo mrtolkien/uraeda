@@ -101,3 +101,5 @@
   colours are not defined by the theme
 - [agent] [redesign-feature] Feature page: a record from before typed commits reads "Not found on
   the default branch", a squash merge's words, though nothing was squashed
+- [agent] [redesign-feature] Feature page: the stages stay a column after a live update shortens
+  their lines, until the window widens
