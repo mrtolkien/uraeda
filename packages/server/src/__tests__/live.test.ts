@@ -394,13 +394,15 @@ test("a change in one repository sends no update to another", async () => {
 
   writeFileSync(join(second.path, "specs/PRIORITIES.md"), "# Priorities\n");
   await vi.waitFor(() => expect(changed()).toContain("Workspace workspace"), { timeout: 5000 });
+  // The second's change is sent: nothing of it reached the first's bus. Counting the first's
+  // workspace updates after a switch instead depends on how its watcher batches the switch.
+  expect(heard()).toEqual([]);
   // A change of the first, after the second's: once it is heard, the second's would have been.
   git(first.path, "switch", "--quiet", "2026-10-12-cli-tuis");
   await vi.waitFor(() => expect(heard()).toContain("SessionList all"), { timeout: 5000 });
 
-  // The switch's updates only: none of the second's priorities, and its one workspace update.
+  // The switch's updates only: none of the second's priorities.
   expect(heard().filter((update) => update.startsWith("Priorities"))).toEqual([]);
-  expect(heard().filter((update) => update === "Workspace workspace")).toHaveLength(1);
 });
 
 /** The inbox, written on the default branch, reaches its page, with the triage and the commit bar. */
