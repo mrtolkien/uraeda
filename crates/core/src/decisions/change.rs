@@ -1,14 +1,15 @@
 //! A decision's change between two versions of its file. Each version is cut into parts, each a
-//! top-level paragraph or list item with its lines joined, so a rewrap is no change. Two parts are
-//! the same part when they sit in the same section and keep at least 60% of the shorter one's
-//! words: they compare word by word. Otherwise, one is new and the other removed.
+//! paragraph, list item at any depth, table row, code block, or quoted paragraph, with its lines
+//! joined, so a rewrap is no change. Two parts are the same part when they sit in the same section
+//! and keep at least 60% of the shorter one's words: they compare word by word. Otherwise, one is
+//! new and the other removed.
 
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 use serde::Serialize;
 
 use super::strength::strength;
-use crate::files::document::{BlockKind, LineRange, parse, plain};
+use crate::files::document::{Block, BlockKind, Document, LineRange, parse, plain};
 
 /// The change of one decision, from its version at the merge base to the branch's.
 #[cfg_attr(feature = "napi", napi(object))]
@@ -134,36 +135,67 @@ fn version(text: &str) -> Version {
         .iter()
         .filter(|block| block.parent.is_none())
     {
-        let lines = LineRange {
-            start: block.start_line,
-            end: block.end_line,
-        };
         match block.kind {
             BlockKind::Heading if block.level == Some(1) && version.title.is_none() => {
                 version.title = Some(plain(&block.spans));
                 section.clear();
             }
             BlockKind::Heading if block.level == Some(2) => section = plain(&block.spans),
-            BlockKind::Paragraph => version.section(&section).push(Part {
-                text: joined(&plain(&block.spans)),
-                item: false,
-                lines,
-            }),
-            BlockKind::List => {
-                let items = document.children(block.id).map(|item| Part {
-                    text: joined(&plain(&item.spans)),
-                    item: true,
-                    lines: LineRange {
-                        start: item.start_line,
-                        end: item.end_line,
-                    },
-                });
-                version.section(&section).extend(items);
+            _ => {
+                let mut parts = Vec::new();
+                collect(&document, block, &mut parts);
+                version.section(&section).extend(parts);
             }
-            _ => {}
         }
     }
     version
+}
+
+/// The parts of a block, in file order: a paragraph, a list item at any depth, a table row, a
+/// code or HTML block, each with its text; a quote or a callout holds its children's.
+fn collect(document: &Document, block: &Block, parts: &mut Vec<Part>) {
+    let lines = LineRange {
+        start: block.start_line,
+        end: block.end_line,
+    };
+    let part = |text: String, item: bool| Part { text, item, lines };
+    match block.kind {
+        BlockKind::Paragraph => parts.push(part(joined(&plain(&block.spans)), false)),
+        BlockKind::Item => {
+            parts.push(part(joined(&plain(&block.spans)), true));
+            for child in document.children(block.id) {
+                collect(document, child, parts);
+            }
+        }
+        BlockKind::Row => {
+            let cells: Vec<String> = document
+                .children(block.id)
+                .map(|cell| joined(&plain(&cell.spans)))
+                .collect();
+            parts.push(part(cells.join(" | "), false));
+        }
+        BlockKind::Code | BlockKind::Html => {
+            parts.push(part(
+                joined(block.text.as_deref().unwrap_or_default()),
+                false,
+            ));
+        }
+        BlockKind::Callout => {
+            let title = joined(&plain(&block.spans));
+            if !title.is_empty() {
+                parts.push(part(title, false));
+            }
+            for child in document.children(block.id) {
+                collect(document, child, parts);
+            }
+        }
+        BlockKind::List | BlockKind::Quote | BlockKind::Table => {
+            for child in document.children(block.id) {
+                collect(document, child, parts);
+            }
+        }
+        BlockKind::Heading | BlockKind::Cell | BlockKind::Rule => {}
+    }
 }
 
 /// Text with every run of whitespace made one space.

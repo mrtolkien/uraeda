@@ -114,6 +114,104 @@ const CASES: &[Case] = &[
         ],
     ),
     case(
+        "a code block changed",
+        "# T\n\n## Rules\n\n- Run it.\n\n```sh\nls\n```\n",
+        "# T\n\n## Rules\n\n- Run it.\n\n```sh\nls -l\n```\n",
+        &[
+            ("Rules", "kept", "=Run it."),
+            ("Rules", "changed", "=ls +-l"),
+        ],
+    ),
+    case(
+        "a table cell changed",
+        "# T\n\n## Rules\n\n| Tier | Wait |\n| --- | --- |\n| low | wait one full day |\n",
+        "# T\n\n## Rules\n\n| Tier | Wait |\n| --- | --- |\n| low | wait two full days |\n",
+        &[
+            ("Rules", "kept", "=Tier | Wait"),
+            ("Rules", "changed", "=low | wait -one +two =full -day +days"),
+        ],
+    ),
+    case(
+        "a quote changed",
+        "# T\n\n> Users MUST wait one day.\n",
+        "# T\n\n> Users MUST wait two days.\n",
+        &[("", "changed", "=Users MUST wait -one day. +two days.")],
+    ),
+    case(
+        "a nested item changed",
+        "# T\n\n## Rules\n\n- Tasks MUST sync.\n  - Every minute while online.\n",
+        "# T\n\n## Rules\n\n- Tasks MUST sync.\n  - Every hour while online.\n",
+        &[
+            ("Rules", "kept", "=Tasks MUST sync."),
+            ("Rules", "changed", "=Every -minute +hour =while online."),
+        ],
+    ),
+    case(
+        "a section only the merge base has",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n\n## Why\n\nUsers switch devices.\n",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n",
+        &[
+            ("Rules", "kept", "=Tasks MUST stay local."),
+            ("Why", "removed", "-Users switch devices."),
+        ],
+    ),
+    case(
+        "a section only the branch has",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n\n## Why\n\nUsers switch devices.\n",
+        &[
+            ("Rules", "kept", "=Tasks MUST stay local."),
+            ("Why", "added", "+Users switch devices."),
+        ],
+    ),
+    case(
+        "two rules swapped",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n- Lists SHOULD be shared.\n",
+        "# T\n\n## Rules\n\n- Lists SHOULD be shared.\n- Tasks MUST stay local.\n",
+        &[
+            ("Rules", "kept", "=Lists SHOULD be shared."),
+            ("Rules", "kept", "=Tasks MUST stay local."),
+        ],
+    ),
+    case(
+        "two rules reworded across each other",
+        "# T\n\n## Rules\n\n- Tasks MUST sync every minute.\n- Lists MUST sync every hour.\n",
+        "# T\n\n## Rules\n\n- Lists MUST sync every day.\n- Tasks MUST sync every second.\n",
+        &[
+            ("Rules", "changed", "=Lists MUST sync every -hour. +day."),
+            (
+                "Rules",
+                "changed",
+                "=Tasks MUST sync every -minute. +second.",
+            ),
+        ],
+    ),
+    case(
+        "a duplicated rule",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n- Tasks MUST stay local.\n",
+        &[
+            ("Rules", "kept", "=Tasks MUST stay local."),
+            ("Rules", "added", "+Tasks MUST stay local."),
+        ],
+    ),
+    case(
+        "a duplicated rule removed",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n- Tasks MUST stay local.\n",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n",
+        &[
+            ("Rules", "kept", "=Tasks MUST stay local."),
+            ("Rules", "removed", "-Tasks MUST stay local."),
+        ],
+    ),
+    case("no text on either side", "", "", &[]),
+    case(
+        "a decision emptied",
+        "# T\n\n## Rules\n\n- Tasks MUST stay local.\n",
+        "# T\n",
+        &[("Rules", "removed", "-Tasks MUST stay local.")],
+    ),
+    case(
         "a rule moved to the end",
         "# T\n\n## Rules\n\n- Tasks MUST stay local.\n- Lists SHOULD be shared.\n- Exports MAY be JSON.\n",
         "# T\n\n## Rules\n\n- Lists SHOULD be shared.\n- Exports MAY be JSON.\n- Tasks MUST stay local.\n",
