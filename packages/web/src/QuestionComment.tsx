@@ -1,5 +1,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -21,6 +22,7 @@ import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { startingLetters } from "./readLetters.ts";
 import type { useAnswer } from "./useAnswer.ts";
 
 const styles = stylex.create({
@@ -175,6 +177,7 @@ export function CommentField({
 export function AnswerComment({
   answer,
   id,
+  options,
   path,
   readOnly,
   saved,
@@ -182,6 +185,8 @@ export function AnswerComment({
 }: {
   answer: ReturnType<typeof useAnswer>;
   id: string;
+  /** The letters of the question's options. */
+  options: ReadonlyArray<string>;
   path: string;
   readOnly: boolean;
   saved: string;
@@ -203,6 +208,8 @@ export function AnswerComment({
       </>
     );
   }
+  // With no letter picked, a comment starting like "B: ..." reads back as that letter picked.
+  const reads = answer.letters.length === 0 ? startingLetters(field.text, options) : [];
   return (
     <VStack gap={2} xstyle={styles.spaced}>
       {field.restored && (
@@ -228,6 +235,12 @@ export function AnswerComment({
           <SaveKeys />
         </CommentField>
       </div>
+      {reads.length > 0 && (
+        <Text color="warning" role="status" type="supporting">
+          Saved with no letter picked, this reads as picking {reads.join(" and ")}, and opens its
+          follow-ups. Start with another word to keep it a comment.
+        </Text>
+      )}
     </VStack>
   );
 }
