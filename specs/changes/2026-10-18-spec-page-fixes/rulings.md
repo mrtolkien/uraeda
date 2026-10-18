@@ -138,3 +138,28 @@ active decisions. None binds future work: those are decisions.
 - **If wrong**: a body opening with a break around lines that look like fields is cut. Add the
   marker.
 - **Where**: [`draftText.ts`](/packages/web/src/pane/draftText.ts).
+
+## R12: The reader's scroll is told by their input, not by the window's position
+
+- **Decision**: a scroll counts as the reader's when a wheel, touch, key, or press came less than
+  300 ms before it. The page's corrections and the browser's scroll anchoring do not.
+- **Rationale**: Chromium anchors the page by scrolling as content above grows. Counting the
+  window's position would put that place back a second time.
+- **Alternatives considered**: comparing the window's position alone, which anchoring breaks; the
+  `scrollend` event, which does not say who scrolled.
+- **If wrong**: a long touch inertia, past 300 ms, is put back like the page's shift. Widen the
+  window.
+- **Where**: [`keepPlace.ts`](/packages/web/src/keepPlace.ts) `scrollMark`.
+
+## R13: A revision edited and not committed shows the review at the tip
+
+- **Decision**: while no commit reads the revision on the disk yet, the answered review is the one
+  at the branch's tip, kept when it requested changes.
+- **Rationale**: the proposal asks for the quotes before the commit. At that moment the tip's review
+  is the one the agent is answering.
+- **Alternatives considered**: answers per displayed version, which the page's two versions (disk
+  and committed) would need in every file view.
+- **If wrong**: a spec of revision 3 edited while its committed revision 2 is shown for review could
+  show revision 3's quotes beside revision 2's answers, for the moments between the edit and its
+  commit. Gate the fallback on the spec's status then.
+- **Where**: [`api/answered.rs`](/crates/core/src/api/answered.rs).
