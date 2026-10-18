@@ -4,7 +4,7 @@
 import { cleanup, screen, within } from "@testing-library/react";
 import { addChange, commitOnBranch } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { atWidth, fakeAgent, fixtureRepo, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, fakeAgent, fixtureRepo, renderPage } from "./helpers.tsx";
 
 const FOLDER = "2026-10-16-header-logo";
 
@@ -55,7 +55,7 @@ test("a round of two questions counts them in plural words", async () => {
     "proposal.md": "# A home logo\n",
   });
 
-  await renderPage(`/f/${FOLDER}`, repo, { agent: true });
+  await renderPage(`/f/${FOLDER}/session`, repo, { agent: true });
 
   const aside = await column();
   expect(await aside.findByText("2 questions")).toBeTruthy();
@@ -74,7 +74,7 @@ test("a second round is the one linked, once the first is answered", async () =>
     "proposal.md": "# A home logo\n",
   });
 
-  await renderPage(`/f/${FOLDER}`, repo, { agent: true });
+  await renderPage(`/f/${FOLDER}/session`, repo, { agent: true });
 
   const aside = await column();
   expect(await aside.findByText("3 questions")).toBeTruthy();
@@ -92,7 +92,7 @@ test("a follow-up not asked yet is not counted", async () => {
     "proposal.md": "# A home logo\n",
   });
 
-  await renderPage(`/f/${FOLDER}`, repo, { agent: true });
+  await renderPage(`/f/${FOLDER}/session`, repo, { agent: true });
 
   const aside = await column();
   expect(await aside.findByText("1 question")).toBeTruthy();
@@ -107,7 +107,7 @@ test("a record without a pull request shows the step's title, with no link", asy
       "---\nkind: change\nfinished: 2026-10-16\n---\n\n# Record: A home logo\n\n> [!NOTE]\n>\n> The record of a merged change, not instructions to follow.\n\n## What and why\n\nA logo.\n\n## Behaviour\n\n- It shows.\n\n## Design\n\nAn image.\n",
   });
 
-  await renderPage(`/f/${FOLDER}`, repo, { agent: true });
+  await renderPage(`/f/${FOLDER}/session`, repo, { agent: true });
 
   const aside = await column();
   expect(await aside.findByRole("list", { name: "Files" })).toBeTruthy();
@@ -129,22 +129,25 @@ test("a feature's column keeps its plan, its page, and its words", async () => {
   expect(await aside.findByRole("link", { name: "Feature page" })).toBeTruthy();
 });
 
-// US4.1 and US4.6: a change's page is its session, with no other page to go back to: its heading
-// is the change's title, with no crumbs. A feature's session keeps its crumbs.
-test("a change's page has no crumbs, and a feature's session keeps them", async () => {
+// US4.1 and US4.6, then US3 of the feature page redesign: a change opens the same page as a
+// feature, and its session keeps the crumbs back to it, as a feature's does.
+test("a change's session has crumbs back to its page, as a feature's does", async () => {
   const repo = fixtureRepo();
   addChange(repo, FOLDER, { "proposal.md": "# A home logo\n" });
 
-  await renderPage(`/f/${FOLDER}`, repo, { agent: true });
+  await renderPage(`/f/${FOLDER}/session`, repo, { agent: true });
 
-  expect(await screen.findByRole("heading", { level: 1, name: "A home logo" })).toBeTruthy();
-  expect(screen.queryByRole("navigation", { name: "Breadcrumbs" })).toBeNull();
+  const crumbs = within(await screen.findByRole("navigation", { name: "Breadcrumbs" }));
+  expect(await crumbs.findByText("Session")).toBeTruthy();
+  expect(crumbs.getByRole("link", { name: "A home logo" }).getAttribute("href")).toBe(
+    atRepo(`/f/${FOLDER}`),
+  );
 
   cleanup();
   await renderPage("/f/2026-10-12-cli-tuis/session", repo, { agent: true });
 
-  const crumbs = within(await screen.findByRole("navigation", { name: "Breadcrumbs" }));
-  expect(await crumbs.findByText("Session")).toBeTruthy();
+  const feature = within(await screen.findByRole("navigation", { name: "Breadcrumbs" }));
+  expect(await feature.findByText("Session")).toBeTruthy();
 });
 
 // US4.1: a change's page says "change", not "feature", when its agent stopped while the step still
@@ -161,7 +164,7 @@ test("a change's agent stopped before a gate is told about in the change's words
   });
   await fake.sessions.settled(turn);
 
-  await renderPage(`/f/${FOLDER}`, repo, { agent: fake });
+  await renderPage(`/f/${FOLDER}/session`, repo, { agent: fake });
 
   expect(await screen.findByText("The agent stopped before a human gate.")).toBeTruthy();
   expect(

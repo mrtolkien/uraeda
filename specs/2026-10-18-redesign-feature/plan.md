@@ -1336,19 +1336,25 @@ git commit -m "feat(redesign-feature): the composer inserts the recommended mess
 - Delete: `packages/web/src/FeaturePage.tsx`, `packages/web/src/AgentPanel.tsx`
 - Modify: `packages/web/src/App.tsx` (`ItemPage`: every item opens `FeaturePage`),
   `packages/web/src/labels.ts` (the agent's "Next" per step), `packages/web/vite.config.ts`
-  (`test.env.TZ = "UTC"` for the unit project)
+  (`test.env.TZ = "UTC"` for the unit project), `packages/web/src/Crumbs.tsx` (a change's session
+  has crumbs back to its page, R21), `packages/web/scripts/change-shots.ts` (a change's views are
+  its session's)
 - Modify: `packages/binding/test-utils.ts` (`commitsAt`)
 - Test: `packages/web/src/__tests__/feature-page.test.tsx`,
   `packages/web/src/__tests__/times.test.ts`; remove or move the tests of the removed page:
-  `feature.test.tsx`, `agent-panel.test.tsx`, `session.test.tsx` 319-324,
-  `__browser__/layout.test.tsx` 86 and 328, `__browser__/session.test.tsx` 62 and 462
+  `feature.test.tsx`, `agent-panel.test.tsx` (its session's tests kept as `session-turns.test.tsx`,
+  R21), `session.test.tsx` 319-324 (unchanged: it passes), `__browser__/layout.test.tsx` 86 and 328,
+  `__browser__/session.test.tsx` 62 and 462 (unchanged: they pass); and the tests that opened a
+  change's session at `/f/<change>`: `__tests__/change.test.tsx`, `__browser__/change.test.tsx`,
+  `__tests__/links.test.ts` (R21)
 
 **Interfaces:**
 
 - Consumes: task 2's `FeatureView.notes`; task 3's `useHistory`, `HistoryView`.
 - Produces:
-  - `commitsAt(repo: string, branch: string, commits: Array<{ at: string; committed?: string; files: Record<string, string | null>; message: string }>)`:
-    commits on a branch, in its worktree or a temporary one as `commitOnBranch` does, each dated.
+  - `commitsAt(repo: string, branch: string, commits: Array<{ at?: string; committed?: string; files: Record<string, string | null>; message: string }>)`:
+    commits on a branch, in its worktree or a temporary one as `commitOnBranch` does, each dated;
+    `commitOnBranch` is one undated commit of it.
   - `feature/times.ts`: `clock(iso: string, previous?: string): string` ("12:11", or "Oct 18, 09:10"
     when its local day differs from `previous`'s), `duration(seconds: number): string` ("< 1 min",
     "26 min", "2 h 50 min", "1 d 3 h"), `day(isoOrDate: string): string` ("Oct 17").
@@ -1357,14 +1363,14 @@ git commit -m "feat(redesign-feature): the composer inserts the recommended mess
     `AgentCard`, "What it produced so far" with `FileList` and the links, the record's place (task
     9), and `Notes`.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 ```tsx
 // packages/web/src/__tests__/feature-page.test.tsx
 /** US1.1 */
 test("a feature being built says the agent is building, with no button", async () => {
-  // addPlan(ELEVEN) on 2026-10-11-web-ui, plan approved: task 7 of 11.
-  await renderPage("/f/2026-10-11-web-ui");
+  // addPlan(ELEVEN) on 2026-10-12-cli-tuis, whose spec is approved: task 7 of 11.
+  await renderPage("/f/2026-10-12-cli-tuis");
 
   const next = await screen.findByRole("region", { name: "Next" });
   expect(within(next).getByRole("heading", { name: "The agent is building" })).toBeTruthy();
@@ -1414,7 +1420,7 @@ test("a change opens its page, with Fix marked and the session one click away", 
 
 /** US5.1, the page */
 test("an open pull request's Next only opens it", async () => {
-  // gh faked as the existing pull request tests do (pulls.test.ts): #31 open.
+  // gh faked on the PATH, as crates/cli/tests/next.rs fakes it, read by refreshPullRequests (R24).
   expect(
     within(next).getByRole("heading", { name: "Your review on pull request #31" }),
   ).toBeTruthy();
@@ -1492,20 +1498,21 @@ the agent". The break each test catches:
 - Notes: notes unfolded, or counted as problems.
 - SC-003: a second session button, as "Review and start the agent" was.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test --run packages/web/src/__tests__/feature-page.test.tsx`
 - Expected: FAIL, `Unable to find role="region" and name "Next"`
 
-- [ ] **Step 3: Implement the page**
+- [x] **Step 3: Implement the page**
 
 Start from the mockup's components, each moved to its file under `feature/` and fed by the real
-data. The header: "Features ›", the title, and "Feature · Oct 17 · branch <branch>" (or "Change …",
-the day from the folder's date). `Stages`: Astryx `Stepper`, horizontal on a wide screen and
-vertical on the phone, the labels Proposal, Questions, Spec, Plan, Build or Fix, Pull request,
-Merged; a passed stage's line is `clock(start, previous start) · duration(next start − start)`, the
-current one's `since <clock>`, never a duration, Questions with "2 rounds" when it had several.
-`next.ts` turns the feature's step into `{ title, line, action? }`:
+data. The header: the app's crumbs, "Home › <title>" (R20), the title, and "Feature · Oct 17 ·
+branch <branch>" (or "Change …", the day from the folder's date). `Stages`: Astryx `Stepper`,
+horizontal with its indicators on the track on a wide screen and vertical on the phone (R22), the
+labels Proposal, Questions, Spec, Plan, Build or Fix, Pull request, Merged; a passed stage's line is
+`clock(start, previous start) · duration(next start − start)`, the current one's `since <clock>`,
+never a duration, Questions with "2 rounds" when it had several. `next.ts` turns the feature's step
+into `{ title, line, action? }`:
 
 | Step                      | Title                                    | Line                                                                                    | Action                           |
 | ------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------- |
@@ -1521,21 +1528,26 @@ current one's `since <clock>`, never a duration, Questions with "2 rounds" when 
 
 `NextCard` is a region named "Next" with that heading and its one primary button; `AgentCard` is a
 region named "Agent", neutral: a moon icon and "Idle", or the working mark, "Working", the task's
-progress bar, and the sub-agents at work; the last run, "Last run: <step> · <state> · <time>", from
-the session's latest turn; Stop while it works, as the panel had; "Open the session"; "Claude Code
-is not available on this machine." when it is not. On a wide screen they share a row, "Next" two
+progress bar, and the sub-agents at work, or the session's own trouble, "Needs attention" or a
+blocked action's "Needs you" (R23); the last run, "Last run: <step> · <state> · <time>", from the
+session's latest turn; Stop while it works, as the panel had; "Open the session"; "Claude Code is
+not available on this machine." when it is not. On a wide screen they share a row, "Next" two
 columns of three; on the phone "Next" comes first. A blocking problem opens the banner "This feature
 cannot go on", each problem's file and line and message, and a button "Open <file>" to the first.
 `FileList` follows the mockup's compact rows, the record's row and "not yet" rows kept; beside it,
 the links: Storybook, the pull request, and the mockups. `Notes` folds "N format notes" with "They
 block nothing: the next agent step rewrites what drifted." The left worktree banner stays.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
+- Ran on the task's branch, while other tasks built: `vp check`, `vp run ts:test`,
+  `vp run specs:check`, and `vp test --project desktop` and `--project phone` on
+  `__browser__/change.test.tsx`, `layout.test.tsx`, and `session.test.tsx`: PASS. The whole
+  `vp run ready` runs once the tasks merge.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web packages/binding/test-utils.ts

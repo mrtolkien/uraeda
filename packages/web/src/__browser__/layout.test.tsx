@@ -83,8 +83,8 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["a plan under review", "/f/2026-10-13-plan-review/plan.md", "Task 5", null],
   ["a task view", TASK, "Claude Code runner", null],
   ["the priorities", "/priorities", "Ongoing", null],
-  // Its agent panel offers "Review and start the agent": the test server's agent is the fake one.
-  ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Review and start the agent", null],
+  // Its agent's card opens the session: the test server's agent is the fake one.
+  ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Open the session", null],
   // A feature's session before its first message, and an empty chat.
   ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
   ["a new chat", "/chats/new", "New chat", null],
@@ -297,12 +297,12 @@ const allowAndRetry = () =>
   screen.getByRole("button", { name: "Allow and retry" }) as HTMLButtonElement;
 
 // A feature's session with long paths and commands, working, then failed with an action blocked,
-// and the feature page's agent section: the same checks as the pages', in both themes.
+// and the feature page's agent card: the same checks as the pages', in both themes.
 test.each(
   (["working", "failed"] as const).flatMap((state) =>
     (["light", "dark"] as const).map((mode) => ({ mode, state })),
   ),
-)("a feature's session, $state, and its agent section, in $mode", async ({ mode, state }) => {
+)("a feature's session, $state, and its agent card, in $mode", async ({ mode, state }) => {
   await colorScheme(mode);
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", LONG_TURN);
@@ -324,9 +324,9 @@ test.each(
   }
   await drawn();
   await checkLayout();
-  // The feature page's agent section, on its own page.
+  // The feature page's agent card, on its own page.
   await show(`/f/${CLI}`, "Open the session");
-  await screen.findAllByText(state === "working" ? "Working" : /Failed/, undefined, LIVE);
+  await screen.findAllByText(state === "working" ? "Working" : /· failed/, undefined, LIVE);
   await checkLayout();
 });
 

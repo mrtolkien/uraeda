@@ -15,10 +15,10 @@ import {
 } from "react";
 import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
-import { useFeature, usePreview, useRepositories } from "./data.ts";
+import { usePreview, useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
 import { DecisionsPage, type LedgerOpen } from "./decisions/DecisionsPage.tsx";
-import { FeaturePage } from "./FeaturePage.tsx";
+import { FeaturePage } from "./feature/FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
 import { LeaveGuard } from "./fields/LeaveGuard.tsx";
 import { pruneUnsaved } from "./fields/unsaved.ts";
@@ -262,14 +262,9 @@ function ReadPreview({ folder }: { folder: string }) {
   return null;
 }
 
-/** A feature's page, or a change's, which is its session. */
+/** A feature's page, or a change's: the same page for both. */
 function ItemPage({ folder }: { folder: string }) {
-  const feature = useFeature(folder);
-  return feature?.kind === "change" ? (
-    <SessionPage folder={folder} />
-  ) : (
-    <FeaturePage folder={folder} />
-  );
+  return <FeaturePage folder={folder} />;
 }
 
 /** A feature's session: a page of its own at every width. */
