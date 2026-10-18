@@ -6,26 +6,61 @@
 /** Resolves on the next animation frame. */
 export const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
-/** The total, in px, of the instant corrections made so far, which a reader's scroll never includes. */
-let corrected = 0;
+/** How long after an input of the reader's, in ms, a scroll of the window is theirs. */
+const INPUT_WINDOW = 300;
+
+/** What the reader scrolled so far, in px, where `watch` saw them at it, and the window's last place. */
+let readerScrolled = 0;
+let lastScroll = 0;
+let lastInput = Number.NEGATIVE_INFINITY;
+let watching = false;
+
+/** Dates the reader's last input. */
+const noteInput = () => {
+  lastInput = performance.now();
+};
+
+/** Counts a scroll as the reader's when an input of theirs came shortly before it. */
+const noteScroll = () => {
+  const scroll = window.scrollY;
+  if (performance.now() - lastInput < INPUT_WINDOW) {
+    readerScrolled += scroll - lastScroll;
+  }
+  lastScroll = scroll;
+};
 
 /**
- * A mark on the window's scroll: the function it returns says how far the reader scrolled since,
- * in px, without the instant corrections made by `scrollInstantly` meanwhile, which put places
- * back. A place put back by hand is kept at the shift of the page alone, never against the reader's
- * own scroll.
+ * Starts telling the reader's scrolls from the page's: a scroll shortly after a wheel, a touch, a
+ * key, or a press is the reader's. The browser's own scroll anchoring, and the corrections made by
+ * `scrollInstantly`, come with no input of theirs, and are not.
+ */
+function watch() {
+  if (watching) {
+    return;
+  }
+  watching = true;
+  for (const type of ["keydown", "pointerdown", "touchmove", "touchstart", "wheel"]) {
+    window.addEventListener(type, noteInput, { capture: true, passive: true });
+  }
+  window.addEventListener("scroll", noteScroll, { passive: true });
+}
+
+/**
+ * A mark on the reader's scrolling: the function it returns says how far they scrolled since, in
+ * px. A place put back by hand is kept at the shift of the page alone, never against the reader's
+ * own scroll, nor twice for the browser's anchoring.
  */
 export function scrollMark() {
-  const scroll = window.scrollY;
-  const was = corrected;
-  return () => window.scrollY - scroll - (corrected - was);
+  watch();
+  lastScroll = window.scrollY;
+  const was = readerScrolled;
+  return () => readerScrolled - was;
 }
 
 /** Scrolls the window by `top` px at once, as a correction: the reader did not make it. */
 export function scrollInstantly(top: number) {
-  const scroll = window.scrollY;
   window.scrollBy({ behavior: "instant", top });
-  corrected += window.scrollY - scroll;
+  lastScroll = window.scrollY;
 }
 
 /**
