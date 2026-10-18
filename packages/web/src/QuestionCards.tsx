@@ -29,7 +29,7 @@ const styles = stylex.create({
     // On the phone, a follow-up keeps its accent line on its side, and little inset.
     borderInlineStartColor: colorVars["--color-accent"],
     borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
+    borderInlineStartWidth: "var(--size-round-accent)",
     marginBlockStart: spacingVars["--spacing-4"],
     paddingInlineStart: spacingVars["--spacing-3"],
   },
@@ -37,7 +37,7 @@ const styles = stylex.create({
     // The accent line from a card to the follow-up's after it.
     borderInlineStartColor: colorVars["--color-accent"],
     borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
+    borderInlineStartWidth: "var(--size-round-accent)",
     height: spacingVars["--spacing-8"],
     marginInlineStart: spacingVars["--spacing-8"],
   },
@@ -59,7 +59,10 @@ export function followUpsOf(
     .sort((a, b) => (a.parentLetter ?? "").localeCompare(b.parentLetter ?? ""));
 }
 
-/** Whether an element is at least the theme's `--size-round-split` wide, where a card splits. */
+/**
+ * Whether an element is at least the theme's `--size-round-split` wide, where a card splits. The
+ * token is read again whenever the element's width changes, not only once on mount.
+ */
 function useRoomy(ref: RefObject<HTMLElement | null>) {
   const width = useWidthOf(ref);
   const [split, setSplit] = useState(Number.POSITIVE_INFINITY);
@@ -69,7 +72,7 @@ function useRoomy(ref: RefObject<HTMLElement | null>) {
       const value = getComputedStyle(element).getPropertyValue("--size-round-split");
       setSplit(Number.parseFloat(value) || Number.POSITIVE_INFINITY);
     }
-  }, [ref]);
+  }, [ref, width]);
   return width >= split;
 }
 
