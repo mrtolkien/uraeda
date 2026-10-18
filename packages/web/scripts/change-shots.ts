@@ -122,8 +122,9 @@ async function startChange(adapter: FakeAdapter, page: Page, text: string, slug:
     await wait(50);
   }
   adapter.emit({ id: adapter.sent.at(-1)!.id, type: "accepted" });
-  await page.waitForURL(new RegExp(`/f/\\d{4}-\\d{2}-\\d{2}-${slug}$`));
-  return here(page).slice("/f/".length);
+  // Its session, which a change's first run opens (R21 of the feature redesign).
+  await page.waitForURL(new RegExp(`/f/\\d{4}-\\d{2}-\\d{2}-${slug}/session$`));
+  return here(page).slice("/f/".length, -"/session".length);
 }
 
 /** Writes files in a change's worktree, which starting it made, and commits them. */

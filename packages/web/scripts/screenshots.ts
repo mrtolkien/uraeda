@@ -23,7 +23,9 @@ import { addStoryFeature, fixtureRepo, git, STORY_FEATURE } from "uraeda-binding
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
+import { addFeaturePages, listPullRequest, recordFeatureRuns } from "../.storybook/featurePages.ts";
 import { takeChanges } from "./change-shots.ts";
+import { takeFeaturePage } from "./feature-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
 import { addRoundMockup, takeRound } from "./round-shots.ts";
@@ -77,6 +79,8 @@ function repository() {
   addRoundMockup(repo);
   // The spec page's features, waiting for review and approved, and their decisions' changes.
   addSpecPages(repo);
+  // The feature page's features, one per state.
+  addFeaturePages(repo);
   return repo;
 }
 
@@ -86,6 +90,9 @@ async function main() {
   // goes on every branch, so the features' pages and sessions list their Storybook.
   addStoryFeature(repo);
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
+  // Their runs' tokens, and the open pull request a `gh` lists (R100).
+  recordFeatureRuns(data, repo);
+  listPullRequest();
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = data;
   // Settings of its own, none: the developer's never show in the screenshots.
@@ -110,6 +117,8 @@ async function main() {
           // A touch screen, as the browser tests' phone has.
           hasTouch: size === "phone",
           reducedMotion: "reduce",
+          // The feature page's times, as its features' commits give them.
+          timezoneId: "UTC",
         });
         // The banner that asks to notify shows above every page until dismissed: its own shot
         // names its tab "banner" to show it.
@@ -284,6 +293,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   });
 
   await takeImplementation(each, adapter, repo);
+  await takeFeaturePage(each, shots, adapter);
 }
 
 /** Home, the priorities, dragged, an entry's pane, reading and editing, and the ＋ form. */

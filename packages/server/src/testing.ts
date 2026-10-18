@@ -1,8 +1,12 @@
 // What the server's and the UI's tests use: the session manager on the fake adapter, with a cache in
 // memory, sign-in on a test's data folder, and settings on a test's config folder.
+import { randomUUID } from "node:crypto";
+import { realpathSync } from "node:fs";
+import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { createSessions, type HostsOf } from "./live.ts";
 import { SessionCache } from "./runner/cache.ts";
+import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
 import { ServerSettings } from "./settings.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
@@ -65,4 +69,46 @@ export function testSettings({
       noOpen: false,
     },
   });
+}
+
+/**
+ * Records a feature's past run in the runner's cache of `dataDir`, as the runner stores one on the
+ * fake agent: a workflow turn of the feature's session, from `at` to `ended`, with its own token
+ * counts. `repo` is the repository's main checkout, which keys its sessions. What the stories' and
+ * screenshots' servers read as a feature's tokens.
+ */
+export function recordRun(
+  dataDir: string,
+  repo: string,
+  folder: string,
+  { at, ended, step, tokens }: { at: string; ended: string; step: string; tokens: TokenCounts },
+) {
+  const cache = SessionCache.open(join(dataDir, "runner.sqlite"));
+  try {
+    const repoRoot = realpathSync(repo);
+    const session =
+      cache.featureSession(repoRoot, folder) ??
+      cache.createSession({
+        agent: "fake",
+        folder,
+        nativeId: randomUUID(),
+        repo: repoRoot,
+        title: null,
+      });
+    const id = cache.addTurn({
+      allowed: null,
+      kind: "workflow",
+      sessionId: session.id,
+      state: "running",
+      step,
+      trigger: "manual",
+    });
+    cache.addTurnTokens(id, tokens);
+    cache.endTurn(id, { state: "done" });
+    cache.db
+      .prepare("UPDATE turns SET started_at = ?, ended_at = ? WHERE id = ?")
+      .run(at, ended, id);
+  } finally {
+    cache.db.close();
+  }
 }

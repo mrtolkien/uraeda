@@ -8,6 +8,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } 
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
+import { addFeaturePages } from "./.storybook/featurePages.ts";
 import {
   addChange,
   addPlan,
@@ -206,6 +207,10 @@ const commands = {
   addSpecFeature(_context: unknown, options: Parameters<typeof addSpecFeature>[1] = {}) {
     addSpecFeature(repoFolder(), options);
   },
+  /** Adds the feature page's features, one per state, as `addFeaturePages` does. */
+  addFeaturePages() {
+    addFeaturePages(repoFolder());
+  },
   /** Each start of the test feature's fake preview: its base path, folder, process, and port. */
   previewStarts() {
     return previewLog === undefined ? [] : previewStarts(previewLog);
@@ -384,6 +389,7 @@ const commands = {
 
 export type RepoCommands = {
   addChange: (folder: string, files: Record<string, string>) => Promise<void>;
+  addFeaturePages: () => Promise<void>;
   addPlan: (folder: string) => Promise<void>;
   addSpecFeature: (options?: Parameters<typeof addSpecFeature>[1]) => Promise<void>;
   addStoryFeature: (options?: Parameters<typeof addStoryFeature>[1]) => Promise<void>;
@@ -456,17 +462,19 @@ export default defineConfig({
       commands: { ...commands, setColorScheme, setReducedMotion },
       enabled: true,
       headless: true,
+      // Times read in UTC, as the UI tests' (see `vite.config.ts`): a feature's stages cross midnight
+      // where its commits say, whatever the machine's time zone.
       instances: [
         // A touch screen, as a phone has.
         {
           browser: "webkit",
           name: "phone",
-          provider: playwright({ contextOptions: { hasTouch: true } }),
+          provider: playwright({ contextOptions: { hasTouch: true, timezoneId: "UTC" } }),
           viewport: { height: 874, width: 402 },
         },
         { browser: "webkit", name: "desktop", viewport: { height: 900, width: 1440 } },
       ],
-      provider: playwright(),
+      provider: playwright({ contextOptions: { timezoneId: "UTC" } }),
       // Failure screenshots are automatic. Full DOM/network tracing is opt-in: recording every
       // passing test made CI much slower. Use URAEDA_TEST_TRACE=1 with an uncached browser task.
       screenshotDirectory: ".vitest/screenshots",
