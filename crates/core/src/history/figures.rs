@@ -27,19 +27,30 @@ pub(crate) struct Merge {
     pub diffs: Vec<Diff>,
 }
 
-/// How a done item reached the default branch, from its tip, read from its finish commit. On the
-/// first-parent line, as a rebase or a fast-forward leaves it, the finish arrived at its own
-/// committer time, and brought every run of the item's commits on that line, an unscoped commit
-/// between two runs left out (R80); otherwise the oldest first-parent merge commit that has it
-/// brought it, with its branch. A later commit of the item, made on the default branch, moves
-/// neither.
+/// How long after its finish commit a rebased item's commits still arrived with it: the pull
+/// request's review fixes, rebased with the branch, share its committer time (R81).
+const BATCH_SECONDS: i64 = 600;
+
+/// A done item's first-parent line on the default branch: from the tip that holds its record, for
+/// its slug's commits, down to its walk's bound.
+pub(crate) struct Line<'s> {
+    pub tip: ObjectId,
+    pub slug: &'s str,
+    pub since: i64,
+}
+
+/// How a done item reached the default branch, from the commits walked from `start`, read from its
+/// finish commit. On the first-parent line, as a rebase or a fast-forward leaves it, the finish
+/// arrived at its own committer time, and brought every run of the item's commits on that line up
+/// to ten minutes after it, an unscoped commit between two runs left out (R80, R81); otherwise the
+/// oldest first-parent merge commit that has it brought it, with its branch. A later commit of the
+/// item, made on the default branch, moves neither.
 pub(crate) fn merge(
     git: &Git,
-    tip: ObjectId,
+    start: ObjectId,
     commits: &[CommitInfo],
     scoped: &[(&str, &CommitInfo)],
-    slug: &str,
-    since: i64,
+    on: Line<'_>,
 ) -> Result<Option<Merge>, GitError> {
     let finishes: Vec<&CommitInfo> = scoped
         .iter()
@@ -49,7 +60,7 @@ pub(crate) fn merge(
     let by_id: HashMap<ObjectId, &CommitInfo> =
         commits.iter().map(|commit| (commit.id, commit)).collect();
     let mut line = Vec::new();
-    let mut next = Some(tip);
+    let mut next = Some(start);
     while let Some(commit) = next.and_then(|id| by_id.get(&id)) {
         line.push(*commit);
         next = commit.parents.first().copied();
@@ -58,10 +69,11 @@ pub(crate) fn merge(
         .iter()
         .find(|commit| finishes.iter().any(|finish| finish.id == commit.id));
     if let Some(finish) = on_line {
-        let line = git.first_parent_line(finish.id, since, finish.committed)?;
+        let until = finish.committed + BATCH_SECONDS;
+        let line = git.first_parent_line(on.tip, on.since, until)?;
         return Ok(Some(Merge {
             at: finish.committed,
-            diffs: runs(&line, slug),
+            diffs: runs(&line, on.slug),
         }));
     }
     let Some(finish) = finishes.iter().max_by_key(|commit| commit.committed) else {

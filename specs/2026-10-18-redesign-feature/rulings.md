@@ -152,7 +152,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a done item arrived with its `finish(<slug>)` commit: at its committer time when it
   is on the default branch's first-parent line, its lines the runs of scoped first-parent commits up
-  to it (R80); otherwise through the oldest first-parent merge commit that has it.
+  to it and those committed within ten minutes after it, its review fixes (R80, R81); otherwise
+  through the oldest first-parent merge commit that has it.
 - **Rationale**: found in review of task 3: a `fix(<slug>)` commit made on `main` after the merge
   moved the merge to its time, and took the lines from its run alone. Rebased commits also often
   share one committer time, so the newest scoped commit by that time could be any of the run.
@@ -168,8 +169,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   starts at the first-parent commit that added its record, found by
   `git log --first-parent --diff-filter=A -1 -- <record>`, and stops at the folder's date as before.
   A rebased item's first-parent line, for its runs, is read by
-  `git log --first-parent --since=<folder's date minus a day> --until=<finish>` from its finish, git
-  stopping at the first commit older than the bound (R80).
+  `git log --first-parent --since=<folder's date minus a day> --until=<finish plus ten minutes>`
+  from the default branch's tip that holds the record, git stopping at the first commit older than
+  the bound (R80, R81).
 - **Rationale**: found in review of task 3: the whole workspace took about 200 ms of a read in a
   debug build here, and a done item's walk from the default branch's tip grew with every later
   feature. The benchmark went from 73 ms to 24 ms; on this repository, 2026-10-12-finish-feature
@@ -331,4 +333,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   which counts a rewritten line twice (R1).
 - **If wrong**: a figure off by a branch's unscoped commits, or by a file rewritten in two runs; the
   rule lives in `history/figures.rs`.
+- **Where**: task 6, fixed after its review
+
+## R81: A rebased feature's review fixes arrive with its finish, within ten minutes
+
+- **Decision**: a done item merged without a merge commit also counts, in its lines and decisions,
+  its scoped commits on the first-parent line committed within ten minutes, committer time, after
+  its finish commit's: the pull request's review fixes, rebased with it. Its merge stays the finish
+  commit's arrival, at its committer time (R13).
+- **Rationale**: found in review of task 6: `53d8b999`, `be0da469`, and `bc786912`, the review fixes
+  of `2026-10-17-redesign-specs`, come after its finish `340ce6ab` and share its committer time, yet
+  were left out; with them the record reads +15,371 −6,011 over 224 files. A rebase writes its
+  commits within seconds, and a `fix(<slug>)` committed to `main` hours later is no review fix. The
+  finish's committer time is the batch's too, or within ten minutes of it, so moving the merge to
+  the batch's newest commit would change no day the page shows.
+- **Alternatives considered**: every scoped commit after the finish, which counts a later fix on
+  `main`; the merge timed to the batch's newest commit, which a later push within ten minutes would
+  move.
+- **If wrong**: a review fix pushed more than ten minutes after the rebase left out, or a fix
+  committed straight to `main` within ten minutes counted; `BATCH_SECONDS` in `history/figures.rs`.
 - **Where**: task 6, fixed after its review
