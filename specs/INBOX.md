@@ -179,3 +179,9 @@
   comments on the stories' intro are counted nowhere; an unknown level-2 section is not drawn;
   data-model.md is read from disk while a waiting spec shows its commit; "Contents" at 420 px leaves
   350 px for the page at 768–800 px.
+- [agent] [redesign-specs] Decision comparison: code blocks, tables, quotes, and nested items are
+  not parts, so a change only there shows no change; untested paths (a section only at the merge
+  base, crossing pairs, duplicates, empty input); compare runs on every decision of the branch,
+  changed or not, and the SC-003 bench has only 5 decisions; an unlisted change to only the title or
+  another frontmatter field shows no card; "Checked by" is split in the web (R80); decision changes
+  are not sent live.
