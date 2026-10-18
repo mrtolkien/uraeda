@@ -383,7 +383,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the helpers `figureCard` and `produced` of `feature-done.test.tsx`.
 - **Where**: task 9
 
-## R61: A done item shows the figures it has
+## R61: A done feature shows its five figures, a done change those it has
 
 - **Decision**: a done feature shows all five figures, as US2 lists them: "Questions" reads "0" and
   "no round" without a round, and "Decisions" "0", both plain cards at zero. A done change shows
