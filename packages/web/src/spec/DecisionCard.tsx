@@ -17,9 +17,10 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useId } from "react";
 import type { CommentItem, DecisionChange, PartChange, SectionChange } from "uraeda-binding";
 import { type DecisionRange, type PartSelection, Tappable } from "../Selection.tsx";
+import { useOpenKeys } from "../useOpenKeys.ts";
 import { Panel } from "./Panel.tsx";
 import { PartText } from "./RuleLine.tsx";
 
@@ -155,17 +156,22 @@ function Part({ context, part }: { context: Context; part: PartChange }) {
   );
 }
 
-/** Parts folded behind a label, open while one holds a pending comment or the selection. */
+/**
+ * Parts folded behind a label, open while one holds a pending comment or the selection, or as the
+ * history entry keeps it by `foldKey`, for Back and reloads.
+ */
 function Fold({
   context,
+  foldKey,
   label,
   parts,
 }: {
   context: Context;
+  foldKey: string;
   label: ReactNode;
   parts: ReadonlyArray<PartChange>;
 }) {
-  const [open, setOpen] = useState(false);
+  const keys = useOpenKeys();
   const held = parts.some((part) => {
     const range = rangeOf(context.name, context.heading, part);
     return holds(context.comments, range) || (!!range && !!context.parts?.isSelected(range));
@@ -173,8 +179,8 @@ function Fold({
   return (
     <Collapsible
       chevronPosition="start"
-      isOpen={open || held}
-      onOpenChange={setOpen}
+      isOpen={keys.open.includes(foldKey) || held}
+      onOpenChange={(isOpen: boolean) => keys.onOpenChange(foldKey, isOpen)}
       trigger={label}
     >
       <VStack gap={2}>
@@ -184,6 +190,11 @@ function Fold({
       </VStack>
     </Collapsible>
   );
+}
+
+/** A fold's key in the history entry: its decision, its section, and its kind. */
+function foldKeyOf(context: Context, kind: string) {
+  return `decision:${context.name}:${context.heading}:${kind}`;
 }
 
 /**
@@ -196,7 +207,16 @@ function sectionRows(section: SectionChange, context: Context) {
   const flush = () => {
     if (kept.length > 0) {
       const label = `${kept.length} unchanged`;
-      rows.push(<Fold context={context} key={`kept-${rows.length}`} label={label} parts={kept} />);
+      const key = `kept-${rows.length}`;
+      rows.push(
+        <Fold
+          context={context}
+          foldKey={foldKeyOf(context, key)}
+          key={key}
+          label={label}
+          parts={kept}
+        />,
+      );
     }
     kept = [];
   };
@@ -214,7 +234,15 @@ function sectionRows(section: SectionChange, context: Context) {
   const removed = context.whole ? [] : section.parts.filter((part) => part.kind === "removed");
   if (removed.length > 0) {
     const label = <Badge label={`${removed.length} removed`} variant="error" />;
-    rows.push(<Fold context={context} key="removed" label={label} parts={removed} />);
+    rows.push(
+      <Fold
+        context={context}
+        foldKey={foldKeyOf(context, "removed")}
+        key="removed"
+        label={label}
+        parts={removed}
+      />,
+    );
   }
   return rows;
 }
