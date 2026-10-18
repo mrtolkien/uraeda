@@ -43,6 +43,25 @@ describe("on the phone", () => {
     expect(story.getBoundingClientRect().top).toBeLessThan(barBottom());
   });
 
+  test("on the phone, a part's head pushed away slides under the top bar", async () => {
+    await commands.addSpecFeature();
+    await show(PAGE, "Complete a repeating task");
+    // US1's end at the bar's bottom: its head, pushed up by it, overlaps the bar.
+    const story = screen.getByRole("region", { name: "Make a task repeat" });
+    window.scrollBy(0, story.getBoundingClientRect().bottom - barBottom());
+    await drawn();
+    const head = within(story).getByRole("heading", { name: "Make a task repeat" });
+    expect(head.getBoundingClientRect().bottom).toBeLessThan(barBottom());
+    expect(head.getBoundingClientRect().bottom).toBeGreaterThan(0);
+
+    const banner = screen.getByRole("banner");
+    const box = banner.getBoundingClientRect();
+    for (const y of [box.top + 8, head.getBoundingClientRect().top + 8]) {
+      const shown = document.elementFromPoint(box.left + box.width / 2, y);
+      expect(banner.contains(shown), `${y}: ${shown?.textContent?.slice(0, 40)}`).toBe(true);
+    }
+  });
+
   test("on the phone, no part has a card, and text runs to 12 px from the edges (US5 3)", async () => {
     await commands.addSpecFeature({ status: "approved" });
     await show(PAGE, "Complete a repeating task");
