@@ -10,8 +10,8 @@
 - [Start a draft folder from its proposal](/specs/changes/2026-10-18-start-draft-folder/proposal.md)
 - [Worktree toolchain fixes](/specs/changes/2026-10-18-worktree-toolchain/proposal.md)
 - [Storybook preview fixes](/specs/changes/2026-10-18-storybook-fixes/proposal.md)
+- [Priorities and decisions pages fixes](/specs/changes/2026-10-18-priorities-decisions-fixes/proposal.md)
 
-- [Priorities and decisions pages fixes](drafts/priorities-and-decisions-pages-fixes.md)
 - [Decision review fixes](drafts/decision-review-fixes.md)
 - [Spec page fixes](drafts/spec-page-fixes.md)
 - [Round fixes](drafts/round-fixes.md)
