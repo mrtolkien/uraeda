@@ -87,6 +87,7 @@ test("a repository's change is heard on the global bus", () => {
 
   publish(
     {
+      branchDecisions: [],
       decisions: false,
       features: [HUMAN],
       files: [],

@@ -101,6 +101,7 @@ test("a feature's change through git is published to its session, its branch's c
   const sent = published(hosts.get(names[0])!.live);
 
   watcher!({
+    branchDecisions: [],
     decisions: false,
     features: ["2026-10-12-cli-tuis", "2026-10-11-web-ui"],
     files: [],
@@ -196,6 +197,7 @@ test("two changes published in one millisecond have different event IDs", () => 
   const host = hostAt("/repo");
   const update = vi.spyOn(host.live, "update");
   const changes = {
+    branchDecisions: [],
     decisions: false,
     features: [],
     files: [],
@@ -210,6 +212,28 @@ test("two changes published in one millisecond have different event IDs", () => 
   const ids = update.mock.calls.map(([, , options]) => options?.eventId);
   expect(ids).toHaveLength(2);
   expect(ids[0]).not.toBe(ids[1]);
+});
+
+test("a decision a branch changed sends its page and its spec's file", () => {
+  const host = hostAt("/repo");
+  const update = vi.spyOn(host.live, "update");
+
+  publish(
+    {
+      branchDecisions: ["2026-10-17-spec-page/git"],
+      decisions: false,
+      features: [],
+      files: ["2026-10-17-spec-page/spec.md"],
+      inbox: false,
+      priorities: false,
+      workspace: false,
+    },
+    host,
+  );
+
+  const sent = update.mock.calls.map(([type, id]) => `${type} ${id}`);
+  expect(sent).toContain("BranchDecision 2026-10-17-spec-page/git");
+  expect(sent).toContain("WorkflowFile 2026-10-17-spec-page/spec.md");
 });
 
 test("a chat's change is published without a feature, and the agent's on its own", () => {

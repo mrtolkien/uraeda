@@ -1,10 +1,11 @@
 //! The decisions a feature's branch changed: each file of `specs/decisions/` compared between the
 //! merge base of the branch and the default branch, and the branch's side, computed on each read.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use super::change::{DecisionChange, compare};
+use crate::files::document::hash;
 use crate::git::{Git, ObjectId};
 
 const DIR: &str = "specs/decisions";
@@ -131,6 +132,28 @@ impl BranchSides<'_> {
         };
         change.listed = listed;
         Some(change)
+    }
+}
+
+impl BranchSides<'_> {
+    /// A hash of each decision's two versions, by name: it differs when either side's text does.
+    pub fn fingerprints(&self) -> BTreeMap<String, String> {
+        let base = self.merge_base();
+        self.names(base)
+            .into_iter()
+            .map(|name| {
+                let before = match self.before(base, &name) {
+                    Before::Text(text) => format!("text:{text}"),
+                    Before::Absent => "absent".to_string(),
+                    Before::Unknown => "unknown".to_string(),
+                };
+                let after = self
+                    .after(&name)
+                    .map_or("absent".into(), |t| format!("text:{t}"));
+                let key = hash(&format!("{before}\u{0}{after}"));
+                (name, key)
+            })
+            .collect()
     }
 }
 

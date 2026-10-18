@@ -7,6 +7,7 @@ const binding: Binding = await import("uraeda-binding");
 
 /** No change but a branch's move, as the watcher reports one. */
 const moved: Changes = {
+  branchDecisions: [],
   decisions: false,
   features: ["2026-10-20-sidebar-resize"],
   files: [],

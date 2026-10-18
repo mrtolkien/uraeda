@@ -35,6 +35,7 @@ mod reviews;
 mod start;
 
 pub use answers::*;
+pub(crate) use decision::fingerprints as branch_decision_fingerprints;
 pub use decision::{BranchDecision, read_decision};
 use default_branch::{default_checkout, on_default, reach_default, reach_default_from};
 pub use default_branch::{default_root, on_default_branch};

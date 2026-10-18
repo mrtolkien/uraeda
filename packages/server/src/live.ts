@@ -43,7 +43,7 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
  * reports. A feature's change may change its step, which its session's status reads, and its
  * branch's changes, and a feature that goes leaves the sidebar: the list and the features'
  * sessions go too. A change of the inbox sends its triage too, and one of the constitution or a
- * decision, the ledger.
+ * decision, the ledger; a decision a branch changed sends its page, and its spec's file.
  */
 export function publish(changes: Changes, host: Pick<Host, "path" | "live">, sessions?: Sessions) {
   const { live } = host;
@@ -56,6 +56,9 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   }
   for (const file of changes.files) {
     live.update("WorkflowFile", file, { eventId: eventId(`file:${file}`) });
+  }
+  for (const id of changes.branchDecisions) {
+    live.update("BranchDecision", id, { eventId: eventId(`branch-decision:${id}`) });
   }
   // The inbox and the priorities share the commit bar's count, so a change of either sends both.
   if (changes.priorities || changes.inbox) {
