@@ -153,7 +153,6 @@ pub fn request_changes(
     })
 }
 
-/// anything is written.
 /// The files a verdict writes, its images included, checked against the staged files before
 /// anything is written.
 fn verdict_paths(feature: &Feature, file: &str) -> [String; 3] {
