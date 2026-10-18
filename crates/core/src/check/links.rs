@@ -29,6 +29,49 @@ fn specs_folder(root: &Path, path: &str) -> PathBuf {
     root.join("specs")
 }
 
+/// Whether the file or folder at `path`, from the root, exists where links resolve: in the tree of
+/// the file's tip when it has one, else under its root.
+fn exists(file: &File<'_>, path: &str) -> bool {
+    match file.tip {
+        Some((git, tip)) => {
+            git.read_file(tip, path).ok().flatten().is_some()
+                || git
+                    .list_files(tip, path)
+                    .is_ok_and(|files| !files.is_empty())
+        }
+        None => file.root.join(path).exists(),
+    }
+}
+
+/// The text of the file at `path`, from the root, where links resolve.
+fn read(file: &File<'_>, path: &str) -> Option<String> {
+    match file.tip {
+        Some((git, tip)) => String::from_utf8(git.read_file(tip, path).ok()??).ok(),
+        None => fs::read_to_string(file.root.join(path)).ok(),
+    }
+}
+
+/// Whether the nearest `specs` folder holding the file has a file named `name`, for wikilinks.
+fn wiki_target_exists(file: &File<'_>, name: &str) -> bool {
+    let Some((git, tip)) = file.tip else {
+        return has_file_named(&specs_folder(file.root, &file.path), name);
+    };
+    let mut specs = "specs".to_string();
+    let mut prefix = String::new();
+    for part in file.path.split('/') {
+        if part == "specs" {
+            specs = format!("{prefix}specs");
+        }
+        prefix = format!("{prefix}{part}/");
+    }
+    git.list_files(tip, &specs).is_ok_and(|files| {
+        files.iter().any(|path| {
+            let file = path.rsplit('/').next().unwrap_or_default();
+            file == name || file == format!("{name}.md")
+        })
+    })
+}
+
 fn has_file_named(dir: &Path, name: &str) -> bool {
     let Ok(entries) = fs::read_dir(dir) else {
         return false;
@@ -48,7 +91,7 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
     for link in &document.links {
         if link.wiki {
             let name = link.target.split(['#', '|']).next().unwrap_or_default();
-            if !has_file_named(&specs_folder(file.root, &file.path), name) {
+            if !wiki_target_exists(file, name) {
                 problems.push(file.problem(
                     Some(link.line),
                     "links.wiki",
@@ -81,7 +124,7 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
         if !markdown && !in_specs {
             continue;
         }
-        let target = file.root.join(&resolved);
+        let found = exists(file, &resolved);
         // PRIORITIES.md and INBOX.md link to started features, whose files live on their own
         // branches.
         let on_a_branch = matches!(
@@ -90,17 +133,17 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
         ) && resolved
             .split('/')
             .any(|part| crate::workspace::folder_slug(part).is_some());
-        if !target.exists() && on_a_branch {
+        if !found && on_a_branch {
             continue;
         }
-        if !target.exists() {
+        if !found {
             problems.push(file.problem(Some(link.line), "links.file", format!("no file {path}")));
             continue;
         }
         let (Some(anchor), true) = (anchor, markdown) else {
             continue;
         };
-        let Ok(text) = fs::read_to_string(&target) else {
+        let Some(text) = read(file, &resolved) else {
             continue;
         };
         if !Document::parse(&text)
