@@ -148,6 +148,28 @@ test("a turn killed before its result has no counts, and the next one absorbs it
   expect(cache.agentSessionTokens(session.id)).toEqual(counts(10, 9000, 30_000, 12));
 });
 
+test("a REPLACED agent session starts from zero, and its resumed process from its own turns", async () => {
+  const { adapter, cache, send, session } = await featureSession();
+  adapter.script([TOTAL(2, 7791, 11_304, 4)]);
+  await send("First");
+  await idle();
+
+  // Claude Code deleted the transcript: a new agent session starts, saying so.
+  adapter.sessions.clear();
+  adapter.script([TOTAL(3, 5000, 9000, 6)]);
+  const replaced = await send("Second");
+  expect(adapter.opens[1]).toMatchObject({ resume: false });
+  expect(cache.turn(replaced)?.tokens).toEqual(counts(3, 5000, 9000, 6));
+
+  await idle();
+  adapter.script([TOTAL(5, 6000, 20_000, 10)]);
+  const resumed = await send("And now?");
+
+  expect(adapter.opens[2]).toMatchObject({ nativeId: adapter.opens[1]?.nativeId, resume: true });
+  expect(cache.turn(resumed)?.tokens).toEqual(counts(2, 1000, 11_000, 4));
+  expect(cache.agentSessionTokens(session.id)).toEqual(counts(5, 6000, 20_000, 10));
+});
+
 /** An `init` with a new session ID: `/clear` started a new agent session in the same process. */
 const cleared = (sessionId: string): AgentEvent => ({
   pluginErrors: [],
