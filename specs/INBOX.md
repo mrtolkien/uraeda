@@ -171,3 +171,11 @@
   C3) and a ## Decisions item with a wikilink or a missing decision file are dropped without a ura
   check problem, and the page draws neither; read.rs reads specs/decisions/<name>.md for a link into
   another specs/decisions/ tree; the spec template does not mark "More scenarios:" optional.
+- [agent] [redesign-specs] Spec page: Given/When/Then rows and the criterion's sentence are tested
+  loosely (rows untested; "N unchanged", unlisted order, a rule's own Changed pill, SHOULD vs MUST
+  colours untested); Scenario steps are cut in the web on bold spans (the core could send them);
+  trimmed() is defined twice; the niche fold's choice overrides a later comment; the data model's
+  intro sits outside any panel; on the phone no band between "What you approve" and the answers;
+  comments on the stories' intro are counted nowhere; an unknown level-2 section is not drawn;
+  data-model.md is read from disk while a waiting spec shows its commit; "Contents" at 420 px leaves
+  350 px for the page at 768–800 px.
