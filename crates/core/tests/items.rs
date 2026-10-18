@@ -253,6 +253,42 @@ fn a_story_has_its_key_and_more_scenarios() {
     );
 }
 
+/// A story's scenario blocks, the page's fold among them: the paragraph introducing each list and
+/// the list, both top-level blocks; none without the list.
+#[test]
+fn a_story_has_its_scenario_blocks() {
+    let text = "# Spec: X\n\n## User stories\n\n### US1: Y (P1)\n\nA journey.\n\n\
+        Key scenarios:\n\n1. **Given** a, **When** b, **Then** c.\n\n\
+        More scenarios:\n\n1. **Given** d, **When** e, **Then** f.\n\
+        2. **Given** g, **When** h, **Then** i.\n\nAfter.\n\n### US2: Z (P2)\n\n\
+        More scenarios:\n\nNo list.\n";
+    let (spec, doc) = spec_of(text);
+    let texts = |ids: &[u32]| -> Vec<String> {
+        ids.iter()
+            .map(|&id| format!("{:?} {}", doc.blocks[id as usize].kind, doc.text(id)))
+            .collect()
+    };
+    let us1 = &spec.stories[0];
+    assert_eq!(
+        texts(&us1.key_blocks)[0].as_str(),
+        "Paragraph Key scenarios:"
+    );
+    assert_eq!(
+        us1.key_blocks[1],
+        doc.blocks[us1.key[0].block as usize].parent.unwrap()
+    );
+    assert_eq!(
+        texts(&us1.more_blocks)[0].as_str(),
+        "Paragraph More scenarios:"
+    );
+    assert_eq!(
+        us1.more_blocks[1],
+        doc.blocks[us1.more[0].block as usize].parent.unwrap()
+    );
+    assert_eq!(us1.more_blocks.len(), 2);
+    assert!(spec.stories[1].more_blocks.is_empty());
+}
+
 /// US4 1: a revision has the answers to the last review, by comment number and verdict, and the
 /// spec's parts run from "Your review" to "History".
 #[test]

@@ -104,6 +104,8 @@ fn stories(doc: &Document) -> Vec<Story> {
             .iter()
             .copied()
             .find(|&id| alone_mockup(&doc.blocks[id as usize]));
+        let (key, key_blocks) = scenarios(doc, &blocks, "Key scenarios:");
+        let (more, more_blocks) = scenarios(doc, &blocks, "More scenarios:");
         stories.push(Story {
             id,
             title,
@@ -111,32 +113,37 @@ fn stories(doc: &Document) -> Vec<Story> {
             heading_block: doc.blocks[index].id,
             why,
             mockup,
-            key: scenarios(doc, &blocks, "Key scenarios:"),
-            more: scenarios(doc, &blocks, "More scenarios:"),
+            key,
+            key_blocks,
+            more,
+            more_blocks,
             blocks,
         });
     }
     stories
 }
 
-/// The scenarios of the list right after the paragraph `intro`, numbered from the list's start.
-fn scenarios(doc: &Document, blocks: &[u32], intro: &str) -> Vec<Scenario> {
-    let list = blocks
+/// The scenarios of the list right after the paragraph `intro`, numbered from the list's start,
+/// and that paragraph and list: none without the list.
+fn scenarios(doc: &Document, blocks: &[u32], intro: &str) -> (Vec<Scenario>, Vec<u32>) {
+    let found = blocks
         .iter()
         .position(|&id| doc.text(id).trim() == intro)
-        .and_then(|at| blocks.get(at + 1).copied())
-        .filter(|&list| doc.blocks[list as usize].kind == BlockKind::List);
-    let Some(list) = list else {
-        return Vec::new();
+        .and_then(|at| Some((blocks[at], blocks.get(at + 1).copied()?)))
+        .filter(|&(_, list)| doc.blocks[list as usize].kind == BlockKind::List);
+    let Some((paragraph, list)) = found else {
+        return (Vec::new(), Vec::new());
     };
     let start = doc.blocks[list as usize].start.unwrap_or(1);
-    doc.children(list)
+    let scenarios = doc
+        .children(list)
         .enumerate()
         .map(|(n, item)| Scenario {
             number: start + n as u32,
             block: item.id,
         })
-        .collect()
+        .collect();
+    (scenarios, vec![paragraph, list])
 }
 
 /// Whether a block is a paragraph holding only one link, to a story or an HTML mockup.

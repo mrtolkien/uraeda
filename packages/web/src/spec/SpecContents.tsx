@@ -13,7 +13,15 @@ import { SideColumn } from "../layout/SideColumn.tsx";
 import { useStoredShown } from "../layout/useStoredShown.ts";
 import { holderOf } from "../reviewField.ts";
 import { jumpTo } from "../RoundNav.tsx";
-import { BUILT_PARTS, decisionId, GROUPS, partOf, type SpecItems, storyId } from "./parts.ts";
+import {
+  BUILT_PARTS,
+  decisionId,
+  GROUPS,
+  groupId,
+  partOf,
+  type SpecItems,
+  storyId,
+} from "./parts.ts";
 
 const styles = stylex.create({
   column: {
@@ -46,13 +54,13 @@ function ownersOf(document: Document, items: SpecItems): Map<number, string> {
   );
   own(partOf(items, "Constitution check")?.blocks, GROUPS.approve.id);
   own(partOf(items, "Risk tier")?.blocks, GROUPS.approve.id);
-  own(partOf(items, "Your review")?.blocks, GROUPS.answers.id);
-  own(partOf(items, "Decisions")?.blocks, GROUPS.decisions.id);
+  own(partOf(items, "Your review")?.blocks, groupId(items, GROUPS.answers));
+  own(partOf(items, "Decisions")?.blocks, groupId(items, GROUPS.decisions));
   for (const decision of items.decisions) {
     owners.set(decision.block, decisionId(decision.name));
   }
   for (const story of items.stories) {
-    own([story.headingBlock, ...story.blocks], storyId(story.id));
+    own([story.headingBlock, ...story.blocks], storyId(document, story));
   }
   for (const title of BUILT_PARTS) {
     const part = partOf(items, title);
@@ -119,11 +127,17 @@ export function entriesOf({
   const decisions = [...items.decisions, ...unlisted];
   return [
     entry(GROUPS.approve.id, GROUPS.approve.title),
-    ...(items.answers.length > 0 ? [entry(GROUPS.answers.id, GROUPS.answers.title)] : []),
-    ...(decisions.length > 0 ? [entry(GROUPS.decisions.id, GROUPS.decisions.title)] : []),
+    ...(items.answers.length > 0
+      ? [entry(groupId(items, GROUPS.answers), GROUPS.answers.title)]
+      : []),
+    ...(decisions.length > 0
+      ? [entry(groupId(items, GROUPS.decisions), GROUPS.decisions.title)]
+      : []),
     ...decisions.map((d) => entry(decisionId(d.name), d.title, true)),
-    ...(items.stories.length > 0 ? [entry(GROUPS.stories.id, GROUPS.stories.title)] : []),
-    ...items.stories.map((s) => entry(storyId(s.id), `${s.id} ${s.title}`, true)),
+    ...(items.stories.length > 0
+      ? [entry(groupId(items, GROUPS.stories), GROUPS.stories.title)]
+      : []),
+    ...items.stories.map((s) => entry(storyId(document, s), `${s.id} ${s.title}`, true)),
     ...(hasData ? [entry(GROUPS.data.id, GROUPS.data.title)] : []),
     ...BUILT_PARTS.flatMap((title) => {
       const part = partOf(items, title);

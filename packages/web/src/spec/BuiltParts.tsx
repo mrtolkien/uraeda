@@ -81,7 +81,6 @@ function inOrder(
       nodes.push(
         <Blocks
           document={props.document}
-          folds={props.folds}
           ids={run}
           key={`blocks-${run[0]}`}
           selection={props.selection}
