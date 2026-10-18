@@ -34,6 +34,19 @@ impl Date {
             && date.day <= days_in_month(date.year, date.month);
         valid.then_some(date)
     }
+
+    /// Midnight UTC of the day, in Unix seconds.
+    pub fn unix_seconds(&self) -> i64 {
+        // Howard Hinnant's days-from-civil algorithm.
+        let month = i64::from(self.month);
+        let year = i64::from(self.year) - i64::from(month <= 2);
+        let era = year.div_euclid(400);
+        let year_of_era = year.rem_euclid(400);
+        let shifted_month = if month > 2 { month - 3 } else { month + 9 };
+        let day_of_year = (153 * shifted_month + 2) / 5 + i64::from(self.day) - 1;
+        let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+        (era * 146_097 + day_of_era - 719_468) * 86_400
+    }
 }
 
 impl std::fmt::Display for Date {
@@ -182,6 +195,15 @@ mod tests {
         let time = UNIX_EPOCH + Duration::from_secs(1_791_706_320);
         assert_eq!(rfc3339(time), "2026-10-11T08:12:00Z");
         assert_eq!(rfc3339(UNIX_EPOCH), "1970-01-01T00:00:00Z");
+        assert_eq!(
+            Date::parse("2026-10-11").unwrap().unix_seconds(),
+            1_791_676_800
+        );
+        assert_eq!(Date::parse("1970-01-01").unwrap().unix_seconds(), 0);
+        assert_eq!(
+            Date::parse("2028-03-01").unwrap().unix_seconds(),
+            1_835_481_600
+        );
     }
 
     #[test]

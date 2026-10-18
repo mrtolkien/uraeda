@@ -96,6 +96,39 @@ impl TestRepo {
         self.git(&["commit", "--quiet", "--no-verify", "--message", message]);
     }
 
+    /// Commits every change, authored and committed at `at`, an RFC 3339 time.
+    pub fn commit_at(&self, message: &str, at: &str) {
+        self.commit_at_merged(message, at, at);
+    }
+
+    /// Commits every change, authored at `authored` and committed at `committed`, as a rebase
+    /// leaves a commit.
+    pub fn commit_at_merged(&self, message: &str, authored: &str, committed: &str) {
+        self.git(&["add", "--all"]);
+        self.git_at(
+            &["commit", "--quiet", "--no-verify", "--message", message],
+            authored,
+            committed,
+        );
+    }
+
+    /// Runs git with its author and committer dates set, and returns its stdout. Panics when git
+    /// fails.
+    pub fn git_at(&self, args: &[&str], authored: &str, committed: &str) -> String {
+        let output = without_user_git(Command::new("git").args(args).current_dir(&self.path))
+            .env("GIT_AUTHOR_DATE", authored)
+            .env("GIT_COMMITTER_DATE", committed)
+            .output()
+            .expect("git runs");
+        assert!(
+            output.status.success(),
+            "git {}: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout).unwrap()
+    }
+
     /// Commits a file on another branch, and comes back to the current one.
     pub fn add_on_branch(&self, branch: &str, path: &str, text: &str) {
         let current = self.current_branch();

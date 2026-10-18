@@ -62,6 +62,7 @@ import {
   workspaceDataView,
 } from "./views.ts";
 import { type BranchChangesRecord, branchChangesDataView, sentChanges } from "./views-branch.ts";
+import { historyDataView, sentHistory } from "./views-history.ts";
 import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";
 import {
   folderSuggestionsDataView,
@@ -308,6 +309,13 @@ export const sources = createSources<Context>([
     branchChangesDataView,
     repository({
       byIds: async (ctx, ids) => Promise.all(ids.map((id) => branchChanges(ctx, id))),
+    }),
+  ),
+  fileSource(
+    historyDataView,
+    repository({
+      byIds: ({ binding, repo }, ids) =>
+        each(ids, async (id) => sentHistory(await binding.readHistory(repo, id))),
     }),
   ),
   fileSource(

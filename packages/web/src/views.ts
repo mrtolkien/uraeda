@@ -8,6 +8,7 @@ import type {
   Draft,
   Feature,
   FolderSuggestions,
+  History,
   Inbox,
   Ledger,
   NeedsYouList,
@@ -132,6 +133,21 @@ export const BranchChangesView = view<BranchChanges>()({
   changes: { added: true, count: true, files: true, removed: true },
   failed: true,
   id: true,
+});
+
+/** A feature's or a change's history, by its folder: its stages and their starts, from git. */
+export const HistoryView = view<History>()({
+  current: true,
+  decisions: true,
+  finished: true,
+  folder: true,
+  found: true,
+  id: true,
+  lines: { added: true, files: true, removed: true },
+  questions: true,
+  rounds: true,
+  stages: true,
+  totalSeconds: true,
 });
 
 /** A decision as a feature's branch has it, with its change against the default branch. */
