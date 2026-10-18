@@ -33,6 +33,9 @@ impl Reading<'_> {
             return features;
         };
         let key = (kind, folder.to_string());
+        if self.only.is_some_and(|only| only != folder) {
+            return features;
+        }
         let Some(head) = self.git.head() else {
             return features;
         };
@@ -64,7 +67,10 @@ impl Reading<'_> {
                 continue;
             };
             let key = (kind, folder.to_string());
-            if self.merged.keys.contains(&key) || features.contains_key(&key) {
+            if self.only.is_some_and(|only| only != folder)
+                || self.merged.keys.contains(&key)
+                || features.contains_key(&key)
+            {
                 continue;
             }
             if let Some(feature) = self.branch_feature(branch, kind, folder) {

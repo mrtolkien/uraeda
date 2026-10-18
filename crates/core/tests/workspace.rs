@@ -696,3 +696,36 @@ fn a_pull_request_keeps_the_commits_step() {
     assert_eq!(feature.step.waits_on, WaitsOn::Human);
     assert!(feature.uncommitted);
 }
+
+/// A feature read alone is the one the whole workspace reads: checked out in a worktree, merged
+/// with its branch left, a change on its branch, the current branch's, and a merged folder.
+#[test]
+fn a_folder_read_alone_is_the_workspaces() {
+    let repo = finished_and_merged();
+    place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    repo.switch_new("2026-10-12-other");
+    repo.write("specs/2026-10-12-other/proposal.md", &proposal());
+    repo.commit("chore(other): start Other");
+    repo.switch("main");
+    repo.switch_new(CHANGE_BRANCH);
+    repo.write(&format!("specs/changes/{CHANGE}/proposal.md"), &proposal());
+    repo.commit("chore(tasks-reappear): start");
+    repo.switch("main");
+    repo.switch_new("2026-10-13-merged");
+    repo.write("specs/2026-10-13-merged/proposal.md", &proposal());
+    repo.commit("chore(merged): start");
+    repo.switch("main");
+    merge(&repo, "2026-10-13-merged");
+    repo.switch("2026-10-12-other");
+
+    let git = Git::discover(repo.path()).unwrap();
+    let whole = Workspace::read(&git).unwrap();
+
+    assert_eq!(whole.features.len(), 4);
+    for feature in &whole.features {
+        let alone = Workspace::read_folder(&git, &feature.folder).unwrap();
+        assert_eq!(alone.features.len(), 1, "{}", feature.folder);
+        // Every field, those the views skip included.
+        assert_eq!(format!("{:?}", alone.features[0]), format!("{feature:?}"));
+    }
+}

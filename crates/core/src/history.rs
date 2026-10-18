@@ -184,14 +184,15 @@ fn since(folder: &str) -> i64 {
         .map_or(0, |date| date.unix_seconds() - 86_400)
 }
 
-/// The default branch's tip holding a done item's record, local first, then `origin`'s, as the
-/// workspace reads it: a merge made on the forge shows before the next pull.
+/// Where a done item's walk starts: the first-parent commit that brought its record, on the
+/// default branch's tip that holds it, local first, then `origin`'s, as the workspace reads it. The
+/// walk then skips every later commit, and stays as fast for an old item as for a new one.
 fn recorded_tip(git: &Git, branch: &str, folder: &str) -> Option<ObjectId> {
     let path = record_path(folder);
     let tips = [git.tip(branch), git.remote_tip(branch)];
     tips.into_iter()
         .flatten()
-        .find(|tip| matches!(git.read_file(*tip, &path), Ok(Some(_))))
+        .find_map(|tip| git.first_parent_addition(tip, &path).ok().flatten())
         .or_else(|| git.tip(branch))
 }
 

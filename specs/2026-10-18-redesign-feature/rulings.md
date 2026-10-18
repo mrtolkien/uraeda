@@ -159,3 +159,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a merge timed to the finish of a feature reopened after merging; the rule lives in
   `history/figures.rs`.
 - **Where**: tasks 3 and 6
+
+## R14: The history reads its one folder, and a done item's walk starts at its record
+
+- **Decision**: `read_history` reads the workspace with only its folder, `Workspace::read_folder`,
+  which skips every other branch's and record's read and gives the same feature. A done item's walk
+  starts at the first-parent commit that added its record, found by
+  `git log --first-parent --diff-filter=A -1 -- <record>`, and stops at the folder's date as before.
+- **Rationale**: found in review of task 3: the whole workspace took about 200 ms of a read in a
+  debug build here, and a done item's walk from the default branch's tip grew with every later
+  feature. The benchmark went from 73 ms to 24 ms; on this repository, 2026-10-12-finish-feature
+  reads in 92 ms, 2026-10-17-redesign-clarifications in 123 ms, and the slowest record,
+  2026-10-16-redesign-interface, whose days hold 500 commits, in 251 ms, all debug builds. gix has
+  no path-limited log; the [Git](../decisions/git.md) decision runs the system `git` for such reads,
+  as `first_parent_changes` does, and git stops at the addition.
+- **Alternatives considered**: `first_parent_changes`, which walks to the root, 97 ms against 7 ms
+  here; a walk of the first-parent line checking each tree for the record, slower in gix.
+- **If wrong**: a feature read alone that differs from the workspace's, which
+  `a_folder_read_alone_is_the_workspaces` compares; a record deleted and added again starts the walk
+  at its second addition.
+- **Where**: tasks 3 and 6

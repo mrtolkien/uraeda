@@ -102,6 +102,28 @@ impl Git {
             .collect())
     }
 
+    /// The newest first-parent commit from `tip` that added `path`, a path from the top level: git
+    /// stops there, so the commits older than it cost nothing.
+    pub fn first_parent_addition(
+        &self,
+        tip: ObjectId,
+        path: &str,
+    ) -> Result<Option<ObjectId>, GitError> {
+        let tip = tip.to_string();
+        let args = [
+            "log",
+            "--first-parent",
+            "--diff-filter=A",
+            "-1",
+            "--format=%H",
+            &tip,
+            "--",
+            path,
+        ];
+        let output = self.output("log", &args)?;
+        Ok(ObjectId::from_hex(output.trim().as_bytes()).ok())
+    }
+
     /// The commit that approved revision `revision` of the spec at `spec`, a path from the top
     /// level: the first commit of the last run of commits on the first-parent history from `base`
     /// to `tip` whose spec reads `status: approved` and that revision, so a spec reopened and
