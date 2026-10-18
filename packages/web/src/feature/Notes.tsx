@@ -9,6 +9,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useRepoPath } from "../routes.tsx";
+import { useOpenKeys } from "../useOpenKeys.ts";
 
 const styles = stylex.create({
   // The fold's row, a control's height for a finger.
@@ -64,14 +65,19 @@ export function Blocking({ folder, problems }: { folder: string; problems: Array
   );
 }
 
-/** The check's notes, which block nothing, folded and muted. */
+/** The fold's key in the history entry, kept open across Back. */
+const NOTES_KEY = "notes";
+
+/** The check's notes, which block nothing, folded and muted, open as the history entry keeps them. */
 export function Notes({ notes }: { notes: Array<Problem> }) {
+  const keys = useOpenKeys();
   if (notes.length === 0) {
     return null;
   }
   return (
     <Collapsible
-      defaultIsOpen={false}
+      isOpen={keys.open.includes(NOTES_KEY)}
+      onOpenChange={(isOpen: boolean) => keys.onOpenChange(NOTES_KEY, isOpen)}
       trigger={
         <span {...stylex.props(styles.trigger)}>
           <Text color="secondary">

@@ -2,7 +2,7 @@
 // its blocking problems, and its notes, folded. Times are read in UTC (`vite.config.ts`).
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { refreshPullRequests, startFeature } from "uraeda-binding";
 import {
   addChange,
@@ -13,6 +13,7 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import {
   addMockup,
   atRepo,
@@ -314,6 +315,27 @@ test("format notes are folded at the bottom", async () => {
     screen.getByText("They block nothing: the next agent step rewrites what drifted."),
   ).toBeTruthy();
   expect(screen.getByText(/^proposal\.md:\d+$/)).toBeTruthy();
+});
+
+/** The ui-behaviour decision: Back restores the items opened, the notes' fold among them. */
+test("the format notes opened are open again on Back", async () => {
+  const repo = fixtureRepo();
+  const { folder, worktree } = await startFeature(
+    repo,
+    "specs/drafts/git-listener.md",
+    "git-listener",
+  );
+  const proposal = join(repo, worktree ?? ".", `specs/${folder}/proposal.md`);
+  writeFileSync(proposal, `${readFileSync(proposal, "utf8")}\nSee [the notes](missing.md).\n`);
+  await renderPage(`/f/${folder}`, repo, { agent: true });
+  await click(await screen.findByRole("button", { name: "1 format note" }));
+
+  await act(async () => navigate(atRepo(`/f/${folder}/proposal.md`)));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "1 format note" })).toBeNull());
+  await act(async () => window.history.back());
+
+  const notes = await screen.findByRole("button", { name: "1 format note" });
+  expect(notes.getAttribute("aria-expanded")).toBe("true");
 });
 
 /** SC-003 */
