@@ -470,16 +470,22 @@ impl Git {
 
     /// Runs `git`, and returns its stdout.
     pub(crate) fn output(&self, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
-        let command = |message: String, output: String| GitError::Command {
-            subcommand: subcommand.to_string(),
-            message,
-            output,
-        };
-        match process::run("git", args, &self.root) {
-            Ok(stdout) => Ok(String::from_utf8_lossy(&stdout).into_owned()),
-            Err(Failure::NotFound) => Err(GitError::GitNotFound),
-            Err(Failure::Start(error)) => Err(command(error.clone(), error)),
-            Err(Failure::Exit { message, output }) => Err(command(message, output)),
-        }
+        output_in(&self.root, subcommand, args)
+    }
+}
+
+/// Runs `git` in `root`, and returns its stdout: `Git::output` for a thread, which cannot share a
+/// `Git`.
+fn output_in(root: &Path, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
+    let command = |message: String, output: String| GitError::Command {
+        subcommand: subcommand.to_string(),
+        message,
+        output,
+    };
+    match process::run("git", args, root) {
+        Ok(stdout) => Ok(String::from_utf8_lossy(&stdout).into_owned()),
+        Err(Failure::NotFound) => Err(GitError::GitNotFound),
+        Err(Failure::Start(error)) => Err(command(error.clone(), error)),
+        Err(Failure::Exit { message, output }) => Err(command(message, output)),
     }
 }
