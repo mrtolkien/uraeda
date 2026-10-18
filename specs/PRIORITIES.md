@@ -6,7 +6,8 @@
 >
 > Features for v1.0.0
 
-- [Redesign feature and change pages](drafts/redesign-feature-page.md)
+- [Redesign feature and change pages](/specs/2026-10-18-redesign-feature/proposal.md)
+
 - [Redesign session](drafts/redesign-session.md)
 - [Review home](drafts/review-home.md)
 
