@@ -132,6 +132,8 @@ function FigureCard({ figure }: { figure: Figure }) {
       href={figure.href}
       label={`${figure.label}: ${valueText(figure.value)}${caption}`}
       padding={4}
+      // Out of the app, like the pull request's files: in a new tab, as the app's external links.
+      target={figure.href.startsWith("#") ? undefined : "_blank"}
     >
       {body}
     </ClickableCard>
