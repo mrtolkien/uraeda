@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: workflow
 ---
 
@@ -16,8 +16,6 @@ app.
 - A diagram in a workflow file MUST be a fenced code block whose language is `mermaid`. Other
   diagram languages, images of diagrams, and ASCII drawings MUST NOT be used for what a Mermaid
   flowchart, sequence, or state diagram shows. Checked by review.
-- A diagram SHOULD show a flow, a sequence, or states that a list or a table would make hard to
-  follow, and MUST NOT repeat what the text around it already says as a list. Checked by review.
 - The web UI MUST draw a `mermaid` code block from the document tree the core sends, with the
   `mermaid` package pinned to an exact version in [`packages/web`](/packages/web/package.json).
   Checked by review.
@@ -29,6 +27,8 @@ app.
   could not be drawn." Checked by the diagram's tests.
 - The `mermaid` package MUST be upgraded when one of its security advisories affects the pinned
   version. Checked by review.
+- A diagram SHOULD show a flow, a sequence, or states that a list or a table would make hard to
+  follow, and MUST NOT repeat what the text around it already says as a list. Checked by review.
 
 ## Why
 
