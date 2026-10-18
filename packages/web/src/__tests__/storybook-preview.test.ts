@@ -199,3 +199,31 @@ test("without the variable, a project's security is left as it is", () => {
   expect(uraedaPreview(config, {})).toBe(config);
   expect(config.security).toEqual({ insecureRemoteIframeEmbed: true });
 });
+
+test("a project's security preset function is given Storybook's options", async () => {
+  const options = { configType: "DEVELOPMENT" };
+  const wrapped = uraedaPreview(
+    { ...vite, security: (_value?: object, given?: unknown) => ({ given }) },
+    { URAEDA_PREVIEW_BASE: BASE },
+  );
+
+  expect(await wrapped.security(undefined, options)).toEqual({
+    given: options,
+    insecureIframeMessaging: true,
+  });
+});
+
+test.each(["previewHead", "managerHead"] as const)(
+  "a %s preset returning undefined adds nothing to the head",
+  async (name) => {
+    const wrapped = uraedaPreview(
+      { ...vite, [name]: () => undefined },
+      { URAEDA_PREVIEW_BASE: BASE },
+    );
+    const head = await wrapped[name]!("<meta>", {});
+
+    expect(head).not.toContain("undefined");
+    expect(head).not.toContain("<meta>");
+    expect(head).toMatch(/^<script>.*<\/script>$/s);
+  },
+);
