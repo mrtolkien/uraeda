@@ -61,9 +61,9 @@ function slug() {
   return screen.getByRole("textbox", { name: "Slug" }) as HTMLInputElement;
 }
 
-/** The started change's folder, once its page opens. */
+/** The started change's folder, once its session opens. */
 async function opened() {
-  const page = new RegExp(`^${atRepo("/f/")}(\\d{4}-\\d{2}-\\d{2}-[a-z0-9-]+)$`);
+  const page = new RegExp(`^${atRepo("/f/")}(\\d{4}-\\d{2}-\\d{2}-[a-z0-9-]+)/session$`);
   await expect.poll(() => page.test(window.location.pathname), LIVE).toBe(true);
   return page.exec(window.location.pathname)![1];
 }
