@@ -1224,7 +1224,7 @@ git commit -m "feat(redesign-feature): a feature's lines, time, questions, and d
 **Files:**
 
 - Create: `packages/web/src/RecommendedMessage.tsx`
-- Modify: `packages/web/src/Composer.tsx` (`recommended` prop, `refused` dropped),
+- Modify: `packages/web/src/Composer.tsx` (`recommended` prop, the inserted run, `refused` dropped),
   `packages/web/src/SessionPage.tsx` (`FeatureSession`), `packages/web/src/data.ts`
   (`useRecommendedMessage`), `packages/web/src/views.ts` (`RecommendedView`),
   `packages/web/src/sessions.ts` (`workflow.step`)
@@ -1236,21 +1236,20 @@ git commit -m "feat(redesign-feature): a feature's lines, time, questions, and d
 - Consumes: task 5's `recommendedMessages` and `SendInput.workflow.step`.
 - Produces: the composer's "Insert: <name>" button; nothing other tasks call.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/recommended.test.tsx
 /** US4.1 */
 test("the composer inserts the step's message, unsent", async () => {
-  // 2026-10-11-web-ui with an approved spec and no plan: the plan waits on the agent.
-  const { sessions } = await renderPage("/f/2026-10-11-web-ui/session", repo);
+  // 2026-10-12-cli-tuis, with an approved spec and no plan: the plan waits on the agent.
+  const { agent } = await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: true });
 
   await click(await screen.findByRole("button", { name: "Insert: Continue, write the plan" }));
 
-  expect(composer().textContent).toMatch(
-    /^\/uraeda Continue the feature specs\/2026-10-11-web-ui\//,
-  );
-  expect(sessions.sent).toHaveLength(0);
+  await waitFor(async () => expect((await composer()).textContent).toBe(PLAN));
+  await quiet();
+  expect(agent.sent).toHaveLength(0);
   expect(screen.getByRole("button", { name: "Start the agent" })).toBeTruthy();
 });
 
@@ -1264,6 +1263,10 @@ test("a feature waiting on you recommends nothing, and a typed message still sen
 
 test("inserting keeps what was typed after the message", async () => {
   /* review focus 7 */
+});
+
+test("emptying the composer drops the inserted message: Send is back", async () => {
+  /* the button comes back, Send replaces "Start the agent" */
 });
 
 /** US4 more 1 */
@@ -1285,30 +1288,34 @@ message as a chat (review focus 8). The break each test catches:
 - Inserted unsent: a click that sends at once.
 - Waits on you: the composer disabled, as the refused hand-over did.
 - Typed text: the message replacing what was typed.
+- Emptied: the inserted run kept once the composer is emptied.
 - Moved on: the system line not drawn in the session.
-- Hand-over: the recommended message replacing the hand-over's.
+- Hand-over: the recommended message offered beside the hand-over's.
+- Refused hand-over: its workflow kept, "Start the agent" disabled.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test --run packages/web/src/__tests__/recommended.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "Insert: Continue, write the plan"`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-Start from [`ComposerMessages.tsx`](/packages/web/src/mockups/ComposerMessages.tsx): beside Send,
-the secondary button `Insert: <name>`, tooltip "Insert the recommended message", or the reason as
-supporting text when nothing is recommended. Inserting puts the message's text before what was typed
-and sets the composer's workflow to `{ step, trigger }`; Send then reads "Start the agent". Emptying
-the composer drops the workflow. The button is hidden while a hand-over fills the composer, and on a
-chat with no feature. A refused hand-over shows its notice and leaves the composer sending as a
-chat.
+Start from [`ComposerMessages.tsx`](/packages/web/src/mockups/ComposerMessages.tsx): in the
+composer's footer, the secondary button `Insert: <name>`, tooltip "Insert the recommended message",
+or the reason as supporting text when nothing is recommended; `RecommendedMessage` reads it on its
+own, under `Suspense`. Inserting puts the message's text before what was typed and sets the
+composer's own inserted run to `{ step, trigger }` (R30); Send then reads "Start the agent".
+Emptying the composer drops the run, and a sent message clears it. The button is hidden while a
+hand-over fills the composer, while the composer is unavailable (no agent, no branch: it already
+says why), and on a chat with no feature. A refused hand-over shows its notice, holds no workflow,
+and leaves the composer sending as a chat (R31).
 
 - [ ] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

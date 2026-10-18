@@ -208,3 +208,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   chat, which would treat a chat turn as a run in `#opens`.
 - **If wrong**: one condition of `#send` in `runner/sessions.ts`.
 - **Where**: task 5
+
+## R30: The composer holds the inserted message's run
+
+- **Decision**: `Composer` keeps the run of an inserted recommended message, `{ step, trigger }`, in
+  its own state, behind a `recommended` flag the feature's session sets; the page's `workflow`, a
+  hand-over's, wins over it. The human emptying the field drops it, and a sent message clears it.
+  The offer reads the recommendation itself, under `Suspense`, and is hidden while the composer is
+  unavailable, which already says why. US4.1's test runs on `2026-10-12-cli-tuis`, the fixture's
+  feature whose plan waits on the agent.
+- **Rationale**: the composer clears its field as it sends and puts the text back on a refusal: only
+  it tells the human's emptying from its own, so a refused send keeps its run. The session page then
+  draws before the recommendation is read. Without the agent or a branch, the reason repeated the
+  composer's own line. The plan's `2026-10-11-web-ui` waits on the human's answers in the fixture.
+- **Alternatives considered**: the run in `FeatureSession`, cleared when the draft's text empties,
+  which a refused send would also clear; the record read by `FeatureSession`, which would suspend
+  the whole page on it.
+- **If wrong**: the state moves to `FeatureSession`; one hook in `RecommendedMessage.tsx`.
+- **Where**: task 7
+
+## R31: A refused hand-over's tests send a chat
+
+- **Decision**: `commit-actions.test.tsx`'s "a hand-over refused once read" and "a session opened to
+  continue a feature that waits on you" now expect the notice, no "Start the agent", and Send
+  sending the composer's text as a chat; they no longer expect a disabled "Start the agent".
+- **Rationale**: they checked that a refused workflow message never went as a chat. Since task 5,
+  the server sends a stale workflow message as a chat, and the spec asks that anything typed can
+  always be sent (US4, review focus 8): the composer no longer disables itself on a refusal.
+- **Alternatives considered**: keeping "Start the agent" disabled beside a chat's Send, two buttons
+  for one message.
+- **If wrong**: the `refused` check comes back in `Composer.tsx`.
+- **Where**: task 7

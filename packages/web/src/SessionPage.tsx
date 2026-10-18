@@ -114,6 +114,8 @@ type Handing = {
   onSent?: (session: string) => void;
   /** The controls of the workflow's run, like building in a fresh session. */
   options?: ReactNode;
+  /** Whether the composer offers the feature's recommended message. */
+  recommended?: boolean;
   workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
 };
 
@@ -305,7 +307,9 @@ const NO_BRANCH = "This feature has no branch left: it is merged.";
  * A feature's session: created with its first message, which this view sends. Opened to hand the
  * feature over (`?continue=<trigger>&file=<file>`), its composer starts with the workflow's
  * message, before what the human already typed, and Send reads "Start the agent" until it is sent.
- * Opened to ask about a block (`?ask=<quote>`), it starts with the quote and an empty line.
+ * A hand-over refused, as when the feature waits on you, shows why and holds no workflow: what the
+ * composer holds goes as a chat. Opened to ask about a block (`?ask=<quote>`), it starts with the
+ * quote and an empty line. Otherwise, its composer offers the feature's recommended message.
  */
 function FeatureSession({ folder }: { folder: string }) {
   const feature = useFeature(folder);
@@ -368,14 +372,10 @@ function FeatureSession({ folder }: { folder: string }) {
   // Sent: the address no longer asks for the message, or the quote.
   const sent = () => redirect(here(sessionPath(folder)));
   const handing: Handing = workflow
-    ? {
-        ...fresh.handing(workflow),
-        ...(refused === undefined ? {} : { notice: refused }),
-        onSent: sent,
-      }
-    : ask !== undefined
-      ? { onSent: sent }
-      : {};
+    ? refused === undefined
+      ? { ...fresh.handing(workflow), onSent: sent }
+      : { notice: refused, onSent: sent, recommended: true }
+    : { recommended: true, ...(ask === undefined ? {} : { onSent: sent }) };
   return (
     <>
       {workflow && (

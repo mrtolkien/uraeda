@@ -6,6 +6,7 @@ import {
   type ChatComposerInputProps,
   ChatSendButton,
 } from "@astryxdesign/core/Chat";
+import { HStack } from "@astryxdesign/core/HStack";
 import * as stylex from "@stylexjs/stylex";
 import {
   type Dispatch,
@@ -13,6 +14,7 @@ import {
   type ReactNode,
   type RefObject,
   type SetStateAction,
+  Suspense,
   useRef,
   useState,
 } from "react";
@@ -28,6 +30,7 @@ import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
+import { type Inserted, RecommendedMessage, withInserted } from "./RecommendedMessage.tsx";
 import { sendMessage } from "./sessions.ts";
 import { SessionView } from "./views.ts";
 import { clearPending, markPending } from "./writes/store.ts";
@@ -48,6 +51,9 @@ function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">
 const WORKFLOW_KEEPS_IMAGES =
   "The workflow's message takes no images: they stay here for your next message.";
 
+/** The workflow's run a message starts, while the composer holds it. */
+type Workflow = { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
+
 /** The composer's props. */
 type ComposerProps = {
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
@@ -55,7 +61,10 @@ type ComposerProps = {
   folder?: string;
   /** The message's images, kept by the page with its text. */
   images: ReadonlyArray<DraftImage>;
-  /** Why the page cannot do what it was opened for, shown under the composer. */
+  /**
+   * Why the page cannot do what it was opened for, shown under the composer, which still sends what
+   * it holds, as a chat.
+   */
   notice?: string;
   onChange: (value: string) => void;
   onImagesChange: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
@@ -69,14 +78,19 @@ type ComposerProps = {
   onSent?: (session: string) => void;
   /** The controls of the workflow's run, in the composer's footer while it holds its message. */
   options?: ReactNode;
+  /** Whether it offers the recommended message of the feature in `folder`. */
+  recommended?: boolean;
   /** The send button's label, a primary button's, instead of Send. */
   sendLabel?: string;
   /** Why the page's own send button waits, as for another page's git write: its tooltip. */
   sendWaits?: string | undefined;
   session?: string;
   value: string;
-  /** The workflow's trigger, and whether its run starts fresh, while the composer holds its message. */
-  workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
+  /**
+   * The workflow's trigger, whether its run starts fresh, and the step its message was read at,
+   * while the composer holds its message.
+   */
+  workflow?: Workflow;
   /** Whether the session has a turn going: Stop shows, and Send steers into the turn. */
   working?: boolean;
 };
@@ -107,14 +121,14 @@ function imageRefusal(agent: ReturnType<typeof useAgent>, unavailable?: string, 
  */
 function useSend(
   { folder, images, onChange, onImagesChange, onSend, onSent, session, workflow }: ComposerProps,
-  { canSend, refused, sent }: { canSend: boolean; refused: boolean; sent: () => void },
+  { canSend, sent }: { canSend: boolean; sent: () => void },
 ) {
   const fate = useFateClient();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const withImages = workflow === undefined;
   const submit = (text: string) => {
-    if (refused || !canSend || pending) {
+    if (!canSend || pending) {
       return;
     }
     if (onSend) {
@@ -269,6 +283,64 @@ function sendButtons({
 }
 
 /**
+ * The composer's footer: the controls of the workflow's run while it holds its message, else the
+ * paperclip, `attach`, and the recommended message, unless the composer is unavailable.
+ */
+function footerActions(
+  { folder, options, recommended, workflow }: ComposerProps,
+  attach: ReactNode,
+  { insert, unavailable }: { insert: (message: Inserted) => void; unavailable?: string },
+) {
+  if (workflow) {
+    return options;
+  }
+  // Read on its own: the composer draws before the recommendation.
+  const offer = recommended && folder !== undefined && !unavailable && (
+    <Suspense fallback={null}>
+      <RecommendedMessage folder={folder} onInsert={insert} />
+    </Suspense>
+  );
+  return attach || offer ? (
+    <HStack align="center" gap={2} wrap="wrap">
+      {attach}
+      {offer}
+    </HStack>
+  ) : undefined;
+}
+
+/**
+ * The recommended message inserted (R30): its run, the composer's workflow unless the page gives
+ * one, until it is sent or the human empties the field. `props` are the composer's, with that
+ * workflow; `edit` is the field's change, and `insert` puts the message before what was typed.
+ */
+function useInserted(given: ComposerProps) {
+  const [inserted, setInserted] = useState<Workflow>();
+  const workflow = given.workflow ?? inserted;
+  const props: ComposerProps = {
+    ...given,
+    onSent: (session) => {
+      setInserted(undefined);
+      given.onSent?.(session);
+    },
+    ...(workflow === undefined ? {} : { workflow }),
+  };
+  return {
+    edit: (next: string) => {
+      // Emptied: the inserted message's run goes with its text.
+      if (next.trim() === "") {
+        setInserted(undefined);
+      }
+      given.onChange(next);
+    },
+    insert: ({ text, ...run }: Inserted) => {
+      setInserted(run);
+      given.onChange(withInserted(text, given.value));
+    },
+    props,
+  };
+}
+
+/**
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
  * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
  * once this turn ends" while the session works on a chat. Enter sends on wide screens; on the
@@ -280,16 +352,21 @@ function sendButtons({
  * above the text, dimmed while saved; Send waits for them, and takes a message of images alone. An
  * agent that cannot read images has no paperclip, and the workflow's message takes none (R60):
  * images already in the draft stay there for the next message (R67).
- * `notice` is the page's own reason under it, like the workflow's refusal to continue: with the
- * workflow's message, "Start the agent" stays, disabled, so the message never goes as a chat.
+ * `notice` is the page's own reason under it, like the workflow's refusal to continue: the page
+ * then holds no workflow, and Send sends what was typed as a chat.
+ * `recommended` offers the feature's recommended message beside Send, while the composer holds no
+ * workflow's message: "Insert: <name>" puts it before what was typed, unsent, and makes the send a
+ * workflow run, "Start the agent", until it is sent or the composer is emptied.
  * `blocked` disables it, with why, as when the agent is not on this machine, which disables it
  * too. It is the session page's one field: a file dropped anywhere on the page joins the message.
  * `onSend` sends elsewhere, as "New change" starts a change, under the button `sendLabel`: it needs
  * text, not the agent, and takes images whatever the agent reads, since they go into the
  * repository.
  */
-export function Composer(props: ComposerProps) {
-  const { blocked, images, onChange, onSend, value, workflow, working = false } = props;
+export function Composer(given: ComposerProps) {
+  const { blocked, images, onSend, value, working = false } = given;
+  const { edit, insert, props } = useInserted(given);
+  const { workflow } = props;
   const agent = useAgent();
   const wide = useWidthClass() === "wide";
   const input = useRef<ChatComposerInputHandle>(null);
@@ -298,7 +375,6 @@ export function Composer(props: ComposerProps) {
   const name = agent?.name ?? "the agent";
   const unavailable =
     onSend || agent?.available ? blocked : `${name} is not available on this machine.`;
-  const refused = workflow !== undefined && props.notice !== undefined;
   const refusedWith = onSend ? unavailable : imageRefusal(agent, unavailable, workflow);
   const attaching = useChatImages({
     images,
@@ -318,13 +394,12 @@ export function Composer(props: ComposerProps) {
   const canSend = hasContent && !saving && !unavailable && props.sendWaits === undefined;
   const { error, pending, stop, submit } = useSend(props, {
     canSend,
-    refused,
     sent: attaching.sent,
   });
   const onKeyDown = useEnter(input, wide, canSend ? () => submit(value.trim()) : undefined);
   const placeholder = `Message ${name}`;
   const buttons = sendButtons({
-    canSend: canSend && !refused,
+    canSend,
     hasContent,
     label: props.sendLabel,
     pending,
@@ -333,6 +408,15 @@ export function Composer(props: ComposerProps) {
     workflow: workflow !== undefined,
     working,
   });
+
+  const attach = (onSend || agent?.capabilities.images) && (
+    <AttachButton
+      isDisabled={Boolean(unavailable)}
+      isIconOnly
+      multiple
+      onFiles={attaching.addFiles}
+    />
+  );
 
   return (
     <>
@@ -343,18 +427,7 @@ export function Composer(props: ComposerProps) {
               <ComposerImages focusAt={focusAt} images={images} onRemove={attaching.remove} />
             ) : undefined
           }
-          footerActions={
-            workflow ? (
-              props.options
-            ) : onSend || agent?.capabilities.images ? (
-              <AttachButton
-                isDisabled={Boolean(unavailable)}
-                isIconOnly
-                multiple
-                onFiles={attaching.addFiles}
-              />
-            ) : undefined
-          }
+          footerActions={footerActions(props, attach, { insert, unavailable })}
           input={
             <ComposerInput
               handleRef={input}
@@ -365,7 +438,7 @@ export function Composer(props: ComposerProps) {
           }
           isDisabled={Boolean(unavailable)}
           isStopShown={working && !workflow}
-          onChange={onChange}
+          onChange={edit}
           onStop={stop}
           onSubmit={submit}
           placeholder={placeholder}
