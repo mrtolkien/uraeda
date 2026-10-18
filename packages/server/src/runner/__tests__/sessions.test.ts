@@ -451,6 +451,24 @@ test("a message inserted for the step it still waits at starts a workflow run", 
   expect(cache.itemsOf(turn, "system")).toEqual([]);
 });
 
+test("a message read at a step the feature moved past, still waiting on the agent, says so", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+
+  // Read at the spec; the feature is now at the plan, which waits on the agent, not on the human.
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Write the spec",
+    workflow: { step: "spec", trigger: "manual" },
+  });
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
+  expect(cache.itemsOf(turn, "system")).toEqual([
+    { kind: "system", seq: 1, text: "Sent as a chat: the feature moved on to another step." },
+  ]);
+});
+
 /** A binding whose feature `AGENT` has pull request #31 in `state`, at `step`. */
 function withPullRequest(state: "open" | "draft" | undefined, step: string) {
   return {
@@ -513,7 +531,9 @@ test("the comments message while the pull request's state is unknown is sent as 
   await sessions.settled(turn);
 
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
-  expect(cache.itemsOf(turn, "system")).toHaveLength(1);
+  expect(cache.itemsOf(turn, "system")).toEqual([
+    { kind: "system", seq: 1, text: "Sent as a chat: the feature moved on to another step." },
+  ]);
 });
 
 test("a comments run carries its trigger", async () => {
