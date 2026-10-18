@@ -206,6 +206,22 @@ test.each<[string, Array<AgentEvent>]>([
   expect(recorded(file).flatMap((line) => parseLine(line))).toEqual(events);
 });
 
+test.each<[string, unknown]>([
+  ["an empty modelUsage", {}],
+  ["a modelUsage without counts", { "claude-x": { costUSD: 0.1, inputTokens: "2" } }],
+])("%s sends no tokens, which would reset the baseline", (_, modelUsage) => {
+  const line = JSON.stringify({
+    is_error: false,
+    modelUsage,
+    permission_denials: [],
+    subtype: "success",
+    type: "result",
+  });
+  expect(parseLine(line)).toEqual([
+    { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
+  ]);
+});
+
 test("a tool result made of text blocks is joined", () => {
   const line = JSON.stringify({
     message: {
