@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Redesign and reword specs
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question, about 5 minutes.
+> Answered on 2026-10-18.
 >
 > - Verdict: worth building as proposed; every task is built, and only the pull request is left.
 > - The toolchain decision changed on `main` after you approved its rewrite here: the two texts
@@ -94,7 +94,7 @@ Why gains a sentence on the October 17 CI review. A consequence says coverage ca
   - [con] Coverage becomes required again, and the four new CI rules are lost, though `main`'s code
     already follows them.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
