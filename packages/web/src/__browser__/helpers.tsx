@@ -355,9 +355,16 @@ export function checkMeasure(root?: Element, limit = 115) {
   }
 }
 
+/** Whether an element is in an item of an ordered list drawn as a row, like a stepper's stage. */
+function inRow(element: Element) {
+  const list = element.closest("ol > li")?.parentElement;
+  return list !== null && list !== undefined && getComputedStyle(list).flexDirection === "row";
+}
+
 /**
  * Text is left-aligned, never centred or justified (the UI layout decision): every run of text of
- * three words or more outside a control, whose own label a control may centre.
+ * three words or more outside a control, whose own label a control may centre, and outside the
+ * steps of a row, each step's caption centred under its own mark (R101).
  */
 export function checkAlignment(root?: Element) {
   const main = region(root);
@@ -367,7 +374,7 @@ export function checkAlignment(root?: Element) {
       .map((node) => node.textContent)
       .join("")
       .trim();
-    if (own.split(/\s+/).length < 3 || element.closest(CONTROLS)) {
+    if (own.split(/\s+/).length < 3 || element.closest(CONTROLS) || inRow(element)) {
       continue;
     }
     expect(getComputedStyle(element).textAlign, own.slice(0, 60)).toMatch(

@@ -5,6 +5,8 @@ import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import type { DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { useFile } from "../data.ts";
@@ -13,6 +15,19 @@ import type { OpenKeys } from "../useOpenKeys.ts";
 import { DecisionCard } from "../spec/DecisionCard.tsx";
 import { decisionId, GROUPS } from "../spec/parts.ts";
 import { Section } from "./Section.tsx";
+
+const styles = stylex.create({
+  // The fold's title and the file's link, each a control's height for a finger.
+  control: {
+    alignItems: "center",
+    display: "flex",
+    minHeight: sizeVars["--size-element-md"],
+  },
+  // The decisions in a layer of their own, under the top bar: on the phone, a card's sticking head,
+  // pushed up as its card scrolls away, slides under the bar rather than over it.
+  layer: { isolation: "isolate" },
+  link: { alignSelf: "start" },
+});
 
 /** What the record reads of the history: its counts and its decisions' changes. */
 export type RecordHistory = {
@@ -60,7 +75,7 @@ function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) 
   }
   return (
     <Section id="decisions" title="Decisions">
-      <VStack gap={4}>
+      <VStack gap={4} xstyle={styles.layer}>
         {decisions.map((change) => (
           <DecisionCard
             change={change}
@@ -106,7 +121,7 @@ function Questions({
         onOpenChange={(isOpen: boolean) => keys.onOpenChange(QUESTIONS_KEY, isOpen)}
         trigger={
           // A button holds no heading: the section is named, as the spec's folded history.
-          <Text size="xl" weight="semibold">
+          <Text size="xl" weight="semibold" xstyle={styles.control}>
             {title}
           </Text>
         }
@@ -150,7 +165,7 @@ export function Record({
       )}
       <Questions document={document} history={history} keys={keys} />
       <RecordSection anchor="follow-ups" document={document} />
-      <Link hasUnderline href={here(`/f/${folder}/${name}`)}>
+      <Link hasUnderline href={here(`/f/${folder}/${name}`)} xstyle={[styles.control, styles.link]}>
         Open the record file
       </Link>
     </VStack>

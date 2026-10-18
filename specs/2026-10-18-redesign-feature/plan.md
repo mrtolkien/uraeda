@@ -276,6 +276,7 @@ Existing guarantees to keep:
 | `recommendedMessage` and its fate view                        | the composer and the runner's send both need the one message that applies now                               | the composer choosing: the server owns each message and when it applies                            |
 | `packages/web/src/feature/`, one component per part           | the page has six parts, built by three tasks                                                                | one `FeaturePage.tsx`: past 500 lines, and three tasks in one file                                 |
 | `feature/times.ts`                                            | the stages, the figures, and the agent card format times and durations one way                              | each part formatting its own                                                                       |
+| `packages/web/.storybook/featurePages.ts`                     | the stories, the browser tests, and the screenshots show the same six features (R102)                       | the builder in `test-utils.ts`, past 500 lines; one per consumer                                   |
 | `commitsAt` in `packages/binding/test-utils.ts`               | the web tests, the browser tests, and Storybook need features with typed, dated commits                     | each building its own                                                                              |
 
 No new marker. No constitution exception.
@@ -1721,9 +1722,15 @@ git commit -m "feat(redesign-feature): what a feature produced, and a done one's
 - Create: `packages/web/src/feature/FeaturePage.stories.tsx`,
   `packages/web/src/Composer.stories.tsx` (the recommended message's states),
   `packages/web/src/__browser__/feature.test.tsx`, `specs/2026-10-18-redesign-feature/screenshots/`
-- Modify: `packages/web/.storybook/fixture.ts` and `checkouts.ts` (features with typed, dated
-  commits, through `commitsAt`), `packages/web/scripts/` (a screenshot script for the feature page,
-  from the spec page's)
+- Create: `packages/web/.storybook/featurePages.ts` (the six features of the page's states, with
+  typed, dated commits through `commitsAt`, their past runs, and a `gh` listing #31; R102, R100),
+  `packages/web/scripts/feature-shots.ts`
+- Modify: `packages/web/.storybook/fixture.ts` and `checkouts.ts` (`FEATURE_PAGES`),
+  `packages/web/vite.browser.config.ts` (the `addFeaturePages` command, times in UTC),
+  `packages/web/scripts/screenshots.ts` and `change-shots.ts` (a change's first run opens its
+  session, R21), `packages/server/src/testing.ts` (`recordRun`),
+  `packages/web/src/feature/Stages.tsx` (a row only where every line holds, R22), `Figures.tsx`
+  (R103), `Record.tsx` (R104), `src/__browser__/helpers.tsx` (R101)
 - Delete: `packages/web/src/mockups/`
 
 **Interfaces:**
@@ -1731,12 +1738,13 @@ git commit -m "feat(redesign-feature): what a feature produced, and a done one's
 - Consumes: everything above.
 - Produces: nothing.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // packages/web/src/__browser__/feature.test.tsx
 test("every stage's line fits on one line on a desktop", async () => {
-  // C3, desktop only: a done feature's seven stages each draw their line in one line box.
+  // C3, desktop only, at 1920, 1440, 1200, and 1024 px with the sidebar open: a done feature's
+  // seven stages each draw their label and line in one line box, inside their own stage (R22).
 });
 
 test("Next comes first on the phone, beside the agent on a desktop", async () => {
@@ -1749,32 +1757,33 @@ test("the feature page is accessible in both themes, every fold open", async () 
 });
 ```
 
+A fourth test, "lines added read in green and removed in red", reads C4's drawn colours (R103).
+
 The break each test catches: a stage line that wraps (C3), the cards stacked on a desktop or the
 agent first on the phone (C8), a colour under the contrast floor, a control under 44 px on the
 phone, cut text.
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 - Run: `nix develop -c vp run browser:desktop`, `nix develop -c vp run browser:phone`
 - Expected: FAIL on the first layout or rule reported, or PASS: either way, fix what it reports.
 
-- [ ] **Step 3: Replace the mockups by the real page**
+- [x] **Step 3: Replace the mockups by the real page**
 
 The stories render the real page over the Storybook fixture, one export per state: `Working`,
-`WaitingOnYou`, `Blocked`, `Done`, `DoneChange`, and `PullRequest` when the fixture server can show
-an open pull request without faking a response (otherwise a ruling says why it is left out); the
-composer's `Recommended`, `Filled`, and `Nothing`. Delete `mockups/`. Screenshot the feature page in
-each state, and the session's composer, at both sizes and in both themes; review them against the
-mockups and the spec's review comments (C1 to C11), fix what differs, and commit them under this
-feature's `screenshots/`.
+`WaitingOnYou`, `Blocked`, `Done`, `DoneChange`, and `PullRequest`, its pull request listed by a
+`gh` on the server's PATH (R100); the composer's `Recommended`, `Filled`, and `Nothing`, through a
+feature's session. Delete `mockups/`. Screenshot the feature page in each state, and the session's
+composer, at both sizes and in both themes; review them against the mockups and the spec's review
+comments (C1 to C11), fix what differs, and commit them under this feature's `screenshots/`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`, `nix develop -c vp run storybook:build`,
   `nix develop -c vp run bench`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-18-redesign-feature/screenshots

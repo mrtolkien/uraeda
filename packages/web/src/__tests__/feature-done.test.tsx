@@ -104,7 +104,7 @@ function region(name: string): HTMLElement {
   return screen.getByRole("region", { name });
 }
 
-/** The stage of this label's line, its no-break spaces read as spaces. */
+/** The stage of this label's line. */
 function stageLine(label: string): string {
   const item = within(screen.getByRole("list", { name: "Stages" }))
     .getAllByRole("listitem")
@@ -116,8 +116,7 @@ function stageLine(label: string): string {
     .getAllByText(/./)
     .map((element) => element.textContent ?? "")
     .filter((text) => text !== label && text !== "completed")
-    .join(" ")
-    .replaceAll(" ", " ");
+    .join(" ");
 }
 
 /** Adds an ended turn to a feature's session, with its own counts, started at `at`. */

@@ -1,6 +1,7 @@
 // The repository Uraeda's Storybook serves its stories from: a fresh copy of `fixtures/repo`, its
 // commits dated 2026-10-16, a note given children, with the test feature of the story embeds and
-// one checkout for each state `StoryEmbed.stories.tsx` shows, and the spec page's features. Its previews run the tests' fake Storybook,
+// one checkout for each state `StoryEmbed.stories.tsx` shows, the spec page's features, and the
+// feature page's, with their past runs. Its previews run the tests' fake Storybook,
 // `fixtures/preview/serve.mjs`, as the browser tests' do.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -19,6 +20,7 @@ import type { Plugin } from "vite-plus";
 import { uraedaServer } from "../vite.config.ts";
 import { CHECKOUTS, ROUND_MOCKUPS, SPEC_PAGES } from "./checkouts.ts";
 import { fateOverGet } from "./fateOverGet.ts";
+import { addFeaturePages, listPullRequest, recordFeatureRuns } from "./featurePages.ts";
 
 /** The date of every commit the fixture is built with. */
 const DATE = "2026-10-16T09:00:00Z";
@@ -107,11 +109,11 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
       ROUND_MOCKUPS.commentOnly,
       "Neither: keep a single task, but keep the last 10 completions.",
     );
-    return {
-      configDir: temporaryFolder("uraeda-storybook-config"),
-      dataDir: temporaryFolder("uraeda-storybook-data"),
-      repo,
-    };
+    // The feature page's features, one per state, and their runs' tokens.
+    addFeaturePages(repo);
+    const dataDir = temporaryFolder("uraeda-storybook-data");
+    recordFeatureRuns(dataDir, repo);
+    return { configDir: temporaryFolder("uraeda-storybook-config"), dataDir, repo };
   } finally {
     for (const name of Object.keys(dates)) {
       delete process.env[name];
@@ -122,10 +124,12 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
 /**
  * Uraeda's server in Storybook's own, over a fresh fixture: on the fake agent, dated 2026-10-16,
  * with no `.env` and an empty config folder, its list locked to the fixture (R47), behind the
- * middleware that turns the fixture's fate GETs back into POSTs (R4).
+ * middleware that turns the fixture's fate GETs back into POSTs (R4). Its `gh` lists the feature
+ * page's open pull request (R100).
  */
 export function fixtureServer(): Array<Plugin> {
   const { configDir, dataDir, repo } = storybookFixture();
+  listPullRequest();
   process.env.URA_TODAY = "2026-10-16";
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = dataDir;
