@@ -250,6 +250,18 @@ test("a deleted decision is a Removed card without a link", async () => {
   );
 });
 
+/** R88: the item's file name, in parentheses after its bold lead, is the lead's too. */
+test("a removed decision's sentence says why, without its file's name", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const history = await card("Task history");
+  const note = within(history).getByText(/Repeating tasks keep no history of completions/);
+  expect(note.textContent).toMatch(/^Repeating tasks keep no history/);
+  expect(within(history).queryByText("task-history.md")).toBeNull();
+});
+
 /** The edge case "A decision listed as changed, equal to the default branch's". */
 test("a listed decision equal to main says so", async () => {
   const repo = fixtureRepo();
