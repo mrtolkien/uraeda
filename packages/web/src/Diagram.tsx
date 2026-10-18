@@ -1,11 +1,10 @@
-// A `mermaid` code block drawn as a diagram (`specs/decisions/diagrams.md`): `mermaid` is imported
-// only when a page holds one, into a chunk of its own, and draws at its `sandbox` security level,
-// in a frame without scripts or the app's origin, since a diagram's text comes from files an agent
+// A `mermaid` code block drawn as a diagram (`specs/decisions/diagrams.md`): `pele` is imported only
+// when a page holds one, into chunks of their own, and returns an SVG with no script, which the
+// page shows with its own colours and fonts, since a diagram's text comes from files an agent
 // writes.
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Text } from "@astryxdesign/core/Text";
-import { useTheme } from "@astryxdesign/core/theme";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useId, useRef, useState } from "react";
 import { useWidthOf } from "./layout/useWidthOf.ts";
@@ -18,111 +17,115 @@ const styles = stylex.create({
     marginBlockEnd: spacingVars["--spacing-2"],
     marginBlockStart: 0,
   },
-  frame: (width: string, height: string) => ({
-    borderWidth: 0,
-    // The frame's document has no colour scheme of its own: the frame says the same, or the
-    // browser paints it an opaque white backdrop in the dark mode.
-    colorScheme: "light",
-    display: "block",
-    height,
-    // As wide as the diagram, and the card at least: past the card, the card scrolls, not the page.
-    minWidth: "100%",
-    width,
-  }),
   scroller: {
     // A diagram wider than its card scrolls sideways inside it.
     maxWidth: "100%",
     overflowX: "auto",
   },
+  // The diagram's size, as wide as it draws, and never more than the card's room when it fits.
+  sized: (width: string) => ({ width }),
+  // Pele's colours and fonts, from the theme's own, so a diagram follows the colour mode.
+  theme: {
+    "--pele-accent": colorVars["--color-accent"],
+    "--pele-bg": colorVars["--color-background-surface"],
+    "--pele-border": colorVars["--color-border-emphasized"],
+    "--pele-fg": colorVars["--color-text-primary"],
+    "--pele-font": typographyVars["--font-family-body"],
+    "--pele-font-mono": typographyVars["--font-family-code"],
+    "--pele-line": colorVars["--color-text-secondary"],
+    "--pele-muted": colorVars["--color-text-secondary"],
+    "--pele-surface": colorVars["--color-background-muted"],
+    "--pele-surface-alt": colorVars["--color-background-card"],
+  },
 });
 
-/**
- * The frame's sandbox, Mermaid's own (`allow-top-navigation-by-user-activation allow-popups`), set
- * here so a later Mermaid cannot loosen it: no scripts, and not the app's origin.
- */
-const SANDBOX = "allow-popups allow-top-navigation-by-user-activation";
+/** The largest a diagram shows, in px: a bigger one is scaled down, keeping its proportions. */
+const MAX_WIDTH = 4000;
+const MAX_HEIGHT = 3000;
 
-/** A diagram drawn: the frame's `data:` document, and its size in pixels. */
-type Drawn = { height: number; src: string; width: number };
+/** A diagram drawn: Pele's SVG, its size in pixels, and its type, "flowchart" or "git graph". */
+type Drawn = { height: number; kind: string; svg: string; width: number };
 
-/**
- * The frame Mermaid's `sandbox` level returns, as markup: its `data:` document, and the diagram's
- * size, from its SVG's `viewBox`. Anything else is not a diagram drawn.
- */
-function drawnFrom(markup: string): Drawn {
-  const frame = new DOMParser().parseFromString(markup, "text/html").querySelector("iframe");
-  const src = frame?.getAttribute("src") ?? "";
-  if (!src.startsWith("data:text/html;")) {
-    throw new Error("Mermaid returned no sandboxed frame");
-  }
-  const encoded = atob(src.slice(src.indexOf(",") + 1));
-  const document = new TextDecoder().decode(Uint8Array.from(encoded, (c) => c.charCodeAt(0)));
-  const box = /viewBox="[-\d.]+ [-\d.]+ ([\d.]+) ([\d.]+)"/.exec(document);
-  return { height: Number(box?.[2] ?? 150), src, width: Number(box?.[1] ?? 0) };
+/** Draws `source` with Pele, imported on demand, its ids starting with `idPrefix`. */
+async function draw(source: string, idPrefix: string): Promise<Drawn> {
+  const { renderAsync } = await import("pele/lazy");
+  const { height, svg, type, width } = await renderAsync(source, { idPrefix });
+  // A source that does not parse throws above, rather than drawing an error picture.
+  return {
+    height,
+    kind: type.replaceAll(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`),
+    svg,
+    width,
+  };
 }
 
-/** Draws `source` with Mermaid, imported on demand, in the theme of the colour mode. */
-async function draw(id: string, source: string, dark: boolean): Promise<Drawn> {
-  const { default: mermaid } = await import("mermaid");
-  mermaid.initialize({
-    securityLevel: "sandbox",
-    startOnLoad: false,
-    // A source that does not parse throws, rather than drawing Mermaid's error picture.
-    suppressErrorRendering: true,
-    theme: dark ? "dark" : "neutral",
-  });
-  const { svg } = await mermaid.render(id, source);
-  return drawnFrom(svg);
+/** What a diagram is called: its type, and its place among the document's diagrams. */
+function titleOf(kind: string, place: Place | undefined): string {
+  const name = `${kind[0]?.toUpperCase() ?? ""}${kind.slice(1)} diagram`;
+  return place && place.total > 1 ? `${name}, ${place.index} of ${place.total}` : name;
 }
 
+/** A diagram's place among the diagrams of its document, counted from 1. */
+export type Place = { index: number; total: number };
+
 /**
- * A Mermaid diagram, drawn in a sandboxed frame titled "Diagram", which scrolls sideways inside its
- * card. A source that does not parse, or a `mermaid` that does not load, shows the source as code
- * under "This diagram could not be drawn."
+ * A Mermaid diagram, drawn in the page, which scrolls sideways inside its card when it is wider. It
+ * says "Drawing the diagram…" until drawn. A source that does not parse, or a `pele` that does not
+ * load, shows the source as code under "This diagram could not be drawn."
  */
-export function Diagram({ source }: { source: string }) {
-  const dark = useTheme().mode === "dark";
-  // An id of letters, digits, and dashes, unique on the page: Mermaid selects by it.
-  const id = `diagram-${useId().replaceAll(/[^\w-]/g, "")}`;
+export function Diagram({ place, source }: { place?: Place; source: string }) {
+  // Letters, digits, and dashes, unique on the page: Pele names the diagram's title and
+  // description by it.
+  const idPrefix = `pele-${useId().replaceAll(/[^\w-]/g, "")}`;
   const [drawn, setDrawn] = useState<Drawn | "failed" | undefined>(undefined);
+  // The same element for the diagram's life, drawn or not, so its width is followed throughout.
   const scroller = useRef<HTMLDivElement>(null);
   const room = useWidthOf(scroller);
   useEffect(() => {
     let live = true;
-    draw(id, source, dark).then(
+    draw(source, idPrefix).then(
       (result) => live && setDrawn(result),
       () => live && setDrawn("failed"),
     );
     return () => {
       live = false;
     };
-  }, [dark, id, source]);
-  if (drawn === "failed") {
-    return (
-      <div {...stylex.props(styles.block)}>
-        <Text as="p" display="block" type="inherit" xstyle={styles.failed}>
-          This diagram could not be drawn.
-        </Text>
-        <CodeBlock code={source} language="mermaid" width="100%" />
-      </div>
-    );
-  }
+  }, [idPrefix, source]);
+  const drawnNow = typeof drawn === "object" ? drawn : undefined;
+  const scale = drawnNow
+    ? Math.min(1, MAX_WIDTH / drawnNow.width, MAX_HEIGHT / drawnNow.height)
+    : 1;
+  const width = drawnNow ? drawnNow.width * scale : 0;
+  const title = drawnNow ? titleOf(drawnNow.kind, place) : undefined;
   // Wider than its card, it scrolls: the keyboard reaches it, as a region named for what it holds.
-  const scrolls = drawn !== undefined && room > 0 && drawn.width > room;
+  const scrolls = drawnNow !== undefined && room > 0 && width > room;
   return (
     <div
       ref={scroller}
       {...(scrolls
-        ? { "aria-label": "Diagram, scrolls sideways", role: "region", tabIndex: 0 }
+        ? { "aria-label": `${title}, scrolls sideways`, role: "region", tabIndex: 0 }
         : {})}
       {...stylex.props(styles.block, styles.scroller)}
     >
-      {drawn && (
-        <iframe
-          sandbox={SANDBOX}
-          src={drawn.src}
-          title="Diagram"
-          {...stylex.props(styles.frame(`${drawn.width}px`, `${drawn.height}px`))}
+      {drawn === "failed" && (
+        <>
+          <Text as="p" display="block" type="inherit" xstyle={styles.failed}>
+            This diagram could not be drawn.
+          </Text>
+          <CodeBlock code={source} language="mermaid" width="100%" />
+        </>
+      )}
+      {drawn === undefined && (
+        <Text as="p" display="block" type="inherit" xstyle={styles.failed}>
+          Drawing the diagram…
+        </Text>
+      )}
+      {drawnNow && (
+        <div
+          aria-label={scrolls ? undefined : title}
+          dangerouslySetInnerHTML={{ __html: drawnNow.svg }}
+          role={scrolls ? undefined : "group"}
+          {...stylex.props(styles.theme, styles.sized(`${width}px`))}
         />
       )}
     </div>

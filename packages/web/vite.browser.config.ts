@@ -442,8 +442,8 @@ export default defineConfig({
   server: { ...base.server, allowedHosts: [LISTED_HOST], strictPort: false },
   // StyleX's runtime injection is imported by the compiled styles, which Vite finds only once the
   // tests run: bundled late, on a cold cache, it reloads the browser and fails the test files.
-  // `mermaid` too, which a diagram imports on demand only.
-  optimizeDeps: { include: ["@stylexjs/stylex/lib/stylex-inject", "mermaid"] },
+  // `pele` too, which a diagram imports on demand only.
+  optimizeDeps: { include: ["@stylexjs/stylex/lib/stylex-inject", "pele/lazy"] },
   test: {
     // The tests' server, on a free port: Vitest's default, 63315, is every checkout's, and so are
     // the ports after it, which Vite tries in turn.
