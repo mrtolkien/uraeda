@@ -8,7 +8,7 @@ import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useContext, useMemo } from "react";
 import type { Block, Document } from "uraeda-binding";
-import { Diagram } from "./Diagram.tsx";
+import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
 import { After, Selectable, type Selection } from "./Selection.tsx";
@@ -135,6 +135,17 @@ export type BlockContext = {
   staticImages: boolean;
 };
 
+/** A diagram's place among its document's diagrams, in the order the blocks are written. */
+function diagramPlace(block: Block, document: Document): Place {
+  const diagrams = document.blocks.filter(
+    (other) => other.kind === "code" && other.language === "mermaid",
+  );
+  return {
+    index: diagrams.findIndex((other) => other.id === block.id) + 1,
+    total: diagrams.length,
+  };
+}
+
 function Children({ block, context }: { block: Block; context: BlockContext }) {
   return (context.children.get(block.id) ?? []).map((child) => (
     <BlockNode block={child} context={context} key={child.id} />
@@ -260,7 +271,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       return null;
     case "code":
       return block.language === "mermaid" ? (
-        <Diagram source={block.text ?? ""} />
+        <Diagram place={diagramPlace(block, context.document)} source={block.text ?? ""} />
       ) : (
         <div {...stylex.props(styles.block)}>
           <CodeBlock code={block.text ?? ""} language={block.language} width="100%" />
