@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Block } from "uraeda-binding";
-import { frame, keepPlace, topOf } from "./keepPlace.ts";
+import { frame, keepPlace, scrollInstantly, scrollMark, topOf } from "./keepPlace.ts";
 
 /**
  * Lines of the reviewed file, and the heading above them; or, with `decision`, lines of a decision
@@ -93,14 +93,16 @@ async function placeAboveSheet(
   element: HTMLElement,
   sheet: RefObject<HTMLElement | null>,
   top: number,
+  scrolled: () => number,
 ) {
   const sheetTop = await restingTop(sheet);
   if (sheetTop === undefined || !element.isConnected) {
     return;
   }
-  const moved = element.getBoundingClientRect().top - top;
+  // The reader's own scroll while the sheet settled is theirs: only the page's shift is put back.
+  const moved = element.getBoundingClientRect().top - top + scrolled();
   if (Math.abs(moved) >= 0.5) {
-    window.scrollBy({ behavior: "instant", top: moved });
+    scrollInstantly(moved);
   }
   const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
   const box = element.getBoundingClientRect();
@@ -133,6 +135,8 @@ export function useCommentDraft(
   const lastElement = useRef<HTMLElement>(null);
   // Where the last tapped block was on screen as it was tapped, px from the window's top.
   const tappedTop = useRef(0);
+  // The reader's scroll since that tap: theirs, never put back.
+  const tappedScroll = useRef<() => number>(() => 0);
   const sheet = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -140,7 +144,7 @@ export function useCommentDraft(
     if (wide || draft?.kind !== "lines" || !element) {
       return;
     }
-    void placeAboveSheet(element, sheet, tappedTop.current);
+    void placeAboveSheet(element, sheet, tappedTop.current, tappedScroll.current);
   }, [wide, draft?.kind, selection]);
 
   /** Keeps the last tapped block in place as the form leaves it, then forgets it. */
@@ -160,6 +164,7 @@ export function useCommentDraft(
       void keepPlace(topOf(element));
     }
     tappedTop.current = element.getBoundingClientRect().top;
+    tappedScroll.current = scrollMark();
     setSelection(next);
     setLast(tapped);
     lastElement.current = element;
