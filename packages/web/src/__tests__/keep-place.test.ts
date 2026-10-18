@@ -7,7 +7,7 @@ import { keepPlace } from "../keepPlace.ts";
 let frames: Array<FrameRequestCallback> = [];
 
 /** Places on screen, in px from the window's top: a story frame's bottom, and a block below it. */
-const page = { block: 0, frame: 0 };
+const page = { block: 0, frame: 0, scroll: 0 };
 
 beforeEach(() => {
   frames = [];
@@ -15,10 +15,13 @@ beforeEach(() => {
     frames.push(callback);
     return frames.length;
   });
+  page.scroll = 0;
   vi.spyOn(window, "scrollBy").mockImplementation(((options: ScrollToOptions) => {
     page.block -= options.top ?? 0;
     page.frame -= options.top ?? 0;
+    page.scroll += options.top ?? 0;
   }) as typeof window.scrollBy);
+  vi.spyOn(window, "scrollY", "get").mockImplementation(() => page.scroll);
 });
 
 afterEach(() => {
@@ -76,4 +79,24 @@ test("changes made while the same place is kept put it back once", async () => {
   await draw();
 
   expect(page.block).toBe(before);
+});
+
+/** What the reader scrolls during the two frames is theirs: only the change's shift is put back. */
+test("a scroll by the reader during the frames is not put back", async () => {
+  page.frame = -200;
+  page.block = 300;
+  const before = page.block;
+  // The content above grows by 100 px, pushing the block down.
+  void keepPlace(blockTop, () => {
+    page.block += 100;
+  });
+  // Meanwhile the reader scrolls down 80 px, which moves the block up on screen.
+  page.block -= 80;
+  page.scroll += 80;
+
+  await draw();
+  await draw();
+  await draw();
+
+  expect(page.block).toBe(before - 80);
 });

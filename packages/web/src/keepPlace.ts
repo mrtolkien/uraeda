@@ -6,8 +6,33 @@
 /** Resolves on the next animation frame. */
 export const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
-/** A place being kept: where it was before the first change, and the last change's number. */
-type Keep = { before: number; last: number };
+/** The total, in px, of the instant corrections made so far, which a reader's scroll never includes. */
+let corrected = 0;
+
+/**
+ * A mark on the window's scroll: the function it returns says how far the reader scrolled since,
+ * in px, without the instant corrections made by `scrollInstantly` meanwhile, which put places
+ * back. A place put back by hand is kept at the shift of the page alone, never against the reader's
+ * own scroll.
+ */
+export function scrollMark() {
+  const scroll = window.scrollY;
+  const was = corrected;
+  return () => window.scrollY - scroll - (corrected - was);
+}
+
+/** Scrolls the window by `top` px at once, as a correction: the reader did not make it. */
+export function scrollInstantly(top: number) {
+  const scroll = window.scrollY;
+  window.scrollBy({ behavior: "instant", top });
+  corrected += window.scrollY - scroll;
+}
+
+/**
+ * A place being kept: where it was before the first change, the last change's number, and the
+ * reader's scroll since the first change.
+ */
+type Keep = { before: number; last: number; scrolled: () => number };
 
 /** The places kept while a change is drawn, by their reader, which the changes made meanwhile join. */
 const pending = new Map<() => number, Keep>();
@@ -23,7 +48,10 @@ const pending = new Map<() => number, Keep>();
 export async function keepPlace(read: () => number, change?: () => void) {
   const joined = pending.get(read);
   // A place already gone keeps nothing: a new one is kept instead.
-  const keep = joined && Number.isFinite(joined.before) ? joined : { before: read(), last: 0 };
+  const keep =
+    joined && Number.isFinite(joined.before)
+      ? joined
+      : { before: read(), last: 0, scrolled: scrollMark() };
   pending.set(read, keep);
   const mine = ++keep.last;
   change?.();
@@ -35,10 +63,11 @@ export async function keepPlace(read: () => number, change?: () => void) {
   if (pending.get(read) === keep) {
     pending.delete(read);
   }
-  const moved = read() - keep.before;
+  // What the reader scrolled meanwhile is theirs: only the page's own shift is put back.
+  const moved = read() - keep.before + keep.scrolled();
   // A place gone from the page reads NaN: nothing to keep.
   if (Number.isFinite(moved) && Math.abs(moved) >= 0.5) {
-    window.scrollBy({ behavior: "instant", top: moved });
+    scrollInstantly(moved);
   }
 }
 
