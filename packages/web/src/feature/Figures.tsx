@@ -158,8 +158,13 @@ function linesFigure(lines: NonNullable<FiguresHistory["lines"]>, href?: string)
   };
 }
 
-/** A done item's figures, each leading to its detail. */
-function doneFigures(history: FiguresHistory, tokens: Tokens, pullRequest?: string) {
+/** A done item's figures, each leading to its detail when it has one. */
+function doneFigures(
+  history: FiguresHistory,
+  tokens: Tokens,
+  change: boolean,
+  pullRequest?: string,
+) {
   const figures: Array<Figure> = [];
   const start = (name: string) => history.stages.find((stage) => stage.name === name)?.started;
   const [from, to] = [start("proposal"), start("pull-request")];
@@ -176,18 +181,20 @@ function doneFigures(history: FiguresHistory, tokens: Tokens, pullRequest?: stri
     figures.push(linesFigure(history.lines, pullRequest ? `${pullRequest}/files` : undefined));
   }
   figures.push(tokensFigure(tokens));
-  if (history.questions != null && history.rounds) {
+  // A feature always shows its questions and decisions, at zero too; a change only those it has.
+  const rounds = history.rounds ?? 0;
+  if (!change || rounds > 0) {
     figures.push({
-      caption: plural(history.rounds, "round"),
-      href: "#questions",
+      caption: rounds > 0 ? plural(rounds, "round") : "no round",
+      href: rounds > 0 ? "#questions" : undefined,
       label: "Questions",
-      value: String(history.questions),
+      value: String(history.questions ?? 0),
     });
   }
-  if (history.decisions.length > 0) {
+  if (!change || history.decisions.length > 0) {
     figures.push({
       caption: "new or changed",
-      href: "#decisions",
+      href: history.decisions.length > 0 ? "#decisions" : undefined,
       label: "Decisions",
       value: String(history.decisions.length),
     });
@@ -201,11 +208,14 @@ function doneFigures(history: FiguresHistory, tokens: Tokens, pullRequest?: stri
  * whose commits never reached the default branch says so in place of its figures.
  */
 export function Figures({
+  change = false,
   done,
   history,
   pullRequest,
   tokens,
 }: {
+  /** A change, which shows its questions and decisions only when it has some. */
+  change?: boolean;
   done: boolean;
   history: FiguresHistory;
   /** A done item's pull request, from its record. */
@@ -217,7 +227,7 @@ export function Figures({
     return <Text color="secondary">Not found on the default branch</Text>;
   }
   const figures = done
-    ? doneFigures(history, tokens, pullRequest)
+    ? doneFigures(history, tokens, change, pullRequest)
     : [...(history.lines ? [linesFigure(history.lines, "#files")] : []), tokensFigure(tokens)];
   return (
     <Grid columns={{ minWidth: wide ? 190 : 150, repeat: "fill" }} gap={3}>

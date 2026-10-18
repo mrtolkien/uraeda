@@ -124,6 +124,7 @@ function Produced({ feature, history }: { feature: FeatureData; history: History
     <>
       <Section id="changes" title={done ? "What it produced" : "What it produced so far"}>
         <Figures
+          change={feature.kind === "change"}
           done={done}
           history={history}
           pullRequest={done ? feature.pullRequest?.url : undefined}
