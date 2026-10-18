@@ -43,32 +43,41 @@ async function tap(block: HTMLElement) {
   await userEvent.click(block, { force: true });
 }
 
-test("saving a comment keeps the heading you read in place (US7 1)", async () => {
-  await show(SPEC, "Complete a repeating task");
-  window.scrollBy(0, storyHeading().getBoundingClientRect().top - barBottom());
-  await drawn();
-  const before = storyHeading().getBoundingClientRect().top;
+/**
+ * On a desktop the form opens under the block, and what is above the block never moves, so the
+ * heading read could not move whatever the page did: the tests below check the block itself. The
+ * phone's sheet is what could move the heading, and the page keeps it in place.
+ */
+describe("on a phone, where the form is a sheet", () => {
+  atSize("phone");
 
-  await tap(blocksOf(storyHeading())[0]!);
-  const field = await screen.findByRole("textbox", { name: "Comment text" });
-  // The phone's sheet has risen, and the page has stopped moving.
-  await drawn();
-  await scrollStopped();
-  await userEvent.type(field, "Log it where I can see it");
-  await userEvent.click(screen.getByRole("button", { name: "Add comment" }));
+  test("saving a comment keeps the heading you read in place (US7 1)", async () => {
+    await show(SPEC, "Complete a repeating task");
+    window.scrollBy(0, storyHeading().getBoundingClientRect().top - barBottom());
+    await drawn();
+    const before = storyHeading().getBoundingClientRect().top;
 
-  // Saved: its note under the block, the field closed.
-  await expect
-    .poll(
-      () =>
-        screen.queryByText(/saving…/) === null &&
-        screen.queryAllByText(/^Log it where/).length > 0 &&
-        screen.queryByRole("textbox", { name: "Comment text" }) === null,
-    )
-    .toBe(true);
-  await drawn();
-  await scrollStopped();
-  expect(Math.abs(storyHeading().getBoundingClientRect().top - before)).toBeLessThanOrEqual(MOVE);
+    await tap(blocksOf(storyHeading())[0]!);
+    const field = await screen.findByRole("textbox", { name: "Comment text" });
+    // The phone's sheet has risen, and the page has stopped moving.
+    await drawn();
+    await scrollStopped();
+    await userEvent.type(field, "Log it where I can see it");
+    await userEvent.click(screen.getByRole("button", { name: "Add comment" }));
+
+    // Saved: its note under the block, the field closed.
+    await expect
+      .poll(
+        () =>
+          screen.queryByText(/saving…/) === null &&
+          screen.queryAllByText(/^Log it where/).length > 0 &&
+          screen.queryByRole("textbox", { name: "Comment text" }) === null,
+      )
+      .toBe(true);
+    await drawn();
+    await scrollStopped();
+    expect(Math.abs(storyHeading().getBoundingClientRect().top - before)).toBeLessThanOrEqual(MOVE);
+  });
 });
 
 describe("on a desktop, where the form opens under the block", () => {
