@@ -278,3 +278,56 @@ fn a_link_to_a_file_only_the_checkout_has_is_broken() {
     let git = decision(&ledger.decisions, "git");
     assert_eq!(git.problem.as_deref(), Some("no file ../../docs/hooks.md"));
 }
+
+/// A decision's date is the last commit touching it, through a merge: a branch's edit of one
+/// decision carries its own date, and the merge, which touches none, carries none.
+#[test]
+fn a_merged_decision_keeps_the_date_of_its_commit() {
+    let repo = TestRepo::new();
+    repo.write("specs/decisions/git.md", GIT);
+    commit_on(&repo, "decision: git", "2026-10-12");
+    repo.write(
+        "specs/decisions/toolchain.md",
+        &GIT.replace("# Git", "# Toolchain"),
+    );
+    commit_on(&repo, "decision: toolchain", "2026-10-13");
+    repo.switch_new("edit-git");
+    repo.write(
+        "specs/decisions/git.md",
+        &GIT.replace("icon: git-branch", "icon: git-merge"),
+    );
+    commit_on(&repo, "decision: git icon", "2026-10-15");
+    repo.switch("main");
+    repo.write(
+        "specs/decisions/toolchain.md",
+        &GIT.replace("# Git", "# Build"),
+    );
+    commit_on(&repo, "decision: toolchain title", "2026-10-16");
+    let merged = without_user_git(
+        Command::new("git")
+            .args([
+                "merge",
+                "--quiet",
+                "--no-ff",
+                "--message",
+                "merge",
+                "edit-git",
+            ])
+            .env("GIT_COMMITTER_DATE", "2026-10-17T12:00:00+00:00")
+            .current_dir(repo.path()),
+    )
+    .output()
+    .unwrap();
+    assert!(merged.status.success(), "{merged:?}");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    assert_eq!(
+        decision(&ledger.decisions, "git").changed.as_deref(),
+        Some("2026-10-15")
+    );
+    assert_eq!(
+        decision(&ledger.decisions, "toolchain").changed.as_deref(),
+        Some("2026-10-16")
+    );
+}
