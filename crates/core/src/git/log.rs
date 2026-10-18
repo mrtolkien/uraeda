@@ -84,17 +84,14 @@ impl Git {
         Ok(dates)
     }
 
-    /// The commits of the first-parent history from `tip` that touch `path`, a path from the top
-    /// level, the newest first.
-    pub fn first_parent_changes(
-        &self,
-        tip: ObjectId,
-        path: &str,
-    ) -> Result<Vec<ObjectId>, GitError> {
+    /// The commits of the history from `tip` that touch `path`, a path from the top level, the
+    /// newest first, a child before its parents. The history of a merged branch is in it, and the
+    /// merge commit itself only when it changes `path` against every parent.
+    pub fn path_changes(&self, tip: ObjectId, path: &str) -> Result<Vec<ObjectId>, GitError> {
         let tip = tip.to_string();
         let output = self.output(
             "log",
-            &["log", "--first-parent", "--format=%H", &tip, "--", path],
+            &["log", "--topo-order", "--format=%H", &tip, "--", path],
         )?;
         Ok(output
             .lines()
