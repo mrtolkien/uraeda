@@ -709,6 +709,9 @@ author time, at or after the previous found stage's start, whose type is:
 | `build`, `fix` | `feat`, `fix`, `refactor`, `test`, `docs`, `perf`, `build`, `ci`, `style` |
 | `pull-request` | `finish`                                                                  |
 
+A live item's stages after its current one have no start: a `fix(<slug>)` commit made while the spec
+waits does not start Build (R12).
+
 `merged`, for a done item: the default branch's first-parent commit through which its newest scoped
 commit arrived, at its committer time: the commit itself when it is on the first-parent line (a
 rebase or fast-forward), otherwise the oldest first-parent merge commit it is an ancestor of
