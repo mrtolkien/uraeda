@@ -1,7 +1,7 @@
 import type { CommentItem, Document } from "uraeda-binding";
 import { readUnsaved, type Unsaved, unsavedKey, writeUnsaved } from "./fields/unsaved.ts";
 import { selectable } from "./Selection.tsx";
-import type { CommentDraft, Range } from "./useCommentDraft.ts";
+import type { CommentDraft, Last, Range } from "./useCommentDraft.ts";
 
 /**
  * The field keys of a review's comment: a new one, on lines or the whole file, whose lines are in
@@ -22,17 +22,37 @@ export const linesOf = ({ end, start }: { end: number; start: number }) =>
   start === end ? `line ${start}` : `lines ${start}–${end}`;
 
 /**
+ * Lines as a review comment names them: `lines 40–52`, or, of a decision, `decision git, lines
+ * 15–16`, with ` removed` after a removed part's lines.
+ */
+export function placeOfLines({ decision, ...lines }: Omit<Range, "heading">) {
+  return decision
+    ? `decision ${decision.name}, ${linesOf(lines)}${decision.removed ? " removed" : ""}`
+    : linesOf(lines);
+}
+
+/**
  * Where a review comment points, kept with its edit as the comment it is of: `general`, or its
- * lines. Its number changes as comments before it go.
+ * lines, those of a decision named with it, so the edit of a comment on the spec's lines is never
+ * taken for one on a decision's same lines. Its number changes as comments before it go.
  */
 export const placeOf = (comment: CommentItem) =>
-  comment.general ? "general" : linesOf({ end: comment.endLine, start: comment.startLine });
+  comment.general
+    ? "general"
+    : placeOfLines({
+        decision:
+          comment.decision === undefined
+            ? undefined
+            : { name: comment.decision, removed: comment.removed },
+        end: comment.endLine,
+        start: comment.startLine,
+      });
 
 /** The comment that held unsaved text when the review was drawn, opened again to restore it. */
 export type Restored = {
   draft: CommentDraft;
-  /** The block it opens under, on lines. */
-  last?: number;
+  /** The block or the decision's part it opens under, on lines. */
+  last?: Last;
   selection?: Range;
   /** Its entry, on lines of a commit no longer reviewed: written again as a general comment. */
   stale?: { key: string; value: Unsaved };
@@ -83,8 +103,12 @@ export function restoredComment(
   if (lines.commit !== tip) {
     return { draft: { kind: "general" }, stale: { key, value: entry } };
   }
-  const selection = { end: lines.end, heading: lines.heading, start: lines.start };
-  return { draft, last: holderOf(tree, lines.end)?.id, selection };
+  const { decision, end, heading, start } = lines;
+  const selection = { decision, end, heading, start };
+  const last = decision
+    ? { decision: decision.name, line: end, removed: decision.removed }
+    : holderOf(tree, end)?.id;
+  return { draft, last, selection };
 }
 
 /**
@@ -99,7 +123,7 @@ export function writeStale({ key, value }: { key: string; value: Unsaved }) {
   writeUnsaved(key, {
     at: now.at,
     base: now.base,
-    text: `On ${linesOf(value.extra)} of the previous version: ${now.text}`,
+    text: `On ${placeOfLines(value.extra)} of the previous version: ${now.text}`,
   });
 }
 

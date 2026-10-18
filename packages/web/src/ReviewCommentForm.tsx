@@ -14,7 +14,7 @@ import { type useFile, useAgent } from "./data.ts";
 import type { Unsaved } from "./fields/unsaved.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { CommentNote } from "./ReviewComments.tsx";
-import { linesOf } from "./reviewField.ts";
+import { placeOfLines } from "./reviewField.ts";
 import type { Refusals } from "./ReviewVerdict.tsx";
 import { selectable } from "./Selection.tsx";
 import { plain } from "./Spans.tsx";
@@ -49,11 +49,13 @@ const styles = stylex.create({
   },
 });
 
-/** Where a comment on lines goes, as the review writes it. */
+/**
+ * Where a comment on lines goes, as the review writes it: `Lines 4–6, under "Rules"`, or, on a
+ * decision's lines, `Decision git, lines 15–16 removed, under "Rules"`.
+ */
 export function anchor(range: Range) {
-  const lines =
-    range.start === range.end ? `Line ${range.start}` : `Lines ${range.start}–${range.end}`;
-  return `${lines}, under "${range.heading}"`;
+  const where = placeOfLines(range);
+  return `${where[0]!.toUpperCase()}${where.slice(1)}, under "${range.heading}"`;
 }
 
 /** A block's text, a row's cells included. */
@@ -151,9 +153,11 @@ function ReviewForm({
   if (!draft) {
     return undefined;
   }
-  // The selected lines' first block, quoted in the comment field.
+  // The selected lines' first block, quoted in the comment field: a decision's lines quote none of
+  // the file's blocks.
   const first =
     selection &&
+    !selection.decision &&
     tree.blocks
       .filter((b) => selectable(b) && b.startLine >= selection.start && b.endLine <= selection.end)
       .sort((a, b) => a.startLine - b.startLine)[0];
@@ -162,7 +166,8 @@ function ReviewForm({
       action={
         agent?.available &&
         draft.kind === "lines" &&
-        selection && <Button label="Ask the agent" onClick={() => ask(selection)} />
+        selection &&
+        !selection.decision && <Button label="Ask the agent" onClick={() => ask(selection)} />
       }
       anchor={
         draft.kind === "lines" && selection
@@ -188,7 +193,7 @@ function ReviewForm({
 
 /** A new comment shown where it goes as it is added, marked "saving…" until the file holds it. */
 export function AddingNote({ adding }: { adding: Adding }) {
-  const where = adding.range ? linesOf(adding.range) : "general";
+  const where = adding.range ? placeOfLines(adding.range) : "general";
   const name = `${where[0]!.toUpperCase()}${where.slice(1)} · saving…`;
   return <CommentNote label={name} name={name} text={adding.text} />;
 }

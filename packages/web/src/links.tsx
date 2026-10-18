@@ -1,7 +1,14 @@
 // The links of the UI's pages: the anchor every Astryx link draws, and the page of a repository's
 // file.
 import type { ComponentProps, MouseEvent } from "react";
-import { currentEntry, localPath, navigate, parseLocation, repoPath } from "./routes.tsx";
+import {
+  branchDecisionPath,
+  currentEntry,
+  localPath,
+  navigate,
+  parseLocation,
+  repoPath,
+} from "./routes.tsx";
 
 /** Whether a link opens a page of the UI: a path of this origin, in this tab. */
 function inApp(href: string | undefined, target: string | undefined): href is string {
@@ -58,22 +65,35 @@ export function RouterAnchor({
   );
 }
 
-/** The page of a file of the repository `repo`, from its path from the top level. */
-export function pathLink(path: string, repo: string): { href: string; inApp: boolean } {
-  const [, hash = ""] = path.split("#");
-  const file = path.split("#")[0];
+/**
+ * The page of a file of the repository `repo`, from its path from the top level, at `anchor`, the
+ * part of its link after `#`, when given. A decision linked from an item's file, `from`, opens as
+ * that item's branch has it; from anywhere else, on the decisions page, as the default branch has
+ * it.
+ */
+export function pathLink(
+  path: string,
+  repo: string,
+  anchor?: string,
+  from?: { folder: string },
+): { href: string; inApp: boolean } {
+  const [file = "", hash = anchor ?? ""] = path.split("#");
   const at = (local: string) => repoPath(repo, local);
+  const marked = hash ? `#${hash}` : "";
   // The one TypeScript copy of the core's folder rule, a link having no feature view: a feature's
   // folder is in `specs/`, a change's in `specs/changes/`, and both open at `/f/<folder>`.
   const feature = /^specs\/(?:changes\/)?(\d{4}-\d{2}-\d{2}-[^/]+)\/([^/]+\.md)$/.exec(file);
   if (feature) {
-    return { href: at(`/f/${feature[1]}/${feature[2]}${hash ? `#${hash}` : ""}`), inApp: true };
+    return { href: at(`/f/${feature[1]}/${feature[2]}${marked}`), inApp: true };
   }
   // The constitution and the decisions open on their page, not as text.
   if (file === "specs/CONSTITUTION.md") {
     return { href: at("/decisions"), inApp: true };
   }
   const decision = /^specs\/decisions\/([^/]+)\.md$/.exec(file);
+  if (decision && from) {
+    return { href: at(`${branchDecisionPath(from.folder, decision[1]!)}${marked}`), inApp: true };
+  }
   if (decision) {
     return { href: at(`/decisions/${decision[1]}`), inApp: true };
   }

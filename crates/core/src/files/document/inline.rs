@@ -20,6 +20,8 @@ pub struct SpanLink {
     pub path: Option<String>,
     /// The story it names, when it is a story link.
     pub story: Option<StoryTarget>,
+    /// The part of its target after `#`, when not empty: a heading of the file it opens.
+    pub anchor: Option<String>,
 }
 
 /// An image of a span: its target as written, and the file it shows in the repository.
@@ -131,6 +133,11 @@ impl Builder<'_> {
             wiki,
             path,
             story: (!wiki).then(|| story_target(self.dir, target)).flatten(),
+            anchor: target
+                .split_once('#')
+                .map(|(_, anchor)| anchor)
+                .filter(|anchor| !anchor.is_empty())
+                .map(str::to_string),
         }
     }
 }

@@ -23,6 +23,11 @@ test.each([
   ["/decisions/ui-behaviour", { name: "ui-behaviour", page: "decision" }],
   ["/decisions/constitution/iv", { page: "principle", slug: "iv" }],
   ["/decisions/git/rules", { page: "missing", path: "/decisions/git/rules" }],
+  // US2 more 5: a decision as a feature's branch has it.
+  [
+    "/f/2026-10-17-spec-page/decisions/task-storage",
+    { folder: "2026-10-17-spec-page", name: "task-storage", page: "branch-decision" },
+  ],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
 
 /** US6.3: the repository is in the URL, and a path without it is still a page's. */

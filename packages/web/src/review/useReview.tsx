@@ -75,7 +75,15 @@ export function useReview(file: File, wide: boolean) {
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, commentDraft.selection));
   const field = fieldOf(file, comments, commentDraft);
   const storyComments = useStoryComments(file);
-  const blocks = useReviewSelection({ actions, commentDraft, container, placed, tree, wide });
+  const blocks = useReviewSelection({
+    actions,
+    commentDraft,
+    comments,
+    container,
+    placed,
+    tree,
+    wide,
+  });
   return {
     ...blocks,
     actions,

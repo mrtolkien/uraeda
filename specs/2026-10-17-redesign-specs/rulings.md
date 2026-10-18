@@ -691,3 +691,107 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   did not ask for, read twice by screen readers.
 - **If wrong**: the colour test is the second of `__browser__/spec-parts.test.tsx`.
 - **Where**: task 12, `packages/web/src/__browser__/spec-parts.test.tsx`
+
+## R80: A rule's check is cut from its words in the web, at "Checked by"
+
+- **Decision**: the card draws a rule's runs up to the first run holding the words "Checked by", cut
+  inside that run if needed, then the rest on a muted line (`splitCheck` in `spec/RuleLine.tsx`).
+  The core's runs stay one list per part.
+- **Rationale**: the runs are plain text from the core (R20): cutting them at two fixed words reads
+  no markdown, and decides nothing the core decides. Splitting the runs in the core would change
+  every run of task 3's table of cases, which compare a rule and its check in one list.
+- **Alternatives considered**: a `check` list of runs on `PartChange`: a change of task 3's type and
+  its expected values, for a line of layout.
+- **If wrong**: add the split to `part_change` in `crates/core/src/decisions/change.rs`, and draw
+  its two lists.
+- **Where**: task 13, `packages/web/src/spec/RuleLine.tsx`
+
+## R81: A strength's icon and colour come from the core's name for it
+
+- **Decision**: the five icons are registered in `theme/icons.ts` as `uraeda:strength-<name>`, by
+  `Strength::as_str`'s names, and drawn only for a part whose `strength` the core gives: a rule
+  without a keyword draws none, never a MAY dot. Colours (review comment C1): MUST
+  `--color-icon-green`, MUST NOT `--color-icon-red`, MAY `--color-icon-secondary`; SHOULD and SHOULD
+  NOT the hard colour at 75% over `--color-background-card`, a `color-mix` of tokens: softer in both
+  themes. The colour adds to the chevrons' shape and the icon's name, which say the strength alone.
+  The colours are tested in the browser, by each icon's accessible name and its computed colour,
+  with the side bar and any strike: happy-dom computes no StyleX colour.
+- **Rationale**: the plan's break, "a strength read again in the web"; the UI components decision's
+  tokens.
+- **Alternatives considered**: a lighter green token: none sits between `--color-icon-green` and the
+  tints in both themes.
+- **If wrong**: `colours` in `spec/RuleLine.tsx`.
+- **Where**: task 13, `theme/icons.ts`, `spec/RuleLine.tsx`, `__browser__/spec.test.tsx`
+
+## R82: A card's measure is 75ch of its reading text, as the round's
+
+- **Decision**: a card's text sits at the reading size in a column of `--size-round-measure`, 75ch
+  of that text's "0". The browser test checks each line of each part, the note and the intent
+  included, against 75 widths of a rule's "0", with "Contents" hidden so the card is wide enough for
+  the measure to bind, and fails with the page's 90ch.
+- **Rationale**: the plan names the page's measure "the 90-character measure", 90ch, so a 75ch
+  column is the spec's "75 characters". `checkMeasure` counts average characters, about 1.2 to a
+  `ch`, so it could not tell 75ch from 90ch at the card's sizes.
+- **Alternatives considered**: a new theme token for cards: a theme rebuild shared with the tasks of
+  the same wave, for the round's value.
+- **If wrong**: `measure` in `spec/DecisionCard.tsx`.
+- **Where**: task 13, `spec/DecisionCard.tsx`, `__browser__/spec.test.tsx`
+
+## R83: What a decision card shows, by its change
+
+- **Decision**: a card holds its title, a link to the decision's page on the branch unless removed,
+  a control's height under a touch pointer, its kind's pill, "Not listed in the spec" when unlisted,
+  the spec item's sentence (its spans after the bold lead, a reading paragraph you comment on as the
+  spec's line), then: for a decision new, removed, or not compared, its intent and its rules whole,
+  a removed one's parts on a red tint, not folded, and "Could not compare with the default branch."
+  first when not compared; for a changed one, its intent whole, then each section with a part not
+  kept, a run of kept parts behind "N unchanged", added and changed parts each under a "New" or
+  "Changed" pill, removed parts behind "N removed" at the section's end; for a changed one with
+  every part kept, "No change against the default branch". A listed decision found on neither side
+  shows its sentence alone. The branch's decision page shows every section, its kept parts unfolded.
+  The intent is a lead at the spec opening's lead size, drawn as a block of text rather than a
+  paragraph, which the layout check holds to the body size; the check under a rule is supporting
+  text. Added and removed words are `insertion` and `deletion` roles on spans, never `del`.
+- **Rationale**: the mockup the human reviewed, with review comment C1; a pill names a part's kind,
+  so new and removed decisions take none per part.
+- **Alternatives considered**: the item drawn whole: its bold lead repeats the title and the pill.
+- **If wrong**: `shownSections` and `sectionRows` in `spec/DecisionCard.tsx`, `noteOf` in
+  `spec/DecisionCards.tsx`.
+- **Where**: task 13, `packages/web/src/spec/`
+
+## R84: A comment on a decision's part goes through the review's own selection
+
+- **Decision**: a selection's `Range` takes an optional `decision`, `{ name, removed }`, and the
+  last tapped element is a block's id or a decision's part, by its decision and last line.
+  `Selection.parts` gives the cards their taps, their selected state, and what follows a part: its
+  pending comments, with Edit and Remove, the comment being added, and the form on wide screens. A
+  tap on another file's lines starts a new selection. The form names the place as the review does,
+  `Decision task-storage, lines 16–17 removed, under "Rules"`, without a quote or "Ask the agent",
+  which read the spec's lines. `placeOf` names the decision, so an unsaved edit of a decision
+  comment is never restored on a spec comment of the same lines. "Your review" still lists every
+  comment on lines, those on decisions too, without Edit and Remove, as before. A fold holding a
+  pending comment or the selection stays open.
+- **Rationale**: one comment machinery for the spec's blocks and the decisions' parts (the plan's
+  complexity tracking), and task 8's notes.
+- **Alternatives considered**: a second comment form for decisions: two machineries to keep in step.
+- **If wrong**: `partSelection` in `review/useReviewSelection.tsx`, `select` in
+  `useCommentDraft.ts`.
+- **Where**: task 13, `useCommentDraft.ts`, `Selection.tsx`, `review/`, `reviewField.ts`,
+  `ReviewCommentForm.tsx`, `useReviewActions.ts`
+
+## R85: "From an item's file" is a feature's page; without a branch decision, the decisions page
+
+- **Decision**: a decision link opens `/f/<folder>/decisions/<name>` when drawn inside a feature's
+  stories context, `StoryContext.folder`, which a feature's files and its session set, not a draft;
+  elsewhere, the decisions page as before. A link to a feature's file keeps its anchor too, now that
+  `SpanLink.anchor` carries it. The branch's decision page redirects to the decisions page when the
+  core answers the decision missing: a feature without a branch, or a branch without the decision.
+  The existing test "a spec's link to a decision opens it on the decisions page" waits for that
+  redirect instead of reading the address at once.
+- **Rationale**: the context already says which feature a document is drawn for; a proposal on the
+  default branch has no branch to read the decision from.
+- **Alternatives considered**: a context of its own set by each file page: a second provider at each
+  place the stories' one is.
+- **If wrong**: `from` in `Spans.tsx`, and the redirect in `decisions/BranchDecision.tsx`.
+- **Where**: task 13, `Spans.tsx`, `links.tsx`, `routes.tsx`, `decisions/BranchDecision.tsx`,
+  `__tests__/decisions.test.tsx`
