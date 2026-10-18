@@ -243,6 +243,9 @@ export class Turns {
     // Stop, or a take-back, may have ended it while the process opened: the next one starts, or
     // the idle timer does.
     if (live.queue[0] !== queued) {
+      if (line !== undefined && live.proc) {
+        live.proc.line = line;
+      }
       this.next(live);
       return;
     }

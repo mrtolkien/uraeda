@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
 import type { Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 import { migrate, transaction } from "./migrations.ts";
-import { FRESH, REPLACED } from "./session-state.ts";
+import { CLEARED, FRESH, REPLACED } from "./session-state.ts";
 
 export type { SessionRow, TurnRow } from "./cache-rows.ts";
 export { migrations } from "./migrations.ts";
@@ -328,9 +328,9 @@ export class SessionCache {
          FROM turns WHERE session_id = ?1 AND id >= COALESCE(
            (SELECT MAX(i.turn_id) FROM items i JOIN turns t ON t.id = i.turn_id
             WHERE t.session_id = ?1 AND i.kind = 'system'
-              AND json_extract(i.data, '$.text') IN (?2, ?3)), 0)`,
+              AND json_extract(i.data, '$.text') IN (?2, ?3, ?4)), 0)`,
       )
-      .get(sessionId, FRESH, REPLACED) as TokenCounts;
+      .get(sessionId, FRESH, REPLACED, CLEARED) as TokenCounts;
     return { ...row };
   }
 

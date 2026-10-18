@@ -179,3 +179,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `a_folder_read_alone_is_the_workspaces` compares; a record deleted and added again starts the walk
   at its second addition.
 - **Where**: tasks 3 and 6
+
+## R40: A new agent session in a process says so, and its first total is its turn's own
+
+- **Decision**: a reported total lower than the process's baseline in any field starts a new agent
+  session: the turn gets the whole total. An `init` with a new session ID, `/clear`, adds the system
+  line "Started a new session: the agent cleared the turns above." to its turn, and
+  `agentSessionTokens` starts at it, as at `FRESH` and `REPLACED`. A fresh turn taken back while its
+  process opened leaves its `FRESH` line to the next turn started on that process.
+- **Rationale**: the plan clamped a lower total to zero, losing the new agent session's first turn,
+  and a later resume summed the previous agent session's turns into its baseline, counting the new
+  one's turns twice. An agent session's running total never decreases, and the baseline of a resume
+  needs a mark in the turns where the agent session started.
+- **Alternatives considered**: a column of the turns holding their agent session's ID, a migration
+  for one case; the lower-total rule alone, which counts a resumed agent session's earlier turns
+  again.
+- **If wrong**: `processes.ts`'s `tokens`, and the `init` case of `transcript.ts`.
+- **Where**: task 4, after its review

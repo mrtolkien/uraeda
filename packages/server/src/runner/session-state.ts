@@ -52,6 +52,9 @@ export const REPLACED = "Started a new session: the previous one is gone.";
 export const FRESH =
   "Started a new session for this run: the agent reads the repository, not the turns above.";
 
+/** The line a turn shows when its agent started a new agent session in its process: `/clear`. */
+export const CLEARED = "Started a new session: the agent cleared the turns above.";
+
 /** The line a turn shows when it reopened: its agent went on after it ended. */
 export const RESUMED = "The agent went on by itself: a background task reported back.";
 
@@ -85,6 +88,8 @@ export type Proc = {
    * a background shell or sub-agent reported back.
    */
   ended?: { first: string; id: number };
+  /** The line of the new agent session it started, until a turn on it records it. */
+  line?: string;
   /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
   terminate: Array<Timer>;
 };

@@ -2,6 +2,7 @@ import { activityLabel, WORKING, waitingLabel, working } from "./activity.ts";
 import type { AgentEvent, BackgroundTask, Item } from "./events.ts";
 import { toolTarget } from "./message.ts";
 import {
+  CLEARED,
   commandCount,
   type Live,
   OUTPUT_LIMIT,
@@ -53,7 +54,11 @@ export class Transcript {
         // `/clear` starts a new agent session in the same process.
         if (event.sessionId !== "" && event.sessionId !== rowOf(cache, live).nativeId) {
           cache.updateSession(live.id, { nativeId: event.sessionId });
-          changed(live);
+          // Its line marks where the agent session's tokens start, for a process resuming it.
+          if (turn) {
+            cache.appendItem(turn.id, { kind: "system", text: CLEARED });
+          }
+          changed(live, turn?.id);
         }
         // The skill loads as the `uraeda` plugin: a process without it must not run.
         if (event.pluginErrors.length > 0 || !event.plugins.includes(PLUGIN)) {
