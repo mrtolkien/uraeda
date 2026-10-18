@@ -1,6 +1,6 @@
-// The edge case "No agent on this machine": "Start the change" starts the change, and its page
-// opens with the workflow's message in its composer, unsent, as a feature's hand-over does. A start
-// that answers once the human left the page opens nothing.
+// "Start the change" starts the change and opens its session, where its agent works. The edge case
+// "No agent on this machine": the session opens with the workflow's message in its composer,
+// unsent, as a feature's hand-over does. A start that answers once the human left opens nothing.
 import { act, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
@@ -40,6 +40,22 @@ test("without the agent, the change's page opens with its message unsent", async
   );
   expect(screen.getByRole("button", { name: "Start the agent" })).toBeTruthy();
   expect(fake.adapter.sent).toHaveLength(0);
+});
+
+test("with the agent, the change's session opens, where its agent works", async () => {
+  const fake = await fakeAgent();
+  fake.adapter.script([]);
+  await renderPage("/changes/new", fixtureRepo(), { agent: fake });
+
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  await type(box, "Centre the x in failure circles");
+  const slug = screen.getByRole("textbox", { name: "Slug" }) as HTMLInputElement;
+  await waitFor(() => expect(slug.value).toBe("centre-x"));
+  await click(screen.getByRole("button", { name: "Start the change" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/session`)));
+  expect(window.location.search).toBe("");
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
 });
 
 /** New change, its `change.start` requests held in `held` until released. */

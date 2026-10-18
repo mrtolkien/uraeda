@@ -15,7 +15,7 @@ import { useTextField } from "./fields/useTextField.ts";
 import { Page } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { navigate, useRepoPath, useRestoreScroll } from "./routes.tsx";
-import { handOver } from "./sessions.ts";
+import { handOver, sessionPath } from "./sessions.ts";
 import { SlugField } from "./SlugField.tsx";
 import { useDraft } from "./useDraft.ts";
 import { FeatureView } from "./views.ts";
@@ -35,8 +35,8 @@ function useSettled(text: string) {
 }
 
 /**
- * Starts the change from the composer's text and images, under the slug typed: its page opens, or,
- * when no run was sent, its session with the workflow's message unsent (R12). A refusal is shown
+ * Starts the change from the composer's text and images, under the slug typed: its session opens,
+ * where its agent works, or, when no run was sent, with the workflow's message unsent (R12). A refusal is shown
  * under the slug field, and the text stays. A change started once the human left the page opens
  * nothing: its text and slug still go, since it started, but only while they are the ones sent: a
  * newer text or slug, typed while it started, stays (R19).
@@ -83,7 +83,7 @@ function useStart(text: ReturnType<typeof useTextField>, slug: ReturnType<typeof
     if (result.result?.session === null) {
       handOver(folder, "start");
     } else {
-      navigate(here(`/f/${folder}`));
+      navigate(here(sessionPath(folder)));
     }
     return true;
   };
