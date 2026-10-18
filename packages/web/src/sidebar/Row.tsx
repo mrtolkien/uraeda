@@ -9,6 +9,11 @@ import { StatusMark } from "../StatusMark.tsx";
 import type { Row, Status } from "./cards.ts";
 
 const styles = stylex.create({
+  label: {
+    // A chat's title wraps: no title is cut by an ellipsis.
+    overflowWrap: "anywhere",
+    whiteSpace: "normal",
+  },
   subagent: {
     // A sub-agent's row, under its chat's.
     paddingInlineStart: spacingVars["--spacing-6"],
@@ -30,6 +35,7 @@ export function Item({
   pathname,
   status,
   to,
+  wraps,
 }: {
   /** Its controls at the row's end, like ＋, shown while the navigation is unfolded. */
   actions?: ReactNode;
@@ -43,6 +49,8 @@ export function Item({
   pathname: string;
   status?: Status;
   to: string;
+  /** Whether a long label wraps, where it would be cut by an ellipsis. */
+  wraps?: boolean;
 }) {
   const here = useRepoPath();
   const { isCollapsed } = useSideNavCollapse();
@@ -53,7 +61,7 @@ export function Item({
       endContent={endContent}
       href={here(to)}
       isSelected={selects(pathname, to)}
-      label={label}
+      label={wraps ? <span {...stylex.props(styles.label)}>{label}</span> : label}
       {...(named === label ? {} : { "aria-label": named })}
       {...(foldedIcon && isCollapsed && !status ? { icon: foldedIcon } : {})}
       {...(status ? { icon: <StatusMark label={status.label} status={status.status} /> } : {})}
@@ -109,6 +117,7 @@ export function Chat({ pathname, row }: { pathname: string; row: Row }) {
         pathname={pathname}
         status={{ label: row.statusLabel, status: row.status }}
         to={to}
+        wraps
       />
       {!isCollapsed &&
         row.subagents.map((subagent) => (
