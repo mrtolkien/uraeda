@@ -20,7 +20,11 @@ Warnings do not fail the check, but a waiting file should have none. The parts a
 - `sections.missing` for a missing Context part, `sections.unknown` for a heading the template does
   not have, and `sections.order` for one out of order;
 - `settled.group` for a settled point outside a group;
-- `edges.importance` for an edge case's importance other than high, normal, or niche.
+- `edges.importance` for an edge case's importance other than high, normal, or niche;
+- `review.answer` for an item of `## Your review` that is not a bold `**C<n>**`, its comment in
+  parentheses, and `done` or `declined`;
+- `decisions.item` for an item of `## Decisions` that is not a bold `New:` or `Changed:` with a link
+  to the decision's file, or a bold `Removed:` with its file's name in code.
 
 See [The `ura` CLI](cli.md).
 
