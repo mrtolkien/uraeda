@@ -51,8 +51,14 @@ const KINDS: Record<string, StepKind> = {
   "spec-revision": "spec",
 };
 
-/** A feature's step, as its card draws it: a gate by what it asks, else by the step's name. */
+/**
+ * A feature's step, as its card draws it: a problem whatever its step, then a gate by what it
+ * asks, else by the step's name. Its notes stay off the card, on its page.
+ */
 export function stepOf(feature: Feature): CardItem["step"] {
+  if (feature.problems.length > 0) {
+    return { kind: "problem", label: "Problem to fix" };
+  }
   if (feature.step.name === "human-gate") {
     const kind = feature.files.find((file) => file.name === feature.step.file)?.kind;
     return (kind ? GATES[kind] : undefined) ?? { kind: "proposal", label: waiting(feature).title };
@@ -62,13 +68,13 @@ export function stepOf(feature: Feature): CardItem["step"] {
 
 /**
  * A feature's status: its session's, or, without a session, "Needs you" while its step waits on
- * the human, and idle otherwise.
+ * the human or it has a problem, and idle otherwise.
  */
 export function featureStatus(feature: Feature, row: Row | undefined): Status {
   if (row) {
     return { label: row.statusLabel, status: row.status };
   }
-  return feature.step.waitsOn === "human"
+  return feature.step.waitsOn === "human" || feature.problems.length > 0
     ? { label: "Needs you", status: "needs-you" }
     : { label: "Idle", status: "idle" };
 }
@@ -113,6 +119,6 @@ export function byStatus(features: Array<Feature>, statuses: Map<string, Status>
   );
 }
 
-/** Whether a feature or a change is still in flight: not done, and readable. */
+/** Whether a feature or a change is still in flight: not done, and readable or with a problem. */
 export const inFlight = (feature: Feature) =>
-  feature.step.name !== "done" && feature.step.name !== "none";
+  feature.step.name !== "done" && (feature.step.name !== "none" || feature.problems.length > 0);
