@@ -229,7 +229,8 @@ The workflow only moves on when every question is answered. A follow-up `Q2.B` n
 when its parent's answer starts with its letter: "B", "B and C: ...", "A, B". A parent answered
 without a letter, in the human's own words, closes its follow-ups: they need no answer. If a
 clarifications file is `answered` with questions left blank, set its status back to
-`awaiting-human`, name the blank questions in the first line of its block, and commit.
+`awaiting-human`, name the blank questions in the first line of its block, as "2 questions still
+need an answer: Q3 and Q5", and commit.
 
 The human may also write under **Notes:**, at the end of the questions, about the points settled
 without them: the spec step reads the notes like answers. A comment on one settled point is a bullet
