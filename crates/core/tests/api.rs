@@ -675,7 +675,7 @@ fn try_again_refuses_other_staged_files_before_deleting_images() {
     assert!(repo.exists(&image));
 }
 
-/// R1: a feature's problems in the web UI hold `ura check`'s errors, never its warnings.
+/// R1: a feature's problems and notes in the web UI hold `ura check`'s errors, never its warnings.
 #[test]
 fn a_features_problems_leave_its_warnings_out() {
     let repo = repo();
@@ -691,7 +691,8 @@ fn a_features_problems_leave_its_warnings_out() {
     );
 
     let checked = uraeda_core::check::check(repo.path(), &repo.path().join(&round)).unwrap();
-    let problems = api::read_feature(repo.path(), FOLDER).unwrap().problems;
+    let view = api::read_feature(repo.path(), FOLDER).unwrap();
+    let problems: Vec<_> = view.problems.iter().chain(&view.notes).collect();
 
     assert_eq!(checked.len(), 1, "{checked:?}");
     assert_eq!(checked[0].rule, "block.count");

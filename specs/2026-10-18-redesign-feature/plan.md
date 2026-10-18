@@ -412,9 +412,13 @@ git commit -m "docs(redesign-feature): the agent addresses a pull request's comm
 - Modify: `crates/core/src/api.rs` (`checked`'s doc comment only, if its wording changes)
 - Modify: `packages/binding/index.d.ts` (generated)
 - Modify: `packages/server/src/fate/views.ts` (`featureDataView`: `notes`),
-  `packages/web/src/views.ts` (`FeatureView`: `notes { file line message rule }`)
+  `packages/server/src/fate/sources.ts` (`missingFeature`: `notes: []`), `packages/web/src/views.ts`
+  (`FeatureView`: `notes: true`, as `problems`)
+- Modify: `packages/web/src/FeaturePage.tsx` (`ProblemList` lists the problems, then the notes,
+  until task 8 replaces the page, R7)
 - Test: `crates/core/tests/problems.rs`, `crates/core/tests/this_repository.rs`,
-  `packages/web/src/__tests__/home.test.tsx`
+  `packages/web/src/__tests__/home.test.tsx`; `crates/core/tests/api.rs`'s
+  `a_features_problems_leave_its_warnings_out` reads the problems and the notes (R8)
 
 **Interfaces:**
 
@@ -424,7 +428,7 @@ git commit -m "docs(redesign-feature): the agent addresses a pull request's comm
   others, both in the order they are found today. In JavaScript,
   `FeatureView.notes: Array<ProblemView>`, selected by the web's `FeatureView`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/problems.rs
@@ -481,41 +485,44 @@ Match the region names to `HomeHub.tsx`'s panels. The break each test catches:
 - The check: a change that lowers the check's severity instead of the view's reading.
 - Home: Home still reading notes as problems.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `nix develop -c cargo nextest run -p uraeda-core problems`
+- Run: `nix develop -c cargo nextest run -p uraeda-core -E 'binary(problems)'`
 - Expected: FAIL, `view.notes` does not exist (a compile error)
 
-- [ ] **Step 3: Implement the problems' kind**
+- [x] **Step 3: Implement the problems' kind**
 
 `BLOCKING` lists the rules that stop the workflow: `frontmatter.status`, `frontmatter.parse`,
 `frontmatter.kind`, and `file.utf8`, which make the step `none`, and `answers.blank`, which leaves
 an answered round incomplete. Its doc comment quotes the [Problems](../decisions/problems.md)
 decision and says a new rule is a note unless the workflow cannot go on without a fix.
 `FeatureView::new` partitions the workspace's problems and `extra` with `Problem::blocks`. Add
-`notes` to `featureDataView` and the web's `FeatureView` selection. Then
+`notes` to `featureDataView` and the web's `FeatureView` selection, and list them after the problems
+in `FeaturePage.tsx`'s `ProblemList`, so notes stay on the page until task 8 folds them (R7). Then
 `nix develop -c vp run binding:build`.
 
-- [ ] **Step 4: Measure SC-001 on this repository's history**
+- [x] **Step 4: Measure SC-001 on this repository's history**
 
 `crates/core/tests/this_repository.rs`, `#[ignore = "this repository's history"]`,
 `sc001_drift_is_never_a_problem`: for every commit of `main` from 2026-10-17T16:48 to
 2026-10-18T10:00 that touched a feature folder
-(`git log --format=%H --since … --until … main -- 'specs/20*/'`), read each touched folder at that
-commit into a temporary folder, run `check::check_files` on it, and assert that every blocking
-result's rule is a `frontmatter.*` rule: drift and unfinished files never block. Print the counts of
-snapshots, of snapshots with errors, and of snapshots with a blocking result, for the pull request.
+(`git log --format=%H --since … --until … main -- 'specs/20*'`: the pathspec `'specs/20*/'` matches
+no commit), export the commit's `specs/` into a temporary folder, run `check::check_files` on each
+touched folder still there, and assert that every blocking result's rule is a `frontmatter.*` rule:
+drift and unfinished files never block. Print the counts of snapshots, of snapshots with errors, and
+of snapshots with a blocking result, for the pull request.
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --run-ignored only sc001`
-- Expected: PASS, 72 snapshots, 0 or only invalid-status snapshots blocking
+- Expected: PASS, 37 snapshots, 36 with errors, 0 blocking. Discovery's 72 counted other branches'
+  commits too; `main` holds 39 commits in the window, two of which removed their folder (R7).
 
 - [ ] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
-- Expected: PASS. `feature.test.tsx`'s "shows the problems ura check finds" still passes: its blank
-  answer is blocking.
+- Expected: PASS. `feature.test.tsx`'s "shows the problems ura check finds" still passes: its
+  removed `**Answer:**` line is `answers.marker`, a note, which the page still lists (R7).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/core packages/binding/index.d.ts packages/server/src/fate/views.ts packages/web/src

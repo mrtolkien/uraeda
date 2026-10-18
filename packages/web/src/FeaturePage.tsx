@@ -211,14 +211,15 @@ function MockupList({ feature, folder }: { feature: FeatureData; folder: string 
   );
 }
 
-/** The problems `ura check` finds in the feature's files. */
+/** What `ura check` finds in the feature's files: its problems, then its notes. */
 function ProblemList({ feature }: { feature: FeatureData }) {
-  if (feature.problems.length === 0) {
+  const found = [...feature.problems, ...feature.notes];
+  if (found.length === 0) {
     return null;
   }
   return (
     <List hasDividers header={<Heading level={2}>Problems</Heading>}>
-      {feature.problems.map((problem, index) => (
+      {found.map((problem, index) => (
         <ListItem
           description={<>{problem.message}</>}
           key={index}

@@ -795,7 +795,10 @@ export interface FeatureView {
    */
   mockups: Array<string>
   step: StepView
+  /** What stops the workflow, `Problem::blocks`: Home and the sidebar flag the feature. */
   problems: Array<ProblemView>
+  /** The check's other results, shown only on its page. */
+  notes: Array<ProblemView>
   /** For a merged feature, its worktree still there, from the main checkout. */
   leftWorktree?: string
   /** For a merged feature, its local branch still there. */
