@@ -15,6 +15,19 @@ use crate::files::stories::StoryTarget;
 pub struct Scenario {
     pub number: u32,
     pub block: u32,
+    /// Its steps, from its bold Given, When, and Then.
+    pub steps: Vec<ScenarioStep>,
+}
+
+/// A step of a scenario: its word, and the spans up to the next step, without the blanks and the
+/// comma the word leaves before them.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScenarioStep {
+    /// Given, When, or Then; empty for the spans before the first step.
+    pub word: String,
+    pub spans: Vec<Span>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
