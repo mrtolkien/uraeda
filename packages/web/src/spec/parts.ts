@@ -66,6 +66,31 @@ export function unreadItems(document: Document, read: ReadonlyArray<number>): Ar
     .map((block) => block.id);
 }
 
+/** The sections the page draws its own way, by title: any other level-2 section is drawn as written. */
+const KNOWN_PARTS = new Set([
+  "Assumptions",
+  "Architecture",
+  "Constitution check",
+  "Decisions",
+  "Edge cases",
+  "History",
+  "Risk tier",
+  "Success criteria",
+  "User stories",
+  "Your review",
+]);
+
+/** The level-2 sections the page has no drawing for, in the spec's order. */
+export function otherParts(items: SpecItems): SpecItems["parts"] {
+  return items.parts.filter((part) => !KNOWN_PARTS.has(part.title));
+}
+
+/** The blocks of the stories' section outside any story, like a paragraph before the first. */
+export function storiesIntro(items: SpecItems): ReadonlyArray<number> {
+  const inStories = new Set(items.stories.flatMap((s) => [s.headingBlock, ...s.blocks]));
+  return partOf(items, "User stories")?.blocks.filter((id) => !inStories.has(id)) ?? [];
+}
+
 /** The element id of a decision's card. */
 export function decisionId(name: string): string {
   return `decision-${name}`;
