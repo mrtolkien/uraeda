@@ -259,11 +259,14 @@ pub(crate) fn headings(doc: &Document) -> Vec<(usize, u32, String)> {
         .collect()
 }
 
-/// The top-level blocks after a heading, up to the next heading of `level` or above.
+/// The top-level blocks after a heading, up to the next top-level heading of `level` or above. A
+/// heading in a quote or a callout is the quote's: it does not end the section.
 pub(crate) fn section(doc: &Document, heading: usize, level: u32) -> Vec<u32> {
     doc.blocks[heading + 1..]
         .iter()
-        .take_while(|b| b.kind != BlockKind::Heading || b.level.unwrap_or(1) > level)
+        .take_while(|b| {
+            b.kind != BlockKind::Heading || b.parent.is_some() || b.level.unwrap_or(1) > level
+        })
         .filter(|b| b.parent.is_none() && b.kind != BlockKind::Heading)
         .map(|b| b.id)
         .collect()

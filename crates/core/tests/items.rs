@@ -604,6 +604,28 @@ fn a_comment_is_edited_and_removed() {
     assert_eq!(one, None);
 }
 
+/// A `##` heading inside a quote is the quote's: the settled points after it are still read.
+#[test]
+fn a_quoted_heading_does_not_end_the_settled_section() {
+    let text =
+        std::fs::read_to_string(common::fixture("settled-comments/clarifications-01.md")).unwrap();
+    let text = text.replace(
+        "- **Deleting a repeating task** ends the repetition.\n",
+        "- **Deleting a repeating task** ends the repetition.\n\n> ## A quoted heading\n\n- **After the quote** is still a point.\n",
+    );
+    let doc = document::parse(&text, "specs/2026-10-06-recurring-tasks");
+    let round = items("clarifications-01.md", &text, &doc)
+        .clarifications
+        .unwrap();
+
+    let subjects: Vec<&str> = round
+        .settled_points
+        .iter()
+        .map(|point| point.subject.as_str())
+        .collect();
+    assert!(subjects.contains(&"After the quote"), "{subjects:?}");
+}
+
 #[test]
 fn the_settled_section_ends_at_the_notes_and_takes_comments() {
     let text =

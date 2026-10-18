@@ -9,15 +9,6 @@ use crate::files::clarifications::{self, Applicability};
 use crate::files::document::{Block, BlockKind, Document, ItemMarker, plain};
 use crate::files::frontmatter;
 
-/// The top-level blocks of the level-2 section titled `title`.
-fn named_section(doc: &Document, title: &str) -> Vec<u32> {
-    headings(doc)
-        .into_iter()
-        .find(|(_, level, text)| *level == 2 && text == title)
-        .map(|(index, _, _)| section(doc, index, 2))
-        .unwrap_or_default()
-}
-
 /// The parts of the level-2 section titled `title`, in order: the blocks before its first `###`
 /// sub-heading when there are some, then each sub-heading's index in blocks and its top-level
 /// blocks. Deeper headings are left out, as `section` leaves them. Only top-level headings delimit
@@ -61,48 +52,50 @@ fn context_parts(doc: &Document) -> Vec<ContextPart> {
         .collect()
 }
 
-/// The settled groups by their sub-heading, with their blocks before the `**Notes:**` line. An
-/// unknown sub-heading, which `ura check` reports, makes no group.
-fn settled_groups(doc: &Document, notes_line: usize) -> Vec<SettledGroup> {
+/// The parts of the settled section, read once: the blocks before its first `###` sub-heading when
+/// there are some, then each sub-heading's index in blocks and its blocks, all before the
+/// `**Notes:**` line.
+type SettledParts = Vec<(Option<usize>, Vec<u32>)>;
+
+fn settled_parts(doc: &Document, notes_line: usize) -> SettledParts {
     parts(doc, "Settled without the human")
         .into_iter()
+        .map(|(heading, blocks)| {
+            let blocks = blocks
+                .into_iter()
+                .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
+                .collect();
+            (heading, blocks)
+        })
+        .collect()
+}
+
+/// The settled groups by their sub-heading. An unknown sub-heading, which `ura check` reports,
+/// makes no group.
+fn settled_groups(doc: &Document, parts: &SettledParts) -> Vec<SettledGroup> {
+    parts
+        .iter()
         .filter_map(|(heading, blocks)| {
-            let heading = &doc.blocks[heading?];
+            let heading = &doc.blocks[(*heading)?];
             let kind = match plain(&heading.spans).as_str() {
                 "Check these" => "check",
                 "Behaviour" => "behaviour",
                 "Under the hood" => "hood",
                 _ => return None,
             };
-            let blocks = blocks
-                .into_iter()
-                .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
-                .collect();
             Some(SettledGroup {
                 heading: heading.id,
                 kind: kind.to_string(),
-                blocks,
+                blocks: blocks.clone(),
             })
         })
         .collect()
 }
 
-/// The top-level blocks of the points settled without the human, before the `**Notes:**` line.
-fn settled_section(doc: &Document, notes_line: usize) -> Vec<u32> {
-    named_section(doc, "Settled without the human")
-        .into_iter()
-        .filter(|&id| {
-            doc.blocks
-                .iter()
-                .any(|b| b.id == id && (b.start_line as usize) < notes_line)
-        })
-        .collect()
-}
-
-/// The settled points that start in bold, in order: the items of the settled section's lists.
-pub(crate) fn settled_points(doc: &Document, notes_line: usize) -> Vec<SettledPoint> {
+/// The settled points that start in bold, in order: the items of the lists of every part.
+fn points_of(doc: &Document, parts: &SettledParts) -> Vec<SettledPoint> {
     let mut points = Vec::new();
-    for id in settled_section(doc, notes_line) {
+    for &id in parts.iter().flat_map(|(_, blocks)| blocks) {
         for item in doc.children(id) {
             if let Some(subject) = leading_strong(item) {
                 points.push(SettledPoint {
@@ -113,6 +106,11 @@ pub(crate) fn settled_points(doc: &Document, notes_line: usize) -> Vec<SettledPo
         }
     }
     points
+}
+
+/// The settled points that start in bold, in order, before the `**Notes:**` line.
+pub(crate) fn settled_points(doc: &Document, notes_line: usize) -> Vec<SettledPoint> {
+    points_of(doc, &settled_parts(doc, notes_line))
 }
 
 /// The notes split into the free notes and the comments on the settled points, each pointing at
@@ -213,7 +211,8 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
     }
     let notes = clarifications::notes(text);
     let notes_line = notes.as_ref().map_or(usize::MAX, |(line, _)| *line);
-    let settled_points = settled_points(doc, notes_line);
+    let settled = settled_parts(doc, notes_line);
+    let settled_points = points_of(doc, &settled);
     let (free, settled_comments) = notes
         .as_ref()
         .map(|(_, notes)| split(notes, &settled_points))
@@ -223,7 +222,7 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
         block,
         context: context_parts(doc),
         questions,
-        settled_groups: settled_groups(doc, notes_line),
+        settled_groups: settled_groups(doc, &settled),
         settled_points,
         notes: free,
         notes_line: notes.map(|(line, _)| line as u32),
