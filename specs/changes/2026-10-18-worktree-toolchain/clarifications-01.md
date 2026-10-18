@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Worktree toolchain fixes
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 8 minutes.
+> Answered on 2026-10-18.
 >
 > - Verdict: worth building as proposed, with the first item already fixed and committed. The two
 >   others do not reproduce here, so each needs your say on how far to go without a reproduction.
@@ -73,7 +73,8 @@ agreement. It would cost little, and it would be checked only by the tests that 
   - [pro] the fix then targets the real cause, with a test that fails first.
   - [con] the problem stays until it happens again and you have kept the output.
 
-**Answer:**
+**Answer:** This seems super low impact, IDGAF. Do what make code simplest and remove this stupid
+inbox non-issue.
 
 ## Q2: What should be done about the runs killed with code 137?
 
@@ -98,7 +99,7 @@ run, for a cause not shown yet.
   - [pro] small, and gives the evidence A waits for.
   - [con] only helps the guard's case, not the kernel's.
 
-**Answer:**
+**Answer:** B
 
 ## Settled without the human
 
