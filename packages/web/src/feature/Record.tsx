@@ -11,7 +11,7 @@ import { useFile } from "../data.ts";
 import { useRepoPath } from "../routes.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import { DecisionCard } from "../spec/DecisionCard.tsx";
-import { decisionId } from "../spec/parts.ts";
+import { decisionId, GROUPS } from "../spec/parts.ts";
 import { Section } from "./Section.tsx";
 
 /** What the record reads of the history: its counts and its decisions' changes. */
@@ -65,7 +65,7 @@ function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) 
           <DecisionCard
             change={change}
             comments={[]}
-            crumbs={[]}
+            crumbs={[GROUPS.decisions.title]}
             href={change.kind === "removed" ? undefined : here(`/decisions/${change.name}`)}
             id={decisionId(change.name)}
             key={change.name}

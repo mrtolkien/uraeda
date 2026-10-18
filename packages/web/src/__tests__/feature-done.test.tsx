@@ -227,7 +227,8 @@ test("Decisions leads to the decisions, drawn as changes", async () => {
   scrolled.mockRestore();
   const drawn = within(region("Decisions"));
   expect(drawn.getByText("New")).toBeTruthy();
-  expect(drawn.getByText("Diagrams")).toBeTruthy();
+  // Under the section's heading, a level below, its crumb "Decisions" on the phone, as the mockup.
+  expect(drawn.getByRole("heading", { level: 3, name: "Diagrams" })).toBeTruthy();
   expect(drawn.getByText("Draw flows as Mermaid.")).toBeTruthy();
   // The record's own list of decisions is not drawn: the changes are.
   expect(screen.queryByText("New: Diagrams.")).toBeNull();
