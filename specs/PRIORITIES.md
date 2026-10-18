@@ -8,7 +8,6 @@
 
 - [Redesign feature and change pages](/specs/2026-10-18-redesign-feature/proposal.md)
 - [Worktree toolchain fixes](/specs/changes/2026-10-18-worktree-toolchain/proposal.md)
-- [Storybook preview fixes](/specs/changes/2026-10-18-storybook-fixes/proposal.md)
 - [Decision review fixes](/specs/changes/2026-10-18-decision-review-fixes/proposal.md)
 - [Spec page fixes](/specs/changes/2026-10-18-spec-page-fixes/proposal.md)
 - [Round fixes](/specs/changes/2026-10-18-round-fixes/proposal.md)
