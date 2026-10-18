@@ -122,9 +122,9 @@ squash merge leaves the folder's files only in the pull request, out of
 
 ## Changes asked on the pull request
 
-Apply them as the [implementation step](implementation.md#changes-requested-on-the-pull-request)
-says, with the record in place of the spec: update its **Behaviour** or **Design** in place, so it
-stays true to the code, and add a line under **Changes after approval**.
+Apply them as the [implementation step](implementation.md#comments-on-the-pull-request) says, with
+the record in place of the spec: update its **Behaviour** or **Design** in place, so it stays true
+to the code, and add a line under **Changes after approval**.
 
 A change that needs a new round of questions brings the folder back:
 
