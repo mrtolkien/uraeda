@@ -195,3 +195,6 @@
   decision file never reports decision.unapproved; the plan's complexity row says the editor and web
   see decision.unapproved, and neither does; compatibility.md and diagrams.md warn decision.order (a
   rule mixing SHOULD and MUST NOT ranks by its first keyword).
+- [agent] [redesign-specs] Answered review: once merged with a merge or squash commit,
+  FileView.answered is empty on the default branch, so the quotes disappear after landing; an
+  uncommitted revision shows no quotes until committed.
