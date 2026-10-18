@@ -300,6 +300,17 @@ test("a view whose commit was read before the Storybook started does not restart
   expect(previewStarts(log)).toHaveLength(2);
 });
 
+test("a read begun before the Storybook started, even the latest, does not restart it", async () => {
+  const { checkout, log } = await storyCheckout({ mode: "fail" });
+  const runner = previews();
+  const [first, second] = [runner.read(), runner.read()];
+  runner.view({ ...checkout, commit: "a", read: first });
+  await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
+
+  expect(runner.view({ ...checkout, commit: "b", read: second }).state).toBe("failed");
+  expect(previewStarts(log)).toHaveLength(1);
+});
+
 test("each checkout has its own Storybook", async () => {
   const { checkout, log, repo } = await storyCheckout();
   const main = await checkoutOf(repo, "/r/repo/preview/main/");

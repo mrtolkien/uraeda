@@ -28,6 +28,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type Browser, type Frame, type FrameLocator, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
+import { stopDevRuns } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
@@ -361,6 +362,7 @@ async function main(): Promise<number> {
     process.stdout.write(`${(error as Error).message}\n`);
     return 1;
   } finally {
+    await stopDevRuns();
     await vite.close();
     for (const folder of [dataDir, configDir]) {
       rmSync(folder, { force: true, recursive: true });
