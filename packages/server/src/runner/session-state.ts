@@ -39,8 +39,11 @@ export const REFUSALS = {
   unavailable: (name: string) => `${name} is not available on this machine.`,
 };
 
-/** The line of a workflow message sent once it no longer applied: its step moved on. */
+/** The line of a workflow message sent once it no longer applied: the feature waits on the human. */
 export const SENT_AS_CHAT = "Sent as a chat: the feature now waits on you.";
+
+/** The line of a workflow message sent once it no longer applied, at another step. */
+export const SENT_AS_CHAT_MOVED_ON = "Sent as a chat: the feature moved on to another step.";
 
 /** The line of a comments message sent without a pull request to address. */
 export const SENT_AS_CHAT_NO_PULL_REQUEST = "Sent as a chat: no pull request is open.";
