@@ -547,6 +547,11 @@ export interface Changes {
   /** Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed. */
   inbox: boolean
   /**
+   * The decisions a feature's branch has that changed, as `<folder>/<name>`: its text on the
+   * branch, committed or not, or at the merge base.
+   */
+  branchDecisions: Array<string>
+  /**
    * Whether the ledger changed: `specs/CONSTITUTION.md` or `specs/decisions/` on the default
    * branch.
    */

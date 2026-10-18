@@ -280,6 +280,110 @@ fn an_edit_of_a_decision_or_the_constitution_is_reported() {
     assert!(!next(&receiver).decisions);
 }
 
+/// The feature's checkout, with a spec and a decision committed on its branch.
+fn with_decision(repo: &TestRepo) -> place::Place {
+    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    std::fs::write(
+        place.root.join("specs/2026-10-11-web-ui/spec.md"),
+        "---\nstatus: awaiting-human\n---\n\n# Spec: Web UI\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(place.root.join("specs/decisions")).unwrap();
+    std::fs::write(
+        place.root.join("specs/decisions/git.md"),
+        "# Git\n\n## Rules\n\n- Commits MUST be small.\n",
+    )
+    .unwrap();
+    run_git(&place.root, &["add", "specs"]);
+    run_git(
+        &place.root,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "spec(web-ui): web UI",
+        ],
+    );
+    place
+}
+
+/// The spec's decision cards and a decision's page follow a decision the branch changes.
+#[test]
+fn a_decision_committed_on_a_feature_branch_is_reported_for_its_spec_and_its_page() {
+    let repo = repo();
+    let place = with_decision(&repo);
+    let (_watcher, receiver) = watching(&repo);
+
+    std::fs::write(
+        place.root.join("specs/decisions/git.md"),
+        "# Git\n\n## Rules\n\n- Commits MUST be tiny.\n",
+    )
+    .unwrap();
+    run_git(&place.root, &["add", "specs"]);
+    run_git(
+        &place.root,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "decision(web-ui): git",
+        ],
+    );
+
+    let changes = next(&receiver);
+    assert_eq!(changes.branch_decisions, [format!("{FOLDER}/git")]);
+    assert!(
+        changes.files.contains(&format!("{FOLDER}/spec.md")),
+        "{changes:?}"
+    );
+}
+
+#[test]
+fn an_uncommitted_edit_of_a_branch_decision_is_reported_for_its_spec_and_its_page() {
+    let repo = repo();
+    let place = with_decision(&repo);
+    let (_watcher, receiver) = watching(&repo);
+
+    std::fs::write(
+        place.root.join("specs/decisions/git.md"),
+        "# Git\n\n## Rules\n\n- Commits MUST be tiny.\n",
+    )
+    .unwrap();
+
+    let changes = next(&receiver);
+    assert_eq!(changes.branch_decisions, [format!("{FOLDER}/git")]);
+    assert!(
+        changes.files.contains(&format!("{FOLDER}/spec.md")),
+        "{changes:?}"
+    );
+}
+
+#[test]
+fn a_code_commit_reports_no_branch_decision() {
+    let repo = repo();
+    let place = with_decision(&repo);
+    let (_watcher, receiver) = watching(&repo);
+
+    std::fs::create_dir_all(place.root.join("src")).unwrap();
+    std::fs::write(place.root.join("src/main.rs"), "fn main() {}\n").unwrap();
+    run_git(&place.root, &["add", "src/main.rs"]);
+    run_git(
+        &place.root,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "feat(web-ui): main",
+        ],
+    );
+
+    let changes = next(&receiver);
+    assert!(changes.branch_decisions.is_empty(), "{changes:?}");
+}
+
 /// The inbox is the default branch's: a feature checkout's copy is not it.
 #[test]
 fn an_edit_of_a_feature_checkouts_inbox_is_not_reported_as_the_inbox() {
