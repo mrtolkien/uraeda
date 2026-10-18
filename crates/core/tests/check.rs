@@ -1943,8 +1943,30 @@ fn the_example_spec_is_at_most_2000_words() {
     assert!(words <= 2_000, "{words} words");
 }
 
-/// SC-002: no decision of the repository holds more than 10 rules, and the decisions this
-/// feature's spec rewrites hold at most 9,400 words together, their frontmatter aside.
+/// The 18 decisions the specs redesign rewrote, listed in its spec, now in its record.
+const REWRITTEN: [&str; 18] = [
+    "agents",
+    "attachments",
+    "cli",
+    "code-quality",
+    "distribution",
+    "git",
+    "notifications",
+    "preview",
+    "repositories",
+    "settings",
+    "sign-in",
+    "stack",
+    "toolchain",
+    "tui",
+    "ui-behaviour",
+    "ui-checks",
+    "ui-components",
+    "ui-layout",
+];
+
+/// SC-002: no decision of the repository holds more than 10 rules, and the decisions the specs
+/// redesign rewrote hold at most 9,400 words together, their frontmatter aside.
 #[test]
 fn every_decision_of_the_repository_holds_at_most_10_rules() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -1957,17 +1979,10 @@ fn every_decision_of_the_repository_holds_at_most_10_rules() {
         .filter(|p| p.rule == "decision.rules")
         .collect();
     assert!(over.is_empty(), "{over:#?}");
-    let spec = repository_file("specs/2026-10-17-redesign-specs/spec.md");
-    let listed = uraeda_core::files::spec::items(&uraeda_core::files::document::parse(
-        &spec,
-        "specs/2026-10-17-redesign-specs",
-    ))
-    .decisions;
-    assert_eq!(listed.len(), 18);
-    let words: usize = listed
+    let words: usize = REWRITTEN
         .iter()
-        .map(|d| {
-            let text = repository_file(&format!("specs/decisions/{}.md", d.name));
+        .map(|name| {
+            let text = repository_file(&format!("specs/decisions/{name}.md"));
             let body = text.splitn(3, "---\n").nth(2).unwrap();
             body.split_whitespace().count()
         })
