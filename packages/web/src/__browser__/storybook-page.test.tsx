@@ -1,6 +1,6 @@
 // US5 of the UI iteration flow: Uraeda's Storybook page shows Storybook's own interface for a
 // branch, at the story an embed or an inline link names (US1.3, US5.1, US5.2), as tall as the window
-// and, on the phone, as wide (US5.4). The feature's page and the session's column, a change's too,
+// and, on the phone, as wide (US5.4). The page's links and the session's column, a change's too,
 // list it (US4.5, US5.3), only with a preview decision; a story not in the index, and a failed
 // Storybook, say so (edge cases).
 import { screen, within } from "@testing-library/react";
@@ -44,10 +44,13 @@ async function undoRefused() {
   await screen.findByText(/^Could not undo/);
 }
 
-/** Adds the change `centred-x`, with its proposal, and shows its page's column. */
+/** A page's links list row of Storybook, named with its description. */
+const STORYBOOK_ROW = /^Storybook/;
+
+/** Adds the change `centred-x`, with its proposal, and shows its session's column. */
 async function changeColumn() {
   await commands.addChange(CHANGE, { "proposal.md": `# ${CHANGE_TITLE}\n` });
-  await show(`/f/${CHANGE}`, CHANGE_TITLE);
+  await show(`/f/${CHANGE}/session`, CHANGE_TITLE);
   return within(await screen.findByRole("complementary", { name: "Progress" }, READY));
 }
 
@@ -88,8 +91,10 @@ describe("on a desktop", () => {
   test("the feature's page and the session's column list Storybook (US4.5, US5.3)", async () => {
     await commands.addStoryFeature();
     await show(`/f/${FEATURE}`, "Sidebar resize");
-    const row = await screen.findByRole("link", { name: "Storybook" });
-    expect(row.getAttribute("href")).toBe(atRepo(PAGE));
+    const links = within(await screen.findByRole("list", { name: "Links" }, READY));
+    expect(links.getByRole("link", { name: STORYBOOK_ROW }).getAttribute("href")).toBe(
+      atRepo(PAGE),
+    );
 
     await show(`/f/${FEATURE}/session`, "Feature page");
     const column = await screen.findByRole("link", { name: "Storybook" });
@@ -99,7 +104,8 @@ describe("on a desktop", () => {
   test("without a preview decision, neither lists Storybook, and it has no page (edge case)", async () => {
     await commands.addStoryFeature({ preview: false });
     await show(`/f/${FEATURE}`, "Sidebar resize");
-    expect(screen.queryByRole("link", { name: "Storybook" })).toBeNull();
+    await screen.findByRole("list", { name: "Files" }, READY);
+    expect(screen.queryByRole("link", { name: STORYBOOK_ROW })).toBeNull();
 
     await show(`/f/${FEATURE}/session`, "Feature page");
     expect(screen.queryByRole("link", { name: "Storybook" })).toBeNull();
@@ -154,12 +160,23 @@ describe("a change's column, on a desktop", () => {
     const column = await changeColumn();
     const row = await column.findByRole("link", { name: "Storybook" }, READY);
     expect(row.getAttribute("href")).toBe(atRepo(`/f/${CHANGE}/storybook`));
+
+    // The change's page lists it too, in its links.
+    await show(`/f/${CHANGE}`, CHANGE_TITLE);
+    const links = within(await screen.findByRole("list", { name: "Links" }, READY));
+    expect(links.getByRole("link", { name: STORYBOOK_ROW }).getAttribute("href")).toBe(
+      atRepo(`/f/${CHANGE}/storybook`),
+    );
   });
 
   test("without a preview decision, does not list Storybook (edge case)", async () => {
     const column = await changeColumn();
     await column.findByRole("link", { name: "proposal.md" }, READY);
     expect(column.queryByRole("link", { name: "Storybook" })).toBeNull();
+
+    await show(`/f/${CHANGE}`, CHANGE_TITLE);
+    await screen.findByRole("list", { name: "Files" }, READY);
+    expect(screen.queryByRole("link", { name: STORYBOOK_ROW })).toBeNull();
   });
 });
 
