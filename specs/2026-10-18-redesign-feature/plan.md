@@ -351,7 +351,7 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
   `#comments-on-the-pull-request`, which task 5's message names by its reference,
   `skills/uraeda/references/implementation.md`.
 
-- [ ] **Step 1: Rewrite the changes section as the comments pass**
+- [x] **Step 1: Rewrite the changes section as the comments pass**
 
 Rename `## Changes requested on the pull request` to `## Comments on the pull request`, and update
 every link to its old anchor (`rg -n 'changes-requested-on-the-pull-request' skills README.md`). The
@@ -379,7 +379,7 @@ section says, in the reference's own descriptive voice:
 
 Keep the existing paragraph on a pull request opened before the finish step.
 
-- [ ] **Step 2: Point the change reference and `SKILL.md` to it**
+- [x] **Step 2: Point the change reference and `SKILL.md` to it**
 
 In `change.md`, "Changes requested on the pull request are handled as for a feature" becomes
 "Comments on the pull request are handled as for a feature", linking the new anchor; its list of
@@ -388,13 +388,13 @@ asking to address the pull request's comments runs
 [Implementation](/skills/uraeda/references/implementation.md)'s comments pass, whatever the table
 says. In `finish.md`, the link to the old anchor follows.
 
-- [ ] **Step 3: Run the project's validation**
+- [x] **Step 3: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp run specs:check`, and
   `rg -n 'changes-requested-on-the-pull-request' skills README.md specs packages`
-- Expected: PASS, and no match
+- Expected: PASS, and no match outside this plan's own text of this task
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add skills/uraeda

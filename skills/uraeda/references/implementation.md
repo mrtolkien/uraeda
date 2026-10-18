@@ -4,11 +4,12 @@ Builds the plan wave by wave, the tasks of a wave at the same time, one commit p
 delivers the branch as a pull request for the human to review.
 
 - **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
-  checked and the branch has no pull request; or its pull request has changes requested
+  checked and the branch has no pull request; or its pull request has changes requested, or the
+  human's message asks to address its comments
 - **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the draft pull
   request
-- **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after changes requested
-  on it; or a new [discovery](discovery.md) round, when blocked
+- **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after its comments are
+  addressed; or a new [discovery](discovery.md) round, when blocked
 
 Build the plan's tasks within the approved behaviour and required contracts, prove the change and
 preserved guarantees, and leave the record in git. Private implementation choices can improve as the
@@ -311,15 +312,64 @@ description, written when it is marked ready, reads like a file waiting for the 
 If you cannot open a pull request, push the branch, and put the description in the body of the last
 commit. In a chat session, say the same in one or two sentences, with the pull request's link.
 
-## Changes requested on the pull request
+## Comments on the pull request
 
-Read every comment. Apply each requested change in a new commit, a change of behaviour with a test
-that fails first. The folder is already replaced by its record: when a change goes against what it
-says, update its **Behaviour** or **Design** in place in the same commit, and add a line under
-**Changes after approval**, so the merged record describes the merged code. When a change needs a
-new decision, or the comment leaves a choice open, bring the folder back and start a new round of
-questions instead, as [finish](finish.md#changes-asked-on-the-pull-request) describes. Then the pull
-request waits for the human again.
+The comments pass runs when the human's message asks to address the pull request's comments,
+whatever the step table says, and when the pull request has changes requested. Uraeda records such a
+run with the trigger `comments`. The human chose when to send the agent: the pass handles the
+comments there at that moment.
+
+**What to read**: every unresolved review thread, and every review or comment posted after the
+branch's last push. Resolved threads are settled, and outdated ones are about code that changed
+since: both are left out.
+
+- **Review threads** come from `gh api graphql`, on the pull request's `reviewThreads`: each
+  thread's `isResolved` and `isOutdated`, and each comment's `author`, `path`, `line`, `body`, and
+  `createdAt`.
+- **Reviews and comments** come from `gh pr view <number> --json reviews,comments`, and count when
+  posted after the last push. The last push's date is the last commit's, from
+  `gh pr view <number> --json commits`, or the remote branch's:
+  `git log -1 --format=%cI origin/<branch>`.
+
+```bash
+gh api graphql -F owner=<owner> -F repo=<repo> -F number=<number> -f query='
+  query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100) {
+          nodes {
+            isResolved
+            isOutdated
+            comments(first: 100) { nodes { author { login } path line body createdAt } }
+          }
+        }
+      }
+    }
+  }'
+```
+
+A reviewer bot's comment is handled like a person's: the human chose when to send the agent, so what
+the bot wrote is part of what they asked.
+
+**What to do with each comment**:
+
+- **A change**: apply it in a commit of its own, with the feature's scope, a change of behaviour
+  with a test that fails first. The folder is already replaced by its record: when a change goes
+  against what it says, update its **Behaviour** or **Design** in place in the same commit, and add
+  a line under **Changes after approval**, so the merged record describes the merged code.
+- **A choice the spec does not settle**, or a new decision: bring the folder back and start a new
+  round of questions instead of a guess, as [finish](finish.md#changes-asked-on-the-pull-request)
+  describes.
+- **Nothing to do**: a comment already handled, or one the code answers, gets no commit. The last
+  message says why.
+
+**Nothing is written on GitHub**: the agent does not reply to a comment or resolve a thread. Its
+last message lists each comment with what it did, one line each, and the commits say the rest.
+
+**The pass ends** when the pull request is ready for review again: the branch pushed, and the pull
+request not a draft, with `gh pr ready`. A new round of questions ends it earlier, at that round's
+gate. A pull request in draft because its folder came back for a round stays one: the
+[finish](finish.md) step marks it ready.
 
 A pull request opened before the finish step existed still has its folder: amend the spec in place
 in the same commit, increase its `revision`, and update the plan and its `spec-revision`. The spec

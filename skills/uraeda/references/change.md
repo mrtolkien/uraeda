@@ -274,8 +274,8 @@ in this order:
    fixes**, and the other notes added to the inbox.
 9. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
-Changes requested on the pull request are handled as for a feature, as
-[implementation](implementation.md#changes-requested-on-the-pull-request) and
+Comments on the pull request are handled as for a feature, as
+[implementation](implementation.md#comments-on-the-pull-request) and
 [finish](finish.md#changes-asked-on-the-pull-request) say, with what differs for a change:
 
 - **The record and `rulings.md` stand for the spec and the plan.** A change applied directly updates

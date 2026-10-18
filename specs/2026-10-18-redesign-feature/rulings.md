@@ -60,3 +60,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: one heading holding both, too long for the card on the phone.
 - **If wrong**: one row of `feature/next.ts`.
 - **Where**: task 8
+
+## R6: The old anchor's search ignores the plan's own text
+
+- **Decision**: task 1's search for `changes-requested-on-the-pull-request` expects no match outside
+  the plan's text of task 1, which quotes the anchor in its own commands.
+- **Rationale**: the plan names `specs` among the folders searched, so its own text always matched.
+- **Alternatives considered**: rewording the plan's commands to hide the anchor, which would lose
+  what they search for.
+- **If wrong**: a stale link to the old anchor in `specs/`; the search shows it.
+- **Where**: task 1
