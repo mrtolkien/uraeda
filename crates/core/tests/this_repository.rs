@@ -51,7 +51,7 @@ fn drift(rule: &str) -> bool {
     rule.starts_with("sections.") || rule.starts_with("links.") || rule == "settled.group"
 }
 
-/// SC-001: over the feature folders `main`'s commits touched from 2026-10-17 16:48 to 2026-10-18
+/// SC-001: over the feature folders the commits of every branch touched from 2026-10-17 16:48 to 2026-10-18
 /// 10:00, only a broken file or a missing answer is ever a problem: drift and unfinished files
 /// never block.
 #[test]
@@ -62,7 +62,7 @@ fn sc001_drift_is_never_a_problem() {
         "--format=%H",
         "--since=2026-10-17T16:48",
         "--until=2026-10-18T10:00",
-        "main",
+        "--all",
         "--",
         "specs/20*",
     ]);
@@ -99,7 +99,7 @@ fn sc001_drift_is_never_a_problem() {
         }
     }
     println!("{snapshots} snapshots, {with_errors} with errors, {blocked} with a blocking result");
-    assert!(snapshots > 0, "main has no commit in the window");
+    assert!(snapshots > 0, "no branch has a commit in the window");
 }
 
 /// SC-004: 25 of the 30 records of `specs/done/` show timed stages. Prints the slowest read too,

@@ -504,17 +504,16 @@ in `FeaturePage.tsx`'s `ProblemList`, so notes stay on the page until task 8 fol
 - [x] **Step 4: Measure SC-001 on this repository's history**
 
 `crates/core/tests/this_repository.rs`, `#[ignore = "this repository's history"]`,
-`sc001_drift_is_never_a_problem`: for every commit of `main` from 2026-10-17T16:48 to
+`sc001_drift_is_never_a_problem`: for every commit of every branch from 2026-10-17T16:48 to
 2026-10-18T10:00 that touched a feature folder
-(`git log --format=%H --since … --until … main -- 'specs/20*'`: the pathspec `'specs/20*/'` matches
+(`git log --format=%H --since … --until … --all -- 'specs/20*'`: the pathspec `'specs/20*/'` matches
 no commit), export the commit's `specs/` into a temporary folder, run `check::check_files` on each
 touched folder still there, and assert that every blocking result's rule is a `frontmatter.*` rule:
 drift and unfinished files never block. Print the counts of snapshots, of snapshots with errors, and
 of snapshots with a blocking result, for the pull request.
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --run-ignored only sc001`
-- Expected: PASS, 37 snapshots, 36 with errors, 0 blocking. Discovery's 72 counted other branches'
-  commits too; `main` holds 39 commits in the window, two of which removed their folder (R7).
+- Expected: PASS, 74 snapshots, 72 with errors, 0 blocking; `main` alone holds 37 (R7).
 
 - [x] **Step 5: Run the project's validation**
 

@@ -76,13 +76,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: `FeaturePage.tsx`'s "Problems" list shows the feature's problems, then its notes;
   the file badge "problem" marks blocking problems only. SC-001's walk uses the pathspec
-  `'specs/20*'`, and its count is the 37 snapshots `main` holds, not discovery's 72.
+  `'specs/20*'`, over the commits of every branch: 74 snapshots, 72 with errors, none blocking.
 - **Rationale**: the plan expected `feature.test.tsx`'s removed `**Answer:**` line to be
   `answers.blank`; it is `answers.marker`, a note, on a round awaiting the human. Without the notes,
   the page between tasks 2 and 8 would lose every note, against the
   [Problems](../decisions/problems.md) decision, which shows them on the item's page. The plan's
-  pathspec `'specs/20*/'` matches no commit, and discovery counted commits of branches not on
-  `main`.
+  pathspec `'specs/20*/'` matches no commit, and `main` alone holds 37 snapshots: discovery counted
+  every branch's.
 - **Alternatives considered**: rewriting the existing test into an answered round with a blank
   answer, which would hide notes from the page until task 8.
 - **If wrong**: one line of `ProblemList`, gone with task 8.
