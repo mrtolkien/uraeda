@@ -1,7 +1,7 @@
 //! A review comment on lines of a decision's file: read on the feature's branch, or at its merge
 //! base with the default branch for a part the branch removed.
 
-use crate::files::review::{Anchor, Review};
+use crate::files::review::{Anchor, Review, is_decision_name};
 use crate::git::{Git, ObjectId};
 
 use super::super::ActionError;
@@ -42,8 +42,7 @@ pub(super) fn anchored(
         ));
     };
     let name = &target.name;
-    // The review's heading holds the name up to its first comma, without a space.
-    if name.contains(|c: char| c.is_whitespace() || c == ',') {
+    if !is_decision_name(name) {
         return Err(refused(format!("\"{name}\" is not a decision's name")));
     }
     let file = format!("{name}.md");
