@@ -274,6 +274,10 @@ fn check_unknown(
             3 if round => parent
                 .and_then(|parent| fixed_children(slots, parent))
                 .is_none_or(|children| children.contains(&heading.text.as_str())),
+            // The page reads only `##` and `###` in these sections: a deeper heading is dropped.
+            4.. if round => parent.is_none_or(|parent| {
+                !["Context", "Settled without the human"].contains(&parent.text.as_str())
+            }),
             _ => true,
         };
         if !known {
