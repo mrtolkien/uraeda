@@ -1,5 +1,5 @@
 // US7: home as a control hub, its counts, then its cards, on the fixture repository.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -7,13 +7,20 @@ import {
   atRepo,
   atWidth,
   click,
+  fixture,
   fixtureRepo,
   git,
   read,
   refreshUntil,
   renderPage,
 } from "./helpers.tsx";
-import { expectLogged, temporaryFolder } from "uraeda-binding/test-utils";
+import {
+  addPlan,
+  commitOnBranch,
+  ELEVEN,
+  expectLogged,
+  temporaryFolder,
+} from "uraeda-binding/test-utils";
 
 /** The page's own content, without the navigation. */
 async function main() {
@@ -349,4 +356,32 @@ test("reads the page again when it comes back to the foreground", async () => {
   await refreshUntil(() =>
     expect(priorities.getByRole("link", { name: /Plan reviews/ })).toBeTruthy(),
   );
+});
+
+/** US6 1 */
+test("a feature with a format note stays under Agents at work", async () => {
+  // A plan of the tests' utilities has no "## Waves": `ura check` finds the section missing.
+  const repo = fixtureRepo();
+  addPlan(repo, "2026-10-13-plan-review", ELEVEN);
+  git(repo, "switch", "--quiet", "2026-10-13-plan-review");
+  await renderPage("/", repo);
+
+  const agents = await card(/^Agents at work/);
+  expect(row(agents.getByRole("list", { name: "Agents at work" }), /Plan review/)).toBeTruthy();
+  expect((await main()).queryByText("Fix")).toBeNull();
+});
+
+/** US6 2 */
+test("a spec whose status cannot be read needs a fix", async () => {
+  const repo = fixtureRepo();
+  const spec = "specs/2026-10-12-cli-tuis/spec.md";
+  const text = readFileSync(fixture(`repo/branches/2026-10-12-cli-tuis/${spec}`), "utf8");
+  commitOnBranch(repo, "2026-10-12-cli-tuis", {
+    [spec]: text.replace("status: approved", "status: aproved"),
+  });
+  await renderPage("/", repo);
+
+  const needs = await card(/^Needs you/);
+  const tuis = row(needs.getByRole("list", { name: "Needs you" }), /CLI TUIs/);
+  expect(tuis.row.getByText("Fix")).toBeTruthy();
 });

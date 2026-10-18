@@ -23,3 +23,24 @@ pub struct Problem {
     pub message: String,
     pub severity: Severity,
 }
+
+/// The rules whose results stop the workflow: a feature's problems. The step cannot be found, the
+/// first four, or an answered round misses a human's answer, `answers.blank`.
+///
+/// The [Problems](/specs/decisions/problems.md) decision: "A check result MUST count as a
+/// feature's problem only when its rule stops the workflow; every other result MUST be a note."
+/// A new rule is a note, left out of this list, unless the workflow cannot go on without a fix.
+pub const BLOCKING: &[&str] = &[
+    "frontmatter.status",
+    "frontmatter.parse",
+    "frontmatter.kind",
+    "file.utf8",
+    "answers.blank",
+];
+
+impl Problem {
+    /// Whether it stops the workflow: a feature's problem rather than a note.
+    pub fn blocks(&self) -> bool {
+        BLOCKING.contains(&self.rule.as_str())
+    }
+}

@@ -196,6 +196,7 @@ function missingFeature(folder: string): FeatureRecord {
     label: null,
     missing: true,
     mockups: [],
+    notes: [],
     path: "",
     preview: false,
     problems: [],

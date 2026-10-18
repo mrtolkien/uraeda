@@ -70,3 +70,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   what they search for.
 - **If wrong**: a stale link to the old anchor in `specs/`; the search shows it.
 - **Where**: task 1
+
+## R7: Until the new page, the feature page lists its notes after its problems
+
+- **Decision**: `FeaturePage.tsx`'s "Problems" list shows the feature's problems, then its notes;
+  the file badge "problem" marks blocking problems only. SC-001's walk uses the pathspec
+  `'specs/20*'`, and its count is the 37 snapshots `main` holds, not discovery's 72.
+- **Rationale**: the plan expected `feature.test.tsx`'s removed `**Answer:**` line to be
+  `answers.blank`; it is `answers.marker`, a note, on a round awaiting the human. Without the notes,
+  the page between tasks 2 and 8 would lose every note, against the
+  [Problems](../decisions/problems.md) decision, which shows them on the item's page. The plan's
+  pathspec `'specs/20*/'` matches no commit, and discovery counted commits of branches not on
+  `main`.
+- **Alternatives considered**: rewriting the existing test into an answered round with a blank
+  answer, which would hide notes from the page until task 8.
+- **If wrong**: one line of `ProblemList`, gone with task 8.
+- **Where**: task 2
+
+## R8: The warnings test reads the problems and the notes
+
+- **Decision**: `crates/core/tests/api.rs`'s `a_features_problems_leave_its_warnings_out` asserts
+  over `problems` and `notes` together.
+- **Rationale**: it checked that a feature's results hold the check's errors, the stub spec's, and
+  never its warnings. Those errors are notes now, so `problems` alone is empty; the rule it guards,
+  warnings left out, is unchanged.
+- **Alternatives considered**: a blocking error in its fixture, which would test something else.
+- **If wrong**: one line of the test.
+- **Where**: task 2
