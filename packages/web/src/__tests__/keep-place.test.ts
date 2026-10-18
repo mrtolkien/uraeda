@@ -9,6 +9,9 @@ let frames: Array<FrameRequestCallback> = [];
 /** Places on screen, in px from the window's top: a story frame's bottom, and a block below it. */
 const page = { block: 0, frame: 0, scroll: 0 };
 
+/** The time `performance.now()` tells, in ms, which the reader's inputs are dated by. */
+let clock = 0;
+
 beforeEach(() => {
   frames = [];
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
@@ -16,6 +19,8 @@ beforeEach(() => {
     return frames.length;
   });
   page.scroll = 0;
+  clock += 10_000;
+  vi.spyOn(performance, "now").mockImplementation(() => clock);
   vi.spyOn(window, "scrollBy").mockImplementation(((options: ScrollToOptions) => {
     page.block -= options.top ?? 0;
     page.frame -= options.top ?? 0;
@@ -91,12 +96,34 @@ test("a scroll by the reader during the frames is not put back", async () => {
     page.block += 100;
   });
   // Meanwhile the reader scrolls down 80 px, which moves the block up on screen.
+  window.dispatchEvent(new Event("wheel"));
   page.block -= 80;
   page.scroll += 80;
+  window.dispatchEvent(new Event("scroll"));
 
   await draw();
   await draw();
   await draw();
 
   expect(page.block).toBe(before - 80);
+});
+
+/** The browser's scroll anchoring moves the window as content above grows: no input, no reader. */
+test("a scroll the browser makes to anchor the page is put back as the page's own shift", async () => {
+  page.frame = -200;
+  page.block = 300;
+  const before = page.block;
+  void keepPlace(blockTop, () => {
+    // The content above grows by 100 px, and the browser anchors by scrolling 100 px: the block
+    // stays where it was.
+    page.scroll += 100;
+    window.dispatchEvent(new Event("scroll"));
+  });
+
+  await draw();
+  await draw();
+  await draw();
+
+  expect(page.block).toBe(before);
+  expect(window.scrollBy).not.toHaveBeenCalled();
 });
