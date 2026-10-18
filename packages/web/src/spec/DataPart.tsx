@@ -1,7 +1,7 @@
 // "Data": the feature's `data-model.md`, drawn after the stories. Each entity, a level-2 section of
 // the file, is a part of its own, its table drawn by Astryx's columns, the "Change" column's cells
 // as green "New", yellow "Changed", and red "Removed" pills. The text before the first entity shows
-// as written. The page draws no part without the file.
+// in a part of its own. The page draws no part without the file.
 import { Badge } from "@astryxdesign/core/Badge";
 import { proportional, Table } from "@astryxdesign/core/Table";
 import type { ReactNode } from "react";
@@ -113,7 +113,11 @@ export function DataPart({ document }: DataPartProps) {
   const { intro, sections } = sectionsOf(document);
   return (
     <>
-      {intro.length > 0 && <DataBlocks document={document} ids={intro} />}
+      {intro.length > 0 && (
+        <Panel crumbs={[GROUPS.data.title]} id="data-model" title="Data model">
+          <DataBlocks document={document} ids={intro} />
+        </Panel>
+      )}
       {sections.map(({ heading, ids }) => (
         <Panel
           crumbs={[GROUPS.data.title]}
