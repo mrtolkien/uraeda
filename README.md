@@ -104,7 +104,8 @@ feature went through the whole workflow:
    tests written out. The spec's risk tier is high, since every saved due date is upgraded. So it
    proposed that you review the plan too, and you kept that when approving it.
 6. **It implements the plan, building independent tasks at the same time, and opens a pull
-   request**, where you review the code.
+   request**, where you review the code. When you want, one message sends it to your comments: it
+   fixes each in a commit, and the pull request waits for you again.
 7. **It finishes the feature** in the pull request's last commit. One
    [record](skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with what the feature does, each question and its answer, and what changed after you
