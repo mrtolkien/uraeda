@@ -15,6 +15,9 @@ import {
 /** A turn failed by its process's exit keeps this many lines of its stderr. */
 const STDERR_LINES = 20;
 
+/** A new agent session's baseline: none of its tokens counted yet. */
+const NO_TOKENS: TokenCounts = { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 };
+
 type Exit = Extract<AgentEvent, { type: "exit" }>;
 
 /**
@@ -110,17 +113,19 @@ export class Processes {
       };
       live.proc = proc;
       // A resumed agent session reports its earlier turns' tokens again.
-      this.#baselines.set(
-        proc,
-        resume
-          ? cache.agentSessionTokens(live.id)
-          : { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 },
-      );
+      this.#baselines.set(proc, resume ? cache.agentSessionTokens(live.id) : NO_TOKENS);
       proc.done = this.#consume(live, proc);
       return { proc, ...(line === undefined ? {} : { line }) };
     } catch (error) {
       cache.releaseSession(live.id);
       throw error;
+    }
+  }
+
+  /** Starts the process's new agent session, after `/clear`: its next total counts whole. */
+  cleared(proc: Proc) {
+    if (this.#baselines.has(proc)) {
+      this.#baselines.set(proc, NO_TOKENS);
     }
   }
 
@@ -134,7 +139,8 @@ export class Processes {
     if (turn === undefined || baseline === undefined) {
       return;
     }
-    // An agent session's total never decreases: a lower one is a new agent session's, `/clear`.
+    // An agent session's total never decreases: a lower one is a new agent session's, should its
+    // `init` have been missed.
     const started = (Object.keys(total) as Array<keyof TokenCounts>).some(
       (field) => total[field] < baseline[field],
     );
