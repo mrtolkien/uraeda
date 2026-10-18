@@ -1681,11 +1681,11 @@ U+2212, "N files", leading to the files below, `#files`) and "Tokens"; done, "To
 record has one), "Tokens", "Questions" (the count, "1 round", leading to `#questions`), and
 "Decisions" (the count, "new or changed", leading to `#decisions`); a feature shows both at zero,
 "no round" and plain cards, a change "Questions" only after a round and "Decisions" only when one
-changed (R61). A link to a detail of the page scrolls there in the same history entry (R90). Tokens
-format with `Intl.NumberFormat`'s compact notation rules of the spec: "5.2 M", "113 k", "2.7 k",
-under 1,000 as is; caption "cache reads left out", or "since Oct 19" when `partial`; "Not recorded"
-when null, without a caption. A done item not found reads "Not found on the default branch" in place
-of all its figures, tokens included (R61).
+changed (R61). A link to a detail of the page opens it when folded, as the questions, and scrolls
+there in the same history entry (R90). Tokens format with `Intl.NumberFormat`'s compact notation
+rules of the spec: "5.2 M", "113 k", "2.7 k", under 1,000 as is; caption "cache reads left out", or
+"since Oct 19" when `partial`; "Not recorded" when null, without a caption. A done item not found
+reads "Not found on the default branch" in place of all its figures, tokens included (R61).
 
 `Record` draws the record's document, read with `useFile(folder, "<folder>.md")`, with `Blocks` by
 its `##` sections' block ids, found by the headings' anchors: `what-and-why`, `behaviour`, then the

@@ -205,35 +205,39 @@ function doneFigures(
 }
 
 /**
- * A figure's in-page link, followed by a tap or a key, scrolls to its detail and moves the focus
- * there, its title's when it has one, in the same history entry: the browser's own jump would push
- * an entry without the page's state, whose position and open items Back could not restore. A tap
- * on the card's surface reaches here as the click it sends its link.
+ * What follows a figure's in-page link, by a tap or a key: `open` opens the detail when it is
+ * folded, then the page scrolls to it and moves the focus there, its title's when it has one, in the
+ * same history entry. The browser's own jump would push an entry without the page's state, whose
+ * position and open items Back could not restore. A tap on the card's surface reaches here as the
+ * click it sends its link.
  */
-function jumpInPage(event: MouseEvent) {
-  const link = (event.target as Element).closest?.("a");
-  const href = link?.getAttribute("href");
-  if (
-    !href?.startsWith("#") ||
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey
-  ) {
-    return;
-  }
-  const target = document.getElementById(href.slice(1));
-  if (!target) {
-    return;
-  }
-  event.preventDefault();
-  event.stopPropagation();
-  scrollBelowBar(target);
-  const focus = document.getElementById(`${target.id}-title`) ?? target;
-  if (!focus.hasAttribute("tabindex")) {
-    focus.setAttribute("tabindex", "-1");
-  }
-  focus.focus({ preventScroll: true });
+function jumpInPage(open: ((id: string) => void) | undefined) {
+  return (event: MouseEvent) => {
+    const link = (event.target as Element).closest?.("a");
+    const href = link?.getAttribute("href");
+    if (
+      !href?.startsWith("#") ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+    const target = document.getElementById(href.slice(1));
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    open?.(target.id);
+    scrollBelowBar(target);
+    const focus = document.getElementById(`${target.id}-title`) ?? target;
+    if (!focus.hasAttribute("tabindex")) {
+      focus.setAttribute("tabindex", "-1");
+    }
+    focus.focus({ preventScroll: true });
+  };
 }
 
 /**
@@ -245,6 +249,7 @@ export function Figures({
   change = false,
   done,
   history,
+  onOpen,
   pullRequest,
   tokens,
 }: {
@@ -252,6 +257,8 @@ export function Figures({
   change?: boolean;
   done: boolean;
   history: FiguresHistory;
+  /** Opens a detail of the page by its id, when it is folded, as its figure leads to it. */
+  onOpen?: (id: string) => void;
   /** A done item's pull request, from its record. */
   pullRequest?: string;
   tokens: Tokens;
@@ -264,7 +271,7 @@ export function Figures({
     ? doneFigures(history, tokens, change, pullRequest)
     : [...(history.lines ? [linesFigure(history.lines, "#files")] : []), tokensFigure(tokens)];
   return (
-    <div onClickCapture={jumpInPage}>
+    <div onClickCapture={jumpInPage(onOpen)}>
       <Grid columns={{ minWidth: wide ? 190 : 150, repeat: "fill" }} gap={3}>
         {figures.map((figure) => (
           <FigureCard figure={figure} key={figure.label} />
