@@ -34,6 +34,9 @@ pub struct Changes {
     pub priorities: bool,
     /// Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed.
     pub inbox: bool,
+    /// The decisions a feature's branch has that changed, as `<folder>/<name>`: its text on the
+    /// branch, committed or not, or at the merge base.
+    pub branch_decisions: Vec<String>,
     /// Whether the ledger changed: `specs/CONSTITUTION.md` or `specs/decisions/` on the default
     /// branch.
     pub decisions: bool,
@@ -45,6 +48,7 @@ impl Changes {
     fn is_empty(&self) -> bool {
         self.features.is_empty()
             && self.files.is_empty()
+            && self.branch_decisions.is_empty()
             && !self.priorities
             && !self.inbox
             && !self.decisions
@@ -61,6 +65,7 @@ pub struct WatchError(String);
 struct Snapshot {
     features: BTreeMap<String, String>,
     files: BTreeMap<String, String>,
+    branch_decisions: BTreeMap<String, String>,
     priorities: String,
     inbox: String,
     decisions: String,
@@ -92,6 +97,7 @@ fn snapshot(root: &Path) -> Snapshot {
     };
     let mut features = BTreeMap::new();
     let mut files = BTreeMap::new();
+    let mut branch_decisions = BTreeMap::new();
     let mut listing = Vec::new();
     let default_tip = workspace
         .default_branch
@@ -106,6 +112,9 @@ fn snapshot(root: &Path) -> Snapshot {
             let file_hash = hash(text);
             texts.push_str(&file_hash);
             files.insert(format!("{}/{}", feature.folder, file.name), file_hash);
+        }
+        for (name, fingerprint) in crate::api::branch_decision_fingerprints(&git, feature) {
+            branch_decisions.insert(format!("{}/{name}", feature.folder), fingerprint);
         }
         let summary = serde_json::to_string(&(&feature.step, &feature.files, &feature.problems))
             .unwrap_or_default();
@@ -139,6 +148,7 @@ fn snapshot(root: &Path) -> Snapshot {
     Snapshot {
         features,
         files,
+        branch_decisions,
         // The entries as the priorities record shows them: nested lines, drafts, and the steps
         // of their running features included.
         priorities: hash(
@@ -170,9 +180,24 @@ fn differing(before: &BTreeMap<String, String>, after: &BTreeMap<String, String>
 }
 
 fn compare(before: &Snapshot, after: &Snapshot) -> Changes {
+    let branch_decisions = differing(&before.branch_decisions, &after.branch_decisions);
+    let mut files = differing(&before.files, &after.files);
+    // A spec's view carries the decisions its branch changed: a decision's change is its change.
+    for id in &branch_decisions {
+        let spec = id
+            .rsplit_once('/')
+            .map(|(folder, _)| format!("{folder}/spec.md"));
+        if let Some(spec) = spec
+            && after.files.contains_key(&spec)
+            && !files.contains(&spec)
+        {
+            files.push(spec);
+        }
+    }
     Changes {
         features: differing(&before.features, &after.features),
-        files: differing(&before.files, &after.files),
+        files,
+        branch_decisions,
         priorities: before.priorities != after.priorities,
         inbox: before.inbox != after.inbox,
         decisions: before.decisions != after.decisions,

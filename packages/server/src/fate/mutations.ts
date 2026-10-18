@@ -140,6 +140,7 @@ const repositoryMutations = {
       await ctx.hosts.reload();
       publish(
         {
+          branchDecisions: [],
           decisions: false,
           features: [input.folder],
           files: [],

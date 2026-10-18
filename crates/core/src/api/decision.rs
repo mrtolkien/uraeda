@@ -1,6 +1,7 @@
 //! A feature's decisions as its branch has them: the changes its spec's view carries, and one
 //! decision with its change, for a link from the feature's files.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 #[cfg(feature = "napi")]
@@ -59,6 +60,16 @@ pub(super) fn changes(
     }
     let disk = feature_dir(git, feature);
     branch_changes(&sides(git, tip, disk.as_deref()), listed)
+}
+
+/// A hash of each decision of a feature's branch, by name: it differs when the branch's text, its
+/// checkout's included, or the merge base's does. None for a feature without a branch.
+pub(crate) fn fingerprints(git: &Git, feature: &Feature) -> BTreeMap<String, String> {
+    let Some(branch) = feature.branch.as_deref() else {
+        return BTreeMap::new();
+    };
+    let disk = feature_dir(git, feature);
+    sides(git, git.tip(branch), disk.as_deref()).fingerprints()
 }
 
 /// The decision `name` of `specs/decisions/` as the feature's branch has it, with its change.

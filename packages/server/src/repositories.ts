@@ -221,6 +221,7 @@ export class Hosts {
       entry.pulls = startPullRequests(path, binding, (features) =>
         publish(
           {
+            branchDecisions: [],
             decisions: false,
             features,
             files: [],
