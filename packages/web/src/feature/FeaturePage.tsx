@@ -21,7 +21,7 @@ import { FileList } from "./FileList.tsx";
 import { nextOf } from "./next.ts";
 import { NextCard } from "./NextCard.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
-import { Record } from "./Record.tsx";
+import { QUESTIONS_KEY, Record } from "./Record.tsx";
 import { Section } from "./Section.tsx";
 import { Stages } from "./Stages.tsx";
 import { day } from "./times.ts";
@@ -132,6 +132,7 @@ function Produced({ feature, history }: { feature: FeatureData; history: History
           change={feature.kind === "change"}
           done={done}
           history={history}
+          onOpen={(id) => id === "questions" && keys.onOpenChange(QUESTIONS_KEY, true)}
           pullRequest={done ? feature.pullRequest?.url : undefined}
           tokens={feature.tokens ?? null}
         />
