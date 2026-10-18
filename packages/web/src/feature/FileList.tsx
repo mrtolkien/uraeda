@@ -113,10 +113,13 @@ function Links({ feature }: { feature: FilesFeature }) {
         />
       ) : null}
       {pullRequest && (
+        // In a new tab, as "Next" opens it.
         <ListItem
           description="On GitHub"
           href={pullRequest.url}
           label={`Pull request #${pullRequest.number}`}
+          rel="noopener noreferrer"
+          target="_blank"
         />
       )}
       {mockups.map((name) => (

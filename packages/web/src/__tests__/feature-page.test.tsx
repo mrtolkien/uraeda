@@ -290,6 +290,29 @@ test("an open pull request's Next only opens it", async () => {
   expect(next.getByRole("link", { name: "Open pull request #31" }).getAttribute("href")).toBe(url);
 });
 
+/** The pull request opens in a new tab from "Next" and from the page's links, as external links do. */
+test("the pull request opens in a new tab from Next and from the links", async () => {
+  const repo = fixtureRepo();
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title]) => [title, 5, 5]),
+  );
+  const url = "https://github.com/o/r/pull/31";
+  await fakeGh(repo, [{ headRefName: CLI, isDraft: false, number: 31, reviewDecision: "", url }]);
+
+  await renderPage(`/f/${CLI}`, repo, { agent: true });
+
+  const next = (await nextCard()).getByRole("link", { name: "Open pull request #31" });
+  const links = within(screen.getByRole("list", { name: "Links" }));
+  const row = links.getByRole("link", { name: /Pull request #31/ });
+  for (const link of [next, row]) {
+    expect(link.getAttribute("href")).toBe(url);
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+  }
+});
+
 /** US6.2, the page; edge case: invalid status */
 test("a spec whose status cannot be read stops the page", async () => {
   const repo = fixtureRepo();
