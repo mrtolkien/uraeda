@@ -111,7 +111,7 @@ a preference. More in [discovery](discovery-01.md#judge-model).
   - [pro] no self-preference.
   - [con] a second harness and account to set up before the first benchmark.
 
-**Answer:** A, let's keep it simple for the moment. Also we're checking artifacts, not arguments.
+**Answer:**
 
 ## Q2: What is each Uraeda run compared against?
 
