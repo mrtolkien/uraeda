@@ -46,12 +46,12 @@ async function toTop(page: Page, locator: ReturnType<Page["locator"]>) {
 
 /**
  * Opens the round at its top, whatever position the last view left, then waits for its diagram's
- * frame.
+ * drawing.
  */
 async function open(page: Page) {
   await forget(page);
   await show(page, ROUND, QUESTION);
-  await page.locator('iframe[title="Diagram"]').waitFor({ timeout: 20_000 });
+  await page.locator("svg.pele").first().waitFor({ timeout: 20_000 });
   await page.evaluate(() => window.scrollTo(0, 0));
   await settle(page);
 }
@@ -63,7 +63,7 @@ export async function takeRound(each: Each) {
     await open(page);
     await toTop(page, page.locator("#Q1"));
     await page
-      .locator('iframe[title="Diagram"]')
+      .locator("svg.pele")
       .evaluate((element) => element.scrollIntoView({ block: "center" }));
     await settle(page);
   });
