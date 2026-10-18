@@ -189,3 +189,9 @@
   (a/b, ../x); the BadAnchor message names neither "line N" nor " removed"; approve and
   request_changes check freshness on the spec only; R50's removed-part short-circuit is untested;
   R85's redirect drops the anchor; actions/review.rs is at 489 lines.
+- [agent] [redesign-specs] Checks: the reviewed words leave out links' text (R41), so decision
+  titles count nothing; no test of a keyword-less rule between a MAY and a MUST; a spec approved,
+  reopened, and approved again at the same revision keeps its first approval; ura check on a single
+  decision file never reports decision.unapproved; the plan's complexity row says the editor and web
+  see decision.unapproved, and neither does; compatibility.md and diagrams.md warn decision.order (a
+  rule mixing SHOULD and MUST NOT ranks by its first keyword).
