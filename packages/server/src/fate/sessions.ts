@@ -34,6 +34,7 @@ export const TRIGGERS: Array<Trigger> = [
   "answers",
   "approval",
   "changes",
+  "comments",
   "proposal",
   "start",
   "manual",

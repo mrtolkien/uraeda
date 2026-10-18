@@ -26,6 +26,7 @@ import {
 } from "./fate/views.ts";
 import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
+import { recommendedDataView } from "./fate/recommended.ts";
 import { settingsDataView } from "./fate/settings.ts";
 import { branchChangesDataView } from "./fate/views-branch.ts";
 import { historyDataView } from "./fate/views-history.ts";
@@ -47,6 +48,7 @@ export {
   previewDataView,
   prioritiesDataView,
   proposalHintsDataView,
+  recommendedDataView,
   repositoriesDataView,
   sessionDataView,
   sessionListDataView,
@@ -94,6 +96,7 @@ export type TurnLog = Entity<typeof turnLogDataView, "TurnLog">;
 export type SessionList = Entity<typeof sessionListDataView, "SessionList">;
 export type SessionSearch = Entity<typeof sessionSearchDataView, "SessionSearch">;
 export type WorkflowMessage = Entity<typeof workflowMessageDataView, "WorkflowMessage">;
+export type RecommendedMessage = Entity<typeof recommendedDataView, "RecommendedMessage">;
 export type Repositories = Entity<typeof repositoriesDataView, "Repositories">;
 export type SlugProposal = Entity<typeof slugProposalDataView, "SlugProposal">;
 export type FolderSuggestions = Entity<typeof folderSuggestionsDataView, "FolderSuggestions">;

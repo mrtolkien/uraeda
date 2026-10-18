@@ -139,8 +139,18 @@ export type TurnKind = "workflow" | "chat" | "allow";
 
 export type TurnState = "queued" | "running" | "done" | "failed" | "stopped";
 
-/** What started a workflow turn, which its message tells the agent. */
-export type Trigger = "answers" | "approval" | "changes" | "proposal" | "start" | "manual";
+/**
+ * What started a workflow turn, which its message tells the agent: `comments` runs the comments
+ * message on the feature's pull request.
+ */
+export type Trigger =
+  | "answers"
+  | "approval"
+  | "changes"
+  | "comments"
+  | "proposal"
+  | "start"
+  | "manual";
 
 /** A background task of the agent's run, by the tool call that started it. */
 export type BackgroundTask = { kind: "subagent" | "command"; tool: string };

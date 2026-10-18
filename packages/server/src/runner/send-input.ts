@@ -1,20 +1,22 @@
+import type { Binding } from "../fate/context.ts";
 import type { Capabilities } from "./adapter.ts";
 import type { Item, Trigger } from "./events.ts";
 import type { ChatImage } from "./images.ts";
 import { MAX_IMAGES } from "../limits.ts";
+import { sentAsChat } from "./message.ts";
 import { REFUSALS, refused } from "./session-state.ts";
 
 /** A chat image sent with a message: its ID and size, which its item keeps, and its file's path. */
 export type SentImage = ChatImage & { path: string };
 
 /**
- * A message to send: its text, its chat images, and for the workflow's, what started it, and
- * whether its run starts a new agent session, `fresh`.
+ * A message to send: its text, its chat images, and for the workflow's, what started it, whether
+ * its run starts a new agent session, `fresh`, and the step its message was read at, `step`.
  */
 export type SendInput = {
   images?: Array<SentImage>;
   text: string;
-  workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
+  workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
 };
 
 /**
@@ -70,4 +72,33 @@ export function messageItem(
   text: string,
 ): Extract<Item, { kind: "message" }> {
   return { at: new Date().toISOString(), id, kind: "message", origin, state: "pending", text };
+}
+
+/**
+ * Where a message goes: its feature's branch, refused once merged, and for the workflow's, the
+ * step its run starts, or the line saying it runs as a chat, `asChat`, as `sentAsChat` decides.
+ */
+export async function sendPlace(
+  binding: Binding,
+  live: { folder: string | null; repo: string },
+  workflow: SendInput["workflow"],
+): Promise<{ asChat?: string; branch?: string; step: string | null }> {
+  const { folder, repo } = live;
+  if (folder === null) {
+    if (workflow) {
+      throw new Error("a chat has no workflow to continue");
+    }
+    return { step: null };
+  }
+  const next = await binding.nextStep(repo, folder);
+  const { branch } = next;
+  if (branch === undefined) {
+    throw refused(REFUSALS.noBranch);
+  }
+  if (!workflow) {
+    return { branch, step: null };
+  }
+  const feature = () => binding.readFeature(repo, folder);
+  const asChat = await sentAsChat({ feature, next, workflow });
+  return asChat === undefined ? { branch, step: next.step.name } : { asChat, branch, step: null };
 }
