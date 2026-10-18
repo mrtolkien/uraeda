@@ -900,3 +900,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `addSpecFeature` in `packages/binding/test-utils.ts`, `.storybook/fixture.ts`.
 - **Where**: task 14, `packages/binding/test-utils.ts`, `packages/web/.storybook/`,
   `SpecPage.stories.tsx`, `spec/DecisionCard.stories.tsx`, `scripts/spec-shots.ts`
+
+## R92: `main` merged in again, with the toolchain decision the human chose in round 02
+
+- **Decision**: the branch merges `main` a second time instead of rebasing, and resolves the
+  toolchain decision with option A of round 02, word for word. The spec becomes revision 3, approved
+  with that answer, since the human asked to finish once they answered; the plan needs no change
+  beyond its `spec-revision`.
+- **Rationale**: the branch already holds a merge of `main` (R1): a rebase would replay about 100
+  commits against decision files rewritten on both sides. The answer quoted the decision's new rules
+  in full, so the approval adds nothing the human did not read.
+- **Alternatives considered**: a rebase, as the implementation step describes: the same result, with
+  every decision conflict met again commit by commit. Sending the spec back for a separate approval:
+  the human asked to finish.
+- **If wrong**: `ura check` warns `toolchain.md changed after the spec's approval`, as it does for
+  `stack.md`; a later spec can reword the decision.
+- **Where**: the merge commit, `specs/decisions/toolchain.md`, `spec.md`, `plan.md`

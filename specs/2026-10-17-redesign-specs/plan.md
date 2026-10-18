@@ -1,6 +1,6 @@
 ---
 status: auto-approved
-spec-revision: 2
+spec-revision: 3
 ---
 
 # Plan: Redesign and reword specs
