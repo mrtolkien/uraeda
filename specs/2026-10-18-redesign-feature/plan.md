@@ -780,7 +780,7 @@ git commit -m "feat(redesign-feature): a feature's stages, read from its typed c
     session's turns since its latest turn holding a `system` item `FRESH` or `REPLACED`, that turn
     included, or of all its turns without one; a null count read as 0.
 
-- [ ] **Step 1: Split `cache.ts` before it changes**
+- [x] **Step 1: Split `cache.ts` before it changes**
 
 Move `Migration`, `sessionsOfTurns`, `migrations`, `migrate`, and `transaction` to
 `runner/migrations.ts`, and `SessionRow`, `TurnRow`, `toSession`, and `toTurn` to
