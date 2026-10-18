@@ -93,20 +93,24 @@ pub(crate) fn merge(
     }))
 }
 
-/// The diffs of the runs of `slug`'s commits on a first-parent line given newest first, oldest
-/// first: a commit whose first parent is the previous scoped commit joins its run, and each run
-/// spans from its oldest commit's first parent to its newest commit.
+/// The diffs of the spans of `slug`'s commits on a first-parent line given newest first, oldest
+/// first. A span runs from its oldest commit's first parent to its newest commit: commits of no
+/// feature between two of `slug`'s stay inside it, as a rebased branch's own notes do, and a commit
+/// scoped by another feature ends it, so other features' work is never counted (R80).
 fn runs(line: &[CommitInfo], slug: &str) -> Vec<Diff> {
     let mut runs: Vec<(Option<ObjectId>, ObjectId)> = Vec::new();
+    let mut open = false;
     for commit in line.iter().rev() {
         if scope_type(&commit.subject, slug).is_none() {
+            open &= scoped_elsewhere(&commit.subject).is_none();
             continue;
         }
         let parent = commit.parents.first().copied();
         match runs.last_mut() {
-            Some((_, newest)) if parent == Some(*newest) => *newest = commit.id,
+            Some((_, newest)) if open => *newest = commit.id,
             _ => runs.push((parent, commit.id)),
         }
+        open = true;
     }
     runs.into_iter()
         .filter_map(|(base, tip)| {
@@ -117,6 +121,14 @@ fn runs(line: &[CommitInfo], slug: &str) -> Vec<Diff> {
             })
         })
         .collect()
+}
+
+/// The scope of a subject typed `<type>(<scope>):`, whatever feature it names.
+fn scoped_elsewhere(subject: &str) -> Option<&str> {
+    let (kind, rest) = subject.split_once('(')?;
+    let (scope, rest) = rest.split_once(')')?;
+    let typed = !kind.is_empty() && kind.bytes().all(|byte| byte.is_ascii_alphanumeric());
+    (typed && rest.trim_start_matches('!').starts_with(':')).then_some(scope)
 }
 
 /// The time from the proposal's start to the pull request's, when both started.
