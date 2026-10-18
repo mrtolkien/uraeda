@@ -18,10 +18,11 @@ export function BranchDecisionPage({ folder, name }: { folder: string; name: str
   const found = !!decision && !decision.missing;
   const missing = !!decision?.missing;
   // The link's anchor, a section's heading, once the card is drawn. A feature without a branch,
-  // or whose branch has no such decision, has the default branch's: the decisions page opens.
+  // or whose branch has no such decision, has the default branch's: the decisions page opens, at
+  // the same anchor.
   useLayoutEffect(() => {
     if (missing) {
-      redirect(here(`/decisions/${encodeURIComponent(name)}`));
+      redirect(here(`/decisions/${encodeURIComponent(name)}`) + window.location.hash);
     } else if (found && hash) {
       document.getElementById(hash)?.scrollIntoView?.({ block: "start" });
     }

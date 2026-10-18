@@ -9,7 +9,9 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { useLayoutEffect } from "react";
 import { Blocks } from "../Blocks.tsx";
+import { useHash } from "../routes.tsx";
 import { decisionIcon } from "../theme/icons.ts";
 import {
   type LedgerConstitution,
@@ -76,6 +78,13 @@ export function PrincipleDetail({
  */
 export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
   const { document } = decision;
+  // A link's anchor, a section's heading in the file: the page scrolls to it once drawn.
+  const hash = decodeURIComponent(useHash().slice(1));
+  useLayoutEffect(() => {
+    if (hash) {
+      window.document.getElementById(hash)?.scrollIntoView?.({ block: "start" });
+    }
+  }, [hash, decision.name]);
   // The title is the pane's heading already.
   const ids = document.blocks
     .filter(
