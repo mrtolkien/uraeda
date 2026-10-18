@@ -144,7 +144,8 @@ test("US2.4: a feature that waits on you again sends the message as a chat", asy
   await waitFor(() => expect(agent.sent).toHaveLength(1));
 });
 
-test("US2.4: a hand-over refused once read keeps Start the agent, disabled, never a chat's Send", async () => {
+/** Review focus 8: a refused hand-over never disables the composer (R30). */
+test("US2.4: a hand-over refused once read says why, and sends what the composer holds as a chat", async () => {
   const repo = answeredRepo();
   const { agent } = await renderPage(ROUND, repo, { agent: true });
   await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
@@ -158,13 +159,16 @@ test("US2.4: a hand-over refused once read keeps Start the agent, disabled, neve
     ).toBeTruthy(),
   );
 
-  expect(startInComposer().hasAttribute("disabled")).toBe(true);
-  expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
   expect((await composer()).textContent).toBe(ANSWERED);
   expect(agent.sent).toHaveLength(0);
+  await click(screen.getByRole("button", { name: "Send" }));
+
+  await waitFor(() => expect(agent.sent).toHaveLength(1));
+  expect(agent.sent[0].text).toContain("A human is chatting with you about the feature");
 });
 
-test("US2.4: a session opened to continue a feature that waits on you says why, and fills nothing", async () => {
+test("US2.4: a session opened to continue a feature that waits on you says why, fills nothing, and sends a chat", async () => {
   const { agent } = await renderPage(`/f/${WEB_UI}/session?continue=manual`, fixtureRepo(), {
     agent: true,
   });
@@ -174,6 +178,11 @@ test("US2.4: a session opened to continue a feature that waits on you says why, 
   ).toBeTruthy();
   expect((await composer()).textContent).toBe("");
   expect(agent.sent).toHaveLength(0);
+  await type(await composer(), "Why A?");
+  await click(screen.getByRole("button", { name: "Send" }));
+
+  await waitFor(() => expect(agent.sent).toHaveLength(1));
+  expect(agent.sent[0].text).toContain("A human is chatting with you about the feature");
 });
 
 test("the workflow's message goes before what the human typed", async () => {

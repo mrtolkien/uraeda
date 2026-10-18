@@ -13,7 +13,8 @@ export type Sent = { ok: true; session: string } | { message: string; ok: false 
 /**
  * Sends a message: to a session, to a feature's session, created with its first message, or, with
  * neither, to a new chat. `images` are the chat images `POST /attach` saved, passed as it returned
- * them. `workflow` makes it the workflow's message, which starts the feature's step.
+ * them. `workflow` makes it the workflow's message, which starts the feature's step: read at `step`,
+ * it goes as a chat once the feature moved on.
  */
 export async function sendMessage(
   fate: Fate,
@@ -22,7 +23,7 @@ export async function sendMessage(
     images?: ReadonlyArray<ChatImage>;
     session?: string;
     text: string;
-    workflow?: { file?: string; trigger: Trigger };
+    workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
   },
 ): Promise<Sent> {
   let { session } = input;
