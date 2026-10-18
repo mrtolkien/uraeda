@@ -70,7 +70,10 @@ export class Processes {
   ): Promise<{ line?: string; proc: Proc }> {
     const { adapter, binding, cache } = this.#context;
     if (live.proc && !live.proc.closing && allowed === undefined && !fresh) {
-      return { proc: live.proc };
+      // A turn taken back while the process opened left its line to the next one.
+      const { line } = live.proc;
+      delete live.proc.line;
+      return { proc: live.proc, ...(line === undefined ? {} : { line }) };
     }
     if (live.proc) {
       this.close(live.proc);
@@ -131,7 +134,11 @@ export class Processes {
     if (turn === undefined || baseline === undefined) {
       return;
     }
-    const own = (field: keyof TokenCounts) => Math.max(0, total[field] - baseline[field]);
+    // An agent session's total never decreases: a lower one is a new agent session's, `/clear`.
+    const started = (Object.keys(total) as Array<keyof TokenCounts>).some(
+      (field) => total[field] < baseline[field],
+    );
+    const own = (field: keyof TokenCounts) => total[field] - (started ? 0 : baseline[field]);
     this.#context.cache.addTurnTokens(turn, {
       cacheRead: own("cacheRead"),
       cacheWrite: own("cacheWrite"),
