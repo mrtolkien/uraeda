@@ -798,7 +798,10 @@ export interface FeatureView {
    */
   mockups: Array<string>
   step: StepView
-  /** What stops the workflow, `Problem::blocks`: Home and the sidebar flag the feature. */
+  /**
+   * What stops the workflow: the workspace's own problems, which set the step to `none`, and
+   * the check's results that `Problem::blocks`. Home and the sidebar flag the feature.
+   */
   problems: Array<ProblemView>
   /** The check's other results, shown only on its page. */
   notes: Array<ProblemView>

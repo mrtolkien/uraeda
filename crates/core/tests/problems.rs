@@ -67,6 +67,9 @@ fn drop_waves(repo: &TestRepo) {
     repo.write(PLAN, &format!("{}{}", &text[..start], &text[end..]));
 }
 
+/// A change to the feature before its commit.
+type Edit = fn(&TestRepo);
+
 fn rules(found: &[ProblemView]) -> Vec<&str> {
     found.iter().map(|problem| problem.rule.as_str()).collect()
 }
@@ -147,4 +150,46 @@ fn a_deleted_answer_line_in_an_answered_round_is_a_problem() {
         view.problems
     );
     assert_eq!(rules(&view.notes), ["answers.marker"], "{:?}", view.notes);
+}
+
+/// The workspace's own problems set the step to `none`: a feature at `none` always shows a
+/// problem, whatever the check's `BLOCKING` lists, or it would vanish from Home and the sidebar.
+#[test]
+fn a_feature_whose_step_cannot_be_found_always_has_a_problem() {
+    let broken: [(&str, Edit); 3] = [
+        ("an unparsable frontmatter", |repo| {
+            replace(repo, SPEC, "status: approved\n", "status: [approved\n");
+        }),
+        ("an invalid status", |repo| {
+            replace(repo, SPEC, "status: approved", "status: aproved");
+        }),
+        ("a file not in UTF-8", |repo| {
+            fs::write(
+                repo.path().join(format!("specs/{FOLDER}/rulings.md")),
+                b"\xff\xfe not UTF-8",
+            )
+            .unwrap();
+        }),
+    ];
+    for (case, edit) in broken {
+        let repo = feature(edit);
+
+        let view = read(&repo);
+
+        assert_eq!(view.step.name, "none", "{case}");
+        assert!(!view.problems.is_empty(), "{case}: {:?}", view.notes);
+    }
+    let repo = feature(|repo| {
+        fs::remove_dir_all(repo.path().join("specs").join(FOLDER)).unwrap();
+        let record = fs::read_to_string(example().join(format!("done/{FOLDER}.md"))).unwrap();
+        repo.write(
+            &format!("specs/done/{FOLDER}.md"),
+            &record.replacen("kind: feature", "kind: chore", 1),
+        );
+    });
+
+    let view = read(&repo);
+
+    assert_eq!(view.step.name, "none", "a record's unknown kind");
+    assert!(!view.problems.is_empty(), "{:?}", view.notes);
 }

@@ -24,8 +24,9 @@ pub struct Problem {
     pub severity: Severity,
 }
 
-/// The rules whose results stop the workflow: a feature's problems. The step cannot be found, the
-/// first four, or an answered round misses a human's answer, `answers.blank`.
+/// The rules whose check results stop the workflow: a feature's problems. The step cannot be
+/// found, the first four, or an answered round misses a human's answer, `answers.blank`. The
+/// workspace's own problems, which set the step to `none`, block whatever this list holds.
 ///
 /// The [Problems](/specs/decisions/problems.md) decision: "A check result MUST count as a
 /// feature's problem only when its rule stops the workflow; every other result MUST be a note."
