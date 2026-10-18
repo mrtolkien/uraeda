@@ -52,6 +52,11 @@ const styles = stylex.create({
     // A jump puts the group below the phone's top bar, which stays in view.
     scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
   },
+  layer: {
+    // The page's parts in a layer of their own, under the top bar: on the phone, a part's sticking
+    // head, pushed up as its part scrolls away, slides under the bar rather than over it.
+    isolation: "isolate",
+  },
   title: {
     // Focused by a jump from "Contents", without a ring: the jump shows where it went.
     outlineStyle: { ":focus:not(:focus-visible)": "none", default: null },
@@ -64,10 +69,6 @@ const STATUSES: Record<string, { label: string; variant: "neutral" | "success" |
   "awaiting-human": { label: "Waiting for your review", variant: "warning" },
 };
 
-/**
- * The branch's changes to decisions, which the file view carries once task 7 of the specs redesign
- * adds them; none before.
- */
 /** A group of the spec's parts: on the phone, after a band; its title, then its parts. */
 function Group({
   children,
@@ -156,12 +157,7 @@ function Groups({
             />
           )}
           {items.stories.map((story) => (
-            <StoryCard
-              {...part}
-              key={story.id}
-              mockup={items.mockups.find((m) => m.block === story.mockup)}
-              story={story}
-            />
+            <StoryCard {...part} key={story.id} story={story} />
           ))}
         </Group>
       )}
@@ -226,7 +222,7 @@ function SpecLayout({
     >
       <Page isTight>
         <Crumbs current={file.name} folder={file.folder} />
-        <VStack gap={wide ? 8 : 4}>
+        <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
           <VStack gap={3}>
             <SpecTitle document={document} file={file} items={items} />
             {review && <ReviewIntro file={file} review={review} />}
