@@ -107,3 +107,5 @@
   per decision on every read, about 20 for a feature that rewrote every decision
 - [agent] [redesign-feature] Feature page: a done feature's "Next" names its pull request without
   linking it; only "Lines changed" leads there
+- [agent] [redesign-feature] Recommended message: no test checks end to end that a merged feature's
+  session recommends nothing; the unit test builds its step by hand
