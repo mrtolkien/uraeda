@@ -1,6 +1,6 @@
 # Code quality
 
-Five concepts that keep a project maintainable without the human reading its code, what each asks at
+Six concepts that keep a project maintainable without the human reading its code, what each asks at
 each step, and the checks behind it; then how a project sets those checks up.
 
 Agents extend the code they find. Feature after feature, functions and files grow, rules get copied
@@ -61,6 +61,23 @@ A rule only a reader remembers is followed until someone forgets it. A rule a to
 - **When a written rule keeps being missed**, move it into code: a type, a lint, a test.
 
 Checks: the project's linters and tests, in its usual validation command, so every step runs them.
+
+## Writing tests
+
+Test the feature the way a user or a caller uses it: integration tests, through the real components
+and an in-memory store, with the clock set by the test. They survive refactoring, where unit tests
+of internal functions break, and an agent writes them quickly.
+
+- Tests are part of the codebase: organize them with the same care as the main code. Create the
+  helpers, fixtures, and fakes the tests need (rendering the app, seeding the store, setting the
+  clock), in shared files, so that each test holds no boilerplate.
+- Readability is a key feature of a test: each one is short and readable by a human, Arrange, Act,
+  Assert, in that order, with a name that states the scenario. Test files stay short.
+- Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
+- A UI story's scenarios run in the project's browser runner: see
+  [UIs verified end to end](#uis-verified-end-to-end).
+
+Checks: the review of each task, which counts a test that breaks these rules as a finding.
 
 ## Tests that can fail
 

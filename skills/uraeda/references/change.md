@@ -86,9 +86,9 @@ investigation depends on what the proposal asks.
 the bug. A fix guessed from the symptom hides the bug and adds new ones.
 
 1. **Reproduce it.** Follow the proposal's steps, then write the smallest test that fails because of
-   the bug: an integration test, through the real components, following the spec step's
-   [Tests](spec.md#tests) rules. Run it and keep its failure. If it does not fail every time, find
-   what makes it fail: timing, order, data.
+   the bug: an integration test, through the real components, following the
+   [writing tests](code-quality.md#writing-tests) rules. Run it and keep its failure. If it does not
+   fail every time, find what makes it fail: timing, order, data.
 2. **Trace the root cause.** Follow the wrong value back through the code to where it first goes
    wrong, not where it shows. Check the recent changes to that code (`git log`), and compare with
    similar code that works. Fix the cause at its source.
@@ -236,8 +236,8 @@ time, one commit per item:
   with the change's slug, and name it in the pull request's description.
 
 Before each commit, run the validation the step needs, as the implementation step's
-[validation](implementation.md#for-each-task-in-order) says. When something only the human can
-decide comes up midway, ask in a round: the items already committed stay.
+[validation](implementation.md#each-task) says. When something only the human can decide comes up
+midway, ask in a round: the items already committed stay.
 
 ## The review
 
