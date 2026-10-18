@@ -18,9 +18,21 @@
 ## UI
 
 - In clarifications of inbox triage, most notes were cut -> very hard to read
-  - Also the card with two columns + questions on the right felt a bit cramped, the card should be a
-    bit wider + the right column should be right-aligned
+- In clarifications the card with two columns + questions on the right felt a bit cramped, the card
+  should be a bit wider + the left part should be bigger + the right column should be right-aligned
+- The sidebar view of running stuff needs a few changes:
+  - Click in most of the border should go to the page (feature/change)
+  - The agent pill should go to the session
+  - If it's a warning sign for answers it should go to the question page
+  - The diff needs colors (green/red)
+  - We need ~+2px bottom border I think, sometimes text and pills looked like they had not enough
+    space (don't have an example on hand)
 
-## Flow
+## Changes
+
+- Inbox needs to be able to have screenshots like other pages
+- Questions need examples + the text has become too long with the new prompt
+  - The question could present the example and the answers the outcome
+- "drafting a priority" is ass btw. It should be "Turn a priority into a draft".
 
 ## Deferred fixes
