@@ -21,6 +21,25 @@ export function stepLabel(name: string) {
   return STEPS[name] ?? name;
 }
 
+/** What the agent does at each of its steps, as a feature page's "Next" says it. */
+const AGENT_NEXT: Record<string, string> = {
+  approval: "The agent applies your approval",
+  change: "The agent makes the change",
+  discovery: "The agent investigates and asks",
+  "final-review": "The agent reviews the feature",
+  finish: "The agent opens the pull request",
+  plan: "The agent writes the plan",
+  "plan-revision": "The agent revises the plan",
+  "pull-request-changes": "The agent addresses the changes requested",
+  spec: "The agent writes the spec",
+  "spec-revision": "The agent revises the spec",
+};
+
+/** The heading of "Next" while a step waits on the agent: what the agent does, or the step. */
+export function agentNext(name: string) {
+  return AGENT_NEXT[name] ?? stepLabel(name);
+}
+
 type Step = Pick<StepView, "fileKind" | "name">;
 
 /** What a human gate asks, from the kind of the file it waits on, as the core names it. */

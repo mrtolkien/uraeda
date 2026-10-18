@@ -121,7 +121,7 @@ test("a change's round links its decision with the change marked", async () => {
 /** Every page kind of the fixture, and a text it shows once drawn. */
 const PAGES: Array<[path: string, text: string]> = [
   ["/", "Recently done"],
-  ["/f/2026-10-11-web-ui", "Answer questions"],
+  ["/f/2026-10-11-web-ui", "You answer the questions"],
   ["/f/2026-10-11-web-ui/proposal.md", "the code"],
   ["/f/2026-10-06-recurring-tasks/session", "Message Claude Code"],
   ["/f/2026-10-06-recurring-tasks/mockups/repeat.html", "Open in a new tab"],

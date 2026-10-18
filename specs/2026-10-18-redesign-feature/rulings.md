@@ -240,3 +240,70 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for one message.
 - **If wrong**: the `refused` check comes back in `Composer.tsx`.
 - **Where**: task 7
+
+## R20: The page's header keeps the app's crumbs
+
+- **Decision**: the feature page opens with the crumbs every page of a feature has, "Home ›
+  <title>", in place of the mockup's muted "Features ›".
+- **Rationale**: no page lists the features for "Features" to lead to, and the crumbs are the way
+  back from the page's own files and session, which the tests already walk.
+- **Alternatives considered**: the mockup's "Features ›" as plain text, which leads nowhere.
+- **If wrong**: one line of `feature/FeaturePage.tsx`.
+- **Where**: task 8
+
+## R21: The tests of a change's session open it at its own address
+
+- **Decision**: the tests that opened a change's session at `/f/<change>` open it at
+  `/f/<change>/session`, and a change's session has the crumbs back to its page, as a feature's has.
+  The old agent panel's tests that never opened the feature page move to `session-turns.test.tsx`;
+  its US2.5 test opens the session at `?continue=manual`, as a hand-over does, since "Review and
+  start the agent" is gone. `links.test.ts` and the layout tests wait for the new page's texts, "You
+  answer the questions" and "Open the session".
+- **Rationale**: US3 gives a change the feature's page, so `/f/<change>` no longer is its session; a
+  change's session without crumbs had "no other page to go back to" (US4.6 of the change workflow),
+  which no longer holds. Each moved test checks what it checked before.
+- **Alternatives considered**: moving the session's tests into `feature-page.test.tsx`, as the plan
+  said, where they would test a page they never open.
+- **If wrong**: the paths of the changed tests, and one condition of `Crumbs.tsx`.
+- **Where**: task 8
+
+## R22: The stages keep each part of a line whole, their indicators on the track
+
+- **Decision**: on a wide screen the stages draw their indicators on the track, and each part of a
+  stage's line, a time or a duration, holds no-break spaces: a line too long for its stage, "Oct 13,
+  00:01 · 18 h 9 min", breaks between its parts only. No `white-space: nowrap`.
+- **Rationale**: beside the sidebar, a stage is about 155 px wide; with the indicator's gutter,
+  "12:11 · 2 h 50 min" wrapped. A `white-space: nowrap` on the stages let a dated line run over the
+  next stage, and its StyleX class, injected after the others in the browser tests, broke the
+  overflow checks of the session's and the sidebar's long lines.
+- **Alternatives considered**: `text-wrap: nowrap`, which runs a dated line over the next stage; the
+  mockup's separated indicators, which wrap every duration of hours.
+- **If wrong**: two props of `feature/Stages.tsx`; task 10's screenshots show it at both sizes.
+- **Where**: task 8
+
+## R23: The agent's card shows its own trouble, and always opens the session
+
+- **Decision**: the card reads "Working" while a turn runs, the session's "Needs attention" after a
+  failed, stopped, or halted run, and "Needs you" for a blocked action; otherwise "Idle", even while
+  the feature waits on the human, which "Next" says. "Open the session" shows on every item's page,
+  a done one's and one without a session included; "Last run" gives a turn's time once it ended.
+- **Rationale**: SC-003 asks for one "Open the session" on every page, so the old "no panel" tests
+  go. A run that failed is the agent's state, which the old panel showed and its tests kept. A
+  running turn's time would stand still between live updates: the React Compiler refuses
+  `Date.now()` in a render.
+- **Alternatives considered**: the session's status label always, which reads "Needs you" while the
+  spec waits, against US1 more 3's "Idle".
+- **If wrong**: the `State` part of `feature/AgentCard.tsx`.
+- **Where**: task 8
+
+## R24: The open pull request's page test fakes `gh` on the PATH
+
+- **Decision**: `feature-page.test.tsx` puts a `gh` script on the PATH that lists pull request #31,
+  and reads it once with the binding's `refreshPullRequests`, as `crates/cli/tests/next.rs` fakes
+  `gh` for the CLI. The server, its binding, and the page run as they do.
+- **Rationale**: `pulls.test.ts` fakes the binding's functions, not `gh`; the PATH script leaves
+  every layer real, and fakes no server response.
+- **Alternatives considered**: a binding whose `readFeature` returns a pull request, a fake of the
+  server's answer, which the preview decision forbids in stories and the UI checks avoid.
+- **If wrong**: the `fakeGh` helper of the test.
+- **Where**: task 8
