@@ -98,12 +98,20 @@ export function AddRepository({
     suggested.current = paths;
   });
   const [active, setActive] = useState(-1);
+  // Whether a suggestion filled the field: the next Enter adds it, whatever loads meanwhile.
+  const filled = useRef(false);
 
   const change = (value: string) => {
+    filled.current = false;
     setText(value);
     setTyped(true);
     setError(undefined);
     setActive(-1);
+  };
+
+  const fill = (value: string) => {
+    change(value);
+    filled.current = true;
   };
 
   const add = async () => {
@@ -134,13 +142,16 @@ export function AddRepository({
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
             const step = event.key === "ArrowDown" ? 1 : -1;
+            filled.current = false;
             setActive(Math.max(-1, Math.min(rows.length - 1, active + step)));
           } else if (event.key === "Enter") {
             event.preventDefault();
             // The suggestion the arrows are on, or the only one, fills the field; then Enter adds.
-            const picked = rows[active] ?? (rows.length === 1 ? rows[0] : undefined);
+            const picked = filled.current
+              ? undefined
+              : (rows[active] ?? (rows.length === 1 ? rows[0] : undefined));
             if (picked !== undefined && !sameFolder(picked, text)) {
-              change(picked);
+              fill(picked);
             } else {
               void add();
             }
@@ -151,7 +162,7 @@ export function AddRepository({
       />
       {typed && /^[/~]/.test(shown) && (
         <Suspense fallback={null}>
-          <Suggestions active={active} onPick={change} onShown={onShown} text={shown} />
+          <Suggestions active={active} onPick={fill} onShown={onShown} text={shown} />
         </Suspense>
       )}
       <Text color="secondary" type="supporting">
