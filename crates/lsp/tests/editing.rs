@@ -202,9 +202,7 @@ fn a_value_is_replaced_whole() {
 fn a_round_lists_its_questions_as_symbols() {
     let (repo, _, _) = feature_with_spec();
     let path = repo.path().join(FEATURE).join("clarifications-01.md");
-    let text = "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: X\n\n## Context\n\n\
-                Some context.\n\n## Q1: First?\n\n**Answer:**\n\n### Q1.A: Follow-up?\n\n\
-                **Answer:**\n\n## Q2: Second?\n\n**Answer:**\n";
+    let text = "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: X\n\n> [!IMPORTANT]\n>\n> 2 questions and 1 follow-up, about 5 minutes.\n>\n> - Verdict: worth building as proposed.\n\n## Context\n\n### Goal\n\nA goal.\n\n### Today\n\nSome context.\nMore context.\n\n### Scope\n\nA scope.\n\n### Sources\n\n- The code.\n\n## Q1: First?\n\nContext.\n\nWhy it matters: it decides the rest.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n**Answer:**\n\n### Q1.A: Follow-up?\n\nOnly if you picked A in Q1.\n\nWhy it matters: it decides the rest.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n**Answer:**\n\n## Q2: Second?\n\nContext.\n\nWhy it matters: it decides the rest.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n**Answer:**\n\n## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n";
     let mut session = Session::start(repo.path());
     session.open(&path, text);
 
@@ -230,9 +228,9 @@ fn a_round_lists_its_questions_as_symbols() {
         .find(|(_, symbol)| symbol.name == "Q1")
         .unwrap()
         .1;
-    assert_eq!(q1.selection_range.start.line, 10);
-    assert_eq!(q1.range.start.line, 10);
-    assert_eq!(q1.range.end.line, 17, "Q1 ends before Q2");
+    assert_eq!(q1.selection_range.start.line, 31);
+    assert_eq!(q1.range.start.line, 31);
+    assert_eq!(q1.range.end.line, 62, "Q1 ends before Q2");
 }
 
 /// C1 of the spec's review.

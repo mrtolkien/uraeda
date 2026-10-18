@@ -31,16 +31,19 @@ local T = MiniTest.new_set({
 })
 
 local branch = "2026-10-14-codex-runtime"
-local item = "codex-runtime · clarifications-01.md · 7 questions, about 25 minutes."
+local item = "codex-runtime · clarifications-01.md · 1 question, about 5 minutes."
 
 --- A repository whose feature `codex-runtime`, on its branch checked out in its worktree, has a
 --- round of questions waiting for the human; returns the repository and the round's path.
 local function with_round()
   local proposal = helpers.example()["specs/2026-10-06-recurring-tasks/proposal.md"]
   local round = "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Codex runtime\n\n"
-    .. "> [!IMPORTANT]\n>\n> 7 questions, about 25 minutes.\n>\n> - A point.\n\n"
-    .. "## Context\n\nContext.\n\n## Q1: Question?\n\nWhy.\n\n"
-    .. "- **A (recommended). One.**\n  - [pro] p\n- **B. Two.**\n  - [con] c\n\n**Answer:**\n"
+    .. "> [!IMPORTANT]\n>\n> 1 question, about 5 minutes.\n>\n> - A point.\n\n"
+    .. "## Context\n\n### Goal\n\nA goal.\n\n### Today\n\nToday.\n\n### Scope\n\nA scope.\n\n"
+    .. "### Sources\n\n- The code.\n\n## Q1: Question?\n\nContext.\n\nWhy it matters: it decides.\n\n"
+    .. "- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n"
+    .. "- **B. Two.**\n  - [pro] p\n  - [con] c\n\n**Answer:**\n\n"
+    .. "## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n"
   local repo = helpers.repo({
     ["specs/README.md"] = "# Specs\n",
     ["specs/PRIORITIES.md"] = "# Priorities\n\n## Now\n\n1. [Codex runtime]("

@@ -12,7 +12,7 @@ beforeEach(() => atWidth(1440));
 
 /** A question, with its heading's level and ID, and its answer. */
 function question(heading: string, title: string, answer = "") {
-  return `${heading}: ${title}\n\n- **A (recommended). Yes.**\n  - [pro] simple.\n- **B. No.**\n  - [con] harder.\n\n**Answer:**${answer ? ` ${answer}` : ""}\n`;
+  return `${heading}: ${title}\n\nContext.\n\nWhy it matters: it decides the header.\n\n- **A (recommended). Yes.**\n  - [pro] simple.\n  - [con] more work.\n  - Why recommended: it is simple.\n- **B. No.**\n  - [pro] cheap.\n  - [con] harder.\n\n**Answer:**${answer ? ` ${answer}` : ""}\n`;
 }
 
 /**
@@ -32,7 +32,15 @@ function round(
     .concat(followUp ? [question("### Q1.B", followUp)] : [])
     .join("\n");
   const status = answer ? "answered" : "awaiting-human";
-  return `---\nstatus: ${status}\n---\n\n# Clarifications, round ${number}: A home logo\n\n> [!IMPORTANT]\n>\n> ${titles.length} questions.\n\n## Context\n\nThe [proposal](proposal.md).\n\n${questions}`;
+  const counts = `${titles.length} questions${followUp ? " and 1 follow-up" : ""}`;
+  const block = answer
+    ? `> [!NOTE]\n>\n> Answered on 2026-10-16.\n>\n> - A point.\n\n`
+    : `> [!IMPORTANT]\n>\n> ${counts}, about 5 minutes.\n>\n> - A point.\n\n`;
+  const context =
+    "### Goal\n\nThe [proposal](proposal.md).\n\n### Today\n\nToday.\n\n### Scope\n\nA scope.\n\n### Sources\n\n- The code.\n\n";
+  const settled =
+    "\n## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n";
+  return `---\nstatus: ${status}\n---\n\n# Clarifications, round ${number}: A home logo\n\n${block}## Context\n\n${context}${questions}${settled}`;
 }
 
 /** The column, once drawn. */
