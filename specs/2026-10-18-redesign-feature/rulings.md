@@ -5,9 +5,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R1: A done feature's lines are the net diff of its run of commits
 
-- **Decision**: a feature merged by rebase or fast-forward counts the diff from the parent of its
-  last run of consecutive scoped commits on the default branch to the newest one; a feature merged
-  with a merge commit counts the merge's three-dot diff. Both leave out its folder and its record.
+- **Decision**: a feature merged by rebase or fast-forward counts, file by file, the sum of the net
+  diffs of its runs of consecutive scoped commits on the default branch's first-parent line, each
+  from the parent of its oldest commit to its newest (R80); a feature merged with a merge commit
+  counts the merge's three-dot diff. Both leave out its folder and its record.
 - **Rationale**: this repository merges by rebase, and its start commits sit on the default branch
   hours before the branch's commits, with other features between. Summing each commit's own diff
   gave +7,949 −2,938 for the clarifications redesign, against +6,633 −1,455 on its pull request: a
@@ -150,8 +151,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R13: A done item's merge and lines are read from its finish commit
 
 - **Decision**: a done item arrived with its `finish(<slug>)` commit: at its committer time when it
-  is on the default branch's first-parent line, its lines the run of scoped first-parent commits
-  ending at it; otherwise through the oldest first-parent merge commit that has it.
+  is on the default branch's first-parent line, its lines the runs of scoped first-parent commits up
+  to it (R80); otherwise through the oldest first-parent merge commit that has it.
 - **Rationale**: found in review of task 3: a `fix(<slug>)` commit made on `main` after the merge
   moved the merge to its time, and took the lines from its run alone. Rebased commits also often
   share one committer time, so the newest scoped commit by that time could be any of the run.
@@ -166,6 +167,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   which skips every other branch's and record's read and gives the same feature. A done item's walk
   starts at the first-parent commit that added its record, found by
   `git log --first-parent --diff-filter=A -1 -- <record>`, and stops at the folder's date as before.
+  A rebased item's first-parent line, for its runs, is read by
+  `git log --first-parent --since=<folder's date minus a day> --until=<finish>` from its finish, git
+  stopping at the first commit older than the bound (R80).
 - **Rationale**: found in review of task 3: the whole workspace took about 200 ms of a read in a
   debug build here, and a done item's walk from the default branch's tip grew with every later
   feature. The benchmark went from 73 ms to 24 ms; on this repository, 2026-10-12-finish-feature
@@ -307,3 +311,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   server's answer, which the preview decision forbids in stories and the UI checks avoid.
 - **If wrong**: the `fakeGh` helper of the test.
 - **Where**: task 8
+
+## R80: A rebased feature's lines are every run of its commits, the commits between them left out
+
+- **Decision**: for a done item merged without a merge commit, its scoped commits on the default
+  branch's first-parent line, from the folder's date minus a day, are grouped into runs: a commit
+  whose first parent is the previous scoped commit joins its run. The lines are the sum, file by
+  file, of each run's net diff, from the first parent of its oldest commit to its newest, outside
+  the folder and the record; `files` the distinct paths. The decisions are each decision file a run
+  touched, compared between the oldest run's base and the newest run's tip. An unscoped commit
+  between two runs is not counted.
+- **Rationale**: found in review of task 6: the branch of `2026-10-17-redesign-specs` holds
+  `chore: add … to the inbox` among its rebased commits, which cut the run at it: the record read
+  +8,482 −2,855 over 146 files and 1 decision, against +15,272 −5,941 over 214 files and 18
+  decisions over its runs. An unscoped commit between two runs may be the branch's own or one of
+  `main`'s that the rebase put there: nothing in git tells them apart, so neither is counted.
+- **Alternatives considered**: one diff from the oldest run's base to the newest run's tip, which
+  counts every other feature's commits between the start and the branch; each commit's own diff,
+  which counts a rewritten line twice (R1).
+- **If wrong**: a figure off by a branch's unscoped commits, or by a file rewritten in two runs; the
+  rule lives in `history/figures.rs`.
+- **Where**: task 6, fixed after its review
