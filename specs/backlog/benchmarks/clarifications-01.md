@@ -6,7 +6,7 @@ status: awaiting-human
 
 > [!IMPORTANT]
 >
-> 11 questions and 2 follow-ups on the benchmark, about 45 minutes.
+> 11 questions and 4 follow-ups on the benchmark, about 45 minutes.
 >
 > - Verdict: worth building, with changes: what a run measures, and what it is compared against, are
 >   what turn "not completely stupid" into a result you can read. Everything else follows from them.
@@ -81,9 +81,26 @@ grade.
 
 ### Q1.A: Which model judges?
 
-Only if you picked A or C in Q1. A judge favours text written by its own model, by about 10% for
-GPT-4 in MT-Bench. The effect is weaker when it checks coverage against a reference list than when
-it states a preference. More in [discovery](discovery-01.md#judge-model).
+Only if you picked A in Q1. A judge favours text written by its own model, by about 10% for GPT-4 in
+MT-Bench. The effect is weaker when it checks coverage against a reference list than when it states
+a preference. More in [discovery](discovery-01.md#judge-model).
+
+- **A (recommended). Opus 5.5, checking each hidden requirement against the spec, one by one.**
+  - [pro] no second harness or account, and it matches "Opus 5.5 everywhere".
+  - [con] some self-preference risk remains.
+  - Why recommended: a requirement-by-requirement coverage check is the case where self-preference
+    matters least.
+- **B. A model from another family, through Codex.**
+  - [pro] no self-preference.
+  - [con] a second harness and account to set up before the first benchmark.
+
+**Answer:** A, let's keep it simple for the moment. Also we're checking artifacts, not arguments.
+
+### Q1.C: Which model judges?
+
+Only if you picked C in Q1. A judge favours text written by its own model, by about 10% for GPT-4 in
+MT-Bench. The effect is weaker when it checks coverage against a reference list than when it states
+a preference. More in [discovery](discovery-01.md#judge-model).
 
 - **A (recommended). Opus 5.5, checking each hidden requirement against the spec, one by one.**
   - [pro] no second harness or account, and it matches "Opus 5.5 everywhere".
@@ -162,8 +179,8 @@ simulated human has a real brief.
 ## Q4: What does the simulated human know?
 
 Benchmarks with a simulated user give it a hidden brief, and tell it to answer only from it. They
-never let it see the tests, because simulated users volunteer information before it is asked for, in
-about a quarter of successful episodes in one study. Its brief depends on Q3. How it behaves is Q5.
+never let it see the tests. In one study, simulated users volunteered information before it was
+asked for in about a quarter of successful episodes. Its brief depends on Q3. How it behaves is Q5.
 More in [discovery](discovery-01.md#what-the-simulated-human-knows).
 
 Why it matters: it decides whether the questions are tested against real intent, or only accepted.
@@ -279,7 +296,7 @@ Uraeda's loop has a variable number of steps:
 Harbor, the framework behind Terminal-Bench, runs about 40 agents in containers, including Claude
 Code, Codex, and pi. But its steps are fixed upfront, and its simulated user talks through a chat,
 not through files. Claude Code also loads your own configuration, plugins, and memory unless it is
-given a fresh configuration folder. Where the runner is written is Q8.A. More in
+given a fresh configuration folder. Where the runner is written is Q8.A and Q8.C. More in
 [discovery](discovery-01.md#running-and-isolating-the-agents).
 
 Why it matters: this is most of the work, and it sets how easily Codex or pi can be added later.
@@ -309,7 +326,27 @@ Why it matters: this is most of the work, and it sets how easily Codex or pi can
 
 ### Q8.A: What language is the runner written in?
 
-Only if you picked A or C in Q8. "Technical stack decision" is still open in your
+Only if you picked A in Q8. "Technical stack decision" is still open in your
+[priorities](/specs/PRIORITIES.md), and this is the project's first code. The repository already has
+a TypeScript toolchain (Vite+). More in [discovery](discovery-01.md#runner-language).
+
+- **A (recommended). TypeScript, on Node 24, with the existing Vite+ toolchain.**
+  - [pro] no second toolchain, and a likely base for the future runner and CLI.
+  - [con] made before the stack decision, which it partly anticipates.
+  - Why recommended: the toolchain is already there, and a runner is mostly process and file
+    handling.
+- **B. Python.**
+  - [pro] the language of most benchmark tooling.
+  - [con] a second toolchain in the repository.
+- **C. Shell scripts.**
+  - [pro] no toolchain.
+  - [con] fragile for JSON and metadata.
+
+**Answer:**
+
+### Q8.C: What language is the runner written in?
+
+Only if you picked C in Q8. "Technical stack decision" is still open in your
 [priorities](/specs/PRIORITIES.md), and this is the project's first code. The repository already has
 a TypeScript toolchain (Vite+). More in [discovery](discovery-01.md#runner-language).
 
@@ -337,7 +374,7 @@ study. Repeated runs show reliability, but multiply the cost. More in
 Why it matters: it sets the total cost, and whether a result can be told apart from luck.
 
 - **A (recommended). One Uraeda run per case, plus the baselines of Q2, with a hard cap of $60 per
-  Uraeda run, after which the case counts as failed.**
+  Uraeda run. A run that reaches the cap counts as failed.**
   - [pro] the cheapest first reading, with no run going unbounded.
   - [con] one run per case cannot tell a lucky pass from a reliable one.
   - Why recommended: this first pass is a sanity check, and its results show which cases are worth
