@@ -137,6 +137,20 @@ test("on the phone, a band comes before the settled points", async () => {
   expect(band.textContent).toBe("");
 });
 
+/** A round that settled nothing has no settled section, so no band before it either. */
+test("on the phone, a round with no settled points draws no band after its questions", async () => {
+  atWidth(402);
+  await renderPage(PAGE, round({ settled: "" }));
+  await screen.findByText("Which repositories does the UI open now?");
+
+  let last: HTMLElement = document.getElementById("Q3") as HTMLElement;
+  while (last.parentElement && !last.parentElement.querySelector("#Q1")) {
+    last = last.parentElement;
+  }
+  const after = last.nextElementSibling as HTMLElement;
+  expect(after.childElementCount === 0 && after.textContent === "").toBe(false);
+});
+
 /** Redesign US4.1: the groups, "Under the hood" folded with the count of its points. */
 test("the settled points show in their groups, Under the hood folded", async () => {
   await renderPage(PAGE, round({ settled: groupedSettled }));
