@@ -174,11 +174,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test("a session's status change is published at once, with the list, its feature, its recommended message, and the workspace", () => {
+test("a session's status change is published at once, with the list, its feature, and the workspace", () => {
   const { cache, session, turn } = sessionWithItems(150);
   const host = hostAt("/repo");
   const sent = published(host.live);
-  const publish = sessionPublisher(cache, hostsOf(host));
+  const publish = sessionPublisher(cache, binding, hostsOf(host));
 
   publish({ folder: "2026-10-12-cli-tuis", repo: "/repo", session, state: "done", turn });
 
@@ -189,7 +189,6 @@ test("a session's status change is published at once, with the list, its feature
     `TurnLog ${turn}:1`,
     "SessionList all",
     "Feature 2026-10-12-cli-tuis",
-    "RecommendedMessage 2026-10-12-cli-tuis",
     "Workspace workspace",
   ]);
 });
@@ -242,7 +241,7 @@ test("a chat's change is published without a feature, and the agent's on its own
   const { cache, session } = sessionWithItems(0);
   const host = hostAt("/repo");
   const sent = published(host.live);
-  const publish = sessionPublisher(cache, hostsOf(host));
+  const publish = sessionPublisher(cache, binding, hostsOf(host));
 
   publish({ folder: null, repo: "/repo", session });
   publish({ agent: true });
@@ -255,12 +254,32 @@ test("a chat's change is published without a feature, and the agent's on its own
   ]);
 });
 
+/** The recommended message reads the agent's availability: a change of it changes every one. */
+test("the agent's change is published with every feature's recommended message", async () => {
+  const repo = fixtureRepo();
+  const { cache } = sessionWithItems(0);
+  const host = hostAt(repo);
+  const sent = published(host.live);
+  const publish = sessionPublisher(cache, binding, hostsOf(host));
+  const folders = (await binding.readWorkspace(repo)).features.map(({ folder }) => folder);
+  expect(folders).toContain("2026-10-12-cli-tuis");
+
+  publish({ agent: true });
+
+  await vi.waitFor(() =>
+    expect(sent()).toEqual([
+      "Agent agent",
+      ...folders.map((folder) => `RecommendedMessage ${folder}`),
+    ]),
+  );
+});
+
 test("SC-002: items are published at most every 250 ms", () => {
   vi.useFakeTimers();
   const { cache, session, turn } = sessionWithItems(10);
   const host = hostAt("/repo");
   const sent = published(host.live);
-  const publish = sessionPublisher(cache, hostsOf(host));
+  const publish = sessionPublisher(cache, binding, hostsOf(host));
   const item = { folder: "2026-10-12-cli-tuis", repo: "/repo", session, turn };
   const once = [`Session ${session}`, `Turn ${turn}`, `TurnLog ${turn}:0`];
 
@@ -287,7 +306,6 @@ test("SC-002: items are published at most every 250 ms", () => {
     ...once,
     "SessionList all",
     "Feature 2026-10-12-cli-tuis",
-    "RecommendedMessage 2026-10-12-cli-tuis",
     "Workspace workspace",
   ]);
 });
@@ -297,7 +315,7 @@ test("US3.4: a sub-agent that starts or ends is published to the list", () => {
   const { cache, session, turn } = sessionWithItems(0);
   const host = hostAt("/repo");
   const sent = published(host.live);
-  const publish = sessionPublisher(cache, hostsOf(host));
+  const publish = sessionPublisher(cache, binding, hostsOf(host));
   const item = { folder: null, repo: "/repo", session, turn };
 
   publish(item);
@@ -414,7 +432,7 @@ test("a session's change goes to its repository's bus", () => {
   const { cache, session } = sessionWithItems(0);
   const [mine, other] = [hostAt("/repo"), hostAt("/other", "other")];
   const [sent, elsewhere, global] = [published(mine.live), published(other.live), published(live)];
-  const publish = sessionPublisher(cache, hostsOf(mine, other));
+  const publish = sessionPublisher(cache, binding, hostsOf(mine, other));
 
   publish({ folder: null, repo: "/repo", session });
 
@@ -428,7 +446,7 @@ test("a session's change in a removed repository is dropped", () => {
   const { cache, session, turn } = sessionWithItems(1);
   const other = hostAt("/other", "other");
   const [elsewhere, global] = [published(other.live), published(live)];
-  const publish = sessionPublisher(cache, hostsOf(other));
+  const publish = sessionPublisher(cache, binding, hostsOf(other));
   const item = { folder: "2026-10-12-cli-tuis", repo: "/repo", session, turn };
 
   publish(item);
