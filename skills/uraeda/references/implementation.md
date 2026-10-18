@@ -327,12 +327,12 @@ since: both are left out.
   thread's `isResolved` and `isOutdated`, and each comment's `author`, `path`, `line`, `body`, and
   `createdAt`.
 - **Reviews and comments** come from `gh pr view <number> --json reviews,comments`, and count when
-  posted after the last push. The last push's date is the last commit's, from
-  `gh pr view <number> --json commits`, or the remote branch's:
-  `git log -1 --format=%cI origin/<branch>`.
+  posted after the last push. Fetch first, then take the remote branch's last commit date as the
+  last push's: `git log -1 --format=%cI origin/<branch>`. A commit pushed later than it was made
+  only counts more comments, never fewer.
 
 ```bash
-gh api graphql -F owner=<owner> -F repo=<repo> -F number=<number> -f query='
+gh api graphql -f owner=<owner> -f repo=<repo> -F number=<number> -f query='
   query($owner: String!, $repo: String!, $number: Int!) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $number) {
@@ -348,13 +348,16 @@ gh api graphql -F owner=<owner> -F repo=<repo> -F number=<number> -f query='
   }'
 ```
 
+A pull request with more than 100 threads, or a thread with more than 100 comments, is read page by
+page, with `pageInfo { hasNextPage endCursor }` and `after:`.
+
 A reviewer bot's comment is handled like a person's: the human chose when to send the agent, so what
 the bot wrote is part of what they asked.
 
 **What to do with each comment**:
 
 - **A change**: apply it in a commit of its own, with the feature's scope, a change of behaviour
-  with a test that fails first. The folder is already replaced by its record: when a change goes
+  with a test that fails first. Once the folder is replaced by its record, when a change goes
   against what it says, update its **Behaviour** or **Design** in place in the same commit, and add
   a line under **Changes after approval**, so the merged record describes the merged code.
 - **A choice the spec does not settle**, or a new decision: bring the folder back and start a new
@@ -368,8 +371,9 @@ last message lists each comment with what it did, one line each, and the commits
 
 **The pass ends** when the pull request is ready for review again: the branch pushed, and the pull
 request not a draft, with `gh pr ready`. A new round of questions ends it earlier, at that round's
-gate. A pull request in draft because its folder came back for a round stays one: the
-[finish](finish.md) step marks it ready.
+gate. A pull request still in draft stays one, and the pass ends by running the [finish](finish.md)
+step, which writes the record when it is not there yet and marks the pull request ready: a draft
+opened before finishing, or one whose folder came back for a round.
 
 A pull request opened before the finish step existed still has its folder: amend the spec in place
 in the same commit, increase its `revision`, and update the plan and its `spec-revision`. The spec
