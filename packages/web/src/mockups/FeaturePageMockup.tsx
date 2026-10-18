@@ -7,13 +7,13 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import type { ReactNode } from "react";
 import { Page } from "../layout/Page.tsx";
 import type { FeatureMock, MockRecord } from "./featureMockupData.ts";
 import {
-  AgentCard,
   Figures,
   Files,
-  NextCard,
+  NextAndAgent,
   Notes,
   ProblemLines,
   RecordLink,
@@ -32,8 +32,11 @@ function Lines({ label, lines }: { label: string; lines: Array<string> }) {
   );
 }
 
-/** A done feature's record, drawn in place: its questions folded. */
-function Record({ record }: { record: MockRecord }) {
+/**
+ * A done feature's record, drawn in place: its decisions as the spec page draws them, when
+ * `decisions` holds their cards, and its questions folded.
+ */
+function Record({ decisions, record }: { decisions?: ReactNode; record: MockRecord }) {
   return (
     <VStack gap={6}>
       <Section title="What and why">
@@ -42,26 +45,34 @@ function Record({ record }: { record: MockRecord }) {
       <Section title="Behaviour">
         <Lines label="Behaviour" lines={record.behaviour} />
       </Section>
-      {record.decisions.length > 0 && (
-        <Section title="Decisions">
-          <Lines label="Decisions" lines={record.decisions} />
+      {decisions ? (
+        <Section id="decisions" title="Decisions">
+          {decisions}
         </Section>
+      ) : (
+        record.decisions.length > 0 && (
+          <Section id="decisions" title="Decisions">
+            <Lines label="Decisions" lines={record.decisions} />
+          </Section>
+        )
       )}
       {record.questions.length > 0 && (
-        <Collapsible
-          defaultIsOpen={false}
-          trigger={<Heading level={2}>{record.questionsLine}</Heading>}
-        >
-          <List hasDividers>
-            {record.questions.map((question) => (
-              <ListItem
-                description={<>{question.answer}</>}
-                key={question.title}
-                label={<>{question.title}</>}
-              />
-            ))}
-          </List>
-        </Collapsible>
+        <section id="questions">
+          <Collapsible
+            defaultIsOpen={false}
+            trigger={<Heading level={2}>{record.questionsLine}</Heading>}
+          >
+            <List hasDividers>
+              {record.questions.map((question) => (
+                <ListItem
+                  description={<>{question.answer}</>}
+                  key={question.title}
+                  label={<>{question.title}</>}
+                />
+              ))}
+            </List>
+          </Collapsible>
+        </section>
       )}
       <Section title="Follow-ups">
         <Lines label="Follow-ups" lines={record.followUps} />
@@ -71,8 +82,17 @@ function Record({ record }: { record: MockRecord }) {
   );
 }
 
-/** The feature page, as the redesign proposes it, for one state. */
-export function FeaturePageMockup({ feature }: { feature: FeatureMock }) {
+/**
+ * The feature page, as the redesign proposes it, for one state. `decisions` holds a done feature's
+ * decision cards, drawn by the app's own component.
+ */
+export function FeaturePageMockup({
+  decisions,
+  feature,
+}: {
+  decisions?: ReactNode;
+  feature: FeatureMock;
+}) {
   return (
     <Page>
       <VStack gap={6}>
@@ -95,13 +115,15 @@ export function FeaturePageMockup({ feature }: { feature: FeatureMock }) {
             title="This feature cannot go on"
           />
         )}
-        <NextCard next={feature.next} />
-        {feature.agent && <AgentCard agent={feature.agent} />}
-        <Section title={feature.record ? "What it produced" : "What it produced so far"}>
+        <NextAndAgent agent={feature.agent} next={feature.next} />
+        <Section
+          id="changes"
+          title={feature.record ? "What it produced" : "What it produced so far"}
+        >
           <Figures figures={feature.figures} />
           {feature.files && <Files files={feature.files} pullRequest={feature.pullRequest} />}
         </Section>
-        {feature.record && <Record record={feature.record} />}
+        {feature.record && <Record decisions={decisions} record={feature.record} />}
         {feature.notes && <Notes notes={feature.notes} />}
       </VStack>
     </Page>
