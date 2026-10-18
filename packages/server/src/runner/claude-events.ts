@@ -347,23 +347,28 @@ const MODEL_COUNTS = {
 
 /**
  * The agent session's running total, summed over its models: `modelUsage` counts the sub-agents,
- * as `usage` does not. None without `modelUsage`.
+ * as `usage` does not. None without a count in `modelUsage`: an all-zero total would read as a new
+ * agent session.
  */
 function tokensEvent(modelUsage: unknown): Array<AgentEvent> {
   if (!isObject(modelUsage)) {
     return [];
   }
   const total: TokenCounts = { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 };
+  let counted = false;
   for (const model of Object.values(modelUsage)) {
     if (!isObject(model)) {
       continue;
     }
     for (const [field, key] of Object.entries(MODEL_COUNTS) as Array<[keyof TokenCounts, string]>) {
       const count = model[key];
-      total[field] += typeof count === "number" && Number.isFinite(count) ? count : 0;
+      if (typeof count === "number" && Number.isFinite(count)) {
+        total[field] += count;
+        counted = true;
+      }
     }
   }
-  return [{ total, type: "tokens" }];
+  return counted ? [{ total, type: "tokens" }] : [];
 }
 
 function resultEvent(message: Json): AgentEvent {
