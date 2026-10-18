@@ -344,6 +344,18 @@ test("a fold opened after a figure's jump stays open across Back", async () => {
   expect(questions.getAttribute("aria-expanded")).toBe("true");
 });
 
+/** C9: each figure opens its detail */
+test("Questions opens the questions", async () => {
+  const repo = fixtureRepo();
+  doneFeature(repo);
+
+  await renderPage(`/f/${DONE}`, repo, { agent: true });
+
+  const fold = await screen.findByRole("button", { name: "Questions · 10 in 1 round" });
+  await click(produced().getByRole("link", { name: /^Questions/ }));
+  expect(fold.getAttribute("aria-expanded")).toBe("true");
+});
+
 /** US2 more 2 */
 test("a feature without token counts reads Not recorded", async () => {
   const repo = fixtureRepo();
