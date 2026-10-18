@@ -103,14 +103,18 @@ export type Recommended =
 /** Why no message is recommended to a feature that waits on the human, or on nobody. */
 export const NOTHING_TO_RECOMMEND = "No recommended message: the feature waits on you";
 
+/** Why no message is recommended at a pull request whose state `gh` could not read (R110). */
+const UNKNOWN_PULL_REQUEST = "No recommended message: the pull request's state is unknown";
+
 /** The comments message's name. */
 const COMMENTS_NAME = "Address the pull request's comments";
 
 /**
- * The steps waiting on the agent whose message is not recommended: an unknown pull request's,
- * whose state `gh` could not read.
+ * The steps waiting on the agent, with a reference, whose message is not recommended: an unknown
+ * pull request's, whose state `gh` could not read (R10). `none` has no reference, and `done` waits
+ * on nobody.
  */
-const NOT_RECOMMENDED = new Set(["none", "done", "pull-request-unknown"]);
+const NOT_RECOMMENDED = new Set(["pull-request-unknown"]);
 
 /**
  * The one workflow message that applies to a feature now: nothing without its branch or its agent;
@@ -167,7 +171,9 @@ export function recommendedMessage({
   if (feature.pullRequest !== undefined && !unknown) {
     return comments(commentsReference(feature));
   }
-  return { reason: NOTHING_TO_RECOMMEND };
+  return {
+    reason: step.name === "pull-request-unknown" ? UNKNOWN_PULL_REQUEST : NOTHING_TO_RECOMMEND,
+  };
 }
 
 /**
