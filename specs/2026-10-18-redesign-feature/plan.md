@@ -1100,7 +1100,7 @@ git commit -m "feat(redesign-feature): the server recommends one message, and se
   `changes.rs`'s `numstat` and `parse` moved; `HistoryView`'s `total_seconds`, `lines`, `questions`,
   and `decisions` filled.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/history.rs
@@ -1159,29 +1159,31 @@ The break each test catches:
 - Live: the folder counted, or a two-dot diff from the default branch's tip.
 - Merge of main: a two-dot diff from the folder's first commit.
 - Rebased: the start commit on main used as the base, pulling in other features.
-- Merge commit: the first parent's diff.
+- Merge commit: a two-dot diff between its parents. The first parent's diff, the break first named
+  here, equals the three-dot one for every clean merge, so no test can see it (R11).
 - Questions: rounds counted as questions.
 - Decisions: decisions read from the record's text, or every decision compared.
 - Squash: figures from the start commit alone.
 - SC-002: a walk of the whole history, or one process per commit.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `nix develop -c cargo nextest run -p uraeda-core history`
+- Run: `nix develop -c cargo nextest run -p uraeda-core --test history`: the filter `history`
+  matches test names, not the test binary (R11)
 - Expected: FAIL, `assertion left == right failed`, `left: None`, `right: Some(40260)`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Move `numstat` and `parse` from `changes.rs` to `git/history.rs` as `Git::numstat`, `ThreeDot`
 running `base...tip` as today and `TwoDot` `base tip`; `branch_changes` calls it, its tests
 unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the record's path.
 
 - **Lines**: a live item: `numstat(default tip, branch tip, ThreeDot)`, as `branch_changes`. A done,
-  found item: when its newest scoped commit `L` is on the default branch's first-parent line, the
-  run of consecutive first-parent commits ending at `L` whose `scope_type` is `Some` gives
-  `numstat(parent of the run's oldest, L, TwoDot)`; otherwise, for the merge commit `M` found by
-  task 3, `numstat(M^1, M^2, ThreeDot)`. Files outside the folder and the record only; `files` is
-  their count.
+  found item: when its newest scoped commit is on the default branch's first-parent line, the run of
+  consecutive first-parent commits whose `scope_type` is `Some`, ending at the first scoped commit
+  `L` met walking that line from the tip, gives `numstat(parent of the run's oldest, L, TwoDot)`;
+  otherwise, for the merge commit `M` found by task 3, `numstat(M^1, M^2, ThreeDot)`. Files outside
+  the folder and the record only; `files` is their count.
 - **Total**: `pull-request`'s start minus `proposal`'s, when both are known.
 - **Questions**: a done item's `RecordCounts.questions`; `None` for a live item.
 - **Decisions**: a done, found item's files under `specs/decisions/` in the same diff, each compared
@@ -1193,8 +1195,11 @@ unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the re
   `nix develop -c cargo nextest run -p uraeda-core --run-ignored only -E 'test(/^bench_history/)'`,
   and the task 3 measurement again (`--run-ignored only sc004`)
 - Expected: PASS, the benchmark under 100 ms
+- Ran: the benchmark, median 73 ms in a debug build, and SC-004, 27 of 31 records; `vp run ready`
+  was left to the merge of the wave, with `vp check`, `rust:test`, `rust:clippy`, `ts:test`, and
+  `specs:check` run instead
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding/index.d.ts

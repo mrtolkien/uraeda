@@ -14,7 +14,7 @@ mod status;
 use process::Failure;
 
 pub use commit::others_staged;
-pub use history::CommitInfo;
+pub use history::{CommitInfo, Range};
 
 pub use gix::ObjectId;
 

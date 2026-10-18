@@ -121,3 +121,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: recommending "Finish it", as the step's reference allows.
 - **If wrong**: one entry of `NOT_RECOMMENDED` in `runner/message.ts`.
 - **Where**: task 5
+
+## R11: A merge commit's lines are checked against a two-dot diff of its parents
+
+- **Decision**: task 6's merge-commit test catches a two-dot diff between the merge's parents, not
+  the first parent's diff the plan named; its tests run with `--test history`. A rebased item's run
+  ends at the first scoped commit met walking the first-parent line from the tip, and
+  `changes::outside` also leaves a finishing branch's record out of the session's changes.
+- **Rationale**: for a clean merge, the first parent's diff and the three-dot diff of its parents
+  are the same files and lines, so no test can tell them apart. Nextest's bare filter matches test
+  names, and selected none of `crates/core/tests/history.rs`. Rebased commits often share one
+  committer time, so the newest scoped commit by that time can be any of the run.
+- **Alternatives considered**: a conflicted merge in the test, which depends on git's resolution
+  text; the run ending at the newest commit by committer time, which could stop mid-run.
+- **If wrong**: a figure off for a merge resolved with extra changes; the rule lives in
+  `history/figures.rs`.
+- **Where**: task 6
