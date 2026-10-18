@@ -88,12 +88,16 @@ pub(super) fn check_block_items(
 
 /// The counts a block's first line gives that differ from the round's, as (noun, said, has). A
 /// line that gives no count of questions in digits is not compared, and one that gives no count of
-/// follow-ups says 0 (R3).
+/// follow-ups says 0 (R3). A round sent back for blank answers counts the blank ones ("2 questions
+/// still need an answer: Q3 and Q5"), so it is not compared.
 fn said_counts(
     first_line: &str,
     questions: usize,
     follow_ups: usize,
 ) -> Vec<(&'static str, usize, usize)> {
+    if first_line.contains("still need an answer") {
+        return Vec::new();
+    }
     let words: Vec<&str> = first_line.split_whitespace().collect();
     let count = |nouns: [&str; 2]| {
         words.windows(2).find_map(|pair| {

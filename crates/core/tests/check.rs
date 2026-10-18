@@ -1408,6 +1408,8 @@ fn the_blocks_counts_are_the_rounds() {
             vec!["the block says 0 follow-ups, the round has 2"],
         ),
         ("Three questions, about 15 minutes.", vec![]),
+        // A round sent back for blank answers names them, and counts only those.
+        ("2 questions still need an answer: Q1 and Q3.", vec![]),
     ];
     for (first_line, expected) in rows {
         let text = waiting_round(first_line, 3, 2);
