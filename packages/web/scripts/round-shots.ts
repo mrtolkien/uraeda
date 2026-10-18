@@ -51,7 +51,10 @@ async function toTop(page: Page, locator: ReturnType<Page["locator"]>) {
 async function open(page: Page) {
   await forget(page);
   await show(page, ROUND, QUESTION);
-  await page.locator("svg.pele").first().waitFor({ timeout: 20_000 });
+  await page
+    .getByLabel(/ diagram/)
+    .first()
+    .waitFor({ timeout: 20_000 });
   await page.evaluate(() => window.scrollTo(0, 0));
   await settle(page);
 }
@@ -63,7 +66,8 @@ export async function takeRound(each: Each) {
     await open(page);
     await toTop(page, page.locator("#Q1"));
     await page
-      .locator("svg.pele")
+      .getByLabel(/ diagram/)
+      .first()
       .evaluate((element) => element.scrollIntoView({ block: "center" }));
     await settle(page);
   });

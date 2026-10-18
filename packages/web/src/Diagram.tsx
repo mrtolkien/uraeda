@@ -6,7 +6,7 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useId, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useId, useRef, useState } from "react";
 import { useWidthOf } from "./layout/useWidthOf.ts";
 
 const styles = stylex.create({
@@ -57,6 +57,19 @@ async function draw(source: string, idPrefix: string): Promise<Drawn> {
     svg,
     width,
   };
+}
+
+/**
+ * Opens a click on a diagram's link in a new tab: the diagram is part of the page, so the browser
+ * would replace the app, and the reader's place and unsaved work, with the link.
+ */
+function openLinkInNewTab(event: MouseEvent<HTMLElement>) {
+  const link = (event.target as Element).closest("a");
+  const href = link?.getAttribute("href");
+  if (href) {
+    event.preventDefault();
+    window.open(href, "_blank", "noopener,noreferrer");
+  }
 }
 
 /** What a diagram is called: its type, and its place among the document's diagrams. */
@@ -116,7 +129,7 @@ export function Diagram({ place, source }: { place?: Place; source: string }) {
         </>
       )}
       {drawn === undefined && (
-        <Text as="p" display="block" type="inherit" xstyle={styles.failed}>
+        <Text as="p" display="block" role="status" type="inherit" xstyle={styles.failed}>
           Drawing the diagram…
         </Text>
       )}
@@ -124,6 +137,7 @@ export function Diagram({ place, source }: { place?: Place; source: string }) {
         <div
           aria-label={scrolls ? undefined : title}
           dangerouslySetInnerHTML={{ __html: drawnNow.svg }}
+          onClick={openLinkInNewTab}
           role={scrolls ? undefined : "group"}
           {...stylex.props(styles.theme, styles.sized(`${width}px`))}
         />
