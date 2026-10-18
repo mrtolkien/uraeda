@@ -209,6 +209,24 @@ test("Enter fills the field with the one suggestion, then adds it", async () => 
   await waitFor(() => expect(window.location.pathname).toBe("/r/todo-app/"));
 });
 
+test("Enter adds the folder it filled, once its own suggestions have loaded", async () => {
+  await openOnUraeda();
+  const form = await openForm();
+  const field = form.getByRole("textbox", { name: "Folder" }) as HTMLInputElement;
+  await type(field, "~/dev/tod");
+  await waitFor(async () => expect(await suggestions(form)).toEqual(["~/dev/todo-app/git"]));
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+  await waitFor(async () => expect(await suggestions(form)).not.toEqual(["~/dev/todo-app/git"]));
+
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+
+  await waitFor(() => expect(window.location.pathname).toBe("/r/todo-app/"));
+});
+
 /** US9.3 */
 test("Down then Enter fills the field with the first suggestion", async () => {
   await openOnUraeda();
