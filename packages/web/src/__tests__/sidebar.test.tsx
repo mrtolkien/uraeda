@@ -153,6 +153,18 @@ test("a feature that cannot go on is a problem card under Needs you", async () =
   expect(link.getAttribute("aria-label")).toContain(", Problem to fix, Needs you");
 });
 
+/** US6: a problem needs the human, even on a feature whose session is idle. */
+test("a feature with a session and an invalid status is a problem card under Needs you", async () => {
+  const repo = editOnCli("spec.md", (text) => text.replace("status: approved", "status: aproved"));
+  const fake = await fakeAgent();
+  await fake.sessions.featureSession(repo, CLI);
+  await renderPage("/", repo, { agent: fake });
+
+  const group = within(await (await findNav()).findByRole("group", { name: "Needs you" }));
+  const link = await group.findByRole("link", { name: /^cli-tuis, / });
+  expect(link.getAttribute("aria-label")).toContain(", Problem to fix, Needs you");
+});
+
 /** US6: an answered round with a blank answer cannot go on, whatever its step. */
 test("an answered round with a blank answer is a problem card", async () => {
   const repo = editOnCli("clarifications-01.md", (text) =>
