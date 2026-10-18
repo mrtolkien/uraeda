@@ -198,3 +198,8 @@
 - [agent] [redesign-specs] Answered review: once merged with a merge or squash commit,
   FileView.answered is empty on the default branch, so the quotes disappear after landing; an
   uncommitted revision shows no quotes until committed.
+- [agent] [redesign-specs] Reading place and editor: keepPlace and placeAboveSheet cancel the user's
+  own scroll during their two frames; the desktop "saving keeps the heading" test rejects nothing,
+  and leave()'s keep is untested; a file that is only a frontmatter without a final newline joins
+  typed text onto ---; R31's image-move path has no test; storedBody strips a new entry whose body
+  opens with a --- break.
