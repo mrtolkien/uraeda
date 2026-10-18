@@ -13,6 +13,7 @@ pub mod plan;
 pub mod preview;
 pub mod priorities;
 pub mod proposal;
+pub mod record;
 pub mod retarget;
 pub mod review;
 pub mod rulings;

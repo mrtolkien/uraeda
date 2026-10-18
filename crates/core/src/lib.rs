@@ -9,6 +9,7 @@ pub mod embedded;
 pub mod files;
 pub mod gates;
 pub mod git;
+pub mod history;
 pub mod images;
 pub mod pulls;
 pub mod repositories;

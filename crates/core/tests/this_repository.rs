@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use tempfile::TempDir;
-use uraeda_core::check;
+use uraeda_core::{api, check};
 use uraeda_core::workspace::Severity;
 
 fn root() -> PathBuf {
@@ -85,4 +85,41 @@ fn sc001_drift_is_never_a_problem() {
     }
     println!("{snapshots} snapshots, {with_errors} with errors, {blocked} with a blocking result");
     assert!(snapshots > 0, "main has no commit in the window");
+}
+
+/// SC-004: 25 of the 30 records of `specs/done/` show timed stages.
+#[test]
+#[ignore = "this repository's history"]
+fn sc004_past_features_show_timed_stages() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut folders: Vec<String> = std::fs::read_dir(root.join("specs/done"))
+        .unwrap()
+        .filter_map(|entry| {
+            let name = entry.ok()?.file_name().into_string().ok()?;
+            name.strip_suffix(".md").map(String::from)
+        })
+        .collect();
+    folders.sort();
+
+    let mut timed = 0;
+    let mut without = Vec::new();
+    for folder in &folders {
+        let history = api::read_history(&root, folder).unwrap();
+        let started = history
+            .stages
+            .iter()
+            .filter(|stage| stage.started.is_some());
+        if started.count() >= 2 {
+            timed += 1;
+        } else {
+            without.push(folder.as_str());
+        }
+    }
+
+    println!("{timed} of {} records show timed stages", folders.len());
+    println!("Without: {}", without.join(", "));
+    assert!(
+        timed >= 25,
+        "{timed} records with timed stages; without: {without:?}"
+    );
 }

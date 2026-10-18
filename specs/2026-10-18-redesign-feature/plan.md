@@ -538,13 +538,17 @@ git commit -m "feat(redesign-feature): problems are only what stops the workflow
   `crates/core/src/api/history.rs`
 - Modify: `crates/core/src/git.rs` (`mod history;`), `crates/core/src/lib.rs`,
   `crates/core/src/files/mod.rs`, `crates/core/src/api.rs` (`mod history; pub use`),
-  `crates/binding/src/lib.rs` (`read_history`), `packages/binding/index.d.ts` (generated)
+  `crates/core/src/today.rs` (`Date::unix_seconds`)
+- Create: `crates/binding/src/history.rs` (`read_history`, R9); modify `crates/binding/src/lib.rs`
+  (`pub mod history;`), `packages/binding/index.d.ts` and `index.js` (generated)
 - Create: `packages/server/src/fate/views-history.ts`
 - Modify: `packages/server/src/fate/sources.ts`, `packages/server/src/fate/views.ts` (`Root`:
-  `histories`), `packages/web/src/views.ts` (`HistoryView`), `packages/web/src/data.ts`
-  (`useHistory`)
+  `histories`, `Record_` exported), `packages/server/src/fate.ts` (`History`),
+  `packages/server/src/live.ts` (a feature's change updates its `History`),
+  `packages/web/src/views.ts` (`HistoryView`), `packages/web/src/data.ts` (`useHistory`)
 - Test: `crates/core/tests/history.rs`, `crates/core/tests/this_repository.rs`,
-  `packages/server/src/__tests__/fate.test.ts` (one test)
+  `packages/server/src/__tests__/fate.test.ts` (one test); unit tests of `scope_type`,
+  `record::counts`, and `Date::unix_seconds`
 
 **Interfaces:**
 
@@ -590,12 +594,13 @@ pub struct LinesView { pub added: u32, pub removed: u32, pub files: u32 }
   `histories`, by folder, `HistoryRecord = Record_<HistoryView> & { id: string }`; web
   `useHistory(folder)`, selecting every field.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 A helper in `crates/core/tests/common/repo.rs`,
 `TestRepo::commit_at(&self, message: &str, at: &str)`, commits with `GIT_AUTHOR_DATE` and
 `GIT_COMMITTER_DATE` set to `at`, an RFC 3339 time, and
-`TestRepo::commit_at_merged(message, authored, committed)` for a rebased commit.
+`TestRepo::commit_at_merged(message, authored, committed)` for a rebased commit, both through
+`TestRepo::git_at(args, authored, committed)`, which also dates a `git merge --no-ff`.
 
 ```rust
 // crates/core/tests/history.rs
@@ -603,7 +608,8 @@ A helper in `crates/core/tests/common/repo.rs`,
 fn each_stage_starts_at_its_first_commit_of_its_type() {
     // On 2026-10-17-clarifications: chore 10:52, discovery 11:18, discovery "answer round 01"
     // 12:01, spec 12:11, spec "request changes" 14:14, spec 14:20, spec "approve" 15:01,
-    // decision 15:01, plan 15:08, feat 15:09, a plan checked to its end; checked out.
+    // decision 15:01, plan 15:08, feat 15:09, the plan's task half checked (past its end, the
+    // step depends on `gh`); checked out.
     let history = api::read_history(repo.path(), FOLDER).unwrap();
     assert_eq!(starts(&history), [
         ("proposal", Some("2026-10-17T10:52:00Z")),
@@ -630,8 +636,8 @@ fn another_slug_never_counts() { /* commits scoped (clarifications-two) and (cla
 
 #[test]
 fn stages_never_go_back_in_time() { /* fix(<slug>) at 13:00 during the spec, plan at 15:08, feat
-    at 16:00: build starts 16:00; chore(<slug>) at 16:30 after the plan starts nothing
-    (review focus 2) */ }
+    at 16:00: build starts 16:00; chore(<slug>) at 15:30, between the plan and the feat, starts
+    nothing (review focus 2) */ }
 
 #[test]
 fn a_merged_feature_is_timed_to_its_merge() {
@@ -675,12 +681,12 @@ The break each test catches:
 - Squash: stages built from the start commit alone.
 - A change: a feature's stage list given to a change.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core history`
 - Expected: FAIL, `api::read_history` does not exist (a compile error)
 
-- [ ] **Step 3: Implement the walk and the stages**
+- [x] **Step 3: Implement the walk and the stages**
 
 `Git::history` sets `since` to the folder's date minus one day, midnight UTC: no commit of a feature
 is older than its folder.
@@ -722,7 +728,7 @@ Add the binding function, the fate view and source (`branchChanges` is the model
 and `useHistory`, then `nix develop -c vp run binding:build`. A fate test reads `histories` for the
 fixture's `2026-10-11-web-ui` and gets its seven stages.
 
-- [ ] **Step 4: Measure SC-004 on this repository's history**
+- [x] **Step 4: Measure SC-004 on this repository's history**
 
 In `crates/core/tests/this_repository.rs`, `#[ignore = "this repository's history"]`,
 `sc004_past_features_show_timed_stages`: `read_history` for every record of `specs/done/` on this
@@ -732,12 +738,12 @@ request.
 - Run: `nix develop -c cargo nextest run -p uraeda-core --run-ignored only sc004`
 - Expected: PASS, at least 25 records with timed stages
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates packages/binding/index.d.ts packages/server/src/fate packages/web/src/views.ts packages/web/src/data.ts

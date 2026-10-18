@@ -40,8 +40,8 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
 
 /**
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
- * reports. A feature's change may change its step, which its session's status reads, and its
- * branch's changes, and a feature that goes leaves the sidebar: the list and the features'
+ * reports. A feature's change may change its step, which its session's status reads, its
+ * branch's changes, and its history, and a feature that goes leaves the sidebar: the list and the features'
  * sessions go too. A change of the inbox sends its triage too, and one of the constitution or a
  * decision, the ledger; a decision a branch changed sends its page, and its spec's file.
  */
@@ -53,6 +53,7 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   for (const folder of changes.features) {
     live.update("Feature", folder, { eventId: eventId(`feature:${folder}`) });
     live.update("BranchChanges", folder, { eventId: eventId(`changes:${folder}`) });
+    live.update("History", folder, { eventId: eventId(`history:${folder}`) });
   }
   for (const file of changes.files) {
     live.update("WorkflowFile", file, { eventId: eventId(`file:${file}`) });

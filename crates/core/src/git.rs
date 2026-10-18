@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 mod commit;
+mod history;
 mod log;
 pub(crate) mod process;
 mod status;
@@ -13,6 +14,7 @@ mod status;
 use process::Failure;
 
 pub use commit::others_staged;
+pub use history::CommitInfo;
 
 pub use gix::ObjectId;
 

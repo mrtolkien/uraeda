@@ -25,6 +25,7 @@ mod decision;
 mod default_branch;
 mod drafts;
 mod files;
+mod history;
 mod inbox_edits;
 mod ledger;
 mod preview;
@@ -43,6 +44,7 @@ pub use drafts::{
     commit_text, create_draft, proposal_hints, read_draft, read_text, save_text, set_discovery,
 };
 pub use files::{attach_image, encode_image, read_image, read_raw};
+pub use history::read_history;
 pub use inbox_edits::*;
 pub(crate) use ledger::ledger_hash;
 pub use ledger::{Constitution, Decision, Ledger, Principle, read_ledger};
