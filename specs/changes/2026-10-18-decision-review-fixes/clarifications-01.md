@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Decision review fixes
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question, about 5 minutes.
+> Answered on 2026-10-18.
 >
 > - Verdict: worth building as proposed. Every fix is made and tested, bar two edits to active
 >   decisions that only you can approve.
@@ -64,7 +64,7 @@ ignore warnings.
   - [pro] no active decision changes.
   - [con] the two warnings stay, and the check keeps reporting a problem nobody will fix.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
