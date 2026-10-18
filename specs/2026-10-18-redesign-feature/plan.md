@@ -696,9 +696,10 @@ The stage list: a feature's is `proposal`, `questions`, `spec`, `plan`, `build`,
 `## Questions` section in its record, or a `discovery(<slug>)` commit), `fix`, `pull-request`,
 `merged`.
 
-The commits read: a live item's, from its branch's tip; a done item's, from the default branch's
-tip. Only commits whose `scope_type` is `Some` count. Each stage starts at the first commit, by
-author time, at or after the previous found stage's start, whose type is:
+The commits read: a live item's, from its branch's tip; a done item's, from the default branch's tip
+that holds its record, local first, then `origin`'s, as the workspace reads it. Only commits whose
+`scope_type` is `Some` count. Each stage starts at the first commit, by author time, at or after the
+previous found stage's start, whose type is:
 
 | Stage          | Types                                                                     |
 | -------------- | ------------------------------------------------------------------------- |

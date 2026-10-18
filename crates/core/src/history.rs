@@ -10,10 +10,10 @@ use serde::Serialize;
 
 use crate::decisions::DecisionChange;
 use crate::files::{frontmatter, record};
-use crate::git::{CommitInfo, Git, GitError, Range};
+use crate::git::{CommitInfo, Git, GitError, ObjectId, Range};
 use crate::steps::StepName;
 use crate::today::{Date, rfc3339};
-use crate::workspace::{Feature, FileKind, Kind};
+use crate::workspace::{Feature, FileKind, Kind, record_path};
 
 mod figures;
 mod stages;
@@ -84,12 +84,11 @@ pub(crate) fn read(
     feature: &Feature,
 ) -> Result<HistoryView, GitError> {
     let done = feature.step.name == StepName::Done;
-    let branch = if done {
-        default_branch
+    let tip = if done {
+        default_branch.and_then(|branch| recorded_tip(git, branch, &feature.folder))
     } else {
-        feature.branch.as_deref()
+        feature.branch.as_deref().and_then(|branch| git.tip(branch))
     };
-    let tip = branch.and_then(|branch| git.tip(branch));
     let commits = match tip {
         Some(tip) => git.history(tip, since(&feature.folder))?,
         None => Vec::new(),
@@ -183,6 +182,17 @@ fn since(folder: &str) -> i64 {
         .get(..10)
         .and_then(Date::parse)
         .map_or(0, |date| date.unix_seconds() - 86_400)
+}
+
+/// The default branch's tip holding a done item's record, local first, then `origin`'s, as the
+/// workspace reads it: a merge made on the forge shows before the next pull.
+fn recorded_tip(git: &Git, branch: &str, folder: &str) -> Option<ObjectId> {
+    let path = record_path(folder);
+    let tips = [git.tip(branch), git.remote_tip(branch)];
+    tips.into_iter()
+        .flatten()
+        .find(|tip| matches!(git.read_file(*tip, &path), Ok(Some(_))))
+        .or_else(|| git.tip(branch))
 }
 
 /// A record's `finished` day.
