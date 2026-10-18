@@ -42,7 +42,7 @@ impl Stage {
 
     /// Whether a commit of type `kind` can start this stage: the merge is read from the default
     /// branch's history, never from a type.
-    fn takes(&self, kind: &str) -> bool {
+    pub(crate) fn takes(&self, kind: &str) -> bool {
         match self {
             Stage::Proposal => true,
             Stage::Questions => kind == "discovery",
