@@ -628,6 +628,11 @@ export interface Criterion {
   id: string
   /** The few words in parentheses after its id, `two clicks`. */
   measure?: string
+  /**
+   * The item's spans after its id and its measure, and the `: ` or `): ` ending them, its marks
+   * kept.
+   */
+  sentence: Array<Span>
   block: number
 }
 

@@ -127,21 +127,6 @@ function trimmed(spans: ReadonlyArray<Span>): Array<Span> {
   return text === "" ? trimmed(rest) : [{ ...first, text }, ...rest];
 }
 
-/** Spans without the first `count` characters of their text, nor the blanks after them. */
-function after(spans: ReadonlyArray<Span>, count: number): Array<Span> {
-  let left = count;
-  const kept: Array<Span> = [];
-  for (const span of spans) {
-    if (left >= span.text.length) {
-      left -= span.text.length;
-      continue;
-    }
-    kept.push(left > 0 ? { ...span, text: span.text.slice(left) } : span);
-    left = 0;
-  }
-  return trimmed(kept);
-}
-
 /** The blocks nested in an item, like its sub-bullets, drawn as the spec's blocks. */
 function Nested({ item, props }: { item: Block; props: PartProps }) {
   const ids = props.document.blocks.filter((b) => b.parent === item.id).map((b) => b.id);
@@ -391,22 +376,7 @@ function EdgeCases({ items, part, props }: DrawingProps) {
   );
 }
 
-/**
- * A criterion's sentence: its item without its id, the first span, nor the measure in parentheses
- * and the colon after them, where the core reads them.
- */
-function sentenceOf(item: Block, measure: string | null | undefined): Array<Span> {
-  const rest = item.spans.slice(1);
-  const text = plain(rest);
-  if (measure != null) {
-    const end = text.indexOf("):");
-    return end < 0 ? trimmed(rest) : after(rest, end + 2);
-  }
-  const start = text.length - text.trimStart().length;
-  return after(rest, text.startsWith(":", start) ? start + 1 : 0);
-}
-
-/** A criterion: its id and measure as pills, then its sentence. */
+/** A criterion: its id and measure as pills, then its sentence, as the core cuts it (R75). */
 function Criterion({
   criterion,
   props,
@@ -426,7 +396,7 @@ function Criterion({
               {criterion.measure != null && <Badge label={criterion.measure} variant="info" />}
             </HStack>
             <Text display="block" type="inherit" xstyle={styles.reading}>
-              <Spans spans={sentenceOf(item, criterion.measure)} />
+              <Spans spans={criterion.sentence} />
             </Text>
             <Nested item={item} props={props} />
           </VStack>
