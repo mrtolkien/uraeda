@@ -58,3 +58,5 @@
   fails with "This feature has no branch left"
 - [agent] [redesign-feature] Runner: the steps whose run starts a fresh agent session are listed
   twice, in HandOver.tsx and runner/sessions.ts
+- [agent] [redesign-feature] Tokens: agent session starts are found by their system line's words:
+  rewording a line loses the markers already stored
