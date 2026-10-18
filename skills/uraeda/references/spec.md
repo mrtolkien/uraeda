@@ -135,11 +135,12 @@ Writing for the human says:
   it does not know. It is optional.
 - **Intent**: before `## Rules`, two or three plain sentences: the choice and what it protects.
   Specifics appear only where they are hard constraints.
-- **Rules**: MUST, SHOULD, and MUST NOT rules that a spec, a plan, or code can be checked against.
-  Each rule is one sentence that stands on its own, since plans copy it word for word. It ends with
-  how it is checked: a lint, a test, `ura check`, or "Checked by review." Rules come strongest
-  first, at most 10. A check a tool could run but does not yet becomes a line of the plan's test
-  map, and a task. See [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
+- **Rules**: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY rules that a spec, a plan, or code can be
+  checked against. Each rule is one sentence that stands on its own, since plans copy it word for
+  word. It ends with how it is checked: a lint, a test, `ura check`, or "Checked by review." Rules
+  come strongest first, at most 10. A check a tool could run but does not yet becomes a line of the
+  plan's test map, and a task. See
+  [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
 - **Why**: the problem and what the choice optimizes for, with links to the question and the
   discovery topic. Once the feature is [finished](finish.md#rewrite-the-links), these links point to
   its record, where the question keeps its anchor. The history and the investigation stay in that
@@ -376,8 +377,8 @@ item, its id in bold, then its measure in a few words in parentheses, optional:
 
 ```markdown
 | I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional | VI. Checked code |
-| :------------------: | :------------: | :--------: | :---------------: | :---------------: | :--------------: |
-|          ✅          |       ✅       |     ✅     |        ✅         |        ⚠️         |        ✅        |
+| -------------------- | -------------- | ---------- | ----------------- | ----------------- | ---------------- |
+| ✅                   | ✅             | ✅         | ✅                | ⚠️                | ✅               |
 ```
 
 ## Risk tier
@@ -415,21 +416,9 @@ plan's.
 
 ## Tests
 
-Test the feature the way a user or a caller uses it: integration tests, through the real components
-and an in-memory store, with the clock set by the test. They survive refactoring, where unit tests
-of internal functions break, and an agent writes them quickly.
-
-- Tests are part of the codebase: organize them with the same care as the main code. Create the
-  helpers, fixtures, and fakes the tests need (rendering the app, seeding the store, setting the
-  clock), in shared files, so that each test holds no boilerplate.
-- Readability is a key feature of a test: each one is short and readable by a human, Arrange, Act,
-  Assert, in that order, with a name that states the scenario. Test files stay short.
-- Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
-- A UI story's scenarios run in the project's browser runner, through the real app: see
-  [UIs verified end to end](code-quality.md#uis-verified-end-to-end).
-
 The spec names no test: its scenarios, edge cases, and success criteria are what the tests check.
-The plan's `## Test map` maps each of them to its test: see [Plan](plan.md).
+The plan's `## Test map` maps each of them to its test: see [Plan](plan.md). How the tests are
+written is [writing tests](code-quality.md#writing-tests).
 
 ## Spec frontmatter
 
