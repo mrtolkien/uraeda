@@ -698,7 +698,8 @@ fn a_pull_request_keeps_the_commits_step() {
 }
 
 /// A feature read alone is the one the whole workspace reads: checked out in a worktree, merged
-/// with its branch left, a change on its branch, the current branch's, and a merged folder.
+/// with its branch left, a change on its branch, the current branch's, a merged folder, a record
+/// on `origin` only, and a branch on `origin` only.
 #[test]
 fn a_folder_read_alone_is_the_workspaces() {
     let repo = finished_and_merged();
@@ -716,12 +717,37 @@ fn a_folder_read_alone_is_the_workspaces() {
     repo.commit("chore(merged): start");
     repo.switch("main");
     merge(&repo, "2026-10-13-merged");
+    // A record on `origin`'s `main` only, its branch gone.
+    let local = repo.git(&["rev-parse", "main"]);
+    repo.switch_new("2026-10-14-pushed");
+    repo.write("specs/2026-10-14-pushed/proposal.md", &proposal());
+    repo.commit("chore(pushed): start");
+    let pushed = "specs/2026-10-14-pushed";
+    finish(
+        &repo,
+        "2026-10-14-pushed",
+        pushed,
+        "2026-10-14-pushed",
+        "feature",
+    );
+    merge(&repo, "2026-10-14-pushed");
+    repo.push("main");
+    repo.git(&["reset", "--quiet", "--hard", local.trim()]);
+    repo.delete_branch("2026-10-14-pushed");
+    // A branch on `origin` only.
+    repo.switch_new("2026-10-15-remote");
+    repo.write("specs/2026-10-15-remote/proposal.md", &proposal());
+    repo.commit("chore(remote): start");
+    repo.push("2026-10-15-remote");
+    repo.switch("main");
+    repo.delete_branch("2026-10-15-remote");
     repo.switch("2026-10-12-other");
 
     let git = Git::discover(repo.path()).unwrap();
     let whole = Workspace::read(&git).unwrap();
 
-    assert_eq!(whole.features.len(), 4);
+    let folders: Vec<&str> = whole.features.iter().map(|f| f.folder.as_str()).collect();
+    assert_eq!(folders.len(), 6, "{folders:?}");
     for feature in &whole.features {
         let alone = Workspace::read_folder(&git, &feature.folder).unwrap();
         assert_eq!(alone.features.len(), 1, "{}", feature.folder);
