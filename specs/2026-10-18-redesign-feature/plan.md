@@ -1047,8 +1047,8 @@ refusal tests of `packages/server/src/__tests__/sessions.test.ts` (285, 312) and
 
 `recommendedMessage`, in order: no branch → `REFUSALS.noBranch`; no agent → "`<name>` is not
 available on this machine."; a step waiting on the agent, with a reference, other than `none`,
-`done`, and `pull-request-unknown` (R10) → the step's message, named "Continue, " and its work with a
-lower-case first letter, without the ", then implement it" a plan step adds, trigger `manual`,
+`done`, and `pull-request-unknown` (R10) → the step's message, named "Continue, " and its work with
+a lower-case first letter, without the ", then implement it" a plan step adds, trigger `manual`,
 except `pull-request-changes`, the comments message; a pull request `open`, `draft`, or
 `changes-requested` in `feature.pullRequest` → the comments message, named "Address the pull
 request's comments", trigger `comments`, reference `skills/uraeda/references/implementation.md` for
