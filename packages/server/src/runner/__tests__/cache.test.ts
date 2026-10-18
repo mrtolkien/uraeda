@@ -447,6 +447,42 @@ test("migration 4 drops the turns' costs", () => {
   expect(columns.map((column) => column.name)).not.toContain("cost_usd");
 });
 
+test("migration 5 adds the turns' token counts, null for older turns", () => {
+  const path = tempPath();
+  const old = new DatabaseSync(path);
+  for (const migration of migrations.slice(0, 4)) {
+    if (typeof migration === "string") {
+      old.exec(migration);
+    } else {
+      migration(old);
+    }
+  }
+  old.exec("PRAGMA user_version = 4");
+  old.exec(`INSERT INTO sessions (id, repo, folder, agent, native_id, created_at, updated_at)
+    VALUES ('s', '${REPO}', '${FOLDER}', 'claude', '3f2c', '2026-10-12', '2026-10-12');
+    INSERT INTO turns (id, session_id, kind, state) VALUES (1, 's', 'chat', 'done');`);
+  old.close();
+
+  const cache = SessionCache.open(path);
+
+  const columns = cache.db.prepare("PRAGMA table_info(turns)").all();
+  expect(columns.map((column) => column.name)).toEqual(
+    expect.arrayContaining([
+      "input_tokens",
+      "cache_write_tokens",
+      "cache_read_tokens",
+      "output_tokens",
+    ]),
+  );
+  expect(cache.turn(1)?.tokens).toBeNull();
+  expect(cache.agentSessionTokens("s")).toEqual({
+    cacheRead: 0,
+    cacheWrite: 0,
+    input: 0,
+    output: 0,
+  });
+});
+
 // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the version 2 rows in a helper of their own
 test("migration 3 turns each feature's runs into the turns of one session", () => {
   const path = tempPath();
@@ -547,6 +583,7 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
       startedAt: "2026-10-12T10:00:00.000Z",
       state: "done",
       step: "plan",
+      tokens: null,
       trigger: "manual",
     },
     expect.objectContaining({ id: second, kind: "workflow", step: "spec", trigger: "answers" }),

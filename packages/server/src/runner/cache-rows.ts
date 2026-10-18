@@ -1,4 +1,4 @@
-import type { Trigger, TurnKind, TurnState } from "./events.ts";
+import type { TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 
 /** A session, as the cache keeps it. */
 export type SessionRow = {
@@ -38,6 +38,8 @@ export type TurnRow = {
   state: TurnState;
   /** Workflow turns: the core's step when it started. */
   step: string | null;
+  /** The tokens of its own work, null when the agent reported none. */
+  tokens: TokenCounts | null;
   /** Workflow turns: what started it. */
   trigger: Trigger | null;
 };
@@ -69,5 +71,21 @@ export const toTurn = (row: Row): TurnRow => ({
   startedAt: row.started_at as string | null,
   state: row.state as TurnState,
   step: row.step as string | null,
+  tokens: toTokens(row),
   trigger: row.trigger as Trigger | null,
 });
+
+/** A turn's token counts, null when all four are: a null count alone reads as 0. */
+function toTokens(row: Row): TokenCounts | null {
+  const counts = [
+    row.cache_read_tokens,
+    row.cache_write_tokens,
+    row.input_tokens,
+    row.output_tokens,
+  ];
+  if (counts.every((count) => count === null || count === undefined)) {
+    return null;
+  }
+  const [cacheRead, cacheWrite, input, output] = counts.map((count) => Number(count ?? 0));
+  return { cacheRead: cacheRead!, cacheWrite: cacheWrite!, input: input!, output: output! };
+}

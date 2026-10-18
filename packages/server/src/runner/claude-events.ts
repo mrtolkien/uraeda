@@ -1,4 +1,4 @@
-import type { Activity, AgentEvent, Denial, ToolKind } from "./events.ts";
+import type { Activity, AgentEvent, Denial, TokenCounts, ToolKind } from "./events.ts";
 import { toolTarget } from "./message.ts";
 
 /**
@@ -145,7 +145,7 @@ export function parseLine(
             : [],
       );
     case "result":
-      return [resultEvent(message)];
+      return [...tokensEvent(message.modelUsage), resultEvent(message)];
     case "rate_limit_event":
       return usageEvents(message.rate_limit_info);
     default:
@@ -335,6 +335,35 @@ function toolOutput(content: unknown): string {
     .filter((block) => block.type === "text")
     .map((block) => text(block.text))
     .join("\n");
+}
+
+/** The fields of each model's counts in `modelUsage`. */
+const MODEL_COUNTS = {
+  cacheRead: "cacheReadInputTokens",
+  cacheWrite: "cacheCreationInputTokens",
+  input: "inputTokens",
+  output: "outputTokens",
+} as const;
+
+/**
+ * The agent session's running total, summed over its models: `modelUsage` counts the sub-agents,
+ * as `usage` does not. None without `modelUsage`.
+ */
+function tokensEvent(modelUsage: unknown): Array<AgentEvent> {
+  if (!isObject(modelUsage)) {
+    return [];
+  }
+  const total: TokenCounts = { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 };
+  for (const model of Object.values(modelUsage)) {
+    if (!isObject(model)) {
+      continue;
+    }
+    for (const [field, key] of Object.entries(MODEL_COUNTS) as Array<[keyof TokenCounts, string]>) {
+      const count = model[key];
+      total[field] += typeof count === "number" && Number.isFinite(count) ? count : 0;
+    }
+  }
+  return [{ total, type: "tokens" }];
 }
 
 function resultEvent(message: Json): AgentEvent {
