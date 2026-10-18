@@ -52,3 +52,5 @@
   agent's card, and the record draw after the scroll is restored
 - [agent] [redesign-feature] Feature page: a change's blocking banner reads "This feature cannot go
   on"
+- [agent] [redesign-feature] Code quality: structure.rs still allows workspace.rs 742 lines, though
+  it is 659 now: lower the budget so it cannot grow back
