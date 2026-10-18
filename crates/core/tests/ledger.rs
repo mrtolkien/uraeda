@@ -331,3 +331,18 @@ fn a_merged_decision_keeps_the_date_of_its_commit() {
         Some("2026-10-16")
     );
 }
+
+/// A decision whose file name has non-ASCII characters still gets its date.
+#[test]
+fn a_decision_with_a_non_ascii_name_has_its_date() {
+    let repo = TestRepo::new();
+    repo.write("specs/decisions/café.md", GIT);
+    commit_on(&repo, "decision: café", "2026-10-12");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    assert_eq!(
+        decision(&ledger.decisions, "café").changed.as_deref(),
+        Some("2026-10-12")
+    );
+}
