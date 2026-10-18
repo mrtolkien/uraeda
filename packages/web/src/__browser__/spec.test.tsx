@@ -180,9 +180,19 @@ describe("on a wide screen", () => {
     for (const [name, [r, g, b]] of Object.entries({ mustNot, shouldNot })) {
       expect(r, name).toBeGreaterThan(Math.max(g, b));
     }
-    // A soft colour is apart from its hard one; the neutral is grey.
+    // A soft colour is its hard one three quarters over the card's background: apart from it, but
+    // near it, and never past it.
+    for (const [soft, hard] of [
+      [should!, must!],
+      [shouldNot!, mustNot!],
+    ] as const) {
+      const gaps = soft.map((channel, at) => Math.abs(channel - hard[at]!));
+      expect(Math.max(...gaps)).toBeGreaterThan(0.02);
+      expect(Math.max(...gaps)).toBeLessThan(0.5);
+    }
     expect(should).not.toEqual(must);
     expect(shouldNot).not.toEqual(mustNot);
+    // The neutral is grey.
     expect(Math.max(...may!) - Math.min(...may!)).toBeLessThan(0.15);
 
     for (const element of [card, ...card.querySelectorAll("*")]) {
