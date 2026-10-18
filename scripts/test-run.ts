@@ -59,7 +59,13 @@ export function sweep(parent: string): Array<string> {
     } catch {
       // An older run had no guard, or its guard already removed the folder.
     }
-    rmSync(join(parent, name), { force: true, recursive: true });
+    // Another run may be removing it too, or its command still writing into it: the next run's
+    // sweep gets it.
+    try {
+      rmSync(join(parent, name), { force: true, maxRetries: 3, recursive: true, retryDelay: 50 });
+    } catch {
+      return false;
+    }
     return true;
   });
 }
