@@ -104,6 +104,7 @@ export const FeatureView = view<Feature>()({
   leftWorktree: true,
   missing: true,
   mockups: true,
+  notes: true,
   path: true,
   preview: true,
   problems: true,

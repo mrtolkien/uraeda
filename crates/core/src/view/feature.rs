@@ -1,4 +1,5 @@
-//! A feature as the web UI reads it: its files, its step, and its problems, and a feature started.
+//! A feature as the web UI reads it: its files, its step, its problems and notes, and a feature
+//! started.
 
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -81,7 +82,10 @@ pub struct FeatureView {
     /// is checked out, otherwise from its branch's tip.
     pub mockups: Vec<String>,
     pub step: StepView,
+    /// What stops the workflow, `Problem::blocks`: Home and the sidebar flag the feature.
     pub problems: Vec<ProblemView>,
+    /// The check's other results, shown only on its page.
+    pub notes: Vec<ProblemView>,
     /// For a merged feature, its worktree still there, from the main checkout.
     pub left_worktree: Option<String>,
     /// For a merged feature, its local branch still there.
@@ -121,6 +125,11 @@ impl From<&Step> for StepView {
 
 impl FeatureView {
     pub fn new(feature: &Feature, extra: &[Problem]) -> FeatureView {
+        let (problems, notes): (Vec<&Problem>, Vec<&Problem>) = feature
+            .problems
+            .iter()
+            .chain(extra)
+            .partition(|p| p.blocks());
         let first = crate::workspace::first_file(feature.kind);
         let mut files: Vec<&WorkflowFile> = feature.files.iter().collect();
         files.sort_by(|a, b| workflow_key(a).cmp(&workflow_key(b)));
@@ -154,12 +163,8 @@ impl FeatureView {
                 .collect(),
             mockups: feature.mockups.clone(),
             step: StepView::from(&feature.step),
-            problems: feature
-                .problems
-                .iter()
-                .chain(extra)
-                .map(ProblemView::from)
-                .collect(),
+            problems: problems.into_iter().map(ProblemView::from).collect(),
+            notes: notes.into_iter().map(ProblemView::from).collect(),
             left_worktree: feature.left_worktree.clone(),
             left_branch: feature.left_branch.clone(),
             pull_request: feature
