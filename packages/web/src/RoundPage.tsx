@@ -74,7 +74,8 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   }
 
   const toEnd = () => toSubmit(end, submitRow);
-  // The round's navigation, while it waits on answers: a column on wide screens, else the top bar.
+  // The round's navigation, while it waits on answers: a column on wide screens, else the top bar
+  // and the in-page index after the block.
   const navigates = !readOnly && nav.length > 0;
 
   /** Opens the feature's session with a question's title quoted. */
