@@ -127,6 +127,34 @@ test("a criterion shows its id and measure as pills, then its sentence", async (
   expect(within(second!).getByText("no slower")).toBeTruthy();
 });
 
+/** US8 2: a criterion's sentence starts after its id, its measure, and their colon, marks kept. */
+test("a criterion's sentence holds what follows its id and measure, with its marks", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [SPEC]: spec.replace(
+      "- **SC-002** (no slower):",
+      "- **SC-003**: A list of **5,000 tasks** needs `no` upgrade.\n- **SC-004** (a sentence: with a colon): Ends *here*.\n- **SC-002** (no slower):",
+    ),
+  });
+  await renderPage(PAGE, repo);
+
+  const part = await region("Success criteria");
+  const rows = rowsOf(part);
+  expect(rows).toHaveLength(4);
+  // No measure: no pill, and the colon after the id is not drawn.
+  const row = (id: string) => rows.find((r) => within(r).queryByText(id))!;
+  const none = row("SC-003");
+  expect(none.textContent).toBe("SC-003A list of 5,000 tasks needs no upgrade.");
+  expect(within(none).getByText("5,000 tasks").tagName).toBe("STRONG");
+  expect(within(none).getByText("no").tagName).toBe("CODE");
+  const colon = row("SC-004");
+  expect(within(colon).getByText("a sentence: with a colon")).toBeTruthy();
+  expect(colon.textContent).toBe("SC-004a sentence: with a colonEnds here.");
+  expect(within(colon).getByText("here").tagName).toBe("EM");
+});
+
 /** US8 3 */
 test("the architecture's units are small cards side by side, its tradeoffs with a Cost pill", async () => {
   const repo = fixtureRepo();

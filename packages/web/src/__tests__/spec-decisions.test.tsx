@@ -351,3 +351,75 @@ test("a decision's folds opened are open again on Back, with the stories' folds"
   const again = await screen.findByRole("region", { name: "Complete a repeating task" });
   expect(within(again).getByRole("button", { name: "Fold the other scenarios" })).toBeTruthy();
 });
+
+/** A decision with only a title and a note, proposed. */
+const note = (title: string) =>
+  `---\nstatus: proposed\napproved-by:\n---\n\n# ${title}\n\nA note.\n`;
+
+/** The text of the fold buttons of a card, closed. */
+const folds = (scope: HTMLElement) =>
+  within(scope)
+    .queryAllByRole("button", { expanded: false })
+    .map((button) => button.textContent);
+
+/** A part's pill, when it has one. */
+const pill = (part: HTMLElement) =>
+  within(part).queryByText(/^(New|Changed|Removed)$/)?.textContent;
+
+/** The titles of the decision cards, in the order the page draws them. */
+const cardTitles = () =>
+  screen
+    .getAllByRole("region")
+    .map((region) => region.getAttribute("aria-labelledby") ?? "")
+    .filter((id) => id.startsWith("decision-"))
+    .map((id) => document.getElementById(id)?.textContent);
+
+/** US2 more 6: the listed decisions in the spec's order, then the unlisted ones, by name. */
+test("the cards follow the spec's items, then the unlisted changes by name", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    "specs/decisions/alpha-note.md": note("Alpha note"),
+    "specs/decisions/zeta-note.md": note("Zeta note"),
+  });
+  await renderPage(PAGE, repo);
+  await card("Zeta note");
+
+  expect(cardTitles()).toEqual([
+    "Repeating tasks",
+    "Task storage",
+    "Task history",
+    "Alpha note",
+    "Due dates",
+    "Zeta note",
+  ]);
+});
+
+/** US2 1: a run of parts the branch leaves alone folds behind its count, as does what it removes. */
+test("unchanged parts fold behind their count, and removed ones behind theirs", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  expect(folds(await card("Task storage"))).toEqual(["1 removed", "2 unchanged"]);
+  expect(folds(await card("Due dates"))).toEqual(["1 unchanged"]);
+  expect(folds(await card("Repeating tasks"))).toEqual([]);
+});
+
+/** US2 1: a reworded rule carries a Changed pill of its own, an added one a New pill. */
+test("a part the branch rewords or adds has its own pill, before its words", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const storage = await card("Task storage");
+  expect(pill(partOf(storage, 2))).toBe("Changed");
+  expect(partOf(storage, 2).textContent).toMatch(/^Changed/);
+  // The unchanged rules, behind their fold, carry none.
+  await click(within(storage).getByRole("button", { name: "2 unchanged" }));
+  const kept = within(storage).getAllByRole("button", { pressed: false });
+  const pills = kept.map((toggle) =>
+    pill(document.getElementById(toggle.getAttribute("aria-labelledby") ?? "")!),
+  );
+  expect(pills.filter((p) => p === undefined).length).toBeGreaterThanOrEqual(2);
+});
