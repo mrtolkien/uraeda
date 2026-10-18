@@ -137,3 +137,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a figure off for a merge resolved with extra changes; the rule lives in
   `history/figures.rs`.
 - **Where**: task 6
+
+## R12: A live item starts no stage after its current one
+
+- **Decision**: a live item's stages after the one its step is in have no start; the current stage
+  may start.
+- **Rationale**: found in review of task 3: a `fix(<slug>)` commit at 13:00, while the spec waited,
+  started Build at 13:00 with Spec current, and Build jumped to the plan's first code commit later.
+- **Alternatives considered**: leaving code commits made before the plan out of Build, which a
+  change's Fix stage, with no plan, could not use.
+- **If wrong**: a later stage shows no time until the step reaches it; one line of `history.rs`.
+- **Where**: task 3, fixed with task 6

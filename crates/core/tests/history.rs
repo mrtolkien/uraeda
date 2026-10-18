@@ -333,6 +333,32 @@ fn stages_never_go_back_in_time() {
     assert_eq!(start(&history, "build"), Some("2026-10-17T16:00:00Z"));
 }
 
+#[test]
+fn a_live_feature_starts_no_stage_after_its_current_one() {
+    let repo = repo();
+    repo.switch_new(FOLDER);
+    commit(
+        &repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    commit(
+        &repo,
+        "spec(<slug>): clarifications",
+        "12:11",
+        &[("spec.md", spec("awaiting-human", 1, 0))],
+    );
+    repo.write("src/fix.rs", "// fix\n");
+    commit(&repo, "fix(<slug>): a typo", "13:00", &[]);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.current, 2);
+    assert_eq!(start(&history, "spec"), Some("2026-10-17T12:11:00Z"));
+    assert_eq!(start(&history, "build"), None);
+}
+
 /// A commit on `main` as a rebase leaves it: authored at `at`, committed at 22:09.
 fn rebased(repo: &TestRepo, message: &str, at: &str, files: &[(&str, String)]) {
     for (name, text) in files {
