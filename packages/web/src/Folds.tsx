@@ -132,7 +132,7 @@ export function useHashFold(document: Document, folds: Folds | undefined, anywhe
 }
 
 /** Scrolls to an element, a little below the top, or the top bar, where it stays on the phone. */
-function scrollBelowBar(element: HTMLElement) {
+export function scrollBelowBar(element: HTMLElement) {
   element.scrollIntoView({ block: "start" });
   const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
   window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);

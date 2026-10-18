@@ -8,6 +8,8 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import type { MouseEvent } from "react";
+import { scrollBelowBar } from "../Folds.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import { clock, day, duration } from "./times.ts";
 
@@ -203,6 +205,38 @@ function doneFigures(
 }
 
 /**
+ * A figure's in-page link, followed by a tap or a key, scrolls to its detail and moves the focus
+ * there, its title's when it has one, in the same history entry: the browser's own jump would push
+ * an entry without the page's state, whose position and open items Back could not restore. A tap
+ * on the card's surface reaches here as the click it sends its link.
+ */
+function jumpInPage(event: MouseEvent) {
+  const link = (event.target as Element).closest?.("a");
+  const href = link?.getAttribute("href");
+  if (
+    !href?.startsWith("#") ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey
+  ) {
+    return;
+  }
+  const target = document.getElementById(href.slice(1));
+  if (!target) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  scrollBelowBar(target);
+  const focus = document.getElementById(`${target.id}-title`) ?? target;
+  if (!focus.hasAttribute("tabindex")) {
+    focus.setAttribute("tabindex", "-1");
+  }
+  focus.focus({ preventScroll: true });
+}
+
+/**
  * The figures of what a feature produced, in a grid that wraps. A live item's lines lead to its
  * files below; a done one's to its pull request's files, when its record names it. A done item
  * whose commits never reached the default branch says so in place of its figures.
@@ -230,10 +264,12 @@ export function Figures({
     ? doneFigures(history, tokens, change, pullRequest)
     : [...(history.lines ? [linesFigure(history.lines, "#files")] : []), tokensFigure(tokens)];
   return (
-    <Grid columns={{ minWidth: wide ? 190 : 150, repeat: "fill" }} gap={3}>
-      {figures.map((figure) => (
-        <FigureCard figure={figure} key={figure.label} />
-      ))}
-    </Grid>
+    <div onClickCapture={jumpInPage}>
+      <Grid columns={{ minWidth: wide ? 190 : 150, repeat: "fill" }} gap={3}>
+        {figures.map((figure) => (
+          <FigureCard figure={figure} key={figure.label} />
+        ))}
+      </Grid>
+    </div>
   );
 }

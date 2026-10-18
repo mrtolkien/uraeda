@@ -2,7 +2,7 @@
 // UTC (`vite.config.ts`).
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { commitsAt, type DatedCommit } from "uraeda-binding/test-utils";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { click, type Fake, fakeAgent, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
@@ -214,11 +214,17 @@ test("Decisions leads to the decisions, drawn as changes", async () => {
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  await screen.findByRole("heading", { name: "What it produced" });
+  // The record, drawn once its file is read.
+  await screen.findByRole("region", { name: "Decisions" });
   const decisions = produced().getByRole("link", { name: /^Decisions/ });
   expect(within(figureCard("Decisions")).getByText("1")).toBeTruthy();
+  const scrolled = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+  const { length } = window.history;
   await click(decisions);
-  expect(location.hash).toBe("#decisions");
+  // An in-page jump: the page scrolls to the decisions, in the same history entry.
+  expect(scrolled.mock.contexts).toContain(document.getElementById("decisions"));
+  expect(window.history.length).toBe(length);
+  scrolled.mockRestore();
   const drawn = within(region("Decisions"));
   expect(drawn.getByText("New")).toBeTruthy();
   expect(drawn.getByText("Diagrams")).toBeTruthy();
@@ -308,6 +314,28 @@ test("the questions opened stay open across Back", async () => {
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
   await click(await screen.findByRole("button", { name: "Questions · 10 in 1 round" }));
+  await click(screen.getByRole("link", { name: "Open the record file" }));
+  await waitFor(() => expect(location.pathname).toContain(`/f/${DONE}/${DONE}.md`));
+  await act(async () => window.history.back());
+
+  const questions = await screen.findByRole("button", { name: "Questions · 10 in 1 round" });
+  expect(questions.getAttribute("aria-expanded")).toBe("true");
+});
+
+/** Decision ui-behaviour: Back restores the open items, after a figure's jump */
+test("a fold opened after a figure's jump stays open across Back", async () => {
+  const repo = fixtureRepo();
+  doneFeature(repo);
+
+  await renderPage(`/f/${DONE}`, repo, { agent: true });
+  // Reloaded as the app opens its pages: its history entry has an id, which keeps its open items.
+  window.history.replaceState({ id: "opened" }, "");
+  await renderPage(`/f/${DONE}`, repo, { agent: true, reload: true });
+
+  await screen.findByRole("region", { name: "Decisions" });
+  await click(produced().getByRole("link", { name: /^Decisions/ }));
+  expect((window.history.state as { id?: string } | null)?.id).toBe("opened");
+  await click(screen.getByRole("button", { name: "Questions · 10 in 1 round" }));
   await click(screen.getByRole("link", { name: "Open the record file" }));
   await waitFor(() => expect(location.pathname).toContain(`/f/${DONE}/${DONE}.md`));
   await act(async () => window.history.back());
