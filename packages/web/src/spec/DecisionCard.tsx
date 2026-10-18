@@ -11,6 +11,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
+  borderVars,
   colorVars,
   radiusVars,
   sizeVars,
@@ -25,6 +26,12 @@ import { Panel } from "./Panel.tsx";
 import { PartText } from "./RuleLine.tsx";
 
 const styles = stylex.create({
+  foldLabel: {
+    // A fold's label, its row a control's height for a finger, as a story's "More scenarios" is.
+    alignItems: "center",
+    display: "flex",
+    minHeight: sizeVars["--size-element-md"],
+  },
   measure: {
     // A card's text, at the reading size, holds 75 characters a line, as a round's does.
     fontSize: "var(--text-reading-size)",
@@ -32,9 +39,13 @@ const styles = stylex.create({
     maxWidth: "var(--size-round-measure)",
   },
   removed: {
-    // A part removed whole: a red tint over it, its words readable, never struck.
+    // A part removed whole: a red tint over it, its words readable, never struck, inside a dashed
+    // red edge that stands 3:1 from the card, as a pale tint alone does not (WCAG 1.4.11).
     backgroundColor: colorVars["--color-background-red"],
+    borderColor: colorVars["--color-icon-red"],
     borderRadius: radiusVars["--radius-element"],
+    borderStyle: "dashed",
+    borderWidth: borderVars["--border-width"],
     padding: spacingVars["--spacing-2"],
   },
   title: {
@@ -181,7 +192,7 @@ function Fold({
       chevronPosition="start"
       isOpen={keys.open.includes(foldKey) || held}
       onOpenChange={(isOpen: boolean) => keys.onOpenChange(foldKey, isOpen)}
-      trigger={label}
+      trigger={<span {...stylex.props(styles.foldLabel)}>{label}</span>}
     >
       <VStack gap={2}>
         {parts.map((part, index) => (

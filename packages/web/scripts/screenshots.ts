@@ -28,6 +28,7 @@ import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
 import { addRoundMockup, takeRound } from "./round-shots.ts";
 import { type Serve, takeSettings } from "./settings-shots.ts";
+import { addSpecPages, takeSpecPage } from "./spec-shots.ts";
 import { takeShell } from "./shell-shots.ts";
 import { takeSignIn } from "./sign-in-shots.ts";
 import { takeTextInputs } from "./text-input-shots.ts";
@@ -74,6 +75,8 @@ function repository() {
   git(repo, "switch", "--quiet", "main");
   // The round page's mockup feature, whose round holds a diagram, a follow-up, and every group.
   addRoundMockup(repo);
+  // The spec page's features, waiting for review and approved, and their decisions' changes.
+  addSpecPages(repo);
   return repo;
 }
 
@@ -380,6 +383,7 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
 /** A round, reviews, a mockup, a missing file, the editor, and the hand-over to the agent. */
 async function takeReviews(each: Each, first: Page) {
   await takeRound(each);
+  await takeSpecPage(each);
 
   await each("review-comment", async ({ page, size }) => {
     await show(page, SPEC, "Complete a repeating task");

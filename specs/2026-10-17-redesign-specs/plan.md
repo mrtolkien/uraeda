@@ -1716,53 +1716,65 @@ git commit -m "feat(redesign-specs): decisions come first, each change marked in
 **Files:**
 
 - Modify: `packages/web/src/SpecPage.stories.tsx` (renders `FilePage` over the fixture, as
-  `RoundPage.stories.tsx` does), `packages/web/src/mockups/DecisionChange.stories.tsx` moved to
-  `packages/web/src/spec/DecisionCard.stories.tsx`, `packages/web/.storybook/fixture.ts`
+  `RoundPage.stories.tsx` does, `Waiting` and `Approved`), `packages/web/.storybook/fixture.ts`,
+  `packages/web/.storybook/checkouts.ts` (`SPEC_PAGES`), `packages/binding/test-utils.ts`
+  (`addSpecFeature`'s `folder`, R91), `packages/web/scripts/screenshots.ts`
+- Move: `packages/web/src/mockups/DecisionChange.stories.tsx` to
+  `packages/web/src/spec/DecisionCard.stories.tsx`, rendering the real `DecisionCard`
+- Create: `packages/web/.storybook/inRepositoryFolder.tsx`, the round page's decorator, shared
 - Delete: `packages/web/src/mockups/`, `packages/web/.storybook/specMockup.ts`
 - Create: `packages/web/scripts/spec-shots.ts`, from `round-shots.ts`
 - Test: `packages/web/src/__browser__/spec.test.tsx`
 - Create: `specs/2026-10-17-redesign-specs/screenshots/`
+- Fixed on the way: the non-text contrast of the removed parts' tint and the selection's bar (R89),
+  the controls' heights on the phone (R90), in `spec/DecisionCard.tsx`, `theme/theme.ts`,
+  `Spans.tsx`, `Blocks.tsx`, `spec/SpecHistory.tsx`
 
 **Interfaces:**
 
 - Consumes: everything above.
 - Produces: nothing.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // packages/web/src/__browser__/spec.test.tsx
 test("the spec page is accessible in both themes, every fold open", async () => {
-  // atSize("both"): addSpecFeature, a decision change, a review answered, the niche cases,
-  // and every fold open, in light then dark.
-  await checkAccessibility();
+  // atSize("both"): addSpecFeature with due dates' five strengths, a decision change, a review
+  // answered, the niche cases, every fold open, and a decision's part selected, in light then
+  // dark: the non-text contrast of the strength icons, the removed tint, and the selection
+  // (R89), then every layout check, axe's included.
+  checkNonTextContrast();
+  await checkLayout();
 });
 ```
 
-The break it catches: a pill or a run's colour under the contrast floor, or a fold button without a
-name.
+The break it catches: a pill or a run's colour under the contrast floor, a strength icon, a removed
+part's edge, or the selection's bar under 3:1, a control under 44 px on the phone, or a fold button
+without a name.
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 - Run: `nix develop -c vp run browser:desktop`, `nix develop -c vp run browser:phone`
 - Expected: FAIL on the first rule axe reports, or PASS: either way, fix what it reports.
 
-- [ ] **Step 3: Replace the mockups by the real page**
+- [x] **Step 3: Replace the mockups by the real page**
 
-The stories render the real page and card over `addSpecFeature`. Delete the `TEMPORARY` mockups and
-`specMockup.ts`. Screenshot the spec page and the branch decision page at both sizes and in both
-themes, review them against the mockups' screenshots and the review comments, fix what differs, and
-commit them under this feature's `screenshots/`.
+The stories render the real page and card over `addSpecFeature` (R91). Delete the `TEMPORARY`
+mockups and `specMockup.ts`. Screenshot the spec page and the branch decision page at both sizes and
+in both themes, review them against the mockups' screenshots and the review comments, fix what
+differs, and commit them under this feature's `screenshots/`.
 
-- [ ] **Step 4: Run the project's validation, and the benchmark**
+- [x] **Step 4: Run the project's validation, and the benchmark**
 
 - Run: `nix develop -c vp run ready`, `nix develop -c vp run storybook:build`,
   `nix develop -c vp run bench`
-- Expected: PASS, and the spec still opens at most 200 ms slower than task 7's baseline
+- Expected: PASS, and the spec still opens at most 200 ms slower than task 7's baseline (also run
+  alone: `nix develop -c vp test bench --run packages/server/src/__tests__/spec.bench.ts`)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web specs/2026-10-17-redesign-specs/screenshots
+git add packages/web packages/binding/test-utils.ts specs/2026-10-17-redesign-specs
 git commit -m "feat(redesign-specs): the spec page in its stories, checked at both sizes"
 ```

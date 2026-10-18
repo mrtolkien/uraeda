@@ -176,9 +176,11 @@ export const uraedaTheme = defineTheme({
     "--size-story-height": "560px",
     "--size-story-max-height": "900px",
     "--size-story-phone": "402px",
-    // The selected block of a review: an amber tint and bar, apart from the muted background.
+    // The selected block of a review: an amber tint and bar, apart from the muted background. The
+    // bar stands 3:1 from the card (WCAG 1.4.11): the neutral theme's light yellow border, #e3c36c,
+    // reads 1.7:1 on white, so light takes the data palette's darkest yellow, #8a5001, 6.5:1.
     "--color-selection": "var(--color-background-yellow)",
-    "--color-selection-edge": "var(--color-border-yellow)",
+    "--color-selection-edge": "light-dark(var(--color-data-yellow-5), var(--color-border-yellow))",
   },
   name: "uraeda",
   tokens: {
