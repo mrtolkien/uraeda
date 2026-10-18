@@ -248,6 +248,58 @@ test("the record shows in place, its questions folded", async () => {
   expect(screen.getByRole("link", { name: "Open the record file" })).toBeTruthy();
 });
 
+/** US2: a row of five figures, a feature's questions and decisions shown at zero */
+test("a done feature without a round or a decision shows its five figures", async () => {
+  const repo = fixtureRepo();
+  const folder = `specs/${DONE}`;
+  const record = `---\nkind: feature\nfinished: 2026-10-17\n---\n\n# Record: Clarity\n\n## What and why\n\nRounds read as a flat list.\n\n## Behaviour\n\n- A round opens with a verdict.\n\n## Design\n\nCards.\n`;
+  commitsAt(repo, "main", [
+    {
+      at: "2026-10-17T10:52:00Z",
+      files: { [`${folder}/proposal.md`]: "# Proposal: Clarity\n" },
+      message: "proposal(clarity): x",
+    },
+    {
+      at: "2026-10-17T12:11:00Z",
+      files: { [`${folder}/spec.md`]: "# Spec\n" },
+      message: "spec(clarity): x",
+    },
+    {
+      at: "2026-10-17T15:08:00Z",
+      files: { [`${folder}/plan.md`]: "# Plan\n" },
+      message: "plan(clarity): x",
+    },
+    {
+      at: "2026-10-17T15:20:00Z",
+      files: { "src/round.ts": lines(40) },
+      message: "feat(clarity): x",
+    },
+    {
+      at: "2026-10-17T22:03:00Z",
+      files: {
+        [`${folder}/plan.md`]: null,
+        [`${folder}/proposal.md`]: null,
+        [`${folder}/spec.md`]: null,
+        [`specs/done/${DONE}.md`]: record,
+      },
+      message: "finish(clarity): x",
+    },
+  ]);
+
+  await renderPage(`/f/${DONE}`, repo, { agent: true });
+
+  await screen.findByRole("group", { name: "Tokens" });
+  const labels = produced()
+    .getAllByRole("group")
+    .map((group) => group.getAttribute("aria-label"));
+  expect(labels).toEqual(["Total time", "Lines changed", "Tokens", "Questions", "Decisions"]);
+  expect(figure("Questions")).toBe("Questions0no round");
+  expect(figure("Decisions")).toContain("0");
+  // Nothing to open at zero: plain cards.
+  expect(produced().queryByRole("link", { name: /^Questions/ })).toBeNull();
+  expect(produced().queryByRole("link", { name: /^Decisions/ })).toBeNull();
+});
+
 /** US2 more 2 */
 test("a feature without token counts reads Not recorded", async () => {
   const repo = fixtureRepo();
