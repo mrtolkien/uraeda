@@ -142,24 +142,67 @@ function after(spans: ReadonlyArray<Span>, count: number): Array<Span> {
   return trimmed(kept);
 }
 
-/** A unit of the architecture, a small card: its name, then what it does. */
+/** The blocks nested in an item, like its sub-bullets, drawn as the spec's blocks. */
+function Nested({ item, props }: { item: Block; props: PartProps }) {
+  const ids = props.document.blocks.filter((b) => b.parent === item.id).map((b) => b.id);
+  return (
+    ids.length > 0 && <Blocks document={props.document} ids={ids} selection={props.selection} />
+  );
+}
+
+/**
+ * An item of a part's list the core does not classify, like one without a unit's bold name or a
+ * criterion's id: drawn as the spec's other items, its text then its blocks, tappable.
+ */
+function Leftover({ item, props }: { item: Block; props: PartProps }) {
+  return (
+    <Selectable block={item} selection={props.selection}>
+      <Blocks document={props.document} ids={[item.id]} selection={props.selection} />
+    </Selectable>
+  );
+}
+
+/** A list's items in runs, in their order: each run of those among `ours`, or of the others. */
+function runsOf(props: PartProps, list: number, ours: ReadonlySet<number>) {
+  const runs: Array<{ items: Array<Block>; ours: boolean }> = [];
+  for (const item of props.document.blocks.filter((b) => b.parent === list)) {
+    const mine = ours.has(item.id);
+    const last = runs.at(-1);
+    if (last?.ours === mine) {
+      last.items.push(item);
+    } else {
+      runs.push({ items: [item], ours: mine });
+    }
+  }
+  return runs;
+}
+
+/**
+ * A unit of the architecture, a small card: its name, the bold spans it starts with, then what it
+ * does, and the blocks nested in it.
+ */
 function Unit({ item, props }: { item: Block; props: PartProps }) {
-  const [name, ...rest] = item.spans;
+  const at = item.spans.findIndex((span) => !span.strong);
+  const name = at < 0 ? item.spans : item.spans.slice(0, at);
+  const rest = at < 0 ? [] : item.spans.slice(at);
   return (
     <Card padding={3} role="listitem" variant="muted" xstyle={styles.unit}>
       <Selectable block={item} selection={props.selection}>
         <VStack gap={1}>
-          <Text weight="semibold">{name?.text}</Text>
+          <Text weight="semibold">
+            <Spans spans={name} />
+          </Text>
           <Text color="secondary" type="supporting">
             <Spans spans={trimmed(rest)} />
           </Text>
+          <Nested item={item} props={props} />
         </VStack>
       </Selectable>
     </Card>
   );
 }
 
-/** A tradeoff of the architecture, after its "Cost" pill. */
+/** A tradeoff of the architecture, after its "Cost" pill, then the blocks nested in it. */
 function Cost({ item, props }: { item: Block; props: PartProps }) {
   return (
     <li>
@@ -169,36 +212,51 @@ function Cost({ item, props }: { item: Block; props: PartProps }) {
           <Text display="block" type="inherit" xstyle={styles.reading}>
             <Spans spans={item.spans} />
           </Text>
+          <Nested item={item} props={props} />
         </Selectable>
       </HStack>
     </li>
   );
 }
 
+/** A run of units, small cards in a row on a wide screen. */
+function UnitGrid({ cards, props }: { cards: ReadonlyArray<Block>; props: PartProps }) {
+  return (
+    <Grid
+      aria-label="Units"
+      columns={props.wide ? Math.min(cards.length, 3) : 1}
+      gap={3}
+      role="list"
+    >
+      {cards.map((item) => (
+        <Unit item={item} key={item.id} props={props} />
+      ))}
+    </Grid>
+  );
+}
+
 /**
- * The architecture: its blocks in order, the list of its units drawn as small cards in a row on a
- * wide screen, the paragraph "Tradeoffs:" giving way to each tradeoff with a "Cost" pill.
+ * The architecture: its blocks in order, the units of its list drawn as small cards and its other
+ * items as written, the paragraph "Tradeoffs:" giving way to each tradeoff with a "Cost" pill.
  */
 function Architecture({ items, part, props }: DrawingProps) {
   const units = parentsOf(props, items.units);
   const tradeoffs = parentsOf(props, items.tradeoffs);
   // The paragraph "Tradeoffs:", right before their list, where the core cuts the units from them.
   const title = part.blocks[part.blocks.findIndex((id) => tradeoffs.has(id)) - 1];
+  const ours = new Set(items.units);
   return inOrder(part, props, (block) => {
     if (units.has(block.id)) {
-      const cards = childrenIn(props, items.units, block.id);
       return (
-        <Grid
-          aria-label="Units"
-          columns={props.wide ? Math.min(cards.length, 3) : 1}
-          gap={3}
-          key={block.id}
-          role="list"
-        >
-          {cards.map((item) => (
-            <Unit item={item} key={item.id} props={props} />
-          ))}
-        </Grid>
+        <VStack gap={3} key={block.id}>
+          {runsOf(props, block.id, ours).map((run) =>
+            run.ours ? (
+              <UnitGrid cards={run.items} key={run.items[0]!.id} props={props} />
+            ) : (
+              run.items.map((item) => <Leftover item={item} key={item.id} props={props} />)
+            ),
+          )}
+        </VStack>
       );
     }
     if (tradeoffs.has(block.id)) {
@@ -370,6 +428,7 @@ function Criterion({
             <Text display="block" type="inherit" xstyle={styles.reading}>
               <Spans spans={sentenceOf(item, criterion.measure)} />
             </Text>
+            <Nested item={item} props={props} />
           </VStack>
         </HStack>
       </Selectable>
@@ -377,20 +436,28 @@ function Criterion({
   );
 }
 
-/** The success criteria: their list drawn as rows, the part's other blocks as written. */
+/**
+ * The success criteria: their list drawn as rows, its items without an id as written, and the
+ * part's other blocks as written.
+ */
 function Criteria({ items, part, props }: DrawingProps) {
-  const lists = parentsOf(
-    props,
-    items.criteria.map((c) => c.block),
-  );
+  const byBlock = new Map(items.criteria.map((c) => [c.block, c]));
+  const lists = parentsOf(props, [...byBlock.keys()]);
   return inOrder(part, props, (block) =>
     lists.has(block.id) ? (
       <VStack as="ul" gap={3} key={block.id} xstyle={styles.list}>
-        {items.criteria
-          .filter((c) => props.document.blocks[c.block]?.parent === block.id)
-          .map((criterion) => (
-            <Criterion criterion={criterion} key={criterion.block} props={props} />
-          ))}
+        {props.document.blocks
+          .filter((item) => item.parent === block.id)
+          .map((item) => {
+            const criterion = byBlock.get(item.id);
+            return criterion ? (
+              <Criterion criterion={criterion} key={item.id} props={props} />
+            ) : (
+              <li key={item.id} {...stylex.props(styles.row)}>
+                <Leftover item={item} props={props} />
+              </li>
+            );
+          })}
       </VStack>
     ) : undefined,
   );
