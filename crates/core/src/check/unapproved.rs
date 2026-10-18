@@ -1,7 +1,8 @@
 //! `decision.unapproved`: a decision whose text changed on the branch after its spec's approval.
 //! The approval commit is the branch's first-parent commit whose spec first reads
-//! `status: approved`; the decision there is compared with the checkout, beyond the two fields the
-//! approval step sets, `status` and `approved-by`. A decision the branch had not touched at the
+//! `status: approved` at the checkout spec's `revision`, so a new approved revision resets the
+//! check; the decision there is compared with the checkout, beyond the two fields the approval
+//! step sets, `status` and `approved-by`. A decision the branch had not touched at the
 //! approval, and that reads as the default branch's now, is the default branch's change, merged in.
 
 use std::collections::BTreeSet;
@@ -28,16 +29,18 @@ pub(super) fn check_unapproved(root: &Path, target: &Path, problems: &mut Vec<Pr
     };
     let mut changed = BTreeSet::new();
     for feature in features {
-        if !approved(&fs::read_to_string(feature.join("spec.md")).unwrap_or_default()) {
+        let Some(revision) =
+            approved_revision(&fs::read_to_string(feature.join("spec.md")).unwrap_or_default())
+        else {
             continue;
-        }
+        };
         let (Some(spec), Some(decisions)) = (
             from_top(&git, &feature.join("spec.md")),
             feature.parent().map(|specs| specs.join("decisions")),
         ) else {
             continue;
         };
-        let Ok(Some(approval)) = git.approval_commit(base.tip, base.base, &spec) else {
+        let Ok(Some(approval)) = git.approval_commit(base.tip, base.base, &spec, revision) else {
             continue;
         };
         let Ok(Some(forked)) = git.merge_base(approval, base.default) else {
@@ -98,8 +101,10 @@ fn branch_base(git: &Git) -> Option<BranchBase> {
     Some(BranchBase { tip, default, base })
 }
 
-fn approved(text: &str) -> bool {
-    parse_frontmatter(text).is_some_and(|front| front.text("status") == Some("approved"))
+/// An approved spec's `revision`, `Some(None)` when it has none; `None` when it is not approved.
+fn approved_revision(text: &str) -> Option<Option<i64>> {
+    let front = parse_frontmatter(text)?;
+    (front.text("status") == Some("approved")).then(|| front.integer("revision"))
 }
 
 /// A path on disk as git names it, from the working tree's top level.
