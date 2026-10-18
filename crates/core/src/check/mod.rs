@@ -391,19 +391,22 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     if let Checked::Workflow(FileKind::Clarifications) | Checked::Triage = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);
     }
-    if file.kind == Checked::Workflow(FileKind::Clarifications) {
-        sections::check_settled_groups(file, &mut problems);
+    // A round's document tree, parsed once for the checks that read it.
+    let tree = matches!(
+        file.kind,
+        Checked::Workflow(FileKind::Clarifications) | Checked::Triage
+    )
+    .then(|| crate::files::document::parse(file.text, ""));
+    if let Some(tree) = tree
+        .as_ref()
+        .filter(|_| file.kind == Checked::Workflow(FileKind::Clarifications))
+    {
+        sections::check_settled_groups(file, tree, &mut problems);
     }
     if let Some(front) = &front {
         let waiting = front.text("status") == Some("awaiting-human");
-        if waiting
-            && matches!(
-                file.kind,
-                Checked::Workflow(FileKind::Clarifications) | Checked::Triage
-            )
-        {
-            let tree = crate::files::document::parse(file.text, "");
-            writing::check_writing(file, &tree, &mut problems);
+        if let Some(tree) = tree.as_ref().filter(|_| waiting) {
+            writing::check_writing(file, tree, &mut problems);
         }
         let has_block = document
             .callout
