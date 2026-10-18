@@ -226,6 +226,24 @@ test("a build started the next day shows its date", async () => {
   expect(stageLine("Build")).toContain("Oct 18, 09:10");
 });
 
+/** C1: the header gives the folder's day, so the first stage shows its date on another day. */
+test("a first stage started after the folder's day shows its date", async () => {
+  const repo = fixtureRepo();
+  addChange(repo, CHANGE, { "proposal.md": "# A home logo\n" });
+  commitsAt(repo, `change/${CHANGE}`, [
+    {
+      at: "2026-10-17T09:10:00Z",
+      files: { [`specs/changes/${CHANGE}/proposal.md`]: "# A home logo\n\nIn the header.\n" },
+      message: "proposal(header-logo): x",
+    },
+  ]);
+
+  await renderPage(`/f/${CHANGE}`, repo, { agent: true });
+
+  await nextCard();
+  expect(stageLine("Proposal")).toBe("Oct 17, 09:10");
+});
+
 /** US1 more 3 */
 test("an idle agent reads Idle", async () => {
   await renderPage(`/f/${RECURRING}`, fixtureRepo(), { agent: true });

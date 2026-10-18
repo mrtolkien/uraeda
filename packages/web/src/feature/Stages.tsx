@@ -19,21 +19,31 @@ const LABELS: Record<string, string> = {
 /** A stage, and its start, RFC 3339, when a commit started it. */
 type Stage = { name: string; started?: string | null };
 
-/** The history the stages draw. */
-export type StagesHistory = { current: number; rounds?: number | null; stages: Array<Stage> };
+/** The history the stages draw, and its folder, whose day the page's header gives. */
+export type StagesHistory = {
+  current: number;
+  folder?: string;
+  rounds?: number | null;
+  stages: Array<Stage>;
+};
 
 /** The start of the first stage after `index` that started: when the stage at `index` ended. */
 function endOf(stages: Array<Stage>, index: number): string | undefined {
   return stages.slice(index + 1).find((stage) => stage.started)?.started ?? undefined;
 }
 
-/** The start of the last stage before `index` that started, against which its day is told. */
-function previousStart(stages: Array<Stage>, index: number): string | undefined {
+/**
+ * The start of the last stage before `index` that started, against which its day is told: for the
+ * first, the folder's day, which the page's header gives (C1).
+ */
+function previousStart({ folder, stages }: StagesHistory, index: number): string | undefined {
   return (
     stages
       .slice(0, index)
       .reverse()
-      .find((stage) => stage.started)?.started ?? undefined
+      .find((stage) => stage.started)?.started ??
+    folder?.slice(0, 10) ??
+    undefined
   );
 }
 
@@ -45,7 +55,7 @@ export function stageLine(history: StagesHistory, index: number): string | undef
   const stage = history.stages[index];
   const parts: Array<string> = [];
   if (stage?.started) {
-    const at = clock(stage.started, previousStart(history.stages, index));
+    const at = clock(stage.started, previousStart(history, index));
     const end = index < history.current ? endOf(history.stages, index) : undefined;
     if (index === history.current) {
       parts.push(`since ${at}`);
