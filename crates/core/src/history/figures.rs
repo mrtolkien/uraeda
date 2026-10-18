@@ -26,20 +26,22 @@ pub(crate) struct Merge {
     pub diff: Option<Diff>,
 }
 
-/// How a done item reached the default branch, from its tip. Its newest scoped commit on the
-/// first-parent line, as a rebase or a fast-forward leaves it, arrived at its own committer time,
-/// and brought the run of consecutive scoped first-parent commits ending at the newest of them;
-/// otherwise the oldest first-parent merge commit that has it brought it, with its branch.
+/// How a done item reached the default branch, from its tip, read from its finish commit. On the
+/// first-parent line, as a rebase or a fast-forward leaves it, the finish arrived at its own
+/// committer time, and brought the run of consecutive scoped first-parent commits ending at it;
+/// otherwise the oldest first-parent merge commit that has it brought it, with its branch. A later
+/// commit of the item, made on the default branch, moves neither.
 pub(crate) fn merge(
     git: &Git,
     tip: ObjectId,
     commits: &[CommitInfo],
     scoped: &[(&str, &CommitInfo)],
 ) -> Option<Merge> {
-    let newest = scoped
+    let finishes: Vec<&CommitInfo> = scoped
         .iter()
+        .filter(|(kind, _)| Stage::PullRequest.takes(kind))
         .map(|(_, commit)| *commit)
-        .max_by_key(|commit| commit.committed)?;
+        .collect();
     let by_id: HashMap<ObjectId, &CommitInfo> =
         commits.iter().map(|commit| (commit.id, commit)).collect();
     let mut line = Vec::new();
@@ -48,28 +50,30 @@ pub(crate) fn merge(
         line.push(*commit);
         next = commit.parents.first().copied();
     }
-    if line.iter().any(|commit| commit.id == newest.id) {
+    let on_line = line
+        .iter()
+        .position(|commit| finishes.iter().any(|finish| finish.id == commit.id));
+    if let Some(index) = on_line {
         let ids: HashSet<ObjectId> = scoped.iter().map(|(_, commit)| commit.id).collect();
-        let run: Vec<&CommitInfo> = line
+        let finish = line[index];
+        let oldest = line[index..]
             .iter()
-            .skip_while(|commit| !ids.contains(&commit.id))
             .take_while(|commit| ids.contains(&commit.id))
-            .copied()
-            .collect();
-        let (last, oldest) = (run.first()?, run.last()?);
+            .last()?;
         return Some(Merge {
-            at: newest.committed,
+            at: finish.committed,
             diff: oldest.parents.first().map(|base| Diff {
                 base: *base,
-                tip: last.id,
+                tip: finish.id,
                 range: Range::TwoDot,
             }),
         });
     }
+    let finish = finishes.iter().max_by_key(|commit| commit.committed)?;
     let merge = line
         .iter()
         .rev()
-        .find(|commit| commit.parents.len() > 1 && git.is_ancestor(newest.id, commit.id))?;
+        .find(|commit| commit.parents.len() > 1 && git.is_ancestor(finish.id, commit.id))?;
     Some(Merge {
         at: merge.committed,
         diff: Some(Diff {

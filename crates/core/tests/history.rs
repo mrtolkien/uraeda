@@ -426,6 +426,21 @@ fn a_merged_feature_is_timed_to_its_merge() {
 }
 
 #[test]
+fn a_later_fix_on_main_moves_neither_the_merge_nor_the_lines() {
+    let repo = repo();
+    merged_by_rebase(&repo);
+    repo.write("other.md", "other\n");
+    repo.commit_at("chore: other work", &time("23:00"));
+    repo.write("src/later.rs", &lines(3, "later"));
+    repo.commit_at("fix(clarifications): later", "2026-10-18T09:00:00Z");
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(start(&history, "merged"), Some("2026-10-17T22:09:00Z"));
+    assert_eq!(history.lines, figures(1, 0, 1));
+}
+
+#[test]
 fn a_merge_commit_times_the_merge() {
     let repo = repo();
     commit(

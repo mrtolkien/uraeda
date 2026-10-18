@@ -125,15 +125,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R11: A merge commit's lines are checked against a two-dot diff of its parents
 
 - **Decision**: task 6's merge-commit test catches a two-dot diff between the merge's parents, not
-  the first parent's diff the plan named; its tests run with `--test history`. A rebased item's run
-  ends at the first scoped commit met walking the first-parent line from the tip, and
+  the first parent's diff the plan named; its tests run with `--test history`; and
   `changes::outside` also leaves a finishing branch's record out of the session's changes.
 - **Rationale**: for a clean merge, the first parent's diff and the three-dot diff of its parents
   are the same files and lines, so no test can tell them apart. Nextest's bare filter matches test
-  names, and selected none of `crates/core/tests/history.rs`. Rebased commits often share one
-  committer time, so the newest scoped commit by that time can be any of the run.
+  names, and selected none of `crates/core/tests/history.rs`.
 - **Alternatives considered**: a conflicted merge in the test, which depends on git's resolution
-  text; the run ending at the newest commit by committer time, which could stop mid-run.
+  text.
 - **If wrong**: a figure off for a merge resolved with extra changes; the rule lives in
   `history/figures.rs`.
 - **Where**: task 6
@@ -148,3 +146,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   change's Fix stage, with no plan, could not use.
 - **If wrong**: a later stage shows no time until the step reaches it; one line of `history.rs`.
 - **Where**: task 3, fixed with task 6
+
+## R13: A done item's merge and lines are read from its finish commit
+
+- **Decision**: a done item arrived with its `finish(<slug>)` commit: at its committer time when it
+  is on the default branch's first-parent line, its lines the run of scoped first-parent commits
+  ending at it; otherwise through the oldest first-parent merge commit that has it.
+- **Rationale**: found in review of task 3: a `fix(<slug>)` commit made on `main` after the merge
+  moved the merge to its time, and took the lines from its run alone. Rebased commits also often
+  share one committer time, so the newest scoped commit by that time could be any of the run.
+- **Alternatives considered**: the newest scoped commit, as task 3 built it.
+- **If wrong**: a merge timed to the finish of a feature reopened after merging; the rule lives in
+  `history/figures.rs`.
+- **Where**: tasks 3 and 6
