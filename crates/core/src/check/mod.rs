@@ -110,6 +110,10 @@ fn check_with(root: &Path, target: &Path, history: bool) -> Result<Vec<Problem>,
         let mut found = check_folder_files(&root, dir, true, &mut problems);
         problems.extend(found.remove(name.as_ref()).unwrap_or_default());
         names::check_change_file(&root, &target, &mut problems);
+        // A decision's file is reported as in its `specs/` folder's check, for its own warning.
+        if history && let Some(specs) = decisions_parent(&target) {
+            unapproved::check_unapproved(&root, &specs, &mut problems);
+        }
         problems.retain(|p| p.file == relative(&root, &target));
     } else {
         walk(&root, &target, &mut problems);
@@ -119,6 +123,14 @@ fn check_with(root: &Path, target: &Path, history: bool) -> Result<Vec<Problem>,
     }
     problems.sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
     Ok(problems)
+}
+
+/// The `specs/` folder holding the `decisions/` folder that holds a file.
+fn decisions_parent(file: &Path) -> Option<PathBuf> {
+    let decisions = file.parent()?;
+    (decisions.file_name()? == "decisions")
+        .then(|| decisions.parent().map(Path::to_path_buf))
+        .flatten()
 }
 
 /// The problems `check(root, path)` would report if the file at `path` held `text`: the rest of its
