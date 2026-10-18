@@ -2,8 +2,21 @@
 // offers to insert.
 import { Button } from "@astryxdesign/core/Button";
 import { Text } from "@astryxdesign/core/Text";
+import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import type { Trigger } from "uraeda-server/fate";
 import { useRecommendedMessage } from "./data.ts";
+
+const styles = stylex.create({
+  // A long name wraps inside the button on a narrow composer, rather than pushing Send out of view
+  // or ending in an ellipsis: beside the sidebar and the column, at 1024 px, it takes two lines.
+  button: {
+    height: "auto",
+    minHeight: sizeVars["--size-element-md"],
+    paddingBlock: spacingVars["--spacing-1"],
+  },
+  label: { textAlign: "start", whiteSpace: "normal" },
+});
 
 /** A recommended message, inserted: its text, and the step and trigger its run carries. */
 export type Inserted = { step: string; text: string; trigger: Trigger };
@@ -43,6 +56,9 @@ export function RecommendedMessage({
       label={`Insert: ${name}`}
       tooltip="Insert the recommended message"
       variant="secondary"
-    />
+      xstyle={styles.button}
+    >
+      <span {...stylex.props(styles.label)}>{`Insert: ${name}`}</span>
+    </Button>
   );
 }
