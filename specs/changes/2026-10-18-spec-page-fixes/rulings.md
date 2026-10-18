@@ -163,3 +163,16 @@ active decisions. None binds future work: those are decisions.
   show revision 3's quotes beside revision 2's answers, for the moments between the edit and its
   commit. Gate the fallback on the spec's status then.
 - **Where**: [`api/answered.rs`](/crates/core/src/api/answered.rs).
+
+## R14: A wheel over a story's frame is not seen as the reader's
+
+- **Decision**: input made inside a story's iframe, which the window never receives, is not counted:
+  a scroll it starts, during the two frames of a kept place, is put back as before this change.
+- **Rationale**: it is the behaviour the page had, so the fix does not regress it, and it needs a
+  message from the story's frame to the page. Only a story resized above the viewport, in those two
+  frames, meets it.
+- **Alternatives considered**: forwarding the frames' wheel events, which touches the story embed's
+  protocol.
+- **If wrong**: a reader scrolling over a story while another resizes above is moved back once.
+  Forward the frames' inputs to `noteInput`.
+- **Where**: [`keepPlace.ts`](/packages/web/src/keepPlace.ts) `noteInput`.
