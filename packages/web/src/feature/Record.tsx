@@ -1,5 +1,6 @@
 // A done feature's record, drawn in place: its what and why and its behaviour, its decisions drawn
-// as the spec page draws them, its questions folded, then its follow-ups and its file.
+// as the spec page draws them, or as its record lists them when its commits were not found, its
+// questions folded, then its follow-ups and its file.
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
@@ -16,6 +17,8 @@ import { Section } from "./Section.tsx";
 /** What the record reads of the history: its counts and its decisions' changes. */
 export type RecordHistory = {
   decisions: ReadonlyArray<DecisionChange>;
+  /** Whether its commits were found on the default branch, with its decisions' changes. */
+  found: boolean;
   questions?: number | null;
   rounds?: number | null;
 };
@@ -139,7 +142,12 @@ export function Record({
     <VStack gap={6}>
       <RecordSection anchor="what-and-why" document={document} />
       <RecordSection anchor="behaviour" document={document} />
-      <Decisions decisions={history.decisions} />
+      {history.found ? (
+        <Decisions decisions={history.decisions} />
+      ) : (
+        // Its commits not found, as after a squash merge: the record's own list of them.
+        <RecordSection anchor="decisions" document={document} />
+      )}
       <Questions document={document} history={history} keys={keys} />
       <RecordSection anchor="follow-ups" document={document} />
       <Link hasUnderline href={here(`/f/${folder}/${name}`)}>

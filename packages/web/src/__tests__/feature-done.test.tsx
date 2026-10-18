@@ -427,6 +427,9 @@ test("a squash-merged feature says its figures were not found", async () => {
   expect(screen.queryByRole("link", { name: /^Lines changed/ })).toBeNull();
   expect(screen.queryByRole("group", { name: "Lines changed" })).toBeNull();
   expect(screen.queryByText("0 files")).toBeNull();
+  // Its decisions' changes not found, the record's own list of them is drawn.
+  expect(await screen.findByText("New: Diagrams.")).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 2, name: "Decisions" })).toBeTruthy();
 });
 
 /** Edge case: partial tokens */

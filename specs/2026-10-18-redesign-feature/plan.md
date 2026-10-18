@@ -1689,10 +1689,11 @@ reads "Not found on the default branch" in place of all its figures, tokens incl
 
 `Record` draws the record's document, read with `useFile(folder, "<folder>.md")`, with `Blocks` by
 its `##` sections' block ids, found by the headings' anchors: `what-and-why`, `behaviour`, then the
-decisions as `DecisionCard`s from `history.decisions`, in a section `#decisions`, then `questions`
-folded under "Questions · N in R round(s)", then `follow-ups`, then "Open the record file". The
-page's section title reads "What it produced" once done, and keeps the files under the figures, the
-record's row included, as task 8's test expects (R61).
+decisions as `DecisionCard`s from `history.decisions`, in a section `#decisions`, or the record's
+own `decisions` section when its commits were not found, then `questions` folded under "Questions ·
+N in R round(s)", then `follow-ups`, then "Open the record file". The page's section title reads
+"What it produced" once done, and keeps the files under the figures, the record's row included, as
+task 8's test expects (R61).
 
 The server's `tokens` sums the session's turns in `fate/tokens.ts`, from `cache.turns`.
 
