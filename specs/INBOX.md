@@ -109,3 +109,5 @@
   linking it; only "Lines changed" leads there
 - [agent] [redesign-feature] Recommended message: no test checks end to end that a merged feature's
   session recommends nothing; the unit test builds its step by hand
+- [agent] [redesign-feature] Feature page: history::read is at the 100-line limit: the next figure
+  must split it first
