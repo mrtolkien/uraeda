@@ -61,8 +61,7 @@ function ReadFreshDefault({
   const fresh = useFreshDefault(step);
   useEffect(() => {
     onRead(fresh);
-    // Once per value read: `onRead` is a new function at each draw.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once per value read: `onRead` is a new function at each draw
   }, [fresh]);
   return null;
 }
@@ -104,8 +103,7 @@ export function WorkflowMessage({
     if (text !== undefined && refusal !== undefined) {
       onRead({ refusal, text, ...(fresh === undefined ? {} : { fresh }) });
     }
-    // Once per message read: `onRead` is a new function at each draw.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once per message read: `onRead` is a new function at each draw
   }, [text, refusal, fresh]);
   return null;
 }
