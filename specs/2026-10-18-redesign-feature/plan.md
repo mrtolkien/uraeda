@@ -1207,7 +1207,7 @@ unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the re
   `decisions::compare(name, text at the oldest diff's base, text at the newest diff's tip)`,
   `listed: true`, sorted by name.
 
-- [ ] **Step 4: Run the project's validation, and the benchmark**
+- [x] **Step 4: Run the project's validation, and the benchmark**
 
 - Run: `nix develop -c vp run ready`,
   `nix develop -c cargo nextest run -p uraeda-core --run-ignored only -E 'test(/^bench_history/)'`,
@@ -1320,7 +1320,7 @@ run builds in a fresh session as the setting says, with the hand-over's "Build i
 switch: `useFreshRun`, keyed by each insert, and `FreshDefault`, both of `HandOver.tsx`; the setting
 is read once a message is inserted, under a `Suspense` of its own, so the page never waits on it.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
@@ -1697,7 +1697,7 @@ task 8's test expects (R61).
 
 The server's `tokens` sums the session's turns in `fate/tokens.ts`, from `cache.turns`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
