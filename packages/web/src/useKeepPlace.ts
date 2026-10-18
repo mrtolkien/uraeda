@@ -4,6 +4,7 @@
 // drawn.
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import { atEnd } from "./following.ts";
+import { scrollInstantly } from "./keepPlace.ts";
 import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 
 /** How far down the window the place is read: below the top bar, above the sticky composer. */
@@ -100,7 +101,7 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
       if (kept === "end") {
         window.scrollTo(0, document.documentElement.scrollHeight);
       } else if (kept?.element.isConnected) {
-        window.scrollBy(0, kept.element.getBoundingClientRect().top - kept.top);
+        scrollInstantly(kept.element.getBoundingClientRect().top - kept.top);
       }
     });
     return () => cancelAnimationFrame(frame);

@@ -133,7 +133,7 @@ export function entriesOf({
   const decisions = [...items.decisions, ...unlisted];
   return [
     entry(GROUPS.approve.id, GROUPS.approve.title),
-    ...(items.answers.length > 0
+    ...(partOf(items, "Your review")
       ? [entry(groupId(items, GROUPS.answers), GROUPS.answers.title)]
       : []),
     ...(decisions.length > 0
