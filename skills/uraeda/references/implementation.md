@@ -371,9 +371,11 @@ last message lists each comment with what it did, one line each, and the commits
 
 **The pass ends** when the pull request is ready for review again: the branch pushed, and the pull
 request not a draft, with `gh pr ready`. A new round of questions ends it earlier, at that round's
-gate. A pull request still in draft stays one, and the pass ends by running the [finish](finish.md)
+gate. A file waiting for the human, `status: awaiting-human`, ends it at that gate too, once the
+comments are handled: the pull request stays a draft, and nothing is finished before the human
+answers. Otherwise, a pull request still in draft ends the pass by running the [finish](finish.md)
 step, which writes the record when it is not there yet and marks the pull request ready: a draft
-opened before finishing, or one whose folder came back for a round.
+opened before finishing, or one whose folder came back for a round now answered and built.
 
 A pull request opened before the finish step existed still has its folder: amend the spec in place
 in the same commit, increase its `revision`, and update the plan and its `spec-revision`. The spec
