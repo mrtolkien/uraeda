@@ -712,11 +712,12 @@ author time, at or after the previous found stage's start, whose type is:
 A live item's stages after its current one have no start: a `fix(<slug>)` commit made while the spec
 waits does not start Build (R12).
 
-`merged`, for a done item: the default branch's first-parent commit through which its newest scoped
-commit arrived, at its committer time: the commit itself when it is on the first-parent line (a
-rebase or fast-forward), otherwise the oldest first-parent merge commit it is an ancestor of
-(`is_ancestor`). A done item with no `finish(<slug>)` commit on the default branch is not `found`:
-its stages are `merged` alone, with no start, and `finished` is its record's.
+`merged`, for a done item: the default branch's first-parent commit through which its
+`finish(<slug>)` commit arrived, at its committer time, so a later scoped commit made on the default
+branch moves nothing (R13): the commit itself when it is on the first-parent line (a rebase or
+fast-forward), otherwise the oldest first-parent merge commit it is an ancestor of (`is_ancestor`).
+A done item with no `finish(<slug>)` commit on the default branch is not `found`: its stages are
+`merged` alone, with no start, and `finished` is its record's.
 
 `current`, from the feature's step: a human gate by its file's kind (`proposal` → `proposal`,
 `clarifications` → `questions`, `spec` → `spec`, `plan` → `plan`); `discovery` → `questions`;
@@ -1182,11 +1183,11 @@ running `base...tip` as today and `TwoDot` `base tip`; `branch_changes` calls it
 unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the record's path.
 
 - **Lines**: a live item: `numstat(default tip, branch tip, ThreeDot)`, as `branch_changes`. A done,
-  found item: when its newest scoped commit is on the default branch's first-parent line, the run of
-  consecutive first-parent commits whose `scope_type` is `Some`, ending at the first scoped commit
-  `L` met walking that line from the tip, gives `numstat(parent of the run's oldest, L, TwoDot)`;
-  otherwise, for the merge commit `M` found by task 3, `numstat(M^1, M^2, ThreeDot)`. Files outside
-  the folder and the record only; `files` is their count.
+  found item: when its finish commit `L` is on the default branch's first-parent line, the run of
+  consecutive first-parent commits whose `scope_type` is `Some`, ending at `L`, gives
+  `numstat(parent of the run's oldest, L, TwoDot)` (R13); otherwise, for the merge commit `M` found
+  by task 3, `numstat(M^1, M^2, ThreeDot)`. Files outside the folder and the record only; `files` is
+  their count.
 - **Total**: `pull-request`'s start minus `proposal`'s, when both are known.
 - **Questions**: a done item's `RecordCounts.questions`; `None` for a live item.
 - **Decisions**: a done, found item's files under `specs/decisions/` in the same diff, each compared
