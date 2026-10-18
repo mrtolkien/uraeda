@@ -99,3 +99,5 @@
   a double correction from a single one.
 - [agent] [redesign-feature] Sidebar: a card's "+N −N" draws uncoloured: Text's success and error
   colours are not defined by the theme
+- [agent] [redesign-feature] Feature page: a record from before typed commits reads "Not found on
+  the default branch", a squash merge's words, though nothing was squashed
