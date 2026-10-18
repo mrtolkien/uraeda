@@ -111,3 +111,6 @@
   session recommends nothing; the unit test builds its step by hand
 - [agent] [redesign-feature] Feature page: history::read is at the 100-line limit: the next figure
   must split it first
+- [agent] [redesign-feature] Sidebar: on origin/main, the browser test "the sidebar with sessions,
+  searched for “”" fails on desktop: the chat row "Tag v0.3.0 and push the tag." overflows its row
+  (243 > 214 px)
