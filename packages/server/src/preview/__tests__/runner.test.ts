@@ -271,6 +271,35 @@ test("a view at a new commit starts a failed Storybook again; one at an unknown 
   await expect.poll(() => previewStarts(log).length, WAIT).toBe(2);
 });
 
+test("a view at a known commit starts a Storybook whose first commit read failed, once", async () => {
+  const { checkout, log } = await storyCheckout({ mode: "fail" });
+  const runner = previews();
+  runner.view(checkout);
+  await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
+
+  expect(runner.view({ ...checkout, commit: "a" }).state).toBe("starting");
+  await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
+  expect(runner.view({ ...checkout, commit: "a" }).state).toBe("failed");
+  expect(runner.view(checkout).state).toBe("failed");
+  expect(previewStarts(log)).toHaveLength(2);
+});
+
+test("a view whose commit was read before the Storybook started does not restart it", async () => {
+  const { checkout, log } = await storyCheckout({ mode: "fail" });
+  const runner = previews();
+  const older = runner.read();
+  runner.view({ ...checkout, commit: "a", read: older });
+  await expect.poll(() => previewStarts(log).length, WAIT).toBe(1);
+  runner.view({ ...checkout, commit: "b", read: runner.read() });
+  await expect.poll(() => previewStarts(log).length, WAIT).toBe(2);
+  await expect.poll(() => runner.state(checkout.base)?.state, WAIT).toBe("failed");
+
+  // The older read arrives last, as two views racing the commit's move can: it is not a move back.
+  expect(runner.view({ ...checkout, commit: "a", read: older }).state).toBe("failed");
+  expect(runner.view({ ...checkout, commit: "b", read: runner.read() }).state).toBe("failed");
+  expect(previewStarts(log)).toHaveLength(2);
+});
+
 test("each checkout has its own Storybook", async () => {
   const { checkout, log, repo } = await storyCheckout();
   const main = await checkoutOf(repo, "/r/repo/preview/main/");
