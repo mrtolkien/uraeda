@@ -66,17 +66,21 @@ export function stepOf(feature: Feature): CardItem["step"] {
   return { kind: KINDS[feature.step.name] ?? "problem", label: stepLabel(feature.step.name) };
 }
 
+/** The status of a feature that waits on the human. */
+const NEEDS_YOU: Status = { label: "Needs you", status: "needs-you" };
+
 /**
- * A feature's status: its session's, or, without a session, "Needs you" while its step waits on
- * the human or it has a problem, and idle otherwise.
+ * A feature's status: "Needs you" while it has a problem, whatever its session; else its session's,
+ * or, without a session, "Needs you" while its step waits on the human, and idle otherwise.
  */
 export function featureStatus(feature: Feature, row: Row | undefined): Status {
+  if (feature.problems.length > 0) {
+    return NEEDS_YOU;
+  }
   if (row) {
     return { label: row.statusLabel, status: row.status };
   }
-  return feature.step.waitsOn === "human" || feature.problems.length > 0
-    ? { label: "Needs you", status: "needs-you" }
-    : { label: "Idle", status: "idle" };
+  return feature.step.waitsOn === "human" ? NEEDS_YOU : { label: "Idle", status: "idle" };
 }
 
 /** Whether a status asks something of the human: the sidebar's "Needs you". */
