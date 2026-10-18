@@ -12,7 +12,7 @@ plan-review: false
 >
 > Spec to review, about [M] minutes.
 >
-> - You approve [what users get, and the choices that outlive this feature, in a sentence or two].
+> - You approve [what users get, and the choices that outlive this feature, in one sentence].
 > - [Where your attention matters most, one line each, at most 7 items in all: new and changed
 >   decisions, risky assumptions, outside behaviour not verified yet, a relaxed guard as what an
 >   attacker could do, the risk tier, costs or migrations]
