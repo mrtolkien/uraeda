@@ -28,10 +28,9 @@ reads as the feature's fault.
 
 Home put a feature building normally under "Needs you", with a red "Fix" badge, for 14 errors its
 own branch's build did not report: the server's build checked it with older templates
-([what counts as a problem](../2026-10-18-redesign-feature/clarifications-01.md#q9-what-should-count-as-a-features-problem)).
+([what counts as a problem](../done/2026-10-18-redesign-feature.md#q9-what-should-count-as-a-features-problem)).
 Over a day of commits, 63 of 72 snapshots of feature folders had such errors, almost all format
-drift or files still being written
-([problems found](../2026-10-18-redesign-feature/discovery-01.md#problems-found-on-features-in-progress)).
+drift or files still being written ([problems found](../done/2026-10-18-redesign-feature.md)).
 Linters keep only errors as blocking, and analysis tools that cry wolf get ignored.
 
 ## Alternatives considered
