@@ -1359,3 +1359,20 @@ test("on the phone, an answered round has no in-page index", async () => {
 
   expect(screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
 });
+
+/** A comment typed with no letter picked, starting like "B: ...", warns that it reads as B. */
+test("a comment starting with a letter warns when no letter is picked", async () => {
+  await renderPage(PAGE, answered({}));
+  await screen.findByText("Which repositories does the UI open now?");
+
+  await type(comment("Q3"), "Because it is simpler");
+  expect(within(question("Q3")).queryByText(/reads as picking/)).toBeNull();
+
+  await type(comment("Q3"), "B: because it is simpler");
+
+  expect(within(question("Q3")).getByText(/reads as picking B/)).toBeTruthy();
+
+  await tap(option("Q3", "A"));
+  await waitFor(() => expect(option("Q3", "A").checked).toBe(true));
+  expect(within(question("Q3")).queryByText(/reads as picking/)).toBeNull();
+});

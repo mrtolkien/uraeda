@@ -118,6 +118,7 @@ export function QuestionCard({
       <AnswerComment
         answer={answer}
         id={question.id}
+        options={question.options.map((option) => option.letter)}
         path={path}
         readOnly={readOnly}
         saved={question.comment}
