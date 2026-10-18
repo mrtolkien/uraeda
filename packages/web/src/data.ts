@@ -19,6 +19,7 @@ import {
   PreviewView,
   PrioritiesView,
   ProposalHintsView,
+  RecommendedView,
   NeedsYouView,
   RepositoriesView,
   SessionView,
@@ -242,6 +243,14 @@ export function useWorkflowMessage(folder: string, trigger: Trigger, file?: stri
   const { workflowMessage } = useRequest(request);
   useRefreshOnShow(request);
   return useView(WorkflowMessageView, workflowMessage);
+}
+
+/** The one workflow message the server recommends for a feature now, or why none, by its folder. */
+export function useRecommendedMessage(folder: string) {
+  const request = { recommendedMessage: { id: folder, view: RecommendedView } };
+  const { recommendedMessage } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(RecommendedView, recommendedMessage);
 }
 
 /**

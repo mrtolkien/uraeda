@@ -15,6 +15,7 @@ import type {
   Preview,
   Priorities,
   ProposalHints,
+  RecommendedMessage,
   Repositories,
   Session,
   SessionList,
@@ -330,6 +331,19 @@ export const WorkflowMessageView = view<WorkflowMessage>()({
   refusal: true,
   step: true,
   text: true,
+});
+
+/**
+ * A feature's recommended message, by its folder: its name, step, text, and trigger, or why none
+ * applies, `reason`.
+ */
+export const RecommendedView = view<RecommendedMessage>()({
+  id: true,
+  name: true,
+  reason: true,
+  step: true,
+  text: true,
+  trigger: true,
 });
 
 export const ProposalHintsView = view<ProposalHints>()({
