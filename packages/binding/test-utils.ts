@@ -418,20 +418,30 @@ function specText(text: string, status: string, revision: number): string {
  * without an item of `## Decisions`. `status` and `revision` rewrite the spec: an approved one has
  * its approval record and the approval's review, with a comment of its own; a revision 1 has no
  * `## Your review`, no review file, and no `## History`; a revision 3 has two records in its
- * history. Returns the folder.
+ * history. `folder` builds it in another folder, on its branch, beside the first. Returns the
+ * folder.
  */
 export function addSpecFeature(
   repo: string,
   {
+    folder = SPEC_FEATURE,
     revision = 2,
     status = "awaiting-human",
-  }: { revision?: number; status?: "approved" | "awaiting-human" } = {},
+  }: { folder?: string; revision?: number; status?: "approved" | "awaiting-human" } = {},
 ): string {
-  commitOnBranch(repo, "main", specPageFiles("main"));
-  git(repo, "branch", SPEC_FEATURE, "main");
-  const files = specPageFiles("branch");
-  const spec = `specs/${SPEC_FEATURE}/spec.md`;
-  const review = `specs/${SPEC_FEATURE}/spec-review.md`;
+  // Main's decisions, once for every folder.
+  if (!git(repo, "ls-tree", "--name-only", "main", "specs/decisions/task-history.md")) {
+    commitOnBranch(repo, "main", specPageFiles("main"));
+  }
+  git(repo, "branch", folder, "main");
+  const files = Object.fromEntries(
+    Object.entries(specPageFiles("branch")).map(([path, text]) => [
+      path.replace(`specs/${SPEC_FEATURE}/`, `specs/${folder}/`),
+      text,
+    ]),
+  );
+  const spec = `specs/${folder}/spec.md`;
+  const review = `specs/${folder}/spec-review.md`;
   files[spec] = specText(files[spec]!, status, revision);
   if (revision === 1) {
     delete files[review];
@@ -439,6 +449,6 @@ export function addSpecFeature(
     files[review] = APPROVAL_REVIEW;
   }
   files["specs/decisions/task-history.md"] = null;
-  commitOnBranch(repo, SPEC_FEATURE, files);
-  return SPEC_FEATURE;
+  commitOnBranch(repo, folder, files);
+  return folder;
 }

@@ -2,7 +2,7 @@
 // card, its title and breadcrumbs sticking under the top bar while it scrolls (US5 2, 3).
 import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
-import { atSize, commands, drawn, show } from "./helpers.tsx";
+import { atSize, checkLayout, colorScheme, commands, drawn, show } from "./helpers.tsx";
 
 const FOLDER = "2026-10-17-spec-page";
 const PAGE = `/f/${FOLDER}/spec.md`;
@@ -196,6 +196,122 @@ describe("on a wide screen", () => {
         expect(style.borderLeftColor, name).toBe(style.borderRightColor);
         expect(style.borderLeftWidth, name).toBe(style.borderRightWidth);
       }
+    }
+  });
+});
+
+/** A colour's red, green, blue, and alpha, from 0 to 1, whatever the form WebKit gives it in. */
+function rgba(colour: string): [number, number, number, number] {
+  if (colour === "transparent") {
+    return [0, 0, 0, 0];
+  }
+  const [r, g, b] = rgb(colour);
+  const numbers = [...colour.matchAll(/[\d.]+/g)].map((match) => Number(match[0]));
+  return [r, g, b, numbers.length > 3 ? numbers[3]! : 1];
+}
+
+/** Whether an element has a background of its own. */
+const tinted = (element: Element) => rgba(getComputedStyle(element).backgroundColor)[3] > 0;
+
+/** `top` laid over `bottom`, an opaque colour, by its alpha. */
+function over(top: string, bottom: [number, number, number]): [number, number, number] {
+  const [r, g, b, a] = rgba(top);
+  return [r * a + bottom[0] * (1 - a), g * a + bottom[1] * (1 - a), b * a + bottom[2] * (1 - a)];
+}
+
+/** The opaque colour behind an element's content: its background over those of the boxes around it. */
+function backdrop(element: Element | null): [number, number, number] {
+  const layers: Array<string> = [];
+  for (let at = element; at; at = at.parentElement) {
+    layers.push(getComputedStyle(at).backgroundColor);
+  }
+  return layers.reduceRight<[number, number, number]>(
+    (below, layer) => over(layer, below),
+    [1, 1, 1],
+  );
+}
+
+/** A channel of a colour, from 0 to 1, without its gamma. */
+const linear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+
+/** A colour's relative luminance, as WCAG counts it. */
+function luminance([r, g, b]: [number, number, number]) {
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+/** The contrast ratio of two opaque colours, from 1 to 21. */
+function contrast(a: [number, number, number], b: [number, number, number]) {
+  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
+/**
+ * The non-text contrast (WCAG 1.4.11) axe does not check: each strength's icon over what is behind
+ * it, and the edge of a removed part's red tint and of the selection over the card around them,
+ * each at least 3:1.
+ */
+function checkNonTextContrast() {
+  const main = screen.getByRole("main");
+  const icons = ["Must", "Should", "Should not", "Must not", "May"].flatMap((name) =>
+    within(main).queryAllByRole("img", { name }),
+  );
+  expect(icons.length).toBeGreaterThan(3);
+  for (const icon of icons) {
+    const colour = over(getComputedStyle(icon).color, backdrop(icon));
+    const name = icon.getAttribute("aria-label");
+    expect(contrast(colour, backdrop(icon)), `${name} icon`).toBeGreaterThanOrEqual(3);
+  }
+  // A part removed whole, its words not marked one by one: the box around them that has a tint.
+  const words = within(main)
+    .getAllByRole("deletion")
+    .find((element) => !tinted(element))!;
+  let tint: Element = words;
+  while (!tinted(tint) && tint.parentElement) {
+    tint = tint.parentElement;
+  }
+  const selected = within(main).getByRole("button", { pressed: true }).parentElement!;
+  for (const [name, box] of Object.entries({ removed: tint, selection: selected })) {
+    const style = getComputedStyle(box);
+    const around = backdrop(box.parentElement);
+    const edge = Number.parseFloat(style.borderInlineStartWidth) > 0;
+    const colour = over(edge ? style.borderInlineStartColor : style.backgroundColor, around);
+    expect(contrast(colour, around), name).toBeGreaterThanOrEqual(3);
+  }
+}
+
+describe("at both sizes", () => {
+  atSize("both");
+
+  /** SC-004 */
+  test("the spec page is accessible in both themes, every fold open", async () => {
+    await commands.addSpecFeature();
+    // Due dates with a rule of each strength, so each icon's colour is checked.
+    await commands.commitOnBranch(FOLDER, { "specs/decisions/due-dates.md": DUE_DATES });
+    await show(PAGE, "Task storage");
+    const main = screen.getByRole("main");
+    // Every fold open: the stories' more scenarios, the decisions' unchanged and removed parts, the
+    // niche edge cases, and the history.
+    for (
+      let folded = within(main).queryAllByRole("button", { expanded: false });
+      folded.length > 0;
+    ) {
+      for (const fold of folded) {
+        fireEvent.click(fold);
+      }
+      await drawn();
+      folded = within(main).queryAllByRole("button", { expanded: false });
+    }
+    expect(within(main).getByText(/EVERY MONDAY/)).toBeTruthy();
+    // A decision's part selected, as a tap starts a comment on it.
+    const card = within(main).getByRole("region", { name: "Task storage" });
+    fireEvent.click(within(card).getAllByRole("button", { pressed: false })[0]!);
+    await drawn();
+
+    for (const mode of ["light", "dark"] as const) {
+      await colorScheme(mode);
+      await drawn();
+      checkNonTextContrast();
+      await checkLayout();
     }
   });
 });

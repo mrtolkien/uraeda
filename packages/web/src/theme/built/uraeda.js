@@ -224,7 +224,7 @@ export const uraedaTheme = {
     "--size-story-max-height": "900px",
     "--size-story-phone": "402px",
     "--color-selection": "var(--color-background-yellow)",
-    "--color-selection-edge": "var(--color-border-yellow)"
+    "--color-selection-edge": "light-dark(var(--color-data-yellow-5), var(--color-border-yellow))"
   },
   __localTokenOwners: {
     "--astryx-theme-neutral-color-status-fill-accent": "neutral",

@@ -842,3 +842,61 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: the file name kept: a sentence that starts mid-punctuation.
 - **If wrong**: `noteOf` in `packages/web/src/spec/DecisionCards.tsx`.
 - **Where**: task 14, `spec/DecisionCards.tsx`, `__tests__/spec-decisions.test.tsx`
+
+## R89: The non-text contrast of the spec page's marks, checked and raised to 3:1
+
+- **Decision**: the accessibility test of task 14 also checks, through computed styles, in light and
+  dark, what axe does not (WCAG 1.4.11): each strength's icon over what is behind it, the edge of a
+  part removed whole over the card, and the selection's bar over the card, each at least 3:1. A part
+  removed whole keeps its red tint inside a dashed edge of `--color-icon-red`, as the dotted
+  underline of removed words is: the tint alone read 1.5:1 on white. The selection's bar,
+  `--color-selection-edge`, takes `--color-data-yellow-5`, `#8a5001`, 6.5:1, in light, and keeps the
+  neutral theme's yellow border, 6.4:1, in dark: the light one, `#e3c36c`, read 1.7:1. Every
+  review's selection, a plan's too, takes the new bar.
+- **Rationale**: the success criterion SC-004 and the caller's ask; a mark that tells a part apart
+  must stand out from the card it sits on. The neutral theme has no mid-tone yellow border for
+  light, and the data palette's darkest is the amber the selection already reads as.
+- **Alternatives considered**: a darker red tint: text on it stays readable, but the whole part
+  turns loud; a side bar for removed parts: review comment C1 asked for no side bar on the cards.
+- **If wrong**: `styles.removed` in `spec/DecisionCard.tsx`, `--color-selection-edge` in
+  `theme/theme.ts`, `checkNonTextContrast` in `__browser__/spec.test.tsx`.
+- **Where**: task 14, `spec/DecisionCard.tsx`, `theme/theme.ts`, `theme/built/`,
+  `__browser__/spec.test.tsx`
+
+## R90: A link alone on its line, and the spec's folds, are a control's height
+
+- **Decision**: a paragraph whose only span is a link draws the link as a control, `inline-flex`,
+  `--size-element-md` tall (44 px under a touch pointer), on every page that draws documents, as a
+  story's mockup link or a story link without a preview is. The decision cards' "N unchanged" and "N
+  removed" folds, and "History", take a label a control's height, as a story's "More scenarios"
+  does.
+- **Rationale**: the UI layout decision's 44 px controls under a coarse pointer; on the phone the
+  layout check flagged the story links at 25.5 px and the folds at 17 px. A link set apart from text
+  is a control, which `checkControlHeights` already reads so.
+- **Alternatives considered**: a height under a touch pointer only, through a token of its own: a
+  second token for what `--size-element-md` already says; the spec page alone: the same link on a
+  plan or a proposal would stay short.
+- **If wrong**: `styles.alone` in `Spans.tsx`, the paragraph in `Blocks.tsx`, `styles.foldLabel` in
+  `spec/DecisionCard.tsx`, `styles.title` in `spec/SpecHistory.tsx`.
+- **Where**: task 14, `Spans.tsx`, `Blocks.tsx`, `spec/DecisionCard.tsx`, `spec/SpecHistory.tsx`
+
+## R91: The spec page's stories and screenshots run on `addSpecFeature`, twice
+
+- **Decision**: `addSpecFeature` takes a `folder`, `SPEC_FEATURE` by default, and builds the feature
+  in it, committing main's decisions only once: Storybook's fixture builds the spec waiting, and
+  approved in `2026-10-17-spec-page-approved` (`SPEC_PAGES` in `.storybook/checkouts.ts`), which
+  `SpecPage.stories.tsx`'s `Waiting` and `Approved` render through `FilePage`. The decision card's
+  story, `spec/DecisionCard.stories.tsx`, renders the real `DecisionCard` as the spec page does, fed
+  by `useBranchDecision`: `Change` (task storage) and `New` (repeating tasks). The round page's
+  decorator moved to `.storybook/inRepositoryFolder.tsx`, shared. `scripts/spec-shots.ts` adds both
+  features to the screenshots' repository and takes `spec-page`, `spec-page-decisions`,
+  `spec-page-story`, `spec-page-built` (every fold open), `spec-page-approved`, and `spec-decision`.
+  The approved spec's links to `mockups/DecisionChange.stories.tsx#Change` now point to a deleted
+  file: the spec is approved, so they stay.
+- **Rationale**: the plan's "the stories render the real page and card over `addSpecFeature`"; a
+  branch holds one state, so the approved page needs a second branch.
+- **Alternatives considered**: a story component taking a decision change as data: a copy of what
+  the core computes, which the stack decision forbids reimplementing.
+- **If wrong**: `addSpecFeature` in `packages/binding/test-utils.ts`, `.storybook/fixture.ts`.
+- **Where**: task 14, `packages/binding/test-utils.ts`, `packages/web/.storybook/`,
+  `SpecPage.stories.tsx`, `spec/DecisionCard.stories.tsx`, `scripts/spec-shots.ts`
