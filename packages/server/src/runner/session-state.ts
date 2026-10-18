@@ -2,7 +2,7 @@ import type { Binding } from "../fate/context.ts";
 import { IMAGE_REFUSALS } from "../limits.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { BackgroundTask, Item, TurnActivity, TurnState } from "./events.ts";
+import type { BackgroundTask, Item, Trigger, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
 import type { Transcript } from "./transcript.ts";
@@ -125,9 +125,15 @@ export type Running = {
 
 /**
  * A turn waiting for the running one to end: its message is written when it starts, in a new agent
- * session when `fresh`.
+ * session when `fresh`. A workflow run's `workflow`, its trigger and the step its message was read
+ * at, is checked again then: one that no longer applies starts as a chat.
  */
-export type Queued = { fresh?: boolean; id: number; message: Outgoing };
+export type Queued = {
+  fresh?: boolean;
+  id: number;
+  message: Outgoing;
+  workflow?: { step?: string; trigger: Trigger };
+};
 
 /** A message this server sent, or will send, and where its item is. */
 export type Sent = { item: Message; seq: number; turn: number; written: boolean };

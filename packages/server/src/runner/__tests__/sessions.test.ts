@@ -609,12 +609,48 @@ test("US2.5: a workflow message during a chat turn is queued, and starts after i
   adapter.script([]);
   adapter.emit(done());
   await sessions.settled(chat.turn);
-  await flush();
-  expect(adapter.sent[1]?.text).toBe("Continue the feature.");
   await sessions.settled(workflow.turn);
+  expect(adapter.sent[1]?.text).toBe("Continue the feature.");
   expect(cache.turn(chat.turn)?.state).toBe("done");
   expect(cache.turn(workflow.turn)).toMatchObject({ kind: "workflow", state: "done" });
   expect(adapter.opens).toHaveLength(1);
+});
+
+/** US4 more 1 */
+test("a workflow message queued behind a run that moved the step on starts as a chat", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const run = await sessions.send(repo, session.id, {
+    text: "Write the plan",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  // Inserted while the agent writes the plan: the plan step still waits on the agent.
+  const inserted = await sessions.send(repo, session.id, {
+    text: "Continue, write the plan",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  expect(cache.turn(inserted.turn)).toMatchObject({ kind: "workflow", state: "queued" });
+
+  // The run writes the plan, which then waits on the human.
+  addPlan(repo, AGENT, ELEVEN, "awaiting-human");
+  adapter.script([]);
+  adapter.emit(done());
+  await sessions.settled(run.turn);
+  await flush();
+  await sessions.settled(inserted.turn);
+
+  expect(cache.turn(inserted.turn)).toMatchObject({
+    kind: "chat",
+    state: "done",
+    step: null,
+    trigger: null,
+  });
+  // A chat after a run: it opens by saying a human is chatting.
+  expect(adapter.sent[1]?.text).toBe(`${opening(AGENT)}\nContinue, write the plan`);
+  expect(cache.items(inserted.turn, 0, 10)).toEqual([
+    expect.objectContaining({ opening: opening(AGENT), origin: "human", state: "read" }),
+    { kind: "system", seq: 1, text: "Sent as a chat: the feature now waits on you." },
+  ]);
 });
 
 test("US4.1: a new chat works in the main checkout, without an opening line, and is titled by its first line", async () => {

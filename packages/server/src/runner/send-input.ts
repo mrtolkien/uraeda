@@ -3,8 +3,8 @@ import type { Capabilities } from "./adapter.ts";
 import type { Item, Trigger } from "./events.ts";
 import type { ChatImage } from "./images.ts";
 import { MAX_IMAGES } from "../limits.ts";
-import { sentAsChat } from "./message.ts";
-import { REFUSALS, refused } from "./session-state.ts";
+import { chatOpening, sentAsChat } from "./message.ts";
+import { type Live, type Queued, REFUSALS, refused, type SessionContext } from "./session-state.ts";
 
 /** A chat image sent with a message: its ID and size, which its item keeps, and its file's path. */
 export type SentImage = ChatImage & { path: string };
@@ -101,4 +101,66 @@ export async function sendPlace(
   const feature = () => binding.readFeature(repo, folder);
   const asChat = await sentAsChat({ feature, next, workflow });
   return asChat === undefined ? { branch, step: next.step.name } : { asChat, branch, step: null };
+}
+
+/**
+ * The chat opening a chat message on a feature starts with: on its session's first turn, or after
+ * a workflow run. A queued turn's, `before`, looks at the turns before it.
+ */
+export async function openingOf(
+  { binding, cache }: Pick<SessionContext, "binding" | "cache">,
+  live: Live,
+  branch: string | undefined,
+  before?: number,
+): Promise<string | undefined> {
+  if (live.folder === null || branch === undefined) {
+    return undefined;
+  }
+  const last = cache
+    .turns(live.id)
+    .filter((turn) => turn.kind !== "allow" && (before === undefined || turn.id < before))
+    .at(-1);
+  if (last !== undefined && last.kind !== "workflow") {
+    return undefined;
+  }
+  return chatOpening({ branch, feature: await binding.readFeature(live.repo, live.folder) });
+}
+
+/**
+ * Checks a queued workflow run again as it starts, with `sendPlace`'s rule: one that no longer
+ * applies starts as a chat, from the human, with the line saying so, and the chat opening when a
+ * chat there opens with it. Refused once its feature is merged.
+ */
+export async function recheckQueued(
+  context: SessionContext,
+  live: Live,
+  queued: Queued,
+): Promise<void> {
+  const { workflow } = queued;
+  if (!workflow) {
+    return;
+  }
+  const { cache, changed } = context;
+  const { asChat, branch } = await sendPlace(context.binding, live, workflow);
+  if (asChat === undefined) {
+    return;
+  }
+  const opening = await openingOf(context, live, branch, queued.id);
+  // A take-back, or Stop, may have ended it meanwhile.
+  const sent = live.messages.get(queued.message.id);
+  if (!sent || !live.queue.includes(queued)) {
+    return;
+  }
+  const { text } = sent.item;
+  sent.item = { ...sent.item, origin: "human", ...(opening === undefined ? {} : { opening }) };
+  cache.updateItem(queued.id, sent.seq, sent.item);
+  cache.retypeTurn(queued.id, { kind: "chat", step: null, trigger: null });
+  cache.appendItem(queued.id, { kind: "system", text: asChat });
+  queued.message = {
+    ...queued.message,
+    text: opening === undefined ? text : `${opening}\n${text}`,
+  };
+  delete queued.fresh;
+  delete queued.workflow;
+  changed(live, queued.id);
 }

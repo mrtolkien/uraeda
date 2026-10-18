@@ -4,9 +4,9 @@ import type { Adapter, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import type { TurnActivity, TurnKind, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
-import { chatOpening, chatTitle, retryMessage } from "./message.ts";
+import { chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
-import { checkSend, messageItem, type SendInput, sendPlace } from "./send-input.ts";
+import { checkSend, messageItem, openingOf, type SendInput, sendPlace } from "./send-input.ts";
 import {
   type Live,
   type Message,
@@ -236,10 +236,7 @@ export class Sessions {
 
     const kind: TurnKind = workflow ? "workflow" : "chat";
     const fresh = workflow?.fresh === true;
-    const opening =
-      !workflow && live.folder !== null && branch !== undefined && this.#opens(live)
-        ? chatOpening({ branch, feature: await binding.readFeature(live.repo, live.folder) })
-        : undefined;
+    const opening = workflow ? undefined : await openingOf(this.#context, live, branch);
     const item: Message = {
       ...messageItem(id, origin, text),
       ...(opening === undefined ? {} : { opening }),
@@ -267,7 +264,13 @@ export class Sessions {
         cache.appendItem(queued, { kind: "system", text: asChat });
       }
       live.messages.set(id, { item, seq, turn: queued, written: false });
-      live.queue.push({ ...(fresh ? { fresh } : {}), id: queued, message });
+      live.queue.push({
+        ...(fresh ? { fresh } : {}),
+        id: queued,
+        message,
+        // Checked again as it starts: the running turn may move its step on.
+        ...(workflow ? { workflow } : {}),
+      });
       changed(live, queued, "queued");
       return { turn: queued };
     }
@@ -278,15 +281,6 @@ export class Sessions {
       cache.appendItem(started, { kind: "system", text: asChat });
     }
     return { turn: started };
-  }
-
-  /** Whether a chat message starts with the opening line: first, or after a workflow run. */
-  #opens(live: Live): boolean {
-    const last = this.cache
-      .turns(live.id)
-      .filter((turn) => turn.kind !== "allow")
-      .at(-1);
-    return last === undefined || last.kind === "workflow";
   }
 
   /**
