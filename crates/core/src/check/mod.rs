@@ -22,6 +22,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::files::{frontmatter, markdown, review};
+use crate::git::{Git, ObjectId};
 use crate::workspace::{FileKind, Problem, Severity};
 
 #[derive(Debug, thiserror::Error)]
@@ -56,6 +57,8 @@ pub(crate) struct File<'a> {
     pub folder: &'a BTreeMap<String, String>,
     /// Where the root is, for links from the repository's top level.
     pub root: &'a Path,
+    /// A commit whose tree links resolve against, in place of the files under `root`.
+    pub tip: Option<(&'a Git, ObjectId)>,
 }
 
 impl File<'_> {
@@ -290,19 +293,21 @@ fn check_folder_files_with(
             }
         }
     }
-    check_texts(root, dir, any_folder, &texts, &mut found);
+    check_texts(root, dir, any_folder, &texts, None, &mut found);
     found
 }
 
 /// The problems of the files of the folder `dir` under `root`, holding `texts` by name, wherever
-/// they were read from, like a commit: for each file, the problems its rules find, by name.
+/// they were read from, like a commit: for each file, the problems its rules find, by name. Links
+/// resolve against the tree of `tip` when it is given, else against the files under `root`.
 pub fn check_folder_texts(
     root: &Path,
     dir: &Path,
     texts: &BTreeMap<String, String>,
+    tip: Option<(&Git, ObjectId)>,
 ) -> BTreeMap<String, Vec<Problem>> {
     let mut found = BTreeMap::new();
-    check_texts(root, dir, true, texts, &mut found);
+    check_texts(root, dir, true, texts, tip, &mut found);
     found
 }
 
@@ -311,6 +316,7 @@ fn check_texts(
     dir: &Path,
     any_folder: bool,
     texts: &BTreeMap<String, String>,
+    tip: Option<(&Git, ObjectId)>,
     found: &mut BTreeMap<String, Vec<Problem>>,
 ) {
     for (name, text) in texts {
@@ -323,6 +329,7 @@ fn check_texts(
             kind,
             folder: texts,
             root,
+            tip,
         };
         found
             .entry(name.clone())

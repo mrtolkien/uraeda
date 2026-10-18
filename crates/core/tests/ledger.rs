@@ -229,3 +229,52 @@ fn the_ledger_reads_the_default_branch() {
     assert_eq!(names, ["git"]);
     assert_eq!(ledger.decisions[0].icon.as_deref(), Some("git-merge"));
 }
+
+/// A repository whose default branch, `main`, links `target` from its `git` decision and is
+/// checked out nowhere: the current checkout, `old`, branched before the decision existed.
+fn default_checked_out_nowhere(target: &str) -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("README.md", "# Repo\n");
+    repo.commit("chore: base");
+    repo.branch("old");
+    repo.write(
+        "specs/decisions/git.md",
+        &GIT.replace(
+            "Hooks.\n",
+            &format!("Hooks, as [the hooks]({target}) say.\n"),
+        ),
+    );
+    repo.commit("decision: git");
+    repo.switch("old");
+    repo
+}
+
+/// A link is checked against the default branch's tree, not the current checkout: a file its tip
+/// has is there, though the checkout lacks it.
+#[test]
+fn a_link_to_a_file_of_the_default_branch_is_valid_from_another_checkout() {
+    let repo = default_checked_out_nowhere("../../docs/hooks.md");
+    repo.git(&["switch", "--quiet", "main"]);
+    repo.write("docs/hooks.md", "# Hooks\n");
+    repo.commit("docs: hooks");
+    repo.switch("old");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    assert!(!repo.exists("docs/hooks.md"));
+    assert_eq!(ledger.problems, [], "{:?}", ledger.problems);
+    assert_eq!(decision(&ledger.decisions, "git").problem, None);
+}
+
+/// A file only the current checkout has does not make a link valid.
+#[test]
+fn a_link_to_a_file_only_the_checkout_has_is_broken() {
+    let repo = default_checked_out_nowhere("../../docs/hooks.md");
+    repo.write("docs/hooks.md", "# Hooks\n");
+    repo.commit("docs: hooks");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    let git = decision(&ledger.decisions, "git");
+    assert_eq!(git.problem.as_deref(), Some("no file ../../docs/hooks.md"));
+}
