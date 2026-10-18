@@ -440,6 +440,27 @@ fn a_later_fix_on_main_moves_neither_the_merge_nor_the_lines() {
     assert_eq!(history.lines, figures(1, 0, 1));
 }
 
+/// The pull request's review fixes, rebased with the feature after its finish, arrive with it, the
+/// rebase's last a minute after the finish: their lines count, the merge stays the finish's; a fix
+/// committed eleven minutes after the finish does not.
+#[test]
+fn review_fixes_rebased_after_the_finish_are_counted() {
+    let repo = repo();
+    merged_by_rebase(&repo);
+    repo.write("src/review.rs", &lines(2, "review"));
+    rebased(&repo, "fix(<slug>): a review comment", "22:05", &[]);
+    repo.write("src/review.rs", &lines(3, "review"));
+    let message = "fix(clarifications): another review comment";
+    repo.commit_at_merged(message, &time("22:06"), &time("22:10"));
+    repo.write("src/late.rs", &lines(5, "late"));
+    repo.commit_at("fix(clarifications): eleven minutes later", &time("22:20"));
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(start(&history, "merged"), Some("2026-10-17T22:09:00Z"));
+    assert_eq!(history.lines, figures(4, 0, 2));
+}
+
 #[test]
 fn a_feature_merged_on_origin_only_is_read_from_there() {
     let repo = repo();
