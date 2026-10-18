@@ -22,6 +22,7 @@ export type Route =
   | { page: "triage" }
   | { page: "decisions" }
   | { name: string; page: "decision" }
+  | { folder: string; name: string; page: "branch-decision" }
   | { page: "principle"; slug: string }
   | { page: "edit"; path: string }
   | { folder: string; name: string; page: "mockup" }
@@ -123,6 +124,9 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "mockups") {
     return { folder: parts[1], name: parts[3], page: "mockup" };
   }
+  if (parts[0] === "f" && parts.length === 4 && parts[2] === "decisions") {
+    return { folder: parts[1], name: parts[3], page: "branch-decision" };
+  }
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
     return { folder: parts[1], id: parts[3], page: "run" };
   }
@@ -157,6 +161,11 @@ export function parseRoute(pathname: string): Route {
     return { page: "edit", path: parts.slice(1).join("/") };
   }
   return { page: "missing", path: pathname };
+}
+
+/** The page of decision `name` as the branch of the feature in `folder` has it, with its change. */
+export function branchDecisionPath(folder: string, name: string): string {
+  return `/f/${encodeURIComponent(folder)}/decisions/${encodeURIComponent(name)}`;
 }
 
 /** `/decisions`, `/decisions/<name>`, or `/decisions/constitution/<slug>`. */

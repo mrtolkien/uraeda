@@ -1,6 +1,6 @@
 // The spec page of the specs redesign: on the phone, each part takes the screen's width, without a
 // card, its title and breadcrumbs sticking under the top bar while it scrolls (US5 2, 3).
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { atSize, commands, drawn, show } from "./helpers.tsx";
 
@@ -61,5 +61,122 @@ describe("on the phone", () => {
     expect(journey.getBoundingClientRect().left).toBeCloseTo(12, 0);
     expect(journey.getBoundingClientRect().right).toBeCloseTo(width - 12, 0);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+  });
+});
+
+/** The width of a "0" in an element's font: its `ch`. */
+function characterWidth(element: Element) {
+  const style = getComputedStyle(element);
+  const context = document.createElement("canvas").getContext("2d")!;
+  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  return context.measureText("0").width;
+}
+
+/** The width of an element's widest line of text, in px. */
+function widestLine(element: Element) {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  const lines = new Map<number, { left: number; right: number }>();
+  for (const rect of range.getClientRects()) {
+    if (rect.width === 0) {
+      continue;
+    }
+    const key = Math.round(rect.bottom);
+    const seen = lines.get(key);
+    lines.set(key, {
+      left: Math.min(seen?.left ?? rect.left, rect.left),
+      right: Math.max(seen?.right ?? rect.right, rect.right),
+    });
+  }
+  return Math.max(0, ...[...lines.values()].map(({ left, right }) => right - left));
+}
+
+/** A computed colour's red, green, and blue, from 0 to 1, whatever the form WebKit gives it in. */
+function rgb(colour: string): [number, number, number] {
+  const numbers = [...colour.matchAll(/[\d.]+/g)].map((match) => Number(match[0]));
+  const scale = colour.startsWith("color(") ? 1 : 255;
+  return [numbers[0]! / scale, numbers[1]! / scale, numbers[2]! / scale];
+}
+
+/** Due dates, its rules one of each strength. */
+const DUE_DATES = [
+  "---\nstatus: proposed\napproved-by:\n---\n\n# Due dates\n",
+  "Due dates are calendar days.\n\n## Rules\n",
+  "- Due dates MUST be stored as `YYYY-MM-DD` text. Checked by the `CalendarDay` type.",
+  "- Date arithmetic SHOULD go through `date-fns`. Checked by review.",
+  "- Due dates SHOULD NOT show a time. Checked by the UI tests.",
+  "- Due dates MUST NOT carry a timezone. Checked by the store's tests.",
+  "- Lists MAY sort by due date. Checked by review.\n",
+].join("\n");
+
+describe("on a wide screen", () => {
+  atSize("desktop");
+
+  /** US2 more 3 */
+  test("a decision card's lines hold at most 75 characters at 1440 px", async () => {
+    await commands.addSpecFeature();
+    await show(PAGE, "Task storage");
+    // "Contents" hidden, the card takes the page's whole width, where the page's measure would not
+    // hold its lines.
+    fireEvent.keyDown(document.body, { code: "BracketRight", key: "]" });
+    await drawn();
+    expect(screen.queryByRole("complementary", { name: "Contents" })).toBeNull();
+    const card = screen.getByRole("region", { name: "Task storage" });
+    for (const fold of within(card).getAllByRole("button", { expanded: false })) {
+      fireEvent.click(fold);
+    }
+    await drawn();
+
+    // 75ch, the round's measure, of the card's reading text: each line of each part, the note's
+    // and the intent's included, and of the muted checks, is at most 75 of its "0"s wide (R82).
+    const zero = characterWidth(within(card).getByText(/^Data MUST be stored in IndexedDB/));
+    const parts = within(card)
+      .getAllByRole("button", { pressed: false })
+      .map((toggle) => document.getElementById(toggle.getAttribute("aria-labelledby") ?? "")!);
+    expect(parts.length).toBeGreaterThan(5);
+    for (const part of parts) {
+      expect(widestLine(part), part.textContent?.slice(0, 60)).toBeLessThanOrEqual(75 * zero + 1);
+    }
+  });
+
+  /** Review comment C1 of the spec, and US2 1: colours by strength, no side bar, nothing struck. */
+  test("the strength icon takes its strength's colour, and the card has no side bar", async () => {
+    await commands.addSpecFeature();
+    await commands.commitOnBranch(FOLDER, { "specs/decisions/due-dates.md": DUE_DATES });
+    await show(PAGE, "Due dates");
+    const card = screen.getByRole("region", { name: "Due dates" });
+    const colour = (name: string) =>
+      rgb(getComputedStyle(within(card).getByRole("img", { name })).color);
+
+    const [must, should, shouldNot, mustNot, may] = [
+      "Must",
+      "Should",
+      "Should not",
+      "Must not",
+      "May",
+    ].map(colour);
+    for (const [name, [r, g, b]] of Object.entries({ must, should })) {
+      expect(g, name).toBeGreaterThan(Math.max(r, b));
+    }
+    for (const [name, [r, g, b]] of Object.entries({ mustNot, shouldNot })) {
+      expect(r, name).toBeGreaterThan(Math.max(g, b));
+    }
+    // A soft colour is apart from its hard one; the neutral is grey.
+    expect(should).not.toEqual(must);
+    expect(shouldNot).not.toEqual(mustNot);
+    expect(Math.max(...may!) - Math.min(...may!)).toBeLessThan(0.15);
+
+    for (const element of [card, ...card.querySelectorAll("*")]) {
+      const style = getComputedStyle(element);
+      const name = element.textContent?.slice(0, 60);
+      expect(style.textDecorationLine, name).not.toContain("line-through");
+      // A bar is a border on one side alone: a card's own border goes all around.
+      const start = Number.parseFloat(style.borderLeftWidth);
+      const visible = start > 0 && rgb(style.borderLeftColor).length === 3;
+      if (visible && !/rgba\(.*, 0\)$|transparent/.test(style.borderLeftColor)) {
+        expect(style.borderLeftColor, name).toBe(style.borderRightColor);
+        expect(style.borderLeftWidth, name).toBe(style.borderRightWidth);
+      }
+    }
   });
 });

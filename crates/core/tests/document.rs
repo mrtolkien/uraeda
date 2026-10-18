@@ -183,6 +183,32 @@ fn spans_carry_their_marks_and_links() {
     assert_eq!(wiki.unwrap().target, "due-dates");
 }
 
+/// A link keeps its `#` part apart, so a page opens the file at it: a decision at its rules.
+#[test]
+fn a_link_keeps_its_anchor() {
+    let doc = parse(
+        "[rules](../decisions/task-storage.md#rules) [file](spec.md) [top](#here) [empty](spec.md#)\n",
+        "specs/f",
+    );
+
+    let spans = &doc.blocks[0].spans;
+    let link = |text: &str| {
+        spans
+            .iter()
+            .find(|s| s.text == text)
+            .and_then(|s| s.link.clone())
+            .unwrap()
+    };
+    assert_eq!(
+        link("rules").path.as_deref(),
+        Some("specs/decisions/task-storage.md")
+    );
+    assert_eq!(link("rules").anchor.as_deref(), Some("rules"));
+    assert_eq!(link("file").anchor, None);
+    assert_eq!(link("top").anchor.as_deref(), Some("here"));
+    assert_eq!(link("empty").anchor, None);
+}
+
 #[test]
 fn an_image_is_a_span_with_its_alt_text_and_path() {
     let doc = parse(

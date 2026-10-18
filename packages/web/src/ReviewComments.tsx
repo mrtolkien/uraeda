@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
-import { holderOf } from "./reviewField.ts";
+import { holderOf, placeOf } from "./reviewField.ts";
 
 const styles = stylex.create({
   pending: {
@@ -28,17 +28,7 @@ const styles = stylex.create({
  * `C4 · decision git, lines 15–16`, with ` removed` after a removed part's lines.
  */
 export function where(comment: CommentItem) {
-  if (comment.general) {
-    return `C${comment.number} · general`;
-  }
-  const lines =
-    comment.startLine === comment.endLine
-      ? `line ${comment.startLine}`
-      : `lines ${comment.startLine}–${comment.endLine}`;
-  if (comment.decision !== undefined) {
-    return `C${comment.number} · decision ${comment.decision}, ${lines}${comment.removed ? " removed" : ""}`;
-  }
-  return `C${comment.number} · ${lines}`;
+  return `C${comment.number} · ${placeOf(comment)}`;
 }
 
 /**

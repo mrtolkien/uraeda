@@ -1317,6 +1317,8 @@ export interface SpanLink {
   path?: string
   /** The story it names, when it is a story link. */
   story?: StoryTarget
+  /** The part of its target after `#`, when not empty: a heading of the file it opens. */
+  anchor?: string
 }
 
 export interface SpecItems {
