@@ -86,3 +86,7 @@
   frontmatter comment, so a stored body of break, heading, break loses its middle; and lines with a
   digit-first key, a spaced key, or a bare - are rejected. A marker in the stored entry would settle
   both (R11).
+- [agent] [spec-page-fixes] Spec page: the web recomputes which Review and Decisions items the core
+  read (unreadItems), while ura check has the core's unread_items, and a duplicate decision item
+  shows as a raw block without a check problem; KNOWN_PARTS is a fourth copy of the spec's part
+  titles. Send both from the core.
