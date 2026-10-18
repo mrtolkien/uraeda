@@ -84,8 +84,11 @@ pub(crate) fn read(
     feature: &Feature,
 ) -> Result<HistoryView, GitError> {
     let done = feature.step.name == StepName::Done;
+    let recorded = default_branch
+        .filter(|_| done)
+        .and_then(|branch| recorded_tip(git, branch, &feature.folder));
     let tip = if done {
-        default_branch.and_then(|branch| recorded_tip(git, branch, &feature.folder))
+        recorded.map(|(_, start)| start)
     } else {
         feature.branch.as_deref().and_then(|branch| git.tip(branch))
     };
@@ -129,10 +132,12 @@ pub(crate) fn read(
             .for_each(|start| *start = None);
     }
     let diffs = if done {
-        let merge = match tip.filter(|_| found) {
-            Some(tip) => {
+        let merge = match recorded.filter(|_| found) {
+            Some((tip, start)) => {
                 let since = since(&feature.folder);
-                figures::merge(git, tip, &commits, &scoped, &feature.slug, since)?
+                let slug = &feature.slug;
+                let line = figures::Line { tip, slug, since };
+                figures::merge(git, start, &commits, &scoped, line)?
             }
             None => None,
         };
@@ -190,16 +195,16 @@ fn since(folder: &str) -> i64 {
         .map_or(0, |date| date.unix_seconds() - 86_400)
 }
 
-/// Where a done item's walk starts: the first-parent commit that brought its record, on the
-/// default branch's tip that holds it, local first, then `origin`'s, as the workspace reads it. The
-/// walk then skips every later commit, and stays as fast for an old item as for a new one.
-fn recorded_tip(git: &Git, branch: &str, folder: &str) -> Option<ObjectId> {
+/// The default branch's tip that holds a done item's record, local first, then `origin`'s, as the
+/// workspace reads it, and where its walk starts: the first-parent commit that brought the record.
+/// The walk then skips every later commit, and stays as fast for an old item as for a new one.
+fn recorded_tip(git: &Git, branch: &str, folder: &str) -> Option<(ObjectId, ObjectId)> {
     let path = record_path(folder);
     let tips = [git.tip(branch), git.remote_tip(branch)];
     tips.into_iter()
         .flatten()
-        .find_map(|tip| git.first_parent_addition(tip, &path).ok().flatten())
-        .or_else(|| git.tip(branch))
+        .find_map(|tip| Some((tip, git.first_parent_addition(tip, &path).ok().flatten()?)))
+        .or_else(|| git.tip(branch).map(|tip| (tip, tip)))
 }
 
 /// A record's `finished` day.
