@@ -12,7 +12,7 @@ const STEPS: Record<string, { reference?: string; waitsOn: string }> = {
   done: { waitsOn: "nobody" },
   finish: { reference: "skills/uraeda/references/finish.md", waitsOn: "agent" },
   "human-gate": { waitsOn: "human" },
-  none: { waitsOn: "nobody" },
+  none: { waitsOn: "agent" },
   plan: { reference: "skills/uraeda/references/plan.md", waitsOn: "agent" },
   "pull-request": { waitsOn: "human" },
   "pull-request-changes": { reference: IMPLEMENTATION, waitsOn: "agent" },
@@ -65,6 +65,7 @@ function input({
 }
 
 const WAITS = { reason: "No recommended message: the feature waits on you" };
+const UNKNOWN = { reason: "No recommended message: the pull request's state is unknown" };
 
 /** US4.1 */
 test("a step waiting on the agent recommends its own message", () => {
@@ -152,8 +153,9 @@ test("a merged feature recommends nothing, though its record reads open", () => 
   });
 });
 
-test("an unknown pull request state recommends nothing", () => {
-  expect(recommendedMessage(input({ step: "pull-request-unknown" }))).toEqual(WAITS);
+test("an unknown pull request state recommends nothing, and says why", () => {
+  // The feature waits on the agent there, not on you.
+  expect(recommendedMessage(input({ step: "pull-request-unknown" }))).toEqual(UNKNOWN);
 });
 
 /** The edge case of a pull request whose state `gh` could not read, R10 */
@@ -161,7 +163,7 @@ test("an unknown pull request recommends nothing, though its record reads open",
   // Without `gh`, the feature's pull request is its record's, read as open.
   const unknown = input({ pullRequest: "open", step: "pull-request-unknown" });
   unknown.next.step.pullRequest = "unknown";
-  expect(recommendedMessage(unknown)).toEqual(WAITS);
+  expect(recommendedMessage(unknown)).toEqual(UNKNOWN);
   // At a gate, the same unknown state keeps the comments message out.
   const gate = input({ gate: "clarifications-02.md", pullRequest: "open" });
   gate.next.step.pullRequest = "unknown";
@@ -175,6 +177,7 @@ test("without the agent, nothing is recommended", () => {
 });
 
 test("a step without a run recommends nothing", () => {
+  // `none` waits on the agent, with no reference to start from; `done` waits on nobody.
   expect(recommendedMessage(input({ step: "none" }))).toEqual(WAITS);
   expect(recommendedMessage(input({ step: "done" }))).toEqual(WAITS);
 });

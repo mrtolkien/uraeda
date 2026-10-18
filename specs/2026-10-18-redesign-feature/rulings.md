@@ -534,3 +534,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none: both are the spec page's fixes (its R90 and layer).
 - **If wrong**: `styles` of `feature/Record.tsx`.
 - **Where**: task 10
+
+## R110: An unknown pull request's composer says its state is unknown
+
+- **Decision**: at the step `pull-request-unknown`, the composer reads "No recommended message: the
+  pull request's state is unknown", not R10's "No recommended message: the feature waits on you". A
+  gate with an unknown pull request still reads that the feature waits on you.
+- **Rationale**: the step waits on the agent, not on you: the line said what does not hold.
+  `NOT_RECOMMENDED` keeps only `pull-request-unknown`: `none` has no reference and `done` waits on
+  nobody, so the checks before it already leave them out.
+- **Alternatives considered**: R10's line, which the final review found wrong at that step.
+- **If wrong**: `UNKNOWN_PULL_REQUEST` in `runner/message.ts`.
+- **Where**: final review
