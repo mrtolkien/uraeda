@@ -385,15 +385,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R61: A done item shows the figures it has
 
-- **Decision**: "Questions" shows only after a round, and "Decisions" only when one changed, as the
-  mockup's merged change shows neither. "Not recorded" has no caption. A done item not found on the
-  default branch reads "Not found on the default branch" in place of all its figures, tokens
-  included. The done page keeps its files under the figures, the record's row included.
-- **Rationale**: a zero leads to nothing to open; the mockup's "before Oct 19" names a date the
+- **Decision**: a done feature shows all five figures, as US2 lists them: "Questions" reads "0" and
+  "no round" without a round, and "Decisions" "0", both plain cards at zero. A done change shows
+  "Questions" only after a round, and "Decisions" only when one changed, as the mockup's merged
+  change shows neither. "Not recorded" has no caption. A done item not found on the default branch
+  reads "Not found on the default branch" in place of all its figures, tokens included. The done
+  page keeps its files under the figures, the record's row included.
+- **Rationale**: the spec's row of figures names all five for a feature; a change's zero leads to
+  nothing to open, and its mockup leaves them out; the mockup's "before Oct 19" names a date the
   server does not have when no turn was counted; the spec's squash edge case says its figures read
   the line. Task 8's test of a merged feature expects the record's row in the files.
-- **Alternatives considered**: "0 questions" and "0 decisions" leading to sections that are not
-  drawn; the tokens kept beside the line, against the spec's wording.
+- **Alternatives considered**: a feature's zeros hidden, against US2's row of five; zeros leading to
+  sections that are not drawn; the tokens kept beside the line, against the spec's wording.
 - **If wrong**: `doneFigures` and `Figures` in `feature/Figures.tsx`.
 - **Where**: task 9
 
