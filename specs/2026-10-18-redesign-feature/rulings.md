@@ -273,19 +273,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the paths of the changed tests, and one condition of `Crumbs.tsx`.
 - **Where**: task 8
 
-## R22: The stages keep each part of a line whole, their indicators on the track
+## R22: The stages are a row only where every line holds on one line, a column elsewhere
 
-- **Decision**: on a wide screen the stages draw their indicators on the track, and each part of a
-  stage's line, a time or a duration, holds no-break spaces: a line too long for its stage, "Oct 13,
-  00:01 · 18 h 9 min", breaks between its parts only. No `white-space: nowrap`.
-- **Rationale**: beside the sidebar, a stage is about 155 px wide; with the indicator's gutter,
-  "12:11 · 2 h 50 min" wrapped. A `white-space: nowrap` on the stages let a dated line run over the
-  next stage, and its StyleX class, injected after the others in the browser tests, broke the
-  overflow checks of the session's and the sidebar's long lines.
-- **Alternatives considered**: `text-wrap: nowrap`, which runs a dated line over the next stage; the
-  mockup's separated indicators, which wrap every duration of hours.
-- **If wrong**: two props of `feature/Stages.tsx`; task 10's screenshots show it at both sizes.
-- **Where**: task 8
+- **Decision**: on a wide screen, the stages are a row when every stage's label and line hold on one
+  line in it, each stage as wide as its own widest text, the room left shared out, and at least 16
+  px between two stages' texts; otherwise they are a column, as on the phone. The row's need is
+  measured on the row as drawn, before the screen shows it, through `useWidthOf`, the layout's way
+  of laying a part out by the room it has. Astryx's own collapse is turned off: it dropped every
+  line. With the sidebar open, a done feature whose build started the day after its plan, "Oct 18,
+  09:10 · 6 h 55 min", needs 923 px: a row at 1920 and 1440 px, a column at 1200 and 1024 px.
+- **Rationale**: C3, approved, says every stage's line fits on one line on a desktop. Seven equal
+  stages beside the sidebar are 155 px wide at 1440 px, and the dated line is 184 px at the
+  supporting size: it wrapped, as task 8's no-break spaces allowed. At 1024 px the list has 667 px,
+  under the 811 px of the seven texts side by side, and Astryx collapsed the row to a bare track,
+  without labels or lines. The texts are the spec's own ("Oct 18, 09:10", "2 h 50 min"), and the
+  supporting size is the theme's.
+- **Alternatives considered**: a shorter date, against US1 more 2's "Oct 18, 09:10"; a smaller size,
+  still 158 px wide; two rows of stages, which Astryx's Stepper cannot wrap; a `white-space: nowrap`
+  row, which ran over the next stage; a column below a width of its own, a third width class that
+  the sidebar's resizing would leave wrong.
+- **If wrong**: `useRowFits` and the step's style in `feature/Stages.tsx`;
+  `__browser__/feature.test.tsx` checks one line box per label and line, inside its own stage, at
+  1920, 1440, 1200, and 1024 px with the sidebar open.
+- **Where**: task 8, rewritten in task 10
 
 ## R23: The agent's card shows its own trouble, and always opens the session
 
@@ -455,3 +465,72 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   draw; a heading above the fold, a second line saying the same.
 - **If wrong**: `Questions` in `feature/Record.tsx`.
 - **Where**: task 9
+
+## R100: The open pull request's story reads a `gh` that lists it
+
+- **Decision**: `PullRequest` stays among the feature page's stories: Storybook's server, and the
+  screenshots', put first on their PATH a `gh` that lists pull request #31 of
+  `2026-10-17-keyboard-shortcuts`, as R24's test does, before the server's first pull request read.
+- **Rationale**: the preview decision forbids faking the server's responses. Here the server, the
+  core, and the page run as they do, reading `gh` as they read GitHub; no response is made up. No
+  other feature of the fixture is past its last task, so no other step reads the pull requests.
+- **Alternatives considered**: leaving `PullRequest` out, as the plan allowed; a fake of
+  `readFeature`, which the decision forbids.
+- **If wrong**: `listPullRequest` in `packages/web/.storybook/featurePages.ts`, and the story.
+- **Where**: task 10
+
+## R101: The layout check lets a row's steps centre their captions
+
+- **Decision**: `checkAlignment` of the browser tests leaves out text inside an item of an ordered
+  list drawn as a row: the stages' labels and lines, centred under their marks on the track.
+- **Rationale**: the approved mockup and Astryx's on-track Stepper centre each caption under its
+  node; the UI layout decision's left alignment is for reading text, and a stage's line is a caption
+  of four words or fewer. The check counted "10:52 · 26 min" as four words.
+- **Alternatives considered**: left-aligned captions, under a centred node; the indicators beside
+  the labels, which need 168 px more than the row has at 1440 px.
+- **If wrong**: `inRow` in `src/__browser__/helpers.tsx`.
+- **Where**: task 10
+
+## R102: The feature page's features are built once, for the stories, the tests, and the shots
+
+- **Decision**: `packages/web/.storybook/featurePages.ts` builds the six features of the page's
+  states, named in `checkouts.ts`'s `FEATURE_PAGES`, with typed commits dated in UTC through
+  `commitsAt`, the working one checked out, so its format notes are found; it records three past
+  runs with their tokens in the runner's cache through `recordRun`, new in `uraeda-server/testing`.
+  Storybook's fixture, the browser tests' `addFeaturePages` command, and the screenshots use it. The
+  browser tests and the screenshots read times in UTC.
+- **Rationale**: `test-utils.ts` has 486 lines, and stories import `checkouts.ts` in the browser,
+  which cannot load a module of `node:fs`. A past run in the cache is the server's own data, not a
+  faked response: the done page shows "5.2 M in" and "113 k out", as the mockup does. The machine
+  here is in JST, where the commits would cross midnight at other stages than the tests check.
+- **Alternatives considered**: the builder in `test-utils.ts`, past 500 lines; the done page's
+  tokens left "Not recorded", unlike its mockup.
+- **If wrong**: `featurePages.ts`, and `recordRun` in `packages/server/src/testing.ts`. The
+  screenshots' `change-shots.ts` also waits for a new change's session, where its first run now
+  opens it (R21).
+- **Where**: task 10
+
+## R103: Lines added and removed are drawn in the theme's green and red
+
+- **Decision**: "Lines changed" colours "+N" with `--color-success` and "−N" with `--color-error`,
+  as before the review's refactor to Text's `success` and `error` colours.
+- **Rationale**: the screenshots showed both in the primary text colour: Text's `success` and
+  `error` are custom colours this theme does not define, so Text draws them as the primary colour,
+  against C4. The sidebar's cards draw their counts the same way and show no colour either: left to
+  their own fix.
+- **Alternatives considered**: defining the two colours in the theme, a change of every view's Text.
+- **If wrong**: the two styles of `feature/Figures.tsx`; `__browser__/feature.test.tsx` reads the
+  drawn colours.
+- **Where**: task 10
+
+## R104: The record's controls are a finger's height, its decisions under the top bar
+
+- **Decision**: the record's "Questions · N in R rounds" fold and its "Open the record file" link
+  are a control's height, `--size-element-md`; its decisions sit in a layer of their own, as the
+  spec page's parts do.
+- **Rationale**: the accessibility test, every fold open on the phone, found the fold 17 px tall and
+  the link 20 px; the screenshots showed a decision card's sticking head, pushed up, drawn over the
+  phone's top bar.
+- **Alternatives considered**: none: both are the spec page's fixes (its R90 and layer).
+- **If wrong**: `styles` of `feature/Record.tsx`.
+- **Where**: task 10

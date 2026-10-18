@@ -72,9 +72,9 @@ function stage(label: string) {
   return item;
 }
 
-/** A stage's line: its time and duration, or since when, its no-break spaces read as spaces. */
+/** A stage's line: its time and duration, or since when. */
 function stageLine(label: string) {
-  return stageTexts(stage(label), label).join(" ").replaceAll("\u00a0", " ");
+  return stageTexts(stage(label), label).join(" ");
 }
 
 /** The label of the current stage. */

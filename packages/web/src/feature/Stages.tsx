@@ -1,8 +1,20 @@
 // A feature's or a change's stages, as the core read them from its commits: the current one marked,
 // each passed one with its start and duration, the current one since when.
 import { Step, Stepper } from "@astryxdesign/core/Stepper";
+import * as stylex from "@stylexjs/stylex";
+import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { useWidthClass } from "../layout/useWidthClass.ts";
+import { useWidthOf } from "../layout/useWidthOf.ts";
 import { clock, duration } from "./times.ts";
+
+const styles = stylex.create({
+  // Each stage as wide as its own label or line, the room left shared out: a dated line takes
+  // the width it needs, and the stages around it give theirs (C3).
+  step: { flex: "1 0 auto" },
+});
+
+/** The room left between two stages' texts, at the least, for the row to read as stages. */
+const BREATH = 16;
 
 /** Each stage's name, as the core sends it, in words. */
 const LABELS: Record<string, string> = {
@@ -68,32 +80,81 @@ export function stageLine(history: StagesHistory, index: number): string | undef
   if (stage?.name === "questions" && (history.rounds ?? 0) > 1) {
     parts.push(`${history.rounds} rounds`);
   }
-  // Each part keeps its words together: a line too long for its stage breaks between parts only
-  // (C3).
-  return parts.length > 0
-    ? parts.map((part) => part.replaceAll(" ", "\u00a0")).join(" · ")
-    : undefined;
+  return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
-/** The stages, horizontal on a wide screen and vertical on the phone. */
+/** The width of the widest text a stage draws, its label or its line, read out words left out. */
+function textWidth(item: Element): number {
+  const range = document.createRange();
+  const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+  let widest = 0;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    // A word for screen readers only sits in a box of a pixel.
+    if ((node.parentElement?.getBoundingClientRect().width ?? 0) > 1) {
+      range.selectNodeContents(node);
+      widest = Math.max(widest, range.getBoundingClientRect().width);
+    }
+  }
+  return widest;
+}
+
+/**
+ * Whether the stages hold in one row of `room` px, each stage's label and line on one line, read on
+ * the row as drawn, before the screen shows it, whenever the room or the texts change: a row too
+ * wide for its room is drawn as a column, and tried again once the room grows past the width it
+ * needed.
+ */
+function useRowFits(
+  list: RefObject<HTMLDivElement | null>,
+  { room, texts, wide }: { room: number; texts: string; wide: boolean },
+) {
+  const [needed, setNeeded] = useState(0);
+  const row = wide && room >= needed;
+  useLayoutEffect(() => {
+    const measure = () => {
+      const items = list.current?.querySelector("ol")?.children;
+      if (!row || !items || room === 0) {
+        return;
+      }
+      // Stages never shrink below their texts, so each text is on one line here.
+      const width = [...items].reduce((sum, item) => sum + textWidth(item) + BREATH, 0);
+      if (width > room) {
+        setNeeded(width);
+      }
+    };
+    measure();
+  }, [list, room, row, texts]);
+  return row;
+}
+
+/**
+ * The stages: a row on a wide screen when every stage's line holds on one line in it, a column on
+ * the phone, and on a wide screen too narrow for the row (C3).
+ */
 export function Stages({ history }: { history: StagesHistory }) {
   const wide = useWidthClass() === "wide";
+  const ref = useRef<HTMLDivElement>(null);
+  const lines = history.stages.map((_, index) => stageLine(history, index));
+  const row = useRowFits(ref, { room: useWidthOf(ref), texts: lines.join("\n"), wide });
   return (
-    <div id="stages">
+    <div id="stages" ref={ref}>
       <Stepper
         activeStep={history.current}
         density="compact"
-        indicatorPosition={wide ? "on-track" : "separated"}
+        // The row's own measure decides when it holds: Astryx's collapse would drop the lines.
+        horizontalOptions={{ collapsedVariant: "withLabel", minimumStepWidth: 0 }}
+        indicatorPosition={row ? "on-track" : "separated"}
         label="Stages"
-        orientation={wide ? "horizontal" : "vertical"}
+        orientation={row ? "horizontal" : "vertical"}
       >
         {history.stages.map((stage, index) => (
           <Step
-            description={stageLine(history, index)}
+            description={lines[index]}
             key={stage.name}
             label={LABELS[stage.name] ?? stage.name}
             status={index < history.current ? "success" : undefined}
             step={index}
+            xstyle={row ? styles.step : undefined}
           />
         ))}
       </Stepper>

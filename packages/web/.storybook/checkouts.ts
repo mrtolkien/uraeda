@@ -29,3 +29,22 @@ export const SPEC_PAGES = {
   approved: "2026-10-17-spec-page-approved",
   waiting: "2026-10-17-spec-page",
 } as const;
+
+/**
+ * The feature page's features, by state, which `featurePages.ts` builds: `FeaturePage.stories.tsx`'s,
+ * the browser tests', and the screenshots'.
+ */
+export const FEATURE_PAGES = {
+  /** At implementation, task 7 of 11 current: the agent builds. */
+  working: "2026-10-17-redesign-clarifications",
+  /** Its spec waiting for review. */
+  waiting: "2026-10-17-recurring-reminders",
+  /** Its spec's status unreadable, "aproved": the workflow cannot go on. */
+  blocked: "2026-10-17-due-dates",
+  /** Finished on its branch, its pull request #31 open once `gh` lists it. */
+  pullRequest: "2026-10-17-keyboard-shortcuts",
+  /** Merged by rebase, its build started the day after its plan, its record in place. */
+  done: "2026-10-17-redesign-rounds",
+  /** A change merged by rebase, without a round of questions. */
+  doneChange: "2026-10-17-symlinks",
+} as const;
