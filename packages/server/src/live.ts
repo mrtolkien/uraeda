@@ -54,6 +54,7 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     live.update("Feature", folder, { eventId: eventId(`feature:${folder}`) });
     live.update("BranchChanges", folder, { eventId: eventId(`changes:${folder}`) });
     live.update("History", folder, { eventId: eventId(`history:${folder}`) });
+    live.update("RecommendedMessage", folder, { eventId: eventId(`recommended:${folder}`) });
   }
   for (const file of changes.files) {
     live.update("WorkflowFile", file, { eventId: eventId(`file:${file}`) });
@@ -207,6 +208,7 @@ export function sessionPublisher(
       update("SessionList", SESSION_LIST_ID);
       if (change.folder !== null) {
         update("Feature", change.folder);
+        update("RecommendedMessage", change.folder);
       }
       update("Workspace", WORKSPACE_ID);
       return;

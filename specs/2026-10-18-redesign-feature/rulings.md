@@ -109,3 +109,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the function moves back once `lib.rs` is split; the live update is one line of
   `live.ts`.
 - **Where**: task 3
+
+## R10: An unknown pull request recommends no message
+
+- **Decision**: at the step `pull-request-unknown`, when `gh` could not read the pull request's
+  state, the composer recommends nothing: "No recommended message: the feature waits on you". The
+  step still waits on the agent, so a hand-over's message at it still runs.
+- **Rationale**: the plan's own test expects nothing there, and the spec's edge case keeps the
+  comments message out; the step's message, "Finish it", could open a second pull request beside one
+  `gh` cannot see.
+- **Alternatives considered**: recommending "Finish it", as the step's reference allows.
+- **If wrong**: one entry of `NOT_RECOMMENDED` in `runner/message.ts`.
+- **Where**: task 5

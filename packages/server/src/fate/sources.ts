@@ -25,6 +25,7 @@ import {
   sessionSearch,
   working,
 } from "./sessions.ts";
+import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import {
@@ -390,6 +391,12 @@ export const sources = createSources<Context>([
     workflowMessageDataView,
     repository({
       byIds: async (ctx, ids) => found(ids, (id) => readWorkflowMessage(ctx, id)),
+    }),
+  ),
+  fileSource(
+    recommendedDataView,
+    repository({
+      byIds: async (ctx, ids) => found(ids, (id) => readRecommended(ctx, id)),
     }),
   ),
   fileSource(

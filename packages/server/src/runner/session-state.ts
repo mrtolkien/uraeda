@@ -24,7 +24,7 @@ export { MAX_IMAGES } from "../limits.ts";
 export const REFUSALS = {
   /** A write on a feature, or a session another server holds, while its agent works. */
   working: "An agent is working on this feature. Stop it first, or wait for it.",
-  /** A workflow message on a feature whose step waits on the human. */
+  /** A workflow message read for a feature whose step waits on the human. */
   human: "The feature waits on you now: there is nothing to continue.",
   noBranch: "This feature has no branch left: it is merged.",
   /** A take-back of a message the agent read. */
@@ -38,6 +38,12 @@ export const REFUSALS = {
   imageGone: "This image is gone: add it again.",
   unavailable: (name: string) => `${name} is not available on this machine.`,
 };
+
+/** The line of a workflow message sent once it no longer applied: its step moved on. */
+export const SENT_AS_CHAT = "Sent as a chat: the feature now waits on you.";
+
+/** The line of a comments message sent without a pull request to address. */
+export const SENT_AS_CHAT_NO_PULL_REQUEST = "Sent as a chat: no pull request is open.";
 
 /** The line a turn shows when its session's transcript was gone, and a new one started. */
 export const REPLACED = "Started a new session: the previous one is gone.";
