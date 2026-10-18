@@ -48,3 +48,5 @@
   name untouched: the diff's rename keeps only the new path
 - [agent] [redesign-feature] Problems: a blank answer blocks a feature only when its branch is
   checked out; a branch without a checkout never shows "Fix"
+- [agent] [redesign-feature] Feature page: Back after a reload can land too high: "Next", the
+  agent's card, and the record draw after the scroll is restored
