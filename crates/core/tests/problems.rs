@@ -132,3 +132,19 @@ fn the_check_still_reports_a_note_as_an_error() {
         "{found:?}"
     );
 }
+
+/// A question whose `**Answer:**` line was deleted, in an answered round, misses its answer too.
+#[test]
+fn a_deleted_answer_line_in_an_answered_round_is_a_problem() {
+    let repo = feature(|repo| replace(repo, ROUND, FIRST_ANSWER, ""));
+
+    let view = read(&repo);
+
+    assert_eq!(
+        rules(&view.problems),
+        ["answers.blank"],
+        "{:?}",
+        view.problems
+    );
+    assert_eq!(rules(&view.notes), ["answers.marker"], "{:?}", view.notes);
+}
