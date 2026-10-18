@@ -47,7 +47,7 @@ and WebKit. Pele returns an SVG string without a frame, and its output has no HT
 `foreignObject`, where Mermaid's advisories were. It rendered every diagram of the repository, and
 none of five hostile diagrams produced a script or an event handler. You chose Pele, its SVG
 inserted in the page without a frame, and no exact version pin: "I trust the dev"
-([the round](../changes/2026-10-18-diagram-frames/clarifications-01.md)).
+([the round](../done/2026-10-18-diagram-frames.md#q1-should-the-web-ui-draw-diagrams-with-pele-instead-of-mermaid)).
 
 ## Alternatives considered
 
