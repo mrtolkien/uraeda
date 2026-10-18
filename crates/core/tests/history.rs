@@ -692,6 +692,48 @@ fn a_rebased_feature_counts_its_run_of_commits() {
     assert_eq!(history.lines, figures(5, 1, 2));
 }
 
+/// A rebased feature whose branch also holds an unscoped commit, `chore: add … to the inbox`,
+/// between its decision and its code: the commits on both sides are counted, the unscoped one is
+/// not, and the decision before it is listed.
+#[test]
+fn an_unscoped_commit_inside_a_rebased_run_cuts_nothing() {
+    let repo = repo();
+    repo.write("specs/decisions/git.md", &decision("approved"));
+    repo.commit("chore: decisions");
+    commit(
+        &repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    rebased(
+        &repo,
+        "spec(<slug>): clarifications",
+        "12:11",
+        &[("spec.md", spec("approved", 1, 0))],
+    );
+    let git = decision("approved").replace("A choice.", "A choice, changed.");
+    repo.write("specs/decisions/git.md", &git);
+    repo.write("src/a.rs", &lines(3, "a"));
+    rebased(&repo, "feat(<slug>): a", "15:01", &[]);
+    repo.write("specs/inbox.md", &lines(4, "idea"));
+    repo.commit_at_merged(
+        "chore: add an idea to the inbox",
+        &time("15:05"),
+        &time("22:09"),
+    );
+    repo.write("src/b.rs", &lines(2, "b"));
+    rebased(&repo, "feat(<slug>): b", "15:09", &[]);
+    the_record(&repo, "feature", FOLDER, "2026-10-17");
+    rebased(&repo, "finish(<slug>): Clarifications", "22:03", &[]);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    // `src/a.rs` +3, `specs/decisions/git.md` +1 −1, `src/b.rs` +2; the inbox left out.
+    assert_eq!(history.lines, figures(6, 1, 3));
+    assert_eq!(kinds(&history.decisions), [("git", "changed")]);
+}
+
 #[test]
 fn a_feature_merged_with_a_merge_commit_counts_its_branch() {
     let repo = repo();

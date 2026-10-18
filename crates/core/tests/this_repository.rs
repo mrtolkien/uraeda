@@ -143,3 +143,35 @@ fn sc004_past_features_show_timed_stages() {
         "{timed} records with timed stages; without: {without:?}"
     );
 }
+
+/// US2 on this repository's rebased features: the lines, files, and decisions of each record read
+/// over every run of its commits on `main`, its review fixes included, with the time of each read.
+/// Printed, for the pull request: `2026-10-17-redesign-specs` holds about +13,263 −4,053 over 208
+/// files and 18 decisions.
+#[test]
+#[ignore = "this repository's history"]
+fn rebased_features_count_every_run() {
+    let root = root();
+    for folder in [
+        "2026-10-17-redesign-specs",
+        "2026-10-16-redesign-interface",
+        "2026-10-17-redesign-clarifications",
+    ] {
+        let start = Instant::now();
+        let history = api::read_history(&root, folder).unwrap();
+        let elapsed = start.elapsed();
+        let lines = history.lines.as_ref().unwrap();
+        println!(
+            "{folder}: +{} −{} over {} files, {} decisions, merged {:?}, in {elapsed:?}",
+            lines.added,
+            lines.removed,
+            lines.files,
+            history.decisions.len(),
+            history
+                .stages
+                .last()
+                .and_then(|stage| stage.started.as_deref()),
+        );
+        assert!(history.found, "{folder}");
+    }
+}
