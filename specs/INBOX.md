@@ -66,3 +66,5 @@
   commits made earlier, or reachable only through an older-dated commit, are missed
 - [agent] [redesign-feature] Feature page: a feature fast-forwarded into main locally is timed as
   merged at its finish, not at the merge
+- [agent] [redesign-feature] Feature page: a done item read from its folder, with no record, walks
+  the default branch from its tip to the folder's date
