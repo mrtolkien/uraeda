@@ -427,3 +427,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   it.
 - **If wrong**: the two styles of `RecommendedMessage.tsx`.
 - **Where**: review fixes of tasks 7 and 8
+
+## R90: A figure's in-page link scrolls in place, without a history entry
+
+- **Decision**: a figure leading to a detail of the page, `#stages`, `#files`, `#questions`, or
+  `#decisions`, keeps its link and its address, but a tap or a key scrolls to the detail below the
+  top bar and moves the focus there, in the same history entry; the address keeps no hash. Caught
+  around the figures, so the card's surface and its hidden link both reach it; a modified click and
+  a detail not drawn yet are left to the browser.
+- **Rationale**: the browser's own jump pushes an entry without the page's state: the open items
+  stopped being kept, and Back neither restored them nor scrolled back. `RoundSubmit`'s links to the
+  questions left jump the same way.
+- **Alternatives considered**: an entry pushed through the router, which gives the page a new id its
+  views do not write into; in-page links handled by `RouterAnchor` for the whole app, which
+  `useHashFold` relies on the browser for; buttons in place of the links.
+- **If wrong**: `jumpInPage` in `feature/Figures.tsx`.
+- **Where**: task 9
