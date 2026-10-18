@@ -215,3 +215,71 @@ test("a spec without a data model has no Data part", async () => {
   expect(screen.queryByRole("heading", { name: "Data" })).toBeNull();
   expect(screen.queryByRole("region", { name: "Task" })).toBeNull();
 });
+
+/**
+ * The spec with items the core does not classify: an item of the units' list without a bold name,
+ * one of the criteria's without an id, and sub-bullets under a unit, a tradeoff, and a criterion;
+ * and a unit whose bold name holds code.
+ */
+function withUnclassifiedItems(repo: string) {
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  const store =
+    "- **The task store** completes tasks, and runs the one-time upgrade of saved due dates.\n";
+  const tradeoff = "- No history of completions, as the repeating tasks decision accepts.\n";
+  const criterion =
+    "- **SC-001** (two clicks): Setting a preset repeat takes two clicks from the open task.\n";
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [SPEC]: spec
+      .replace(
+        store,
+        `${store}  - It keeps the last upgrade's version.\n- The sync runs nightly.\n- **The \`ura\` CLI** reads the same rules.\n`,
+      )
+      .replace(tradeoff, `${tradeoff}  - Undo covers the last completion only.\n`)
+      .replace(
+        criterion,
+        `${criterion}  - Counted from the task's edit panel.\n- All tests pass.\n`,
+      ),
+  });
+}
+
+/** A block of a part a review taps, by the start of its text. */
+const tappable = (part: HTMLElement, text: string) =>
+  within(part).getByRole("button", { name: new RegExp(`^${text}`) });
+
+/** The parts drop no text: what the core does not classify shows as the spec's other blocks do. */
+test("an architecture's item without a bold name, and nested bullets, show and take comments", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  withUnclassifiedItems(repo);
+  await renderPage(PAGE, repo);
+
+  const part = await region("Architecture");
+  expect(tappable(part, String.raw`The sync runs nightly\.`)).toBeTruthy();
+  expect(tappable(part, String.raw`It keeps the last upgrade's version\.`)).toBeTruthy();
+  expect(tappable(part, String.raw`Undo covers the last completion only\.`)).toBeTruthy();
+  // The units before and after the item without a bold name, each run in its own row of cards.
+  const units = within(part)
+    .getAllByRole("list", { name: "Units" })
+    .flatMap((list) => within(list).getAllByRole("listitem"))
+    // The cards, not the items of a list nested in one.
+    .filter((item) => item.getAttribute("role") === "listitem");
+  expect(units).toHaveLength(4);
+  // The unit's name, its whole bold run, code included.
+  expect(
+    within(units.at(-1)!).getAllByText((_, element) => element?.textContent === "The ura CLI"),
+  ).not.toHaveLength(0);
+  expect(units.at(-1)!.textContent).toContain("reads the same rules.");
+});
+
+/** The criteria drop no text either: an item without an id, and a criterion's nested bullet. */
+test("a criteria item without an id, and a criterion's nested bullet, show and take comments", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  withUnclassifiedItems(repo);
+  await renderPage(PAGE, repo);
+
+  const part = await region("Success criteria");
+  expect(tappable(part, String.raw`All tests pass\.`)).toBeTruthy();
+  expect(tappable(part, String.raw`Counted from the task's edit panel\.`)).toBeTruthy();
+  expect(within(part).getByText("SC-002")).toBeTruthy();
+});
