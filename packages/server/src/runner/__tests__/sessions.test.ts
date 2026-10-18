@@ -598,7 +598,7 @@ test("US2.5: a workflow message during a chat turn is queued, and starts after i
 
   const workflow = await sessions.send(repo, session.id, {
     text: "Continue the feature.",
-    workflow: { trigger: "manual" },
+    workflow: { fresh: false, trigger: "manual" },
   });
 
   expect(workflow.turn).not.toBe(chat.turn);
@@ -840,7 +840,7 @@ test("a workflow run that is not fresh continues the agent session", async () =>
   adapter.script([]);
   const { turn } = await sessions.send(repo, session.id, {
     text: "Continue the feature.",
-    workflow: { trigger: "approval" },
+    workflow: { fresh: false, trigger: "approval" },
   });
   await sessions.settled(turn);
 
@@ -850,6 +850,25 @@ test("a workflow run that is not fresh continues the agent session", async () =>
   expect(cache.items(turn, 0, 1)).toEqual([
     expect.objectContaining({ kind: "message", origin: "workflow" }),
   ]);
+});
+
+/** The agents decision: a run after a spec's approval sent without `fresh` follows the setting. */
+test("a workflow run at the plan step sent without fresh follows the setting", async () => {
+  for (const on of [true, false]) {
+    const { adapter, repo, sessions } = await testSessions();
+    const session = await sessions.featureSession(repo, AGENT);
+    adapter.script([]);
+    await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
+
+    adapter.script([]);
+    const { turn } = await sessions.send(repo, session.id, {
+      text: "Continue the feature.",
+      workflow: { freshByDefault: on, trigger: "manual" },
+    });
+    await sessions.settled(turn);
+
+    expect(adapter.opens.map((open) => open.resume)).toEqual(on ? [false, false] : [false]);
+  }
 });
 
 test("a fresh workflow run queued after a chat turn starts its new agent session once it ends", async () => {
@@ -1050,7 +1069,7 @@ test("review focus 2: a queued turn starts on a reopened process when the proces
   const chat = await sessions.send(repo, session.id, { text: "What is left?" });
   const workflow = await sessions.send(repo, session.id, {
     text: "Continue the feature.",
-    workflow: { trigger: "manual" },
+    workflow: { fresh: false, trigger: "manual" },
   });
   adapter.script([]);
 

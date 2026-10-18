@@ -231,7 +231,7 @@ test("a fresh turn taken back while its process opens leaves its line to the nex
   });
   const { turn: next } = await sessions.send(repo, session.id, {
     text: "Go on.",
-    workflow: { trigger: "manual" },
+    workflow: { fresh: false, trigger: "manual" },
   });
   adapter.emit({ id: adapter.sent[0]!.id, type: "accepted" });
   adapter.emit(TOTAL(2, 7791, 11_304, 4));

@@ -342,7 +342,8 @@ const repositoryMutations = {
                 workflow: {
                   trigger: workflow.trigger,
                   ...(workflow.file === undefined ? {} : { file: workflow.file }),
-                  ...(workflow.fresh === true ? { fresh: true } : {}),
+                  ...(workflow.fresh === undefined ? {} : { fresh: workflow.fresh }),
+                  freshByDefault: ctx.settings.runs().buildInFreshSession.inForce,
                   ...(workflow.step === undefined ? {} : { step: workflow.step }),
                 },
               }),

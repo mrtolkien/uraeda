@@ -37,6 +37,9 @@ const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
 
 const now = () => new Date().toISOString();
 
+/** The steps whose run starts a fresh agent session by default: the first after a spec's approval. */
+const FRESH_STEPS = new Set(["approval", "plan"]);
+
 /**
  * Sessions of turns with agents: at most one process and one turn per session, a feature's session
  * in its worktree, a chat in the main checkout. Turns and their items go to the cache, and every
@@ -235,7 +238,11 @@ export class Sessions {
     }
 
     const kind: TurnKind = workflow ? "workflow" : "chat";
-    const fresh = workflow?.fresh === true;
+    // The run after a spec's approval follows the setting unless the message says (the agents
+    // decision): a composer may send it before it read the setting.
+    const fresh =
+      workflow?.fresh ??
+      (step !== null && FRESH_STEPS.has(step) && (workflow?.freshByDefault ?? true));
     const opening = workflow ? undefined : await openingOf(this.#context, live, branch);
     const item: Message = {
       ...messageItem(id, origin, text),

@@ -12,11 +12,19 @@ export type SentImage = ChatImage & { path: string };
 /**
  * A message to send: its text, its chat images, and for the workflow's, what started it, whether
  * its run starts a new agent session, `fresh`, and the step its message was read at, `step`.
+ * Without `fresh`, the run after a spec's approval starts one as the `build_in_fresh_session`
+ * setting says, `freshByDefault`, on by default.
  */
 export type SendInput = {
   images?: Array<SentImage>;
   text: string;
-  workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
+  workflow?: {
+    file?: string;
+    fresh?: boolean;
+    freshByDefault?: boolean;
+    step?: string;
+    trigger: Trigger;
+  };
 };
 
 /**
