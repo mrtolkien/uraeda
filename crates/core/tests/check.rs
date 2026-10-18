@@ -150,6 +150,41 @@ fn a_spec_with_details_or_mockups_has_an_unknown_section() {
     }
 }
 
+/// A `####` heading in a round's Context or settled section is dropped from its page, so it is an
+/// unknown section; one in a quote is the quote's.
+#[test]
+fn a_deeper_heading_in_a_round_is_an_unknown_section() {
+    let rows = [
+        ("Goal", "#### Detail\n\nA detail.\n\n", true),
+        ("Goal", "> #### Quoted\n\n", false),
+    ];
+    for (after, heading, reported) in rows {
+        let example = Example::new();
+        example.edit(
+            ROUND,
+            &format!("### {after}\n\n"),
+            &format!("### {after}\n\n{heading}"),
+        );
+
+        let unknown: Vec<String> = example
+            .problems()
+            .into_iter()
+            .filter(|p| p.rule == "sections.unknown")
+            .map(|p| p.message)
+            .collect();
+
+        assert_eq!(
+            unknown,
+            if reported {
+                vec!["unknown section \"#### Detail\"".to_string()]
+            } else {
+                vec![]
+            },
+            "{heading}"
+        );
+    }
+}
+
 /// US6 4: a decision's change is made in place, so a `## Proposed change` section is unknown.
 #[test]
 fn a_proposed_change_section_is_unknown_in_a_decision() {
