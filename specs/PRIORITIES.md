@@ -7,8 +7,8 @@
 > Features for v1.0.0
 
 - [Redesign feature and change pages](/specs/2026-10-18-redesign-feature/proposal.md)
+- [Start a draft folder from its proposal](/specs/changes/2026-10-18-start-draft-folder/proposal.md)
 
-- [Start a draft folder from its proposal](drafts/start-a-draft-folder-from-its-proposal.md)
 - [Worktree toolchain fixes](drafts/worktree-toolchain-fixes.md)
 - [Storybook preview fixes](drafts/storybook-preview-fixes.md)
 - [Priorities and decisions pages fixes](drafts/priorities-and-decisions-pages-fixes.md)
