@@ -37,8 +37,10 @@ import {
   GROUPS,
   groupId,
   type PartProps,
+  otherParts,
   partOf,
   type SpecItems,
+  storiesIntro,
 } from "./parts.ts";
 import { answeredComments, ReviewAnswers } from "./ReviewAnswers.tsx";
 import { entriesOf, SpecContents, useContentsShown } from "./SpecContents.tsx";
@@ -77,6 +79,11 @@ const STATUSES: Record<string, { label: string; variant: "neutral" | "success" |
   "awaiting-human": { label: "Waiting for your review", variant: "warning" },
 };
 
+/** On the phone, a band between the spec's groups, to the screen's edges. */
+function Band() {
+  return <div {...stylex.props(styles.band)} />;
+}
+
 /** A group of the spec's parts: on the phone, after a band; its title, then its parts. */
 function Group({
   children,
@@ -91,7 +98,7 @@ function Group({
 }) {
   return (
     <VStack gap={wide ? 4 : 3}>
-      {!wide && <div {...stylex.props(styles.band)} />}
+      {!wide && <Band />}
       <div id={id} {...stylex.props(wide ? styles.group : styles.groupPhone)}>
         <Heading id={`${id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
           {title}
@@ -143,10 +150,8 @@ function Groups({
 }) {
   const decisions = partOf(items, "Decisions");
   const hasBuilt = BUILT_PARTS.some((title) => partOf(items, title));
-  // The blocks of the stories' section outside any story, like a paragraph before the first.
   const stories = partOf(items, "User stories");
-  const inStories = new Set(items.stories.flatMap((s) => [s.headingBlock, ...s.blocks]));
-  const storiesIntro = stories?.blocks.filter((id) => !inStories.has(id)) ?? [];
+  const intro = storiesIntro(items);
   return (
     <>
       {(decisions || changes.length > 0) && (
@@ -160,8 +165,8 @@ function Groups({
       )}
       {stories && (
         <Group id={groupId(items, GROUPS.stories)} title={GROUPS.stories.title} wide={part.wide}>
-          {storiesIntro.length > 0 && (
-            <Blocks document={part.document} ids={storiesIntro} selection={part.selection} />
+          {intro.length > 0 && (
+            <Blocks document={part.document} ids={intro} selection={part.selection} />
           )}
           {items.stories.map((story) => (
             <StoryCard {...part} key={story.id} story={story} />
@@ -178,6 +183,11 @@ function Groups({
           <BuiltParts {...part} items={items} />
         </Group>
       )}
+      {otherParts(items).map((other) => (
+        <Group id={other.anchor} key={other.heading} title={other.title} wide={part.wide}>
+          <Blocks document={part.document} ids={other.blocks} selection={part.selection} />
+        </Group>
+      ))}
     </>
   );
 }
@@ -238,13 +248,16 @@ function SpecLayout({
           </VStack>
           <SpecOpening document={document} items={items} selection={part.selection} />
           {items.answers.length > 0 && (
-            <ReviewAnswers
-              comments={answeredComments(file)}
-              document={document}
-              items={items}
-              selection={part.selection}
-              wide={wide}
-            />
+            <>
+              {!wide && <Band />}
+              <ReviewAnswers
+                comments={answeredComments(file)}
+                document={document}
+                items={items}
+                selection={part.selection}
+                wide={wide}
+              />
+            </>
           )}
           <Groups changes={changes} data={data} items={items} part={part} />
           <SpecHistory document={document} items={items} />
