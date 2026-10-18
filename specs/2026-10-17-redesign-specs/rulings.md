@@ -813,3 +813,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `useOpenKeys.ts`.
 - **Where**: review fixes, `spec/DecisionCard.tsx`, `useOpenKeys.ts`,
   `__tests__/spec-decisions.test.tsx`
+
+## R87: What the built parts do not classify is drawn in place, as the spec's blocks
+
+- **Decision**: in the architecture's units list, an item without a bold name is drawn where it
+  stands, as the spec's other items are, tappable, and the units around it form a row of cards each,
+  so the file's order holds. In the criteria's list, an item without an `SC-` id is a row of its
+  own, drawn the same way. A unit, a tradeoff, and a criterion draw their nested blocks under their
+  text, as a story's scenario does. A unit's name is the run of bold spans it starts with, drawn
+  with its marks, so `**The \`ura\` CLI**` reads whole.
+- **Rationale**: the constitution's page shows what the file says; the core classifies items, it
+  does not decide what the human reads.
+- **Alternatives considered**: one row of every unit, then the other items after it: the page would
+  reorder the file's items, and a comment's line would land away from its neighbours.
+- **If wrong**: `runsOf`, `Leftover`, `Nested`, and `Unit` in
+  `packages/web/src/spec/BuiltParts.tsx`.
+- **Where**: review fixes, `spec/BuiltParts.tsx`, `__tests__/spec-parts.test.tsx`
