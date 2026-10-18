@@ -784,8 +784,8 @@ git commit -m "feat(redesign-feature): a feature's stages, read from its typed c
   - `SessionCache.addTurnTokens(id: number, counts: TokenCounts): void`, adding to the turn's
     counts, a null count read as 0.
   - `SessionCache.agentSessionTokens(sessionId: string): TokenCounts`: the sum of the counts of the
-    session's turns since its latest turn holding a `system` item `FRESH` or `REPLACED`, that turn
-    included, or of all its turns without one; a null count read as 0.
+    session's turns since its latest turn holding a `system` item `FRESH`, `REPLACED`, or `CLEARED`,
+    that turn included, or of all its turns without one; a null count read as 0.
 
 - [x] **Step 1: Split `cache.ts` before it changes**
 
@@ -895,8 +895,11 @@ Migration 5 adds `input_tokens`, `cache_write_tokens`, `cache_read_tokens`, and 
 
 `processes.open` keeps the process's baseline: zero when it starts a new agent session (`resume` is
 false), otherwise `cache.agentSessionTokens(live.id)`. On a `tokens` event, the turn running in the
-process gets `total − baseline`, field by field, never below zero, added with `addTurnTokens`, and
-the baseline becomes `total`.
+process gets `total − baseline`, field by field, added with `addTurnTokens`, and the baseline
+becomes `total`. A total lower than the baseline in any field is a new agent session's, `/clear`:
+the turn gets the whole total (R40). An `init` with a new session ID adds the line `CLEARED` to its
+turn, and a fresh turn taken back while its process opened leaves its line to the next turn on that
+process, so a resumed process's baseline starts at the new agent session.
 
 - [x] **Step 5: Run the project's validation**
 
