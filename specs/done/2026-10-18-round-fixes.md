@@ -47,6 +47,11 @@ the core's letters rule, [readLetters.ts](/packages/web/src/readLetters.ts), sho
 `--size-round-accent` token. The six inline test rounds follow the current template, with new
 browser tests for the cards in `round-cards.test.tsx`.
 
+## Changes after approval
+
+- A chat's title in the sidebar wraps instead of being cut by an ellipsis, which fixes the sidebar
+  browser test that failed on the default branch ([Row.tsx](/packages/web/src/sidebar/Row.tsx)).
+
 ## Follow-ups
 
 - `ura check` misses a `####` heading in the triage's Context, and parses a triage that is not
