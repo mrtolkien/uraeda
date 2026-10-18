@@ -3,9 +3,20 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import { addPlan } from "uraeda-binding/test-utils";
+import { addPlan, temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
-import { atRepo, click, fixtureRepo, git, quiet, renderPage, today, type } from "./helpers.tsx";
+import {
+  atRepo,
+  click,
+  type Fake,
+  fakeAgent,
+  fixtureRepo,
+  git,
+  quiet,
+  renderPage,
+  today,
+  type,
+} from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 const WEB_UI = "2026-10-11-web-ui";
@@ -125,4 +136,61 @@ test("Commit and start the agent still fills the step's message", async () => {
   // The hand-over's message holds the composer: no other message is offered beside it.
   expect(screen.queryByRole("button", { name: /^Insert: / })).toBeNull();
   expect(agent.sent).toHaveLength(0);
+});
+
+/**
+ * Opens the CLI's session, whose plan follows its spec's approval, with a chat turn ended on its
+ * open process, then inserts the plan's message.
+ */
+async function insertAfterChat(fake: Fake, settings?: { dir: string }) {
+  fake.adapter.script([]);
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), {
+    agent: fake,
+    ...(settings ? { settings } : {}),
+  });
+  await type(await composer(), "What is left?");
+  await click(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() =>
+    expect(
+      within(screen.getByRole("log", { name: "Conversation" })).getByText("What is left?"),
+    ).toBeTruthy(),
+  );
+  await click(await insertPlan());
+  await waitFor(async () => expect((await composer()).textContent).toBe(PLAN));
+}
+
+/** Presses Start the agent, and waits for the inserted message to reach the agent. */
+async function start(fake: Fake) {
+  fake.adapter.script([]);
+  await click(screen.getByRole("button", { name: "Start the agent" }));
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(2));
+}
+
+const freshSwitch = () =>
+  screen.findByRole<HTMLInputElement>("switch", { name: "Build in a fresh session" });
+
+/** The agents decision: the run after a spec's approval starts a fresh agent session. */
+test("the message inserted after a spec's approval builds in a fresh session by default", async () => {
+  const fake = await fakeAgent();
+  await insertAfterChat(fake);
+  await waitFor(async () => expect((await freshSwitch()).checked).toBe(true));
+
+  await start(fake);
+
+  // The chat's process is closed, and the run opens a new agent session.
+  expect(fake.adapter.opens).toHaveLength(2);
+  expect(fake.adapter.opens[1]?.resume).toBe(false);
+  expect(fake.adapter.opens[1]?.nativeId).not.toBe(fake.adapter.opens[0]?.nativeId);
+});
+
+test("the inserted message's switch starts from the setting: off, the run continues the session", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  writeFileSync(join(dir, "config.toml"), "[runs]\nbuild_in_fresh_session = false\n");
+  const fake = await fakeAgent();
+  await insertAfterChat(fake, { dir });
+  await waitFor(async () => expect((await freshSwitch()).checked).toBe(false));
+
+  await start(fake);
+
+  expect(fake.adapter.opens).toHaveLength(1);
 });
