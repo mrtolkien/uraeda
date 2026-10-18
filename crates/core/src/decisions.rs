@@ -3,6 +3,7 @@
 
 mod branch;
 mod change;
+mod parts;
 mod strength;
 
 pub use branch::{BranchSides, branch_changes, branch_decision};
