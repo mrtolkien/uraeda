@@ -736,6 +736,66 @@ fn a_comment_on_a_decision_changed_since_the_pending_review_is_refused() {
     assert_eq!(read(&place, REVIEW), before);
 }
 
+/// A verdict applies the comments' lines: those on a decision are as the decision was at the
+/// review's commit.
+#[test]
+fn a_verdict_on_a_review_of_a_decision_changed_since_is_refused() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((12, 13)),
+        "Log it",
+        on_decision(false),
+    )
+    .unwrap();
+    commit_at(
+        &place,
+        DECISION,
+        &DECISION_ON_BRANCH.replace("Because.", "Because, still."),
+    );
+    let before = read(&place, REVIEW);
+
+    let approved = review::approve(&place, &feature, "spec.md", None, &Tier::default(), today());
+    let requested = review::request_changes(&place, &feature, "spec.md", None, today());
+
+    assert!(matches!(approved, Err(ActionError::Refused(_))));
+    assert!(matches!(requested, Err(ActionError::Refused(_))));
+    assert_eq!(read(&place, REVIEW), before);
+}
+
+/// A removed part's lines are the merge base's, at any commit: a decision edited since leaves
+/// the review current.
+#[test]
+fn a_verdict_on_a_review_of_a_removed_part_stands_when_the_decision_changed_since() {
+    let repo = decision_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((12, 12)),
+        "Keep it",
+        on_decision(true),
+    )
+    .unwrap();
+    commit_at(
+        &place,
+        DECISION,
+        &DECISION_ON_BRANCH.replace("Because.", "Because, still."),
+    );
+
+    let requested = review::request_changes(&place, &feature, "spec.md", None, today());
+
+    assert!(requested.is_ok(), "{:?}", requested.err());
+}
+
 /// US6.1
 #[test]
 fn approving_with_a_higher_tier_leaves_the_plan_review_off() {

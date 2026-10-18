@@ -273,6 +273,14 @@ fn plain(path: &str) -> bool {
 }
 
 /// The feature or change whose folder holds `path`.
+/// Whether the decisions a file's pending review comments on are as at its commit.
+fn decisions_current(git: &Git, feature: &Feature, name: &str, tip: crate::git::ObjectId) -> bool {
+    feature
+        .text(&review::review_name(name))
+        .and_then(|text| crate::files::review::parse(text).ok())
+        .is_none_or(|parsed| review::comments_current(git, &parsed, tip))
+}
+
 fn feature_of<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a Feature> {
     workspace
         .features
@@ -316,7 +324,8 @@ fn file_view(
             let doc = document::parse(review_text, &feature.path);
             Some(items(&review_name, review_text, &doc))
         });
-    // A pending review is stale when the file at its commit differs from the file at the tip.
+    // A pending review is stale when the file at its commit differs from the file at the tip, or a
+    // decision it comments on does.
     let review_stale = review
         .as_ref()
         .and_then(|items| items.review.as_ref())
@@ -330,7 +339,7 @@ fn file_view(
             };
             let reviewed = git.resolve(&review.commit).and_then(at);
             let latest = tip.and_then(at);
-            reviewed != latest
+            reviewed != latest || tip.is_some_and(|tip| !decisions_current(git, feature, name, tip))
         });
     let status = feature
         .files

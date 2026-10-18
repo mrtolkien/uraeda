@@ -99,3 +99,25 @@ pub(super) fn unchanged_since(
         target.name
     )))
 }
+
+/// Whether the decisions a review comments on are as they were at its commit, a removed part's
+/// excepted.
+pub(crate) fn comments_current(git: &Git, review: &Review, tip: ObjectId) -> bool {
+    review
+        .comments
+        .iter()
+        .filter_map(|comment| match &comment.anchor {
+            Anchor::Decision {
+                name,
+                removed: false,
+                ..
+            } => Some(name),
+            _ => None,
+        })
+        .all(|name| {
+            let path = path(name);
+            git.resolve(&review.commit).is_some_and(|old| {
+                git.read_file(old, &path).ok().flatten() == git.read_file(tip, &path).ok().flatten()
+            })
+        })
+}
