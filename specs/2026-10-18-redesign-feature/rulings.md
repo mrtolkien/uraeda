@@ -196,3 +196,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   again.
 - **If wrong**: `processes.ts`'s `tokens`, and the `init` case of `transcript.ts`.
 - **Where**: task 4, after its review
+
+## R50: A workflow message sent as a chat opens the chat
+
+- **Decision**: a workflow message that no longer applies, sent as a chat, gets the chat opening as
+  any chat does: when it is the session's first turn, or follows a workflow run.
+- **Rationale**: without it, the next chat saw a chat turn last and got no opening either, so after
+  a run the agent was never told a human is chatting, against the agents decision: a chat after a
+  run opens by saying a human is chatting, so the agent acts only when asked.
+- **Alternatives considered**: the plan's message sent as written, with the opening left to the next
+  chat, which would treat a chat turn as a run in `#opens`.
+- **If wrong**: one condition of `#send` in `runner/sessions.ts`.
+- **Where**: task 5

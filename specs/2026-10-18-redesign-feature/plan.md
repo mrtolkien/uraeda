@@ -1072,9 +1072,9 @@ trigger family: `comments` for `comments`, otherwise a step message whose `step`
 `workflow.step` when given, the existing check of a step waiting on the agent kept for the
 hand-overs. One that does not apply runs as a chat turn, with `SENT_AS_CHAT` ("Sent as a chat: the
 feature now waits on you.") or, for `comments`, `SENT_AS_CHAT_NO_PULL_REQUEST` ("Sent as a chat: no
-pull request is open.") appended as a `system` item after its message; the chat opening is not added
-to it, and it is never steered into a running turn. `readWorkflowMessage` keeps its refusal text for
-a hand-over read: task 7 turns it into a notice.
+pull request is open.") appended as a `system` item after its message; it gets the chat opening as
+any chat does, first or after a run (R50), and it is never steered into a running turn.
+`readWorkflowMessage` keeps its refusal text for a hand-over read: task 7 turns it into a notice.
 
 - [x] **Step 4: Run the project's validation**
 
