@@ -67,14 +67,22 @@ pub struct LinesView {
     pub files: u32,
 }
 
+/// The type and the scope of a typed commit subject, `<type>(<scope>): …` or `<type>(<scope>)!: …`,
+/// whatever feature the scope names: the one home of the subject's grammar.
+pub(crate) fn typed_scope(subject: &str) -> Option<(&str, &str)> {
+    let (kind, rest) = subject.split_once('(')?;
+    let (scope, rest) = rest.split_once(')')?;
+    let rest = rest.strip_prefix('!').unwrap_or(rest);
+    let typed = !kind.is_empty() && kind.bytes().all(|byte| byte.is_ascii_alphanumeric());
+    (typed && rest.starts_with(':')).then_some((kind, scope))
+}
+
 /// The type of a commit subject scoped by `slug`, `<type>(<slug>): …` or `<type>(<slug>)!: …`:
 /// the scope matched whole, so `(slug-two)` is another slug's.
 pub fn scope_type<'s>(subject: &'s str, slug: &str) -> Option<&'s str> {
-    let (kind, rest) = subject.split_once('(')?;
-    let rest = rest.strip_prefix(slug)?.strip_prefix(')')?;
-    let rest = rest.strip_prefix('!').unwrap_or(rest);
-    let typed = !kind.is_empty() && kind.bytes().all(|byte| byte.is_ascii_alphanumeric());
-    (typed && rest.starts_with(':')).then_some(kind)
+    typed_scope(subject)
+        .filter(|(_, scope)| *scope == slug)
+        .map(|(kind, _)| kind)
 }
 
 /// The history of `feature`, a done one read from `default_branch`.
@@ -223,7 +231,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn typed_scope_reads_one_grammar() {
+        assert_eq!(typed_scope("feat(x): y"), Some(("feat", "x")));
+        assert_eq!(typed_scope("feat(x)!: y"), Some(("feat", "x")));
+        assert_eq!(typed_scope("feat(x-y): z"), Some(("feat", "x-y")));
+        assert_eq!(typed_scope("feat(x)!!: y"), None);
+        assert_eq!(typed_scope("feat(x) y"), None);
+        assert_eq!(typed_scope("(x): y"), None);
+        assert_eq!(typed_scope("Merge (x): y"), None);
+        assert_eq!(typed_scope("chore: start"), None);
+    }
+
+    #[test]
     fn scope_type_matches_the_whole_scope() {
+        assert_eq!(scope_type("feat(x-y): z", "x"), None);
+        assert_eq!(scope_type("feat(x)!!: y", "x"), None);
         assert_eq!(scope_type("spec(tasks): approve", "tasks"), Some("spec"));
         assert_eq!(scope_type("feat(tasks)!: break", "tasks"), Some("feat"));
         assert_eq!(scope_type("spec(tasks-two): approve", "tasks"), None);
