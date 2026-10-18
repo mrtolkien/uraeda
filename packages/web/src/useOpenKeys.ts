@@ -11,7 +11,8 @@ export type OpenKeys = {
 
 /**
  * The items opened in a view, like a transcript's groups of tool calls or a spec's folds, kept in
- * the history entry for Back and reloads.
+ * the history entry for Back and reloads. Several views of a page may each keep theirs, by keys of
+ * their own: each change starts from the entry's keys, so it keeps the others'.
  */
 export function useOpenKeys(): OpenKeys {
   const [open, setOpen] = useState<ReadonlyArray<string>>(() => currentEntry().open ?? []);
@@ -20,9 +21,11 @@ export function useOpenKeys(): OpenKeys {
   const [id] = useState(() => currentEntry().id);
   return {
     onOpenChange: (key, isOpen) => {
-      const next = isOpen ? [...open.filter((k) => k !== key), key] : open.filter((k) => k !== key);
+      const ours = currentEntry().id === id;
+      const from = (ours ? currentEntry().open : open) ?? [];
+      const next = isOpen ? [...from.filter((k) => k !== key), key] : from.filter((k) => k !== key);
       setOpen(next);
-      if (currentEntry().id === id) {
+      if (ours) {
         updateEntry({ open: next });
       }
     },

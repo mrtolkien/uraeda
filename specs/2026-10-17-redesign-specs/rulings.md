@@ -795,3 +795,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `from` in `Spans.tsx`, and the redirect in `decisions/BranchDecision.tsx`.
 - **Where**: task 13, `Spans.tsx`, `links.tsx`, `routes.tsx`, `decisions/BranchDecision.tsx`,
   `__tests__/decisions.test.tsx`
+
+## R86: A decision card's folds are kept in the history entry, beside the spec's
+
+- **Decision**: each fold of a decision card, "N unchanged" or "N removed", keeps its open state in
+  the history entry through `useOpenKeys`, keyed `decision:<name>:<section's heading>:<kind>`, the
+  kind `removed` or `kept-<n>` for the n-th row of its section. It still opens while it holds a
+  pending comment or the selection, without writing that to the entry. `useOpenKeys` now starts each
+  change from the entry's keys, not from its own copy, so the folds of every card and the spec's own
+  folds, each with a hook of its own, keep each other's keys.
+- **Rationale**: the ui-behaviour decision says Back restores the items opened; the spec's other
+  folds already did. A hook per fold needs no prop through the spec's parts down to the cards.
+- **Alternatives considered**: passing the spec's `useSpecFolds` keys down to each card: a prop
+  through `SpecPage`, `DecisionCards`, `DecisionCard`, and `Section`, and a second source on the
+  branch decision's page.
+- **If wrong**: `Fold` and `foldKeyOf` in `spec/DecisionCard.tsx`, `onOpenChange` in
+  `useOpenKeys.ts`.
+- **Where**: review fixes, `spec/DecisionCard.tsx`, `useOpenKeys.ts`,
+  `__tests__/spec-decisions.test.tsx`

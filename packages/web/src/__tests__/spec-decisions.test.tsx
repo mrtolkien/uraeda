@@ -8,6 +8,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { placeOf } from "../reviewField.ts";
+import { navigate } from "../routes.tsx";
 import { atRepo, atWidth, fixture, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
@@ -317,4 +318,23 @@ test("a decision's part selected opens no fold of the spec on the same lines", a
     .find((button) => button.hasAttribute("aria-expanded"));
   expect(fold?.getAttribute("aria-expanded")).toBe("false");
   expect(texts(pressedInSpec())).toEqual([]);
+});
+
+/** The ui-behaviour decision: Back restores the items opened, a card's folds as the stories'. */
+test("a decision's folds opened are open again on Back, with the stories' folds", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+  await click(within(await card("Task storage")).getByRole("button", { name: "1 removed" }));
+  const story = await screen.findByRole("region", { name: "Complete a repeating task" });
+  await click(within(story).getByRole("button", { name: "3 more scenarios" }));
+
+  await act(async () => navigate(atRepo(`/f/${SPEC_FEATURE}/proposal.md`)));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Task storage" })).toBeNull());
+  await act(async () => window.history.back());
+
+  const fold = within(await card("Task storage")).getByRole("button", { name: "1 removed" });
+  expect(fold.getAttribute("aria-expanded")).toBe("true");
+  const again = await screen.findByRole("region", { name: "Complete a repeating task" });
+  expect(within(again).getByRole("button", { name: "Fold the other scenarios" })).toBeTruthy();
 });
