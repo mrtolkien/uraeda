@@ -185,3 +185,7 @@
   changed or not, and the SC-003 bench has only 5 decisions; an unlisted change to only the title or
   another frontmatter field shows no card; "Checked by" is split in the web (R80); decision changes
   are not sent live.
+- [agent] [redesign-specs] Decision comments: the anchor parser accepts names the writer refuses
+  (a/b, ../x); the BadAnchor message names neither "line N" nor " removed"; approve and
+  request_changes check freshness on the spec only; R50's removed-part short-circuit is untested;
+  R85's redirect drops the anchor; actions/review.rs is at 489 lines.
