@@ -549,3 +549,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: R10's line, which the final review found wrong at that step.
 - **If wrong**: `UNKNOWN_PULL_REQUEST` in `runner/message.ts`.
 - **Where**: final review
+
+## R120: A decision a feature renamed or moved is deferred, not fixed
+
+- **Decision**: a done feature's decisions are read from the paths its diffs end at; a decision it
+  renamed shows under its new name only, and one it moved out of `specs/decisions/` does not show.
+  This is left for later, as a note in the inbox's **Deferred fixes**.
+- **Rationale**: found in the final review: `numstat -M` keeps only a rename's destination. No
+  feature of this repository has renamed or moved a decision; the workflow deletes a removed
+  decision's file, which shows as removed.
+- **Alternatives considered**: reading both trees' decision folders, a second listing per read, for
+  a case not met yet.
+- **If wrong**: a renamed decision reads as new on a done feature's page; `history/figures.rs`.
+- **Where**: the final review
