@@ -56,3 +56,5 @@
   it is 659 now: lower the budget so it cannot grow back
 - [agent] [redesign-feature] Runner: a workflow message queued on a feature merged before it starts
   fails with "This feature has no branch left"
+- [agent] [redesign-feature] Runner: the steps whose run starts a fresh agent session are listed
+  twice, in HandOver.tsx and runner/sessions.ts
