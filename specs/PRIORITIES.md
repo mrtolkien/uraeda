@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Redesign feature and change pages](/specs/2026-10-18-redesign-feature/proposal.md)
 - [Worktree toolchain fixes](/specs/changes/2026-10-18-worktree-toolchain/proposal.md)
 - [Spec page fixes](/specs/changes/2026-10-18-spec-page-fixes/proposal.md)
 - [Diagram frames](/specs/changes/2026-10-18-diagram-frames/proposal.md)
