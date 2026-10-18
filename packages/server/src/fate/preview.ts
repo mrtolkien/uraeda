@@ -158,6 +158,7 @@ async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | nu
   if (checkout === null || name === undefined) {
     return null;
   }
+  const read = ctx.previews.read();
   const [found, commit] = await Promise.all([
     ctx.binding.preview(checkout.dir).catch(() => null),
     ctx.binding.checkoutCommit(checkout.dir).catch(() => null),
@@ -173,6 +174,7 @@ async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | nu
     commit: commit ?? undefined,
     dir: checkout.dir,
     folder: found.folder,
+    read,
   };
 }
 

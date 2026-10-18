@@ -29,7 +29,8 @@ export type PreviewState =
 /**
  * A checkout to run a Storybook in: its folder, `dir`, its preview decision's `preview-folder` and
  * `preview-command`, the path it is served under, `/r/<name>/preview/<secret>/<folder>/`, and the
- * commit it has checked out, when it was read.
+ * commit it has checked out, when it was read, with the `read` stamp `Previews.read` gave before
+ * the read began. Without a stamp, the commit counts as read now.
  */
 export type Checkout = {
   base: string;
@@ -37,6 +38,7 @@ export type Checkout = {
   commit?: string;
   dir: string;
   folder: string;
+  read?: number;
 };
 
 /** How often a starting Storybook's index is read. */
@@ -71,6 +73,8 @@ type Entry = {
   reading?: AbortController;
   retried: boolean;
   run?: Run;
+  /** The `read` stamp it started at: only a commit read after it can move it. */
+  stamp: number;
   /** When the first process started: the 2 minutes count from it, across the port's retry. */
   started: number;
   state: PreviewState;
@@ -78,9 +82,17 @@ type Entry = {
   timer?: NodeJS.Timeout;
 };
 
-/** Whether the checkout's commit moved since `started` was read: unknown commits never moved. */
-function moved(started: Checkout, now: Checkout): boolean {
-  return started.commit !== undefined && now.commit !== undefined && started.commit !== now.commit;
+/**
+ * Whether the entry's Storybook is at another commit than `now`'s: one whose first commit read
+ * failed is at an unknown commit, which any known one is another than. A commit read before the
+ * Storybook started cannot say it moved: it may be the older of two views racing a move.
+ */
+function moved(entry: Entry, now: Checkout): boolean {
+  return (
+    now.commit !== undefined &&
+    now.commit !== entry.checkout.commit &&
+    (now.read === undefined || now.read > entry.stamp)
+  );
 }
 
 /** Whether `path` is a folder. */
@@ -100,6 +112,7 @@ export class Previews {
   readonly #onChange: (base: string) => void;
   readonly #indexMs: number;
   readonly #record: GroupRecorder | undefined;
+  #reads = 0;
   /** Set by `stopAll`: the server stops, and nothing starts again. */
   #closed = false;
 
@@ -137,11 +150,19 @@ export class Previews {
     const entry =
       current === undefined
         ? this.#start(checkout)
-        : moved(current.checkout, checkout)
+        : moved(current, checkout)
           ? this.#replace(current, checkout)
           : current;
     entry.lastView = this.#now();
     return entry.state;
+  }
+
+  /**
+   * A stamp for a commit read, taken before the read begins: the Storybooks started since have a
+   * greater one, and a commit read earlier does not move them.
+   */
+  read(): number {
+    return ++this.#reads;
   }
 
   /** The state of the Storybook under `base`, undefined when none was started or it stopped. */
@@ -235,6 +256,7 @@ export class Previews {
       checkout,
       lastView: now,
       retried: false,
+      stamp: this.#reads,
       started: now,
       state: { state: "starting" },
       stopped: false,
