@@ -107,12 +107,12 @@ local function open(path)
   eq(helpers.wait_client(child), true)
 end
 
---- Comments on lines 50 to 52 of the open spec, through the server's command.
+--- Comments on lines 72 to 74 of the open spec, through the server's command.
 local function comment_c1()
   child.lua([[
     local done = false
     require("uraeda.client").command(0, "uraeda.comment",
-      { line = 50, endLine = 52, text = "Rename this field" }, nil, function() done = true end)
+      { line = 72, endLine = 74, text = "Rename this field" }, nil, function() done = true end)
     vim.wait(5000, function() return done end, 20)
   ]])
 end

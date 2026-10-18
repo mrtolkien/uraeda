@@ -64,13 +64,13 @@ local function open(path)
   eq(helpers.wait_client(child), true)
 end
 
---- Comments on lines 50 to 52 of the open spec with `Rename this field`, through the server's
+--- Comments on lines 72 to 74 of the open spec with `Rename this field`, through the server's
 --- command, as US4.1 does.
 local function comment_c1()
   child.lua([[
     local done = false
     require("uraeda.client").command(0, "uraeda.comment",
-      { line = 50, endLine = 52, text = "Rename this field" }, nil, function() done = true end)
+      { line = 72, endLine = 74, text = "Rename this field" }, nil, function() done = true end)
     vim.wait(5000, function() return done end, 20)
   ]])
 end
@@ -118,14 +118,14 @@ end
 T["a selection gets a comment"] = function() -- US4.1
   local repo, spec = waiting_spec()
   open(spec)
-  child.api.nvim_win_set_cursor(0, { 52, 0 })
+  child.api.nvim_win_set_cursor(0, { 74, 0 })
 
   child.type_keys("V2j", "\\am")
 
   eq(wait_window(), true)
   eq(window(), {
     relative = "win",
-    title = " Comment · lines 52–54 ",
+    title = " Comment · lines 74–76 ",
     footer = " :w save · q cancel ",
     lines = { "" },
   })
@@ -135,7 +135,7 @@ T["a selection gets a comment"] = function() -- US4.1
   local review = read(repo .. "/" .. feature .. "spec-review.md")
   eq(review:find("verdict: pending", 1, true) ~= nil, true)
   eq(
-    review:find('## C1: Lines 52–54, under "US2: Complete a repeating task (P1)"', 1, true) ~= nil,
+    review:find('## C1: Lines 74–76, under "US2: Complete a repeating task (P1)"', 1, true) ~= nil,
     true
   )
   eq(review:find("> Completing a repeating task moves it", 1, true) ~= nil, true)
@@ -155,12 +155,12 @@ T["a commented line opens its comment"] = function() -- US4.2
   local repo, spec = waiting_spec()
   open(spec)
   comment_c1()
-  child.api.nvim_win_set_cursor(0, { 51, 0 })
+  child.api.nvim_win_set_cursor(0, { 73, 0 })
 
   child.cmd("Uraeda comment")
 
   eq(wait_window(), true)
-  eq(window().title, " Comment · lines 50–52 ")
+  eq(window().title, " Comment · lines 72–74 ")
   eq(window().lines, { "Rename this field" })
   child.lua("vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'Rename it to tier' })")
   child.type_keys("<C-s>")
@@ -176,7 +176,7 @@ T["an emptied comment is removed"] = function() -- US4.3
   open(spec)
   comment_c1()
 
-  child.cmd("51Uraeda comment")
+  child.cmd("73Uraeda comment")
 
   eq(wait_window(), true)
   child.type_keys("dd", ":w<CR>")
@@ -188,7 +188,7 @@ T["an uncommitted spec refuses"] = function() -- US4.4
   local repo, spec = waiting_spec()
   open(spec)
   child.lua("vim.api.nvim_buf_set_lines(0, -1, -1, false, { 'An unsaved line.' })")
-  child.api.nvim_win_set_cursor(0, { 50, 0 })
+  child.api.nvim_win_set_cursor(0, { 72, 0 })
 
   child.type_keys("\\am")
 
@@ -216,7 +216,7 @@ end
 T["a refused text keeps the window"] = function() -- review focus 3
   local repo, spec = waiting_spec()
   open(spec)
-  child.api.nvim_win_set_cursor(0, { 50, 0 })
+  child.api.nvim_win_set_cursor(0, { 72, 0 })
 
   child.cmd("Uraeda comment")
 
@@ -245,7 +245,7 @@ T["the window looks right"] = function()
   child.o.number = true
   open(spec)
   comment_c1()
-  child.api.nvim_win_set_cursor(0, { 50, 0 })
+  child.api.nvim_win_set_cursor(0, { 72, 0 })
   child.cmd("normal! zt")
   child.cmd("echo ''")
 
