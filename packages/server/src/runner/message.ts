@@ -83,6 +83,13 @@ export function runMessage(input: {
   );
 }
 
+/** The reference the comments message starts from: the change's for a change. */
+export function commentsReference(feature: Subject): string {
+  return feature.kind === "change"
+    ? "skills/uraeda/references/change.md"
+    : "skills/uraeda/references/implementation.md";
+}
+
 /** The one workflow message that applies to a feature now, or why there is none. */
 export type Recommended =
   | { name: string; step: string; text: string; trigger: Trigger }
@@ -153,11 +160,7 @@ export function recommendedMessage({
   // Without `gh`, the pull request is its record's, read as open: its state is unknown (R10).
   const unknown = step.name === "pull-request-unknown" || step.pullRequest === "unknown";
   if (feature.pullRequest !== undefined && !unknown) {
-    return comments(
-      feature.kind === "change"
-        ? "skills/uraeda/references/change.md"
-        : "skills/uraeda/references/implementation.md",
-    );
+    return comments(commentsReference(feature));
   }
   return { reason: NOTHING_TO_RECOMMEND };
 }
