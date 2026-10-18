@@ -118,17 +118,6 @@ export const uraedaTheme = defineTheme({
         ":is(*) span:nth-child(2)": { flexShrink: "0 !important" },
       },
     },
-    // Astryx gap: a navigation row's label is cut with an ellipsis, with no prop to wrap it. The
-    // theme wraps it, so a feature's or a chat's title shows whole in the sidebar, its row growing
-    // past a control's height instead of overlapping the next.
-    "side-nav-item": {
-      base: {
-        ":is(*) span": { overflowWrap: "anywhere", whiteSpace: "normal" },
-        height: "auto",
-        minHeight: "var(--size-element-md)",
-        paddingBlock: "var(--spacing-1)",
-      },
-    },
   },
   extends: neutralTheme,
   // The neutral theme's icons, and the app's own (R6: the paperclip).
