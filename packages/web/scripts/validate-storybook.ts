@@ -277,8 +277,11 @@ async function checkInterface(browser: Browser, address: string, base: string) {
           () => true,
           () => false,
         );
-      if (!listed || (await reloaded())) {
-        fail("an added export shows in the sidebar, without a reload", listed);
+      if (!listed) {
+        fail("an added export shows in the sidebar", "it was never listed");
+      }
+      if (await reloaded()) {
+        fail("an added export shows in the sidebar without a reload", "the page was reloaded");
       }
       await page.locator(`#${ADDED_ID}`).click();
       if (!(await inCanvas(canvas, LABEL))) {
