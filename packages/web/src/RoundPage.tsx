@@ -101,7 +101,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         {...(agent?.available && !triage ? { onAsk: ask } : {})}
       />
       {/* On the phone, a band before the settled points, which a wide screen draws in a card. */}
-      {!wide && <Band />}
+      {!wide && round.settledGroups.length > 0 && <Band />}
       <SettledPoints file={file} readOnly={readOnly} />
       <RoundEnd
         blank={blank}
