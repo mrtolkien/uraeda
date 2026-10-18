@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Worktree toolchain fixes](/specs/changes/2026-10-18-worktree-toolchain/proposal.md)
 - [Redesign session](drafts/redesign-session.md)
 - [Review home](drafts/review-home.md)
 
