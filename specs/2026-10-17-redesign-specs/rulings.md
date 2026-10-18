@@ -457,8 +457,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R55: A spec approved before the branch has no approval commit on it
 
 - **Decision**: `Git::approval_commit` returns `None` when the spec at the merge base reads
-  `status: approved` already: the branch did not approve it, so `decision.unapproved` reports
-  nothing for it.
+  `status: approved` already, at the checkout spec's revision (R93): the branch did not approve it,
+  so `decision.unapproved` reports nothing for it.
 - **Rationale**: the data model's approval commit is "the branch's commit whose spec first reads
   `status: approved`". Taking the first commit of the branch that touches an already approved spec,
   like the example's spec rewritten by task 2, would date an approval the branch never made, and
@@ -916,3 +916,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ura check` warns `toolchain.md changed after the spec's approval`, as it does for
   `stack.md`; a later spec can reword the decision.
 - **Where**: the merge commit, `specs/decisions/toolchain.md`, `spec.md`, `plan.md`
+
+## R93: The approval commit is the first to approve the checkout spec's revision
+
+- **Decision**: `decision.unapproved` compares from the first first-parent commit whose spec reads
+  `status: approved` and the same `revision` as the checkout's spec. A new approved revision resets
+  the check. R55's merge-base test reads the revision too, edited in place.
+- **Rationale**: this branch's spec was approved at revision 2, then a merge of `main` changed
+  `stack.md` and `toolchain.md`, then revision 3 was approved with them. Counting from the first
+  approval warned on both forever, though the human approved them. `approval.md` now says so.
+- **Alternatives considered**: the last commit reading `status: approved`: a spec reworded after its
+  approval would move the approval forward and hide edits made between.
+- **If wrong**: `approved_at` in `crates/core/src/git/log.rs`, `approved_revision` in
+  `crates/core/src/check/unapproved.rs`.
+- **Where**: the final review's fixes, `crates/core/src/git/log.rs`,
+  `crates/core/src/check/unapproved.rs`, `skills/uraeda/references/approval.md`

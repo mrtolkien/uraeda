@@ -29,9 +29,10 @@ what they approved. A Removed item needs nothing: the spec step already deleted 
 branch.
 
 The approval commit, `spec(<slug>): approve`, is the branch's first commit whose spec reads
-`status: approved`. From there on, a decision edited again on the branch needs the human's approval
-again, and `ura check` warns `decision.unapproved` on it. This step's own two fields, `status` and
-`approved-by`, do not count as an edit.
+`status: approved` at the spec's current `revision`. From there on, a decision edited again on the
+branch needs the human's approval again, and `ura check` warns `decision.unapproved` on it. This
+step's own two fields, `status` and `approved-by`, do not count as an edit. A new revision the human
+approves resets the check: its approval commit is the new one.
 
 ## Record the review
 
