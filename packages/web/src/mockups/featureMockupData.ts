@@ -4,9 +4,9 @@
 /** A stage of the strip: its name, and the line under it once reached. */
 export type MockStage = { label: string; line?: string };
 
-/** What comes next, who acts, and the buttons that act on it. */
+/** What comes next, who acts, and the one button that acts on it. */
 export type MockNext = {
-  actions?: Array<{ label: string; variant: "primary" | "secondary" }>;
+  action?: string;
   line: string;
   title: string;
 };
@@ -15,15 +15,23 @@ export type MockNext = {
 export type MockAgent = {
   lastRun: string;
   progress?: { position: number; title: string; total: number };
-  status: "working" | "waiting" | "idle";
+  status: "working" | "idle";
   subagents?: number;
 };
 
-/** A figure of what the feature produced. */
-export type MockFigure = { caption: string; label: string; value: string };
+/** A figure's value: plain text, lines added and removed, or lines of their own. */
+export type MockValue = string | { added: string; removed: string } | { lines: Array<string> };
 
-/** A workflow file, with its status. */
-export type MockFile = { name: string; status: string };
+/** A figure of what the feature produced, and where tapping it leads, when it has a detail. */
+export type MockFigure = { caption: string; href?: string; label: string; value: MockValue };
+
+/** A workflow file: its name for a person, its file, its step's icon, and its status. */
+export type MockFile = {
+  file: string;
+  kind: "proposal" | "discovery" | "questions" | "spec" | "plan" | "done";
+  name: string;
+  status: string;
+};
 
 /** A problem: its file and line, and its message. */
 export type MockProblem = { at: string; message: string };
@@ -56,26 +64,36 @@ export type FeatureMock = {
 };
 
 const FEATURE_STAGES: Array<MockStage> = [
-  { label: "Proposal", line: "Oct 17 · 26 min" },
-  { label: "Questions", line: "Oct 17 · 53 min" },
-  { label: "Spec", line: "Oct 17 · 2 h 50 min" },
-  { label: "Plan", line: "Oct 17 · 7 min" },
+  { label: "Proposal", line: "10:52 · 26 min" },
+  { label: "Questions", line: "11:18 · 53 min" },
+  { label: "Spec", line: "12:11 · 2 h 50 min" },
+  { label: "Plan", line: "15:01 · 7 min" },
   { label: "Build" },
   { label: "Pull request" },
   { label: "Merged" },
 ];
 
 const LIVE_FIGURES: Array<MockFigure> = [
-  { caption: "23 files", label: "Lines changed", value: "+1,204 −310" },
-  { caption: "cache reads left out", label: "Tokens", value: "5.2 M in · 113 k out" },
+  {
+    caption: "23 files",
+    href: "#changes",
+    label: "Lines changed",
+    value: { added: "+1,204", removed: "−310" },
+  },
+  { caption: "cache reads left out", label: "Tokens", value: { lines: ["5.2 M in", "113 k out"] } },
 ];
 
 const FILES: Array<MockFile> = [
-  { name: "proposal.md", status: "committed" },
-  { name: "discovery-01.md", status: "committed" },
-  { name: "clarifications-01.md", status: "answered" },
-  { name: "spec.md", status: "approved" },
-  { name: "plan.md", status: "auto-approved" },
+  { file: "proposal.md", kind: "proposal", name: "Proposal", status: "committed" },
+  { file: "discovery-01.md", kind: "discovery", name: "Discovery, round 01", status: "committed" },
+  {
+    file: "clarifications-01.md",
+    kind: "questions",
+    name: "Questions, round 01",
+    status: "answered",
+  },
+  { file: "spec.md", kind: "spec", name: "Spec", status: "approved" },
+  { file: "plan.md", kind: "plan", name: "Plan", status: "auto-approved" },
 ];
 
 const NOTES: Array<MockProblem> = [
@@ -92,7 +110,7 @@ const WORKING_AGENT: MockAgent = {
 };
 
 const TITLE = "Redesign clarifications";
-const LINE = "Feature · started Oct 17 · branch 2026-10-17-redesign-clarifications";
+const LINE = "Feature · Oct 17 · branch 2026-10-17-redesign-clarifications";
 
 /** The agent builds task 7 of 11. */
 export const WORKING: FeatureMock = {
@@ -112,19 +130,25 @@ export const WORKING: FeatureMock = {
 
 /** The spec waits for the human's review. */
 export const WAITING: FeatureMock = {
-  agent: { lastRun: "Last run: Spec · done · 10 min", status: "waiting" },
+  agent: { lastRun: "Last run: Spec · done · 10 min", status: "idle" },
   current: 2,
   figures: [
-    { caption: "spec only so far", label: "Lines changed", value: "+0 −0" },
-    { caption: "cache reads left out", label: "Tokens", value: "1.1 M in · 41 k out" },
+    { caption: "spec only so far", label: "Lines changed", value: { added: "+0", removed: "−0" } },
+    {
+      caption: "cache reads left out",
+      label: "Tokens",
+      value: { lines: ["1.1 M in", "41 k out"] },
+    },
   ],
-  files: FILES.slice(0, 4).map((file) =>
-    file.name === "spec.md" ? { ...file, status: "awaiting-human" } : file,
-  ),
+  files: [
+    ...FILES.slice(0, 3),
+    { file: "spec.md", kind: "spec", name: "Spec", status: "awaiting-human" },
+    { file: "plan.md", kind: "plan", name: "Plan", status: "not yet" },
+  ],
   kind: "feature",
   line: LINE,
   next: {
-    actions: [{ label: "Review the spec", variant: "primary" }],
+    action: "Review the spec",
     line: "Spec to review, about 15 minutes.",
     title: "You review the spec",
   },
@@ -140,23 +164,27 @@ export const PULL_REQUEST: FeatureMock = {
   agent: { lastRun: "Last run: Final review · done · 18 min", status: "idle" },
   current: 5,
   figures: LIVE_FIGURES,
-  files: [{ name: "2026-10-17-redesign-clarifications.md", status: "record" }],
+  files: [
+    {
+      file: "2026-10-17-redesign-clarifications.md",
+      kind: "done",
+      name: "Record",
+      status: "record",
+    },
+  ],
   kind: "feature",
   line: LINE,
   next: {
-    actions: [
-      { label: "Open pull request #31", variant: "primary" },
-      { label: "Address the comments", variant: "secondary" },
-    ],
-    line: "The agent can address its comments when you ask.",
+    action: "Open pull request #31",
+    line: "Review it on GitHub. The session's recommended message sends the agent to its comments.",
     title: "Your review on pull request #31",
   },
   pullRequest: 31,
   stages: FEATURE_STAGES.map((stage, index) =>
     index === 4
-      ? { ...stage, line: "Oct 17 · 6 h 55 min" }
+      ? { ...stage, line: "15:08 · 6 h 55 min" }
       : index === 5
-        ? { ...stage, line: "since 22:03" }
+        ? { ...stage, line: "since Oct 18, 09:10" }
         : stage,
   ),
   title: TITLE,
@@ -202,22 +230,31 @@ const CLARIFICATIONS_RECORD: MockRecord = {
 export const DONE: FeatureMock = {
   current: 7,
   figures: [
-    { caption: "Oct 17, 10:52 to 22:03", label: "Total time", value: "11 h 11 min" },
-    { caption: "113 files", label: "Lines changed", value: "+6,633 −1,455" },
-    { caption: "cache reads left out", label: "Tokens", value: "5.2 M in · 113 k out" },
-    { caption: "1 round", label: "Questions", value: "10" },
-    { caption: "new or changed", label: "Decisions", value: "2" },
+    { caption: "10:52 to 22:03", href: "#stages", label: "Total time", value: "11 h 11 min" },
+    {
+      caption: "113 files",
+      href: "https://github.com/mrtolkien/uraeda/pull/30/files",
+      label: "Lines changed",
+      value: { added: "+6,633", removed: "−1,455" },
+    },
+    {
+      caption: "cache reads left out",
+      label: "Tokens",
+      value: { lines: ["5.2 M in", "113 k out"] },
+    },
+    { caption: "1 round", href: "#questions", label: "Questions", value: "10" },
+    { caption: "new or changed", href: "#decisions", label: "Decisions", value: "2" },
   ],
   kind: "feature",
-  line: "Feature · started Oct 17 · merged Oct 17",
+  line: "Feature · Oct 17 · pull request #30",
   next: { line: "On Oct 17, in pull request #30.", title: "Merged" },
   pullRequest: 30,
   record: CLARIFICATIONS_RECORD,
   stages: [
     ...FEATURE_STAGES.slice(0, 4),
-    { label: "Build", line: "Oct 17 · 4 h 55 min" },
-    { label: "Pull request", line: "Oct 17 · 6 min" },
-    { label: "Merged", line: "Oct 17, 22:09" },
+    { label: "Build", line: "15:08 · 6 h 55 min" },
+    { label: "Pull request", line: "22:03 · 6 min" },
+    { label: "Merged", line: "22:09" },
   ],
   title: TITLE,
 };
@@ -226,12 +263,17 @@ export const DONE: FeatureMock = {
 export const DONE_CHANGE: FeatureMock = {
   current: 4,
   figures: [
-    { caption: "Oct 17, 15:40 to 16:13", label: "Total time", value: "33 min" },
-    { caption: "7 files", label: "Lines changed", value: "+487 −9" },
+    { caption: "15:40 to 16:13", href: "#stages", label: "Total time", value: "33 min" },
+    {
+      caption: "7 files",
+      href: "https://github.com/mrtolkien/uraeda/pull/28/files",
+      label: "Lines changed",
+      value: { added: "+487", removed: "−9" },
+    },
     { caption: "before Oct 19", label: "Tokens", value: "Not recorded" },
   ],
   kind: "change",
-  line: "Change · started Oct 17 · merged Oct 17",
+  line: "Change · Oct 17 · pull request #28",
   next: { line: "On Oct 17, in pull request #28.", title: "Merged" },
   pullRequest: 28,
   record: {
@@ -247,10 +289,10 @@ export const DONE_CHANGE: FeatureMock = {
       "New worktrees took minutes to set up, copying folders the main checkout already had.",
   },
   stages: [
-    { label: "Proposal", line: "Oct 17 · 4 min" },
-    { label: "Fix", line: "Oct 17 · 22 min" },
-    { label: "Pull request", line: "Oct 17 · 7 min" },
-    { label: "Merged", line: "Oct 17, 16:13" },
+    { label: "Proposal", line: "15:40 · 4 min" },
+    { label: "Fix", line: "15:44 · 22 min" },
+    { label: "Pull request", line: "16:06 · 7 min" },
+    { label: "Merged", line: "16:13" },
   ],
   title: "Symlinks",
 };
