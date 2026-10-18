@@ -54,3 +54,5 @@
   on"
 - [agent] [redesign-feature] Code quality: structure.rs still allows workspace.rs 742 lines, though
   it is 659 now: lower the budget so it cannot grow back
+- [agent] [redesign-feature] Runner: a workflow message queued on a feature merged before it starts
+  fails with "This feature has no branch left"
