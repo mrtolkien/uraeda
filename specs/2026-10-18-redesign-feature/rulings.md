@@ -6,9 +6,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R1: A done feature's lines are the net diff of its run of commits
 
 - **Decision**: a feature merged by rebase or fast-forward counts, file by file, the sum of the net
-  diffs of its runs of consecutive scoped commits on the default branch's first-parent line, each
-  from the parent of its oldest commit to its newest (R80); a feature merged with a merge commit
-  counts the merge's three-dot diff. Both leave out its folder and its record.
+  diffs of its spans of scoped commits on the default branch's first-parent line, each from the
+  parent of its oldest commit to its newest, over commits of no feature (R80); a feature merged with
+  a merge commit counts the merge's three-dot diff. Both leave out its folder and its record.
 - **Rationale**: this repository merges by rebase, and its start commits sit on the default branch
   hours before the branch's commits, with other features between. Summing each commit's own diff
   gave +7,949 −2,938 for the clarifications redesign, against +6,633 −1,455 on its pull request: a
@@ -314,25 +314,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `fakeGh` helper of the test.
 - **Where**: task 8
 
-## R80: A rebased feature's lines are every run of its commits, the commits between them left out
+## R80: A rebased feature's lines are its spans of commits, other features' left out
 
 - **Decision**: for a done item merged without a merge commit, its scoped commits on the default
-  branch's first-parent line, from the folder's date minus a day, are grouped into runs: a commit
-  whose first parent is the previous scoped commit joins its run. The lines are the sum, file by
-  file, of each run's net diff, from the first parent of its oldest commit to its newest, outside
-  the folder and the record; `files` the distinct paths. The decisions are each decision file a run
-  touched, compared between the oldest run's base and the newest run's tip. An unscoped commit
-  between two runs is not counted.
+  branch's first-parent line, from the folder's date minus a day, are grouped into spans: a span
+  runs from the first parent of its oldest commit to its newest, and keeps going over commits of no
+  feature, such as a branch's own `chore: add … to the inbox`; a commit scoped by another feature
+  ends it. The lines are the sum, file by file, of each span's net diff, outside the folder and the
+  record; `files` the distinct paths. The decisions are each decision file a span touched, compared
+  between the oldest span's base and the newest span's tip.
 - **Rationale**: found in review of task 6: the branch of `2026-10-17-redesign-specs` holds
   `chore: add … to the inbox` among its rebased commits, which cut the run at it: the record read
-  +8,482 −2,855 over 146 files and 1 decision, against +15,272 −5,941 over 214 files and 18
-  decisions over its runs. An unscoped commit between two runs may be the branch's own or one of
-  `main`'s that the rebase put there: nothing in git tells them apart, so neither is counted.
-- **Alternatives considered**: one diff from the oldest run's base to the newest run's tip, which
-  counts every other feature's commits between the start and the branch; each commit's own diff,
-  which counts a rewritten line twice (R1).
-- **If wrong**: a figure off by a branch's unscoped commits, or by a file rewritten in two runs; the
-  rule lives in `history/figures.rs`.
+  +8,482 −2,855 over 146 files and 1 decision. Summing the runs on each side of it gave +15,371
+  −6,011, a file rewritten on both sides counted twice. As spans, it reads +13,364 −4,127 over 218
+  files and 18 decisions: the branch's net diff, with its review fixes (R81).
+- **Alternatives considered**: one diff from the oldest commit's base to the newest, which counts
+  every other feature's commits between the start and the branch; runs cut at any unscoped commit,
+  which count a rewritten file twice; each commit's own diff (R1).
+- **If wrong**: a figure off by a commit of `main` with no scope that a rebase put inside the
+  branch's span; the rule lives in `history/figures.rs`.
 - **Where**: task 6, fixed after its review
 
 ## R81: A rebased feature's review fixes arrive with its finish, within ten minutes

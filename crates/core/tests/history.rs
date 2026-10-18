@@ -750,9 +750,34 @@ fn an_unscoped_commit_inside_a_rebased_run_cuts_nothing() {
 
     let history = api::read_history(repo.path(), FOLDER).unwrap();
 
-    // `src/a.rs` +3, `specs/decisions/git.md` +1 −1, `src/b.rs` +2; the inbox left out.
-    assert_eq!(history.lines, figures(6, 1, 3));
+    // `src/a.rs` +3, `specs/decisions/git.md` +1 −1, `src/b.rs` +2, and the branch's own note in
+    // the inbox, +4: one span, counted once.
+    assert_eq!(history.lines, figures(10, 1, 4));
     assert_eq!(kinds(&history.decisions), [("git", "changed")]);
+}
+
+#[test]
+fn another_features_commits_between_two_runs_are_not_counted() {
+    let repo = repo();
+    commit(
+        &repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    repo.write("src/other.rs", &lines(5, "other"));
+    repo.commit_at_merged("feat(other): its work", &time("11:00"), &time("11:00"));
+    repo.write("src/a.rs", &lines(3, "a"));
+    rebased(&repo, "feat(<slug>): a", "15:01", &[]);
+    repo.write("src/a.rs", &lines(1, "a"));
+    rebased(&repo, "fix(<slug>): a shorter", "15:05", &[]);
+    the_record(&repo, "feature", FOLDER, "2026-10-17");
+    rebased(&repo, "finish(<slug>): Clarifications", "22:03", &[]);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    // `src/a.rs`, net +1 after its rewrite; the other feature's file left out.
+    assert_eq!(history.lines, figures(1, 0, 1));
 }
 
 #[test]

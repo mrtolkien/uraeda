@@ -1195,11 +1195,12 @@ unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the re
 - **Lines**: a live item: `numstat(default tip, branch tip, ThreeDot)`, as `branch_changes`. A done,
   found item: when its finish commit `L` is on the default branch's first-parent line, that line up
   to ten minutes after `L`'s committer time, which takes in the pull request's review fixes rebased
-  with it (R81), read by `Git::first_parent_line` from the folder's date minus a day, holds runs of
-  consecutive commits whose `scope_type` is `Some`, each giving
-  `numstat(parent of the run's oldest, the run's newest, TwoDot)`, summed file by file (R13, R80);
-  otherwise, for the merge commit `M` found by task 3, `numstat(M^1, M^2, ThreeDot)`. Files outside
-  the folder and the record only; `files` is their count.
+  with it (R81), read by `Git::first_parent_line` from the folder's date minus a day, holds spans of
+  commits whose `scope_type` is `Some`, kept going over commits of no feature and ended by another
+  feature's, each giving `numstat(parent of the span's oldest, the span's newest, TwoDot)`, summed
+  file by file (R13, R80); otherwise, for the merge commit `M` found by task 3,
+  `numstat(M^1, M^2, ThreeDot)`. Files outside the folder and the record only; `files` is their
+  count.
 - **Total**: `pull-request`'s start minus `proposal`'s, when both are known.
 - **Questions**: a done item's `RecordCounts.questions`; `None` for a live item.
 - **Decisions**: a done, found item's files under `specs/decisions/` in the same diffs, each
