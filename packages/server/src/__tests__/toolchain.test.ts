@@ -685,3 +685,12 @@ test("a project added to test.projects is run by a task selecting the others by 
       "ts:test": { command: "vp test --project '!phone' --project '!desktop'" },
     }),
   ).toEqual([]));
+
+test("the heavy checks wait for the other checkouts' through a shared limit of two", () => {
+  for (const name of ["ts:check", "rust:clippy", "rust:test"]) {
+    const line = [allTasks()[name].command].flat()[0];
+    expect(TEST_RUN.exec(line)?.[1], `${name} runs under the heavy lock`).toBe(
+      " --lock heavy --slots 2",
+    );
+  }
+});
