@@ -17,6 +17,7 @@ This is a VISUAL pass on the website: functionality should not change.
 - Icons for the different harnesses (claude code, codex, pi, ...)
 - We need to remove the color on features, it just looks bad atm. We'll need a more thoughtful
   approach.
+- Inbox/Priorities need icons
 
 ## Why
 
