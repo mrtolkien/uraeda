@@ -319,14 +319,16 @@ function isShown(props: PartProps, row: Block | undefined) {
 
 /**
  * The edge cases, high first, then normal, then any other, in the file's order within each; the
- * niche ones folded behind their count, open while the review shows something on one of them.
+ * niche ones folded behind their count, open by hand or while the review shows something on one
+ * of them.
  */
 function EdgeList({ edges, props }: { edges: ReadonlyArray<Edge>; props: PartProps }) {
-  const [chosen, setChosen] = useState<boolean>();
+  const [chosen, setChosen] = useState(false);
   const rank = (edge: Edge) => IMPORTANCE[edge.importance]?.rank ?? 2;
   const sorted = [...edges].sort((a, b) => rank(a) - rank(b));
   const niche = sorted.filter((edge) => edge.importance === "niche");
-  const isOpen = chosen ?? niche.some((edge) => isShown(props, props.document.blocks[edge.row]));
+  // Open by hand, or while the review shows something in it: a comment, new or old, keeps it open.
+  const isOpen = chosen || niche.some((edge) => isShown(props, props.document.blocks[edge.row]));
   return (
     <VStack gap={3}>
       <VStack as="ul" gap={3} xstyle={styles.list}>
