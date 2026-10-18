@@ -349,12 +349,10 @@ function useInserted(given: ComposerProps) {
     props,
     // Read once inserted: the session page draws without waiting for the settings.
     reader: inserted && (
-      <Suspense fallback={null}>
-        <FreshDefault
-          onRead={(byDefault) => fresh.read(byDefault === undefined ? {} : { fresh: byDefault })}
-          step={inserted.step ?? ""}
-        />
-      </Suspense>
+      <FreshDefault
+        onRead={(byDefault) => fresh.read(byDefault === undefined ? {} : { fresh: byDefault })}
+        step={inserted.step ?? ""}
+      />
     ),
   };
 }

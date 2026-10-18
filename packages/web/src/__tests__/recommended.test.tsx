@@ -183,6 +183,17 @@ test("the message inserted after a spec's approval builds in a fresh session by 
   expect(fake.adapter.opens[1]?.nativeId).not.toBe(fake.adapter.opens[0]?.nativeId);
 });
 
+test("the inserted message's switch turned off continues the session", async () => {
+  const fake = await fakeAgent();
+  await insertAfterChat(fake);
+
+  await click(await freshSwitch());
+  await waitFor(async () => expect((await freshSwitch()).checked).toBe(false));
+  await start(fake);
+
+  expect(fake.adapter.opens).toHaveLength(1);
+});
+
 test("the inserted message's switch starts from the setting: off, the run continues the session", async () => {
   const dir = temporaryFolder("uraeda-config");
   writeFileSync(join(dir, "config.toml"), "[runs]\nbuild_in_fresh_session = false\n");
