@@ -3,8 +3,9 @@ import { mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
-import type { Item, Trigger, TurnKind, TurnState } from "./events.ts";
+import type { Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 import { migrate, transaction } from "./migrations.ts";
+import { FRESH, REPLACED } from "./session-state.ts";
 
 export type { SessionRow, TurnRow } from "./cache-rows.ts";
 export { migrations } from "./migrations.ts";
@@ -298,6 +299,39 @@ export class SessionCache {
         this.#touch(row.session_id, at);
       }
     });
+  }
+
+  /** Adds the counts to the turn's own, a null count read as 0. */
+  addTurnTokens(id: number, counts: TokenCounts): void {
+    this.db
+      .prepare(
+        `UPDATE turns SET input_tokens = COALESCE(input_tokens, 0) + ?,
+           cache_write_tokens = COALESCE(cache_write_tokens, 0) + ?,
+           cache_read_tokens = COALESCE(cache_read_tokens, 0) + ?,
+           output_tokens = COALESCE(output_tokens, 0) + ?
+         WHERE id = ?`,
+      )
+      .run(counts.input, counts.cacheWrite, counts.cacheRead, counts.output, id);
+  }
+
+  /**
+   * The tokens of the session's current agent session: the sum of its turns since the latest that
+   * started a new one, saying so in a `system` item, that turn included, or of all its turns.
+   */
+  agentSessionTokens(sessionId: string): TokenCounts {
+    const row = this.db
+      .prepare(
+        `SELECT COALESCE(SUM(input_tokens), 0) AS input,
+           COALESCE(SUM(cache_write_tokens), 0) AS cacheWrite,
+           COALESCE(SUM(cache_read_tokens), 0) AS cacheRead,
+           COALESCE(SUM(output_tokens), 0) AS output
+         FROM turns WHERE session_id = ?1 AND id >= COALESCE(
+           (SELECT MAX(i.turn_id) FROM items i JOIN turns t ON t.id = i.turn_id
+            WHERE t.session_id = ?1 AND i.kind = 'system'
+              AND json_extract(i.data, '$.text') IN (?2, ?3)), 0)`,
+      )
+      .get(sessionId, FRESH, REPLACED) as TokenCounts;
+    return { ...row };
   }
 
   turn(id: number): TurnRow | undefined {

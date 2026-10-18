@@ -135,6 +135,11 @@ export const migrations: Array<Migration> = [
   sessionsOfTurns,
   // Costs were the agent's own estimates, and are no longer shown.
   "ALTER TABLE turns DROP COLUMN cost_usd;",
+  // Each turn's own tokens, null when the agent reported none, as for the turns before.
+  `ALTER TABLE turns ADD COLUMN input_tokens INTEGER;
+  ALTER TABLE turns ADD COLUMN cache_write_tokens INTEGER;
+  ALTER TABLE turns ADD COLUMN cache_read_tokens INTEGER;
+  ALTER TABLE turns ADD COLUMN output_tokens INTEGER;`,
 ];
 
 /**

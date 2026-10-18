@@ -796,7 +796,7 @@ git add packages/server/src/runner
 git commit -m "refactor(redesign-feature): the runner cache's migrations and rows in modules of their own"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```ts
 // packages/server/src/runner/__tests__/tokens.test.ts
@@ -871,12 +871,12 @@ in `modelUsage` whose counts add up to those above. The break each test catches:
 - Migration: a column missing, or old turns given zeros, which would read as "0 in".
 - Claude: one model's counts only, or cache writes read as cache reads.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `nix develop -c vp test --run packages/server/src/runner/__tests__/tokens.test.ts`
 - Expected: FAIL, `expected undefined to deeply equal { cacheRead: 11304, … }`
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 The Claude adapter, on a `result` line with a `modelUsage` object, emits the `tokens` event before
 the `result` event: each count summed over the models, `input` from `inputTokens`, `cacheWrite` from
@@ -896,7 +896,7 @@ the baseline becomes `total`.
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner fixtures/claude/result-usage.jsonl

@@ -75,6 +75,9 @@ export class Transcript {
         this.#background(live, proc, turn, event.tasks);
         return;
       }
+      case "tokens":
+        this.#context.processes.tokens(live, proc, event.total);
+        return;
       case "accepted":
       case "cancelled": {
         const sent = live.messages.get(event.id);
