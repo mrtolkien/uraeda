@@ -368,6 +368,16 @@ fn each_rule() {
             |e| with_rules(e, "- A rule SHOULD hold.\n- A rule MUST hold.\n"),
             format!("warning: {DECISION}:{}: a MUST rule after a SHOULD one: put the strongest first", line_of(DECISION, "## Rules") + 3),
         ),
+        (
+            "decision order, a rule with no keyword between a MAY and a MUST",
+            |e| with_rules(e, "- A rule MAY hold.\n- A rule with no keyword.\n- A rule MUST hold.\n"),
+            format!("warning: {DECISION}:{}: a MUST rule after a MAY one: put the strongest first", line_of(DECISION, "## Rules") + 4),
+        ),
+        (
+            "decision order, a rule ranks by its first keyword",
+            |e| with_rules(e, "- A rule SHOULD hold, and MUST NOT break.\n- A rule MUST hold.\n"),
+            format!("warning: {DECISION}:{}: a MUST rule after a SHOULD one: put the strongest first", line_of(DECISION, "## Rules") + 3),
+        ),
     ];
     for (name, break_it, expected) in rows {
         let example = Example::new();
@@ -1762,6 +1772,23 @@ fn more_scenarios_and_history_are_not_reviewed() {
     assert_eq!(check::reviewed_words(&example.read(SPEC)), before);
     example.append_words(SPEC, "## Risk tier", 600);
     assert_eq!(check::reviewed_words(&example.read(SPEC)), before + 600);
+}
+
+/// The reviewed part counts a link's text, as a decision's title in its item is read: code and
+/// images are left out.
+#[test]
+fn a_links_text_is_reviewed() {
+    let example = Example::new();
+    let before = check::reviewed_words(&example.read(SPEC));
+
+    example.append_words(SPEC, "## Risk tier", 0);
+    example.edit(
+        SPEC,
+        "## Risk tier\n",
+        "## Risk tier\n\nSee [the task storage decision](../decisions/task-storage.md) and `code words here`.\n",
+    );
+
+    assert_eq!(check::reviewed_words(&example.read(SPEC)), before + 6);
 }
 
 /// US1 more 2: a waiting spec's block of 8 items warns on the eighth, and its first line is no

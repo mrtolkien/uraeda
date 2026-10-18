@@ -200,7 +200,7 @@ fn check_sentences(
 }
 
 /// The text of spans that is measured: links' text, code, and images count for nothing.
-pub(super) fn measured_text(spans: &[Span]) -> String {
+fn measured_text(spans: &[Span]) -> String {
     spans
         .iter()
         .map(|span| {
