@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import type { PriorityEntry } from "../fate.ts";
 import { refusable } from "../fate/errors.ts";
+import { featureTokens } from "../fate/tokens.ts";
+import type { SessionCache, TurnRow } from "../runner/cache.ts";
 import {
   addPlan,
   binding,
@@ -515,4 +517,63 @@ test("a feature's history sends its seven stages, each start null until a commit
   ]);
   expect(history.stages.every((stage: object) => "started" in stage)).toBe(true);
   expect(history).toMatchObject({ finished: null, found: true, totalSeconds: null });
+});
+
+/** Adds an ended turn to a session, with its own token counts when given, started at `at`. */
+function endedTurn(
+  cache: SessionCache,
+  sessionId: string,
+  at: string,
+  tokens?: { cacheRead: number; cacheWrite: number; input: number; output: number },
+) {
+  const id = cache.addTurn({
+    allowed: null,
+    kind: "workflow",
+    sessionId,
+    state: "running",
+    step: "implementation",
+    trigger: "manual",
+  });
+  if (tokens) {
+    cache.addTurnTokens(id, tokens);
+  }
+  cache.endTurn(id, { state: "done" });
+  cache.db.prepare("UPDATE turns SET started_at = ? WHERE id = ?").run(at, id);
+}
+
+test("a feature's tokens sum its turns, cache reads left out, since its first counted turn", async () => {
+  const { app, repo, sessions } = await testApp();
+  const [none] = await byId(app, "Feature", [CLI], ["id", "tokens"]);
+  // Sent as null, not left out: the client keeps a field an answer leaves out.
+  expect(none).toHaveProperty("tokens", null);
+
+  const session = await sessions.featureSession(repo, CLI);
+  endedTurn(sessions.cache, session.id, "2026-10-18T09:00:00.000Z");
+  const counts = { cacheRead: 100_000, cacheWrite: 5000, input: 12, output: 300 };
+  endedTurn(sessions.cache, session.id, "2026-10-19T10:00:00.000Z", counts);
+  endedTurn(sessions.cache, session.id, "2026-10-19T11:00:00.000Z", counts);
+
+  const [feature] = await byId(app, "Feature", [CLI], ["id", "tokens"]);
+  expect(feature.tokens).toEqual({
+    input: 10_024,
+    output: 600,
+    partial: true,
+    since: "2026-10-19T10:00:00.000Z",
+  });
+});
+
+/** A turn, with only what its tokens read. */
+const turn = (startedAt: string, tokens: TurnRow["tokens"], endedAt: string | null) =>
+  ({ endedAt, startedAt, tokens }) as TurnRow;
+
+test("a feature's tokens are whole when every ended turn has counts", () => {
+  const counts = { cacheRead: 1, cacheWrite: 2, input: 3, output: 4 };
+
+  expect(
+    featureTokens([
+      // Queued, then stopped before it started: no work to count.
+      turn("2026-10-18T09:00:00.000Z", null, null),
+      turn("2026-10-18T10:00:00.000Z", counts, "2026-10-18T10:05:00.000Z"),
+    ]),
+  ).toEqual({ input: 5, output: 4, partial: false, since: "2026-10-18T10:00:00.000Z" });
 });

@@ -368,3 +368,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a slower page for a feature of many runs or decisions; `Git::numstats` and
   `decisions` in `history/figures.rs`.
 - **Where**: task 6, fixed after its review
+
+## R60: A figure's tests read its group, and the decision's pill reads "New"
+
+- **Decision**: each figure is a group named by its label, inside its card or its clickable card;
+  the tests read a figure's text from that group, its link only for where it leads, and they find
+  the figures inside the "What it produced" region. The decision card's pill reads "New", as the
+  spec page draws it.
+- **Rationale**: the clickable card's link is a hidden element inside the card, so the plan's
+  `within(link)` found none of its text; the sidebar has a "Decisions" link of its own, so
+  `/^Decisions/` matched two links; `DecisionCard` writes its kind as "New", not "new".
+- **Alternatives considered**: the figure's text inside its link, which the clickable card does not
+  do; a `Link` around the card, a second way of drawing the same card than Home's tiles.
+- **If wrong**: the helpers `figureCard` and `produced` of `feature-done.test.tsx`.
+- **Where**: task 9
+
+## R61: A done item shows the figures it has
+
+- **Decision**: "Questions" shows only after a round, and "Decisions" only when one changed, as the
+  mockup's merged change shows neither. "Not recorded" has no caption. A done item not found on the
+  default branch reads "Not found on the default branch" in place of all its figures, tokens
+  included. The done page keeps its files under the figures, the record's row included.
+- **Rationale**: a zero leads to nothing to open; the mockup's "before Oct 19" names a date the
+  server does not have when no turn was counted; the spec's squash edge case says its figures read
+  the line. Task 8's test of a merged feature expects the record's row in the files.
+- **Alternatives considered**: "0 questions" and "0 decisions" leading to sections that are not
+  drawn; the tokens kept beside the line, against the spec's wording.
+- **If wrong**: `doneFigures` and `Figures` in `feature/Figures.tsx`.
+- **Where**: task 9

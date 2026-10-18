@@ -32,6 +32,7 @@ import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { recommendedDataView } from "./recommended.ts";
 import { settingsDataView } from "./settings.ts";
+import type { FeatureTokens } from "./tokens.ts";
 import { branchChangesDataView } from "./views-branch.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
@@ -75,6 +76,8 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
     /** Its session's ID, null before its first message. */
     session: string | null;
     step: StepRecord;
+    /** Its session's tokens, null when no turn has counts. */
+    tokens: FeatureTokens | null;
   };
 /** A workflow file, or `missing` alone when its feature has no such file. */
 export type FileRecord = Record_<FileView> & { missing?: boolean };
@@ -283,6 +286,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   source: true,
   step: true,
   title: true,
+  tokens: true,
   uncommitted: true,
   worktree: true,
 });

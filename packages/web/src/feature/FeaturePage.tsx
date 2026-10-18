@@ -1,5 +1,5 @@
 // The page of a feature or a change, top to bottom: where it is, what blocks it, what's next beside
-// the agent, what it produced, and its notes, folded.
+// the agent, what it produced, a done one's record, and its notes, folded.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
 import { Grid, GridSpan } from "@astryxdesign/core/Grid";
@@ -15,10 +15,12 @@ import { useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
 import { AgentCard, type AgentSession } from "./AgentCard.tsx";
+import { Figures } from "./Figures.tsx";
 import { FileList } from "./FileList.tsx";
 import { nextOf } from "./next.ts";
 import { NextCard } from "./NextCard.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
+import { Record } from "./Record.tsx";
 import { Section } from "./Section.tsx";
 import { Stages } from "./Stages.tsx";
 import { day } from "./times.ts";
@@ -114,6 +116,32 @@ function LeftBanner({ feature }: { feature: FeatureData }) {
   );
 }
 
+/** What the feature produced: its figures and files, then, once done, its record in place. */
+function Produced({ feature, history }: { feature: FeatureData; history: HistoryData }) {
+  const done = history.current >= history.stages.length;
+  const record = done ? feature.files.find((file) => file.kind === "record") : undefined;
+  return (
+    <>
+      <Section id="changes" title={done ? "What it produced" : "What it produced so far"}>
+        <Figures
+          done={done}
+          history={history}
+          pullRequest={done ? feature.pullRequest?.url : undefined}
+          tokens={feature.tokens ?? null}
+        />
+        <div id="files">
+          <FileList feature={feature} />
+        </div>
+      </Section>
+      {record && (
+        <Suspense fallback={null}>
+          <Record folder={feature.folder} history={history} name={record.name} />
+        </Suspense>
+      )}
+    </>
+  );
+}
+
 /** The page of a feature that exists, with its history read from git. */
 function FeatureBody({ feature }: { feature: FeatureData }) {
   const history = useHistory(feature.folder);
@@ -138,11 +166,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
           <NextAndAgent feature={feature} history={history} />
         )}
       </Suspense>
-      <Section id="changes" title="What it produced so far">
-        {/* Task 9 draws the figures here, above the files. */}
-        <FileList feature={feature} />
-      </Section>
-      {/* Task 9 draws a done feature's record here, in place. */}
+      <Produced feature={feature} history={history} />
       <Notes notes={feature.notes} />
     </VStack>
   );

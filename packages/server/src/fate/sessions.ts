@@ -10,6 +10,7 @@ import { itemLooks } from "./items.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import { checkoutDir, hasPreview } from "./preview.ts";
+import { featureTokens } from "./tokens.ts";
 import {
   AGENT_ID,
   type AgentRecord,
@@ -364,7 +365,9 @@ export async function readWorkflowMessage(
   };
 }
 
-/** A feature's record: its view, with its session's ID, and whether it has a preview. */
+/**
+ * A feature's record: its view, with its session's ID and tokens, and whether it has a preview.
+ */
 export async function featureRecord(
   ctx: RepoContext,
   feature: FeatureView,
@@ -381,6 +384,7 @@ export async function featureRecord(
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: session?.id ?? null,
     step: sentStep(feature.step),
+    tokens: session ? featureTokens(ctx.sessions.cache.turns(session.id)) : null,
   };
 }
 
