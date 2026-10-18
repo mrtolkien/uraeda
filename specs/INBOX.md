@@ -46,3 +46,5 @@
   `checkoutFolder` copy the core's page-route and branch-to-folder rules
 - [agent] [redesign-feature] Feature page: a decision a done feature renamed shows as new, its old
   name untouched: the diff's rename keeps only the new path
+- [agent] [redesign-feature] Problems: a blank answer blocks a feature only when its branch is
+  checked out; a branch without a checkout never shows "Fix"
