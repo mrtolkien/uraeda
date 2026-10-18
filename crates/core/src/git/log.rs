@@ -50,12 +50,36 @@ impl Git {
             .unwrap_or(0)
     }
 
-    /// The date of the last commit of `revision` touching `path`, as `YYYY-MM-DD`: `None` when no
-    /// commit touched it.
-    pub fn last_change(&self, revision: &str, path: &str) -> Result<Option<String>, GitError> {
-        let output = self.output("log", &["log", "-1", "--format=%cs", revision, "--", path])?;
-        let date = output.trim();
-        Ok((!date.is_empty()).then(|| date.to_string()))
+    /// The date of the last commit of `revision` touching each file under `dir`, as `YYYY-MM-DD`,
+    /// by path from the top level, from one `git log`: a file no commit touched has none.
+    pub fn last_changes(
+        &self,
+        revision: &str,
+        dir: &str,
+    ) -> Result<std::collections::BTreeMap<String, String>, GitError> {
+        let output = self.output(
+            "log",
+            &[
+                "log",
+                "--format=%x01%cs",
+                "--name-only",
+                revision,
+                "--",
+                dir,
+            ],
+        )?;
+        let mut dates = std::collections::BTreeMap::new();
+        let mut date = "";
+        for line in output.lines() {
+            if let Some(committed) = line.strip_prefix('\u{1}') {
+                date = committed;
+            } else if !line.is_empty() {
+                dates
+                    .entry(line.to_string())
+                    .or_insert_with(|| date.to_string());
+            }
+        }
+        Ok(dates)
     }
 
     /// The commits of the first-parent history from `tip` that touch `path`, a path from the top

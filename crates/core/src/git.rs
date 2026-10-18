@@ -296,6 +296,14 @@ impl Git {
         Ok(Some(object.data.clone()))
     }
 
+    /// The id of the file or folder at `path` at a commit, which changes with its content: `None`
+    /// when the commit has none.
+    pub fn entry_id(&self, commit: ObjectId, path: &str) -> Option<ObjectId> {
+        let tree = self.tree(commit).ok()?;
+        let entry = tree.lookup_entry_by_path(path).ok()??;
+        Some(entry.object_id())
+    }
+
     /// Every file under `dir` at a commit, with paths from the top level, sorted.
     pub fn list_files(&self, commit: ObjectId, dir: &str) -> Result<Vec<String>, GitError> {
         let tree = self.tree(commit)?;
