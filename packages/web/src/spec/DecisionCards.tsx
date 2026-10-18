@@ -10,6 +10,7 @@ import { branchDecisionPath, useRepoPath } from "../routes.tsx";
 import { type Selection, Selectable } from "../Selection.tsx";
 import { Spans } from "../Spans.tsx";
 import { DecisionCard } from "./DecisionCard.tsx";
+import { UnreadItems } from "./UnreadItems.tsx";
 import { decisionId, GROUPS, type PartProps, type SpecItems, unreadItems } from "./parts.ts";
 
 const styles = stylex.create({
@@ -76,13 +77,11 @@ export function DecisionCards({
   const byName = new Map(changes.map((change) => [change.name, change]));
   const listed = new Set(items.map((item) => item.name));
   const lists = new Set(items.map((item) => document.blocks[item.block]?.parent));
-  const rest = [
-    ...unreadItems(
-      document,
-      items.map((item) => item.block),
-    ),
-    ...(part?.blocks.filter((id) => !lists.has(id)) ?? []),
-  ];
+  const unread = unreadItems(
+    document,
+    items.map((item) => item.block),
+  );
+  const rest = part?.blocks.filter((id) => !lists.has(id)) ?? [];
   const card = (name: string, kind: string) => ({
     comments,
     crumbs: [GROUPS.decisions.title],
@@ -120,6 +119,7 @@ export function DecisionCards({
             unlisted
           />
         ))}
+      <UnreadItems document={document} ids={unread} selection={selection} />
       {rest.length > 0 && <Blocks document={document} ids={rest} selection={selection} />}
     </>
   );
