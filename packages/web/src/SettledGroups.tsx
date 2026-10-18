@@ -7,7 +7,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
-import type { Document, SettledGroup } from "uraeda-binding";
+import type { Document, SettledGroup, SettledKind } from "uraeda-binding";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { plain } from "./Spans.tsx";
@@ -29,7 +29,7 @@ const styles = stylex.create({
 });
 
 /** Each group's icon and its colour, by the group's kind, as the core names it. */
-const LOOKS: Record<string, { color: IconColor; icon: string }> = {
+const LOOKS: Record<SettledKind, { color: IconColor; icon: string }> = {
   behaviour: { color: "secondary", icon: "info" },
   check: { color: "warning", icon: "warning" },
   hood: { color: "secondary", icon: "wrench" },
@@ -84,7 +84,7 @@ function Group({
   group: SettledGroup;
 }) {
   const heading = document.blocks[group.heading];
-  const look = LOOKS[group.kind] ?? { color: "secondary", icon: "info" };
+  const look = LOOKS[group.kind];
   const folded = group.kind === "hood";
   const open = !folded || folds.open.includes(HOOD);
   return (
