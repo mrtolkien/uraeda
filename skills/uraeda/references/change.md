@@ -4,8 +4,8 @@ The light flow, for a bug fix or a small change. In one session, it investigates
 asks only what the human must decide. It makes the change with tests that fail first, has it
 reviewed, and opens a pull request.
 
-- **Runs when**: a change branch, `change/YYYY-MM-DD-<slug>`, is at its `change` step, or its pull
-  request has changes requested
+- **Runs when**: a change branch, `change/YYYY-MM-DD-<slug>`, is at its `change` step, its pull
+  request has changes requested, or the human's message asks to address its pull request's comments
 - **Writes**: the code and its tests, `rulings.md`, a round of questions when one is needed, and the
   draft pull request
 - **Ends at**: the [finish](finish.md) step; a human gate, a round of questions; or an offer to
@@ -58,13 +58,13 @@ and run the first row that matches.
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `proposal.md` is not committed, and there is no record           | **Human gate**: the human writes it, then commits it                    |
 | The record is in `specs/done/`, and no pull request is ready     | [Finish](finish.md)                                                     |
-| The record, and the pull request has changes requested           | [The pull request](#the-pull-request), changes                          |
+| The record, and the pull request has changes requested           | [The pull request](#the-pull-request), comments                         |
 | The record, and the pull request is ready for review             | **Human gate**: the review happens on the pull request                  |
 | A file has `status: awaiting-human`                              | **Human gate**: stop                                                    |
 | The branch has no pull request                                   | This file, from [Investigating](#investigating)                         |
 | The folder came back, and a round answered since is not made yet | [Making the change](#making-the-change), then [the review](#the-review) |
 | The branch's pull request is a draft                             | [Finish](finish.md)                                                     |
-| The branch's pull request has changes requested                  | [The pull request](#the-pull-request), changes                          |
+| The branch's pull request has changes requested                  | [The pull request](#the-pull-request), comments                         |
 | The branch has an open pull request                              | **Human gate**: the review happens on the pull request                  |
 
 Without `gh`, `ura` cannot see the pull request, and names `change` until the record exists: check
