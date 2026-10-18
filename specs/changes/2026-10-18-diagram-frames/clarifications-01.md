@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Diagram frames
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question and 2 follow-ups, about 10 minutes.
+> Answered on 2026-10-18.
 >
 > - Verdict: worth building, with changes: the first item's cause is confirmed, and replacing
 >   Mermaid with Pele fixes it more simply than the frame the proposal describes.
@@ -119,7 +119,7 @@ project depends on a young library or on the better-known one. It amends a decis
   - [con] the frame runs scripts, and a mockup could read the built UI's public files.
   - [con] a more complex design: a message round trip, and a change to the server's guard.
 
-**Answer:**
+**Answer:** A: We don't need to pin it that hard. I trust the dev. I know him.
 
 ### Q1.A: Should the SVG Pele returns still be shown in a sandboxed frame?
 
@@ -144,7 +144,7 @@ costs. It changes the second sandbox rule of the decision.
   - [pro] simpler code, and the page's fonts and colours apply.
   - [con] a bug in Pele's output would run with the app's rights.
 
-**Answer:**
+**Answer:** B: It's ok
 
 ### Q1.B: Should the decision also stay on Mermaid's `sandbox` level, as it is?
 
