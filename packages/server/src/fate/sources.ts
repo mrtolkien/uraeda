@@ -156,7 +156,7 @@ function missingFile(id: string, folder: string, name: string): FileRecord {
 /** The record of a decision a feature's branch does not have: marked missing, its fields empty. */
 function missingDecision(id: string, folder: string, name: string): BranchDecisionRecord {
   return {
-    change: { compared: false, kind: "", listed: false, name, sections: [], title: "" },
+    change: { compared: false, fields: [], kind: "", listed: false, name, sections: [], title: "" },
     document: { blocks: [], hash: "" },
     folder,
     id,

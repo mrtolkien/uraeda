@@ -673,6 +673,8 @@ export interface DecisionChange {
   listed: boolean
   /** Whether both versions could be read. */
   compared: boolean
+  /** The title and the frontmatter fields whose value differs, for a changed decision. */
+  fields: Array<FieldChange>
   sections: Array<SectionChange>
 }
 
@@ -795,6 +797,15 @@ export interface FeatureView {
   leftBranch?: string
   /** Its branch's open pull request, from `gh`; else, once finished, its record's, read as open. */
   pullRequest?: PullRequestView
+}
+
+/** A field of a decision that differs between two versions: its `title`, or a frontmatter key. */
+export interface FieldChange {
+  name: string
+  /** Its value in the merge base's version, `None` when it had none. */
+  before?: string
+  /** Its value in the branch's version, `None` when it has none. */
+  after?: string
 }
 
 export interface FileSummary {
@@ -1022,7 +1033,10 @@ export interface PartChange {
   before?: LineRange
   /** Its lines in the branch's version, from the file's first line. */
   after?: LineRange
+  /** The part's words. For a rule, the words before its check. */
   runs: Array<Run>
+  /** For a rule, the words of its check, from "Checked by"; empty for any other part. */
+  check: Array<Run>
 }
 
 export interface PlanItems {

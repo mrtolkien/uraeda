@@ -270,7 +270,8 @@ test("a listed decision equal to main says so", async () => {
   await renderPage(PAGE, repo);
 
   const storage = await card("Task storage");
-  expect(within(storage).getByText("No change against the default branch")).toBeTruthy();
+  expect(within(storage).getByText("No part changed against the default branch")).toBeTruthy();
+  expect(within(storage).getByText("status: active → proposed")).toBeTruthy();
   expect(within(storage).queryByRole("button", { name: /removed$/ })).toBeNull();
 });
 
