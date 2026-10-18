@@ -62,3 +62,5 @@
   rewording a line loses the markers already stored
 - [agent] [redesign-feature] Tokens: a late report from a closing process can count for the next
   turn; the session's total stays right
+- [agent] [redesign-feature] Feature page: the stages' walk stops at the folder's date minus a day:
+  commits made earlier, or reachable only through an older-dated commit, are missed
