@@ -32,10 +32,11 @@ import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { settingsDataView } from "./settings.ts";
 import { branchChangesDataView } from "./views-branch.ts";
+import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
 
-type Record_<T> = { [Key in keyof T]: T[Key] };
+export type Record_<T> = { [Key in keyof T]: T[Key] };
 
 /** A feature's step, its progress sent as null when it has none. */
 export type StepRecord = Omit<StepView, "progress"> & { progress: TaskProgress | null };
@@ -444,6 +445,7 @@ export const Root = {
   drafts: list(draftDataView),
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),
+  histories: list(historyDataView),
   inboxes: list(inboxDataView),
   ledgers: list(ledgerDataView),
   needsYouLists: list(needsYouListDataView),

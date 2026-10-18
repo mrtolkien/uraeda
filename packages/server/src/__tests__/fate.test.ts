@@ -494,3 +494,25 @@ test("a spec sends its branch's decision changes, and a branch's decision reads 
   expect(decision.change.title).toBe("Git");
   expect(missing).toMatchObject({ id: `${feature}/none`, missing: true });
 });
+
+test("a feature's history sends its seven stages, each start null until a commit starts it", async () => {
+  const [history] = await byId(
+    (await testApp()).app,
+    "History",
+    ["2026-10-11-web-ui"],
+    ["id", "stages", "current", "rounds", "found", "finished", "totalSeconds"],
+  );
+
+  expect(history.id).toBe("2026-10-11-web-ui");
+  expect(history.stages.map((stage: { name: string }) => stage.name)).toEqual([
+    "proposal",
+    "questions",
+    "spec",
+    "plan",
+    "build",
+    "pull-request",
+    "merged",
+  ]);
+  expect(history.stages.every((stage: object) => "started" in stage)).toBe(true);
+  expect(history).toMatchObject({ finished: null, found: true, totalSeconds: null });
+});

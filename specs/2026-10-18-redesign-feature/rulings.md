@@ -97,3 +97,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a blocking error in its fixture, which would test something else.
 - **If wrong**: one line of the test.
 - **Where**: task 2
+
+## R9: The binding's history read lives in a module of its own
+
+- **Decision**: `readHistory` is exported from `crates/binding/src/history.rs`, as the settings'
+  functions are from `settings.rs`, and a feature's change also sends its `History` live update.
+- **Rationale**: `crates/binding/src/lib.rs` had 495 lines: one more export would take it past the
+  code quality decision's 500. The page reads the history live, as it reads the branch's changes.
+- **Alternatives considered**: the export in `lib.rs`, over the limit; a history read only when the
+  page opens, stale after the agent's next commit.
+- **If wrong**: the function moves back once `lib.rs` is split; the live update is one line of
+  `live.ts`.
+- **Where**: task 3

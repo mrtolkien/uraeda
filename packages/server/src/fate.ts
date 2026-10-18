@@ -28,6 +28,7 @@ import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { settingsDataView } from "./fate/settings.ts";
 import { branchChangesDataView } from "./fate/views-branch.ts";
+import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
 
@@ -39,6 +40,7 @@ export {
   featureDataView,
   fileDataView,
   folderSuggestionsDataView,
+  historyDataView,
   inboxDataView,
   ledgerDataView,
   needsYouListDataView,
@@ -75,6 +77,7 @@ export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
 export type Feature = Entity<typeof featureDataView, "Feature">;
 export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
+export type History = Entity<typeof historyDataView, "History">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type BranchDecision = Entity<typeof branchDecisionDataView, "BranchDecision">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;

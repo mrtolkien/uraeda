@@ -13,6 +13,7 @@ import {
   FeatureView,
   FileView,
   FolderSuggestionsView,
+  HistoryView,
   InboxView,
   LedgerView,
   PreviewView,
@@ -77,6 +78,14 @@ export function useBranchChanges(folder: string) {
   const { branchChanges } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(BranchChangesView, branchChanges);
+}
+
+/** A feature's or a change's stages and their starts, by its folder. */
+export function useHistory(folder: string) {
+  const request = { history: { id: folder, view: HistoryView } };
+  const { history } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(HistoryView, history);
 }
 
 /** Decision `name` as the branch of the feature in `folder` has it, with its change. */

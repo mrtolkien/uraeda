@@ -241,6 +241,9 @@ export declare function readFeature(repo: string, folder: string): Promise<Featu
 /** A workflow file of a feature, with its document, items, committed version, and review. */
 export declare function readFile(repo: string, folder: string, name: string): Promise<FileView>
 
+/** A feature's or a change's stages, each with its start, read from its commits. */
+export declare function readHistory(repo: string, folder: string): Promise<HistoryView>
+
 /**
  * A PNG, JPEG, GIF, or WebP file under `specs/`, by its path from the top level; anything else is
  * no such file.
@@ -866,6 +869,29 @@ export interface FileView {
   answered?: ReviewItems
 }
 
+/** A feature's or a change's stages, and what it produced. */
+export interface HistoryView {
+  /** The feature's or the change's folder. */
+  folder: string
+  stages: Array<StageView>
+  /** The index of the current stage; `stages.len()` once merged. */
+  current: number
+  /** Rounds of questions, when it had any. */
+  rounds?: number
+  /** Whether a done item's commits were found on the default branch: false after a squash merge. */
+  found: boolean
+  /** For a done item not found: its record's `finished` day, `YYYY-MM-DD`. */
+  finished?: string
+  /** The time from its first commit to its merge, in seconds. */
+  totalSeconds?: number
+  /** The lines and files it changed outside its folder and its record. */
+  lines?: LinesView
+  /** The questions it asked. */
+  questions?: number
+  /** The decisions a done item changed. */
+  decisions: Array<DecisionChange>
+}
+
 /** `INBOX.md` read for editing. */
 export interface Inbox {
   /** The SHA-256 of the text, to refuse edits over a change made elsewhere. */
@@ -965,6 +991,13 @@ export interface Ledger {
 export interface LineRange {
   start: number
   end: number
+}
+
+/** Lines added and removed, over a number of files. */
+export interface LinesView {
+  added: number
+  removed: number
+  files: number
 }
 
 /** The draft or backlog file a priorities entry links, as it is on the default branch. */
@@ -1398,6 +1431,14 @@ export interface SpecPart {
    * or level-2 heading.
    */
   blocks: Array<number>
+}
+
+/** A stage, and when it started. */
+export interface StageView {
+  /** `proposal`, `questions`, `spec`, `plan`, `build`, `fix`, `pull-request`, or `merged`. */
+  name: string
+  /** RFC 3339, UTC. */
+  started?: string
 }
 
 /** A feature started. */
