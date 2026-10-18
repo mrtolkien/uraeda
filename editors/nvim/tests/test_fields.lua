@@ -109,18 +109,18 @@ end
 T["a number is typed"] = function() -- US5.2
   local repo = example()
 
-  pick(repo .. "/" .. feature .. "spec.md", { "revision        1" }, { "2" })
+  pick(repo .. "/" .. feature .. "spec.md", { "revision        2" }, { "3" })
 
-  eq(wait_line(3, "revision: 2"), "revision: 2")
+  eq(wait_line(3, "revision: 3"), "revision: 3")
   eq(selects(1)[1].items, {
     "status          approved",
-    "revision        1",
+    "revision        2",
     "clarifications  1",
     "risk-tier       high",
     "plan-review     true",
   })
   eq(#child.lua_get("_G.selects"), 1, "no value picker for a number")
-  eq(child.lua_get("_G.inputs[1].default"), "1")
+  eq(child.lua_get("_G.inputs[1].default"), "2")
   eq(child.lua_get("_G.inputs[1].prompt"), "revision: ")
 end
 

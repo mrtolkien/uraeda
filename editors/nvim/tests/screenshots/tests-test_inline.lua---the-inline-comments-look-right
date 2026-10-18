@@ -1,15 +1,15 @@
 --|---------|---------|---------|---------|---------|---------|---------|---------|
-01|   50                                                                           
-02|   51 ### US2: Complete a repeating task (P1)                                   
-03|   52                                                                           
+01|   72                                                                           
+02|   73 ### US2: Complete a repeating task (P1)                                   
+03|   74                                                                           
 04|      ▎ C1  Rename this field                                                   
-05|   53 Completing a repeating task moves it to its next due date instead of marki
+05|   75 Completing a repeating task moves it to its next due date instead of marki
 06|      ng it done. The row says                                                  
-07|   54 so for 5 seconds, with an undo button.                                    
-08|   55                                                                           
-09|   56 [Repeating task, completed](/src/tasks/RepeatMenu.stories.tsx#Completed)  
-10|   57                                                                           
-11|   58 Why this priority: this is what saves users from recreating tasks.        
+07|   76 so for 5 seconds, with an undo button.                                    
+08|   77                                                                           
+09|   78 [Repeating task, completed](/src/tasks/RepeatMenu.stories.tsx#Completed)  
+10|   79                                                                           
+11|   80 Key scenarios:                                                            
 12|                                                                                
 
 --|---------|---------|---------|---------|---------|---------|---------|---------|
