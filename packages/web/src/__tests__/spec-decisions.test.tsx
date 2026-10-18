@@ -276,3 +276,45 @@ test("a decision that could not be compared says so", async () => {
   // Its text still shows, for the review.
   expect(within(storage).getByText(/^An upgrade that cannot read a saved value MUST/)).toBeTruthy();
 });
+
+/** The text of the spec's blocks a selection holds: the toggles pressed outside the cards. */
+const pressedInSpec = () =>
+  [...document.querySelectorAll<HTMLElement>("button[aria-pressed='true']")]
+    .filter((button) => !button.closest("[id^='decision-']"))
+    .map((button) => document.getElementById(button.getAttribute("aria-labelledby") ?? "")!);
+
+/** A tap on a decision's part selects its lines in the decision, never the spec's same lines. */
+test("a decision's part selected leaves the spec's blocks on the same lines unselected", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const rule = partOf(await card("Task storage"), 3);
+  await click(rule);
+  expect(screen.getByText('Decision task-storage, lines 19–20, under "Rules"')).toBeTruthy();
+  expect(texts(pressedInSpec())).toEqual([]);
+});
+
+/** Nor does it open a fold of the spec holding the same lines. */
+test("a decision's part selected opens no fold of the spec on the same lines", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  // The third rule pushed to lines 65–66, those of US1's more scenarios in the spec.
+  taskStorage(
+    repo,
+    readFileSync(fixture(`spec-page/branch/${TASK_STORAGE}`), "utf8").replace(
+      "## Rules\n",
+      `## Rules\n${"\n".repeat(46)}`,
+    ),
+  );
+  await renderPage(PAGE, repo);
+
+  await click(partOf(await card("Task storage"), 3));
+  expect(screen.getByText('Decision task-storage, lines 65–66, under "Rules"')).toBeTruthy();
+  const story = await screen.findByRole("region", { name: "Make a task repeat" });
+  const fold = within(story)
+    .getAllByRole("button", { name: /^(1 more scenario|Fold the other scenarios)$/ })
+    .find((button) => button.hasAttribute("aria-expanded"));
+  expect(fold?.getAttribute("aria-expanded")).toBe("false");
+  expect(texts(pressedInSpec())).toEqual([]);
+});

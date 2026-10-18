@@ -24,11 +24,16 @@ import { useStoryComments } from "./useStoryComments.ts";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 /**
- * The folds a review opens: those holding a pending comment's block, or a block of the selection.
+ * The folds a review opens: those holding a pending comment's block, or a block of the selection,
+ * when it is of the spec's lines and not a decision's.
  */
 function shownFolds(tree: Document, placed: ReadonlyMap<number, unknown>, selection?: Range) {
   const selected = (block: Block | undefined) =>
-    !!block && !!selection && block.startLine <= selection.end && block.endLine >= selection.start;
+    !!block &&
+    !!selection &&
+    !selection.decision &&
+    block.startLine <= selection.end &&
+    block.endLine >= selection.start;
   return (folds: ReadonlyArray<Fold>) => {
     const holders = new Set([...placed.keys()].map((id) => foldOf(tree, folds, tree.blocks[id])));
     return folds
