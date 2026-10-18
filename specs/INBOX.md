@@ -82,3 +82,7 @@
   about 40 blob reads per feature: measure it, and hash blob ids instead of texts
 - [agent] [decision-review-fixes] Decision comparison: a check whose "Checked" or "by" is the
   changed word spans two runs, so it shows inline in the rule's text
+- [agent] [spec-page-fixes] Spec page: storedBody's field test reads a Markdown heading (#) as a
+  frontmatter comment, so a stored body of break, heading, break loses its middle; and lines with a
+  digit-first key, a spaced key, or a bare - are rejected. A marker in the stored entry would settle
+  both (R11).
