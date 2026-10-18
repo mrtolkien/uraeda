@@ -13,7 +13,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
-import type { Block, Document, MockupLink, Span } from "uraeda-binding";
+import type { Block, Document, Span } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import type { Folds } from "../Folds.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
@@ -55,10 +55,8 @@ const styles = stylex.create({
   },
 });
 
-/** What a story's card draws: the page's context, the story, and the mockup it links, if any. */
+/** What a story's card draws: the page's context and the story, its mockup among its blocks. */
 export type StoryCardProps = PartProps & {
-  /** The story or HTML mockup its `story.mockup` block links, from the spec's `mockups`. */
-  mockup: MockupLink | undefined;
   story: SpecItems["stories"][number];
 };
 
