@@ -171,7 +171,9 @@ opening anything else, so each rule below keeps it short and whole.
 27. **The time counts the reviewed part.** The reviewed part is every section but the "More
     scenarios" lists and `## History`. Count its words at 250 a minute. Add a minute per mockup and
     per changed decision. Round up to the next 5 minutes. A reviewed part of 1,800 words with 2
-    mockups and 1 changed decision is 7.2 plus 3, about 15 minutes.
+    mockups and 1 changed decision is 7.2 plus 3, about 15 minutes. On a revision, count only what
+    changed since the last review, and `## Your review`: the human reads the rest again only if they
+    want to.
 28. **Answers paraphrased, never cited by number.** The block and the spec say what the human chose,
     in words: "the due date moves", not "A in Q2". A review comment is named by its subject, never
     "C1" alone. The human reads the spec days after the round, without it open.

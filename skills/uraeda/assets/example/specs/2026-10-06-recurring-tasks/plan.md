@@ -175,6 +175,8 @@ Each scenario, edge case, and criterion of the spec, and the task whose tests co
 | US3 1, 2, more 1                                         | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                 |
 | US4 1, 2, more 1, 2; edge cases: a phrase alone, unknown | 5    | `tests/recurring-tasks/repeat-in-title.test.tsx`                 |
 | SC-003                                                   | 5    | `tests/recurring-tasks/parse-repeat.test.ts`, one row a phrase   |
+| Review focus: a double click on the checkbox             | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`       |
+| Review focus: a phrase in another case, with a period    | 5    | `tests/recurring-tasks/parse-repeat.test.ts`                     |
 | SC-002                                                   | 1–5  | the [list benchmark](/bench/list.bench.ts), against its baseline |
 
 ## Waves
