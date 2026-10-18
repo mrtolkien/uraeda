@@ -172,6 +172,32 @@ test("your review comes back answered", async () => {
   expect(card.textContent).toContain("The undo now stays 5 seconds, in the task row.");
 });
 
+/** The page drops no text: an item the core does not read, beside those it does, still shows. */
+test("a review item and a decision item the core cannot read show beside the ones it reads", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [SPEC]: spec
+      .replace(
+        "- **C1** (add weekends)",
+        "- Done.\n- C4 (a nightly sync): declined. No sync.\n- **C1** (add weekends)",
+      )
+      .replace(
+        "- **New: [Repeating tasks]",
+        "- **New: [[due-dates]]**. Dates are calendar days.\n- **New: [Repeating tasks]",
+      ),
+  });
+  await renderPage(PAGE, repo);
+
+  const answers = await region("Your review, answered");
+  expect(answers.textContent).toContain("Done.");
+  expect(answers.textContent).toContain("C4 (a nightly sync): declined. No sync.");
+  expect(within(answers).getAllByText("done")).toHaveLength(2);
+  expect(await screen.findByText(/Dates are calendar days\./)).toBeTruthy();
+  expect(screen.getByText(/A repeating task is one task/)).toBeTruthy();
+});
+
 /** US4 1: the answers answer the review that asked for the revision, not the one under way. */
 test("your review stays answered, its quotes kept, once you comment on the revision", async () => {
   const repo = fixtureRepo();
