@@ -14,7 +14,6 @@
 - [Spec page fixes](/specs/changes/2026-10-18-spec-page-fixes/proposal.md)
 - [Round fixes](/specs/changes/2026-10-18-round-fixes/proposal.md)
 - [Diagram frames](/specs/changes/2026-10-18-diagram-frames/proposal.md)
-- [Skill wording fixes](/specs/changes/2026-10-18-skill-wording/proposal.md)
 
 - [Redesign session](drafts/redesign-session.md)
 - [Review home](drafts/review-home.md)
