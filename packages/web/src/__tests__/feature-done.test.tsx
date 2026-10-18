@@ -1,6 +1,6 @@
 // What a feature produced, its figures, and a done one's record drawn in place. Times are read in
 // UTC (`vite.config.ts`).
-import { screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { commitsAt, type DatedCommit } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import { click, type Fake, fakeAgent, fixtureRepo, git, renderPage } from "./helpers.tsx";
@@ -298,6 +298,22 @@ test("a done feature without a round or a decision shows its five figures", asyn
   // Nothing to open at zero: plain cards.
   expect(produced().queryByRole("link", { name: /^Questions/ })).toBeNull();
   expect(produced().queryByRole("link", { name: /^Decisions/ })).toBeNull();
+});
+
+/** Decision ui-behaviour: Back restores the open items */
+test("the questions opened stay open across Back", async () => {
+  const repo = fixtureRepo();
+  doneFeature(repo);
+
+  await renderPage(`/f/${DONE}`, repo, { agent: true });
+
+  await click(await screen.findByRole("button", { name: "Questions · 10 in 1 round" }));
+  await click(screen.getByRole("link", { name: "Open the record file" }));
+  await waitFor(() => expect(location.pathname).toContain(`/f/${DONE}/${DONE}.md`));
+  await act(async () => window.history.back());
+
+  const questions = await screen.findByRole("button", { name: "Questions · 10 in 1 round" });
+  expect(questions.getAttribute("aria-expanded")).toBe("true");
 });
 
 /** US2 more 2 */

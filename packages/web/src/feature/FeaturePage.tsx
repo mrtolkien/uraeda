@@ -14,6 +14,7 @@ import { Paragraph } from "../layout/Paragraph.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
+import { useOpenKeys } from "../useOpenKeys.ts";
 import { AgentCard, type AgentSession } from "./AgentCard.tsx";
 import { Figures } from "./Figures.tsx";
 import { FileList } from "./FileList.tsx";
@@ -116,8 +117,12 @@ function LeftBanner({ feature }: { feature: FeatureData }) {
   );
 }
 
-/** What the feature produced: its figures and files, then, once done, its record in place. */
+/**
+ * What the feature produced: its figures and files, then, once done, its record in place, its
+ * folds open as the history entry keeps them.
+ */
 function Produced({ feature, history }: { feature: FeatureData; history: HistoryData }) {
+  const keys = useOpenKeys();
   const done = history.current >= history.stages.length;
   const record = done ? feature.files.find((file) => file.kind === "record") : undefined;
   return (
@@ -136,7 +141,7 @@ function Produced({ feature, history }: { feature: FeatureData; history: History
       </Section>
       {record && (
         <Suspense fallback={null}>
-          <Record folder={feature.folder} history={history} name={record.name} />
+          <Record folder={feature.folder} history={history} keys={keys} name={record.name} />
         </Suspense>
       )}
     </>
