@@ -6,7 +6,6 @@ import { Grid } from "@astryxdesign/core/Grid";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { MouseEvent } from "react";
 import { scrollBelowBar } from "../Folds.tsx";
@@ -14,9 +13,7 @@ import { useWidthClass } from "../layout/useWidthClass.ts";
 import { clock, day, duration } from "./times.ts";
 
 const styles = stylex.create({
-  added: { color: colorVars["--color-success"] },
   eyebrow: { textTransform: "uppercase" },
-  removed: { color: colorVars["--color-error"] },
 });
 
 /** A figure's value: plain, lines added and removed, or one line per part. */
@@ -83,10 +80,10 @@ function FigureValue({ value }: { value: Value }) {
   if ("added" in value) {
     return (
       <HStack gap={2} wrap="wrap">
-        <Text hasTabularNumbers size="lg" weight="bold" wrap="nowrap" xstyle={styles.added}>
+        <Text color="success" hasTabularNumbers size="lg" weight="bold" wrap="nowrap">
           +{COUNT.format(value.added)}
         </Text>
-        <Text hasTabularNumbers size="lg" weight="bold" wrap="nowrap" xstyle={styles.removed}>
+        <Text color="error" hasTabularNumbers size="lg" weight="bold" wrap="nowrap">
           −{COUNT.format(value.removed)}
         </Text>
       </HStack>
