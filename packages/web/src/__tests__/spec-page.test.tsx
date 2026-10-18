@@ -313,3 +313,50 @@ test("what you approve shows the time, the risk tier, and the principles", async
     .filter((name) => name === "Kept" || name === "Warning");
   expect(marks).toEqual(["Kept", "Kept", "Warning"]);
 });
+
+/** The element of an id, if the page has one. */
+const byId = (id: string) => document.getElementById(id);
+
+/** A heading's anchor in the spec names the part, story, or group drawn for it. */
+test("each section's and story's anchor names the element drawn for it", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const story = await region("Complete a repeating task");
+  expect(byId("us2-complete-a-repeating-task-p1")).toBe(story);
+  expect(byId("your-review")).toBe(await region("Your review, answered"));
+  expect(
+    within(byId("user-stories")!).getByRole("heading", { name: "What changes for users" }),
+  ).toBeTruthy();
+  expect(byId("risk-tier")?.textContent).toContain("it converts every saved due date");
+  expect(byId("constitution-check")?.textContent).toContain("Principle III holds with a cost");
+  expect(within(await region("What you approve")).getByText(/converts every saved/)).toBeTruthy();
+
+  const column = await contents();
+  const href = (name: string) => within(column).getByRole("link", { name }).getAttribute("href");
+  expect(href("US2 Complete a repeating task")).toBe("#us2-complete-a-repeating-task-p1");
+  expect(href("What changes for users")).toBe("#user-stories");
+  expect(href("Your review, answered")).toBe("#your-review");
+});
+
+/** A hash naming a heading inside a story's more scenarios opens them. */
+test("a hash into a story's more scenarios opens them", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`).replace(
+    "   due the day after tomorrow.\n",
+    "   due the day after tomorrow.\n\n   #### Twice in a row\n",
+  );
+  commitOnBranch(repo, SPEC_FEATURE, { [SPEC]: spec });
+  await renderPage(`${PAGE}#twice-in-a-row`, repo);
+
+  const story = await region("Complete a repeating task");
+  await waitFor(() =>
+    expect(within(story).getByRole("button", { name: "Fold the other scenarios" })).toBeTruthy(),
+  );
+  expect(document.getElementById("twice-in-a-row")).toBeTruthy();
+  expect(
+    within(await region("Make a task repeat")).getByRole("button", { name: "1 more scenario" }),
+  ).toBeTruthy();
+});

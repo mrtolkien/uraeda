@@ -36,24 +36,20 @@ export type Folds = {
 
 /**
  * A spec's folds, as the core finds them: each story's more scenarios, keyed by the story's id,
- * their paragraph "More scenarios:" and their list. A block's id is its place in the document, so
- * the list is the story's last top-level block before its first scenario.
+ * their paragraph "More scenarios:" and their list.
  */
 export function specFolds(spec: Pick<SpecItems, "stories">): Array<Fold> {
-  return spec.stories.flatMap((story) => {
-    const first = story.more[0]?.block;
-    const at = first === undefined ? -1 : story.blocks.findLastIndex((id) => id < first);
-    if (at < 1) {
-      return [];
-    }
-    return [
-      {
-        ids: story.blocks.slice(at - 1, at + 1),
-        key: story.id,
-        label: `More scenarios (${story.more.length})`,
-      },
-    ];
-  });
+  return spec.stories.flatMap((story) =>
+    story.moreBlocks.length === 0
+      ? []
+      : [
+          {
+            ids: story.moreBlocks,
+            key: story.id,
+            label: `More scenarios (${story.more.length})`,
+          },
+        ],
+  );
 }
 
 /** The top-level block a block lies in, itself when it is one. */
@@ -82,11 +78,12 @@ function anchorOf(hash: string): string {
 
 /**
  * Opens the fold holding the block the location's hash names, and scrolls to it once open: once
- * per visit of the address, so the fold can be closed again. Not where Back, or a reload, returns
- * to an entry with a saved position: its folds are as the human left them, the hash's own closed
- * again maybe.
+ * per visit of the address, so the fold can be closed again. With `anywhere`, the element the hash
+ * names outside any fold is scrolled to as well, once it is drawn, and kept in place while what is
+ * above it settles. Not where Back, or a reload, returns to an entry with a saved position: its
+ * folds are as the human left them, the hash's own closed again maybe.
  */
-export function useHashFold(document: Document, folds: Folds | undefined) {
+export function useHashFold(document: Document, folds: Folds | undefined, anywhere = false) {
   const hash = anchorOf(useHash());
   // Handled per visit: a link to the same address is a new one, with a new history entry.
   const visit = `${useEntryId()}${hash}`;
@@ -103,8 +100,18 @@ export function useHashFold(document: Document, folds: Folds | undefined) {
         : undefined,
     [document, list, hash],
   );
+  const settling = useRef<() => void>(undefined);
+  useLayoutEffect(() => () => settling.current?.(), []);
   useLayoutEffect(() => {
-    if (!folds || !target || handled.current === visit) {
+    if (!hash || handled.current === visit) {
+      return;
+    }
+    if (!folds || !target) {
+      const element = anywhere ? window.document.getElementById(hash) : null;
+      if (element && typeof currentEntry().scroll !== "number") {
+        settling.current = revealBelowBar(element);
+      }
+      handled.current = element ? visit : handled.current;
       return;
     }
     if (typeof currentEntry().scroll === "number") {
@@ -120,7 +127,8 @@ export function useHashFold(document: Document, folds: Folds | undefined) {
     if (element) {
       scrollBelowBar(element);
     }
-  }, [folds, hash, target, visit]);
+    // Again once the page draws what the hash names: `document` changes as it loads.
+  }, [anywhere, document, folds, hash, target, visit]);
 }
 
 /** Scrolls to an element, a little below the top, or the top bar, where it stays on the phone. */
