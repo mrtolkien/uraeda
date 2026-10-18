@@ -59,6 +59,7 @@ export function useReviewSelection({
     ),
     isSelected: (block) =>
       selection !== undefined &&
+      selection.decision === undefined &&
       block.startLine >= selection.start &&
       block.endLine <= selection.end,
     onTap: tap,
