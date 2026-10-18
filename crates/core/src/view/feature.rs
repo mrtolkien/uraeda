@@ -82,7 +82,8 @@ pub struct FeatureView {
     /// is checked out, otherwise from its branch's tip.
     pub mockups: Vec<String>,
     pub step: StepView,
-    /// What stops the workflow, `Problem::blocks`: Home and the sidebar flag the feature.
+    /// What stops the workflow: the workspace's own problems, which set the step to `none`, and
+    /// the check's results that `Problem::blocks`. Home and the sidebar flag the feature.
     pub problems: Vec<ProblemView>,
     /// The check's other results, shown only on its page.
     pub notes: Vec<ProblemView>,
@@ -125,11 +126,11 @@ impl From<&Step> for StepView {
 
 impl FeatureView {
     pub fn new(feature: &Feature, extra: &[Problem]) -> FeatureView {
-        let (problems, notes): (Vec<&Problem>, Vec<&Problem>) = feature
-            .problems
-            .iter()
-            .chain(extra)
-            .partition(|p| p.blocks());
+        // The workspace's own problems set the step to `none`: they always block, whatever
+        // `BLOCKING`, the list for the check's results, holds.
+        let (blocking, notes): (Vec<&Problem>, Vec<&Problem>) =
+            extra.iter().partition(|p| p.blocks());
+        let problems = feature.problems.iter().chain(blocking);
         let first = crate::workspace::first_file(feature.kind);
         let mut files: Vec<&WorkflowFile> = feature.files.iter().collect();
         files.sort_by(|a, b| workflow_key(a).cmp(&workflow_key(b)));
@@ -163,7 +164,7 @@ impl FeatureView {
                 .collect(),
             mockups: feature.mockups.clone(),
             step: StepView::from(&feature.step),
-            problems: problems.into_iter().map(ProblemView::from).collect(),
+            problems: problems.map(ProblemView::from).collect(),
             notes: notes.into_iter().map(ProblemView::from).collect(),
             left_worktree: feature.left_worktree.clone(),
             left_branch: feature.left_branch.clone(),
