@@ -1327,3 +1327,35 @@ test("a table and a quote in a question's context show in its card", async () =>
     q3.getByText('"One repository at a time." The proposal.').closest("blockquote"),
   ).toBeTruthy();
 });
+
+/** On the phone, the in-page index follows the round's block and comes before its context. */
+test("on the phone, the in-page index sits after the block, before the context", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({}));
+  const block = await screen.findByText("Verdict: worth building as proposed.", { exact: false });
+  const index = screen.getByRole("navigation", { name: "Questions" });
+
+  expect(before(block, index)).toBe(true);
+  expect(before(index, screen.getByRole("heading", { name: "Goal" }))).toBe(true);
+});
+
+/** The index is announced once: the nav is named by its heading, and its list has no name. */
+test("on the phone, the in-page index is announced as Questions once", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({}));
+  const index = await screen.findByRole("navigation", { name: "Questions" });
+
+  const heading = within(index).getByRole("heading", { name: "Questions" });
+  expect(index.getAttribute("aria-labelledby")).toBe(heading.id);
+  expect(screen.queryByRole("list", { name: "Questions" })).toBeNull();
+});
+
+/** An answered round is read-only: it has no questions to jump to, so no in-page index. */
+test("on the phone, an answered round has no in-page index", async () => {
+  atWidth(402);
+  const repo = rewritten((round) => round.replace("status: awaiting-human", "status: answered"));
+  await renderPage(PAGE, repo);
+  await screen.findByText("Verdict: worth building as proposed.", { exact: false });
+
+  expect(screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
+});

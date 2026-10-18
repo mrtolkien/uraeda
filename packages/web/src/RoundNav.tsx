@@ -8,7 +8,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Overlay } from "./layout/Overlay.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -179,15 +179,18 @@ function afterSheetCloses(run: () => void) {
 /** Every applicable question with its state, the one at the top marked current. */
 function Index({
   current,
+  label = "Questions",
   onPick,
   questions,
 }: {
   current: string | undefined;
+  /** The list's own name, none where its nav or heading already names it. */
+  label?: string | null;
   onPick: (id: string) => void;
   questions: ReadonlyArray<NavQuestion>;
 }) {
   return (
-    <List aria-label="Questions" density="compact">
+    <List {...(label ? { "aria-label": label } : {})} density="compact">
       {questions.map((question) => (
         <ListItem
           isSelected={question.id === current}
@@ -210,10 +213,13 @@ function Index({
  * before answering the first, and a later one's answer does not go into an earlier comment.
  */
 export function RoundIndex({ questions }: { questions: ReadonlyArray<NavQuestion> }) {
+  const title = useId();
   return (
-    <nav aria-label="Questions" {...stylex.props(styles.inPage)}>
-      <Heading level={2}>Questions</Heading>
-      <Index current={undefined} onPick={(id) => jumpTo(id)} questions={questions} />
+    <nav aria-labelledby={title} {...stylex.props(styles.inPage)}>
+      <Heading id={title} level={2}>
+        Questions
+      </Heading>
+      <Index current={undefined} label={null} onPick={(id) => jumpTo(id)} questions={questions} />
     </nav>
   );
 }
