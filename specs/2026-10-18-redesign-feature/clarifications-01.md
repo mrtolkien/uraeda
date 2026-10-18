@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Redesign feature and change pages
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 9 questions and 1 follow-up, about 25 minutes.
+> Answered on 2026-10-18.
 >
 > - Verdict: worth building, with changes. "Changes requested" never fires on your own pull
 >   requests, and most "problems" come from version drift, not from the features.
@@ -96,7 +96,7 @@ Why it matters: a split fixes the false "Fix" badges sooner, for one more round 
   - [pro] Home stops crying wolf within a day.
   - [con] a second review, and the problems list is touched twice.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How should the ongoing feature page read, from the top?
 
@@ -126,7 +126,7 @@ on it.
   - [pro] small.
   - [con] the stage and the agent stay buried under the title.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What should a done feature's page show?
 
@@ -160,7 +160,7 @@ workflow's speed, which your priorities name as too slow.
   - [pro] the smallest.
   - [con] no timings, no lines changed: half of what the proposal asks.
 
-**Answer:**
+**Answer:** A: No need to add the human waiting time, it’s noise
 
 ## Q4: Where should a done feature's figures come from?
 
@@ -183,7 +183,7 @@ Why it matters: it decides whether past features get figures, and whether a reco
   - [pro] durable, and readable without Uraeda.
   - [con] past records have none; the figures are copied by an agent, and can be wrong.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What should "tokens used" count?
 
@@ -209,7 +209,7 @@ Why it matters: the number shapes how you compare features, and the next benchma
   - [pro] nothing to capture or store.
   - [con] one of the proposal's figures is gone.
 
-**Answer:**
+**Answer:** A: Can we remove cache reads? So the input tokens would only count fresh input
 
 ## Q6: Should a change get the same page as a feature?
 
@@ -229,7 +229,7 @@ Why it matters: it decides whether the sidebar's cards all lead to the same kind
   - [pro] one click less while it works.
   - [con] two patterns for the same sidebar cards.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How should the session open with the step's message?
 
@@ -256,7 +256,7 @@ Why it matters: it decides the one action you use most on a feature, and where i
   - [pro] no menu.
   - [con] clearing text to chat, and no choice of message.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: How should the agent pick up comments on the pull request?
 
@@ -291,7 +291,7 @@ agent ever starts without you.
   - [pro] nothing to build.
   - [con] the path that never fired stays the only one.
 
-**Answer:**
+**Answer:** A
 
 ### Q8.B: Whose comments send the agent by itself?
 
@@ -341,7 +341,7 @@ feature in progress.
   - [pro] one meaning everywhere.
   - [con] agents and editors stop seeing format slips as errors.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
