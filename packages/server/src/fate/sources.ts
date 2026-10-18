@@ -207,6 +207,7 @@ function missingFeature(folder: string): FeatureRecord {
     source: "",
     step: { implemented: false, name: "none", order: 14, progress: null, waitsOn: "nobody" },
     title: "",
+    tokens: null,
     uncommitted: false,
   };
 }

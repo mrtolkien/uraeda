@@ -125,6 +125,7 @@ export const FeatureView = view<Feature>()({
     waitsOn: true,
   },
   title: true,
+  tokens: { input: true, output: true, partial: true, since: true },
   uncommitted: true,
   worktree: true,
 });
