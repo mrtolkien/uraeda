@@ -54,6 +54,18 @@ export function groupId(items: SpecItems, group: Group): string {
 /** The parts after the stories, by their section's title, in the page's order. */
 export const BUILT_PARTS = ["Architecture", "Edge cases", "Success criteria", "Assumptions"];
 
+/**
+ * The items the core did not read, among the lists holding items it read: a part draws them as the
+ * spec's blocks, so no text of the spec goes missing.
+ */
+export function unreadItems(document: Document, read: ReadonlyArray<number>): Array<number> {
+  const lists = new Set(read.map((id) => document.blocks[id]?.parent));
+  const items = new Set(read);
+  return document.blocks
+    .filter((block) => block.parent != null && lists.has(block.parent) && !items.has(block.id))
+    .map((block) => block.id);
+}
+
 /** The element id of a decision's card. */
 export function decisionId(name: string): string {
   return `decision-${name}`;
