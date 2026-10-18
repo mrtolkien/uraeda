@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Priorities and decisions pages fixes
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question, about 5 minutes.
+> Answered on 2026-10-18. 1 question, about 5 minutes.
 >
 > - Verdict: worth building as proposed: the first and third items are done and committed, and the
 >   second needs one choice only you can make.
@@ -70,7 +70,7 @@ Why it matters: it decides whether a draft can be lost, against a stale file Dis
   - [pro] a draft is never lost.
   - [con] the draft stays on disk, linked from nothing, each time children changed before drafting.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
