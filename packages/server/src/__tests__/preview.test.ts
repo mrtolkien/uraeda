@@ -3,7 +3,7 @@
 // they have a preview; and an agent's link is checked through the core.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import {
   addStoryFeature,
   commitOnBranch,
@@ -11,7 +11,7 @@ import {
   STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { UNREADABLE_INDEX } from "../preview/index.ts";
-import { IDLE_MS } from "../preview/runner.ts";
+import { IDLE_MS, Previews } from "../preview/runner.ts";
 import { byId, type Data, fixtureRepo, mutate, running, testApp, testServer } from "./helpers.ts";
 import { connect, subscribe } from "./live-stream.ts";
 
@@ -263,6 +263,22 @@ test("a view after a new commit in the checkout restarts its Storybook, and upda
   await byId(app, "Story", [STORY], FIELDS);
   expect(previewStarts(log!), "a view at the same commit restarted it").toHaveLength(2);
   await updates.close();
+});
+
+test("a view gives the runner the commit with the stamp taken before it was read", async () => {
+  const repo = fixtureRepo();
+  addStoryFeature(repo);
+  const { app } = await testApp(repo);
+  const view = vi.spyOn(Previews.prototype, "view");
+  const read = vi.spyOn(Previews.prototype, "read");
+
+  await byId(app, "Story", [STORY], FIELDS);
+
+  const [checkout] = view.mock.calls[0]!;
+  expect(checkout.commit).toMatch(/^[0-9a-f]{40}$/);
+  expect(checkout.read).toBe(read.mock.results[0]!.value);
+  view.mockRestore();
+  read.mockRestore();
 });
 
 test("a story's id is checked by the core's rule: another file's link runs nothing", async () => {
