@@ -949,3 +949,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/web/src/Folds.tsx`, `scenarios` in `crates/core/src/files/spec.rs`.
 - **Where**: the final review's fixes. Only headings have anchors, so no real anchor lies inside a
   "More scenarios" fold: its test nests a heading in a scenario.
+
+## R95: SC-002's test lists the 18 rewritten decisions by name
+
+- **Decision**: the test of SC-002 names the 18 decisions the spec rewrote in a constant, instead of
+  reading them from the spec's `## Decisions` items.
+- **Rationale**: the finish step deletes the spec, and the test must keep guarding the criterion on
+  the default branch.
+- **Alternatives considered**: reading the record's decisions section: a record is free text, not a
+  format the core parses.
+- **If wrong**: the list is in `crates/core/tests/check.rs`, next to the test.
+- **Where**: `crates/core/tests/check.rs`
