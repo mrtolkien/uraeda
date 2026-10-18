@@ -100,9 +100,24 @@ impl BranchSides<'_> {
 
     /// One decision's change, or `None` when neither side has it. Without the merge base's
     /// version, the branch's text is all added, `compared` false.
-    fn change(&self, base: Option<ObjectId>, name: &str, listed: bool) -> Option<DecisionChange> {
+    fn change(
+        &self,
+        base: Option<ObjectId>,
+        name: &str,
+        listed: bool,
+        skip_same: bool,
+    ) -> Option<DecisionChange> {
         let after = self.after(name);
-        let mut change = match self.before(base, name) {
+        let before = self.before(base, name);
+        // With `skip_same`, an unlisted decision whose text is the same on both sides is no change:
+        // its parse is skipped.
+        if let (true, false, Before::Text(before), Some(after)) =
+            (skip_same, listed, &before, &after)
+            && before == after
+        {
+            return None;
+        }
+        let mut change = match before {
             Before::Text(before) => compare(name, Some(&before), after.as_deref()),
             Before::Absent => compare(name, None, Some(after.as_deref()?)),
             Before::Unknown => {
@@ -119,11 +134,12 @@ impl BranchSides<'_> {
     }
 }
 
-/// Whether a change is one: a new or removed decision, an uncompared one, or a part not kept. A
-/// rewrap, or a change of the frontmatter alone, is none.
+/// Whether a change is one: a new or removed decision, an uncompared one, a field of its title or
+/// frontmatter that differs, or a part not kept. A rewrap is none.
 fn differs(change: &DecisionChange) -> bool {
     !change.compared
         || change.kind != "changed"
+        || !change.fields.is_empty()
         || change
             .sections
             .iter()
@@ -138,7 +154,7 @@ pub fn branch_changes(sides: &BranchSides<'_>, listed: &[String]) -> Vec<Decisio
     let mut changes: Vec<DecisionChange> = sides
         .names(base)
         .iter()
-        .filter_map(|name| sides.change(base, name, listed.contains(name)))
+        .filter_map(|name| sides.change(base, name, listed.contains(name), true))
         .filter(|change| change.listed || differs(change))
         .collect();
     changes.sort_by_key(|change| {
@@ -158,6 +174,6 @@ pub fn branch_decision(
     listed: bool,
 ) -> Option<(String, DecisionChange)> {
     let text = sides.after(name)?;
-    let change = sides.change(sides.merge_base(), name, listed)?;
+    let change = sides.change(sides.merge_base(), name, listed, false)?;
     Some((text, change))
 }

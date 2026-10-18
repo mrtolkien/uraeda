@@ -135,7 +135,15 @@ export const BranchChangesView = view<BranchChanges>()({
 
 /** A decision as a feature's branch has it, with its change against the default branch. */
 export const BranchDecisionView = view<BranchDecision>()({
-  change: { compared: true, kind: true, listed: true, name: true, sections: true, title: true },
+  change: {
+    compared: true,
+    fields: true,
+    kind: true,
+    listed: true,
+    name: true,
+    sections: true,
+    title: true,
+  },
   document: { blocks: true, hash: true },
   folder: true,
   id: true,
