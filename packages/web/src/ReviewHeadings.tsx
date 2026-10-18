@@ -1,6 +1,5 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
@@ -31,25 +30,12 @@ export function Band({ wide }: { wide: boolean }) {
 }
 
 /**
- * The headings a review draws its own way: a story's, after its band, its id and priority above its
- * title; and a task's, with its steps checked out of its total.
+ * The headings a plan's review draws its own way: a task's, with its steps checked out of its total.
+ * A spec has its own page.
  */
-export function reviewHeadings(items: File["current"]["items"], wide: boolean) {
-  const stories = new Map(items.spec?.stories.map((story) => [story.headingBlock, story]) ?? []);
+export function reviewHeadings(items: File["current"]["items"]) {
   const tasks = new Map((items.plan?.tasks ?? []).map((task) => [task.headingBlock, task]));
   return (block: Block): ReactNode | undefined => {
-    const story = stories.get(block.id);
-    if (story) {
-      return (
-        <div id={block.anchor} key={block.id}>
-          <Band wide={wide} />
-          <Text color="secondary" type="supporting" weight="semibold">
-            {story.id} · {story.priority}
-          </Text>
-          <Heading level={3}>{story.title}</Heading>
-        </div>
-      );
-    }
     const task = tasks.get(block.id);
     if (task) {
       return (

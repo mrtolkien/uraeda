@@ -155,19 +155,6 @@ function Scenarios({
 }
 
 /**
- * The paragraph introducing a list of scenarios and the list, among the story's top-level blocks:
- * the list is the first scenario's parent, the paragraph the block before it.
- */
-function scenarioBlocks(document: Document, story: Story, scenarios: Story["key"]) {
-  const first = scenarios[0];
-  const list = first === undefined ? undefined : document.blocks[first.block]?.parent;
-  const at = list === undefined ? -1 : story.blocks.indexOf(list);
-  return at < 1
-    ? { ids: [], intro: undefined }
-    : { ids: story.blocks.slice(at - 1, at + 1), intro: story.blocks[at - 1] };
-}
-
-/**
  * Whether a story's more scenarios are open, and how to open or fold them: the spec's fold keyed by
  * the story's id, which the history entry keeps, and a pending comment or the selection opens.
  */
@@ -221,9 +208,7 @@ function MoreScenarios({
  * scenarios, and the others folded.
  */
 export function StoryCard({ document, folds, selection, story }: StoryCardProps) {
-  const key = scenarioBlocks(document, story, story.key);
-  const more = scenarioBlocks(document, story, story.more);
-  const scenarioIds = new Set([...key.ids, ...more.ids]);
+  const scenarioIds = new Set([...story.keyBlocks, ...story.moreBlocks]);
   const journey = story.blocks.filter((id) => !scenarioIds.has(id));
   return (
     <Panel
@@ -234,13 +219,13 @@ export function StoryCard({ document, folds, selection, story }: StoryCardProps)
         </>
       }
       crumbs={[GROUPS.stories.title]}
-      id={storyId(story.id)}
+      id={storyId(document, story)}
       title={story.title}
     >
       {journey.length > 0 && <Blocks document={document} ids={journey} selection={selection} />}
       <Scenarios
         document={document}
-        intro={key.intro}
+        intro={story.keyBlocks[0]}
         scenarios={story.key}
         selection={selection}
       />
@@ -248,7 +233,7 @@ export function StoryCard({ document, folds, selection, story }: StoryCardProps)
         <MoreScenarios
           document={document}
           folds={folds}
-          intro={more.intro}
+          intro={story.moreBlocks[0]}
           selection={selection}
           story={story}
         />

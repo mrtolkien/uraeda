@@ -35,8 +35,12 @@ pub struct Story {
     pub mockup: Option<u32>,
     /// The list after its paragraph "Key scenarios:".
     pub key: Vec<Scenario>,
-    /// The list after its paragraph "More scenarios:", which the page folds.
+    /// That paragraph and its list, among `blocks`; none without the list.
+    pub key_blocks: Vec<u32>,
+    /// The list after its paragraph "More scenarios:".
     pub more: Vec<Scenario>,
+    /// That paragraph and its list, among `blocks`, which the page folds; none without the list.
+    pub more_blocks: Vec<u32>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]

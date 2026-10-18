@@ -14,7 +14,7 @@ import type { DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Crumbs } from "../Crumbs.tsx";
 import { useFile } from "../data.ts";
-import type { Folds } from "../Folds.tsx";
+import { type Folds, useHashFold } from "../Folds.tsx";
 import { Page } from "../layout/Page.tsx";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import {
@@ -31,7 +31,15 @@ import { YourVerdict } from "../YourReview.tsx";
 import { BuiltParts } from "./BuiltParts.tsx";
 import { DataPart } from "./DataPart.tsx";
 import { DecisionCards } from "./DecisionCards.tsx";
-import { BUILT_PARTS, type File, GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
+import {
+  BUILT_PARTS,
+  type File,
+  GROUPS,
+  groupId,
+  type PartProps,
+  partOf,
+  type SpecItems,
+} from "./parts.ts";
 import { answeredComments, ReviewAnswers } from "./ReviewAnswers.tsx";
 import { entriesOf, SpecContents, useContentsShown } from "./SpecContents.tsx";
 import { SpecHistory } from "./SpecHistory.tsx";
@@ -142,19 +150,18 @@ function Groups({
   return (
     <>
       {(decisions || changes.length > 0) && (
-        <Group id={GROUPS.decisions.id} title={GROUPS.decisions.title} wide={part.wide}>
+        <Group
+          id={groupId(items, GROUPS.decisions)}
+          title={GROUPS.decisions.title}
+          wide={part.wide}
+        >
           <DecisionCards {...part} changes={changes} items={items.decisions} part={decisions} />
         </Group>
       )}
       {stories && (
-        <Group id={GROUPS.stories.id} title={GROUPS.stories.title} wide={part.wide}>
+        <Group id={groupId(items, GROUPS.stories)} title={GROUPS.stories.title} wide={part.wide}>
           {storiesIntro.length > 0 && (
-            <Blocks
-              document={part.document}
-              folds={part.folds}
-              ids={storiesIntro}
-              selection={part.selection}
-            />
+            <Blocks document={part.document} ids={storiesIntro} selection={part.selection} />
           )}
           {items.stories.map((story) => (
             <StoryCard {...part} key={story.id} story={story} />
@@ -196,6 +203,8 @@ function SpecLayout({
   const data = dataFile && !dataFile.missing ? dataFile : undefined;
   const version = review?.version ?? file.current;
   const items = version.items.spec;
+  // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its part.
+  useHashFold(version.document, folds, true);
   if (!items) {
     return null;
   }

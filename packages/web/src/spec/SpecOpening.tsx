@@ -36,6 +36,13 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     lineHeight: typeScaleVars["--text-heading-3-leading"],
   },
+  section: {
+    // A section of the spec drawn in this part, its anchor's element, its pieces spaced as the
+    // part's.
+    display: "flex",
+    flexDirection: "column",
+    rowGap: spacingVars["--spacing-3"],
+  },
 });
 
 /** The tiers' badges, from the least risk to the most. */
@@ -147,10 +154,11 @@ export function SpecOpening({
   const intro = childrenOf(document, null)
     .filter((b) => b.id < first && b.id !== items.block && !(b.kind === "heading" && b.level === 1))
     .map((b) => b.id);
-  const constitution = partOf(items, "Constitution check")?.blocks.filter(
+  const constitution = partOf(items, "Constitution check");
+  const risk = partOf(items, "Risk tier");
+  const constitutionBlocks = constitution?.blocks.filter(
     (id) => document.blocks[id]?.kind !== "table",
   );
-  const risk = partOf(items, "Risk tier")?.blocks;
   return (
     <Panel crumbs={[]} id={GROUPS.approve.id} title={GROUPS.approve.title}>
       {record && (
@@ -168,11 +176,21 @@ export function SpecOpening({
           <Bullet isLead={false} item={item} key={item.id} selection={selection} />
         ))}
       {intro.length > 0 && <Blocks document={document} ids={intro} selection={selection} />}
-      <Principles items={items} />
-      {constitution && constitution.length > 0 && (
-        <Blocks document={document} ids={constitution} selection={selection} />
+      {constitution && (
+        <div id={constitution.anchor} {...stylex.props(styles.section)}>
+          <Principles items={items} />
+          {constitutionBlocks && constitutionBlocks.length > 0 && (
+            <Blocks document={document} ids={constitutionBlocks} selection={selection} />
+          )}
+        </div>
       )}
-      {risk && risk.length > 0 && <Blocks document={document} ids={risk} selection={selection} />}
+      {risk && (
+        <div id={risk.anchor} {...stylex.props(styles.section)}>
+          {risk.blocks.length > 0 && (
+            <Blocks document={document} ids={risk.blocks} selection={selection} />
+          )}
+        </div>
+      )}
     </Panel>
   );
 }

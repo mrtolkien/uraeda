@@ -6,7 +6,7 @@ import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
-import { GROUPS, partOf, type SpecItems } from "./parts.ts";
+import { GROUPS, groupId, partOf, type SpecItems } from "./parts.ts";
 
 const styles = stylex.create({
   title: {
@@ -24,7 +24,7 @@ export function SpecHistory({ document, items }: { document: Document; items: Sp
     return null;
   }
   return (
-    <div id={GROUPS.history.id}>
+    <div id={groupId(items, GROUPS.history)}>
       <Collapsible
         chevronPosition="start"
         defaultIsOpen={false}

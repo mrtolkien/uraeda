@@ -1418,8 +1418,12 @@ export interface Story {
   mockup?: number
   /** The list after its paragraph "Key scenarios:". */
   key: Array<Scenario>
-  /** The list after its paragraph "More scenarios:", which the page folds. */
+  /** That paragraph and its list, among `blocks`; none without the list. */
+  keyBlocks: Array<number>
+  /** The list after its paragraph "More scenarios:". */
   more: Array<Scenario>
+  /** That paragraph and its list, among `blocks`, which the page folds; none without the list. */
+  moreBlocks: Array<number>
 }
 
 /** A paragraph that embeds a story. */

@@ -279,8 +279,29 @@ function checkNonTextContrast() {
   }
 }
 
+/** Whether an element shows at the top of the window, below the phone's top bar. */
+function atTop(element: Element | null) {
+  const top = element?.getBoundingClientRect().top ?? -1;
+  // A wide screen has no top bar.
+  const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+  return top >= 0 && top < Math.max(bar, 0) + 90;
+}
+
 describe("at both sizes", () => {
   atSize("both");
+
+  test("a link to a section or a story of the spec opens the page at it", async () => {
+    await commands.addSpecFeature();
+    for (const anchor of ["us2-complete-a-repeating-task-p1", "user-stories", "risk-tier"]) {
+      await show(`${PAGE}#${anchor}`, "Complete a repeating task");
+      await expect
+        .poll(() => atTop(document.getElementById(anchor)), { message: anchor })
+        .toBe(true);
+    }
+    expect(document.getElementById("us2-complete-a-repeating-task-p1")).toBe(
+      screen.getByRole("region", { name: "Complete a repeating task" }),
+    );
+  });
 
   /** SC-004 */
   test("the spec page is accessible in both themes, every fold open", async () => {

@@ -31,7 +31,7 @@ export function ReviewPage({ file }: { file: File }) {
             <Blocks
               document={tree}
               folds={folds}
-              override={reviewHeadings(version.items, wide)}
+              override={reviewHeadings(version.items)}
               selection={selection}
             />
           </StoriesProvider>

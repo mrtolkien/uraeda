@@ -931,3 +931,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `crates/core/src/check/unapproved.rs`.
 - **Where**: the final review's fixes, `crates/core/src/git/log.rs`,
   `crates/core/src/check/unapproved.rs`, `skills/uraeda/references/approval.md`
+
+## R94: The spec page's parts take their heading's anchor, and the core sends each story's scenario blocks
+
+- **Decision**: a story's card, the groups drawing a section (decisions, stories, your review,
+  history), and the constitution check and risk tier inside "What you approve" take the section's or
+  story's heading anchor as their element's id; "Contents" links them. `SpecLayout` calls
+  `useHashFold` once, which now also scrolls to an anchor outside any fold. The core sends
+  `Story.key_blocks` beside `more_blocks`: the card's key scenarios need their paragraph and list
+  too, so `scenarioBlocks` could go.
+- **Rationale**: the final review found `spec.md#user-stories` and story links landing nowhere,
+  while the old page drew each heading with its anchor. Each `Blocks` given the spec's folds called
+  `useHashFold` again, so the folds left `BuiltParts` and the stories' intro.
+- **Alternatives considered**: keeping `us2`-style ids beside the anchors: two ids for one place.
+  Deriving the key scenarios' blocks in the UI alone: the duplicate the review asked to remove.
+- **If wrong**: `storyId` and `groupId` in `packages/web/src/spec/parts.ts`, `useHashFold` in
+  `packages/web/src/Folds.tsx`, `scenarios` in `crates/core/src/files/spec.rs`.
+- **Where**: the final review's fixes. Only headings have anchors, so no real anchor lies inside a
+  "More scenarios" fold: its test nests a heading in a scenario.

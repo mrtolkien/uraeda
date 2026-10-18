@@ -14,7 +14,7 @@ import { Paragraph } from "../layout/Paragraph.tsx";
 import { Selectable } from "../Selection.tsx";
 import { Spans } from "../Spans.tsx";
 import { Panel } from "./Panel.tsx";
-import { type File, GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
+import { type File, GROUPS, groupId, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
 const styles = stylex.create({
   quote: {
@@ -90,7 +90,7 @@ export function ReviewAnswers({
   const lists = new Set(items.answers.map((answer) => document.blocks[answer.block]?.parent));
   const rest = partOf(items, "Your review")?.blocks.filter((id) => !lists.has(id)) ?? [];
   return (
-    <Panel crumbs={[]} id={GROUPS.answers.id} title={GROUPS.answers.title}>
+    <Panel crumbs={[]} id={groupId(items, GROUPS.answers)} title={GROUPS.answers.title}>
       {items.answers.map(({ block, number, summary, verdict }) => {
         const item = document.blocks[block];
         return (
