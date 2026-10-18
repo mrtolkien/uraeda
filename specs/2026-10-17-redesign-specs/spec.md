@@ -1,7 +1,7 @@
 ---
 status: approved
-revision: 2
-clarifications: 1
+revision: 3
+clarifications: 2
 risk-tier: high
 plan-review: false
 ---
@@ -10,12 +10,10 @@ plan-review: false
 
 > [!NOTE]
 >
-> Approved on 2026-10-17.
+> Approved on 2026-10-18, with the answer to round 02.
 >
-> - You approve specs that open with what you approve, then the decisions with their changes marked
->   in place, then the stories as cards. You also approve all 18 decisions, rewritten intent first.
-> - New story: US8, "The parts after the stories read at a glance". The block's time counts what
->   changed since your review.
+> - You approve the toolchain decision rewritten with `main`'s change folded in: coverage is
+>   optional, and four CI rules joined its rules, which stay at 10.
 
 A spec becomes a page you approve in one sitting, without opening anything else. What you approve
 comes first, then the decisions, each change shown in place, then the stories as cards, the data,
@@ -70,7 +68,9 @@ feature's view exists.
 - **Changed: [Stack](../decisions/stack.md)**. 1,661 → 669 words, 14 → 10 rules: every boundary and
   security rule kept; exact paths shortened.
 - **Changed: [Toolchain](../decisions/toolchain.md)**. 1,574 → 620 words, 18 → 10 rules: history and
-  tool lists dropped; the `--workspace` trap kept.
+  tool lists dropped; the `--workspace` trap kept. `main`'s later change is folded in: coverage is
+  optional, and its four CI rules joined existing ones, as answered in
+  [round 02](clarifications-02.md#q1-how-does-the-toolchain-decision-take-mains-change).
 - **Changed: [TUI](../decisions/tui.md)**. 398 → 341 words, 5 → 5 rules: same rules, each with its
   check.
 - **Changed: [UI behaviour](../decisions/ui-behaviour.md)**. 1,857 → 554 words, 20 → 9 rules: UI
@@ -412,6 +412,15 @@ any git tool draws.
 **High**: it rewrites every decision, and changes the format of every spec, plan, and decision.
 
 ## History
+
+> [!NOTE]
+>
+> Approved on 2026-10-17.
+>
+> - You approve specs that open with what you approve, then the decisions with their changes marked
+>   in place, then the stories as cards. You also approve all 18 decisions, rewritten intent first.
+> - New story: US8, "The parts after the stories read at a glance". The block's time counts what
+>   changed since your review.
 
 > [!NOTE]
 >
