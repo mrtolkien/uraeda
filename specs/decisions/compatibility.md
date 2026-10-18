@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: history
 ---
 
@@ -19,13 +19,13 @@ until they are.
 - A feature that changes a format MUST update the skill's templates and examples, the fixtures, and
   the files of the default branch that the change makes fail `ura check`, in the same branch.
   Checked by `ura check`.
-- Files on other branches in flight MAY fail `ura check` after such a change is merged, until their
-  branch catches up with the default branch. Checked by review.
 - An agent that finds a workflow file failing `ura check` because its format changed MUST rewrite it
   in the new format, from the template, keeping its content and the human's answers and comments,
   before its step goes on. Checked by `ura check`.
 - A spec that changes a format MUST say which files it updates, and which in-flight branches the
   change makes fail. Checked by review.
+- Files on other branches in flight MAY fail `ura check` after such a change is merged, until their
+  branch catches up with the default branch. Checked by review.
 
 ## Why
 
