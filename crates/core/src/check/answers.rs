@@ -51,14 +51,16 @@ pub(super) fn check_answers(
         return;
     }
     for question in &questions {
-        if !question.answer.is_empty()
-            || question.answer_line == 0
-            || question.applies(&questions) == Applicability::No
-        {
+        if !question.answer.is_empty() || question.applies(&questions) == Applicability::No {
             continue;
         }
+        // A deleted `**Answer:**` line misses its answer too, at its question's line.
+        let line = match question.answer_line {
+            0 => question.line,
+            line => line,
+        };
         problems.push(file.problem(
-            Some(question.answer_line),
+            Some(line),
             "answers.blank",
             format!("{} has no answer", question.id),
         ));
