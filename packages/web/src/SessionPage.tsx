@@ -147,8 +147,7 @@ function SessionLog({
   useKeepPlace(log);
   useEffect(() => {
     onJump?.(following ? undefined : jumpToLatest);
-    // Once per change of following: `onJump` is a new function at each draw.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once per change of following: `onJump` is a new function at each draw
   }, [following, jumpToLatest]);
   // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
   // you" at a gate.
