@@ -8,9 +8,19 @@
 
 - [Redesign feature and change pages](/specs/2026-10-18-redesign-feature/proposal.md)
 
+- [Start a draft folder from its proposal](drafts/start-a-draft-folder-from-its-proposal.md)
+- [Worktree toolchain fixes](drafts/worktree-toolchain-fixes.md)
+- [Storybook preview fixes](drafts/storybook-preview-fixes.md)
+- [Priorities and decisions pages fixes](drafts/priorities-and-decisions-pages-fixes.md)
+- [Decision review fixes](drafts/decision-review-fixes.md)
+- [Spec page fixes](drafts/spec-page-fixes.md)
+- [Round fixes](drafts/round-fixes.md)
+- [Diagram frames](drafts/diagram-frames.md)
+- [Skill wording fixes](drafts/skill-wording-fixes.md)
 - [Redesign session](drafts/redesign-session.md)
 - [Review home](drafts/review-home.md)
 
+- [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 - [Review the overall flow of all user stories](drafts/flow-review.md)
 
 - Empty inbox
@@ -19,6 +29,9 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
+
+- [Later questions resume the current step](drafts/later-questions-resume-the-current-step.md)
+- [Decisions pass](drafts/decisions-pass.md)
 
 ## Next
 
@@ -62,6 +75,8 @@
 - Keyboard navigation of the lists, and how users discover it: the ↑ ↓ / j k keys of the priorities,
   inbox, and decisions lists, without a hint taking room (from the redesign of the priorities' spec
   review)
+
+- [Stable dev environment for UI review](drafts/stable-dev-environment-for-ui-review.md)
 
 ## Later
 

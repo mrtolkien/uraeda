@@ -13,6 +13,7 @@ A functional pass on the session page.
 - Text input still feels a bit laggy on sessions page, might be due to the huge page height
 - Reading the messages on mobile is extremely hard, take inspiration from Gemini/Claude/ChatGPT
   mobile UIs.
+- When there's multiple "blocked by auto mode", we should be able to allow them ALL at once!
 
 ## Why
 
