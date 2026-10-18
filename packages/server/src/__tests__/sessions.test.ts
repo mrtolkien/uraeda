@@ -270,6 +270,29 @@ test("US2.1: WorkflowMessage gives the message the composer is filled with", asy
   });
 });
 
+test("WorkflowMessage for the comments gives the comments message", async () => {
+  const server = await testServer();
+
+  const [message] = await byId(
+    server.app,
+    "WorkflowMessage",
+    [`${AGENT}:comments`],
+    ["id", "text", "step", "refusal"],
+  );
+
+  expect(message).toEqual({
+    id: `${AGENT}:comments`,
+    refusal: null,
+    step: "plan",
+    text:
+      `/uraeda Continue the feature specs/${AGENT}/ on branch ${AGENT}: ` +
+      "Address the comments on its pull request, starting with " +
+      "skills/uraeda/references/implementation.md.\n" +
+      "Stop when the pull request is ready for review again, and earlier only if you need a " +
+      "decision from me.\n",
+  });
+});
+
 const RECOMMENDED_FIELDS = ["id", "name", "reason", "step", "text", "trigger"];
 
 /** US4.1, US4.2 */

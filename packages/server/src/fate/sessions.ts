@@ -3,7 +3,7 @@
 import type { FeatureView, WorkspaceView } from "uraeda-binding";
 import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
 import type { Trigger } from "../runner/events.ts";
-import { runMessage } from "../runner/message.ts";
+import { commentsReference, runMessage } from "../runner/message.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { sessionStatus, STATUS_ORDER } from "../runner/status.ts";
 import { itemLooks } from "./items.ts";
@@ -356,8 +356,9 @@ export async function readWorkflowMessage(
     text: runMessage({
       branch,
       feature,
-      reference: step.reference,
+      reference: trigger === "comments" ? commentsReference(feature) : step.reference,
       step: step.name,
+      trigger: trigger as Trigger,
       ...(step.planReview === undefined ? {} : { planReview: step.planReview }),
     }),
   };
