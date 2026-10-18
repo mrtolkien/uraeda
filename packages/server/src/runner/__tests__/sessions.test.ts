@@ -459,7 +459,11 @@ function withPullRequest(state: "open" | "draft" | undefined, step: string) {
       const next = await binding.nextStep(...args);
       return {
         ...next,
-        step: { name: step, waitsOn: step === "pull-request" ? "human" : "agent" },
+        step: {
+          name: step,
+          waitsOn: step === "pull-request" ? "human" : "agent",
+          ...(step === "pull-request-unknown" ? { pullRequest: "unknown" } : {}),
+        },
       };
     },
     readFeature: async (...args: Parameters<typeof binding.readFeature>) => {
@@ -491,6 +495,25 @@ test("the comments message without a pull request is sent as a chat", async () =
   expect(cache.itemsOf(turn, "system")).toEqual([
     { kind: "system", seq: 1, text: "Sent as a chat: no pull request is open." },
   ]);
+});
+
+/** The edge case of a pull request whose state `gh` could not read */
+test("the comments message while the pull request's state is unknown is sent as a chat", async () => {
+  // Without `gh`, the feature's pull request is its record's, read as open.
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: withPullRequest("open", "pull-request-unknown"),
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Address the comments",
+    workflow: { step: "pull-request", trigger: "comments" },
+  });
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
+  expect(cache.itemsOf(turn, "system")).toHaveLength(1);
 });
 
 test("a comments run carries its trigger", async () => {

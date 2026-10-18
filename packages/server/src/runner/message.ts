@@ -103,7 +103,8 @@ const NOT_RECOMMENDED = new Set(["none", "done", "pull-request-unknown"]);
 /**
  * The one workflow message that applies to a feature now: nothing without its branch or its agent;
  * the step's own while it waits on the agent, the comments message for changes requested on its
- * pull request; else the comments message while its pull request is open or a draft (R3).
+ * pull request; else the comments message while its pull request is open or a draft (R3), and
+ * its state known (R10).
  */
 export function recommendedMessage({
   agent,
@@ -149,7 +150,9 @@ export function recommendedMessage({
       trigger: "manual",
     };
   }
-  if (feature.pullRequest !== undefined) {
+  // Without `gh`, the pull request is its record's, read as open: its state is unknown (R10).
+  const unknown = step.name === "pull-request-unknown" || step.pullRequest === "unknown";
+  if (feature.pullRequest !== undefined && !unknown) {
     return comments(
       feature.kind === "change"
         ? "skills/uraeda/references/change.md"

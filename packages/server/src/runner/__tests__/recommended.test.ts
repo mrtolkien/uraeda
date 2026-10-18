@@ -156,6 +156,18 @@ test("an unknown pull request state recommends nothing", () => {
   expect(recommendedMessage(input({ step: "pull-request-unknown" }))).toEqual(WAITS);
 });
 
+/** The edge case of a pull request whose state `gh` could not read, R10 */
+test("an unknown pull request recommends nothing, though its record reads open", () => {
+  // Without `gh`, the feature's pull request is its record's, read as open.
+  const unknown = input({ pullRequest: "open", step: "pull-request-unknown" });
+  unknown.next.step.pullRequest = "unknown";
+  expect(recommendedMessage(unknown)).toEqual(WAITS);
+  // At a gate, the same unknown state keeps the comments message out.
+  const gate = input({ gate: "clarifications-02.md", pullRequest: "open" });
+  gate.next.step.pullRequest = "unknown";
+  expect(recommendedMessage(gate)).toEqual(WAITS);
+});
+
 test("without the agent, nothing is recommended", () => {
   expect(recommendedMessage(input({ available: false, step: "plan" }))).toEqual({
     reason: "Claude Code is not available on this machine.",
