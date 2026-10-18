@@ -32,9 +32,9 @@ function diagram(name = String.raw`\w[\w ]* diagram`) {
   return screen.findByLabelText(new RegExp(`^${name}`), undefined, { timeout: 15_000 });
 }
 
-/** The text colour of the first diagram drawn. */
+/** The colour the first diagram's text is painted in. */
 function textColor() {
-  return getComputedStyle(document.querySelector("svg.pele")!).color;
+  return getComputedStyle(screen.getAllByText("Task completed")[0]!).fill;
 }
 
 /** The resources the page requested whose address names `pele`. */
