@@ -145,6 +145,7 @@ function Part({ context, part }: { context: Context; part: PartChange }) {
         </HStack>
       )}
       <PartText
+        check={part.check}
         intent={intent}
         runs={part.runs}
         strength={part.strength}
@@ -318,15 +319,31 @@ function ChangeBody({
 }) {
   const kept = change.sections.every((s) => s.parts.every((p) => p.kind === "kept"));
   const same = change.compared && change.kind === "changed" && kept;
-  const none = <Text color="secondary">No change against the default branch</Text>;
+  const verdict = change.fields.length > 0 ? "No part changed" : "No change";
+  const none = <Text color="secondary">{`${verdict} against the default branch`}</Text>;
+  const fields = change.fields.length > 0 && (
+    <VStack gap={0.5}>
+      {change.fields.map((field) => (
+        <Text color="secondary" display="block" key={field.name} type="supporting">
+          {`${field.name}: ${field.before ?? "none"} → ${field.after ?? "none"}`}
+        </Text>
+      ))}
+    </VStack>
+  );
   if (same && !full) {
-    return none;
+    return (
+      <>
+        {none}
+        {fields}
+      </>
+    );
   }
   const whole = !change.compared || change.kind !== "changed";
   const context = { comments, full, name, parts, title, whole };
   return (
     <>
       {same && none}
+      {fields}
       {!change.compared && (
         <Text color="secondary">Could not compare with the default branch.</Text>
       )}

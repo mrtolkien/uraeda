@@ -92,26 +92,6 @@ export function Runs({ runs, whole = false }: { runs: ReadonlyArray<Run>; whole?
   });
 }
 
-/** The words that start a rule's check, as decisions write it (R5 of the specs redesign). */
-const CHECK = /(^|\s)Checked by\b/;
-
-/**
- * A rule's runs, split where its check starts, "Checked by": the runs before, and the check's. A
- * run holding both is cut in two of its kind.
- */
-export function splitCheck(runs: ReadonlyArray<Run>): { check: Array<Run>; rule: Array<Run> } {
-  const at = runs.findIndex((run) => CHECK.test(run.text));
-  if (at < 0) {
-    return { check: [], rule: [...runs] };
-  }
-  const run = runs[at]!;
-  const match = CHECK.exec(run.text)!;
-  const cut = match.index + match[1]!.length;
-  const before = run.text.slice(0, cut).trimEnd();
-  const rule = [...runs.slice(0, at), ...(before ? [{ ...run, text: before }] : [])];
-  return { check: [{ ...run, text: run.text.slice(cut) }, ...runs.slice(at + 1)], rule };
-}
-
 /** A strength's icon, coloured by strength, named for screen readers. */
 export function StrengthIcon({ strength }: { strength: Strength }) {
   return (
@@ -130,11 +110,14 @@ export function StrengthIcon({ strength }: { strength: Strength }) {
  * words as a paragraph. `whole` for a part added or removed whole.
  */
 export function PartText({
+  check,
   intent,
   runs,
   strength,
   whole,
 }: {
+  /** A rule's check, from the core: its words after "Checked by". */
+  check: ReadonlyArray<Run>;
   intent: boolean;
   runs: ReadonlyArray<Run>;
   strength: string | undefined;
@@ -154,13 +137,12 @@ export function PartText({
       </Paragraph>
     );
   }
-  const { check, rule } = splitCheck(runs);
   return (
     <HStack align="start" gap={2}>
       <StrengthIcon strength={strength} />
       <VStack gap={0.5}>
         <Paragraph xstyle={styles.text}>
-          <Runs runs={rule} whole={whole} />
+          <Runs runs={runs} whole={whole} />
         </Paragraph>
         {check.length > 0 && (
           <Text color="secondary" display="block" type="supporting">

@@ -37,7 +37,7 @@ const CASES: &[Case] = &[
         &[(
             "Rules",
             "changed",
-            "=Saving MUST keep -the previous +every earlier =version. Checked by the store's tests.",
+            "=Saving MUST keep -the previous +every earlier =version.",
         )],
     ),
     case(
@@ -655,6 +655,140 @@ fn an_unlisted_change_is_not_listed() {
             ("b", "changed", false)
         ]
     );
+}
+
+/// A title or a frontmatter field changed alone has no part to mark: its fields say it.
+#[test]
+fn an_unlisted_change_of_the_title_or_the_frontmatter_shows_its_fields() {
+    let repo = repo(&[]);
+    let text = |name| decision(name, "Tasks stay local.", "Tasks MUST sync.");
+    on_branch(
+        &repo,
+        &[
+            (
+                &path("a"),
+                Some(text("a").replace("status: active", "status: proposed")),
+            ),
+            (
+                &path("b"),
+                Some(text("b").replace("# b", "# Another title")),
+            ),
+            (
+                &path("c"),
+                Some(text("c").replace("approved-by: mrtolkien\n", "")),
+            ),
+        ],
+    );
+
+    let changes = changes(&repo);
+
+    assert_eq!(
+        kinds(&changes),
+        [
+            ("a", "changed", false),
+            ("b", "changed", false),
+            ("c", "changed", false)
+        ]
+    );
+    let fields = |change: &DecisionChange| -> Vec<(String, Option<String>, Option<String>)> {
+        change
+            .fields
+            .iter()
+            .map(|f| (f.name.clone(), f.before.clone(), f.after.clone()))
+            .collect()
+    };
+    let some = |text: &str| Some(text.to_string());
+    assert_eq!(
+        fields(&changes[0]),
+        [("status".to_string(), some("active"), some("proposed"))]
+    );
+    assert_eq!(
+        fields(&changes[1]),
+        [("title".to_string(), some("b"), some("Another title"))]
+    );
+    assert_eq!(
+        fields(&changes[2]),
+        [("approved-by".to_string(), some("mrtolkien"), None)]
+    );
+}
+
+/// A rule's words and its check, each as `=kept +added -removed` runs.
+fn rule_and_check(before: &str, after: &str) -> (String, String) {
+    let change = compare(
+        "t",
+        Some(&format!("# T\n\n## Rules\n\n{before}\n")),
+        Some(&format!("# T\n\n## Rules\n\n{after}\n")),
+    );
+    let part = &change.sections[0].parts[0];
+    (runs(part), runs_of(&part.check))
+}
+
+fn runs_of(runs: &[uraeda_core::decisions::Run]) -> String {
+    runs.iter()
+        .map(|run| {
+            let sign = match run.kind.as_str() {
+                "kept" => "=",
+                "added" => "+",
+                _ => "-",
+            };
+            format!("{sign}{}", run.text)
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[test]
+fn a_rules_check_is_split_from_its_words() {
+    let (rule, check) = rule_and_check(
+        "- Saving MUST keep it. Checked by review.",
+        "- Saving MUST keep it. Checked by review.",
+    );
+
+    assert_eq!(rule, "=Saving MUST keep it.");
+    assert_eq!(check, "=Checked by review.");
+}
+
+#[test]
+fn a_reworded_check_shows_its_words_changed() {
+    let (rule, check) = rule_and_check(
+        "- Saving MUST keep it. Checked by the store's tests.",
+        "- Saving MUST keep it. Checked by review.",
+    );
+
+    assert_eq!(rule, "=Saving MUST keep it.");
+    assert_eq!(check, "=Checked by -the store's tests. +review.");
+}
+
+#[test]
+fn a_rule_whose_words_and_check_are_one_run_is_cut_in_two_of_its_kind() {
+    let change = compare(
+        "t",
+        None,
+        Some("# T\n\n## Rules\n\n- A rule MUST hold. Checked by tests.\n"),
+    );
+    let part = &change.sections[0].parts[0];
+
+    assert_eq!(runs(part), "+A rule MUST hold.");
+    assert_eq!(runs_of(&part.check), "+Checked by tests.");
+}
+
+#[test]
+fn a_rule_with_no_check_or_a_look_alike_has_none() {
+    for text in [
+        "- A rule MUST hold.",
+        "- A rule MUST hold. Unchecked by anyone.",
+    ] {
+        let (_, check) = rule_and_check(text, text);
+
+        assert_eq!(check, "", "{text}");
+    }
+}
+
+#[test]
+fn a_paragraph_is_not_split_at_checked_by() {
+    let change = compare("t", None, Some("# T\n\nIt is Checked by review.\n"));
+
+    assert!(change.sections[0].parts[0].check.is_empty());
 }
 
 #[test]
