@@ -2,7 +2,7 @@
 // UTC (`vite.config.ts`).
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { commitsAt, type DatedCommit } from "uraeda-binding/test-utils";
-import { expect, test, vi } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { click, type Fake, fakeAgent, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
@@ -219,12 +219,12 @@ test("Decisions leads to the decisions, drawn as changes", async () => {
   const decisions = produced().getByRole("link", { name: /^Decisions/ });
   expect(within(figureCard("Decisions")).getByText("1")).toBeTruthy();
   const scrolled = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+  onTestFinished(() => scrolled.mockRestore());
   const { length } = window.history;
   await click(decisions);
   // An in-page jump: the page scrolls to the decisions, in the same history entry.
   expect(scrolled.mock.contexts).toContain(document.getElementById("decisions"));
   expect(window.history.length).toBe(length);
-  scrolled.mockRestore();
   const drawn = within(region("Decisions"));
   expect(drawn.getByText("New")).toBeTruthy();
   // Under the section's heading, a level below, its crumb "Decisions" on the phone, as the mockup.
