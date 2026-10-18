@@ -18,8 +18,10 @@ import {
   decisionId,
   GROUPS,
   groupId,
+  otherParts,
   partOf,
   type SpecItems,
+  storiesIntro,
   storyId,
 } from "./parts.ts";
 
@@ -62,9 +64,13 @@ function ownersOf(document: Document, items: SpecItems): Map<number, string> {
   for (const story of items.stories) {
     own([story.headingBlock, ...story.blocks], storyId(document, story));
   }
+  own(storiesIntro(items), groupId(items, GROUPS.stories));
   for (const title of BUILT_PARTS) {
     const part = partOf(items, title);
     own(part?.blocks, part?.anchor ?? "");
+  }
+  for (const part of otherParts(items)) {
+    own(part.blocks, part.anchor);
   }
   return owners;
 }
@@ -143,6 +149,7 @@ export function entriesOf({
       const part = partOf(items, title);
       return part ? [entry(part.anchor, part.title)] : [];
     }),
+    ...otherParts(items).map((part) => entry(part.anchor, part.title)),
   ];
 }
 

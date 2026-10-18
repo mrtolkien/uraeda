@@ -108,6 +108,68 @@ test("a part's pending comments are counted in the contents", async () => {
   expect(within(column).getByRole("link", { name: "US2 Complete a repeating task" })).toBeTruthy();
 });
 
+/** A comment on the paragraph that opens the stories' section counts for that section. */
+test("a pending comment on the stories' intro is counted on their section", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [SPEC]: spec.replace(
+      "## User stories\n\n",
+      "## User stories\n\nThe stories share one menu.\n\n",
+    ),
+  });
+  pendingReview(repo, [lineOf(repo, "The stories share one menu.")]);
+  await renderPage(PAGE, repo);
+
+  const column = await contents();
+  expect(
+    within(column).getByRole("link", { name: "What changes for users 1 comment" }),
+  ).toBeTruthy();
+});
+
+/** A level-2 section the page does not know is drawn as written, with its entry in the contents. */
+test("a section the page does not know is drawn, and listed in the contents", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [SPEC]: spec.replace("## History", "## Rollout\n\nShip it behind a flag first.\n\n## History"),
+  });
+  await renderPage(PAGE, repo);
+
+  expect(await screen.findByRole("heading", { level: 2, name: "Rollout" })).toBeTruthy();
+  expect(screen.getByText("Ship it behind a flag first.")).toBeTruthy();
+  const entries = entriesOf(await contents());
+  expect(entries.at(-1)).toBe("Rollout");
+  expect(entries.at(-2)).toBe("Assumptions");
+});
+
+/** What comes right before "Your review, answered" in the page. */
+const beforeAnswers = async () =>
+  (await region("Your review, answered")).previousElementSibling as HTMLElement;
+
+/** On the phone, a band, empty, sets the answers apart from what you approve, as it does the groups. */
+test("on the phone, a band comes between what you approve and the answers", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const band = await beforeAnswers();
+  expect(band.childElementCount).toBe(0);
+  expect(band.textContent).toBe("");
+});
+
+test("on a wide screen, the answers follow what you approve without a band", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const before = await beforeAnswers();
+  expect(before.textContent).not.toBe("");
+});
+
 /** A decision comment is counted on its decision, never on the spec's block at the same lines. */
 test("a decision's pending comment is counted on the decision alone", async () => {
   const repo = fixtureRepo();
