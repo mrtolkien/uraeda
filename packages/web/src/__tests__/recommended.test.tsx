@@ -71,6 +71,40 @@ test("inserting moves the focus to the composer's field", async () => {
   await waitFor(async () => expect(document.activeElement).toBe(await composer()));
 });
 
+/** R30 */
+test("a refused send keeps the inserted message's run", async () => {
+  const fake = await fakeAgent();
+  const { sessions } = await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
+  await click(await insertPlan());
+  await waitFor(async () => expect((await composer()).textContent).toBe(PLAN));
+
+  // The agent leaves the machine after the page read it: the server refuses the run.
+  fake.adapter.installed = false;
+  await sessions.check();
+  await click(screen.getByRole("button", { name: "Start the agent" }));
+
+  expect(await screen.findByText("Claude Code is not available on this machine.")).toBeTruthy();
+  expect((await composer()).textContent).toBe(PLAN);
+  expect(screen.getByRole("button", { name: "Start the agent" })).toBeTruthy();
+  expect(fake.adapter.sent).toHaveLength(0);
+});
+
+/** R30 */
+test("a sent message clears the inserted message's run: Send is back", async () => {
+  const fake = await fakeAgent();
+  fake.adapter.script([]);
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
+  await click(await insertPlan());
+  await waitFor(async () => expect((await composer()).textContent).toBe(PLAN));
+
+  await click(screen.getByRole("button", { name: "Start the agent" }));
+
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  await waitFor(async () => expect((await composer()).textContent).toBe(""));
+  expect(await screen.findByRole("button", { name: "Send" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
+});
+
 /** US4.2 */
 test("a feature waiting on you recommends nothing, and a typed message still sends", async () => {
   const { agent } = await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: true });
