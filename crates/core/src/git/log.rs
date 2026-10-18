@@ -103,9 +103,11 @@ impl Git {
     }
 
     /// The commit that approved revision `revision` of the spec at `spec`, a path from the top
-    /// level: the oldest commit on the first-parent history from `base` to `tip` whose spec reads
-    /// `status: approved` and that revision. `None` when no commit there does, or when the spec at
-    /// `base` does already: the approval was not on this branch.
+    /// level: the first commit of the last run of commits on the first-parent history from `base`
+    /// to `tip` whose spec reads `status: approved` and that revision, so a spec reopened and
+    /// approved again at the same revision is approved from its last approval. `None` when no
+    /// commit there does, or when the spec at `base` does already: the approval was not on this
+    /// branch.
     pub fn approval_commit(
         &self,
         tip: ObjectId,
@@ -129,15 +131,18 @@ impl Git {
                 spec,
             ],
         )?;
+        let mut approval = None;
         for line in output.lines() {
             let Ok(commit) = ObjectId::from_hex(line.trim().as_bytes()) else {
                 continue;
             };
-            if self.approved_at(commit, spec, revision)? {
-                return Ok(Some(commit));
+            if !self.approved_at(commit, spec, revision)? {
+                approval = None;
+            } else if approval.is_none() {
+                approval = Some(commit);
             }
         }
-        Ok(None)
+        Ok(approval)
     }
 
     /// Whether the spec at `spec` reads `status: approved` and revision `revision` at a commit.

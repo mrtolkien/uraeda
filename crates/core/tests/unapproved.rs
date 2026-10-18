@@ -211,7 +211,7 @@ fn a_spec_approved_before_the_branch_has_no_approval_commit_on_it() {
 }
 
 #[test]
-fn the_default_branch_and_a_single_file_report_nothing() {
+fn the_default_branch_and_a_spec_file_report_nothing() {
     let repo = feature();
     approve(&repo);
     repo.write(
@@ -220,10 +220,58 @@ fn the_default_branch_and_a_single_file_report_nothing() {
     );
     repo.commit("docs(feature): edit git");
     assert_eq!(warnings(&repo, SPEC), Vec::<String>::new());
-    assert_eq!(warnings(&repo, GIT), Vec::<String>::new());
     repo.git(&["switch", "--quiet", "main"]);
     repo.git(&["merge", "--quiet", "--ff-only", "2026-10-10-feature"]);
     assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
+}
+
+/// A decision file, checked alone, is reported as it is in its folder's check, and only it.
+#[test]
+fn a_single_decision_file_is_reported_when_it_changed_after_the_approval() {
+    let repo = feature();
+    approve(&repo);
+    repo.write(
+        GIT,
+        &decision("active").replace("A choice.", "Another choice."),
+    );
+    repo.commit("docs(feature): edit git");
+
+    assert_eq!(
+        warnings(&repo, GIT),
+        ["warning: specs/decisions/git.md: git.md changed after the spec's approval"]
+    );
+    assert_eq!(
+        warnings(&repo, "specs/decisions/stack.md"),
+        Vec::<String>::new()
+    );
+}
+
+/// The approval is the one the human gave last: a spec reopened and approved again at the same
+/// revision approves the decision edits made in between.
+#[test]
+fn a_spec_approved_again_at_the_same_revision_approves_the_edits_in_between() {
+    let repo = feature();
+    approve(&repo);
+    repo.write(
+        GIT,
+        &decision("active").replace("A choice.", "Another choice."),
+    );
+    repo.commit("docs(feature): edit git");
+    repo.write(SPEC, &spec("changes-requested", 1, 0));
+    repo.commit("docs(feature): request changes");
+    approve(&repo);
+
+    assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
+
+    repo.write(
+        GIT,
+        &decision("active").replace("A choice.", "A third choice."),
+    );
+    repo.commit("docs(feature): edit git again");
+    assert_eq!(
+        warnings(&repo, "specs"),
+        ["warning: specs/decisions/git.md: git.md changed after the spec's approval"]
+    );
 }
 
 #[test]
