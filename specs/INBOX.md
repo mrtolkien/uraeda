@@ -114,3 +114,6 @@
 - [agent] [redesign-feature] Sidebar: on origin/main, the browser test "the sidebar with sessions,
   searched for “”" fails on desktop: the chat row "Tag v0.3.0 and push the tag." overflows its row
   (243 > 214 px)
+- [agent] [round-fixes] ura check reports a #### heading in a clarifications round's Context or
+  settled section but not in the triage's, whose Context parts() also drops silently; and check_file
+  parses the triage tree even when the triage is not waiting
