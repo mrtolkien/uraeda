@@ -25,8 +25,8 @@ the web UI is memoized by its compiler, not by hand.
   the workspace's default members, never `--workspace`, which links the napi binding into every test
   binary; the binding's tests run from TypeScript. Checked by `ready`.
 - Tests MUST stay isolated between checkouts on one machine: temporary folders they remove, no fixed
-  port, a shared limit on browser runs and another on type checks, lints, and Rust tests, and at
-  most four Vitest workers. Checked by the toolchain configuration's test.
+  port, a shared limit on browser runs, one on type checks, lints, and Rust tests, and at most four
+  Vitest workers. Checked by the toolchain configuration's test.
 - Test runners MUST NOT retry a failed test, a browser failure MUST keep its screenshots, uploaded
   by CI, and a test failing without a bug MUST be fixed in the pull request that finds it. Checked
   by the toolchain configuration's test and review.
@@ -44,9 +44,9 @@ the web UI is memoized by its compiler, not by hand.
 
 Agents check their own work, and one command they cannot forget a part of keeps them honest
 ([the single command](../done/2026-10-10-stack-decision.md#q9-which-single-command-runs-every-check)).
-Caching, parallel CI jobs, nextest, and no retries fix slow runs and failing CI at their cause
+Caching, parallel CI jobs, nextest, and no retries fix slow and failing CI runs at their cause
 ([what fails on CI](../done/2026-10-14-testing-review.md#q2-what-happens-when-a-test-fails-without-a-bug)).
-Several worktrees test on one machine at once, so runs must not collide. The
+Worktrees share a machine, so runs must not collide. The
 [October 17 CI review](/docs/testing-review-2026-10-17.md) found that an instrumented second run
 could fail `main` after every check passed, so coverage became optional. React Compiler fixed typing
 lag on every page at once
@@ -63,9 +63,9 @@ lag on every page at once
 
 ## Consequences
 
-- A task's inputs are a second list to keep with the code. A missing one reuses a stale result
-  locally, and only CI catches it.
-- Coverage, collected only on demand, can go down unnoticed.
+- A task's inputs are a second list to keep with the code: a missing one reuses a stale result
+  locally, caught only by CI.
+- Coverage, on demand only, can drop unnoticed.
 - Bugs specific to macOS or arm64 surface late, in release builds, and Windows stays unsupported
   until a decision adds it.
 - A component that breaks the Rules of React is silently left uncompiled.
