@@ -400,7 +400,8 @@ test("US2.4: a hand-over's message on a feature waiting on the human is sent as 
   });
   await sessions.settled(turn);
 
-  expect(adapter.sent[0]?.text).toBe("Continue");
+  // A chat like any other: its first message opens it.
+  expect(adapter.sent[0]?.text).toBe(`${opening(HUMAN)}\nContinue`);
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
   expect(cache.items(turn, 0, 10)).toEqual([
     expect.objectContaining({ kind: "message", origin: "human", text: "Continue" }),
@@ -423,17 +424,50 @@ test("a message inserted for a step that moved on is sent as a chat", async () =
   });
   await sessions.settled(turn);
 
-  // Sent as it was written: no chat opening is added to it.
-  expect(adapter.sent[0]?.text).toBe(text);
+  // A chat like any other: its first message opens it.
+  expect(adapter.sent[0]?.text).toBe(`${opening(AGENT)}\n${text}`);
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
   const items = cache.items(turn, 0, 10);
-  expect(items[0]).toMatchObject({ kind: "message", origin: "human", text });
-  expect(items[0]).not.toHaveProperty("opening");
+  expect(items[0]).toMatchObject({
+    kind: "message",
+    opening: opening(AGENT),
+    origin: "human",
+    text,
+  });
   expect(items).toContainEqual({
     kind: "system",
     seq: 1,
     text: "Sent as a chat: the feature now waits on you.",
   });
+});
+
+/** The agents decision: a chat after a run opens by saying a human is chatting */
+test("a stale message sent as a chat after a run opens the chat, and the next chat does not", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  adapter.script([]);
+  adapter.script([]);
+  const run = await sessions.send(repo, session.id, {
+    text: "Write the plan",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  await sessions.settled(run.turn);
+  expect(cache.turn(run.turn)?.kind).toBe("workflow");
+  addPlan(repo, AGENT, ELEVEN, "awaiting-human");
+
+  const stale = await sessions.send(repo, session.id, {
+    text: "Write the plan",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  await sessions.settled(stale.turn);
+  const chat = await sessions.send(repo, session.id, { text: "Why eleven tasks?" });
+  await sessions.settled(chat.turn);
+
+  expect(cache.turn(stale.turn)?.kind).toBe("chat");
+  expect(adapter.sent[1]?.text).toBe(`${opening(AGENT)}\nWrite the plan`);
+  expect(cache.items(stale.turn, 0, 1)[0]).toMatchObject({ opening: opening(AGENT) });
+  expect(adapter.sent[2]?.text).toBe("Why eleven tasks?");
 });
 
 test("a message inserted for the step it still waits at starts a workflow run", async () => {
