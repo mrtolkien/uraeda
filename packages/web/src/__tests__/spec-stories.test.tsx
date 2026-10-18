@@ -103,3 +103,33 @@ test("a tap on a scenario opens the comment form on its lines", async () => {
     screen.getByText(/^Lines? \d+(–\d+)?, under "US3: Repeat on a custom schedule/),
   ).toBeTruthy();
 });
+
+/** The Given, When, and Then rows of a scenario, each as its word and its text. */
+const rows = (scenario: HTMLElement) =>
+  [
+    ...document
+      .getElementById(scenario.getAttribute("aria-labelledby") ?? "")!
+      .querySelectorAll("div"),
+  ]
+    .filter((row) => row.children.length === 2 && row.children[0]!.tagName === "SPAN")
+    .map((row) => [row.children[0]!.textContent, row.children[1]!.textContent]);
+
+/** US3 1: a scenario draws its Given, When, and Then each as a labelled row, in order. */
+test("a scenario's Given, When, and Then label its rows, the words after each", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const story = await card("Repeat on a custom schedule");
+  const [first, second] = scenariosOf(story);
+
+  expect(rows(first!)).toEqual([
+    ["Given", "a task due Monday the 5th, "],
+    ["When", 'the user sets "every 2 weeks", '],
+    ["Then", "completing it moves it to Monday the 19th."],
+  ]);
+  expect(rows(second!)[0]).toEqual([
+    "Given",
+    "a task due Monday the 5th, repeating on Mondays and Thursdays, ",
+  ]);
+});
