@@ -16,8 +16,8 @@ a plain text file, committed to git, and you answer whenever you have time.
 
 Spec Kit and Kiro give you spec files to fill in with an agent. superpowers gives you an excellent
 design conversation with an agent, for as long as you stay in the chat. Uraeda aims for the quality
-of that conversation without the conversation: the agent does the research first, asks everything at
-once in a file, and you answer in a few words when you have time.
+of that conversation without the conversation. The agent does the research first and asks everything
+at once in a file. You answer in a few words when you have time.
 
 - **Deep discovery before any question.** The agent reads the code, the documentation, and how other
   products solve the problem, before asking you anything. What it can settle itself, it settles, and
@@ -46,17 +46,17 @@ the next step from the files alone, does it, commits, and stops when it needs yo
 approve by editing the file, by telling the agent, or with `ura answer` and `ura review`, and run it
 again later.
 
-Or hand it over from the web UI: "Commit and start the agent" commits your answers or your approval,
-then opens the feature's session with the workflow's message ready to send. You read it, add a note,
-and send it, and Claude Code works on the next step until it needs you again, while you watch, write
-to it, or stop it. A runner that starts the agent when you push an answer is planned: see
+Or hand it over from the web UI: "Commit and start the agent" commits your answers or your approval.
+It then opens the feature's session with the workflow's message ready to send. You read it, add a
+note, and send it. Claude Code works on the next step until it needs you again, while you watch,
+write to it, or stop it. A runner that starts the agent when you push an answer is planned: see
 [the project status](#project-status). The skill follows the
 [Agent Skills format](https://agentskills.io/specification).
 
-**A good fit** for features worth a spec: where getting the design wrong is costly, and where you
-would rather answer ten precise questions than review a guess. **Not a fit** for a one-line fix:
-just ask your agent. It assumes a capable model with web access: a discovery round reads a lot, and
-takes time and tokens.
+**A good fit** for features worth a spec. Getting the design wrong is costly there, and you would
+rather answer ten precise questions than review a guess. **Not a fit** for a one-line fix: just ask
+your agent. It assumes a capable model with web access: a discovery round reads a lot, and takes
+time and tokens.
 
 ## What it looks like
 
@@ -69,7 +69,7 @@ feature went through the whole workflow:
 2. **The agent investigates**, and writes
    [discovery-01.md](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/discovery-01.md):
    how Microsoft To Do, Todoist, and Google Calendar handle repeats, the iCalendar standard, and a
-   problem in the app's code: due dates stored as timestamps drift by a day across daylight saving
+   problem in the app's code. Due dates stored as timestamps drift by a day across daylight saving
    changes.
 3. **It asks you 7 questions** in
    [clarifications-01.md](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/clarifications-01.md),
@@ -101,11 +101,11 @@ feature went through the whole workflow:
    approve it, and the decisions become active.
 5. **It writes the [plan](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**,
    in the style of superpowers: tasks with the files they touch, their interfaces, and their failing
-   tests written out. The spec's risk tier is high, since every saved due date is upgraded, so it
+   tests written out. The spec's risk tier is high, since every saved due date is upgraded. So it
    proposed that you review the plan too, and you kept that when approving it.
 6. **It implements the plan, building independent tasks at the same time, and opens a pull
    request**, where you review the code.
-7. **It finishes the feature** in the pull request's last commit: one
+7. **It finishes the feature** in the pull request's last commit. One
    [record](skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with what the feature does, each question and its answer, and what changed after you
    approved. Once you merge, `ura clean` removes its worktree and branch.
@@ -157,24 +157,24 @@ specs/
     images/                    # your screenshots, linked from your files
 ```
 
-Each feature lives on a branch named after its folder. You answer and approve on that branch, and a
-single pull request merges everything at once: the decisions, the code, and the feature's record,
-which replaces its folder in the branch's last commit, while git keeps the folder's history. When
-your answers raise new questions, a second round follows, `discovery-02.md` and
+Each feature lives on a branch named after its folder. You answer and approve on that branch. A
+single pull request merges everything at once: the decisions, the code, and the feature's record.
+The record replaces its folder in the branch's last commit, while git keeps the folder's history.
+When your answers raise new questions, a second round follows, `discovery-02.md` and
 `clarifications-02.md`, and so on.
 
-Bug fixes and small changes take a lighter flow, a change: you type the request under "New change"
-in the web UI, and its agent works in its own branch and worktree. It investigates, asks only what
-you must decide, makes the change with tests that fail first, has a fresh reviewer check it, and
-opens a pull request: no spec, no plan, and often nothing to answer before the review. A change that
-turns out too big is offered to you as a feature.
+Bug fixes and small changes take a lighter flow, a change. You type the request under "New change"
+in the web UI, and its agent works in its own branch and worktree. It investigates and asks only
+what you must decide. It makes the change with tests that fail first, has a fresh reviewer check it,
+and opens a pull request. There is no spec and no plan, and often nothing to answer before the
+review. A change that turns out too big is offered to you as a feature.
 
 Small things you notice while working, a misaligned icon or a confusing command, go in the inbox,
-`specs/INBOX.md`, in a few seconds: from the web UI's ＋, or with `ura note`, which agents use too.
-You organize the notes later into priorities, drafts, or changes, by hand or by answering an agent's
+`specs/INBOX.md`, in a few seconds. Use the web UI's ＋, or `ura note`, which agents use too. You
+organize the notes later into priorities, drafts, or changes, by hand or by answering an agent's
 proposed triage.
 
-To start in a project, run `ura init`, or ask the agent to "set up specs/": either creates the
+To start in a project, run `ura init`, or ask the agent to "set up specs/". Either creates the
 folder, and the agent drafts the constitution with you. `ura init` also offers to install the skill
 for your user, when your agents have none.
 
@@ -192,12 +192,12 @@ brew install mrtolkien/tap/ura                     # or with Homebrew
 nix run github:mrtolkien/uraeda -- --version       # or with Nix, built from source
 ```
 
-Then `ura install` installs the skill for your user, so every repository on your machine has it, or
-for one repository, into the folders your agents read: `.agents/skills`, `.claude/skills`, or both.
-In a repository, `ura init` sets up `specs/` and offers to install the skill for your user. Without
-`ura`, install the skill for any agent with `npx skills add mrtolkien/uraeda`. `ura upgrade`
-installs the latest release, through the installer script or Homebrew, then updates your skill; with
-Nix, update the flake input.
+Then `ura install` installs the skill for your user, so every repository on your machine has it. It
+can also install it for one repository, into the folders your agents read: `.agents/skills`,
+`.claude/skills`, or both. In a repository, `ura init` sets up `specs/` and offers to install the
+skill for your user. Without `ura`, install the skill for any agent with
+`npx skills add mrtolkien/uraeda`. `ura upgrade` installs the latest release, through the installer
+script or Homebrew, then updates your skill; with Nix, update the flake input.
 
 The web UI comes from npm. In a repository, run `npx @uraeda/ui`: it starts the server on
 http://127.0.0.1:4310 and opens the repository in your browser. It needs Node 24 or later, and
@@ -221,7 +221,7 @@ signs every device out.
 
 Settings, at the bottom of the sidebar, shows and changes the server's settings, and holds the
 theme, kept on each browser, and signing out. The server's settings are kept in
-`~/.config/uraeda/config.toml`, a file you can also edit by hand and keep in your dotfiles: in
+`~/.config/uraeda/config.toml`, a file you can also edit by hand and keep in your dotfiles. It is in
 `$XDG_CONFIG_HOME/uraeda/` when `XDG_CONFIG_HOME` is set, or in `URAEDA_CONFIG_DIR` when that is.
 The page keeps the file's comments. Its `[server]` table holds:
 
@@ -234,14 +234,14 @@ open_browser = true                      # whether a start opens the browser
 
 A host name added or removed applies to the next request; the port and the browser, at the next
 start. Each value comes from its flag, `--allowed-hosts`, `--port`, or `--no-open`, else its
-environment variable, `URAEDA_ALLOWED_HOSTS` or `URAEDA_PORT`, else the file, else its default: a
+environment variable, `URAEDA_ALLOWED_HOSTS` or `URAEDA_PORT`, else the file, else its default. A
 flag or a variable holds for one run, is never written into the file, and the page says which one is
 in force. A file that cannot be read is never overwritten: the server says why and uses its defaults
 until it is fixed.
 
 To reach Uraeda from a public address, put a proxy that ends TLS on the same machine, like Caddy or
-Tailscale Funnel, and add its host name in Settings, or give it to `--allowed-hosts`. With Caddy,
-the whole configuration is `uraeda.example.com { reverse_proxy 127.0.0.1:4310 }`. The server itself
+Tailscale Funnel. Add its host name in Settings, or give it to `--allowed-hosts`. With Caddy, the
+whole configuration is `uraeda.example.com { reverse_proxy 127.0.0.1:4310 }`. The server itself
 listens on 127.0.0.1 only.
 
 In a repository whose `package.json` asks for another package manager in `devEngines`, npm refuses
@@ -273,7 +273,7 @@ Every command works without a terminal, and the read commands print JSON with `-
 
 ## Editors
 
-`ura lsp` is a language server for workflow files: diagnostics as you type, completion of
+`ura lsp` is a language server for workflow files. It offers diagnostics as you type, completion of
 frontmatter values, and the human's actions, from commenting on a spec to approving it.
 
 - **Neovim**: [uraeda.nvim](editors/nvim/README.md), in `editors/nvim/`, with keys under `<leader>a`
@@ -291,11 +291,11 @@ frontmatter values, and the human's actions, from commenting on a spec to approv
 
 ## Building the tools
 
-The tools are a Rust core, the `ura` CLI, and a web UI served with its server: it shows every
-feature and file with its structure, performs every human step, answering, reviewing, drafting, and
-jotting down priorities, and holds your sessions with the agent, from a phone too. With Rust, Node
-24, and pnpm, or in `nix develop`, where `pnpm install` stands for `vp install` and the layout tests
-find their WebKit browser:
+The tools are a Rust core, the `ura` CLI, and a web UI served with its server. The web UI shows
+every feature and file with its structure. It performs every human step, answering, reviewing,
+drafting, and jotting down priorities. It also holds your sessions with the agent, from a phone too.
+With Rust, Node 24, and pnpm, or in `nix develop`, where `pnpm install` stands for `vp install` and
+the layout tests find their WebKit browser:
 
 ```sh
 vp install         # dependencies
@@ -308,30 +308,30 @@ vp run release 0.5.0  # on an up-to-date main: notes in CHANGELOG.md, version, t
 cargo run -p uraeda-cli -- status
 ```
 
-One server serves every repository in Uraeda's list, kept in your data folder: the menu at the top
-left of the web UI switches between them, adds one by its folder, and removes one, and `ura add`
-adds the repository of the folder you are in. Each repository's pages are under `/r/<name>/`.
+One server serves every repository in Uraeda's list, kept in your data folder. The menu at the top
+left of the web UI switches between them, adds one by its folder, and removes one. `ura add` adds
+the repository of the folder you are in. Each repository's pages are under `/r/<name>/`.
 
 `vp dev` and `vp run dev` read `.env` at the root, from [`.env.example`](.env.example):
-`URAEDA_REPO` names the repository opened first, and adds it to the list, `URAEDA_PORT` changes the
-port, and `URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your
-machine's full name on your tailnet, `mac.tail1234.ts.net`. Vite checks host names and takes its
-port before the settings file is read: under `vp dev`, they come from these variables only. The
-server listens on 127.0.0.1 only: `tailscale serve --bg 4310` reaches it from your phone, at
+`URAEDA_REPO` names the repository opened first, and adds it to the list. `URAEDA_PORT` changes the
+port. `URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your machine's
+full name on your tailnet, `mac.tail1234.ts.net`. Vite checks host names and takes its port before
+the settings file is read, so under `vp dev`, they come from these variables only. The server
+listens on 127.0.0.1 only. `tailscale serve --bg 4310` reaches it from your phone, at
 `https://mac.tail1234.ts.net/`. The npm package reads no `.env`: its settings come from its flags,
 its environment, and your settings file.
 
 Sessions need `claude` installed and signed in on the machine. Each feature has one session, in its
-worktree, where the workflow's runs and your chat follow each other; "New chat" opens one without a
+worktree, where the workflow's runs and your chat follow each other. "New chat" opens one without a
 feature, in the main checkout. The buttons that hand a feature over, like "Commit and start the
-agent" and "Approve and start the agent", commit, then open its session with the workflow's message
-in the composer: nothing goes until you send it. A message sent while the agent works is steered
-into its turn, Stop ends the turn and keeps the session, and the sidebar shows every session with
-what needs you, what works, and each new reply. Claude Code runs in `auto` permission mode, with
-your own settings, and with the server's copy of the skill as a plugin: see the
+agent" and "Approve and start the agent", commit. They then open its session with the workflow's
+message in the composer. Nothing goes until you send it. A message sent while the agent works is
+steered into its turn. Stop ends the turn and keeps the session. The sidebar shows every session
+with what needs you, what works, and each new reply. Claude Code runs in `auto` permission mode,
+with your own settings, and with the server's copy of the skill as a plugin: see the
 [agents](specs/decisions/agents.md) decision. Without `claude`, the pages only commit. Sessions are
 kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder, `~/.local/share/uraeda/`
-on Linux, where a running server keeps the files that only live while it runs, like its host token
+on Linux. There, a running server keeps the files that only live while it runs, like its host token
 and its Storybooks' records, in `run/`. When Claude Code changes and sessions break,
 `vp run validate:claude` checks the integration against the installed `claude`, with a few short
 sessions.
@@ -340,6 +340,6 @@ The code is under the MIT or Apache-2.0 licenses, at your option.
 
 ## Project status
 
-What is being built now, and next, is in [specs/PRIORITIES.md](specs/PRIORITIES.md): the skill
-first, then a CLI, a web UI to view and edit the workflow files, sessions with Claude Code in the
-web UI, and a git listener that starts it when you commit an answer.
+What is being built now, and next, is in [specs/PRIORITIES.md](specs/PRIORITIES.md). The order is
+the skill first. Then come a CLI and a web UI to view and edit the workflow files. Sessions with
+Claude Code in the web UI follow, then a git listener that starts it when you commit an answer.
