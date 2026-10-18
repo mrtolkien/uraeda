@@ -15,6 +15,7 @@ mod decision;
 mod verdict;
 
 pub use decision::DecisionTarget;
+pub(crate) use decision::comments_current;
 pub use verdict::{Tier, approve, approve_and_commit, request_changes, request_changes_and_commit};
 
 /// The file of a feature waiting for a review: the one named, or the one at its gate.
@@ -237,6 +238,7 @@ fn pending(place: &Place, feature: &Feature, file: &str) -> Result<Option<Review
             .ok()
             .flatten()
             .is_some_and(|committed| fresh(&git, &review, &path, head, &committed))
+            && decision::comments_current(&git, &review, head)
     });
     if !current {
         return Err(ActionError::Refused(format!(
