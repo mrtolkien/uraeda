@@ -1276,11 +1276,17 @@ export interface SettledComment {
 export interface SettledGroup {
   /** Its heading's block. */
   heading: number
-  /** `check`, `behaviour`, or `hood`, from "Check these", "Behaviour", and "Under the hood". */
-  kind: string
+  /** Its kind, from its sub-heading. */
+  kind: SettledKind
   /** Its top-level blocks, before the `**Notes:**` line. */
   blocks: Array<number>
 }
+
+/**
+ * The kind of a settled group, from its sub-heading: "Check these", "Behaviour", or "Under the
+ * hood".
+ */
+export type SettledKind = 'check' | 'behaviour' | 'hood'
 
 /** A point settled without the human, by its bold start. */
 export interface SettledPoint {

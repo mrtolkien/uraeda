@@ -106,6 +106,17 @@ pub struct ContextPart {
     pub blocks: Vec<u32>,
 }
 
+/// The kind of a settled group, from its sub-heading: "Check these", "Behaviour", or "Under the
+/// hood".
+#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SettledKind {
+    Check,
+    Behaviour,
+    Hood,
+}
+
 /// A group of the points settled without the human: a `###` sub-heading and its blocks.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -113,8 +124,8 @@ pub struct ContextPart {
 pub struct SettledGroup {
     /// Its heading's block.
     pub heading: u32,
-    /// `check`, `behaviour`, or `hood`, from "Check these", "Behaviour", and "Under the hood".
-    pub kind: String,
+    /// Its kind, from its sub-heading.
+    pub kind: SettledKind,
     /// Its top-level blocks, before the `**Notes:**` line.
     pub blocks: Vec<u32>,
 }

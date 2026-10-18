@@ -2,7 +2,7 @@ mod common;
 
 use uraeda_core::files::clarifications::{compose_answer, letters, split_answer};
 use uraeda_core::files::document::{self, plain};
-use uraeda_core::files::items::{Items, SpecItems, items};
+use uraeda_core::files::items::{Items, SettledKind, SpecItems, items};
 use uraeda_core::files::review::{edit_comment, remove_comment};
 
 const EXAMPLE: &str = "skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks";
@@ -139,12 +139,8 @@ fn a_round_has_its_questions_and_options() {
     assert_eq!(follow_up.parent.as_deref(), Some("Q2"));
     assert_eq!(follow_up.parent_letter.as_deref(), Some("B"));
     assert_eq!(follow_up.applies, "no");
-    let kinds: Vec<&str> = round
-        .settled_groups
-        .iter()
-        .map(|g| g.kind.as_str())
-        .collect();
-    assert_eq!(kinds, ["check", "behaviour"]);
+    let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
+    assert_eq!(kinds, [SettledKind::Check, SettledKind::Behaviour]);
     let subjects = |group: &uraeda_core::files::items::SettledGroup| -> Vec<String> {
         round
             .settled_points
@@ -172,8 +168,8 @@ fn a_round_has_its_questions_and_options() {
     for group in &round.settled_groups {
         assert_eq!(
             doc.text(group.heading),
-            match group.kind.as_str() {
-                "check" => "Check these",
+            match group.kind {
+                SettledKind::Check => "Check these",
                 _ => "Behaviour",
             }
         );
@@ -759,12 +755,8 @@ fn a_subject_repeated_across_groups_takes_its_comment_on_the_first() {
 **Notes:**\n\n- **Same subject**: A comment.\n"
     );
     let (round, doc) = round_of("clarifications-01.md", &text);
-    let kinds: Vec<&str> = round
-        .settled_groups
-        .iter()
-        .map(|g| g.kind.as_str())
-        .collect();
-    assert_eq!(kinds, ["check", "hood"]);
+    let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
+    assert_eq!(kinds, [SettledKind::Check, SettledKind::Hood]);
     let first = round.settled_groups[0].blocks[0];
     let point = doc.children(first).next().unwrap().id;
     assert_eq!(round.settled_comments.len(), 1);
@@ -787,12 +779,8 @@ fn a_quoted_heading_starts_no_part_nor_group() {
     let titles: Vec<&str> = round.context.iter().map(|p| p.title.as_str()).collect();
     assert_eq!(titles, ["Goal", "Today", "Scope", "Sources"]);
     assert_eq!(round.context[2].blocks.len(), 2);
-    let kinds: Vec<&str> = round
-        .settled_groups
-        .iter()
-        .map(|g| g.kind.as_str())
-        .collect();
-    assert_eq!(kinds, ["behaviour"]);
+    let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
+    assert_eq!(kinds, [SettledKind::Behaviour]);
     let points: Vec<&str> = round
         .settled_points
         .iter()
