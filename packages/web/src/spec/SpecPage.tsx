@@ -253,7 +253,7 @@ function SpecLayout({
             {review && <ReviewIntro file={file} review={review} />}
           </VStack>
           <SpecOpening document={document} items={items} selection={part.selection} />
-          {items.answers.length > 0 && (
+          {partOf(items, "Your review") && (
             <>
               {!wide && <Band />}
               <ReviewAnswers

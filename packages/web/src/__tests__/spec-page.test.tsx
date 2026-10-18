@@ -283,6 +283,24 @@ test("a review item and a decision item the core cannot read show beside the one
   expect(screen.getByText(/A repeating task is one task/)).toBeTruthy();
 });
 
+/** A review section whose every item the core cannot read still shows, as written. */
+test("a review section of only unreadable items is still drawn", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [SPEC]: spec.replace(
+      /## Your review\n[\s\S]*?(?=## Decisions)/,
+      "## Your review\n\n- Done.\n- Also done.\n\n",
+    ),
+  });
+  await renderPage(PAGE, repo);
+
+  const answers = await region("Your review, answered");
+  expect(answers.textContent).toContain("Also done.");
+  expect(entriesOf(await contents())).toContain("Your review, answered");
+});
+
 /** US4 1: the answers answer the review that asked for the revision, not the one under way. */
 test("your review stays answered, its quotes kept, once you comment on the revision", async () => {
   const repo = fixtureRepo();
