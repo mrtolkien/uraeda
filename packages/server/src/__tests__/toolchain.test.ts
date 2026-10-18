@@ -603,6 +603,12 @@ test("a job name or echo naming a ready task does not count as running it", () =
   expect(notInCi({ "ready:typescript": { command: "true" } }, ci)).toEqual([]);
 });
 
+/**
+ * Vite Task's globs match dot folders, `**` included, which `matchesGlob`'s do not: a leading dot is
+ * renamed in both, so `.worktrees` is a folder like any other.
+ */
+const undotted = (path: string) => path.replaceAll(/(^|\/)\./g, "$1dot-");
+
 /** Whether explicit include and exclude globs fingerprint a file. Excludes always win. */
 function tracks(task: string, file: string): boolean {
   const cache = allTasks()[task].cache;
@@ -611,8 +617,12 @@ function tracks(task: string, file: string): boolean {
       ? (cache.input?.filter((input): input is string => typeof input === "string") ?? [])
       : [];
   return (
-    inputs.some((input) => !input.startsWith("!") && matchesGlob(file, input)) &&
-    !inputs.some((input) => input.startsWith("!") && matchesGlob(file, input.slice(1)))
+    inputs.some(
+      (input) => !input.startsWith("!") && matchesGlob(undotted(file), undotted(input)),
+    ) &&
+    !inputs.some(
+      (input) => input.startsWith("!") && matchesGlob(undotted(file), undotted(input.slice(1))),
+    )
   );
 }
 
@@ -635,6 +645,9 @@ test("cached checks track the dev shell and ignore generated reports", () => {
       "coverage/report.md",
       "packages/web/.vitest/traces/failed.zip",
       "packages/web/storybook-static/index.html",
+      // Another checkout's files: in the main checkout, `.worktrees/` holds every worktree.
+      ".worktrees/other/specs/proposal.md",
+      ".worktrees/other/packages/web/src/app.ts",
     ]) {
       expect(tracks(name, file), `${name} ignores ${file}`).toBe(false);
     }
