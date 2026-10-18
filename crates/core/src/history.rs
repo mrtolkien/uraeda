@@ -112,9 +112,10 @@ pub(crate) fn read(
             .filter(|file| file.kind == FileKind::Clarifications)
             .count() as u32,
     };
-    let found = !done || scoped.iter().any(|(kind, _)| *kind == "finish");
+    let took = |stage: Stage| scoped.iter().any(|(kind, _)| stage.takes(kind));
+    let found = !done || took(Stage::PullRequest);
     let list = if found {
-        let had_round = rounds > 0 || scoped.iter().any(|(kind, _)| *kind == "discovery");
+        let had_round = rounds > 0 || took(Stage::Questions);
         stages::of(feature.kind, feature.kind == Kind::Feature || had_round)
     } else {
         vec![Stage::Merged]
