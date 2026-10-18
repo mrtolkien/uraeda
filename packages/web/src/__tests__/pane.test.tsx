@@ -544,7 +544,7 @@ test.each([
     await renderPage("/priorities/git-listener", repo, { agent: held.fake, fetch: held.fetch });
     await pressEdit();
 
-    await click((await paneDrawn()).getByRole("button", { name: label }));
+    await click(await (await paneDrawn()).findByRole("button", { name: label }));
 
     const button = detail().getByRole("button", { name: running });
     expect(button.querySelector('[role="status"]')).toBeTruthy();
