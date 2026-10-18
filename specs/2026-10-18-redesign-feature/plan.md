@@ -516,7 +516,7 @@ of snapshots with a blocking result, for the pull request.
 - Expected: PASS, 37 snapshots, 36 with errors, 0 blocking. Discovery's 72 counted other branches'
   commits too; `main` holds 39 commits in the window, two of which removed their folder (R7).
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS. `feature.test.tsx`'s "shows the problems ura check finds" still passes: its
@@ -891,7 +891,7 @@ false), otherwise `cache.agentSessionTokens(live.id)`. On a `tokens` event, the 
 process gets `total − baseline`, field by field, never below zero, added with `addTurnTokens`, and
 the baseline becomes `total`.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
