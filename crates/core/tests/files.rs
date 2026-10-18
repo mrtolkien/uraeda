@@ -459,6 +459,40 @@ fn a_decision_comment_without_its_name_is_a_bad_anchor() {
     ));
 }
 
+/// A name the writer refuses is a bad anchor in a file too.
+#[test]
+fn a_decision_comment_on_a_name_that_is_no_decision_is_a_bad_anchor() {
+    for name in ["a/b", "../x", ".hidden", "a\\b"] {
+        let text = DECISION_REVIEW.replace("Decision task-storage,", &format!("Decision {name},"));
+
+        assert!(
+            matches!(
+                review::parse(&text),
+                Err(review::ReviewError::BadAnchor { line: 8, .. })
+            ),
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn a_bad_anchor_says_a_decision_range_is_a_line_or_lines_and_may_be_removed() {
+    let message =
+        review::parse(&DECISION_REVIEW.replace("Decision task-storage, lines 19–20", "Decision x"))
+            .unwrap_err()
+            .to_string();
+
+    assert!(
+        message.contains("Decision <name>, line N, under"),
+        "{message}"
+    );
+    assert!(
+        message.contains("Decision <name>, lines N–M, under"),
+        "{message}"
+    );
+    assert!(message.contains("lines N–M removed"), "{message}");
+}
+
 #[test]
 fn priorities_entries_of_a_real_file() {
     let text = repository_file("fixtures/PRIORITIES.md");

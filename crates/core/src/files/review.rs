@@ -110,7 +110,7 @@ pub enum ReviewError {
     #[error("no commit field")]
     NoCommit,
     #[error(
-        "line {line}: \"{heading}\" is not \"Lines N–M, under \\\"<heading>\\\"\", \"Line N, under \\\"<heading>\\\"\", \"Decision <name>, lines N–M, under \\\"<heading>\\\"\", or \"General\""
+        "line {line}: \"{heading}\" is not \"Lines N–M, under \\\"<heading>\\\"\", \"Line N, under \\\"<heading>\\\"\", \"Decision <name>, lines N–M, under \\\"<heading>\\\"\", \"Decision <name>, line N, under \\\"<heading>\\\"\", \"Decision <name>, lines N–M removed, under \\\"<heading>\\\"\", \"Decision <name>, line N removed, under \\\"<heading>\\\"\", or \"General\""
     )]
     BadAnchor { line: usize, heading: String },
     #[error("no comment C{0}")]
@@ -136,6 +136,14 @@ fn anchor(text: &str) -> Option<Anchor> {
     Some(Anchor::Lines(start, end, heading))
 }
 
+/// Whether `name` can be a decision's file stem in a review's heading: no space or comma, which
+/// end it, and no path, so `specs/decisions/<name>.md` stays in the folder.
+pub fn is_decision_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name.starts_with('.')
+        && !name.contains(|c: char| c.is_whitespace() || matches!(c, ',' | '/' | '\\'))
+}
+
 /// `task-storage, lines 19–20 removed, under "Rules"`, after `Decision `.
 fn decision_anchor(text: &str) -> Option<Anchor> {
     let (name, rest) = text.split_once(", ")?;
@@ -146,7 +154,7 @@ fn decision_anchor(text: &str) -> Option<Anchor> {
         None => (lines, false),
     };
     let (start, end) = range(lines, ["lines ", "line "])?;
-    (!name.is_empty() && !name.contains(char::is_whitespace)).then(|| Anchor::Decision {
+    is_decision_name(name).then(|| Anchor::Decision {
         name: name.to_string(),
         start,
         end,

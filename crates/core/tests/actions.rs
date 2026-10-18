@@ -615,7 +615,14 @@ fn a_decision_comment_on_an_unknown_name_or_lines_is_refused() {
 
     commit_at(&place, "specs/decisions/two words.md", DECISION_ON_BRANCH);
 
-    for name in ["git", "../2026-10-11-web-ui/spec", "", "two words"] {
+    for name in [
+        "git",
+        "../2026-10-11-web-ui/spec",
+        "",
+        "two words",
+        "a/b",
+        ".hidden",
+    ] {
         let refused = review::comment(
             &git,
             &place,
