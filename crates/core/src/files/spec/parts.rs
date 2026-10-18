@@ -78,29 +78,42 @@ pub(super) fn block(doc: &Document) -> (Option<u32>, Option<u32>, Option<u32>) {
 /// The items of `## Your review` opening with a bold `C<n>`, then the comment in a few words in
 /// parentheses, a colon, and `done` or `declined`.
 pub(super) fn answers(doc: &Document, blocks: &[u32]) -> Vec<ReviewAnswer> {
-    items(doc, blocks)
-        .into_iter()
-        .filter_map(|item| {
-            let (first, rest) = item.spans.split_first()?;
-            let number = first
-                .strong
-                .then(|| first.text.trim().strip_prefix('C'))??
-                .parse()
-                .ok()?;
-            let rest = plain(rest);
-            let rest = rest.trim_start().strip_prefix('(')?;
-            rest.match_indices("):").find_map(|(at, _)| {
-                let verdict = ["done", "declined"]
-                    .into_iter()
-                    .find(|v| word_starts(rest[at + 2..].trim_start(), v))?;
-                Some(ReviewAnswer {
-                    number,
-                    summary: rest[..at].trim().to_string(),
-                    verdict: verdict.to_string(),
-                    block: item.id,
-                })
-            })
+    items(doc, blocks).into_iter().filter_map(answer).collect()
+}
+
+/// The items of `## Your review` that `answers` does not read.
+pub(super) fn unread_answers(doc: &Document, blocks: &[u32]) -> Vec<u32> {
+    unread(items(doc, blocks), |item| answer(item).is_some())
+}
+
+fn answer(item: &Block) -> Option<ReviewAnswer> {
+    let (first, rest) = item.spans.split_first()?;
+    let number = first
+        .strong
+        .then(|| first.text.trim().strip_prefix('C'))??
+        .parse()
+        .ok()?;
+    let rest = plain(rest);
+    let rest = rest.trim_start().strip_prefix('(')?;
+    rest.match_indices("):").find_map(|(at, _)| {
+        let verdict = ["done", "declined"]
+            .into_iter()
+            .find(|v| word_starts(rest[at + 2..].trim_start(), v))?;
+        Some(ReviewAnswer {
+            number,
+            summary: rest[..at].trim().to_string(),
+            verdict: verdict.to_string(),
+            block: item.id,
         })
+    })
+}
+
+/// The ids of the `items` that `reads` refuses.
+fn unread(items: Vec<&Block>, reads: impl Fn(&Block) -> bool) -> Vec<u32> {
+    items
+        .into_iter()
+        .filter(|item| !reads(item))
+        .map(|item| item.id)
         .collect()
 }
 
@@ -124,6 +137,11 @@ pub(super) fn decisions(doc: &Document, blocks: &[u32]) -> Vec<ListedDecision> {
         }
     }
     listed
+}
+
+/// The items of `## Decisions` that `decisions` does not read.
+pub(super) fn unread_decisions(doc: &Document, blocks: &[u32]) -> Vec<u32> {
+    unread(items(doc, blocks), |item| listed_decision(item).is_some())
 }
 
 fn listed_decision(item: &Block) -> Option<ListedDecision> {

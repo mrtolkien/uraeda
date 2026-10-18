@@ -8,7 +8,7 @@ use super::writing::{check_block_items, is_word};
 use crate::files::document::Span;
 use crate::files::document::{Block, BlockKind, Document, parse};
 use crate::files::items::SpecItems;
-use crate::files::spec::items;
+use crate::files::spec::{items, unread_items};
 use crate::workspace::Problem;
 
 /// The most words a waiting spec's reviewed part holds before `spec.length` warns.
@@ -108,11 +108,12 @@ fn top_level<'a>(document: &'a Document, block: &'a Block) -> &'a Block {
     current
 }
 
-/// Reports an edge case of unknown importance (`edges.importance`), and, on a waiting spec, warns
+/// Reports an edge case of unknown importance (`edges.importance`), an item of `## Your review` or
+/// `## Decisions` the page cannot read (`review.answer`, `decisions.item`), and, on a waiting spec, warns
 /// on a reviewed part past `SPEC_WORDS` words (`spec.length`) and a block past its items
 /// (`block.items`).
 pub(super) fn check_spec(file: &File<'_>, waiting: bool, problems: &mut Vec<Problem>) {
-    let document = parse(file.text, "");
+    let document = parse(file.text, &folder_of(&file.path));
     let spec = items(&document);
     for edge in &spec.edges {
         if !IMPORTANCES.contains(&edge.importance.as_str()) {
@@ -122,6 +123,24 @@ pub(super) fn check_spec(file: &File<'_>, waiting: bool, problems: &mut Vec<Prob
                 "edges.importance",
                 "importance is high, normal, or niche",
             ));
+        }
+    }
+    let (answers, decisions) = unread_items(&document);
+    for (blocks, rule, message) in [
+        (
+            answers,
+            "review.answer",
+            "an answer reads **C1** (the comment in a few words): done or declined",
+        ),
+        (
+            decisions,
+            "decisions.item",
+            "a decision item opens with a bold New:, Changed:, or Removed:, and links its file in specs/decisions/",
+        ),
+    ] {
+        for block in blocks {
+            let line = document.blocks[block as usize].start_line as usize;
+            problems.push(file.problem(Some(line), rule, message));
         }
     }
     if !waiting {
@@ -141,6 +160,12 @@ pub(super) fn check_spec(file: &File<'_>, waiting: bool, problems: &mut Vec<Prob
     if let Some(block) = spec.block {
         check_block_items(file, &document, block, problems);
     }
+}
+
+/// The folder of a file's path, from the root: where its links are relative to.
+fn folder_of(path: &str) -> String {
+    path.rsplit_once('/')
+        .map_or_else(String::new, |(folder, _)| folder.to_string())
 }
 
 /// A number with a comma between its thousands, `3,100`.

@@ -86,6 +86,16 @@ pub fn items(doc: &Document) -> SpecItems {
     }
 }
 
+/// The items of `## Your review` and of `## Decisions` that `items` does not read, by block: the
+/// page draws nothing for them, so `ura check` reports them.
+pub(crate) fn unread_items(doc: &Document) -> (Vec<u32>, Vec<u32>) {
+    let parts = parts::parts(doc);
+    (
+        parts::unread_answers(doc, parts::part(&parts, "Your review")),
+        parts::unread_decisions(doc, parts::part(&parts, "Decisions")),
+    )
+}
+
 /// The stories, `### US1: Title (P1)`, with their "Why this priority" paragraph, their mockup, and
 /// their key and more scenarios.
 fn stories(doc: &Document) -> Vec<Story> {

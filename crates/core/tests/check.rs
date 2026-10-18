@@ -1891,6 +1891,82 @@ fn an_edge_case_of_unknown_importance() {
     assert_eq!(problems[0].severity, Severity::Error);
 }
 
+/// The line of the edited example's spec starting with `start`.
+fn edited_line(example: &Example, start: &str) -> usize {
+    let spec = example.read(SPEC);
+    spec.lines().position(|l| l.starts_with(start)).unwrap() + 1
+}
+
+/// An item of `## Your review` the page cannot read, a bare "Done." or a comment number not in
+/// bold, is reported, since the page would draw nothing for it.
+#[test]
+fn an_answer_the_page_cannot_read() {
+    for (written, line) in [
+        ("- Done.", "- Done."),
+        (
+            "- C3 (a sync option): declined. Local-only.",
+            "- C3 (a sync",
+        ),
+    ] {
+        let example = Example::new();
+        example.edit(
+            SPEC,
+            "- **C2** (undo too short): done.",
+            &format!("{written}\n- **C2** (undo too short): done."),
+        );
+        let at = edited_line(&example, line);
+
+        let problems = example.problems();
+
+        assert_eq!(
+            summary(&problems),
+            [format!(
+                "{SPEC}:{at}: an answer reads **C1** (the comment in a few words): done or declined"
+            )]
+        );
+        assert_eq!(problems[0].rule, "review.answer");
+        assert_eq!(problems[0].severity, Severity::Error);
+    }
+}
+
+/// An item of `## Decisions` the page cannot read is reported: a wikilink in place of the link to
+/// the decision's file, an unknown lead, or a removed decision without its file name in code.
+#[test]
+fn a_decision_item_the_page_cannot_read() {
+    for (written, line) in [
+        (
+            "- **New: [[repeating-tasks]]**. A repeating task is one task.",
+            "- **New: [[repeating",
+        ),
+        (
+            "- **Dropped: [Due dates](../decisions/due-dates.md)**. No.",
+            "- **Dropped",
+        ),
+        ("- **Removed: Due dates**. It goes.", "- **Removed"),
+        ("- Due dates change.", "- Due dates"),
+    ] {
+        let example = Example::new();
+        example.edit(
+            SPEC,
+            "- **New: [Due dates]",
+            &format!("{written}\n- **New: [Due dates]"),
+        );
+        let at = edited_line(&example, line);
+
+        let problems = example.problems();
+
+        assert_eq!(
+            summary(&problems),
+            [format!(
+                "{SPEC}:{at}: a decision item opens with a bold New:, Changed:, or Removed:, and links its file in specs/decisions/"
+            )],
+            "{written}"
+        );
+        assert_eq!(problems[0].rule, "decisions.item");
+        assert_eq!(problems[0].severity, Severity::Error);
+    }
+}
+
 const DECISION: &str = "specs/decisions/task-storage.md";
 
 /// `count` rules, each a MUST, one with a nested item.
