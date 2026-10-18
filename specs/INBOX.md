@@ -17,7 +17,7 @@
 
 ## UI
 
-- In clarifications of inboex triage, most notes were cut -> very hard to read
+- In clarifications of inbox triage, most notes were cut -> very hard to read
   - Also the card with two columns + questions on the right felt a bit cramped, the card should be a
     bit wider + the right column should be right-aligned
 

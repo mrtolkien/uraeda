@@ -562,17 +562,6 @@ export const uraedaTheme = {
           "flexShrink": "0 !important"
         }
       }
-    },
-    "side-nav-item": {
-      "base": {
-        ":is(*) span": {
-          "overflowWrap": "anywhere",
-          "whiteSpace": "normal"
-        },
-        "height": "auto",
-        "minHeight": "var(--size-element-md)",
-        "paddingBlock": "var(--spacing-1)"
-      }
     }
   },
   __onDark: {
