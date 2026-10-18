@@ -396,3 +396,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   drawn; the tokens kept beside the line, against the spec's wording.
 - **If wrong**: `doneFigures` and `Figures` in `feature/Figures.tsx`.
 - **Where**: task 9
+
+## R70: A run after a spec's approval sent without `fresh` follows the setting on the server
+
+- **Decision**: a workflow run at the approval or plan step whose message carries no `fresh` starts
+  a fresh agent session as the `build_in_fresh_session` setting says: `session.send` passes the
+  setting in force as the input's `freshByDefault`, and the runner takes it on when not given. An
+  explicit `false`, the switch turned off, now reaches the runner and stays false.
+- **Rationale**: the composer reads the setting after a message is inserted; "Start the agent"
+  pressed before that sent no `fresh`, which the server read as false, against the agents decision.
+  A failed settings read draws nothing and leaves the default to the server.
+- **Alternatives considered**: the setting given to the session manager as it is made, which the UI
+  tests' harness makes before the settings; the client waiting for the setting before Send.
+- **If wrong**: the `fresh` line of `runner/sessions.ts#send`, and the workflow's spread in the
+  `session.send` mutation.
+- **Where**: review fixes of tasks 7 and 8
+
+## R71: A long "Insert: <name>" wraps inside its button
+
+- **Decision**: the recommended message's button shows its label in a span that wraps, the button's
+  height growing from a control's: at 1024 px, beside the sidebar and the column, "Insert: Continue,
+  implement the plan" takes two lines. Its accessible name stays the label.
+- **Rationale**: the label held on one line kept the composer about 50 px wider than its place, and
+  the progress column covered Send.
+- **Alternatives considered**: an ellipsis, which the layout checks refuse as cut text; a shorter
+  visible label, which hides the message's name; the offer outside the footer, where the plan puts
+  it.
+- **If wrong**: the two styles of `RecommendedMessage.tsx`.
+- **Where**: review fixes of tasks 7 and 8
