@@ -3,7 +3,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import { addChange, addPlan, commitOnBranch, ELEVEN, fixture } from "uraeda-binding/test-utils";
+import {
+  addChange,
+  addPlan,
+  commitOnBranch,
+  ELEVEN,
+  fixture,
+  git,
+} from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import { fakeAgent, fixtureRepo, refreshUntil, renderPage } from "./helpers.tsx";
 
@@ -125,4 +132,49 @@ test("every card has its settings button, without a pointer", async () => {
   for (const slug of ["recurring-tasks", "web-ui", "plan-review", "cli-tuis"]) {
     expect(nav().getByRole("button", { name: `Settings of ${slug}` })).toBeTruthy();
   }
+});
+
+/** A file of the cli-tuis branch's fixture, edited and committed on its branch. */
+function editOnCli(file: string, edit: (text: string) => string) {
+  const repo = fixtureRepo();
+  const path = `specs/${CLI}/${file}`;
+  const text = readFileSync(fixture(`repo/branches/${CLI}/${path}`), "utf8");
+  commitOnBranch(repo, CLI, { [path]: edit(text) });
+  return repo;
+}
+
+/** US6: a feature whose step cannot be found is a card under Needs you, a problem to fix. */
+test("a feature that cannot go on is a problem card under Needs you", async () => {
+  const repo = editOnCli("spec.md", (text) => text.replace("status: approved", "status: aproved"));
+  await renderPage("/", repo, { agent: await fakeAgent() });
+
+  const group = within(await (await findNav()).findByRole("group", { name: "Needs you" }));
+  const link = await group.findByRole("link", { name: /^cli-tuis, / });
+  expect(link.getAttribute("aria-label")).toContain(", Problem to fix, Needs you");
+});
+
+/** US6: an answered round with a blank answer cannot go on, whatever its step. */
+test("an answered round with a blank answer is a problem card", async () => {
+  const repo = editOnCli("clarifications-01.md", (text) =>
+    text.replace(/\*\*Answer:\*\* B and C:[^\n]*\n[^\n]*\n/, "**Answer:**\n"),
+  );
+  git(repo, "switch", "--quiet", CLI);
+  await renderPage("/", repo, { agent: await fakeAgent() });
+
+  const group = within(await (await findNav()).findByRole("group", { name: "Needs you" }));
+  const link = await group.findByRole("link", { name: /^cli-tuis, / });
+  expect(link.getAttribute("aria-label")).toContain(", Problem to fix, Needs you");
+});
+
+/** US6 1: a note, here a plan's missing section, stays off the cards. */
+test("a feature with a format note keeps its step on its card", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, "2026-10-13-plan-review", ELEVEN);
+  git(repo, "switch", "--quiet", "2026-10-13-plan-review");
+  await renderPage("/", repo, { agent: await fakeAgent() });
+
+  await (await findNav()).findByRole("group", { name: "Features" });
+  const link = card("plan-review");
+  expect(link.getAttribute("aria-label")).toContain(", Implementation, ");
+  expect(link.getAttribute("aria-label")).not.toContain("Problem");
 });
