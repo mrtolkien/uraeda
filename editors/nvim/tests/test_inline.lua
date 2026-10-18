@@ -78,13 +78,13 @@ local function inline(count)
   )
 end
 
-local c1 = { 52, { { "▎ C1  Rename this field", "UraedaComment" } } }
+local c1 = { 74, { { "▎ C1  Rename this field", "UraedaComment" } } }
 
 T["comments show under their lines"] = function() -- US9.1
   local _, spec = waiting_spec()
   open(spec)
-  comment({ line = 50, endLine = 52, text = "Rename this field" })
-  comment({ line = 60, text = "Say which day\nand which week" })
+  comment({ line = 72, endLine = 74, text = "Rename this field" })
+  comment({ line = 80, text = "Say which day\nand which week" })
   comment({ text = "A general comment" })
 
   -- Reopened, as when the spec opens with a pending review.
@@ -94,7 +94,7 @@ T["comments show under their lines"] = function() -- US9.1
   eq(inline(2), {
     c1,
     {
-      60,
+      80,
       {
         { "▎ C2  Say which day", "UraedaComment" },
         { "▎     and which week", "UraedaComment" },
@@ -113,7 +113,7 @@ end
 T["the toggle hides and shows them"] = function() -- US9.2
   local _, spec = waiting_spec()
   open(spec)
-  comment({ line = 50, endLine = 52, text = "Rename this field" })
+  comment({ line = 72, endLine = 74, text = "Rename this field" })
   eq(inline(1), { c1 })
 
   child.type_keys("\\at")
@@ -128,7 +128,7 @@ T["they are hidden when inline comments are off"] = function()
   child.setup({ inline_comments = false })
   local _, spec = waiting_spec()
   open(spec)
-  comment({ line = 50, endLine = 52, text = "Rename this field" })
+  comment({ line = 72, endLine = 74, text = "Rename this field" })
   child.cmd("bwipeout")
   open(spec)
 
@@ -141,7 +141,7 @@ T["a new comment shows at once"] = function() -- US9.3
   local _, spec = waiting_spec()
   open(spec)
   eq(inline(0), {})
-  child.api.nvim_win_set_cursor(0, { 50, 0 })
+  child.api.nvim_win_set_cursor(0, { 72, 0 })
 
   child.type_keys("V2j", "\\am")
   child.lua(
@@ -155,7 +155,7 @@ end
 T["a saved review redraws its spec"] = function()
   local repo, spec = waiting_spec()
   open(spec)
-  comment({ line = 50, endLine = 52, text = "Rename this field" })
+  comment({ line = 72, endLine = 74, text = "Rename this field" })
   eq(inline(1), { c1 })
 
   child.cmd("split " .. vim.fn.fnameescape(repo .. "/" .. feature .. "spec-review.md"))
@@ -173,13 +173,13 @@ T["a saved review redraws its spec"] = function()
       return mark ~= nil and mark[4].virt_lines[1][1][1] == "▎ C1  Rename it to tier"
     end, 20)
   ]])
-  eq(inline(1), { { 52, { { "▎ C1  Rename it to tier", "UraedaComment" } } } })
+  eq(inline(1), { { 74, { { "▎ C1  Rename it to tier", "UraedaComment" } } } })
 end
 
 T["a verdict clears them"] = function()
   local _, spec = waiting_spec()
   open(spec)
-  comment({ line = 50, endLine = 52, text = "Rename this field" })
+  comment({ line = 72, endLine = 74, text = "Rename this field" })
   eq(inline(1), { c1 })
 
   child.lua([[
@@ -231,9 +231,9 @@ T["the inline comments look right"] = function()
   child.o.showmode = false
   child.o.number = true
   open(spec)
-  comment({ line = 50, endLine = 52, text = "Rename this field" })
+  comment({ line = 72, endLine = 74, text = "Rename this field" })
   eq(inline(1), { c1 })
-  child.api.nvim_win_set_cursor(0, { 50, 0 })
+  child.api.nvim_win_set_cursor(0, { 72, 0 })
   child.cmd("normal! zt")
   child.cmd("echo ''")
 
