@@ -69,7 +69,7 @@ function option(id: string, letter: string) {
 
 /** The card of a question's option, which a tap anywhere on toggles. */
 function optionCard(id: string, letter: string) {
-  return option(id, letter).closest(".astryx-selectable-card") as HTMLElement;
+  return option(id, letter).parentElement as HTMLElement;
 }
 
 /** The comment field's label, which says a comment alone answers. */

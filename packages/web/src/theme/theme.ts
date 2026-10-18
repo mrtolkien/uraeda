@@ -144,6 +144,9 @@ export const uraedaTheme = defineTheme({
     "--size-composer-input": "154px",
     // The round's index, a column beside its questions on wide screens.
     "--size-round-index": "240px",
+    // The accent line of a follow-up's card, 4 px at every size: `--spacing-1` scales to about 4.8 px
+    // from 1024 px.
+    "--size-round-accent": "4px",
     // A question card at least this wide puts its options beside its title and context.
     "--size-round-split": "840px",
     // About 75 characters of text a line, on the round page and the triage, which hold their

@@ -39,10 +39,11 @@ function contentWidth(element: Element) {
 /** A question's title. */
 const titleOf = (id: string) => document.getElementById(`${id}-title`)!;
 
-/** The cards of a question's options. */
-const optionsOf = (id: string) => [
-  ...card(id).querySelectorAll<HTMLElement>(".astryx-selectable-card"),
-];
+/** The cards of a question's options: each holds its checkbox. */
+const optionsOf = (id: string) =>
+  within(card(id))
+    .getAllByRole("checkbox")
+    .map((box) => box.parentElement!);
 
 beforeEach(() => {
   // A browser that never opened the round: a round not started opens on its intro, at its top.
@@ -210,12 +211,10 @@ describe("on the phone", () => {
     for (const id of ["Q1", "Q2", "Q3"]) {
       const section = card(id);
       // No card drawn around it: no border, and no background of its own.
-      const around = titleOf(id).closest(".astryx-card");
-      if (around) {
-        const style = getComputedStyle(around);
-        expect(style.borderTopWidth, id).toBe("0px");
-        expect(style.backgroundColor, id).toBe("rgba(0, 0, 0, 0)");
-      }
+      const around = section.firstElementChild!;
+      const style = getComputedStyle(around);
+      expect(style.borderTopWidth, id).toBe("0px");
+      expect(style.backgroundColor, id).toBe("rgba(0, 0, 0, 0)");
       const why = section.querySelector('[role="note"]') ?? titleOf(id);
       const above = why.getBoundingClientRect().bottom;
       expect(optionsOf(id).length, id).toBeGreaterThan(0);
