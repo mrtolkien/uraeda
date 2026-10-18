@@ -30,6 +30,7 @@ import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
+import { FreshDefault, useFreshRun } from "./HandOver.tsx";
 import { type Inserted, RecommendedMessage, withInserted } from "./RecommendedMessage.tsx";
 import { sendMessage } from "./sessions.ts";
 import { SessionView } from "./views.ts";
@@ -312,12 +313,20 @@ function footerActions(
  * The recommended message inserted (R30): its run, the composer's workflow unless the page gives
  * one, until it is sent or the human empties the field. `props` are the composer's, with that
  * workflow; `edit` is the field's change, and `insert` puts the message before what was typed.
+ * After a spec's approval, the run builds in a fresh session as the setting says, with the
+ * hand-over's switch: `reader` reads the setting once a message is inserted.
  */
 function useInserted(given: ComposerProps) {
   const [inserted, setInserted] = useState<Workflow>();
-  const workflow = given.workflow ?? inserted;
+  // Each insert keys its fresh session switch, which starts from the setting (the agents decision).
+  const [inserts, setInserts] = useState(0);
+  const fresh = useFreshRun(`inserted:${inserts}`);
+  const run = inserted === undefined ? undefined : fresh.handing(inserted);
+  const workflow = given.workflow ?? run?.workflow;
+  const options = given.workflow ? given.options : run?.options;
   const props: ComposerProps = {
     ...given,
+    ...(options === undefined ? {} : { options }),
     onSent: (session) => {
       setInserted(undefined);
       given.onSent?.(session);
@@ -332,11 +341,21 @@ function useInserted(given: ComposerProps) {
       }
       given.onChange(next);
     },
-    insert: ({ text, ...run }: Inserted) => {
-      setInserted(run);
+    insert: ({ text, ...message }: Inserted) => {
+      setInserted(message);
+      setInserts(inserts + 1);
       given.onChange(withInserted(text, given.value));
     },
     props,
+    // Read once inserted: the session page draws without waiting for the settings.
+    reader: inserted && (
+      <Suspense fallback={null}>
+        <FreshDefault
+          onRead={(byDefault) => fresh.read(byDefault === undefined ? {} : { fresh: byDefault })}
+          step={inserted.step ?? ""}
+        />
+      </Suspense>
+    ),
   };
 }
 
@@ -365,7 +384,7 @@ function useInserted(given: ComposerProps) {
  */
 export function Composer(given: ComposerProps) {
   const { blocked, images, onSend, value, working = false } = given;
-  const { edit, insert, props } = useInserted(given);
+  const { edit, insert, props, reader } = useInserted(given);
   const { workflow } = props;
   const agent = useAgent();
   const wide = useWidthClass() === "wide";
@@ -451,6 +470,7 @@ export function Composer(given: ComposerProps) {
         />
       </DropHint>
       <AttachStatus status={attaching.status} />
+      {reader}
     </>
   );
 }

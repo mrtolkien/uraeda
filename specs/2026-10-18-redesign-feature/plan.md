@@ -1308,7 +1308,10 @@ composer's own inserted run to `{ step, trigger }` (R30); Send then reads "Start
 Emptying the composer drops the run, and a sent message clears it. The button is hidden while a
 hand-over fills the composer, while the composer is unavailable (no agent, no branch: it already
 says why), and on a chat with no feature. A refused hand-over shows its notice, holds no workflow,
-and leaves the composer sending as a chat (R31).
+and leaves the composer sending as a chat (R31). At the steps after a spec's approval, the inserted
+run builds in a fresh session as the setting says, with the hand-over's "Build in a fresh session"
+switch: `useFreshRun`, keyed by each insert, and `FreshDefault`, both of `HandOver.tsx`; the setting
+is read once a message is inserted, under a `Suspense` of its own, so the page never waits on it.
 
 - [ ] **Step 4: Run the project's validation**
 

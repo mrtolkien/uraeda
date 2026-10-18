@@ -224,7 +224,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: the run in `FeatureSession`, cleared when the draft's text empties,
   which a refused send would also clear; the record read by `FeatureSession`, which would suspend
   the whole page on it.
-- **If wrong**: the state moves to `FeatureSession`; one hook in `RecommendedMessage.tsx`.
+- **If wrong**: the state moves to `FeatureSession`; one hook in `RecommendedMessage.tsx`. Its fresh
+  session switch is the hand-over's, keyed by each insert rather than by the address.
 - **Where**: task 7
 
 ## R31: A refused hand-over's tests send a chat
