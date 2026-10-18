@@ -70,9 +70,9 @@ task that carries it out. State which spec clause it supersedes when it explicit
 
 Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
 
-| Spec                                     | Task | Test                       |
-| ---------------------------------------- | ---- | -------------------------- |
-| [US1 1, 2, more 1; an edge case; SC-001] | [N]  | [`tests/exact/path`, what] |
+| Spec                                                              | Task | Test                       |
+| ----------------------------------------------------------------- | ---- | -------------------------- |
+| [US1 1, 2, more 1; an edge case; SC-001; Review focus: a subject] | [N]  | [`tests/exact/path`, what] |
 
 ## Waves
 
