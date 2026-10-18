@@ -97,3 +97,5 @@
   fixtures cli-tuis and plan-review list decisions without links, so ura check reports
   decisions.item on them; comment-draft-place.test.tsx mocks scrollBy as a no-op, so it cannot tell
   a double correction from a single one.
+- [agent] [redesign-feature] Sidebar: a card's "+N −N" draws uncoloured: Text's success and error
+  colours are not defined by the theme
