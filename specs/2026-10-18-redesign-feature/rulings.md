@@ -444,3 +444,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `useHashFold` relies on the browser for; buttons in place of the links.
 - **If wrong**: `jumpInPage` in `feature/Figures.tsx`, and `Produced`'s `onOpen`.
 - **Where**: task 9
+
+## R91: The record's questions fold under a title, not a heading
+
+- **Decision**: "Questions · N in R rounds" is the fold's button, its text drawn at a heading's
+  size, and its section is named "Questions"; no heading sits inside the button.
+- **Rationale**: a button's content is phrasing only, and its children lose their role: the mockup's
+  heading in the trigger was read as plain text. The spec page's folded history does the same.
+- **Alternatives considered**: a heading wrapping the button, which Astryx's `Collapsible` does not
+  draw; a heading above the fold, a second line saying the same.
+- **If wrong**: `Questions` in `feature/Record.tsx`.
+- **Where**: task 9
