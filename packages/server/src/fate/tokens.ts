@@ -4,14 +4,17 @@ import type { TurnRow } from "../runner/cache.ts";
 
 /**
  * A feature's tokens: `input` is fresh input plus cache writes, `output` the output, `since` the
- * first counted turn's start, and `partial` whether an ended turn before it has no counts.
+ * first counted turn's start, and `partial` whether a turn done before it has no counts. A turn
+ * killed, stopped, or failed before its result has none either, but the next turn of its agent
+ * session counts its work.
  */
 export type FeatureTokens = { input: number; output: number; partial: boolean; since: string };
 
 /** The tokens of a session's turns, in order; null when no turn has counts. */
 export function featureTokens(turns: ReadonlyArray<TurnRow>): FeatureTokens | null {
   const first = turns.findIndex((turn) => turn.tokens !== null);
-  const since = turns[first];
+  // A counted turn has ended: it has a time.
+  const since = turns[first]?.startedAt ?? turns[first]?.endedAt;
   if (!since) {
     return null;
   }
@@ -24,7 +27,7 @@ export function featureTokens(turns: ReadonlyArray<TurnRow>): FeatureTokens | nu
   return {
     input,
     output,
-    partial: turns.slice(0, first).some((turn) => turn.endedAt !== null),
-    since: since.startedAt ?? since.endedAt ?? "",
+    partial: turns.slice(0, first).some((turn) => turn.state === "done"),
+    since,
   };
 }

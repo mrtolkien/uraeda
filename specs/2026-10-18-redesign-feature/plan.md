@@ -1581,8 +1581,9 @@ git commit -m "feat(redesign-feature): one page for features and changes: stages
 - Produces:
   `FeatureRecord.tokens: { input: number; output: number; partial: boolean; since: string } | null`:
   `input` is `input + cacheWrite` over the feature session's turns, `output` their output, `since`
-  the first counted turn's start, `partial` whether an ended turn before it has no counts; null when
-  no turn has counts.
+  the first counted turn's start (its end when it never started), `partial` whether a turn done
+  before it has no counts, a killed, stopped, or failed one's work counted by the next turn; null
+  when no turn has counts.
 
 - [x] **Step 1: Write the failing tests**
 
