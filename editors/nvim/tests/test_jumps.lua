@@ -21,12 +21,39 @@ local example = "specs/2026-10-06-recurring-tasks/"
 local branch = "2026-10-13-nvim-plugin"
 local feature = "specs/" .. branch .. "/"
 
---- A round whose `## Q1` heading is on line 12, `### Q1.A` on line 18, and `## Q2` on line 24, as
+--- A round whose `## Q1` heading is on line 32, `### Q1.A` on line 48, and `## Q2` on line 64, as
 --- the server's tests write it.
-local round = "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: X\n\n"
-  .. "## Context\n\nSome context.\nMore context.\n\n## Q1: First?\n\n"
-  .. "**Answer:**\n\nA line.\n\n### Q1.A: Follow-up?\n\n**Answer:**\n\n"
-  .. "A line.\n\n## Q2: Second?\n\n**Answer:**\n"
+local round = "---\nstatus: awaiting-human\n---\n\n"
+  .. "# Clarifications, round 01: X\n\n"
+  .. "> [!IMPORTANT]\n>\n> 2 questions and 1 follow-up, about 5 minutes.\n>\n> - Verdict: worth building as proposed.\n\n"
+  .. "## Context\n\n"
+  .. "### Goal\n\n"
+  .. "A goal.\n\n"
+  .. "### Today\n\n"
+  .. "Some context.\nMore context.\n\n"
+  .. "### Scope\n\n"
+  .. "A scope.\n\n"
+  .. "### Sources\n\n"
+  .. "- The code.\n\n"
+  .. "## Q1: First?\n\n"
+  .. "Context.\n\n"
+  .. "Why it matters: it decides the rest.\n\n"
+  .. "- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n"
+  .. "**Answer:**\n\n"
+  .. "### Q1.A: Follow-up?\n\n"
+  .. "Only if you picked A in Q1.\n\n"
+  .. "Why it matters: it decides the rest.\n\n"
+  .. "- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n"
+  .. "**Answer:**\n\n"
+  .. "## Q2: Second?\n\n"
+  .. "Context.\n\n"
+  .. "Why it matters: it decides the rest.\n\n"
+  .. "- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n"
+  .. "**Answer:**\n\n"
+  .. "## Settled without the human\n\n"
+  .. "### Behaviour\n\n"
+  .. "- **A point** settled.\n\n"
+  .. "**Notes:**\n"
 
 --- A repository holding the example project, with a feature's branch checked out in its worktree,
 --- holding the example's proposal and `files` (name → text) in the feature's folder; returns the
@@ -63,15 +90,15 @@ T["]u goes from question to question"] = function() -- US8.2
   local folder = with_feature({ ["clarifications-01.md"] = round })
   open(folder .. "clarifications-01.md")
 
-  eq(jump(14, "]u"), 18)
+  eq(jump(34, "]u"), 48)
   eq(child.api.nvim_get_current_line(), "### Q1.A: Follow-up?")
-  eq(jump(18, "]u"), 24)
+  eq(jump(48, "]u"), 64)
   eq(child.api.nvim_get_current_line(), "## Q2: Second?")
   -- No wrap past the last item.
-  eq(jump(24, "]u"), 24)
-  eq(jump(24, "[u"), 18)
-  eq(jump(18, "[u"), 12)
-  eq(jump(12, "[u"), 12)
+  eq(jump(64, "]u"), 64)
+  eq(jump(64, "[u"), 48)
+  eq(jump(48, "[u"), 32)
+  eq(jump(32, "[u"), 32)
   eq(child.lua_get("_G.notes"), {})
 end
 

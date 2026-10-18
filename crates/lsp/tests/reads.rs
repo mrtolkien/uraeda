@@ -12,11 +12,8 @@ use serde_json::{Value, json};
 
 const NVIM: &str = "specs/2026-10-13-nvim-plugin";
 
-/// A round whose `## Q1` heading is on line 12, `### Q1.A` on line 18, and `## Q2` on line 24.
-const ROUND: &str = "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: X\n\n\
-                     ## Context\n\nSome context.\nMore context.\n\n## Q1: First?\n\n\
-                     **Answer:**\n\nA line.\n\n### Q1.A: Follow-up?\n\n**Answer:**\n\n\
-                     A line.\n\n## Q2: Second?\n\n**Answer:**\n";
+/// A round whose `## Q1` heading is on line 32, `### Q1.A` on line 48, and `## Q2` on line 64.
+const ROUND: &str = "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: X\n\n> [!IMPORTANT]\n>\n> 2 questions and 1 follow-up, about 5 minutes.\n>\n> - Verdict: worth building as proposed.\n\n## Context\n\n### Goal\n\nA goal.\n\n### Today\n\nSome context.\nMore context.\n\n### Scope\n\nA scope.\n\n### Sources\n\n- The code.\n\n## Q1: First?\n\nContext.\n\nWhy it matters: it decides the rest.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n**Answer:**\n\n### Q1.A: Follow-up?\n\nOnly if you picked A in Q1.\n\nWhy it matters: it decides the rest.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n**Answer:**\n\n## Q2: Second?\n\nContext.\n\nWhy it matters: it decides the rest.\n\n- **A (recommended). One.**\n  - [pro] p\n  - [con] c\n  - Why recommended: it is small.\n- **B. Two.**\n  - [pro] p\n  - [con] c\n\n**Answer:**\n\n## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n";
 
 /// A pending review with C1 on lines 50 to 52, C2 general, and C3 on line 12.
 const REVIEW: &str = "---\nverdict: pending\ncommit: abc1234\n---\n\n# Review: Spec, X\n\n\
@@ -59,9 +56,9 @@ fn a_round_lists_its_questions_in_order() {
     assert_eq!(
         request(&mut session, "uraeda/items", &path),
         json!([
-            { "kind": "question", "label": "Q1", "line": 12, "endLine": 16 },
-            { "kind": "question", "label": "Q1.A", "line": 18, "endLine": 22 },
-            { "kind": "question", "label": "Q2", "line": 24, "endLine": 26 },
+            { "kind": "question", "label": "Q1", "line": 32, "endLine": 46 },
+            { "kind": "question", "label": "Q1.A", "line": 48, "endLine": 62 },
+            { "kind": "question", "label": "Q2", "line": 64, "endLine": 78 },
         ])
     );
 }
