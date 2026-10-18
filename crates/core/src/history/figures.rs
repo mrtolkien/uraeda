@@ -123,12 +123,14 @@ fn runs(line: &[CommitInfo], slug: &str) -> Vec<Diff> {
         .collect()
 }
 
-/// The scope of a subject typed `<type>(<scope>):`, whatever feature it names.
+/// The scope of a subject typed `<type>(<scope>):` or `<type>(<scope>)!:`, whatever feature it
+/// names.
 fn scoped_elsewhere(subject: &str) -> Option<&str> {
     let (kind, rest) = subject.split_once('(')?;
     let (scope, rest) = rest.split_once(')')?;
     let typed = !kind.is_empty() && kind.bytes().all(|byte| byte.is_ascii_alphanumeric());
-    (typed && rest.trim_start_matches('!').starts_with(':')).then_some(scope)
+    let rest = rest.strip_prefix('!').unwrap_or(rest);
+    (typed && rest.starts_with(':')).then_some(scope)
 }
 
 /// The time from the proposal's start to the pull request's, when both started.
@@ -224,4 +226,21 @@ fn decisions<'p>(
     changes.iter_mut().for_each(|change| change.listed = true);
     changes.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(changes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scoped_elsewhere_reads_the_subject_as_scope_type_does() {
+        assert_eq!(scoped_elsewhere("feat(x): y"), Some("x"));
+        assert_eq!(scoped_elsewhere("feat(x)!: y"), Some("x"));
+        assert_eq!(scoped_elsewhere("feat(x-y): z"), Some("x-y"));
+        // One `!` marks a breaking change, as in `scope_type`: two are no typed subject.
+        assert_eq!(scoped_elsewhere("feat(x)!!: y"), None);
+        assert_eq!(scope_type("feat(x)!!: y", "x"), None);
+        assert_eq!(scoped_elsewhere("feat(x) y"), None);
+        assert_eq!(scoped_elsewhere("(x): y"), None);
+    }
 }
