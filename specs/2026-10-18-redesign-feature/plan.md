@@ -1192,15 +1192,18 @@ running `base...tip` as today and `TwoDot` `base tip`; `branch_changes` calls it
 unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the record's path.
 
 - **Lines**: a live item: `numstat(default tip, branch tip, ThreeDot)`, as `branch_changes`. A done,
-  found item: when its finish commit `L` is on the default branch's first-parent line, the run of
-  consecutive first-parent commits whose `scope_type` is `Some`, ending at `L`, gives
-  `numstat(parent of the run's oldest, L, TwoDot)` (R13); otherwise, for the merge commit `M` found
-  by task 3, `numstat(M^1, M^2, ThreeDot)`. Files outside the folder and the record only; `files` is
-  their count.
+  found item: when its finish commit `L` is on the default branch's first-parent line, the
+  first-parent line up to `L`, read by `Git::first_parent_line` from the folder's date minus a day,
+  holds runs of consecutive commits whose `scope_type` is `Some`, each giving
+  `numstat(parent of the run's oldest, the run's newest, TwoDot)`, summed file by file (R13, R80);
+  otherwise, for the merge commit `M` found by task 3, `numstat(M^1, M^2, ThreeDot)`. Files outside
+  the folder and the record only; `files` is their count.
 - **Total**: `pull-request`'s start minus `proposal`'s, when both are known.
 - **Questions**: a done item's `RecordCounts.questions`; `None` for a live item.
-- **Decisions**: a done, found item's files under `specs/decisions/` in the same diff, each compared
-  with `decisions::compare(name, text at base, text at tip)`, `listed: true`, sorted by name.
+- **Decisions**: a done, found item's files under `specs/decisions/` in the same diffs, each
+  compared with
+  `decisions::compare(name, text at the oldest diff's base, text at the newest diff's tip)`,
+  `listed: true`, sorted by name.
 
 - [ ] **Step 4: Run the project's validation, and the benchmark**
 

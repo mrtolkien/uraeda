@@ -1,7 +1,7 @@
 //! Reads of the history: ancestry through gix, and through `git log` what gix does not give, its
 //! output parsed only in its `--format` forms, as the git decision says.
 
-use super::{Git, GitError, ObjectId};
+use super::{CommitInfo, Git, GitError, ObjectId};
 
 impl Git {
     /// How many commits of `branch` are on none of `bases`, a commit counting as there when a base
@@ -102,6 +102,32 @@ impl Git {
             .collect())
     }
 
+    /// The first-parent line from `tip`, newest first, of the commits committed from `since` to
+    /// `until`, in Unix seconds: git stops at the first commit committed before `since`, and walks
+    /// past those committed after `until`, which gix's walk cannot bound by both.
+    pub fn first_parent_line(
+        &self,
+        tip: ObjectId,
+        since: i64,
+        until: i64,
+    ) -> Result<Vec<CommitInfo>, GitError> {
+        let (tip, since, until) = (
+            tip.to_string(),
+            format!("--since=@{since}"),
+            format!("--until=@{until}"),
+        );
+        let args = [
+            "log",
+            "--first-parent",
+            "--format=%H%x00%P%x00%at%x00%ct%x00%s",
+            &since,
+            &until,
+            &tip,
+        ];
+        let output = self.output("log", &args)?;
+        Ok(output.lines().filter_map(commit_info).collect())
+    }
+
     /// The newest first-parent commit from `tip` that added `path`, a path from the top level: git
     /// stops there, so the commits older than it cost nothing.
     pub fn first_parent_addition(
@@ -182,4 +208,25 @@ impl Git {
             front.text("status") == Some("approved") && front.integer("revision") == revision
         }))
     }
+}
+
+/// A commit of `first_parent_line`'s format: its id, its parents, its author and committer times,
+/// and its subject, separated by NULs.
+fn commit_info(line: &str) -> Option<CommitInfo> {
+    let mut fields = line.splitn(5, '\0');
+    let id = ObjectId::from_hex(fields.next()?.as_bytes()).ok()?;
+    let parents = fields
+        .next()?
+        .split_whitespace()
+        .filter_map(|parent| ObjectId::from_hex(parent.as_bytes()).ok())
+        .collect();
+    let authored = fields.next()?.parse().ok()?;
+    let committed = fields.next()?.parse().ok()?;
+    Some(CommitInfo {
+        id,
+        parents,
+        subject: fields.next()?.trim().to_string(),
+        authored,
+        committed,
+    })
 }

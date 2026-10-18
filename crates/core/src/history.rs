@@ -128,25 +128,31 @@ pub(crate) fn read(
             .skip(current as usize + 1)
             .for_each(|start| *start = None);
     }
-    let diff = if done {
-        let merge = tip
-            .filter(|_| found)
-            .and_then(|tip| figures::merge(git, tip, &commits, &scoped));
+    let diffs = if done {
+        let merge = match tip.filter(|_| found) {
+            Some(tip) => {
+                let since = since(&feature.folder);
+                figures::merge(git, tip, &commits, &scoped, &feature.slug, since)?
+            }
+            None => None,
+        };
         if let Some(last) = starts.last_mut().filter(|_| found) {
             *last = merge.as_ref().map(|merge| merge.at);
         }
-        merge.and_then(|merge| merge.diff)
+        merge.map(|merge| merge.diffs)
     } else {
         let default = default_branch.and_then(|branch| git.tip(branch));
-        tip.zip(default).map(|(tip, base)| figures::Diff {
-            base,
-            tip,
-            range: Range::ThreeDot,
+        tip.zip(default).map(|(tip, base)| {
+            vec![figures::Diff {
+                base,
+                tip,
+                range: Range::ThreeDot,
+            }]
         })
     };
-    let (lines, decisions) = match diff {
-        Some(diff) => {
-            let (lines, decisions) = figures::produced(git, feature, diff, done)?;
+    let (lines, decisions) = match diffs {
+        Some(diffs) => {
+            let (lines, decisions) = figures::produced(git, feature, &diffs, done)?;
             (Some(lines), decisions)
         }
         None => (None, Vec::new()),
