@@ -54,6 +54,12 @@ const testRun = (from = ".") => `node ${from === "." ? "" : `${from}/`}scripts/t
  */
 const browserRun = `${testRun()} --lock browser --slots 2`;
 
+/**
+ * The type checks, the lints, and the Rust tests run at most two at once on the machine, from every
+ * checkout: more, from several worktrees, got runs killed. The others wait for their turn.
+ */
+const heavyRun = `${testRun()} --lock heavy --slots 2`;
+
 /** What the Rust crates are built from: the skill is compiled into the core. */
 const rustSources = [
   "crates/**",
@@ -192,7 +198,7 @@ export const tasks = {
   },
   "rust:clippy": {
     cache: { input: rustSources, output: [] },
-    command: "cargo clippy --workspace --all-targets -- -D warnings",
+    command: `${heavyRun} cargo clippy --workspace --all-targets -- -D warnings`,
   },
   // `ura` never builds napi: a binding built into the other crates' tests would not link.
   "rust:features": {
@@ -222,7 +228,7 @@ export const tasks = {
       output: [],
       untrackedEnv: [...testEnv, "NEXTEST_PROFILE"],
     },
-    command: `${testRun()} ${isolatedGit} cargo nextest run`,
+    command: `${heavyRun} ${isolatedGit} cargo nextest run`,
   },
   // `ura check` follows the specs' links to any Markdown file of the repository.
   "specs:check": {
@@ -303,7 +309,7 @@ export const tasks = {
       ],
       output: [],
     },
-    command: "vp check",
+    command: `${heavyRun} vp check`,
     dependsOn: ["binding:build"],
   },
   "ts:test": {

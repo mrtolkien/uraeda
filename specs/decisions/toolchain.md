@@ -25,8 +25,8 @@ the web UI is memoized by its compiler, not by hand.
   the workspace's default members, never `--workspace`, which links the napi binding into every test
   binary; the binding's tests run from TypeScript. Checked by `ready`.
 - Tests MUST stay isolated between checkouts on one machine: temporary folders they remove, no fixed
-  port, a shared limit on browser runs, and at most four Vitest workers. Checked by the toolchain
-  configuration's test.
+  port, a shared limit on browser runs and another on type checks, lints, and Rust tests, and at
+  most four Vitest workers. Checked by the toolchain configuration's test.
 - Test runners MUST NOT retry a failed test, a browser failure MUST keep its screenshots, uploaded
   by CI, and a test failing without a bug MUST be fixed in the pull request that finds it. Checked
   by the toolchain configuration's test and review.
