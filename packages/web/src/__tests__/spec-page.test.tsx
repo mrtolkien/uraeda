@@ -278,8 +278,11 @@ test("a review item and a decision item the core cannot read show beside the one
   const answers = await region("Your review, answered");
   expect(answers.textContent).toContain("Done.");
   expect(answers.textContent).toContain("C4 (a nightly sync): declined. No sync.");
+  // They take a comment as the spec's other lines do.
+  expect(within(answers).getByRole("button", { name: /^Done\./ })).toBeTruthy();
   expect(within(answers).getAllByText("done")).toHaveLength(2);
   expect(await screen.findByText(/Dates are calendar days\./)).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Dates are calendar days/ })).toBeTruthy();
   expect(screen.getByText(/A repeating task is one task/)).toBeTruthy();
 });
 

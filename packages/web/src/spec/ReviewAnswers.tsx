@@ -14,6 +14,7 @@ import { Paragraph } from "../layout/Paragraph.tsx";
 import { Selectable } from "../Selection.tsx";
 import { Spans } from "../Spans.tsx";
 import { Panel } from "./Panel.tsx";
+import { UnreadItems } from "./UnreadItems.tsx";
 import {
   type File,
   GROUPS,
@@ -96,13 +97,11 @@ export function ReviewAnswers({
   items: SpecItems;
 }) {
   const lists = new Set(items.answers.map((answer) => document.blocks[answer.block]?.parent));
-  const rest = [
-    ...unreadItems(
-      document,
-      items.answers.map((answer) => answer.block),
-    ),
-    ...(partOf(items, "Your review")?.blocks.filter((id) => !lists.has(id)) ?? []),
-  ];
+  const unread = unreadItems(
+    document,
+    items.answers.map((answer) => answer.block),
+  );
+  const rest = partOf(items, "Your review")?.blocks.filter((id) => !lists.has(id)) ?? [];
   return (
     <Panel crumbs={[]} id={groupId(items, GROUPS.answers)} title={GROUPS.answers.title}>
       {items.answers.map(({ block, number, summary, verdict }) => {
@@ -129,6 +128,7 @@ export function ReviewAnswers({
           )
         );
       })}
+      <UnreadItems document={document} ids={unread} selection={selection} />
       {rest.length > 0 && <Blocks document={document} ids={rest} selection={selection} />}
     </Panel>
   );
