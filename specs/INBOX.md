@@ -117,3 +117,6 @@
 - [agent] [round-fixes] ura check reports a #### heading in a clarifications round's Context or
   settled section but not in the triage's, whose Context parts() also drops silently; and check_file
   parses the triage tree even when the triage is not waiting
+- [agent] [round-fixes] readLetters.ts is a hand copy of the core's letters rule, tied only by
+  copied test rows: share the rows through fixtures/ so they cannot drift; the letter warning also
+  says it opens follow-ups on questions that have none
