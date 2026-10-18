@@ -1,7 +1,7 @@
 // The parts after the stories, each drawn for what it holds (US8): the edge cases by importance,
 // the niche ones folded; the criteria's ids and measures as pills; the architecture's units as
 // cards and its tradeoffs as costs; the data model's tables, by entity.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
@@ -251,6 +251,38 @@ test("the data model's changes are coloured pills", async () => {
   expect(within(task).getByText("dueDate")).toBeTruthy();
   const rule = await region("Repeat rule");
   expect(within(rule).getAllByText("New")).toHaveLength(4);
+});
+
+/** US8 more 2: a waiting spec shows what is committed, its data model included, not the disk's. */
+test("the data model shows its committed version while the worktree holds an edit", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const worktree = join(repo, ".worktrees", SPEC_FEATURE);
+  git(repo, "worktree", "add", "--quiet", worktree, SPEC_FEATURE);
+  const path = join(worktree, DATA);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8")
+      .replace("Entities that the feature adds or changes.", "An uncommitted intro.")
+      .replace("## Repeat rule", "## Uncommitted entity"),
+  );
+  await renderPage(PAGE, repo);
+
+  await region("Repeat rule");
+  expect(screen.getByText("Entities that the feature adds or changes.")).toBeTruthy();
+  expect(screen.queryByText("An uncommitted intro.")).toBeNull();
+  expect(screen.queryByRole("region", { name: "Uncommitted entity" })).toBeNull();
+});
+
+/** The text before the first entity sits in a card of its own, as the entities do. */
+test("the data model's intro is drawn in a part of its own", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const intro = await region("Data model");
+  expect(intro.textContent).toContain("Entities that the feature adds or changes.");
+  expect(within(intro).queryByRole("table")).toBeNull();
 });
 
 /** Review focus 5 */

@@ -144,7 +144,7 @@ function Groups({
   part,
 }: {
   changes: ReadonlyArray<DecisionChange>;
-  data: NonNullable<ReturnType<typeof useFile>> | undefined;
+  data: File["current"] | undefined;
   items: SpecItems;
   part: PartProps;
 }) {
@@ -175,7 +175,7 @@ function Groups({
       )}
       {data && (
         <Group id={GROUPS.data.id} title={GROUPS.data.title} wide={part.wide}>
-          <DataPart document={data.current.document} folder={part.folder} wide={part.wide} />
+          <DataPart document={data.document} folder={part.folder} wide={part.wide} />
         </Group>
       )}
       {hasBuilt && (
@@ -210,7 +210,13 @@ function SpecLayout({
 }) {
   const shown = useContentsShown();
   const dataFile = useFile(file.folder, "data-model.md");
-  const data = dataFile && !dataFile.missing ? dataFile : undefined;
+  // As the spec, the data model waiting for a review is the committed one, not the disk's.
+  const data =
+    dataFile && !dataFile.missing
+      ? review
+        ? (dataFile.committed ?? dataFile.current)
+        : dataFile.current
+      : undefined;
   const version = review?.version ?? file.current;
   const items = version.items.spec;
   // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its part.
