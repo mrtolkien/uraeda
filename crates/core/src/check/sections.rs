@@ -332,8 +332,11 @@ fn check_order(
 /// `settled.group`: in a round, every settled point sits under a group, `### Check these`,
 /// `### Behaviour`, or `### Under the hood`: a top-level list item between `## Settled without the
 /// human` and its first top-level sub-heading, or its notes, is in none.
-pub(super) fn check_settled_groups(file: &File<'_>, problems: &mut Vec<Problem>) {
-    let tree = document::parse(file.text, "");
+pub(super) fn check_settled_groups(
+    file: &File<'_>,
+    tree: &document::Document,
+    problems: &mut Vec<Problem>,
+) {
     let top_heading = |b: &Block, level: u32| {
         b.parent.is_none() && b.kind == BlockKind::Heading && b.level.is_some_and(|l| l <= level)
     };

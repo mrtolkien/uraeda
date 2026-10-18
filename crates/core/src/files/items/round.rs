@@ -3,7 +3,7 @@
 
 use super::{
     Choice, ContextPart, QuestionItem, RoundItems, SettledComment, SettledGroup, SettledPoint,
-    headings, section,
+    headings,
 };
 use crate::files::clarifications::{self, Applicability};
 use crate::files::document::{Block, BlockKind, Document, ItemMarker, plain};
