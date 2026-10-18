@@ -161,3 +161,9 @@
   RoundIndex)
 - [agent] [questions-first] RoundPage's comment on navigates names the column and the top bar, not
   the phone's in-page index (RoundPage.tsx)
+- [agent] [redesign-specs] Skill wording: references/spec.md centers the constitution table (against
+  R14), says "You approve" in one sentence where the template says one or two, lists rule keywords
+  without MAY; sentences over 25 words in README.md, change.md, plan.md, writing.md, discovery.md,
+  cli.md, spec.md, conventions.md; the test-writing rules still live in spec.md's "## Tests";
+  writing.md does not say how to time a revision; plan.md's review-focus items have no slot in the
+  test map's template or example; change.md links implementation.md#for-each-task-in-order (gone).
