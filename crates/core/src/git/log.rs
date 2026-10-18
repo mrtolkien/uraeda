@@ -76,17 +76,18 @@ impl Git {
             .collect())
     }
 
-    /// The commit that approved the spec at `spec`, a path from the top level: the oldest commit on
-    /// the first-parent history from `base` to `tip` whose spec reads `status: approved`. `None`
-    /// when no commit there does, or when the spec at `base` reads it already: the approval was
-    /// not on this branch.
+    /// The commit that approved revision `revision` of the spec at `spec`, a path from the top
+    /// level: the oldest commit on the first-parent history from `base` to `tip` whose spec reads
+    /// `status: approved` and that revision. `None` when no commit there does, or when the spec at
+    /// `base` does already: the approval was not on this branch.
     pub fn approval_commit(
         &self,
         tip: ObjectId,
         base: ObjectId,
         spec: &str,
+        revision: Option<i64>,
     ) -> Result<Option<ObjectId>, GitError> {
-        if self.approved_at(base, spec)? {
+        if self.approved_at(base, spec, revision)? {
             return Ok(None);
         }
         let range = format!("{base}..{tip}");
@@ -106,20 +107,26 @@ impl Git {
             let Ok(commit) = ObjectId::from_hex(line.trim().as_bytes()) else {
                 continue;
             };
-            if self.approved_at(commit, spec)? {
+            if self.approved_at(commit, spec, revision)? {
                 return Ok(Some(commit));
             }
         }
         Ok(None)
     }
 
-    /// Whether the spec at `spec` reads `status: approved` at a commit.
-    fn approved_at(&self, commit: ObjectId, spec: &str) -> Result<bool, GitError> {
+    /// Whether the spec at `spec` reads `status: approved` and revision `revision` at a commit.
+    fn approved_at(
+        &self,
+        commit: ObjectId,
+        spec: &str,
+        revision: Option<i64>,
+    ) -> Result<bool, GitError> {
         let Some(bytes) = self.read_file(commit, spec)? else {
             return Ok(false);
         };
         let text = String::from_utf8_lossy(&bytes);
-        Ok(crate::files::frontmatter::parse(&text)
-            .is_ok_and(|front| front.text("status") == Some("approved")))
+        Ok(crate::files::frontmatter::parse(&text).is_ok_and(|front| {
+            front.text("status") == Some("approved") && front.integer("revision") == revision
+        }))
     }
 }

@@ -139,6 +139,31 @@ fn the_approval_is_the_first_commit_reading_approved() {
 }
 
 #[test]
+fn a_new_approved_revision_resets_the_check() {
+    let repo = feature();
+    approve(&repo);
+    repo.write(
+        GIT,
+        &decision("active").replace("A choice.", "Another choice."),
+    );
+    repo.commit("docs(feature): edit git");
+    repo.write(SPEC, &spec("awaiting-human", 2, 0));
+    repo.commit("docs(feature): revise the spec");
+    repo.write(SPEC, &spec("approved", 2, 0));
+    repo.commit("docs(feature): approve revision 2");
+    assert_eq!(warnings(&repo, "specs"), Vec::<String>::new());
+    repo.write(
+        GIT,
+        &decision("active").replace("A choice.", "A third choice."),
+    );
+    repo.commit("docs(feature): edit git again");
+    assert_eq!(
+        warnings(&repo, "specs"),
+        ["warning: specs/decisions/git.md: git.md changed after the spec's approval"]
+    );
+}
+
+#[test]
 fn a_spec_waiting_for_review_has_no_approval_commit() {
     let repo = feature();
     repo.write(
