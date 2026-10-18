@@ -85,7 +85,8 @@ when the implementation shows a better fit.
   structural step that splits it: see [extract, don't grow](code-quality.md#extract-dont-grow).
 - Tests are code too. They follow the project's test layout, and share helpers, fixtures, and fakes
   (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
-  The spec's [Tests](spec.md#tests) rules apply: integration tests by default, Arrange, Act, Assert.
+  The [writing tests](code-quality.md#writing-tests) rules apply: integration tests by default,
+  Arrange, Act, Assert.
 - A view whose mockups are stories of the project's own Storybook starts from them: the picked
   variant's component is the starting point, not a rewrite. The first task of that view names the
   story in its **Files**, as `Start from`, adds the tests of the view's scenarios, then wires the
@@ -241,10 +242,10 @@ What goes in each section:
   alternative rejected. Name the callers, shared rule, or approved variation it serves: unspecified
   future features do not justify an abstraction. "None." when there is none.
 - **Test map**: a table mapping each acceptance scenario, edge case, and success criterion of the
-  spec to its task and test. The review-focus items join it. It opens with a sentence on how the
-  integration tests run: what they render, on which store, with which clock. The spec's
-  [Tests](spec.md#tests) rules say how to write them. An error the code handles but no edge case
-  names gets its row too.
+  spec to its task and test. A review-focus item gets its row, named "Review focus:" with its
+  subject. It opens with a sentence on how the integration tests run: what they render, on which
+  store, with which clock. The [writing tests](code-quality.md#writing-tests) rules say how to write
+  them. An error the code handles but no edge case names gets its row too.
 - **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
   the shared files they each add to, if any. The implementation reads this section to decide what
   runs at the same time.

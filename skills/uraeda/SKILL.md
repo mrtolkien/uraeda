@@ -251,7 +251,7 @@ Read a step's reference before running it, and the others when the step needs th
 - [Finish](references/finish.md): replacing a folder with its record, and cleaning up after merge.
 - [Change](references/change.md): the light flow, for a bug fix or a small change, from its proposal
   to its pull request.
-- [Code quality](references/code-quality.md): the five code-quality concepts each step links to, and
+- [Code quality](references/code-quality.md): the six code-quality concepts each step links to, and
   how a project sets up its checks.
 - [Writing for the human](references/writing.md): the writing rules of every file the human reads,
   and the shape of a round of questions; read it before writing one.
