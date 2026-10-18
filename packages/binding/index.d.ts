@@ -882,11 +882,11 @@ export interface HistoryView {
   found: boolean
   /** For a done item not found: its record's `finished` day, `YYYY-MM-DD`. */
   finished?: string
-  /** The time from its first commit to its merge, in seconds. */
+  /** The time from its first commit to its finish, in seconds. */
   totalSeconds?: number
   /** The lines and files it changed outside its folder and its record. */
   lines?: LinesView
-  /** The questions it asked. */
+  /** The questions a done item asked. */
   questions?: number
   /** The decisions a done item changed. */
   decisions: Array<DecisionChange>

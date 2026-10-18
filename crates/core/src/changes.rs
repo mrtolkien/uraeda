@@ -8,8 +8,8 @@ use napi_derive::napi;
 use serde::Serialize;
 
 use crate::api::{self, ApiError};
-use crate::git::{Git, GitError};
-use crate::workspace::folder_path;
+use crate::git::Range;
+use crate::workspace::{Feature, folder_path, record_path};
 
 /// The most files listed; the counts and totals still cover every file.
 const LISTED: usize = 50;
@@ -52,18 +52,10 @@ pub fn branch_changes(repo: &Path, folder: &str) -> Result<Option<BranchChanges>
     let (Some(tip), Some(base)) = (git.tip(branch), git.tip(default)) else {
         return Ok(None);
     };
-    // Its own files: what it owns, its folder or its record once finished, and its folder's files
-    // a finished feature's branch deleted.
-    let folder = folder_path(feature.kind, &feature.folder);
-    let own = |path: &str| {
-        feature.owns(path).is_some()
-            || path
-                .strip_prefix(folder.as_str())
-                .is_some_and(|rest| rest.starts_with('/'))
-    };
-    let mut files: Vec<ChangedFile> = numstat(&git, &base.to_string(), &tip.to_string())?
+    let mut files: Vec<ChangedFile> = git
+        .numstat(base, tip, Range::ThreeDot)?
         .into_iter()
-        .filter(|file| !own(&file.path))
+        .filter(|file| outside(feature, &file.path))
         .collect();
     files.sort_by(|a, b| a.path.cmp(&b.path));
     let changes = BranchChanges {
@@ -75,79 +67,13 @@ pub fn branch_changes(repo: &Path, folder: &str) -> Result<Option<BranchChanges>
     Ok(Some(changes))
 }
 
-/// `git diff --numstat` from the merge base of `base` and `tip` to `tip`, renames followed.
-fn numstat(git: &Git, base: &str, tip: &str) -> Result<Vec<ChangedFile>, GitError> {
-    let range = format!("{base}...{tip}");
-    let output = git.output(
-        "diff",
-        &["diff", "--numstat", "-z", "-M", "--no-ext-diff", &range],
-    )?;
-    Ok(parse(&output))
-}
-
-/// NUL-separated records: `added\tremoved\tpath`, or, for a rename, `added\tremoved\t` followed by
-/// the old and the new path. A binary file counts `-` lines.
-fn parse(output: &str) -> Vec<ChangedFile> {
-    let mut fields = output.split('\0');
-    let mut files = Vec::new();
-    while let Some(record) = fields.next() {
-        let mut parts = record.splitn(3, '\t');
-        let (Some(added), Some(removed), Some(path)) = (parts.next(), parts.next(), parts.next())
-        else {
-            continue;
-        };
-        let path = if path.is_empty() {
-            // A rename: the old path, then the new one.
-            fields.next();
-            fields.next().unwrap_or_default()
-        } else {
-            path
-        };
-        files.push(ChangedFile {
-            path: path.to_string(),
-            added: added.parse().ok(),
-            removed: removed.parse().ok(),
-        });
-    }
-    files
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_reads_plain_binary_renamed_and_unusual_paths() {
-        let output = concat!(
-            "3\t1\tsrc/a.rs\0",
-            "-\t-\tshot.png\0",
-            "0\t0\t\0old.txt\0new.txt\0",
-            "2\t0\tdocs/a\tb é.md\0",
-        );
-        assert_eq!(
-            parse(output),
-            vec![
-                ChangedFile {
-                    path: "src/a.rs".into(),
-                    added: Some(3),
-                    removed: Some(1)
-                },
-                ChangedFile {
-                    path: "shot.png".into(),
-                    added: None,
-                    removed: None
-                },
-                ChangedFile {
-                    path: "new.txt".into(),
-                    added: Some(0),
-                    removed: Some(0)
-                },
-                ChangedFile {
-                    path: "docs/a\tb é.md".into(),
-                    added: Some(2),
-                    removed: Some(0)
-                },
-            ]
-        );
-    }
+/// Whether a path is outside a feature's own files: what it owns, its folder or its record once
+/// finished, its folder's files a finished feature's branch deleted, and the record a finishing
+/// one's branch adds.
+pub(crate) fn outside(feature: &Feature, path: &str) -> bool {
+    let folder = folder_path(feature.kind, &feature.folder);
+    let in_folder = path
+        .strip_prefix(folder.as_str())
+        .is_some_and(|rest| rest.starts_with('/'));
+    feature.owns(path).is_none() && !in_folder && path != record_path(&feature.folder)
 }

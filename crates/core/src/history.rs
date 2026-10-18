@@ -2,7 +2,6 @@
 //! its first commit scoped by its slug and typed by its step, and its merge into the default
 //! branch.
 
-use std::collections::HashMap;
 use std::time::{Duration, UNIX_EPOCH};
 
 #[cfg(feature = "napi")]
@@ -11,11 +10,12 @@ use serde::Serialize;
 
 use crate::decisions::DecisionChange;
 use crate::files::{frontmatter, record};
-use crate::git::{CommitInfo, Git, GitError, ObjectId};
+use crate::git::{CommitInfo, Git, GitError, Range};
 use crate::steps::StepName;
 use crate::today::{Date, rfc3339};
 use crate::workspace::{Feature, FileKind, Kind};
 
+mod figures;
 mod stages;
 
 pub use stages::Stage;
@@ -36,11 +36,11 @@ pub struct HistoryView {
     pub found: bool,
     /// For a done item not found: its record's `finished` day, `YYYY-MM-DD`.
     pub finished: Option<String>,
-    /// The time from its first commit to its merge, in seconds.
+    /// The time from its first commit to its finish, in seconds.
     pub total_seconds: Option<u32>,
     /// The lines and files it changed outside its folder and its record.
     pub lines: Option<LinesView>,
-    /// The questions it asked.
+    /// The questions a done item asked.
     pub questions: Option<u32>,
     /// The decisions a done item changed.
     pub decisions: Vec<DecisionChange>,
@@ -103,8 +103,9 @@ pub(crate) fn read(
     let record = feature
         .file(FileKind::Record)
         .and_then(|file| feature.text(&file.name));
-    let rounds = match record {
-        Some(text) => record::counts(text).rounds,
+    let counts = record.map(record::counts);
+    let rounds = match counts {
+        Some(counts) => counts.rounds,
         None => feature
             .files
             .iter()
@@ -119,12 +120,29 @@ pub(crate) fn read(
         vec![Stage::Merged]
     };
     let mut starts = stages::starts(&list, &scoped);
-    if done
-        && found
-        && let (Some(tip), Some(last)) = (tip, starts.last_mut())
-    {
-        *last = merged_at(git, tip, &commits, &scoped);
-    }
+    let diff = if done {
+        let merge = tip
+            .filter(|_| found)
+            .and_then(|tip| figures::merge(git, tip, &commits, &scoped));
+        if let Some(last) = starts.last_mut().filter(|_| found) {
+            *last = merge.as_ref().map(|merge| merge.at);
+        }
+        merge.and_then(|merge| merge.diff)
+    } else {
+        let default = default_branch.and_then(|branch| git.tip(branch));
+        tip.zip(default).map(|(tip, base)| figures::Diff {
+            base,
+            tip,
+            range: Range::ThreeDot,
+        })
+    };
+    let (lines, decisions) = match diff {
+        Some(diff) => {
+            let (lines, decisions) = figures::produced(git, feature, diff, done)?;
+            (Some(lines), decisions)
+        }
+        None => (None, Vec::new()),
+    };
     let finished = (done && !found)
         .then(|| record.and_then(finished_day))
         .flatten();
@@ -142,10 +160,10 @@ pub(crate) fn read(
         rounds: (rounds > 0).then_some(rounds),
         found,
         finished,
-        total_seconds: None,
-        lines: None,
-        questions: None,
-        decisions: Vec::new(),
+        total_seconds: figures::total(&list, &starts),
+        lines,
+        questions: counts.filter(|_| done).map(|counts| counts.questions),
+        decisions,
     })
 }
 
@@ -156,36 +174,6 @@ fn since(folder: &str) -> i64 {
         .get(..10)
         .and_then(Date::parse)
         .map_or(0, |date| date.unix_seconds() - 86_400)
-}
-
-/// When the newest scoped commit reached the default branch, from `tip`: its own committer time
-/// when it is on the first-parent line, as a rebase or a fast-forward leaves it, else the oldest
-/// first-parent merge commit that has it.
-fn merged_at(
-    git: &Git,
-    tip: ObjectId,
-    commits: &[CommitInfo],
-    scoped: &[(&str, &CommitInfo)],
-) -> Option<i64> {
-    let newest = scoped
-        .iter()
-        .map(|(_, commit)| *commit)
-        .max_by_key(|commit| commit.committed)?;
-    let by_id: HashMap<ObjectId, &CommitInfo> =
-        commits.iter().map(|commit| (commit.id, commit)).collect();
-    let mut line = Vec::new();
-    let mut next = Some(tip);
-    while let Some(commit) = next.and_then(|id| by_id.get(&id)) {
-        line.push(*commit);
-        next = commit.parents.first().copied();
-    }
-    if line.iter().any(|commit| commit.id == newest.id) {
-        return Some(newest.committed);
-    }
-    line.iter()
-        .rev()
-        .find(|commit| commit.parents.len() > 1 && git.is_ancestor(newest.id, commit.id))
-        .map(|commit| commit.committed)
 }
 
 /// A record's `finished` day.

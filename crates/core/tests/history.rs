@@ -3,10 +3,13 @@
 
 mod common;
 
+use std::time::{Duration, Instant};
+
 use common::repo::TestRepo;
-use common::texts::{clarifications, plan, proposal, record, spec};
+use common::texts::{clarifications, decision, plan, proposal, record, spec};
 use uraeda_core::api;
-use uraeda_core::history::HistoryView;
+use uraeda_core::decisions::DecisionChange;
+use uraeda_core::history::{HistoryView, LinesView};
 
 const FOLDER: &str = "2026-10-17-clarifications";
 const SLUG: &str = "clarifications";
@@ -330,47 +333,57 @@ fn stages_never_go_back_in_time() {
     assert_eq!(start(&history, "build"), Some("2026-10-17T16:00:00Z"));
 }
 
-/// The feature merged by a rebase: its commits on `main`, each committed at 22:09, the finish
-/// authored at 22:03.
-#[test]
-fn a_merged_feature_is_timed_to_its_merge() {
-    let repo = repo();
+/// A commit on `main` as a rebase leaves it: authored at `at`, committed at 22:09.
+fn rebased(repo: &TestRepo, message: &str, at: &str, files: &[(&str, String)]) {
+    for (name, text) in files {
+        repo.write(&format!("specs/{FOLDER}/{name}"), text);
+    }
+    repo.commit_at_merged(&message.replace("<slug>", SLUG), &time(at), &time("22:09"));
+}
+
+/// The feature merged by a rebase: its start on `main` at 10:52, then its commits, each committed
+/// at 22:09, the finish authored at 22:03. Its code: `src/lib.rs`, one line.
+fn merged_by_rebase(repo: &TestRepo) {
     commit(
-        &repo,
+        repo,
         "chore(<slug>): start Clarifications",
         "10:52",
         &[("proposal.md", proposal())],
     );
-    let merged = |message: &str, at: &str, files: &[(&str, String)]| {
-        for (name, text) in files {
-            repo.write(&format!("specs/{FOLDER}/{name}"), text);
-        }
-        repo.commit_at_merged(&message.replace("<slug>", SLUG), &time(at), &time("22:09"));
-    };
-    merged(
+    rebased(
+        repo,
         "discovery(<slug>): clarifications",
         "11:18",
         &[("clarifications-01.md", waiting())],
     );
-    merged(
+    rebased(
+        repo,
         "discovery(<slug>): answer round 01",
         "12:01",
         &[("clarifications-01.md", answered())],
     );
-    merged(
+    rebased(
+        repo,
         "spec(<slug>): clarifications",
         "12:11",
         &[("spec.md", spec("approved", 1, 1))],
     );
-    merged(
+    rebased(
+        repo,
         "plan(<slug>): clarifications",
         "15:08",
         &[("plan.md", plan("auto-approved", 1, &[("Build", 2, 2)]))],
     );
     repo.write("src/lib.rs", "// code\n");
-    merged("feat(<slug>): build", "15:09", &[]);
-    the_record(&repo, "feature", FOLDER, "2026-10-17");
-    merged("finish(<slug>): Clarifications", "22:03", &[]);
+    rebased(repo, "feat(<slug>): build", "15:09", &[]);
+    the_record(repo, "feature", FOLDER, "2026-10-17");
+    rebased(repo, "finish(<slug>): Clarifications", "22:03", &[]);
+}
+
+#[test]
+fn a_merged_feature_is_timed_to_its_merge() {
+    let repo = repo();
+    merged_by_rebase(&repo);
 
     let history = api::read_history(repo.path(), FOLDER).unwrap();
 
@@ -510,4 +523,306 @@ fn a_change_with_a_round_has_questions() {
         ]
     );
     assert_eq!(history.current, 2);
+}
+
+/// `count` numbered lines.
+fn lines(count: usize, word: &str) -> String {
+    (1..=count).map(|n| format!("{word} {n}\n")).collect()
+}
+
+fn figures(added: u32, removed: u32, files: u32) -> Option<LinesView> {
+    Some(LinesView {
+        added,
+        removed,
+        files,
+    })
+}
+
+/// A live feature on its branch: its proposal and spec, then code outside its folder, `src/a.rs`
+/// +3 −1 over `main`'s 2 lines and `src/b.rs` +2, while `main` moves on.
+fn live_with_code(repo: &TestRepo) {
+    repo.write("src/a.rs", "one\ntwo\n");
+    repo.commit("chore: a");
+    repo.switch_new(FOLDER);
+    commit(
+        repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    commit(
+        repo,
+        "spec(<slug>): clarifications",
+        "12:11",
+        &[("spec.md", spec("approved", 1, 0))],
+    );
+    repo.write("src/a.rs", "one\nthree\nfour\nfive\n");
+    repo.write("src/b.rs", "b 1\nb 2\n");
+    commit(repo, "feat(<slug>): build", "15:09", &[]);
+    repo.switch("main");
+    repo.write("other.md", "other\n");
+    repo.commit_at("chore: other work", &time("16:00"));
+    repo.switch(FOLDER);
+}
+
+#[test]
+fn total_time_runs_from_the_proposal_to_the_finish() {
+    let repo = repo();
+    merged_by_rebase(&repo);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.total_seconds, Some(11 * 3600 + 11 * 60));
+}
+
+#[test]
+fn a_live_feature_counts_its_branch_changes() {
+    let repo = repo();
+    live_with_code(&repo);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.lines, figures(5, 1, 2));
+    assert_eq!(history.total_seconds, None);
+    assert_eq!(history.questions, None);
+    assert!(history.decisions.is_empty());
+}
+
+#[test]
+fn a_merge_of_main_into_the_branch_is_not_counted() {
+    let repo = repo();
+    live_with_code(&repo);
+    repo.switch("main");
+    repo.write("docs/ten.md", &lines(10, "line"));
+    repo.commit_at("chore: ten lines", &time("16:30"));
+    repo.switch(FOLDER);
+    let at = time("17:00");
+    repo.git_at(&["merge", "--quiet", "--no-edit", "main"], &at, &at);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.lines, figures(5, 1, 2));
+}
+
+#[test]
+fn a_rebased_feature_counts_its_run_of_commits() {
+    let repo = repo();
+    repo.write("src/a.rs", "one\ntwo\n");
+    repo.commit("chore: a");
+    commit(
+        &repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    repo.write("src/other.rs", &lines(4, "other"));
+    repo.commit_at("feat(other): other work", &time("12:00"));
+    rebased(
+        &repo,
+        "spec(<slug>): clarifications",
+        "12:11",
+        &[("spec.md", spec("approved", 1, 0))],
+    );
+    repo.write("src/a.rs", "one\nthree\nfour\nfive\n");
+    repo.write("src/b.rs", "b 1\nb 2\n");
+    rebased(&repo, "feat(<slug>): build", "15:09", &[]);
+    the_record(&repo, "feature", FOLDER, "2026-10-17");
+    rebased(&repo, "finish(<slug>): Clarifications", "22:03", &[]);
+    repo.write("src/later.rs", &lines(7, "later"));
+    repo.commit_at("feat(later): after", &time("23:00"));
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.lines, figures(5, 1, 2));
+}
+
+#[test]
+fn a_feature_merged_with_a_merge_commit_counts_its_branch() {
+    let repo = repo();
+    repo.write("src/a.rs", "one\ntwo\n");
+    repo.commit("chore: a");
+    commit(
+        &repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    repo.switch_new(FOLDER);
+    commit(
+        &repo,
+        "spec(<slug>): clarifications",
+        "12:11",
+        &[("spec.md", spec("approved", 1, 0))],
+    );
+    repo.write("src/a.rs", "one\nthree\nfour\nfive\n");
+    repo.write("src/b.rs", "b 1\nb 2\n");
+    commit(&repo, "feat(<slug>): build", "15:09", &[]);
+    the_record(&repo, "feature", FOLDER, "2026-10-17");
+    commit(&repo, "finish(<slug>): Clarifications", "22:03", &[]);
+    repo.switch("main");
+    repo.write("src/other.rs", &lines(4, "other"));
+    repo.commit_at("feat(other): other work", &time("22:10"));
+    let at = time("22:30");
+    repo.git_at(
+        &["merge", "--quiet", "--no-ff", "--no-edit", FOLDER],
+        &at,
+        &at,
+    );
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.lines, figures(5, 1, 2));
+}
+
+#[test]
+fn a_done_feature_counts_its_questions() {
+    let repo = repo();
+    merged_by_rebase(&repo);
+    let path = format!("specs/done/{FOLDER}.md");
+    let mut text = repo.read(&path);
+    for n in 3..=10 {
+        text.push_str(&format!("\n#### Q{n}: Question {n}?\n\n**Answer:** A.\n"));
+    }
+    repo.write(&path, &text);
+    repo.commit_at("docs: the record's questions", &time("23:00"));
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.questions, Some(10));
+    assert_eq!(history.rounds, Some(1));
+}
+
+fn kinds(decisions: &[DecisionChange]) -> Vec<(&str, &str)> {
+    decisions
+        .iter()
+        .map(|decision| (decision.name.as_str(), decision.kind.as_str()))
+        .collect()
+}
+
+#[test]
+fn a_done_feature_lists_the_decisions_it_changed() {
+    let repo = repo();
+    repo.write("specs/decisions/git.md", &decision("approved"));
+    repo.write("specs/decisions/ledger.md", &decision("approved"));
+    repo.commit("chore: decisions");
+    commit(
+        &repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    repo.write("specs/decisions/ledger.md", "# Ledger\n\nAnother choice.\n");
+    repo.commit_at("decision(other): ledger", &time("11:00"));
+    rebased(
+        &repo,
+        "spec(<slug>): clarifications",
+        "12:11",
+        &[("spec.md", spec("approved", 1, 0))],
+    );
+    repo.write(
+        "specs/decisions/diagrams.md",
+        "# Diagrams\n\n- MUST draw.\n",
+    );
+    let git = decision("approved").replace("A choice.", "A choice, changed.");
+    repo.write("specs/decisions/git.md", &git);
+    rebased(&repo, "decision(<slug>): apply", "15:01", &[]);
+    the_record(&repo, "feature", FOLDER, "2026-10-17");
+    rebased(&repo, "finish(<slug>): Clarifications", "22:03", &[]);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(
+        kinds(&history.decisions),
+        [("diagrams", "new"), ("git", "changed")]
+    );
+    assert!(history.decisions.iter().all(|decision| decision.listed));
+}
+
+/// The feature squash-merged: its start on `main`, then one commit with its record and its code.
+fn squashed(repo: &TestRepo) {
+    commit(
+        repo,
+        "chore(<slug>): start Clarifications",
+        "10:52",
+        &[("proposal.md", proposal())],
+    );
+    the_record(repo, "feature", FOLDER, "2026-10-17");
+    repo.write("src/lib.rs", "// code\n");
+    repo.write(
+        "specs/decisions/diagrams.md",
+        "# Diagrams\n\n- MUST draw.\n",
+    );
+    repo.commit_at("Feature (#3)", &time("22:09"));
+}
+
+#[test]
+fn a_squash_merged_feature_has_no_figures() {
+    let repo = repo();
+    squashed(&repo);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert_eq!(history.lines, None);
+    assert_eq!(history.total_seconds, None);
+    assert!(history.decisions.is_empty());
+}
+
+/// SC-002, with `vp run bench`: a merged feature of 80 commits, among 400 others of 20 other
+/// features, gets its history in under 100 ms, the median of 5 reads.
+#[test]
+#[ignore = "benchmark"]
+fn bench_history_of_80_commits() {
+    let repo = repo();
+    let other = |n: usize, at: &str| {
+        let feature = format!("other-{:02}", n % 20);
+        repo.write(&format!("src/{feature}.rs"), &lines(n % 7 + 1, "line"));
+        repo.write(
+            &format!("specs/2026-10-16-{feature}/proposal.md"),
+            &proposal(),
+        );
+        repo.commit_at(&format!("feat({feature}): step {n}"), at);
+    };
+    for n in 0..200 {
+        other(
+            n,
+            &format!("2026-10-16T{:02}:{:02}:00Z", n / 60 + 8, n % 60),
+        );
+    }
+    commit(
+        &repo,
+        "chore(<slug>): start Clarifications",
+        "08:00",
+        &[("proposal.md", proposal())],
+    );
+    for n in 0..78 {
+        repo.write(&format!("src/feature/f{n:02}.rs"), &lines(n + 1, "line"));
+        rebased(
+            &repo,
+            "feat(<slug>): build",
+            &format!("{:02}:{:02}", n / 60 + 9, n % 60),
+            &[],
+        );
+    }
+    the_record(&repo, "feature", FOLDER, "2026-10-17");
+    rebased(&repo, "finish(<slug>): Clarifications", "22:03", &[]);
+    for n in 200..400 {
+        other(
+            n,
+            &format!("2026-10-18T{:02}:{:02}:00Z", (n - 200) / 60 + 8, n % 60),
+        );
+    }
+
+    let mut times: Vec<Duration> = (0..5)
+        .map(|_| {
+            let start = Instant::now();
+            let history = api::read_history(repo.path(), FOLDER).unwrap();
+            let elapsed = start.elapsed();
+            assert!(history.found && history.lines.is_some(), "{history:?}");
+            elapsed
+        })
+        .collect();
+    times.sort();
+    let median = times[2];
+    println!("read_history: median {median:?} of {times:?}");
+    assert!(median < Duration::from_millis(100), "median {median:?}");
 }
