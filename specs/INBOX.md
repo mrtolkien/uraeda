@@ -167,3 +167,7 @@
   cli.md, spec.md, conventions.md; the test-writing rules still live in spec.md's "## Tests";
   writing.md does not say how to time a revision; plan.md's review-focus items have no slot in the
   test map's template or example; change.md links implementation.md#for-each-task-in-order (gone).
+- [agent] [redesign-specs] Spec parsing: a ## Your review item that does not parse (Done., non-bold
+  C3) and a ## Decisions item with a wikilink or a missing decision file are dropped without a ura
+  check problem, and the page draws neither; read.rs reads specs/decisions/<name>.md for a link into
+  another specs/decisions/ tree; the spec template does not mark "More scenarios:" optional.
