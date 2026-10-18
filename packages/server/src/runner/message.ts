@@ -1,7 +1,12 @@
 import { isAbsolute, relative, sep } from "node:path";
 import type { FeatureView, NextView } from "uraeda-binding";
 import type { Trigger } from "./events.ts";
-import { REFUSALS, SENT_AS_CHAT, SENT_AS_CHAT_NO_PULL_REQUEST } from "./session-state.ts";
+import {
+  REFUSALS,
+  SENT_AS_CHAT,
+  SENT_AS_CHAT_MOVED_ON,
+  SENT_AS_CHAT_NO_PULL_REQUEST,
+} from "./session-state.ts";
 
 export { APPLY_TRIAGE, ORGANIZE_INBOX } from "./triage-messages.ts";
 
@@ -169,20 +174,42 @@ export function recommendedMessage({
  * Why a workflow message sent now runs as a chat, the line its turn shows, or undefined when it
  * still applies: a comments message while the comments message is recommended; a message read at
  * a step, `workflow.step`, while that step's is; a hand-over's, without a step, while the step
- * waits on the agent. The sender checked the agent is available.
+ * waits on the agent. The line says what holds now: the feature waits on the human, no pull
+ * request is open for a comments message, or the feature is at another step. The sender checked
+ * the agent is available.
  */
 export async function sentAsChat({
-  feature,
+  feature: read,
   next,
   workflow,
 }: {
-  /** Read only when the recommended message decides. */
+  /** Read only when the recommended message, or the line, decides. */
   feature: () => Promise<FeatureView>;
   next: NextView;
   workflow: { step?: string; trigger: Trigger };
 }): Promise<string | undefined> {
+  let view: Promise<FeatureView> | undefined;
+  const feature = () => (view ??= read());
+  if (await applies({ feature, next, workflow })) {
+    return undefined;
+  }
+  if (next.step.waitsOn === "human") {
+    return SENT_AS_CHAT;
+  }
+  if (workflow.trigger === "comments" && (await feature()).pullRequest === undefined) {
+    return SENT_AS_CHAT_NO_PULL_REQUEST;
+  }
+  return SENT_AS_CHAT_MOVED_ON;
+}
+
+/** Whether a workflow message sent now still applies, as `sentAsChat` says. */
+async function applies({
+  feature,
+  next,
+  workflow,
+}: Parameters<typeof sentAsChat>[0]): Promise<boolean> {
   if (workflow.trigger !== "comments" && workflow.step === undefined) {
-    return next.step.waitsOn === "agent" ? undefined : SENT_AS_CHAT;
+    return next.step.waitsOn === "agent";
   }
   const recommended = recommendedMessage({
     agent: { available: true, name: "" },
@@ -190,11 +217,9 @@ export async function sentAsChat({
     next,
   });
   if (workflow.trigger === "comments") {
-    return "trigger" in recommended && recommended.trigger === "comments"
-      ? undefined
-      : SENT_AS_CHAT_NO_PULL_REQUEST;
+    return "trigger" in recommended && recommended.trigger === "comments";
   }
-  return "step" in recommended && recommended.step === workflow.step ? undefined : SENT_AS_CHAT;
+  return "step" in recommended && recommended.step === workflow.step;
 }
 
 /** The first message of a chat, which tells the agent to wait for the human's requests. */
