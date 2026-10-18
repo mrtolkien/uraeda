@@ -60,6 +60,8 @@ impl Git {
         let output = self.output(
             "log",
             &[
+                "-c",
+                "core.quotepath=false",
                 "log",
                 "--format=%x01%cs",
                 "--name-only",
