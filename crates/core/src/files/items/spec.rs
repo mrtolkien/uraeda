@@ -6,6 +6,7 @@
 use napi_derive::napi;
 use serde::Serialize;
 
+use crate::files::document::Span;
 use crate::files::stories::StoryTarget;
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -46,6 +47,9 @@ pub struct Criterion {
     pub id: String,
     /// The few words in parentheses after its id, `two clicks`.
     pub measure: Option<String>,
+    /// The item's spans after its id and its measure, and the `: ` or `): ` ending them, its marks
+    /// kept.
+    pub sentence: Vec<Span>,
     pub block: u32,
 }
 

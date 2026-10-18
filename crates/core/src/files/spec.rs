@@ -1,6 +1,6 @@
 //! The items of a spec: its parts, its stories and their scenarios, and its success criteria.
 
-use super::document::{Block, BlockKind, Document, SpanLink, plain};
+use super::document::{Block, BlockKind, Document, Span, SpanLink, plain};
 use super::items::{
     Criterion, MockupLink, Scenario, SpecItems, Story, TierChoice, headings, section,
 };
@@ -149,7 +149,35 @@ fn alone_mockup(block: &Block) -> bool {
         && mockup(link).is_some()
 }
 
-/// The criteria, `- **SC-001** (measure): ...`, with their measure when they have one.
+/// Spans without the first `count` bytes of their text, nor the blanks after them. `count` falls
+/// after an ASCII character, so on a character's boundary.
+fn spans_after(spans: &[Span], count: usize) -> Vec<Span> {
+    let mut left = count;
+    let mut kept = Vec::new();
+    for span in spans {
+        if left >= span.text.len() {
+            left -= span.text.len();
+            continue;
+        }
+        let text = span.text[left..].to_string();
+        left = 0;
+        let text = if kept.is_empty() {
+            text.trim_start().to_string()
+        } else {
+            text
+        };
+        if !text.is_empty() || !kept.is_empty() {
+            kept.push(Span {
+                text,
+                ..span.clone()
+            });
+        }
+    }
+    kept
+}
+
+/// The criteria, `- **SC-001** (measure): ...`, with their measure when they have one, and their
+/// sentence: the item's spans after the id, the measure, and the colon after either.
 fn criteria(doc: &Document) -> Vec<Criterion> {
     doc.blocks
         .iter()
@@ -161,15 +189,22 @@ fn criteria(doc: &Document) -> Vec<Criterion> {
             if number.is_empty() || !number.bytes().all(|c| c.is_ascii_digit()) {
                 return None;
             }
-            let rest = plain(rest);
-            let measure = rest
+            let text = plain(rest);
+            let measure = text
                 .trim_start()
                 .strip_prefix('(')
                 .and_then(|rest| rest.split_once("):"))
                 .map(|(measure, _)| measure.trim().to_string());
+            let blanks = text.len() - text.trim_start().len();
+            let cut = match &measure {
+                Some(_) => text.find("):").map_or(0, |at| at + 2),
+                None if text[blanks..].starts_with(':') => blanks + 1,
+                None => 0,
+            };
             Some(Criterion {
                 id: id.to_string(),
                 measure,
+                sentence: spans_after(rest, cut),
                 block: b.id,
             })
         })

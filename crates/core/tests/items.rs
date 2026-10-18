@@ -405,6 +405,45 @@ fn edge_cases_criteria_architecture_and_principles() {
     assert_eq!(ok, [true, false]);
 }
 
+/// R75: a criterion's sentence is its item after its id and measure, its marks kept, cut by the
+/// core where it reads them.
+#[test]
+fn a_criterion_has_its_sentence_after_its_id_and_measure() {
+    let (_, items, _) = example("spec.md");
+    let spec = items.spec.unwrap();
+    assert_eq!(
+        plain(&spec.criteria[0].sentence),
+        "Setting a preset repeat takes two clicks from the open task."
+    );
+    assert!(
+        plain(&spec.criteria[2].sentence).starts_with("The title parser recognizes every phrase"),
+        "{:?}",
+        spec.criteria[2].sentence
+    );
+
+    let text = "# Spec: X\n\n## Success criteria\n\n- **SC-001**: No measure.\n\
+        - **SC-002** (one second): Opens in `1 s`, as before.\n\
+        - **SC-003:** Its colon in bold.\n- **SC-004** (a note) without colon.\n";
+    let (spec, _) = spec_of(text);
+    let sentences: Vec<String> = spec.criteria.iter().map(|c| plain(&c.sentence)).collect();
+    assert_eq!(
+        sentences,
+        [
+            "No measure.",
+            "Opens in 1 s, as before.",
+            "Its colon in bold.",
+            "(a note) without colon."
+        ]
+    );
+    let code: Vec<&str> = spec.criteria[1]
+        .sentence
+        .iter()
+        .filter(|s| s.code)
+        .map(|s| s.text.as_str())
+        .collect();
+    assert_eq!(code, ["1 s"]);
+}
+
 /// US8 and the block: its minutes, and its item starting "You approve".
 #[test]
 fn the_block_gives_its_minutes_and_what_you_approve() {

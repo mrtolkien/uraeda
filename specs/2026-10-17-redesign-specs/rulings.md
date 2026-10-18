@@ -637,21 +637,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `mockup` from the props in `SpecPage.tsx`.
 - **Where**: task 11
 
-## R75: A criterion's sentence is its item's spans after the core's id and measure
+## R75: A criterion's sentence is cut by the core, after its id and measure
 
-- **Decision**: the page draws a criterion's id and measure from `Criterion`, then its sentence: the
-  item's spans without the first, the bold id, and without the text up to the `):` that ends the
-  measure, or the `:` after an id without one, cut where the core reads them. The cut keeps the
-  spans' marks, so code and links in the sentence stay drawn.
-- **Rationale**: the plan asks for the measure as a pill, out of the sentence, and the core sends
-  the id and measure, not the sentence apart (as for the answers, R62). The cut reads the plain text
-  of spans already parsed, never markdown.
-- **Alternatives considered**: a `sentence` field of `Criterion` in the core: a change to task 2's
-  types in a wave where task 12 owns only the web's parts. Drawing the whole item after its pills,
-  as the answers are: the id and measure would show twice, which the plan's test refuses.
-- **If wrong**: add the field in `crates/core/src/files/spec.rs` (`criteria`), and draw it in
-  `sentenceOf`, `packages/web/src/spec/BuiltParts.tsx`.
-- **Where**: task 12, `packages/web/src/spec/BuiltParts.tsx`
+- **Decision**: `Criterion` carries `sentence`, the item's spans after the bold id, and after the
+  measure and the `):` ending it, or the `:` after an id without one, the blanks after them trimmed;
+  `criteria()` in `crates/core/src/files/spec.rs` cuts it where it reads the measure. The page draws
+  the id and measure as pills, then `criterion.sentence` with `Spans`, and cuts nothing. The cut
+  keeps the spans' marks, so code and links in the sentence stay drawn. Edited in place by the
+  review fixes: the page first cut the sentence itself, with a copy of the core's rule.
+- **Rationale**: the plan asks for the measure as a pill, out of the sentence; the core reads the
+  file's formats (the stack decision), and a second copy of its rule in the web would drift from it.
+- **Alternatives considered**: the web cutting the plain text of the spans, as first built: two
+  places to change for one format. Drawing the whole item after its pills, as the answers are: the
+  id and measure would show twice, which the plan's test refuses.
+- **If wrong**: `criteria` and `spans_after` in `crates/core/src/files/spec.rs`, and `Criterion` in
+  `packages/web/src/spec/BuiltParts.tsx`.
+- **Where**: task 12, then the review fixes, `crates/core/src/files/spec.rs`,
+  `crates/core/src/files/items/spec.rs`, `packages/web/src/spec/BuiltParts.tsx`
 
 ## R76: How the parts after the stories draw what the plan leaves open
 
