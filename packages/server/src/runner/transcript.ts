@@ -16,7 +16,13 @@ import {
 /** The plugin the skill loads as, which every process must report loaded. */
 const PLUGIN = "uraeda";
 
+type Init = Extract<AgentEvent, { type: "init" }>;
 type Result = Extract<AgentEvent, { type: "result" }>;
+/** The events recorded as the turn's items. */
+type Output = Exclude<
+  AgentEvent,
+  { type: "exit" | "init" | "background" | "tokens" | "accepted" | "cancelled" }
+>;
 
 /** The events that show the agent working, which reopen its ended turn. */
 const RESUMES = new Set<AgentEvent["type"]>([
@@ -42,44 +48,19 @@ export class Transcript {
   }
 
   /** Records an event of the session's process, other than its exit. */
-  // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each event kind's handling in a method of its own
   record(live: Live, proc: Proc, event: Exclude<AgentEvent, { type: "exit" }>) {
-    const { adapter, cache, changed, turns } = this.#context;
+    const { turns } = this.#context;
     const turn = live.turn ?? (RESUMES.has(event.type) ? turns.resume(live, proc) : undefined);
     if (turn && !turn.stop) {
       turns.watch(live, turn);
     }
     switch (event.type) {
-      case "init": {
-        // `/clear` starts a new agent session in the same process.
-        if (event.sessionId !== "" && event.sessionId !== rowOf(cache, live).nativeId) {
-          cache.updateSession(live.id, { nativeId: event.sessionId });
-          // Its line marks where the agent session's tokens start, for a process resuming it.
-          if (turn) {
-            cache.appendItem(turn.id, { kind: "system", text: CLEARED });
-          }
-          changed(live, turn?.id);
-        }
-        // The skill loads as the `uraeda` plugin: a process without it must not run.
-        if (event.pluginErrors.length > 0 || !event.plugins.includes(PLUGIN)) {
-          const why =
-            event.pluginErrors.length > 0
-              ? event.pluginErrors.join("; ")
-              : `the plugins loaded were ${event.plugins.join(", ") || "none"}`;
-          if (turn) {
-            turns.halt(live, turn, {
-              reason: `The Uraeda skill did not load: ${why}`,
-              state: "failed",
-            });
-          }
-          this.#context.processes.close(proc);
-        }
+      case "init":
+        this.#init(live, proc, turn, event);
         return;
-      }
-      case "background": {
+      case "background":
         this.#background(live, proc, turn, event.tasks);
         return;
-      }
       case "tokens":
         this.#context.processes.tokens(live, proc, event.total);
         return;
@@ -92,55 +73,53 @@ export class Transcript {
         return;
       }
     }
-    if (!turn) {
-      return;
+    if (turn) {
+      this.#output(live, proc, turn, event);
     }
-    const append = (item: Item) => {
-      const seq = cache.appendItem(turn.id, item);
-      changed(live, turn.id);
-      return seq;
-    };
-    const update = (seq: number, item: Item) => {
-      cache.updateItem(turn.id, seq, item);
-      changed(live, turn.id);
-    };
-    // The main agent's output says what it does now, as its sub-agents' does not.
-    if (event.type !== "result" && event.type !== "skipped" && event.type !== "retry") {
-      const parent =
-        event.type === "toolStart"
-          ? event.parent
-          : event.type === "toolEnd"
-            ? turn.tools.get(event.id)?.item.parent
-            : undefined;
-      if (parent === undefined) {
-        turn.replied = undefined;
-        this.#activity(
-          live,
-          turn,
-          event.type === "activity" ? activityLabel(event.activity) : WORKING,
-          event.type === "textDelta",
-        );
+  }
+
+  /**
+   * Records the process's start: a new agent session after `/clear`, and a process without the
+   * skill, which must not run.
+   */
+  #init(live: Live, proc: Proc, turn: Running | undefined, event: Init) {
+    const { cache, changed, turns } = this.#context;
+    // `/clear` starts a new agent session in the same process.
+    if (event.sessionId !== "" && event.sessionId !== rowOf(cache, live).nativeId) {
+      cache.updateSession(live.id, { nativeId: event.sessionId });
+      // Its line marks where the agent session's tokens start, for a process resuming it.
+      if (turn) {
+        cache.appendItem(turn.id, { kind: "system", text: CLEARED });
       }
+      changed(live, turn?.id);
+    }
+    // The skill loads as the `uraeda` plugin: a process without it must not run.
+    if (event.pluginErrors.length > 0 || !event.plugins.includes(PLUGIN)) {
+      const why =
+        event.pluginErrors.length > 0
+          ? event.pluginErrors.join("; ")
+          : `the plugins loaded were ${event.plugins.join(", ") || "none"}`;
+      if (turn) {
+        turns.halt(live, turn, {
+          reason: `The Uraeda skill did not load: ${why}`,
+          state: "failed",
+        });
+      }
+      this.#context.processes.close(proc);
+    }
+  }
+
+  /** Records the agent's output in its turn: texts, tool calls, retries, skipped lines, results. */
+  #output(live: Live, proc: Proc, turn: Running, event: Output) {
+    if (event.type !== "result" && event.type !== "skipped" && event.type !== "retry") {
+      this.#track(live, turn, event);
     }
     switch (event.type) {
       case "activity":
         return;
       case "textDelta":
-        if (turn.text) {
-          turn.text.text += event.text;
-          update(turn.text.seq, { kind: "text", streaming: true, text: turn.text.text });
-        } else {
-          const item = { kind: "text" as const, streaming: true, text: event.text };
-          turn.text = { seq: append(item), text: event.text };
-        }
-        return;
       case "text":
-        if (turn.text) {
-          update(turn.text.seq, { kind: "text", streaming: false, text: event.text });
-          turn.text = undefined;
-        } else {
-          append({ kind: "text", streaming: false, text: event.text });
-        }
+        this.#text(live, turn, event);
         return;
       case "toolStart": {
         const item: Tool = {
@@ -153,7 +132,7 @@ export class Transcript {
           ...(event.parent === undefined ? {} : { parent: event.parent }),
           ...(event.subagent === undefined ? {} : { subagent: event.subagent }),
         };
-        turn.tools.set(event.id, { at: Date.now(), item, seq: append(item) });
+        turn.tools.set(event.id, { at: Date.now(), item, seq: this.#append(live, turn, item) });
         return;
       }
       case "toolEnd": {
@@ -166,23 +145,81 @@ export class Transcript {
         return;
       }
       case "retry":
-        append({ kind: "system", text: retryText(event) });
+        this.#append(live, turn, { kind: "system", text: retryText(event) });
         return;
       case "skipped": {
         const count = (turn.skipped?.count ?? 0) + 1;
-        const text = `Skipped ${count} ${count === 1 ? "line" : "lines"} ${adapter.name} printed that Uraeda does not read.`;
+        const text = `Skipped ${count} ${count === 1 ? "line" : "lines"} ${this.#context.adapter.name} printed that Uraeda does not read.`;
         if (turn.skipped) {
-          update(turn.skipped.seq, { kind: "system", text });
+          this.#update(live, turn, turn.skipped.seq, { kind: "system", text });
           turn.skipped.count = count;
         } else {
-          turn.skipped = { count, seq: append({ kind: "system", text }) };
+          turn.skipped = { count, seq: this.#append(live, turn, { kind: "system", text }) };
         }
         return;
       }
       case "result":
-        this.#result(live, proc, turn, event, append);
+        this.#result(live, proc, turn, event);
         return;
     }
+  }
+
+  /** The main agent's output says what it does now, as its sub-agents' does not. */
+  #track(
+    live: Live,
+    turn: Running,
+    event: Exclude<Output, { type: "result" | "skipped" | "retry" }>,
+  ) {
+    const parent =
+      event.type === "toolStart"
+        ? event.parent
+        : event.type === "toolEnd"
+          ? turn.tools.get(event.id)?.item.parent
+          : undefined;
+    if (parent === undefined) {
+      turn.replied = undefined;
+      this.#activity(
+        live,
+        turn,
+        event.type === "activity" ? activityLabel(event.activity) : WORKING,
+        event.type === "textDelta",
+      );
+    }
+  }
+
+  /** Records a text as it streams, then whole. */
+  #text(live: Live, turn: Running, event: Extract<AgentEvent, { type: "textDelta" | "text" }>) {
+    if (event.type === "textDelta") {
+      if (turn.text) {
+        turn.text.text += event.text;
+        this.#update(live, turn, turn.text.seq, {
+          kind: "text",
+          streaming: true,
+          text: turn.text.text,
+        });
+      } else {
+        const item = { kind: "text" as const, streaming: true, text: event.text };
+        turn.text = { seq: this.#append(live, turn, item), text: event.text };
+      }
+    } else if (turn.text) {
+      this.#update(live, turn, turn.text.seq, { kind: "text", streaming: false, text: event.text });
+      turn.text = undefined;
+    } else {
+      this.#append(live, turn, { kind: "text", streaming: false, text: event.text });
+    }
+  }
+
+  /** Appends an item to the turn, reported, and returns its sequence number. */
+  #append(live: Live, turn: Running, item: Item): number {
+    const seq = this.#context.cache.appendItem(turn.id, item);
+    this.#context.changed(live, turn.id);
+    return seq;
+  }
+
+  /** Replaces the turn's item `seq`, reported. */
+  #update(live: Live, turn: Running, seq: number, item: Item) {
+    this.#context.cache.updateItem(turn.id, seq, item);
+    this.#context.changed(live, turn.id);
   }
 
   /**
@@ -246,12 +283,12 @@ export class Transcript {
    * Ends the turn with its result, unless a message steered into it waits to be read, or a
    * background sub-agent still runs: the agent answers them before the turn settles.
    */
-  #result(live: Live, proc: Proc, turn: Running, result: Result, append: (item: Item) => number) {
+  #result(live: Live, proc: Proc, turn: Running, result: Result) {
     const { adapter, turns } = this.#context;
     for (const denial of result.denials) {
       const target = toolTarget(denial.tool, denial.input, proc.cwd);
       const rule = adapter.allowRule(denial);
-      append({
+      this.#append(live, turn, {
         kind: "denial",
         tool: denial.tool,
         ...(target === undefined ? {} : { target }),
