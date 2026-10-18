@@ -734,6 +734,48 @@ fn discard_deletes_the_draft_and_gives_the_children_back() {
     assert_eq!(repo.porcelain(), "");
 }
 
+/// Discard deletes the draft of a line whose children changed since the last commit: the draft
+/// holds the children it had when drafted, and Discard gives the committed ones back.
+#[test]
+fn discard_deletes_the_draft_of_a_line_whose_children_changed() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let before = repo.read("specs/PRIORITIES.md");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &before.replace("- with a cache", "- with a cache\n  - and a registry"),
+    );
+    draft::create(&place, "later-1").unwrap();
+    assert!(repo.read(NIX_DRAFT).contains("- and a registry"));
+
+    changes::discard(&place).unwrap();
+
+    assert!(!repo.exists(NIX_DRAFT));
+    assert_eq!(repo.read("specs/PRIORITIES.md"), before);
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Discard keeps a draft the human typed in, even when its line's children changed.
+#[test]
+fn discard_keeps_a_typed_draft_of_a_line_whose_children_changed() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let before = repo.read("specs/PRIORITIES.md");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &before.replace("- with a cache", "- with a cache\n  - and a registry"),
+    );
+    draft::create(&place, "later-1").unwrap();
+    let typed = repo
+        .read(NIX_DRAFT)
+        .replace("## Why\n", "## Why\n\nBecause.\n");
+    repo.write(NIX_DRAFT, &typed);
+
+    changes::discard(&place).unwrap();
+
+    assert_eq!(repo.read(NIX_DRAFT), typed);
+}
+
 /// The edge case of a Discard after a draft from a note and one from a line: both drafts go, and
 /// both lists are restored.
 #[test]
