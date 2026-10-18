@@ -11,18 +11,20 @@ export type Shown = [boolean, (shown: boolean) => void];
 
 /**
  * Whether a foldable column shows, kept in `localStorage` under `key`, `"shown"` or `"hidden"`,
- * shown at first. Where the browser refuses storage, the choice lasts for the page's life.
+ * `fallback` at first, which is shown unless told otherwise. Where the browser refuses storage, the
+ * choice lasts for the page's life.
  */
-export function useStoredShown(key: string): Shown {
+export function useStoredShown(key: string, fallback: () => boolean = () => true): Shown {
   const [shown, setShown] = useState(() => {
     const refused = refusedChoices.get(key);
     if (refused !== undefined) {
       return refused;
     }
     try {
-      return window.localStorage.getItem(key) !== "hidden";
+      const stored = window.localStorage.getItem(key);
+      return stored === null ? fallback() : stored === "shown";
     } catch {
-      return true;
+      return fallback();
     }
   });
   const set = (next: boolean) => {
