@@ -273,7 +273,7 @@ describe("accessibility", () => {
       [`specs/${MOCKUP_FOLDER}/clarifications-01.md`]: answered,
     });
     await show(`/f/${MOCKUP_FOLDER}/clarifications-01.md`, "When does the next occurrence appear?");
-    await expect.poll(() => document.querySelector("svg.pele"), { timeout: 15_000 }).toBeTruthy();
+    await expect.poll(() => screen.queryByLabelText(/ diagram/), { timeout: 15_000 }).toBeTruthy();
     expect(card("Q1.B")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Show the 2 points" }));
     expect(await screen.findByText(/Next dates are computed by date-fns/)).toBeTruthy();
