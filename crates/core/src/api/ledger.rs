@@ -135,21 +135,23 @@ fn tip_texts(git: &Git, tip: ObjectId) -> Texts {
 }
 
 /// Where the default branch's files are read: its checkout, this one when there is no default
-/// branch, else its tip. With the folder `ura check` resolves links from.
-fn source(git: &Git, default: Option<&str>) -> (Texts, PathBuf) {
+/// branch, else its tip. With the folder `ura check` resolves links from, and the tip whose tree
+/// it resolves them against instead when no checkout has the default branch.
+fn source(git: &Git, default: Option<&str>) -> (Texts, PathBuf, Option<ObjectId>) {
     let checkout = match default {
         Some(default) => default_checkout(git, default),
         None => Some(git.root().to_path_buf()),
     };
     match (checkout, default.and_then(|default| git.tip(default))) {
-        (Some(root), _) => (disk_texts(&root), root),
-        (None, Some(tip)) => (tip_texts(git, tip), git.root().to_path_buf()),
+        (Some(root), _) => (disk_texts(&root), root, None),
+        (None, Some(tip)) => (tip_texts(git, tip), git.root().to_path_buf(), Some(tip)),
         (None, None) => (
             Texts {
                 constitution: None,
                 decisions: BTreeMap::new(),
             },
             git.root().to_path_buf(),
+            None,
         ),
     }
 }
@@ -158,7 +160,7 @@ fn source(git: &Git, default: Option<&str>) -> (Texts, PathBuf) {
 /// the default branch, whose commits change the decisions' dates.
 pub(crate) fn ledger_hash(git: &Git) -> String {
     let default = git.default_branch();
-    let (read, _) = source(git, default.as_deref());
+    let (read, ..) = source(git, default.as_deref());
     let committed = default
         .as_deref()
         .and_then(|default| git.tip(default))
@@ -171,8 +173,13 @@ pub(crate) fn ledger_hash(git: &Git) -> String {
 pub fn read_ledger(repo: &Path) -> Result<Ledger> {
     let git = Git::discover(repo)?;
     let default = git.default_branch();
-    let (texts, root) = source(&git, default.as_deref());
-    let mut found = check::check_folder_texts(&root, &root.join(DECISIONS), &texts.decisions);
+    let (texts, root, tip) = source(&git, default.as_deref());
+    let mut found = check::check_folder_texts(
+        &root,
+        &root.join(DECISIONS),
+        &texts.decisions,
+        tip.map(|tip| (&git, tip)),
+    );
     for problems in found.values_mut() {
         problems.sort_by_key(|problem| problem.line);
     }
