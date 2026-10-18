@@ -441,6 +441,21 @@ fn a_later_fix_on_main_moves_neither_the_merge_nor_the_lines() {
 }
 
 #[test]
+fn a_feature_merged_on_origin_only_is_read_from_there() {
+    let repo = repo();
+    let before = repo.git(&["rev-parse", "HEAD"]);
+    merged_by_rebase(&repo);
+    repo.push("main");
+    repo.git(&["reset", "--quiet", "--hard", before.trim()]);
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert!(history.found);
+    assert_eq!(start(&history, "merged"), Some("2026-10-17T22:09:00Z"));
+    assert_eq!(history.lines, figures(1, 0, 1));
+}
+
+#[test]
 fn a_merge_commit_times_the_merge() {
     let repo = repo();
     commit(
