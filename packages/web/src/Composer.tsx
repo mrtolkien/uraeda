@@ -15,6 +15,7 @@ import {
   type RefObject,
   type SetStateAction,
   Suspense,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -346,6 +347,8 @@ function useInserted(given: ComposerProps) {
       setInserts(inserts + 1);
       given.onChange(withInserted(text, given.value));
     },
+    /** How many times a message was inserted. */
+    inserts,
     props,
     // Read once inserted: the session page draws without waiting for the settings.
     reader: inserted && (
@@ -382,7 +385,7 @@ function useInserted(given: ComposerProps) {
  */
 export function Composer(given: ComposerProps) {
   const { blocked, images, onSend, value, working = false } = given;
-  const { edit, insert, props, reader } = useInserted(given);
+  const { edit, insert, inserts, props, reader } = useInserted(given);
   const { workflow } = props;
   const agent = useAgent();
   const wide = useWidthClass() === "wide";
@@ -415,6 +418,12 @@ export function Composer(given: ComposerProps) {
   });
   const onKeyDown = useEnter(input, wide, canSend ? () => submit(value.trim()) : undefined);
   const placeholder = `Message ${name}`;
+  // The button goes once inserted: the field takes the focus, for Enter or more keys.
+  useEffect(() => {
+    if (inserts > 0) {
+      input.current?.focus();
+    }
+  }, [inserts]);
   const buttons = sendButtons({
     canSend,
     hasContent,
