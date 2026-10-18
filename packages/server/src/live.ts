@@ -128,14 +128,37 @@ export function renewPreviews(previews: Previews): void {
 type Timer = ReturnType<typeof setTimeout>;
 
 /**
+ * Sends the agent's live update on every bus, the global one too, as the agent is every
+ * repository's, and each repository's features' recommended messages, which read whether it is
+ * available.
+ */
+function publishAgent(binding: Pick<Binding, "readWorkspace">, hosts: HostsOf) {
+  for (const bus of [globalLive, ...(hosts()?.all() ?? []).map((host) => host.live)]) {
+    sender(bus)("Agent", AGENT_ID);
+  }
+  for (const host of hosts()?.all() ?? []) {
+    void binding.readWorkspace(host.path).then(
+      ({ features }) => {
+        const update = sender(host.live);
+        features.forEach(({ folder }) => update("RecommendedMessage", folder));
+      },
+      // A repository the core cannot read has no feature to update.
+      () => undefined,
+    );
+  }
+}
+
+/**
  * Sends the live updates of the session manager's changes. A session's record, its changed turns,
  * and their last two item pages, where a tool call may finish, go out at most every 250 ms while
  * items change, with the sidebar's list when a sub-agent starts or ends. A turn's state change,
  * and any other change of the session, go out at once, with the list, the session's feature, and
- * the workspace's working folders.
+ * the workspace's working folders. A change of the agent's availability goes with every feature's
+ * recommended message, which reads it; a commit's goes with the feature's, through `publish`.
  */
 export function sessionPublisher(
   cache: SessionCache,
+  binding: Pick<Binding, "readWorkspace">,
   hosts: HostsOf,
 ): (change: SessionChange) => void {
   /** The sessions whose items change: when each was last sent, and its pending update. */
@@ -185,10 +208,7 @@ export function sessionPublisher(
   };
   return (change) => {
     if ("agent" in change) {
-      // The agent is every repository's: every bus is sent it, the global one too.
-      for (const bus of [globalLive, ...(hosts()?.all() ?? []).map((host) => host.live)]) {
-        sender(bus)("Agent", AGENT_ID);
-      }
+      publishAgent(binding, hosts);
       return;
     }
     const { session } = change;
@@ -208,7 +228,6 @@ export function sessionPublisher(
       update("SessionList", SESSION_LIST_ID);
       if (change.folder !== null) {
         update("Feature", change.folder);
-        update("RecommendedMessage", change.folder);
       }
       update("Workspace", WORKSPACE_ID);
       return;
@@ -262,7 +281,7 @@ export function createSessions(options: {
   cache: SessionCache;
   hosts: HostsOf;
 }): Sessions {
-  const publish = sessionPublisher(options.cache, options.hosts);
+  const publish = sessionPublisher(options.cache, options.binding, options.hosts);
   const sessions: Sessions = new Sessions({
     ...options,
     onChange: (change) => {
