@@ -44,3 +44,5 @@
 - [agent] storybook-fixes: validate-storybook.ts starts Vite and lists the repository outside its
   `try`, so a failure there leaks its two temporary folders, and `storybookPage` and
   `checkoutFolder` copy the core's page-route and branch-to-folder rules
+- [agent] [redesign-feature] Feature page: a decision a done feature renamed shows as new, its old
+  name untouched: the diff's rename keeps only the new path
