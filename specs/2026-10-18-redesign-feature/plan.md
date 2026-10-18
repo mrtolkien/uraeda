@@ -689,7 +689,9 @@ The break each test catches:
 - [x] **Step 3: Implement the walk and the stages**
 
 `Git::history` sets `since` to the folder's date minus one day, midnight UTC: no commit of a feature
-is older than its folder.
+is older than its folder. `read_history` reads only its folder, `Workspace::read_folder`, never the
+whole workspace, and a done item's walk starts at the first-parent commit that brought its record,
+`Git::first_parent_addition`, so later commits cost nothing (R14).
 
 The stage list: a feature's is `proposal`, `questions`, `spec`, `plan`, `build`, `pull-request`,
 `merged`; a change's is `proposal`, `questions` only when it had a round (a clarifications file, a
@@ -1200,9 +1202,9 @@ unchanged. `outside` holds `branch_changes`'s exclusion, now shared, plus the re
   `nix develop -c cargo nextest run -p uraeda-core --run-ignored only -E 'test(/^bench_history/)'`,
   and the task 3 measurement again (`--run-ignored only sc004`)
 - Expected: PASS, the benchmark under 100 ms
-- Ran: the benchmark, median 73 ms in a debug build, and SC-004, 27 of 31 records; `vp run ready`
-  was left to the merge of the wave, with `vp check`, `rust:test`, `rust:clippy`, `ts:test`, and
-  `specs:check` run instead
+- Ran: the benchmark, median 73 ms in a debug build, then 24 ms once the history read its folder
+  alone (R14), and SC-004, 27 of 31 records; `vp run ready` was left to the merge of the wave, with
+  `vp check`, `rust:test`, `rust:clippy`, `ts:test`, and `specs:check` run instead
 
 - [x] **Step 5: Commit**
 
