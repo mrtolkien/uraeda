@@ -8,6 +8,7 @@ import type { DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { useFile } from "../data.ts";
 import { useRepoPath } from "../routes.tsx";
+import type { OpenKeys } from "../useOpenKeys.ts";
 import { DecisionCard } from "../spec/DecisionCard.tsx";
 import { decisionId } from "../spec/parts.ts";
 import { Section } from "./Section.tsx";
@@ -76,8 +77,19 @@ function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) 
   );
 }
 
-/** The record's questions, folded under their count, at `#questions`. */
-function Questions({ document, history }: { document: Document; history: RecordHistory }) {
+/** The key of the record's questions in the history entry's open items. */
+export const QUESTIONS_KEY = "record:questions";
+
+/** The record's questions, folded under their count, at `#questions`, open as `keys` keep them. */
+function Questions({
+  document,
+  history,
+  keys,
+}: {
+  document: Document;
+  history: RecordHistory;
+  keys: OpenKeys;
+}) {
   const { body } = section(document, "questions");
   const rounds = history.rounds ?? 0;
   if (body.length === 0 || rounds === 0) {
@@ -86,21 +98,30 @@ function Questions({ document, history }: { document: Document; history: RecordH
   const title = `Questions · ${history.questions ?? 0} in ${rounds} ${rounds === 1 ? "round" : "rounds"}`;
   return (
     <section aria-label="Questions" id="questions">
-      <Collapsible defaultIsOpen={false} trigger={<Heading level={2}>{title}</Heading>}>
+      <Collapsible
+        isOpen={keys.open.includes(QUESTIONS_KEY)}
+        onOpenChange={(isOpen: boolean) => keys.onOpenChange(QUESTIONS_KEY, isOpen)}
+        trigger={<Heading level={2}>{title}</Heading>}
+      >
         <Blocks document={document} ids={body} />
       </Collapsible>
     </section>
   );
 }
 
-/** A done item's record, read from its file `name`, drawn in place. */
+/**
+ * A done item's record, read from its file `name`, drawn in place; its questions open as `keys`,
+ * the page's open items, keep them.
+ */
 export function Record({
   folder,
   history,
+  keys,
   name,
 }: {
   folder: string;
   history: RecordHistory;
+  keys: OpenKeys;
   name: string;
 }) {
   const here = useRepoPath();
@@ -114,7 +135,7 @@ export function Record({
       <RecordSection anchor="what-and-why" document={document} />
       <RecordSection anchor="behaviour" document={document} />
       <Decisions decisions={history.decisions} />
-      <Questions document={document} history={history} />
+      <Questions document={document} history={history} keys={keys} />
       <RecordSection anchor="follow-ups" document={document} />
       <Link hasUnderline href={here(`/f/${folder}/${name}`)}>
         Open the record file
