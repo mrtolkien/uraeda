@@ -1,4 +1,4 @@
-// The spec page of the specs redesign (`specs/2026-10-17-redesign-specs/`), as the app draws it,
+// The spec page of the specs redesign (`specs/done/2026-10-17-redesign-specs.md`), as the app draws it,
 // over the spec page's feature that `addSpecFeature` builds from `fixtures/spec-page/` (see
 // `.storybook/fixture.ts`): its data comes from Uraeda's server in Storybook, through fate.
 import type { Meta, StoryObj } from "@storybook/react-vite";
