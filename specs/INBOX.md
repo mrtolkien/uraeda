@@ -50,3 +50,5 @@
   checked out; a branch without a checkout never shows "Fix"
 - [agent] [redesign-feature] Feature page: Back after a reload can land too high: "Next", the
   agent's card, and the record draw after the scroll is restored
+- [agent] [redesign-feature] Feature page: a change's blocking banner reads "This feature cannot go
+  on"
