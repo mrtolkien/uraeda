@@ -41,8 +41,19 @@ fn export_specs(commit: &str, into: &Path) {
     assert!(tar.wait().unwrap().success());
 }
 
+/// A rule about a broken file or a missing answer: the only rules that may block.
+fn broken_or_unanswered(rule: &str) -> bool {
+    rule.starts_with("frontmatter.") || ["file.utf8", "answers.blank"].contains(&rule)
+}
+
+/// A rule about drift between versions of the workflow's files: never a problem.
+fn drift(rule: &str) -> bool {
+    rule.starts_with("sections.") || rule.starts_with("links.") || rule == "settled.group"
+}
+
 /// SC-001: over the feature folders `main`'s commits touched from 2026-10-17 16:48 to 2026-10-18
-/// 10:00, only an invalid frontmatter is ever a problem: drift and unfinished files never block.
+/// 10:00, only a broken file or a missing answer is ever a problem: drift and unfinished files
+/// never block.
 #[test]
 #[ignore = "this repository's history"]
 fn sc001_drift_is_never_a_problem() {
@@ -78,9 +89,12 @@ fn sc001_drift_is_never_a_problem() {
             blocked += usize::from(!blocking.is_empty());
             for problem in blocking {
                 assert!(
-                    problem.rule.starts_with("frontmatter."),
+                    broken_or_unanswered(&problem.rule),
                     "{commit} {folder}: {problem:?}"
                 );
+            }
+            for problem in found.iter().filter(|p| drift(&p.rule)) {
+                assert!(!problem.blocks(), "{commit} {folder}: {problem:?}");
             }
         }
     }
