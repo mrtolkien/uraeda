@@ -65,7 +65,7 @@ lag on every page at once
 
 - A task's inputs are a second list to keep with the code. A missing one reuses a stale result
   locally, and only CI catches it.
-- Coverage is collected only when someone asks for it, and can go down unnoticed.
+- Coverage, collected only on demand, can go down unnoticed.
 - Bugs specific to macOS or arm64 surface late, in release builds, and Windows stays unsupported
   until a decision adds it.
 - A component that breaks the Rules of React is silently left uncompiled.
