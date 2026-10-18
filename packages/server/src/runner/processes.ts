@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentEvent, UsageLimit } from "./events.ts";
+import type { AgentEvent, TokenCounts, UsageLimit } from "./events.ts";
 import {
   FRESH,
   type Live,
@@ -26,6 +26,8 @@ export class Processes {
   /** In report order: the newest open process's report wins, even when usage decreased. */
   #limits = new Map<Proc, UsageLimit>();
   #expiry: ReturnType<typeof setTimeout> | undefined;
+  /** Each process's agent session total so far, which its next report's own work is counted from. */
+  #baselines = new WeakMap<Proc, TokenCounts>();
 
   constructor(context: SessionContext) {
     this.#context = context;
@@ -104,12 +106,39 @@ export class Processes {
         terminate: [],
       };
       live.proc = proc;
+      // A resumed agent session reports its earlier turns' tokens again.
+      this.#baselines.set(
+        proc,
+        resume
+          ? cache.agentSessionTokens(live.id)
+          : { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 },
+      );
       proc.done = this.#consume(live, proc);
       return { proc, ...(line === undefined ? {} : { line }) };
     } catch (error) {
       cache.releaseSession(live.id);
       throw error;
     }
+  }
+
+  /**
+   * Adds the work of the process's agent session since its last report to the turn running on it.
+   * Without one, the next report counts it.
+   */
+  tokens(live: Live, proc: Proc, total: TokenCounts) {
+    const turn = live.turn?.id;
+    const baseline = this.#baselines.get(proc);
+    if (turn === undefined || baseline === undefined) {
+      return;
+    }
+    const own = (field: keyof TokenCounts) => Math.max(0, total[field] - baseline[field]);
+    this.#context.cache.addTurnTokens(turn, {
+      cacheRead: own("cacheRead"),
+      cacheWrite: own("cacheWrite"),
+      input: own("input"),
+      output: own("output"),
+    });
+    this.#baselines.set(proc, total);
   }
 
   /**

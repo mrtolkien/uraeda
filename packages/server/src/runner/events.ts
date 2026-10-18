@@ -6,6 +6,12 @@ export type Denial = { input: Record<string, unknown>; tool: string };
 /** Usage of the account's five-hour allowance, with its reset time in ISO 8601. */
 export type UsageLimit = { percentUsed: number; resetsAt: string };
 
+/**
+ * Tokens the model read and wrote. `input` was read for the first time, `cacheWrite` read and
+ * written to the cache, `cacheRead` read back from it.
+ */
+export type TokenCounts = { cacheRead: number; cacheWrite: number; input: number; output: number };
+
 /** What an adapter reads from its agent's output, whatever the agent. */
 export type AgentEvent =
   /** The agent's session, at the start of each turn. */
@@ -46,6 +52,8 @@ export type AgentEvent =
    * reports back.
    */
   | { tasks: Array<BackgroundTask>; type: "background" }
+  /** The agent session's running total, its sub-agents included, sent before each result. */
+  | { total: TokenCounts; type: "tokens" }
   /** The agent ended its reply. */
   | {
       denials: Array<Denial>;

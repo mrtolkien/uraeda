@@ -154,6 +154,14 @@ test.each<[string, Array<AgentEvent>]>([
       },
     ],
   ],
+  // The running total of every model, sub-agents included, before the result.
+  [
+    "result-usage.jsonl",
+    [
+      { total: { cacheRead: 11_304, cacheWrite: 7791, input: 2, output: 4 }, type: "tokens" },
+      { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
+    ],
+  ],
   [
     "result-denied.jsonl",
     [
