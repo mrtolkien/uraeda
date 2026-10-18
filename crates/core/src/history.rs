@@ -121,6 +121,14 @@ pub(crate) fn read(
         vec![Stage::Merged]
     };
     let mut starts = stages::starts(&list, &scoped);
+    let current = stages::current(&feature.step, &list, &starts);
+    if !done {
+        // A live item has not reached a later stage, whatever commits it holds.
+        starts
+            .iter_mut()
+            .skip(current as usize + 1)
+            .for_each(|start| *start = None);
+    }
     let diff = if done {
         let merge = tip
             .filter(|_| found)
@@ -149,7 +157,7 @@ pub(crate) fn read(
         .flatten();
     Ok(HistoryView {
         folder: feature.folder.clone(),
-        current: stages::current(&feature.step, &list, &starts),
+        current,
         stages: list
             .iter()
             .zip(&starts)
