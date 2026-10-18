@@ -4,9 +4,9 @@ The `ura` command-line tool performs the mechanical parts of the steps. It is op
 says what to do by hand, and names the command that does it.
 
 Every command works without a terminal, with flags, and the read commands print JSON with `--json`.
-A command that acts on a feature, a change, or a draft takes it as a path under `specs/` or a name
-matching one item, its folder name or slug; without it, the current branch's feature, or the only
-one waiting for that action.
+A command that acts on a feature, a change, or a draft takes it as a path under `specs/`. It can
+take a name matching one item instead: its folder name or slug. Without it, the command takes the
+current branch's feature, or the only one waiting for that action.
 
 | Command                                                               | What it does                                                                            |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -40,9 +40,10 @@ instead.
 
 `ura` refuses, before writing anything, what would break these rules by hand too:
 
-- An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`, and a review
-  comment with a line starting with `#`: they would read as a new heading or answer.
-- A commit while other files are staged, since it would carry them, but for `ura note`'s, which
-  commits `INBOX.md` alone; with `--switch`, a branch switch over uncommitted changes; a worktree
-  whose folder is taken by something else.
+- An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`. A review
+  comment with a line starting with `#`. They would read as a new heading or answer.
+- A commit while other files are staged, since it would carry them. The exception is `ura note`'s,
+  which commits `INBOX.md` alone.
+- With `--switch`, a branch switch over uncommitted changes.
+- A worktree whose folder is taken by something else.
 - A review file that does not parse: it may hold the human's comments, and is never overwritten.

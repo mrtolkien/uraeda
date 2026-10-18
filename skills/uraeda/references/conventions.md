@@ -1,7 +1,7 @@
 # Conventions
 
-The conventions shared by all steps: how workflow files are written, how they track their state, how
-the human reviews them, where each feature's branch lives, and how every step commits.
+The conventions shared by all steps: how workflow files are written and track their state, and how
+the human reviews them. Also where each feature's branch lives, and how every step commits.
 
 ## Markdown
 
@@ -21,14 +21,14 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
   `[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)`. With an active preview decision, a
   story link alone in its paragraph shows the story live in Uraeda, and anywhere else opens it in
   Storybook. A variant's story link is a paragraph of its option.
-- **Diagrams**: a fenced code block whose language is `mermaid`, for a flow, a sequence, or states
-  that a list would make hard to follow: a `flowchart`, a `sequenceDiagram`, or a `stateDiagram-v2`.
-  It reads as text anywhere, and renders on GitHub and in Uraeda. Never an image of a diagram, an
-  ASCII drawing, or another diagram language. See
+- **Diagrams**: a fenced code block whose language is `mermaid`. Use it for a flow, a sequence, or
+  states that a list would make hard to follow: a `flowchart`, a `sequenceDiagram`, or a
+  `stateDiagram-v2`. It reads as text anywhere, and renders on GitHub and in Uraeda. Never an image
+  of a diagram, an ASCII drawing, or another diagram language. See
   [Writing for the human](writing.md#every-document).
 - **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
-  committed with it. Each is re-encoded once as WebP, with no metadata and at most 2576 pixels on
-  its long edge (JPEG and lossy WebP at quality 80, the rest near-lossless); an animated GIF stays a
+  committed with it. Each is re-encoded once as WebP, with no metadata. Its long edge is at most
+  2576 pixels. JPEG and lossy WebP use quality 80, the rest near-lossless. An animated GIF stays a
   `.gif`, without metadata. A draft or backlog file that gets an image becomes a folder,
   `<slug>/proposal.md`, and links to it follow. When you commit a human's file, delete the images of
   its folder that no file there links to; starting a feature moves them all, unchanged.
@@ -39,38 +39,52 @@ Templates are strict where tools and agents need to find things, and free elsewh
 - **Headings**: the template's text, level, and order. Leave out an optional section entirely, never
   rename it.
 - **Optional sections**: in the templates, their placeholder starts with `[Optional`.
-- **Structured items**: fixed patterns, so they can be found and rendered: questions `## Q1: ...`,
-  numbered from Q1, each with its `**Answer:**` line, and follow-ups `### Q1.B: ...`, on an option
-  of their parent; options `- **A (recommended). ...**` with `[pro]` and `[con]` bullets; user
-  stories `### US1: Title (P1)`, their scenarios in a "Key scenarios:" list and an optional "More
-  scenarios:" list, each with **Given**, **When**, **Then**; success criteria
-  `- **SC-001** (<measure>): <outcome>.`, the measure optional; edge cases as a table whose
-  importance is `High`, `Normal`, or `Niche`; a spec's answers to its last review
-  `- **C2** (<the comment in a few words>): <done or declined>. <what was done, or why not>.`; a
-  spec's decisions `- **New: [<title>](../decisions/<name>.md)**. <sentence>`, the same with
-  `Changed:`, and ``- **Removed: <title>** (`<name>.md`). <why>``; plan tasks `## Task 1: ...`;
-  rulings `## R1: ...`; review comments `## C1: ...`.
+- **Structured items**: fixed patterns, so they can be found and rendered:
+  - questions `## Q1: ...`, numbered from Q1, each with its `**Answer:**` line;
+  - follow-ups `### Q1.B: ...`, on an option of their parent;
+  - options `- **A (recommended). ...**` with `[pro]` and `[con]` bullets;
+  - user stories `### US1: Title (P1)`, their scenarios in a "Key scenarios:" list and an optional
+    "More scenarios:" list, each with **Given**, **When**, **Then**;
+  - success criteria `- **SC-001** (<measure>): <outcome>.`, the measure optional;
+  - edge cases as a table whose importance is `High`, `Normal`, or `Niche`;
+  - a spec's answers to its last review
+    `- **C2** (<the comment in a few words>): <done or declined>. <what was done, or why not>.`;
+  - a spec's decisions `- **New: [<title>](../decisions/<name>.md)**. <sentence>`, the same with
+    `Changed:`, and ``- **Removed: <title>** (`<name>.md`). <why>``;
+  - plan tasks `## Task 1: ...`;
+  - rulings `## R1: ...`;
+  - review comments `## C1: ...`.
 - **Everything else**, inside sections, is free text.
 
-With `ura`, run `ura check` before every commit of workflow files: it verifies the rules of this
+With `ura`, run `ura check` before every commit of workflow files. It verifies the rules of this
 file, and reports each problem with its file and line. It also warns, without failing, when a file
-waiting for the human drifts from the limits of [Writing for the human](writing.md). In short:
-folder names `YYYY-MM-DD-<slug>` with a real date, and rounds with two digits; the frontmatter
-fields of each file, with the values of the [status table](#workflow-status), `plan-review` `true`
-or `false`, a spec's `clarifications` at most its last round, and a plan's `spec-revision` at most
-the spec's `revision`; the template's title, sections, and order, and no level-2 section, nor `###`
-heading in a round's Context or settled points, that the template does not have; each settled point
-in one of its groups; the structured items above; an answer for every question that applies once a
-round is `answered`; the `> [!IMPORTANT]` block of a file waiting for the human; a record's name,
-`YYYY-MM-DD-<slug>.md`, its `finished` date, its numbered rounds and questions, and its opening
-`> [!NOTE]` block; `PRIORITIES.md`'s `## Now`, `## Next`, `## Later`, and `## Blocked`;
-`specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
-`specs/INBOX-TRIAGE.md` as a round of questions, with its template's title and sections, its
-`status`, its answers, and its block; links and images to markdown files and into `specs/` that
-resolve, anchors included, except links from `PRIORITIES.md` and `INBOX.md` into a started feature's
-or change's folder, whose files live on its branch; the [review files](#review-files) rules; and the
-preview decision's two fields, both or neither, a `preview-folder` that is `.` or a relative path
-without `..`, and a `preview-command` holding `{port}`.
+waiting for the human drifts from the limits of [Writing for the human](writing.md). In short, it
+checks:
+
+- folder names `YYYY-MM-DD-<slug>` with a real date, and rounds with two digits;
+- the frontmatter fields of each file, with the values of the [status table](#workflow-status);
+- `plan-review` is `true` or `false`;
+- a spec's `clarifications` is at most its last round, and a plan's `spec-revision` is at most the
+  spec's `revision`;
+- the template's title, sections, and order;
+- no level-2 section the template does not have, and no `###` heading it does not have in a round's
+  Context or settled points;
+- each settled point in one of its groups;
+- the structured items above;
+- an answer for every question that applies once a round is `answered`;
+- the `> [!IMPORTANT]` block of a file waiting for the human;
+- a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date, its numbered rounds and questions,
+  and its opening `> [!NOTE]` block;
+- `PRIORITIES.md`'s `## Now`, `## Next`, `## Later`, and `## Blocked`;
+- `specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
+- `specs/INBOX-TRIAGE.md` as a round of questions, with its template's title and sections, its
+  `status`, its answers, and its block;
+- links and images to markdown files and into `specs/` that resolve, anchors included;
+- the exception: links from `PRIORITIES.md` and `INBOX.md` into a started feature's or change's
+  folder, whose files live on its branch;
+- the [review files](#review-files) rules;
+- the preview decision's two fields, both or neither: a `preview-folder` that is `.` or a relative
+  path without `..`, and a `preview-command` holding `{port}`.
 
 ## Workflow status
 
@@ -127,15 +141,15 @@ source of truth.
   file at `commit`, on the branch. A comment on a part the branch removed points to the default
   branch's lines, with `removed` after them: `lines 18–19 removed`.
 - **A comment on a story**, written from Uraeda, starts with `Story <file name>#<export>`. When the
-  human picked an element, `, <phone or desktop>, <role> “<name>”` follows: the width only while
-  both showed; without a name, `<role> with “<its text's first 40 characters>”`, or the role alone
-  when it has no text either. Then `: ` and the text:
+  human picked an element, `, <phone or desktop>, <role> “<name>”` follows. The width is there only
+  while both showed. Without a name, it is `<role> with “<its text's first 40 characters>”`, or the
+  role alone when it has no text either. Then `: ` and the text:
   `Story RepeatMenu.stories.tsx#Open, phone, button “Weekly”: Too small to tap.` On a question's
   variant, the same line is added to its answer, and in a session to the human's message.
 - **Changes requested** need at least one comment.
 - **Approved with comments**: the comments do not change the approved file. The next step carries
-  them out, and says how: the plan, in its `## Review comments` section, for a spec; the
-  implementation, in the pull request's description, for a plan.
+  them out, and says how. For a spec, it is the plan, in its `## Review comments` section. For a
+  plan, it is the implementation, in the pull request's description.
 
 With `ura`, `ura review` writes the comments, `--comment 50-52 "<text>"` or
 `--comment general "<text>"`, then records the verdict, `--approve` or `--request-changes`, with the
@@ -143,17 +157,17 @@ status, the block's record, and the commit.
 
 ## Branches
 
-Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`), from
-the proposal to the code: discovery, questions, spec, decisions, plan, and implementation, until its
-folder is [finished](projects.md#finishing-a-feature) into a record. Its pull request merges all of
-it at once. Decisions become active on the branch when its spec is approved, and bind the rest of
-the project once the branch is merged. A change lives on `change/YYYY-MM-DD-<slug>`, named after its
-folder, `specs/changes/YYYY-MM-DD-<slug>/`. Run every step on the target's branch: the human answers
-and approves on it too.
+Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`). The
+branch holds everything from the proposal to the code: discovery, questions, spec, decisions, plan,
+and implementation, until its folder is [finished](projects.md#finishing-a-feature) into a record.
+Its pull request merges all of it at once. Decisions become active on the branch when its spec is
+approved, and bind the rest of the project once the branch is merged. A change lives on
+`change/YYYY-MM-DD-<slug>`, named after its folder, `specs/changes/YYYY-MM-DD-<slug>/`. Run every
+step on the target's branch: the human answers and approves on it too.
 
 Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
-checkout itself or a worktree, or else in a worktree at `.worktrees/<branch>/`, at the root of the
-main checkout, created with `git worktree add`; `ura start` creates a started item's at
+checkout itself or a worktree. Else write in a worktree at `.worktrees/<branch>/`, at the root of
+the main checkout, created with `git worktree add`. `ura start` creates a started item's at
 `.worktrees/<folder>/`. Keep `.worktrees/` out of `git status` through the repository's
 `.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path, commit in a
 worktree with it made absolute from the main checkout, so the same hooks run. Worktrees stay until
@@ -176,9 +190,9 @@ is the feature name for a first version, and what changed for later commits.
 | `finish:`    | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
 
 Code commits use the plan's messages, with the standard types and the same scope:
-`feat(recurring-tasks): repeat menu`. A change has no plan: its code commits use `fix(<slug>):` for
-a bug and `feat(<slug>):` for a change, `fix(tasks-reappear): save new tasks as they are`; its
-rounds use `discovery(<slug>):`, and an approved change to a decision
+`feat(recurring-tasks): repeat menu`. A change has no plan. Its code commits use `fix(<slug>):` for
+a bug, as in `fix(tasks-reappear): save new tasks as they are`, and `feat(<slug>):` for a change.
+Its rounds use `discovery(<slug>):`, and an approved change to a decision uses
 `decision(<slug>): apply <topic>`.
 
 The human's commits, and the agent's when the human asks, use the step's type for what they answer

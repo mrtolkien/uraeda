@@ -17,10 +17,9 @@ in a file: the spec must be complete enough to approve with confidence, and fast
 ## Overview
 
 The spec says what the feature does and how it will be built, for a technical human to approve
-before any code. It is the main review of the workflow: once it is approved, most features reach the
-pull request without the human, since the plan follows the spec, and only the plans the human chose
-to review when approving it wait for them. Anything the spec leaves vague, a later agent decides
-alone.
+before any code. It is the main review of the workflow. Once it is approved, most features reach the
+pull request without the human, since the plan follows the spec. Only the plans the human chose to
+review when approving it wait for them. Anything the spec leaves vague, a later agent decides alone.
 
 The spec is a page the human approves in one sitting, without opening anything else. In order:
 
@@ -57,7 +56,7 @@ answer to that point. An answer can be:
   ambiguous: ask again in a new round.
 - **Free text, alone or after letters**: the human's own answer, which wins over the option's
   wording. When it can be read more than one way, either ask again in a new round, with your reading
-  as the recommended answer, or, when the readings differ little, pick one and say so in the spec's
+  as the recommended answer. Or, when the readings differ little, pick one and say so in the spec's
   `> [!IMPORTANT]` block. An answer without a letter closes the question's follow-ups.
 
 A follow-up like `Q2.B` only needs an answer if the human picked that letter in its parent: ignore
@@ -69,8 +68,8 @@ Turn the answered round's `> [!IMPORTANT]` block into a record, as described in
 
 ## Is the scope clear?
 
-Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown, when an
-answer is ambiguous in a way that matters, or when the human asked for more options. A folder from
+Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown or is
+ambiguous in a way that matters. Start one too when the human asked for more options. A folder from
 an [upgraded change](change.md#upgrading) has rounds with no discovery file, that settled the
 change, not the feature's scope: start a new round for it. Otherwise, write the decisions the
 answers ask for, then the spec.
@@ -80,7 +79,7 @@ answers ask for, then the spec.
 ### What is a decision
 
 A decision records a choice a human made that agents must follow across the codebase, but would not
-reliably make on their own. The ledger is the current state of what the human wants: it grows as the
+reliably make on their own. The ledger is the current state of what the human wants. It grows as the
 project grows, and decisions change when the human changes their mind.
 
 An answer becomes a decision only if it passes all three tests:
@@ -93,15 +92,15 @@ An answer becomes a decision only if it passes all three tests:
 3. **Getting it wrong is costly**: inconsistent code, a hard migration, a rewrite, a look and feel
    that drifts.
 
-Typical decisions: how the code is organized, dependencies, the technical approach to a problem,
-visual direction, cross-cutting conventions (errors, dates, logging), and transitions, like two
-implementations kept side by side during a trial.
+Typical decisions: how the code is organized, dependencies, the technical approach to a problem, and
+visual direction. Others are cross-cutting conventions (errors, dates, logging), and transitions,
+like two implementations kept side by side during a trial.
 
 A decision is created, changed, or removed only from a question the human answered, or a review
 comment asking for it. The human approves every line of the ledger, so no decision starts from your
 own judgment. A choice you think deserves one goes back to the human as a question in a new round,
-following [Discovery](discovery.md). A low-impact choice made inside the feature is not a decision:
-it is an assumption in the spec, or a ruling in `rulings.md` during the plan and the implementation.
+following [Discovery](discovery.md). A low-impact choice made inside the feature is not a decision.
+It is an assumption in the spec, or a ruling in `rulings.md` during the plan and the implementation.
 
 ### New decision or change
 
@@ -153,7 +152,7 @@ Two sections are optional, at their place in the template. Leave them out unless
 
 - **Alternatives considered**: only the rejected options that were close calls, one line each. When
   a change reverses an earlier choice, always list the earlier choice and why it was abandoned.
-- **Revisit when**: a condition or a date that ends a temporary decision, for example "when the new
+- **Revisit when**: a condition or a date that ends a temporary decision. For example, "when the new
   solver matches the old one on the benchmark for 4 weeks".
 
 ## Spec document
@@ -259,9 +258,9 @@ tested on its own: a user could get value from P1 alone. A story holds, in order
 - **"More scenarios:"**: optional, the other scenarios. The web UI folds them, and they do not count
   in the spec's reviewed part.
 
-Scenarios are written as **Given** / **When** / **Then**, with exact values: "a weekly task due
-Monday the 5th", "it is due Monday the 12th", never "the next week". Each has at most 4 steps. The
-plan's tests use them as written, and the implementation must test each one. Every answer of the
+Scenarios are written as **Given** / **When** / **Then**, with exact values. Write "a weekly task
+due Monday the 5th", "it is due Monday the 12th", never "the next week". Each has at most 4 steps.
+The plan's tests use them as written, and the implementation must test each one. Every answer of the
 questions that changes behaviour shows up in a scenario.
 
 ## Mockups
@@ -283,7 +282,7 @@ a phone's width and a desktop's.
 [Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)
 ```
 
-Before linking a story, set the worktree up as the project's git decision asks, like its install: a
+Before linking a story, set the worktree up as the project's git decision asks, like its install. A
 new worktree has none of its dependencies, and its Storybook does not start without them. Then check
 that each story you link renders, in Uraeda or with the decision's `preview-command`.
 
@@ -293,9 +292,13 @@ export and deletes the others, so the spec embeds the picked one.
 
 **Without one**, put the mockups in `mockups/`, next to the spec, and link each one from its story.
 The format is yours: use whatever shows the change best, and is quickest for the human to check. For
-example, a static HTML page when layout or interaction matters, an SVG for a single screen or
-component, a generated image when the look matters more than the exact layout, or code, when the UI
-is simple to build: a small component in the project's own stack, that the human can run or read.
+example:
+
+- a static HTML page when layout or interaction matters
+- an SVG for a single screen or component
+- a generated image when the look matters more than the exact layout
+- code, when the UI is simple to build: a small component in the project's own stack, that the human
+  can run or read
 
 ## Architecture
 
@@ -316,14 +319,14 @@ Design for isolation and clarity:
   well-defined interfaces, and can be understood and tested independently.
 - Can someone understand what a unit does without reading its internals? Can its internals change
   without breaking its consumers? If not, the boundaries need work.
-- Smaller, well-bounded units are also easier for agents to work with: they reason better about code
+- Smaller, well-bounded units are also easier for agents to work with. They reason better about code
   they can hold in context at once, and their edits are more reliable when files are focused.
 
 Working in the existing codebase:
 
 - Follow the patterns the discovery found.
-- Where existing code has problems that affect the feature, like a unit over the project's limits,
-  unclear boundaries, or tangled responsibilities, include targeted improvements in the design, the
+- Existing code may have problems that affect the feature, like a unit over the project's limits,
+  unclear boundaries, or tangled responsibilities. Include targeted improvements in the design, the
   way a good developer improves code they work in
   ([extract, don't grow](code-quality.md#extract-dont-grow)).
 - Do not propose unrelated refactoring. Stay focused on what serves the feature.
@@ -346,9 +349,9 @@ Rate each one: high when it can lose data or mislead the user, niche when few us
 otherwise. `ura check` reports any other importance as `edges.importance`. The web UI folds the
 niche ones.
 
-**Success criteria** are measurable outcomes, each one checkable by a test or a benchmark: "Setting
-a preset repeat takes two clicks from the open task", not "Setting a repeat is easy". Each is an
-item, its id in bold, then its measure in a few words in parentheses, optional:
+**Success criteria** are measurable outcomes, each one checkable by a test or a benchmark. Write
+"Setting a preset repeat takes two clicks from the open task", not "Setting a repeat is easy". Each
+is an item, its id in bold, then its measure in a few words in parentheses, optional:
 
 ```markdown
 - **SC-001** (two clicks): Setting a preset repeat takes two clicks from the open task.
@@ -361,10 +364,11 @@ item, its id in bold, then its measure in a few words in parentheses, optional:
   spec:", and what you settled yourself, so the human can object. An assumption that changes what
   users get is also an item of the `> [!IMPORTANT]` block.
 - **Unverified**: a story that relies on outside behaviour nobody has checked yet, as the
-  [discovery](discovery.md#investigate-in-depth) found it, is marked unverified in the block, with
-  what the plan's first task checks and what happens to the story if the check fails.
+  [discovery](discovery.md#investigate-in-depth) found it, is marked unverified in the block. The
+  block gives what the plan's first task checks and what happens to the story if the check fails.
 - **Relaxed guards**: a design that loosens a security rule, an origin check, a permission, or a
-  sandbox, says in the block what an attacker could then do, in one sentence, not as a mechanism.
+  sandbox says so in the block. The block says what an attacker could then do, in one sentence, not
+  as a mechanism.
 - **Constitution check**: a one-row table, one column per principle, all of them: principles always
   apply. Each cell is ✅, or ⚠️ for a tension. Then one line per tension, saying what it costs.
   Decisions are not part of it. A conflict goes back to the human as a new round of questions,

@@ -66,12 +66,12 @@ Checks: the project's linters and tests, in its usual validation command, so eve
 
 Test the feature the way a user or a caller uses it: integration tests, through the real components
 and an in-memory store, with the clock set by the test. They survive refactoring, where unit tests
-of internal functions break, and an agent writes them quickly.
+of internal functions break. An agent writes them quickly.
 
-- Tests are part of the codebase: organize them with the same care as the main code. Create the
-  helpers, fixtures, and fakes the tests need (rendering the app, seeding the store, setting the
-  clock), in shared files, so that each test holds no boilerplate.
-- Readability is a key feature of a test: each one is short and readable by a human, Arrange, Act,
+- Tests are part of the codebase: organize them with the same care as the main code.
+- Create the helpers, fixtures, and fakes the tests need, in shared files: rendering the app,
+  seeding the store, setting the clock. Each test then holds no boilerplate.
+- Readability is a key feature of a test. Each one is short and readable by a human: Arrange, Act,
   Assert, in that order, with a name that states the scenario. Test files stay short.
 - Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
 - A UI story's scenarios run in the project's browser runner: see
