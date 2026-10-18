@@ -93,3 +93,7 @@
 - [agent] [spec-page-fixes] Git: api/answered.rs reads the review at the oldest run of commits
   reading the revision in topo order, which can stop at a conflict-resolving merge when two branches
   both change spec.md.
+- [agent] [spec-page-fixes] Spec page: useCommentDraft is 99 lines against the 100-line limit; the
+  fixtures cli-tuis and plan-review list decisions without links, so ura check reports
+  decisions.item on them; comment-draft-place.test.tsx mocks scrollBy as a no-op, so it cannot tell
+  a double correction from a single one.
