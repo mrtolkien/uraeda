@@ -42,11 +42,23 @@ async function selected(path: string, index: number) {
   ).toEqual([true]);
 }
 
+/**
+ * Waits for the pane to be drawn. The address changes at once, but the route draws a step behind
+ * it: until then the list is drawn without its pane, and its keys have no pane to follow or close.
+ * The list is drawn anew beside the pane, so a row focused before it was drawn loses its focus.
+ */
+async function paneDrawn() {
+  await expect.poll(() => screen.queryByRole("region", { name: "Detail" })).not.toBeNull();
+}
+
 /** Opens the list with its first row open in the pane and the focus on it. */
 async function atFirst(path: string) {
   await opened(path);
   await expect.poll(() => rows(path).length).toBeGreaterThan(3);
   await userEvent.click(rows(path)[0]!);
+  await paneDrawn();
+  // The row the keys start from, once the list is drawn beside its pane.
+  rows(path)[0]!.focus();
   await selected(path, 0);
   await drawn();
 }
@@ -117,6 +129,7 @@ describe("the decisions", () => {
     const lastPath = new URL(principles().at(-1)!.getAttribute("href")!, window.location.href)
       .pathname;
     await opened(lastPath.slice(atRepo("").length));
+    await paneDrawn();
     principles().at(-1)!.focus();
     await drawn();
 
