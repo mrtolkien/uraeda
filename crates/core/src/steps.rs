@@ -246,7 +246,8 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
     let resumes = feature
         .text(&latest.name)
         .and_then(|text| crate::files::frontmatter::parse(text).ok())
-        .is_some_and(|front| front.text("resumes") == Some("implementation"));
+        .is_some_and(|front| front.text("resumes") == Some("implementation"))
+        && building(feature);
     if latest.status.as_deref() == Some("answered")
         && !resumes
         && (spec.is_none() || spec_number("clarifications").unwrap_or(0) < i64::from(round))

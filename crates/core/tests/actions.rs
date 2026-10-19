@@ -2077,3 +2077,18 @@ fn submitting_to_resume_is_refused_before_the_implementation_is_under_way() {
     assert!(read(&place, ROUND).contains("status: awaiting-human"));
     assert!(!read(&place, ROUND).contains("resumes"));
 }
+
+#[test]
+fn submitting_without_resuming_removes_the_key_of_a_reopened_round() {
+    let reopened = round("B", "A", "A").replacen(
+        "status: awaiting-human",
+        "status: awaiting-human\nresumes: implementation",
+        1,
+    );
+    let repo = repo_with(&reopened);
+    let (feature, place) = reach(&repo);
+
+    answer::submit_and_commit(&place, &feature, today(), false).unwrap();
+
+    assert!(!read(&place, ROUND).contains("resumes"));
+}

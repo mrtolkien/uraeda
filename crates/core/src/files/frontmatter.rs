@@ -180,6 +180,24 @@ pub fn set(text: &str, key: &str, value: &str) -> String {
     result.unwrap_or_else(|()| text.to_string())
 }
 
+/// Removes a field's line, when there is one.
+pub fn remove(text: &str, key: &str) -> String {
+    let prefix = format!("{key}:");
+    let Ok((_, end_line)) = block(text) else {
+        return text.to_string();
+    };
+    let lines: Vec<&str> = text.split('\n').collect();
+    let kept: Vec<&str> = lines
+        .iter()
+        .enumerate()
+        .filter(|(index, line)| {
+            !(*index >= 1 && *index < end_line - 1 && line.starts_with(&prefix))
+        })
+        .map(|(_, line)| *line)
+        .collect();
+    kept.join("\n")
+}
+
 /// The parser's message on one line: its first line, without its own `error: ` prefix, and
 /// without the code snippet that follows.
 pub(crate) fn yaml_message(error: &impl std::fmt::Display) -> String {
