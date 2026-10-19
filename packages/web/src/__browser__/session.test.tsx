@@ -552,7 +552,12 @@ describe("on the desktop, the column across 768 px", () => {
       await expect.poll(() => window.innerWidth).toBe(402);
       await agent.addPlan(CLI);
       await show(`/f/${CLI}/session`, "CLI TUIs");
-      await startTurn("Plan the CLI.", lines(60, "Line"));
+      await startTurn(
+        "Plan the CLI.",
+        // Two paragraphs each: the agent's text is flat now, and 20 one-line messages leave a page
+        // too short to keep the place read at the width that has no top bar (R10).
+        lines(60, "Line").map((line) => ({ ...line, text: `${line.text}\n\nMore.` })),
+      );
       const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
       await within(log).findByText("Line 60.", undefined, LIVE);
       await drawn();

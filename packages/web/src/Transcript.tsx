@@ -1,4 +1,6 @@
 import { ChatMessageList } from "@astryxdesign/core/Chat";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { useCallback, useEffect, useRef } from "react";
 import type { ChatImage } from "uraeda-server/fate";
 import { useAgent } from "./data.ts";
@@ -10,6 +12,14 @@ import type { OpenKeys } from "./useOpenKeys.ts";
 
 export { elapsed } from "./TurnLines.tsx";
 export { type Actions, sentAt } from "./TranscriptMessages.tsx";
+
+const styles = stylex.create({
+  list: {
+    // The compact list pads its messages by 12 px at the sides: taken back, the page's inset is the
+    // only one, so the agent's text takes the width the phone has.
+    marginInline: `calc(-1 * ${spacingVars["--spacing-3"]})`,
+  },
+});
 
 /**
  * The latest messages of a session's turns in order, named "Conversation", kept up to date while
@@ -58,7 +68,13 @@ export function Transcript({
     session: session.id,
   };
   return (
-    <ChatMessageList align="top" aria-label="Conversation" density="compact" ref={list}>
+    <ChatMessageList
+      align="top"
+      aria-label="Conversation"
+      density="compact"
+      ref={list}
+      xstyle={styles.list}
+    >
       <Tail actions={actions} key={session.id} onSettled={settled} turns={session.turns} />
     </ChatMessageList>
   );

@@ -13,7 +13,6 @@ import {
   type ReactNode,
   Suspense,
   useContext,
-  useLayoutEffect,
 } from "react";
 import { useStoryHref } from "./data.ts";
 import { useRepoPath } from "./routes.tsx";
@@ -32,10 +31,9 @@ type LinkProps = { children: ReactNode; href: string };
 
 /**
  * What an agent's message tells the stories it links: whether it ended, as a message shows its
- * stories only then, not while it streams; and `shown`, called while a story shows in it, so its
- * bubble takes the column's width, which returns what to call once the story no longer shows.
+ * stories only then, not while it streams.
  */
-export type MessageStories = { ended: boolean; shown: () => () => void };
+export type MessageStories = { ended: boolean };
 
 export const MessageStories = createContext<MessageStories | undefined>(undefined);
 
@@ -108,9 +106,6 @@ function StoryParagraph({
   stories: Stories;
 }) {
   const story = useStoryHref(link.href);
-  const message = useContext(MessageStories);
-  const shown = message?.shown;
-  useLayoutEffect(() => (story ? shown?.() : undefined), [shown, story]);
   if (!story) {
     return paragraph;
   }

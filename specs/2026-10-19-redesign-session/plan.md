@@ -660,7 +660,7 @@ git commit -m "feat(redesign-session): draw the latest 20 messages of a session"
 - Produces: the human's message in a bubble filled with `--color-background-blue`, aligned right;
   the agent's text in a `ghost` bubble with no padding and `width="100%"`, at every width.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `session-look.test.tsx` (WebKit, phone and desktop projects, as `sizes.test.tsx` is): a chat with
 one message of the human's and one reply at 390 px: the human's bubble is right-aligned and filled,
@@ -673,18 +673,18 @@ more 2).
 The break each catches: the same fill for both senders; a bubble's padding on the agent's text; a
 token with no dark value.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `nix develop -c vp run browser:phone`
   - Expected: FAIL, the reply is 40 px narrower than the page
 
-- [ ] **Step 3: Implement the look**
+- [x] **Step 3: Implement the look**
 
 Follow the mockup's two components, built on the transcript's real ones: the tint is the human's
 bubble `xstyle`, from `colorVars["--color-background-blue"]`, and a pending message keeps its ghost
-variant. The agent's `AgentMessage` keeps its width switch for an embedded story. The list takes
-back its inset with `--page-bleed` (the mockup's `list`), which Task 6's `Page isSnug` sets.
+variant. The agent's `AgentMessage` is 100% wide always (see R9, no width switch). The list takes
+back its own 12 px inset with a margin of that width (R9, not `--page-bleed`).
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
   - Run: `nix develop -c vp check`, `nix develop -c vp run browser:phone`,
     `nix develop -c vp run browser:desktop`
   - Expected: PASS
