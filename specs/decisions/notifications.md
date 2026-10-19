@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: bell
 ---
 
@@ -14,15 +14,13 @@ understands what will notify. The phone and closed tabs are left to a later feat
 
 - A notification MUST be shown only when an item, in any repository, comes to need the human, as the
   server's statuses say, never the web UI's own logic. Checked by the notifier's tests.
-- The browser's permission MUST be asked only from the human's click in a banner that says what will
-  notify, never on page load, and a refusal of the banner MUST be kept. Checked by the notifier's
-  tests.
-- Notifications MUST be shown only while no Uraeda tab is in front, from one tab, one per item and
-  reason, and a click MUST open the item. Checked by the notifier's tests.
-- The tab's title MUST start with the count of items that need the human, across every repository,
-  when there are any. Checked by the notifier's tests.
-- Notifications MUST come from the page, and MUST NOT use a service worker or Web Push until a
+- The browser's permission MUST be asked only after the human is told what will notify, never on
+  page load, and a refusal MUST be kept. Checked by the notifier's tests.
+- Notifications MUST NOT interrupt a human who is already looking at Uraeda, and a click MUST open
+  the item. Checked by the notifier's tests.
+- Notifications MUST come from an open page, and MUST NOT use a service worker or Web Push until a
   feature for the phone decides how. Checked by review.
+- The tab's title SHOULD count the items that need the human. Checked by the notifier's tests.
 
 ## Why
 
@@ -43,7 +41,6 @@ page explains first
 
 - No notification reaches the iPhone or Chrome on Android, where pages cannot notify: the tab's
   title still counts.
-- The global endpoint carries a view over every repository, read by every open tab.
 - A later feature for the phone adds Web Push, and changes this decision.
 
 ## Applies to

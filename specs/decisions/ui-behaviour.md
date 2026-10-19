@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: mouse-pointer-click
 ---
 
@@ -12,26 +12,18 @@ Everything works by tap and by keyboard, not by hover.
 
 ## Rules
 
-- Small edits MUST happen in place, and a dialog or sheet MUST only confirm an irreversible action
-  or hold a short form, with a close button that Back triggers. Checked by the UI tests.
-- Text MUST save only on an explicit action, never as it is typed or when its field loses focus.
-  Checked by the UI tests.
-- Unsaved text MUST be marked, kept in the browser until saved or discarded, and never dropped
+- Small edits MUST happen in place, and a dialog MUST only confirm an irreversible action or hold a
+  short form. Checked by the UI tests.
+- Text MUST save only on an explicit action, and unsaved text MUST be marked and never dropped
   without asking. Checked by the UI tests.
-- Multi-line fields, except the chat composer, MUST share the app's one text area, at a fixed height
-  that scrolls rather than grows. Checked by the UI tests.
-- Status MUST show next to what it concerns, and errors MUST stay there until dealt with; a toast
-  MAY only confirm a result the human cannot see, and MUST NOT be an error's only place. Checked by
-  the UI tests.
-- A git write MUST show its action at once on its button and its sidebar card, never a guessed
-  status, and block other git writes until it ends. Checked by the UI tests.
-- Back MUST restore the scroll position and open items, and a reloading page MUST keep its content
-  shown. Checked by the UI tests.
-- Every action MUST have a tap and a keyboard path; a control shown on hover MUST also show on focus
-  and without hover, and shortcuts MUST NOT act in a text field. Checked by the UI and browser
+- Status MUST show next to what it concerns, and an error MUST stay there until dealt with, never
+  only in a toast. Checked by the UI tests.
+- A git write MUST show its action at once and never a guessed status, and MUST block other git
+  writes until it ends. Checked by the UI tests.
+- Back and reload MUST keep the human's place and what they were reading. Checked by the UI tests.
+- Every action MUST work by tap and by keyboard, never by hover alone. Checked by the UI and browser
   tests.
-- A list whose rows open a pane MUST move its selection with ↑/↓ or j/k, Home/End, Enter, and
-  Escape, the selected row distinct from the focused one. Checked by the UI tests.
+- Lists whose rows open a pane SHOULD share one keyboard behaviour. Checked by the UI tests.
 
 ## Why
 

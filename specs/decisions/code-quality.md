@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: ruler
 ---
 
@@ -8,27 +8,22 @@ icon: ruler
 
 Agents extending their own code grow it feature after feature. Size and nesting limits hold the Rust
 and TypeScript code, checked by the linters already installed. Code that breaks a limit today is
-marked in place with its reason, and the numbers can only go down.
+marked in place with its reason, and the exceptions can only go down.
 
 ## Rules
 
-- Rust and TypeScript functions MUST NOT be longer than 100 lines, take more than 7 parameters, or
-  nest blocks more than 4 levels deep. Checked by clippy and Oxlint.
-- Rust and TypeScript source files MUST NOT be longer than 500 lines, except tests and generated
-  files. Checked by Oxlint, and for Rust by a structural test.
+- Rust and TypeScript functions and files MUST stay within limits on length, parameters, and
+  nesting, enforced by the existing linters. Checked by clippy and Oxlint.
 - The TypeScript lint configuration MUST extend `@nkzw/oxlint-config`, the fate stack's shared one,
-  and MAY turn off its rules only where an active decision, named beside it, conflicts. Checked by
+  and MAY turn off its rules only where an active decision conflicts. Checked by
   [`lint.test.ts`](/packages/web/src/__tests__/lint.test.ts)'s fixtures.
-- Code breaking a limit when this decision was approved MUST be marked in place, with
-  `#[expect(<lint>, reason = "...")]` in Rust, never `#[allow]`, or
-  `oxlint-disable-next-line <rule> -- <reason>` in TypeScript, so a marker on fixed code fails.
-  Checked by clippy's unfulfilled `#[expect]`, Oxlint's unused directives, and the structural test.
-- A new marker MUST NOT be added unless a human approves it as a constitution exception in the plan.
-  Checked by review.
+- Code breaking a limit when this decision was approved MUST be marked in place with its reason, so
+  a marker on fixed code fails, and a new marker MUST NOT be added unless a human approves it in the
+  plan. Checked by the linters and review.
 - A custom lint rule or structural test MUST say in its message how to fix the problem. Checked by
-  review, and by the fixtures that make each rule fire.
-- Unit tests MUST NOT sleep for a fixed time or assert how long something took, except benchmarks of
-  a spec's success criteria. Checked by review.
+  review.
+- Unit tests MUST NOT depend on elapsed time, except benchmarks of a spec's success criteria.
+  Checked by review.
 
 ## Why
 
@@ -52,7 +47,6 @@ keep each exception beside its code, the same way in both languages, and fail on
 - A feature touching a marked function or file splits it first, in a commit that only restructures
   it, and removes its marker.
 - Lua, and duplication across languages, stay checked by review only.
-- A `test.only` left behind fails the lint.
 
 ## Applies to
 

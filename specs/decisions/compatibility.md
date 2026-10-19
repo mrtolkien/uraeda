@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: history
 ---
 
@@ -8,24 +8,19 @@ icon: history
 
 Until Uraeda reaches version 1.0, its formats change without keeping the old ones working. A change
 to a workflow file's format, a template, or a rule of `ura check` applies to every file at once: the
-code reads only the new format, and files written in the old one are updated, or fail `ura check`
-until they are.
+code reads only the new format, and old files are updated, or fail `ura check` until they are.
 
 ## Rules
 
-- Before version 1.0, a change to the format of a workflow file, a template of the skill, or a rule
-  of `ura check` MUST NOT keep the old format working: no fallback reading, no migration code, no
-  optional section kept only for older files. Checked by review.
-- A feature that changes a format MUST update the skill's templates and examples, the fixtures, and
-  the files of the default branch that the change makes fail `ura check`, in the same branch.
-  Checked by `ura check`.
-- An agent that finds a workflow file failing `ura check` because its format changed MUST rewrite it
-  in the new format, from the template, keeping its content and the human's answers and comments,
-  before its step goes on. Checked by `ura check`.
-- A spec that changes a format MUST say which files it updates, and which in-flight branches the
-  change makes fail. Checked by review.
-- Files on other branches in flight MAY fail `ura check` after such a change is merged, until their
-  branch catches up with the default branch. Checked by review.
+- Before version 1.0, a format change MUST NOT keep the old format working: no fallback reading, no
+  migration code. Checked by review.
+- A feature that changes a format MUST update the templates, examples, fixtures, and default-branch
+  files it affects, in the same branch. Checked by `ura check`.
+- An agent that finds a file failing `ura check` because its format changed MUST rewrite it in the
+  new format, keeping its content and the human's words, before its step goes on. Checked by
+  `ura check`.
+- Files on other branches in flight MAY fail `ura check` after a merge, until their branch catches
+  up. Checked by review.
 
 ## Why
 
@@ -43,8 +38,7 @@ for files that live a few days on a branch.
 - A branch in flight when a format changes fails `ura check` until it catches up with the default
   branch. The agent running its next step then rewrites its files: a small cost per branch, paid
   once.
-- Records in `specs/done/` are not converted: they are history, read by humans, and `ura check`
-  reads them only for their own record format.
+- Records in `specs/done/` are not converted: they are history, read by humans.
 
 ## Applies to
 

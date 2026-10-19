@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: scan-eye
 ---
 
@@ -12,19 +12,14 @@ human, catch what no rule names.
 
 ## Rules
 
-- Every UI test MUST guard a spec's scenario, edge case, or success criterion, a change's expected
-  behaviour, or a UI decision's rule, and MUST change or go with it, never loosened to keep passing.
+- Every UI test MUST guard something a spec or decision asks for, and MUST change or go with it,
+  never loosened to keep passing. Checked by review.
+- UI tests MUST drive the UI as a user does, and MUST NOT assert markup, class names, or pixels.
   Checked by review.
-- UI tests MUST drive the UI as a user does, by roles, labels, and visible text, and MUST NOT assert
-  markup, class names, snapshots, or pixel comparisons. Checked by review.
-- UI tests MUST be Vitest tests, in happy-dom or WebKit, and Storybook stories MUST NOT run as
-  tests. Checked by review.
-- `vp run ready` MUST check every page a UI decision governs in WebKit, at a phone and a desktop
-  size: no cut text, no sideways scroll, the [UI layout](ui-layout.md) measures, and WCAG 2.1 A and
-  AA in both themes. Checked by review.
-- Before handing over a UI change, the agent MUST screenshot every changed view at both sizes and in
-  both themes, review and fix them against the decisions and the mockups or proposal, and commit
-  them under the folder's `screenshots/`. Checked by review.
+- `vp run ready` MUST check every page a UI decision governs at a phone and a desktop size, in both
+  themes, for readability and accessibility. Checked by review.
+- Before handing over a UI change, the agent MUST review screenshots of every changed view at both
+  sizes and in both themes against the decisions, and commit them. Checked by review.
 
 ## Why
 

@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: git-branch
 ---
 
@@ -8,34 +8,22 @@ icon: git-branch
 
 Uraeda's tools read git fast, in process, and write it exactly as the user would, through their own
 hooks, signing, and credentials. The workflow's state is what is committed, on every branch at once.
-Tools never lose the user's work: they never force-remove a worktree or force-push, never switch the
-user's checkout, and clean up only when asked.
+Tools never lose the user's work.
 
 ## Rules
 
-- Rust tools MUST read git with gix, built with only the features they need, and run the system
-  `git` for writes and reads gix lacks, linking no other git library. Checked by review.
-- In Rust, every git access MUST go through one core module, which parses only `git`'s
-  machine-readable output. Checked by review.
-- Tools MUST NOT bypass the user's hooks, and commits in a linked worktree MUST run the main
-  checkout's hooks. Checked by the core's tests and review.
-- Tools MUST NOT switch the user's checkout unless the human asks: they write where the branch is
-  checked out, or in a new worktree under `.worktrees/`. Checked by review and the CLI's tests.
-- Drafts, the backlog, `PRIORITIES.md`, `INBOX.md`, and `INBOX-TRIAGE.md` MUST be written on the
-  default branch; a tool MAY use another checkout's copy only while it matches, and MUST otherwise
-  refuse, naming the default branch's checkout. Checked by the core's tests.
-- A branch MUST count as a feature or a change, and its step be read, only from its latest commit;
-  uncommitted files only mark uncommitted changes. Checked by the core's workspace tests.
-- Tools MUST remove a worktree or delete a local branch only when a human asks, for a feature merged
-  into the default branch, and MUST NOT delete remote branches; pruning records of gone folders
-  stays allowed. Checked by review.
-- Tools MUST remove only worktrees under `.worktrees/`, never forced, and leave one that is locked
-  or holds uncommitted or untracked files, read from git's state, not its messages. Checked by the
-  core's tests.
-- Tools MUST delete a local branch with `git branch -D` only once no worktree has it, and only when
-  `git log --cherry-pick` finds every commit, or a patch-equivalent, on the local or remote-tracking
-  default branch. Checked by the core's tests.
-- Tools MUST keep `.worktrees/` out of the user's `git status` without editing a tracked file.
+- Tools MUST NOT lose the user's work: they never force-remove a worktree, force-push, or delete a
+  branch the default branch lacks, and remove or delete anything only when a human asks. Checked by
+  the core's tests.
+- Tools MUST NOT bypass the user's hooks, signing, or credentials, and MUST NOT switch the user's
+  checkout unless the human asks. Checked by the core's tests and review.
+- Rust tools MUST read git with gix and run the system `git` for writes, through one core module.
+  Checked by review.
+- A branch MUST count as a feature or a change, and its step be read, only from its latest commit.
+  Checked by the core's workspace tests.
+- Drafts, the backlog, and the human's inbox and priorities MUST be written on the default branch.
+  Checked by the core's tests.
+- Tools SHOULD keep their worktrees out of the user's `git status` without editing a tracked file.
   Checked by the core's tests.
 
 ## Why

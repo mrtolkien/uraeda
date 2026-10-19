@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: settings
 ---
 
@@ -12,26 +12,17 @@ overrides a setting for one run, and settings stay apart from Uraeda's data and 
 
 ## Rules
 
-- Settings MUST be stored in `config.toml`, in `URAEDA_CONFIG_DIR` when set, else
-  `$XDG_CONFIG_HOME/uraeda/`, else `~/.config/uraeda/`, on macOS too, never in the operating
-  system's application-support folder. Checked by the core's tests.
-- Uraeda's data folder MUST be `URAEDA_DATA_DIR` when set, else the operating system's default data
-  folder for `uraeda`, and holds Uraeda's data, cache, and secrets, with a running server's files in
-  `run/`. Checked by the core's tests.
-- Finding, reading, validating, and writing the settings file MUST live in the Rust core, and the
-  server and `ura` MUST reach the file only through it. Checked by review.
-- A write MUST change only the values it sets, keeping comments, unknown keys, and order through
-  `toml_edit`, and MUST replace the file atomically. Checked by the core's tests.
-- A file that cannot be read or holds an invalid value MUST NOT be overwritten: writes are refused
-  until it is fixed, and the server runs on defaults meanwhile. Checked by the core's and the
-  server's tests.
-- A setting MUST resolve from its flag, then its environment variable, the file, and its default, in
-  one place in the server, and a flag or variable MUST NOT be written into the file. Checked by the
-  server's tests.
-- Settings MUST NOT hold a secret, sit in the data folder, or be read from a repository or a
-  checkout, except a checkout's `.env` as an environment source for `vp dev`. Checked by review.
-- A setting changed in the web UI MUST apply at once when the running server can, and otherwise the
-  page MUST say it applies at the next start. Checked by the settings page's tests.
+- Settings MUST live in one TOML file in the config folder, on macOS too, apart from Uraeda's data
+  and secrets, and MUST NOT hold a secret or be read from a repository. Checked by the core's tests
+  and review.
+- Finding, reading, validating, and writing the settings MUST live in the Rust core, which the
+  server and `ura` reach the file through. Checked by review.
+- A write MUST keep a human's comments, unknown keys, and order, and MUST NOT overwrite a file that
+  is unreadable or invalid. Checked by the core's tests.
+- A setting MUST resolve from its flag, then its environment variable, the file, and its default,
+  and a flag or variable MUST NOT be written into the file. Checked by the server's tests.
+- A setting changed in the web UI MUST apply at once when it can, and otherwise the page MUST say
+  when it applies. Checked by the settings page's tests.
 
 ## Why
 

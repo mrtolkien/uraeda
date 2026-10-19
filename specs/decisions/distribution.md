@@ -1,35 +1,28 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: package
 ---
 
 # Distribution
 
 The web UI and its server ship as one small npm package that users run on their own Node. The native
-binding ships in one package per platform, as napi-rs projects ship. `ura` keeps its own installers,
-and both are released together, from one tag, with one version.
+binding ships in one package per platform. `ura` keeps its own installers, and both are released
+together, from one tag, with one version.
 
 ## Rules
 
-- Every npm package MUST be published under the `@uraeda` organization, and `@uraeda/ui` MUST
-  require Node 24 or later and MUST NOT bundle a Node runtime. Checked by the package's smoke test.
-- The binding MUST ship as one package per release platform, Linux x64 and arm64 (glibc) and macOS
-  x64 and arm64, named as napi-rs generates them, each in `@uraeda/ui`'s `optionalDependencies` at
-  its exact version. Checked by the release gate.
-- The packages MUST NOT run install scripts or download anything when they run. Checked by review.
-- `@uraeda/ui` MUST be self-contained: the bundled server, the built web UI, the skill as the
-  agents' plugin, and napi-rs's loader, unchanged. Checked by the package's smoke test.
-- One module MUST find the server's plugin, web UI, and checkout, in both the checkout's and the
-  package's layout, and other modules MUST NOT build these paths. Checked by review and the module's
-  tests.
+- The web UI MUST ship as an npm package that runs on the user's own Node, not as a bundled runtime
+  or a single executable. Checked by the package's smoke test.
+- The package MUST be self-contained, with the native binding in one package per supported platform,
+  and MUST NOT run install scripts or download anything when it runs. Checked by the package's smoke
+  test.
+- `ura` MUST stay separate from the web UI, installed on its own, and both MUST be released together
+  from one tag with one version. Checked by the release workflow.
+- Releases MUST be published from CI without a long-lived npm token, and a partial release MUST be
+  completable at the same version. Checked by the release workflow and review.
 - The packaged server MUST NOT read a `.env` file, taking settings only from the
   [settings](settings.md) decision's sources. Checked by the package's smoke test.
-- CI MUST publish the packages from the tag that releases `ura`, at the Cargo workspace's version,
-  through npm's trusted publishing, and the repository MUST NOT hold an npm token. Checked by the
-  release workflow and review.
-- A release MUST publish the platform packages first, only once every binary is built and the smoke
-  tests pass, and complete a partial release at the same version. Checked by the release workflow.
 
 ## Why
 
@@ -50,9 +43,9 @@ releases are neither replaceable nor atomic, hence the gate and the order
 
 ## Consequences
 
-- Users need Node 24 or later, and `claude` for sessions.
+- Users need a recent Node, and `claude` for sessions.
 - A release that fails half way leaves some platforms broken until it is completed.
-- Every file the server later reads at run time joins the paths module and the package.
+- Every file the server later reads at run time joins the package.
 
 ## Applies to
 

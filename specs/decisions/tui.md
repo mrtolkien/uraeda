@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: square-terminal
 ---
 
@@ -12,18 +12,15 @@ the user's terminal theme.
 
 ## Rules
 
-- Every TUI of `ura`, prompts and pickers included, MUST be drawn with ratatui on its crossterm
-  backend, with no other prompt or TUI library and no hand-written terminal control. Checked by
-  review.
-- A prompt inside a command MUST draw inline, under the command's output, and leave the chosen
-  answer as a line of it; full screens are for TUIs that are the command itself. Checked by review.
-- Reusable TUI parts, like the picker, MUST live in their own modules of
-  [`crates/cli/`](/crates/cli/), with their key handling testable without a terminal. Checked by
-  review.
+- Every TUI of `ura`, prompts and pickers included, MUST use ratatui, with no other prompt or TUI
+  library. Checked by review.
+- A prompt inside a command MUST draw inline under the command's output; full screens are for TUIs
+  that are the command itself. Checked by review.
 - A TUI MUST restore the terminal on every exit, cancels, errors, and panics included. Checked by
   review.
-- A TUI MUST use the terminal's own 16 colours, never fixed RGB values, and MUST stay readable
-  without colour, showing the cursor and checked items as characters. Checked by review.
+- A TUI MUST follow the user's terminal theme and stay readable without colour. Checked by review.
+- Reusable TUI parts SHOULD live in their own modules, testable without a terminal. Checked by
+  review.
 
 ## Why
 
@@ -41,8 +38,6 @@ The terminal's own colours are the look the human chose
 ## Consequences
 
 - The first picker costs a select widget and its key loop, which later TUIs reuse.
-- The binary grows by about 210 KB, which the [CLI](cli.md) decision's size rules accept.
-- Every TUI looks like the user's terminal theme, and works with `NO_COLOR`.
 - Agents never see a TUI: the [CLI](cli.md) decision gives every action flags and `--no-input`.
 
 ## Applies to
