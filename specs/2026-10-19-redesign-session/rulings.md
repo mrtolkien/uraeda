@@ -35,3 +35,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   runs the real binary: a later version that refuses several rules shows there, and the work stops
   for a new round, as the spec says.
 - **Where**: task 2 of the plan.
+
+## R4: A keystroke already redraws no message, so the page is left as it is
+
+- **Decision**: the profile (`session-cost.test.tsx`) counts 0 agent messages redrawn per keystroke
+  before any change: 30 messages draw once, and five keystrokes draw none. The typing lag is not the
+  page's redraw of the transcript. The test stays as the guard, and `SessionPage.tsx` is not
+  changed.
+- **Rationale**: the plan's step 2 says to keep the test and write the finding when it passes. The
+  test can fail: with `key={draft.text}` on `Transcript` it reads `expected 180 to be 30`, the 30
+  messages redrawn at each of the five keystrokes.
+- **Alternatives considered**: memoising `SessionLog` anyway, which would change code the profile
+  does not blame.
+- **If wrong**: the lag has another cause, in the composer's own field or the browser: profile
+  there, in the WebKit tests.
+- **Where**: task 1 of the plan.
