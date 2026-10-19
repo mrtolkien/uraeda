@@ -15,13 +15,13 @@
 
 - Empty inbox
 
+- [Decisions pass](drafts/decisions-pass.md)
+
+- [Later questions resume the current step](drafts/later-questions-resume-the-current-step.md)
 - [Look and feel pass](drafts/look-and-feel/proposal.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
-
-- [Later questions resume the current step](drafts/later-questions-resume-the-current-step.md)
-- [Decisions pass](drafts/decisions-pass.md)
 
 ## Next
 
