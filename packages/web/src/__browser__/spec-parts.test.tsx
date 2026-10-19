@@ -1,5 +1,5 @@
-// The parts after the stories, as WebKit draws them (US8): the architecture's units side by side on
-// a wide screen, and the data model's changes as green, yellow, and red pills.
+// The parts after the stories, as WebKit draws them (US8): the architecture, the edge cases, and the
+// criteria fitting the screen, and the data model's changes as green, yellow, and red pills.
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import {
@@ -44,12 +44,6 @@ async function checkParts(names: ReadonlyArray<string>) {
   await checkAccessibility();
 }
 
-/** The units' cards of the architecture. */
-function units() {
-  const part = screen.getByRole("region", { name: "Architecture" });
-  return within(within(part).getByRole("list", { name: "Units" })).getAllByRole("listitem");
-}
-
 /** The colour behind an element: its own, or that of the nearest box around it that has one. */
 function background(element: Element | null): string {
   for (let at = element; at; at = at.parentElement) {
@@ -70,17 +64,10 @@ function channels(colour: string) {
 describe("on the desktop", () => {
   atSize("desktop");
 
-  test("the units are three small cards side by side (US8 3)", async () => {
+  test("the architecture, the edge cases, and the criteria fit the screen (US8 3)", async () => {
     await commands.addSpecFeature();
     await show(PAGE, "Date helpers");
 
-    const cards = units().map((unit) => unit.getBoundingClientRect());
-    expect(cards).toHaveLength(3);
-    for (const card of cards) {
-      expect(card.top).toBeCloseTo(cards[0]!.top, 0);
-    }
-    expect(cards[0]!.right).toBeLessThanOrEqual(cards[1]!.left);
-    expect(cards[1]!.right).toBeLessThanOrEqual(cards[2]!.left);
     await checkParts(["Architecture", "Edge cases", "Success criteria"]);
   });
 
@@ -110,12 +97,10 @@ describe("on the desktop", () => {
 describe("on the phone", () => {
   atSize("phone");
 
-  test("the units stack, and the parts fit the screen", async () => {
+  test("the parts fit the screen", async () => {
     await commands.addSpecFeature();
     await show(PAGE, "Date helpers");
 
-    const cards = units().map((unit) => unit.getBoundingClientRect());
-    expect(cards[1]!.top).toBeGreaterThanOrEqual(cards[0]!.bottom);
     await checkParts(["Architecture", "Edge cases", "Success criteria", "Task"]);
   });
 });

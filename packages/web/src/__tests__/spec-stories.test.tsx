@@ -104,7 +104,7 @@ test("a tap on a scenario opens the comment form on its lines", async () => {
   ).toBeTruthy();
 });
 
-/** The Given, When, and Then rows of a scenario, each as its word and its text. */
+/** The Given, When, and Then rows of a scenario, each as its text, which starts with its word. */
 const rows = (scenario: HTMLElement) =>
   [
     ...document
@@ -112,10 +112,10 @@ const rows = (scenario: HTMLElement) =>
       .querySelectorAll("div"),
   ]
     .filter((row) => row.children.length === 2 && row.children[0]!.tagName === "SPAN")
-    .map((row) => [row.children[0]!.textContent, row.children[1]!.textContent]);
+    .map((row) => row.children[1]!.textContent);
 
 /** US3 1: a scenario draws its Given, When, and Then each as a labelled row, in order. */
-test("a scenario's Given, When, and Then label its rows, the words after each", async () => {
+test("a scenario's Given, When, and Then start its rows with their words", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
@@ -124,12 +124,11 @@ test("a scenario's Given, When, and Then label its rows, the words after each", 
   const [first, second] = scenariosOf(story);
 
   expect(rows(first!)).toEqual([
-    ["Given", "a task due Monday the 5th, "],
-    ["When", 'the user sets "every 2 weeks", '],
-    ["Then", "completing it moves it to Monday the 19th."],
+    "Given a task due Monday the 5th, ",
+    'When the user sets "every 2 weeks", ',
+    "Then completing it moves it to Monday the 19th.",
   ]);
-  expect(rows(second!)[0]).toEqual([
-    "Given",
-    "a task due Monday the 5th, repeating on Mondays and Thursdays, ",
-  ]);
+  expect(rows(second!)[0]).toEqual(
+    "Given a task due Monday the 5th, repeating on Mondays and Thursdays, ",
+  );
 });

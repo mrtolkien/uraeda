@@ -87,13 +87,13 @@ function RowNode({
 
 /**
  * A table's columns: each takes a share of the width by the longest text of its cells, from 8 to 60
- * characters, so a column of short names does not take as much as one of sentences; at least 96 px,
+ * characters, so a column of short names does not take as much as one of sentences; at least 144 px,
  * past which the table scrolls.
  */
 function tableColumns(weights: ReadonlyArray<number>): Array<TableColumn<Record<string, unknown>>> {
   return weights.map((weight, index) => ({
     key: `c${index}`,
-    width: proportional(weight, { minWidth: 96 }),
+    width: proportional(weight, { minWidth: 144 }),
   }));
 }
 

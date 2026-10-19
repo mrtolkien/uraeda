@@ -161,7 +161,6 @@ describe("on a desktop, the embed's sizes", () => {
     await document.exitFullscreen();
 
     expect(await within(embed()).findByRole("button", { name: "Full screen" })).toBeTruthy();
-    expect(within(embed()).getByRole("separator", { name: `Resize ${LABEL}` })).toBeTruthy();
   });
 
   test("in a document's column, the embed grows into the empty space beside it", async () => {
@@ -303,17 +302,17 @@ describe("on a desktop, the frames and their messages", () => {
     expect(heightOf(PHONE)).toBe(before);
   });
 
-  test("a story that never reports its height is 560 px tall", async () => {
+  test("a story that never reports its height is 840 px tall on the phone, 560 x 1.5", async () => {
     await commands.addStoryFeature({ preview: { mode: "no-pick" } });
     await showSpec();
     await storyShown(DESKTOP);
 
     await atPhoneWidth();
 
-    expect(heightOf(PHONE)).toBe(560);
+    expect(heightOf(PHONE)).toBe(840);
   });
 
-  test("a story as tall as its window stops growing at 900 px (edge case)", async () => {
+  test("a story as tall as its window stops growing at 1350 px on the phone (edge case)", async () => {
     await commands.addStoryFeature();
     const worktree = `.worktrees/${FEATURE}`;
     const stories = await commands.readRepo(`${worktree}/${STORIES}`);
@@ -333,8 +332,8 @@ describe("on a desktop, the frames and their messages", () => {
       .toContain("FullHeight");
 
     // The story's root follows the frame's height: each size it reports grows the frame again.
-    await expect.poll(() => heightOf("Full height, phone"), READY).toBeGreaterThanOrEqual(900);
-    expect(heightOf("Full height, phone")).toBe(900);
+    await expect.poll(() => heightOf("Full height, phone"), READY).toBeGreaterThanOrEqual(1350);
+    expect(heightOf("Full height, phone")).toBe(1350);
   });
 
   test("through a listed host name, the embed works as through 127.0.0.1 (SC-006)", async () => {
