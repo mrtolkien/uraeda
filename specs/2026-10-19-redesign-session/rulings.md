@@ -67,3 +67,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   "Allow all" to what the human did not just see.
 - **If wrong**: `coveredDenials` is the one place that picks the covered denials.
 - **Where**: task 2 of the plan.
+
+## R6: The markdown-parser test allows the moved message components and the mockups
+
+- **Decision**: `stack.test.ts` lets `TranscriptMessages.tsx` and `SessionMockups.stories.tsx`
+  import Astryx's `Markdown`, as `Transcript.tsx` may.
+- **Rationale**: the stack decision allows an agent's messages to render with `Markdown`. The
+  mockups (already on the branch) fail the test, and task 4 moves the agent's message there.
+- **Alternatives considered**: a mockup without `Markdown`, which would not show the real text.
+- **If wrong**: narrow the list again once the mockups are removed.
+- **Where**: the test, before task 4.
