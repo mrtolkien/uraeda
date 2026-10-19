@@ -77,12 +77,16 @@ test("a triage waiting is linked from the inbox, which offers no second one, and
   propose();
   await app.open("/inbox");
 
-  const link = (await screen.findAllByRole("link")).find(
-    (l) => l.getAttribute("href") === app.path("/inbox/triage"),
-  );
-  expect(link, "the inbox links the triage").toBeTruthy();
+  // The sidebar's links draw before the inbox's data: the triage's link is waited for.
+  const link = await waitFor(() => {
+    const found = screen
+      .getAllByRole("link")
+      .find((l) => l.getAttribute("href") === app.path("/inbox/triage"));
+    expect(found, "the inbox links the triage").toBeTruthy();
+    return found!;
+  });
   expect(disabled(screen.getByRole("button", { name: "Organize with an agent" }))).toBe(true);
-  await click(link!);
+  await click(link);
 
   expect(window.location.pathname).toBe(app.path("/inbox/triage"));
   await screen.findAllByRole("checkbox");
@@ -113,6 +117,9 @@ test("an answered triage is applied in a new chat, and without an agent its mess
   await click(await screen.findByRole("button", { name: "Apply the answers" }));
   await waitFor(() => expect(app.agent.sent).toHaveLength(1));
   expect(app.agent.sent[0].text).toContain("INBOX-TRIAGE.md");
+  // The page opens the new chat once the server answered: a page left before then would still
+  // navigate away from the next one it opens.
+  await waitFor(() => expect(window.location.pathname).toMatch(/\/chats\/[^/]+$/));
 
   cleanup();
   app.agent.installed = false;

@@ -207,8 +207,13 @@ test("a feature that waits on the human again sends the message as a chat, not a
 test("a session opened to continue a feature that waits on the human fills nothing", async () => {
   await app.open(`/f/${WEB_UI}/session?continue=manual`);
 
-  expect((await composer()).textContent).toBe("");
+  // The refusal is read after the composer is drawn: until it shows, the composer offers to start
+  // the agent, and its text is not yet known to stay empty.
+  await waitFor(() =>
+    expect(screen.getAllByRole("alert").some((alert) => alert.textContent)).toBe(true),
+  );
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
+  expect((await composer()).textContent).toBe("");
   await type(await composer(), "Why A?");
   await click(screen.getByRole("button", { name: "Send" }));
 
