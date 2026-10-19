@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Process messages</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #f4f4f4;
+        margin: 2rem;
+        max-width: 60rem;
+      }
+      h2 {
+        font-size: 1rem;
+        margin: 2rem 0 0.5rem;
+      }
+      p.note {
+        color: #555;
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0.75rem;
+      }
+      .window {
+        background: #fff;
+        border: 1px solid #999;
+      }
+      .page {
+        height: 4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #aaa;
+      }
+      /* qutebrowser's default message colors, from qutebrowser/config/configdata.yml */
+      .msg {
+        font: 10pt monospace;
+        padding: 2px 4px;
+        border-top: 1px solid;
+      }
+      .error {
+        color: white;
+        background: red;
+        border-color: #bb0000;
+      }
+      .info {
+        color: white;
+        background: black;
+        border-color: #333333;
+      }
+      .statusbar {
+        font: 10pt monospace;
+        color: white;
+        background: black;
+        padding: 2px 4px;
+      }
+      .empty {
+        font: 10pt monospace;
+        color: #888;
+        padding: 2px 4px;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Process messages</h1>
+    <p>
+      The messages qutebrowser shows when a process started by <code>:spawn</code> finishes, here
+      with PID 1234. The spec's text is the reference: this page shows where it appears.
+    </p>
+
+    <h2 id="failure">A failed exit (US1)</h2>
+    <p class="note">Before: <code>Command exited with status 1. See :process for details.</code></p>
+    <div class="window">
+      <div class="page">page</div>
+      <div class="msg error">Command exited with status 1. See :process 1234 for details.</div>
+      <div class="statusbar">[NORMAL] https://example.com/</div>
+    </div>
+
+    <h2 id="success">A successful exit, with <code>:spawn -v</code> (US1)</h2>
+    <p class="note">Before: <code>Command exited successfully.</code></p>
+    <div class="window">
+      <div class="page">page</div>
+      <div class="msg info">Executing: true</div>
+      <div class="msg info">Command exited successfully. See :process 1234 for details.</div>
+      <div class="statusbar">[NORMAL] https://example.com/</div>
+    </div>
+
+    <h2 id="crash">A crash (US2)</h2>
+    <p class="note">Before: <code>Command crashed. See :process for details.</code></p>
+    <div class="window">
+      <div class="page">page</div>
+      <div class="msg error">
+        Command crashed with status 11 (SIGSEGV). See :process 1234 for details.
+      </div>
+      <div class="statusbar">[NORMAL] https://example.com/</div>
+    </div>
+
+    <h2 id="sigterm">A stop with SIGTERM, without <code>-v</code> (US3)</h2>
+    <p class="note">Before: <code>Command crashed. See :process for details.</code></p>
+    <div class="window">
+      <div class="page">page</div>
+      <div class="empty">(no message)</div>
+      <div class="statusbar">[NORMAL] https://example.com/</div>
+    </div>
+
+    <h2 id="sigterm-verbose">A stop with SIGTERM, with <code>:spawn -v</code> (US3)</h2>
+    <p class="note">Before: the same error as above.</p>
+    <div class="window">
+      <div class="page">page</div>
+      <div class="msg info">Executing: sleep 100</div>
+      <div class="msg info">
+        Command terminated with status 15 (SIGTERM). See :process 1234 for details.
+      </div>
+      <div class="statusbar">[NORMAL] https://example.com/</div>
+    </div>
+  </body>
+</html>

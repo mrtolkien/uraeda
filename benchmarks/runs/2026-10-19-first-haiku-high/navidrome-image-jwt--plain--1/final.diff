@@ -1,0 +1,194 @@
+diff --git a/core/artwork/artwork.go b/core/artwork/artwork.go
+index c1c6ac2b..c461013a 100644
+--- a/core/artwork/artwork.go
++++ b/core/artwork/artwork.go
+@@ -109,10 +109,28 @@ func (a *artwork) getArtworkReader(ctx context.Context, artID model.ArtworkID, s
+ 	return artReader, err
+ }
+ 
+-func PublicLink(artID model.ArtworkID, size int) string {
++// EncodeArtworkID returns a public token that identifies the artwork. Only the artwork ID is included in the token,
++// image size is not part of it and must be passed separately (e.g. as a query parameter)
++func EncodeArtworkID(artID model.ArtworkID) string {
+ 	token, _ := auth.CreatePublicToken(map[string]any{
+-		"id":   artID.String(),
+-		"size": size,
++		"id": artID.String(),
+ 	})
+ 	return token
+ }
++
++// DecodeArtworkID verifies a public token created by EncodeArtworkID and returns the artwork ID it contains
++func DecodeArtworkID(tokenString string) (model.ArtworkID, error) {
++	claims, err := auth.Validate(tokenString)
++	if err != nil {
++		return model.ArtworkID{}, errors.New("invalid JWT")
++	}
++	idClaim, ok := claims["id"]
++	if !ok {
++		return model.ArtworkID{}, errors.New("missing id claim in JWT")
++	}
++	id, ok := idClaim.(string)
++	if !ok {
++		return model.ArtworkID{}, errors.New("invalid id type in JWT")
++	}
++	return model.ParseArtworkID(id)
++}
+diff --git a/core/artwork/artwork_public_token_test.go b/core/artwork/artwork_public_token_test.go
+new file mode 100644
+index 00000000..ccf6bf7c
+--- /dev/null
++++ b/core/artwork/artwork_public_token_test.go
+@@ -0,0 +1,39 @@
++package artwork
++
++import (
++	"github.com/navidrome/navidrome/core/auth"
++	"github.com/navidrome/navidrome/model"
++	"github.com/navidrome/navidrome/tests"
++	. "github.com/onsi/ginkgo/v2"
++	. "github.com/onsi/gomega"
++)
++
++var _ = Describe("Public artwork tokens", func() {
++	BeforeEach(func() {
++		auth.Init(&tests.MockDataStore{})
++	})
++
++	It("round-trips an artwork ID", func() {
++		artID := model.NewArtworkID(model.KindArtistArtwork, "1234")
++		token := EncodeArtworkID(artID)
++		Expect(DecodeArtworkID(token)).To(Equal(artID))
++	})
++
++	It("returns an error for an invalid token", func() {
++		_, err := DecodeArtworkID("xx-123")
++		Expect(err).To(MatchError("invalid JWT"))
++	})
++
++	It("returns an error for an empty artwork ID", func() {
++		token := EncodeArtworkID(model.ArtworkID{})
++		_, err := DecodeArtworkID(token)
++		Expect(err).To(MatchError("invalid artwork id"))
++	})
++
++	It("returns an error when the id claim is missing", func() {
++		token, err := auth.CreatePublicToken(map[string]any{"size": 100})
++		Expect(err).ToNot(HaveOccurred())
++		_, err = DecodeArtworkID(token)
++		Expect(err).To(HaveOccurred())
++	})
++})
+diff --git a/server/public/public_endpoints.go b/server/public/public_endpoints.go
+index 31d04e5e..091c08c7 100644
+--- a/server/public/public_endpoints.go
++++ b/server/public/public_endpoints.go
+@@ -5,13 +5,11 @@ import (
+ 	"errors"
+ 	"io"
+ 	"net/http"
++	"strconv"
+ 	"time"
+ 
+ 	"github.com/go-chi/chi/v5"
+-	"github.com/go-chi/jwtauth/v5"
+-	"github.com/lestrrat-go/jwx/v2/jwt"
+ 	"github.com/navidrome/navidrome/core/artwork"
+-	"github.com/navidrome/navidrome/core/auth"
+ 	"github.com/navidrome/navidrome/log"
+ 	"github.com/navidrome/navidrome/model"
+ 	"github.com/navidrome/navidrome/server"
+@@ -34,8 +32,6 @@ func (p *Router) routes() http.Handler {
+ 
+ 	r.Group(func(r chi.Router) {
+ 		r.Use(server.URLParamsMiddleware)
+-		r.Use(jwtVerifier)
+-		r.Use(validator)
+ 		r.Get("/img/{jwt}", p.handleImages)
+ 	})
+ 	return r
+@@ -45,19 +41,15 @@ func (p *Router) handleImages(w http.ResponseWriter, r *http.Request) {
+ 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+ 	defer cancel()
+ 
+-	_, claims, _ := jwtauth.FromContext(ctx)
+-	id, ok := claims["id"].(string)
+-	if !ok {
+-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+-		return
+-	}
+-	size, ok := claims["size"].(float64)
+-	if !ok {
+-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
++	artID, err := artwork.DecodeArtworkID(r.URL.Query().Get(":jwt"))
++	if err != nil {
++		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+ 		return
+ 	}
+ 
+-	imgReader, lastUpdate, err := p.artwork.Get(ctx, id, int(size))
++	size, _ := strconv.Atoi(r.URL.Query().Get("size"))
++
++	imgReader, lastUpdate, err := p.artwork.Get(ctx, artID.String(), size)
+ 	w.Header().Set("cache-control", "public, max-age=315360000")
+ 	w.Header().Set("last-modified", lastUpdate.Format(time.RFC1123))
+ 
+@@ -65,11 +57,11 @@ func (p *Router) handleImages(w http.ResponseWriter, r *http.Request) {
+ 	case errors.Is(err, context.Canceled):
+ 		return
+ 	case errors.Is(err, model.ErrNotFound):
+-		log.Error(r, "Couldn't find coverArt", "id", id, err)
++		log.Error(r, "Couldn't find coverArt", "id", artID, err)
+ 		http.Error(w, "Artwork not found", http.StatusNotFound)
+ 		return
+ 	case err != nil:
+-		log.Error(r, "Error retrieving coverArt", "id", id, err)
++		log.Error(r, "Error retrieving coverArt", "id", artID, err)
+ 		http.Error(w, "Error retrieving coverArt", http.StatusInternalServerError)
+ 		return
+ 	}
+@@ -80,27 +72,3 @@ func (p *Router) handleImages(w http.ResponseWriter, r *http.Request) {
+ 		log.Warn(ctx, "Error sending image", "count", cnt, err)
+ 	}
+ }
+-
+-func jwtVerifier(next http.Handler) http.Handler {
+-	return jwtauth.Verify(auth.TokenAuth, func(r *http.Request) string {
+-		return r.URL.Query().Get(":jwt")
+-	})(next)
+-}
+-
+-func validator(next http.Handler) http.Handler {
+-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		token, _, err := jwtauth.FromContext(r.Context())
+-
+-		validErr := jwt.Validate(token,
+-			jwt.WithRequiredClaim("id"),
+-			jwt.WithRequiredClaim("size"),
+-		)
+-		if err != nil || token == nil || validErr != nil {
+-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+-			return
+-		}
+-
+-		// Token is authenticated, pass it through
+-		next.ServeHTTP(w, r)
+-	})
+-}
+diff --git a/server/subsonic/helpers.go b/server/subsonic/helpers.go
+index f77cd05f..18b66456 100644
+--- a/server/subsonic/helpers.go
++++ b/server/subsonic/helpers.go
+@@ -114,8 +114,11 @@ func toArtistID3(r *http.Request, a model.Artist) responses.ArtistID3 {
+ }
+ 
+ func artistCoverArtURL(r *http.Request, artID model.ArtworkID, size int) string {
+-	link := artwork.PublicLink(artID, size)
++	link := artwork.EncodeArtworkID(artID)
+ 	url := filepath.Join(consts.URLPathPublicImages, link)
++	if size > 0 {
++		url = fmt.Sprintf("%s?size=%d", url, size)
++	}
+ 	return server.AbsoluteURL(r, url)
+ }
+ 

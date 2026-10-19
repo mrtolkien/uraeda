@@ -1,0 +1,71 @@
+{
+  "questions": 4,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 11,
+    "items": [
+      {
+        "line": "It owns the pointer `See :process <pid> for details.`, added to every outcome message.",
+        "requirement": "When a process finishes, the message that GUIProcess emits about the outcome must reference the PID of the finished process, with structure \"{self.outcome} See :process {self.pid} for details.\"",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a `testprocess` started with `--verbose`, running with PID 1234, **When** it exits with code 0, **Then** qutebrowser shows the info `Testprocess exited successfully. See :process 1234 for details.`",
+        "requirement": "When the verbose flag is enabled and the process exits successfully, emit an info-level message \"{self.outcome} See :process {self.pid} for details.\"; outcome text `{What} exited successfully.`",
+        "verdict": "covered"
+      },
+      {
+        "line": "qutebrowser shows the error `Testprocess exited with status 1. See :process 1234 for details.`, **And** that text is the last entry of the log for this exit.",
+        "requirement": "When a process fails (non-zero exit), report via error-level message with same structure and PID; outcome `{What} exited with status {code}.`",
+        "verdict": "covered"
+      },
+      {
+        "line": "qutebrowser shows the error `Testprocess crashed with status 11 (SIGSEGV). See :process 1234 for details.`",
+        "requirement": "When a process is terminated by a signal, report the signal in the outcome formatted \"{What} {state} with status {code} ({signal_name}).\"",
+        "verdict": "covered"
+      },
+      {
+        "line": "its text is `Testprocess terminated with status 15 (SIGTERM).`, its state is `terminated`, **And** it does not count as successful.",
+        "requirement": "state_str() returns terminated for SIGTERM and crashed for other signals; SIGTERM is not successful (was_successful() false), outcome text stays terminated-with-signal form",
+        "verdict": "covered"
+      },
+      {
+        "line": "its last message is the info `Testprocess terminated with status 15 (SIGTERM). See :process 1234 for details.`, **And** no error is shown.",
+        "requirement": "SIGTERM treated like successful exit only for GUI messaging: no error-level message unless --verbose; with --verbose info-level message with PID suffix, as final message; without --verbose no message of any level",
+        "verdict": "covered"
+      },
+      {
+        "line": "qutebrowser shows the info `Testprocess exited successfully. See :process 1234 for details.`",
+        "requirement": "Verbose successful exit info message example: Testprocess with PID 1234 produces \"Testprocess exited successfully. See :process 1234 for details.\"",
+        "verdict": "covered"
+      },
+      {
+        "line": "qutebrowser shows the error `Testprocess exited with status 1. See :process 1234 for details.`, **And** that text is the last entry of the log for this exit.",
+        "requirement": "Failed exit error example with PID 1234, and same text as the final entry in the process log",
+        "verdict": "covered"
+      },
+      {
+        "line": "its text is `Testprocess terminated with status 15 (SIGTERM).`, its state is `terminated`",
+        "requirement": "Signal outcome examples: SIGSEGV yields \"Testprocess crashed with status 11 (SIGSEGV).\" and SIGTERM yields \"Testprocess terminated with status 15 (SIGTERM).\"",
+        "verdict": "covered"
+      },
+      {
+        "line": "its state is `terminated`",
+        "requirement": "The outcome's state_str() must return terminated for SIGTERM and crashed for other terminating signals.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a `testprocess` started without `--verbose`, running with PID 1234, **When** it is killed by SIGTERM, **Then** qutebrowser shows no message of any level about its exit.",
+        "requirement": "SIGTERM treated like successful exit for messaging: no error unless --verbose; with --verbose emits info with PID, final message; example with PID 1234 and --verbose; without --verbose no message of any level",
+        "verdict": "covered"
+      }
+    ],
+    "total": 11
+  },
+  "tests": {
+    "passed": 43,
+    "resolved": true,
+    "total": 43
+  }
+}

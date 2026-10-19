@@ -1,0 +1,200 @@
+diff --git a/openlibrary/core/observations.py b/openlibrary/core/observations.py
+index 48dd42e06..f288aaff6 100644
+--- a/openlibrary/core/observations.py
++++ b/openlibrary/core/observations.py
+@@ -1,14 +1,89 @@
+ """Module for handling patron observation functionality"""
+ 
++from collections import namedtuple
++
+ import requests
+ 
+ from infogami import config
+ from openlibrary import accounts
+-from . import cache
++from . import cache, db
+ 
+ # URL for TheBestBookOn
+ TBBO_URL = config.get('tbbo_url')
+ 
++KeyValuePair = namedtuple('KeyValuePair', ['key', 'value'])
++
++# Observation catalog. Each type lists its values as {id, name} dicts; the
++# display order of the value names is given separately by `value_order`.
++OBSERVATION_TYPES = [
++    {
++        'id': 1,
++        'label': 'pace',
++        'description': 'How quickly the story moves',
++        'multi_choice': False,
++        'values': [
++            {'id': 1, 'name': 'slow'},
++            {'id': 2, 'name': 'medium'},
++            {'id': 3, 'name': 'fast'},
++        ],
++        'value_order': [1, 2, 3],
++    },
++    {
++        'id': 2,
++        'label': 'fictionality',
++        'description': 'Whether the book is factual, fictional or a biography',
++        'multi_choice': False,
++        'values': [
++            {'id': 1, 'name': 'fiction'},
++            {'id': 2, 'name': 'nonfiction'},
++            {'id': 3, 'name': 'biography'},
++        ],
++        'value_order': [2, 1, 3],
++    },
++    {
++        'id': 10,
++        'label': 'genres',
++        'description': 'Genres the book belongs to',
++        'multi_choice': True,
++        'values': [
++            {'id': 1, 'name': 'adventure'},
++            {'id': 2, 'name': 'classics'},
++            {'id': 3, 'name': 'fantasy'},
++            {'id': 4, 'name': 'history'},
++            {'id': 5, 'name': 'horror'},
++            {'id': 6, 'name': 'humor'},
++            {'id': 7, 'name': 'mystery'},
++            {'id': 8, 'name': 'romance'},
++            {'id': 9, 'name': 'science fiction'},
++            {'id': 10, 'name': 'thriller'},
++        ],
++        'value_order': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
++    },
++]
++
++
++def _sort_values(order_list, values_list):
++    """Return the names of the values, arranged in the order given by `order_list`.
++
++    Ids in `order_list` without a matching entry in `values_list` are skipped,
++    and entries in `values_list` whose id is not in `order_list` are excluded.
++    """
++    names_by_id = {value['id']: value['name'] for value in values_list}
++    return [names_by_id[value_id] for value_id in order_list if value_id in names_by_id]
++
++
++def get_observations():
++    """Return the observation types with their value names in display order."""
++    observations = []
++    for obs_type in OBSERVATION_TYPES:
++        observations.append({
++            'label': obs_type['label'],
++            'description': obs_type['description'],
++            'multi_choice': obs_type['multi_choice'],
++            'values': _sort_values(obs_type['value_order'], obs_type['values']),
++        })
++    return {'observations': observations}
++
+ def post_observation(data, s3_keys):
+     headers = {
+         'x-s3-access': s3_keys['access'],
+@@ -24,3 +99,83 @@ def get_aspects():
+     response = requests.get(TBBO_URL + '/api/aspects')
+ 
+     return response.text
++
++
++class Observations(object):
++
++    @classmethod
++    def _find_type(cls, type_id):
++        for obs_type in OBSERVATION_TYPES:
++            if obs_type['id'] == type_id:
++                return obs_type
++        return None
++
++    @classmethod
++    def get_key_value_pair(cls, type_id, value_id):
++        """Resolve a type id and value id to (label, value name), or None if unknown."""
++        obs_type = cls._find_type(type_id)
++        if obs_type is None:
++            return None
++        for value in obs_type['values']:
++            if value['id'] == value_id:
++                return KeyValuePair(obs_type['label'], value['name'])
++        return None
++
++    @classmethod
++    def _resolve_ids(cls, label, value_name):
++        """Return the (type_id, value_id) for a type label and value name."""
++        for obs_type in OBSERVATION_TYPES:
++            if obs_type['label'] != label:
++                continue
++            for value in obs_type['values']:
++                if value['name'] == value_name:
++                    return obs_type['id'], value['id']
++            raise ValueError(f'Unknown value {value_name!r} for observation {label!r}')
++        raise ValueError(f'Unknown observation {label!r}')
++
++    @classmethod
++    def persist_observations(cls, username, work_id, observations):
++        """Make the patron's stored observations for the work match `observations`.
++
++        `observations` is a list of single-entry {label: value_name} dicts.
++        """
++        submitted = set()
++        for observation in observations:
++            for label, value_name in observation.items():
++                submitted.add(cls._resolve_ids(label, value_name))
++
++        oldb = db.get_db()
++        with oldb.transaction():
++            stored = {
++                (row['type'], row['value'])
++                for row in cls.get_patron_observations(username, work_id)
++            }
++            where = 'username = $username AND work_id = $work_id'
++            for type_id, value_id in stored - submitted:
++                oldb.delete(
++                    'observations',
++                    where=where + ' AND observation_type = $type_id AND observation_value = $value_id',
++                    vars={'username': username, 'work_id': work_id, 'type_id': type_id, 'value_id': value_id},
++                )
++            for type_id, value_id in submitted - stored:
++                oldb.insert(
++                    'observations',
++                    username=username,
++                    work_id=work_id,
++                    observation_type=type_id,
++                    observation_value=value_id,
++                )
++
++    @classmethod
++    def get_patron_observations(cls, username, work_id):
++        """Return the patron's stored observations for the work.
++
++        Each record supports `record['type']` (observation type id) and
++        `record['value']` (observation value id).
++        """
++        oldb = db.get_db()
++        query = (
++            'SELECT observation_type AS type, observation_value AS value '
++            'FROM observations WHERE username = $username AND work_id = $work_id'
++        )
++        return list(oldb.query(query, vars={'username': username, 'work_id': work_id}))
+diff --git a/openlibrary/core/schema.sql b/openlibrary/core/schema.sql
+index 54cf058db..934767428 100644
+--- a/openlibrary/core/schema.sql
++++ b/openlibrary/core/schema.sql
+@@ -46,6 +46,16 @@ CREATE TABLE bookshelves_votes (
+     primary key (username, bookshelf_id)
+ );
+ 
++CREATE TABLE observations (
++    username text NOT NULL,
++    work_id integer NOT NULL,
++    observation_type integer NOT NULL,
++    observation_value integer NOT NULL,
++    updated timestamp without time zone default (current_timestamp at time zone 'utc'),
++    created timestamp without time zone default (current_timestamp at time zone 'utc'),
++    primary key (username, work_id, observation_type, observation_value)
++);
++
+ INSERT INTO bookshelves (name, description) VALUES ('Want to Read', 'A list of books I want to read');
+ INSERT INTO bookshelves (name, description) VALUES ('Currently Reading', 'A list of books I am currently reading');
+ INSERT INTO bookshelves (name, description) VALUES ('Already Read', 'A list of books I have finished reading');

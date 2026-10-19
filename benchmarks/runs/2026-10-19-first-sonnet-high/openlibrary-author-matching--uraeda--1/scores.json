@@ -1,0 +1,71 @@
+{
+  "questions": 5,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 10,
+    "items": [
+      {
+        "line": "`find_author` ... runs the name search with the flipped name, then the alternate-names search, then the surname search. It owns the order",
+        "requirement": "find_entity must attempt resolution in priority order: name with dates, alternate_names with dates, surname with dates",
+        "verdict": "covered"
+      },
+      {
+        "line": "When both dates are given, an exact year match on both outranks other matches.",
+        "requirement": "When both birth_date and death_date are present, they disambiguate records and an exact year match for both takes precedence",
+        "verdict": "covered"
+      },
+      {
+        "line": "When either date is missing, the name alone decides.",
+        "requirement": "When either date is absent, fall back to case-insensitive name matching alone, returning an existing author if one exists",
+        "verdict": "covered"
+      },
+      {
+        "line": "An import names an author. The search ignores case, and a `*` in the name matches any characters.",
+        "requirement": "Matching must be case-insensitive; different casings resolve to the same author record",
+        "verdict": "covered"
+      },
+      {
+        "line": "**When** an import names \"John\\*\" with no dates, **Then** OL2A is returned, the lowest numeric key. ... **Then** nothing is found and the import keeps the candidate name \"Zed\\*\".",
+        "requirement": "Wildcards in name patterns: \"John*\" returns first candidate by numeric key ordering; if no match, new candidate preserving name including *",
+        "verdict": "covered"
+      },
+      {
+        "line": "Both input dates are required, and the candidate must have both dates with equal years.",
+        "requirement": "Alternate_names match requires both dates present in input and exactly matching the candidate's values",
+        "verdict": "covered"
+      },
+      {
+        "line": "Both input dates are required, and the candidate must have both dates with equal years.",
+        "requirement": "Surname match requires both dates present and exactly matching; must not resolve if either date is missing or mismatched",
+        "verdict": "covered"
+      },
+      {
+        "line": "`find_entity` returns `None`; the import keeps name and dates unchanged",
+        "requirement": "If no valid match is found, a new author candidate dictionary is returned with name, birth_date, death_date preserved unchanged",
+        "verdict": "covered"
+      },
+      {
+        "line": "It tells whether both records have both dates with equal years.",
+        "requirement": "Year comparison considers only the year component; any year difference invalidates a match",
+        "verdict": "covered"
+      },
+      {
+        "line": "`find_author` takes the import dictionary and returns the candidates of the first search that finds any. ... `find_entity` delegates to it and picks one candidate, or `None`.",
+        "requirement": "find_author accepts the import dict and returns a list of candidates; find_entity delegates to find_author and returns an existing record or None",
+        "verdict": "covered"
+      },
+      {
+        "line": "Given the pattern \"a_b\", When it is called with \"A_B\" and with \"axb\", Then it returns true and false: `_` matches only itself.",
+        "requirement": "Mock query behavior replicates production ILIKE: case-insensitive full-string matching, * as multi-character wildcard, _ ignored in patterns",
+        "verdict": "partial"
+      }
+    ],
+    "total": 11
+  },
+  "tests": {
+    "passed": 8,
+    "resolved": true,
+    "total": 8
+  }
+}

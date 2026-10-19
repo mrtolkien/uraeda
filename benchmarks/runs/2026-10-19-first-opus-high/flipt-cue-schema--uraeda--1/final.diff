@@ -1,0 +1,1686 @@
+diff --git a/config/flipt.schema.cue b/config/flipt.schema.cue
+index f0da6d31..c22c8b5e 100644
+--- a/config/flipt.schema.cue
++++ b/config/flipt.schema.cue
+@@ -19,12 +19,23 @@ import "strings"
+ 	server?:         #server
+ 	tracing?:        #tracing
+ 	ui?:             #ui
++	experimental?:   #experimental
++	storage?:        #storage
++
++	// A duration, in Go's string form, such as "1m30s" or "1.5s",
++	// or an integer of nanoseconds.
++	#duration: =~#"^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"# | int & >=0
+ 
+ 	#authentication: {
+ 		required?: bool | *false
+ 		session?: {
+-			domain?: string
+-			secure?: bool
++			domain?:         string
++			secure?:         bool
++			token_lifetime?: #duration
++			state_lifetime?: #duration
++			csrf?: {
++				key?: string
++			}
+ 		}
+ 
+ 		// Methods
+@@ -34,8 +45,8 @@ import "strings"
+ 				enabled?: bool | *false
+ 				cleanup?: #authentication.#authentication_cleanup
+ 				bootstrap?: {
+-					token?:     string
+-					expiration: =~"^([0-9]+(ns|us|µs|ms|s|m|h))+$" | int
++					token?:      string
++					expiration?: #duration
+ 				}
+ 			}
+ 
+@@ -47,12 +58,21 @@ import "strings"
+ 					{[=~"^.*$" & !~"^()$"]: #authentication.#authentication_oidc_provider}
+ 				}
+ 			}
++
++			// Kubernetes
++			kubernetes?: {
++				enabled?:                    bool | *false
++				discovery_url?:              string
++				ca_path?:                    string
++				service_account_token_path?: string
++				cleanup?:                    #authentication.#authentication_cleanup
++			}
+ 		}
+ 
+ 		#authentication_cleanup: {
+ 			@jsonschema(id="authentication_cleanup")
+-			interval?:     =~"^([0-9]+(ns|us|µs|ms|s|m|h))+$" | int | *"1h"
+-			grace_period?: =~"^([0-9]+(ns|us|µs|ms|s|m|h))+$" | int | *"30m"
++			interval?:     #duration | *"1h"
++			grace_period?: #duration | *"30m"
+ 		}
+ 
+ 		#authentication_oidc_provider: {
+@@ -61,13 +81,14 @@ import "strings"
+ 			client_id?:        string
+ 			client_secret?:    string
+ 			redirect_address?: string
++			scopes?: [...string]
+ 		}
+ 	}
+ 
+ 	#cache: {
+ 		enabled?: bool | *false
+ 		backend?: *"memory" | "redis"
+-		ttl?:     =~"^([0-9]+(ns|us|µs|ms|s|m|h))+$" | int | *"60s"
++		ttl?:     #duration | *"60s"
+ 
+ 		// Redis
+ 		redis?: {
+@@ -80,28 +101,39 @@ import "strings"
+ 		// Memory
+ 		memory?: {
+ 			enabled?:           bool | *false
+-			eviction_interval?: =~"^([0-9]+(ns|us|µs|ms|s|m|h))+$" | int | *"5m"
+-			expiration?:        =~"^([0-9]+(ns|us|µs|ms|s|m|h))+$" | int | *"60s"
++			eviction_interval?: #duration | *"5m"
++			expiration?:        #duration | *"60s"
+ 		}
+ 	}
+ 
+ 	#cors: {
+ 		enabled?:         bool | *false
+-		allowed_origins?: [...] | *["*"]
++		allowed_origins?: [...string] | string | *["*"]
++	}
++
++	// The database: either a URL, or a protocol, host, and name.
++	#db: *#db_url | #db_host
++
++	#db_url: {
++		#db_options
++		url?: string | *"file:/var/opt/flipt/flipt.db"
+ 	}
+ 
+-	#db: {
+-		url?:               string | *"file:/var/opt/flipt/flipt.db"
+-		protocol?:          *"sqlite" | "cockroach" | "cockroachdb" | "file" | "mysql" | "postgres"
+-		host?:              string
+-		port?:              int
+-		name?:              string
+-		user?:              string
+-		password?:          string
+-		max_idle_conn?:     int | *2
+-		max_open_conn?:     int
+-		conn_max_lifetime?: int
+-		prepared_statements_enabled?: boolean | *true
++	#db_host: {
++		#db_options
++		protocol: "cockroach" | "cockroachdb" | "file" | "mysql" | "postgres" | "sqlite"
++		host:     string
++		port?:    int
++		name:     string
++		user?:    string
++	}
++
++	#db_options: {
++		password?:                    string
++		max_idle_conn?:               int | *2
++		max_open_conn?:               int
++		conn_max_lifetime?:           #duration
++		prepared_statements_enabled?: bool | *true
+ 	}
+ 
+ 	_#lower: ["debug", "error", "fatal", "info", "panic", "trace", "warn"]
+@@ -169,7 +201,48 @@ import "strings"
+ 		}
+ 		buffer?: {
+ 			capacity?:     int | *2
+-			flush_period?: string | *"2m"
++			flush_period?: #duration | *"2m"
++		}
++	}
++
++	#experimental: {
++		filesystem_storage?: {
++			enabled?: bool | *false
++		}
++	}
++
++	// Where Flipt reads flag state: the database, by default,
++	// a local directory, or a git repository.
++	#storage: *#storage_database | #storage_local | #storage_git
++
++	#storage_database: {
++		type?: "database"
++	}
++
++	#storage_local: {
++		type: "local"
++		local?: {
++			path?: string | *"."
++		}
++	}
++
++	#storage_git: {
++		type: "git"
++		git: {
++			repository:     string
++			ref?:           string | *"main"
++			poll_interval?: #duration | *"30s"
++			// an empty authentication reads as none
++			authentication?: *{} | {
++				basic: {
++					username: string
++					password: string
++				}
++			} | {
++				token: {
++					access_token: string
++				}
++			}
+ 		}
+ 	}
+ }
+diff --git a/internal/config/audit.go b/internal/config/audit.go
+index 68b1cbd0..67fa48d5 100644
+--- a/internal/config/audit.go
++++ b/internal/config/audit.go
+@@ -10,8 +10,8 @@ import (
+ // AuditConfig contains fields, which enable and configure
+ // Flipt's various audit sink mechanisms.
+ type AuditConfig struct {
+-	Sinks  SinksConfig  `json:"sinks,omitempty" mapstructure:"sinks"`
+-	Buffer BufferConfig `json:"buffer,omitempty" mapstructure:"buffer"`
++	Sinks  SinksConfig  `json:"sinks,omitempty" mapstructure:"sinks,omitempty"`
++	Buffer BufferConfig `json:"buffer,omitempty" mapstructure:"buffer,omitempty"`
+ }
+ 
+ // Enabled returns true if any nested sink is enabled
+@@ -53,19 +53,19 @@ func (c *AuditConfig) validate() error {
+ // SinksConfig contains configuration held in structures for the different sinks
+ // that we will send audits to.
+ type SinksConfig struct {
+-	LogFile LogFileSinkConfig `json:"log,omitempty" mapstructure:"log"`
++	LogFile LogFileSinkConfig `json:"log,omitempty" mapstructure:"log,omitempty"`
+ }
+ 
+ // LogFileSinkConfig contains fields that hold configuration for sending audits
+ // to a log file.
+ type LogFileSinkConfig struct {
+-	Enabled bool   `json:"enabled,omitempty" mapstructure:"enabled"`
+-	File    string `json:"file,omitempty" mapstructure:"file"`
++	Enabled bool   `json:"enabled,omitempty" mapstructure:"enabled,omitempty"`
++	File    string `json:"file,omitempty" mapstructure:"file,omitempty"`
+ }
+ 
+ // BufferConfig holds configuration for the buffering of sending the audit
+ // events to the sinks.
+ type BufferConfig struct {
+-	Capacity    int           `json:"capacity,omitempty" mapstructure:"capacity"`
+-	FlushPeriod time.Duration `json:"flushPeriod,omitempty" mapstructure:"flush_period"`
++	Capacity    int           `json:"capacity,omitempty" mapstructure:"capacity,omitempty"`
++	FlushPeriod time.Duration `json:"flushPeriod,omitempty" mapstructure:"flush_period,omitempty"`
+ }
+diff --git a/internal/config/authentication.go b/internal/config/authentication.go
+index 0e344d74..d6dfd341 100644
+--- a/internal/config/authentication.go
++++ b/internal/config/authentication.go
+@@ -37,10 +37,10 @@ type AuthenticationConfig struct {
+ 	// Required designates whether authentication credentials are validated.
+ 	// If required == true, then authentication is required for all API endpoints.
+ 	// Else, authentication is not required and Flipt's APIs are not secured.
+-	Required bool `json:"required,omitempty" mapstructure:"required"`
++	Required bool `json:"required,omitempty" mapstructure:"required,omitempty"`
+ 
+-	Session AuthenticationSession `json:"session,omitempty" mapstructure:"session"`
+-	Methods AuthenticationMethods `json:"methods,omitempty" mapstructure:"methods"`
++	Session AuthenticationSession `json:"session,omitempty" mapstructure:"session,omitempty"`
++	Methods AuthenticationMethods `json:"methods,omitempty" mapstructure:"methods,omitempty"`
+ }
+ 
+ // Enabled returns true if authentication is marked as required
+@@ -158,30 +158,30 @@ func getHostname(rawurl string) (string, error) {
+ // establishing authentication via HTTP.
+ type AuthenticationSession struct {
+ 	// Domain is the domain on which to register session cookies.
+-	Domain string `json:"domain,omitempty" mapstructure:"domain"`
++	Domain string `json:"domain,omitempty" mapstructure:"domain,omitempty"`
+ 	// Secure sets the secure property (i.e. HTTPS only) on both the state and token cookies.
+-	Secure bool `json:"secure" mapstructure:"secure"`
++	Secure bool `json:"secure" mapstructure:"secure,omitempty"`
+ 	// TokenLifetime is the duration of the flipt client token generated once
+ 	// authentication has been established via a session compatible method.
+-	TokenLifetime time.Duration `json:"tokenLifetime,omitempty" mapstructure:"token_lifetime"`
++	TokenLifetime time.Duration `json:"tokenLifetime,omitempty" mapstructure:"token_lifetime,omitempty"`
+ 	// StateLifetime is the lifetime duration of the state cookie.
+-	StateLifetime time.Duration `json:"stateLifetime,omitempty" mapstructure:"state_lifetime"`
++	StateLifetime time.Duration `json:"stateLifetime,omitempty" mapstructure:"state_lifetime,omitempty"`
+ 	// CSRF configures CSRF provention mechanisms.
+-	CSRF AuthenticationSessionCSRF `json:"csrf,omitempty" mapstructure:"csrf"`
++	CSRF AuthenticationSessionCSRF `json:"csrf,omitempty" mapstructure:"csrf,omitempty"`
+ }
+ 
+ // AuthenticationSessionCSRF configures cross-site request forgery prevention.
+ type AuthenticationSessionCSRF struct {
+ 	// Key is the private key string used to authenticate csrf tokens.
+-	Key string `json:"-" mapstructure:"key"`
++	Key string `json:"-" mapstructure:"key,omitempty"`
+ }
+ 
+ // AuthenticationMethods is a set of configuration for each authentication
+ // method available for use within Flipt.
+ type AuthenticationMethods struct {
+-	Token      AuthenticationMethod[AuthenticationMethodTokenConfig]      `json:"token,omitempty" mapstructure:"token"`
+-	OIDC       AuthenticationMethod[AuthenticationMethodOIDCConfig]       `json:"oidc,omitempty" mapstructure:"oidc"`
+-	Kubernetes AuthenticationMethod[AuthenticationMethodKubernetesConfig] `json:"kubernetes,omitempty" mapstructure:"kubernetes"`
++	Token      AuthenticationMethod[AuthenticationMethodTokenConfig]      `json:"token,omitempty" mapstructure:"token,omitempty"`
++	OIDC       AuthenticationMethod[AuthenticationMethodOIDCConfig]       `json:"oidc,omitempty" mapstructure:"oidc,omitempty"`
++	Kubernetes AuthenticationMethod[AuthenticationMethodKubernetesConfig] `json:"kubernetes,omitempty" mapstructure:"kubernetes,omitempty"`
+ }
+ 
+ // AllMethods returns all the AuthenticationMethod instances available.
+@@ -262,8 +262,8 @@ type AuthenticationMethodInfoProvider interface {
+ // nolint:musttag
+ type AuthenticationMethod[C AuthenticationMethodInfoProvider] struct {
+ 	Method  C                              `mapstructure:",squash"`
+-	Enabled bool                           `json:"enabled,omitempty" mapstructure:"enabled"`
+-	Cleanup *AuthenticationCleanupSchedule `json:"cleanup,omitempty" mapstructure:"cleanup"`
++	Enabled bool                           `json:"enabled,omitempty" mapstructure:"enabled,omitempty"`
++	Cleanup *AuthenticationCleanupSchedule `json:"cleanup,omitempty" mapstructure:"cleanup,omitempty"`
+ }
+ 
+ func (a *AuthenticationMethod[C]) setDefaults(defaults map[string]any) {
+@@ -291,7 +291,7 @@ func (a *AuthenticationMethod[C]) info() StaticAuthenticationMethodInfo {
+ // This authentication method supports the ability to create static tokens via the
+ // /auth/v1/method/token prefix of endpoints.
+ type AuthenticationMethodTokenConfig struct {
+-	Bootstrap AuthenticationMethodTokenBootstrapConfig `json:"bootstrap" mapstructure:"bootstrap"`
++	Bootstrap AuthenticationMethodTokenBootstrapConfig `json:"bootstrap" mapstructure:"bootstrap,omitempty"`
+ }
+ 
+ func (a AuthenticationMethodTokenConfig) setDefaults(map[string]any) {}
+@@ -307,14 +307,14 @@ func (a AuthenticationMethodTokenConfig) info() AuthenticationMethodInfo {
+ // AuthenticationMethodTokenBootstrapConfig contains fields used to configure the
+ // bootstrap process for the authentication method "token".
+ type AuthenticationMethodTokenBootstrapConfig struct {
+-	Token      string        `json:"-" mapstructure:"token"`
+-	Expiration time.Duration `json:"expiration,omitempty" mapstructure:"expiration"`
++	Token      string        `json:"-" mapstructure:"token,omitempty"`
++	Expiration time.Duration `json:"expiration,omitempty" mapstructure:"expiration,omitempty"`
+ }
+ 
+ // AuthenticationMethodOIDCConfig configures the OIDC authentication method.
+ // This method can be used to establish browser based sessions.
+ type AuthenticationMethodOIDCConfig struct {
+-	Providers map[string]AuthenticationMethodOIDCProvider `json:"providers,omitempty" mapstructure:"providers"`
++	Providers map[string]AuthenticationMethodOIDCProvider `json:"providers,omitempty" mapstructure:"providers,omitempty"`
+ }
+ 
+ func (a AuthenticationMethodOIDCConfig) setDefaults(map[string]any) {}
+@@ -347,17 +347,17 @@ func (a AuthenticationMethodOIDCConfig) info() AuthenticationMethodInfo {
+ 
+ // AuthenticationOIDCProvider configures provider credentials
+ type AuthenticationMethodOIDCProvider struct {
+-	IssuerURL       string   `json:"issuerURL,omitempty" mapstructure:"issuer_url"`
+-	ClientID        string   `json:"clientID,omitempty" mapstructure:"client_id"`
+-	ClientSecret    string   `json:"clientSecret,omitempty" mapstructure:"client_secret"`
+-	RedirectAddress string   `json:"redirectAddress,omitempty" mapstructure:"redirect_address"`
+-	Scopes          []string `json:"scopes,omitempty" mapstructure:"scopes"`
++	IssuerURL       string   `json:"issuerURL,omitempty" mapstructure:"issuer_url,omitempty"`
++	ClientID        string   `json:"clientID,omitempty" mapstructure:"client_id,omitempty"`
++	ClientSecret    string   `json:"clientSecret,omitempty" mapstructure:"client_secret,omitempty"`
++	RedirectAddress string   `json:"redirectAddress,omitempty" mapstructure:"redirect_address,omitempty"`
++	Scopes          []string `json:"scopes,omitempty" mapstructure:"scopes,omitempty"`
+ }
+ 
+ // AuthenticationCleanupSchedule is used to configure a cleanup goroutine.
+ type AuthenticationCleanupSchedule struct {
+-	Interval    time.Duration `json:"interval,omitempty" mapstructure:"interval"`
+-	GracePeriod time.Duration `json:"gracePeriod,omitempty" mapstructure:"grace_period"`
++	Interval    time.Duration `json:"interval,omitempty" mapstructure:"interval,omitempty"`
++	GracePeriod time.Duration `json:"gracePeriod,omitempty" mapstructure:"grace_period,omitempty"`
+ }
+ 
+ // AuthenticationMethodKubernetesConfig contains the fields necessary for the Kubernetes authentication
+@@ -367,13 +367,13 @@ type AuthenticationMethodKubernetesConfig struct {
+ 	// DiscoveryURL is the URL to the local Kubernetes cluster serving the "well-known" OIDC discovery endpoint.
+ 	// https://openid.net/specs/openid-connect-discovery-1_0.html
+ 	// The URL is used to fetch the OIDC configuration and subsequently the JWKS certificates.
+-	DiscoveryURL string `json:"discoveryURL,omitempty" mapstructure:"discovery_url"`
++	DiscoveryURL string `json:"discoveryURL,omitempty" mapstructure:"discovery_url,omitempty"`
+ 	// CAPath is the path on disk to the trusted certificate authority certificate for validating
+ 	// HTTPS requests to the issuer.
+-	CAPath string `json:"caPath,omitempty" mapstructure:"ca_path"`
++	CAPath string `json:"caPath,omitempty" mapstructure:"ca_path,omitempty"`
+ 	// ServiceAccountTokenPath is the location on disk to the Flipt instances service account token.
+ 	// This should be the token issued for the service account associated with Flipt in the environment.
+-	ServiceAccountTokenPath string `json:"serviceAccountTokenPath,omitempty" mapstructure:"service_account_token_path"`
++	ServiceAccountTokenPath string `json:"serviceAccountTokenPath,omitempty" mapstructure:"service_account_token_path,omitempty"`
+ }
+ 
+ func (a AuthenticationMethodKubernetesConfig) setDefaults(defaults map[string]any) {
+diff --git a/internal/config/cache.go b/internal/config/cache.go
+index 8caec99d..8ed7b633 100644
+--- a/internal/config/cache.go
++++ b/internal/config/cache.go
+@@ -15,11 +15,11 @@ var _ defaulter = (*CacheConfig)(nil)
+ //
+ // Currently, flipt support in-memory and redis backed caching.
+ type CacheConfig struct {
+-	Enabled bool              `json:"enabled" mapstructure:"enabled"`
+-	TTL     time.Duration     `json:"ttl,omitempty" mapstructure:"ttl"`
+-	Backend CacheBackend      `json:"backend,omitempty" mapstructure:"backend"`
+-	Memory  MemoryCacheConfig `json:"memory,omitempty" mapstructure:"memory"`
+-	Redis   RedisCacheConfig  `json:"redis,omitempty" mapstructure:"redis"`
++	Enabled bool              `json:"enabled" mapstructure:"enabled,omitempty"`
++	TTL     time.Duration     `json:"ttl,omitempty" mapstructure:"ttl,omitempty"`
++	Backend CacheBackend      `json:"backend,omitempty" mapstructure:"backend,omitempty"`
++	Memory  MemoryCacheConfig `json:"memory,omitempty" mapstructure:"memory,omitempty"`
++	Redis   RedisCacheConfig  `json:"redis,omitempty" mapstructure:"redis,omitempty"`
+ }
+ 
+ func (c *CacheConfig) setDefaults(v *viper.Viper) {
+@@ -104,14 +104,14 @@ var (
+ 
+ // MemoryCacheConfig contains fields, which configure in-memory caching.
+ type MemoryCacheConfig struct {
+-	EvictionInterval time.Duration `json:"evictionInterval,omitempty" mapstructure:"eviction_interval"`
++	EvictionInterval time.Duration `json:"evictionInterval,omitempty" mapstructure:"eviction_interval,omitempty"`
+ }
+ 
+ // RedisCacheConfig contains fields, which configure the connection
+ // credentials for redis backed caching.
+ type RedisCacheConfig struct {
+-	Host     string `json:"host,omitempty" mapstructure:"host"`
+-	Port     int    `json:"port,omitempty" mapstructure:"port"`
+-	Password string `json:"password,omitempty" mapstructure:"password"`
+-	DB       int    `json:"db,omitempty" mapstructure:"db"`
++	Host     string `json:"host,omitempty" mapstructure:"host,omitempty"`
++	Port     int    `json:"port,omitempty" mapstructure:"port,omitempty"`
++	Password string `json:"password,omitempty" mapstructure:"password,omitempty"`
++	DB       int    `json:"db,omitempty" mapstructure:"db,omitempty"`
+ }
+diff --git a/internal/config/config.go b/internal/config/config.go
+index 7e0999a0..b3450d4f 100644
+--- a/internal/config/config.go
++++ b/internal/config/config.go
+@@ -7,13 +7,16 @@ import (
+ 	"os"
+ 	"reflect"
+ 	"strings"
++	"time"
+ 
+ 	"github.com/mitchellh/mapstructure"
+ 	"github.com/spf13/viper"
+ 	"golang.org/x/exp/constraints"
+ )
+ 
+-var decodeHooks = []mapstructure.DecodeHookFunc{
++// DecodeHooks are the hooks Load uses to decode a configuration: they turn
++// strings into durations, lists, and enums.
++var DecodeHooks = []mapstructure.DecodeHookFunc{
+ 	mapstructure.StringToTimeDurationHookFunc(),
+ 	stringToSliceHookFunc(),
+ 	stringToEnumHookFunc(stringToLogEncoding),
+@@ -37,19 +40,19 @@ var decodeHooks = []mapstructure.DecodeHookFunc{
+ // then this will be called after unmarshalling, such that the function can emit
+ // any errors derived from the resulting state of the configuration.
+ type Config struct {
+-	Version        string               `json:"version,omitempty"`
+-	Experimental   ExperimentalConfig   `json:"experimental,omitempty" mapstructure:"experimental"`
+-	Log            LogConfig            `json:"log,omitempty" mapstructure:"log"`
+-	UI             UIConfig             `json:"ui,omitempty" mapstructure:"ui"`
+-	Cors           CorsConfig           `json:"cors,omitempty" mapstructure:"cors"`
+-	Cache          CacheConfig          `json:"cache,omitempty" mapstructure:"cache"`
+-	Server         ServerConfig         `json:"server,omitempty" mapstructure:"server"`
+-	Storage        StorageConfig        `json:"storage,omitempty" mapstructure:"storage" experiment:"filesystem_storage"`
+-	Tracing        TracingConfig        `json:"tracing,omitempty" mapstructure:"tracing"`
+-	Database       DatabaseConfig       `json:"db,omitempty" mapstructure:"db"`
+-	Meta           MetaConfig           `json:"meta,omitempty" mapstructure:"meta"`
+-	Authentication AuthenticationConfig `json:"authentication,omitempty" mapstructure:"authentication"`
+-	Audit          AuditConfig          `json:"audit,omitempty" mapstructure:"audit"`
++	Version        string               `json:"version,omitempty" mapstructure:"version,omitempty"`
++	Experimental   ExperimentalConfig   `json:"experimental,omitempty" mapstructure:"experimental,omitempty"`
++	Log            LogConfig            `json:"log,omitempty" mapstructure:"log,omitempty"`
++	UI             UIConfig             `json:"ui,omitempty" mapstructure:"ui,omitempty"`
++	Cors           CorsConfig           `json:"cors,omitempty" mapstructure:"cors,omitempty"`
++	Cache          CacheConfig          `json:"cache,omitempty" mapstructure:"cache,omitempty"`
++	Server         ServerConfig         `json:"server,omitempty" mapstructure:"server,omitempty"`
++	Storage        StorageConfig        `json:"storage,omitempty" mapstructure:"storage,omitempty" experiment:"filesystem_storage"`
++	Tracing        TracingConfig        `json:"tracing,omitempty" mapstructure:"tracing,omitempty"`
++	Database       DatabaseConfig       `json:"db,omitempty" mapstructure:"db,omitempty"`
++	Meta           MetaConfig           `json:"meta,omitempty" mapstructure:"meta,omitempty"`
++	Authentication AuthenticationConfig `json:"authentication,omitempty" mapstructure:"authentication,omitempty"`
++	Audit          AuditConfig          `json:"audit,omitempty" mapstructure:"audit,omitempty"`
+ }
+ 
+ type Result struct {
+@@ -143,7 +146,7 @@ func Load(path string) (*Result, error) {
+ 
+ 	if err := v.Unmarshal(cfg, viper.DecodeHook(
+ 		mapstructure.ComposeDecodeHookFunc(
+-			append(decodeHooks, experimentalFieldSkipHookFunc(skippedTypes...))...,
++			append(DecodeHooks[:len(DecodeHooks):len(DecodeHooks)], experimentalFieldSkipHookFunc(skippedTypes...))...,
+ 		),
+ 	)); err != nil {
+ 		return nil, err
+@@ -172,14 +175,13 @@ type deprecator interface {
+ }
+ 
+ // fieldKey returns the name to be used when deriving a fields env var key.
+-// If marked as squash the key will be the empty string.
++// Given a mapstructure tag, the key is the tag's name, whatever its options
++// (e.g. omitempty). If marked as squash the key will be the empty string.
+ // Otherwise, it is derived from the lowercase name of the field.
+ func fieldKey(field reflect.StructField) string {
+ 	if tag := field.Tag.Get("mapstructure"); tag != "" {
+-		tag, attr, ok := strings.Cut(tag, ",")
+-		if !ok || attr == "squash" {
+-			return tag
+-		}
++		name, _, _ := strings.Cut(tag, ",")
++		return name
+ 	}
+ 
+ 	return strings.ToLower(field.Name)
+@@ -312,6 +314,102 @@ func getFliptEnvs() (envs []string) {
+ 	return envs
+ }
+ 
++// DefaultConfig returns the default configuration of Flipt: what Load gives
++// for an empty configuration file and no environment variables.
++func DefaultConfig() *Config {
++	return &Config{
++		Log: LogConfig{
++			Level:     "INFO",
++			Encoding:  LogEncodingConsole,
++			GRPCLevel: "ERROR",
++			Keys: LogKeys{
++				Time:    "T",
++				Level:   "L",
++				Message: "M",
++			},
++		},
++
++		UI: UIConfig{
++			Enabled: true,
++		},
++
++		Cors: CorsConfig{
++			Enabled:        false,
++			AllowedOrigins: []string{"*"},
++		},
++
++		Cache: CacheConfig{
++			Enabled: false,
++			Backend: CacheMemory,
++			TTL:     1 * time.Minute,
++			Memory: MemoryCacheConfig{
++				EvictionInterval: 5 * time.Minute,
++			},
++			Redis: RedisCacheConfig{
++				Host:     "localhost",
++				Port:     6379,
++				Password: "",
++				DB:       0,
++			},
++		},
++
++		Server: ServerConfig{
++			Host:      "0.0.0.0",
++			Protocol:  HTTP,
++			HTTPPort:  8080,
++			HTTPSPort: 443,
++			GRPCPort:  9000,
++		},
++
++		Tracing: TracingConfig{
++			Enabled:  false,
++			Exporter: TracingJaeger,
++			Jaeger: JaegerTracingConfig{
++				Host: "localhost",
++				Port: 6831,
++			},
++			Zipkin: ZipkinTracingConfig{
++				Endpoint: "http://localhost:9411/api/v2/spans",
++			},
++			OTLP: OTLPTracingConfig{
++				Endpoint: "localhost:4317",
++			},
++		},
++
++		Database: DatabaseConfig{
++			URL:                       "file:/var/opt/flipt/flipt.db",
++			MaxIdleConn:               2,
++			PreparedStatementsEnabled: true,
++		},
++
++		Meta: MetaConfig{
++			CheckForUpdates:  true,
++			TelemetryEnabled: true,
++			StateDirectory:   "",
++		},
++
++		Authentication: AuthenticationConfig{
++			Session: AuthenticationSession{
++				TokenLifetime: 24 * time.Hour,
++				StateLifetime: 10 * time.Minute,
++			},
++		},
++
++		Audit: AuditConfig{
++			Sinks: SinksConfig{
++				LogFile: LogFileSinkConfig{
++					Enabled: false,
++					File:    "",
++				},
++			},
++			Buffer: BufferConfig{
++				Capacity:    2,
++				FlushPeriod: 2 * time.Minute,
++			},
++		},
++	}
++}
++
+ func (c *Config) validate() (err error) {
+ 	if c.Version != "" {
+ 		if strings.TrimSpace(c.Version) != "1.0" {
+diff --git a/internal/config/config_test.go b/internal/config/config_test.go
+index 9bc1908d..7a964cd4 100644
+--- a/internal/config/config_test.go
++++ b/internal/config/config_test.go
+@@ -1,6 +1,7 @@
+ package config
+ 
+ import (
++	"encoding/json"
+ 	"errors"
+ 	"fmt"
+ 	"io/fs"
+@@ -13,10 +14,10 @@ import (
+ 	"testing"
+ 	"time"
+ 
++	"github.com/mitchellh/mapstructure"
+ 	"github.com/santhosh-tekuri/jsonschema/v5"
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+-	"github.com/uber/jaeger-client-go"
+ 	"gopkg.in/yaml.v2"
+ )
+ 
+@@ -200,100 +201,6 @@ func TestLogEncoding(t *testing.T) {
+ 	}
+ }
+ 
+-func defaultConfig() *Config {
+-	return &Config{
+-		Log: LogConfig{
+-			Level:     "INFO",
+-			Encoding:  LogEncodingConsole,
+-			GRPCLevel: "ERROR",
+-			Keys: LogKeys{
+-				Time:    "T",
+-				Level:   "L",
+-				Message: "M",
+-			},
+-		},
+-
+-		UI: UIConfig{
+-			Enabled: true,
+-		},
+-
+-		Cors: CorsConfig{
+-			Enabled:        false,
+-			AllowedOrigins: []string{"*"},
+-		},
+-
+-		Cache: CacheConfig{
+-			Enabled: false,
+-			Backend: CacheMemory,
+-			TTL:     1 * time.Minute,
+-			Memory: MemoryCacheConfig{
+-				EvictionInterval: 5 * time.Minute,
+-			},
+-			Redis: RedisCacheConfig{
+-				Host:     "localhost",
+-				Port:     6379,
+-				Password: "",
+-				DB:       0,
+-			},
+-		},
+-
+-		Server: ServerConfig{
+-			Host:      "0.0.0.0",
+-			Protocol:  HTTP,
+-			HTTPPort:  8080,
+-			HTTPSPort: 443,
+-			GRPCPort:  9000,
+-		},
+-
+-		Tracing: TracingConfig{
+-			Enabled:  false,
+-			Exporter: TracingJaeger,
+-			Jaeger: JaegerTracingConfig{
+-				Host: jaeger.DefaultUDPSpanServerHost,
+-				Port: jaeger.DefaultUDPSpanServerPort,
+-			},
+-			Zipkin: ZipkinTracingConfig{
+-				Endpoint: "http://localhost:9411/api/v2/spans",
+-			},
+-			OTLP: OTLPTracingConfig{
+-				Endpoint: "localhost:4317",
+-			},
+-		},
+-
+-		Database: DatabaseConfig{
+-			URL:                       "file:/var/opt/flipt/flipt.db",
+-			MaxIdleConn:               2,
+-			PreparedStatementsEnabled: true,
+-		},
+-
+-		Meta: MetaConfig{
+-			CheckForUpdates:  true,
+-			TelemetryEnabled: true,
+-			StateDirectory:   "",
+-		},
+-
+-		Authentication: AuthenticationConfig{
+-			Session: AuthenticationSession{
+-				TokenLifetime: 24 * time.Hour,
+-				StateLifetime: 10 * time.Minute,
+-			},
+-		},
+-
+-		Audit: AuditConfig{
+-			Sinks: SinksConfig{
+-				LogFile: LogFileSinkConfig{
+-					Enabled: false,
+-					File:    "",
+-				},
+-			},
+-			Buffer: BufferConfig{
+-				Capacity:    2,
+-				FlushPeriod: 2 * time.Minute,
+-			},
+-		},
+-	}
+-}
+-
+ func TestLoad(t *testing.T) {
+ 	tests := []struct {
+ 		name     string
+@@ -305,13 +212,13 @@ func TestLoad(t *testing.T) {
+ 		{
+ 			name:     "defaults",
+ 			path:     "./testdata/default.yml",
+-			expected: defaultConfig,
++			expected: DefaultConfig,
+ 		},
+ 		{
+ 			name: "deprecated tracing jaeger enabled",
+ 			path: "./testdata/deprecated/tracing_jaeger_enabled.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Tracing.Enabled = true
+ 				cfg.Tracing.Exporter = TracingJaeger
+ 				return cfg
+@@ -324,7 +231,7 @@ func TestLoad(t *testing.T) {
+ 			name: "deprecated cache memory enabled",
+ 			path: "./testdata/deprecated/cache_memory_enabled.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Cache.Enabled = true
+ 				cfg.Cache.Backend = CacheMemory
+ 				cfg.Cache.TTL = -time.Second
+@@ -338,7 +245,7 @@ func TestLoad(t *testing.T) {
+ 		{
+ 			name:     "deprecated cache memory items defaults",
+ 			path:     "./testdata/deprecated/cache_memory_items.yml",
+-			expected: defaultConfig,
++			expected: DefaultConfig,
+ 			warnings: []string{
+ 				"\"cache.memory.enabled\" is deprecated and will be removed in a future version. Please use 'cache.enabled' and 'cache.backend' instead.",
+ 			},
+@@ -346,20 +253,20 @@ func TestLoad(t *testing.T) {
+ 		{
+ 			name:     "deprecated database migrations path",
+ 			path:     "./testdata/deprecated/database_migrations_path.yml",
+-			expected: defaultConfig,
++			expected: DefaultConfig,
+ 			warnings: []string{"\"db.migrations.path\" is deprecated and will be removed in a future version. Migrations are now embedded within Flipt and are no longer required on disk."},
+ 		},
+ 		{
+ 			name:     "deprecated database migrations path legacy",
+ 			path:     "./testdata/deprecated/database_migrations_path_legacy.yml",
+-			expected: defaultConfig,
++			expected: DefaultConfig,
+ 			warnings: []string{"\"db.migrations.path\" is deprecated and will be removed in a future version. Migrations are now embedded within Flipt and are no longer required on disk."},
+ 		},
+ 		{
+ 			name: "deprecated ui disabled",
+ 			path: "./testdata/deprecated/ui_disabled.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.UI.Enabled = false
+ 				return cfg
+ 			},
+@@ -369,7 +276,7 @@ func TestLoad(t *testing.T) {
+ 			name: "cache no backend set",
+ 			path: "./testdata/cache/default.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Cache.Enabled = true
+ 				cfg.Cache.Backend = CacheMemory
+ 				cfg.Cache.TTL = 30 * time.Minute
+@@ -380,7 +287,7 @@ func TestLoad(t *testing.T) {
+ 			name: "cache memory",
+ 			path: "./testdata/cache/memory.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Cache.Enabled = true
+ 				cfg.Cache.Backend = CacheMemory
+ 				cfg.Cache.TTL = 5 * time.Minute
+@@ -392,7 +299,7 @@ func TestLoad(t *testing.T) {
+ 			name: "cache redis",
+ 			path: "./testdata/cache/redis.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Cache.Enabled = true
+ 				cfg.Cache.Backend = CacheRedis
+ 				cfg.Cache.TTL = time.Minute
+@@ -407,7 +314,7 @@ func TestLoad(t *testing.T) {
+ 			name: "tracing zipkin",
+ 			path: "./testdata/tracing/zipkin.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Tracing.Enabled = true
+ 				cfg.Tracing.Exporter = TracingZipkin
+ 				cfg.Tracing.Zipkin.Endpoint = "http://localhost:9999/api/v2/spans"
+@@ -418,7 +325,7 @@ func TestLoad(t *testing.T) {
+ 			name: "database key/value",
+ 			path: "./testdata/database.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Database = DatabaseConfig{
+ 					Protocol:                  DatabaseMySQL,
+ 					Host:                      "localhost",
+@@ -481,7 +388,7 @@ func TestLoad(t *testing.T) {
+ 			name: "authentication token with provided bootstrap token",
+ 			path: "./testdata/authentication/token_bootstrap_token.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Authentication.Methods.Token.Method.Bootstrap = AuthenticationMethodTokenBootstrapConfig{
+ 					Token:      "s3cr3t!",
+ 					Expiration: 24 * time.Hour,
+@@ -493,7 +400,7 @@ func TestLoad(t *testing.T) {
+ 			name: "authentication session strip domain scheme/port",
+ 			path: "./testdata/authentication/session_domain_scheme_port.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Authentication.Required = true
+ 				cfg.Authentication.Session.Domain = "localhost"
+ 				cfg.Authentication.Methods = AuthenticationMethods{
+@@ -519,7 +426,7 @@ func TestLoad(t *testing.T) {
+ 			name: "authentication kubernetes defaults when enabled",
+ 			path: "./testdata/authentication/kubernetes.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Authentication.Methods = AuthenticationMethods{
+ 					Kubernetes: AuthenticationMethod[AuthenticationMethodKubernetesConfig]{
+ 						Enabled: true,
+@@ -541,7 +448,7 @@ func TestLoad(t *testing.T) {
+ 			name: "advanced",
+ 			path: "./testdata/advanced.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 
+ 				cfg.Experimental.FilesystemStorage.Enabled = true
+ 
+@@ -575,9 +482,21 @@ func TestLoad(t *testing.T) {
+ 					CertFile:  "./testdata/ssl_cert.pem",
+ 					CertKey:   "./testdata/ssl_key.pem",
+ 				}
++				cfg.Audit = AuditConfig{
++					Sinks: SinksConfig{
++						LogFile: LogFileSinkConfig{
++							Enabled: true,
++							File:    "/path/to/logs.txt",
++						},
++					},
++					Buffer: BufferConfig{
++						Capacity:    10,
++						FlushPeriod: 3 * time.Minute,
++					},
++				}
+ 				cfg.Tracing = TracingConfig{
+ 					Enabled:  true,
+-					Exporter: TracingJaeger,
++					Exporter: TracingOTLP,
+ 					Jaeger: JaegerTracingConfig{
+ 						Host: "localhost",
+ 						Port: 6831,
+@@ -586,11 +505,22 @@ func TestLoad(t *testing.T) {
+ 						Endpoint: "http://localhost:9411/api/v2/spans",
+ 					},
+ 					OTLP: OTLPTracingConfig{
+-						Endpoint: "localhost:4317",
++						Endpoint: "localhost:4318",
+ 					},
+ 				}
+ 				cfg.Storage = StorageConfig{
+-					Type: StorageType("database"),
++					Type: GitStorageType,
++					Git: &Git{
++						Repository:   "https://github.com/flipt-io/flipt.git",
++						Ref:          "production",
++						PollInterval: 5 * time.Second,
++						Authentication: Authentication{
++							BasicAuth: &BasicAuth{
++								Username: "user",
++								Password: "pass",
++							},
++						},
++					},
+ 				}
+ 				cfg.Database = DatabaseConfig{
+ 					URL:                       "postgres://postgres@localhost:5432/flipt?sslmode=disable",
+@@ -660,7 +590,7 @@ func TestLoad(t *testing.T) {
+ 			name: "version v1",
+ 			path: "./testdata/version/v1.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Version = "1.0"
+ 				return cfg
+ 			},
+@@ -684,11 +614,11 @@ func TestLoad(t *testing.T) {
+ 			name: "local config provided",
+ 			path: "./testdata/storage/local_provided.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
+ 				cfg.Experimental.FilesystemStorage.Enabled = true
+ 				cfg.Storage = StorageConfig{
+ 					Type: LocalStorageType,
+-					Local: Local{
++					Local: &Local{
+ 						Path: ".",
+ 					},
+ 				}
+@@ -699,11 +629,28 @@ func TestLoad(t *testing.T) {
+ 			name: "git config provided",
+ 			path: "./testdata/storage/git_provided.yml",
+ 			expected: func() *Config {
+-				cfg := defaultConfig()
++				cfg := DefaultConfig()
++				cfg.Experimental.FilesystemStorage.Enabled = true
++				cfg.Storage = StorageConfig{
++					Type: GitStorageType,
++					Git: &Git{
++						Ref:          "main",
++						Repository:   "git@github.com:foo/bar.git",
++						PollInterval: 30 * time.Second,
++					},
++				}
++				return cfg
++			},
++		},
++		{
++			name: "git config with leftover local",
++			path: "./testdata/storage/git_leftover_local.yml",
++			expected: func() *Config {
++				cfg := DefaultConfig()
+ 				cfg.Experimental.FilesystemStorage.Enabled = true
+ 				cfg.Storage = StorageConfig{
+ 					Type: GitStorageType,
+-					Git: Git{
++					Git: &Git{
+ 						Ref:          "main",
+ 						Repository:   "git@github.com:foo/bar.git",
+ 						PollInterval: 30 * time.Second,
+@@ -712,6 +659,30 @@ func TestLoad(t *testing.T) {
+ 				return cfg
+ 			},
+ 		},
++		{
++			name: "database config provided",
++			path: "./testdata/storage/database_provided.yml",
++			expected: func() *Config {
++				cfg := DefaultConfig()
++				cfg.Experimental.FilesystemStorage.Enabled = true
++				cfg.Storage = StorageConfig{
++					Type: DatabaseStorageType,
++				}
++				return cfg
++			},
++		},
++		{
++			name: "database config with leftover local",
++			path: "./testdata/storage/database_leftover_local.yml",
++			expected: func() *Config {
++				cfg := DefaultConfig()
++				cfg.Experimental.FilesystemStorage.Enabled = true
++				cfg.Storage = StorageConfig{
++					Type: DatabaseStorageType,
++				}
++				return cfg
++			},
++		},
+ 		{
+ 			name:    "git repository not provided",
+ 			path:    "./testdata/storage/invalid_git_repo_not_specified.yml",
+@@ -799,13 +770,85 @@ func TestLoad(t *testing.T) {
+ 	}
+ }
+ 
++func TestDefaultConfigDecode(t *testing.T) {
++	m := decodeConfig(t, DefaultConfig())
++
++	keys := make([]string, 0, len(m))
++	for key := range m {
++		keys = append(keys, key)
++	}
++	assert.ElementsMatch(t, []string{
++		"log", "ui", "cors", "cache", "server", "tracing", "db",
++		"meta", "authentication", "audit", "experimental", "storage",
++	}, keys)
++
++	assert.Equal(t, time.Minute, m["cache"].(map[string]any)["ttl"])
++	assert.NotContains(t, m["db"], "protocol")
++	assertNoNil(t, "", m)
++
++	cfg := DefaultConfig()
++	cfg.Version = "1.0"
++	assert.Equal(t, "1.0", decodeConfig(t, cfg)["version"])
++}
++
++// decodeConfig decodes cfg into a map with the hooks Load uses.
++func decodeConfig(t *testing.T, cfg *Config) map[string]any {
++	t.Helper()
++
++	var m map[string]any
++	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
++		DecodeHook: mapstructure.ComposeDecodeHookFunc(DecodeHooks...),
++		Result:     &m,
++	})
++	require.NoError(t, err)
++	require.NoError(t, decoder.Decode(cfg))
++
++	return m
++}
++
++// assertNoNil fails for every nil value found in m or its nested maps.
++func assertNoNil(t *testing.T, path string, m map[string]any) {
++	t.Helper()
++
++	for key, value := range m {
++		switch v := value.(type) {
++		case map[string]any:
++			assertNoNil(t, path+key+".", v)
++		default:
++			rv := reflect.ValueOf(value)
++			if value == nil || (rv.Kind() == reflect.Pointer && rv.IsNil()) {
++				t.Errorf("%s%s is nil", path, key)
++			}
++		}
++	}
++}
++
++func TestStorageConfigDecode(t *testing.T) {
++	res, err := Load("./testdata/storage/database_provided.yml")
++	require.NoError(t, err)
++
++	m := decodeConfig(t, res.Config)
++
++	assert.Equal(t, map[string]any{"type": DatabaseStorageType}, m["storage"])
++}
++
++func TestStorageConfigValidateNilBackend(t *testing.T) {
++	git := &StorageConfig{Type: GitStorageType}
++	assert.EqualError(t, git.validate(), "git ref must be specified")
++
++	local := &StorageConfig{Type: LocalStorageType}
++	assert.EqualError(t, local.validate(), "local path must be specified")
++}
++
+ func TestServeHTTP(t *testing.T) {
+ 	var (
+-		cfg = defaultConfig()
++		cfg = DefaultConfig()
+ 		req = httptest.NewRequest("GET", "http://example.com/foo", nil)
+ 		w   = httptest.NewRecorder()
+ 	)
+ 
++	cfg.Storage.Type = DatabaseStorageType
++
+ 	cfg.ServeHTTP(w, req)
+ 
+ 	resp := w.Result()
+@@ -814,7 +857,10 @@ func TestServeHTTP(t *testing.T) {
+ 	body, _ := ioutil.ReadAll(resp.Body)
+ 
+ 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+-	assert.NotEmpty(t, body)
++
++	var out map[string]any
++	require.NoError(t, json.Unmarshal(body, &out))
++	assert.Equal(t, map[string]any{"type": "database"}, out["storage"])
+ }
+ 
+ // readyYAMLIntoEnv parses the file provided at path as YAML.
+@@ -951,6 +997,20 @@ func Test_mustBindEnv(t *testing.T) {
+ 				"a.b.bar_baz.d.e",
+ 			},
+ 		},
++		{
++			name: "omitempty tags",
++			env:  []string{},
++			typ: struct {
++				A string `mapstructure:"a,omitempty"`
++				B struct {
++					D int `mapstructure:"d,omitempty"`
++				} `mapstructure:"b_c,omitempty"`
++				F struct {
++					E string `mapstructure:"e,omitempty"`
++				} `mapstructure:",squash"`
++			}{},
++			bound: []string{"a", "b_c.d", "e"},
++		},
+ 	} {
+ 		test := test
+ 		t.Run(test.name, func(t *testing.T) {
+diff --git a/internal/config/cors.go b/internal/config/cors.go
+index 4dea87d9..6531602a 100644
+--- a/internal/config/cors.go
++++ b/internal/config/cors.go
+@@ -8,8 +8,8 @@ var _ defaulter = (*CorsConfig)(nil)
+ // CorsConfig contains fields, which configure behaviour in the
+ // HTTPServer relating to the CORS header-based mechanisms.
+ type CorsConfig struct {
+-	Enabled        bool     `json:"enabled" mapstructure:"enabled"`
+-	AllowedOrigins []string `json:"allowedOrigins,omitempty" mapstructure:"allowed_origins"`
++	Enabled        bool     `json:"enabled" mapstructure:"enabled,omitempty"`
++	AllowedOrigins []string `json:"allowedOrigins,omitempty" mapstructure:"allowed_origins,omitempty"`
+ }
+ 
+ func (c *CorsConfig) setDefaults(v *viper.Viper) {
+diff --git a/internal/config/database.go b/internal/config/database.go
+index db446039..1120c6eb 100644
+--- a/internal/config/database.go
++++ b/internal/config/database.go
+@@ -27,17 +27,17 @@ const (
+ //
+ // Flipt currently supports SQLite, Postgres and MySQL backends.
+ type DatabaseConfig struct {
+-	URL                       string           `json:"url,omitempty" mapstructure:"url"`
+-	MaxIdleConn               int              `json:"maxIdleConn,omitempty" mapstructure:"max_idle_conn"`
+-	MaxOpenConn               int              `json:"maxOpenConn,omitempty" mapstructure:"max_open_conn"`
+-	ConnMaxLifetime           time.Duration    `json:"connMaxLifetime,omitempty" mapstructure:"conn_max_lifetime"`
+-	Name                      string           `json:"name,omitempty" mapstructure:"name"`
+-	User                      string           `json:"user,omitempty" mapstructure:"user"`
+-	Password                  string           `json:"password,omitempty" mapstructure:"password"`
+-	Host                      string           `json:"host,omitempty" mapstructure:"host"`
+-	Port                      int              `json:"port,omitempty" mapstructure:"port"`
+-	Protocol                  DatabaseProtocol `json:"protocol,omitempty" mapstructure:"protocol"`
+-	PreparedStatementsEnabled bool             `json:"preparedStatementsEnabled,omitempty" mapstructure:"prepared_statements_enabled"`
++	URL                       string           `json:"url,omitempty" mapstructure:"url,omitempty"`
++	MaxIdleConn               int              `json:"maxIdleConn,omitempty" mapstructure:"max_idle_conn,omitempty"`
++	MaxOpenConn               int              `json:"maxOpenConn,omitempty" mapstructure:"max_open_conn,omitempty"`
++	ConnMaxLifetime           time.Duration    `json:"connMaxLifetime,omitempty" mapstructure:"conn_max_lifetime,omitempty"`
++	Name                      string           `json:"name,omitempty" mapstructure:"name,omitempty"`
++	User                      string           `json:"user,omitempty" mapstructure:"user,omitempty"`
++	Password                  string           `json:"password,omitempty" mapstructure:"password,omitempty"`
++	Host                      string           `json:"host,omitempty" mapstructure:"host,omitempty"`
++	Port                      int              `json:"port,omitempty" mapstructure:"port,omitempty"`
++	Protocol                  DatabaseProtocol `json:"protocol,omitempty" mapstructure:"protocol,omitempty"`
++	PreparedStatementsEnabled bool             `json:"preparedStatementsEnabled,omitempty" mapstructure:"prepared_statements_enabled,omitempty"`
+ }
+ 
+ func (c *DatabaseConfig) setDefaults(v *viper.Viper) {
+diff --git a/internal/config/experimental.go b/internal/config/experimental.go
+index 90315d3f..a81c803c 100644
+--- a/internal/config/experimental.go
++++ b/internal/config/experimental.go
+@@ -3,11 +3,11 @@ package config
+ // ExperimentalConfig allows for experimental features to be enabled
+ // and disabled.
+ type ExperimentalConfig struct {
+-	FilesystemStorage ExperimentalFlag `json:"filesystem_storage,omitempty" mapstructure:"filesystem_storage"`
++	FilesystemStorage ExperimentalFlag `json:"filesystem_storage,omitempty" mapstructure:"filesystem_storage,omitempty"`
+ }
+ 
+ // ExperimentalFlag is a structure which has properties to configure
+ // experimental feature enablement.
+ type ExperimentalFlag struct {
+-	Enabled bool `json:"enabled,omitempty" mapstructure:"enabled"`
++	Enabled bool `json:"enabled,omitempty" mapstructure:"enabled,omitempty"`
+ }
+diff --git a/internal/config/log.go b/internal/config/log.go
+index e895af6d..26d5b186 100644
+--- a/internal/config/log.go
++++ b/internal/config/log.go
+@@ -12,17 +12,17 @@ var _ defaulter = (*LogConfig)(nil)
+ // LogConfig contains fields which control, direct and filter
+ // the logging telemetry produces by Flipt.
+ type LogConfig struct {
+-	Level     string      `json:"level,omitempty" mapstructure:"level"`
+-	File      string      `json:"file,omitempty" mapstructure:"file"`
+-	Encoding  LogEncoding `json:"encoding,omitempty" mapstructure:"encoding"`
+-	GRPCLevel string      `json:"grpcLevel,omitempty" mapstructure:"grpc_level"`
+-	Keys      LogKeys     `json:"keys" mapstructure:"keys"`
++	Level     string      `json:"level,omitempty" mapstructure:"level,omitempty"`
++	File      string      `json:"file,omitempty" mapstructure:"file,omitempty"`
++	Encoding  LogEncoding `json:"encoding,omitempty" mapstructure:"encoding,omitempty"`
++	GRPCLevel string      `json:"grpcLevel,omitempty" mapstructure:"grpc_level,omitempty"`
++	Keys      LogKeys     `json:"keys" mapstructure:"keys,omitempty"`
+ }
+ 
+ type LogKeys struct {
+-	Time    string `json:"time" mapstructure:"time"`
+-	Level   string `json:"level" mapstructure:"level"`
+-	Message string `json:"message" mapstructure:"message"`
++	Time    string `json:"time" mapstructure:"time,omitempty"`
++	Level   string `json:"level" mapstructure:"level,omitempty"`
++	Message string `json:"message" mapstructure:"message,omitempty"`
+ }
+ 
+ func (c *LogConfig) setDefaults(v *viper.Viper) {
+diff --git a/internal/config/meta.go b/internal/config/meta.go
+index 6c032f9a..ea18ef48 100644
+--- a/internal/config/meta.go
++++ b/internal/config/meta.go
+@@ -7,9 +7,9 @@ var _ defaulter = (*MetaConfig)(nil)
+ 
+ // MetaConfig contains a variety of meta configuration fields.
+ type MetaConfig struct {
+-	CheckForUpdates  bool   `json:"checkForUpdates" mapstructure:"check_for_updates"`
+-	TelemetryEnabled bool   `json:"telemetryEnabled" mapstructure:"telemetry_enabled"`
+-	StateDirectory   string `json:"stateDirectory" mapstructure:"state_directory"`
++	CheckForUpdates  bool   `json:"checkForUpdates" mapstructure:"check_for_updates,omitempty"`
++	TelemetryEnabled bool   `json:"telemetryEnabled" mapstructure:"telemetry_enabled,omitempty"`
++	StateDirectory   string `json:"stateDirectory" mapstructure:"state_directory,omitempty"`
+ }
+ 
+ func (c *MetaConfig) setDefaults(v *viper.Viper) {
+diff --git a/internal/config/schema_test.go b/internal/config/schema_test.go
+new file mode 100644
+index 00000000..a370eb23
+--- /dev/null
++++ b/internal/config/schema_test.go
+@@ -0,0 +1,194 @@
++package config
++
++import (
++	"os"
++	"testing"
++	"time"
++
++	"cuelang.org/go/cue"
++	"cuelang.org/go/cue/cuecontext"
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++)
++
++func TestCUESchemaDefaultConfig(t *testing.T) {
++	ctx, spec := loadCUESchema(t)
++
++	m := durationsToStrings(decodeConfig(t, DefaultConfig()))
++
++	assert.Equal(t, "1m0s", lookup(m, "cache", "ttl"))
++	assert.Equal(t, "5m0s", lookup(m, "cache", "memory", "eviction_interval"))
++	assert.Equal(t, "24h0m0s", lookup(m, "authentication", "session", "token_lifetime"))
++	assert.Equal(t, "10m0s", lookup(m, "authentication", "session", "state_lifetime"))
++	assert.Equal(t, "2m0s", lookup(m, "audit", "buffer", "flush_period"))
++
++	v := spec.Unify(ctx.Encode(m))
++	require.NoError(t, v.Validate(cue.Concrete(true)))
++}
++
++func TestCUESchemaGitStorageWithoutAuthentication(t *testing.T) {
++	ctx, spec := loadCUESchema(t)
++
++	cfg := DefaultConfig()
++	cfg.Storage = StorageConfig{
++		Type: GitStorageType,
++		Git: &Git{
++			Repository:   "https://github.com/flipt-io/flipt.git",
++			Ref:          "main",
++			PollInterval: 30 * time.Second,
++		},
++	}
++	m := durationsToStrings(decodeConfig(t, cfg))
++
++	v := spec.Unify(ctx.Encode(m))
++	require.NoError(t, v.Validate(cue.Concrete(true)))
++}
++
++func TestCUESchema(t *testing.T) {
++	for _, test := range []struct {
++		name  string
++		input string
++		valid bool
++	}{
++		{
++			name:  "db url",
++			input: `db: {url: "postgres://localhost/flipt", max_idle_conn: 10}`,
++			valid: true,
++		},
++		{
++			name:  "db host without port or user",
++			input: `db: {protocol: "postgres", host: "localhost", name: "flipt"}`,
++			valid: true,
++		},
++		{
++			name:  "db url and host",
++			input: `db: {url: "postgres://localhost/flipt", host: "localhost"}`,
++		},
++		{
++			name:  "storage empty",
++			input: `storage: {}`,
++			valid: true,
++		},
++		{
++			name:  "storage local",
++			input: `storage: {type: "local", local: {path: "/tmp/flags"}}`,
++			valid: true,
++		},
++		{
++			name:  "storage database with leftover local",
++			input: `storage: {type: "database", local: {path: "/tmp/flags"}}`,
++		},
++		{
++			name: "storage git with basic auth",
++			input: `storage: {type: "git", git: {
++				repository: "https://github.com/flipt-io/flipt.git", ref: "main", poll_interval: "5s",
++				authentication: basic: {username: "user", password: "pass"}}}`,
++			valid: true,
++		},
++		{
++			name: "storage git with basic and token auth",
++			input: `storage: {type: "git", git: {
++				repository: "https://github.com/flipt-io/flipt.git", ref: "main", poll_interval: "5s",
++				authentication: {
++					basic: {username: "user", password: "pass"}
++					token: access_token: "s3cr3t"
++				}}}`,
++		},
++		{
++			name:  "cors origins list",
++			input: `cors: allowed_origins: ["foo.com"]`,
++			valid: true,
++		},
++		{
++			name:  "cors origins string",
++			input: `cors: allowed_origins: "foo.com bar.com"`,
++			valid: true,
++		},
++		{
++			name:  "duration with fraction",
++			input: `cache: ttl: "1.5s"`,
++			valid: true,
++		},
++		{
++			name:  "duration zero",
++			input: `cache: ttl: "0s"`,
++			valid: true,
++		},
++		{
++			name:  "duration integer",
++			input: `cache: ttl: 60000000000`,
++			valid: true,
++		},
++		{
++			name:  "duration negative",
++			input: `cache: ttl: "-1m0s"`,
++		},
++		{
++			name: "kubernetes method",
++			input: `authentication: methods: kubernetes: {
++				discovery_url: "https://kubernetes.default.svc.cluster.local"
++				ca_path: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
++				service_account_token_path: "/var/run/secrets/kubernetes.io/serviceaccount/token"
++			}`,
++			valid: true,
++		},
++	} {
++		test := test
++		t.Run(test.name, func(t *testing.T) {
++			ctx, spec := loadCUESchema(t)
++
++			input := ctx.CompileString(test.input)
++			require.NoError(t, input.Err())
++
++			err := spec.Unify(input).Validate(cue.Concrete(true))
++			if test.valid {
++				assert.NoError(t, err)
++			} else {
++				assert.Error(t, err)
++			}
++		})
++	}
++}
++
++// loadCUESchema compiles the CUE schema of the configuration file and
++// returns its #FliptSpec definition.
++func loadCUESchema(t *testing.T) (*cue.Context, cue.Value) {
++	t.Helper()
++
++	schema, err := os.ReadFile("../../config/flipt.schema.cue")
++	require.NoError(t, err)
++
++	ctx := cuecontext.New()
++	v := ctx.CompileBytes(schema)
++	require.NoError(t, v.Err())
++
++	spec := v.LookupPath(cue.ParsePath("#FliptSpec"))
++	require.NoError(t, spec.Err())
++	require.True(t, spec.Exists())
++
++	return ctx, spec
++}
++
++// durationsToStrings replaces every time.Duration of m, nested maps
++// included, by its string form, as written in a configuration file.
++func durationsToStrings(m map[string]any) map[string]any {
++	for key, value := range m {
++		switch v := value.(type) {
++		case time.Duration:
++			m[key] = v.String()
++		case map[string]any:
++			m[key] = durationsToStrings(v)
++		}
++	}
++
++	return m
++}
++
++func lookup(m map[string]any, path ...string) any {
++	var value any = m
++	for _, key := range path {
++		value = value.(map[string]any)[key]
++	}
++
++	return value
++}
+diff --git a/internal/config/server.go b/internal/config/server.go
+index da312d6d..d05b9d68 100644
+--- a/internal/config/server.go
++++ b/internal/config/server.go
+@@ -13,13 +13,13 @@ var _ defaulter = (*ServerConfig)(nil)
+ // ServerConfig contains fields, which configure both HTTP and gRPC
+ // API serving.
+ type ServerConfig struct {
+-	Host      string `json:"host,omitempty" mapstructure:"host"`
+-	Protocol  Scheme `json:"protocol,omitempty" mapstructure:"protocol"`
+-	HTTPPort  int    `json:"httpPort,omitempty" mapstructure:"http_port"`
+-	HTTPSPort int    `json:"httpsPort,omitempty" mapstructure:"https_port"`
+-	GRPCPort  int    `json:"grpcPort,omitempty" mapstructure:"grpc_port"`
+-	CertFile  string `json:"certFile,omitempty" mapstructure:"cert_file"`
+-	CertKey   string `json:"certKey,omitempty" mapstructure:"cert_key"`
++	Host      string `json:"host,omitempty" mapstructure:"host,omitempty"`
++	Protocol  Scheme `json:"protocol,omitempty" mapstructure:"protocol,omitempty"`
++	HTTPPort  int    `json:"httpPort,omitempty" mapstructure:"http_port,omitempty"`
++	HTTPSPort int    `json:"httpsPort,omitempty" mapstructure:"https_port,omitempty"`
++	GRPCPort  int    `json:"grpcPort,omitempty" mapstructure:"grpc_port,omitempty"`
++	CertFile  string `json:"certFile,omitempty" mapstructure:"cert_file,omitempty"`
++	CertKey   string `json:"certKey,omitempty" mapstructure:"cert_key,omitempty"`
+ }
+ 
+ func (c *ServerConfig) setDefaults(v *viper.Viper) {
+diff --git a/internal/config/storage.go b/internal/config/storage.go
+index 0a4e5c14..86e653e1 100644
+--- a/internal/config/storage.go
++++ b/internal/config/storage.go
+@@ -18,9 +18,9 @@ const (
+ // StorageConfig contains fields which will configure the type of backend in which Flipt will serve
+ // flag state.
+ type StorageConfig struct {
+-	Type  StorageType `json:"type,omitempty" mapstructure:"type"`
+-	Local Local       `json:"local,omitempty" mapstructure:"local"`
+-	Git   Git         `json:"git,omitempty" mapstructure:"git"`
++	Type  StorageType `json:"type,omitempty" mapstructure:"type,omitempty"`
++	Local *Local      `json:"local,omitempty" mapstructure:"local,omitempty"`
++	Git   *Git        `json:"git,omitempty" mapstructure:"git,omitempty"`
+ }
+ 
+ func (c *StorageConfig) setDefaults(v *viper.Viper) {
+@@ -36,8 +36,18 @@ func (c *StorageConfig) setDefaults(v *viper.Viper) {
+ }
+ 
+ func (c *StorageConfig) validate() error {
++	// a backend's settings exist only when it is selected:
++	// drop any leftover section of another storage type
++	if c.Type != LocalStorageType {
++		c.Local = nil
++	}
++
++	if c.Type != GitStorageType {
++		c.Git = nil
++	}
++
+ 	if c.Type == GitStorageType {
+-		if c.Git.Ref == "" {
++		if c.Git == nil || c.Git.Ref == "" {
+ 			return errors.New("git ref must be specified")
+ 		}
+ 		if c.Git.Repository == "" {
+@@ -50,7 +60,7 @@ func (c *StorageConfig) validate() error {
+ 	}
+ 
+ 	if c.Type == LocalStorageType {
+-		if c.Local.Path == "" {
++		if c.Local == nil || c.Local.Path == "" {
+ 			return errors.New("local path must be specified")
+ 		}
+ 	}
+@@ -60,15 +70,15 @@ func (c *StorageConfig) validate() error {
+ 
+ // Local contains configuration for referencing a local filesystem.
+ type Local struct {
+-	Path string `json:"path,omitempty" mapstructure:"path"`
++	Path string `json:"path,omitempty" mapstructure:"path,omitempty"`
+ }
+ 
+ // Git contains configuration for referencing a git repository.
+ type Git struct {
+-	Repository     string         `json:"repository,omitempty" mapstructure:"repository"`
+-	Ref            string         `json:"ref,omitempty" mapstructure:"ref"`
+-	PollInterval   time.Duration  `json:"pollInterval,omitempty" mapstructure:"poll_interval"`
+-	Authentication Authentication `json:"authentication,omitempty" mapstructure:"authentication"`
++	Repository     string         `json:"repository,omitempty" mapstructure:"repository,omitempty"`
++	Ref            string         `json:"ref,omitempty" mapstructure:"ref,omitempty"`
++	PollInterval   time.Duration  `json:"pollInterval,omitempty" mapstructure:"poll_interval,omitempty"`
++	Authentication Authentication `json:"authentication,omitempty" mapstructure:"authentication,omitempty"`
+ }
+ 
+ // Authentication holds structures for various types of auth we support.
+@@ -78,8 +88,8 @@ type Git struct {
+ // not all inputs are given but only partially, we will return a validation error.
+ // (e.g. if username for basic auth is given, and token is also given a validation error will be returned)
+ type Authentication struct {
+-	BasicAuth *BasicAuth `json:"basic,omitempty" mapstructure:"basic"`
+-	TokenAuth *TokenAuth `json:"token,omitempty" mapstructure:"token"`
++	BasicAuth *BasicAuth `json:"basic,omitempty" mapstructure:"basic,omitempty"`
++	TokenAuth *TokenAuth `json:"token,omitempty" mapstructure:"token,omitempty"`
+ }
+ 
+ func (a *Authentication) validate() error {
+@@ -100,8 +110,8 @@ func (a *Authentication) validate() error {
+ // BasicAuth has configuration for authenticating with private git repositories
+ // with basic auth.
+ type BasicAuth struct {
+-	Username string `json:"username,omitempty" mapstructure:"username"`
+-	Password string `json:"password,omitempty" mapstructure:"password"`
++	Username string `json:"username,omitempty" mapstructure:"username,omitempty"`
++	Password string `json:"password,omitempty" mapstructure:"password,omitempty"`
+ }
+ 
+ func (b BasicAuth) validate() error {
+@@ -115,7 +125,7 @@ func (b BasicAuth) validate() error {
+ // TokenAuth has configuration for authenticating with private git repositories
+ // with token auth.
+ type TokenAuth struct {
+-	AccessToken string `json:"accessToken,omitempty" mapstructure:"access_token"`
++	AccessToken string `json:"accessToken,omitempty" mapstructure:"access_token,omitempty"`
+ }
+ 
+ func (t TokenAuth) validate() error { return nil }
+diff --git a/internal/config/testdata/advanced.yml b/internal/config/testdata/advanced.yml
+index 6a8b8036..7df94fd7 100644
+--- a/internal/config/testdata/advanced.yml
++++ b/internal/config/testdata/advanced.yml
+@@ -33,7 +33,9 @@ server:
+ 
+ tracing:
+   enabled: true
+-  backend: jaeger
++  exporter: otlp
++  otlp:
++    endpoint: "localhost:4318"
+ 
+ db:
+   url: postgres://postgres@localhost:5432/flipt?sslmode=disable
+@@ -41,6 +43,17 @@ db:
+   max_open_conn: 50
+   conn_max_lifetime: 30m
+ 
++storage:
++  type: git
++  git:
++    repository: "https://github.com/flipt-io/flipt.git"
++    ref: production
++    poll_interval: 5s
++    authentication:
++      basic:
++        username: user
++        password: pass
++
+ meta:
+   check_for_updates: false
+   telemetry_enabled: false
+@@ -77,3 +90,12 @@ authentication:
+       cleanup:
+         interval: 2h
+         grace_period: 48h
++
++audit:
++  sinks:
++    log:
++      enabled: true
++      file: /path/to/logs.txt
++  buffer:
++    capacity: 10
++    flush_period: 3m
+diff --git a/internal/config/testdata/storage/database_leftover_local.yml b/internal/config/testdata/storage/database_leftover_local.yml
+new file mode 100644
+index 00000000..f4ba8cf2
+--- /dev/null
++++ b/internal/config/testdata/storage/database_leftover_local.yml
+@@ -0,0 +1,7 @@
++experimental:
++  filesystem_storage:
++    enabled: true
++storage:
++  type: database
++  local:
++    path: /tmp/flags
+diff --git a/internal/config/testdata/storage/database_provided.yml b/internal/config/testdata/storage/database_provided.yml
+new file mode 100644
+index 00000000..f421c063
+--- /dev/null
++++ b/internal/config/testdata/storage/database_provided.yml
+@@ -0,0 +1,5 @@
++experimental:
++  filesystem_storage:
++    enabled: true
++storage:
++  type: database
+diff --git a/internal/config/testdata/storage/git_leftover_local.yml b/internal/config/testdata/storage/git_leftover_local.yml
+new file mode 100644
+index 00000000..dfdf911d
+--- /dev/null
++++ b/internal/config/testdata/storage/git_leftover_local.yml
+@@ -0,0 +1,9 @@
++experimental:
++  filesystem_storage:
++    enabled: true
++storage:
++  type: git
++  git:
++    repository: "git@github.com:foo/bar.git"
++  local:
++    path: /tmp/flags
+diff --git a/internal/config/tracing.go b/internal/config/tracing.go
+index 5eb2f984..7f36874c 100644
+--- a/internal/config/tracing.go
++++ b/internal/config/tracing.go
+@@ -12,11 +12,11 @@ var _ defaulter = (*TracingConfig)(nil)
+ // TracingConfig contains fields, which configure tracing telemetry
+ // output destinations.
+ type TracingConfig struct {
+-	Enabled  bool                `json:"enabled,omitempty" mapstructure:"enabled"`
+-	Exporter TracingExporter     `json:"exporter,omitempty" mapstructure:"exporter"`
+-	Jaeger   JaegerTracingConfig `json:"jaeger,omitempty" mapstructure:"jaeger"`
+-	Zipkin   ZipkinTracingConfig `json:"zipkin,omitempty" mapstructure:"zipkin"`
+-	OTLP     OTLPTracingConfig   `json:"otlp,omitempty" mapstructure:"otlp"`
++	Enabled  bool                `json:"enabled,omitempty" mapstructure:"enabled,omitempty"`
++	Exporter TracingExporter     `json:"exporter,omitempty" mapstructure:"exporter,omitempty"`
++	Jaeger   JaegerTracingConfig `json:"jaeger,omitempty" mapstructure:"jaeger,omitempty"`
++	Zipkin   ZipkinTracingConfig `json:"zipkin,omitempty" mapstructure:"zipkin,omitempty"`
++	OTLP     OTLPTracingConfig   `json:"otlp,omitempty" mapstructure:"otlp,omitempty"`
+ }
+ 
+ func (c *TracingConfig) setDefaults(v *viper.Viper) {
+@@ -94,18 +94,18 @@ var (
+ // JaegerTracingConfig contains fields, which configure
+ // Jaeger span and tracing output destination.
+ type JaegerTracingConfig struct {
+-	Host string `json:"host,omitempty" mapstructure:"host"`
+-	Port int    `json:"port,omitempty" mapstructure:"port"`
++	Host string `json:"host,omitempty" mapstructure:"host,omitempty"`
++	Port int    `json:"port,omitempty" mapstructure:"port,omitempty"`
+ }
+ 
+ // ZipkinTracingConfig contains fields, which configure
+ // Zipkin span and tracing output destination.
+ type ZipkinTracingConfig struct {
+-	Endpoint string `json:"endpoint,omitempty" mapstructure:"endpoint"`
++	Endpoint string `json:"endpoint,omitempty" mapstructure:"endpoint,omitempty"`
+ }
+ 
+ // OTLPTracingConfig contains fields, which configure
+ // OTLP span and tracing output destination.
+ type OTLPTracingConfig struct {
+-	Endpoint string `json:"endpoint,omitempty" mapstructure:"endpoint"`
++	Endpoint string `json:"endpoint,omitempty" mapstructure:"endpoint,omitempty"`
+ }
+diff --git a/internal/config/ui.go b/internal/config/ui.go
+index d3e7dc5a..1776e66d 100644
+--- a/internal/config/ui.go
++++ b/internal/config/ui.go
+@@ -8,7 +8,7 @@ var _ defaulter = (*UIConfig)(nil)
+ // UIConfig contains fields, which control the behaviour
+ // of Flipt's user interface.
+ type UIConfig struct {
+-	Enabled bool `json:"enabled" mapstructure:"enabled"`
++	Enabled bool `json:"enabled" mapstructure:"enabled,omitempty"`
+ }
+ 
+ func (c *UIConfig) setDefaults(v *viper.Viper) {
