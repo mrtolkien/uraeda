@@ -33,8 +33,15 @@ const styles = stylex.create({
     padding: 0,
   },
   pill: {
-    // A pill keeps its width beside text of several lines.
+    "--pill-slot": "calc(var(--text-reading-size) * var(--text-reading-line))",
+    // A pill keeps its width beside text of several lines, and is centred on the first one: its
+    // slot is a line of the reading text high.
+    alignItems: "center",
+    display: "flex",
     flexShrink: 0,
+    fontSize: "var(--text-reading-size)",
+    height: "var(--pill-slot)",
+    lineHeight: "var(--text-reading-line)",
   },
   reading: {
     // The part's text at the reading size, as the spec's other blocks.
@@ -135,7 +142,9 @@ function Cost({ item, props }: { item: Block; props: PartProps }) {
   return (
     <li>
       <HStack align="start" gap={2}>
-        <Badge label="Cost" variant="warning" xstyle={styles.pill} />
+        <span {...stylex.props(styles.pill)}>
+          <Badge label="Cost" variant="warning" />
+        </span>
         <Selectable block={item} selection={props.selection}>
           <Text display="block" type="inherit" xstyle={styles.reading}>
             <Spans spans={item.spans} />
@@ -192,11 +201,12 @@ function EdgeRow({ edge, props }: { edge: Edge; props: PartProps }) {
       <Selectable block={row} selection={props.selection}>
         <VStack gap={1} xstyle={styles.reading}>
           <HStack align="start" gap={2}>
-            <Badge
-              label={known?.label ?? plain(importance?.spans ?? [])}
-              variant={known?.variant ?? "neutral"}
-              xstyle={styles.pill}
-            />
+            <span {...stylex.props(styles.pill)}>
+              <Badge
+                label={known?.label ?? plain(importance?.spans ?? [])}
+                variant={known?.variant ?? "neutral"}
+              />
+            </span>
             <Text type="inherit" weight="semibold">
               <Spans spans={situation?.spans ?? []} />
             </Text>
