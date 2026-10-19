@@ -215,7 +215,11 @@ function CommentFields({
           />
         )}
         {images && <AttachStatus status={images.status} />}
-        {(error ?? notice) && <span {...stylex.props(statusStyles.error)}>{error ?? notice}</span>}
+        {(error ?? notice) && (
+          <span role="alert" {...stylex.props(statusStyles.error)}>
+            {error ?? notice}
+          </span>
+        )}
         <HStack align="center" gap={2} justify="end" wrap="wrap">
           <SaveStatus dirty={dirty} state={IDLE} />
           {images && <AttachButton onFiles={(files) => void images.addFiles(files)} />}
