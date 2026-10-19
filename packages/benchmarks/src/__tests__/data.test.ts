@@ -50,7 +50,12 @@ test("a suite reads with every field of the data model", () => {
   expect(suite).toMatchObject({
     arms: ["uraeda", "plain"],
     effort: "medium",
-    human: { commit: "abc123", path: "benchmarks/human.md" },
+    human: {
+      commit: "abc123",
+      effort: "medium",
+      model: "claude-sonnet-5-5",
+      path: "benchmarks/human.md",
+    },
     maxSteps: 30,
     model: "claude-sonnet-5-5",
   });
@@ -120,4 +125,19 @@ test("writing a run with an invalid record refuses before it writes", () => {
   expect(() =>
     writeRun(folder, { diff: "", record: record as never, scores: sampleScores() }),
   ).toThrow("urls");
+});
+
+test("a suite gives the human and the judge a model and an effort of their own", () => {
+  const path = write(
+    join(temporary(), "s.toml"),
+    SUITE.replace('model = "claude-sonnet-5-5"', 'model = "claude-opus-5-5"').replace(
+      'commit = "abc123"',
+      'commit = "abc123"\nmodel = "claude-sonnet-5-5"\neffort = "high"',
+    ),
+  );
+
+  expect(readSuite(path)).toMatchObject({
+    human: { effort: "high", model: "claude-sonnet-5-5" },
+    model: "claude-opus-5-5",
+  });
 });

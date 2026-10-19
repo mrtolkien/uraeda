@@ -20,6 +20,8 @@ export type Sandbox = {
   configDir: string;
   /** What the runner sets in its own environment, for the sessions it runs on the host. */
   env: { CLAUDE_CONFIG_DIR: string };
+  /** The configuration folder of the host sessions, the human and the judge: their own model. */
+  hostConfigDir: string;
   /** The host copy of the case's repository, mounted at `/app`. */
   repo: string;
 };
@@ -31,6 +33,8 @@ export type SandboxOptions = {
   /** The constitution file the project gets, which a human wrote. */
   constitution: string;
   effort: string;
+  /** The model and effort of the host sessions (the human, the judge), when not the agent's. */
+  host?: { effort: string; model: string };
   model: string;
   /** Whether the project gets a `specs/` folder and a constitution: the plain arm has none. */
   specs?: boolean;
@@ -69,6 +73,12 @@ export async function prepareSandbox(options: SandboxOptions): Promise<Sandbox> 
       folder: join(work, "config"),
       model: options.model,
     });
+    const hostConfigDir = makeConfigDir({
+      deniedHosts: upstreamHosts(options.case.upstream),
+      effort: options.host?.effort ?? options.effort,
+      folder: join(work, "config-host"),
+      model: options.host?.model ?? options.model,
+    });
     const command = writeWrapper({
       bareOrigin,
       claude: options.claude,
@@ -84,7 +94,8 @@ export async function prepareSandbox(options: SandboxOptions): Promise<Sandbox> 
       close,
       command,
       configDir,
-      env: { CLAUDE_CONFIG_DIR: configDir },
+      env: { CLAUDE_CONFIG_DIR: hostConfigDir },
+      hostConfigDir,
       repo,
     };
   } catch (error) {

@@ -78,6 +78,7 @@ export async function runFlow(
       claude: deps.claude,
       constitution: join(deps.root, "constitution.md"),
       effort: suite.effort,
+      host: { effort: suite.human.effort, model: suite.human.model },
       model: suite.model,
       work: join(work, "sandbox"),
     });
@@ -98,6 +99,7 @@ export async function runFlow(
       ...(deps.loop ? { deps: deps.loop } : {}),
       feature,
       human: makeHuman({ adapter: host, guidelines, proposal }),
+      humanModel: suite.human.model,
       maxSteps: suite.maxSteps,
       model: suite.model,
       repo: sandbox.repo,
@@ -107,11 +109,11 @@ export async function runFlow(
     const graded = await grade(deps, { feature, found, host, loop, proposal, sandbox, specs });
     // A session of any role, the judge's too, that named another model fails the run.
     const answered = [...new Set([...loop.models, ...graded.models])];
-    const wrong = answered.find((model) => model !== suite.model);
+    const wrong = graded.models.find((model) => model !== suite.human.model);
     const outcome = wrong === undefined || loop.outcome !== "finished" ? loop.outcome : "failed";
     const reason =
       wrong !== undefined && loop.outcome === "finished"
-        ? `a session was answered by ${wrong}, not ${suite.model}`
+        ? `the judge was answered by ${wrong}, not ${suite.human.model}`
         : loop.reason;
     const folder = runFolderPath(
       deps.root,
@@ -126,7 +128,7 @@ export async function runFlow(
           approvedBy,
           effort: suite.effort,
           guidelines: suite.human.commit,
-          model: suite.model,
+          model: suite.human.model,
           skill: { commit: skill.commit, dirty: skill.dirty },
           started,
           task: { id: found.task, image: found.image, source: found.source },

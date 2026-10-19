@@ -28,7 +28,12 @@ const SUITE: Suite = {
   arms: ["uraeda", "plain"],
   cases: ["c"],
   effort: "medium",
-  human: { commit: "abc123", path: "benchmarks/human.md" },
+  human: {
+    commit: "abc123",
+    effort: "medium",
+    model: "claude-sonnet-5-5",
+    path: "benchmarks/human.md",
+  },
   maxSteps: 30,
   model: "claude-sonnet-5-5",
 };

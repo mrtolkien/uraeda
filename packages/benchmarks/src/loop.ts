@@ -28,6 +28,8 @@ export type LoopOptions = {
   };
   feature: string;
   human: (turn: HumanTurn) => Promise<HumanResult>;
+  /** The model of the human's sessions, when not the agent's. */
+  humanModel?: string;
   maxSteps: number;
   /** The model asked for: any session naming another fails the run. */
   model: string;
@@ -125,13 +127,13 @@ class Loop {
   }
 
   /** Why a session ends the run, or undefined when it goes on. */
-  check(session: SessionResult): Stop | undefined {
+  check(session: SessionResult, model = this.#options.model): Stop | undefined {
     if (session.usageLimit) {
       return ["usage-limit", "the usage limit was reached"];
     }
-    const other = session.models.find((model) => model !== this.#options.model);
+    const other = session.models.find((named) => named !== model);
     if (other !== undefined) {
-      return ["failed", `a session was answered by ${other}, not ${this.#options.model}`];
+      return ["failed", `a session was answered by ${other}, not ${model}`];
     }
     if (!session.ok) {
       return ["failed", session.errors.join("; ") || session.exit?.stderr || "the session failed"];
@@ -151,7 +153,7 @@ class Loop {
         step: step.name,
       });
       this.keep("human", step.name, turn.session, turn.gate);
-      const stop = this.check(turn.session);
+      const stop = this.check(turn.session, this.#options.humanModel);
       if (stop === undefined && turn.commit === undefined) {
         return ["failed", `the human made no commit at ${step.name}`];
       }

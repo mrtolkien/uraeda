@@ -278,3 +278,34 @@ test("an error in a step ends the run as failed, keeping the steps so far", asyn
   expect(loop).toMatchObject({ outcome: "failed", reason: "ura exploded" });
   expect(loop.steps).toHaveLength(1);
 });
+
+test("the human's sessions are held to the human's model, not the agent's", async () => {
+  const sonnet = humanSession({ models: ["claude-sonnet-5-5"] });
+  const { adapter, loop } = await runScripted({
+    human: async () => ({ commit: "c1", gate: "answered", session: sonnet }),
+    humanModel: "claude-sonnet-5-5",
+    model: "claude-opus-5-5",
+    pushedAfter: 2,
+    turns: [[result({ models: ["claude-opus-5-5"] })], [result({ models: ["claude-opus-5-5"] })]],
+    views: [agent("discovery"), human, agent("spec", true)],
+  });
+
+  expect(adapter.sent).toHaveLength(2);
+  expect(loop.outcome).toBe("finished");
+
+  const wrong = await runScripted({
+    human: async () => ({
+      commit: "c1",
+      gate: "answered",
+      session: humanSession({ models: ["claude-opus-5-5"] }),
+    }),
+    humanModel: "claude-sonnet-5-5",
+    model: "claude-opus-5-5",
+    turns: [[result({ models: ["claude-opus-5-5"] })]],
+    views: [agent("discovery"), human],
+  });
+  expect(wrong.loop).toMatchObject({
+    outcome: "failed",
+    reason: expect.stringContaining("not claude-sonnet-5-5"),
+  });
+});

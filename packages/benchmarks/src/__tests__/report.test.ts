@@ -104,3 +104,14 @@ test("a baseline for another model is not borrowed", () => {
 
   expect(compared(html)).toEqual([]);
 });
+
+test("the screening comes after the suites that were run, though its folder name sorts first", () => {
+  const html = renderReport([
+    run("2026-10-19-screening", "a", "plain"),
+    run("2026-10-19-first", "a", "uraeda"),
+  ]);
+
+  expect(html.indexOf("first · 2026-10-19")).toBeLessThan(html.indexOf("screening · 2026-10-19"));
+  expect(html.match(/class="latest"/g)).toHaveLength(1);
+  expect(html.indexOf('class="latest"')).toBeLessThan(html.indexOf("screening · 2026-10-19"));
+});

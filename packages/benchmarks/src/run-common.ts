@@ -38,16 +38,18 @@ export function copyTranscripts(
   sessions: Array<{ nativeId: string; role: Step["role"] }>,
   into: string,
 ): void {
-  const projects = join(sandbox.configDir, "projects");
-  if (!existsSync(projects)) {
-    return;
-  }
   mkdirSync(join(into, "transcripts"), { recursive: true });
-  for (const { nativeId, role } of sessions) {
-    for (const folder of readdirSync(projects)) {
-      const file = join(projects, folder, `${nativeId}.jsonl`);
-      if (existsSync(file)) {
-        copyFileSync(file, join(into, "transcripts", `${role}-${nativeId}.jsonl`));
+  for (const configDir of [sandbox.configDir, sandbox.hostConfigDir]) {
+    const projects = join(configDir, "projects");
+    if (!existsSync(projects)) {
+      continue;
+    }
+    for (const { nativeId, role } of sessions) {
+      for (const folder of readdirSync(projects)) {
+        const file = join(projects, folder, `${nativeId}.jsonl`);
+        if (existsSync(file)) {
+          copyFileSync(file, join(into, "transcripts", `${role}-${nativeId}.jsonl`));
+        }
       }
     }
   }

@@ -18,8 +18,8 @@ export async function realDeps(): Promise<Deps> {
       const imagesDir = join(sandbox.configDir, "images");
       if (kind === "host") {
         // The sessions on the host read the run's folder from the runner's own environment.
-        process.env.CLAUDE_CONFIG_DIR = sandbox.configDir;
-        return new ClaudeAdapter({ configDir: sandbox.configDir, imagesDir, pluginDir });
+        process.env.CLAUDE_CONFIG_DIR = sandbox.hostConfigDir;
+        return new ClaudeAdapter({ configDir: sandbox.hostConfigDir, imagesDir, pluginDir });
       }
       return new ClaudeAdapter({
         command: sandbox.command,

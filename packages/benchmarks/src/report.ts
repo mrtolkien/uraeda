@@ -159,6 +159,8 @@ function suiteSection(
   return `<section><div class="suite-head"><h2>${escape(suite)} · ${escape(date)}</h2>${latest ? '<span class="latest">Latest</span>' : ""}<span class="meta">${meta}</span></div><div class="card"><table><thead><tr><th>Case</th><th>Arm</th><th>Hidden tests</th><th>Requirements in the spec</th><th class="num">Sessions</th><th class="num">Cost</th><th class="num">Time</th></tr></thead><tbody>${rows.join("")}</tbody></table></div><p class="verdict" data-compared="${escape(verdict.compared.join(","))}">${escape(verdict.text)}</p></section>`;
 }
 
+const screening = ([name]: [string, unknown]) => name.endsWith("-screening");
+
 /** One self-contained HTML page of every run, newest suite first. */
 export function renderReport(runs: Array<ListedRun>, now = new Date()): string {
   const suites = new Map<string, Array<ListedRun>>();
@@ -167,7 +169,10 @@ export function renderReport(runs: Array<ListedRun>, now = new Date()): string {
     suites.set(name, [...(suites.get(name) ?? []), run]);
   }
   const baselines = runs.filter(isBaseline);
-  const ordered = [...suites].toSorted(([a], [b]) => (a < b ? 1 : -1));
+  // Newest first, and the screening, which only chose the cases, after every suite that was run.
+  const ordered = [...suites].toSorted(
+    (a, b) => Number(screening(a)) - Number(screening(b)) || (a[0] < b[0] ? 1 : -1),
+  );
   const sections = ordered.map(([name, suiteRuns], index) =>
     suiteSection(name, suiteRuns, index === 0, baselines),
   );

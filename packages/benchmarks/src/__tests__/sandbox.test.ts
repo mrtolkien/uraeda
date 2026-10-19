@@ -11,6 +11,9 @@ import { temporary, write } from "./samples.ts";
 
 afterEach(() => vi.unstubAllEnvs());
 
+const settings = (folder: string) =>
+  JSON.parse(readFileSync(join(folder, "settings.json"), "utf8"));
+
 const CASE: Case = {
   id: "c",
   image: "ghcr.io/x/y@sha256:1",
@@ -158,4 +161,27 @@ test("a failed preparation removes what it made", async () => {
   ).rejects.toThrow();
 
   expect(fake.calls().some((call) => call[0] === "rm")).toBe(true);
+});
+
+test("the host sessions get a configuration folder with the human's model, the agent's its own", async () => {
+  const source = temporary();
+  write(join(source, "app.py"), "print(1)\n");
+  vi.stubEnv("PATH", fakeBin(source).env.PATH ?? "");
+
+  const made = await prepareSandbox({
+    case: CASE,
+    claude: "/host/claude",
+    constitution: write(join(temporary(), "c.md"), "# C\n"),
+    effort: "high",
+    host: { effort: "medium", model: "claude-sonnet-5-5" },
+    model: "claude-haiku-5-5",
+  });
+
+  expect(settings(made.configDir)).toMatchObject({ effort: "high", model: "claude-haiku-5-5" });
+  expect(settings(made.hostConfigDir)).toMatchObject({
+    effort: "medium",
+    model: "claude-sonnet-5-5",
+  });
+  expect(made.env.CLAUDE_CONFIG_DIR).toBe(made.hostConfigDir);
+  await made.close();
 });

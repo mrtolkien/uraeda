@@ -73,7 +73,10 @@ export const humanSession = (extra: Partial<SessionResult> = {}): SessionResult 
  */
 export async function runScripted(options: {
   human?: (turn: HumanTurn, agentSessions: number) => Promise<HumanResult>;
+  humanModel?: string;
   maxSteps?: number;
+  /** The agent's model, when not Sonnet 5.5. */
+  model?: string;
   /** The call of `ura next`, from 1, that throws. */
   nextThrowsAt?: number;
   /** The branch counts as pushed once this many agent sessions have run. */
@@ -106,7 +109,8 @@ export async function runScripted(options: {
         ? options.human(turn, adapter.sent.length)
         : Promise.resolve({ commit: "c1", gate: "answered", session: humanSession() }),
     maxSteps: options.maxSteps ?? 30,
-    model: MODEL,
+    ...(options.humanModel ? { humanModel: options.humanModel } : {}),
+    model: options.model ?? MODEL,
     repo: "/repo",
     upstream: UPSTREAM,
   });

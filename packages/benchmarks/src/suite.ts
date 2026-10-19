@@ -7,7 +7,7 @@ export type Suite = {
   arms: Array<"uraeda" | "plain">;
   cases: Array<string>;
   effort: string;
-  human: { commit: string; path: string };
+  human: { commit: string; effort: string; model: string; path: string };
   maxSteps: number;
   model: string;
 };
@@ -50,7 +50,13 @@ export function readSuite(path: string): Suite {
     arms: arms as Suite["arms"],
     cases: cases as Array<string>,
     effort,
-    human: { commit: pick(human, "commit", "string"), path: pick(human, "path", "string") },
+    // The simulated human and the judge may run another model than the agent under test.
+    human: {
+      commit: pick(human, "commit", "string"),
+      effort: typeof human.effort === "string" ? human.effort : "medium",
+      model: typeof human.model === "string" ? human.model : pick<string>(table, "model", "string"),
+      path: pick(human, "path", "string"),
+    },
     maxSteps: pick(table, "max-steps", "number"),
     model: pick(table, "model", "string"),
   };
