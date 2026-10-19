@@ -912,3 +912,33 @@ fn only_a_feature_under_way_is_being_built() {
     assert!(!built(&with_plan("awaiting-human", "approved", 0)));
     assert!(!built(&[("proposal.md", proposal())]));
 }
+
+#[test]
+fn a_later_round_without_the_key_goes_back_to_the_spec() {
+    let resumed = answered().replacen(
+        "status: answered",
+        "status: answered\nresumes: implementation",
+        1,
+    );
+    let feature = feature(
+        Kind::Feature,
+        &[
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("clarifications-02.md", resumed),
+            ("clarifications-03.md", answered()),
+            ("spec.md", spec("approved", 1, 1)),
+            ("plan.md", plan("approved", 1, &[("One", 0, 1)])),
+        ],
+    );
+
+    assert_eq!(feature.step.name, StepName::Spec);
+}
+
+#[test]
+fn the_key_counts_only_while_the_implementation_is_under_way() {
+    // Every step checked: the answers are not applied by skipping the spec step.
+    let done = round_during_implementation("\nresumes: implementation", &[("One", 1, 1)]);
+
+    assert_eq!(done.step.name, StepName::Spec);
+}

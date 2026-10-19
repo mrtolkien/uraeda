@@ -156,9 +156,11 @@ pub fn record(place: &Place, file: &str, today: Date, resumes: bool) -> Result<(
         )));
     }
     let mut answered = frontmatter::set(&text, "status", "answered");
-    if resumes {
-        answered = frontmatter::set(&answered, "resumes", "implementation");
-    }
+    answered = if resumes {
+        frontmatter::set(&answered, "resumes", "implementation")
+    } else {
+        frontmatter::remove(&answered, "resumes")
+    };
     let recorded =
         markdown::record_block(&answered, &format!("Answered on {today}.")).unwrap_or(answered);
     fs::write(&path, recorded)?;
