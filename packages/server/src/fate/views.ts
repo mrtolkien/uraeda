@@ -302,6 +302,7 @@ export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   missing: true,
   name: true,
   path: true,
+  resumable: true,
   review: true,
   reviewStale: true,
   status: true,

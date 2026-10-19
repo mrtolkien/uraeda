@@ -144,14 +144,17 @@ export function useRoundWrites(target: RoundTarget, hashes: Hashes) {
             input: { file: name, folder: target.folder },
             view: FileView,
           }),
-    /** Submits the round, `name` in a feature's folder, or the triage over the hash kept. */
-    submit: (name: string) =>
+    /**
+     * Submits the round, `name` in a feature's folder, or the triage over the hash kept. `resumes`
+     * answers it to continue the implementation.
+     */
+    submit: (name: string, resumes = false) =>
       isTriage(target)
         ? hashes.serial((previous) =>
             fate.mutations.triage.submit({ input: { previous }, view: FileView }),
           )
         : fate.mutations.answers.submit({
-            input: { file: name, folder: target.folder },
+            input: { file: name, folder: target.folder, ...(resumes ? { resumes } : {}) },
             view: FileView,
           }),
   };

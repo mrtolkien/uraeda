@@ -377,7 +377,7 @@ export declare function storyLink(href: string): StoryTarget | null
  * Submits the latest round of questions, and commits it; refused when `name`, the round
  * answered, is another.
  */
-export declare function submitAnswers(repo: string, folder: string, name?: string | undefined | null): Promise<FileView>
+export declare function submitAnswers(repo: string, folder: string, name?: string | undefined | null, resumes?: boolean | undefined | null): Promise<FileView>
 
 /**
  * Submits the triage, every question answered, and commits it, over the triage read with the
@@ -859,6 +859,11 @@ export interface FileView {
    * triage, committed alone, cannot.
    */
   takesImages: boolean
+  /**
+   * Whether its round can be answered to continue the implementation: the feature is being
+   * built, see `steps::building`.
+   */
+  resumable: boolean
   /**
    * For `spec.md`, the decisions its branch changed, and those its `## Decisions` lists: the
    * listed ones first, in the items' order, then the others by name. Empty for other files.

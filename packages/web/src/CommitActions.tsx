@@ -11,7 +11,9 @@ type Variant = "primary" | "secondary" | "destructive";
  * before. `onCommit` commits, then hands the feature over to the agent when `continues`: its
  * session opens with the workflow's message; it resolves to `false` when nothing was committed.
  * While one commits, it reads "Committing…", the others are blocked, and the card of `folder`, the
- * feature it commits to, says the same. `children` lead the row.
+ * feature it commits to, says the same. `children` lead the row. `resume` adds the primary button
+ * of an answer that continues the work in progress: "Commit and start the agent" then turns
+ * secondary, as the way back, and the button reads as `resume.label`.
  */
 export function CommitActions({
   children,
@@ -21,6 +23,7 @@ export function CommitActions({
   label,
   onCommit,
   onlyLabel = "Commit only",
+  resume,
   runningLabel = "Committing…",
   tooltip,
   variant = "primary",
@@ -32,6 +35,7 @@ export function CommitActions({
   label: string;
   onCommit: (continues: boolean) => Promise<unknown>;
   onlyLabel?: string;
+  resume?: { label: string; onCommit: () => Promise<unknown> };
   /** What the clicked button reads while it runs. */
   runningLabel?: string;
   tooltip?: string;
@@ -58,6 +62,17 @@ export function CommitActions({
     // A long label takes its own line rather than being cut.
     <HStack gap={2} wrap="wrap">
       {children}
+      {resume && (
+        <WriteButton
+          folder={folder}
+          isDisabled={isDisabled}
+          label={resume.label}
+          onClick={resume.onCommit}
+          runningLabel={runningLabel}
+          tooltip={tooltip}
+          variant="primary"
+        />
+      )}
       <WriteButton
         folder={folder}
         isDisabled={isDisabled}
@@ -65,7 +80,7 @@ export function CommitActions({
         onClick={() => onCommit(true)}
         runningLabel={runningLabel}
         tooltip={tooltip}
-        variant={variant === "destructive" ? "destructive" : "primary"}
+        variant={resume ? "secondary" : variant === "destructive" ? "destructive" : "primary"}
       />
       <WriteButton
         folder={folder}
