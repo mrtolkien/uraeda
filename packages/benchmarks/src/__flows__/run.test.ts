@@ -9,6 +9,7 @@ import type { Deps } from "../deps.ts";
 import { git } from "../git.ts";
 import { parseRecord, type RunRecord } from "../record.ts";
 import { listRuns } from "../recorder.ts";
+import { isMissingApproval } from "../run-common.ts";
 import { runFlow } from "../run-flow.ts";
 import type { Sandbox } from "../sandbox.ts";
 import type { Suite } from "../suite.ts";
@@ -187,7 +188,7 @@ test("a run starts nothing without a human's approval, and its record names who 
 
   await expect(
     runFlow(h.deps, { approvedBy: " ", case: h.case, suite: h.suite, suiteName: "first" }),
-  ).rejects.toThrow("approv");
+  ).rejects.toSatisfy(isMissingApproval);
   expect(h.seen.prepared).toBe(0);
   expect(listRuns(h.deps.root)).toEqual([]);
 

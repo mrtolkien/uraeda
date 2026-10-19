@@ -7,10 +7,19 @@ import type { Commit, RunRecord, Step } from "./record.ts";
 import { type RunFolder, runFolderPath } from "./recorder.ts";
 import type { Sandbox } from "./sandbox.ts";
 
+/** A run no human allowed, refused before it starts anything. */
+export class MissingApproval extends Error {
+  override name = "MissingApproval";
+}
+
+/** Whether an error is a `MissingApproval`: by name, since the linter forbids `instanceof`. */
+export const isMissingApproval = (error: unknown): error is MissingApproval =>
+  error instanceof Error && error.name === "MissingApproval";
+
 /** Refuses to start a run no human allowed. */
 export function requireApproval(approvedBy: string | undefined): string {
   if (approvedBy === undefined || approvedBy.trim() === "") {
-    throw new Error("a run needs a human's approval: pass --approved-by <name>");
+    throw new MissingApproval("a run needs a human's approval: pass --approved-by <name>");
   }
   return approvedBy;
 }
