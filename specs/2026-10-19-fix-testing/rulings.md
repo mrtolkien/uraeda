@@ -277,6 +277,12 @@ take 7 s more.
 | `sign-in/__tests__/routes.test.ts`     | S, A. Dropped: the cookie's attributes and the refresh after a day (an attribute list), never cached, the 4 KB body's log line.                                                                                                                                                      |
 | `sign-in/__tests__/store.test.ts`      | S. Dropped: two stores on one file, an unwritable folder, an unreadable file never overwritten, the daily record of a use: the store's internals, a hole to read in the review.                                                                                                      |
 
+The dropped cookie-attributes test of `sign-in/__tests__/routes.test.ts` now has a flow:
+`sign-in.test.ts` asserts the cookie's `HttpOnly`, `SameSite=Lax`, `Path=/`, and 30-day `Max-Age`,
+its name `__Host-uraeda` with `Secure` under a listed host and `uraeda` without otherwise, and the
+refusal's `Cache-Control: no-store` with the stale cookie cleared. Each was broken by hand and
+failed it.
+
 ## R5: The tooling tests, kept where a decision's rule needs them
 
 - **Decision**: a tooling test stays only where it enforces an active decision's rule. Old file to

@@ -176,3 +176,56 @@ test("a one-time link signs in once, within its minutes, and leads only to this 
     expect(answer.headers.get("location")).toBe("/");
   }
 });
+
+/** The cookie's attributes, lower-cased, as the browser reads them: `name=value; attribute; ...`. */
+const attributesOf = (response: Response) =>
+  cookieOf(response)!
+    .split(";")
+    .map((part) => part.trim().toLowerCase());
+
+test("the session cookie is HttpOnly, Lax, for the whole site, and kept 30 days", async () => {
+  const server = await served();
+
+  const answer = await post(server, "/session", { key: server.signIn.key });
+
+  expect(cookieOf(answer)!.startsWith("uraeda=")).toBe(true);
+  const attributes = attributesOf(answer);
+  expect(attributes).toContain("httponly");
+  expect(attributes).toContain("samesite=lax");
+  expect(attributes).toContain("path=/");
+  expect(attributes).toContain(`max-age=${30 * 24 * 60 * 60}`);
+  // Plain HTTP on the server's own address: a Secure cookie would never come back.
+  expect(attributes).not.toContain("secure");
+});
+
+test("under a listed HTTPS host name the cookie is __Host-uraeda and Secure, else it is not", async () => {
+  const server = await testApp(undefined, { allowedHosts: ["uraeda.example"], signIn: true });
+  const signIn = (host: string) =>
+    server.app.request(`http://${host}/session`, {
+      body: JSON.stringify({ key: server.signIn.key }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+
+  const listed = await signIn("uraeda.example");
+  const own = await signIn(`127.0.0.1:${port}`);
+
+  expect(cookieOf(listed)!.startsWith("__Host-uraeda=")).toBe(true);
+  expect(attributesOf(listed)).toContain("secure");
+  expect(attributesOf(listed)).toContain("path=/");
+  expect(cookieOf(own)!.startsWith("uraeda=")).toBe(true);
+  expect(attributesOf(own)).not.toContain("secure");
+});
+
+test("a request without a session is refused uncached, and its stale cookie is cleared", async () => {
+  const server = await served();
+  const stale = await server.signIn.signedIn();
+  await server.app.request(url("/sessions"), { headers: { cookie: stale }, method: "DELETE" });
+
+  const answer = await server.app.request(url("/r/any/fate"), { headers: { cookie: stale } });
+
+  expect(answer.status).toBe(401);
+  expect(answer.headers.get("cache-control")).toBe("no-store");
+  expect(cookieOf(answer)).toContain("uraeda=;");
+  expect(attributesOf(answer)).toContain("max-age=0");
+});
