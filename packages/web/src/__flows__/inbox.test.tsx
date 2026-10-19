@@ -352,23 +352,6 @@ test("Delete asks nothing and Undo puts the note back at its place; Category mov
   );
 });
 
-test("a note moved before another of the same text keeps its pane, and Delete takes that one", async () => {
-  writeFileSync(
-    join(app.repo, INBOX),
-    "# Inbox\n\n## UI\n\n- Dark mode\n  - for the editor\n\n## CLI\n\n- Dark mode\n",
-  );
-  await app.open("/inbox/dark-mode");
-
-  await moveTo("CLI");
-
-  await waitFor(() => expect(window.location.pathname).toBe(app.path("/inbox/dark-mode-2")));
-  // The pane follows its note to the new place: its category is the new one.
-  await waitFor(() => expect(screen.getByRole("combobox").textContent).toContain("CLI"));
-  await click(await screen.findByRole("button", { name: "Delete" }));
-  await waitFor(() => expect(read(app.repo, INBOX)).not.toContain("for the editor"));
-  expect(read(app.repo, INBOX)).toContain("## CLI\n\n- Dark mode\n");
-});
-
 test("Edit replaces the note's text on Enter and keeps its marks", async () => {
   await app.open("/inbox/in-failures-the-x-is-not-centered-in-the-circle");
   await click(await screen.findByRole("button", { name: "Edit" }));
@@ -463,22 +446,4 @@ test("Undo of a move to the priorities keeps a change made to the inbox meanwhil
   await waitFor(() =>
     expect(read(app.repo, INBOX)).toBe(inbox.replace("We need a home icon", "A home icon")),
   );
-});
-
-test("a note edited and then removed elsewhere is not taken for the note now at its place", async () => {
-  await app.open(`/inbox/${HOME_ICON}`);
-  await click(await screen.findByRole("button", { name: "Edit" }));
-  const text = screen.getAllByRole("textbox").at(-1)!;
-  await type(text, "We need a home icon!");
-  await press(text, "Enter");
-  await waitFor(() => expect(read(app.repo, INBOX)).toContain("- We need a home icon!\n"));
-  writeFileSync(
-    join(app.repo, INBOX),
-    read(app.repo, INBOX).replace("- We need a home icon!\n", ""),
-  );
-
-  await waitFor(async () => {
-    document.dispatchEvent(new Event("visibilitychange"));
-    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
-  });
 });

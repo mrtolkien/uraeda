@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import { fixture } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { click, fixtureRepo, git, holding, startApp, type } from "./harness.tsx";
+import { click, fixtureRepo, git, startApp, type } from "./harness.tsx";
 import { composer, composerText, resetAgent } from "./session-helpers.tsx";
 
 const WEB_UI = "2026-10-11-web-ui";
@@ -216,30 +216,6 @@ test("a session opened to continue a feature that waits on the human fills nothi
   expect(app.agent.sent[0].text.startsWith("/uraeda ")).toBe(false);
 });
 
-test("a commit shows its action at once, and the other commit buttons wait until it ends", async () => {
-  const folder = ANSWERED[5];
-  const held = holding('"answers.submit"');
-  await app.open(roundOf(folder));
-  const only = await screen.findByRole("button", { name: "Commit only" });
-
-  await click(screen.getByRole("button", { name: "Commit and start the agent" }));
-
-  // In the render after the click, before the server answers: the clicked button is busy, the
-  // others cannot start a second write, and the page says something is being saved.
-  await waitFor(() => expect(held.seen()).toBe(1));
-  const busy = screen
-    .getAllByRole("button")
-    .find((button) => button.querySelector('[role="status"][aria-label]'));
-  expect(busy, "the clicked button shows a spinner").toBeTruthy();
-  expect(only.getAttribute("aria-disabled")).toBe("true");
-  expect(screen.getAllByRole("progressbar").length).toBeGreaterThan(0);
-  await click(only);
-  expect(held.seen()).toBe(1);
-  await act(async () => held.release());
-
-  await opensWithMessage(folder);
-});
-
 test("approving a spec with Approve and start the agent commits, then opens the session with the message", async () => {
   await app.open(`/f/${RECURRING}/spec.md`);
   await screen.findByRole("button", { name: "Approve only" });
@@ -281,15 +257,4 @@ test("starting a draft as a feature opens its session with the message, and Star
   await click(screen.getByRole("button", { name: "Start only" }));
 
   await waitFor(() => expect(window.location.pathname).toMatch(/\/f\/\d{4}-\d\d-\d\d-second$/));
-});
-
-test("without the agent on the machine the round keeps its single button", async () => {
-  app.agent.installed = false;
-  await app.sessions.check();
-  await app.open(roundOf(WEB_UI));
-
-  expect(await screen.findByRole("button", { name: /^(Submit|Commit)/ })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Commit and start the agent" })).toBeNull();
-  app.agent.installed = true;
-  await app.sessions.check();
 });

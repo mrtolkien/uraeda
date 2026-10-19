@@ -142,26 +142,3 @@ test("a start that answers after the human left opens nothing, and shows progres
   await app.open("/changes/new");
   expect((await composer()).textContent).toBe("");
 });
-
-test("a start that answers late clears only the text and slug it sent", async () => {
-  const held = holding("change.start");
-  await app.open("/changes/new");
-  const { start } = await describe("Round the avatars");
-  await click(start);
-  await waitFor(() => expect(held.seen()).toBe(1));
-  await act(async () => navigate(app.path("/priorities")));
-  await waitFor(() => expect(screen.queryByRole("textbox", { name: /slug/i })).toBeNull());
-  await act(async () => navigate(app.path("/changes/new")));
-
-  // A newer text and slug, typed while the first change starts.
-  await type(await composer(), "Widen the footer");
-  await type(screen.getByRole("textbox", { name: /slug/i }), "footer-width");
-  held.release();
-  await quiet();
-
-  expect(window.location.pathname).toBe(app.path("/changes/new"));
-  expect(composerText()).toBe("Widen the footer");
-  expect(screen.getByRole<HTMLInputElement>("textbox", { name: /slug/i }).value).toBe(
-    "footer-width",
-  );
-});

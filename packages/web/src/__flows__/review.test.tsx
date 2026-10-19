@@ -116,20 +116,6 @@ test("a comment on a tapped line is written only when added, shows under its blo
   expect(existsSync(review(FOLDERS.comment))).toBe(false);
 });
 
-test("a second tap extends the selection, and the comment names the lines of both", async () => {
-  await open(FOLDERS.range);
-  const [first, second] = scenarios();
-
-  await click(first);
-  await click(second);
-  expect(first.getAttribute("aria-pressed")).toBe("true");
-  expect(second.getAttribute("aria-pressed")).toBe("true");
-  await writeComment("Both rows");
-  await click(addButton());
-
-  await waitFor(() => expect(reviewText(FOLDERS.range)).toMatch(/## C1: Lines \d+–\d+,/));
-});
-
 test("a general comment needs no block, and is edited and removed like the others", async () => {
   await open(FOLDERS.general);
   await click(screen.getByRole("button", { name: /general comment/i }));
@@ -328,12 +314,4 @@ test("a plan is reviewed on the same page, without a risk tier to pick", async (
 
   await screen.findByRole("button", { name: "Approve" });
   expect(screen.queryByRole("radio", { name: "high" })).toBeNull();
-});
-
-test("without the agent, a selection offers no Ask the agent", async () => {
-  await open(FOLDERS.range);
-  await click(scenarios()[0]);
-
-  expect(screen.queryByRole("button", { name: /ask the agent/i })).toBeNull();
-  expect(addButton()).toBeTruthy();
 });

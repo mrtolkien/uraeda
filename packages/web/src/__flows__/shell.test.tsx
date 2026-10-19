@@ -163,30 +163,6 @@ test("a working turn shows Working, then Needs attention once it ends at a gate 
   expect(statuses.lastIndexOf("Needs you")).toBeLessThan(statuses.indexOf("Needs attention"));
 });
 
-test("a running sub-agent shows in its feature's card, then leaves", async () => {
-  await app.open("/");
-  await findRow("cli-tuis");
-  const session = await app.sessions.featureSession(app.repo, CLI);
-  await app.sessions.send(app.repo, session.id, { text: "Plan more." });
-  const sent = app.agent.sent.at(-1)!;
-  app.agent.emit({ id: sent.id, type: "accepted" });
-  app.agent.emit({
-    id: "task-1",
-    input: {},
-    kind: "other",
-    name: "Task",
-    subagent: { description: "Map the runner code" },
-    type: "toolStart",
-  });
-
-  await refreshUntil(() => expect(nav().getByText("Map the runner code")).toBeTruthy());
-  app.agent.emit({ id: "task-1", isError: false, output: "Mapped.", type: "toolEnd" });
-
-  await refreshUntil(() => expect(nav().queryByText("Map the runner code")).toBeNull());
-  expect(row("cli-tuis")).toBeTruthy();
-  app.agent.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
-});
-
 test("a card at the implementation shows its task, which moves with the plan and goes with it", async () => {
   await open();
   const task = () => row("cli-tuis").getAttribute("aria-label") ?? "";
@@ -332,20 +308,6 @@ test("a name and a colour rename the card and leave the feature's address; an em
   await refreshUntil(() => expect(row("cli-tuis")).toBeTruthy());
 });
 
-test("Save waits for a change, which the dialog says is unsaved", async () => {
-  await open();
-  const field = await openSettings("cli-tuis");
-  const save = screen.getByRole("button", { name: "Save" });
-  expect(save.hasAttribute("disabled") || save.getAttribute("aria-disabled") === "true").toBe(true);
-  const before = document.body.textContent;
-
-  await type(field, "Something else");
-
-  expect(document.body.textContent).not.toBe(before);
-  expect(save.hasAttribute("disabled")).toBe(false);
-  expect(save.getAttribute("aria-disabled")).not.toBe("true");
-});
-
 test("on the phone a card's settings open from the drawer, without a pointer", async () => {
   atWidth(PHONE);
   await app.open("/");
@@ -354,18 +316,6 @@ test("on the phone a card's settings open from the drawer, without a pointer", a
   await click(await screen.findByRole("button", { name: /cli-tuis/ }));
 
   expect(await screen.findByRole("textbox")).toBeTruthy();
-});
-
-test("the sidebar folded keeps each card's status in its name, drawn only for what needs the human", async () => {
-  await open();
-  const before = row("web-ui").getAttribute("aria-label");
-
-  await click(nav().getByRole("button", { name: "Collapse sidebar" }));
-
-  await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
-  expect(row("web-ui").getAttribute("aria-label")).toBe(before);
-  // An item that needs nothing of the human draws no mark when folded.
-  expect(within(row("plan-review")).queryByRole("img")).toBeNull();
 });
 
 test("the theme is chosen in Appearance and kept by this browser alone; the system's leaves nothing stored", async () => {

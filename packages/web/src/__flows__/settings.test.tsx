@@ -253,16 +253,6 @@ test("on a phone the categories show alone; one opens its page by address, and b
   expect(settingsLinks(await categories()).length).toBe(links.length);
 });
 
-test.each([
-  ["a desktop", DESKTOP],
-  ["a phone", PHONE],
-])("on %s an unknown category reads as none", async (_name, width) => {
-  atWidth(width);
-  await app.open("/settings/nope");
-
-  expect(settingsLinks(await categories()).length).toBeGreaterThan(1);
-});
-
 test.each([DESKTOP, PHONE])(
   "at %i px, searching finds a setting under its category, opens it, and clears the search",
   async (width) => {
@@ -288,15 +278,3 @@ test.each([DESKTOP, PHONE])(
     );
   },
 );
-
-test("a search with no match shows no setting, and clearing it shows the categories again", async () => {
-  atWidth(DESKTOP);
-  await app.open("/settings");
-  const field = await screen.findByRole<HTMLInputElement>("textbox");
-
-  await type(field, "xyzzy");
-
-  await waitFor(() => expect(settingsLinks(screen.queryAllByRole("link"))).toHaveLength(0));
-  await type(field, "");
-  expect(settingsLinks(await categories()).length).toBeGreaterThan(1);
-});

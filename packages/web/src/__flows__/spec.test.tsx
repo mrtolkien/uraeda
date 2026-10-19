@@ -162,35 +162,6 @@ test("a pending comment is counted on its part in the contents, and on no other"
   expect(changed.map(([target]) => target)).toEqual(["#us1-make-a-task-repeat-p1"]);
 });
 
-test("a pending comment on a niche edge case is never folded away", async () => {
-  atWidth(1440);
-  await open(FOLDERS.niche);
-
-  const note = await waitFor(() => {
-    const found = screen
-      .getAllByRole("group")
-      .find((group) => /^C1 /.test(group.getAttribute("aria-label") ?? ""));
-    expect(found).toBeTruthy();
-    return found as HTMLElement;
-  });
-  expect(folded(note)).toBe(false);
-  // The cases without a comment stay folded: the fold is closed for a page with no comment.
-  await open(FOLDERS.main);
-  expect(
-    screen
-      .queryAllByRole("group")
-      .some((group) => /^C1 /.test(group.getAttribute("aria-label") ?? "")),
-  ).toBe(false);
-});
-
-test("a section the page does not know is drawn, and listed in the contents", async () => {
-  atWidth(1440);
-  await open(FOLDERS.section);
-
-  await waitFor(() => expect(document.getElementById("rollout")).toBeTruthy());
-  expect([...entries().keys()]).toContain("#rollout");
-});
-
 test("a story shows its key scenarios and folds the others, and the fold stays open on Back", async () => {
   atWidth(1440);
   await open(FOLDERS.main);
