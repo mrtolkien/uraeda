@@ -8,5 +8,6 @@ mod common;
 
 mod commands;
 mod diagnostics;
+mod fields;
 mod reads;
 mod writes;
