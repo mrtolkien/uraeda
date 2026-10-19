@@ -432,7 +432,7 @@ function lineOf(element: Element) {
 
 /**
  * Under a coarse pointer, every control the page shows is at least 44 px tall where a tap reaches
- * it (SC-004, US6 2). Text sets its own size: a link in a line of text, and a block of document
+ * it (SC-004, US6 2). Text sets its own size: a link in a line of text or a table's cell, and a block of document
  * text tappable as a whole, as a review's blocks are; a read-only box only shows a state.
  */
 export function checkControlHeights() {
@@ -456,7 +456,9 @@ export function checkControlHeights() {
     const textBlock =
       own === 0 && area !== control && !(control as HTMLInputElement).labels?.length;
     const readOnly = control.matches('[readonly], [aria-readonly="true"]');
-    if (inText || textBlock || readOnly) {
+    // A link in a table's cell is text of the table, sized by its columns as text is.
+    const inCell = control.matches("a[href]") && control.closest("td, th") !== null;
+    if (inText || textBlock || readOnly || inCell) {
       continue;
     }
     const height = area.getBoundingClientRect().height;

@@ -1,6 +1,6 @@
-// Home as a control hub: four counts first, then what needs the human and what agents do in the main
-// column, and the priorities, the inbox, what is done, and the way to the decisions in the column
-// beside it. On the phone, or beside a pane, one column in the same order, the counts two by two.
+// Home as a control hub: four counts first, then two balanced columns, as many as the width holds:
+// what needs the human, what agents do, and what is done, then the priorities, the inbox, and the
+// way to the decisions. Narrow, one column in the same order.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
@@ -12,11 +12,10 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { use, useState } from "react";
+import { useState } from "react";
 import { useInbox, usePriorities, useWorkspace } from "../data.ts";
 import { waiting } from "../labels.ts";
 import { useWidthClass } from "../layout/useWidthClass.ts";
-import { ListPaneContext } from "../lists/listPane.ts";
 import { useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { agentState, type Feature, homeFeatures } from "./features.ts";
@@ -24,9 +23,15 @@ import { Panel, Row, Tile } from "./parts.tsx";
 import { inboxSummary, prioritySection, runningStatus } from "./summary.ts";
 
 const styles = stylex.create({
-  // The main column takes two thirds: what needs the human reads first, and widest.
+  // As many equal columns as the width holds, each at least 24rem: two on a full screen, one beside
+  // a pane or on the phone, whatever the screen, with no width fixed by breakpoint.
   columns: {
-    gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+    alignItems: "start",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 24rem), 1fr))",
+  },
+  // The counts, as many to a row as fit: four across, two by two, never a lone tile cut narrow.
+  tiles: {
+    gridTemplateColumns: "repeat(auto-fit, minmax(9rem, 1fr))",
   },
 });
 
@@ -114,6 +119,9 @@ function AgentsPanel({ agents, running }: { agents: Array<Feature>; running: Arr
   );
 }
 
+/** How many entries the Priorities card shows: the rest are one tap away, on the priorities page. */
+const PRIORITIES_SHOWN = 5;
+
 /** Where the hub keeps the section its Priorities card shows. */
 const SECTION_KEY = "uraeda:home:priorities";
 
@@ -149,7 +157,8 @@ function PrioritiesPanel({ running }: { running: Array<string> }) {
   const pathname = useLocalPath();
   const priorities = usePriorities();
   const [section, choose] = useSection();
-  const entries = priorities ? prioritySection(priorities, section) : [];
+  const all = priorities ? prioritySection(priorities, section) : [];
+  const entries = all.slice(0, PRIORITIES_SHOWN);
   return (
     <Panel
       href={here("/priorities")}
@@ -183,6 +192,9 @@ function PrioritiesPanel({ running }: { running: Array<string> }) {
             />
           ))}
         </List>
+      )}
+      {all.length > entries.length && (
+        <Button href={here("/priorities")} label={`Show all (${all.length})`} variant="ghost" />
       )}
     </Panel>
   );
@@ -274,9 +286,7 @@ export function HomeHub() {
   const inbox = useInbox();
   const priorities = usePriorities();
   const here = useRepoPath();
-  const beside = use(ListPaneContext) !== null;
   const wide = useWidthClass() === "wide";
-  const columns = wide && !beside;
   if (!workspace || workspace.noSpecs) {
     return null;
   }
@@ -289,19 +299,19 @@ export function HomeHub() {
     <>
       <NeedsYou human={human} invalid={invalid} />
       <AgentsPanel agents={agents} running={workspace.running} />
+      <DonePanel done={done} />
     </>
   );
   const side = (
     <>
       <PrioritiesPanel running={workspace.running} />
       <InboxPanel />
-      <DonePanel done={done} />
       <DecisionsCard />
     </>
   );
   return (
     <VStack gap={wide ? 6 : 4}>
-      <Grid columns={columns ? 4 : 2} gap={wide ? 4 : 3}>
+      <Grid gap={wide ? 4 : 3} xstyle={styles.tiles}>
         <Tile
           caption={needs === 1 ? "feature waits on you" : "features wait on you"}
           label="Needs you"
@@ -329,17 +339,10 @@ export function HomeHub() {
           variant="muted"
         />
       </Grid>
-      {columns ? (
-        <Grid gap={6} xstyle={styles.columns}>
-          <VStack gap={6}>{main}</VStack>
-          <VStack gap={6}>{side}</VStack>
-        </Grid>
-      ) : (
-        <VStack gap={4}>
-          {main}
-          {side}
-        </VStack>
-      )}
+      <Grid gap={wide ? 6 : 4} xstyle={styles.columns}>
+        <VStack gap={wide ? 6 : 4}>{main}</VStack>
+        <VStack gap={wide ? 6 : 4}>{side}</VStack>
+      </Grid>
     </VStack>
   );
 }
