@@ -1,9 +1,11 @@
-// The session's message look (spec US2, SC-003, SC-004): in WebKit, the human's messages sit in a
-// filled bubble on the right, and the agent's text runs flat across the page, at its inset.
+// The session page's look, in WebKit: the human's messages in a filled bubble on the right and the
+// agent's text flat across the page (US2, SC-003, SC-004), then the actions by the composer: its
+// field's height at each width class (SC-005, US2.3), and "Jump to the latest" and "Allow all" (US4.3).
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { backdrop, contrast, over, tinted } from "./colours.ts";
-import { atSize, colorScheme, drawn, LIVE, show, startTurn } from "./helpers.tsx";
+import { userEvent } from "vite-plus/test/browser";
+import { agent, atSize, colorScheme, drawn, LIVE, show, startTurn } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -78,5 +80,90 @@ describe("the message look", () => {
       const ratio = contrast(over(getComputedStyle(human).color, fill), fill);
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
+  });
+});
+
+/** The composer's text field. */
+function field() {
+  return screen.getByRole("textbox", { name: "Message Claude Code" });
+}
+
+/** The box around the text, which holds the field's height and scrolls its text. */
+function box() {
+  return field().parentElement!;
+}
+
+/** The centre of a rectangle, across. */
+function centre(rect: DOMRect) {
+  return rect.left + rect.width / 2;
+}
+
+/** Types `count` lines into the composer's field, one per row. */
+async function typeLines(count: number) {
+  await userEvent.click(field());
+  for (let line = 1; line <= count; line++) {
+    await userEvent.keyboard(`Line ${line}`);
+    if (line < count) {
+      await userEvent.keyboard("{Shift>}{Enter}{/Shift}");
+    }
+  }
+  await drawn();
+}
+
+/** Two blocked actions, each of a rule of its own. */
+const DENIALS = [
+  { input: { command: "git push origin HEAD" }, tool: "Bash" },
+  { input: { command: "git tag -d v0.3.0" }, tool: "Bash" },
+];
+
+// The composer under a feature's session: its field's rows, and the buttons by it.
+describe("the actions by the composer", () => {
+  atSize("both");
+
+  test("SC-005 and US2.3: the empty field's height, and its growth up to the rows its width class allows", async () => {
+    await show(`/f/${CLI}/session`, "CLI TUIs");
+    const phone = window.innerWidth < 768;
+    // 3 rows on the phone, 7 on wide screens; 9 and 20 rows at most, 22 px each.
+    const [empty, rows] = phone ? [66, 9] : [154, 20];
+    expect(Math.round(box().getBoundingClientRect().height)).toBe(empty);
+
+    await typeLines(rows + 3);
+
+    expect(Math.round(box().getBoundingClientRect().height)).toBe(rows * 22);
+    // Past the rows, its text scrolls inside them.
+    expect(field().scrollHeight).toBeGreaterThan(box().clientHeight);
+  });
+
+  test("US4.3: Jump to the latest is centred over the composer, with Allow all beside Send", async () => {
+    await show(`/f/${CLI}/session`, "CLI TUIs");
+    await startTurn(
+      "Plan the CLI.",
+      Array.from({ length: 40 }, (_, index) => ({
+        text: `Line ${index + 1}.`,
+        type: "text" as const,
+      })),
+    );
+    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+    await within(log).findByText("Line 40.", undefined, LIVE);
+    await agent.agentEmit([
+      { denials: DENIALS, errors: [], interrupted: false, ok: true, type: "result" },
+    ]);
+    await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
+    await drawn();
+    const page = document.scrollingElement!;
+    page.scrollTo(0, page.scrollTop - 400);
+
+    const jump = await screen.findByRole("button", { name: "Jump to the latest" }, LIVE);
+    const all = await screen.findByRole("button", { name: "Allow all (2)" }, LIVE);
+    await drawn();
+
+    const input = box().getBoundingClientRect();
+    expect(Math.abs(centre(jump.getBoundingClientRect()) - centre(input))).toBeLessThanOrEqual(2);
+    expect(jump.getBoundingClientRect().bottom).toBeLessThanOrEqual(input.top);
+    // Beside Send: on its row, before it.
+    const send = screen.getByRole("button", { name: "Send" }).getBoundingClientRect();
+    const beside = all.getBoundingClientRect();
+    expect(Math.abs(beside.top + beside.height / 2 - (send.top + send.height / 2))).toBeLessThan(6);
+    expect(beside.right).toBeLessThanOrEqual(send.left + 1);
   });
 });

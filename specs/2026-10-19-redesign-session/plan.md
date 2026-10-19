@@ -723,7 +723,7 @@ Move them to `ComposerSend.tsx`, import them back, change nothing else. Run
 `nix develop -c vp test packages/web/src/__tests__`: it passes before and after. Commit alone:
 `refactor(redesign-session): move the composer's buttons out of Composer.tsx`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `session-actions.test.tsx`: a chat with two blocked actions shows "Allow all (2)" beside Send,
 and pressing it allows both (both banners read "Allowed for the session's process.", and the fake
@@ -745,11 +745,11 @@ The break each catches:
 - Archive: a button left in the header.
 - The field: one `minHeight` for both width classes.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
   - Run: `nix develop -c vp test packages/web/src/__tests__/session-actions.test.tsx`
   - Expected: FAIL, `Unable to find a button with the name "Allow all (2)"`
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 `ComposerInput` takes `minHeight` from `--size-composer-input-narrow` on the phone and
 `--size-composer-input` on wide screens, and `maxRows` 9 and 20, from the shared width hook. The
@@ -760,12 +760,12 @@ branch). `SessionLog` hands the composer the chat controls through `SessionPane`
 page reads the session once and passes both (settle which in the code: the page reads it already).
 Add the generated client's change from Task 2 to this commit if it moved.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
   - Run: `nix develop -c vp check`, `nix develop -c vp run ts:test`,
     `nix develop -c vp run browser:phone`, `nix develop -c vp run browser:desktop`
   - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-19-redesign-session/plan.md

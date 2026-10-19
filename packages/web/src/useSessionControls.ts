@@ -15,10 +15,15 @@ export type ChatControls = {
 };
 
 /**
- * What the human does on a session besides writing to it: allow a tool, and, for a chat, rename
- * and archive it. The last refusal shows under the transcript.
+ * What the human does on a session besides writing to it: allow a tool, or every blocked action of
+ * the latest turn, and, for a chat, rename and archive it. The last refusal shows under the
+ * transcript. `id` is `undefined` before a first message creates the session.
  */
-export function useSessionControls(id: string, session: ReturnType<typeof useSession>) {
+export function useSessionControls(
+  given: string | undefined,
+  session: ReturnType<typeof useSession> | undefined,
+) {
+  const id = given ?? "";
   const fate = useFateClient();
   const [error, setError] = useState<string>();
   const chat: ChatControls | undefined =
@@ -55,5 +60,18 @@ export function useSessionControls(id: string, session: ReturnType<typeof useSes
       setError(refusal(result.error).message);
     }
   };
-  return { allow, chat, error };
+  const allowAll = async () => {
+    setError(undefined);
+    const result = await fate.mutations.session.allowAll({
+      input: { session: id },
+      view: SessionView,
+    });
+    if (result.error) {
+      setError(refusal(result.error).message);
+    }
+  };
+  return { allow, allowAll, chat, error };
 }
+
+/** What `useSessionControls` returns, shared by the transcript and the composer. */
+export type Controls = ReturnType<typeof useSessionControls>;

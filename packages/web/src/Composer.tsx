@@ -36,14 +36,23 @@ import { clearPending, markPending } from "./writes/store.ts";
 
 const styles = stylex.create({
   input: { minHeight: "var(--size-composer-input)" },
+  narrow: { minHeight: "var(--size-composer-input-narrow)" },
 });
 
 /**
- * The composer's field: 7 rows empty, growing upward with its text up to 20 (the UI behaviour
- * decision), its text scrolling inside them past that.
+ * The composer's field: 7 rows empty on wide screens, 3 on the phone, growing upward with its text
+ * up to 20 rows, or 9 on the phone (the UI behaviour decision), its text scrolling inside them past
+ * that.
  */
 function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">) {
-  return <ChatComposerInput {...props} maxRows={20} xstyle={styles.input} />;
+  const wide = useWidthClass() === "wide";
+  return (
+    <ChatComposerInput
+      {...props}
+      maxRows={wide ? 20 : 9}
+      xstyle={wide ? styles.input : styles.narrow}
+    />
+  );
 }
 
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
@@ -55,6 +64,13 @@ type Workflow = { file?: string; fresh?: boolean; step?: string; trigger: Trigge
 
 /** The composer's props. */
 export type ComposerProps = {
+  /**
+   * The session's blocked actions of the latest turn that an allow rule can match: from two,
+   * "Allow all (N)" shows beside Send. The server counts them.
+   */
+  allow?: { count: number; onAllowAll: () => Promise<void> };
+  /** A chat's Archive, in the footer: "Unarchive" once archived. */
+  archive?: { archived: boolean; onArchive: () => Promise<void> };
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
   blocked?: string;
   folder?: string;
@@ -349,6 +365,7 @@ export function Composer(given: ComposerProps) {
     }
   }, [inserts]);
   const buttons = sendButtons({
+    allow: props.allow,
     canSend,
     hasContent,
     label: props.sendLabel,
