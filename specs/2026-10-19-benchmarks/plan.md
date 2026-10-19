@@ -231,8 +231,8 @@ what the spec marks as not verified:
 3. With `CLAUDE_CODE_OAUTH_TOKEN` set: a `claude -p` session in the container with a fresh
    configuration folder answers, `modelUsage` names `claude-sonnet-5-5` for a `settings.json` that
    sets `model` and `effort`, and `--plugin-dir` loads the skill as `uraeda`.
-4. With the token: a session in `--permission-mode auto` runs the repository's own test command and
-   edits a file without a block, and a run of ten such commands lists how many `auto` blocked.
+4. With the token: a session in `--permission-mode auto` runs a command and edits a file without a
+   block (one session: see R2).
 
 - [x] **Step 1: Write the probe's unit tests, and the helpers they use**
 
@@ -274,14 +274,14 @@ holds the four checks above, through `docker` and the real `claude`. It never pr
 - Run: `nix develop -c vp check && nix develop -c vp test packages/benchmarks`
 - Expected: PASS
 
-- [ ] **Step 5: Run the probe**
+- [x] **Step 5: Run the probe**
 
 - Run: `nix develop -c vp run benchmarks:probe`
 - Expected: checks 1 and 2 `ok`. Checks 3 and 4 `ok`, or `SKIPPED` when the token is not set. A
   `FAIL`, or a skip, goes back to the human before Task 2 starts: see
   [implementation](../../skills/uraeda/references/implementation.md#when-you-must-stop).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/benchmarks vite.config.ts vite.tasks.ts specs/2026-10-19-benchmarks/rulings.md

@@ -18,14 +18,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   installs Claude Code in a layer on that image.
 - **Where**: task 1, `packages/benchmarks/scripts/probe.ts`.
 
-## R2: Two of the probe's checks are not verified yet
+## R2: The token checks passed, on a lighter test than the plan's
 
-- **Decision**: `CLAUDE_CODE_OAUTH_TOKEN` is not set on this machine, so the probe skipped the two
-  checks that need it: a session in a fresh folder answering as `claude-sonnet-5-5` with the model
-  and effort in `settings.json`, and `auto` mode running tests and editing a file without a block.
-  They are unverified, not passed: the probe exits 2. The build stops after Task 1 until they pass.
-- **Rationale**: the plan's Task 1 and the spec's "Not verified" line.
-- **Alternatives considered**: copying `~/.claude`'s credentials into the folder: the agents
-  decision forbids tools from touching the agent's credentials.
-- **If wrong**: nothing is built on it yet.
-- **Where**: task 1, step 5.
+- **Decision**: With the token from the owner's `.env`, the probe's two other checks passed: a
+  session in a fresh folder answered with `claude-sonnet-5-5` named in its output, with the model
+  and effort set in `settings.json`, and a session in `auto` mode ran a command and created a file
+  in `/app` with no blocked action. The probe ran one such session, not ten, so how often `auto`
+  blocks a real task's commands is still unknown: Task 7 records every block, and allows it once.
+- **Rationale**: the plan's Task 1; the spec's "Not verified" line.
+- **Alternatives considered**: ten sessions: about ten times the usage for a rate the run records
+  anyway.
+- **If wrong**: a task whose commands `auto` blocks often fails its run on the repeat rule: the
+  record shows it, and the owner decides.
+- **Where**: task 1, `packages/benchmarks/scripts/probe.ts`.
