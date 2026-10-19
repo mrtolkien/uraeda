@@ -65,11 +65,11 @@ export class Processes {
    * The session's open process, opened when it has none, or when it is closing: then once it
    * exited. A transcript that is gone starts a new agent session, and so does `fresh`, for a run
    * that starts from the repository alone, the process open closed first: `line` says so, in the
-   * session that ran before. `allowed` reopens the process with the rule.
+   * session that ran before. `allowed` reopens the process with the rules.
    */
   async open(
     live: Live,
-    { allowed, fresh = false }: { allowed?: string; fresh?: boolean } = {},
+    { allowed, fresh = false }: { allowed?: ReadonlyArray<string>; fresh?: boolean } = {},
   ): Promise<{ line?: string; proc: Proc }> {
     const { adapter, binding, cache } = this.#context;
     if (live.proc && !live.proc.closing && allowed === undefined && !fresh) {

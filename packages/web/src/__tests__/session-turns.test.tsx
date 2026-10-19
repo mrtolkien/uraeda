@@ -197,7 +197,7 @@ test("US5.1: a blocked action shows Allow and retry, and Needs you", async () =>
   await click((await log()).getByRole("button", { name: "Allow and retry" }));
 
   await waitFor(() => expect(agent.sent).toHaveLength(2));
-  expect(agent.opens.at(-1)?.allowed).toBe("Bash(git push origin HEAD)");
+  expect(agent.opens.at(-1)?.allowed).toEqual(["Bash(git push origin HEAD)"]);
   expect(agent.sent[1].text).toBe(
     "Try the blocked action again, now allowed: Bash git push origin HEAD",
   );

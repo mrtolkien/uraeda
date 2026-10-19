@@ -50,3 +50,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the lag has another cause, in the composer's own field or the browser: profile
   there, in the WebKit tests.
 - **Where**: task 1 of the plan.
+
+## R5: The tests that asserted a string now assert a list, and "one after one allow" needs a re-block
+
+- **Decision**: the assertions on `opens.at(-1)?.allowed` (both `sessions.test.ts` files, the web's
+  `session-turns.test.tsx`) and on `claudeArgs`' `allowed` in `claude.test.ts` read a list now. A
+  turn's stored `allowed` stays a string, and its assertions are unchanged. The `allowable` test
+  reads 2, then 1, then 0 where the retry turn is blocked again on one action: an allow always
+  begins a newer turn, so the earlier turn's remaining denial is not in the latest turn, and counts
+  0, as the spec's "earlier turns are not covered" says. A stored rule that holds a line break,
+  written by an earlier version, is not covered either.
+- **Rationale**: `OpenOptions.allowed` changed type, which is the task's interface: the tests check
+  what they checked, one rule, as a list of one. The plan's "1 after one `allow`" holds when that
+  retry is blocked on the other action again.
+- **Alternatives considered**: counting the earlier turn's denials after an allow, which widens
+  "Allow all" to what the human did not just see.
+- **If wrong**: `coveredDenials` is the one place that picks the covered denials.
+- **Where**: task 2 of the plan.
