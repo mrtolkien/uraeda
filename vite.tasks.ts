@@ -181,6 +181,13 @@ export const tasks = {
     cache: false,
     command: "xdg-open coverage/rust/html/index.html && xdg-open coverage/typescript/index.html",
   },
+  // The checks to run after every task, on what the branch changed (see `scripts/fast-check.ts`):
+  // it chooses them from git's diff, so it is never cached, and `ready` still runs before a push.
+  fast: {
+    cache: false,
+    command: "node scripts/fast-check.ts",
+    dependsOn: ["binding:touch"],
+  },
   "lua:fmt": {
     cache: { input: ["editors/nvim/**", ...toolchainInputs], output: [] },
     command: "stylua --check editors/nvim",

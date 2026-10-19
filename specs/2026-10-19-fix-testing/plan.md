@@ -250,7 +250,7 @@ git commit -m "docs(fix-testing): rewrite the skill's testing rules"
   TypeScript tests that load the binding; a change to `vite.tasks.ts` or the CI workflow runs the
   toolchain test. The selection function is pure, `select(files): Plan`, so it is testable.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `scripts/fast-check.test.ts` tests `select` on four inputs: `packages/web/src/Composer.tsx` only (no
 Rust command), `crates/core/src/...` (the core's Rust tests and the binding-loading TypeScript
@@ -258,29 +258,29 @@ tests), a `skills/uraeda/...` file (the same TypeScript tests), and `vite.tasks.
 test). The break each catches: dropping the binding tests after a Rust change; running Rust tests
 for a web-only change.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test scripts/fast-check.test.ts --run`
 - Expected: FAIL, `select` does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Write `select` and a runner that executes the plan through `scripts/test-run.ts`, with the dev
 shell's tools, and stops at the first failure. The binding-loading tests are the server and web
 projects' files that import the binding (found from the import of `@uraeda/binding` or `binding.ts`,
 not a hand-kept list). Make the task print the commands, not run a cache.
 
-- [ ] **Step 4: Measure SC-002**
+- [x] **Step 4: Measure SC-002**
 
 - Run: touch one web file, then `time nix develop -c vp run fast`.
 - Expected: under 1 minute. Record the time in `rulings.md`.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts vite.tasks.ts
