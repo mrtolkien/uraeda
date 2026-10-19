@@ -39,3 +39,5 @@
   on a wide screen drops focus the same way
 - [agent] [fix-testing] Phone navigation: the drawer is not a history entry, so Back leaves the page
   where a sheet's Back closes the sheet
+- [agent] [fix-testing] Flows: a few wording or format pins are accepted in the rulings (status
+  labels, N of M, the tab title count, Current and Done prefixes)
