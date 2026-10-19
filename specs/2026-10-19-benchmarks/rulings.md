@@ -80,3 +80,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a sixth `outcome`: the run did finish, and the flag is not an end.
 - **If wrong**: drop the field: no record holds it before the first suite.
 - **Where**: task 6, `record.ts` and the [data model](data-model.md).
+
+## R7: What "finished" means, and the fixture of `ura next` after the push
+
+- **Decision**: a run is `finished` when `ura next` says the step is implemented (every task of the
+  plan checked) and the remote branch equals `HEAD`. With no pull request host, `ura next` keeps
+  naming `final-review` (or `finish`) after the push, so the branch being pushed is what ends the
+  run. The fixture `next-after-push.json` is written by hand from `after_the_last_step` in
+  [`steps.rs`](/crates/core/src/steps.rs): the example project cannot reproduce it, since its branch
+  counts as merged. The first real run checks it.
+- **Rationale**: the plan's first review-focus item.
+- **Alternatives considered**: ending at the first `final-review` step: it would stop before the
+  agent's review and push.
+- **If wrong**: a real run that names another step after the push stalls at 30 sessions, which the
+  record shows: change `runLoop`'s one condition.
+- **Where**: task 7, `loop.ts`.
+
+## R8: Retried blocks, usage limits, and addresses in the loop
+
+- **Decision**: an `auto` block is allowed once with `allowRule` and a resumed session
+  (`retryMessage`), recorded in `blocked`; the same action blocked again, or with no rule, fails the
+  run. The usage limit is read from a `usage` event at 100 percent, or an unsuccessful result whose
+  errors say so. Addresses come from fetch tools' and commands' targets: `curl` is covered by the
+  `execute` kind.
+- **Rationale**: spec edge cases; the adapter's `allowRule`.
+- **Alternatives considered**: counting blocks per run: a repeat of the same action is the sign of a
+  loop.
+- **If wrong**: a different phrase for the limit ends as `failed` with its text in the record.
+- **Where**: task 7, `session.ts` and `loop.ts`.

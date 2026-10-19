@@ -721,7 +721,7 @@ git commit -m "feat(benchmarks): the results page"
   `HumanTurn = {step: string; file: string; repo: string}` and
   `HumanResult = {commit?: string; gate: string}`.
 
-- [ ] **Step 1: Write the failing tests**, on the fake adapter and a temporary repository with a
+- [x] **Step 1: Write the failing tests**, on the fake adapter and a temporary repository with a
       fake `ura`
 
 ```ts
@@ -790,12 +790,12 @@ The break each test catches:
 - The block: an unrecorded permission, or a block allowed over and over.
 - The leak: an upstream fetch that nobody sees in the report.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/loop.test.ts`
 - Expected: FAIL, `Cannot find module '../loop.ts'`
 
-- [ ] **Step 3: Implement the loop**
+- [x] **Step 3: Implement the loop**
 
 Record what `ura next --json` returns after the final push, with a real feature in a temporary
 repository without a pull request host, into the fixture, and decide "finished" from it: the
@@ -804,12 +804,12 @@ session is fresh (`resume: false`, a new session ID); the agent's message is `ru
 step `ura next` names. `usage` events with a limit at 100%, or the result's error naming the usage
 limit, end the run as `usage-limit`. A blocked action is reopened once with `adapter.allowRule`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks specs/2026-10-19-benchmarks/plan.md
