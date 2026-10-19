@@ -17,6 +17,7 @@ import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
 import { usePreview, useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
+import { CheckPage } from "./decisions/CheckPage.tsx";
 import { DecisionsPage, type LedgerOpen } from "./decisions/DecisionsPage.tsx";
 import { FeaturePage } from "./feature/FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
@@ -137,6 +138,8 @@ function RoutePage({ route }: { route: Route }) {
       return <InboxPage />;
     case "triage":
       return <TriagePage />;
+    case "decisions-check":
+      return <CheckPage />;
     case "decisions":
       return <DecisionsPage />;
     case "decision":

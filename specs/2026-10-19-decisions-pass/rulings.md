@@ -55,3 +55,16 @@ sections check is what makes the template matter.
 **Alternatives:** A new test that every reference is listed in `SKILL.md`: a rule outside this task.
 
 **If wrong:** Add the listing test to the check's tests, in a later task.
+
+## R5: Task 7 tests build the active decision the fixture candidate edits
+
+**Decided:** `decisions-check.test.tsx` writes `specs/decisions/ui-components.md` into its copy of
+the fixture repository, the fixture candidate without its first rule and active, so the candidate
+draws as a changed decision.
+
+**Why:** The fixture repository has no `ui-components` decision (ruling R2 keeps it at five), so the
+candidate compared as a new decision and the plan's "Changed" pill could not show.
+
+**Alternatives:** Adding `ui-components.md` to the fixture, which changes the decisions page counts.
+
+**If wrong:** The fixture gains the decision, and the test stops writing it.

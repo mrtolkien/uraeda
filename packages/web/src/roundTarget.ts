@@ -14,6 +14,14 @@ export type RoundTarget = { folder: string } | { round: string };
 /** The inbox's triage, among workflow files: it has no feature folder. */
 export const TRIAGE_ID = "inbox-triage";
 
+/** The decisions check, among workflow files. */
+export const DECISIONS_CHECK_ID = "decisions-check";
+
+/** The page a default-branch round goes back to once submitted: the one that offers to apply it. */
+export function defaultRoundHome(target: RoundTarget): string {
+  return "round" in target && target.round === DECISIONS_CHECK_ID ? "/decisions" : "/inbox";
+}
+
 /** Whether the target is a round on the default branch. */
 export function isDefaultRound(target: RoundTarget): target is { round: string } {
   return "round" in target;

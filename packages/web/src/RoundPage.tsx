@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
+import { CandidatesContext } from "./decisions/Candidates.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -118,18 +119,20 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
 
   return (
     <RoundHash value={hash}>
-      <PendingSaves value={pending}>
-        {navigates ? (
-          <div {...stylex.props(wide && styles.columns)}>
-            <div {...stylex.props(styles.questions)}>
-              <Page>{content}</Page>
+      <CandidatesContext value={file.candidates}>
+        <PendingSaves value={pending}>
+          {navigates ? (
+            <div {...stylex.props(wide && styles.columns)}>
+              <div {...stylex.props(styles.questions)}>
+                <Page>{content}</Page>
+              </div>
+              <RoundNav onSubmit={toEnd} questions={nav} />
             </div>
-            <RoundNav onSubmit={toEnd} questions={nav} />
-          </div>
-        ) : (
-          <Page>{content}</Page>
-        )}
-      </PendingSaves>
+          ) : (
+            <Page>{content}</Page>
+          )}
+        </PendingSaves>
+      </CandidatesContext>
     </RoundHash>
   );
 }

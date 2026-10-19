@@ -172,6 +172,7 @@ export const BranchDecisionView = view<BranchDecision>()({
 
 export const FileView = view<WorkflowFile>()({
   answered: { comments: true, commit: true, summary: true, verdict: true },
+  candidates: true,
   committed: VersionSelection,
   current: VersionSelection,
   decisionChanges: true,
@@ -439,6 +440,7 @@ export const LedgerView = view<Ledger>()({
     version: true,
   },
   decisions: true,
+  decisionsCheck: true,
   id: true,
   problems: true,
 });

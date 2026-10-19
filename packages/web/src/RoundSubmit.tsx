@@ -15,7 +15,13 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
 import { jumpTo } from "./RoundNav.tsx";
 import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx";
-import { type Hashes, isDefaultRound, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
+import {
+  defaultRoundHome,
+  type Hashes,
+  isDefaultRound,
+  type RoundTarget,
+  useRoundWrites,
+} from "./roundTarget.ts";
 import { navigateHere } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSaveSettled } from "./settledWrites.ts";
@@ -60,7 +66,7 @@ export function HookRefusal({
  * A round's submit: what is still being typed is saved first, the notes, every save in `pending`,
  * then the settled points' comments, and nothing is submitted unless it all is. `next` hands the
  * feature over to the agent once the round is committed; a hook's refusal is tried again with
- * `retry`. A default-branch round, submitted, goes back to the inbox, which offers to apply it.
+ * `retry`. A default-branch round, submitted, goes back to the page that offers to apply it.
  */
 export function useRoundSubmit(
   file: File,
@@ -95,7 +101,7 @@ export function useRoundSubmit(
       return false;
     }
     if (isDefaultRound(target)) {
-      navigateHere("/inbox");
+      navigateHere(defaultRoundHome(target));
     } else if (next) {
       proceed();
     }
@@ -108,7 +114,7 @@ export function useRoundSubmit(
       return;
     }
     if (isDefaultRound(target)) {
-      navigateHere("/inbox");
+      navigateHere(defaultRoundHome(target));
     } else if (continues.current) {
       proceed();
     }

@@ -10,7 +10,9 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { use } from "react";
 import type { Ledger } from "uraeda-server/fate";
-import { useLedger, useWorkspace } from "../data.ts";
+import { useAgent, useLedger, useWorkspace } from "../data.ts";
+import { useStartChat } from "../StartChat.tsx";
+import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Panes } from "../layout/Panes.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
@@ -27,7 +29,7 @@ import { type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts"
 export type LedgerOpen = { kind: "decision"; name: string } | { kind: "principle"; slug: string };
 
 /** The ledger, as the page reads it. */
-type LedgerData = Pick<Ledger, "constitution" | "decisions">;
+type LedgerData = Pick<Ledger, "constitution" | "decisions" | "decisionsCheck">;
 
 /** The address of each item, in the page's order: the principles, then the decisions as sorted. */
 function itemPaths(ledger: LedgerData, decisions: ReadonlyArray<LedgerDecision>): Array<string> {
@@ -54,6 +56,9 @@ function LedgerList({ ledger, open }: { ledger: LedgerData; open: LedgerOpen | u
   const here = useRepoPath();
   const pane = use(ListPaneContext);
   const [sort, setSort] = useDecisionSort();
+  const agent = useAgent()?.available === true;
+  const chat = useStartChat();
+  const check = ledger.decisionsCheck;
   const decisions = sortDecisions(ledger.decisions, sort);
   const paths = itemPaths(ledger, decisions);
   const { ref } = useListKeys({
@@ -70,7 +75,13 @@ function LedgerList({ ledger, open }: { ledger: LedgerData; open: LedgerOpen | u
   return (
     <Page>
       <VStack gap={6}>
-        <Heading level={1}>Constitution and decisions</Heading>
+        <HStack align="center" gap={3} justify="between" wrap="wrap">
+          <Heading level={1}>Constitution and decisions</Heading>
+          {agent && <CheckButton chat={chat} check={check} />}
+        </HStack>
+        {!agent && check === null && <CheckMessage />}
+        {check !== null && <DecisionsCheckBanner agent={agent} chat={chat} status={check} />}
+        {chat.error && <Banner collapsible={false} status="error" title={chat.error} />}
         <div ref={ref}>
           <VStack gap={6}>
             <ConstitutionRegion

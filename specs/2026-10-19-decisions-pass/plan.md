@@ -669,6 +669,18 @@ git commit -m "feat(decisions-pass): the decisions check's reference, template, 
   `RoundPage.tsx` and the question card that draws an option (to draw the option's candidate with
   `DecisionCard`), `InboxTriage.tsx` (the shared `useStartChat`, `AgentMessage` move to
   `StartChat.tsx`, imported by both)
+
+**Built beyond the interfaces:** `StartChat.tsx` also holds `RoundBanner`, the one banner of a
+default-branch round that `TriageBanner` and `DecisionsCheckBanner` both draw, so the banner's code
+is not copied; `decisions/Candidates.tsx` holds `CandidatesContext` (provided by `RoundPage` from
+`file.candidates`) and `CandidateCard`, which `Question.tsx`'s `OptionCard` draws under an option;
+`roundTarget.ts` has `DECISIONS_CHECK_ID` and `defaultRoundHome(target)`, which `RoundSubmit.tsx`
+navigates to after a submit or retry (`/decisions` for the check, `/inbox` for the triage).
+`data.ts` needed no change: `useRound` already existed. `candidates: true` is whole in `FileView`
+(an array), and `decisionsCheck: true` is in `LedgerView`. The spec's crumbs name the option only on
+the phone, where a `Panel` draws crumbs. The test repository gains the active `ui-components` the
+fixture's candidate edits, built in the test, as the fixture repository has none (ruling R5).
+
 - Test: `packages/web/src/__tests__/decisions-check.test.tsx`
 
 **Interfaces:**
@@ -679,7 +691,7 @@ git commit -m "feat(decisions-pass): the decisions check's reference, template, 
   banner leading to `/decisions/check`, and "Apply the answers" once answered, or the message to
   copy without an agent, as the inbox page does for the triage.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 test("Check decisions starts a chat with the check's message", async () => {});
@@ -694,24 +706,24 @@ test("an answered check offers to apply its answers", async () => {});
 The break each test catches: a second check started while one waits, an option drawn without its
 diff, an answer written into the triage's file, Submit committing other files.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/decisions-check.test.tsx`
 - Expected: FAIL,
   `Unable to find an accessible element with the role "button" and name "Check decisions"`
 
-- [ ] **Step 3: Implement the page, the button, and the candidate view**
+- [x] **Step 3: Implement the page, the button, and the candidate view**
 
 Start from the story's markup: the option's candidate is the spec page's `DecisionCard` with
 `crumbs` naming the option, drawn from the `Candidate` of the option's question and letter.
 
-- [ ] **Step 4: Run the project's validation, with the browser suite for this view**
+- [x] **Step 4: Run the project's validation, with the browser suite for this view**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp test`, and the browser tests of the decisions
   page (`__browser__/`), including the existing `inbox.test.tsx`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages
