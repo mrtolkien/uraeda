@@ -6,6 +6,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -18,9 +19,15 @@ import { ToolGroup, type ToolGroupSlot } from "./ToolGroups.tsx";
 import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
+/** The page's width: the list's 12 px at the sides, less the page's inset, given back. */
+const AGENT_WIDTH = `calc(100% + 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-2"]}))`;
+
 const styles = stylex.create({
   agent: {
-    // The agent's text takes the page's width: no padding of its own.
+    // The agent's text takes the page's width: no padding of its own, and the list's 12 px at the
+    // sides given back down to the page's inset.
+    marginInline: `calc(${spacingVars["--spacing-2"]} - ${spacingVars["--spacing-3"]})`,
+    maxWidth: "none",
     paddingInline: 0,
   },
   notice: {
@@ -31,6 +38,8 @@ const styles = stylex.create({
   },
   user: {
     backgroundColor: colorVars["--color-background-blue"],
+    // On the page's inset, as the agent's text: the list's 12 px at the side is given back.
+    marginInlineEnd: `calc(${spacingVars["--spacing-2"]} - ${spacingVars["--spacing-3"]})`,
   },
 });
 
@@ -145,7 +154,7 @@ function AgentMessage({ streaming, text }: { streaming: boolean; text: string })
   const stories = useMemo<MessageStories>(() => ({ ended: !streaming }), [streaming]);
   return (
     <ChatMessage sender="assistant">
-      <ChatMessageBubble variant="ghost" width="100%" xstyle={styles.agent}>
+      <ChatMessageBubble variant="ghost" width={AGENT_WIDTH} xstyle={styles.agent}>
         <MessageStories value={stories}>
           <Markdown
             autolink="gfm"

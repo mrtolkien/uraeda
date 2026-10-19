@@ -156,3 +156,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: leaving the phone at 7 rows, which breaks SC-005.
 - **If wrong**: restore the single count, and the test fails on the phone.
 - **Where**: task 6 of the plan.
+
+## R12: The list reaches the screen's edges, and the senders give back the list's padding
+
+- **Decision**: `Transcript`'s list takes the page's inset back with `--page-bleed`, not R9's margin
+  of `--spacing-3`. The agent's bubble, and the human's right side, give back the difference between
+  the list's own padding (`--spacing-3`) and the snug page's inset (`--spacing-2`).
+- **Rationale**: R9's margin made the list 4 px wider than the screen on the 8 px page, which broke
+  eleven WebKit layout tests (`expected 406 to be less than or equal to 403`). The padding sits on
+  the list's inner box, which no `xstyle` reaches.
+- **Alternatives considered**: removing the padding through the list's styles, which Astryx does not
+  allow; a 12 px page inset, which is not what the spec says.
+- **If wrong**: the two margins are tokens in `TranscriptMessages.tsx`: change them with the inset.
+- **Where**: tasks 5 and 6, after the merge.

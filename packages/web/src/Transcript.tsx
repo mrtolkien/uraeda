@@ -1,5 +1,4 @@
 import { ChatMessageList } from "@astryxdesign/core/Chat";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useCallback, useEffect, useRef } from "react";
 import type { ChatImage } from "uraeda-server/fate";
@@ -15,9 +14,9 @@ export { type Actions, sentAt } from "./TranscriptMessages.tsx";
 
 const styles = stylex.create({
   list: {
-    // The compact list pads its messages by 12 px at the sides: taken back, the page's inset is the
-    // only one, so the agent's text takes the width the phone has.
-    marginInline: `calc(-1 * ${spacingVars["--spacing-3"]})`,
+    // The list reaches the screen's edges, as the page's inset is taken back: its own 12 px padding
+    // is left to the human's messages, and the agent's text takes it back (see `AgentMessage`).
+    marginInline: "var(--page-bleed)",
   },
 });
 
