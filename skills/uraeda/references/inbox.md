@@ -128,7 +128,8 @@ every change, one per line, the inbox's first: `- Move from the inbox to Next: <
 When the inbox is large or messy, the human asks an agent to propose what each note becomes. The
 agent writes the proposal as questions in `specs/INBOX-TRIAGE.md`, the human answers them like a
 round of questions, and an agent carries out the answers. Both runs happen in the default branch's
-checkout, and need no feature.
+checkout, and need no feature. [The decisions check](decisions-check.md) works the same way on the
+decisions.
 
 ### Proposing a triage
 

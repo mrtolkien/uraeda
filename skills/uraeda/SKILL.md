@@ -76,11 +76,13 @@ specs/
   PRIORITIES.md             # Now, Next, Later, Blocked
   INBOX.md                  # notes to organize later, by category
   INBOX-TRIAGE.md           # an agent's proposed outcome for each note, answered like questions
+  DECISIONS-CHECK.md        # an agent's questions about the decisions' coherence, answered likewise
   drafts/                   # upcoming features, human-written, free form
   backlog/                  # nice-to-have features, not scheduled
                             # in both, a folder is a postponed feature, or a draft with images:
                             # <slug>/proposal.md, images/, ...
   decisions/                # decision ledger, one file per topic: due-dates.md
+  decisions-check/          # q<N>-<letter>/<topic>.md: each option's edited decision, while a check waits
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
   changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
                             # clarifications-NN.md, rulings.md, images/, mockups/, screenshots/
@@ -266,6 +268,8 @@ Read a step's reference before running it, and the others when the step needs th
   worktrees, and commits; read it before writing or committing a workflow file.
 - [Inbox](references/inbox.md): the inbox's format, writing notes, organizing them by hand or with a
   triage, and noting a problem found outside your task.
+- [The decisions check](references/decisions-check.md): reading the constitution and every decision
+  together, asking how to keep the ledger clean, and applying the answers.
 - [Projects](references/projects.md): setting up a project, starting, postponing, or dropping a
   feature, and finishing one; read it when the human asks for one of these.
 - [The `ura` CLI](references/cli.md): every command and what it refuses; read it before running

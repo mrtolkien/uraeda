@@ -13,6 +13,12 @@ Without it, the file names and their `status` fields still tell where each featu
 - `PRIORITIES.md`: what is worked on now, next, and later, and what is blocked
 - `INBOX.md`: notes about the software, by category, waiting to become priorities, drafts, changes,
   or nothing; and `INBOX-TRIAGE.md`, an agent's proposal for them, answered like questions
+- `DECISIONS-CHECK.md`, an agent's questions about how the decisions fit together, answered like
+  questions, with `decisions-check/` holding each option's edited decision until it is applied
+- `DECISIONS-CHECK.md`, an agent's questions about how the decisions fit together, answered like
+  questions, with `decisions-check/` holding each option's edited decision until it is applied
+- `DECISIONS-CHECK.md`, an agent's questions about how the decisions fit together, answered like
+  questions, with `decisions-check/` holding each option's edited decision until it is applied
 - `drafts/`: upcoming features, written by humans, free form
 - `backlog/`: nice-to-have features, not scheduled
 - In `drafts/` and `backlog/`, a folder is a postponed feature: its proposal, with the discovery

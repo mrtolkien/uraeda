@@ -630,26 +630,26 @@ git commit -m "feat(decisions-pass): serve a decisions check and its messages"
   on the default branch in one commit, `chore: apply the decisions check`). Questions follow
   [Writing for the human](/skills/uraeda/references/writing.md) like the triage's.
 
-- [ ] **Step 1: Write the example and the template, then the failing check**
+- [x] **Step 1: Write the example and the template, then the failing check**
 
 Add the example file and one candidate, then run `ura check skills/uraeda/assets/example/specs`
 before the reference exists, to see the file validate.
 
 - Run: `ura check skills/uraeda/assets/example/specs`
-- Expected: PASS on the new files (task 4 made them valid), and FAIL the existing test that every
-  `references/*.md` file is listed in `SKILL.md`, `references/decisions-check.md is not listed`
+- Expected: PASS on the new files (task 4 made them valid). No test checks that a reference is
+  listed in `SKILL.md`, so there is no failing step here (see R4)
 
-- [ ] **Step 2: Write the reference, and link it from `SKILL.md`**
+- [x] **Step 2: Write the reference, and link it from `SKILL.md`**
 
 Follow `references/inbox.md#the-triage`'s shape. The reference owns the check's rules. The spec's
 US3 scenarios are its steps.
 
-- [ ] **Step 3: Run the project's validation**
+- [x] **Step 3: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c cargo nextest run -p uraeda-core`, and `ura check`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add skills specs/README.md README.md

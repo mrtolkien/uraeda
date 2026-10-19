@@ -41,3 +41,17 @@ not have, and the start message is task 5's.
 
 **If wrong:** Task 5's start message refuses when the file exists, in the server, and its test
 covers it.
+
+## R4: Task 6 tests the check's template through the sections check, not a listing test
+
+**Decided:** Task 6 adds `a_decisions_check_has_its_templates_title_and_sections` and
+`the_decisions_check_template_passes_as_a_check` to `crates/core/tests/check.rs`. No core code
+changed: the templates are embedded as a whole folder, and task 4 already pointed the check's file
+at its template.
+
+**Why:** The plan expects a failing "reference is not listed" test, which does not exist. The
+sections check is what makes the template matter.
+
+**Alternatives:** A new test that every reference is listed in `SKILL.md`: a rule outside this task.
+
+**If wrong:** Add the listing test to the check's tests, in a later task.
