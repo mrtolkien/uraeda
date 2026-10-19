@@ -288,12 +288,15 @@ test("a tool call shows its target, then its duration", async () => {
   );
 });
 
-/** Review focus 3: a turn's items come in pages of 100. */
+/**
+ * Review focus 3: a turn's items come in pages of 100. The link to the turn draws it whole: the
+ * session's tail draws only its latest 20 messages (R7).
+ */
 test("250 items of a turn show in order", async () => {
   atWidth(402);
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  await seedRun(
+  const turn = await seedRun(
     fake,
     repo,
     CLI,
@@ -303,7 +306,7 @@ test("250 items of a turn show in order", async () => {
     })),
   );
 
-  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+  await renderPage(`/f/${CLI}/session#turn-${turn}`, repo, { agent: fake });
 
   await (await log()).findByText("Event 250.");
   const texts = (await log()).getAllByText(/^Event \d+\.$/).map((element) => element.textContent);

@@ -27,19 +27,21 @@ export function atEnd(box?: HTMLElement) {
 
 /**
  * Shows the end of a session's transcript as it opens, unless Back or a reload brings a saved
- * position, or the address names a turn.
+ * position, or the address names a turn. `element` is the transcript, or what it is drawn in.
  */
+export function openAtEnd(element: HTMLElement) {
+  if (currentEntry().scroll !== undefined || window.location.hash.startsWith("#turn-")) {
+    return;
+  }
+  toEnd(scroller(element));
+}
+
+/** `openAtEnd`, as the page opens. */
 export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
-    const element = ref.current;
-    const { scroll } = currentEntry();
-    if (!element || scroll !== undefined) {
-      return;
+    if (ref.current) {
+      openAtEnd(ref.current);
     }
-    if (window.location.hash.startsWith("#turn-")) {
-      return;
-    }
-    toEnd(scroller(element));
     // Once, as the view opens.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -199,6 +199,8 @@ type Entry = {
   pane?: number;
   progress?: boolean;
   scroll?: number;
+  /** The count of messages a session's transcript draws, kept so Back draws as many. */
+  shown?: number;
 };
 
 /** The current history entry's state. */

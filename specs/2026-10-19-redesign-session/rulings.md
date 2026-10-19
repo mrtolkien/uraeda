@@ -77,3 +77,41 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a mockup without `Markdown`, which would not show the real text.
 - **If wrong**: narrow the list again once the mockups are removed.
 - **Where**: the test, before task 4.
+
+## R7: The tests that drew a whole turn or a long session now stay inside the tail
+
+- **Decision**: four existing tests changed with the tail. `session-cost.test.tsx` still opens 30
+  messages, and reads that at least `TAIL_MESSAGES` (20) drew, not 30: its subject is that typing
+  redraws none. `session-turns.test.tsx` "250 items of a turn show in order" opens the session at
+  `#turn-<id>` of that turn, which draws it whole (the tail alone draws only its latest 20
+  messages). The WebKit test `session.test.tsx` "Back from a session view" writes 9 lines, the link,
+  and 9 more, not 20, 1, and 20, and "a paragraph read across the line a third down" 3 lines, the
+  paragraph, and 12 more, not 10, 1, and 30: the link and the paragraph must be among the latest 20
+  messages to be drawn, and the scroll is their subject, not the count. The new tail test links a
+  turn of 90 messages back, not 80, as its turns hold 15 messages, so that no count of 20 falls on a
+  turn's start.
+- **Rationale**: both tests asserted what a session draws, and the spec changes it: the latest 20
+  messages, and an older turn when the address names it. What each guards is unchanged.
+- **Alternatives considered**: loosening the assertions, which would drop the order of 250 items and
+  the link's position.
+- **If wrong**: restore the old seeds, and the tests fail on the count.
+- **Where**: task 4 of the plan.
+
+## R8: The tail keeps its start while the page is open, and grows as messages arrive
+
+- **Decision**: the tail keeps the first piece it drew as its start, in memory, never in the history
+  entry, which keeps `shown` alone: a message arriving draws after the pieces, so the count drawn
+  grows past `shown` while the page stays open. A press of "Show earlier messages" releases the
+  start and counts from what is drawn. A reload or Back draws the latest `shown` again.
+  [R2](#r2-the-window-slides-by-one-when-a-message-arrives)'s slide is dropped.
+- **Rationale**: the slide takes the oldest message from above the reader as one arrives. The
+  existing WebKit test US4.2 ("scrolled up, the page keeps its position as lines arrive") failed
+  with `expected 230 to be 510`, and the one that sends from the end ("idle at the end, send") lost
+  its end: the browser's scroll anchoring, as the top shrank, read as a scroll away from it. Keeping
+  the start moves nothing, at the end or above it, and drops the scroll tracking the first attempt
+  needed.
+- **Alternatives considered**: sliding at the end only, scrolling to the end after each slide: a
+  correction per message that the follow logic would have to share.
+- **If wrong**: a session left open for hours draws thousands of messages: slide again, and keep the
+  end in view after each slide.
+- **Where**: task 4 of the plan.

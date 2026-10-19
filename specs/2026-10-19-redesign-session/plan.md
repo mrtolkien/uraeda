@@ -568,7 +568,7 @@ files import them. Change nothing else. Run `nix develop -c vp test packages/web
 passes before and after. Commit alone:
 `refactor(redesign-session): move the transcript's messages out of Transcript.tsx`.
 
-- [ ] **Step 2: Write the failing tests, and the helpers they use**
+- [x] **Step 2: Write the failing tests, and the helpers they use**
 
 Helper: `seedMessages(fake, repo, count)`: a chat in the cache with `count` human messages, each
 followed by a tool call and an agent text, spread over several turns, written as
@@ -602,11 +602,11 @@ The break each catches:
 - The place: a button that inserts above without keeping the reader's position.
 - The address: a tail that never reaches an older turn, so the anchor is missing.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
   - Run: `nix develop -c vp test packages/web/src/__tests__/session-tail.test.tsx`
   - Expected: FAIL, `expected 120 to have a length of 20`
 
-- [ ] **Step 4: Implement the tail**
+- [x] **Step 4: Implement the tail**
 
 `tail.tsx` owns the window and walks backward from the session's latest turn: each segment is one
 page of one turn, read with `useTurn` and `useTurnLog` (the pages the server already serves, one
@@ -629,13 +629,13 @@ back from `currentEntry()`), so Back and a reload draw the same count. "Show ear
 the latest `shown` messages: a new message slides it by one, and a growing reply changes nothing
 (R2).
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
   - Run: `nix develop -c vp check`, `nix develop -c vp run ts:test`, and
     `nix develop -c vp run browser:phone` (the place, and the page's other WebKit tests: opening at
     the end, Back's scroll, "Jump to the latest")
   - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-19-redesign-session/
