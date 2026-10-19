@@ -366,15 +366,15 @@ git commit -m "test(fix-testing): rebuild the Rust tests as flows"
 - Produces: flows owning the sign-in, stack, repositories, attachments, settings, notifications, and
   agents rules.
 
-- [ ] **Step 1: Inventory and coverage**, as in Task 4, for `packages/server`.
-- [ ] **Step 2: Write the flows**, from the decisions' rules, with the break of each flow that
+- [x] **Step 1: Inventory and coverage**, as in Task 4, for `packages/server`.
+- [x] **Step 2: Write the flows**, from the decisions' rules, with the break of each flow that
       guards security (an unsigned request, a foreign host) run by hand and reported.
-- [ ] **Step 3: Run them**: `nix develop -c vp test --project server --run`. Expected: PASS, and
-      each break FAILS its flow.
-- [ ] **Step 4: Delete the old tests**, run the coverage again, and list in the ruling what the area
+- [x] **Step 3: Run them**: `nix develop -c vp test --project uraeda-server --run`. Expected: PASS,
+      and each break FAILS its flow.
+- [x] **Step 4: Delete the old tests**, run the coverage again, and list in the ruling what the area
       no longer runs.
-- [ ] **Step 5: Run the project's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 6: Commit**
+- [x] **Step 5: Run the project's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server specs/2026-10-19-fix-testing/rulings.md

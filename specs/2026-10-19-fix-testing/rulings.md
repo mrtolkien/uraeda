@@ -154,3 +154,125 @@ The `Cargo.toml` change, outside the plan's files: the `image` and `libwebp-sys`
 optimized in the dev profile, since the image flows encode photos and an unoptimized encoder took 8
 s of a 10 s run (3 s now). If wrong: remove the two `[profile.dev.package.*]` tables, and the flows
 take 7 s more.
+
+## R4: The server's old tests, and the flows that replace them
+
+- **Decision**: the server's 51 old test files (895 tests, 53 seconds) are replaced by 14 flow files
+  in [`packages/server/src/__flows__/`](/packages/server/src/__flows__/) (161 tests, 11 seconds with
+  the three kept files' 43), and the three files other tasks own stay. A flow is written from the
+  decision's rule and the product's routes, never from an old test; the rule it owns is in its
+  header. A test of a security rule is table-driven over what the product has: `access.test.ts`
+  reads every route from the app's own routing table, so a route added without a row fails it. The
+  helpers `__tests__/helpers.ts`, `__tests__/live-stream.ts`, `preview/__tests__/helpers.ts`, and
+  the three benchmarks (`*.bench.ts`: success criteria, not tests) stay, as the flows and the
+  benchmarks use them.
+- **Flows**: `access` (A), `sign-in` (S), `preview` (P), `runner` (R), `claude` (C), `repositories`
+  (Rp), `attachments` (At), `settings` (St), `fate` (F), `inbox` (I), `live` (L), `needs-you` (N),
+  `files` (Fl), and `start` (Sr), the server as `main.ts` runs it, in its own process.
+- **Where the plan differs**: `vp test --project server` names no project: it is
+  `--project uraeda-server`. `__flows__/helpers.ts` is new, beside the kept helpers; no file moved.
+- **Rules ending "Checked by ..." and their flow**: stack, listens on loopback only (Sr, `vp dev`
+  too) and accepts only its own pages and secret frames (A), no write from a preview's frame (P);
+  the embed's sandbox is the web's (Task 6), and the proxy's and the mockups' sandbox headers are
+  P's and Fl's; it stops its Storybooks when it stops (P). Sign-in: the table over every route (A),
+  key and sessions never stored as shown, 30 days, sign-out ends streams, a new key, failures (S),
+  the frame secret and no credentials to a process (P). Repositories: scoped by name, each with its
+  own endpoint and live updates (Rp, L). Attachments: chat images out of git, served so a browser
+  cannot run them (At). Settings: the order, a flag never written (St). Agents: one neutral shape
+  (R, C), the least permission, one session per feature in its worktree (R). Notifications: listed
+  only as the server's statuses say (N). The notifier's rules 2 to 5 (permission asked only after
+  the explanation, no interruption of a viewer, the click, the tab's title) are the page's, not the
+  server's: they are not covered here and belong to Task 6.
+- **Breaks, run by hand and reverted**: 37, listed in the flows' commit bodies, and each made its
+  flow fail: the session check letting every request through, a path dropped from `SERVER_PATHS`, a
+  route added outside it, the guard skipping the host check, any frame secret accepted, the proxy
+  forwarding the cookie, dropping the sandbox, or forwarding writes, a mockup unsandboxed, a chat
+  image saved in the repository, an image without `nosniff` or its CSP, an upload while the agent
+  works, the cleanup deleting an image a message holds, routes reading the most recent repository,
+  the file winning over the flag, listening on `0.0.0.0` (the server, and `vp dev`), a session that
+  never ends, a sign-out that keeps the stream, a new key that keeps the sessions, a key stored as
+  shown, a sign-out that keeps the frame secret, a stop that leaves the Storybooks, a start that
+  leaves a killed server's, permissions bypassed, the agent in the main checkout, an image path
+  taken as given, a commit bar that commits nothing, a refused action that asks nothing, a commit
+  not published, a move checking the wrong hash, a triage submitted without its hash, a step that
+  waits on the human no longer a status, Claude Code's tool calls unread, a queued message steered,
+  a take-back naming no message. Not run: a break in the core's git writes (a priority committed
+  with someone's other changes, the triage's commit), which sit in `crates/`, off limits to this
+  task: `fate` and `inbox` check their effect through the server (the commit's files, the head, the
+  status), and Task 4's flows own that break.
+- **Coverage, `packages/server`, lines**: 83.0% (3,416 of 4,117) before, 59.2% after. What no longer
+  runs, from the diff of the two reports, the files that lost 25 points or more: the preview
+  runner's failure paths (the readiness timeout, the idle stop, the port retry, the restart after a
+  new commit: 94.9% to 69.0%), the story index and the `Story` records read for the embeds
+  (`fate/preview.ts`, `preview/index.ts`), the session manager's chat features (the list, search,
+  rename, archive, Allow all, sub-agents, image sizes, queues: `runner/sessions.ts`, `processes.ts`,
+  `transcript.ts`, `send-input.ts`, `message.ts`), Claude Code's event parser beyond a turn, a
+  refusal, and a skipped line (`claude-events.ts`, 97.4% to 42.5%), the views of the ledger,
+  history, and branch changes, the tokens, the settings page's mutations beyond the hosts, the
+  second start's handoff (`open-client.ts`, `sign-in/host.ts`: it runs in a child process, which the
+  report does not see), the stale-binding check (`binding.ts`), the browser launcher, `vp dev`'s
+  wiring, `worktree-seed.ts`, and `pulls.ts`. They are the web flows' to read (Task 6), or dropped
+  below. The report is `vp test --project uraeda-server --coverage`; the config's coverage
+  exclusions need `**/__flows__/**` too, which `vite.config.ts` does not have yet.
+- **Rationale**: SC-005 asks for a record of every old file, and the flows are far fewer and break
+  on a behaviour, where the old tests broke on a label, a count, or a status text.
+- **Alternatives considered**: keeping the session manager's unit tests, which fail on every change
+  of a label or a count, the failures the spec set out to end.
+- **If wrong**: restore a file from the commit before the deletion (`git show 9bb8de39:<path>`), and
+  add its flow.
+- **Where**: task 5 of the plan; the flows' commits and the deletion's.
+
+| Old file                               | Flow, or the rule that dropped it                                                                                                                                                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `__tests__/allowed-hosts.test.ts`      | A (a host added applies to the next request, removed does not), St (a flag's names stay).                                                                                                                                                                                            |
+| `__tests__/attach.test.ts`             | At, A. Dropped: the 21 MB wording, chunked bodies, a write failure's text (asserts text), the refusal before the body is read (duplicates the limit row).                                                                                                                            |
+| `__tests__/browser.test.ts`            | Dropped: a table of the launch command per platform, which fails on a refactor, and opening a browser cannot be seen.                                                                                                                                                                |
+| `__tests__/coverage-summary.test.ts`   | Dropped: it tests the coverage report's script, which no decision's rule needs ("a drop MUST NOT fail a check"). Task 8 may keep it.                                                                                                                                                 |
+| `__tests__/decisions-check.test.ts`    | I (the same `defaultRound` mutations and round file). Dropped: the check's two messages (text), the decisions page's data (a view the web flows read).                                                                                                                               |
+| `__tests__/dev.test.ts`                | Sr (`vp dev` on loopback only). Dropped: its hosts from `.env`, its handoff on Vite's port, its preview paths, its upgrade refusal, sign-in under `vp dev`: wiring of a development tool.                                                                                            |
+| `__tests__/env.test.ts`                | St (the order flag, variable, file, default; `.env`; the data and config folders). Dropped: the `--help` and `--version` texts, a relative data folder, the `--new-key` flag's parsing.                                                                                              |
+| `__tests__/fast-check.test.ts`         | Kept: Task 3's.                                                                                                                                                                                                                                                                      |
+| `__tests__/fate.test.ts`               | F, I, L. Dropped: the shapes of the ledger, history, branch changes, progress, and tokens (a count or a shape the web flows read), the logging of an internal error.                                                                                                                 |
+| `__tests__/files.test.ts`              | Fl, At. Dropped: the 500 for an unreadable file, with its log line.                                                                                                                                                                                                                  |
+| `__tests__/folders.test.ts`            | Rp (one table of the suggestions). Dropped: `typedFolder`'s refusal table, a folder that cannot be read (a permission the test changed).                                                                                                                                             |
+| `__tests__/free-port.test.ts`          | Dropped: duplicates the flows that start on a free port (P, Sr), which fail if it fails.                                                                                                                                                                                             |
+| `__tests__/guard.test.ts`              | A (hosts, origins, fetch sites, over every route), P (frames and upgrades, through real sockets). Dropped: `guardCheck`'s unit rows, which A and P cover through the server.                                                                                                         |
+| `__tests__/inbox.test.ts`              | I, F. Dropped: the inbox's per-note edits (edit, recategorize, insert) as shape, the image note, the triage as a round of questions (a view).                                                                                                                                        |
+| `__tests__/live.test.ts`               | L, At (the image cleanup). Dropped: the 250 ms throttle (elapsed time), event ids, the sub-agent and take-back updates, the ledger's and decisions' updates.                                                                                                                         |
+| `__tests__/locked-list.test.ts`        | Rp.                                                                                                                                                                                                                                                                                  |
+| `__tests__/main.test.ts`               | Sr (loopback, the key once, a second start, another data folder, a failed start, stop). Dropped: `--help` and `--version`, the stale-binding checks (the config rebuilds it before every test), `--new-key`, the one-time page's mode, SIGHUP, the port-in-use text, `open_browser`. |
+| `__tests__/needs-you.test.ts`          | N.                                                                                                                                                                                                                                                                                   |
+| `__tests__/open.test.ts`               | Sr (a second start hands over), A (the host token, a cross-site hand over). Dropped: a folder outside git and an unsent folder's statuses.                                                                                                                                           |
+| `__tests__/paths.test.ts`              | Dropped: duplicates C and Sr, which fail if the plugin folder or the built UI is not found.                                                                                                                                                                                          |
+| `__tests__/preview.test.ts`            | P. Dropped: the story index, a story's id, a view after a commit, and a turn starting a Storybook: the embeds' reads, the web flows'.                                                                                                                                                |
+| `__tests__/pulls.test.ts`              | Dropped: `gh` runs counted by the minute: elapsed time and a count.                                                                                                                                                                                                                  |
+| `__tests__/repositories.test.ts`       | Rp, Fl (the old raw link). Dropped: a moved or missing folder's state, a failing watch's log, a repository inside another, `item.settings`.                                                                                                                                          |
+| `__tests__/run-folder.test.ts`         | P (a start ends a killed server's Storybooks). Dropped: the `run/` layout and the removal of an earlier version's files (a migration).                                                                                                                                               |
+| `__tests__/server.test.ts`             | Sr, P, S. Dropped: the sweep every minute (elapsed time), a recorded pid that now names another process, a sign-in file that is invalid (the store's, below).                                                                                                                        |
+| `__tests__/sessions.test.ts`           | R, N, C, At. Dropped: about 45 tests of the session list, search, rename, archive, Allow all counts, sub-agents, queues, image sizes, `change.start`, and slug proposals: labels, counts, and statuses the web flows read.                                                           |
+| `__tests__/settings-fate.test.ts`      | A (hosts), St. Dropped: the empty record, a port's refusal text.                                                                                                                                                                                                                     |
+| `__tests__/settings-watch.test.ts`     | St (a hand edit applies). Dropped: symlinks, bursts, a thrown listener: the watcher's internals.                                                                                                                                                                                     |
+| `__tests__/settings.test.ts`           | St.                                                                                                                                                                                                                                                                                  |
+| `__tests__/stack.test.ts`              | Dropped: no markdown parser is a rule "Checked by review", and the 44 px of an element asserts a size.                                                                                                                                                                               |
+| `__tests__/test-run.test.ts`           | Kept: Task 8's.                                                                                                                                                                                                                                                                      |
+| `__tests__/toolchain.test.ts`          | Kept: Task 8's.                                                                                                                                                                                                                                                                      |
+| `__tests__/worktree-seed.test.ts`      | Dropped: a development script no decision's rule needs. Task 8 may keep it.                                                                                                                                                                                                          |
+| `preview/__tests__/index.test.ts`      | Dropped: the story index's parsing, read by the embeds (web flows, Task 6).                                                                                                                                                                                                          |
+| `preview/__tests__/proxy.test.ts`      | P.                                                                                                                                                                                                                                                                                   |
+| `preview/__tests__/runner.test.ts`     | P (start, stop with the server, the group's end, a killed server's Storybooks). Dropped: the 2 minute and 30 minute limits, the port retry, the failed states, the restart after a commit.                                                                                           |
+| `runner/__tests__/cache.test.ts`       | Dropped: the cache's schema, migrations, and search, internals a flow reads through R and N ("a cache, never workflow state" is checked by review).                                                                                                                                  |
+| `runner/__tests__/claude.test.ts`      | C, R. Dropped: the argument list's exact content (R checks the permission, the rules, and the plugin), the event parser's variants, the transcript lookup.                                                                                                                           |
+| `runner/__tests__/fake.test.ts`        | Dropped: it tests the test double, which every R flow exercises.                                                                                                                                                                                                                     |
+| `runner/__tests__/helpers.ts`          | Deleted with the tests that used it.                                                                                                                                                                                                                                                 |
+| `runner/__tests__/images.test.ts`      | At (the cleanup), R (the paths the agent gets). Dropped: a write failure's text, a file that cannot be deleted.                                                                                                                                                                      |
+| `runner/__tests__/message.test.ts`     | Dropped: asserts the text of every message.                                                                                                                                                                                                                                          |
+| `runner/__tests__/recommended.test.ts` | R (a feature's one message, none on the human). Dropped: the pull request states' table.                                                                                                                                                                                             |
+| `runner/__tests__/sessions.test.ts`    | R, N. Dropped: the steer, queue, take-back, idle-timer, watchdog, `/clear`, and replaced-session cases (the process's lifecycle), the 15 and 30 minute limits (elapsed time).                                                                                                        |
+| `runner/__tests__/status.test.ts`      | N (one table of the statuses).                                                                                                                                                                                                                                                       |
+| `runner/__tests__/tokens.test.ts`      | Dropped: the arithmetic of token counts (counts the web shows).                                                                                                                                                                                                                      |
+| `runner/__tests__/usage.test.ts`       | Dropped: the allowance report's shape (a count).                                                                                                                                                                                                                                     |
+| `sign-in/__tests__/closed.test.ts`     | A (every route, from the routing table).                                                                                                                                                                                                                                             |
+| `sign-in/__tests__/frames.test.ts`     | P, A.                                                                                                                                                                                                                                                                                |
+| `sign-in/__tests__/links.test.ts`      | S (a link once, within minutes, never to another site). Dropped: the page's mode and removal, the link's page in the data folder.                                                                                                                                                    |
+| `sign-in/__tests__/routes.test.ts`     | S, A. Dropped: the cookie's attributes and the refresh after a day (an attribute list), never cached, the 4 KB body's log line.                                                                                                                                                      |
+| `sign-in/__tests__/store.test.ts`      | S. Dropped: two stores on one file, an unwritable folder, an unreadable file never overwritten, the daily record of a use: the store's internals, a hole to read in the review.                                                                                                      |
