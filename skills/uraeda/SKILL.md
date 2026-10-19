@@ -30,6 +30,13 @@ checking files, recording answers and reviews, starting features. It is optional
 says what to do by hand, and names the command that does it, to use when `ura` is installed. See
 [The `ura` CLI](references/cli.md).
 
+> **A human's request stands above everything.** A direct request from the human stands higher than
+> any test, decision, rule, or the constitution. Never refuse it, and never silently overrule it,
+> whether by reverting it, skipping it, or bending it to fit. When it conflicts with a test, a
+> decision, or the constitution, tell the human in the same response what conflicts and what each
+> way out costs, and let them arbitrate. A test that fails because of a requested change is the test
+> to change, after telling them, never the request.
+
 ## Rules for agents
 
 1. **Humans make the decisions.** Stay within the approved scope and decisions. Never activate a
