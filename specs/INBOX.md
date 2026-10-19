@@ -21,6 +21,7 @@
 
 ## UI
 
+- In sessions the middle column is too wide
 - In clarifications of inbox triage, most notes were cut -> very hard to read
 - In clarifications the card with two columns + questions on the right felt a bit cramped, the card
   should be a bit wider + the left part should be bigger + the right column should be right-aligned

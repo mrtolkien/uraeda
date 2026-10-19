@@ -95,7 +95,7 @@ test("an auto block is allowed once with the adapter's rule, and recorded", asyn
     views: [agent("implementation"), agent("final-review", true)],
   });
 
-  expect(adapter.opens[1]).toMatchObject({ allowed: "Bash(npm test)", resume: true });
+  expect(adapter.opens[1]).toMatchObject({ allowed: ["Bash(npm test)"], resume: true });
   expect(loop.blocked).toEqual([{ rule: "Bash(npm test)", target: "npm test", tool: "Bash" }]);
 });
 
