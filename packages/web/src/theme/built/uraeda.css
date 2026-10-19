@@ -836,6 +836,10 @@
     min-height: var(--size-element-md);
   }
 
+    .astryx-markdown:is(*) li {
+    min-height: 0 !important;
+  }
+
     .astryx-chat-tool-calls:is(*) [role="button"] {
     min-height: var(--size-element-md);
   }

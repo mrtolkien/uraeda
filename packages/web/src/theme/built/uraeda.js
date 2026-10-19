@@ -641,6 +641,13 @@ export const uraedaTheme = {
                 "minHeight": "var(--size-element-md)"
               }
             },
+            "markdown": {
+              "base": {
+                ":is(*) li": {
+                  "minHeight": "0 !important"
+                }
+              }
+            },
             "chat-tool-calls": {
               "base": {
                 ":is(*) [role=\"button\"]": {
