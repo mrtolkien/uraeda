@@ -20,6 +20,7 @@ Some layout reviews:
   UI and see what we could use ourselves
 - User stories "Given, When, Then" are hard too read (gray and small) + not aligned with the text
   that follows
+- In specs, "Data model" should leave, not even sure what the card does
 
 ## Why
 
