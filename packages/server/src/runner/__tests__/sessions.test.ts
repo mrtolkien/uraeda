@@ -831,6 +831,43 @@ test("two denials with the same rule pass one rule, and both are marked allowed"
   expect(cache.itemsOf(turn, "denial").every((denial) => denial.allowed)).toBe(true);
 });
 
+test("two Allow all pressed at once: one allows, the other is refused as working", async () => {
+  // No script: the retry turn never ends, so the second press finds it working.
+  const { adapter, repo, session, sessions } = await blockedTwo();
+
+  const results = await Promise.allSettled([
+    sessions.allowAll(repo, session.id),
+    sessions.allowAll(repo, session.id),
+  ]);
+
+  expect(results.map((result) => result.status)).toEqual(["fulfilled", "rejected"]);
+  expect((results[1] as PromiseRejectedResult).reason.message).toBe(
+    "refused: An agent is working on this feature. Stop it first, or wait for it.",
+  );
+  expect(adapter.opens).toHaveLength(2);
+});
+
+test("Allow all pressed with a send: the first holds the session, the second sees it", async () => {
+  const sendFirst = await blockedTwo();
+  const [sent, refused] = await Promise.allSettled([
+    sendFirst.sessions.send(sendFirst.repo, sendFirst.session.id, { text: "Go on" }),
+    sendFirst.sessions.allowAll(sendFirst.repo, sendFirst.session.id),
+  ]);
+  expect(sent.status).toBe("fulfilled");
+  expect((refused as PromiseRejectedResult).reason.message).toBe(
+    "refused: An agent is working on this feature. Stop it first, or wait for it.",
+  );
+  expect(sendFirst.adapter.opens).toHaveLength(1);
+
+  const allowFirst = await blockedTwo();
+  const both = await Promise.allSettled([
+    allowFirst.sessions.allowAll(allowFirst.repo, allowFirst.session.id),
+    allowFirst.sessions.send(allowFirst.repo, allowFirst.session.id, { text: "Go on" }),
+  ]);
+  expect(both.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
+  expect(allowFirst.adapter.opens).toHaveLength(2);
+});
+
 test("Allow all skips an earlier turn's denials", async () => {
   const { adapter, cache, repo, session, sessions, turn } = await blockedTwo();
   adapter.script([
