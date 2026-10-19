@@ -128,7 +128,7 @@ export default defineConfig({
     // happy-dom's error for each mockup frame it does not load.
     setupFiles: [
       fileURLToPath(new URL("../binding/test-setup.ts", import.meta.url)),
-      "src/__tests__/setup.ts",
+      "src/__flows__/setup.ts",
     ],
     // The browser project checks the layout; its tests run in WebKit, from the root's config.
     // The lint fixtures are files to lint, not tests: `only-test.test.tsx` holds a `test.only`.

@@ -175,7 +175,13 @@ export default {
       },
       {
         // The code quality decision exempts tests from the file length limit.
-        files: ["**/__tests__/**", "**/__browser__/**", "**/*.test.ts", "**/*.test.tsx"],
+        files: [
+          "**/__tests__/**",
+          "**/__flows__/**",
+          "**/__browser__/**",
+          "**/*.test.ts",
+          "**/*.test.tsx",
+        ],
         rules: { "max-lines": "off" },
       },
     ],
@@ -210,6 +216,7 @@ export default {
     coverage: {
       exclude: [
         "**/__tests__/**",
+        "**/__flows__/**",
         "**/__browser__/**",
         "**/__lint__/**",
         "**/*.d.ts",

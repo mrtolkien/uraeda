@@ -1,4 +1,4 @@
-// Runs before each test file of the UI's happy-dom tests.
+// Runs before each test file of the UI's happy-dom flows.
 import nodeConsole from "node:console";
 
 /**
