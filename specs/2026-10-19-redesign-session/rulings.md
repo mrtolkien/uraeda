@@ -115,3 +115,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a session left open for hours draws thousands of messages: slide again, and keep the
   end in view after each slide.
 - **Where**: task 4 of the plan.
+
+## R9: The list takes back its own 12 px, and the agent's bubble is 100% wide always
+
+- **Decision**: `Transcript`'s list takes its inset back with a margin of minus `--spacing-3`, the
+  12 px the compact `ChatMessageList` pads its messages with, not with `--page-bleed`. The agent's
+  message is a `ghost` bubble with `width="100%"` and no padding whatever a story shows, so the
+  "width switch" and `MessageStories.shown` are removed.
+- **Rationale**: the mockup's `--page-bleed` is 8 px with `Page isSnug`, and 16 px without it, and
+  the list's padding is 12 px either way: only a margin of that padding puts the reply at the page's
+  inset, whichever page holds the list, and it does not wait for task 6. A bubble that is always as
+  wide as the page leaves the switch no work: the story's two widths already have the room.
+- **Alternatives considered**: `--page-bleed`, which leaves the reply 4 px in from the inset on a
+  snug page and 4 px out on the default one. Keeping the switch as dead state.
+- **If wrong**: restore `shown` in `AgentStories.tsx` and the switch in `AgentMessage`, and set the
+  list's margin from `--page-bleed` once the padding and the inset agree.
+- **Where**: task 5 of the plan.
+
+## R10: One WebKit test seeds taller messages, as the agent's text is flat now
+
+- **Decision**: `session.test.tsx` "opening the line moves the place read, which the next width
+  keeps" seeds each of its 60 lines as two paragraphs, `Line N.` then `More.`, not as one.
+- **Rationale**: the agent's text lost its bubble's padding, so the 20 messages of the tail made a
+  page of 1317 px, not 1893: at 1440 px the page was too short to keep the line read where it was
+  (it was 173 px off, the scroll clamped at the page's end). The test's subject is the place kept
+  across the widths, not the page's height. Three paragraphs, the next size tried, were 6 px off.
+- **Alternatives considered**: loosening the 2 px, which drops what the test guards.
+- **If wrong**: restore the one-line seed, and the test fails on the short page.
+- **Where**: task 5 of the plan.

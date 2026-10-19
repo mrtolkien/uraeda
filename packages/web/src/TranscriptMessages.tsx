@@ -5,6 +5,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
+import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -18,11 +19,18 @@ import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
+  agent: {
+    // The agent's text takes the page's width: no padding of its own.
+    paddingInline: 0,
+  },
   notice: {
     // Astryx centres a system line, as a chat's date separators are; the UI layout decision keeps
     // text left-aligned.
     justifyContent: "flex-start",
     textAlign: "start",
+  },
+  user: {
+    backgroundColor: colorVars["--color-background-blue"],
   },
 });
 
@@ -119,7 +127,10 @@ function Message({
       }
       sender="user"
     >
-      <ChatMessageBubble variant={pending ? "ghost" : "filled"}>
+      <ChatMessageBubble
+        variant={pending ? "ghost" : "filled"}
+        xstyle={pending ? undefined : styles.user}
+      >
         <MessageBody item={item} pending={pending} />
       </ChatMessageBubble>
     </ChatMessage>
@@ -127,24 +138,14 @@ function Message({
 }
 
 /**
- * An agent's message, as markdown, with the stories it links once it ended: its bubble takes the
- * column's width while a story shows in it, so the story's two widths have room.
+ * An agent's message, as markdown, with the stories it links once it ended: flat text across the
+ * page, with no bubble of its own, so a story shows in the width the page has.
  */
 function AgentMessage({ streaming, text }: { streaming: boolean; text: string }) {
-  const [shown, setShown] = useState(0);
-  const stories = useMemo<MessageStories>(
-    () => ({
-      ended: !streaming,
-      shown: () => {
-        setShown((count) => count + 1);
-        return () => setShown((count) => count - 1);
-      },
-    }),
-    [streaming],
-  );
+  const stories = useMemo<MessageStories>(() => ({ ended: !streaming }), [streaming]);
   return (
     <ChatMessage sender="assistant">
-      <ChatMessageBubble width={shown > 0 ? "100%" : undefined}>
+      <ChatMessageBubble variant="ghost" width="100%" xstyle={styles.agent}>
         <MessageStories value={stories}>
           <Markdown
             autolink="gfm"
