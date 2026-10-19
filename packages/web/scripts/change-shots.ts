@@ -206,14 +206,14 @@ async function atWork(adapter: FakeAdapter, first: Page, repo: string) {
     repo,
     folder,
     {
-      "packages/web/src/__browser__/status-mark.test.tsx": code(18),
+      "packages/web/src/__browser__/pages.test.tsx": code(18),
       "packages/web/src/StatusMark.tsx": code(40),
     },
     "fix(centred-x): the failure mark's x is centred",
   );
   for (const [id, path] of [
     ["r1", "packages/web/src/StatusMark.tsx"],
-    ["r2", "packages/web/src/__browser__/sizes.test.tsx"],
+    ["r2", "packages/web/src/__browser__/columns.test.tsx"],
   ] as const) {
     adapter.emit({
       id,

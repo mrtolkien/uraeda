@@ -464,6 +464,8 @@ test("the fast check exists and does not replace ready", () => {
   expect(Object.keys(readyTasks())).not.toContain("fast");
   expect(tasks.ready.dependsOn?.length).toBeGreaterThan(0);
   expect(tasks.fast.cache).toBe(false);
+  // The server tests it relates read the built web UI, as `ts:test`'s do.
+  expect(tasks.fast.dependsOn).toContain("web:build");
 });
 
 /**

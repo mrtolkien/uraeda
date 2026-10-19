@@ -3,8 +3,8 @@ import { expect, test } from "vite-plus/test";
 import { select } from "../../../../scripts/fast-check.ts";
 
 /** The commands of a plan, each as one line. */
-function commands(files: Array<string>): Array<string> {
-  return select(files).map(({ command }) => command.join(" "));
+function commands(files: Array<string>, exists?: (file: string) => boolean): Array<string> {
+  return select(files, exists).map(({ command }) => command.join(" "));
 }
 
 const BINDING_ENTRY = "packages/binding/index.js";
@@ -57,4 +57,22 @@ test("a documentation change runs the checks alone", () => {
 
 test("no change still runs the checks", () => {
   expect(commands([])).toEqual(["vp check"]);
+});
+
+test("a deleted file is not passed to the related tests, which fail on a path they cannot find", () => {
+  const gone = "packages/web/src/Gone.tsx";
+  const kept = "packages/web/src/Composer.tsx";
+  const plan = commands([gone, kept], (file) => file !== gone);
+  expect(plan.some((line) => line.startsWith("vp test related") && line.includes(kept))).toBe(true);
+  expect(plan.join(" ")).not.toContain(gone);
+});
+
+test("a change that only deletes source files still runs the checks it can", () => {
+  expect(commands(["packages/web/src/Gone.tsx"], () => false)).toEqual(["vp check"]);
+});
+
+test("a deleted Rust file still runs its crate's tests and the tests loading the binding", () => {
+  const plan = commands(["crates/core/src/gone.rs"], () => false);
+  expect(plan.some((line) => line.startsWith("cargo nextest run"))).toBe(true);
+  expect(plan.some((line) => line.includes(BINDING_ENTRY))).toBe(true);
 });

@@ -183,10 +183,11 @@ export const tasks = {
   },
   // The checks to run after every task, on what the branch changed (see `scripts/fast-check.ts`):
   // it chooses them from git's diff, so it is never cached, and `ready` still runs before a push.
+  // The server's tests it may run read the built web UI, which `web:build` caches.
   fast: {
     cache: false,
     command: "node scripts/fast-check.ts",
-    dependsOn: ["binding:touch"],
+    dependsOn: ["binding:touch", "web:build"],
   },
   "lua:fmt": {
     cache: { input: ["editors/nvim/**", ...toolchainInputs], output: [] },
@@ -341,8 +342,9 @@ export const tasks = {
         ".github/workflows/ci.yml",
         "crates/*/Cargo.toml",
         "crates/*/src/lib.rs",
-        // `vp run coverage`'s summary, tested with the server's tests.
-        "scripts/**",
+        // The scripts the server's tests import: the runner's and the fast check's.
+        "scripts/test-run.ts",
+        "scripts/fast-check.ts",
       ],
       output: [],
       untrackedEnv: testEnv,

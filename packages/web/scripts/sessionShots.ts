@@ -68,7 +68,7 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
     [`specs/${FOLDER}/plan.md`]: planText(ELEVEN),
     "crates/core/src/files/plan.rs": code(31),
     "crates/core/src/git.rs": code(38),
-    "packages/web/src/__browser__/layout.test.tsx": code(45),
+    "packages/web/src/__browser__/columns.test.tsx": code(45),
     "packages/web/src/SessionAside.tsx": code(148),
   };
   for (const [path, text] of Object.entries(files)) {
@@ -85,10 +85,10 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
   }
   adapter.emit({
     id: "test",
-    input: { command: "vp test session" },
+    input: { command: "vp test session-place" },
     kind: "execute",
     name: "Bash",
-    target: "vp test --project uraeda-web-browser session",
+    target: "vp test --project desktop session-place",
     type: "toolStart",
   });
   await wait(1000);

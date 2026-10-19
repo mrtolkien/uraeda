@@ -6,6 +6,7 @@
  * fails.
  */
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 /** A command of the plan, which the runner wraps in `scripts/test-run.ts`. */
@@ -72,9 +73,16 @@ function rustSteps(files: Array<string>): Array<Step> {
   return [...format, { command: run, heavy: true, isolated: true }];
 }
 
-/** The plan for a change: `vp check` always, then the tests the files reach. */
-export function select(files: Array<string>): Array<Step> {
-  const related = files.filter(isSource);
+/**
+ * The plan for a change: `vp check` always, then the tests the files reach. `exists` tells a file
+ * of the change that is still there from one the change deleted: Vitest fails on a path it cannot
+ * find, and a deleted file reaches no test, so only `vp check` and the Rust steps see it.
+ */
+export function select(
+  files: Array<string>,
+  exists: (file: string) => boolean = () => true,
+): Array<Step> {
+  const related = files.filter((file) => isSource(file) && exists(file));
   if (matches(BINDING_PATHS, files)) {
     related.push(BINDING_ENTRY);
   }
@@ -131,7 +139,7 @@ if (import.meta.main) {
   const root = join(import.meta.dirname, "..");
   const files = changedFiles(root, process.argv[2]);
   process.stdout.write(`fast: ${files.length} changed file(s)\n`);
-  for (const step of select(files)) {
+  for (const step of select(files, (file) => existsSync(join(root, file)))) {
     process.stdout.write(`\n$ ${step.command.join(" ")}\n`);
     const status = run(root, step);
     if (status !== 0) {
