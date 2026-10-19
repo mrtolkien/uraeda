@@ -255,7 +255,7 @@ test("a refused answer keeps its text next to its question, and Submit stops", a
   await click(saveButton("Q1"));
 
   // The error stays at the question and the text is kept, still unsaved.
-  await waitFor(() => expect(within(question("Q1")).getByText(/not saved/i)).toBeTruthy());
+  expect(await within(question("Q1")).findByRole("alert")).toBeTruthy();
   expect(comment("Q1").value).toBe("mine");
   expect(saveButton("Q1").disabled).toBe(false);
   await click(submit());

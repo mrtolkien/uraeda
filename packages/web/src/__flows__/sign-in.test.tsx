@@ -179,11 +179,13 @@ test("a sign-out the server never got is said, and the page stays", async () => 
       : browser(input, init);
   await app.open(SIGN_IN, { fetch: stopped });
   await screen.findAllByRole("button");
-  const before = document.body.textContent;
 
   await click(screen.getByRole("button", { name: "Sign out" }));
 
-  await waitFor(() => expect(document.body.textContent).not.toBe(before));
+  // An alert with a message: the page's live region, which is empty, is one too.
+  await waitFor(() =>
+    expect(screen.getAllByRole("alert").some((alert) => alert.textContent)).toBe(true),
+  );
   expect(signInScreen()).toBe(false);
 });
 

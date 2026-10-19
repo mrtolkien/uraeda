@@ -56,6 +56,7 @@ const styles = stylex.create({
  * default.
  */
 export function EditableLine({
+  describedBy,
   display,
   empty,
   field: key,
@@ -65,6 +66,8 @@ export function EditableLine({
   stayOpen = false,
   value,
 }: {
+  /** The id of the text that describes the line, for the button and the field. */
+  describedBy?: string;
   display?: ReactNode;
   empty?: string;
   field: string;
@@ -80,6 +83,7 @@ export function EditableLine({
     return (
       <VStack gap={1}>
         <Link
+          aria-describedby={describedBy}
           color="primary"
           onClick={line.openLine}
           type="inherit"
@@ -91,7 +95,7 @@ export function EditableLine({
       </VStack>
     );
   }
-  return <LineField label={label} line={line} />;
+  return <LineField describedBy={describedBy} label={label} line={line} />;
 }
 
 /**
@@ -99,9 +103,11 @@ export function EditableLine({
  * restore notice of its unsaved text, and its save's status.
  */
 export function LineField({
+  describedBy,
   label,
   line,
 }: {
+  describedBy?: string;
   label: string;
   line: ReturnType<typeof useLineSave>;
 }) {
@@ -113,6 +119,7 @@ export function LineField({
         <RestoreNotice changed={LINE_CHANGED} onDiscard={line.drop} restored={field.restored} />
       )}
       <TextInput
+        aria-describedby={describedBy}
         hasAutoFocus
         isLabelHidden
         isLoading={line.state.kind === "saving"}

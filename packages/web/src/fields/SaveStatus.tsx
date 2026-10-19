@@ -37,7 +37,9 @@ export function SaveStatus({ dirty, state }: { dirty: boolean; state: SaveState 
           </Text>
         )}
         {state.kind === "error" && (
-          <span {...stylex.props(styles.error)}>Not saved: {state.message}</span>
+          <span role="alert" {...stylex.props(styles.error)}>
+            Not saved: {state.message}
+          </span>
         )}
         {dirty && state.kind !== "saving" && (
           <Text color="secondary" type="supporting">

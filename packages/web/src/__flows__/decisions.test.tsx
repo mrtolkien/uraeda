@@ -53,7 +53,7 @@ function linkTo(path: string) {
 
 /** A control's disabled state, as Astryx sets it. */
 const disabled = (element: HTMLElement) =>
-  (element.getAttribute("aria-disabled") ?? element.getAttribute("disabled")) !== null;
+  element.getAttribute("aria-disabled") === "true" || element.hasAttribute("disabled");
 
 test("a decision and a principle open in the pane at an address a reload keeps", async () => {
   await app.open("/decisions");

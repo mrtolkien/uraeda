@@ -158,9 +158,12 @@ test("a server that cannot be reached says so, with a way to try again; a reload
   const logged = expectLogged(console, "error", /Failed to fetch|The above error occurred/s);
   await app.open("/", { fetch: down });
 
-  expect(await screen.findByRole("button")).toBeTruthy();
+  const retry = await screen.findByRole("button", { name: "Try again" });
   expect(screen.queryAllByRole("link")).toHaveLength(0);
   expect(logged).toHaveBeenCalled();
+  // Trying again against a server still down says so again, and offers it again.
+  await click(retry);
+  expect(await screen.findByRole("button", { name: "Try again" })).toBeTruthy();
 
   await app.open("/", { reload: true });
   expect((await screen.findAllByRole("link")).length).toBeGreaterThan(0);

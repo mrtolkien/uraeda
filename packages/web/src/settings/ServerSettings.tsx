@@ -169,10 +169,13 @@ export function ServerSettings({
       <Hosts actions={actions} values={values} />
       <VStack gap={2}>
         <Heading level={3}>Port</Heading>
-        <Text color="secondary">The port on 127.0.0.1. A change applies at the next start.</Text>
+        <Text color="secondary" id="port-note">
+          The port on 127.0.0.1. A change applies at the next start.
+        </Text>
         {portNote && <Text color="accent">{portNote}</Text>}
         <HStack>
           <EditableLine
+            describedBy="port-note"
             empty={EMPTY_PORT}
             field="settings.port"
             label="Port"

@@ -128,12 +128,11 @@ test("a host name added to the file by hand is listed once the page reads again"
 test("the port is saved for the next start, said so, and a port out of range is refused", async () => {
   await server();
   const port = await screen.findByRole("button", { name: "4310" });
-  // The port cannot apply at once: the page says when it applies, in a text describing the field.
-  // The nearest part of the page around the port that says when it applies holds the port alone.
-  let around: HTMLElement | null = port;
-  while (around && within(around).queryAllByText(/next start/i).length === 0) {
-    around = around.parentElement;
-  }
+  // The port cannot apply at once: the page says when in a text describing the field, and the
+  // port is a value to type, not a switch beside it.
+  const note = document.getElementById(port.getAttribute("aria-describedby") ?? "");
+  expect(note?.textContent).toBeTruthy();
+  const around = note!.parentElement;
   expect(around).not.toBeNull();
   expect(around!.querySelector("[role=switch],input[type=checkbox]")).toBeNull();
 

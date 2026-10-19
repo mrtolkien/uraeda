@@ -204,8 +204,7 @@ test("a comment the core refuses comes back in its form with its text, and nothi
   await click(addButton());
 
   // The form closes while the comment is sent, and comes back with the refusal as an alert.
-  expect(await screen.findByRole("alert")).toBeTruthy();
-  expect(form()!.contains(screen.getByRole("alert"))).toBe(true);
+  await waitFor(() => expect(within(form()!).getByRole("alert").textContent).toBeTruthy());
   expect(field().value).toBe("# Too vague");
   expect(existsSync(review(FOLDERS.refused))).toBe(false);
   expect(pending()).toHaveLength(0);
