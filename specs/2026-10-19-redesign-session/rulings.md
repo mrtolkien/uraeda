@@ -169,3 +169,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   allow; a 12 px page inset, which is not what the spec says.
 - **If wrong**: the two margins are tokens in `TranscriptMessages.tsx`: change them with the inset.
 - **Where**: tasks 5 and 6, after the merge.
+
+## R13: A markdown list's items are not rows a finger taps
+
+- **Decision**: the theme gives the `markdown` component's `li` no minimum height under a coarse
+  pointer, where the `item` rule gives every Astryx row 44 px.
+- **Rationale**: Astryx draws a markdown list item as an `Item`, so on the phone each bullet sat in
+  a 44 px row, its dot at the top and its text centred, 8 px apart (seen in the screenshots of task
+  7). Nothing taps a list item, and the controls' 44 px is for what is pressed. The new
+  `session-look.test.tsx` test failed with `expected 44 to be less than 36` before the rule.
+- **Alternatives considered**: restricting the `item` rule to interactive rows, which Astryx's theme
+  cannot select.
+- **If wrong**: remove the `markdown` entry from `theme.ts` and rebuild the theme.
+- **Where**: task 7 of the plan.

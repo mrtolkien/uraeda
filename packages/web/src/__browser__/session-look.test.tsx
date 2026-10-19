@@ -54,6 +54,14 @@ describe("the message look", () => {
       expect(human.left).toBeGreaterThan(inset);
     });
 
+    test("US2: a list's one-line items are as tall as their line, not as a finger's row", async () => {
+      const log = await converse("Reply starts here.\n\n- First point.\n- Second point.");
+      const item = within(log).getByText("First point.").closest("li")!;
+
+      expect(window.matchMedia("(pointer: coarse)").matches).toBe(true);
+      expect(item.getBoundingClientRect().height).toBeLessThan(36);
+    });
+
     test("US2: a code block wider than the screen scrolls inside the block, not the page", async () => {
       const log = await converse(`Reply starts here.\n\n\`\`\`\n${"x".repeat(200)}\n\`\`\``);
       const block = within(log).getByRole("group", { name: "Code" });

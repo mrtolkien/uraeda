@@ -60,6 +60,9 @@ export const uraedaTheme = defineTheme({
           components: {
             // A row a finger taps is a control's height at least.
             item: { base: { minHeight: "var(--size-element-md)" } },
+            // Not a markdown list's items, which nothing taps: Astryx draws them as rows, and 44 px
+            // pushed each bullet off its text. Important, as the row's own rule is the same layer.
+            markdown: { base: { ":is(*) li": { minHeight: "0 !important" } } },
             // A session's tool calls, and their group's header, open with a tap on their row.
             "chat-tool-calls": {
               base: { ':is(*) [role="button"]': { minHeight: "var(--size-element-md)" } },
