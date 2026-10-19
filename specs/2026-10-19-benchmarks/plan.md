@@ -836,7 +836,7 @@ git commit -m "feat(benchmarks): the loop of sessions"
   to read. After the turn, it reads the commit the human made and throws `InvalidRun` when it
   touches a file outside the feature's `specs/` folder.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("the human prompt holds the proposal and the persona, and nothing else", () => {
@@ -882,12 +882,12 @@ The break each test catches:
 - The commit: a human that edits code, which would hand the agent the solution.
 - The folder: a hidden test left in the mount the human reads, found by the real session's folder.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/human.test.ts`
 - Expected: FAIL, `Cannot find module '../human.ts'`
 
-- [ ] **Step 3: Write `benchmarks/human.md` and `human.ts`**
+- [x] **Step 3: Write `benchmarks/human.md` and `human.ts`**
 
 The persona follows SWE-Interact's "busy colleague" as the
 [discovery](discovery-01.md#interactive-benchmarks-with-a-simulated-user) describes: terse answers
@@ -896,12 +896,12 @@ simulation, approval only when each requirement of the proposal appears in the s
 added, changes requested at most twice, and acting only through `ura answer` and `ura review`. Check
 the human's commit by listing its files with `git show --name-only`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks benchmarks/human.md specs/2026-10-19-benchmarks/plan.md

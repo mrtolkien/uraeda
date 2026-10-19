@@ -133,6 +133,9 @@ class Loop {
         step: step.name,
       });
       this.keep("human", step.name, turn.session, turn.gate);
+      if (turn.commit === undefined && turn.session.ok) {
+        return ["failed", `the human made no commit at ${step.name}`];
+      }
       return this.check(turn.session);
     } catch (error) {
       if (isInvalidRun(error)) {

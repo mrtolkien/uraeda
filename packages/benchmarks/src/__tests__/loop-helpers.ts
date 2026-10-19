@@ -98,7 +98,7 @@ export async function runScripted(options: {
     human: (turn) =>
       options.human
         ? options.human(turn, adapter.sent.length)
-        : Promise.resolve({ gate: "answered", session: humanSession() }),
+        : Promise.resolve({ commit: "c1", gate: "answered", session: humanSession() }),
     maxSteps: options.maxSteps ?? 30,
     model: MODEL,
     repo: "/repo",

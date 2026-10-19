@@ -108,3 +108,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   loop.
 - **If wrong**: a different phrase for the limit ends as `failed` with its text in the record.
 - **Where**: task 7, `session.ts` and `loop.ts`.
+
+## R9: The human's limits are checked after its turn, and a silent turn fails the run
+
+- **Decision**: the simulated human's persona says it requests changes at most twice, and `human.ts`
+  checks it: a third request makes the run `invalid`, like a commit outside the feature's folder. A
+  human turn that makes no commit fails the run, since the same gate would come back until the cap.
+  The gate is read from the subject of the commit `ura` made (`approve`, `request changes`,
+  `answer`). The folder allowed is the directory of the file waiting, from `ura next`.
+- **Rationale**: spec's US2 and the decision's rule on invalid runs.
+- **Alternatives considered**: trusting the prompt alone: a model that ignores it would pass.
+- **If wrong**: an `ura` commit subject change shows as a gate named by its subject.
+- **Where**: task 8, `human.ts` and `loop.ts`.

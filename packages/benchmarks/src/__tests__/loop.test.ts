@@ -22,7 +22,7 @@ test("US1.2: the human runs at a gate and the agent only after the answers", asy
   const { loop } = await runScripted({
     human: async (_, sessions) => {
       calls.push(`human after ${sessions} agent sessions`);
-      return { gate: "answered", session: humanSession() };
+      return { commit: "c1", gate: "answered", session: humanSession() };
     },
     pushedAfter: 2,
     turns: [ok, ok],
@@ -183,4 +183,14 @@ test("the step ura names once every task is checked, with no pull request host, 
     "waits-on": "agent",
   });
   expect(loop.outcome).toBe("finished");
+});
+
+test("a human turn that makes no commit fails the run instead of repeating the gate", async () => {
+  const { loop } = await runScripted({
+    human: async () => ({ gate: "no action", session: humanSession() }),
+    turns: [ok],
+    views: [agent("discovery"), human],
+  });
+
+  expect(loop).toMatchObject({ outcome: "failed", reason: expect.stringContaining("no commit") });
 });
