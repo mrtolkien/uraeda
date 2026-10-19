@@ -123,9 +123,9 @@ test("an option shows its candidate as the spec page shows a changed decision", 
   expect(within(card).getByText("New")).toBeTruthy();
   // Its rules, as the core compared them with the active decision, as the spec page draws them.
   expect(within(card).getAllByRole("img", { name: "Must" }).length).toBeGreaterThan(0);
-  // Option B and the second question have no candidate folder: no card under them.
+  // Option B has no candidate folder: no card under it.
   expect(document.getElementById("q1-b-ui-components")).toBeNull();
-  expect(within(question("Q2")).queryByText("Changed")).toBeNull();
+  expect(within(question("Q1")).getAllByText("Changed")).toHaveLength(1);
 });
 
 /** An option can leave more than one decision: each candidate has its own card. */
@@ -149,10 +149,8 @@ test("answering the check writes specs/DECISIONS-CHECK.md and Submit commits it 
   const repo = withCheck();
   await renderPage("/decisions/check", repo, { agent: true });
   await screen.findByRole("heading", { level: 1, name: "Decisions check" });
-  for (const id of ["Q1", "Q2"]) {
-    await click(option(id, "A"));
-    await waitFor(() => expect(answerLine(repo, id)).toBe("**Answer:** A"));
-  }
+  await click(option("Q1", "A"));
+  await waitFor(() => expect(answerLine(repo, "Q1")).toBe("**Answer:** A"));
   const submit = screen.getByRole("button", { name: "Submit answers" }) as HTMLButtonElement;
   await waitFor(() => expect(submit.disabled).toBe(false));
   // A file the page must not commit with the answers.

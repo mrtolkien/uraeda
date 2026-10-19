@@ -158,7 +158,7 @@ fn a_stray_folder_is_reported_and_an_option_with_no_candidate_shows_none() {
         rules(&problems(&repo)),
         vec!["specs/decisions-check/notes: names.candidate"]
     );
-    // Q1's option B and all of Q2 name no candidate: the view holds only option A's.
+    // Q1's option B names no candidate: the view holds only option A's.
     let view = view(&repo);
     assert_eq!(view.candidates.len(), 1);
     assert_eq!(view.candidates[0].option, "a");
