@@ -8,7 +8,6 @@
 
 - [Redesign session](/specs/2026-10-19-redesign-session/proposal.md)
 - [Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are ready, see backlog, with a discovery round and partial answers.](/specs/2026-10-19-benchmarks/proposal.md)
-- [Decisions pass](/specs/2026-10-19-decisions-pass/proposal.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
