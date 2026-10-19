@@ -15,14 +15,20 @@ export type Outgrow = { end: number; start: number };
 
 /**
  * The limits of the space beside the embed's own box, `own`: the page's container, less its inset,
- * and any element beside the box at the same height, in its column's ancestors up to the page, so
- * no column beside it is covered. Elements above or below it, as other blocks, do not stop it.
+ * any ancestor that clips, and any element beside the box at the same height, in its column's
+ * ancestors up to the page, so no column beside it is covered. Elements above or below it, as other blocks, do not stop it.
  */
 function room(own: DOMRect, from: Element, page: Element, outer: Element, inset: number) {
   const bounds = outer.getBoundingClientRect();
   let start = bounds.left + inset;
   let end = bounds.right - inset;
   for (let at: Element | null = from; at && at !== outer; at = at.parentElement) {
+    // An ancestor that clips, like a card, stops the growth at its own edges: it would cut it.
+    if (getComputedStyle(at).overflowX !== "visible") {
+      const box = at.getBoundingClientRect();
+      start = Math.max(start, box.left + at.clientLeft);
+      end = Math.min(end, box.left + at.clientLeft + at.clientWidth);
+    }
     for (const sibling of at.parentElement?.children ?? []) {
       const box = sibling.getBoundingClientRect();
       if (sibling === at || box.width === 0 || box.bottom <= own.top || box.top >= own.bottom) {
