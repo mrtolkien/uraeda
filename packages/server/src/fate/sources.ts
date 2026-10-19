@@ -54,6 +54,7 @@ import {
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
+  DECISIONS_CHECK_ID,
   DEFAULT_ROUND_FILES,
   DEFAULT_ROUND_IDS,
   turnDataView,
@@ -346,8 +347,13 @@ export const sources = createSources<Context>([
   fileSource(
     ledgerDataView,
     repository({
-      byIds: async ({ binding, repo }, ids) =>
-        ids.includes(LEDGER_ID) ? [sentLedger(await binding.readLedger(repo))] : [],
+      byIds: async ({ binding, repo }, ids) => {
+        if (!ids.includes(LEDGER_ID)) {
+          return [];
+        }
+        const check = await binding.readRound(repo, DECISIONS_CHECK_ID);
+        return [sentLedger(await binding.readLedger(repo), check?.status ?? null)];
+      },
     }),
   ),
   fileSource(

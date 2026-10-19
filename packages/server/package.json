@@ -12,7 +12,7 @@
     "./testing": "./src/testing.ts",
     "./limits": "./src/limits.ts",
     "./paths": "./src/paths.ts",
-    "./triage-messages": "./src/runner/triage-messages.ts"
+    "./round-messages": "./src/runner/round-messages.ts"
   },
   "scripts": {
     "start": "node src/main.ts"

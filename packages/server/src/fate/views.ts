@@ -293,6 +293,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
 
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   answered: true,
+  candidates: true,
   committed: true,
   current: true,
   decisionChanges: true,

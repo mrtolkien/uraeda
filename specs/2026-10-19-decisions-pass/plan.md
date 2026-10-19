@@ -548,8 +548,16 @@ git commit -m "feat(decisions-pass): read a decisions check and its candidates"
   `APPLY_DECISIONS_CHECK = "/uraeda Apply my answers in specs/DECISIONS-CHECK.md, following references/decisions-check.md."`,
   exported from `uraeda-server/round-messages`; `WorkflowFile` `decisions-check` readable like
   `inbox-triage`; a change of the check file sends the live update for its id.
+- Built beyond the interfaces above: `LedgerRecord.decisionsCheck: string | null`, the check's
+  status or null, sent on the `Ledger` record (the decisions page's data) and read by the server
+  from `readRound(repo, "decisions-check")`, so the core's `Inbox` and `Ledger` are unchanged; a
+  change of the inbox's files also sends `Ledger ledger` live. `candidates: true` is in the server's
+  `fileDataView` (whole, as `decisionChanges` is), and the web's `FileView` did not need it to
+  type-check, so task 7 adds the nested selection there. The server's source already resolved both
+  round ids, so it needed no change beyond the ledger. Step 2 did not run as written: the rename and
+  the tests landed together, and the breaks below stood in for it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("both messages name the reference and a waiting stop", () => {
@@ -576,14 +584,14 @@ an answer landing in the wrong file, a page that never learns the check changed.
 - Run: `nix develop -c vp test run packages/server/src/__tests__/decisions-check.test.ts`
 - Expected: FAIL, `Cannot find module '../runner/round-messages.ts'`
 
-- [ ] **Step 3: Implement the messages, the source, and the live update**
+- [x] **Step 3: Implement the messages, the source, and the live update**
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp check`, `nix develop -c vp test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages

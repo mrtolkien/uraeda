@@ -8,7 +8,12 @@ import {
   SENT_AS_CHAT_NO_PULL_REQUEST,
 } from "./session-state.ts";
 
-export { APPLY_TRIAGE, ORGANIZE_INBOX } from "./triage-messages.ts";
+export {
+  APPLY_DECISIONS_CHECK,
+  APPLY_TRIAGE,
+  ORGANIZE_INBOX,
+  RUN_DECISIONS_CHECK,
+} from "./round-messages.ts";
 
 /** What a message is about: a feature's or a change's kind, and its folder's path. */
 type Subject = { kind: string; path: string };

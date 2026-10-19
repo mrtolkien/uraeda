@@ -9,7 +9,7 @@ import { typeScaleVars, typographyVars } from "@astryxdesign/core/theme/tokens.s
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
-import { APPLY_TRIAGE, ORGANIZE_INBOX } from "uraeda-server/triage-messages";
+import { APPLY_TRIAGE, ORGANIZE_INBOX } from "uraeda-server/round-messages";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { sendMessage } from "./sessions.ts";

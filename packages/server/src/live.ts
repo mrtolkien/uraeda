@@ -67,7 +67,8 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
     live.update("Inbox", INBOX_ID, { eventId: eventId("inbox") });
   }
-  if (changes.decisions) {
+  // The ledger carries the decisions check's status, which a change of the inbox's rounds moves.
+  if (changes.decisions || changes.inbox) {
     live.update("Ledger", LEDGER_ID, { eventId: eventId("ledger") });
   }
   if (changes.inbox) {
