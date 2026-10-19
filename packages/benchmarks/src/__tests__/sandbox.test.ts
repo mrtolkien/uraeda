@@ -185,3 +185,30 @@ test("the host sessions get a configuration folder with the human's model, the a
   expect(made.env.CLAUDE_CONFIG_DIR).toBe(made.hostConfigDir);
   await made.close();
 });
+
+test("two sandboxes never share a container label, so one's close leaves the other's containers", async () => {
+  const source = temporary();
+  write(join(source, "app.py"), "a\n");
+  const fake = fakeBin(source);
+  vi.stubEnv("PATH", fake.env.PATH ?? "");
+  const options = {
+    case: CASE,
+    claude: "/host/claude",
+    constitution: write(join(temporary(), "c.md"), "# C\n"),
+    effort: "medium",
+    model: "claude-sonnet-5-5",
+  };
+  const first = await prepareSandbox({ ...options, work: join(temporary(), "sandbox") });
+  const second = await prepareSandbox({ ...options, work: join(temporary(), "sandbox") });
+
+  await first.close();
+
+  const labels = fake
+    .calls()
+    .flat()
+    .flatMap((arg) => /benchmark-run=([0-9a-f-]{36})/.exec(arg)?.[1] ?? []);
+  // The creates name two labels, and the first close asked for its own only.
+  expect(new Set(labels).size).toBe(2);
+  expect(labels.at(-1)).toBe(labels[0]);
+  await second.close();
+});

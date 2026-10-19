@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -50,7 +51,8 @@ export type SandboxOptions = {
 export async function prepareSandbox(options: SandboxOptions): Promise<Sandbox> {
   const work = options.work ?? mkdtempSync(join(tmpdir(), "benchmarks-run-"));
   mkdirSync(work, { recursive: true });
-  const label = work.split("/").at(-1) ?? "run";
+  // Unique to the run: another run's `close` must never remove this run's containers.
+  const label = randomUUID();
   const repo = join(work, "repo");
   const bareOrigin = join(work, "origin.git");
   const close = async () => {
