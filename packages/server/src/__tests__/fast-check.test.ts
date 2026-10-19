@@ -76,3 +76,12 @@ test("a deleted Rust file still runs its crate's tests and the tests loading the
   expect(plan.some((line) => line.startsWith("cargo nextest run"))).toBe(true);
   expect(plan.some((line) => line.includes(BINDING_ENTRY))).toBe(true);
 });
+
+test("a fixtures change runs every crate's Rust tests, which read them, not one crate's", () => {
+  expect(commands(["fixtures/specs/ok/spec.md"])).toContain("cargo nextest run");
+});
+
+test("a Lua change checks the Neovim plugin's formatting, and a Rust one does not", () => {
+  expect(commands(["editors/nvim/lua/uraeda/init.lua"])).toContain("stylua --check editors/nvim");
+  expect(commands(["crates/core/src/steps.rs"])).not.toContain("stylua --check editors/nvim");
+});

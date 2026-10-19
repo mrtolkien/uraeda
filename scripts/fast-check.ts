@@ -27,8 +27,11 @@ const BINDING_ENTRY = "packages/binding/index.js";
 /** What the binding is built from or tested against: a change there reaches its tests. */
 const BINDING_PATHS = [/^crates\//, /^skills\//, /^fixtures\//, /^Cargo\.(toml|lock)$/];
 
-/** The Rust workspace's own files, which every crate is built from. */
-const RUST_WORKSPACE = /^(Cargo\.(toml|lock)|clippy\.toml|rust-toolchain\.toml)$/;
+/**
+ * The Rust workspace's own files, which every crate is built from, and the fixtures, which every
+ * crate's tests read (`rust:test`'s inputs list them): a change there runs every crate's tests.
+ */
+const RUST_WORKSPACE = /^(Cargo\.(toml|lock)|clippy\.toml|rust-toolchain\.toml|fixtures\/.*)$/;
 
 /** The files the toolchain test reads without importing them. */
 const TOOLCHAIN_PATHS = [
@@ -57,7 +60,7 @@ function crates(files: Array<string>): Array<string> {
   return [...new Set(names)].toSorted();
 }
 
-/** The Rust steps: a crate's tests and its dependents', or every crate's for a workspace file. */
+/** The Rust steps: a crate's tests and its dependents', or every crate's for a workspace file or a fixture. */
 function rustSteps(files: Array<string>): Array<Step> {
   const names = crates(files);
   const everything = files.some((file) => RUST_WORKSPACE.test(file));
@@ -87,6 +90,10 @@ export function select(
     related.push(BINDING_ENTRY);
   }
   const steps: Array<Step> = [{ command: ["vp", "check"], heavy: true }, ...rustSteps(files)];
+  // `lua:fmt`'s check, which `vp check` does not cover.
+  if (files.some((file) => /^editors\/nvim\/.*\.lua$/.test(file))) {
+    steps.push({ command: ["stylua", "--check", "editors/nvim"] });
+  }
   if (related.length) {
     steps.push({
       command: ["vp", "test", "related", ...related, "--run", ...NO_BROWSER],
