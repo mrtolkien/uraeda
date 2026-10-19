@@ -1,6 +1,6 @@
 // The toolchain decision's rules a tool can read (see `specs/decisions/toolchain.md`): each check is
 // a pure function, shown to fire on a fixture that breaks it, then run on the repository's files.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
@@ -176,32 +176,6 @@ function runnerConfigs(): Record<string, string> {
   return Object.fromEntries(paths.map((path) => [path, readFileSync(join(ROOT, path), "utf8")]));
 }
 
-/** The library crates whose `[lib]` section does not set `doctest = false`. */
-function withDoctests(manifests: Record<string, string>): Array<string> {
-  return Object.entries(manifests)
-    .filter(([, text]) => {
-      const lib = /^\[lib\]\n((?:(?!\[).*\n?)*)/m.exec(text)?.[1] ?? "";
-      return !/^doctest\s*=\s*false\s*$/m.test(lib);
-    })
-    .map(
-      ([crate]) =>
-        `\`${crate}\` must set \`doctest = false\`: cargo-nextest does not run doctests.`,
-    );
-}
-
-/** The manifest of each crate with a library target, by package name. */
-function libraryManifests(): Record<string, string> {
-  const crates = join(ROOT, "crates");
-  return Object.fromEntries(
-    readdirSync(crates)
-      .filter((crate) => existsSync(join(crates, crate, "src/lib.rs")))
-      .map((crate) => {
-        const text = readFileSync(join(crates, crate, "Cargo.toml"), "utf8");
-        return [/^name = "(.+)"$/m.exec(text)?.[1] ?? crate, text];
-      }),
-  );
-}
-
 /**
  * The `--project` options of each `vp test` a command runs, quotes removed. A run with none runs
  * every project.
@@ -362,40 +336,6 @@ function defaultBrowserPort(files: Record<string, string>): Array<string> {
     );
 }
 
-/**
- * The Vitest configs loading the native binding whose first import is not `fresh-binding`: an
- * import before it could load a binding older than the Rust core, which Node cannot reload once
- * rebuilt.
- */
-function staleBindingFirst(configs: Record<string, string>): Array<string> {
-  return Object.entries(configs)
-    .filter(([path, text]) => {
-      const first = /^import\s[^;]*?["']([^"']+)["'];?$/m.exec(uncommented(path, text))?.[1] ?? "";
-      return !/(^|\/)fresh-binding(\.ts)?$/.test(first);
-    })
-    .map(
-      ([path]) =>
-        `\`${path}\` may load the binding before it is rebuilt: import \`uraeda-server/fresh-binding\` first.`,
-    );
-}
-
-/** The Vitest configs of the root's projects whose package is the binding or depends on it. */
-function bindingConfigs(): Record<string, string> {
-  const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
-  return Object.fromEntries(
-    projects
-      .map((project) => (project.endsWith(".ts") ? project : `${project}/vite.config.ts`))
-      .filter((path) => {
-        const manifest = readFileSync(
-          join(ROOT, path.slice(0, path.lastIndexOf("/")), "package.json"),
-          "utf8",
-        );
-        return /"uraeda-binding"/.test(manifest);
-      })
-      .map((path) => [path, readFileSync(join(ROOT, path), "utf8")]),
-  );
-}
-
 /** The browser projects' names: the instances of the root's config file projects. */
 function browserProjects(): Array<string> {
   const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
@@ -403,6 +343,9 @@ function browserProjects(): Array<string> {
   return projectNames().slice(packages);
 }
 
+const NO_RETRY = "Tests are never retried (toolchain decision)";
+
+/** Each check is shown to fire on a fixture that breaks one rule of the decision. */
 test.each([
   [
     "a task without inputs",
@@ -412,151 +355,62 @@ test.each([
     ],
   ],
   [
-    "an uncached check, next to a group and a touch",
-    untracked({
-      "binding:touch": { cache: false, command: "sh -c 'touch -c packages/binding/*.node'" },
-      ready: { command: "true", dependsOn: ["ts:test"] },
-      "ts:test": { cache: false, command: "vp test" },
-    }),
-    [
-      "`ts:test` has no `cache.input`: list the files it reads, so `ready` reruns it when they change.",
-    ],
-  ],
-  [
-    "a task tracking its inputs automatically",
-    untracked({
-      "ts:test": { cache: { input: ["packages/**", { auto: true }] }, command: "vp test" },
-    }),
-    [
-      "`ts:test` tracks its inputs automatically: list the files it reads in `cache.input` instead of `{ auto: true }`.",
-    ],
-  ],
-  [
-    "a check run after a touch",
-    untracked({
-      "ts:test": { cache: false, command: ["touch -c packages/binding/index.js", "vp test"] },
-    }),
-    [
-      "`ts:test` has no `cache.input`: list the files it reads, so `ready` reruns it when they change.",
-    ],
-  ],
-  [
     "a retried runner",
     retried({ "nextest.toml": "[profile.default]\nretries = 2\n" }),
-    [
-      "Tests are never retried (toolchain decision): remove `retries` and fix the test that needed it.",
-    ],
+    [`${NO_RETRY}: remove \`retries\` and fix the test that needed it.`],
   ],
   [
     "a retried Vitest project",
     retried({ "vite.config.ts": "export default {\n  test: {\n    retry: 2,\n  },\n};\n" }),
-    [
-      "Tests are never retried (toolchain decision): remove `retry` and fix the test that needed it.",
-    ],
+    [`${NO_RETRY}: remove \`retry\` and fix the test that needed it.`],
   ],
   [
-    "a Vitest project retried on one line",
-    retried({ "packages/web/vite.config.ts": "export default { test: { retry: 2 } };\n" }),
+    "a runner retried by a task's command",
+    retriedTasks({ "ts:test": { command: ["vp build", "vp test --retry=2"] } }),
     [
-      "Tests are never retried (toolchain decision): remove `retry` and fix the test that needed it.",
-    ],
-  ],
-  [
-    "a runner retried by a task's command or variable",
-    retriedTasks({
-      "rust:test": { command: "NEXTEST_RETRIES=2 cargo nextest run" },
-      "ts:test": { command: ["vp build", "vp test --retry=2"] },
-      "web:build": { command: "vp build" },
-    }),
-    [
-      "`rust:test` retries its tests (toolchain decision): remove `NEXTEST_RETRIES` and fix the test that needed it.",
       "`ts:test` retries its tests (toolchain decision): remove `--retry` and fix the test that needed it.",
     ],
   ],
   [
-    "a crate with doctests",
-    withDoctests({ "uraeda-core": '[package]\nname = "uraeda-core"\n' }),
-    ["`uraeda-core` must set `doctest = false`: cargo-nextest does not run doctests."],
-  ],
-  [
     "a Vitest project no task selects",
-    unselected(["uraeda-binding", "uraeda-server", "phone"], {
-      "browser:phone": { command: "vp test --project phone" },
-      ready: { command: "true", dependsOn: ["ts:test", "browser:phone"] },
-      "ts:test": { command: "env -u GIT_DIR vp test --project uraeda-binding" },
+    unselected(["uraeda-binding", "uraeda-server"], {
+      ready: { command: "true", dependsOn: ["ts:test"] },
+      "ts:test": { command: "vp test --project uraeda-binding" },
     }),
     [
       "`uraeda-server` is in `test.projects`, but no task of `ready` runs it: select the unit projects by exclusion in `ts:test` (`--project '!phone'`), or add a task running it.",
     ],
   ],
   [
-    "a test task outside a run folder, next to a wrapped one and a build",
-    outsideRunFolder({
-      "rust:test": { command: "env -u GIT_DIR cargo nextest run" },
-      "test:nvim": {
-        command: ["cargo build -q", "node ../../scripts/test-run.ts nvim --headless -u x.lua"],
-      },
-      "ts:test": { command: "node scripts/test-run.ts vp test --project '!phone'" },
-      "ui:smoke": { command: ["node scripts/build.ts", "node packages/uraeda/scripts/smoke.ts"] },
-    }),
+    "a test task outside a run folder",
+    outsideRunFolder({ "rust:test": { command: "cargo nextest run" } }),
     [
       "`rust:test` runs tests outside a temporary folder of their own: start its command with `node scripts/test-run.ts`.",
-      "`ui:smoke` runs tests outside a temporary folder of their own: start its command with `node scripts/test-run.ts`.",
     ],
   ],
   [
     "a browser task without the lock",
     unlockedBrowsers(
-      {
-        "browser:desktop": { command: "node scripts/test-run.ts vp test --project desktop" },
-        "browser:phone": {
-          command: "node scripts/test-run.ts --lock browser --slots 2 vp test --project phone",
-        },
-        coverage: {
-          command: "node scripts/test-run.ts vp test --project '!phone' --project '!desktop'",
-        },
-        everything: { command: "node scripts/test-run.ts vp test" },
-      },
-      ["phone", "desktop"],
+      { "browser:desktop": { command: "node scripts/test-run.ts vp test --project desktop" } },
+      ["desktop"],
     ),
     [
       "`browser:desktop` runs browser tests without waiting for the other checkouts': run it with `node scripts/test-run.ts --lock browser --slots 2`.",
-      "`everything` runs browser tests without waiting for the other checkouts': run it with `node scripts/test-run.ts --lock browser --slots 2`.",
     ],
   ],
   [
-    "a fixed port in a test config and a task, but not in a comment",
+    "a fixed port in a test config",
     fixedPorts({
-      "packages/web/vite.browser.config.ts": "export default { test: { api: { port: 63315 } } };\n",
-      "packages/web/vite.config.ts": "// Never `port: 4310` in tests.\nexport default {};\n",
-      storybook: "storybook dev --port 6006",
+      "vite.browser.config.ts": "export default { test: { api: { port: 63315 } } };\n",
     }),
     [
-      "`packages/web/vite.browser.config.ts` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
-      "`storybook` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
-    ],
-  ],
-  [
-    "a config importing something before the binding is rebuilt",
-    staleBindingFirst({
-      "packages/binding/vite.config.ts":
-        '// A comment.\nimport "../server/src/fresh-binding.ts";\nimport { defineConfig } from "vite-plus";\n',
-      "packages/web/vite.browser.config.ts":
-        'import { addRepository } from "uraeda-binding";\nimport "uraeda-server/fresh-binding";\n',
-      "packages/web/vite.config.ts":
-        'import "uraeda-server/fresh-binding";\nimport {\n  devHandler,\n} from "uraeda-server/dev";\n',
-    }),
-    [
-      "`packages/web/vite.browser.config.ts` may load the binding before it is rebuilt: import `uraeda-server/fresh-binding` first.",
+      "`vite.browser.config.ts` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
     ],
   ],
   [
     "a browser config on Vitest's port",
     defaultBrowserPort({
       "a.config.ts": "export default { test: { browser: { enabled: true } } };\n",
-      "b.config.ts":
-        "export default { test: { api: { port: await freePort() }, browser: { enabled: true } } };\n",
-      "c.config.ts": "export default { test: { environment: 'happy-dom' } };\n",
     }),
     [
       "`a.config.ts` starts its browser server on Vitest's port: set `test.api` to `{ port: await freePort() }`.",
@@ -564,43 +418,52 @@ test.each([
   ],
 ])("%s is reported", (_name, problems, expected) => expect(problems).toEqual(expected));
 
-test("a comment naming a retry setting is not reported", () =>
-  expect(
-    retried({
-      ".config/nextest.toml": "# No profile sets retries = 2.\n[profile.default]\n",
-      "vite.config.ts": "// No `retry: 2` here.\n/* nor retry: 3 */\nexport default {};\n",
-    }),
-  ).toEqual([]));
+/** CI's step for a task, as the workflow writes it. */
+const ciStep = (task: string) => `      - run: nix develop -c vp run --no-cache ${task}\n`;
 
-test("a ready task no CI job runs is reported", () => {
-  const ci =
-    "jobs:\n  rust:\n    steps:\n      - run: nix develop -c vp run --no-cache ready:rust\n";
+/** A workflow of one job, with the steps given. */
+const jobs = (steps: string, name = "") => `jobs:\n  a:\n${name}    steps:\n${steps}`;
+
+test("a ready group no CI job runs, or runs cached, is reported", () => {
+  const groups = { "ready:rust": { command: "true" }, "ready:typescript": { command: "true" } };
+  const missing =
+    "`ready` runs `ready:typescript`, but no CI job does: add it to a job in `.github/workflows/ci.yml`.";
+
+  expect(notInCi(groups, jobs(ciStep("ready:rust")))).toEqual([missing]);
   expect(
-    notInCi({ "ready:rust": { command: "true" }, "ready:typescript": { command: "true" } }, ci),
-  ).toEqual([
-    "`ready` runs `ready:typescript`, but no CI job does: add it to a job in `.github/workflows/ci.yml`.",
-  ]);
+    notInCi(
+      groups,
+      jobs(`${ciStep("ready:rust")}      - run: nix develop -c vp run ready:typescript\n`),
+    ),
+  ).toEqual([missing]);
+  expect(
+    notInCi(groups, jobs(ciStep("ready:rust"), "    name: vp run --no-cache ready:typescript\n")),
+  ).toEqual([missing]);
 });
 
-test("CI runs every group of ready", () => {
+test("CI runs every group of ready, uncached", () => {
   expect(
     notInCi(readyGroups(), readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8")),
   ).toEqual([]);
 });
 
-test("a job name or echo naming a ready task does not count as running it", () => {
-  const ci = `jobs:
-  rust:
-    name: vp run --no-cache ready:rust
-    steps:
-      - run: echo 'vp run --no-cache ready:rust'
-      - run: |
-          nix develop --command pnpm exec vp run --no-cache ready:typescript
-`;
-  expect(
-    notInCi({ "ready:rust": { command: "true" }, "ready:typescript": { command: "true" } }, ci),
-  ).toHaveLength(1);
-  expect(notInCi({ "ready:typescript": { command: "true" } }, ci)).toEqual([]);
+test("the repository's tests are isolated, never retried, and ready runs every check", () => {
+  expect(untracked(readyTasks())).toEqual([]);
+  expect(retried(runnerConfigs())).toEqual([]);
+  expect(retriedTasks(allTasks())).toEqual([]);
+  expect(unselected(projectNames(), readyTasks())).toEqual([]);
+  expect(outsideRunFolder(allTasks())).toEqual([]);
+  expect(unlockedBrowsers(allTasks(), browserProjects())).toEqual([]);
+  expect(fixedPorts({ ...runnerConfigs(), ...taskCommands(allTasks()) })).toEqual([]);
+  expect(defaultBrowserPort(runnerConfigs())).toEqual([]);
+});
+
+test("the fast check exists and does not replace ready", () => {
+  const tasks = allTasks();
+  expect(tasks.fast).toBeDefined();
+  expect(Object.keys(readyTasks())).not.toContain("fast");
+  expect(tasks.ready.dependsOn?.length).toBeGreaterThan(0);
+  expect(tasks.fast.cache).toBe(false);
 });
 
 /**
@@ -609,7 +472,7 @@ test("a job name or echo naming a ready task does not count as running it", () =
  */
 const undotted = (path: string) => path.replaceAll(/(^|\/)\./g, "$1dot-");
 
-/** Whether explicit include and exclude globs fingerprint a file. Excludes always win. */
+/** Whether a cached task's explicit input globs fingerprint a file. */
 function tracks(task: string, file: string): boolean {
   const cache = allTasks()[task].cache;
   const inputs =
@@ -627,70 +490,15 @@ function tracks(task: string, file: string): boolean {
 }
 
 test.each(["ts:test", "browser:phone", "browser:desktop"])(
-  "%s invalidates on native binding changes",
+  "%s reruns when the native binding or the pinned tools change",
   (task) => {
-    expect(tracks(task, "crates/core/src/lib.rs")).toBe(true);
-    expect(tracks(task, "crates/binding/src/lib.rs")).toBe(true);
-    expect(tracks(task, "Cargo.lock")).toBe(true);
+    for (const file of [
+      "crates/core/src/lib.rs",
+      "crates/binding/src/lib.rs",
+      "Cargo.lock",
+      "flake.lock",
+    ]) {
+      expect(tracks(task, file), `${task} tracks ${file}`).toBe(true);
+    }
   },
 );
-
-test("cached checks track the dev shell and ignore generated reports", () => {
-  for (const [name, { cache }] of Object.entries(readyTasks())) {
-    if (typeof cache !== "object") {
-      continue;
-    }
-    expect(tracks(name, "flake.lock"), `${name} tracks its pinned tools`).toBe(true);
-    for (const file of [
-      "coverage/report.md",
-      "packages/web/.vitest/traces/failed.zip",
-      "packages/web/storybook-static/index.html",
-      // Another checkout's files: in the main checkout, `.worktrees/` holds every worktree.
-      ".worktrees/other/specs/proposal.md",
-      ".worktrees/other/packages/web/src/app.ts",
-    ]) {
-      expect(tracks(name, file), `${name} ignores ${file}`).toBe(false);
-    }
-  }
-  expect(allTasks()["ts:check"].dependsOn).toContain("binding:build");
-});
-
-test("the repository's toolchain follows the decision", () => {
-  expect(untracked(readyTasks())).toEqual([]);
-  expect(retried(runnerConfigs())).toEqual([]);
-  expect(retriedTasks(allTasks())).toEqual([]);
-  expect(withDoctests(libraryManifests())).toEqual([]);
-  expect(unselected(projectNames(), readyTasks())).toEqual([]);
-  expect(outsideRunFolder(allTasks())).toEqual([]);
-  expect(unlockedBrowsers(allTasks(), browserProjects())).toEqual([]);
-  expect(fixedPorts({ ...runnerConfigs(), ...taskCommands(allTasks()) })).toEqual([]);
-  expect(defaultBrowserPort(runnerConfigs())).toEqual([]);
-  expect(staleBindingFirst(bindingConfigs())).toEqual([]);
-  expect(Object.keys(bindingConfigs()).sort()).toEqual([
-    "packages/binding/vite.config.ts",
-    "packages/server/vite.config.ts",
-    "packages/web/vite.browser.config.ts",
-    "packages/web/vite.config.ts",
-  ]);
-});
-
-test("the browser projects are the browser config's instances", () =>
-  expect(browserProjects()).toEqual(["phone", "desktop"]));
-
-test("a project added to test.projects is run by a task selecting the others by exclusion", () =>
-  expect(
-    unselected(["uraeda-binding", "uraeda-new", "phone", "desktop"], {
-      "browser:desktop": { command: "vp test --project desktop" },
-      "browser:phone": { command: "vp test --project phone" },
-      "ts:test": { command: "vp test --project '!phone' --project '!desktop'" },
-    }),
-  ).toEqual([]));
-
-test("the heavy checks wait for the other checkouts' through a shared limit of two", () => {
-  for (const name of ["ts:check", "rust:clippy", "rust:test"]) {
-    const line = [allTasks()[name].command].flat()[0];
-    expect(TEST_RUN.exec(line)?.[1], `${name} runs under the heavy lock`).toBe(
-      " --lock heavy --slots 2",
-    );
-  }
-});

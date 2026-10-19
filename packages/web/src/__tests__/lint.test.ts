@@ -1,5 +1,5 @@
 // @vitest-environment node
-// SC-001 and SC-002: the UI components decision's rules, as `vp run ready` checks them.
+// The UI components and code quality decisions' rules a linter enforces, as `vp run ready` checks them.
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,16 +30,16 @@ test.each([
   ["style-prop.tsx", "react(forbid-dom-props)"],
   ["class-name.tsx", "react(forbid-component-props)"],
   ["raw-color.tsx", "valid-styles"],
-  // US3.6: a `test.only` left behind fails the lint.
+  // A `test.only` left behind fails the lint.
   ["only-test.test.tsx", "no-only-tests"],
   // The code quality decision: a marker left on code that no longer breaks its rule fails.
   ["unused-directive.tsx", "Unused oxlint-disable directive"],
-  // US3.2 and SC-005: the code quality decision's limits, each fixture just over its limit.
+  // The code quality decision's limits, each fixture just over its limit.
   ["long-function.tsx", "max-lines-per-function"],
   ["long-file.tsx", "max-lines"],
   ["many-params.tsx", "max-params"],
   ["deep-nesting.tsx", "max-depth"],
-])("lint refuses %s (SC-002)", (file, rule) => {
+])("lint refuses %s", (file, rule) => {
   expect(lintOutput(`src/__lint__/${file}`)).toContain(rule);
 });
 
@@ -54,7 +54,7 @@ test("a marked function over the limit passes", () => {
   expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
 });
 
-test("no stylesheet but Astryx's is imported (SC-001)", () => {
+test("no stylesheet but Astryx's is imported", () => {
   const allowed = [
     "@astryxdesign/core/reset.css",
     "@astryxdesign/core/astryx.css",

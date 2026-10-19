@@ -460,11 +460,11 @@ git commit -m "test(fix-testing): rebuild the browser tests as page checks"
   every `ready` group has a CI job, CI runs the same checks uncached, no retries, isolation, and the
   fast check exists and does not replace `ready`.
 
-- [ ] **Step 1: Inventory**, then **Step 2: write the kept tests** from the toolchain, stack, and
+- [x] **Step 1: Inventory**, then **Step 2: write the kept tests** from the toolchain, stack, and
       distribution rules; the break: remove a CI job, add a retry.
-- [ ] **Step 3: Run them**: `nix develop -c vp test --run`. Expected: PASS, breaks FAIL.
-- [ ] **Step 4: Delete the others**, list them by rule, and run `nix develop -c vp run fast`.
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Run them**: `nix develop -c vp test --run`. Expected: PASS, breaks FAIL.
+- [x] **Step 4: Delete the others**, list them by rule, and run `nix develop -c vp run fast`.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages crates scripts specs/2026-10-19-fix-testing/rulings.md

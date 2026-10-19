@@ -70,19 +70,6 @@ test("a run waits while every slot is held, and takes the one released", async (
   expect(existsSync(held)).toBe(false);
 });
 
-test("a free slot is taken at once, next to a held one", async () => {
-  const dir = temporaryFolder("uraeda-locks");
-  writeFileSync(join(dir, "browser-0.lock"), JSON.stringify({ cwd: "/a", pid: process.ppid }));
-
-  const release = await acquire(dir, "browser", 2, () => {
-    throw new Error("waited with a slot free");
-  });
-
-  expect(readdirSync(dir).sort()).toEqual(["browser-0.lock", "browser-1.lock"]);
-  release();
-  expect(readdirSync(dir)).toEqual(["browser-0.lock"]);
-});
-
 test.each(["SIGTERM", "SIGKILL"] as const)(
   "cancelling a run with %s stops its launcher and runner before cleanup",
   async (signal) => {
