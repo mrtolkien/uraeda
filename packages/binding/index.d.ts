@@ -265,14 +265,17 @@ export declare function readRaw(repo: string, path: string): Promise<string>
 /** The list of repositories in the data folder, the most recently opened first. */
 export declare function readRepositories(dataDir: string): Promise<Array<Repository>>
 
+/**
+ * A round of questions on the default branch, `inbox-triage` or `decisions-check`, read as a round
+ * of questions, or null when there is none. An unknown id is refused.
+ */
+export declare function readRound(repo: string, id: string): Promise<FileView | null>
+
 /** The settings in the folder's file, the defaults when there is none. */
 export declare function readSettings(dir: string): Promise<Settings>
 
 /** A draft or a proposal, for its editor, by its path from the top level. */
 export declare function readText(repo: string, path: string): Promise<DraftView>
-
-/** The inbox's triage, read as a round of questions, or null when there is none. */
-export declare function readTriage(repo: string): Promise<FileView | null>
 
 /** Every feature, change, and priority of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
@@ -307,8 +310,8 @@ export declare function requestChanges(repo: string, folder: string, file: strin
 /** Commits again what a hook refused to commit: a submitted round, or a verdict. */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
 
-/** Commits the answered triage again, after a hook refused its submit. */
-export declare function retryTriage(repo: string): Promise<FileView>
+/** Commits the answered round `id` again, after a hook refused its submit. */
+export declare function retryRound(repo: string, id: string): Promise<FileView>
 
 /** Saves an answer from the letters picked and a comment, over the answer last read. */
 export declare function saveAnswer(repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
@@ -317,19 +320,22 @@ export declare function saveAnswer(repo: string, folder: string, question: strin
 export declare function saveNotes(repo: string, folder: string, notes: string, previous: string): Promise<FileView>
 
 /**
+ * Saves one answer of the round `id`, from the letters picked and a comment, over the answer last
+ * read, in the round read with the hash `base`.
+ */
+export declare function saveRoundAnswer(repo: string, id: string, question: string, letters: Array<string>, comment: string, previous: string, base: string): Promise<FileView>
+
+/**
+ * Saves the notes of the round `id`, over the notes last read, in the round read with the hash
+ * `base`.
+ */
+export declare function saveRoundNotes(repo: string, id: string, notes: string, previous: string, base: string): Promise<FileView>
+
+/**
  * Saves a draft or a proposal as typed, over the version read at `previous`; resolves with the
  * new hash.
  */
 export declare function saveText(repo: string, path: string, text: string, previous: string): Promise<string>
-
-/**
- * Saves one answer of the triage, from the letters picked and a comment, over the answer last
- * read, in the triage read with the hash `base`.
- */
-export declare function saveTriageAnswer(repo: string, question: string, letters: Array<string>, comment: string, previous: string, base: string): Promise<FileView>
-
-/** Saves the triage's notes, over the notes last read, in the triage read with the hash `base`. */
-export declare function saveTriageNotes(repo: string, notes: string, previous: string, base: string): Promise<FileView>
 
 /** Sets whether the run after a spec's approval starts in a new agent session. */
 export declare function setBuildInFreshSession(dir: string, fresh: boolean): Promise<Settings>
@@ -380,10 +386,10 @@ export declare function storyLink(href: string): StoryTarget | null
 export declare function submitAnswers(repo: string, folder: string, name?: string | undefined | null, resumes?: boolean | undefined | null): Promise<FileView>
 
 /**
- * Submits the triage, every question answered, and commits it, over the triage read with the
+ * Submits the round `id`, every question answered, and commits it, over the round read with the
  * hash `previous`.
  */
-export declare function submitTriage(repo: string, previous: string): Promise<FileView>
+export declare function submitRound(repo: string, id: string, previous: string): Promise<FileView>
 
 /**
  * Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
@@ -547,7 +553,7 @@ export interface Changes {
    * an entry links.
    */
   priorities: boolean
-  /** Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed. */
+  /** Whether the default branch's `INBOX.md`, `INBOX-TRIAGE.md`, or `DECISIONS-CHECK.md` changed. */
   inbox: boolean
   /**
    * The decisions a feature's branch has that changed, as `<folder>/<name>`: its text on the

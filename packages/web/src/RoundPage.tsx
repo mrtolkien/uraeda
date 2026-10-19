@@ -9,7 +9,7 @@ import { RoundOpening } from "./RoundOpening.tsx";
 import { type NavQuestion, RoundIndex, RoundNav } from "./RoundNav.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
-import { isTriage, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
+import { isDefaultRound, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { askAbout, quoted } from "./sessions.ts";
 import { SettledPoints } from "./SettledPoints.tsx";
@@ -45,7 +45,7 @@ const styles = stylex.create({
  */
 export function RoundPage({ file, target }: { file: File; target: RoundTarget }) {
   const agent = useAgent();
-  const triage = isTriage(target);
+  const onDefaultBranch = isDefaultRound(target);
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const readOnly = file.status !== "awaiting-human";
@@ -87,7 +87,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
       <RoundOpening
         document={document}
         round={round}
-        {...(triage ? {} : { crumbs: { folder: file.folder, name: file.name } })}
+        {...(onDefaultBranch ? {} : { crumbs: { folder: file.folder, name: file.name } })}
       >
         {navigates && !wide && <RoundIndex questions={nav} />}
       </RoundOpening>
@@ -98,7 +98,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         readOnly={readOnly}
         takes={file.takesImages}
         target={target}
-        {...(agent?.available && !triage ? { onAsk: ask } : {})}
+        {...(agent?.available && !onDefaultBranch ? { onAsk: ask } : {})}
       />
       {/* On the phone, a band before the settled points, which a wide screen draws in a card. */}
       {!wide && round.settledGroups.length > 0 && <Band />}

@@ -439,6 +439,15 @@ export const PRIORITIES_ID = "priorities";
 export const INBOX_ID = "inbox";
 /** The inbox's triage, among workflow files: the core's id for it, as it has no feature. */
 export const TRIAGE_ID = "inbox-triage";
+/** The decisions check, among workflow files, with an id of its own for the same reason. */
+export const DECISIONS_CHECK_ID = "decisions-check";
+/** The rounds on the default branch, each read and answered by the core's one code. */
+export const DEFAULT_ROUND_IDS: ReadonlyArray<string> = [TRIAGE_ID, DECISIONS_CHECK_ID];
+/** The name of a default-branch round's file, which an absent one is shown under. */
+export const DEFAULT_ROUND_FILES: Readonly<Record<string, string>> = {
+  [DECISIONS_CHECK_ID]: "DECISIONS-CHECK.md",
+  [TRIAGE_ID]: "INBOX-TRIAGE.md",
+};
 export const AGENT_ID = "agent";
 export const SESSION_LIST_ID = "all";
 export const PROPOSAL_HINTS_ID = "proposal";

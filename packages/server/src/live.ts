@@ -8,7 +8,7 @@ import {
   INBOX_ID,
   PRIORITIES_ID,
   SESSION_LIST_ID,
-  TRIAGE_ID,
+  DEFAULT_ROUND_IDS,
   WORKSPACE_ID,
 } from "./fate/views.ts";
 import { type LiveBus, live as globalLive } from "./fate.ts";
@@ -42,7 +42,7 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
  * reports. A feature's change may change its step, which its session's status reads, its
  * branch's changes, and its history, and a feature that goes leaves the sidebar: the list and the features'
- * sessions go too. A change of the inbox sends its triage too, and one of the constitution or a
+ * sessions go too. A change of the inbox sends its triage and the decisions check too, and one of the constitution or a
  * decision, the ledger; a decision a branch changed sends its page, and its spec's file.
  */
 export function publish(changes: Changes, host: Pick<Host, "path" | "live">, sessions?: Sessions) {
@@ -71,7 +71,9 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     live.update("Ledger", LEDGER_ID, { eventId: eventId("ledger") });
   }
   if (changes.inbox) {
-    live.update("WorkflowFile", TRIAGE_ID, { eventId: eventId(`file:${TRIAGE_ID}`) });
+    for (const id of DEFAULT_ROUND_IDS) {
+      live.update("WorkflowFile", id, { eventId: eventId(`file:${id}`) });
+    }
   }
   if (sessions && (changes.features.length > 0 || changes.workspace)) {
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });

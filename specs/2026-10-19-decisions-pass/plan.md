@@ -281,8 +281,17 @@ id as a string and refuse an unknown id. `Checked::Triage` becomes
 - Produces (web): `RoundTarget = { folder: string } | { round: string }`, `isDefaultRound(target)`
   replacing `isTriage`; `useRound(id)` replacing `useTriage`. The triage page passes
   `{ round: "inbox-triage" }`.
+- Built beyond the interfaces above: `api::default_round(id)` (core, refuses an unknown id, used by
+  the binding), `DefaultRound::ALL`, `file_name()` and `from_file_name()` (the check's file kind and
+  template name), `actions::default_round::{ensure_unchanged, submit, retry}`; the binding's
+  `readRound|saveRoundAnswer|saveRoundNotes|retryRound|submitRound(repo, id, ...)`; the server's
+  `TRIAGE_ID`, `DECISIONS_CHECK_ID`, `DEFAULT_ROUND_IDS` and `DEFAULT_ROUND_FILES` in
+  `fate/views.ts`; the web's `TRIAGE_ID` in `roundTarget.ts`. `Checked::DefaultRound` already types
+  `DECISIONS-CHECK.md` as a round (status field, answers, no template yet), and the watcher's inbox
+  hash includes it. Step 2 did not run as written: the restructure and its tests were written
+  together, and the breaks below stood in for it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/default_rounds.rs
@@ -313,14 +322,14 @@ one hash.
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test default_rounds`
 - Expected: FAIL to compile, `cannot find type DefaultRound in this scope`
 
-- [ ] **Step 3: Restructure, with no behaviour change**
+- [x] **Step 3: Restructure, with no behaviour change**
 
 Move the triage's constants, `ensure_triage`, `submit_triage`, `retry_triage`, and the API's
 functions behind `DefaultRound`, as the interface says. Update the check's kind, the workspace, the
 watcher (a change of either file counts as the inbox's change), the binding, the server, and the web
 to the generic names. Rename the calls in the existing triage tests only.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c cargo nextest run`, `nix develop -c cargo clippy --all-targets`,
   `nix develop -c vp check`, and `nix develop -c vp test` (the server's and the web's suites,

@@ -1,8 +1,9 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
-import { useTriage } from "./data.ts";
+import { useRound } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { RoundPage } from "./RoundPage.tsx";
+import { TRIAGE_ID } from "./roundTarget.ts";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 
 /**
@@ -10,7 +11,7 @@ import { useRepoPath, useRestoreScroll } from "./routes.tsx";
  * questions, written on the default branch; while there is none, a link back to the inbox.
  */
 export function TriagePage() {
-  const file = useTriage();
+  const file = useRound(TRIAGE_ID);
   const here = useRepoPath();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
@@ -26,5 +27,5 @@ export function TriagePage() {
       </Page>
     );
   }
-  return <RoundPage file={file} target={{ triage: true }} />;
+  return <RoundPage file={file} target={{ round: TRIAGE_ID }} />;
 }

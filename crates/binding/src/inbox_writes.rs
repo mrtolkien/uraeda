@@ -1,6 +1,6 @@
 //! The inbox: its notes' edits, each written on the default branch over the inbox read at
 //! `previous`; the moves of notes into the priorities and drafts; the commit bar's Commit and
-//! Discard; and the triage's answers. A category or `about` left out is none, so they come last.
+//! Discard; and the answers of the default branch's rounds. A category or `about` left out is none, so they come last.
 
 use std::path::Path;
 
@@ -206,17 +206,19 @@ pub fn discard_changes(repo: String) -> AsyncTask<Job<()>> {
     job(move || api::discard_changes(Path::new(&repo)))
 }
 
-/// The inbox's triage, read as a round of questions, or null when there is none.
+/// A round of questions on the default branch, `inbox-triage` or `decisions-check`, read as a round
+/// of questions, or null when there is none. An unknown id is refused.
 #[napi(ts_return_type = "Promise<FileView | null>")]
-pub fn read_triage(repo: String) -> AsyncTask<Job<Option<FileView>>> {
-    job(move || api::read_triage(Path::new(&repo)))
+pub fn read_round(repo: String, id: String) -> AsyncTask<Job<Option<FileView>>> {
+    job(move || api::read_round(Path::new(&repo), api::default_round(&id)?))
 }
 
-/// Saves one answer of the triage, from the letters picked and a comment, over the answer last
-/// read, in the triage read with the hash `base`.
+/// Saves one answer of the round `id`, from the letters picked and a comment, over the answer last
+/// read, in the round read with the hash `base`.
 #[napi(ts_return_type = "Promise<FileView>")]
-pub fn save_triage_answer(
+pub fn save_round_answer(
     repo: String,
+    id: String,
     question: String,
     letters: Vec<String>,
     comment: String,
@@ -224,8 +226,9 @@ pub fn save_triage_answer(
     base: String,
 ) -> AsyncTask<Job<FileView>> {
     job(move || {
-        api::save_triage_answer(
+        api::save_round_answer(
             Path::new(&repo),
+            api::default_round(&id)?,
             &question,
             &letters,
             &comment,
@@ -235,28 +238,38 @@ pub fn save_triage_answer(
     })
 }
 
-/// Saves the triage's notes, over the notes last read, in the triage read with the hash `base`.
+/// Saves the notes of the round `id`, over the notes last read, in the round read with the hash
+/// `base`.
 #[napi(ts_return_type = "Promise<FileView>")]
-pub fn save_triage_notes(
+pub fn save_round_notes(
     repo: String,
+    id: String,
     notes: String,
     previous: String,
     base: String,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::save_triage_notes(Path::new(&repo), &notes, &previous, &base))
+    job(move || {
+        api::save_round_notes(
+            Path::new(&repo),
+            api::default_round(&id)?,
+            &notes,
+            &previous,
+            &base,
+        )
+    })
 }
 
-/// Commits the answered triage again, after a hook refused its submit.
+/// Commits the answered round `id` again, after a hook refused its submit.
 #[napi(ts_return_type = "Promise<FileView>")]
-pub fn retry_triage(repo: String) -> AsyncTask<Job<FileView>> {
-    job(move || api::retry_triage(Path::new(&repo)))
+pub fn retry_round(repo: String, id: String) -> AsyncTask<Job<FileView>> {
+    job(move || api::retry_round(Path::new(&repo), api::default_round(&id)?))
 }
 
-/// Submits the triage, every question answered, and commits it, over the triage read with the
+/// Submits the round `id`, every question answered, and commits it, over the round read with the
 /// hash `previous`.
 #[napi(ts_return_type = "Promise<FileView>")]
-pub fn submit_triage(repo: String, previous: String) -> AsyncTask<Job<FileView>> {
-    job(move || api::submit_triage(Path::new(&repo), &previous))
+pub fn submit_round(repo: String, id: String, previous: String) -> AsyncTask<Job<FileView>> {
+    job(move || api::submit_round(Path::new(&repo), api::default_round(&id)?, &previous))
 }
 
 /// Takes back a note's move to a section of the priorities, in one write of both files or none:

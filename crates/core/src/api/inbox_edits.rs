@@ -17,7 +17,11 @@ use crate::workspace::folder_slug;
 pub fn read_inbox(repo: &Path) -> Result<Inbox> {
     let (git, workspace) = open(repo)?;
     let (text, _) = on_default(&git, &workspace, edits::PATH);
-    let (triage, _) = on_default(&git, &workspace, edits::TRIAGE);
+    let (triage, _) = on_default(
+        &git,
+        &workspace,
+        crate::actions::default_round::DefaultRound::Triage.path(),
+    );
     Ok(edits::of(
         &text.unwrap_or_default(),
         triage.as_deref(),

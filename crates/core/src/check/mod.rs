@@ -21,6 +21,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::actions::default_round::DefaultRound;
 use crate::files::{frontmatter, markdown, review};
 use crate::git::{Git, ObjectId};
 use crate::workspace::{FileKind, Problem, Severity};
@@ -41,8 +42,8 @@ pub(crate) enum Checked {
     Priorities,
     /// `INBOX.md`: its title and categories.
     Inbox,
-    /// `INBOX-TRIAGE.md`: a round of questions about the inbox's notes.
-    Triage,
+    /// A round of questions on the default branch: `INBOX-TRIAGE.md` or `DECISIONS-CHECK.md`.
+    DefaultRound(DefaultRound),
     /// The record of a finished feature or change, in `specs/done/`.
     Record,
 }
@@ -232,10 +233,11 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     }
     // The inbox and its triage are files of `specs/` itself: one elsewhere is the human's.
     if parent.as_deref() == Some("specs") {
-        match name {
-            "INBOX.md" => return Some(Checked::Inbox),
-            "INBOX-TRIAGE.md" => return Some(Checked::Triage),
-            _ => {}
+        if name == "INBOX.md" {
+            return Some(Checked::Inbox);
+        }
+        if let Some(round) = DefaultRound::from_file_name(name) {
+            return Some(Checked::DefaultRound(round));
         }
     }
     if !any_folder && !names::is_workflow_folder(dir) {
@@ -400,13 +402,13 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
             ));
         }
     }
-    if let Checked::Workflow(FileKind::Clarifications) | Checked::Triage = file.kind {
+    if let Checked::Workflow(FileKind::Clarifications) | Checked::DefaultRound(_) = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);
     }
     // A round's document tree, parsed once for the checks that read it.
     let tree = matches!(
         file.kind,
-        Checked::Workflow(FileKind::Clarifications) | Checked::Triage
+        Checked::Workflow(FileKind::Clarifications) | Checked::DefaultRound(_)
     )
     .then(|| crate::files::document::parse(file.text, ""));
     if let Some(tree) = tree

@@ -8,11 +8,11 @@ use crate::files::frontmatter;
 use crate::files::inbox::{self, Inbox};
 use crate::files::priorities::{self, Section};
 use crate::files::proposal;
-use crate::today::Date;
 
 use super::commit::Added;
+use super::default_round::DefaultRound;
 use super::place::Place;
-use super::{ActionError, Change, Committed, STALE, answer, changes, commit, draft};
+use super::{ActionError, Change, Committed, STALE, changes, commit, draft};
 
 mod image;
 mod undo;
@@ -23,63 +23,6 @@ pub use undo::{
 };
 
 pub const PATH: &str = "specs/INBOX.md";
-/// The agent's proposed triage, answered like a round of questions.
-pub const TRIAGE: &str = "specs/INBOX-TRIAGE.md";
-
-/// The subject of the commit submitting the triage's answers.
-pub const TRIAGE_ANSWERED: &str = "chore: answer the inbox triage";
-
-/// Refuses the triage as changed unless its text has the hash `base`: the page that writes or
-/// submits it saw all of it.
-pub fn ensure_triage(place: &Place, base: &str) -> Result<(), ActionError> {
-    if hash(&fs::read_to_string(place.root.join(TRIAGE))?) == base {
-        Ok(())
-    } else {
-        Err(ActionError::changed(TRIAGE))
-    }
-}
-
-/// The commit of the triage alone, answered.
-fn commit_triage(place: &Place) -> Result<Committed, ActionError> {
-    commit::commit(
-        place,
-        &Change {
-            paths: vec![TRIAGE.to_string()],
-            subject: TRIAGE_ANSWERED.to_string(),
-            body: None,
-        },
-    )
-}
-
-/// Submits the triage, answered as a round is, and commits it alone. Refused before anything is
-/// written when it changed since it was read with the hash `previous`, or other files are staged.
-pub fn submit_triage(place: &Place, previous: &str, today: Date) -> Result<Committed, ActionError> {
-    ensure_triage(place, previous)?;
-    super::place::ensure_only_staged(place, &[TRIAGE.to_string()])?;
-    answer::record(place, TRIAGE, today, false)?;
-    commit_triage(place)
-}
-
-/// Commits the triage again after a hook refused its submit: only an answered triage that the
-/// last commit does not hold.
-pub fn retry_triage(place: &Place) -> Result<Committed, ActionError> {
-    let text = fs::read_to_string(place.root.join(TRIAGE))?;
-    let answered = frontmatter::parse(&text)
-        .ok()
-        .is_some_and(|front| front.text("status") == Some("answered"));
-    let git = crate::git::Git::open(&place.root)?;
-    let committed = git
-        .head()
-        .and_then(|head| git.read_file(head, TRIAGE).ok().flatten());
-    if !answered || committed.as_deref() == Some(text.as_bytes()) {
-        return Err(ActionError::Refused(format!(
-            "{} has nothing to commit again",
-            answer::name_of(TRIAGE)
-        )));
-    }
-    super::place::ensure_only_staged(place, &[TRIAGE.to_string()])?;
-    commit_triage(place)
-}
 
 /// The marks a tool writes before a note's text.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -117,7 +60,7 @@ pub fn of(text: &str, triage: Option<&str>, changes: u32) -> Inbox {
 }
 
 fn read_text(place: &Place, written: &str) -> Inbox {
-    let triage = fs::read_to_string(place.root.join(TRIAGE)).ok();
+    let triage = fs::read_to_string(place.root.join(DefaultRound::Triage.path())).ok();
     of(written, triage.as_deref(), changes::list(place).count)
 }
 

@@ -24,7 +24,7 @@ fn template_path(kind: Checked) -> Option<&'static str> {
         Checked::Workflow(FileKind::DataModel) => "YYYY-MM-DD-feature-slug/data-model.md",
         Checked::Decision | Checked::PreviewDecision => "decisions/decision-topic.md",
         Checked::Record => "done/YYYY-MM-DD-feature-slug.md",
-        Checked::Triage => "INBOX-TRIAGE.md",
+        Checked::DefaultRound(round) => round.file_name(),
         _ => return None,
     };
     Some(path)

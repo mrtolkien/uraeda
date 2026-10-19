@@ -54,7 +54,8 @@ import {
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
-  TRIAGE_ID,
+  DEFAULT_ROUND_FILES,
+  DEFAULT_ROUND_IDS,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -289,10 +290,10 @@ export const sources = createSources<Context>([
     repository({
       byIds: ({ binding, repo }, ids) =>
         each(ids, async (id): Promise<FileRecord> => {
-          if (id === TRIAGE_ID) {
-            // The triage has no feature: missing until an agent writes it.
-            const triage = await binding.readTriage(repo);
-            return sentFile(triage ?? missingFile(id, "", "INBOX-TRIAGE.md"));
+          if (DEFAULT_ROUND_IDS.includes(id)) {
+            // A round on the default branch has no feature: missing until an agent writes it.
+            const round = await binding.readRound(repo, id);
+            return sentFile(round ?? missingFile(id, "", DEFAULT_ROUND_FILES[id]));
           }
           const [folder, name] = id.split("/");
           try {
