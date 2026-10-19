@@ -133,3 +133,6 @@
 - [agent] [fix-testing] Server error page: "Try again" on "Could not reach the Uraeda server" does
   not recover once the server is back, since the fate client keeps the failed read; only a reload
   does
+- [agent] [fix-testing] Priorities list: after Enter on a row, focus goes to the page body while the
+  inbox keeps it on the row, so the two lists do not share one keyboard behaviour; a click on a row
+  on a wide screen drops focus the same way
