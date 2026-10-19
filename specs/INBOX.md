@@ -47,3 +47,5 @@
 - [agent] [fix-testing] Core flows: settings never place a config.toml in a repository to check it
   is ignored, and nothing drafts a priorities line from a non-default checkout; the Neovim smoke
   picks the waiting item by the picker label, not its index
+- [agent] [fix-testing] CLI install flow: the permission test returns silently as root, the kind of
+  test the rebuild dropped elsewhere
