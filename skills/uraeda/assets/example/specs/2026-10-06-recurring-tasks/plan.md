@@ -134,7 +134,9 @@ From [the spec](spec.md):
 - [`vitest.config.ts`](/vitest.config.ts): Vitest with jsdom, Testing Library, and `user-event`,
   benchmarks in [`bench/`](/bench/). Tests live in [`tests/`](/tests/);
   [`tests/task-list.test.tsx`](/tests/task-list.test.tsx) is the only one, and renders the list on
-  an empty store mock. No test uses IndexedDB.
+  an empty store mock. No test uses IndexedDB. The fast check after each task is
+  `npx vitest run --changed`; the full validation, `npx vitest run && npx eslint src`, runs before
+  any push.
 - Due dates are read in three places: `createTask` in [the task store](/src/store/tasks.ts), the
   date input of [the edit panel](/src/components/EditPanel.tsx), and
   [the task row](/src/components/TaskRow.tsx), which shows them in a `<time>` element: its text
@@ -166,21 +168,21 @@ From [the spec](spec.md):
 
 Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
 
-| Spec                                                     | Task | Test                                                                                           |
-| -------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------- |
-| Edge case: a saved due date that is not a date           | 1    | `tests/recurring-tasks/upgrade.test.tsx`                                                       |
-| US2 1, 2, more 1, 2; edge cases: moved, deleted, 31st    | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| Edge case: a failed save                                 | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| US1 1, 2, more 1; SC-001                                 | 3    | `tests/recurring-tasks/make-a-task-repeat.test.tsx`                                            |
-| US3 1, 2, more 1                                         | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                                               |
-| US4 1, 2, more 1, 2; edge cases: a phrase alone, unknown | 5    | `tests/recurring-tasks/repeat-in-title.test.tsx`                                               |
-| SC-003                                                   | 5    | `tests/recurring-tasks/parse-repeat.test.ts`, one row a phrase                                 |
-| Review focus: a double click on the checkbox             | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| Review focus: a phrase in another case, with a period    | 5    | `tests/recurring-tasks/parse-repeat.test.ts`                                                   |
-| Review focus: an interval of 0                           | 4, 5 | `tests/recurring-tasks/custom-schedule.test.tsx`, `tests/recurring-tasks/parse-repeat.test.ts` |
-| Review focus: a yearly task due on February 29           | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
-| Review focus: a weekly custom rule with no day           | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                                               |
-| SC-002                                                   | 1–5  | the [list benchmark](/bench/list.bench.ts), against its baseline                               |
+| Spec                                                  | Task | Test                                                                                           |
+| ----------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------- |
+| Edge case: a saved due date that is not a date        | 1    | `tests/recurring-tasks/upgrade.test.tsx`                                                       |
+| US2 1, 2, more 1, 2                                   | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
+| Edge case: a failed save                              | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
+| US1 1, 2, more 1; SC-001                              | 3    | `tests/recurring-tasks/make-a-task-repeat.test.tsx`                                            |
+| US3 1, 2, more 1                                      | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                                               |
+| US4 1, 2, more 1, 2                                   | 5    | `tests/recurring-tasks/repeat-in-title.test.tsx`                                               |
+| SC-003                                                | 5    | `tests/recurring-tasks/parse-repeat.test.ts`, one row a phrase                                 |
+| Review focus: a double click on the checkbox          | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
+| Review focus: a phrase in another case, with a period | 5    | `tests/recurring-tasks/parse-repeat.test.ts`                                                   |
+| Review focus: an interval of 0                        | 4, 5 | `tests/recurring-tasks/custom-schedule.test.tsx`, `tests/recurring-tasks/parse-repeat.test.ts` |
+| Review focus: a yearly task due on February 29        | 2    | `tests/recurring-tasks/complete-a-repeating-task.test.tsx`                                     |
+| Review focus: a weekly custom rule with no day        | 4    | `tests/recurring-tasks/custom-schedule.test.tsx`                                               |
+| SC-002                                                | 1–5  | the [list benchmark](/bench/list.bench.ts), against its baseline                               |
 
 ## Waves
 
@@ -281,9 +283,9 @@ The break each test catches:
   `console.warn("Due date is not a date:", raw)` when it returns `null`.
 - `createTask`, the edit panel, and the task row read and write `CalendarDay`.
 
-- [x] **Step 5: Run the project's validation, and the benchmark**
+- [x] **Step 5: Run the project's fast check, and the benchmark**
 
-- Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
+- Run: `npx vitest run --changed && npx vitest bench --run --compare bench/baseline.json`
 - Expected: PASS, and no benchmark slower than the baseline beyond its margin of error.
 
 - [x] **Step 6: Commit**
@@ -478,9 +480,9 @@ break each test catches:
 previous date; for other tasks, unchanged. The task row shows "Next: ..." and "Undo" for 5 seconds,
 with the checkbox disabled meanwhile, and "Could not save" when the store rejects.
 
-- [x] **Step 5: Run the project's validation, and the benchmark**
+- [x] **Step 5: Run the project's fast check, and the benchmark**
 
-- Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
+- Run: `npx vitest run --changed && npx vitest bench --run --compare bench/baseline.json`
 - Expected: PASS, and no benchmark slower than the baseline beyond its margin of error.
 
 - [x] **Step 6: Commit**
@@ -576,13 +578,6 @@ test("picking never stops the repeat, and keeps the due date", async () => {
 });
 ```
 
-The break each test catches:
-
-- Entries: one missing, or out of order.
-- Weekly: a preset saved without the due date's weekday, which reads "Every week".
-- Without a due date: a repeat that leaves the date empty.
-- Never: clearing the due date with the repeat.
-
 - [x] **Step 2: Run them to check they fail**
 
 - Run: `npx vitest run tests/recurring-tasks/make-a-task-repeat.test.tsx`
@@ -598,9 +593,9 @@ The break each test catches:
   its store holds.
 - Task row: the repeat icon, labelled "Repeats", when `repeat` is set.
 
-- [x] **Step 4: Run the project's validation, and the benchmark**
+- [x] **Step 4: Run the project's fast check, and the benchmark**
 
-- Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
+- Run: `npx vitest run --changed && npx vitest bench --run --compare bench/baseline.json`
 - Expected: PASS, and no benchmark slower than the baseline beyond its margin of error (SC-002).
 
 - [x] **Step 5: Commit**
@@ -684,13 +679,6 @@ test.each([
 });
 ```
 
-The break each test catches:
-
-- Every 2 weeks: an ignored interval, which gives 2026-10-12.
-- Mondays and Thursdays: only the first chosen day kept, which gives 2026-10-12.
-- Choosing days: a rule saved without aligning the due date, which stays on 2026-10-06.
-- Save disabled: a pattern accepted with an interval of 0, or no day, which never repeats.
-
 - [x] **Step 2: Run them to check they fail**
 
 - Run: `npx vitest run tests/recurring-tasks/custom-schedule.test.tsx`
@@ -702,9 +690,9 @@ The `Custom` story's dialog keeps its number input for the interval, its unit `S
 weeks, its seven day toggles. "Save" is enabled only for a valid pattern, an interval of at least 1
 and, for weeks, a day chosen, and calls `setRepeat` through the edit panel.
 
-- [x] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's fast check**
 
-- Run: `npx vitest run`
+- Run: `npx vitest run --changed`
 - Expected: PASS.
 
 - [x] **Step 5: Commit**
@@ -802,13 +790,6 @@ test.each(["Gym", "Gym every so often", "Gym every 0 days", "every monday"])(
 );
 ```
 
-The break each test catches:
-
-- New and edited titles: a phrase parsed by only one of `createTask` and `renameTask`.
-- An interval without a due date: a pattern saved without aligning, which leaves no date.
-- Stays as typed: any "every ..." stripped, or a title made only of a phrase emptied.
-- The table: a case-sensitive match, a final period kept, or a 0 interval accepted.
-
 - [x] **Step 2: Run them to check they fail**
 
 - Run:
@@ -822,9 +803,9 @@ final period, with any whole number from 1 as the interval. Unrecognized phrases
 only of a repeat phrase stay unchanged. `createTask` and `renameTask` call it before saving, then
 `setRepeat` with the pattern; the parser's private implementation is left to the implementer.
 
-- [x] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's full validation**
 
-- Run: `npx vitest run`
+- Run: `npx vitest run && npx eslint src`
 - Expected: PASS.
 
 - [x] **Step 5: Commit**

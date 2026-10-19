@@ -145,8 +145,10 @@ Each step is one action with a checkable result:
 - "Write the failing tests" is a step.
 - "Run them to check they fail" is a step.
 - "Implement the code that makes them pass" is a step.
-- "Run the project's validation" is a step. It names the slow suites, such as browser tests, only
-  for a task that changes what they cover.
+- "Run the project's fast check" is a step: the command the project's setup names for after each
+  task, `vp run fast` in this repository. It runs the checks and the tests the task changes, and
+  names the slow suites, such as browser tests, only for a task that changes what they cover. The
+  last step of the last task, before any push, runs the project's full command, `vp run ready` here.
 - "Commit" is a step.
 
 ## Plan document
@@ -205,7 +207,8 @@ carries it out.]
 
 ## Test map
 
-[Each scenario, edge case, and success criterion of the spec, and the task and test that cover it.]
+[Each main scenario, `high` edge case, and success criterion of the spec, and the task and test that
+cover it.]
 
 ## Waves
 
@@ -249,11 +252,12 @@ What goes in each section:
   rule, or approved variation it serves: unspecified future features do not justify an abstraction.
   "None." when there is none.
 
-- **Test map**: a table mapping each acceptance scenario, edge case, and success criterion of the
-  spec to its task and test. A review-focus item gets its row, named "Review focus:" with its
-  subject. It opens with a sentence on how the integration tests run: what they render, on which
-  store, with which clock. The [writing tests](code-quality.md#writing-tests) rules say how to write
-  them. An error the code handles but no edge case names gets its row too.
+- **Test map**: a table mapping each main scenario, each `high` edge case, and each success
+  criterion of the spec to its task and test. A `normal` or `niche` edge case gets no row: it is a
+  line in a test that exists, named in that test's step. A review-focus item gets its row, named
+  "Review focus:" with its subject. It opens with a sentence on how the integration tests run: what
+  they render, on which store, with which clock. The [writing tests](code-quality.md#writing-tests)
+  rules say how to write them. An error the code handles but no edge case names gets its row too.
 - **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
   the shared files they each add to, if any. The implementation reads this section to decide what
   runs at the same time.
@@ -343,7 +347,8 @@ simpler private design from what the code shows:
   commits on its own with a `refactor` message, before the failing test of the new behaviour. See
   [extract, don't grow](code-quality.md#extract-dont-grow).
 - **A test step**: the tests' names and their assertions, as code, with the spec's exact values in
-  them, including the human's approval comments. Each test names the break it catches, the realistic
+  them, including the human's approval comments. A task marked risky, or whose tests cover code that
+  writes files, touches git, or guards security, names the break each test catches, the realistic
   mistake that makes it fail: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
   expectations from the approved behaviour, independently of the proposed implementation.
   Integration tests by default, short, Arrange, Act, Assert, on the shared helpers. The step also
@@ -368,9 +373,10 @@ function no task defines. The self-review catches both.
 After writing the complete plan, read the spec again with fresh eyes, check the plan against it, and
 fix what you find inline. This is a checklist you run yourself.
 
-1. **Spec coverage**: skim each user story, acceptance scenario, edge case, success criterion, and
-   global constraint. Can you point to its row of the test map, a task, and a test that asserts it,
-   exact text and timings included? Add a task for any requirement without one.
+1. **Spec coverage**: skim each user story's main scenarios, `high` edge cases, success criteria,
+   and global constraints. Can you point to its row of the test map, a task, and a test that asserts
+   it? Add a task for any requirement without one. A `normal` or `niche` edge case needs a line in a
+   test that exists, no more.
 2. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
    that decides nothing is a gap; private code the implementer can choose is unnecessary
    prescription. Fix both. Explain an algorithm when correctness depends on it.
@@ -400,7 +406,8 @@ fix what you find inline. This is a checklist you run yourself.
 9. **Ownership and change cost**: each changed rule and resource has an owner, its affected callers
    are covered, and the necessary simplification stays within the feature. Justify any duplicated
    enforcement or new indirection through a concrete constraint or approved need. Every task that
-   touches a unit over its limit starts with a structural step, and every test names its break.
+   touches a unit over its limit starts with a structural step, and every test of a risky task names
+   its break.
 
 ## Rulings while planning
 

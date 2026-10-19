@@ -435,7 +435,8 @@ plan's.
 ## Tests
 
 The spec names no test: its scenarios, edge cases, and success criteria are what the tests check.
-The plan's `## Test map` maps each of them to its test: see [Plan](plan.md). How the tests are
+The plan's `## Test map` maps each main scenario, `high` edge case, and success criterion to its
+test, and the other edge cases to lines of tests that exist: see [Plan](plan.md). How the tests are
 written is [writing tests](code-quality.md#writing-tests).
 
 ## Spec frontmatter

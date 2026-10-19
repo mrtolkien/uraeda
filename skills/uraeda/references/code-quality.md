@@ -64,10 +64,18 @@ Checks: the project's linters and tests, in its usual validation command, so eve
 
 ## Writing tests
 
-Test the feature the way a user or a caller uses it: integration tests, through the real components
-and an in-memory store, with the clock set by the test. They survive refactoring, where unit tests
-of internal functions break. An agent writes them quickly.
+Test the behaviour that matters, the way a user or a caller uses it: integration tests, through the
+real components, with real objects over mocks (real files, real git, the real server) and the clock
+set by the test. They survive refactoring, where unit tests of internal functions break. An agent
+writes them quickly.
 
+- **A test comes from the spec, never from the code.** It names the behaviour it guards: a story's
+  main scenario, a `high` edge case, or a success criterion. A `normal` edge case is a line in a
+  test that exists, never a test of its own.
+- **A bug starts with a failing test** that reproduces it, before any fix.
+- **A test fails on behaviour, not on text, counts, or sizes.** It asserts no heading, label, count,
+  or size the product may change. A UI test finds things by role and state, and asserts navigation
+  and effects, not wording. The accessibility rules of a page check are the exception.
 - Tests are part of the codebase: organize them with the same care as the main code.
 - Create the helpers, fixtures, and fakes the tests need, in shared files: rendering the app,
   seeding the store, setting the clock. Each test then holds no boilerplate.
@@ -81,30 +89,39 @@ Checks: the review of each task, which counts a test that breaks these rules as 
 
 ## Tests that can fail
 
-A test that passes whatever the code does proves nothing. Each test is shown to catch the break it
-exists for.
+A test that passes whatever the code does proves nothing. A test MUST fail when the behaviour it
+guards breaks, and MUST NOT fail when a change keeps that behaviour.
 
-- **The plan**: each test step names the break each test catches, the realistic mistake that makes
-  it fail: "adding a month to the previous date, which drifts to the 30th".
-- **The implementer**, once the test passes, makes that break in the code, sees the test fail,
-  reverts it, and reports the failure it saw in the task's commit body.
-- **Waits**: unit tests never sleep for a fixed time or assert how long something took. They wait
+- **The break**: a task the plan marks risky, and a task whose tests cover code that writes files,
+  touches git, or guards security, shows each test catching its break. The plan's test step names
+  the realistic mistake that makes it fail: "adding a month to the previous date, which drifts to
+  the 30th". The implementer, once the test passes, makes that break in the code, sees the test
+  fail, reverts it, and reports the failure in the task's commit body. Other tests need no break.
+- **Waits**: tests never sleep for a fixed time, retry, or assert how long something took. They wait
   for the condition, or set the clock. Benchmarks of a spec's success criteria are not unit tests.
-- **Existing tests**: changing or deleting one takes a ruling, saying what it checked and why that
-  no longer holds. A test is never loosened to pass.
+- **A test and the human's request differ**: the request is done, and the test changed or removed,
+  after telling the human in the same response, as the [skill](../SKILL.md) says of a human's
+  request. A ruling records the test's old and new expectation.
+- **A test fails with no request from the human**: find the root cause first. When the code is
+  wrong, fix the code, within the spec. When it cannot be fixed within the spec, stop and report:
+  never edit the test, loosen it, skip it, or bend the product to make them agree.
+- **A test that fails without a bug**, such as one that pinned text a refactor changed, is fixed or
+  deleted with a ruling saying what it guarded and why that no longer holds.
 - **The reviews** count a test that asserts nothing, or nothing the spec asks, as an important
-  finding.
+  finding. The final review lists every test removed, skipped, or changed in what it expects: see
+  [the final review](implementation.md#review-the-branch).
 
-Checks: the reported failure, which the reviews of the tasks read. A mutation tool, where the
-project has one, does the same on the changed lines.
+Checks: the reported failure, which the reviews of the tasks read, and the final review's list. A
+mutation tool, where the project has one, does the same on the changed lines.
 
 ## UIs verified end to end
 
 A UI story is only done when it works in a browser, through the real app: components tested alone
 miss the routing, the styles, and the server.
 
-- **The plan's Test map** runs each UI story's scenarios in the project's browser runner, through
-  the real app. They drive it as a user does: by roles, labels, and visible text.
+- **The plan's Test map** runs each UI story's main scenarios and `high` edge cases in the project's
+  browser runner, through the real app. They drive it as a user does: by roles and labels, and
+  assert state and navigation, not wording.
 - **A project without a browser runner**: adding one is a new dependency, so a question for the
   human in discovery, like any other.
 

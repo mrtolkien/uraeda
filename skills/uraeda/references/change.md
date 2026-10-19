@@ -213,9 +213,12 @@ time, one commit per item:
 
 - **Tests first.** A test fails first for the bug or the new behaviour, for the intended reason: the
   proposal's expected behaviour stands for a spec's acceptance scenarios. Checks of preserved
-  behaviour keep passing. Once the new test passes, make the break it exists for, see it fail, and
-  revert it, as [tests that can fail](code-quality.md#tests-that-can-fail) says. A bug's fix commits
-  the reproduction test with it.
+  behaviour keep passing. A bug's fix commits the reproduction test with it. The tests follow
+  [writing tests](code-quality.md#writing-tests) and
+  [tests that can fail](code-quality.md#tests-that-can-fail): the break is made for a risky item,
+  and a test that fails with no request from the human stops the change, never the test or the
+  product bent to agree. The final review lists the tests changed, as
+  [the implementation's](implementation.md#review-the-branch) does.
 - **The commit's body** states the root cause, for a bug, or the approach, for a change. It also
   states the behaviour that stays unchanged, with the test that checks it. A resumed agent and the
   reviewer read it there.
@@ -266,13 +269,15 @@ in this order:
 2. **The root cause or the approach**, in a few lines.
 3. **What stays unchanged**, and the test of each item.
 4. **The points you settled** without asking: the human checks your reading of the proposal here.
-5. **Size**: each function and file the branch grew, with its length before and after.
-6. **Screenshots** of a UI change.
-7. **Rulings**: a link to `rulings.md` at the commit before finishing, and the ones that change
+5. **Test changes**: the review's list of tests removed, skipped, or changed in what they expect, or
+   the line saying none was.
+6. **Size**: each function and file the branch grew, with its length before and after.
+7. **Screenshots** of a UI change.
+8. **Rulings**: a link to `rulings.md` at the commit before finishing, and the ones that change
    behaviour, one line each.
-8. **Deferred fixes**: the minor findings of the review, noted in the inbox under **Deferred
+9. **Deferred fixes**: the minor findings of the review, noted in the inbox under **Deferred
    fixes**, and the other notes added to the inbox.
-9. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
+10. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 Comments on the pull request are handled as for a feature, as
 [implementation](implementation.md#comments-on-the-pull-request) and

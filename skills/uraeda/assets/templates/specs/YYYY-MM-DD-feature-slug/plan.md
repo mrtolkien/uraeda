@@ -68,7 +68,7 @@ task that carries it out. State which spec clause it supersedes when it explicit
 
 ## Test map
 
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+Each main scenario, `high` edge case, and criterion of the spec, and the task whose tests cover it.
 
 | Spec                                                              | Task | Test                       |
 | ----------------------------------------------------------------- | ---- | -------------------------- |
@@ -127,6 +127,9 @@ test("[the scenario, in words]", async () => {
 });
 ```
 
+[Only for a risky task, or one whose tests cover code that writes files, touches git, or guards
+security:]
+
 The break each test catches:
 
 - [The test, in a few words]: [the realistic mistake that makes it fail].
@@ -142,7 +145,8 @@ The break each test catches:
 contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
 to the implementer.]
 
-- [ ] **Step 5: Run the project's validation[, and the benchmark]**
+- [ ] **Step 5: Run the project's fast check[, and the benchmark]** [the last task of the plan runs
+      the project's full command instead]
 
 - Run: `[command]`
 - Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets].

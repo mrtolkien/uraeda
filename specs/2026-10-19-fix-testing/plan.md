@@ -191,12 +191,12 @@ to pass without a human's request or a listed ruling, as the
 
 - Produces: the rules of US3 and US4, in one home each.
 
-- [ ] **Step 1: Read the model**
+- [x] **Step 1: Read the model**
 
 Read `skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/` before editing a template, a
 reference, or the example, and the [evidence](discovery-01.md#evidence-on-agents-and-tests).
 
-- [ ] **Step 2: Rewrite the rules, in one home each**
+- [x] **Step 2: Rewrite the rules, in one home each**
 
 - `code-quality.md`: a test names the behaviour that matters and comes from the spec, never from the
   code; real objects over mocks; a bug starts with a failing test; a test fails on behaviour and not
@@ -219,12 +219,12 @@ reference, or the example, and the [evidence](discovery-01.md#evidence-on-agents
 Each rule is stated once and linked from the other files. Keep the plan template, the reference, and
 the example in step.
 
-- [ ] **Step 3: Check the files**
+- [x] **Step 3: Check the files**
 
 - Run: `nix develop -c cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`
 - Expected: PASS, and `vp check` clean on the markdown.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add skills AGENTS.md

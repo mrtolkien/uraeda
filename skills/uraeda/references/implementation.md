@@ -101,17 +101,20 @@ again from the repository.
 2. **Work its steps in order.** A structural step comes first, and is committed on its own, with its
    box checked. Write the tests first. Tests of new behaviour must fail for the intended reason
    before implementation; checks of preserved behaviour may already pass and must keep passing. Then
-   implement, and run every command the plan gives. Once a new test passes, make the break its step
-   names, see the test fail, revert it, and report the failure seen in the task's commit body: see
-   [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests never sleep for a fixed
-   time. A problem found outside the task is not fixed in passing: note it in the inbox, as
+   implement, and run every command the plan gives. When the step names a break, make it once the
+   new test passes, see the test fail, revert it, and report the failure seen in the task's commit
+   body: see [tests that can fail](code-quality.md#tests-that-can-fail). Tests never sleep for a
+   fixed time. A problem found outside the task is not fixed in passing: note it in the inbox, as
    [agents' notes](inbox.md#agents-notes) says. Compare each output with the step's **Expected**
    line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
      a [change](change.md#investigating) does for a bug. Never change a test or an expected value to
-     make a run pass. Changing or deleting an existing test for any other reason takes a ruling.
+     make a run pass, and never skip or loosen one. When the code cannot be fixed within the spec,
+     and no request from the human changes the test, stop and report. Changing or deleting an
+     existing test for any other reason takes a ruling: see
+     [tests that can fail](code-quality.md#tests-that-can-fail).
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in
@@ -122,13 +125,13 @@ again from the repository.
      change; keep unrelated refactoring out. Do not weaken tests or change user-visible behaviour to
      accommodate the new design.
 3. **Run the validation the step needs**, the smallest first:
-   - **While working**: the tests the task adds or touches, by file or project, and the fast checks
-     (formatter, linter, type checker).
-   - **Before each commit**: the project's validation once. When it is one cached command, run it
-     whole: its cache skips what the task did not change. Otherwise, run its slow suites, such as
-     browser tests and screenshots, only when the task changes what they cover: a UI behaviour, a
-     layout, a route.
-   - **At the final review**: every check the project runs locally, slow suites included.
+   - **While working**: the tests the task adds or touches, by file or project.
+   - **Before each commit**: the project's fast check, the command its setup names for after each
+     task, `vp run fast` in this repository. It runs the formatter, the linter, the type checker,
+     and the tests the task's changes reach. Run the slow suites, such as browser tests and
+     screenshots, only when the task changes what they cover: a UI behaviour, a layout, a route.
+   - **Before every push**, and at the final review: the project's full command, `vp run ready` in
+     this repository, slow suites included. A red run is fixed before the push.
 
    A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
    at most twice. A test that fails intermittently follows the project's rule for flaky tests, when
@@ -233,8 +236,8 @@ branch, there is nothing to do.
    - **In `PRIORITIES.md`**: take the default branch's version, with this feature's entry kept in
      it.
    - **In a decision or the constitution**: stop, and start a new round of questions.
-4. **Run the project's validation.** A failure the default branch brings in is fixed like a final
-   review finding, with a test that fails first, in a commit with the feature's scope.
+4. **Run the project's full validation.** A failure the default branch brings in is fixed like a
+   final review finding, with a test that fails first, in a commit with the feature's scope.
 
 ### Review the branch
 
@@ -265,6 +268,12 @@ Review the changed subsystem and affected callers, including relevant code outsi
   boundaries by that cost, rather than a preferred style, and against the project's limits.
 - **Size**: list each function and file the branch grew, with its length before and after, for the
   pull request's description ([extract, don't grow](code-quality.md#extract-dont-grow)).
+- **Test changes**: list, apart from the product's diff, every test the branch removed, skipped, or
+  changed in what it expects, each with the ruling that explains it and, for a changed value, the
+  old and new values: a timeout raised from 20,000 to 40,000 ms is listed with both. A test with no
+  ruling, and none that the human asked for, is a critical finding. A branch that only adds tests
+  lists "no test was removed, skipped, or loosened". The list goes in the pull request's
+  description.
 
 ### Grade the findings
 
@@ -309,6 +318,8 @@ description, written when it is marked ready, reads like a file waiting for the 
 - **Links** to the record, and to `spec.md` and `plan.md` at the commit before finishing.
 - **Tests**: each acceptance scenario and review-focus item, with the test that covers it, from the
   plan's test map.
+- **Test changes**: the final review's list of tests removed, skipped, or changed in what they
+  expect, or the line saying none was.
 - **Size**: each function and file the branch grew, with its length before and after.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Review comments**: when the plan was approved with comments, how each was carried out.
