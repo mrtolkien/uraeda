@@ -46,8 +46,9 @@ export function chooseCases(
 
 /**
  * Screens candidates: the task's reference patch must pass its tests in the image, else the case
- * is dropped; then one plain run each, recorded in the suite folder `screening`. The cases it
- * keeps are `chooseCases`'s.
+ * is dropped; then one plain run each, recorded in the suite folder `screening`: a run that did not
+ * finish (a command that does not start in the image, the usage limit) is reported in `unrun`, not
+ * counted as a failure. The cases it keeps are `chooseCases`'s.
  */
 export async function screen(
   deps: Deps & { fetchGold: (task: string) => Promise<string> },
@@ -55,8 +56,9 @@ export async function screen(
     candidates: Array<Case>;
     suite: Pick<Suite, "effort" | "human" | "model">;
   },
-): Promise<{ dropped: Array<string>; results: Array<Screened> }> {
+): Promise<{ dropped: Array<string>; results: Array<Screened>; unrun: Array<string> }> {
   const dropped: Array<string> = [];
+  const unrun: Array<string> = [];
   const results: Array<Screened> = [];
   for (const candidate of options.candidates) {
     const reference = await runVerifier({
@@ -69,13 +71,18 @@ export async function screen(
       dropped.push(candidate.id);
       continue;
     }
-    const { tests } = await runPlain(deps, {
+    const { outcome, tests } = await runPlain(deps, {
       approvedBy: options.approvedBy,
       case: candidate,
       suite: options.suite,
       suiteName: "screening",
     });
-    results.push({ case: candidate, tests });
+    // A session that did not run says nothing about the task: it is left out, not counted as failed.
+    if (outcome === "finished") {
+      results.push({ case: candidate, tests });
+    } else {
+      unrun.push(candidate.id);
+    }
   }
-  return { dropped, results };
+  return { dropped, results, unrun };
 }

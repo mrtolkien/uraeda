@@ -118,6 +118,15 @@ test("the required tests read as JSON lists or Python literals, once each", () =
   ]);
 });
 
+test("a Python literal's escapes read as repr wrote them, so the names match the verifier's", () => {
+  const literal = String.raw`['t::a[8\\U00016b59B]', 't::it\'s']`;
+
+  expect(requiredTests({ fail_to_pass: literal })).toEqual([
+    String.raw`t::a[8\U00016b59B]`,
+    "t::it's",
+  ]);
+});
+
 const ANSWER = [
   "```json",
   JSON.stringify({

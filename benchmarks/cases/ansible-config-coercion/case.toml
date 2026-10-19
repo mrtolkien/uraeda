@@ -1,0 +1,5 @@
+source = "swe-bench-pro-v2"
+task = "instance_ansible__ansible-d33bedc48fdd933b5abd65a77c081876298e2f07-v0f01c69f1e2528b935359cfe578530722bca2c59"
+image = "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:4cf51f69dad7c8cb966fa2af791058ba72e3b4124461d7418239bda01b5a6a9f"
+upstream = "https://github.com/ansible/ansible"
+repository = "/app"

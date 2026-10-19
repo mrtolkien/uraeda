@@ -154,3 +154,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a separate command for the baseline: the spec pairs them.
 - **If wrong**: a run that needs another prompt for the plain arm changes `plainPrompt`.
 - **Where**: task 10.
+
+## R12: What the first screening showed, and three fixes it made
+
+- **Decision**: the first screening, run for real, found three faults that the fakes could not: an
+  external diff tool in the user's git configuration wrote a side-by-side diff instead of a patch
+  (fixed with `--no-ext-diff`, `--no-textconv`, `--no-color`, and a test with `diff.external` set);
+  the verifier's test names are Python literals whose escapes (`\\U0001...`) the first parser did
+  not decode, so a passing reference patch looked failed (fixed, with a test); and Alpine images
+  (the `vuls` task) cannot run the host's glibc `claude`, which ended the session in a second. A
+  screening run that did not finish is now reported as not run, never counted as a failure, and the
+  `vuls` case is left out of the candidates. Runs made before these fixes were deleted and run
+  again.
+- **Rationale**: the runs' records; ruling R1 named the Alpine risk.
+- **Alternatives considered**: installing Claude Code in a layer on Alpine images: more work than
+  the five cases need.
+- **If wrong**: a case chosen from an Alpine image fails its session at the start, which the record
+  shows.
+- **Where**: tasks 9, 10, and 11.

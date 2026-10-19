@@ -1,16 +1,25 @@
-# The first suite. Until the screening, `cases` lists the ten candidates: it is then cut to the
+# The first suite. Until the screening, `cases` lists the candidates: it is then cut to the
 # five the plain arm failed.
 cases = [
-  "ansible-multipart-helper",
+  "ansible-config-coercion",
   "ansible-human-to-bytes",
-  "openlibrary-alternate-script-authors",
-  "openlibrary-author-matching",
-  "qutebrowser-process-cleanup",
-  "qutebrowser-process-messages",
+  "ansible-mount-facts",
+  "ansible-multipart-helper",
+  "flipt-cue-schema",
   "navidrome-password-change",
   "navidrome-unset-timestamps",
-  "vuls-inactive-kernels",
-  "flipt-cue-schema",
+  "openlibrary-alternate-script-authors",
+  "openlibrary-author-matching",
+  "openlibrary-best-book-awards",
+  "openlibrary-imported-book-data",
+  "openlibrary-marc-880",
+  "openlibrary-observation-helper",
+  "openlibrary-search-index-updates",
+  "openlibrary-search-parsing",
+  "qutebrowser-keysequence",
+  "qutebrowser-process-cleanup",
+  "qutebrowser-process-messages",
+  "qutebrowser-url-increment",
 ]
 arms = ["uraeda", "plain"]
 model = "claude-sonnet-5-5"

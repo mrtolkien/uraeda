@@ -6,6 +6,13 @@ import { git } from "./git.ts";
 import type { Scores } from "./record.ts";
 import { run } from "./run-command.ts";
 
+/** A Python string literal's text, with the escapes `repr` writes: `\\`, quotes, and line breaks. */
+function unescape(text: string): string {
+  return text.replaceAll(/\\(.)/g, (_, char: string) =>
+    char === "n" ? "\n" : char === "t" ? "\t" : char,
+  );
+}
+
 /** Parses a list the verifier's config stores as JSON, or as a Python literal of strings. */
 function listOf(value: unknown): Array<string> {
   if (Array.isArray(value)) {
@@ -17,8 +24,8 @@ function listOf(value: unknown): Array<string> {
   try {
     return (JSON.parse(value) as Array<unknown>).map(String);
   } catch {
-    return [...value.matchAll(/'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"/g)].map(
-      (match) => match[1] ?? match[2] ?? "",
+    return [...value.matchAll(/'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"/g)].map((match) =>
+      unescape(match[1] ?? match[2] ?? ""),
     );
   }
 }

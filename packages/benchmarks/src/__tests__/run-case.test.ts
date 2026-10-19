@@ -298,3 +298,22 @@ test("a prepared case holds the instruction word for word, and the image as pull
   expect(text).toContain('image = "ghcr.io/x@sha256:9"');
   expect(text).toContain('repository = "/testbed"');
 });
+
+test("a plain session that did not finish is not counted as a failure in the screening", async () => {
+  const h = await harness();
+  const broken: Deps = {
+    ...h.deps,
+    adapter: (kind, sandbox, plugin) => {
+      const adapter = new FakeAdapter();
+      adapter.script([{ code: 1, stderr: "exec claude: no such file", type: "exit" }]);
+      return kind === "agent" ? adapter : h.deps.adapter(kind, sandbox, plugin);
+    },
+  };
+
+  const screening = await screen(
+    { ...broken, fetchGold: async () => "diff --git a/x b/x\n" },
+    { ...target, candidates: [h.case], suite: SUITE },
+  );
+
+  expect(screening).toMatchObject({ dropped: [], results: [], unrun: ["c"] });
+});

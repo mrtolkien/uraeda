@@ -77,12 +77,13 @@ async function main(): Promise<void> {
     ...(values["skill-commit"] ? { skillCommit: values["skill-commit"] } : {}),
   };
   if (command === "screen") {
-    const { dropped, results } = await screen(
+    const { dropped, results, unrun } = await screen(
       { ...deps, fetchGold },
       { ...target, candidates: loaded, suite },
     );
     const { chosen, filled, repositories } = chooseCases(results);
     out(`dropped (reference fails): ${dropped.join(", ") || "none"}`);
+    out(`not run (the plain session did not finish): ${unrun.join(", ") || "none"}`);
     out(`chosen (${repositories} repositories): ${chosen.map((c) => c.id).join(", ")}`);
     out(`filled with passing cases: ${filled.join(", ") || "none"}`);
     return;

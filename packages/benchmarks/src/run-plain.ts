@@ -5,6 +5,7 @@ import type { Case } from "./case.ts";
 import type { Deps, RunTarget } from "./deps.ts";
 import { finalDiff, runVerifier } from "./grader.ts";
 import { git } from "./git.ts";
+import type { Outcome } from "./record.ts";
 import type { Suite } from "./suite.ts";
 import { runFolderPath, writeRun } from "./recorder.ts";
 import { baseRecord, copyTranscripts, nextRunFolder, requireApproval } from "./run-common.ts";
@@ -23,7 +24,11 @@ export function plainPrompt(proposal: string): string {
 export async function runPlain(
   deps: Deps,
   options: RunTarget & { case: Case; suite: Pick<Suite, "effort" | "human" | "model"> },
-): Promise<{ folder: string; tests: { passed: number; resolved: boolean; total: number } }> {
+): Promise<{
+  folder: string;
+  outcome: Outcome;
+  tests: { passed: number; resolved: boolean; total: number };
+}> {
   const approvedBy = requireApproval(options.approvedBy);
   const { case: found, suite } = options;
   const started = deps.now();
@@ -56,7 +61,7 @@ export async function runPlain(
       patch: await finalDiff(sandbox.repo, sandbox.base),
     });
     const wrong = session.models.find((model) => model !== suite.model);
-    const outcome = session.usageLimit
+    const outcome: Outcome = session.usageLimit
       ? "usage-limit"
       : wrong !== undefined || !session.ok
         ? "failed"
@@ -88,7 +93,7 @@ export async function runPlain(
       },
       scores: { tests },
     });
-    return { folder, tests };
+    return { folder, outcome, tests };
   } finally {
     await sandbox.close();
   }

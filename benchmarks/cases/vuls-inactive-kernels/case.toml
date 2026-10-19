@@ -1,5 +1,0 @@
-source = "swe-bench-pro-v2"
-task = "instance_future-architect__vuls-e1fab805afcfc92a2a615371d0ec1e667503c254-v264a82e2f4818e30f5a25e4da53b27ba119f62b5"
-image = "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:13ccab4cac7106571fd71c80d622d32004c8c7d347e3339ce2015e18f25658e0"
-upstream = "https://github.com/future-architect/vuls"
-repository = "/app"
