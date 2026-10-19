@@ -6,9 +6,9 @@
 >
 > Features for v1.0.0
 
-- [Some layout reviews](drafts/some-layout-reviews/proposal.md)
+- [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
 
-- [Fix testing -> it's flaky and does not actually help](drafts/fix-testing-it-s-flaky-and-does-not-actually-help.md)
+- [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
 - Enter should not start a change/chat ffs
 - Fix agent -> inbox flow, it creates way too much noise at the moment
