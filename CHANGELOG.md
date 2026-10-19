@@ -1,5 +1,105 @@
 # Changelog
 
+## 0.8.0 - 2026-10-19
+
+### Features
+
+- **[Storybook's full interface in Uraeda](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-17-access-storybook.md)**
+  ([#29](https://github.com/mrtolkien/uraeda/pull/29)): Uraeda's Storybook page framed Storybook's
+  full interface for a checkout, its sidebar, canvas, controls, and panels, but rendered no story:
+  since 10.6.2, Storybook pins its messages to an origin that Uraeda's sandboxed frame lacks. The
+  human wanted "all of storybooks features when we need to", and asked whether basic security made
+  it simpler. It did: basic security's frame secret removes the threat Storybook's origin check
+  guards against, so one Storybook setting fixes the page.
+- **[Redesign clarifications](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-17-redesign-clarifications.md)**
+  ([#30](https://github.com/mrtolkien/uraeda/pull/30)): Rounds of questions had grown to 1.5 times
+  the skill's example, opened by retelling the proposal, and read as a flat list on the page. The
+  human asked for a round that is quick to read once, top to bottom: a verdict on the proposal and
+  typed facts first, each question as a card with room for context, follow-ups set apart, settled
+  points grouped by what to check, answers with a comment and no letter, and wording every model
+  follows the same way.
+- **[Redesign and reword specs](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-17-redesign-specs.md)**
+  ([#33](https://github.com/mrtolkien/uraeda/pull/33)): Approving a spec is the human's most
+  important job, and specs had become a sea of bullet points: 3,900 to 7,700 words, decisions buried
+  after the stories, review comments answered by number, and decision links that opened the wrong
+  branch. The human asked for a page approved in one sitting, without any other context: what is
+  approved first, then the decisions with their changes marked in place, then the stories as cards,
+  each part drawn for what it holds. Decisions had grown to 18,728 words, and the human wanted them
+  short, intent first, with every line approved by a human.
+- **[Redesign feature and change pages](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-redesign-feature.md)**
+  ([#42](https://github.com/mrtolkien/uraeda/pull/42)): The feature page had grown by additions and
+  showed neither where a feature was nor what it produced; a done feature showed one link to its
+  record, and a change had no page at all. Two buttons opened the session and behaved differently,
+  the only path to pull request feedback never fired, and "problems" flagged features that were
+  fine. The human asked for one page that shows where a feature is, what's next, and what it
+  produced, from proposal to merge.
+
+### Changes
+
+- **[Questions first](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-17-questions-first.md)**
+  ([#32](https://github.com/mrtolkien/uraeda/pull/32)): The human wanted a round of questions to
+  start with a list of all its questions, so they do not answer a later question early, in an
+  earlier one's comment. Wide screens had the list in the column beside the questions, but on a
+  phone it sat behind the top bar's "1/4" count, with no quick way to see the questions.
+- **[Restart a Storybook when its checkout's commit changes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-17-storybook-restart.md)**:
+  A checkout's Storybook was started once and kept until it idled out, failed, or "Try again" was
+  pressed. After a commit that changed what Storybook reads only as it starts, its configuration and
+  fixture in `.storybook/`, its dependencies, or the server code it runs, the embeds showed stale or
+  blank stories: the round mockups of the clarifications redesign rendered blank, since their
+  Storybook had started before the commit that added their fixture.
+- **[Share the main checkout's builds with new worktrees](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-17-symlinks.md)**
+  ([#28](https://github.com/mrtolkien/uraeda/pull/28)): Every new worktree built its Rust code and
+  reran its checks from scratch: each compiled every dependency again, for 11 to 15 GB of `target/`
+  each, and its first `vp run ready` replayed nothing. The human asked to link the `node_modules`
+  and Rust build folders, "and everything that makes sense", into the worktrees, to save that CPU
+  and storage.
+- **[Decision review fixes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-decision-review-fixes.md)**
+  ([#40](https://github.com/mrtolkien/uraeda/pull/40)): The review of
+  [the specs redesign](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-17-redesign-specs.md)
+  found flaws in how decisions are compared, commented on, checked, and sent live. This change fixes
+  them, with a test for each.
+- **[Diagram frames](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-diagram-frames.md)**
+  ([#39](https://github.com/mrtolkien/uraeda/pull/39)): The diagrams of the web UI were drawn by
+  Mermaid at its `sandbox` level, which was meant to keep a crafted diagram out of the app. It did
+  not: a sanitizer bug would have run in a temporary frame with the app's origin. The proposal also
+  listed small defects of the diagram's frames. The change removes the cause, and the defects with
+  it.
+- **[Priorities and decisions pages fixes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-priorities-decisions-fixes.md)**
+  ([#36](https://github.com/mrtolkien/uraeda/pull/36)): Three flaws of the priorities and decisions
+  pages: a valid decision link could read as broken, Discard kept a priority's draft when its
+  children had changed, and the decisions page ran one `git log` per decision while the watch read
+  every decision on each pass.
+- **[Round fixes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-round-fixes.md)**
+  ([#43](https://github.com/mrtolkien/uraeda/pull/43)): Fifteen small defects found while reviewing
+  the round page, its checks, and their tests: wording, warnings that misfired or were missing, a
+  heading dropped without a word, duplicated readings, and tests that started from an old round
+  format.
+- **[Skill wording fixes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-skill-wording.md)**
+  ([#35](https://github.com/mrtolkien/uraeda/pull/35)): The skill's references, templates, and
+  example had drifted from the rules they state: sentences over 25 words, a few rules that disagreed
+  with their template or example, a dead link, and a round with follow-ups the core cannot show. The
+  human listed the fixes in one proposal.
+- **[Spec page fixes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-spec-page-fixes.md)**
+  ([#41](https://github.com/mrtolkien/uraeda/pull/41)): The review of the redesigned spec page left
+  about twenty-five loose ends: spec items the core and the page dropped without a word, spec-page
+  behaviour tested loosely or not at all, an answered review that disappeared after landing, and a
+  reading place and an editor that undid or garbled what the reader did. The change closes each.
+- **[Start a draft folder from its proposal](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-start-draft-folder.md)**
+  ([#34](https://github.com/mrtolkien/uraeda/pull/34)): Starting a draft folder from its
+  `proposal.md` (`specs/drafts/<slug>/proposal.md`), as the web UI does, started it as a file draft:
+  only `proposal.md` moved, and the folder's `images/` stayed behind, breaking the proposal's image
+  links.
+- **[Storybook preview fixes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-storybook-fixes.md)**
+  ([#37](https://github.com/mrtolkien/uraeda/pull/37)): Five loose ends of the Storybook preview,
+  left as follow-ups by the change that restarts a checkout's Storybook when its commit moves: two
+  restart rules that went wrong in rare sequences, and three gaps in what the tests and the
+  validation script prove.
+- **[Worktree toolchain fixes](https://github.com/mrtolkien/uraeda/blob/v0.8.0/specs/done/2026-10-18-worktree-toolchain.md)**
+  ([#38](https://github.com/mrtolkien/uraeda/pull/38)): Validating in several worktrees at once went
+  wrong in three ways: the main checkout's `ts:check` and `specs:check` missed their cache after any
+  worktree edit, the sweep of temporary folders failed with `ENOTEMPTY`, and runs were killed with
+  code 137.
+
 ## 0.7.0 - 2026-10-17
 
 ### Features
