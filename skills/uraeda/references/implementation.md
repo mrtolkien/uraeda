@@ -133,9 +133,9 @@ again from the repository.
    - **Before every push**, and at the final review: the project's full command, `vp run ready` in
      this repository, slow suites included. A red run is fixed before the push.
 
-   A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
-   at most twice. A test that fails intermittently follows the project's rule for flaky tests, when
-   an active decision has one; otherwise note it in the inbox, as
+   A failure unrelated to the task is never rerun until it passes: tests are not retried. It is
+   fixed, or, for a test that fails intermittently, it follows the project's rule for flaky tests,
+   when an active decision has one; otherwise note it in the inbox, as
    [agents' notes](inbox.md#agents-notes) says, and go on.
 
 4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
@@ -316,8 +316,8 @@ description, written when it is marked ready, reads like a file waiting for the 
   edited during the work, a new dependency, a failure that was already there, a final review done
   without a fresh reviewer.
 - **Links** to the record, and to `spec.md` and `plan.md` at the commit before finishing.
-- **Tests**: each acceptance scenario and review-focus item, with the test that covers it, from the
-  plan's test map.
+- **Tests**: each main scenario, `high` edge case, success criterion, and review-focus item, with
+  the test that covers it, from the plan's test map.
 - **Test changes**: the final review's list of tests removed, skipped, or changed in what they
   expect, or the line saying none was.
 - **Size**: each function and file the branch grew, with its length before and after.

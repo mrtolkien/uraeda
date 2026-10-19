@@ -254,10 +254,11 @@ What goes in each section:
 
 - **Test map**: a table mapping each main scenario, each `high` edge case, and each success
   criterion of the spec to its task and test. A `normal` or `niche` edge case gets no row: it is a
-  line in a test that exists, named in that test's step. A review-focus item gets its row, named
-  "Review focus:" with its subject. It opens with a sentence on how the integration tests run: what
-  they render, on which store, with which clock. The [writing tests](code-quality.md#writing-tests)
-  rules say how to write them. An error the code handles but no edge case names gets its row too.
+  line in a test that exists, named in that test's step, and so is an error the code handles that no
+  edge case names, unless its impact is high: then it gets its row. A review-focus item gets its
+  row, named "Review focus:" with its subject. It opens with a sentence on how the integration tests
+  run: what they render, on which store, with which clock. The
+  [writing tests](code-quality.md#writing-tests) rules say how to write them.
 - **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
   the shared files they each add to, if any. The implementation reads this section to decide what
   runs at the same time.

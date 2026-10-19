@@ -166,7 +166,7 @@ From [the spec](spec.md):
 
 ## Test map
 
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+Each main scenario, `high` edge case, and criterion of the spec, and the task whose tests cover it.
 
 | Spec                                                  | Task | Test                                                                                           |
 | ----------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------- |
