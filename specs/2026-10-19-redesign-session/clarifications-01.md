@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Redesign session
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions and 2 follow-ups, about 20 minutes.
+> Answered on 2026-10-19.
 >
 > - Verdict: worth building, with changes: seven asks are too many for one spec, and "the last X
 >   messages" and the typing lag are not measured yet.
@@ -87,7 +87,7 @@ reworked.
   - [pro] each review is short.
   - [con] the page's files are touched three times, and the column still waits.
 
-**Answer:**
+**Answer:** A: Ok, create a draft in "Next" for the sidebar
 
 ### Q1.B: What should a chat's right column hold?
 
@@ -137,7 +137,7 @@ finds text in old messages.
   - [pro] draws few nodes at once.
   - [con] a new dependency, a stack decision, and streaming and iPhone scroll pitfalls.
 
-**Answer:**
+**Answer:** A
 
 ### Q2.A: How many messages should the page open with, and add at each "Show earlier"?
 
@@ -158,7 +158,7 @@ Why it matters: too few makes you press the button often, and too many keeps the
   - [pro] almost never needs the button.
   - [con] close to today's cost on a mid-sized session.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: How tall should the composer be on a phone?
 
@@ -178,7 +178,7 @@ Why it matters: it decides how much of the conversation you see while you type o
   - [pro] nothing changes for typing long messages.
   - [con] the phone keeps losing a quarter of its height.
 
-**Answer:**
+**Answer:** A: The issue is width, not height. Let's do 3 rows on phone growing up to 9.
 
 ## Q4: What should messages look like on a phone?
 
@@ -203,7 +203,7 @@ Why it matters: it sets how every message of every session reads on a phone, and
   - [pro] most width.
   - [con] the line is easy to miss, and Astryx has no component for it.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Which buttons should move to the bottom, next to the composer?
 
@@ -227,7 +227,7 @@ Why it matters: it sets what your thumb reaches on a phone, and what the header 
   - [pro] the smallest change.
   - [con] leaves Archive away from the composer.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Which blocked actions should "Allow all" cover?
 
@@ -250,7 +250,7 @@ ones auto mode judged risky, until the session's process closes after 15 minutes
   - [pro] one press clears everything.
   - [con] allows actions from old turns you may no longer remember.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Should a blocked chat notify you like a blocked feature?
 
@@ -273,7 +273,7 @@ your note describes.
   - [pro] no decision change.
   - [con] a blocked chat stays invisible until you open it.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
