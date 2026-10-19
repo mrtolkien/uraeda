@@ -11,7 +11,6 @@
 - [Decisions pass](/specs/2026-10-19-decisions-pass/proposal.md)
 - [right bar resizable](/specs/changes/2026-10-19-right-bar/proposal.md)
 
-- [Review the overall flow of all user stories](drafts/flow-review.md)
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
 - Empty inbox
