@@ -1,5 +1,5 @@
 //! The core's flows: the workflow's rules, run through the public API on real repositories.
-//! One binary, one module per area: `specs/2026-10-19-fix-testing/rulings.md` says what each guards.
+//! One binary, one module per area: `specs/done/2026-10-19-fix-testing.md` says what the flows replaced.
 
 #[path = "../common/mod.rs"]
 mod common;

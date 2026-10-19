@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
-
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
 - Enter should not start a change/chat ffs
