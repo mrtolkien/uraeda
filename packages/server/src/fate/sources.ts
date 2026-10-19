@@ -54,9 +54,6 @@ import {
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
-  DECISIONS_CHECK_ID,
-  DEFAULT_ROUND_FILES,
-  DEFAULT_ROUND_IDS,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -64,6 +61,11 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+import {
+  DECISIONS_CHECK_ID,
+  DEFAULT_ROUND_FILES,
+  DEFAULT_ROUND_IDS,
+} from "../runner/round-messages.ts";
 import { type BranchChangesRecord, branchChangesDataView, sentChanges } from "./views-branch.ts";
 import { historyDataView, sentHistory } from "./views-history.ts";
 import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";

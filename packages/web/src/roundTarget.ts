@@ -3,6 +3,7 @@
 // the submit, and its retry go through the target's own mutations.
 import { createContext, useContext, useEffect, useState } from "react";
 import { useFateClient } from "react-fate";
+import { DECISIONS_CHECK_ID } from "uraeda-server/round-messages";
 import { FileView } from "./views.ts";
 
 /**
@@ -10,12 +11,6 @@ import { FileView } from "./views.ts";
  * files: `inbox-triage` or `decisions-check`.
  */
 export type RoundTarget = { folder: string } | { round: string };
-
-/** The inbox's triage, among workflow files: it has no feature folder. */
-export const TRIAGE_ID = "inbox-triage";
-
-/** The decisions check, among workflow files. */
-export const DECISIONS_CHECK_ID = "decisions-check";
 
 /** The page a default-branch round goes back to once submitted: the one that offers to apply it. */
 export function defaultRoundHome(target: RoundTarget): string {

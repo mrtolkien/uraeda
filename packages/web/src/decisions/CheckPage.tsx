@@ -2,7 +2,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { useRound } from "../data.ts";
 import { Page } from "../layout/Page.tsx";
-import { DECISIONS_CHECK_ID } from "../roundTarget.ts";
+import { DECISIONS_CHECK_ID } from "uraeda-server/round-messages";
 import { RoundPage } from "../RoundPage.tsx";
 import { useRepoPath, useRestoreScroll } from "../routes.tsx";
 

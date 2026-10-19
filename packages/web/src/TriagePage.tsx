@@ -3,7 +3,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { useRound } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { RoundPage } from "./RoundPage.tsx";
-import { TRIAGE_ID } from "./roundTarget.ts";
+import { TRIAGE_ID } from "uraeda-server/round-messages";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 
 /**

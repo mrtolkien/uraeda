@@ -1,6 +1,22 @@
 // The messages of the default branch's rounds, the inbox's triage (`references/inbox.md`) and the
 // decisions check (`references/decisions-check.md`): each starts a chat in the main checkout. Free of
-// Node's modules, so the UI imports them as they are.
+// Node's modules, so the UI imports them as they are. Also the one home of the rounds' ids and file
+// names, which the server and the UI share.
+
+/** The inbox's triage, among workflow files: the core's id for it, as it has no feature. */
+export const TRIAGE_ID = "inbox-triage";
+
+/** The decisions check, among workflow files, with an id of its own for the same reason. */
+export const DECISIONS_CHECK_ID = "decisions-check";
+
+/** The rounds on the default branch, each read and answered by the core's one code. */
+export const DEFAULT_ROUND_IDS: ReadonlyArray<string> = [TRIAGE_ID, DECISIONS_CHECK_ID];
+
+/** The name of a default-branch round's file, which an absent one is shown under. */
+export const DEFAULT_ROUND_FILES: Readonly<Record<string, string>> = {
+  [DECISIONS_CHECK_ID]: "DECISIONS-CHECK.md",
+  [TRIAGE_ID]: "INBOX-TRIAGE.md",
+};
 
 /** The message that asks an agent to propose a triage of the inbox (US4 1). */
 export const ORGANIZE_INBOX =

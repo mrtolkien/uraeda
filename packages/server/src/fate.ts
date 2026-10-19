@@ -68,10 +68,6 @@ export {
   PRIORITIES_ID,
   PROPOSAL_HINTS_ID,
   SESSION_LIST_ID,
-  DECISIONS_CHECK_ID,
-  DEFAULT_ROUND_FILES,
-  DEFAULT_ROUND_IDS,
-  TRIAGE_ID,
   WORKSPACE_ID,
 } from "./fate/views.ts";
 export { SETTINGS_ID } from "./fate/settings.ts";

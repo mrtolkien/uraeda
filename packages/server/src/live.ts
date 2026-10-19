@@ -3,14 +3,8 @@ import type { Binding } from "./fate/context.ts";
 import { changedRecords, takeWatched, type Watched } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
 import { SETTINGS_ID } from "./fate/settings.ts";
-import {
-  AGENT_ID,
-  INBOX_ID,
-  PRIORITIES_ID,
-  SESSION_LIST_ID,
-  DEFAULT_ROUND_IDS,
-  WORKSPACE_ID,
-} from "./fate/views.ts";
+import { AGENT_ID, INBOX_ID, PRIORITIES_ID, SESSION_LIST_ID, WORKSPACE_ID } from "./fate/views.ts";
+import { DEFAULT_ROUND_IDS } from "./runner/round-messages.ts";
 import { type LiveBus, live as globalLive } from "./fate.ts";
 import { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 import { LEDGER_ID } from "./fate/views-ledger.ts";
