@@ -164,11 +164,7 @@ fn snapshot(root: &Path) -> Snapshot {
                 &workspace.inbox,
                 &workspace.triage,
                 &workspace.decisions_check,
-                workspace
-                    .default_branch
-                    .as_deref()
-                    .and_then(|default| crate::api::default_checkout(&git, default))
-                    .map(|root| crate::decisions::candidates::read(&root)),
+                default_candidates(&git, &workspace),
             ))
             .unwrap_or_default(),
         ),
@@ -291,4 +287,20 @@ pub fn watch(
         }
     });
     Ok(Watcher { _shared: shared })
+}
+
+/// The decisions check's candidates on the default branch: from the checkout that has it, else from
+/// its tip, so a switch of the main checkout to another branch moves nothing.
+fn default_candidates(git: &Git, workspace: &Workspace) -> Vec<crate::decisions::Candidate> {
+    use crate::decisions::candidates;
+    let Some(default) = workspace.default_branch.as_deref() else {
+        return Vec::new();
+    };
+    match crate::api::default_checkout(git, default) {
+        Some(root) => candidates::read(&root),
+        None => git
+            .tip(default)
+            .map(|tip| candidates::read_at(git, tip))
+            .unwrap_or_default(),
+    }
 }
