@@ -11,6 +11,8 @@ import { run } from "./run-command.ts";
 export type Sandbox = {
   /** The bare repository the agent pushes to, as `origin`. */
   bareOrigin: string;
+  /** The commit the image's repository was at, before the project's specs: the diff's base. */
+  base: string;
   close(): Promise<void>;
   /** The adapter's `command`: Claude Code in the case's image. */
   command: string;
@@ -54,7 +56,7 @@ export async function prepareSandbox(options: SandboxOptions): Promise<Sandbox> 
   };
   try {
     await copyRepository(options.case, repo, label);
-    await prepareGit(repo, bareOrigin, options.constitution);
+    const base = await prepareGit(repo, bareOrigin, options.constitution);
     const configDir = makeConfigDir({
       deniedHosts: upstreamHosts(options.case.upstream),
       effort: options.effort,
@@ -70,7 +72,15 @@ export async function prepareSandbox(options: SandboxOptions): Promise<Sandbox> 
       path: join(work, "claude-in-image"),
       repository: repo,
     });
-    return { bareOrigin, close, command, configDir, env: { CLAUDE_CONFIG_DIR: configDir }, repo };
+    return {
+      bareOrigin,
+      base,
+      close,
+      command,
+      configDir,
+      env: { CLAUDE_CONFIG_DIR: configDir },
+      repo,
+    };
   } catch (error) {
     await close();
     throw error;
@@ -95,7 +105,7 @@ async function copyRepository(found: Case, repo: string, label: string): Promise
  * agent can push to. The feature starts in this checkout, not a worktree: a worktree's absolute
  * paths would not hold in the container's mount.
  */
-async function prepareGit(repo: string, bareOrigin: string, constitution: string): Promise<void> {
+async function prepareGit(repo: string, bareOrigin: string, constitution: string): Promise<string> {
   const fresh = !existsSync(join(repo, ".git"));
   if (fresh) {
     await git(repo, ["init", "-q", "-b", "main"]);
@@ -106,6 +116,7 @@ async function prepareGit(repo: string, bareOrigin: string, constitution: string
     await git(repo, ["add", "-A"]);
     await git(repo, ["commit", "-q", "--allow-empty", "-m", "base"]);
   }
+  const base = (await git(repo, ["rev-parse", "HEAD"])).trim();
   await run("ura", ["init", "--no-input"], repo);
   copyFileSync(constitution, join(repo, "specs/CONSTITUTION.md"));
   await git(repo, ["add", "specs"]);
@@ -114,4 +125,5 @@ async function prepareGit(repo: string, bareOrigin: string, constitution: string
   await git(repo, ["remote", "add", "origin", bareOrigin]);
   const branch = (await git(repo, ["branch", "--show-current"])).trim();
   await git(repo, ["push", "-q", "origin", branch]);
+  return base;
 }

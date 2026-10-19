@@ -59,6 +59,7 @@ export const humanSession = (extra: Partial<SessionResult> = {}): SessionResult 
   nativeId: "human",
   ok: true,
   seconds: 1,
+  text: "",
   tokens: { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 },
   urls: [],
   usageLimit: false,

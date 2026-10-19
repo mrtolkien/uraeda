@@ -925,7 +925,7 @@ git commit -m "feat(benchmarks): the simulated human"
   `gradeRun(...)` putting them in a `Scores` with the rounds, revisions, and questions counted from
   the run's `specs/` files.
 
-- [ ] **Step 1: Write the failing tests**, with a fake `docker` and the fake adapter
+- [x] **Step 1: Write the failing tests**, with a fake `docker` and the fake adapter
 
 ```ts
 test("US4.1: applies the diff without specs/ to a fresh container", async () => {
@@ -962,23 +962,23 @@ The break each test catches:
 - The judge: a verdict with no line, which no one can check.
 - No change: a run credited with the tests that pass on the base.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/grader.test.ts`
 - Expected: FAIL, `Cannot find module '../grader.ts'`
 
-- [ ] **Step 3: Implement the grader**
+- [x] **Step 3: Implement the grader**
 
 The dataset's tests for the task come through an injected `fetchTests(task, folder)` (the real one
 downloads the task's `tests/` folder from the dataset). The judge session is Sonnet 5.5, blind to
 the arm, with one binary check per requirement, and reads the spec and the proposal only.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks specs/2026-10-19-benchmarks/plan.md

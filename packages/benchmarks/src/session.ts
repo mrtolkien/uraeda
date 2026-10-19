@@ -22,6 +22,8 @@ export type SessionResult = {
   nativeId: string;
   ok: boolean;
   seconds: number;
+  /** What the agent wrote, its text blocks in order. */
+  text: string;
   tokens: Tokens;
   urls: Array<string>;
   usageLimit: boolean;
@@ -61,12 +63,15 @@ export async function runSession(options: {
     nativeId,
     ok: false,
     seconds: 0,
+    text: "",
     tokens: { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 },
     urls: [],
     usageLimit: false,
   };
   for await (const event of agent.events) {
-    if (event.type === "tokens") {
+    if (event.type === "text") {
+      result.text += `${result.text === "" ? "" : "\n"}${event.text}`;
+    } else if (event.type === "tokens") {
       result.tokens = event.total;
     } else if (event.type === "toolStart") {
       const text = event.target ?? "";

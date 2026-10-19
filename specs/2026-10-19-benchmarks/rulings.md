@@ -120,3 +120,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: trusting the prompt alone: a model that ignores it would pass.
 - **If wrong**: an `ura` commit subject change shows as a gate named by its subject.
 - **Where**: task 8, `human.ts` and `loop.ts`.
+
+## R10: How the hidden tests run, and what the judge sees
+
+- **Decision**: V2 tasks ship their verifier (`tests/test.sh`, `run_script.sh`, `parser.py`,
+  `config.json`, `test_patch.patch`). The grader downloads those files after the flow, into a folder
+  of its own, and runs `test.sh` in a fresh container of the image with the branch's diff (against
+  the image's commit, `specs/` excluded) applied. Passed and total count the tests of `fail_to_pass`
+  and `pass_to_pass` that `output.json` reports as `PASSED`, and the task is resolved when all of
+  them did. The judge gets the proposal and the spec in its message, in an empty folder, and answers
+  in JSON, which `parseVerdicts` checks. The diff is `HEAD` against the base, so only committed work
+  counts: the flow commits every task.
+- **Rationale**: the benchmark's
+  [README](https://github.com/scaleapi/SWE-bench_Pro-os/blob/main/v2/README.md) and `test.sh`, read
+  while writing the task.
+- **Alternatives considered**: Harbor's own verifier: a second runner for what a container and a
+  script do.
+- **If wrong**: a task whose `test.sh` needs the network or another path shows as 0 passed: its run
+  folder holds no log, so the first real grade of each case is read by hand.
+- **Where**: task 9, `grader.ts`, `judge.ts`, `tests-source.ts`.
