@@ -33,7 +33,7 @@ The human asked to be pinged when input is needed, for asks only, on desktop bro
 tab's title counting what waits
 ([what sends a notification](../done/2026-10-16-redesign-interface.md#q11-what-sends-a-notification)).
 A chat blocked by auto mode was missing from it: the human learned of it only by opening the page
-([blocked chats](../2026-10-19-redesign-session/clarifications-01.md#q7-should-a-blocked-chat-notify-you-like-a-blocked-feature)).
+([blocked chats](../done/2026-10-19-redesign-session.md#q7-should-a-blocked-chat-notify-you-like-a-blocked-feature)).
 Browsers ignore a permission request no click asked for, and a refusal cannot be asked again, so the
 page explains first
 ([asking for permission](../done/2026-10-16-redesign-interface.md#q12-how-does-uraeda-ask-for-permission-to-notify)).
