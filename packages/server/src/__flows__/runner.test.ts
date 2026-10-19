@@ -5,6 +5,7 @@ import { chmodSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
+import { chatImages } from "../attach.ts";
 import { layout } from "../paths.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { ClaudeAdapter } from "../runner/claude.ts";
@@ -226,6 +227,73 @@ test("an action no rule covers alone cannot be allowed", async () => {
 
   expect(refused.ok).toBe(false);
   expect(server.adapter.opens.at(-1)?.allowed).toBeUndefined();
+});
+
+test("a message's images reach the agent as files of the data folder, and no other path does", async () => {
+  const server = await testServer();
+  const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };
+  const stored = await chatImages(server.dataDir).save({
+    bytes: Buffer.from("RIFF0000WEBP"),
+    extension: "webp",
+    height: 10,
+    width: 10,
+  });
+  const attempt = (images: Array<unknown>, extra: Record<string, unknown> = {}) =>
+    mutate(server.app, "session.send", { images, session: chat.id, text: "Look", ...extra }, [
+      "id",
+      "turns",
+    ]);
+
+  // Paths the data folder does not hold, whatever they point at, are refused before the agent.
+  for (const id of ["../../../etc/passwd.webp", "/etc/passwd", "gone.webp", `${stored.id}/../x`]) {
+    expect((await attempt([{ height: 10, id, width: 10 }])).ok, id).toBe(false);
+  }
+  // More images than the agent reads, or with the workflow's own message, are refused too.
+  const many = await Promise.all(
+    Array.from({ length: 11 }, () =>
+      chatImages(server.dataDir).save({
+        bytes: Buffer.from("RIFF0000WEBP"),
+        extension: "webp",
+        height: 10,
+        width: 10,
+      }),
+    ),
+  );
+  expect((await attempt(many)).ok).toBe(false);
+  expect(
+    (
+      await attempt([stored], {
+        folder: AGENT,
+        session: undefined,
+        workflow: { trigger: "manual" },
+      })
+    ).ok,
+  ).toBe(false);
+  expect(server.adapter.sent).toEqual([]);
+
+  server.adapter.script([]);
+  const sent = await attempt([stored]);
+  expect(sent.ok).toBe(true);
+  await server.sessions.settled(Number((sent.data as { turns: Array<string> }).turns[0]));
+  expect(server.adapter.sent[0]?.images).toEqual([
+    { path: join(server.dataDir, "images", stored.id) },
+  ]);
+});
+
+test("a feature recommends the one message its step asks, and none while it waits on the human", async () => {
+  const server = await testServer();
+
+  const [agent, human] = await byId(
+    server.app,
+    "RecommendedMessage",
+    [AGENT, HUMAN],
+    ["id", "reason", "text"],
+  );
+
+  expect(agent.text).not.toBe("");
+  expect(agent.reason).toBeNull();
+  expect(human.text).toBe("");
+  expect(human.reason).not.toBeNull();
 });
 
 test("a start marks the turns a stopped server left as stopped, never as running", async () => {
