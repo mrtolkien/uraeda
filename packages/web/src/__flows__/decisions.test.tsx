@@ -5,7 +5,7 @@
 import { copyFileSync, cpSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
-import { fixture } from "uraeda-binding/test-utils";
+import { addSpecFeature, fixture, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { APPLY_DECISIONS_CHECK, RUN_DECISIONS_CHECK } from "uraeda-server/round-messages";
 import { expect, test } from "vite-plus/test";
 import { click, fixtureRepo, git, lastCommit, read, refreshUntil, startApp } from "./harness.tsx";
@@ -15,6 +15,7 @@ const CHECK = "specs/DECISIONS-CHECK.md";
 /** The fixture repository where the stack decision changed last, a day after the others. */
 function repository() {
   const repo = fixtureRepo();
+  addSpecFeature(repo);
   const stack = join(repo, "specs/decisions/stack.md");
   writeFileSync(stack, `${readFileSync(stack, "utf8")}- The binding's types\n`);
   git(repo, "add", "--all");
@@ -81,6 +82,21 @@ test("a decision and a principle open in the pane at an address a reload keeps",
   await click(principle);
   expect(window.location.pathname).toMatch(/\/decisions\/constitution\//);
   expect(await screen.findByRole("region", { name: /detail/i })).toBeTruthy();
+});
+
+test("a decision as a feature's branch has it opens at its own address, its changes marked in place", async () => {
+  await app.open(`/f/${SPEC_FEATURE}/decisions/task-storage`);
+
+  await waitFor(() => expect(screen.queryAllByRole("insertion").length).toBeGreaterThan(0));
+  expect(screen.queryAllByRole("deletion").length).toBeGreaterThan(0);
+  expect(window.location.pathname).toBe(app.path(`/f/${SPEC_FEATURE}/decisions/task-storage`));
+});
+
+test("a decision the feature's branch removed opens on the decisions page, at the same anchor", async () => {
+  await app.open(`/f/${SPEC_FEATURE}/decisions/task-history#rules`);
+
+  await waitFor(() => expect(window.location.pathname).toBe(app.path("/decisions/task-history")));
+  expect(window.location.hash).toBe("#rules");
 });
 
 test("the decisions list the last changed first, and the sort the human picks is kept", async () => {

@@ -57,3 +57,18 @@ test("a story's live frame is sandboxed: it runs scripts and is never the app's 
     expect(sandbox).not.toContain("allow-same-origin");
   }
 });
+
+test("the feature's whole Storybook page is sandboxed the same way", async () => {
+  await waitFor(async () => {
+    cleanup();
+    await app.open(`/f/${STORY_FEATURE}/storybook`);
+    await screen.findByRole("main");
+    expect(document.querySelectorAll("iframe").length).toBeGreaterThan(0);
+  });
+
+  for (const frame of document.querySelectorAll("iframe")) {
+    const sandbox = frame.getAttribute("sandbox") ?? "";
+    expect(sandbox).toContain("allow-scripts");
+    expect(sandbox).not.toContain("allow-same-origin");
+  }
+});

@@ -381,3 +381,32 @@ test("another git write blocks the buttons that write to git, and Enter, until i
   });
   expect(commit.getAttribute("aria-disabled")).not.toBe("true");
 });
+
+/** Whether a text field is the draft's text box, the only one of several lines. */
+const isMultiline = (box: HTMLElement) => box.tagName === "TEXTAREA";
+
+test("a drafted line's text is edited in place in the pane, saved only on Save, and committed with Commit", async () => {
+  const draft = "specs/drafts/git-listener.md";
+  await app.open("/priorities");
+  await screen.findAllByRole("link");
+  await click(paneLinks().find((link) => link.getAttribute("href")?.endsWith("/git-listener"))!);
+  const inPane = await pane();
+  await click(await inPane.findByRole("button", { name: "Edit" }));
+  // The draft's text arrives once it is read: its box is the only multi-line one.
+  await waitFor(() => expect(inPane.getAllByRole("textbox").some(isMultiline)).toBe(true));
+  const text = inPane.getAllByRole("textbox").find(isMultiline)!;
+
+  await type(text, "# Git listener process\n\n## What\n\nEdited in the pane.\n");
+
+  // Typing saves nothing: the file is as it was until the human saves.
+  expect(read(app.repo, draft)).not.toContain("Edited in the pane.");
+  const save = inPane.getAllByRole("button", { name: "Save" }).at(-1)!;
+  await waitFor(() => expect(save.getAttribute("aria-disabled")).not.toBe("true"));
+  await click(save);
+  await waitFor(() => expect(read(app.repo, draft)).toContain("Edited in the pane."));
+
+  await click(inPane.getByRole("button", { name: "Commit" }));
+  await waitFor(() =>
+    expect(git(app.repo, "show", "--name-only", "--format=", "HEAD")).toContain(draft),
+  );
+});
