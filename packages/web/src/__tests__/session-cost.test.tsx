@@ -4,6 +4,7 @@
 import { screen } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { fakeAgent, fixtureRepo, renderPage, type } from "./helpers.tsx";
+import { TAIL_MESSAGES } from "../tail.tsx";
 
 const calls = vi.hoisted(() => ({ markdown: 0 }));
 
@@ -44,7 +45,8 @@ test("typing in the composer redraws no message of the transcript", async () => 
   await openChatWith(30);
   const composer = screen.getByRole("textbox", { name: "Message Claude Code" });
   const before = calls.markdown;
-  expect(before).toBeGreaterThanOrEqual(30);
+  // The tail draws the latest 20 of the 30 (R7).
+  expect(before).toBeGreaterThanOrEqual(TAIL_MESSAGES);
 
   for (const text of ["h", "he", "hel", "hell", "hello"]) {
     await type(composer, text);
