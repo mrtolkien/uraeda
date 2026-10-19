@@ -15,8 +15,8 @@ would, and the results in git are plain text.
 
 - Agents MUST NOT start a benchmark run without a human's explicit approval, and the run's record
   MUST name who gave it. Checked by the runner's tests and review.
-- A benchmark MUST reach agents only through the server's adapter, with the model and the effort set
-  in a benchmark-only configuration folder, never passed as flags. Checked by review.
+- A benchmark MUST reach agents through the server's adapter, and reuse the server's message,
+  events, and parsing, never copying them. Checked by review.
 - A run MUST load the skill from a named commit, never from the working tree, and MUST record that
   commit and whether the tree was clean. Checked by the runner's tests.
 - The simulated human MUST see only what a human would open, never the hidden tests or the reference
@@ -31,9 +31,10 @@ would, and the results in git are plain text.
 - Git MUST hold each run's record, scores, `specs/` files, and final diff, and MUST NOT hold raw
   transcripts, which stay local with their SHA-256 recorded. Checked by `.gitignore` and the
   runner's tests.
-- Each full-flow run SHOULD have a plain-agent run on the same task, image, model, and effort, and
-  the agents SHOULD NOT read the task's upstream repository, which the audit of fetched addresses
-  checks. Checked by review.
+- Each case SHOULD have one plain-agent baseline run, on the same task, image, model, and effort as
+  the flow runs it is compared with, kept for later runs of that case. Checked by review.
+- Agents SHOULD NOT read the task's upstream repository, which the audit of the addresses they
+  fetched checks. Checked by review.
 
 ## Why
 

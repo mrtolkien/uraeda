@@ -17,15 +17,15 @@ erDiagram
 `benchmarks/suites/<suite>.toml`: what a benchmark runs, so many suites can sit side by side over
 months.
 
-| Field       | Type                  | Meaning                                      | Change |
-| ----------- | --------------------- | -------------------------------------------- | ------ |
-| `cases`     | list of case ids      | the cases the suite runs                     | New    |
-| `arms`      | `"uraeda"`, `"plain"` | the arms run on each case                    | New    |
-| `model`     | model id              | the model of every role, `claude-sonnet-5-5` | New    |
-| `effort`    | `low` to `max`        | the effort of every role                     | New    |
-| `agent`     | adapter kind          | the harness, `claude` first                  | New    |
-| `human`     | path and its commit   | the guidelines the simulated human follows   | New    |
-| `max-steps` | whole number          | the loop guard: sessions before a run stalls | New    |
+| Field       | Type                  | Meaning                                                | Change |
+| ----------- | --------------------- | ------------------------------------------------------ | ------ |
+| `cases`     | list of case ids      | the cases the suite runs                               | New    |
+| `arms`      | `"uraeda"`, `"plain"` | the arms run on each case, the plain one once per case | New    |
+| `model`     | model id              | the model of every role, `claude-sonnet-5-5`           | New    |
+| `effort`    | `low` to `max`        | the effort of every role                               | New    |
+| `agent`     | adapter kind          | the harness, `claude` first                            | New    |
+| `human`     | path and its commit   | the guidelines the simulated human follows             | New    |
+| `max-steps` | whole number          | the loop guard: sessions before a run stalls           | New    |
 
 ## Case
 
@@ -93,6 +93,7 @@ same tokens would cost on the API.
 
 - A requirement's item is `covered`, `partial`, or `missing`, with the spec's line that covers it.
 - The plain arm has `tests` only.
-- The run's folder also holds `specs/`, a copy of the feature's folder at the end, `final.diff`, and
-  `report.md`, which `benchmarks report` writes: a table of paired outcomes per case, with cost and
-  time. The transcripts folder stays out of git.
+- The run's folder also holds `specs/`, a copy of the feature's folder at the end, and `final.diff`.
+  The transcripts folder stays out of git.
+- The results page reads these folders, and is generated at `benchmarks/report.html`, which git
+  ignores.

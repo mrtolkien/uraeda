@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,30 +8,41 @@ plan-review: false
 
 # Spec: Benchmarks
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-19: 4 comments in spec-review.md.
+> Spec to review again, about 5 minutes.
 >
-> - You approve a benchmark of the full flow on five SWE-bench Pro V2 cases, run with Sonnet 5.5 for
->   every role, and compared with a plain Claude Code run. Its runner and results live in
->   `benchmarks/`.
-> - New decision, Benchmarks: no run starts without your approval, the skill comes from a commit,
->   and the human sees only what a human would. You approved running them for this feature, in your
->   answer on the budget.
-> - Following your chat, the proposal holds the task's whole text, requirements included, as the
->   benchmark gives it. The human then knows nothing the proposal does not say, and the questions
->   have less to find. Your answer on a brief of hidden requirements is superseded.
-> - Sonnet 5.5 replaces the proposal's Opus 5.5 for the agent, the human, and the judge. Effort is
->   assumed `medium`.
+> - You approve a benchmark of the full flow on five SWE-bench Pro V2 cases where plain Claude Code
+>   struggles, run with Sonnet 5.5 for every role, with its results in `benchmarks/` and a page that
+>   `vp run` opens in your browser.
+> - Since your review: the decision no longer polices flags and no longer asks a plain run for every
+>   flow run. The plain baseline is one run per case. The results page is new, with a mockup.
+> - No per-task results exist for plain Claude, so the five cases are screened: the plain arm runs
+>   once on about ten hard tasks, and the five it fails stay. This costs ten more plain runs.
+> - The results page is standalone HTML outside the web UI, so the UI decisions do not apply. Say so
+>   if you want it in the web UI.
+> - New decision, Benchmarks: no run starts without your approval, and the human sees only what a
+>   human would. The proposal holds the task's whole text, requirements included.
 > - Not verified: Claude Code inside a case's image, a subscription token in a fresh folder, `auto`
 >   mode unattended. The plan's first task checks them, and a failure returns to you.
-> - No cost cap, as you asked. The one cap is 30 sessions per run, against a loop that never ends.
-> - Risk tier `medium`, with no plan review: a new package and containers, and no user data.
+> - No cost cap, as you asked, except 30 sessions per run. Risk tier `medium`, no plan review.
 
 Five real cases run through the whole flow, with Claude Code playing the agent and the human, each
 beside a plain Claude Code run, and every result is saved under `benchmarks/` with the versions that
 produced it. It is for the project's owner, to check the flow holds up. See the
 [proposal](proposal.md), [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
+
+## Your review
+
+- **C1** (flags): done. The decision now says to use the server's adapter and reuse its code. The
+  configuration folder that sets the model stays in the architecture, as how, not as a rule.
+- **C2** (baseline for every run): done. The plain run is one baseline per case, reused by later
+  flow runs, and the decision says so as a SHOULD.
+- **C3** (cases where plain struggled): done. No per-task results are published: the hard subset
+  holds tasks that at least two of five model families failed, one of them Claude Opus 5. The cases
+  are screened with a plain Sonnet 5.5 run on each, in the plain arm's story.
+- **C4** (results page): done. `vp run benchmarks:report` writes an HTML page, newest suite first,
+  and opens it in your browser. The mockup is in the last story.
 
 ## Decisions
 
@@ -95,17 +106,28 @@ More scenarios:
 2. **Given** the human's session, **When** it lists the repository, **Then** the hidden tests, the
    reference solution are not in what it can read.
 
-### US3: A plain run on the same case (P1)
+### US3: A plain baseline, and cases where it struggles (P1)
 
-The runner runs a plain Claude Code session on the same case: one prompt with the case's proposal,
-no skill, no human, the same image, model, and effort. Its diff is graded like the flow's.
+The plain arm is one Claude Code session on the case: one prompt with the case's proposal, no skill,
+no human, the same image, model, and effort. It screens the candidate cases, and it is each case's
+baseline. Its diff is graded like the flow's.
 
 Key scenarios:
 
-1. **Given** a case, **When** its plain arm runs, **Then** one session works in a fresh copy of the
-   repository, and its final diff is graded by the hidden tests.
-2. **Given** both arms of a case graded, **When** the report is written, **Then** it shows their
-   outcomes side by side, with each one's cost and time.
+1. **Given** about ten candidate tasks of the hard subset with small images, **When** the plain arm
+   runs once on each, **Then** the five that fail the hidden tests, in at least four repositories,
+   become the suite's cases.
+2. **Given** a case chosen this way, **When** the suite's baseline is needed, **Then** a new plain
+   run is made, since the screening run was picked for failing.
+3. **Given** a case with a baseline, **When** a later flow run is graded, **Then** the report pairs
+   it with that baseline, and no new plain run starts.
+
+More scenarios:
+
+1. **Given** fewer than five candidates fail, **When** the screening ends, **Then** the ones with
+   the lowest share of passed tests fill the suite, and the report names them.
+2. **Given** a case's baseline, **When** the task's image digest changes, **Then** the baseline is
+   run again.
 
 ### US4: Grade each run (P2)
 
@@ -125,17 +147,29 @@ More scenarios:
 1. **Given** a run that ended without a push, **When** it is graded, **Then** the tests run on what
    the branch holds, and a branch with no code change counts as failed.
 
-### US5: Read results over time (P2)
+### US5: Read the results in a page (P2)
 
-Each run saves a record and its scores in a folder named by date and suite. `benchmarks report`
-prints a table of paired outcomes per case, from any set of run folders.
+Each run saves a record and its scores in a folder named by date and suite.
+`vp run benchmarks:report` writes one HTML page from every run folder, newest suite first, and opens
+it in the owner's browser. Each case shows its flow run beside its baseline: tests passed,
+requirements kept in the spec, sessions, cost, and time.
+
+[Results page](mockups/results.html)
 
 Key scenarios:
 
-1. **Given** two suites run a month apart, **When** their folders sit under `benchmarks/runs/`,
-   **Then** each record names its skill commit, model, harness version, and image digest.
-2. **Given** a run, **When** it is committed, **Then** git holds its record, scores, `specs/` files,
+1. **Given** two suites run a month apart, **When** the command runs, **Then** the page opens with
+   the newer suite first, and each suite names its model, effort, harness version, and skill commit.
+2. **Given** a flow run marked `invalid` or `leak-suspected`, **When** the page is written, **Then**
+   its row shows the flag, and the case is left out of the comparison line.
+3. **Given** a run, **When** it is committed, **Then** git holds its record, scores, `specs/` files,
    and diff, and the raw transcripts stay local, with their SHA-256 in the record.
+
+More scenarios:
+
+1. **Given** a session over SSH or with no display, **When** the command runs, **Then** it prints
+   the page's path instead of opening it.
+2. **Given** no run folder, **When** the command runs, **Then** it says there is nothing to show.
 
 ## Architecture
 
@@ -181,9 +215,12 @@ flowchart TD
   tool, and every fetched address goes into the record for an audit.
 - **The grader** owns grading: the task's tests in a fresh container, and the judge session over the
   proposal's requirements and the approved spec.
-- **The recorder and the report** own the record's fields, the run folder, and the table.
-- **The server package** exports its adapter, its events, and `runMessage`, which the runner needs.
-  It owns them still: the runner copies nothing.
+- **The recorder** owns the record's fields and the run folder.
+- **The results page** owns the report: one self-contained HTML file, written by the
+  `benchmarks:report` task and opened with the server's `openBrowser`. It reads only the run
+  folders, and is not committed.
+- **The server package** exports its adapter, its events, `runMessage`, and `openBrowser`, which the
+  runner needs. It owns them still: the runner copies nothing.
 
 Tradeoffs:
 
@@ -206,6 +243,8 @@ Tradeoffs:
 | Normal     | The image's tests fail on the reference patch                    | the case is dropped from the suite, and the next smallest hard task replaces it |
 | Normal     | The dirty flag is set on the skill's snapshot                    | the run goes on, and the record shows the flag                                  |
 | Normal     | The flow opens a new round of questions late                     | the human answers it like the first, and the session count still applies        |
+| Normal     | No display, or an SSH session                                    | the report command prints the page's path instead of opening it                 |
+| Normal     | A candidate task passes the plain screening run                  | it is dropped, and the next candidate is screened                               |
 | Niche      | The repository already has a `specs/` folder                     | the case is rejected when the suite is checked                                  |
 | Niche      | A flagged request would fall back to another model               | fallback is off, so it is an error, which fails the run                         |
 
@@ -213,8 +252,8 @@ Tradeoffs:
 
 - **SC-001** (one command): A run of one case, from approval to its record, is one command with the
   suite and case.
-- **SC-002** (five cases): The first suite holds five cases from at least four repositories, each
-  with a run of both arms.
+- **SC-002** (five cases): The first suite holds five cases where plain Sonnet 5.5 failed its
+  screening run, from at least four repositories, each with a flow run and a fresh plain baseline.
 - **SC-003** (every field): Every record holds the fields the decision lists, checked by the
   record's schema test.
 - **SC-004** (no hidden files): In the human's session, the hidden tests and the reference solution
@@ -223,6 +262,8 @@ Tradeoffs:
   event parser, checked by review.
 - **SC-006** (a fake agent): The loop's tests run end to end with the fake adapter, without a model
   or a container.
+- **SC-007** (one command to a page): `vp run benchmarks:report` opens the results page from a run
+  folder in one command.
 
 ## Assumptions
 
@@ -230,9 +271,15 @@ The points settled in the [clarifications](clarifications-01.md#settled-without-
 written there, except where your answers changed them: Sonnet 5.5 is the model of every role,
 including the judge, and the first suite has no cost cap. Settled while writing this spec:
 
-- **The five cases** are the five hard tasks a research agent read: an `ansible` multipart helper,
-  two `openlibrary` author-name tasks, a `qutebrowser` cleanup, and a `navidrome` password change.
-  They cover four repositories. See [discovery](discovery-01.md#where-the-cases-come-from).
+- **The candidates** start from the five hard tasks a research agent read: an `ansible` multipart
+  helper, two `openlibrary` author-name tasks, a `qutebrowser` cleanup, and a `navidrome` password
+  change. Five more with small images join them for screening, taken from the hard subset. See
+  [discovery](discovery-01.md#where-the-cases-come-from).
+- **Screening** is part of the approved runs: about ten plain runs, at about half the earlier
+  estimate per run, since Sonnet 5.5 costs half of Opus 5.5.
+- **The results page** is standalone HTML in `benchmarks/`, not a view of the web UI. The preview
+  and UI components decisions govern the web UI, so they do not apply. It is generated and not
+  committed.
 - **The proposal is the task's whole text**, requirements and interface included, as the benchmark
   gives it to its agents. The plain arm gets the same text. The judge's check then measures whether
   the spec keeps every requirement, not whether the questions found them.
@@ -258,3 +305,25 @@ including the judge, and the first suite has no cost cap. Settled while writing 
 
 **Medium**: a new package that starts containers and spends your subscription, with no stored user
 data and no change to an existing interface.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-19: 4 comments in spec-review.md.
+>
+> - You approve a benchmark of the full flow on five SWE-bench Pro V2 cases, run with Sonnet 5.5 for
+>   every role, and compared with a plain Claude Code run. Its runner and results live in
+>   `benchmarks/`.
+> - New decision, Benchmarks: no run starts without your approval, the skill comes from a commit,
+>   and the human sees only what a human would. You approved running them for this feature, in your
+>   answer on the budget.
+> - Following your chat, the proposal holds the task's whole text, requirements included, as the
+>   benchmark gives it. The human then knows nothing the proposal does not say, and the questions
+>   have less to find. Your answer on a brief of hidden requirements is superseded.
+> - Sonnet 5.5 replaces the proposal's Opus 5.5 for the agent, the human, and the judge. Effort is
+>   assumed `medium`.
+> - Not verified: Claude Code inside a case's image, a subscription token in a fresh folder, `auto`
+>   mode unattended. The plan's first task checks them, and a failure returns to you.
+> - No cost cap, as you asked. The one cap is 30 sessions per run, against a loop that never ends.
+> - Risk tier `medium`, with no plan review: a new package and containers, and no user data.
