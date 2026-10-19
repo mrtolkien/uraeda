@@ -120,3 +120,23 @@
 - [agent] [round-fixes] readLetters.ts is a hand copy of the core's letters rule, tied only by
   copied test rows: share the rows through fixtures/ so they cannot drift; the letter warning also
   says it opens follow-ups on questions that have none
+- [agent] [benchmarks] Benchmarks: a human's uncommitted edits outside the feature's folder are not
+  caught: only its commits are checked (human.ts).
+- [agent] [benchmarks] Benchmarks: a retry session after an auto block records no blocks of its own
+  and can pass the session cap (loop.ts).
+- [agent] [benchmarks] Benchmarks: the leak audit sees only http(s) addresses: gh repo clone, gh
+  api, and ssh remotes pass (session.ts).
+- [agent] [benchmarks] Benchmarks: the record's repository commit is read at the end of a run, not
+  the start (run-common.ts).
+- [agent] [benchmarks] Benchmarks: process.env.CLAUDE_CONFIG_DIR is set for the whole process and
+  never restored (real-deps.ts).
+- [agent] [decisions-pass] Rules drawn on the decisions page lose the links of their text: the
+  core's comparison keeps plain words, so a rule linking another decision is no longer a link
+- [agent] [decisions-pass] ura check on one candidate file skips the candidate name rules:
+  specs/decisions-check/q1-a/CONSTITUTION.md passes alone and fails with its folder
+- [agent] [decisions-pass] A decisions check's stale-option skip looks only at the default branch,
+  not at decisions proposed on open branches; and /decisions/check shadows a decision named check.md
+- [agent] [decisions-pass] The ledger read now reads every candidate of a waiting check, and an
+  inbox note edit refetches the ledger: add a decisions-check change flag to the watcher
+- [agent] [decisions-pass] An option of a decisions check that removes a decision (half of a merge)
+  is drawn with no candidate card; SKILL.md has 5 characters of margin under its 20,000 limit
