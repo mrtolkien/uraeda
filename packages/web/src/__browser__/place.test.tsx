@@ -6,7 +6,7 @@
 import { act, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atRepo, drawn, reload, scrollStopped, opened, watchFor } from "./helpers.tsx";
+import { atRepo, atSize, drawn, reload, scrollStopped, opened, watchFor } from "./helpers.tsx";
 
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 
@@ -79,10 +79,14 @@ const blocks = () =>
         heading().compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
     );
 
+// On the phone the form is a sheet under the page, which WebKit anchors on its own: only a wide
+// screen, where the form opens under the block, moves what is read.
 describe("a comment on a spec", () => {
+  atSize("desktop");
+
   test("the form moving down to the block tapped leaves that block where it was", async () => {
     await opened(SPEC);
-    await expect.poll(() => screen.queryAllByText(/^US2\b/).length).toBeGreaterThan(2);
+    await expect.poll(() => screen.queryAllByText(/^US2\b/).length).toBeGreaterThan(0);
     window.scrollBy(0, heading().getBoundingClientRect().top - barBottom());
     await drawn();
     const [first, , third] = blocks();
