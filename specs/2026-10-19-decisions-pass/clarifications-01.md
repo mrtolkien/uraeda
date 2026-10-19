@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Decisions pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions, about 20 minutes.
+> Answered on 2026-10-19.
 >
 > - Verdict: worth building, with changes. The rules already ask for few specifics and did not hold,
 >   so it needs a measure and a rewrite, not only a reminder.
@@ -70,7 +70,7 @@ readable.
   - [pro] constraints keep a home.
   - [con] two files to review, and the detail grows into what you dislike.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How is a decision's length limited?
 
@@ -92,7 +92,8 @@ Why it matters: a measure warns every agent at once, where a judgement relies on
   - [pro] nothing to build.
   - [con] the failure of the last pass.
 
-**Answer:**
+**Answer:** C: It's the failure of the last pass but we're changing how it works. You should review
+the existing decisions though, which you can compare against actual logs/answers I gave.
 
 ## Q3: How does the coherence check run?
 
@@ -114,7 +115,7 @@ Why it matters: a copy of the triage doubles parts that must stay in step.
   - [pro] nothing to build but a reference.
   - [con] not resumable from the repository alone, which principle III asks for.
 
-**Answer:**
+**Answer:** A: It should also re-use the decision diff view we use for specs
 
 ## Q4: What does the check look for?
 
@@ -136,7 +137,7 @@ Why it matters: a wider check finds more, and each finding is a question you ans
   - [pro] smallest.
   - [con] leaves duplicates and noise.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Where do the check's answers land?
 
@@ -154,7 +155,7 @@ Why it matters: edits on the default branch skip your review of the final wordin
   - [pro] no extra step.
   - [con] a decision text you never read becomes binding.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: What happens to the existing 21 decisions?
 
@@ -175,7 +176,7 @@ Why it matters: a spec you cannot review in one sitting is not approved well.
   - [pro] no work now.
   - [con] the ledger stays long indefinitely.
 
-**Answer:**
+**Answer:** B
 
 ## Q7: Do you want a decision about UI coherence?
 
@@ -197,7 +198,7 @@ Why it matters: it would bind the redesign work in flight.
   - [pro] nothing new to follow.
   - [con] the drift you dislike stays unchecked.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
