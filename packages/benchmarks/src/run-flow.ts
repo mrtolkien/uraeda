@@ -114,6 +114,7 @@ export async function runFlow(
       ...(loop.flags.length > 0 ? { flags: loop.flags } : {}),
       models: { answered: loop.models, asked: suite.model },
       outcome: loop.outcome,
+      ...(loop.reason === undefined ? {} : { reason: loop.reason }),
       steps: [...loop.steps, ...scores.steps],
       urls: loop.urls,
     };

@@ -15,7 +15,8 @@ const GUIDELINES = readFileSync(
 );
 const PROPOSAL =
   "# Add a multipart helper\n\n## Requirements\n\n- It MUST accept a list of fields.\n";
-const FILE = "specs/2026-10-19-case/spec.md";
+const FOLDER = "specs/2026-10-19-case";
+const FILE = `${FOLDER}/spec.md`;
 
 /** A repository holding the feature's folder, committed. */
 async function repository() {
@@ -43,7 +44,13 @@ async function turn(repo: string, steps: Array<(cwd: string) => void>, human = m
   adapter.script([...steps, result()]);
   return {
     adapter,
-    result: await human.run({ branch: "feature", file: FILE, repo, step: "human-gate" }),
+    result: await human.run({
+      branch: "feature",
+      file: "spec.md",
+      folder: FOLDER,
+      repo,
+      step: "human-gate",
+    }),
   };
 }
 

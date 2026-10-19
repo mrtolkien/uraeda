@@ -1,4 +1,3 @@
-import { dirname } from "node:path";
 import type { Adapter } from "uraeda-server/runner/adapter";
 import { git } from "./git.ts";
 import type { HumanResult, HumanTurn } from "./loop.ts";
@@ -47,7 +46,7 @@ export function makeHuman(options: {
       adapter: options.adapter,
       cwd: turn.repo,
       message: humanMessage({
-        file: turn.file,
+        file: turn.file === null ? null : `${turn.folder}/${turn.file}`,
         guidelines: options.guidelines,
         proposal: options.proposal,
       }),
@@ -57,17 +56,20 @@ export function makeHuman(options: {
     if (after === before) {
       return { gate: "no action", session };
     }
-    const folder = turn.file === null ? "specs" : dirname(turn.file);
+    const { folder } = turn;
     const files = (await git(turn.repo, ["diff", "--name-only", `${before}..${after}`]))
       .split("\n")
       .filter(Boolean);
     const outside = files.find((file) => !file.startsWith(`${folder}/`));
     if (outside !== undefined) {
-      throw new InvalidRun(`the human's commit touched ${outside}, outside ${folder}/`);
+      throw new InvalidRun(`the human's commit touched ${outside}, outside ${folder}/`, session);
     }
     const gate = gateOf((await git(turn.repo, ["log", "-1", "--format=%s"])).trim());
     if (gate === "changes requested" && ++requests > MAX_CHANGE_REQUESTS) {
-      throw new InvalidRun(`the human requested changes more than ${MAX_CHANGE_REQUESTS} times`);
+      throw new InvalidRun(
+        `the human requested changes more than ${MAX_CHANGE_REQUESTS} times`,
+        session,
+      );
     }
     return { commit: after, gate, session };
   };

@@ -34,6 +34,8 @@ export type RunRecord = {
   human: { guidelines: string; model: string };
   models: { answered: Array<string>; asked: string };
   outcome: Outcome;
+  /** Why a run that did not finish ended, in the loop's words. */
+  reason?: string;
   repository: Commit;
   skill: Commit;
   started: string;
@@ -83,6 +85,7 @@ const recordShape = object(
     human: object({ guidelines: text, model: text }),
     models: object({ answered: list(text), asked: text }),
     outcome: oneOf(...OUTCOMES),
+    reason: text,
     repository: commit,
     skill: commit,
     started: text,
@@ -96,7 +99,7 @@ const recordShape = object(
       }
     },
   },
-  ["flags"],
+  ["flags", "reason"],
 );
 
 const scoresShape = object(

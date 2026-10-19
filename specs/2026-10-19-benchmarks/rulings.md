@@ -172,3 +172,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a case chosen from an Alpine image fails its session at the start, which the record
   shows.
 - **Where**: tasks 9, 10, and 11.
+
+## R13: The first flow run found the human's folder wrong, and the record gains a `reason`
+
+- **Decision**: `ura next --json` names a gate's file by its bare name (`clarifications-01.md`), not
+  its path, so the folder the human's commits may touch is `specs/<feature>`, which the loop now
+  gives each human turn. The first flow run ended `invalid` on this: it was deleted, and run again.
+  The record also gains `reason`, a field that may be absent, saying why a run that did not finish
+  ended, and an invalid human turn keeps its session in the record's steps.
+- **Rationale**: the run's record had no reason to read; the data model now lists it.
+- **Alternatives considered**: keeping the invalid run: its cause was the runner's, not the flow's.
+- **If wrong**: nothing stored depends on it: a missing `reason` still parses.
+- **Where**: task 8, `human.ts` and `loop.ts`; task 3, `record.ts`.

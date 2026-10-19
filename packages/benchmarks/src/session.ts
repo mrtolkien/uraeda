@@ -6,6 +6,13 @@ import type { Step, Tokens } from "./record.ts";
 /** A run that broke a rule of the benchmark, and is thrown out, not corrected. */
 export class InvalidRun extends Error {
   override name = "InvalidRun";
+  /** The human's session whose turn broke the rule, which the record keeps. */
+  session: SessionResult | undefined;
+
+  constructor(message: string, session?: SessionResult) {
+    super(message);
+    this.session = session;
+  }
 }
 
 /** Whether an error is an `InvalidRun`: by name, since the linter forbids `instanceof`. */

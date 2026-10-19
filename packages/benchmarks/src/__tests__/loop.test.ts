@@ -194,3 +194,20 @@ test("a human turn that makes no commit fails the run instead of repeating the g
 
   expect(loop).toMatchObject({ outcome: "failed", reason: expect.stringContaining("no commit") });
 });
+
+test("the human is told the feature's folder, and a rule it breaks keeps its session in the record", async () => {
+  const turns: Array<string> = [];
+
+  const { loop } = await runScripted({
+    human: async (turn) => {
+      turns.push(`${turn.folder}/${turn.file}`);
+      throw new InvalidRun("the human touched a file", humanSession({ nativeId: "h1" }));
+    },
+    turns: [ok],
+    views: [agent("discovery"), human],
+  });
+
+  expect(turns).toEqual(["specs/2026-10-19-case/clarifications-01.md"]);
+  expect(loop.steps.map((step) => step.role)).toEqual(["agent", "human"]);
+  expect(loop.steps[1]?.gate).toBe("invalid");
+});

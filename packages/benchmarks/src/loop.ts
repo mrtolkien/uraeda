@@ -7,7 +7,15 @@ import type { Blocked, Outcome, Step } from "./record.ts";
 import { isInvalidRun, runSession, type SessionResult, stepOf } from "./session.ts";
 
 /** What the human's turn is about. */
-export type HumanTurn = { branch: string; file: string | null; repo: string; step: string };
+export type HumanTurn = {
+  branch: string;
+  /** The waiting file's name in the feature's folder. */
+  file: string | null;
+  /** The feature's folder, `specs/<feature>`: the only place the human's commits may touch. */
+  folder: string;
+  repo: string;
+  step: string;
+};
 /** What the human did: the commit it made, and what it did at the gate. */
 export type HumanResult = { commit?: string; gate: string; session: SessionResult };
 
@@ -129,6 +137,7 @@ class Loop {
       const turn = await this.#options.human({
         branch,
         file: step.file,
+        folder: `specs/${view.feature}`,
         repo: this.#options.repo,
         step: step.name,
       });
@@ -139,6 +148,9 @@ class Loop {
       return this.check(turn.session);
     } catch (error) {
       if (isInvalidRun(error)) {
+        if (error.session) {
+          this.keep("human", step.name, error.session, "invalid");
+        }
         return ["invalid", error.message];
       }
       throw error;

@@ -17,7 +17,7 @@ export function view(
     branch: "feature",
     feature: "2026-10-19-case",
     step: {
-      file: waitsOn === "human" ? "specs/2026-10-19-case/clarifications-01.md" : null,
+      file: waitsOn === "human" ? "clarifications-01.md" : null,
       implemented: extra.implemented ?? false,
       name,
       "plan-review": null,
