@@ -93,6 +93,8 @@ test("the settings set the model, turn the fallback off, and deny the upstream's
     "WebFetch(domain:raw.githubusercontent.com)",
     "WebFetch(domain:api.github.com)",
     "WebFetch(domain:codeload.github.com)",
+    "WebFetch(domain:huggingface.co)",
+    "WebFetch(domain:datasets-server.huggingface.co)",
   ]);
 });
 

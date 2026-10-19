@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { FakeAdapter } from "uraeda-server/runner/fake";
+import { FakeAdapter, type FakeStep } from "uraeda-server/runner/fake";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { baselineFor } from "../baseline.ts";
 import type { Case } from "../case.ts";
@@ -60,12 +60,59 @@ type Harness = {
   case: Case;
   deps: Deps;
   dockerCalls: () => Array<Array<string>>;
+  plugins: Array<string>;
   prepared: () => number;
   repository: string;
+  suite: Suite;
 };
 
+type HarnessOptions = {
+  agentFetch?: string;
+  finish?: boolean;
+  judgeModel?: string;
+  passes?: boolean;
+};
+
+/** The flow's agent works in the checkout: a code change, a spec, a push, and maybe a finish. */
+function agentScript(options: HarnessOptions): Array<FakeStep> {
+  return [
+    ...(options.agentFetch
+      ? [
+          {
+            id: "f1",
+            input: {},
+            kind: "fetch" as const,
+            name: "WebFetch",
+            target: options.agentFetch,
+            type: "toolStart" as const,
+          },
+        ]
+      : []),
+    (cwd) => {
+      const branch = execFileSync("git", ["branch", "--show-current"], {
+        cwd,
+        encoding: "utf8",
+      }).trim();
+      writeFileSync(join(cwd, "app.py"), "b\n");
+      mkdirSync(join(cwd, "specs", branch), { recursive: true });
+      writeFileSync(join(cwd, "specs", branch, "spec.md"), "accepts a list\n");
+      execFileSync("git", ["add", "-A"], { cwd });
+      execFileSync("git", ["commit", "-q", "-m", "work"], { cwd });
+      execFileSync("git", ["push", "-q", "origin", branch], { cwd });
+    },
+    ...(options.finish ? [finish] : []),
+    result(),
+  ];
+}
+
+/** The judge answers with one covered requirement, as the model it is given. */
+const judgeScript = (options: HarnessOptions): Array<FakeStep> => [
+  { text: JUDGE, type: "text" },
+  result(options.judgeModel ? { models: [options.judgeModel] } : {}),
+];
+
 /** Deps over fakes: the real sandbox on a fake docker and ura, a fake agent, and a verifier that passes. */
-async function harness(options: { finish?: boolean; passes?: boolean } = {}): Promise<Harness> {
+async function harness(options: HarnessOptions = {}): Promise<Harness> {
   const image = temporary("benchmarks-image-");
   write(join(image, "app.py"), "a\n");
   const bin = fakeBin(image);
@@ -83,31 +130,18 @@ async function harness(options: { finish?: boolean; passes?: boolean } = {}): Pr
     upstream: "https://github.com/a/b",
   };
   const agents: Array<FakeAdapter> = [];
+  const plugins: Array<string> = [];
   let sandboxes = 0;
   const verifierCalls: Array<Array<string>> = [];
   const deps: Deps = {
-    adapter: (kind) => {
+    adapter: (kind, _sandbox, pluginDir) => {
       const adapter = new FakeAdapter();
       if (kind === "agent") {
-        // The flow's agent works in the checkout: a code change, a spec, a push.
-        adapter.script([
-          (cwd) => {
-            const branch = execFileSync("git", ["branch", "--show-current"], {
-              cwd,
-              encoding: "utf8",
-            }).trim();
-            writeFileSync(join(cwd, "app.py"), "b\n");
-            mkdirSync(join(cwd, "specs", branch), { recursive: true });
-            writeFileSync(join(cwd, "specs", branch, "spec.md"), "accepts a list\n");
-            execFileSync("git", ["add", "-A"], { cwd });
-            execFileSync("git", ["commit", "-q", "-m", "work"], { cwd });
-            execFileSync("git", ["push", "-q", "origin", branch], { cwd });
-          },
-          ...(options.finish ? [finish] : []),
-          result(),
-        ]);
+        const skill = join(pluginDir, "skills/uraeda/SKILL.md");
+        plugins.push(existsSync(skill) ? readFileSync(skill, "utf8") : "none");
+        adapter.script(agentScript(options));
       } else {
-        adapter.script([{ text: JUDGE, type: "text" }, result()]);
+        adapter.script(judgeScript(options));
       }
       agents.push(adapter);
       return adapter;
@@ -152,8 +186,14 @@ async function harness(options: { finish?: boolean; passes?: boolean } = {}): Pr
     case: found,
     deps,
     dockerCalls: () => verifierCalls,
+    plugins,
     prepared: () => sandboxes,
     repository,
+    // The persona is read from the commit the suite names: this repository's own.
+    suite: {
+      ...SUITE,
+      human: { ...SUITE.human, commit: (await git(repository, ["rev-parse", "HEAD"])).trim() },
+    },
   };
 }
 
@@ -176,7 +216,7 @@ const finish = (cwd: string) => {
 test("US1.1 and SC-001: one command from approval to a record, with the proposal word for word", async () => {
   const h = await harness();
 
-  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: SUITE });
+  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
 
   const record = JSON.parse(readFileSync(join(folder, "record.json"), "utf8"));
   expect(record).toMatchObject({ "approved-by": "owner", outcome: "finished", version: 1 });
@@ -194,7 +234,7 @@ test("a run refuses to start without an approval, and starts nothing", async () 
   const h = await harness();
 
   await expect(
-    runFlow(h.deps, { approvedBy: "", case: h.case, suite: SUITE, suiteName: "first" }),
+    runFlow(h.deps, { approvedBy: "", case: h.case, suite: h.suite, suiteName: "first" }),
   ).rejects.toThrow("approval");
   expect(h.prepared()).toBe(0);
   expect(existsSync(join(h.deps.root, "runs"))).toBe(false);
@@ -203,32 +243,32 @@ test("a run refuses to start without an approval, and starts nothing", async () 
 test("the baseline is a new plain run, and a flow run reuses it afterwards", async () => {
   const h = await harness();
 
-  await runFlow(h.deps, { ...target, case: h.case, suite: SUITE });
+  await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
   expect(h.prepared()).toBe(2);
-  expect(baselineFor(h.deps.root, h.case)?.record.steps[0]?.role).toBe("plain");
+  expect(baselineFor(h.deps.root, h.case, h.suite)?.record.steps[0]?.role).toBe("plain");
 
-  await runFlow(h.deps, { ...target, case: h.case, suite: SUITE });
+  await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
   expect(h.prepared()).toBe(3);
 });
 
 test("the baseline is run again when the image's digest changed", async () => {
   const h = await harness();
-  await runFlow(h.deps, { ...target, case: h.case, suite: SUITE });
+  await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
 
-  expect(baselineFor(h.deps.root, { ...h.case, image: "image@sha256:2" })).toBeUndefined();
+  expect(baselineFor(h.deps.root, { ...h.case, image: "image@sha256:2" }, h.suite)).toBeUndefined();
 });
 
 test("a screening run is never the baseline", async () => {
   const h = await harness();
-  await runPlain(h.deps, { ...target, case: h.case, suite: SUITE, suiteName: "screening" });
+  await runPlain(h.deps, { ...target, case: h.case, suite: h.suite, suiteName: "screening" });
 
-  expect(baselineFor(h.deps.root, h.case)).toBeUndefined();
+  expect(baselineFor(h.deps.root, h.case, h.suite)).toBeUndefined();
 });
 
 test("the plain arm's record has the tests only, and no skill", async () => {
   const h = await harness({ passes: false });
 
-  const { folder } = await runPlain(h.deps, { ...target, case: h.case, suite: SUITE });
+  const { folder } = await runPlain(h.deps, { ...target, case: h.case, suite: h.suite });
 
   expect(JSON.parse(readFileSync(join(folder, "scores.json"), "utf8"))).toEqual({
     tests: { passed: 0, resolved: false, total: 2 },
@@ -278,7 +318,7 @@ test("a case whose reference patch fails the tests is dropped, and starts no pla
 
   const screening = await screen(
     { ...h.deps, fetchGold: async () => "diff --git a/x b/x\n" },
-    { ...target, candidates: [h.case], suite: SUITE },
+    { ...target, candidates: [h.case], suite: h.suite },
   );
 
   expect(screening.dropped).toEqual(["c"]);
@@ -327,7 +367,7 @@ test("a plain session that did not finish is not counted as a failure in the scr
 
   const screening = await screen(
     { ...broken, fetchGold: async () => "diff --git a/x b/x\n" },
-    { ...target, candidates: [h.case], suite: SUITE },
+    { ...target, candidates: [h.case], suite: h.suite },
   );
 
   expect(screening).toMatchObject({ dropped: [], results: [], unrun: ["c"] });
@@ -352,11 +392,55 @@ test("failures come first even when passing cases would span more repositories",
 test("the spec and the folder are read from before the finish step replaced them with a record", async () => {
   const h = await harness({ finish: true });
 
-  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: SUITE });
+  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
 
   expect(readFileSync(join(folder, "specs/2026-10-19-c/spec.md"), "utf8")).toBe("accepts a list\n");
   expect(readFileSync(join(folder, "specs/done/2026-10-19-c.md"), "utf8")).toBe("record\n");
   expect(JSON.parse(readFileSync(join(folder, "scores.json"), "utf8")).requirements).toMatchObject({
     covered: 1,
   });
+});
+
+test("the agent loads the skill as the commit had it, not as the working tree has it", async () => {
+  const h = await harness();
+  writeFileSync(join(h.repository, "skills/uraeda/SKILL.md"), "edited, uncommitted");
+
+  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
+
+  expect(h.plugins).toContain("skill");
+  expect(h.plugins).not.toContain("edited, uncommitted");
+  expect(JSON.parse(readFileSync(join(folder, "record.json"), "utf8")).skill.dirty).toBe(true);
+});
+
+test("a judge session answered by another model fails the run", async () => {
+  const h = await harness({ judgeModel: "claude-haiku-4-5" });
+
+  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
+
+  expect(JSON.parse(readFileSync(join(folder, "record.json"), "utf8"))).toMatchObject({
+    models: { answered: ["claude-sonnet-5-5", "claude-haiku-4-5"] },
+    outcome: "failed",
+    reason: expect.stringContaining("claude-haiku-4-5"),
+  });
+});
+
+test("a plain run that fetches the upstream is flagged, as a flow run is", async () => {
+  const h = await harness({ agentFetch: "https://github.com/a/b/pull/1" });
+
+  const { folder } = await runPlain(h.deps, { ...target, case: h.case, suite: h.suite });
+
+  expect(JSON.parse(readFileSync(join(folder, "record.json"), "utf8")).flags).toEqual([
+    "leak-suspected",
+  ]);
+});
+
+test("a baseline made for another model or effort is not reused", async () => {
+  const h = await harness();
+  await runPlain(h.deps, { ...target, case: h.case, suite: h.suite });
+
+  expect(baselineFor(h.deps.root, h.case, h.suite)).toBeDefined();
+  expect(
+    baselineFor(h.deps.root, h.case, { ...h.suite, model: "claude-opus-5-5" }),
+  ).toBeUndefined();
+  expect(baselineFor(h.deps.root, h.case, { ...h.suite, effort: "high" })).toBeUndefined();
 });

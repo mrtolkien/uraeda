@@ -9,6 +9,7 @@ import type { Outcome } from "./record.ts";
 import type { Suite } from "./suite.ts";
 import { runFolderPath, writeRun } from "./recorder.ts";
 import { baseRecord, copyTranscripts, nextRunFolder, requireApproval } from "./run-common.ts";
+import { isUpstream } from "./loop.ts";
 import { runSession, stepOf } from "./session.ts";
 
 /** The plain arm's prompt: the case's proposal, and one line saying where to work. */
@@ -84,8 +85,15 @@ export async function runPlain(
           started,
           task: { id: found.task, image: found.image, source: found.source },
         })),
-        blocked: [],
+        blocked: session.denials.map((denial) => ({
+          rule: "none",
+          tool: denial.tool,
+          ...(typeof denial.input.command === "string" ? { target: denial.input.command } : {}),
+        })),
         ended: deps.now().toISOString(),
+        ...(session.urls.some((url) => isUpstream(url, found.upstream))
+          ? { flags: ["leak-suspected" as const] }
+          : {}),
         models: { answered: session.models, asked: suite.model },
         outcome,
         steps: [stepOf("plain", "plain", session)],

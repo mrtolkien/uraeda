@@ -85,3 +85,22 @@ test("without a display the path is printed, not opened", () => {
 test("with no run folder it says there is nothing to show, and writes nothing", () => {
   expect(writeReport(temporary(), { open: () => "opened" })).toEqual({ empty: true });
 });
+
+test("US3.3: a later flow run is paired with the baseline an earlier suite made", () => {
+  const html = renderReport([
+    run("2026-09-01-first", "c", "plain"),
+    run("2026-10-19-second", "c", "uraeda", { resolved: true }),
+  ]);
+
+  expect(compared(html)).toEqual(["c"]);
+  expect(html).toContain("baseline of 2026-09-01-first");
+});
+
+test("a baseline for another model is not borrowed", () => {
+  const other = run("2026-09-01-first", "c", "plain");
+  other.record.models.asked = "claude-opus-5-5";
+
+  const html = renderReport([other, run("2026-10-19-second", "c", "uraeda", { resolved: true })]);
+
+  expect(compared(html)).toEqual([]);
+});

@@ -211,3 +211,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: allowing a broad rule: it widens what the agent may do unrecorded.
 - **If wrong**: an agent stuck behind a block repeats it, and the run fails with the command named.
 - **Where**: task 7, `session.ts` and `loop.ts`.
+
+## R16: What the final review changed, and what it left
+
+- **Decision**: the final review's important findings were fixed, each with a test that fails
+  without it: the judge's model counts as a model that answered (a wrong one fails the run), a plain
+  run is flagged for a leak and records its blocks, a later flow run is paired in the report with
+  the baseline an earlier suite made, a baseline is reused only for the same model and effort and
+  only when it finished, a process that stays up after its result is ended by SIGTERM then SIGKILL
+  (a grace of 10 seconds each, the server's own), a session's later results add to the earlier ones'
+  models and denials, the benchmark's own repository and dataset hosts are flagged and denied (the
+  hidden tests and the reference solution are public there), the persona is read from the commit the
+  record names, an error in the loop keeps the steps so far and ends the run `failed` with its
+  reason, and the work folder is removed. Not changed: the human's and the judge's sessions run on
+  the host in `auto` mode, so they can read anything on the machine, earlier runs' diffs included.
+  The hidden tests and reference solution are on no run's disk while a session runs, and a fetch of
+  them is flagged: SC-004's test checks the first, not a host-wide sandbox. The minor findings are
+  in the inbox.
+- **Rationale**: [Benchmarks](../decisions/benchmarks.md): its rules on the model, the invalid run,
+  and the audit.
+- **Alternatives considered**: running the human in a container too: the spec puts it on the host.
+- **If wrong**: a human that reads another run's diff is a leak between runs, not of the task.
+- **Where**: tasks 6, 7, 8, 10.

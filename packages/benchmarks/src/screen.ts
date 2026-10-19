@@ -4,6 +4,7 @@ import { type Case, readCase } from "./case.ts";
 import { listRuns } from "./recorder.ts";
 import type { Deps, RunTarget } from "./deps.ts";
 import { runVerifier } from "./grader.ts";
+import { requireApproval } from "./run-common.ts";
 import { runPlain } from "./run-plain.ts";
 import type { Suite } from "./suite.ts";
 
@@ -62,6 +63,7 @@ export async function screen(
     suite: Pick<Suite, "effort" | "human" | "model">;
   },
 ): Promise<{ dropped: Array<string>; results: Array<Screened>; unrun: Array<string> }> {
+  requireApproval(options.approvedBy);
   const dropped: Array<string> = [];
   const unrun: Array<string> = [];
   const results: Array<Screened> = [];

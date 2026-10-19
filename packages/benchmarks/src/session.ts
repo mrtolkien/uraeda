@@ -40,6 +40,8 @@ const URL_PATTERN = /https?:\/\/[^\s"'<>)`,;]+/g;
 /** A command that reaches a network address, not one that merely mentions it (a test's config). */
 const FETCHING =
   /\b(curl|wget|gh|git\s+(clone|fetch|pull|ls-remote|remote)|pip3?\s+(download|install)|httpie?|nc|ssh)\b/;
+/** The server gives a process that long to end after its result, twice. */
+const GRACE_MS = 10_000;
 const LIMIT_PATTERN = /usage limit|limit reached|rate.?limit/i;
 
 /**
@@ -51,6 +53,8 @@ export async function runSession(options: {
   adapter: Adapter;
   allowed?: string;
   cwd: string;
+  /** How long a process may stay up after its result, before SIGTERM, and again before SIGKILL. */
+  graceMs?: number;
   message: string;
   nativeId?: string;
   now?: () => number;
@@ -78,6 +82,9 @@ export async function runSession(options: {
     urls: [],
     usageLimit: false,
   };
+  const stops: Array<ReturnType<typeof setTimeout>> = [];
+  const grace = options.graceMs ?? GRACE_MS;
+  let answered = false;
   for await (const event of agent.events) {
     if (event.type === "text") {
       result.text += `${result.text === "" ? "" : "\n"}${event.text}`;
@@ -90,18 +97,29 @@ export async function runSession(options: {
     } else if (event.type === "usage") {
       result.usageLimit ||= event.fiveHour.percentUsed >= 100;
     } else if (event.type === "result") {
-      Object.assign(result, {
-        denials: event.denials,
-        errors: event.errors,
-        models: event.models ?? [],
-        ok: event.ok,
-        ...(event.costUsd === undefined ? {} : { costUsd: event.costUsd }),
-      });
+      // A session may answer several turns: nothing an earlier one did is overwritten.
+      result.denials.push(...event.denials);
+      result.errors.push(...event.errors);
+      result.models.push(...(event.models ?? []).filter((model) => !result.models.includes(model)));
+      result.ok = (answered ? result.ok : true) && event.ok;
+      answered = true;
+      if (event.costUsd !== undefined) {
+        result.costUsd = event.costUsd;
+      }
       result.usageLimit ||= !event.ok && LIMIT_PATTERN.test(event.errors.join(" "));
       agent.close();
+      // A process that stays up after its result is ended, as the server ends one: SIGTERM, then
+      // SIGKILL, each a grace period apart.
+      stops.push(
+        setTimeout(() => agent.kill("SIGTERM"), grace),
+        setTimeout(() => agent.kill("SIGKILL"), grace * 2),
+      );
     } else if (event.type === "exit") {
       result.exit = { code: event.code, stderr: event.stderr };
     }
+  }
+  for (const stop of stops) {
+    clearTimeout(stop);
   }
   result.seconds = (now() - started) / 1000;
   return result;

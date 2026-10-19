@@ -1,7 +1,7 @@
 import type { Adapter } from "uraeda-server/runner/adapter";
 import type { Denial } from "uraeda-server/runner/events";
 import { retryMessage, runMessage } from "uraeda-server/runner/message";
-import { upstreamHosts } from "./config-dir.ts";
+import { DATASET_HOSTS, upstreamHosts } from "./config-dir.ts";
 import { isPushed, type NextJson, nextStep } from "./next.ts";
 import type { Blocked, Outcome, Step } from "./record.ts";
 import { isInvalidRun, runSession, type SessionResult, stepOf } from "./session.ts";
@@ -48,7 +48,10 @@ export type LoopResult = {
   urls: Array<string>;
 };
 
-/** Whether an address is in the task's upstream repository, on any of its hosts. */
+/**
+ * Whether an address is one a run must not read: the task's upstream repository, on any of its
+ * hosts, or the benchmark's own, which holds each task's hidden tests and reference solution.
+ */
 export function isUpstream(address: string, upstream: string): boolean {
   let url: URL;
   try {
@@ -57,9 +60,15 @@ export function isUpstream(address: string, upstream: string): boolean {
     return false;
   }
   const path = new URL(upstream).pathname.replace(/\.git$/, "").toLowerCase();
-  return (
-    upstreamHosts(upstream).includes(url.hostname) && url.pathname.toLowerCase().includes(path)
-  );
+  const lower = url.pathname.toLowerCase();
+  const inRepository =
+    lower === path ||
+    lower.startsWith(`${path}/`) ||
+    lower.startsWith(`${path}.git`) ||
+    lower.includes(`/repos${path}`) ||
+    lower.includes(`${path}/`);
+  const inDataset = DATASET_HOSTS.includes(url.hostname) && /\/(scaleapi|scaleai)\//.test(lower);
+  return (upstreamHosts(upstream).includes(url.hostname) && inRepository) || inDataset;
 }
 
 /** A reason that ends the run, with the outcome it ends as. */
@@ -142,10 +151,11 @@ class Loop {
         step: step.name,
       });
       this.keep("human", step.name, turn.session, turn.gate);
-      if (turn.commit === undefined && turn.session.ok) {
+      const stop = this.check(turn.session);
+      if (stop === undefined && turn.commit === undefined) {
         return ["failed", `the human made no commit at ${step.name}`];
       }
-      return this.check(turn.session);
+      return stop;
     } catch (error) {
       if (isInvalidRun(error)) {
         if (error.session) {
@@ -224,22 +234,27 @@ export async function runLoop(options: LoopOptions): Promise<LoopResult> {
   const next = options.deps?.next ?? nextStep;
   const pushed = options.deps?.isPushed ?? isPushed;
   const loop = new Loop(options);
-  while (!loop.full) {
-    const view = await next(options.repo, options.feature);
-    const { branch, step } = view;
-    if (step.implemented && branch !== null && (await pushed(options.repo, branch))) {
-      return loop.end("finished");
+  try {
+    while (!loop.full) {
+      const view = await next(options.repo, options.feature);
+      const { branch, step } = view;
+      if (step.implemented && branch !== null && (await pushed(options.repo, branch))) {
+        return loop.end("finished");
+      }
+      if (branch === null || step["waits-on"] === "nobody") {
+        return loop.end("failed", `${options.feature} waits on nobody at ${step.name}`);
+      }
+      const stop =
+        step["waits-on"] === "human"
+          ? await loop.humanTurn(view, branch)
+          : await loop.agentTurn(view, branch);
+      if (stop) {
+        return loop.end(...stop);
+      }
     }
-    if (branch === null || step["waits-on"] === "nobody") {
-      return loop.end("failed", `${options.feature} waits on nobody at ${step.name}`);
-    }
-    const stop =
-      step["waits-on"] === "human"
-        ? await loop.humanTurn(view, branch)
-        : await loop.agentTurn(view, branch);
-    if (stop) {
-      return loop.end(...stop);
-    }
+  } catch (error) {
+    // Whatever broke, the steps so far are kept, and the record says why the run ended.
+    return loop.end("failed", error instanceof Error ? error.message : String(error));
   }
   return loop.end("stalled", `${options.maxSteps} sessions ran without the branch being pushed`);
 }

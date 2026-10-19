@@ -74,6 +74,8 @@ export const humanSession = (extra: Partial<SessionResult> = {}): SessionResult 
 export async function runScripted(options: {
   human?: (turn: HumanTurn, agentSessions: number) => Promise<HumanResult>;
   maxSteps?: number;
+  /** The call of `ura next`, from 1, that throws. */
+  nextThrowsAt?: number;
   /** The branch counts as pushed once this many agent sessions have run. */
   pushedAfter?: number;
   turns: Array<Array<AgentEvent>>;
@@ -90,6 +92,9 @@ export async function runScripted(options: {
     deps: {
       isPushed: async () => adapter.sent.length >= (options.pushedAfter ?? Infinity),
       next: async () => {
+        if (options.nextThrowsAt !== undefined && call + 1 >= options.nextThrowsAt) {
+          throw new Error("ura exploded");
+        }
         const answer = options.views[Math.min(call++, options.views.length - 1)] as NextJson;
         order.push(`${answer.step["waits-on"]}:${answer.step.name}`);
         return answer;

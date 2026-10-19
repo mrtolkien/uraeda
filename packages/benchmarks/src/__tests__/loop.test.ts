@@ -243,3 +243,38 @@ test("a command that fetches names its address, one that only mentions it does n
   expect(mentioning.loop.urls).toEqual([]);
   expect(mentioning.loop.flags).toEqual([]);
 });
+
+test("the benchmark's own repository and dataset are flagged like the upstream", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [
+      fetchTurn(
+        "https://raw.githubusercontent.com/scaleapi/SWE-bench_Pro-os/main/v2/hard51_ids.txt",
+      ),
+    ],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual(["leak-suspected"]);
+});
+
+test("a repository whose name only starts like the upstream's is not flagged", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [fetchTurn("https://github.com/ansible/ansible-lint")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual([]);
+});
+
+test("an error in a step ends the run as failed, keeping the steps so far", async () => {
+  const { loop } = await runScripted({
+    nextThrowsAt: 2,
+    turns: [ok],
+    views: [agent("discovery"), agent("discovery")],
+  });
+
+  expect(loop).toMatchObject({ outcome: "failed", reason: "ura exploded" });
+  expect(loop.steps).toHaveLength(1);
+});

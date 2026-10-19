@@ -1,6 +1,14 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+/** Where the benchmark's tasks, tests, and reference solutions are published. */
+export const DATASET_HOSTS = [
+  "github.com",
+  "raw.githubusercontent.com",
+  "huggingface.co",
+  "datasets-server.huggingface.co",
+];
+
 /**
  * The hosts a run must not fetch from, for a task whose upstream repository is `upstream`: a
  * GitHub repository's four hosts, because the web tool matches whole domains, else its own host.
@@ -33,7 +41,11 @@ export function makeConfigDir(options: {
       DISABLE_AUTOUPDATER: "1",
     },
     model: options.model,
-    permissions: { deny: options.deniedHosts.map((host) => `WebFetch(domain:${host})`) },
+    permissions: {
+      deny: [
+        ...new Set([...options.deniedHosts, "huggingface.co", "datasets-server.huggingface.co"]),
+      ].map((host) => `WebFetch(domain:${host})`),
+    },
     switchModelsOnFlag: false,
   };
   writeFileSync(join(options.folder, "settings.json"), `${JSON.stringify(settings, null, 2)}\n`);
