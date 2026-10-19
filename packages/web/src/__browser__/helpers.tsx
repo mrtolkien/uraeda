@@ -110,6 +110,22 @@ export async function show(path: string, text: string) {
 }
 
 /**
+ * Renders the UI at a path of the test's repository and waits until the page has drawn its data: a
+ * heading, and no "Loading…". The page checks and flows name no text of the product to wait for.
+ */
+export async function opened(path: string) {
+  await show(path, "");
+  await expect
+    .poll(
+      () =>
+        document.querySelector("h1, h2, h3") !== null &&
+        !document.body.textContent?.includes("Loading…"),
+    )
+    .toBe(true);
+  await grown();
+}
+
+/**
  * Renders the UI again on the current history entry, as a reload does, and waits for a text: the
  * entry's state, like its saved position, is kept.
  */
@@ -195,7 +211,7 @@ export async function grown() {
         last = height;
         return same;
       },
-      { interval: 200, timeout: 10_000 },
+      { interval: 100, timeout: 10_000 },
     )
     .toBe(true);
   await drawn();
@@ -486,6 +502,24 @@ export function checkInsets(selector: string) {
 
 /** axe-core's WCAG 2.1 A and AA rules, on the whole document. */
 export async function checkAccessibility() {
+  const results = await axe.run(document, {
+    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
+  });
+  const violations = results.violations.map(
+    (violation) =>
+      `${violation.id}: ${violation.nodes
+        .slice(0, 3)
+        .map((node) => node.html.slice(0, 120))
+        .join(" | ")}`,
+  );
+  expect(violations).toEqual([]);
+}
+
+/**
+ * axe-core's WCAG 2.1 A and AA rules, on the whole document:
+ * the page checks' accessibility rules, which hold no size of our own.
+ */
+export async function checkAccessible() {
   const results = await axe.run(document, {
     runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
   });
