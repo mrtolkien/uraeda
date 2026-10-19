@@ -51,6 +51,12 @@ export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: strin
           runningLabel="Starting the feature…"
           variant="primary"
         />
+        <WriteButton
+          label="Start a change based on this draft"
+          onClick={() => editor.actions.start(false, "change")}
+          runningLabel="Starting the change…"
+          variant="secondary"
+        />
       </HStack>
       {message && (
         <Banner

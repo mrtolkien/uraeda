@@ -39,10 +39,12 @@ function Kind({
   draft,
   found,
   isEditing,
+  startChange,
 }: {
   draft: () => Promise<void>;
   found: Found;
   isEditing: boolean;
+  startChange: () => Promise<void>;
 }) {
   const here = useRepoPath();
   const repo = useRepository();
@@ -74,6 +76,11 @@ function Kind({
       <Paragraph color="secondary">No draft yet.</Paragraph>
       <HStack gap={2}>
         <Button clickAction={draft} label="Draft" variant="primary" />
+        <Button
+          clickAction={startChange}
+          label="Start a change based on this line"
+          variant="secondary"
+        />
       </HStack>
     </VStack>
   );
@@ -124,7 +131,12 @@ function PriorityBody({
       text={<EntryText label="Line" line={line} nested={entry.nestedSpans} spans={entry.spans} />}
     >
       <Divider />
-      <Kind draft={actions.draft} found={found} isEditing={line.open} />
+      <Kind
+        draft={actions.draft}
+        found={found}
+        isEditing={line.open}
+        startChange={actions.startChange}
+      />
       {/* A running entry's line does not move its branch: it has no section to pick. */}
       {!entry.running && (
         <>

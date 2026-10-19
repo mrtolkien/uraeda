@@ -10,13 +10,13 @@
 - [Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are ready, see backlog, with a discovery round and partial answers.](/specs/2026-10-19-benchmarks/proposal.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
-- [Review the overall flow of all user stories](drafts/flow-review.md)
 
 - Empty inbox
 
 - [Decisions pass](drafts/decisions-pass.md)
 
 - [Later questions resume the current step](drafts/later-questions-resume-the-current-step.md)
+- [Review the overall flow of all user stories](drafts/flow-review.md)
 - [Look and feel pass](drafts/look-and-feel/proposal.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide

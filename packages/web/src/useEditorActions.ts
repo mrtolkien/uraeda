@@ -56,14 +56,14 @@ export function useEditorActions({ draft, field, path, save, setConflict, slug, 
     }
     return true;
   };
-  const start = async (continues: boolean) => {
+  const start = async (continues: boolean, kind: "change" | "feature" = "feature") => {
     setMessage(undefined);
     if (!(await saveTyped())) {
-      setMessage({ ok: false, text: "Your text is not saved: the feature was not started." });
+      setMessage({ ok: false, text: `Your text is not saved: the ${kind} was not started.` });
       return false;
     }
     const result = await fate.mutations.feature.start({
-      input: { draft: path, slug: slug.text },
+      input: { draft: path, kind, slug: slug.text },
       view: FeatureView,
     });
     if (result.error) {
