@@ -9,12 +9,9 @@
 - [Redesign session](/specs/2026-10-19-redesign-session/proposal.md)
 - [Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are ready, see backlog, with a discovery round and partial answers.](/specs/2026-10-19-benchmarks/proposal.md)
 
-- [Review home](drafts/review-home.md)
-
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 - [Review the overall flow of all user stories](drafts/flow-review.md)
 
-- Should be able to turn a draft into a change and not a feature
 - Empty inbox
 
 - [Decisions pass](drafts/decisions-pass.md)
