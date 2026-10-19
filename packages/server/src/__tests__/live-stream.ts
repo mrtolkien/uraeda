@@ -139,7 +139,7 @@ export async function statusArrival() {
 
   const started = performance.now();
   adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
-  const arrived = await stream.arrival('"New reply"', 10_000, before);
+  const arrived = await stream.arrival('"Needs attention"', 10_000, before);
   await stream.close();
   await sessions.settled(Number(turns[0]));
   return { arrived, started };

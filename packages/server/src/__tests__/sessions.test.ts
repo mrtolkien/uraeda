@@ -427,13 +427,13 @@ test("session.send of the plan's message without fresh follows the build_in_fres
   }
 });
 
-test("US3.3: session.seen turns New reply into Idle", async () => {
+test("US3.3: session.seen turns a chat's Needs attention into Idle", async () => {
   const server = await testServer();
   server.adapter.script([]);
   const session = await send(server, { folder: AGENT, text: "Plan it" });
   await settle(server, session);
   const [before] = await byId(server.app, "Session", [session.id], ["id", "status", "statusLabel"]);
-  expect(before).toMatchObject({ status: "unread", statusLabel: "New reply" });
+  expect(before).toMatchObject({ status: "attention", statusLabel: "Needs attention" });
 
   const seen = await mutate(server.app, "session.seen", { session: session.id }, [
     "id",
