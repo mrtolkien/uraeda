@@ -637,7 +637,7 @@ git commit -m "feat(benchmarks): a sandbox in the case's image"
 - Produces: `renderReport(runs): string` (one self-contained HTML document, no script from the
   network), `writeReport(root, {open}): Promise<{path: string; opened: boolean} | {empty: true}>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("US5.1: the newer suite comes first and names its versions", () => {
@@ -673,23 +673,23 @@ The break each test catches:
 - The path: a failed `xdg-open` over SSH that crashes the command.
 - The empty case: an empty page opened for nothing.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/report.test.ts`
 - Expected: FAIL, `Cannot find module '../report.ts'`
 
-- [ ] **Step 3: Implement the page**
+- [x] **Step 3: Implement the page**
 
 Start from the [mockup](mockups/results.html): its structure and wording are the target. Each case
 shows its flow run beside its baseline: tests passed of total, requirements covered of total,
 sessions, cost, and time. The file is `benchmarks/report.html`, which git ignores.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready && nix develop -c vp run benchmarks:report`
 - Expected: `ready` passes. The command prints "Nothing to show" in a checkout with no run folder.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks vite.tasks.ts specs/2026-10-19-benchmarks/plan.md

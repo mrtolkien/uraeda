@@ -70,3 +70,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a change to `ura init` shows in the sandbox test through the fake only: the first
   real run catches it.
 - **Where**: task 5.
+
+## R6: The record gains an optional `flags` field
+
+- **Decision**: the decision says a run is "flagged `leak-suspected` in its record", and the data
+  model had no field for it. The record gets `flags`, a list that may be absent, in the data model
+  and the schema. The format stays version 1: an old record without it still parses.
+- **Rationale**: [spec](spec.md#edge-cases), the leak row; the results page reads only run folders.
+- **Alternatives considered**: a sixth `outcome`: the run did finish, and the flag is not an end.
+- **If wrong**: drop the field: no record holds it before the first suite.
+- **Where**: task 6, `record.ts` and the [data model](data-model.md).

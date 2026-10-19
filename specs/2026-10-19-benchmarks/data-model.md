@@ -60,6 +60,7 @@ months.
 | `task`             | source, id, image digest       | the case's task, as run                                           | New    |
 | `started`, `ended` | timestamps                     | when the run began and ended                                      | New    |
 | `outcome`          | text                           | `finished`, `stalled`, `usage-limit`, `failed`, or `invalid`      | New    |
+| `flags`            | list, may be absent            | `leak-suspected`, when an agent fetched the task's upstream       | New    |
 | `steps`            | list of steps                  | each session, in order                                            | New    |
 | `blocked`          | list of actions                | each action `auto` mode blocked, and the rule that allowed it     | New    |
 | `urls`             | list of addresses              | each address the agents fetched, for the leak audit               | New    |

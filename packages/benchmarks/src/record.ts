@@ -28,6 +28,8 @@ export type RunRecord = {
   blocked: Array<Blocked>;
   effort: string;
   ended: string;
+  /** What the run is flagged for: `leak-suspected` when an agent fetched the task's upstream. */
+  flags?: Array<"leak-suspected">;
   harness: { name: string; version: string };
   human: { guidelines: string; model: string };
   models: { answered: Array<string>; asked: string };
@@ -70,28 +72,32 @@ const step = object({
   tokens,
 });
 
-const recordShape = object({
-  "approved-by": text,
-  blocked: list(object({ rule: text, target: text, tool: text }, ["target"])),
-  effort: text,
-  ended: text,
-  harness: object({ name: text, version: text }),
-  human: object({ guidelines: text, model: text }),
-  models: object({ answered: list(text), asked: text }),
-  outcome: oneOf(...OUTCOMES),
-  repository: commit,
-  skill: commit,
-  started: text,
-  steps: list(step),
-  task: object({ id: text, image: text, source: text }),
-  transcripts: list(object({ file: text, sha256: text })),
-  urls: list(text),
-  version: (value, path) => {
-    if (value !== 1) {
-      throw new Error(`${path}: expected the format 1`);
-    }
+const recordShape = object(
+  {
+    "approved-by": text,
+    blocked: list(object({ rule: text, target: text, tool: text }, ["target"])),
+    effort: text,
+    ended: text,
+    flags: list(oneOf("leak-suspected")),
+    harness: object({ name: text, version: text }),
+    human: object({ guidelines: text, model: text }),
+    models: object({ answered: list(text), asked: text }),
+    outcome: oneOf(...OUTCOMES),
+    repository: commit,
+    skill: commit,
+    started: text,
+    steps: list(step),
+    task: object({ id: text, image: text, source: text }),
+    transcripts: list(object({ file: text, sha256: text })),
+    urls: list(text),
+    version: (value, path) => {
+      if (value !== 1) {
+        throw new Error(`${path}: expected the format 1`);
+      }
+    },
   },
-});
+  ["flags"],
+);
 
 const scoresShape = object(
   {

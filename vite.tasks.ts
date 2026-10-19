@@ -133,6 +133,12 @@ export const tasks = {
   // same content is newer than: the configs loading it would rebuild it (`freshBinding`), from
   // inside the task. The binding is built from its sources as they are, so it is marked as built
   // now, on every run, before any task loading it.
+  // The results page of `benchmarks/runs/`, opened in the browser (see the benchmarks spec's US5).
+  "benchmarks:report": {
+    cache: false,
+    command: "node src/report-cli.ts",
+    cwd: "packages/benchmarks",
+  },
   // Checks Claude Code, the token, and `auto` mode against a real case image (see the benchmarks
   // plan's Task 1). It needs Docker and the network, so it is never cached or part of `ready`.
   "benchmarks:probe": {
