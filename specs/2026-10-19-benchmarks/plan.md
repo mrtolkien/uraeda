@@ -545,7 +545,7 @@ git commit -m "feat(benchmarks): load the skill from a commit"
   `raw.githubusercontent.com`, `api.github.com`, and `codeload.github.com` for a GitHub upstream,
   and its own host otherwise.
 
-- [ ] **Step 1: Write the failing tests**, with a `docker` script on the `PATH` that records its
+- [x] **Step 1: Write the failing tests**, with a `docker` script on the `PATH` that records its
       arguments
 
 ```ts
@@ -595,12 +595,12 @@ The break each test catches:
 - The settings: a fallback to Opus 4.8 that changes the model unnoticed, or an upstream left open.
 - The close: a container left running after a failed run.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/sandbox.test.ts`
 - Expected: FAIL, `Cannot find module '../sandbox.ts'`
 
-- [ ] **Step 3: Implement the sandbox**
+- [x] **Step 3: Implement the sandbox**
 
 The repository is copied out of the image with `docker create` and `docker cp`, initialised as a git
 repository at the base commit if the image has none, given `origin` as a bare repository in a host
@@ -608,12 +608,12 @@ folder, and the wrapper runs `docker run --rm -i` with the user's uid, the mount
 `-w /app`, `-e` for each variable by name, and the host's `claude` mounted read-only (no `ura`: R1),
 or the way Task 1's finding says. The wrapper receives the adapter's arguments and passes them on.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks specs/2026-10-19-benchmarks/plan.md

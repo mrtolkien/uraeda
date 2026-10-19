@@ -55,3 +55,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a schema library, a hand-written TOML reader: more code to carry.
 - **If wrong**: swap `smol-toml` for another reader in `suite.ts`, its one caller.
 - **Where**: task 3.
+
+## R5: The sandbox's pieces
+
+- **Decision**: the project's specs come from `ura init --no-input`, with
+  `benchmarks/constitution.md` as its constitution, so the template's placeholders never reach a
+  case. `Sandbox` also returns `env`, the one variable (`CLAUDE_CONFIG_DIR`) the runner sets in its
+  own process for the sessions it runs on the host, and the wrapper embeds the same folder for the
+  container. Fake `docker` and `ura` scripts on the `PATH` make the tests hermetic: the TypeScript
+  checks need neither installed.
+- **Rationale**: the spec's architecture; the plan's Task 5.
+- **Alternatives considered**: copying the skill's templates by hand: a second owner of what
+  `ura init` creates.
+- **If wrong**: a change to `ura init` shows in the sandbox test through the fake only: the first
+  real run catches it.
+- **Where**: task 5.
