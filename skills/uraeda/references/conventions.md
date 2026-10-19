@@ -90,23 +90,28 @@ checks:
 
 Workflow files track their state in frontmatter fields.
 
-| File                   | Field             | Set by the agent                      | Set by the human                  |
-| ---------------------- | ----------------- | ------------------------------------- | --------------------------------- |
-| `proposal.md`          | `discovery`       |                                       | `low`, `medium`, or `high`        |
-| `clarifications-NN.md` | `status`          | `awaiting-human`                      | `answered`                        |
-| `spec.md`              | `status`          | `awaiting-human`                      | `approved` or `changes-requested` |
-| `spec.md`              | `revision`        | `1`, then `+1` at every change        | `+1` when editing it              |
-| `spec.md`              | `clarifications`  | the last round it includes: `2`       |                                   |
-| `spec.md`              | `risk-tier`       | `low`, `medium`, or `high`            | may change it on approval         |
-| `spec.md`              | `plan-review`     | `false`                               | may change it on approval         |
-| `plan.md`              | `status`          | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
-| `plan.md`              | `spec-revision`   | the spec `revision` it implements     |                                   |
-| `decisions/*.md`       | `status`          | `proposed`, then `active` on approval | `active`                          |
-| `decisions/*.md`       | `approved-by`     | the approver, on approval, if known   | the approver                      |
-| `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                     |
-| `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                        |
-| `decisions/preview.md` | `preview-folder`  | where Storybook runs: `.`, `web`      |                                   |
-| `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                   |
+| File                   | Field             | Set by the agent                      | Set by the human                                  |
+| ---------------------- | ----------------- | ------------------------------------- | ------------------------------------------------- |
+| `proposal.md`          | `discovery`       |                                       | `low`, `medium`, or `high`                        |
+| `clarifications-NN.md` | `status`          | `awaiting-human`                      | `answered`                                        |
+| `clarifications-NN.md` | `resumes`         |                                       | `implementation`, on a round asked while building |
+| `spec.md`              | `status`          | `awaiting-human`                      | `approved` or `changes-requested`                 |
+| `spec.md`              | `revision`        | `1`, then `+1` at every change        | `+1` when editing it                              |
+| `spec.md`              | `clarifications`  | the last round it includes: `2`       |                                                   |
+| `spec.md`              | `risk-tier`       | `low`, `medium`, or `high`            | may change it on approval                         |
+| `spec.md`              | `plan-review`     | `false`                               | may change it on approval                         |
+| `plan.md`              | `status`          | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested`                 |
+| `plan.md`              | `spec-revision`   | the spec `revision` it implements     |                                                   |
+| `decisions/*.md`       | `status`          | `proposed`, then `active` on approval | `active`                                          |
+| `decisions/*.md`       | `approved-by`     | the approver, on approval, if known   | the approver                                      |
+| `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                                     |
+| `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                                        |
+| `decisions/preview.md` | `preview-folder`  | where Storybook runs: `.`, `web`      |                                                   |
+| `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                                   |
+
+`resumes` is optional, and a round asked during the
+[implementation](implementation.md#when-you-must-stop) can have it: the human answered to continue
+the implementation, with the approved spec as it is.
 
 A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
 See [Change](change.md). A decision's `icon` that the web UI does not know shows a default icon.

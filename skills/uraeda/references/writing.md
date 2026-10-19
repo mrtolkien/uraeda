@@ -75,6 +75,12 @@ shows a change's round waiting for the human. In order, a round holds:
 The inbox triage follows the same rules, with two exceptions. Its Context is free text without
 parts. It has no settled points.
 
+### The notes
+
+A comment on one settled point is a bullet at the end of the notes, starting with that point's bold
+subject. Its further lines are indented by two spaces. The web UI writes comments on settled points
+this way, and a human can write them by hand.
+
 ### The block
 
 9. **The first line counts, in digits, and gives the time.** "7 questions and 1 follow-up, about 35
