@@ -80,9 +80,9 @@ async function allowDenials(
   const rules = [...new Set(denials.map((denial) => denial.rule))];
   const { line } = await processes.open(live, { allowed: rules });
   const id = randomUUID();
-  const text = retryMessage(
-    rules.map((rule) => denials.find((denial) => denial.rule === rule) as Covered),
-  );
+  // Every blocked action is asked again, though some share a rule: a blocked Write and Edit of a
+  // file both allow with Edit(file).
+  const text = retryMessage(denials);
   const started = turns.begin(live, {
     allowed: rules.join("\n"),
     item: { id, kind: "message", origin: "human", state: "pending", text },
