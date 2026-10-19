@@ -425,7 +425,8 @@ take 7 s more.
   share one keyboard behaviour" are also checked by the browser tests (Task 7), and the web flows
   cover them only through Enter, Ctrl+Enter, Escape, and Back. The list keys cannot run in
   happy-dom: `useListKeys` stops when a layer is open, and happy-dom's `getClientRects()` is never
-  empty, so the closed repositories popover looks open. Task 7 owns the keyboard walk of a list.
+  empty, so the closed repositories popover looks open. Task 7 owns the keyboard walk of a list: it
+  is `keyboard` of R8.
 - **Breaks, run by hand and reverted**, 63 in all, 62 made at least one flow fail: the round (a tap
   writes no letters, Submit enabled with a blank question, Try again does nothing, the unsaved text
   never read back, Cancel never asks, a verdict through an unsent comment, Approve losing its tier,
@@ -568,3 +569,157 @@ take 7 s more.
 | `__tests__/useDraft.test.ts`             | Dropped: the composer's text after a story's comment line, a unit of a string join; the story's comment is the spec flows'.                                                                                                                                                                                                                                             |
 | `__tests__/writes-store.test.tsx`        | Dropped: a unit of the store's 10 second timer (elapsed time); `writes` covers the card showing and clearing and a failed write.                                                                                                                                                                                                                                        |
 | `__tests__/writes.test.tsx`              | `writes`.                                                                                                                                                                                                                                                                                                                                                               |
+
+## R8: The browser tests, rebuilt as page checks and flows that need a real layout
+
+- **Decision**: the 42 files of `packages/web/src/__browser__/` (38 test files and 4 helpers; 8,991
+  lines, 348 declared tests, each run at the phone's size and at the desktop's) are replaced by 7
+  test files (68 declared tests, 1,129 lines, 1,461 with `helpers.tsx` and `setup.ts`): `pages` (the
+  page checks), `keyboard`, `place`, `session-place`, `overlays`, `columns`, and `width`. The
+  browser project's `vite.browser.config.ts` goes from 489 lines to 222: it kept the repository's
+  turn, the fake agent's commands, and the colour scheme, and the commands for frames, Storybook
+  previews, a proxy, the mouse, images, reduced motion, and a slow network went with the tests that
+  used them. What stays in a real browser is what happy-dom cannot run: a layout, a scroll, a focus
+  order, a history entry of WebKit's, and a window that resizes. Everything else is in `__flows__`
+  (R7).
+- **The page checks** (`pages.test.tsx`): one table, a row per page or state a UI decision governs,
+  each read in light and in dark, at both sizes (the phone project has a touch screen). The rows:
+  the repository's pages (home, a round, a spec, a plan, a task, the priorities, a feature, its new
+  session, a new chat, a new change, the settings and its Server and Sign-in categories, the
+  decisions and one open, the inbox and a note), every feature page state that `gh` does not decide,
+  the empty inbox, the triage's banner and its answering view, a change's session with its progress
+  open, a session at its implementation with its column, a working session, the feature settings,
+  the repository menu, the add-repository form, the sign-out confirmation, and the notification
+  banner; besides the table, the folded navigation (desktop) and the sign-in screen. That is 32
+  rows, 66 page reads at the phone's size and 68 at the desktop's. Each read checks the same two
+  things: **readable** (nothing scrolls the page sideways, no line is clamped, no text is cut where
+  an element clips it, nothing reaches past the screen's edge) and **accessible** (axe-core's WCAG
+  2.1 A and AA rules on the whole document). No heading, label, count, or pixel is asserted
+  (SC-006): a row's name is the only wording, and a page is read once it shows a heading and no
+  "Loading…".
+- **What the old layout checks lost**: the text sizes (17 and 19 px), the 44 px control height, the
+  measure of about 110 characters, the left alignment, and the phone's insets are measured sizes,
+  and the UI checks decision says tests "MUST NOT assert ... pixels". "Controls easy to hit by
+  touch" and "readable at each width" are kept as axe's rules and the no-cut-text rule. axe's
+  target-size rule of WCAG 2.2 (`wcag22aa`) was tried and left out: it fails on a link set over a
+  review's selectable block (an `<a>` over a `<button aria-pressed>`), which is the product's to
+  decide and not a test's to loosen here.
+- **Flows**:
+  - `keyboard` (desktop): the rules "lists whose rows open a pane share one keyboard behaviour" and
+    "every action works by tap and by keyboard", which R7 left for this task. The priorities and the
+    inbox are one table: ↓ ↑ j k move the selection with the pane following in place (no history
+    entry per row), End and Home, Escape closes the pane, Enter on a row opens it; the decisions
+    page goes from the last principle to the first decision and back; a dialog and a menu keep the
+    keys from the list; Space, ↓, Space on a line's handle moves it in the file; Tab goes from the
+    handle to the link.
+  - `place` and `session-place` (both sizes, one test on the desktop): Back, and a reload then Back,
+    return a spec to the position left, with no loading state in between; the form that moves under
+    a block leaves the block tapped where it was (desktop); a session follows its end only while the
+    human is at the end, "Jump to the latest" brings the end back, Back and a reload return to the
+    position read, and "Show earlier messages" leaves the message read where it is.
+  - `overlays`: a menu and a form are a sheet on the phone, along the bottom edge and the window's
+    width, and a popover or a dialog on the desktop, narrower than half the window; leaving a
+    half-written form asks first, in an overlay of its own, and keeping it keeps the text; Back
+    closes a sheet and leaves the page's address as it was (phone).
+  - `columns` (desktop): the sidebar folds to a rail from its button and from `[` and unfolds back
+    to its width, leaves `[` to a text field, and resizes with the keys, its width kept after a
+    reload; the session's column folds with its button and `]` and resizes the same way.
+  - `width` (desktop): a pane open keeps its address as the window goes under 768 px and back, and a
+    comment being typed keeps its text and its focus. Every size or place is compared with another
+    measured in the same run (narrower than, equal to, within 4 px of where it was), never with a
+    number of pixels.
+- **Breaks, run by hand and reverted**: a page failing an accessibility rule (an `<img>` with no alt
+  added to Home) failed the page check at both sizes with `image-alt`, and a page failing the
+  readable rule (a 3,000 px box in Home's card) failed both with the card's width; the list keys (↓
+  not moving the row) failed four `keyboard` tests; the keyboard move (the drag's end writing
+  nothing) failed its test; the position (the scroll saved as 0) failed the three Back and reload
+  tests; the place kept (`keepPlace` no longer scrolling back) failed the block flow on the desktop
+  and the "Show earlier messages" flow, and left the block flow green on the phone, where WebKit
+  anchors the page on its own, so that flow runs on the desktop only; the following (the transcript
+  always following) failed two `session-place` tests; the overlays (the dialog drawn on the phone
+  and the sheet on the desktop; the overlay's history entry not pushed) failed `overlays`; the
+  columns (`[` and `]` unbound, the column's width not stored) failed three `columns` tests; and the
+  width (the narrow layout drawing the list, not the detail; the questions remounted on a change of
+  width) failed both `width` tests. A flow of saving a comment on the phone and keeping the heading
+  read, like the old test it came from, stayed green when the place kept was removed: it is dropped,
+  not kept as a test that passes whatever the code does.
+- **Findings, not fixed**: after Enter on a row of the priorities, the focus is on the page, not on
+  the row, where the inbox keeps it on the row: the lists do not share one behaviour there (the flow
+  asserts the address and the pane, not the focus). The drawer of the phone's navigation is not a
+  history entry: Back leaves the page, where a sheet's Back closes the sheet. Two old tests failed
+  before any change: the phone's touch press that lifts a line (`priorities`) and the lines changed
+  in green and red (`feature`); both are dropped below.
+- **Before and after**: 348 declared tests, 220 run on the phone (1 failed, 128 skipped for the
+  other size) in 302 seconds, and 292 on the desktop (1 failed, 56 skipped) in 385 seconds; now 68
+  declared, 45 run on the phone (23 skipped) in 78 seconds and 67 on the desktop (1 skipped) in 100
+  seconds, six runs in a row green with the same counts (78, 78, 78 and 102, 100, 100 seconds). That
+  is 26% of the old time at each size, but not "well under a minute": the page checks are most of
+  each run. Coverage was not measured: the browser project has no coverage run, before or after.
+- **What no longer runs**: the story embed and the Storybook page in a real browser (starting a
+  preview, the frame's sizes, scale and full screen, the pick and comment on a story, a frame
+  reloaded, the host name's check); the images' drops and pastes in the editor, the review, and the
+  round, and the refusals that follow; the row counts and the resize of text fields; the diagram's
+  scale and scroll inside a card; the feature page's stage lines on one line, its lines changed
+  colours, and the order of its Next; the round's columns, the options' places, an accent line, and
+  the card's focus ring; the spec's sticky parts, card widths, strength colours, and phone insets;
+  the sidebar's hover button, its sizes, its eased fold, and the done items filling the room; the
+  mouse and touch drags of the priorities and the inbox (the keyboard's move stays); the session's
+  bubbles, the composer's growth, and Jump to the latest's centring; the review's sheet keeping the
+  block quoted above it; the toasts' closing; the sign-in screen with a wrong key's error and the
+  allowance's live update at both sizes; Back after "Show earlier messages" twice; and the window
+  narrowing for home's pane and the folded rail's controls.
+- **Rationale**: SC-006 and the UI checks decision: a browser test is slow, so it keeps only what
+  needs a layout, and the old ones pinned sizes, counts, and words that a design change breaks
+  whatever the behaviour.
+- **Alternatives considered**: keeping the old layout checks in the page check (text sizes, control
+  heights, measure): they are measured sizes. A page check per page in its own test: a repository
+  per page and theme was most of the old time; one test reads a page in both themes unless the page
+  starts the agent's turn.
+- **If wrong**: restore a file from the commit before the deletion (`git show f5a3bc0f:<path>`), and
+  add its flow.
+- **Where**: task 7 of the plan, the flows' commits, and the deletion's.
+- **Old files**:
+
+| Old file                              | Flow, or the rule that dropped it                                                                                                                                                                                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `__browser__/attach.test.tsx`         | `__flows__/editor`, `session`, and `review` (R7) for what an upload writes and links. Dropped: the cursor's place at a drop, the dimmed unread message, and the paste's markup variants, which need no layout and no decision asks (normal edge cases).                              |
+| `__browser__/blocks.test.tsx`         | `pages` (nothing scrolls the page sideways). Dropped: a table reaching into the margin is a measure of pixels.                                                                                                                                                                       |
+| `__browser__/change.test.tsx`         | `__flows__/change` (R7) for the column, the pull request, and the sidebar; `pages` for a change's session at both sizes. Dropped: the phone's line wording (text).                                                                                                                   |
+| `__browser__/colours.ts`              | Dropped with the tests that read the colour of a diff, a pill, a bubble, and an icon (design choices, no decision's rule).                                                                                                                                                           |
+| `__browser__/decisions.test.tsx`      | `keyboard` (↓ from the last principle to the first decision, ↑ back, Escape).                                                                                                                                                                                                        |
+| `__browser__/diagram.test.tsx`        | `__flows__/diagram` (R7) for the drawing, its name, and a source that fails; `pages` for a round. Dropped: the chunk loaded on demand, the dark colours, the scale and the scroll in a card (sizes and a performance choice the diagrams decision checks by review).                 |
+| `__browser__/feature.test.tsx`        | `pages` (every state of the feature page, both themes, every fold open). Dropped: the stage lines on one line, Next first on the phone, and the colours of lines changed (a layout and a colour no decision asks; the last failed before this task).                                 |
+| `__browser__/fields.test.tsx`         | `__flows__/round` and `review` (Ctrl+Enter saves). Dropped: the rows of each field, its growth, and the resize handle's drag are sizes (SC-006).                                                                                                                                     |
+| `__browser__/forwarding-proxy.ts`     | Dropped with the host-name test of the embed (the stack decision's embed sandbox is `__flows__/spec-embed`).                                                                                                                                                                         |
+| `__browser__/helpers.tsx`             | Rewritten: 621 lines to 305, without the text sizes, the control heights, the measure, the alignment, the insets, and the drop and paste helpers.                                                                                                                                    |
+| `__browser__/inbox.test.tsx`          | `pages` (the inbox, empty, a note, the triage's banner and answering view), `overlays` (the form as a sheet or a dialog), `keyboard` (a note's row and the keys), `__flows__/inbox` (three taps, images, toasts' effects). Dropped: the mouse drags of a note, which need a pointer. |
+| `__browser__/layout.test.tsx`         | `pages` (every page of its table, in both themes); `width` (the comment typed, the pane's address across 768 px). Dropped: the sizes of text and controls, the insets, the folded rail's controls, and the session at 1024 px with the sidebar open.                                 |
+| `__browser__/leave.test.tsx`          | `__flows__/leave` (R7) for Back, Stay, and Leave. Dropped: the dialog's main button, a design choice.                                                                                                                                                                                |
+| `__browser__/lists.test.tsx`          | `keyboard` (↓ ↑ j k, End, Home, Escape, Enter, a dialog or a menu holding the keys). Dropped: the Selector's keys (a third-party component's), the pane starting at its top, and the selected row's background colour.                                                               |
+| `__browser__/new-change.test.tsx`     | `pages` (a new change at both sizes, both themes); `__flows__/commit-start` and `change` (R7) for the start, the slug, and the text kept. Dropped: images with a refusal and the disabled Start (normal edge cases of the composer).                                                 |
+| `__browser__/overlay.test.tsx`        | `overlays` (a sheet or a dialog by the width, Back closes a sheet). Dropped: the two races of the history on a component (an overlay opened while another closes), which no page does; the confirmation's height is a size.                                                          |
+| `__browser__/priorities.test.tsx`     | `keyboard` (a line moved by the keys), `__flows__/priorities` (R7). Dropped: the mouse's drag, Escape cancelling it, a live update during a drag, the touch press of 500 ms (it failed before this task and is a library's sensor), the focus ring, and the toasts.                  |
+| `__browser__/reading-place.test.tsx`  | `place` (the block tapped stays where it was, desktop). Dropped: the heading read while saving on the phone (it passed with the place kept removed), and the story frame above that grows (a unit of the embed's size message).                                                      |
+| `__browser__/repositories.test.tsx`   | `pages` (the menu and the add form, both themes), `overlays` (a menu is a sheet or a popover, Close and Escape), `__flows__/repositories` and `add-repository` (R7).                                                                                                                 |
+| `__browser__/review.test.tsx`         | `__flows__/review` (R7). Dropped: the block above the sheet and under the bar are sizes of the phone's sheet; open folds on Back is `__flows__/spec`'s; a hash that is no escape.                                                                                                    |
+| `__browser__/round-cards.test.tsx`    | Dropped: the columns of a card, the accent line's width, and the focus ring are sizes and colours (SC-006); `pages` reads the round.                                                                                                                                                 |
+| `__browser__/round.test.tsx`          | `__flows__/round` (R7) and `pages` (a round, every group open). Dropped: the index column, the `n` and `p` keys' jump, 600 px for the questions, and each option's place are layout sizes; Back to the question is `place`'s Back.                                                   |
+| `__browser__/scroll.test.tsx`         | `place` (Back, and a reload then Back, return a spec to its position, with no loading state), at both sizes where it was the phone's.                                                                                                                                                |
+| `__browser__/session-look.test.tsx`   | `pages` (a working session at both sizes, both themes). Dropped: the bubbles' places and fills, the list items' heights, the code block's scroll, the composer's height and growth, and Jump to the latest's centring (sizes and colours).                                           |
+| `__browser__/session-tail.test.tsx`   | `session-place` ("Show earlier messages" leaves the message read; Back and a reload return the position). Dropped: Back after two presses with 60 messages drawn again (a count).                                                                                                    |
+| `__browser__/session.test.tsx`        | `session-place` (following, scrolling up, Jump to the latest, Back), `pages` (a working session). Dropped: the sub-agent and steered message in dark, a chat's images opening at its end, a run that fails at the end, the progress line's state across Back and 768 px.             |
+| `__browser__/shell-checks.test.tsx`   | `pages` (the folded rail, the feature settings, the notification banner).                                                                                                                                                                                                            |
+| `__browser__/side-column.test.tsx`    | `columns` (the column folds and unfolds with its button and `]`, resizes with the keys, its width kept). Dropped: the 280 to 560 px bounds, the drag, the rail's step and count, the eased fold, and what the hidden column keeps.                                                   |
+| `__browser__/sidebar.test.tsx`        | `columns` (the fold and `[`, the text field leaving `[`, the resize and its kept width). Dropped: the 200 to 480 px bounds, the drag under 160 px, the hover opacity, the eased fold, the done items, and the phone's top bar.                                                       |
+| `__browser__/sign-in.test.tsx`        | `pages` (the sign-in screen, the Sign-in category, and its confirmation). Dropped: the wrong key's error shown (`__flows__/sign-in` has it).                                                                                                                                         |
+| `__browser__/sizes-helper.test.tsx`   | Dropped: a test of `atSize`, the helper: a flow at the wrong size does not run, and a misplaced call throws at once.                                                                                                                                                                 |
+| `__browser__/sizes.test.tsx`          | Dropped: asserts a 19 px paragraph and a 38 px button, sizes (SC-006).                                                                                                                                                                                                               |
+| `__browser__/spec-parts.test.tsx`     | `pages` (a spec with its folds open). Dropped: the parts fit the screen, and the pills' colours.                                                                                                                                                                                     |
+| `__browser__/spec.test.tsx`           | `__flows__/spec` (R7) and `pages`. Dropped: the sticky part and story, the head sliding under the bar, 12 px edges, 75 characters per card line, the strength icon's colour, and the accessible-in-both-themes test (`pages` has it).                                                |
+| `__browser__/story-chat.test.tsx`     | `__flows__/session` and `spec-embed` (R7) for the story in a message. Dropped: the chat on the main checkout showing the story from main, which needs a running Storybook.                                                                                                           |
+| `__browser__/story-comments.test.tsx` | `__flows__/storybook-pick` (R7) for the pick script. Dropped: the four-action comment on a picked element, the phone's toolbar, and a comment kept through a restart, which need a running Storybook in a frame.                                                                     |
+| `__browser__/story-embed.test.tsx`    | `__flows__/spec-embed` (the sandbox of the frame, R7). Dropped: the frame's start, sizes, scale, full screen, loading on scroll, the colour mode sent, and the host name's check, which need a running Storybook and measure pixels.                                                 |
+| `__browser__/story-variants.test.tsx` | `__flows__/round` (a comment on a variant joins the answer). Dropped: where each variant shows under its option, which needs a running Storybook.                                                                                                                                    |
+| `__browser__/storybook-page.test.tsx` | `__flows__/storybook-fixture` (R7). Dropped: the page's frame height and the list of Storybook in the column, which need a running Storybook.                                                                                                                                        |
+| `__browser__/task.test.tsx`           | `width` (a pane's address across 768 px), `__flows__/priorities` (a line opens a pane). Dropped: the pane beside home on a wide screen, a layout choice.                                                                                                                             |
+| `__browser__/usage.test.tsx`          | `__flows__/allowance` (R7). Dropped: the live update at both sizes and the sidebar's drawer.                                                                                                                                                                                         |

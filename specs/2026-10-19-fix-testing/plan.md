@@ -428,14 +428,14 @@ git commit -m "test(fix-testing): rebuild the web tests as flows"
 - Consumes: the web flows of Task 6, to know what happy-dom covers.
 - Produces: the page checks the UI-checks decision requires, with accessibility rules only.
 
-- [ ] **Step 1: Inventory**, as in Task 4, for `packages/web/src/__browser__`.
-- [ ] **Step 2: Write the page checks**, one table-driven check per page, with the break "a page of
+- [x] **Step 1: Inventory**, as in Task 4, for `packages/web/src/__browser__`.
+- [x] **Step 2: Write the page checks**, one table-driven check per page, with the break "a page of
       the routes fails its accessibility rule", run by hand.
 - [ ] **Step 3: Run them at both sizes**: `nix develop -c vp test --project phone --run` and
       `--project desktop`. Expected: PASS, in under a minute each, and CI-stable.
-- [ ] **Step 4: Delete the old browser tests** the mapping places, and list what no longer runs.
-- [ ] **Step 5: Run the project's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 6: Commit**
+- [x] **Step 4: Delete the old browser tests** the mapping places, and list what no longer runs.
+- [x] **Step 5: Run the project's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-10-19-fix-testing/rulings.md
