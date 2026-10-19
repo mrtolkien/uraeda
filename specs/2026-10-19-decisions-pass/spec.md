@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Decisions pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 35 minutes.
+> Approved on 2026-10-19.
 >
 > - You approve a stricter bar for decisions, the rewrite of all 21 decisions to it, a decisions
 >   page that draws rules as the spec page does, and a "check decisions" run.
