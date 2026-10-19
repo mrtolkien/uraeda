@@ -1,0 +1,576 @@
+diff --git a/openlibrary/core/observations.py b/openlibrary/core/observations.py
+index 48dd42e06..fbadb39dc 100644
+--- a/openlibrary/core/observations.py
++++ b/openlibrary/core/observations.py
+@@ -1,10 +1,12 @@
+ """Module for handling patron observation functionality"""
+ 
++from collections import namedtuple
++
+ import requests
+ 
+ from infogami import config
+ from openlibrary import accounts
+-from . import cache
++from . import cache, db
+ 
+ # URL for TheBestBookOn
+ TBBO_URL = config.get('tbbo_url')
+@@ -24,3 +26,213 @@ def get_aspects():
+     response = requests.get(TBBO_URL + '/api/aspects')
+ 
+     return response.text
++
++
++def _observation_type(type_id, label, description, multi_choice, values):
++    """Builds a catalog entry from its (value id, name) pairs, in display order."""
++    return {
++        'id': type_id,
++        'label': label,
++        'description': description,
++        'multi_choice': multi_choice,
++        'values': [{'id': value_id, 'name': name} for value_id, name in values],
++        'order': [value_id for value_id, _ in values],
++    }
++
++
++# Stored observations hold only these type and value ids: never renumber or
++# reuse one. See specs/decisions/observation-ids.md.
++OBSERVATION_CATALOG = [
++    _observation_type(1, 'pace', 'What is the pace of this book?', False, [
++        (1, 'slow'), (2, 'medium'), (3, 'fast'),
++    ]),
++    _observation_type(2, 'entertainment', 'How entertaining is this book?', False, [
++        (1, 'boring'), (2, 'average'), (3, 'entertaining'),
++        (4, 'very entertaining'),
++    ]),
++    _observation_type(3, 'clarity', 'How clearly is this book written?', False, [
++        (1, 'incomprehensible'), (2, 'confusing'), (3, 'average'), (4, 'clear'),
++        (5, 'very clear'),
++    ]),
++    _observation_type(
++        4, 'jargon', 'How much notation and technical jargon is used?', False, [
++            (1, 'not technical'), (2, 'low technicality'),
++            (3, 'medium technicality'), (4, 'highly technical'),
++        ]
++    ),
++    _observation_type(
++        5, 'originality', 'Does this book bring anything new to the table?', False, [
++            (1, 'rather unoriginal'), (2, 'very original'), (3, 'genre-defining'),
++        ]
++    ),
++    _observation_type(
++        6, 'difficulty',
++        'How challenging or advanced is the subject matter of this book?', False, [
++            (1, 'no prior knowledge required'), (2, 'good first book on topic'),
++            (3, 'contains some advanced topics'), (4, 'very difficult'),
++            (5, 'requires domain expertise'),
++        ]
++    ),
++    _observation_type(
++        7, 'usefulness', 'How impactful is the content of this book?', False, [
++            (1, 'not useful'), (2, 'somewhat useful'), (3, 'very useful'),
++            (4, 'indispensable'),
++        ]
++    ),
++    _observation_type(
++        8, 'coverage', 'How much depth or breadth does this book cover?', False, [
++            (1, 'meandering'), (2, 'wide'), (3, 'narrow'),
++        ]
++    ),
++    _observation_type(
++        9, 'objectivity',
++        'Are there causes to question the objectivity or accuracy of this book?',
++        True, [
++            (1, 'biased'), (2, 'misleading'), (3, 'inaccurate'), (4, 'typos'),
++            (5, 'inflammatory'), (6, 'needs citations'),
++        ]
++    ),
++    _observation_type(10, 'genres', 'What are the genres of this book?', True, [
++        (1, 'biographical'), (2, 'textbook'), (3, 'reference'), (4, 'technical'),
++        (5, 'dictionary'), (6, 'encyclopedia'), (8, 'how-to'), (9, 'romance'),
++        (10, 'action'), (11, 'anthology'), (12, 'classic'), (13, 'graphical'),
++        (14, 'crime'), (15, 'drama'), (16, 'fantasy'), (17, 'horror'),
++        (18, 'humor'), (7, 'mystery'), (19, 'paranormal'), (20, 'memoir'),
++        (21, 'poetry'), (22, 'satire'), (23, 'philosophy'), (24, 'sci-fi'),
++    ]),
++    _observation_type(
++        11, 'fictionality', 'Is this book a work of fact or fiction?', False, [
++            (1, 'nonfiction'), (2, 'fiction'), (3, 'biography'),
++        ]
++    ),
++    _observation_type(
++        12, 'audience', 'What are the intended age groups for this book?', True, [
++            (1, 'general audiences'), (2, 'baby'), (3, 'kindergarten'),
++            (4, 'elementary'), (5, 'high school'), (6, 'college'), (7, 'experts'),
++        ]
++    ),
++    _observation_type(13, 'mood', 'What are the moods of this book?', True, [
++        (1, 'cheerful'), (2, 'inspiring'), (3, 'reflective'), (4, 'gloomy'),
++        (5, 'humorous'), (6, 'melancholy'), (7, 'idyllic'), (8, 'whimsical'),
++        (9, 'romantic'), (10, 'mysterious'), (11, 'ominous'), (12, 'informative'),
++        (13, 'calm'), (14, 'lighthearted'), (15, 'hopeful'), (16, 'angry'),
++        (17, 'fearful'), (18, 'tense'), (19, 'lonely'), (20, 'dark'), (21, 'sad'),
++        (22, 'suspenseful'), (23, 'strange'), (24, 'emotional'), (25, 'dry'),
++        (26, 'scientific'),
++    ]),
++]
++
++ObservationKeyValue = namedtuple('ObservationKeyValue', ['key', 'value'])
++
++
++def _sort_values(order_list, values_list):
++    """Returns the names of the values whose ids are in `order_list`, in its
++    order. Ids with no value are skipped, and values not listed are left out.
++    """
++    names = {value['id']: value['name'] for value in values_list}
++    return [names[value_id] for value_id in order_list if value_id in names]
++
++
++def get_observations():
++    """Returns every observation type, with its value names in display order."""
++    return {
++        'observations': [
++            {
++                'label': observation_type['label'],
++                'description': observation_type['description'],
++                'multi_choice': observation_type['multi_choice'],
++                'values': _sort_values(
++                    observation_type['order'], observation_type['values']
++                ),
++            }
++            for observation_type in OBSERVATION_CATALOG
++        ]
++    }
++
++
++class Observations(object):
++
++    @classmethod
++    def get_key_value_pair(cls, type_id, value_id):
++        """Returns the label of the type and the name of the value with these ids."""
++        for observation_type in OBSERVATION_CATALOG:
++            if observation_type['id'] != type_id:
++                continue
++            for value in observation_type['values']:
++                if value['id'] == value_id:
++                    return ObservationKeyValue(observation_type['label'], value['name'])
++        raise ValueError(
++            'Unknown observation ids: type %s, value %s' % (type_id, value_id)
++        )
++
++    @classmethod
++    def _get_ids(cls, label, value_name):
++        """Returns the (type id, value id) pair of a label and a value name."""
++        for observation_type in OBSERVATION_CATALOG:
++            if observation_type['label'] != label:
++                continue
++            for value in observation_type['values']:
++                if value['name'] == value_name:
++                    return observation_type['id'], value['id']
++        raise ValueError('Unknown observation: %s: %s' % (label, value_name))
++
++    @classmethod
++    def get_patron_observations(cls, username, work_id):
++        """Returns the patron's observations of the work, as records with
++        `type` and `value` ids, ordered by type, then value.
++        """
++        oldb = db.get_db()
++        query = (
++            "SELECT observation_type AS type, observation_value AS value "
++            "FROM observations WHERE username=$username AND work_id=$work_id "
++            "ORDER BY observation_type, observation_value"
++        )
++        return list(
++            oldb.query(query, vars={'username': username, 'work_id': work_id})
++        )
++
++    @classmethod
++    def persist_observations(cls, username, work_id, observations):
++        """Makes the patron's stored observations of the work equal to
++        `observations`, a list of single-entry {label: value name} dicts.
++
++        Every observation is resolved before any write, and the writes run in
++        one transaction: on an error, the stored observations are unchanged.
++        """
++        submitted = {
++            cls._get_ids(label, value_name)
++            for observation in observations
++            for label, value_name in observation.items()
++        }
++        oldb = db.get_db()
++        with oldb.transaction():
++            stored = {
++                (record['type'], record['value'])
++                for record in cls.get_patron_observations(username, work_id)
++            }
++            rows = [
++                {
++                    'work_id': work_id,
++                    'username': username,
++                    'observation_type': type_id,
++                    'observation_value': value_id,
++                }
++                for type_id, value_id in sorted(submitted - stored)
++            ]
++            if rows:
++                oldb.multiple_insert('observations', rows, seqname=False)
++            for type_id, value_id in sorted(stored - submitted):
++                oldb.delete(
++                    'observations',
++                    where=(
++                        "work_id=$work_id AND username=$username "
++                        "AND observation_type=$type_id "
++                        "AND observation_value=$value_id"
++                    ),
++                    vars={
++                        'work_id': work_id,
++                        'username': username,
++                        'type_id': type_id,
++                        'value_id': value_id,
++                    },
++                )
+diff --git a/openlibrary/core/schema.sql b/openlibrary/core/schema.sql
+index 54cf058db..8f2c450a2 100644
+--- a/openlibrary/core/schema.sql
++++ b/openlibrary/core/schema.sql
+@@ -19,6 +19,15 @@ CREATE TABLE booknotes (
+     primary key (username, work_id)
+ );
+ 
++CREATE TABLE observations (
++    work_id integer NOT NULL,
++    username text NOT NULL,
++    observation_type integer NOT NULL,
++    observation_value integer NOT NULL,
++    created timestamp without time zone default (current_timestamp at time zone 'utc'),
++    primary key (work_id, username, observation_type, observation_value)
++);
++
+ CREATE TABLE bookshelves (
+     id serial not null primary key,
+     name text,
+diff --git a/openlibrary/tests/core/test_observations.py b/openlibrary/tests/core/test_observations.py
+new file mode 100644
+index 000000000..6ac3c1b7d
+--- /dev/null
++++ b/openlibrary/tests/core/test_observations.py
+@@ -0,0 +1,318 @@
++import os
++import re
++
++import pytest
++import web
++
++from openlibrary.core import db
++from openlibrary.core.observations import (
++    OBSERVATION_CATALOG,
++    Observations,
++    _sort_values,
++    get_observations,
++)
++
++SCHEMA_PATH = os.path.join(
++    os.path.dirname(__file__), os.pardir, os.pardir, 'core', 'schema.sql'
++)
++
++SQLITE_DDL = """
++CREATE TABLE observations (
++    work_id integer NOT NULL,
++    username text NOT NULL,
++    observation_type integer NOT NULL,
++    observation_value integer NOT NULL,
++    created timestamp,
++    primary key (work_id, username, observation_type, observation_value)
++)
++"""
++
++
++def _schema_ddl():
++    with open(SCHEMA_PATH) as f:
++        match = re.search(r'CREATE TABLE observations \(.*?\);', f.read(), re.S)
++    if not match:
++        pytest.fail('could not find CREATE TABLE observations in schema.sql')
++    return match.group(0)
++
++
++def _connect(backend):
++    if backend == 'sqlite':
++        return web.database(dbn='sqlite', db=':memory:'), SQLITE_DDL
++    name = os.environ.get('OL_TEST_POSTGRES_DB')
++    if not name:
++        pytest.skip('OL_TEST_POSTGRES_DB is not set')
++    return web.database(dbn='postgres', db=name), _schema_ddl()
++
++
++@pytest.fixture(params=['sqlite', 'postgres'])
++def observations_db(request, monkeypatch):
++    """A database with an empty observations table, returned by db.get_db()."""
++    oldb, ddl = _connect(request.param)
++    oldb.printing = False
++    oldb.query(ddl)
++    monkeypatch.setattr(db, 'get_db', lambda: oldb)
++    yield oldb
++    oldb.query('DROP TABLE observations')
++    oldb.ctx.db.close()
++
++
++def _row(type_id, value_id, username='alice', work_id='123'):
++    return {
++        'work_id': work_id,
++        'username': username,
++        'observation_type': type_id,
++        'observation_value': value_id,
++    }
++
++
++def test_table_round_trip(observations_db):
++    with observations_db.transaction():
++        observations_db.multiple_insert(
++            'observations', [_row(1, 1), _row(10, 7)], seqname=False
++        )
++        observations_db.delete(
++            'observations',
++            where=(
++                'work_id=$work_id AND username=$username '
++                'AND observation_type=$observation_type '
++                'AND observation_value=$observation_value'
++            ),
++            vars=_row(1, 1),
++        )
++
++    rows = list(
++        observations_db.query(
++            'SELECT work_id, observation_type AS type, observation_value AS value '
++            'FROM observations ORDER BY observation_type, observation_value'
++        )
++    )
++
++    assert [(r['type'], r['value']) for r in rows] == [(10, 7)]
++    assert rows[0].work_id == 123
++
++
++def test_table_primary_key(observations_db):
++    observations_db.insert('observations', seqname=False, **_row(1, 1))
++
++    with pytest.raises(Exception):
++        observations_db.insert('observations', seqname=False, **_row(1, 1))
++
++
++def test_olid_work_id_is_rejected(observations_db):
++    if observations_db.dbname != 'postgres':
++        pytest.skip('SQLite does not type its columns')
++
++    with pytest.raises(Exception):
++        with observations_db.transaction():
++            observations_db.insert(
++                'observations', seqname=False, **_row(1, 1, work_id='OL123W')
++            )
++
++    assert list(observations_db.query('SELECT * FROM observations')) == []
++
++
++VALUES = [
++    {'id': 1, 'name': 'slow'},
++    {'id': 2, 'name': 'medium'},
++    {'id': 3, 'name': 'fast'},
++]
++
++
++def _entry(label):
++    entries = get_observations()['observations']
++    return next(e for e in entries if e['label'] == label)
++
++
++def test_sort_values_in_order_list_order():
++    assert _sort_values([3, 1, 2], VALUES) == ['fast', 'slow', 'medium']
++
++
++def test_sort_values_misaligned():
++    assert _sort_values([2, 9, 1], VALUES) == ['medium', 'slow']
++
++
++def test_sort_values_empty_lists():
++    assert _sort_values([], VALUES) == []
++    assert _sort_values([1, 2], []) == []
++
++
++def test_sort_values_duplicate_id():
++    assert _sort_values([1, 1], VALUES) == ['slow', 'slow']
++
++
++def test_catalog_has_13_types_in_id_order():
++    entries = get_observations()['observations']
++
++    assert [e['label'] for e in entries] == [
++        'pace', 'entertainment', 'clarity', 'jargon', 'originality',
++        'difficulty', 'usefulness', 'coverage', 'objectivity', 'genres',
++        'fictionality', 'audience', 'mood',
++    ]
++    for entry in entries:
++        assert set(entry) == {'label', 'description', 'multi_choice', 'values'}
++
++
++def test_pace_entry():
++    assert _entry('pace') == {
++        'label': 'pace',
++        'description': 'What is the pace of this book?',
++        'multi_choice': False,
++        'values': ['slow', 'medium', 'fast'],
++    }
++
++
++def test_fictionality_values():
++    assert _entry('fictionality')['values'] == ['nonfiction', 'fiction', 'biography']
++
++
++def test_genres_entry():
++    genres = _entry('genres')
++
++    assert genres['multi_choice'] is True
++    assert len(genres['values']) == 24
++    assert genres['values'][:3] == ['biographical', 'textbook', 'reference']
++    assert genres['values'][17] == 'mystery'
++
++
++def test_catalog_ids_are_consistent():
++    type_ids = [t['id'] for t in OBSERVATION_CATALOG]
++
++    assert type_ids == list(range(1, 14))
++    for observation_type in OBSERVATION_CATALOG:
++        value_ids = [v['id'] for v in observation_type['values']]
++        assert len(value_ids) == len(set(value_ids))
++        assert sorted(observation_type['order']) == sorted(value_ids)
++
++
++def test_key_value_pair_pace_slow():
++    result = Observations.get_key_value_pair(1, 1)
++
++    key, value = result
++    assert (result.key, result.value) == ('pace', 'slow')
++    assert (key, value) == ('pace', 'slow')
++
++
++def test_key_value_pair_genres_mystery():
++    result = Observations.get_key_value_pair(10, 7)
++
++    assert (result.key, result.value) == ('genres', 'mystery')
++
++
++@pytest.mark.parametrize('type_id, value_id', [(1, 4), (99, 1)])
++def test_key_value_pair_unknown_ids(type_id, value_id):
++    message = 'Unknown observation ids: type %d, value %d' % (type_id, value_id)
++
++    with pytest.raises(ValueError, match='^%s$' % re.escape(message)):
++        Observations.get_key_value_pair(type_id, value_id)
++
++
++def test_catalog_reads_need_no_database(monkeypatch):
++    def no_database():
++        raise AssertionError('the database was used')
++
++    monkeypatch.setattr(db, 'get_db', no_database)
++
++    assert get_observations()['observations']
++    assert Observations.get_key_value_pair(11, 3).value == 'biography'
++
++
++def persist(username, work_id, observations):
++    Observations.persist_observations(username, work_id, observations)
++
++
++def pairs(username, work_id):
++    records = Observations.get_patron_observations(username, work_id)
++    return [(record['type'], record['value']) for record in records]
++
++
++def test_persist_then_read(observations_db):
++    persist('alice', '123', [{'pace': 'slow'}, {'genres': 'mystery'}])
++
++    assert pairs('alice', '123') == [(1, 1), (10, 7)]
++
++
++def test_nothing_stored(observations_db):
++    assert Observations.get_patron_observations('alice', '123') == []
++
++
++def test_stored_row(observations_db):
++    persist('alice', '123', [{'pace': 'slow'}])
++
++    rows = list(observations_db.query('SELECT * FROM observations'))
++
++    assert len(rows) == 1
++    assert (rows[0].observation_type, rows[0].observation_value) == (1, 1)
++    assert (rows[0].username, rows[0].work_id) == ('alice', 123)
++
++
++def test_resubmission_replaces_the_set(observations_db, monkeypatch):
++    persist('alice', '123', [{'pace': 'slow'}, {'genres': 'mystery'}])
++    inserted = []
++    multiple_insert = observations_db.multiple_insert
++
++    def recording_insert(tablename, values, **kwargs):
++        inserted.extend(
++            (row['observation_type'], row['observation_value']) for row in values
++        )
++        return multiple_insert(tablename, values, **kwargs)
++
++    monkeypatch.setattr(observations_db, 'multiple_insert', recording_insert)
++
++    persist('alice', '123', [{'pace': 'fast'}, {'genres': 'mystery'}])
++
++    assert pairs('alice', '123') == [(1, 3), (10, 7)]
++    assert inserted == [(1, 3)]
++
++
++def test_empty_submission_clears_only_that_work(observations_db):
++    persist('alice', '123', [{'pace': 'slow'}])
++    persist('alice', '456', [{'pace': 'slow'}])
++    persist('bob', '123', [{'pace': 'slow'}])
++
++    persist('alice', '123', [])
++
++    assert pairs('alice', '123') == []
++    assert pairs('alice', '456') == [(1, 1)]
++    assert pairs('bob', '123') == [(1, 1)]
++
++
++@pytest.mark.parametrize('submission, unknown', [
++    ([{'pace': 'slow'}, {'pace': 'very slow'}], 'pace: very slow'),
++    ([{'pace': 'fast'}, {'pace': 'very slow'}], 'pace: very slow'),
++    ([{'pace': 'mystery'}], 'pace: mystery'),
++    ([{'speed': 'slow'}], 'speed: slow'),
++])
++def test_unknown_observation_changes_nothing(observations_db, submission, unknown):
++    persist('alice', '123', [{'pace': 'slow'}])
++
++    with pytest.raises(ValueError, match='^Unknown observation: %s$' % unknown):
++        persist('alice', '123', submission)
++
++    assert pairs('alice', '123') == [(1, 1)]
++
++
++def test_duplicate_value_stored_once(observations_db):
++    persist('alice', '123', [{'genres': 'mystery'}, {'genres': 'mystery'}])
++
++    assert pairs('alice', '123') == [(10, 7)]
++
++
++def test_two_paces_are_stored(observations_db):
++    persist('alice', '123', [{'pace': 'slow'}, {'pace': 'fast'}])
++
++    assert pairs('alice', '123') == [(1, 1), (1, 3)]
++
++
++def test_failure_rolls_back(observations_db, monkeypatch):
++    persist('alice', '123', [{'pace': 'slow'}])
++
++    def failing_delete(*args, **kwargs):
++        raise RuntimeError('database failure')
++
++    monkeypatch.setattr(observations_db, 'delete', failing_delete)
++
++    with pytest.raises(RuntimeError):
++        persist('alice', '123', [{'pace': 'fast'}])
++
++    assert pairs('alice', '123') == [(1, 1)]

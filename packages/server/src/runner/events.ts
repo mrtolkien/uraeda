@@ -56,10 +56,14 @@ export type AgentEvent =
   | { total: TokenCounts; type: "tokens" }
   /** The agent ended its reply. */
   | {
+      /** The session's cost as the agent reports it, in dollars: absent when it reports none. */
+      costUsd?: number;
       denials: Array<Denial>;
       errors: Array<string>;
       /** Ended by an interrupt: a stop, not an error. */
       interrupted: boolean;
+      /** The models that answered, as the agent names them: absent when it names none. */
+      models?: Array<string>;
       ok: boolean;
       type: "result";
     }

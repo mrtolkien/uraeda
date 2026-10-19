@@ -1,0 +1,41 @@
+{
+  "questions": 4,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 5,
+    "items": [
+      {
+        "line": "2. **Given** the same values, **When** `_sort_values([2, 9, 1], values)` is called, **Then** it returns `['medium', 'slow']`. Id 9 has no value and is absorbed; `fast` is not listed and is left out.",
+        "requirement": "The module must expose an importable `_sort_values(order_list, values_list)` at module level; returns the name of each value whose id appears in order_list, in order_list order; ids in order_list with no matching entry absorbed; entries absent from order_list excluded.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Then** it returns `{'observations': [...]}`. It holds 13 entries, ordered by type id from `pace` to `mood`. Each entry has exactly the keys `label`, `description`, `multi_choice`, and `values`.",
+        "requirement": "`get_observations()` must return a dictionary with an `observations` key holding a non-empty list; each entry has keys label, description, multi_choice, values (list of name strings); `pace` has multi_choice False and values ['slow','medium','fast']; `fictionality` values ['nonfiction','fiction','biography'].",
+        "verdict": "covered"
+      },
+      {
+        "line": "1. **Given** the catalog, **When** `get_key_value_pair(1, 1)` is called, **Then** its `key` is `'pace'`, its `value` is `'slow'`, and `key, value = result` gives `'pace'` and `'slow'`.",
+        "requirement": "`Observations.get_key_value_pair(type_id, value_id)` returns an object with `key` and `value` attributes, iterating as (key, value); (1,1) gives 'pace'/'slow'; (10,7) gives 'genres'/'mystery'.",
+        "verdict": "covered"
+      },
+      {
+        "line": "4. **Given** `alice` submitted `[{'pace': 'slow'}]` for `'123'`, **When** the `observations` table is read, **Then** its row has `observation_type` 1, `observation_value` 1, `username` `'alice'`, and `work_id` 123.",
+        "requirement": "`Observations.persist_observations(username, work_id, observations)` stores the patron's observations so the stored set equals the submitted set, leaving other works and patrons unchanged: insert missing, remove absent, keep common without duplication; stored rows use keys observation_type, observation_value, username, work_id.",
+        "verdict": "covered"
+      },
+      {
+        "line": "`Observations.get_patron_observations(username, work_id)` returns it as records with `record['type']` and `record['value']`.",
+        "requirement": "`Observations.get_patron_observations(username, work_id)` returns the patron's stored observations for the work as a list of records, each supporting `record['type']` (type id) and `record['value']` (value id).",
+        "verdict": "covered"
+      }
+    ],
+    "total": 5
+  },
+  "tests": {
+    "passed": 4,
+    "resolved": false,
+    "total": 8
+  }
+}

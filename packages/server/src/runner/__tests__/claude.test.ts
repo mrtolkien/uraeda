@@ -156,6 +156,7 @@ test.each<[string, Array<AgentEvent>]>([
     "result-success.jsonl",
     [
       {
+        costUsd: 0.188748,
         denials: [],
         errors: [],
         interrupted: false,
@@ -169,13 +170,22 @@ test.each<[string, Array<AgentEvent>]>([
     "result-usage.jsonl",
     [
       { total: { cacheRead: 11_304, cacheWrite: 7791, input: 2, output: 4 }, type: "tokens" },
-      { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
+      {
+        costUsd: 0.0646768,
+        denials: [],
+        errors: [],
+        interrupted: false,
+        models: ["claude-opus-5-5", "claude-haiku-4-5"],
+        ok: true,
+        type: "result",
+      },
     ],
   ],
   [
     "result-denied.jsonl",
     [
       {
+        costUsd: 0.1160696,
         denials: [
           {
             input: { command: "gh pr create --draft", description: "Create a draft pull request" },
@@ -193,6 +203,7 @@ test.each<[string, Array<AgentEvent>]>([
     "result-error.jsonl",
     [
       {
+        costUsd: 0.0907116,
         denials: [],
         errors: ["Reached maximum number of turns (1)"],
         interrupted: false,
@@ -228,7 +239,17 @@ test.each<[string, unknown]>([
     type: "result",
   });
   expect(parseLine(line)).toEqual([
-    { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
+    {
+      denials: [],
+      errors: [],
+      interrupted: false,
+      // The models are named even when their counts are unreadable.
+      ...(Object.keys(modelUsage as object).length > 0
+        ? { models: Object.keys(modelUsage as object) }
+        : {}),
+      ok: true,
+      type: "result",
+    },
   ]);
 });
 
@@ -272,6 +293,36 @@ test("a success result marked as an error is not ok, and gives its text", () => 
       type: "result",
     },
   ]);
+});
+
+/** The `result` event of a result line with these fields. */
+function resultOf(fields: Record<string, unknown>) {
+  const line = JSON.stringify({
+    permission_denials: [],
+    subtype: "success",
+    type: "result",
+    ...fields,
+  });
+  return parseLine(line).at(-1);
+}
+
+test("a result line's cost and models reach the result event", () => {
+  const usage = { inputTokens: 1, outputTokens: 2 };
+
+  const event = resultOf({ modelUsage: { "claude-sonnet-5-5": usage }, total_cost_usd: 0.42 });
+
+  expect(event).toMatchObject({
+    costUsd: 0.42,
+    models: ["claude-sonnet-5-5"],
+    type: "result",
+  });
+});
+
+test("a result with no cost or models keeps both fields absent", () => {
+  const event = resultOf({});
+
+  expect(event).not.toHaveProperty("costUsd");
+  expect(event).not.toHaveProperty("models");
 });
 
 test("a line that is not JSON is skipped", () =>

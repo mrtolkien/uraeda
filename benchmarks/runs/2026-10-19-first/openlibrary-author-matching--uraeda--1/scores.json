@@ -1,0 +1,71 @@
+{
+  "questions": 3,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 10,
+    "items": [
+      {
+        "line": "**`find_author(author)`** takes the import dictionary and runs the three steps in order, name, `alternate_names`, then surname.",
+        "requirement": "find_entity must attempt resolution in priority order: name with dates, alternate_names with dates, surname with dates",
+        "verdict": "covered"
+      },
+      {
+        "line": "It owns the choice among candidates: a record with both years equal first, then the lowest key by numeric order.",
+        "requirement": "When both birth_date and death_date are present, they disambiguate records, and an exact year match for both takes precedence",
+        "verdict": "covered"
+      },
+      {
+        "line": "An import has no dates, and the same-named record has dates | The record is returned. Only the name is compared.",
+        "requirement": "When either birth_date or death_date is absent, fall back to case-insensitive name matching alone, returning an existing record if one exists",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-001** (casing): Names that differ only in letter case resolve to the same record.",
+        "requirement": "Matching must be case-insensitive; different casings of the same name resolve to the same record",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** authors `/authors/OL9A` \"John Smith\" and `/authors/OL3A` \"Johnny Cash\", **When** an import has name \"John*\", **Then** `/authors/OL3A` is returned.",
+        "requirement": "Support wildcards in name patterns; \"John*\" returns first candidate by numeric key ordering; if none, a new candidate preserving the name including *",
+        "verdict": "covered"
+      },
+      {
+        "line": "This needs both dates in the import, and both years must equal the record's.",
+        "requirement": "A match via alternate_names requires both dates present in the input and exactly matching the candidate's values",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-003** (year gate): An alternate-name or surname match is never returned when either year differs, or either import date is missing.",
+        "requirement": "A match via surname requires both dates present and exactly matching; surname path must not resolve if either date is missing or mismatched",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-005** (new author): An unmatched import keeps `name`, `birth_date`, and `death_date` unchanged, `*` included.",
+        "requirement": "If no valid match, return a new author candidate dictionary preserving name, birth_date, death_date unchanged",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Date rules** stay with the existing `author_dates_match`, which compares years.",
+        "requirement": "Year comparison for birth_date and death_date considers only the year component; any year difference invalidates a match",
+        "verdict": "partial"
+      },
+      {
+        "line": "**`find_entity(author)`** delegates to `find_author`. It returns the existing record, or `None` when none matches.",
+        "requirement": "find_author(author) accepts the import dictionary and returns a list of candidate records; find_entity delegates to find_author and returns an existing record or None",
+        "verdict": "covered"
+      },
+      {
+        "line": "It returns whether `text` fully matches `pattern`, ignoring case, with `*` as any run of characters and `_` ignored.",
+        "requirement": "Mock query behavior replicates production ILIKE semantics: case-insensitive full-string matching, * as multi-character wildcard, _ ignored",
+        "verdict": "covered"
+      }
+    ],
+    "total": 11
+  },
+  "tests": {
+    "passed": 8,
+    "resolved": true,
+    "total": 8
+  }
+}

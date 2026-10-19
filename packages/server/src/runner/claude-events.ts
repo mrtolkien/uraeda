@@ -391,9 +391,13 @@ function resultEvent(message: Json): AgentEvent {
     input: isObject(denial.tool_input) ? denial.tool_input : {},
     tool: text(denial.tool_name),
   }));
+  const cost = message.total_cost_usd;
+  const models = isObject(message.modelUsage) ? Object.keys(message.modelUsage) : [];
   return {
+    ...(typeof cost === "number" && Number.isFinite(cost) ? { costUsd: cost } : {}),
     denials,
     errors,
+    ...(models.length > 0 ? { models } : {}),
     ok,
     type: "result",
     // An interrupt ends the turn this way, with only diagnostics in its errors.

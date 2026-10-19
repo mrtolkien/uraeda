@@ -1,0 +1,5 @@
+source = "swe-bench-pro-v2"
+task = "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb"
+image = "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:c4f917e70ee7ef568f248a25783b7629eec4fe05c5d092d42c8d1e380efb7c5b"
+upstream = "https://github.com/internetarchive/openlibrary"
+repository = "/app"

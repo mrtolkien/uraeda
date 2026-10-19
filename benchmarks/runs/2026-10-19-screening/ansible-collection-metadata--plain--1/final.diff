@@ -1,0 +1,181 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index 51f1aa54dd..faa539a70c 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -208,6 +208,10 @@ class GalaxyCLI(CLI):
+ 
+         download_parser.add_argument('args', help='Collection(s)', metavar='collection', nargs='*')
+ 
++        download_parser.add_argument('--clear-response-cache', dest='clear_response_cache', action='store_true',
++                    default=False, help='Clear the existing server response cache.')
++        download_parser.add_argument('--no-cache', dest='no_cache', action='store_true', default=False,
++                    help='Do not use the server response cache.')
+         download_parser.add_argument('-n', '--no-deps', dest='no_deps', action='store_true', default=False,
+                                      help="Don't download collection(s) listed as dependencies.")
+ 
+@@ -352,6 +356,11 @@ class GalaxyCLI(CLI):
+         install_parser.add_argument('-i', '--ignore-errors', dest='ignore_errors', action='store_true', default=False,
+                                     help=ignore_errors_help)
+ 
++        install_parser.add_argument('--clear-response-cache', dest='clear_response_cache', action='store_true',
++                    default=False, help='Clear the existing server response cache.')
++        install_parser.add_argument('--no-cache', dest='no_cache', action='store_true', default=False,
++                    help='Do not use the server response cache.')
++
+         install_exclusive = install_parser.add_mutually_exclusive_group()
+         install_exclusive.add_argument('-n', '--no-deps', dest='no_deps', action='store_true', default=False,
+                                        help="Don't download {0}s listed as dependencies.".format(galaxy_type))
+@@ -431,6 +440,8 @@ class GalaxyCLI(CLI):
+         validate_certs = not context.CLIARGS['ignore_certs']
+ 
+         config_servers = []
++        cache_options = {'clear_response_cache': context.CLIARGS.get('clear_response_cache', False),
++                         'no_cache': context.CLIARGS.get('no_cache', True)}
+ 
+         # Need to filter out empty strings or non truthy values as an empty server list env var is equal to [''].
+         server_list = [s for s in C.GALAXY_SERVER_LIST or [] if s]
+@@ -473,6 +484,7 @@ class GalaxyCLI(CLI):
+                         server_options['token'] = GalaxyToken(token=token_val)
+ 
+             server_options['validate_certs'] = validate_certs
++            server_options.update(cache_options)
+ 
+             config_servers.append(GalaxyAPI(self.galaxy, server_key, **server_options))
+ 
+@@ -486,14 +498,14 @@ class GalaxyCLI(CLI):
+                 self.api_servers.append(config_server)
+             else:
+                 self.api_servers.append(GalaxyAPI(self.galaxy, 'cmd_arg', cmd_server, token=cmd_token,
+-                                                  validate_certs=validate_certs))
++                                                  validate_certs=validate_certs, **cache_options))
+         else:
+             self.api_servers = config_servers
+ 
+         # Default to C.GALAXY_SERVER if no servers were defined
+         if len(self.api_servers) == 0:
+             self.api_servers.append(GalaxyAPI(self.galaxy, 'default', C.GALAXY_SERVER, token=cmd_token,
+-                                              validate_certs=validate_certs))
++                                              validate_certs=validate_certs, **cache_options))
+ 
+         context.CLIARGS['func']()
+ 
+diff --git a/lib/ansible/config/base.yml b/lib/ansible/config/base.yml
+index e9706876e8..4925a8529f 100644
+--- a/lib/ansible/config/base.yml
++++ b/lib/ansible/config/base.yml
+@@ -1430,6 +1430,16 @@ FACTS_MODULES:
+   type: list
+   vars:
+     - name: ansible_facts_modules
++GALAXY_CACHE_DIR:
++  default: ~/.ansible/galaxy_cache
++  description:
++  - The directory that stores cached responses from a Galaxy server.
++  - This is only used by the ``ansible-galaxy collection install`` and ``download`` commands.
++  env: [{name: ANSIBLE_GALAXY_CACHE_DIR}]
++  ini:
++  - {key: cache_dir, section: galaxy}
++  type: path
++  version_added: '2.11'
+ GALAXY_IGNORE_CERTS:
+   name: Galaxy validate certs
+   default: False
+diff --git a/lib/ansible/galaxy/api.py b/lib/ansible/galaxy/api.py
+index 7f6ed9e50f..c68af31daa 100644
+--- a/lib/ansible/galaxy/api.py
++++ b/lib/ansible/galaxy/api.py
+@@ -5,7 +5,9 @@
+ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
++import errno
+ import hashlib
++import stat
+ import json
+ import os
+ import tarfile
+@@ -21,6 +23,7 @@ from ansible.module_utils.six.moves.urllib.parse import quote as urlquote, urlen
+ from ansible.module_utils._text import to_bytes, to_native, to_text
+ from ansible.module_utils.urls import open_url, prepare_multipart
+ from ansible.utils.display import Display
++from ansible.utils.path import makedirs_safe
+ from ansible.utils.hashing import secure_hash_s
+ 
+ try:
+@@ -32,6 +35,20 @@ except ImportError:
+ display = Display()
+ 
+ 
++def get_cache_id(url):
++    """ Gets the cache ID for the given URL: 'hostname:port' without any credentials """
++    url_info = urlparse(url)
++
++    port = None
++    try:
++        port = url_info.port
++    except ValueError:
++        pass  # While the URL is probably invalid, let the caller figure that out when using it
++
++    # Cannot use netloc because it could contain credentials if the server specified had them in there.
++    return '%s:%s' % (url_info.hostname, port or '')
++
++
+ def g_connect(versions):
+     """
+     Wrapper to lazily initialize connection info to Galaxy and verify the API versions required are available on the
+@@ -170,7 +187,7 @@ class GalaxyAPI:
+     """ This class is meant to be used as a API client for an Ansible Galaxy server """
+ 
+     def __init__(self, galaxy, name, url, username=None, password=None, token=None, validate_certs=True,
+-                 available_api_versions=None):
++                 available_api_versions=None, clear_response_cache=False, no_cache=True):
+         self.galaxy = galaxy
+         self.name = name
+         self.username = username
+@@ -182,6 +199,46 @@ class GalaxyAPI:
+ 
+         display.debug('Validate TLS certificates for %s: %s' % (self.api_server, self.validate_certs))
+ 
++        b_cache_dir = to_bytes(C.config.get_config_value('GALAXY_CACHE_DIR'), errors='surrogate_or_strict')
++        cache_file = os.path.join(b_cache_dir, b'api.json')
++        if clear_response_cache:
++            try:
++                os.remove(cache_file)
++            except OSError as e:
++                if e.errno != errno.ENOENT:
++                    raise
++
++        self._cache = None
++        if not no_cache:
++            makedirs_safe(b_cache_dir, mode=0o700)
++            self._cache = self._init_cache(cache_file)
++
++    @staticmethod
++    def _init_cache(b_cache_file):
++        if not os.path.exists(b_cache_file):
++            fd = os.open(b_cache_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
++            with os.fdopen(fd, 'wb') as fd:
++                fd.write(to_bytes(json.dumps({'version': 1}), errors='surrogate_or_strict'))
++            return {'version': 1}
++
++        if os.stat(b_cache_file).st_mode & stat.S_IWOTH:
++            display.warning('Galaxy cache has world writable access (%s), ignoring it as a cache source.'
++                            % to_text(b_cache_file))
++            return None
++
++        cache = None
++        with open(b_cache_file, mode='rb') as fd:
++            try:
++                cache = json.loads(to_text(fd.read(), errors='surrogate_or_strict'))
++            except ValueError:
++                pass
++
++        if not isinstance(cache, dict) or cache.get('version') != 1:
++            cache = {'version': 1}
++            with open(b_cache_file, mode='wb') as fd:
++                fd.write(to_bytes(json.dumps(cache), errors='surrogate_or_strict'))
++        return cache
++
+     @property
+     @g_connect(['v1', 'v2', 'v3'])
+     def available_api_versions(self):

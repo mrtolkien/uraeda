@@ -1,0 +1,41 @@
+{
+  "questions": 3,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 4,
+    "items": [
+      {
+        "line": "**The value ordering helper** `_sort_values` returns the names of the values whose id is in `order_list`, in that order. It owns the alignment rule: absent ids are absorbed or excluded, and duplicates count once.",
+        "requirement": "The module `openlibrary/core/observations.py` must expose an importable `_sort_values(order_list, values_list)` at the module level, returning names in order_list order, absorbing ids with no matching value and excluding values whose id is absent from order_list.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the catalog, **When** `get_observations()` is called, **Then** it returns a dictionary whose `observations` list is not empty, each entry having `label`, `description`, `multi_choice`, and `values`.",
+        "requirement": "`get_observations()` must return a dictionary holding an `observations` key whose value is a non-empty list, each entry exposing `label`, `description`, `multi_choice`, `values`; `pace` has multi_choice False and values ['slow','medium','fast']; `fictionality` has values ['nonfiction','fiction','biography'].",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Observations.get_key_value_pair`** finds the type, then the value, in the catalog, and returns a `namedtuple` of `key` and `value`, or `None`.",
+        "requirement": "`Observations.get_key_value_pair(type_id, value_id)` must return an object with `key` and `value` attributes, iterating as (key, value); (1,1) gives pace/slow; (10,7) gives genres/mystery.",
+        "verdict": "covered"
+      },
+      {
+        "line": "In one `db.transaction()`, it reads the stored set, deletes what the submission lacks, and inserts what the table lacks.",
+        "requirement": "`Observations.persist_observations(username, work_id, observations)` must store the patron's observations so the stored set equals the submitted set, leaving other works and patrons unchanged: insert missing, remove absent, keep common without duplication; rows use keys `observation_type`, `observation_value`, `username`, `work_id`.",
+        "verdict": "partial"
+      },
+      {
+        "line": "**`Observations.get_patron_observations`** selects `observation_type as type` and `observation_value as value` for the patron and work.",
+        "requirement": "`Observations.get_patron_observations(username, work_id)` must return the patron's stored observations for the work as a list of records, each supporting item access `record['type']` (type id) and `record['value']` (value id).",
+        "verdict": "covered"
+      }
+    ],
+    "total": 5
+  },
+  "tests": {
+    "passed": 4,
+    "resolved": false,
+    "total": 8
+  }
+}

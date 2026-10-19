@@ -1,0 +1,363 @@
+diff --git a/openlibrary/core/observations.py b/openlibrary/core/observations.py
+index 48dd42e06..4301fd4c3 100644
+--- a/openlibrary/core/observations.py
++++ b/openlibrary/core/observations.py
+@@ -1,10 +1,13 @@
+ """Module for handling patron observation functionality"""
+ 
++from collections import namedtuple
++
+ import requests
+ 
+ from infogami import config
+ from openlibrary import accounts
+ from . import cache
++from . import db
+ 
+ # URL for TheBestBookOn
+ TBBO_URL = config.get('tbbo_url')
+@@ -24,3 +27,326 @@ def get_aspects():
+     response = requests.get(TBBO_URL + '/api/aspects')
+ 
+     return response.text
++
++
++ObservationKeyValue = namedtuple('ObservationKeyValue', ['key', 'value'])
++
++# Catalog of observation types.  Each type's `values` holds every value that
++# may be stored for the type, and `order` gives the display order of value ids.
++ID_LOOKUP = {
++    1: {
++        'id': 1,
++        'label': 'pace',
++        'description': 'What is the pace of this book?',
++        'multi_choice': False,
++        'order': [1, 2, 3],
++        'values': [
++            {'id': 1, 'name': 'slow'},
++            {'id': 2, 'name': 'medium'},
++            {'id': 3, 'name': 'fast'},
++        ],
++    },
++    2: {
++        'id': 2,
++        'label': 'enjoyability',
++        'description': 'How entertaining is this book?',
++        'multi_choice': False,
++        'order': [1, 2, 3, 4, 5, 6],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'very boring'},
++            {'id': 3, 'name': 'boring'},
++            {'id': 4, 'name': 'neither entertaining nor boring'},
++            {'id': 5, 'name': 'entertaining'},
++            {'id': 6, 'name': 'very entertaining'},
++        ],
++    },
++    3: {
++        'id': 3,
++        'label': 'clarity',
++        'description': 'How clearly is this book written?',
++        'multi_choice': False,
++        'order': [1, 2, 3, 4, 5],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'very unclearly'},
++            {'id': 3, 'name': 'unclearly'},
++            {'id': 4, 'name': 'clearly'},
++            {'id': 5, 'name': 'very clearly'},
++        ],
++    },
++    4: {
++        'id': 4,
++        'label': 'jargon',
++        'description': 'How technical is the content?',
++        'multi_choice': False,
++        'order': [1, 2, 3, 4],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'not technical'},
++            {'id': 3, 'name': 'somewhat technical'},
++            {'id': 4, 'name': 'very technical'},
++        ],
++    },
++    5: {
++        'id': 5,
++        'label': 'originality',
++        'description': 'How original is this book?',
++        'multi_choice': False,
++        'order': [1, 2, 3, 4, 5],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'very unoriginal'},
++            {'id': 3, 'name': 'somewhat unoriginal'},
++            {'id': 4, 'name': 'somewhat original'},
++            {'id': 5, 'name': 'very original'},
++        ],
++    },
++    6: {
++        'id': 6,
++        'label': 'difficulty',
++        'description': 'How advanced is the subject matter of this book?',
++        'multi_choice': False,
++        'order': [1, 2, 3, 4, 5],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'requires domain expertise'},
++            {'id': 3, 'name': 'a lot of prior knowledge needed'},
++            {'id': 4, 'name': 'some prior knowledge needed'},
++            {'id': 5, 'name': 'no prior knowledge needed'},
++        ],
++    },
++    7: {
++        'id': 7,
++        'label': 'usefulness',
++        'description': 'How useful is the content of this book?',
++        'multi_choice': False,
++        'order': [1, 2, 3, 4, 5],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'not useful'},
++            {'id': 3, 'name': 'somewhat useful'},
++            {'id': 4, 'name': 'useful'},
++            {'id': 5, 'name': 'very useful'},
++        ],
++    },
++    8: {
++        'id': 8,
++        'label': 'coverage',
++        'description': "Does this book's content cover more breadth or depth of the subject matter?",
++        'multi_choice': False,
++        'order': [1, 2, 3, 4, 5, 6],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'much more deep'},
++            {'id': 3, 'name': 'somewhat more deep'},
++            {'id': 4, 'name': 'equally broad and deep'},
++            {'id': 5, 'name': 'somewhat more broad'},
++            {'id': 6, 'name': 'much more broad'},
++        ],
++    },
++    9: {
++        'id': 9,
++        'label': 'objectivity',
++        'description': 'Are there causes to question the accuracy of this book?',
++        'multi_choice': True,
++        'order': [1, 2, 3, 4, 5, 6, 7, 8],
++        'values': [
++            {'id': 1, 'name': 'not applicable'},
++            {'id': 2, 'name': 'no, it seems accurate'},
++            {'id': 3, 'name': 'yes, it needs citations'},
++            {'id': 4, 'name': 'yes, it is inflammatory'},
++            {'id': 5, 'name': 'yes, it has typos'},
++            {'id': 6, 'name': 'yes, it is inaccurate'},
++            {'id': 7, 'name': 'yes, it is misleading'},
++            {'id': 8, 'name': 'yes, it is biased'},
++        ],
++    },
++    10: {
++        'id': 10,
++        'label': 'genres',
++        'description': 'What are the genres of this book?',
++        'multi_choice': True,
++        'order': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
++        'values': [
++            {'id': 1, 'name': 'sci-fi'},
++            {'id': 2, 'name': 'philosophy'},
++            {'id': 3, 'name': 'satire'},
++            {'id': 4, 'name': 'poetry'},
++            {'id': 5, 'name': 'memoir'},
++            {'id': 6, 'name': 'paranormal'},
++            {'id': 7, 'name': 'mystery'},
++            {'id': 8, 'name': 'self-help'},
++            {'id': 9, 'name': 'fantasy'},
++            {'id': 10, 'name': 'drama'},
++            {'id': 11, 'name': 'adventure'},
++            {'id': 12, 'name': 'horror'},
++            {'id': 13, 'name': 'romance'},
++        ],
++    },
++    11: {
++        'id': 11,
++        'label': 'fictionality',
++        'description': 'Is this book a work of fact or fiction?',
++        'multi_choice': False,
++        'order': [1, 2, 3],
++        'values': [
++            {'id': 1, 'name': 'nonfiction'},
++            {'id': 2, 'name': 'fiction'},
++            {'id': 3, 'name': 'biography'},
++        ],
++    },
++    12: {
++        'id': 12,
++        'label': 'audience',
++        'description': 'What are the intended age groups for this book?',
++        'multi_choice': True,
++        'order': [1, 2, 3, 4, 5],
++        'values': [
++            {'id': 1, 'name': 'experts'},
++            {'id': 2, 'name': 'college'},
++            {'id': 3, 'name': 'high school'},
++            {'id': 4, 'name': 'elementary'},
++            {'id': 5, 'name': 'kindergarten'},
++        ],
++    },
++    13: {
++        'id': 13,
++        'label': 'mood',
++        'description': 'What are the moods of this book?',
++        'multi_choice': True,
++        'order': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
++        'values': [
++            {'id': 1, 'name': 'scientific'},
++            {'id': 2, 'name': 'dry'},
++            {'id': 3, 'name': 'emotional'},
++            {'id': 4, 'name': 'strange'},
++            {'id': 5, 'name': 'suspenseful'},
++            {'id': 6, 'name': 'sad'},
++            {'id': 7, 'name': 'dark'},
++            {'id': 8, 'name': 'lonely'},
++            {'id': 9, 'name': 'tense'},
++            {'id': 10, 'name': 'fearful'},
++        ],
++    },
++}
++
++# Reverse lookup: label -> {'id': type_id, 'values': {value_name: value_id}}
++LABEL_LOOKUP = {
++    t['label']: {
++        'id': t['id'],
++        'values': {v['name']: v['id'] for v in t['values']},
++    }
++    for t in ID_LOOKUP.values()
++}
++
++
++def _sort_values(order_list, values_list):
++    """
++    Returns the `name` of each value in `values_list` whose `id` appears in
++    `order_list`, arranged according to `order_list`.  Ids in `order_list`
++    without a matching value are skipped; values whose id is not in
++    `order_list` are excluded.
++    """
++    names_by_id = {v['id']: v['name'] for v in values_list}
++    return [names_by_id[i] for i in order_list if i in names_by_id]
++
++
++def get_observations():
++    """
++    Returns a dictionary of observation types, each with its value names in
++    display order.
++    """
++    return {
++        'observations': [
++            {
++                'label': t['label'],
++                'description': t['description'],
++                'multi_choice': t['multi_choice'],
++                'values': _sort_values(t['order'], t['values']),
++            }
++            for t in ID_LOOKUP.values()
++        ]
++    }
++
++
++class Observations(object):
++
++    TABLENAME = 'observations'
++
++    @classmethod
++    def get_key_value_pair(cls, type_id, value_id):
++        """
++        Resolves an observation type id and value id to an
++        ObservationKeyValue(key=type_label, value=value_name).
++        """
++        observation = ID_LOOKUP[type_id]
++        for v in observation['values']:
++            if v['id'] == value_id:
++                return ObservationKeyValue(observation['label'], v['name'])
++        raise KeyError(
++            'Unknown value id %s for observation type %s' % (value_id, type_id))
++
++    @classmethod
++    def get_patron_observations(cls, username, work_id):
++        """
++        Returns a list of a patron's observations for a work.  Each record
++        has a `type` (observation type id) and `value` (value id).
++        """
++        oldb = db.get_db()
++        data = {'username': username, 'work_id': work_id}
++        query = (
++            "SELECT observation_type AS type, observation_value AS value "
++            "FROM observations "
++            "WHERE username=$username AND work_id=$work_id"
++        )
++        return list(oldb.query(query, vars=data))
++
++    @classmethod
++    def persist_observations(cls, username, work_id, observations):
++        """
++        Stores a patron's observations for a work, so that the stored set
++        matches the submitted list of {label: value_name} dictionaries.
++        """
++        oldb = db.get_db()
++
++        submitted = set()
++        for observation in observations:
++            for label, value_name in observation.items():
++                type_info = LABEL_LOOKUP[label]
++                submitted.add((type_info['id'], type_info['values'][value_name]))
++
++        existing = {
++            (int(r['type']), int(r['value']))
++            for r in cls.get_patron_observations(username, work_id)
++        }
++
++        to_insert = submitted - existing
++        to_delete = existing - submitted
++
++        if to_insert:
++            oldb.multiple_insert(cls.TABLENAME, [
++                {
++                    'observation_type': type_id,
++                    'observation_value': value_id,
++                    'username': username,
++                    'work_id': work_id,
++                }
++                for type_id, value_id in sorted(to_insert)
++            ])
++
++        for type_id, value_id in sorted(to_delete):
++            oldb.delete(
++                cls.TABLENAME,
++                where=(
++                    'username=$username AND work_id=$work_id '
++                    'AND observation_type=$observation_type '
++                    'AND observation_value=$observation_value'
++                ),
++                vars={
++                    'username': username,
++                    'work_id': work_id,
++                    'observation_type': type_id,
++                    'observation_value': value_id,
++                },
++            )
+diff --git a/openlibrary/core/schema.sql b/openlibrary/core/schema.sql
+index 54cf058db..fe2e40888 100644
+--- a/openlibrary/core/schema.sql
++++ b/openlibrary/core/schema.sql
+@@ -49,3 +49,13 @@ CREATE TABLE bookshelves_votes (
+ INSERT INTO bookshelves (name, description) VALUES ('Want to Read', 'A list of books I want to read');
+ INSERT INTO bookshelves (name, description) VALUES ('Currently Reading', 'A list of books I am currently reading');
+ INSERT INTO bookshelves (name, description) VALUES ('Already Read', 'A list of books I have finished reading');
++
++CREATE TABLE observations (
++    work_id INTEGER not null,
++    edition_id INTEGER default -1,
++    username text not null,
++    observation_type INTEGER not null,
++    observation_value INTEGER not null,
++    created timestamp without time zone default (current_timestamp at time zone 'utc'),
++    primary key (work_id, edition_id, username, observation_value, observation_type)
++);
