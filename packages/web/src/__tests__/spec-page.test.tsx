@@ -89,17 +89,17 @@ test("the contents list every part, decision, and story", async () => {
   expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(1);
 });
 
-/** On a tablet, 420 px of "Contents" would leave the page under 350 px: it starts hidden. */
-test("on a window under 1100 px wide, the contents start hidden, until you show them", async () => {
+/** On a tablet, 420 px of "Contents" would leave the page under 350 px: it starts folded. */
+test("on a window under 1100 px wide, the contents start folded, until you show them", async () => {
   atWidth(800);
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
   await region("What you approve");
-  expect(screen.queryByRole("complementary", { name: "Contents" })).toBeNull();
+  expect(screen.queryByRole("list", { name: "Parts" })).toBeNull();
   await click(screen.getByRole("button", { name: "Show contents" }));
-  expect(await contents()).toBeTruthy();
+  expect(await screen.findByRole("list", { name: "Parts" })).toBeTruthy();
 });
 
 test("a window of 1100 px shows the contents at first, and keeps your choice", async () => {
@@ -230,12 +230,12 @@ test("hidden contents stay hidden after a reload, with the verdict at the page's
   await act(async () => {
     fireEvent.keyDown(document.body, { code: "BracketRight", key: "]" });
   });
-  await waitFor(() => expect(screen.queryByRole("complementary", { name: "Contents" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("list", { name: "Parts" })).toBeNull());
   cleanup();
   await renderPage(PAGE, repo);
 
   await region("What you approve");
-  expect(screen.queryByRole("complementary", { name: "Contents" })).toBeNull();
+  expect(screen.queryByRole("list", { name: "Parts" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show contents" })).toBeTruthy();
   const approve = screen.getByRole("button", { name: "Approve" });
   const end = screen.getByRole("heading", { name: "Your review" });

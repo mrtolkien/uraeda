@@ -191,6 +191,24 @@ function Entries({ entries }: { entries: ReadonlyArray<Entry> }) {
   );
 }
 
+/** What the folded column shows: the comments on the spec, all together, when there are any. */
+function ContentsRail({ entries }: { entries: ReadonlyArray<Entry> }) {
+  const count = entries.reduce((sum, entry) => sum + entry.count, 0);
+  return (
+    count > 0 && (
+      <Badge
+        label={
+          <>
+            {count}
+            <VisuallyHidden> {count === 1 ? "comment" : "comments"}</VisuallyHidden>
+          </>
+        }
+        variant="warning"
+      />
+    )
+  );
+}
+
 /** Where the column's folded state is kept, for every spec. */
 const KEY = "uraeda.specContents";
 
@@ -224,6 +242,7 @@ export function SpecContents({
       isShown={isShown}
       label="Contents"
       onShownChange={setShown}
+      rail={<ContentsRail entries={entries} />}
       sizes={{ default: 320, min: 280 }}
       storageKey="uraeda.specContents.width"
     >

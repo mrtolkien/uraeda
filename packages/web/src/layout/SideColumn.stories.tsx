@@ -1,4 +1,4 @@
-// Mockups of the session's right column, "Progress": resized from its edge, hidden from its top.
+// Mockups of the session's right column, "Progress": resized from its edge, folded to a rail from its top.
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -13,6 +13,7 @@ function Column({ isRevealed, shown }: { isRevealed?: boolean; shown: boolean })
       isShown={isShown}
       label="Progress"
       onShownChange={setShown}
+      rail={<Text type="supporting">7/11</Text>}
       storageKey="uraeda.story.column"
       {...(isRevealed === undefined ? {} : { isRevealed })}
     >
@@ -37,5 +38,5 @@ type Story = StoryObj<typeof meta>;
 /** Shown, under the pointer: its hide button at its top, the resize handle on its edge. */
 export const Shown: Story = { args: { isRevealed: true, shown: true } };
 
-/** Hidden: the button that shows it again, at the page's top right. */
-export const Hidden: Story = { args: { shown: false } };
+/** Folded: a rail with its key information, and the button that unfolds it, at the page's top right. */
+export const Folded: Story = { args: { shown: false } };

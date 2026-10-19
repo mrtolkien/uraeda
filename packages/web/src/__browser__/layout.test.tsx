@@ -388,14 +388,14 @@ test.each(MODES)(
 describe("the session on the desktop", () => {
   atSize("desktop");
 
-  // SC-004: the same session with its column hidden, on wide screens, where the column is.
+  // SC-004: the same session with its column folded, on wide screens, where the column is.
   test.each(MODES)(
-    "a feature's session at its implementation, with its column hidden, in $mode",
+    "a feature's session at its implementation, with its column folded, in $mode",
     async ({ mode }) => {
       await implementation(mode);
       await userEvent.click(screen.getByRole("button", { name: "Hide progress" }));
       await expect
-        .poll(() => screen.queryByRole("complementary", { name: "Progress" }), LIVE)
+        .poll(() => screen.queryByRole("separator", { name: "Resize progress" }), LIVE)
         .toBeNull();
       await screen.findByRole("button", { name: "Show progress" });
       await drawn();

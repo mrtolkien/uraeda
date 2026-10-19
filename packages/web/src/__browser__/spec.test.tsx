@@ -139,7 +139,7 @@ describe("on a wide screen", () => {
     // hold its lines.
     fireEvent.keyDown(document.body, { code: "BracketRight", key: "]" });
     await drawn();
-    expect(screen.queryByRole("complementary", { name: "Contents" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Parts" })).toBeNull();
     const card = screen.getByRole("region", { name: "Task storage" });
     for (const fold of within(card).getAllByRole("button", { expanded: false })) {
       fireEvent.click(fold);

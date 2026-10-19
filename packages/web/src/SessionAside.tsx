@@ -15,6 +15,8 @@ import { useBranchChanges, useFeature, useFile } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { stepLabel, waiting } from "./labels.ts";
 import { SideColumn } from "./layout/SideColumn.tsx";
+import { stepOf } from "./sidebar/cards.ts";
+import { StepIcon } from "./sidebar/StepIcon.tsx";
 import { type Shown, useStoredShown } from "./layout/useStoredShown.ts";
 import { statusStyles } from "./Question.tsx";
 import { useRepoPath } from "./routes.tsx";
@@ -67,10 +69,40 @@ export function WithAside({
       isShown={shown}
       label="Progress"
       onShownChange={setShown}
+      rail={<SessionRail folder={folder} />}
       storageKey="uraeda.column"
     >
       <SessionAside folder={folder} {...(session === undefined ? {} : { session })} />
     </SideColumn>
+  );
+}
+
+/**
+ * What the folded column shows: the step's icon, named by the step, and the plan's task count, "7/11",
+ * while the implementation goes on.
+ */
+function SessionRail({ folder }: { folder: string }) {
+  const feature = useFeature(folder);
+  if (!feature || feature.missing) {
+    return null;
+  }
+  const step = stepOf(feature);
+  const progress = feature.step.progress;
+  return (
+    <>
+      <span aria-label={step.label} role="img" title={step.label}>
+        <StepIcon step={step.kind} />
+      </span>
+      {progress && (
+        <Text
+          aria-label={`Task ${progress.position} of ${progress.total}`}
+          color="secondary"
+          type="supporting"
+        >
+          {progress.position}/{progress.total}
+        </Text>
+      )}
+    </>
   );
 }
 

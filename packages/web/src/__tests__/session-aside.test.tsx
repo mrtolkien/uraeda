@@ -173,7 +173,7 @@ test("US1.7: Hide progress folds it, for every session and after a reload", asyn
 
   await click(screen.getByRole("button", { name: "Hide progress" }));
 
-  expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+  expect(screen.queryByRole("separator", { name: "Resize progress" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show progress" })).toBeTruthy();
   expect(window.localStorage.getItem("uraeda.sessionAside")).toBe("hidden");
   // Another feature's session, in a new page.
@@ -181,7 +181,7 @@ test("US1.7: Hide progress folds it, for every session and after a reload", asyn
   await renderPage(`/f/${WEB_UI}/session`, repo, { agent: await fakeAgent() });
   await screen.findByRole("log", { name: "Conversation" });
   expect(await screen.findByRole("button", { name: "Show progress" })).toBeTruthy();
-  expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+  expect(screen.queryByRole("separator", { name: "Resize progress" })).toBeNull();
 
   await click(screen.getByRole("button", { name: "Show progress" }));
   expect(await findAside()).toBeTruthy();
@@ -351,14 +351,14 @@ test("localStorage refused: the column shows, and Hide progress still folds it",
 
   await click(screen.getByRole("button", { name: "Hide progress" }));
 
-  expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+  expect(screen.queryByRole("separator", { name: "Resize progress" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show progress" })).toBeTruthy();
   expect(real.getItem("uraeda.sessionAside")).toBeNull();
   // Another page of the same document, which draws its page anew: still hidden.
   cleanup();
   await renderPage(`/f/${WEB_UI}/session`, repo, { agent: await fakeAgent() });
   expect(await screen.findByRole("button", { name: "Show progress" })).toBeTruthy();
-  expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+  expect(screen.queryByRole("separator", { name: "Resize progress" })).toBeNull();
   // Shown again, which storage takes once more.
   vi.restoreAllMocks();
   await click(screen.getByRole("button", { name: "Show progress" }));
