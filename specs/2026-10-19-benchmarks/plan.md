@@ -385,7 +385,7 @@ git commit -m "feat(server): report a session's cost and models, and export the 
   `record.transcripts` while leaving the files in `<folder>/transcripts/`, and
   `listRuns(root): Array<{folder, record, scores?}>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("SC-003: the record schema rejects a missing field", () => {
@@ -427,24 +427,24 @@ The break each test catches:
 - The tracked files: a `.gitignore` that lets a megabyte transcript into git, or hides the record.
 - The case: an image whose repository already holds a `specs/` folder, which would confuse the flow.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/data.test.ts`
 - Expected: FAIL, `Cannot find module '../record.ts'`
 
-- [ ] **Step 3: Implement the readers, the schema, and the recorder**
+- [x] **Step 3: Implement the readers, the schema, and the recorder**
 
 Use plain TypeScript and the TOML parser already in the workspace, if one is
 (`rg smol-toml pnpm-lock.yaml`), else add the smallest maintained one, and name it in the commit.
 Schema checks are explicit and name the field. `checkCase` reads the image's repository listing
 through an injected `list(image, path)` function, so the test needs no Docker.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks benchmarks/.gitignore .gitignore specs/2026-10-19-benchmarks/plan.md

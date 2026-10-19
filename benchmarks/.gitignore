@@ -1,0 +1,4 @@
+# Raw transcripts stay on one machine: their SHA-256 is in each record.
+**/transcripts/
+# Written by `vp run benchmarks:report`.
+report.html
