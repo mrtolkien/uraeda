@@ -96,6 +96,12 @@ export async function runPlain(
           : {}),
         models: { answered: session.models, asked: suite.model },
         outcome,
+        ...(outcome === "finished"
+          ? {}
+          : {
+              reason:
+                session.errors.join("; ") || session.exit?.stderr || "the session did not finish",
+            }),
         steps: [stepOf("plain", "plain", session)],
         urls: session.urls,
       },
