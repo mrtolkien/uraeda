@@ -785,7 +785,7 @@ git commit -m "feat(redesign-session): keep the session's actions by the compose
 
 - Consumes: every earlier task.
 
-- [ ] **Step 1: Take the screenshots**
+- [x] **Step 1: Take the screenshots**
 
 Add the session's views to the screenshot script, as its other shot files do, and run
 `nix develop -c vp run --filter uraeda-web screenshots specs/2026-10-19-redesign-session session-reading session-blocking session-scrolled`.
@@ -793,7 +793,7 @@ Look at each at both sizes and both themes against the
 [mockups](/packages/web/src/SessionMockups.stories.tsx) and the decisions, fix what differs, and
 take them again.
 
-- [ ] **Step 2: Run the whole validation**
+- [x] **Step 2: Run the whole validation**
   - Run: `nix develop -c vp run ready`
   - Expected: PASS
 
