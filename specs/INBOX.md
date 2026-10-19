@@ -127,3 +127,6 @@
   inbox note edit refetches the ledger: add a decisions-check change flag to the watcher
 - [agent] [decisions-pass] An option of a decisions check that removes a decision (half of a merge)
   is drawn with no candidate card; SKILL.md has 5 characters of margin under its 20,000 limit
+- [agent] [fix-testing] Skill template: skills/uraeda/assets/templates/specs/CONSTITUTION.md rule VI
+  still says "tests covering the spec's acceptance scenarios", so a new project's constitution
+  forbids what the testing rules now ask: needs the human's wording
