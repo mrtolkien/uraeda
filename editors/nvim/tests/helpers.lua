@@ -55,8 +55,7 @@ local function commit_all(path, message)
   helpers.git(path, { "commit", "--quiet", "--no-verify", "--message", message })
 end
 
---- A temporary git repository on `main`, its files committed, with a pre-commit hook counting its
---- runs (`helpers.hook_runs`). `files` maps paths to texts. `branches` maps a branch name to the
+--- A temporary git repository on `main`, its files committed. `files` maps paths to texts. `branches` maps a branch name to the
 --- files committed on it, from `main`, each branch checked out in `.worktrees/<branch>`. Returns
 --- the repository's path, with symbolic links resolved.
 function helpers.repo(files, branches)
@@ -68,11 +67,9 @@ function helpers.repo(files, branches)
     ["user.name"] = "Test",
     ["user.email"] = "test@example.com",
     ["commit.gpgSign"] = "false",
-    ["core.hooksPath"] = ".git/hooks",
   }) do
     helpers.git(path, { "config", key, value })
   end
-  helpers.set_hook(path, 'echo run >> "$(git rev-parse --git-common-dir)/hook-runs"')
   write(vim.fs.joinpath(path, ".gitignore"), ".worktrees/\n")
   for name, text in pairs(files) do
     write(vim.fs.joinpath(path, name), text)
@@ -87,24 +84,6 @@ function helpers.repo(files, branches)
     commit_all(worktree, "chore: " .. branch)
   end
   return path
-end
-
---- Replaces the pre-commit hook of the repository at `path` with `script`.
-function helpers.set_hook(path, script)
-  local hook = vim.fs.joinpath(path, ".git", "hooks", "pre-commit")
-  write(hook, "#!/bin/sh\n" .. script .. "\n")
-  vim.uv.fs_chmod(hook, tonumber("755", 8))
-end
-
---- How many times the pre-commit hook of the repository at `path` ran.
-function helpers.hook_runs(path)
-  local file = io.open(vim.fs.joinpath(path, ".git", "hook-runs"), "r")
-  if file == nil then
-    return 0
-  end
-  local runs = select(2, file:read("*a"):gsub("\n", ""))
-  file:close()
-  return runs
 end
 
 --- The example project's `specs/` files, as `helpers.repo` takes them.
