@@ -56,7 +56,11 @@ way to follow it.
 
 ### VI. Code is checked and stays maintainable
 
-- Implementations MUST include tests covering the spec's acceptance scenarios.
+- Implementations MUST include tests of the behaviour that matters: each story's main scenarios, the
+  edge cases marked high, and the success criteria. Other scenarios MAY be checked by review.
+- A test MUST fail when behaviour that matters breaks, and MUST NOT fail when a change keeps it.
+- A test MUST NOT be loosened, skipped, or deleted to make a run pass, except at a human's request
+  or with a ruling the review lists.
 - Code SHOULD stay explicit and simple. New abstractions MUST be justified in the plan's complexity
   tracking.
 - Each rule MUST live in one place. A copy in another layer or language MUST be justified in the
@@ -76,4 +80,4 @@ measured stops them.
 - Specs and plans MUST include a constitution check. Exceptions MUST be listed in the plan's
   complexity tracking and approved by a human.
 
-**Version**: 1.3.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14
+**Version**: 2.0.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-19
