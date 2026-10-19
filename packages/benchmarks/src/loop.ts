@@ -183,17 +183,23 @@ class Loop {
     return undefined;
   }
 
-  /** Allows a blocked action once, with the adapter's narrow rule: a repeat fails the run. */
+  /**
+   * Allows a blocked action once, with the adapter's narrow rule, or only records it when no rule
+   * allows it alone: the same action blocked again fails the run.
+   */
   async #allow(denial: Denial, nativeId: string, step: string): Promise<Stop | undefined> {
     const { adapter, now, repo } = this.#options;
     const key = `${denial.tool} ${JSON.stringify(denial.input)}`;
-    const rule = adapter.allowRule(denial);
-    if (this.#seenBlocks.has(key) || rule === undefined) {
-      const why = rule === undefined ? "with no rule that allows it" : "again";
-      return ["failed", `auto mode blocked ${denial.tool} ${why}`];
+    if (this.#seenBlocks.has(key)) {
+      return ["failed", `auto mode blocked ${denial.tool} again: ${key}`];
     }
     this.#seenBlocks.add(key);
-    this.result.blocked.push({ rule, tool: denial.tool, ...commandOf(denial) });
+    const rule = adapter.allowRule(denial);
+    this.result.blocked.push({ rule: rule ?? "none", tool: denial.tool, ...commandOf(denial) });
+    if (rule === undefined) {
+      // No narrow rule allows it alone, so it stays blocked: the agent goes on without it.
+      return undefined;
+    }
     const retry = await runSession({
       adapter,
       allowed: rule,

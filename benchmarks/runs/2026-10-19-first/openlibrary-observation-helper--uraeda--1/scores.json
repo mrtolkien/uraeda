@@ -1,0 +1,41 @@
+{
+  "questions": 4,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 4,
+    "items": [
+      {
+        "line": "**Given** `order_list` `[3, 9, 1]` and values `1: a`, `3: c`, **When** it is called, **Then** id 9 is absorbed and the result is `['c', 'a']`.",
+        "requirement": "Module-level importable `_sort_values(order_list, values_list)` returning names of values whose id is in order_list, in order_list order; ids with no matching entry absorbed; entries absent from order_list excluded",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the entry labeled `pace`, **When** it is read, **Then** `multi_choice` is `False` and `values` is `['slow', 'medium', 'fast']`.",
+        "requirement": "`get_observations()` returns a dict with non-empty `observations` list; entries have `label`, `description`, `multi_choice`, `values` (name strings); `pace` has multi_choice False and values ['slow','medium','fast']; `fictionality` values ['nonfiction','fiction','biography']",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** type 10 and value 7, **When** it is called, **Then** `key` is `'genres'` and `value` is `'mystery'`.",
+        "requirement": "`Observations.get_key_value_pair(type_id, value_id)` returns object with `key` and `value` attributes, iterating as (key, value); (1,1) -> pace/slow; (10,7) -> genres/mystery",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `alice` has stored `pace: slow` and `genres: mystery` for work `100`, **When** she submits `[{'pace': 'slow'}]`, **Then** `pace: slow` remains once and `genres: mystery` is removed.",
+        "requirement": "`Observations.persist_observations(username, work_id, observations)` makes the patron's stored set for the work equal the submission (insert missing, remove absent, no duplicates), leaving other works/patrons unchanged; rows use keys `observation_type`, `observation_value`, `username`, `work_id`",
+        "verdict": "partial"
+      },
+      {
+        "line": "**Given** `alice` stored `pace: slow` for work `100`, **When** `get_patron_observations('alice', '100')` is called, **Then** it returns one record whose `record['type']` is `1` and `record['value']` is `1`.",
+        "requirement": "`Observations.get_patron_observations(username, work_id)` returns a list of records supporting `record['type']` (type id) and `record['value']` (value id)",
+        "verdict": "covered"
+      }
+    ],
+    "total": 5
+  },
+  "tests": {
+    "passed": 4,
+    "resolved": false,
+    "total": 8
+  }
+}

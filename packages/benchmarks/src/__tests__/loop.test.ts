@@ -4,6 +4,7 @@ import type { NextJson } from "../next.ts";
 import { expect, test } from "vite-plus/test";
 import {
   blockedTurn,
+  commandTurn,
   fetchTurn,
   humanSession,
   InvalidRun,
@@ -210,4 +211,35 @@ test("the human is told the feature's folder, and a rule it breaks keeps its ses
   expect(turns).toEqual(["specs/2026-10-19-case/clarifications-01.md"]);
   expect(loop.steps.map((step) => step.role)).toEqual(["agent", "human"]);
   expect(loop.steps[1]?.gate).toBe("invalid");
+});
+
+test("a block no narrow rule allows is recorded, and the run goes on without it", async () => {
+  const { adapter, loop } = await runScripted({
+    pushedAfter: 2,
+    turns: [blockedTurn("find . -name '*.py'"), ok],
+    views: [agent("implementation"), agent("final-review", true)],
+  });
+
+  expect(loop.blocked).toEqual([{ rule: "none", target: "find . -name '*.py'", tool: "Bash" }]);
+  expect(adapter.opens.map((open) => open.allowed)).toEqual([undefined, undefined]);
+  expect(loop.outcome).toBe("finished");
+});
+
+test("a command that fetches names its address, one that only mentions it does not", async () => {
+  const fetching = await runScripted({
+    pushedAfter: 1,
+    turns: [commandTurn("curl -s https://example.org/page")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+  const mentioning = await runScripted({
+    pushedAfter: 1,
+    turns: [
+      commandTurn("cat > cfg.yml <<EOF\nrepository: https://github.com/ansible/ansible.git\nEOF"),
+    ],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(fetching.loop.urls).toEqual(["https://example.org/page"]);
+  expect(mentioning.loop.urls).toEqual([]);
+  expect(mentioning.loop.flags).toEqual([]);
 });

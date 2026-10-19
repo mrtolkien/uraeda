@@ -1,0 +1,136 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 8dcf682ec..7c8373849 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -2,6 +2,8 @@ from typing import Any, Final
+ import web
+ from openlibrary.catalog.utils import flip_name, author_dates_match, key_int
+ 
++DATE_KEYS = ("birth_date", "death_date")
++
+ 
+ # Sort by descending length to remove the _longest_ match.
+ # E.g. remove "señorita" and not "señor", when both match.
+@@ -131,13 +133,13 @@ def pick_from_matches(author, match):
+     return min(maybe, key=key_int)
+ 
+ 
+-def find_author(name):
++def find_author(author: dict[str, Any]) -> list:
+     """
+-    Searches OL for an author by name.
++    Searches OL for an author, in priority order: name, alternate_names, surname,
++    each combined with birth and death dates. All searches are case-insensitive.
+ 
+-    :param str name: Author's name
+-    :rtype: list
+-    :return: A list of OL author representations than match name
++    :param dict author: Author import dict {"name": "Some One"}
++    :return: A list of OL author records that match
+     """
+ 
+     def walk_redirects(obj, seen):
+@@ -148,26 +150,49 @@ def find_author(name):
+             seen.add(obj['key'])
+         return obj
+ 
+-    q = {'type': '/type/author', 'name': name}  # FIXME should have no limit
+-    reply = list(web.ctx.site.things(q))
+-    authors = [web.ctx.site.get(k) for k in reply]
+-    if any(a.type.key != '/type/author' for a in authors):
+-        seen = set()
+-        authors = [walk_redirects(a, seen) for a in authors if a['key'] not in seen]
+-    return authors
++    def search(field: str, value: str) -> list:
++        q = {'type': '/type/author', f'{field}~': value}  # FIXME no limit
++        authors = [web.ctx.site.get(k) for k in web.ctx.site.things(q)]
++        if any(a.type.key != '/type/author' for a in authors):
++            seen: set = set()
++            authors = [
++                walk_redirects(a, seen) for a in authors if a['key'] not in seen
++            ]
++        return authors
++
++    def years_match(a, key: str) -> bool:
++        return author_dates_match({key: author[key]}, {key: a.get(key)})
+ 
++    def exact_dates(a) -> bool:
++        return all(a.get(k) and years_match(a, k) for k in DATE_KEYS)
+ 
+-def find_entity(author):
++    name = author['name']
++    has_dates = all(author.get(k) for k in DATE_KEYS)
++
++    things = search('name', name)
++    if ', ' in name:
++        things += search('name', flip_name(name))
++    if things or not has_dates:
++        return things
++
++    things = [a for a in search('alternate_names', name) if exact_dates(a)]
++    if things:
++        return things
++    surname = name.split()[-1] if name.split() else ''
++    if not surname:
++        return []
++    return [a for a in search('surname', surname) if exact_dates(a)]
++
++
++def find_entity(author: dict[str, Any]):
+     """
+-    Looks for an existing Author record in OL by name
+-    and returns it if found.
++    Looks for an existing Author record in OL and returns it if found.
+ 
+     :param dict author: Author import dict {"name": "Some One"}
+     :rtype: dict|None
+     :return: Existing Author record, if one is found
+     """
+-    name = author['name']
+-    things = find_author(name)
++    things = find_author(author)
+     et = author.get('entity_type')
+     if et and et != 'person':
+         if not things:
+@@ -175,8 +200,6 @@ def find_entity(author):
+         db_entity = things[0]
+         assert db_entity['type']['key'] == '/type/author'
+         return db_entity
+-    if ', ' in name:
+-        things += find_author(flip_name(name))
+     match = []
+     seen = set()
+     for a in things:
+@@ -184,7 +207,6 @@ def find_entity(author):
+         if key in seen:
+             continue
+         seen.add(key)
+-        orig_key = key
+         assert a.type.key == '/type/author'
+         if 'birth_date' in author and 'birth_date' not in a:
+             continue
+diff --git a/openlibrary/mocks/mock_infobase.py b/openlibrary/mocks/mock_infobase.py
+index 38480ac2a..4ce931a4c 100644
+--- a/openlibrary/mocks/mock_infobase.py
++++ b/openlibrary/mocks/mock_infobase.py
+@@ -183,10 +183,19 @@ class MockSite:
+         keys = sorted(keys)
+         return keys[offset : offset + limit]
+ 
++    def regex_ilike(self, pattern: str, text: str) -> bool:
++        """Mimics production ILIKE: case-insensitive full match, `*` is a
++        multi-character wildcard and `_` is ignored in the pattern."""
++        import re
++
++        parts = pattern.replace('_', '').split('*')
++        rx = '.*'.join(re.escape(p) for p in parts)
++        return re.fullmatch(rx, text, re.IGNORECASE | re.DOTALL) is not None
++
+     def filter_index(self, index, name, value):
+         operations = {
+             "~": lambda i, value: isinstance(i.value, str)
+-            and i.value.startswith(web.rstrips(value, "*")),
++            and self.regex_ilike(value, i.value),
+             "<": lambda i, value: i.value < value,
+             ">": lambda i, value: i.value > value,
+             "!": lambda i, value: i.value != value,

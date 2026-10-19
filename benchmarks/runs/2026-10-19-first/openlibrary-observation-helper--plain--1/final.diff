@@ -1,0 +1,152 @@
+diff --git a/openlibrary/core/observations.py b/openlibrary/core/observations.py
+index 48dd42e06..61159be63 100644
+--- a/openlibrary/core/observations.py
++++ b/openlibrary/core/observations.py
+@@ -4,7 +4,7 @@ import requests
+ 
+ from infogami import config
+ from openlibrary import accounts
+-from . import cache
++from . import cache, db
+ 
+ # URL for TheBestBookOn
+ TBBO_URL = config.get('tbbo_url')
+@@ -24,3 +24,121 @@ def get_aspects():
+     response = requests.get(TBBO_URL + '/api/aspects')
+ 
+     return response.text
++
++
++def _sort_values(order_list, values_list):
++    """Returns the names of the values whose ids are in `order_list`,
++    arranged in the order given by `order_list`."""
++    by_id = {v['id']: v['name'] for v in values_list}
++    return [by_id[i] for i in order_list if i in by_id]
++
++
++def _v(*names):
++    return [{'id': i + 1, 'name': n} for i, n in enumerate(names)]
++
++
++_OBSERVATION_TYPES = [
++    {'id': 1, 'label': 'pace', 'description': 'How would you rate the pacing of this book?',
++     'multi_choice': False, 'order': [1, 2, 3], 'values': _v('slow', 'medium', 'fast')},
++    {'id': 2, 'label': 'enjoyability', 'description': 'How entertaining is this book?',
++     'multi_choice': False, 'order': [1, 2, 3], 'values': _v('not applicable', 'very boring', 'okay')},
++    {'id': 3, 'label': 'clarity', 'description': 'How clearly is this book written?',
++     'multi_choice': False, 'order': [1, 2, 3], 'values': _v('unclear', 'okay', 'clear')},
++    {'id': 4, 'label': 'fictionality', 'description': 'Is this book fiction or nonfiction?',
++     'multi_choice': False, 'order': [1, 2, 3], 'values': _v('nonfiction', 'fiction', 'biography')},
++    {'id': 5, 'label': 'difficulty', 'description': 'How difficult is this book to read?',
++     'multi_choice': False, 'order': [1, 2, 3], 'values': _v('easy', 'moderate', 'challenging')},
++    {'id': 6, 'label': 'length', 'description': 'How long does this book feel?',
++     'multi_choice': False, 'order': [1, 2, 3], 'values': _v('short', 'medium', 'long')},
++    {'id': 7, 'label': 'tone', 'description': 'What is the tone of this book?',
++     'multi_choice': True, 'order': [1, 2, 3], 'values': _v('serious', 'humorous', 'dark')},
++    {'id': 8, 'label': 'audience', 'description': 'Who is this book best suited for?',
++     'multi_choice': True, 'order': [1, 2, 3], 'values': _v('children', 'teens', 'adults')},
++    {'id': 9, 'label': 'mood', 'description': 'What mood does this book evoke?',
++     'multi_choice': True, 'order': [1, 2, 3], 'values': _v('happy', 'sad', 'tense')},
++    {'id': 10, 'label': 'genres', 'description': 'What are the genres of this book?',
++     'multi_choice': True, 'order': [1, 2, 3, 4, 5, 6, 7, 8],
++     'values': _v('sci-fi', 'fantasy', 'romance', 'horror', 'history', 'thriller', 'mystery', 'poetry')},
++]
++
++
++def get_observations():
++    """Returns the observation types with their value names."""
++    return {
++        'observations': [
++            {
++                'label': t['label'],
++                'description': t['description'],
++                'multi_choice': t['multi_choice'],
++                'values': _sort_values(t['order'], t['values']),
++            }
++            for t in _OBSERVATION_TYPES
++        ]
++    }
++
++
++class _Pair(tuple):
++    @property
++    def key(self):
++        return self[0]
++
++    @property
++    def value(self):
++        return self[1]
++
++
++class Observations(object):
++
++    @classmethod
++    def get_key_value_pair(cls, type_id, value_id):
++        """Resolves ids to the (type label, value name) pair."""
++        for t in _OBSERVATION_TYPES:
++            if t['id'] == type_id:
++                for v in t['values']:
++                    if v['id'] == value_id:
++                        return _Pair((t['label'], v['name']))
++        return None
++
++    @classmethod
++    def _to_ids(cls, observations):
++        ids = set()
++        for obs in observations:
++            for label, name in obs.items():
++                for t in _OBSERVATION_TYPES:
++                    if t['label'] == label:
++                        for v in t['values']:
++                            if v['name'] == name:
++                                ids.add((t['id'], v['id']))
++        return ids
++
++    @classmethod
++    def persist_observations(cls, username, work_id, observations):
++        """Makes the stored observations of the patron for the work equal
++        the submitted ones."""
++        submitted = cls._to_ids(observations)
++        oldb = db.get_db()
++        stored = {
++            (r['type'], r['value'])
++            for r in cls.get_patron_observations(username, work_id)
++        }
++        where = ("work_id=$work_id AND username=$username AND "
++                 "observation_type=$type AND observation_value=$value")
++        with oldb.transaction():
++            for type_id, value_id in stored - submitted:
++                oldb.delete('observations', where=where, vars={
++                    'work_id': work_id, 'username': username,
++                    'type': type_id, 'value': value_id})
++            new_rows = [
++                {'username': username, 'work_id': work_id,
++                 'observation_type': t, 'observation_value': v}
++                for t, v in sorted(submitted - stored)
++            ]
++            if new_rows:
++                oldb.multiple_insert('observations', new_rows)
++
++    @classmethod
++    def get_patron_observations(cls, username, work_id):
++        oldb = db.get_db()
++        query = ("SELECT observation_type AS type, observation_value AS value "
++                 "FROM observations WHERE work_id=$work_id AND username=$username")
++        return list(oldb.query(query, vars={'work_id': work_id, 'username': username}))
+diff --git a/openlibrary/core/schema.sql b/openlibrary/core/schema.sql
+index 54cf058db..50a3ebb58 100644
+--- a/openlibrary/core/schema.sql
++++ b/openlibrary/core/schema.sql
+@@ -49,3 +49,12 @@ CREATE TABLE bookshelves_votes (
+ INSERT INTO bookshelves (name, description) VALUES ('Want to Read', 'A list of books I want to read');
+ INSERT INTO bookshelves (name, description) VALUES ('Currently Reading', 'A list of books I am currently reading');
+ INSERT INTO bookshelves (name, description) VALUES ('Already Read', 'A list of books I have finished reading');
++
++CREATE TABLE observations (
++    work_id INTEGER not null,
++    username text not null,
++    observation_type INTEGER not null,
++    observation_value INTEGER not null,
++    created timestamp without time zone default (current_timestamp at time zone 'utc'),
++    primary key (work_id, username, observation_type, observation_value)
++);

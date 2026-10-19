@@ -36,7 +36,10 @@ export type SessionResult = {
   usageLimit: boolean;
 };
 
-const URL_PATTERN = /https?:\/\/[^\s"'<>)]+/g;
+const URL_PATTERN = /https?:\/\/[^\s"'<>)`,;]+/g;
+/** A command that reaches a network address, not one that merely mentions it (a test's config). */
+const FETCHING =
+  /\b(curl|wget|gh|git\s+(clone|fetch|pull|ls-remote|remote)|pip3?\s+(download|install)|httpie?|nc|ssh)\b/;
 const LIMIT_PATTERN = /usage limit|limit reached|rate.?limit/i;
 
 /**
@@ -82,11 +85,8 @@ export async function runSession(options: {
       result.tokens = event.total;
     } else if (event.type === "toolStart") {
       const text = event.target ?? "";
-      result.urls.push(
-        ...(event.kind === "fetch" || event.kind === "execute"
-          ? (text.match(URL_PATTERN) ?? [])
-          : []),
-      );
+      const fetches = event.kind === "fetch" || (event.kind === "execute" && FETCHING.test(text));
+      result.urls.push(...(fetches ? (text.match(URL_PATTERN) ?? []) : []));
     } else if (event.type === "usage") {
       result.usageLimit ||= event.fiveHour.percentUsed >= 100;
     } else if (event.type === "result") {

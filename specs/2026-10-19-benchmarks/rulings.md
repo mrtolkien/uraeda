@@ -196,3 +196,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   approved.
 - **If wrong**: a flow that never finishes keeps its folder, which is read as it is.
 - **Where**: task 10, `feature-folder.ts` and `run-flow.ts`.
+
+## R15: Two policies the first suite made concrete
+
+- **Decision**: (1) A command counts as fetching an address only when it names a network tool
+  (`curl`, `wget`, `gh`, `git clone` and the like): the flipt task's own test config names its
+  upstream's address, and a flow run that wrote it was flagged `leak-suspected` for nothing. Fetch
+  tools always count. (2) An `auto` block that no narrow rule allows (a command with `*`) is
+  recorded with the rule `none`, and the run goes on without allowing it, as the spec's edge case
+  leaves open: ending a run on it threw away a correct result, the first author-matching run, which
+  passed all its tests. The same action blocked again still fails the run. Both runs were run again.
+- **Rationale**: the spec's edge cases on `auto` and on fetched addresses; the first suite's
+  records.
+- **Alternatives considered**: allowing a broad rule: it widens what the agent may do unrecorded.
+- **If wrong**: an agent stuck behind a block repeats it, and the run fails with the command named.
+- **Where**: task 7, `session.ts` and `loop.ts`.

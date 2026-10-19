@@ -109,3 +109,16 @@ export async function runScripted(options: {
 }
 
 export { InvalidRun };
+
+/** A turn whose command, not a fetch tool, names an address. */
+export const commandTurn = (command: string): Array<AgentEvent> => [
+  {
+    id: "t2",
+    input: { command },
+    kind: "execute",
+    name: "Bash",
+    target: command,
+    type: "toolStart",
+  },
+  result(),
+];
