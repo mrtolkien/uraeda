@@ -1,0 +1,5 @@
+source = "swe-bench-pro-v2"
+task = "instance_flipt-io__flipt-cd18e54a0371fa222304742c6312e9ac37ea86c1"
+image = "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:1ce633a2fdcfdf5e73d2edef59ce2c45d1cc9671e4bbfd7bd041187e5851974f"
+upstream = "https://github.com/flipt-io/flipt"
+repository = "/app"

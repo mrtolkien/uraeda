@@ -1,0 +1,23 @@
+# The first suite. Until the screening, `cases` lists the ten candidates: it is then cut to the
+# five the plain arm failed.
+cases = [
+  "ansible-multipart-helper",
+  "ansible-human-to-bytes",
+  "openlibrary-alternate-script-authors",
+  "openlibrary-author-matching",
+  "qutebrowser-process-cleanup",
+  "qutebrowser-process-messages",
+  "navidrome-password-change",
+  "navidrome-unset-timestamps",
+  "vuls-inactive-kernels",
+  "flipt-cue-schema",
+]
+arms = ["uraeda", "plain"]
+model = "claude-sonnet-5-5"
+effort = "medium"
+agent = "claude"
+max-steps = 30
+
+[human]
+path = "benchmarks/human.md"
+commit = "b940e66467ec7436fd1bc2dd1b82f543c60e8332"
