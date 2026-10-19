@@ -87,9 +87,9 @@ test("shows the four counts, then the cards in their order", async () => {
   expect(await headings()).toEqual([
     expect.stringMatching(/^Needs you/),
     expect.stringMatching(/^Agents at work/),
+    "Recently done",
     expect.stringMatching(/^Priorities/),
     expect.stringMatching(/^Inbox/),
-    "Recently done",
   ]);
   const decisions = (await main()).getByRole("link", { name: /Constitution and decisions/ });
   expect(decisions.getAttribute("href")).toBe(atRepo("/decisions"));
@@ -274,9 +274,9 @@ test("on a phone, the counts and the cards come in the same order", async () => 
     expect(await headings()).toEqual([
       expect.stringMatching(/^Needs you/),
       expect.stringMatching(/^Agents at work/),
+      "Recently done",
       expect.stringMatching(/^Priorities/),
       expect.stringMatching(/^Inbox/),
-      "Recently done",
     ]);
   } finally {
     atWidth(1024);

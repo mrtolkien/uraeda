@@ -214,9 +214,9 @@ class Loop {
     }
     const retry = await runSession({
       adapter,
-      allowed: rule,
+      allowed: [rule],
       cwd: repo,
-      message: retryMessage({ tool: denial.tool, ...commandOf(denial) }),
+      message: retryMessage([{ tool: denial.tool, ...commandOf(denial) }]),
       nativeId,
       resume: true,
       ...(now ? { now } : {}),

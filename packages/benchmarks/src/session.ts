@@ -51,7 +51,7 @@ const LIMIT_PATTERN = /usage limit|limit reached|rate.?limit/i;
  */
 export async function runSession(options: {
   adapter: Adapter;
-  allowed?: string;
+  allowed?: ReadonlyArray<string>;
   cwd: string;
   /** How long a process may stay up after its result, before SIGTERM, and again before SIGKILL. */
   graceMs?: number;

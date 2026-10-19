@@ -6,12 +6,15 @@
 >
 > Features for v1.0.0
 
-- [Redesign session](/specs/2026-10-19-redesign-session/proposal.md)
-- [Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are ready, see backlog, with a discovery round and partial answers.](/specs/2026-10-19-benchmarks/proposal.md)
-
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
+- [Fix testing -> it's flaky and does not actually help](drafts/fix-testing-it-s-flaky-and-does-not-actually-help.md)
+
+- Enter should not start a change/chat ffs
+- Fix agent -> inbox flow, it creates way too much noise at the moment
+
 - Empty inbox
+- [Merge chats and changes](drafts/merge-chats-and-changes.md)
 
 - [Look and feel pass](drafts/look-and-feel/proposal.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...

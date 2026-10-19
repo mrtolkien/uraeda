@@ -12,7 +12,7 @@
     "./testing": "./src/testing.ts",
     "./limits": "./src/limits.ts",
     "./paths": "./src/paths.ts",
-    "./round-messages": "./src/runner/round-messages.ts"
+    "./round-messages": "./src/runner/round-messages.ts",
     "./triage-messages": "./src/runner/triage-messages.ts",
     "./runner/adapter": "./src/runner/adapter.ts",
     "./runner/claude": "./src/runner/claude.ts",

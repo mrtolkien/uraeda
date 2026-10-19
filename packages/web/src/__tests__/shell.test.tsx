@@ -166,7 +166,7 @@ test("US3.1: a feature waiting on you shows Needs you", async () => {
   expect(statusOf(row("web-ui"))).toBe("Needs you");
 });
 
-test("US3.2: a working turn shows Working, then New reply", async () => {
+test("US3.2: a working turn shows Working, then Needs attention while its step waits on the agent", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const session = await fake.sessions.featureSession(repo, CLI);
@@ -178,7 +178,7 @@ test("US3.2: a working turn shows Working, then New reply", async () => {
   fake.adapter.emit({ text: "Planned.", type: "text" });
   fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
 
-  await refreshUntil(() => expect(statusOf(row("cli-tuis"))).toBe("New reply"));
+  await refreshUntil(() => expect(statusOf(row("cli-tuis"))).toBe("Needs attention"));
 });
 
 test("US3.4: a running sub-agent shows in its feature's card, then leaves", async () => {
