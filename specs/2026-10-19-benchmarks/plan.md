@@ -467,7 +467,7 @@ git commit -m "feat(benchmarks): the suite, the case, and the record"
   manifest, so the plugin is named `uraeda`, and `dirty` is whether the repository's tree differs
   from `commit`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("the plugin holds the skill as the commit had it, not the working tree", async () => {
@@ -496,22 +496,22 @@ The break each test catches:
 - The first: a snapshot copied from the working tree, whose edits a run would then use unrecorded.
 - The second: a dirty flag that is always true, or a commit that is a branch name.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/skill.test.ts`
 - Expected: FAIL, `Cannot find module '../skill.ts'`
 
-- [ ] **Step 3: Implement `snapshotSkill`**
+- [x] **Step 3: Implement `snapshotSkill`**
 
 Through `git archive` and `git status --porcelain -- skills/uraeda`; the dirty flag covers the
 skill's folder, as the decision asks for the skill's state.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks specs/2026-10-19-benchmarks/plan.md
