@@ -311,7 +311,7 @@ Claude Code's output.
   neither keeps its fields absent. The fake adapter takes both in a scripted `result`. Existing
   consumers of `result` keep working, with the new fields ignored.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("a result line's cost and models reach the result event", () => {
@@ -339,22 +339,22 @@ The break each test catches:
 - The first: a parser that sums tokens but drops the cost, so the record's cost is empty.
 - The second: a default of `0` or `[]`, which the record would read as a free session on no model.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/claude.test.ts`
 - Expected: FAIL, `expected {…} to match object {costUsd: 0.42, …}`
 
-- [ ] **Step 3: Implement the fields in `resultEvent` and the type, and export the modules**
+- [x] **Step 3: Implement the fields in `resultEvent` and the type, and export the modules**
 
 Read both from the result message, as `tokensEvent` reads `modelUsage`. Fix every exhaustive use of
 the `result` type the compiler names. List the exports in `package.json`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-19-benchmarks/plan.md
