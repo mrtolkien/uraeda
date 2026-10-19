@@ -520,3 +520,21 @@ fn a_child_line_or_a_step_change_flags_the_priorities() {
     );
     assert!(flags_priorities(&receiver), "a step change");
 }
+
+/// The check's candidates are read from the default branch, wherever the main checkout is: a switch
+/// of it to another branch is no change of the inbox.
+#[test]
+fn a_switch_of_the_main_checkout_to_another_branch_reports_no_inbox_change() {
+    let repo = repo();
+    repo.write(
+        "specs/decisions-check/q1-a/git.md",
+        "---\nstatus: proposed\n---\n\n# Git\n\nA choice.\n",
+    );
+    repo.commit("chore: propose a check");
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.switch(FOLDER);
+
+    let changes = next(&receiver);
+    assert!(!changes.inbox);
+}

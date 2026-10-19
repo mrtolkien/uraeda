@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use super::{DecisionChange, compare};
 use crate::git::{Git, ObjectId};
+use crate::workspace::Workspace;
 
 /// The folder of a check's candidates, from the top level.
 pub const CHECK_DIR: &str = "specs/decisions-check";
@@ -117,6 +118,21 @@ pub fn read_at(git: &Git, tip: ObjectId) -> Vec<Candidate> {
             .flatten()?;
         String::from_utf8(bytes).ok()
     })
+}
+
+/// The candidates of the check on the default branch: from the checkout that has it, else from its
+/// tip, so a switch of the main checkout to another branch moves none.
+pub fn on_default(git: &Git, workspace: &Workspace) -> Vec<Candidate> {
+    let Some(default) = workspace.default_branch.as_deref() else {
+        return Vec::new();
+    };
+    match crate::api::default_checkout(git, default) {
+        Some(root) => read(&root),
+        None => git
+            .tip(default)
+            .map(|tip| read_at(git, tip))
+            .unwrap_or_default(),
+    }
 }
 
 fn build(found: Vec<Found>, active: impl Fn(&str) -> Option<String>) -> Vec<Candidate> {

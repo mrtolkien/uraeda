@@ -7,7 +7,7 @@ use std::path::Path;
 use crate::actions::answer;
 use crate::actions::default_round::{self, DefaultRound};
 use crate::actions::place::Place;
-use crate::api::{Result, default_checkout, on_default, open, reach_default, refused, write_lock};
+use crate::api::{Result, on_default, open, reach_default, refused, write_lock};
 use crate::decisions::Candidate;
 use crate::decisions::candidates;
 use crate::files::document;
@@ -101,18 +101,7 @@ pub fn read_round(repo: &Path, round: DefaultRound) -> Result<Option<FileView>> 
         .default_branch
         .as_deref()
         .and_then(|default| git.tip(default));
-    let found = candidates_of(round, || {
-        match workspace
-            .default_branch
-            .as_deref()
-            .and_then(|default| default_checkout(&git, default))
-        {
-            Some(root) => candidates::read(&root),
-            None => tip
-                .map(|tip| candidates::read_at(&git, tip))
-                .unwrap_or_default(),
-        }
-    });
+    let found = candidates_of(round, || candidates::on_default(&git, &workspace));
     Ok(text.map(|text| view(round, text, committed, tip, found)))
 }
 
