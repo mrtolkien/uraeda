@@ -158,3 +158,6 @@
 - [agent] [fix-testing] Benchmarks flows: the record test never removes the nested step fields
   seconds and gate, and the simulated human's invalid-run rule is tested only with a file outside
   specs/, not another feature's folder or PRIORITIES.md
+- [agent] [fix-testing] Core flows: settings never place a config.toml in a repository to check it
+  is ignored, and nothing drafts a priorities line from a non-default checkout; the Neovim smoke
+  picks the waiting item by the picker label, not its index
