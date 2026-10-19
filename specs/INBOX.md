@@ -136,3 +136,5 @@
 - [agent] [fix-testing] Priorities list: after Enter on a row, focus goes to the page body while the
   inbox keeps it on the row, so the two lists do not share one keyboard behaviour; a click on a row
   on a wide screen drops focus the same way
+- [agent] [fix-testing] Phone navigation: the drawer is not a history entry, so Back leaves the page
+  where a sheet's Back closes the sheet
