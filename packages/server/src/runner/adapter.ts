@@ -18,8 +18,8 @@ export type Capabilities = {
 
 /** How to open a session's process. */
 export type OpenOptions = {
-  /** An allow rule for this process only, from "Allow and retry". */
-  allowed?: string;
+  /** The allow rules for this process only, from "Allow and retry" or "Allow all". */
+  allowed?: ReadonlyArray<string>;
   /** The feature's worktree, or the main checkout. */
   cwd: string;
   /** The agent's own session ID. */

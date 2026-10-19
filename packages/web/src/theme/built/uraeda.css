@@ -334,6 +334,7 @@
     --size-image-max-height: 80dvh;
     --size-message-image: 120px;
     --size-composer-input: 154px;
+    --size-composer-input-narrow: 66px;
     --size-round-index: 240px;
     --size-round-accent: 4px;
     --size-round-split: 840px;
@@ -833,6 +834,10 @@
 
     .astryx-item {
     min-height: var(--size-element-md);
+  }
+
+    .astryx-markdown:is(*) li {
+    min-height: 0 !important;
   }
 
     .astryx-chat-tool-calls:is(*) [role="button"] {

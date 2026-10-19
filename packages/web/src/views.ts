@@ -283,6 +283,7 @@ export const AgentView = view<Agent>()({
 
 export const SessionView = view<Session>()({
   agent: true,
+  allowable: true,
   archived: true,
   folder: true,
   id: true,

@@ -115,11 +115,17 @@ test("a change's chat opening names the change", () => {
 });
 
 test("the retry message names the allowed action", () => {
-  expect(retryMessage({ target: "git push origin HEAD", tool: "Bash" })).toBe(
+  expect(retryMessage([{ target: "git push origin HEAD", tool: "Bash" }])).toBe(
     "Try the blocked action again, now allowed: Bash git push origin HEAD",
   );
-  expect(retryMessage({ tool: "mcp__x__y" })).toBe(
+  expect(retryMessage([{ tool: "mcp__x__y" }])).toBe(
     "Try the blocked action again, now allowed: mcp__x__y",
+  );
+});
+
+test("the retry message lists several allowed actions, a line each", () => {
+  expect(retryMessage([{ target: "rm -rf dist", tool: "Bash" }, { tool: "mcp__x__y" }])).toBe(
+    "Try the blocked actions again, now allowed:\n- Bash rm -rf dist\n- mcp__x__y",
   );
 });
 

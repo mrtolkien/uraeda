@@ -20,7 +20,7 @@ read.
 
 ## Notes
 
-- Split from [Redesign session](/specs/2026-10-19-redesign-session/proposal.md), which settled the
-  rest of the session page. Its discovery found that a stored tool call keeps its name, target,
-  status, and the start of its output, and drops its raw input, so a diff needs inputs kept. See
-  [its discovery](/specs/2026-10-19-redesign-session/discovery-01.md#the-chats-right-column).
+- Split from [Redesign session](/specs/done/2026-10-19-redesign-session.md), which settled the rest
+  of the session page. Its discovery found that a stored tool call keeps its name, target, status,
+  and the start of its output, and drops its raw input, so a diff needs inputs kept. See
+  [its discovery](/specs/done/2026-10-19-redesign-session.md#q1b-what-should-a-chats-right-column-hold).

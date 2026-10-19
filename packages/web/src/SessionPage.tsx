@@ -1,5 +1,4 @@
 import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
@@ -33,7 +32,7 @@ import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
-import { type ChatControls, useSessionControls } from "./useSessionControls.ts";
+import { type ChatControls, type Controls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
 import { StoriesProvider } from "./stories.tsx";
 import { Transcript } from "./Transcript.tsx";
@@ -63,7 +62,7 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 
 /**
  * A session's header: its title, then its status, agent, and place on one line. A chat's
- * title is renamed in place, and the chat archived or brought back.
+ * title is renamed in place.
  */
 function Header({
   chat,
@@ -92,14 +91,6 @@ function Header({
         <Text color="secondary" type="supporting">
           {meta.join(" · ")}
         </Text>
-        {chat && (
-          <Button
-            clickAction={chat.onArchive}
-            label={chat.archived ? "Unarchive" : "Archive"}
-            size="sm"
-            variant="secondary"
-          />
-        )}
       </HStack>
     </VStack>
   );
@@ -124,11 +115,14 @@ type Handing = {
  * reads above its end, it gives the pane the jump back to the latest.
  */
 function SessionLog({
+  controls: { allow, chat, error },
   crumbs,
   draft,
   id,
   onJump,
 }: {
+  /** What the pane's controls hold: the composer shares them. */
+  controls: Controls;
   crumbs?: string | undefined;
   draft: Draft;
   id: string;
@@ -138,7 +132,6 @@ function SessionLog({
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
-  const { allow, chat, error } = useSessionControls(id, session);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
   const working = session?.status === "working";
@@ -248,18 +241,19 @@ function SessionPane({
   title?: string;
 }) {
   const session = useSessionRecord(id);
+  const controls = useSessionControls(id, session);
   const composer = useRef<HTMLDivElement>(null);
   const [jump, setJump] = useState<() => void>();
   if (session === null) {
     return (
-      <Page>
-        <SessionLog draft={draft} id={id!} />
+      <Page isSnug>
+        <SessionLog controls={controls} draft={draft} id={id!} />
       </Page>
     );
   }
   return (
     <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
-      <Page>
+      <Page isSnug>
         {crumbs !== undefined && <Crumbs folder={crumbs} session />}
         {id === undefined ? (
           <VStack gap={3}>
@@ -272,6 +266,7 @@ function SessionPane({
           // it is read. The transcript waits for it: a page shows one log.
           <Suspense fallback={title === undefined ? null : <Header title={title} />}>
             <SessionLog
+              controls={controls}
               crumbs={crumbs}
               draft={draft}
               id={id}
@@ -286,6 +281,14 @@ function SessionPane({
             {...composerDraft(draft)}
             {...(id === undefined ? {} : { session: id })}
             working={session?.status === "working"}
+            {...(session && controls.chat
+              ? {
+                  archive: { archived: controls.chat.archived, onArchive: controls.chat.onArchive },
+                }
+              : {})}
+            {...(session
+              ? { allow: { count: session.allowable, onAllowAll: controls.allowAll } }
+              : {})}
             {...handing}
             {...(blocked === undefined ? {} : { blocked })}
             onSent={(created) => {

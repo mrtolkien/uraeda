@@ -62,18 +62,28 @@ test("SC-006: a new session's arguments", () => {
 test("a resumed session with an allow rule", () => {
   expect(
     claudeArgs(
-      { ...open, allowed: "Bash(gh pr create --draft)", resume: true },
+      { ...open, allowed: ["Bash(gh pr create --draft)"], resume: true },
       "/plugin",
       "/data/images",
     ).slice(13),
   ).toEqual(["--resume", "id", "--allowedTools", "Bash(gh pr create --draft)"]);
 });
 
+test("several allow rules are each their own argument, last", () => {
+  expect(
+    claudeArgs(
+      { ...open, allowed: ["Bash(rm -rf dist)", "Edit(src/a.ts)"], resume: true },
+      "/plugin",
+      "/data/images",
+    ).slice(13),
+  ).toEqual(["--resume", "id", "--allowedTools", "Bash(rm -rf dist)", "Edit(src/a.ts)"]);
+});
+
 test("no argument skips permissions or sets a model", () => {
   for (const args of [
     claudeArgs({ ...open, resume: false }, "/plugin", "/data/images"),
     claudeArgs(
-      { ...open, allowed: "Bash(gh pr create --draft)", resume: true },
+      { ...open, allowed: ["Bash(gh pr create --draft)"], resume: true },
       "/plugin",
       "/data/images",
     ),
@@ -727,6 +737,12 @@ test("a command with a `*` has no allow rule: Claude Code would read it as a wil
   for (const command of ["rm -rf build/*", "git log --format=*", "ls:*"]) {
     expect(allowRule({ input: { command }, tool: "Bash" })).toBeUndefined();
   }
+});
+
+test("a rule with a line break is no rule: a stored rule is one line", () => {
+  expect(allowRule({ input: { command: "echo a\necho b" }, tool: "Bash" })).toBeUndefined();
+  expect(allowRule({ input: { file_path: "src/a\nb.ts" }, tool: "Edit" })).toBeUndefined();
+  expect(allowRule({ input: { file_path: "src/a\nb.ts" }, tool: "Write" })).toBeUndefined();
 });
 
 test("review focus 5: a missing command exits as missing", async () => {

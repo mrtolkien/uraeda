@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
+import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import type { TurnActivity, TurnKind, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
-import { chatTitle, retryMessage } from "./message.ts";
+import { chatTitle } from "./message.ts";
 import { Processes } from "./processes.ts";
 import { checkSend, messageItem, openingOf, type SendInput, sendPlace } from "./send-input.ts";
 import {
@@ -349,41 +350,18 @@ export class Sessions {
   async allow(repo: string, session: string, turn: number, seq: number): Promise<{ turn: number }> {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, async () => {
-      const { cache, changed, processes, turns } = this.#context;
-      const denial = cache.itemsOf(turn, "denial").find((item) => item.seq === seq);
-      if (cache.turn(turn)?.sessionId !== live.id || !denial) {
-        throw new Error(`no blocked action ${seq} in turn ${turn}`);
-      }
-      const { rule } = denial;
-      if (rule === undefined) {
-        throw refused(REFUSALS.noRule);
-      }
-      if (live.turn || live.queue.length > 0) {
-        throw refused(REFUSALS.working);
-      }
-      const { line } = await processes.open(live, { allowed: rule });
-      const id = randomUUID();
-      const text = retryMessage(denial);
-      const started = turns.begin(live, {
-        allowed: rule,
-        item: { id, kind: "message", origin: "human", state: "pending", text },
-        kind: "allow",
-        message: { id, images: [], text, when: "queue" },
-        ...(line === undefined ? {} : { line }),
-        step: null,
-        trigger: null,
-      });
-      cache.updateItem(turn, seq, {
-        kind: "denial",
-        tool: denial.tool,
-        ...(denial.target === undefined ? {} : { target: denial.target }),
-        allowed: true,
-        rule,
-      });
-      changed(live, turn);
-      return { turn: started };
-    });
+    return this.#context.live.serial(live, () => allowDenial(this.#context, live, turn, seq));
+  }
+
+  /**
+   * Allows every covered blocked action of the session's latest turn at once: one reopen of its
+   * process with every rule, and one turn asking the agent to try them again. Refused while a turn
+   * runs or waits, and with no covered action.
+   */
+  async allowAll(repo: string, session: string): Promise<{ turn: number }> {
+    this.#available();
+    const live = this.#context.live.of(await this.#own(repo, session));
+    return this.#context.live.serial(live, () => allowAll(this.#context, live));
   }
 
   /** Renames a chat, by the title's first line that is not blank, cut at 80 characters. */

@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { addPlan, ELEVEN, fixtureRepo } from "uraeda-binding/test-utils";
+import { coveredDenials } from "../allow.ts";
 import type { AgentEvent } from "../events.ts";
 import { IDLE_CLOSE_MS, OUTPUT_LIMIT, TERMINATE_AFTER_MS, WATCHDOG_MS } from "../sessions.ts";
 import { flush, testSessions } from "./helpers.ts";
@@ -727,7 +728,7 @@ test("US5.2: Allow and retry reopens the process with the rule and sends the ret
   expect(adapter.closes).toBe(1);
   expect(adapter.opens).toHaveLength(2);
   expect(adapter.opens[1]).toMatchObject({
-    allowed: "Bash(git push origin HEAD)",
+    allowed: ["Bash(git push origin HEAD)"],
     nativeId: adapter.opens[0]!.nativeId,
     resume: true,
   });
@@ -761,6 +762,255 @@ test("a blocked command with a `*` is shown without a rule, and allowing it is r
     "refused: No allow rule can match only this action.",
   );
   expect(adapter.opens).toHaveLength(1);
+});
+
+/** A feature's session whose first turn ended with `rm -rf dist` and an edit of a file blocked. */
+async function blockedTwo(extra: Array<{ input: Record<string, unknown>; tool: string }> = []) {
+  const setup = await testSessions();
+  const { adapter, repo, sessions } = setup;
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([
+    done({
+      denials: [
+        { input: { command: "rm -rf dist" }, tool: "Bash" },
+        { input: { file_path: "src/store/tasks.ts" }, tool: "Edit" },
+        ...extra,
+      ],
+    }),
+  ]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Clean up" });
+  await sessions.settled(turn);
+  return { ...setup, session, turn };
+}
+
+test("US3.1: Allow all reopens the process once with both rules and asks for both again", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo();
+  adapter.script([]);
+
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.closes).toBe(1);
+  expect(adapter.opens).toHaveLength(2);
+  expect(adapter.opens[1]?.allowed).toEqual(["Bash(rm -rf dist)", "Edit(src/store/tasks.ts)"]);
+  expect(adapter.sent.at(-1)?.text).toBe(
+    "Try the blocked actions again, now allowed:\n- Bash rm -rf dist\n- Edit src/store/tasks.ts",
+  );
+  expect(cache.itemsOf(turn, "denial").every((denial) => denial.allowed)).toBe(true);
+  expect(cache.turn(allowed.turn)?.allowed).toBe("Bash(rm -rf dist)\nEdit(src/store/tasks.ts)");
+});
+
+test("US3.3: the action with a `*` stays blocked when two others are allowed", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo([
+    { input: { command: "rm -rf build/*" }, tool: "Bash" },
+  ]);
+  adapter.script([]);
+
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.opens[1]?.allowed).toEqual(["Bash(rm -rf dist)", "Edit(src/store/tasks.ts)"]);
+  expect(cache.itemsOf(turn, "denial").map((denial) => denial.allowed)).toEqual([
+    true,
+    true,
+    false,
+  ]);
+});
+
+test("two denials with the same rule pass one rule, and both are marked allowed", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo([
+    { input: { command: "rm -rf dist" }, tool: "Bash" },
+  ]);
+  adapter.script([]);
+
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.opens[1]?.allowed).toEqual(["Bash(rm -rf dist)", "Edit(src/store/tasks.ts)"]);
+  expect(cache.turn(allowed.turn)?.allowed).toBe("Bash(rm -rf dist)\nEdit(src/store/tasks.ts)");
+  expect(cache.itemsOf(turn, "denial").every((denial) => denial.allowed)).toBe(true);
+});
+
+test("a blocked Write and Edit of one file share a rule, and the retry message lists both", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo([
+    { input: { file_path: "src/store/tasks.ts" }, tool: "Write" },
+  ]);
+  adapter.script([]);
+
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.opens[1]?.allowed).toEqual(["Bash(rm -rf dist)", "Edit(src/store/tasks.ts)"]);
+  expect(adapter.sent.at(-1)?.text).toBe(
+    "Try the blocked actions again, now allowed:\n- Bash rm -rf dist\n- Edit src/store/tasks.ts\n- Write src/store/tasks.ts",
+  );
+  expect(cache.itemsOf(turn, "denial").every((denial) => denial.allowed)).toBe(true);
+});
+
+test("two Allow all pressed at once: one allows, the other is refused as working", async () => {
+  // No script: the retry turn never ends, so the second press finds it working.
+  const { adapter, repo, session, sessions } = await blockedTwo();
+
+  const results = await Promise.allSettled([
+    sessions.allowAll(repo, session.id),
+    sessions.allowAll(repo, session.id),
+  ]);
+
+  expect(results.map((result) => result.status)).toEqual(["fulfilled", "rejected"]);
+  expect((results[1] as PromiseRejectedResult).reason.message).toBe(
+    "refused: An agent is working on this feature. Stop it first, or wait for it.",
+  );
+  expect(adapter.opens).toHaveLength(2);
+});
+
+test("Allow all pressed with a send: the first holds the session, the second sees it", async () => {
+  const sendFirst = await blockedTwo();
+  const [sent, refused] = await Promise.allSettled([
+    sendFirst.sessions.send(sendFirst.repo, sendFirst.session.id, { text: "Go on" }),
+    sendFirst.sessions.allowAll(sendFirst.repo, sendFirst.session.id),
+  ]);
+  expect(sent.status).toBe("fulfilled");
+  expect((refused as PromiseRejectedResult).reason.message).toBe(
+    "refused: An agent is working on this feature. Stop it first, or wait for it.",
+  );
+  expect(sendFirst.adapter.opens).toHaveLength(1);
+
+  const allowFirst = await blockedTwo();
+  const both = await Promise.allSettled([
+    allowFirst.sessions.allowAll(allowFirst.repo, allowFirst.session.id),
+    allowFirst.sessions.send(allowFirst.repo, allowFirst.session.id, { text: "Go on" }),
+  ]);
+  expect(both.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
+  expect(allowFirst.adapter.opens).toHaveLength(2);
+});
+
+test("Allow all skips an earlier turn's denials", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo();
+  adapter.script([
+    done({ denials: [{ input: { command: "git push origin HEAD" }, tool: "Bash" }] }),
+  ]);
+  const latest = (await sessions.send(repo, session.id, { text: "Push it" })).turn;
+  await sessions.settled(latest);
+  adapter.script([]);
+
+  // One covered action: the earlier turn's two do not count, and stay blocked.
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.opens.at(-1)?.allowed).toEqual(["Bash(git push origin HEAD)"]);
+  expect(cache.itemsOf(turn, "denial").map((denial) => denial.allowed)).toEqual([false, false]);
+  expect(cache.itemsOf(latest, "denial").map((denial) => denial.allowed)).toEqual([true]);
+});
+
+test("a rule with a line break is skipped, and no stored line holds one", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo([
+    { input: { command: "echo a\necho b" }, tool: "Bash" },
+    { input: { file_path: "src/new\nline.ts" }, tool: "Write" },
+  ]);
+  const denials = cache.itemsOf(turn, "denial");
+  expect(denials[2]).not.toHaveProperty("rule");
+  expect(denials[3]).not.toHaveProperty("rule");
+  adapter.script([]);
+
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.opens[1]?.allowed).toEqual(["Bash(rm -rf dist)", "Edit(src/store/tasks.ts)"]);
+  expect(cache.turn(allowed.turn)?.allowed).toBe("Bash(rm -rf dist)\nEdit(src/store/tasks.ts)");
+  expect(adapter.sent.at(-1)?.text.split("\n")).toHaveLength(3);
+  expect(cache.itemsOf(turn, "denial").map((denial) => denial.allowed)).toEqual([
+    true,
+    true,
+    false,
+    false,
+  ]);
+});
+
+test("a stored rule with a line break, from an earlier version, is not covered either", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo();
+  cache.appendItem(turn, {
+    allowed: false,
+    kind: "denial",
+    rule: "Bash(echo a\necho b)",
+    target: "echo a",
+    tool: "Bash",
+  });
+  adapter.script([]);
+
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.opens[1]?.allowed).toEqual(["Bash(rm -rf dist)", "Edit(src/store/tasks.ts)"]);
+  expect(cache.itemsOf(turn, "denial").at(-1)?.allowed).toBe(false);
+});
+
+test("a denial already allowed is not covered", async () => {
+  const { cache, turn } = await blockedTwo();
+  cache.appendItem(turn, {
+    allowed: true,
+    kind: "denial",
+    rule: "Bash(ls)",
+    target: "ls",
+    tool: "Bash",
+  });
+
+  expect(coveredDenials(cache, turn).map((denial) => denial.rule)).toEqual([
+    "Bash(rm -rf dist)",
+    "Edit(src/store/tasks.ts)",
+  ]);
+});
+
+test("Allow all is refused while a turn runs", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo();
+  // No script: the turn this message starts never ends.
+  await sessions.send(repo, session.id, { text: "Go on" });
+
+  await expect(sessions.allowAll(repo, session.id)).rejects.toThrow(
+    "refused: An agent is working on this feature. Stop it first, or wait for it.",
+  );
+
+  expect(adapter.opens).toHaveLength(1);
+  expect(cache.itemsOf(turn, "denial").some((denial) => denial.allowed)).toBe(false);
+});
+
+test("Allow all with no covered action is refused", async () => {
+  const { adapter, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Hi" })).turn);
+
+  await expect(sessions.allowAll(repo, session.id)).rejects.toThrow(
+    "refused: No blocked action to allow.",
+  );
+
+  expect(adapter.opens).toHaveLength(1);
+});
+
+test("a reopen that fails marks no denial allowed and starts no turn", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo();
+  const turns = cache.turns(session.id).length;
+  adapter.open = () => {
+    throw new Error("spawn failed");
+  };
+
+  await expect(sessions.allowAll(repo, session.id)).rejects.toThrow("spawn failed");
+
+  expect(cache.itemsOf(turn, "denial").some((denial) => denial.allowed)).toBe(false);
+  expect(cache.turns(session.id)).toHaveLength(turns);
+});
+
+test("US3 more 3: the rules end with their process", async () => {
+  const { adapter, repo, session, sessions } = await blockedTwo();
+  adapter.script([]);
+  await sessions.settled((await sessions.allowAll(repo, session.id)).turn);
+
+  vi.advanceTimersByTime(IDLE_CLOSE_MS);
+  await flush();
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Thanks" })).turn);
+
+  expect(adapter.opens).toHaveLength(3);
+  expect(adapter.opens[2]).not.toHaveProperty("allowed");
 });
 
 test("US5.3: the rule ends with its process", async () => {
