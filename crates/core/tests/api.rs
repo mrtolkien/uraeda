@@ -67,7 +67,8 @@ fn only_the_latest_round_is_submitted() {
         &clarifications("awaiting-human", "One question.", &["A"]),
     );
 
-    let error = api::submit_answers(repo.path(), FOLDER, Some("clarifications-01.md")).unwrap_err();
+    let error =
+        api::submit_answers(repo.path(), FOLDER, Some("clarifications-01.md"), false).unwrap_err();
 
     assert_eq!(
         (error.code, error.message.as_str()),
@@ -76,7 +77,8 @@ fn only_the_latest_round_is_submitted() {
             "clarifications-01.md is not the latest round: clarifications-02.md is"
         )
     );
-    let submitted = api::submit_answers(repo.path(), FOLDER, Some("clarifications-02.md")).unwrap();
+    let submitted =
+        api::submit_answers(repo.path(), FOLDER, Some("clarifications-02.md"), false).unwrap();
     assert_eq!(submitted.status.as_deref(), Some("answered"));
 }
 

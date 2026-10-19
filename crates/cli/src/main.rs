@@ -94,6 +94,10 @@ enum Command {
         /// Submit the round: set it answered, record its block, and commit
         #[arg(long)]
         submit: bool,
+        /// With --submit, mark the round answered to continue the implementation: the spec stays
+        /// as approved
+        #[arg(long)]
+        resume: bool,
         /// Leave the files for you to commit
         #[arg(long)]
         no_commit: bool,
@@ -236,8 +240,9 @@ fn main() -> ExitCode {
         Command::Answer {
             arguments,
             submit,
+            resume,
             no_commit,
-        } => answer::run(arguments, submit, no_commit),
+        } => answer::run(arguments, submit, resume, no_commit),
     };
     result.unwrap_or_else(|message| output::fail(&message))
 }

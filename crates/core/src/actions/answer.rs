@@ -141,8 +141,9 @@ pub fn subject(slug: &str, round: u32) -> String {
 }
 
 /// Records a round answered: every applicable question answered, `status: answered`, and the
-/// block turned into its record. Commits nothing.
-pub fn record(place: &Place, file: &str, today: Date) -> Result<(), ActionError> {
+/// block turned into its record. `resumes` marks it as answered to continue the implementation.
+/// Commits nothing.
+pub fn record(place: &Place, file: &str, today: Date, resumes: bool) -> Result<(), ActionError> {
     let path = place.root.join(file);
     let text = fs::read_to_string(&path)?;
     waiting(&text, name_of(file))?;
@@ -154,7 +155,10 @@ pub fn record(place: &Place, file: &str, today: Date) -> Result<(), ActionError>
             list(&blank)
         )));
     }
-    let answered = frontmatter::set(&text, "status", "answered");
+    let mut answered = frontmatter::set(&text, "status", "answered");
+    if resumes {
+        answered = frontmatter::set(&answered, "resumes", "implementation");
+    }
     let recorded =
         markdown::record_block(&answered, &format!("Answered on {today}.")).unwrap_or(answered);
     fs::write(&path, recorded)?;
@@ -163,10 +167,21 @@ pub fn record(place: &Place, file: &str, today: Date) -> Result<(), ActionError>
 
 /// Submits the latest round, recorded answered, with the images the feature's folder links, the
 /// others deleted.
-pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, ActionError> {
+pub fn submit(
+    place: &Place,
+    feature: &Feature,
+    today: Date,
+    resumes: bool,
+) -> Result<Change, ActionError> {
     let (name, round) = latest_round(feature)?;
+    if resumes && !crate::steps::building(feature) {
+        return Err(ActionError::Refused(
+            "the implementation is not under way: it has no approved spec with an approved plan and an unchecked step to continue"
+                .into(),
+        ));
+    }
     let file = format!("{}/{name}", feature.path);
-    record(place, &file, today)?;
+    record(place, &file, today, resumes)?;
     let mut paths = vec![file];
     paths.extend(linked_images(place, &feature.path)?);
     Ok(Change {
@@ -326,9 +341,10 @@ pub fn submit_and_commit(
     place: &Place,
     feature: &Feature,
     today: Date,
+    resumes: bool,
 ) -> Result<super::Committed, ActionError> {
     let path = round_path(feature)?;
     super::place::ensure_only_staged(place, &[path, images_folder(&feature.path)])?;
-    let change = submit(place, feature, today)?;
+    let change = submit(place, feature, today, resumes)?;
     super::commit::commit(place, &change)
 }

@@ -862,3 +862,53 @@ fn a_link_into_another_decisions_tree_is_not_this_repositorys_decision() {
 
     assert_eq!(step, StepName::Plan);
 }
+
+/// An approved spec and plan under way, then a second round answered: with `extra` in its front
+/// matter.
+fn round_during_implementation(extra: &str, tasks: &[(&str, usize, usize)]) -> Feature {
+    let round = answered().replacen("status: answered", &format!("status: answered{extra}"), 1);
+    feature(
+        Kind::Feature,
+        &[
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("clarifications-02.md", round),
+            ("spec.md", spec("approved", 1, 1)),
+            ("plan.md", plan("approved", 1, tasks)),
+        ],
+    )
+}
+
+#[test]
+fn a_round_answered_to_resume_continues_the_implementation() {
+    let tasks = [("One", 1, 1), ("Two", 0, 2)];
+
+    let resumed = round_during_implementation("\nresumes: implementation", &tasks);
+    let revised = round_during_implementation("", &tasks);
+
+    assert_eq!(resumed.step.name, StepName::Implementation);
+    assert_eq!(resumed.step.task.as_deref(), Some("Task 2: Two"));
+    // Without the key, the round goes back to the spec, as before.
+    assert_eq!(revised.step.name, StepName::Spec);
+}
+
+#[test]
+fn only_a_feature_under_way_is_being_built() {
+    let built =
+        |files: &[(&str, String)]| uraeda_core::steps::building(&feature(Kind::Feature, files));
+    let with_plan = |spec_status: &str, plan_status: &str, done: usize| {
+        [
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("spec.md", spec(spec_status, 1, 1)),
+            ("plan.md", plan(plan_status, 1, &[("One", done, 2)])),
+        ]
+    };
+
+    assert!(built(&with_plan("approved", "approved", 1)));
+    assert!(built(&with_plan("approved", "auto-approved", 0)));
+    assert!(!built(&with_plan("approved", "approved", 2)));
+    assert!(!built(&with_plan("approved", "awaiting-human", 0)));
+    assert!(!built(&with_plan("awaiting-human", "approved", 0)));
+    assert!(!built(&[("proposal.md", proposal())]));
+}

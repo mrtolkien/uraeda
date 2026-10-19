@@ -56,7 +56,7 @@ fn commit_triage(place: &Place) -> Result<Committed, ActionError> {
 pub fn submit_triage(place: &Place, previous: &str, today: Date) -> Result<Committed, ActionError> {
     ensure_triage(place, previous)?;
     super::place::ensure_only_staged(place, &[TRIAGE.to_string()])?;
-    answer::record(place, TRIAGE, today)?;
+    answer::record(place, TRIAGE, today, false)?;
     commit_triage(place)
 }
 

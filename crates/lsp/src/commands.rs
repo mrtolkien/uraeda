@@ -479,7 +479,7 @@ fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
     as_opened(documents, &file, "check its answers again")?;
     let before = next_to(documents, &folder, &file, std::slice::from_ref(&file.name))?;
     // The core submits the latest round only: the buffer's must be it.
-    let view = api::submit_answers(&documents.root, &folder, Some(&file.name))
+    let view = api::submit_answers(&documents.root, &folder, Some(&file.name), false)
         .map_err(|error| before.failed(error))?;
     Ok(Outcome {
         opened: None,

@@ -95,8 +95,16 @@ pub fn submit_answers(
     repo: String,
     folder: String,
     name: Option<String>,
+    resumes: Option<bool>,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::submit_answers(Path::new(&repo), &folder, name.as_deref()))
+    job(move || {
+        api::submit_answers(
+            Path::new(&repo),
+            &folder,
+            name.as_deref(),
+            resumes.unwrap_or(false),
+        )
+    })
 }
 
 /// Commits again what a hook refused to commit: a submitted round, or a verdict.

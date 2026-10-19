@@ -78,8 +78,9 @@ fn a_round_offers_submit_on_answered() {
 
     let fields = fields_of(&root, &format!("{FEATURE}/clarifications-01.md"), &text);
 
-    assert_eq!(names(&fields), ["status"]);
+    assert_eq!(names(&fields), ["status", "resumes"]);
     assert_eq!(values(&fields[0]), ["awaiting-human", "answered"]);
+    assert_eq!(values(&fields[1]), ["implementation"]);
     assert_eq!(fields[0].values[0].action, None);
     assert_eq!(fields[0].values[1].action, Some(Action::Submit));
 }
@@ -131,7 +132,10 @@ fn every_kind_lists_the_fields_check_requires() {
         ),
         (
             format!("{FEATURE}/clarifications-02.md"),
-            vec![("status", choice(&["awaiting-human", "answered"]))],
+            vec![
+                ("status", choice(&["awaiting-human", "answered"])),
+                ("resumes", choice(&["implementation"])),
+            ],
         ),
         (
             format!("{FEATURE}/spec.md"),
@@ -186,7 +190,10 @@ fn every_kind_lists_the_fields_check_requires() {
         ),
         (
             "specs/changes/2026-10-12-y/clarifications-01.md".into(),
-            vec![("status", choice(&["awaiting-human", "answered"]))],
+            vec![
+                ("status", choice(&["awaiting-human", "answered"])),
+                ("resumes", choice(&["implementation"])),
+            ],
         ),
         ("specs/changes/2026-10-12-y/assessment.md".into(), vec![]),
         ("specs/PRIORITIES.md".into(), vec![]),

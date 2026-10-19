@@ -85,13 +85,18 @@ pub fn remove_settled_comment(
 }
 
 /// Submits the latest round and commits it; refused when `round`, the round the human answered,
-/// is another.
-pub fn submit_answers(repo: &Path, folder: &str, round: Option<&str>) -> Result<FileView> {
+/// is another. `resumes` marks it answered to continue the implementation.
+pub fn submit_answers(
+    repo: &Path,
+    folder: &str,
+    round: Option<&str>,
+    resumes: bool,
+) -> Result<FileView> {
     let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     if let Some(round) = round {
         answer::ensure_latest(&feature, round)?;
     }
-    answer::submit_and_commit(&place, &feature, today::today())?;
+    answer::submit_and_commit(&place, &feature, today::today(), resumes)?;
     read_file(repo, folder, &round_name(&feature)?)
 }

@@ -25,7 +25,12 @@ fn is_question(argument: &str) -> bool {
         && letter.is_none_or(|l| l.len() == 1 && l.bytes().all(|b| b.is_ascii_uppercase()))
 }
 
-pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<ExitCode, String> {
+pub fn run(
+    arguments: Vec<String>,
+    submit: bool,
+    resume: bool,
+    no_commit: bool,
+) -> Result<ExitCode, String> {
     let starts_with_question = arguments.first().is_some_and(|first| is_question(first));
     let limit = if starts_with_question { 2 } else { 3 };
     if arguments.len() > limit {
@@ -36,6 +41,9 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
         [first, rest @ ..] if starts_with_question => (None, Some(first), rest.first()),
         [target, rest @ ..] => (Some(target), rest.first(), rest.get(1)),
     };
+    if resume && !submit {
+        return Err("--resume goes with --submit".into());
+    }
     if submit && question.is_some() {
         return Err("--submit takes no answer: answer first, then submit".into());
     }
@@ -67,7 +75,7 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
     if submit {
         let round = |subject: &str| subject.rsplit(' ').next().unwrap_or_default().to_string();
         if no_commit {
-            let change = answer::submit(&place, feature, today::today())
+            let change = answer::submit(&place, feature, today::today(), resume)
                 .map_err(|e| refused(e.to_string()))?;
             output::say_place(&git, &place);
             let round = round(&change.subject);
@@ -80,7 +88,7 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
                 [] => {}
             }
         } else {
-            let committed = answer::submit_and_commit(&place, feature, today::today())
+            let committed = answer::submit_and_commit(&place, feature, today::today(), resume)
                 .map_err(|e| refused(output::action_error(e)))?;
             output::say_place(&git, &place);
             let subject = &committed.change.subject;
