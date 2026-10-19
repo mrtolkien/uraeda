@@ -1,0 +1,105 @@
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index 2aec07635..17c891d97 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -15,6 +15,12 @@ from openlibrary.core import ia
+ 
+ import web
+ 
++from openlibrary.plugins.upstream.utils import (
++    LanguageMultipleMatchError,
++    LanguageNoMatchError,
++    get_abbrev_from_full_lang_name,
++)
++
+ import base64
+ import json
+ import re
+@@ -335,6 +341,7 @@ class ia_importapi(importapi):
+         description = metadata.get('description')
+         isbn = metadata.get('isbn')
+         language = metadata.get('language')
++        imagecount = metadata.get('imagecount')
+         lccn = metadata.get('lccn')
+         subject = metadata.get('subject')
+         oclc = metadata.get('oclc-id')
+@@ -348,8 +355,19 @@ class ia_importapi(importapi):
+             d['description'] = description
+         if isbn:
+             d['isbn'] = isbn
+-        if language and len(language) == 3:
+-            d['languages'] = [language]
++        if language:
++            if len(language) == 3:
++                d['languages'] = [language]
++            else:
++                try:
++                    d['languages'] = [get_abbrev_from_full_lang_name(language)]
++                except LanguageMultipleMatchError:
++                    logger.warning("Multiple language matches for %s", language)
++                except LanguageNoMatchError:
++                    logger.warning("No language matches for %s", language)
++        if imagecount is not None and imagecount != '':
++            imagecount = int(imagecount)
++            d['number_of_pages'] = imagecount - 4 if imagecount - 4 >= 1 else imagecount
+         if lccn:
+             d['lccn'] = [lccn]
+         if subject:
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index 7d36f86d4..fbeaf1766 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -647,6 +647,53 @@ def get_languages():
+     return {lang.key: lang for lang in web.ctx.site.get_many(keys)}
+ 
+ 
++class LanguageMultipleMatchError(Exception):
++    """Exception raised when more than one possible language match is found."""
++
++    def __init__(self, language_name):
++        self.language_name = language_name
++        super().__init__(language_name)
++
++
++class LanguageNoMatchError(Exception):
++    """Exception raised when no matching languages are found."""
++
++    def __init__(self, language_name):
++        self.language_name = language_name
++        super().__init__(language_name)
++
++
++def get_abbrev_from_full_lang_name(input_lang_name: str, languages=None) -> str:
++    """
++    Return the three-character language code whose canonical or translated
++    name matches input_lang_name (case and accent insensitive).
++
++    :raises LanguageNoMatchError: if nothing matches
++    :raises LanguageMultipleMatchError: if more than one language matches
++    """
++    if languages is None:
++        languages = get_languages().values()
++
++    def normalize(s: str) -> str:
++        return strip_accents(s).lower()
++
++    target = normalize(input_lang_name)
++    matches = {}
++    for lang in languages:
++        names = [lang.name]
++        translated = getattr(lang, 'name_translated', None) or {}
++        for translations in translated.values():
++            names.extend(translations)
++        if any(normalize(n) == target for n in names if n):
++            matches[lang.code] = True
++
++    if not matches:
++        raise LanguageNoMatchError(input_lang_name)
++    if len(matches) > 1:
++        raise LanguageMultipleMatchError(input_lang_name)
++    return next(iter(matches))
++
++
+ def autocomplete_languages(prefix: str):
+     def normalize(s: str) -> str:
+         return strip_accents(s).lower()

@@ -7,13 +7,14 @@ import { writeReport } from "./report.ts";
 import { run } from "./run-command.ts";
 import { runFlow } from "./run-flow.ts";
 import { runPlain } from "./run-plain.ts";
-import { chooseCases, screen } from "./screen.ts";
+import { chooseCases, screen, screenedRuns } from "./screen.ts";
 import { fetchGold, fetchInstruction } from "./tests-source.ts";
 import { readSuite } from "./suite.ts";
 
 const USAGE = `Usage:
   benchmarks run <suite> <case> --approved-by <name> [--arm uraeda|plain] [--skill-commit <sha>]
   benchmarks screen <suite> <case>... --approved-by <name>
+  benchmarks choose <suite> <case>...
   benchmarks prepare-case <instance-id> --id <case-id>
   benchmarks report
 
@@ -59,6 +60,14 @@ async function main(): Promise<void> {
     return;
   }
   const [suiteName, ...cases] = rest;
+  if (command === "choose" && suiteName !== undefined) {
+    // The cases the screening runs already on disk give, with no new run.
+    const results = screenedRuns(BENCHMARKS, cases);
+    const { chosen, filled, repositories } = chooseCases(results);
+    out(`chosen (${repositories} repositories): ${chosen.map((c) => c.id).join(", ")}`);
+    out(`filled with passing cases: ${filled.join(", ") || "none"}`);
+    return;
+  }
   if (
     (command !== "run" && command !== "screen") ||
     suiteName === undefined ||

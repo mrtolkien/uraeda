@@ -1,0 +1,81 @@
+{
+  "approved-by": "mrtolkien",
+  "effort": "medium",
+  "harness": {
+    "name": "claude",
+    "version": "2.1.303 (Claude Code)"
+  },
+  "human": {
+    "guidelines": "b940e66467ec7436fd1bc2dd1b82f543c60e8332",
+    "model": "claude-sonnet-5-5"
+  },
+  "repository": {
+    "commit": "ea0b8678512c231e3f1706579c6130f89a8c05d8",
+    "dirty": true
+  },
+  "skill": {
+    "commit": "none",
+    "dirty": false
+  },
+  "started": "2026-10-19T06:44:30.399Z",
+  "task": {
+    "id": "instance_qutebrowser__qutebrowser-deeb15d6f009b3ca0c3bd503a7cef07462bd16b4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d",
+    "image": "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:ebfc9e1f7dc545f23e26152b4ac650bda5cd90b5a6bfac19aeae23c7e8f196c6",
+    "source": "swe-bench-pro-v2"
+  },
+  "version": 1,
+  "blocked": [],
+  "ended": "2026-10-19T06:45:36.607Z",
+  "models": {
+    "answered": ["claude-sonnet-5-5"],
+    "asked": "claude-sonnet-5-5"
+  },
+  "outcome": "finished",
+  "steps": [
+    {
+      "cost": {
+        "amount": 0.1322272,
+        "kind": "reported"
+      },
+      "gate": "",
+      "role": "plain",
+      "seconds": 53.497,
+      "step": "plain",
+      "tokens": {
+        "cacheRead": 224552,
+        "cacheWrite": 15613,
+        "input": 20,
+        "output": 4728
+      }
+    }
+  ],
+  "urls": [
+    "http://localhost/%3A21",
+    "http://localhost/%3A5",
+    "http://localhost/#%3A10",
+    "http://x.com/p_09",
+    "http://x.com/p_010",
+    "http://x.com/p_10",
+    "http://x.com/p_1",
+    "http://localhost/%3A21",
+    "http://localhost/%3A5",
+    "http://localhost/#%3A10",
+    "http://x.com/p_09",
+    "http://x.com/p_010",
+    "http://x.com/p_10",
+    "http://x.com/p_1",
+    "http://localhost/%3A21",
+    "http://localhost/%3A21",
+    "http://localhost/%3A21",
+    "http://localhost/?a=%3A5",
+    "http://localhost/#%3A10",
+    "http://x1.com:80/",
+    "http://x.com/"
+  ],
+  "transcripts": [
+    {
+      "file": "plain-5053a1bf-2010-4d43-9d44-db23011b254e.jsonl",
+      "sha256": "ca6dff486f8f7b7f097cdf50a98384e812d4a05f80f835cdd826a5bb1c6ab424"
+    }
+  ]
+}

@@ -317,3 +317,19 @@ test("a plain session that did not finish is not counted as a failure in the scr
 
   expect(screening).toMatchObject({ dropped: [], results: [], unrun: ["c"] });
 });
+
+test("failures come first even when passing cases would span more repositories", () => {
+  const chosen = chooseCases([
+    screened("f1", "o/a", 3),
+    screened("f2", "o/a", 4),
+    screened("f3", "o/a", 5),
+    screened("f4", "o/b", 6),
+    screened("f5", "o/b", 7),
+    screened("f6", "o/c", 8),
+    screened("p1", "o/d", 10),
+    screened("p2", "o/e", 10),
+  ]);
+
+  expect(chosen.chosen.map((c) => c.id)).toEqual(["f1", "f4", "f6", "f2", "f3"]);
+  expect(chosen).toMatchObject({ filled: [], repositories: 3 });
+});

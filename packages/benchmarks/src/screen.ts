@@ -1,4 +1,7 @@
-import type { Case } from "./case.ts";
+import { join } from "node:path";
+import { basename, dirname } from "node:path";
+import { type Case, readCase } from "./case.ts";
+import { listRuns } from "./recorder.ts";
 import type { Deps, RunTarget } from "./deps.ts";
 import { runVerifier } from "./grader.ts";
 import { runPlain } from "./run-plain.ts";
@@ -13,30 +16,32 @@ export const repositoryOf = (found: Case) =>
 const share = ({ tests }: Screened) => (tests.total === 0 ? 0 : tests.passed / tests.total);
 
 /**
- * The suite's cases from the screening: the ones the plain arm failed, and, when too few failed,
- * the ones with the lowest share of passed tests, named in `filled`. Each repository comes first
- * once, so the suite spans as many as the candidates allow.
+ * The suite's cases from the screening: the ones the plain arm failed, the lowest share of passed
+ * tests first and one per repository before a second, and only when too few failed, passing ones
+ * to fill, named in `filled`. `repositories` says how many repositories the choice spans.
  */
 export function chooseCases(
   results: Array<Screened>,
   count = 5,
 ): { chosen: Array<Case>; filled: Array<string>; repositories: number } {
-  const ordered = results.toSorted(
-    (a, b) => Number(a.tests.resolved) - Number(b.tests.resolved) || share(a) - share(b),
-  );
+  const failed = results
+    .filter((result) => !result.tests.resolved)
+    .toSorted((a, b) => share(a) - share(b));
   const chosen: Array<Screened> = [];
   const seen = new Set<string>();
-  for (const result of ordered) {
+  for (const result of failed) {
     if (chosen.length < count && !seen.has(repositoryOf(result.case))) {
       seen.add(repositoryOf(result.case));
       chosen.push(result);
     }
   }
-  for (const result of ordered) {
+  for (const result of failed) {
     if (chosen.length < count && !chosen.includes(result)) {
       chosen.push(result);
     }
   }
+  const passing = results.filter((result) => result.tests.resolved);
+  chosen.push(...passing.slice(0, Math.max(0, count - chosen.length)));
   return {
     chosen: chosen.map((result) => result.case),
     filled: chosen.filter((result) => result.tests.resolved).map((result) => result.case.id),
@@ -85,4 +90,17 @@ export async function screen(
     }
   }
   return { dropped, results, unrun };
+}
+
+/** The screening runs on disk for these cases, the last of each, as screened candidates. */
+export function screenedRuns(root: string, cases: Array<string>): Array<Screened> {
+  const runs = listRuns(root).filter(
+    (run) => basename(dirname(run.folder)).endsWith("-screening") && run.scores !== undefined,
+  );
+  return cases.flatMap((id) => {
+    const last = runs.filter((run) => basename(run.folder).startsWith(`${id}--plain--`)).at(-1);
+    return last?.scores
+      ? [{ case: readCase(join(root, "cases", id)), tests: last.scores.tests }]
+      : [];
+  });
 }

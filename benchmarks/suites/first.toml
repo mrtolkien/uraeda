@@ -1,25 +1,11 @@
-# The first suite. Until the screening, `cases` lists the candidates: it is then cut to the
-# five the plain arm failed.
+# The first suite: the five cases the plain arm failed in the screening of 31 candidates
+# (`benchmarks/runs/2026-10-19-screening/`), from four repositories.
 cases = [
-  "ansible-config-coercion",
-  "ansible-human-to-bytes",
-  "ansible-mount-facts",
-  "ansible-multipart-helper",
-  "flipt-cue-schema",
-  "navidrome-password-change",
-  "navidrome-unset-timestamps",
-  "openlibrary-alternate-script-authors",
-  "openlibrary-author-matching",
-  "openlibrary-best-book-awards",
-  "openlibrary-imported-book-data",
-  "openlibrary-marc-880",
+  "navidrome-image-jwt",
   "openlibrary-observation-helper",
-  "openlibrary-search-index-updates",
-  "openlibrary-search-parsing",
-  "qutebrowser-keysequence",
-  "qutebrowser-process-cleanup",
+  "flipt-cue-schema",
   "qutebrowser-process-messages",
-  "qutebrowser-url-increment",
+  "openlibrary-author-matching",
 ]
 arms = ["uraeda", "plain"]
 model = "claude-sonnet-5-5"
