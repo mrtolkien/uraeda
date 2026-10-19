@@ -155,3 +155,6 @@
   where a sheet's Back closes the sheet
 - [agent] [fix-testing] Flows: a few wording or format pins are accepted in the rulings (status
   labels, N of M, the tab title count, Current and Done prefixes)
+- [agent] [fix-testing] Benchmarks flows: the record test never removes the nested step fields
+  seconds and gate, and the simulated human's invalid-run rule is tested only with a file outside
+  specs/, not another feature's folder or PRIORITIES.md
