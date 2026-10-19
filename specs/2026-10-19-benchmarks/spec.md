@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Benchmarks
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 5 minutes.
+> Approved on 2026-10-19.
 >
 > - You approve a benchmark of the full flow on five SWE-bench Pro V2 cases where plain Claude Code
 >   struggles, run with Sonnet 5.5 for every role, with its results in `benchmarks/` and a page that
