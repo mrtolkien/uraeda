@@ -286,7 +286,10 @@ fn a_check_shows_each_options_candidate_against_the_active_decision() {
         .collect();
     assert_eq!(found, [("q1", "a", "changed"), ("q2", "b", "new")]);
     let triage = api::read_round(repo.path(), DefaultRound::Triage).unwrap();
-    assert!(triage.is_none_or(|view| view.candidates.is_empty()));
+    assert!(
+        triage.is_none(),
+        "the triage round has no candidates of the check"
+    );
 }
 
 #[test]

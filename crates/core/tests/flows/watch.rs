@@ -87,8 +87,7 @@ fn a_commit_moving_a_branch_or_the_default_branch_reports_the_feature() {
         "feat(web-ui): elsewhere",
     ]);
     repo.git(&["update-ref", &format!("refs/heads/{FOLDER}"), commit.trim()]);
-    let moved = until(&receiver, |c| c.features.contains(&FOLDER.to_string()));
-    assert!(moved.features.contains(&FOLDER.to_string()));
+    until(&receiver, |c| c.features.contains(&FOLDER.to_string()));
 
     // A commit on the default branch, which may move the feature's merge base.
     repo.write("README.md", "# Read me\n");
@@ -142,8 +141,7 @@ fn a_deleted_feature_branch_is_reported_once() {
         FOLDER,
     ]);
     repo.git(&["branch", "--delete", FOLDER]);
-    let first = until(&receiver, |c| c.features.contains(&FOLDER.to_string()));
-    assert!(first.features.contains(&FOLDER.to_string()));
+    until(&receiver, |c| c.features.contains(&FOLDER.to_string()));
 
     // Every later report, up to the one that holds a new write, leaves the feature out.
     repo.write(

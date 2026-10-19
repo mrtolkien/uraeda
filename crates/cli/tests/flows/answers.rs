@@ -42,9 +42,12 @@ fn answers_are_written_then_the_round_is_submitted_on_the_features_branch_from_m
         let written = ura(&repo, &["answer", "cli-core", question, answer]);
         assert_eq!(written.code, 0, "{}", written.stderr);
     }
-    ura(&repo, &["answer", "cli-core", "notes", "Nothing else"]);
+    let noted = ura(&repo, &["answer", "cli-core", "notes", "Nothing else"]);
 
-    assert!(repo.read(&worktree).contains("**Answer:** B, but later\n"));
+    assert_eq!(noted.code, 0, "{}", noted.stderr);
+    let written = repo.read(&worktree);
+    assert!(written.contains("**Answer:** B, but later\n"));
+    assert!(written.contains("**Notes:** Nothing else"), "{written}");
     assert_eq!(
         waits_on(&repo),
         "human",
@@ -119,6 +122,8 @@ fn a_hook_that_refuses_keeps_the_files_and_one_that_reformats_leaves_a_clean_tre
     repo.switch(FOLDER);
     repo.set_hook("echo boom >&2; exit 1");
 
+    let commits = repo.subjects(FOLDER).len();
+
     let refused = ura(&repo, &["answer", "--submit"]);
 
     assert_eq!(refused.code, 1);
@@ -126,7 +131,11 @@ fn a_hook_that_refuses_keeps_the_files_and_one_that_reformats_leaves_a_clean_tre
         repo.read(FILE).contains("status: answered"),
         "the submitted file is kept for the human"
     );
-    assert_eq!(repo.subjects(FOLDER).len(), 3, "nothing was committed");
+    assert_eq!(
+        repo.subjects(FOLDER).len(),
+        commits,
+        "nothing was committed"
+    );
 
     let repo = waiting(&["A", "B", "A"]);
     repo.switch(FOLDER);
@@ -146,15 +155,17 @@ fn no_commit_leaves_the_submitted_files_for_the_human() {
         &["answer", "Q3", "A, as ![one](images/one.webp) shows"],
     );
     repo.write("specs/2026-10-10-cli-core/images/one.webp", "one");
+    let commits = repo.subjects(FOLDER).len();
 
     let output = ura(&repo, &["answer", "--submit", "--no-commit"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert!(repo.read(FILE).contains("status: answered"));
-    assert_eq!(repo.subjects(FOLDER).len(), 3, "no commit was made");
-    assert!(
-        output.stdout.contains("images"),
-        "it names the images to commit with the round"
+    assert_eq!(repo.subjects(FOLDER).len(), commits, "no commit was made");
+    assert_eq!(
+        output.stdout.trim(),
+        format!("Round 01 answered in {FILE}: commit it with specs/{FOLDER}/images."),
+        "it names the images folder to commit with the round"
     );
 }
 
