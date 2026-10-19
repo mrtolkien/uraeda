@@ -24,7 +24,8 @@ const styles = stylex.create({
 export type StartChat = ReturnType<typeof useStartChat>;
 
 /**
- * Starts a chat in the main checkout with a message, then opens it; `error` is the server's refusal.
+ * Starts a chat in the main checkout with a message, then opens it; `error` is the server's
+ * refusal.
  */
 export function useStartChat() {
   const fate = useFateClient();

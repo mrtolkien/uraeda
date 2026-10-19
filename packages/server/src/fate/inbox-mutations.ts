@@ -1,8 +1,8 @@
 /**
  * The mutations of the inbox, each written on the default branch over the hash it was read at: its
  * notes' edits, their moves into the priorities and drafts, the commit bar's Commit and Discard,
- * and the answers of the default branch's rounds. None writes a feature's files, so none is refused while an agent works:
- * `writable` guards features only.
+ * and the answers of the default branch's rounds. None writes a feature's files, so none is
+ * refused while an agent works: `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";
 import { refusable } from "./errors.ts";

@@ -23,10 +23,10 @@ export function isDefaultRound(target: RoundTarget): target is { round: string }
 }
 
 /**
- * The hash of the round's text as the page last read or wrote it, `current`: the triage's saves
- * and its submit are based on it, and the core refuses them once the file holds anything else, as
- * another page's answer. The page's writes to a default-branch round run one after another, each based on the
- * hash the last one left. A read drawn while a write is sent may hold the text from before it: it
+ * The hash of the round's text as the page last read or wrote it, `current`: a default-branch
+ * round's saves and its submit are based on it, and the core refuses them once the file holds
+ * anything else, as another page's answer. The page's writes to a default-branch round run one
+ * after another, each based on the hash the last one left. A read drawn while a write is sent may hold the text from before it: it
  * waits for the write, and is dropped once the write wrote, the write's hash being as new. Any
  * other read is taken, a text the page had before included, as another page may write it back.
  */
@@ -160,8 +160,8 @@ export function useRoundWrites(target: RoundTarget, hashes: Hashes) {
             view: FileView,
           }),
     /**
-     * Submits the round, `name` in a feature's folder, or a default-branch round over the hash kept. `resumes`
-     * answers it to continue the implementation.
+     * Submits the round, `name` in a feature's folder, or a default-branch round over the hash
+     * kept. `resumes` answers it to continue the implementation.
      */
     submit: (name: string, resumes = false) =>
       isDefaultRound(target)

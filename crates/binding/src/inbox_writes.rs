@@ -1,6 +1,7 @@
 //! The inbox: its notes' edits, each written on the default branch over the inbox read at
 //! `previous`; the moves of notes into the priorities and drafts; the commit bar's Commit and
-//! Discard; and the answers of the default branch's rounds. A category or `about` left out is none, so they come last.
+//! Discard; and the answers of the default branch's rounds. A category or `about` left out is none,
+//! so they come last.
 
 use std::path::Path;
 

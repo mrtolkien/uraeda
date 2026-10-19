@@ -62,7 +62,8 @@ fn without_links(text: &str) -> String {
     kept
 }
 
-// Days are left out: a lifetime the human chose, like a session's 30 days, is a hard value that stays.
+// Days are left out: a lifetime the human chose, like a session's 30 days, is a hard value that
+// stays.
 const UNITS: [&str; 4] = ["second", "seconds", "minute", "minutes"];
 
 fn is_file_name(span: &str) -> bool {

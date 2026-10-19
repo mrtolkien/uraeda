@@ -77,7 +77,8 @@ export function PrincipleDetail({
 /**
  * The top-level blocks past the title, as ids. With `drawn` rules, the blocks up to and including
  * the `## Rules` heading come first, `before`, and those after the section, `after`: the section's
- * own blocks are left out, for `DecisionRules` to draw. Without, all are `before` and `after` is null.
+ * own blocks are left out, for `DecisionRules` to draw. Without, all are `before` and `after` is
+ * null.
  */
 function aroundRules(
   blocks: ReadonlyArray<Block>,

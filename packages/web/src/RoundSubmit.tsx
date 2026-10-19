@@ -209,7 +209,7 @@ export function RoundEnd({
       {refused || (error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>)}
       <div ref={submitRow}>
         {isDefaultRound(target) ? (
-          // The triage hands nothing over: the inbox offers to apply it.
+          // A default-branch round hands nothing over: its page offers to apply it.
           <WriteButton
             isDisabled={blank.length > 0}
             label="Submit answers"

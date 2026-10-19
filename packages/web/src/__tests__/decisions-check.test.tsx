@@ -1,6 +1,7 @@
 // US3 of the decisions pass: "Check decisions" on the decisions page starts a chat, a waiting check
 // disables it and its banner leads to the check's page, where each option shows its candidate as
-// the spec page shows a changed decision, and the answers are written in `specs/DECISIONS-CHECK.md`.
+// the spec page shows a changed decision, and the answers are written in
+// `specs/DECISIONS-CHECK.md`.
 import { copyFileSync, cpSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";

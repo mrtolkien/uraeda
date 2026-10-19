@@ -212,8 +212,9 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     }
 }
 
-/// What kind of file a name is, in a folder: decisions in `decisions/` and a check's candidates, records in `specs/done/`,
-/// priorities anywhere, and the inbox and its triage in `specs/`.
+/// What kind of file a name is, in a folder: decisions in `decisions/` and a check's candidates,
+/// records in `specs/done/`, priorities anywhere, and the inbox and the default-branch rounds in
+/// `specs/`.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     let parent = dir.file_name().map(|n| n.to_string_lossy().into_owned());
     if parent.as_deref() == Some("decisions") && name == "preview.md" {
@@ -239,7 +240,7 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     if name == "PRIORITIES.md" {
         return Some(Checked::Priorities);
     }
-    // The inbox and its triage are files of `specs/` itself: one elsewhere is the human's.
+    // The inbox and the default-branch rounds are files of `specs/` itself: one elsewhere is the human's.
     if parent.as_deref() == Some("specs") {
         if name == "INBOX.md" {
             return Some(Checked::Inbox);

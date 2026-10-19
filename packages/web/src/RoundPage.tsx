@@ -28,7 +28,7 @@ const styles = stylex.create({
     justifyContent: "center",
   },
   measure: {
-    // The round's reading text, the triage's too, holds to the round's measure.
+    // The round's reading text, a default-branch round's too, holds to the round's measure.
     "--size-reading-measure": "var(--size-round-measure)",
   },
   questions: {
@@ -42,7 +42,8 @@ const styles = stylex.create({
 /**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
  * points settled without the human, the notes, and Submit. `target` is what it answers: a
- * feature's round, with its crumbs and its agent to ask, or the inbox's triage, which has neither.
+ * feature's round, with its crumbs and its agent to ask, or a round on the default branch, the
+ * inbox's triage or the decisions check, which has neither.
  */
 export function RoundPage({ file, target }: { file: File; target: RoundTarget }) {
   const agent = useAgent();

@@ -30,7 +30,8 @@ pub fn round_path(feature: &Feature) -> Result<String, ActionError> {
 }
 
 /// The file a round's answers are written in: a feature's latest round, or a file by its path from
-/// the top level, as the inbox's triage, `specs/INBOX-TRIAGE.md`. Both take the same rules.
+/// the top level, as the inbox's triage, `specs/INBOX-TRIAGE.md`, or the decisions check,
+/// `specs/DECISIONS-CHECK.md`. Both take the same rules.
 pub trait RoundFile {
     /// The file's path, from the top level.
     fn path(&self) -> Result<String, ActionError>;

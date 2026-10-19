@@ -21,7 +21,7 @@ function contextBlocks(parts: ReadonlyArray<ContextPart>): Array<number> {
 }
 
 /**
- * A round's opening: the feature's crumbs, unless it is the triage, the round's title, its block,
+ * A round's opening: the feature's crumbs, unless it is a default-branch round's, the round's title, its block,
  * `children`, then its context.
  */
 export function RoundOpening({
@@ -32,7 +32,7 @@ export function RoundOpening({
 }: {
   /** What comes between the block and the context: the round's index, on narrow screens. */
   children?: ReactNode;
-  /** The feature's folder and the round's name, for its crumbs; none for the triage. */
+  /** The feature's folder and the round's name, for its crumbs; none for a default-branch round. */
   crumbs?: { folder: string; name: string };
   document: Document;
   round: RoundItems;
