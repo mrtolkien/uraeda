@@ -4,13 +4,9 @@
 // folds. Every scenario takes a comment, as any block of the page does.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
-import {
-  colorVars,
-  sizeVars,
-  spacingVars,
-  typeScaleVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import type { Block, Document } from "uraeda-binding";
@@ -20,6 +16,13 @@ import { After, Selectable, type Selection } from "../Selection.tsx";
 import { Spans } from "../Spans.tsx";
 import { Panel } from "./Panel.tsx";
 import { GROUPS, type PartProps, type SpecItems, storyId } from "./parts.ts";
+
+/** The icon of each step word, as the core names them. */
+const STEP_ICONS: Record<string, string> = {
+  Given: "uraeda:step-given",
+  Then: "uraeda:step-then",
+  When: "uraeda:step-when",
+};
 
 const styles = stylex.create({
   contents: { display: "contents" },
@@ -45,13 +48,18 @@ const styles = stylex.create({
     lineHeight: "var(--text-reading-line)",
     maxWidth: "var(--size-reading-measure)",
     paddingBlockStart: spacingVars["--spacing-3"],
-    rowGap: spacingVars["--spacing-1"],
+    rowGap: spacingVars["--spacing-2"],
   },
   step: {
-    // Given, When, and Then, lighter than the scenario they frame, on its first line.
-    color: colorVars["--color-text-secondary"],
-    fontSize: typeScaleVars["--text-supporting-size"],
-    paddingBlockStart: spacingVars["--spacing-0-5"],
+    // Given, When, and Then as an icon, in the text's colour, on the scenario's first line.
+    alignItems: "center",
+    display: "flex",
+    minHeight: "var(--text-reading-line)",
+  },
+  word: {
+    // Given, When, and Then, at the start of the step's text, in capitals.
+    fontWeight: "var(--font-weight-bold)",
+    textTransform: "uppercase",
   },
 });
 
@@ -81,9 +89,11 @@ function ScenarioNode({
         {steps.map(({ spans, word }, at) => (
           // The spaces between the cells, which the grid drops, keep the words apart when read.
           <div key={at} {...stylex.props(styles.contents)}>
-            <span {...stylex.props(styles.step)}>{word}</span>{" "}
+            <span {...stylex.props(styles.step)}>
+              <Icon icon={STEP_ICONS[word] ?? "uraeda:step-then"} />
+            </span>{" "}
             <span>
-              <Spans spans={spans} />
+              <strong {...stylex.props(styles.word)}>{word}</strong> <Spans spans={spans} />
             </span>{" "}
           </div>
         ))}

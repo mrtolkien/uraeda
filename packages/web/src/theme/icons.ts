@@ -163,6 +163,26 @@ const bot = outline(
   h("path", { d: "M9 13v2" }),
 );
 
+/** Lucide's `circle-dot`, a scenario's Given: where it starts. */
+const given = outline(
+  h("circle", { cx: 12, cy: 12, r: 10 }),
+  h("circle", { cx: 12, cy: 12, r: 1 }),
+);
+
+/** Lucide's `mouse-pointer-click`, a scenario's When: what you do. */
+const when = outline(
+  h("path", { d: "M14 4.1 12 6" }),
+  h("path", { d: "m5.1 8-2.9-.8" }),
+  h("path", { d: "m6 12-1.9 2" }),
+  h("path", { d: "M7.2 2.2 8 5.1" }),
+  h("path", {
+    d: "M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z",
+  }),
+);
+
+/** Lucide's `arrow-right`, a scenario's Then: what follows. */
+const then = outline(h("path", { d: "M5 12h14" }), h("path", { d: "m12 5 7 7-7 7" }));
+
 /** Lucide's `bell`. */
 const bell = outline(
   h("path", { d: "M10.268 21a2 2 0 0 0 3.464 0" }),
@@ -417,6 +437,7 @@ export const uraedaIcons = {
   "uraeda:pick": pick,
   "uraeda:settings": settings,
   "uraeda:step-discovery": discovery,
+  "uraeda:step-given": given,
   "uraeda:step-implementation": implementation,
   "uraeda:step-plan": plan,
   "uraeda:step-proposal": proposal,
@@ -424,6 +445,8 @@ export const uraedaIcons = {
   "uraeda:step-questions": questions,
   "uraeda:step-review": review,
   "uraeda:step-spec": spec,
+  "uraeda:step-then": then,
+  "uraeda:step-when": when,
   "uraeda:terminal": terminal,
   ...Object.fromEntries(
     Object.entries(DECISION_ICONS).map(([name, icon]) => [`uraeda:decision-${name}`, icon]),
