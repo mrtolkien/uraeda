@@ -2,12 +2,13 @@
 // listens on the loopback interface only, the sign-in decision's rule that the key is shown once,
 // and a second start that hands its repository to the one running.
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { connect } from "node:net";
 import { networkInterfaces } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test } from "vite-plus/test";
+import { readRepositories } from "uraeda-binding";
 import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 import { devServer } from "../dev.ts";
 import { loadEnv } from "../env.ts";
@@ -122,6 +123,16 @@ test("the key is shown once, signs in, and a second start shows none and hands o
       expect(readFileSync(join(file.parentPath, file.name), "utf8")).not.toContain(key);
     }
   }
+});
+
+test("a start in a repository lists it, and a start of the same one lists it once", async () => {
+  const { folders, port, repo } = await firstStart();
+
+  const second = start(["--repo", repo, "--port", String(port)], folders);
+  await second.exited;
+
+  const listed = (await readRepositories(folders.data)).map((row) => row.path);
+  expect(listed).toEqual([realpathSync(repo)]);
 });
 
 test("a start that fails shows no key and leaves none, and the next start shows one", async () => {

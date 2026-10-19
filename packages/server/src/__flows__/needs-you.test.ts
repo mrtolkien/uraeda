@@ -5,6 +5,8 @@
 import { expect, test } from "vite-plus/test";
 import { commitOnBranch } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
+import { needsYouReason } from "../fate/needs-you.ts";
+import { sessionStatus } from "../runner/status.ts";
 import {
   appSettings,
   binding,
@@ -132,4 +134,82 @@ test("a second ask of the same chat has another key, so it notifies again", asyn
   const second = await ask("git push origin main");
 
   expect(second).not.toBe(first);
+});
+
+type Status = Parameters<typeof sessionStatus>[0];
+
+const NONE: Status = { blocked: false, queued: false, seenAt: null, waitsOnHuman: false };
+const turn = (state: "done" | "failed" | "stopped" | "running", kind: "chat" | "workflow") => ({
+  endedAt: state === "running" ? null : "2026-10-13T10:00",
+  kind,
+  state,
+});
+
+// The statuses every sidebar row and notification is read from: one table, as it is pure logic.
+test.each<[string, Partial<Status>, string, string | undefined]>([
+  [
+    "a running turn, whatever else holds",
+    { blocked: true, latest: turn("running", "chat"), waitsOnHuman: true },
+    "working",
+    undefined,
+  ],
+  ["a queued turn", { queued: true }, "working", undefined],
+  ["an action refused", { blocked: true, latest: turn("done", "chat") }, "needs-you", "blocked"],
+  [
+    "a step that waits on the human",
+    { latest: turn("done", "workflow"), waitsOnHuman: true },
+    "needs-you",
+    "step",
+  ],
+  ["a turn that failed", { latest: turn("failed", "workflow") }, "attention", "failed"],
+  ["a turn the human stopped", { latest: turn("stopped", "chat") }, "attention", "stopped"],
+  [
+    "a run that ended while the step waits on the agent",
+    { latest: turn("done", "workflow"), waitsOnAgent: true },
+    "attention",
+    "halted",
+  ],
+  [
+    "a run that ended past the last task with no pull request state",
+    {
+      latest: turn("done", "workflow"),
+      seenAt: "2026-10-13T11:00",
+      stepName: "pull-request-unknown",
+      waitsOnAgent: true,
+    },
+    "idle",
+    undefined,
+  ],
+  ["a chat reply the human has not seen", { latest: turn("done", "chat") }, "unread", undefined],
+  [
+    "a chat reply seen since",
+    { latest: turn("done", "chat"), seenAt: "2026-10-13T11:00" },
+    "idle",
+    undefined,
+  ],
+  ["no turn at all", {}, "idle", undefined],
+])("the status of %s", (_, input, status, reason) => {
+  const got = sessionStatus({ ...NONE, ...input });
+
+  expect([got.status, got.reason]).toEqual([status, reason]);
+});
+
+// Only what asks something of the human is listed, as the same statuses say it.
+test.each<[string, Partial<Status>, boolean]>([
+  ["an action refused", { blocked: true, latest: turn("done", "chat") }, true],
+  [
+    "a step that waits on the human",
+    { latest: turn("done", "workflow"), waitsOnHuman: true },
+    true,
+  ],
+  ["a turn that failed", { latest: turn("failed", "workflow") }, true],
+  ["a running turn", { latest: turn("running", "workflow") }, false],
+  ["a chat reply the human has not seen", { latest: turn("done", "chat") }, false],
+  ["an idle session", {}, false],
+])("%s is listed by the notifier: %s", (_, input, listed) => {
+  const { reason, status } = sessionStatus({ ...NONE, ...input });
+
+  const asked = needsYouReason({ status, statusReason: reason ?? null, step: "plan" });
+
+  expect(asked !== undefined).toBe(listed);
 });
