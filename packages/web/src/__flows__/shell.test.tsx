@@ -106,6 +106,8 @@ test("only a problem is a card to fix: a format note keeps the card with its age
 
 test("a feature's card is selected on its page, its file, and its session", async () => {
   for (const path of [`/f/${CLI}`, `/f/${CLI}/spec.md`, `/f/${CLI}/session`]) {
+    // One page at a time: the earlier page's sidebar would be a second navigation.
+    cleanup();
     await app.open(path);
     await findRow("cli-tuis");
     expect(nav().getByRole("link", { current: "page" })).toBe(row("cli-tuis"));

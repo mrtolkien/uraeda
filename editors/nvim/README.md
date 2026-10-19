@@ -71,8 +71,9 @@ language server attaches, is in the help: `:help uraeda`, from [doc/uraeda.txt](
 
 ## Development
 
-The tests use mini.test, against the `ura` their task builds with cargo. `vp run ready` leaves them
-out and CI runs them; run them from the repository's root with:
+The tests are a smoke of the main actions (diagnostics, a code action, the waiting list, a comment,
+and a verdict), on the real `ura lsp`, in mini.test, against the `ura` their task builds with cargo.
+`vp run ready` leaves them out and CI runs them; run them from the repository's root with:
 
 ```sh
 nix develop -c vp run test:nvim

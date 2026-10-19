@@ -509,12 +509,12 @@ git commit -m "test(fix-testing): rebuild the benchmarks tests as flows"
 - Produces: the record: every old test file mapped to its flow or dropping rule (SC-005), the
   coverage before and after each area, and the measured SC-001 to SC-003.
 
-- [ ] **Step 1: Rebuild the Neovim tests as a smoke**: open a file, diagnostics, a code action, the
+- [x] **Step 1: Rebuild the Neovim tests as a smoke**: open a file, diagnostics, a code action, the
       waiting list, and a comment, with a break by hand; delete the other test files.
-- [ ] **Step 2: Run the project's validation**: `nix develop -c vp run ready`. Expected: PASS.
-- [ ] **Step 3: Complete the record**: each old test file maps to a flow or a rule; a file with
+- [x] **Step 2: Run the project's validation**: `nix develop -c vp run ready`. Expected: PASS.
+- [x] **Step 3: Complete the record**: each old test file maps to a flow or a rule; a file with
       neither is an unplaced test and fails the review.
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add editors specs .github

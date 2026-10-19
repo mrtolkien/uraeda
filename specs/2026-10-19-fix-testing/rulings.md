@@ -723,3 +723,90 @@ take 7 s more.
 | `__browser__/storybook-page.test.tsx` | `__flows__/storybook-fixture` (R7). Dropped: the page's frame height and the list of Storybook in the column, which need a running Storybook.                                                                                                                                        |
 | `__browser__/task.test.tsx`           | `width` (a pane's address across 768 px), `__flows__/priorities` (a line opens a pane). Dropped: the pane beside home on a wide screen, a layout choice.                                                                                                                             |
 | `__browser__/usage.test.tsx`          | `__flows__/allowance` (R7). Dropped: the live update at both sizes and the sidebar's drawer.                                                                                                                                                                                         |
+
+## R9: The Neovim tests, rebuilt as a smoke, and the files no earlier ruling placed
+
+- **Decision**: the 13 test files of `editors/nvim/tests/` (87 mini.test cases, 2,628 lines, on the
+  real `ura lsp`) are replaced by one, `test_smoke.lua`: 5 cases, 198 lines, over the same
+  `helpers.lua` (139 lines to 118: the pre-commit hook helpers went with the test that counted hook
+  runs) and `minimal_init.lua` (unchanged, 26 lines). The smoke keeps the plugin's main actions, as
+  the spec's assumptions say, and reads what a file or git holds, never a window's wording or a
+  drawn mark. Its cases:
+  - **diagnostics**: the example's spec attaches the client, and an edit to `risk-tier: extreme`
+    shows one diagnostic from `uraeda` on that line, without saving;
+  - **a code action**: on `discovery: high` of the proposal, `vim.lsp.buf.code_action` applies "Set
+    discovery to low" in the buffer, and the file on disk stays as it was;
+  - **the waiting list**: from `README.md` of a repository whose round waits in another worktree,
+    `:Uraeda waiting` opens that worktree's round;
+  - **a comment**: `V2j` and `<leader>am` on a waiting spec, typed and saved, write the spec's
+    `spec-review.md` with `verdict: pending` and the text, and leave the spec's buffer on screen;
+  - **a verdict**: `<leader>av` and Approve, then `<C-s>`, commit `spec(nvim-plugin): approve` on
+    the feature's branch, with `status: approved` in the file and a buffer not modified.
+- **Rationale**: the plugin holds no workflow rules ([the README](/editors/nvim/README.md)): the
+  rules are the server's, and their flows (R3's LSP `commands`, `writes`, `reads`, `fields`, and
+  `diagnostics`) send the same requests the plugin sends, to the real server, with the refusals, the
+  hook, and the git outcome. What only Neovim can break is the wiring: the client attaches, a
+  response is applied, a command saves first and reloads what it wrote, and a window sends the
+  command. One case each guards that wiring.
+- **Alternatives considered**: keeping a case per command, each the server's flow behind a picker:
+  they ran 44 s for the same wiring. A case per key: the plugin's key table is its configuration,
+  and the smoke presses two of its keys.
+- **If wrong**: restore a file from the commit before the smoke (its parent, `df916aab^`), and add
+  its case.
+- **Where**: task 10 of the plan, `editors/nvim/tests/`.
+- **Breaks, run by hand and reverted**: each case failed alone, and no other, on a break of the
+  wiring it guards. Diagnostics: the server's change handler no longer publishing
+  (`crates/lsp/src/server.rs`). The code action: the server offering no choice
+  (`crates/lsp/src/actions.rs`). The waiting list: the picked item no longer opened (`pickers.lua`).
+  The comment: the text no longer sent (`comment.lua`, an empty text). The verdict: Approve sending
+  the request-changes command (`verdict.lua`).
+- **Before and after**: 87 cases in 13 files, 44 s per run (44.1 and 44.2 s, two runs, with `ura`
+  already built), now 5 cases in 1 file, 1.6 s (1.64, 1.62, 1.60 s, three runs in a row green with
+  the same counts). The Lua has no coverage run, before or after. CI runs it (the `neovim` job);
+  Neovim 0.12.5 and mini.test were available on the development machine, so the smoke and its five
+  breaks ran there.
+- **What no longer runs**: the draft, the start, and the image through the plugin (the cursor's
+  place after an image, a closed or edited buffer while a command runs, the clipboard's tools); the
+  picker of a field and a typed number; the notes' cursor; the comment's other cases (an edited or
+  emptied comment, the refusals) and its window; the verdict's window, its tier and plan review
+  toggles, a round's submit, and its refusals; the inline comments and the priorities' hints drawn;
+  the jumps between questions; the plugin's keys and prefix; the health report; the help's names;
+  and the message of each refusal.
+- **Old files**:
+
+| Old file                             | Flow, or the rule that dropped it                                                                                                                                                                                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_attach.lua` (5)                | The smoke's diagnostics case (attach, and a diagnostic from an unsaved edit). Dropped: the files that do not attach, one client per checkout, and `lsp = false` (normal edge cases of the configuration; the comment and verdict cases attach inside a worktree). |
+| `test_client.lua` (6)                | The comment and verdict cases (a command saves first, reloads what it wrote, and shows the committed file). Dropped: the refusal's text, a hook's output, and the older `ura` (messages; the server's flows hold the refusals and the hook).                      |
+| `test_comment.lua` (7)               | The comment case. Dropped: an opened, emptied, or refused comment and the refusals of an uncommitted or approved spec (LSP `writes`), and the window's look (a screenshot of an appearance).                                                                      |
+| `test_verdict.lua` (8)               | The verdict case. Dropped: the tier and plan review toggles, a failing hook, changes without comments, a file not waiting, a submitted round, blank answers (LSP `writes`, CLI `reviews` and `answers`), and the two windows' looks (screenshots).                |
+| `test_waiting.lua` (5)               | The waiting case. Dropped: the current repository's own server, snacks' picker, outside a checkout, and nothing waiting (normal edge cases; LSP `reads` lists the waiting files).                                                                                 |
+| `test_fields.lua` (4)                | The code action case (a value replaces its line in the buffer). Dropped: the picker's two steps, a typed number, a status that opens the verdict, and a cancelled picker (the one edit behind them is LSP `fields`).                                              |
+| `test_actions.lua` (22)              | Dropped: draft, start, commit, and image are the server's commands, held by LSP `commands` and `writes` (R3) over the same requests; the cursor, buffer, and clipboard cases are editor details no decision's rule asks for (normal edge cases).                  |
+| `test_note.lua` (6)                  | Dropped: the inbox's note is LSP `commands` and core `notes` (R3); the cursor placed at the note and the cancelled or blank note are normal edge cases.                                                                                                           |
+| `test_jumps.lua` (2)                 | Dropped: `]u` and `[u` walk the items LSP `reads` returns; a key's motion is a normal edge case.                                                                                                                                                                  |
+| `test_inline.lua` (8)                | Dropped: the comments and hints drawn under their lines, and their screenshot, are an appearance no decision asks for; the comments they draw are LSP `reads`' items.                                                                                             |
+| `test_keys.lua` (5)                  | Dropped: the plugin's own key table, its prefix, and the files it sets keys in are its configuration, listed in its README; the smoke presses `<leader>am` and `<leader>av`.                                                                                      |
+| `test_health.lua` (7)                | Dropped: `:checkhealth` prints text about the host's tools, and no decision asks for it.                                                                                                                                                                          |
+| `test_doc.lua` (2)                   | Dropped: the help names every subcommand and option (text).                                                                                                                                                                                                       |
+| `screenshots/` (4 reference screens) | Dropped with the cases that compared them (the comment window, the verdict's two windows, the inline comments): an appearance.                                                                                                                                    |
+| `helpers.lua`, `minimal_init.lua`    | Kept, `helpers.lua` without the hook counter. The init still keeps the host's git out (R2).                                                                                                                                                                       |
+
+### The files no earlier ruling placed
+
+Every file of `main` whose path holds `test` or `tests/` was read against R3 to R9. These had no
+flow or rule, and are placed here.
+
+| Old file                                      | Flow, or the rule that placed it                                                                                                                                                                                                                                                                       |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `crates/core/tests/problems.rs` (6)           | Core `check`: a missing section is a note and not a problem, what stops the workflow is a problem and loses the step, and the check keeps a note at its own severity (R3's problems rule). Dropped: each blocking rule's own case (a blank or deleted answer line, an invalid status), as a table row. |
+| `packages/uraeda/scripts/release.test.ts` (3) | Kept as it is: a tag that is not a version or not the workspace's is refused, and the four platforms publish before `@uraeda/ui`, the distribution decision's order, which an npm publish cannot undo.                                                                                                 |
+| `packages/uraeda/scripts/bump.test.ts` (6)    | Kept as it is: the release notes and the version bump the release writes into the tagged commit, so a mistake is only seen once released; 105 lines of pure functions, run in `ts:test`.                                                                                                               |
+| `packages/binding/test-utils.test.ts` (1)     | Kept as it is: the test of the helper that commits on a branch without touching the checkout, which the TypeScript flows' repositories rely on: a helper that moved the checkout would make their flows pass whatever the code does.                                                                   |
+
+Files with `test` in their path that are no tests: the shared helpers and setup
+(`crates/*/tests/common/`, `packages/binding/test-setup.ts` and `test-utils.ts`,
+`packages/server/src/testing.ts`, `__tests__/live-stream.ts`,
+`packages/benchmarks/src/tests-source.ts`), the three benchmarks (`*.bench.ts`, R4),
+`scripts/test-run.ts` and `.config/nextest.toml` (the runners, R5), `JumpToLatest.tsx` (a
+component), and the drafts and records in `specs/` and `docs/`, which are prose.

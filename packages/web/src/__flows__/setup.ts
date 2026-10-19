@@ -1,5 +1,13 @@
 // Runs before each test file of the UI's happy-dom flows.
 import nodeConsole from "node:console";
+import { configure } from "@testing-library/react";
+
+/**
+ * A wait for the page ends when the page is there, so a long limit costs nothing when it passes:
+ * `ready` runs the Rust, the browser, and the happy-dom tests at once, and the default second is
+ * too short for a page drawn while the machine is full. A failing wait takes the limit to fail.
+ */
+configure({ asyncUtilTimeout: 10_000 });
 
 /**
  * happy-dom prints an error for each frame it does not load, as `vite.config.ts` asks of it, on the
