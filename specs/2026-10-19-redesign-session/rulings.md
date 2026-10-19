@@ -182,3 +182,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   cannot select.
 - **If wrong**: remove the `markdown` entry from `theme.ts` and rebuild the theme.
 - **Where**: task 7 of the plan.
+
+## R14: The rewritten decisions may hold 9,500 words, not 9,400
+
+- **Decision**: `every_decision_of_the_repository_holds_at_most_10_rules` allows the 18 rewritten
+  decisions 9,500 words together.
+- **Rationale**: this feature's approved change to the notifications decision (a chat blocked by
+  auto mode notifies, one rule and a reason) added 66 words, which took the total from the specs
+  redesign's 9,400 to 9,466, and the test failed with `9466 words`. The 10-rule limit, which the
+  test also checks, is untouched.
+- **Alternatives considered**: cutting words from the human's approved decision, which only the
+  human amends.
+- **If wrong**: restore 9,400 and shorten the decisions the specs redesign rewrote.
+- **Where**: task 7 of the plan.
