@@ -59,7 +59,7 @@ function pendingReview(repo: string, lines: ReadonlyArray<number>) {
 }
 
 /** US5 1 */
-test("the contents list every part, decision, and story, with Approve at their foot", async () => {
+test("the contents list every part, decision, and story", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
@@ -84,8 +84,8 @@ test("the contents list every part, decision, and story, with Approve at their f
     "Success criteria",
     "Assumptions",
   ]);
-  expect(within(column).getByRole("button", { name: "Approve" })).toBeTruthy();
-  expect(within(column).getByRole("button", { name: "Request changes" })).toBeTruthy();
+  // The verdict is at the page's end, not in the column.
+  expect(within(column).queryByRole("button", { name: "Approve" })).toBeNull();
   expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(1);
 });
 

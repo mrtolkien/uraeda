@@ -36,6 +36,11 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     lineHeight: typeScaleVars["--text-heading-3-leading"],
   },
+  reading: {
+    // The block's other items at the reading size, as the spec's other blocks.
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
+  },
   section: {
     // A section of the spec drawn in this part, its anchor's element, its pieces spaced as the
     // part's.
@@ -70,7 +75,12 @@ function Bullet({
 }) {
   return (
     <Selectable block={item} selection={selection}>
-      <Text as="div" display="block" type="inherit" xstyle={[styles.bullet, isLead && styles.lead]}>
+      <Text
+        as="div"
+        display="block"
+        type="inherit"
+        xstyle={[styles.bullet, isLead ? styles.lead : styles.reading]}
+      >
         <span aria-hidden="true">
           <Icon
             color="secondary"

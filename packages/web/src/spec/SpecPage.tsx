@@ -27,7 +27,6 @@ import {
 import { Spans } from "../Spans.tsx";
 import { StoriesProvider } from "../stories.tsx";
 import { useSpecFolds } from "../useOpenKeys.ts";
-import { YourVerdict } from "../YourReview.tsx";
 import { BuiltParts } from "./BuiltParts.tsx";
 import { DataPart } from "./DataPart.tsx";
 import { DecisionCards } from "./DecisionCards.tsx";
@@ -194,8 +193,7 @@ function Groups({
 
 /**
  * The page of a spec, `version` of `file`, drawn from its items, with `review` while it waits: its
- * comments, its selection, and its verdict, at the foot of "Contents" while it shows, at the
- * page's end otherwise.
+ * comments, its selection, and its verdict, at the page's end.
  */
 function SpecLayout({
   file,
@@ -235,15 +233,10 @@ function SpecLayout({
     selection: review?.selection,
     wide,
   };
-  const inColumn = wide && shown[0];
-  const verdict = review && (
-    <YourVerdict comments={comments.length} file={file} refusals={review.refusals} />
-  );
   return (
     <SpecContents
       entries={entriesOf({ changes, comments, document, hasData: !!data, items })}
       shown={shown}
-      verdict={inColumn && verdict}
     >
       <Page isTight>
         <Crumbs current={file.name} folder={file.folder} />
@@ -267,14 +260,14 @@ function SpecLayout({
           )}
           <Groups changes={changes} data={data} items={items} part={part} />
           <SpecHistory document={document} items={items} />
-          {review && <ReviewEnd file={file} hasVerdict={!inColumn} review={review} />}
+          {review && <ReviewEnd file={file} review={review} />}
         </VStack>
       </Page>
     </SpecContents>
   );
 }
 
-/** A spec waiting for your review: its parts take comments, and "Contents" holds the verdict. */
+/** A spec waiting for your review: its parts take comments, and its verdict is at the page's end. */
 function WaitingSpec({ file }: { file: File }) {
   const wide = useWidthClass() === "wide";
   const review = useReview(file, wide);

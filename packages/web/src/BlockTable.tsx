@@ -14,7 +14,7 @@ import { useMemo } from "react";
 import type { Block } from "uraeda-binding";
 import type { BlockContext } from "./Blocks.tsx";
 import { After, useSelect } from "./Selection.tsx";
-import { Spans } from "./Spans.tsx";
+import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
   center: { textAlign: "center" },
@@ -85,11 +85,15 @@ function RowNode({
   );
 }
 
-/** A table's columns: each takes an equal share, and at least 144 px, past which it scrolls. */
-function tableColumns(count: number): Array<TableColumn<Record<string, unknown>>> {
-  return Array.from({ length: count }, (_, index) => ({
+/**
+ * A table's columns: each takes a share of the width by the longest text of its cells, from 8 to 60
+ * characters, so a column of short names does not take as much as one of sentences; at least 96 px,
+ * past which the table scrolls.
+ */
+function tableColumns(weights: ReadonlyArray<number>): Array<TableColumn<Record<string, unknown>>> {
+  return weights.map((weight, index) => ({
     key: `c${index}`,
-    width: proportional(1, { minWidth: 144 }),
+    width: proportional(weight, { minWidth: 96 }),
   }));
 }
 
@@ -100,8 +104,14 @@ function tableColumns(count: number): Array<TableColumn<Record<string, unknown>>
  */
 export function TableNode({ block, context }: { block: Block; context: BlockContext }) {
   const rows = context.children.get(block.id) ?? [];
-  const count = Math.max(0, ...rows.map((row) => context.children.get(row.id)?.length ?? 0));
-  const columns = useMemo(() => tableColumns(count), [count]);
+  const cellsOf = (row: Block) => context.children.get(row.id) ?? [];
+  const count = Math.max(0, ...rows.map((row) => cellsOf(row).length));
+  const weights = Array.from({ length: count }, (_, index) =>
+    Math.min(60, Math.max(8, ...rows.map((row) => plain(cellsOf(row)[index]?.spans ?? []).length))),
+  );
+  const key = weights.join(",");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for `weights`.
+  const columns = useMemo(() => tableColumns(weights), [key]);
   const widths = useMemo(() => {
     const resolved = resolveColumnWidths(columns).columns;
     return columns.map((column) => {

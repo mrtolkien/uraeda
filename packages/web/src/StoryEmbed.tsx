@@ -122,8 +122,7 @@ function Bar({
         {children}
       </div>
       {/* Astryx's divider: a border of the app's own would write the atomic rule of a list's
-          dividers again, unlayered, and every list's last row would keep its divider. A hairline
-          only: the embed's one separator is its resize handle, which full screen has not. */}
+          dividers again, unlayered, and every list's last row would keep its divider. */}
       <Divider aria-hidden />
     </>
   );

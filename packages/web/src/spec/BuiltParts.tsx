@@ -14,7 +14,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
-import type { Block, Span } from "uraeda-binding";
+import type { Block } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Selectable } from "../Selection.tsx";
 import { plain, Spans } from "../Spans.tsx";
@@ -116,16 +116,6 @@ function parentsOf(props: PartProps, ids: ReadonlyArray<number>) {
   return new Set(ids.map((id) => props.document.blocks[id]?.parent));
 }
 
-/** Spans without the blanks they start with. */
-function trimmed(spans: ReadonlyArray<Span>): Array<Span> {
-  const [first, ...rest] = spans;
-  if (!first) {
-    return [];
-  }
-  const text = first.text.trimStart();
-  return text === "" ? trimmed(rest) : [{ ...first, text }, ...rest];
-}
-
 /** The blocks nested in an item, like its sub-bullets, drawn as the spec's blocks. */
 function Nested({ item, props }: { item: Block; props: PartProps }) {
   const ids = props.document.blocks.filter((b) => b.parent === item.id).map((b) => b.id);
@@ -163,7 +153,7 @@ function runsOf(props: PartProps, list: number, ours: ReadonlySet<number>) {
 
 /**
  * A unit of the architecture, a small card: its name, the bold spans it starts with, then what it
- * does, and the blocks nested in it.
+ * does, in the one paragraph it was written in, and the blocks nested in it.
  */
 function Unit({ item, props }: { item: Block; props: PartProps }) {
   const at = item.spans.findIndex((span) => !span.strong);
@@ -173,11 +163,11 @@ function Unit({ item, props }: { item: Block; props: PartProps }) {
     <Card padding={3} role="listitem" variant="muted" xstyle={styles.unit}>
       <Selectable block={item} selection={props.selection}>
         <VStack gap={1}>
-          <Text weight="semibold">
-            <Spans spans={name} />
-          </Text>
-          <Text color="secondary" type="supporting">
-            <Spans spans={trimmed(rest)} />
+          <Text display="block" type="inherit" xstyle={styles.reading}>
+            <Text type="inherit" weight="semibold">
+              <Spans spans={name} />
+            </Text>
+            <Spans spans={rest} />
           </Text>
           <Nested item={item} props={props} />
         </VStack>
@@ -208,7 +198,7 @@ function UnitGrid({ cards, props }: { cards: ReadonlyArray<Block>; props: PartPr
   return (
     <Grid
       aria-label="Units"
-      columns={props.wide ? Math.min(cards.length, 3) : 1}
+      columns={props.wide ? Math.min(cards.length, 2) : 1}
       gap={3}
       role="list"
     >

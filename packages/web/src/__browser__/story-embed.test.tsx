@@ -1,7 +1,7 @@
 // US1 of the UI iteration flow: a story link alone in its paragraph shows the story live, from the
 // branch's Storybook, at the desktop's width, or the phone's when chosen, in one frame a change of
 // width never reloads, framed as a phone's screen at its width; the phone's alone on a narrow screen
-// (US1.1, US1.2, US1.5). The handle sets its height, Full screen fills the screen, and in a
+// (US1.1, US1.2, US1.5). Full screen fills the screen, and in a
 // document's column it grows into the space beside it. It is shown in Uraeda's colour mode
 // (US1.4), in every workflow file (US1.6), with one Storybook for every page (US1.7, SC-001), and
 // through a listed host name (SC-006). The embed's states and edge cases: a failed start, a missing
@@ -134,23 +134,6 @@ describe("on a desktop, the embed's sizes", () => {
       Number.parseFloat(getComputedStyle(frame.parentElement!).borderTopWidth),
     ).toBeGreaterThan(0);
     expect(getComputedStyle(stage).backgroundColor).not.toBe(desktopBackground);
-  });
-
-  test("the handle under the story makes its frame taller or shorter, by keyboard too", async () => {
-    await commands.addStoryFeature();
-    await showSpec();
-    await storyShown(DESKTOP);
-    const frame = within(embed()).getByTitle(DESKTOP);
-    const before = frame.getBoundingClientRect().height;
-    const handle = within(embed()).getByRole("separator", { name: `Resize ${LABEL}` });
-
-    handle.focus();
-    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
-
-    await expect.poll(() => frame.getBoundingClientRect().height).toBeGreaterThan(before + 20);
-    const taller = frame.getBoundingClientRect().height;
-    await userEvent.keyboard("{ArrowUp}");
-    await expect.poll(() => frame.getBoundingClientRect().height).toBeLessThan(taller);
   });
 
   test("Full screen shows the story on the whole screen, and leaves it", async () => {
