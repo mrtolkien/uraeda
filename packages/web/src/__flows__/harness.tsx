@@ -354,7 +354,6 @@ export async function refreshUntil(check: () => void) {
   await waitFor(async () => {
     await act(async () => {
       document.dispatchEvent(new Event("visibilitychange"));
-      await new Promise((resolve) => setTimeout(resolve, 20));
       await settleRequests();
     });
     check();
