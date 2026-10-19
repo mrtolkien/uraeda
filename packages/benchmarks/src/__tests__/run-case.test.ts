@@ -65,7 +65,7 @@ type Harness = {
 };
 
 /** Deps over fakes: the real sandbox on a fake docker and ura, a fake agent, and a verifier that passes. */
-async function harness(options: { passes?: boolean } = {}): Promise<Harness> {
+async function harness(options: { finish?: boolean; passes?: boolean } = {}): Promise<Harness> {
   const image = temporary("benchmarks-image-");
   write(join(image, "app.py"), "a\n");
   const bin = fakeBin(image);
@@ -103,6 +103,7 @@ async function harness(options: { passes?: boolean } = {}): Promise<Harness> {
             execFileSync("git", ["commit", "-q", "-m", "work"], { cwd });
             execFileSync("git", ["push", "-q", "origin", branch], { cwd });
           },
+          ...(options.finish ? [finish] : []),
           result(),
         ]);
       } else {
@@ -157,6 +158,20 @@ async function harness(options: { passes?: boolean } = {}): Promise<Harness> {
 }
 
 const target = { approvedBy: "owner", suiteName: "first" };
+
+/** The finish step: the feature's folder becomes a record in `specs/done/`, and is pushed. */
+const finish = (cwd: string) => {
+  const branch = execFileSync("git", ["branch", "--show-current"], {
+    cwd,
+    encoding: "utf8",
+  }).trim();
+  mkdirSync(join(cwd, "specs/done"), { recursive: true });
+  writeFileSync(join(cwd, "specs/done", `${branch}.md`), "record\n");
+  execFileSync("git", ["rm", "-rq", `specs/${branch}`], { cwd });
+  execFileSync("git", ["add", "-A"], { cwd });
+  execFileSync("git", ["commit", "-q", "-m", "finish"], { cwd });
+  execFileSync("git", ["push", "-q", "origin", branch], { cwd });
+};
 
 test("US1.1 and SC-001: one command from approval to a record, with the proposal word for word", async () => {
   const h = await harness();
@@ -332,4 +347,16 @@ test("failures come first even when passing cases would span more repositories",
 
   expect(chosen.chosen.map((c) => c.id)).toEqual(["f1", "f4", "f6", "f2", "f3"]);
   expect(chosen).toMatchObject({ filled: [], repositories: 3 });
+});
+
+test("the spec and the folder are read from before the finish step replaced them with a record", async () => {
+  const h = await harness({ finish: true });
+
+  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: SUITE });
+
+  expect(readFileSync(join(folder, "specs/2026-10-19-c/spec.md"), "utf8")).toBe("accepts a list\n");
+  expect(readFileSync(join(folder, "specs/done/2026-10-19-c.md"), "utf8")).toBe("record\n");
+  expect(JSON.parse(readFileSync(join(folder, "scores.json"), "utf8")).requirements).toMatchObject({
+    covered: 1,
+  });
 });

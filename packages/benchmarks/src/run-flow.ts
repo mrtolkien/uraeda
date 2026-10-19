@@ -5,6 +5,7 @@ import { baselineFor } from "./baseline.ts";
 import type { Case } from "./case.ts";
 import type { Deps, RunTarget } from "./deps.ts";
 import { countRounds } from "./count.ts";
+import { featureSnapshot } from "./feature-folder.ts";
 import { finalDiff, runVerifier } from "./grader.ts";
 import { git } from "./git.ts";
 import { makeHuman } from "./human.ts";
@@ -30,10 +31,10 @@ export async function startFeature(repo: string, id: string, proposal: string): 
   return (await git(repo, ["branch", "--show-current"])).trim();
 }
 
-/** The approved spec of the feature, from the checkout, when the flow wrote one. */
-function readSpec(repo: string, feature: string): string | undefined {
+/** The approved spec of the feature, from its folder, when the flow wrote one. */
+function readSpec(specs: string, feature: string): string | undefined {
   try {
-    return readFileSync(join(repo, "specs", feature, "spec.md"), "utf8");
+    return readFileSync(join(specs, feature, "spec.md"), "utf8");
   } catch {
     return undefined;
   }
@@ -92,7 +93,17 @@ export async function runFlow(
       repo: sandbox.repo,
       upstream: found.upstream,
     });
-    const scores = await grade(deps, { feature, found, host, loop, proposal, sandbox, suite });
+    const specs = await featureSnapshot(sandbox.repo, feature, join(work, "snapshot"));
+    const scores = await grade(deps, {
+      feature,
+      found,
+      host,
+      loop,
+      proposal,
+      sandbox,
+      specs,
+      suite,
+    });
     const folder = runFolderPath(
       deps.root,
       nextRunFolder(deps, { arm: "uraeda", case: found.id, suite: options.suiteName }),
@@ -122,7 +133,7 @@ export async function runFlow(
       diff: await finalDiff(sandbox.repo, sandbox.base),
       record,
       scores: scores.scores,
-      specs: join(sandbox.repo, "specs"),
+      specs,
     });
     return folder;
   } finally {
@@ -140,6 +151,7 @@ async function grade(
     loop: Awaited<ReturnType<typeof runLoop>>;
     proposal: string;
     sandbox: Awaited<ReturnType<Deps["prepareSandbox"]>>;
+    specs: string;
     suite: Suite;
   },
 ): Promise<{ scores: Scores; steps: Array<ReturnType<typeof stepOf>> }> {
@@ -150,8 +162,8 @@ async function grade(
     fetchTests: deps.fetchTests,
     patch: await finalDiff(sandbox.repo, sandbox.base),
   });
-  const counts = countRounds(join(sandbox.repo, "specs", context.feature), loop.steps);
-  const spec = readSpec(sandbox.repo, context.feature);
+  const counts = countRounds(join(context.specs, context.feature), loop.steps);
+  const spec = readSpec(context.specs, context.feature);
   if (spec === undefined) {
     return { scores: { ...counts, tests }, steps: [] };
   }

@@ -184,3 +184,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: keeping the invalid run: its cause was the runner's, not the flow's.
 - **If wrong**: nothing stored depends on it: a missing `reason` still parses.
 - **Where**: task 8, `human.ts` and `loop.ts`; task 3, `record.ts`.
+
+## R14: The spec is read from before the finish step
+
+- **Decision**: a flow that goes through the finish step replaces its feature folder with a record
+  in `specs/done/`, so the run's `specs/` copy, the question counts, and the judge's spec come from
+  the commit before the folder was removed (`feature-folder.ts`), laid over the project's `specs/`.
+  The first flow run to finish was graded without requirements for this reason, and run again.
+- **Rationale**: the spec's US4: the judge checks the approved spec; the decision keeps `specs/`.
+- **Alternatives considered**: the record's text as the spec: it is a summary, not what was
+  approved.
+- **If wrong**: a flow that never finishes keeps its folder, which is read as it is.
+- **Where**: task 10, `feature-folder.ts` and `run-flow.ts`.
