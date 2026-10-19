@@ -32,6 +32,8 @@ export type SandboxOptions = {
   constitution: string;
   effort: string;
   model: string;
+  /** Whether the project gets a `specs/` folder and a constitution: the plain arm has none. */
+  specs?: boolean;
   /** A folder of this run's, which `close` removes. Made when missing. */
   work?: string;
 };
@@ -56,7 +58,11 @@ export async function prepareSandbox(options: SandboxOptions): Promise<Sandbox> 
   };
   try {
     await copyRepository(options.case, repo, label);
-    const base = await prepareGit(repo, bareOrigin, options.constitution);
+    const base = await prepareGit(
+      repo,
+      bareOrigin,
+      options.specs === false ? undefined : options.constitution,
+    );
     const configDir = makeConfigDir({
       deniedHosts: upstreamHosts(options.case.upstream),
       effort: options.effort,
@@ -105,7 +111,11 @@ async function copyRepository(found: Case, repo: string, label: string): Promise
  * agent can push to. The feature starts in this checkout, not a worktree: a worktree's absolute
  * paths would not hold in the container's mount.
  */
-async function prepareGit(repo: string, bareOrigin: string, constitution: string): Promise<string> {
+async function prepareGit(
+  repo: string,
+  bareOrigin: string,
+  constitution: string | undefined,
+): Promise<string> {
   const fresh = !existsSync(join(repo, ".git"));
   if (fresh) {
     await git(repo, ["init", "-q", "-b", "main"]);
@@ -117,10 +127,12 @@ async function prepareGit(repo: string, bareOrigin: string, constitution: string
     await git(repo, ["commit", "-q", "--allow-empty", "-m", "base"]);
   }
   const base = (await git(repo, ["rev-parse", "HEAD"])).trim();
-  await run("ura", ["init", "--no-input"], repo);
-  copyFileSync(constitution, join(repo, "specs/CONSTITUTION.md"));
-  await git(repo, ["add", "specs"]);
-  await git(repo, ["commit", "-q", "-m", "specs"]);
+  if (constitution !== undefined) {
+    await run("ura", ["init", "--no-input"], repo);
+    copyFileSync(constitution, join(repo, "specs/CONSTITUTION.md"));
+    await git(repo, ["add", "specs"]);
+    await git(repo, ["commit", "-q", "-m", "specs"]);
+  }
   await git(bareOrigin.replace(/\/[^/]*$/, ""), ["init", "-q", "--bare", bareOrigin]);
   await git(repo, ["remote", "add", "origin", bareOrigin]);
   const branch = (await git(repo, ["branch", "--show-current"])).trim();

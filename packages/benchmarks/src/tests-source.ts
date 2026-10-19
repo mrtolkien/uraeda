@@ -31,3 +31,12 @@ export async function fetchInstruction(task: string, ref = "main"): Promise<stri
   }
   return response.text();
 }
+
+/** Downloads a V2 task's reference patch, which screening runs the tests against. */
+export async function fetchGold(task: string, ref = "main"): Promise<string> {
+  const response = await fetch(`${RAW}/${ref}/v2/tasks/${task}/solution/gold_patch.diff`);
+  if (!response.ok) {
+    throw new Error(`${task}: gold_patch.diff: ${response.status}`);
+  }
+  return response.text();
+}

@@ -1008,7 +1008,7 @@ git commit -m "feat(benchmarks): grade the tests and the requirements"
   then `gradeTests`. `baselineFor(case, root)` returns the existing plain run whose image digest
   equals the case's, or none.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("US1.1: starts a feature whose proposal is the case's proposal, word for word", async () => {
@@ -1064,12 +1064,12 @@ The break each test catches:
 - The baselines: a plain run per flow run, or a stale one compared with a new image.
 - The screening: five cases from one repository, or a screening run mistaken for the baseline.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks/src/__tests__/run-case.test.ts`
 - Expected: FAIL, `Cannot find module '../run-case.ts'`
 
-- [ ] **Step 3: Implement the command**
+- [x] **Step 3: Implement the command**
 
 The candidates' folders come from the five tasks the [spec's assumptions](spec.md#assumptions) name,
 with the five more of the hard subset's list, read from the dataset: write each `case.toml` and the
@@ -1077,12 +1077,12 @@ with the five more of the hard subset's list, read from the dataset: write each 
 `benchmarks/README.md`: what is measured, how to run it and who must approve it, the prerequisites
 (Docker, the token from `claude setup-token`), and how to read the page.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/benchmarks benchmarks AGENTS.md specs/2026-10-19-benchmarks/plan.md

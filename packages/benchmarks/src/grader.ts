@@ -28,19 +28,19 @@ export function requiredTests(config: Record<string, unknown>): Array<string> {
   return [...new Set([...listOf(config.fail_to_pass), ...listOf(config.pass_to_pass)])];
 }
 
+type Docker = (args: Array<string>) => Promise<string>;
+type FetchTests = (task: string, folder: string) => Promise<void>;
+
 /**
- * Runs the task's hidden tests on the final diff, in a fresh container of the case's image. The
- * diff is the branch against `base`, without the `specs/` folder. The verifier is fetched here, after
- * the flow ended, into a folder of its own that no session ever had mounted or as its working
- * directory.
+ * Runs the task's verifier on `patch` in a fresh container of the case's image. The verifier is
+ * fetched here, after any flow ended, into a folder of its own that no session ever had mounted or
+ * as its working directory. An empty patch changes nothing, so no container starts.
  */
-export async function gradeTests(options: {
-  base: string;
+export async function runVerifier(options: {
   case: Case;
-  /** Runs a command: `docker`, in the real grader. */
-  docker?: (args: Array<string>) => Promise<string>;
-  fetchTests: (task: string, folder: string) => Promise<void>;
-  repo: string;
+  docker?: Docker;
+  fetchTests: FetchTests;
+  patch: string;
 }): Promise<Scores["tests"]> {
   const docker = options.docker ?? ((args) => run("docker", args));
   const work = mkdtempSync(join(tmpdir(), "benchmarks-grade-"));
@@ -52,19 +52,10 @@ export async function gradeTests(options: {
       unknown
     >;
     const required = requiredTests(config);
-    const diff = await git(options.repo, [
-      "diff",
-      "--binary",
-      options.base,
-      "HEAD",
-      "--",
-      ".",
-      ":(exclude)specs",
-    ]);
-    if (diff.trim() === "") {
+    if (options.patch.trim() === "") {
       return { passed: 0, resolved: false, total: required.length };
     }
-    writeFileSync(join(work, "model.patch"), diff);
+    writeFileSync(join(work, "model.patch"), options.patch);
     const logs = join(work, "logs");
     mkdirSync(logs);
     await docker([
@@ -86,6 +77,23 @@ export async function gradeTests(options: {
   } finally {
     rmSync(work, { force: true, recursive: true });
   }
+}
+
+/** The branch's diff against `base`, without the `specs/` folder: what the verifier grades. */
+export function finalDiff(repo: string, base: string): Promise<string> {
+  return git(repo, ["diff", "--binary", base, "HEAD", "--", ".", ":(exclude)specs"]);
+}
+
+/** Runs the task's hidden tests on the branch's final diff. */
+export async function gradeTests(options: {
+  base: string;
+  case: Case;
+  docker?: Docker;
+  fetchTests: FetchTests;
+  repo: string;
+}): Promise<Scores["tests"]> {
+  const { base, repo, ...rest } = options;
+  return runVerifier({ ...rest, patch: await finalDiff(repo, base) });
 }
 
 /** The tests that passed, from the verifier's `output.json`; none when it wrote none. */

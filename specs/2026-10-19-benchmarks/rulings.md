@@ -139,3 +139,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a task whose `test.sh` needs the network or another path shows as 0 passed: its run
   folder holds no log, so the first real grade of each case is read by hand.
 - **Where**: task 9, `grader.ts`, `judge.ts`, `tests-source.ts`.
+
+## R11: How a run is started, graded, and paired
+
+- **Decision**: a flow run writes the case's proposal as a draft, commits it, and runs
+  `ura start --switch`, so the feature lives in the checkout the container mounts, on the branch
+  `ura` names. The plain arm's prompt is the proposal followed by one line, "Implement this in the
+  repository in the current directory.", in a repository with no `specs/` folder, whose work the
+  runner commits on the host before grading. A flow run first makes the case's baseline when
+  `baselineFor` finds none for the task and image digest, outside a screening suite. The approval is
+  a command-line flag only, never read from the environment, so no tool sets it by accident. The
+  runner has no cost cap and no wall-clock cap, as the spec says.
+- **Rationale**: spec's US1, US3, and its assumptions.
+- **Alternatives considered**: a separate command for the baseline: the spec pairs them.
+- **If wrong**: a run that needs another prompt for the plain arm changes `plainPrompt`.
+- **Where**: task 10.

@@ -23,7 +23,16 @@ case "$1" in
   ps) : ;;
 esac`,
   );
-  script("ura", `mkdir -p specs/drafts specs/decisions && touch specs/PRIORITIES.md`);
+  // `ura start <draft> --slug <slug> --switch` moves the draft to a feature folder on its own
+  // branch, as the real one does.
+  script(
+    "ura",
+    `case "$1" in
+  init) mkdir -p specs/drafts specs/decisions && touch specs/PRIORITIES.md ;;
+  start) mkdir -p "specs/2026-10-19-$2" && git mv "specs/drafts/$2.md" "specs/2026-10-19-$2/proposal.md" \
+    && git checkout -q -b "2026-10-19-$2" && git commit -q -am proposal ;;
+esac`,
+  );
   return {
     bin,
     calls: () =>
