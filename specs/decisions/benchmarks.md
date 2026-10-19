@@ -41,14 +41,14 @@ would, and the results in git are plain text.
 Benchmarks of a workflow with human gates do not exist yet, so this one sets its own protocol. A
 human decides when it spends usage, and a pinned skill, model, and recorded versions make runs
 comparable
-([cost and approval](../2026-10-19-benchmarks/clarifications-01.md#q9-how-many-runs-and-with-what-budget)).
-The simulated human is a stand-in for the human of the gates, and what it knows decides what the
+([cost and approval](../done/2026-10-19-benchmarks.md#q9-how-many-runs-and-with-what-budget)). The
+simulated human is a stand-in for the human of the gates, and what it knows decides what the
 benchmark measures
-([what it knows](../2026-10-19-benchmarks/clarifications-01.md#q5-what-does-the-simulated-human-know)).
-The adapter keeps one home for each agent
-([how agents are reached](../2026-10-19-benchmarks/clarifications-01.md#q4-how-does-the-benchmark-reach-the-agents)).
+([what it knows](../done/2026-10-19-benchmarks.md#q5-what-does-the-simulated-human-know)). The
+adapter keeps one home for each agent
+([how agents are reached](../done/2026-10-19-benchmarks.md#q4-how-does-the-benchmark-reach-the-agents)).
 Plain text in git keeps results reviewable, and transcripts of megabytes stay out
-([what is committed](../2026-10-19-benchmarks/clarifications-01.md#q11-what-is-committed-to-the-repository)).
+([what is committed](../done/2026-10-19-benchmarks.md#q11-what-is-committed-to-the-repository)).
 
 ## Alternatives considered
 

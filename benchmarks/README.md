@@ -4,7 +4,7 @@ Real tasks run through Uraeda's whole workflow, with Claude Code playing the age
 each beside a plain Claude Code run on the same task. Every run is saved here, with the versions
 that produced it. Five cases show gross failures and large gains, never a score.
 
-The design is in [the spec](/specs/2026-10-19-benchmarks/spec.md) and the
+The design is in [its record](/specs/done/2026-10-19-benchmarks.md) and the
 [Benchmarks decision](/specs/decisions/benchmarks.md), and the code in
 [`packages/benchmarks/`](/packages/benchmarks/).
 
