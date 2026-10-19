@@ -1,33 +1,29 @@
-// The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
+// The browser checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
-// runs never start Claude Code. The root's config lists this project next to the others.
+// runs never start Claude Code. Only what needs a real layout runs here (the page checks of every
+// page, the lists' keys, the reading place, the sheets, the columns): the rest is in happy-dom,
+// under `src/__flows__/`. The root's config lists this project next to the others.
 // First: a binding older than the Rust core is rebuilt before the imports below load it.
 import "uraeda-server/fresh-binding";
-import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
 import { addFeaturePages } from "./.storybook/featurePages.ts";
 import {
   addChange,
   addPlan,
-  addSpecFeature,
-  addStoryFeature,
   commitOnBranch,
   ELEVEN,
   fixture,
-  previewStarts,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
-import { devFrames, reloadRepositories } from "uraeda-server/dev";
+import { reloadRepositories } from "uraeda-server/dev";
 import { freePort } from "uraeda-server/free-port";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
-import { defineConfig, type Plugin, type PluginOption } from "vite-plus";
-import { forwardingProxy } from "./src/__browser__/forwarding-proxy.ts";
+import { defineConfig, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "./vite.config.ts";
-import { setColorScheme, setReducedMotion } from "./vite.browser.color-scheme.ts";
+import { setColorScheme } from "./vite.browser.color-scheme.ts";
 
 const plugins = (base.plugins ?? []).filter(
   (plugin: PluginOption) => !(plugin && "name" in plugin && plugin.name === "uraeda-server"),
@@ -53,51 +49,9 @@ function repoFolder(): string {
   return shared.uraedaRepo!.path;
 }
 
-type Context = { frame: () => Promise<Frame>; page: Page };
-/** The roles `frameClick` clicks in a frame. */
-type FrameRole = "button" | "separator";
-
 /** The test server's agent, which the tests that follow a session drive. */
 const agent = new FakeAdapter();
 type AgentEvent = Parameters<FakeAdapter["emit"]>[0];
-
-/** How long the server waits before it serves a chat image: a slow network, for a test. */
-let chatImageDelay = 0;
-
-/** The log of the test feature's fake preview, which records each start, once it is added. */
-let previewLog: string | undefined;
-
-/** The host name SC-006's test reaches the test server through, listed as an allowed host. */
-const LISTED_HOST = "uraeda.test";
-process.env.URAEDA_ALLOWED_HOSTS = LISTED_HOST;
-
-/**
- * The frame of the test's page whose element's `title` is `title`, as Playwright reaches it: a
- * sandboxed frame too, which the page itself cannot read.
- */
-async function frameTitled(context: Context, title: string): Promise<Frame> {
-  const page = await context.frame();
-  const element = await page.locator(`iframe[title="${title}"]`).elementHandle({ timeout: 10_000 });
-  const frame = await element?.contentFrame();
-  if (!frame) {
-    throw new Error(`No frame titled ${title}`);
-  }
-  return frame;
-}
-
-/** Holds the chat images' answers for `chatImageDelay`, before the server answers them. */
-const slowChatImages: Plugin = {
-  configureServer(server) {
-    server.middlewares.use((request, _response, next) => {
-      if (chatImageDelay > 0 && /^\/r\/[^/]+\/chat-images\//.test(request.url ?? "")) {
-        setTimeout(next, chatImageDelay);
-      } else {
-        next();
-      }
-    });
-  },
-  name: "slow-chat-images",
-};
 
 const commands = {
   /**
@@ -118,8 +72,6 @@ const commands = {
     await reloadRepositories();
     shared.uraedaRepo = { name: repository.name, path };
     agent.sent = [];
-    chatImageDelay = 0;
-    previewLog = undefined;
     // A turn whose test gave up waiting for it is never released by that test: it ends once longer
     // than any test and its hooks, so one stuck test does not hold up every one after it.
     setTimeout(() => void commands.releaseRepo(undefined, token), 120_000).unref();
@@ -156,30 +108,9 @@ const commands = {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, text);
   },
-  /** The size of a file of the repository in bytes, or -1 when it does not exist. */
-  repoFileSize(_context: unknown, path: string) {
-    const file = join(repoFolder(), path);
-    return existsSync(file) ? statSync(file).size : -1;
-  },
-  /** The files committed under `path` at the head of the repository's folder `at`, a worktree's. */
-  committedFiles(_context: unknown, at: string, path: string) {
-    const listed = execFileSync("git", ["ls-tree", "-r", "--name-only", "HEAD", "--", path], {
-      cwd: join(repoFolder(), at),
-      encoding: "utf8",
-    });
-    return listed.split("\n").filter(Boolean);
-  },
-  /** A file of `fixtures/images/`, in base64: the tests drop and paste it as the human would. */
-  fixtureImage(_context: unknown, name: string) {
-    return readFileSync(join(fixture("images"), name)).toString("base64");
-  },
   /** A text file of `fixtures/`, like the inbox's triage, to write in the repository. */
   fixtureText(_context: unknown, name: string) {
     return readFileSync(fixture(name), "utf8");
-  },
-  /** Serves the chat images `ms` late, until the test ends. */
-  slowChatImages(_context: unknown, ms: number) {
-    chatImageDelay = ms;
   },
   /** Commits a plan of 11 tasks on a feature's branch, the 7th, "Session column", current. */
   addPlan(_context: unknown, folder: string) {
@@ -193,143 +124,9 @@ const commands = {
   addChange(_context: unknown, folder: string, files: Record<string, string>) {
     addChange(repoFolder(), folder, files);
   },
-  /**
-   * Adds the test feature, `2026-10-20-sidebar-resize`, whose spec and proposal link a story, with
-   * a preview decision on the fake preview, as `addStoryFeature` does.
-   */
-  addStoryFeature(_context: unknown, options: Parameters<typeof addStoryFeature>[1] = {}) {
-    previewLog = addStoryFeature(repoFolder(), options).log;
-  },
-  /**
-   * Adds the spec page's feature, `2026-10-17-spec-page`, with its decisions changed on its branch,
-   * as `addSpecFeature` does.
-   */
-  addSpecFeature(_context: unknown, options: Parameters<typeof addSpecFeature>[1] = {}) {
-    addSpecFeature(repoFolder(), options);
-  },
   /** Adds the feature page's features, one per state, as `addFeaturePages` does. */
   addFeaturePages() {
     addFeaturePages(repoFolder());
-  },
-  /** Each start of the test feature's fake preview: its base path, folder, process, and port. */
-  previewStarts() {
-    return previewLog === undefined ? [] : previewStarts(previewLog);
-  },
-  /** The frame secret of the test server's preview paths, which fate gives the page. */
-  async frameSecret(context: Context) {
-    const frames = await devFrames(Number(new URL(context.page.url()).port));
-    return frames!.current();
-  },
-  /** Kills the test feature's running fake preview, as a crash would: its Storybook fails. */
-  stopPreview() {
-    const last = previewLog === undefined ? undefined : previewStarts(previewLog).at(-1);
-    if (last !== undefined) {
-      process.kill(last.pid, "SIGKILL");
-    }
-  },
-  /** The text of a frame of the page, by its `title`, or "" while it has none. */
-  async frameText(context: Context, title: string) {
-    const frame = await frameTitled(context, title);
-    return frame
-      .locator("body")
-      .innerText({ timeout: 1000 })
-      .catch(() => "");
-  },
-  /**
-   * The text of a frame inside a frame of the page, both by their `title`, as Storybook's story
-   * inside its own interface, or "" while it has none.
-   */
-  async innerFrameText(context: Context, title: string, inner: string) {
-    const frame = await frameTitled(context, title);
-    return frame
-      .locator(`iframe[title="${inner}"]`)
-      .contentFrame()
-      .locator("body")
-      .innerText({ timeout: 1000 })
-      .catch(() => "");
-  },
-  /** Clicks the element of a role, and name, in a frame by its `title`; a disabled one, forced. */
-  async frameClick(
-    context: Context,
-    title: string,
-    role: FrameRole,
-    name?: string,
-    force?: boolean,
-  ) {
-    await (await frameTitled(context, title)).getByRole(role, { name }).click({ force });
-  },
-  /**
-   * Moves the pointer over the element of a role and name in a frame of the page, by its `title`,
-   * and says whether the pick script outlines it: a box drawn over the page, at the element's place.
-   */
-  async frameOutlined(context: Context, title: string, role: FrameRole, name?: string) {
-    const target = (await frameTitled(context, title)).getByRole(role, { name });
-    await target.hover();
-    return target.evaluate((element) => {
-      const box = element.getBoundingClientRect();
-      return [...document.documentElement.children].some((child) => {
-        const drawn = child.getBoundingClientRect();
-        return (
-          child !== document.body &&
-          getComputedStyle(child).position === "fixed" &&
-          Math.abs(drawn.left - box.left) < 1 &&
-          Math.abs(drawn.top - box.top) < 1 &&
-          Math.abs(drawn.width - box.width) < 1 &&
-          Math.abs(drawn.height - box.height) < 1
-        );
-      });
-    });
-  },
-  /** Presses a key in a frame of the page, by its `title`, its body focused, as the human does. */
-  async framePress(context: Context, title: string, key: string) {
-    await (await frameTitled(context, title)).locator("body").press(key);
-  },
-  /** An attribute of the element `selector` finds in a frame of the page, by its `title`. */
-  async frameAttribute(context: Context, title: string, selector: string, name: string) {
-    const frame = await frameTitled(context, title);
-    return frame
-      .locator(selector)
-      .getAttribute(name, { timeout: 1000 })
-      .catch(() => null);
-  },
-  /** Runs a script in a frame of the page, by its `title`, as the story's own code would. */
-  async frameRun(context: Context, title: string, script: string) {
-    await (await frameTitled(context, title)).evaluate(script);
-  },
-  /** Reloads a frame of the page, by its `title`, as Storybook does, and waits for its load. */
-  async frameReload(context: Context, title: string) {
-    const frame = await frameTitled(context, title);
-    await Promise.all([
-      frame.waitForNavigation({ waitUntil: "load" }),
-      frame.evaluate(() => setTimeout(() => window.location.reload())),
-    ]);
-  },
-  /**
-   * Opens a page of the test's repository in a new browser whose requests all go through a
-   * forwarding proxy, under the listed host name, and gives the text of a frame of it, by its
-   * `title`, once it holds `text`.
-   */
-  async openThroughHost(context: Context, path: string, title: string, text: string) {
-    const port = Number(new URL(context.page.url()).port);
-    const proxy = await forwardingProxy(port);
-    const browser = context.page.context().browser()!;
-    // At the desktop project's size: the embed loads once on screen, which it is scrolled to.
-    const opened = await browser.newContext({
-      proxy: { server: `http://127.0.0.1:${proxy.port}` },
-      viewport: { height: 900, width: 1440 },
-    });
-    try {
-      const page = await opened.newPage();
-      await page.goto(`http://${LISTED_HOST}:${port}/r/${shared.uraedaRepo!.name}${path}`);
-      // Scrolled to, as the reader scrolls to its story: the spec page opens with what you approve.
-      await page.locator(`iframe[title="${title}"]`).scrollIntoViewIfNeeded({ timeout: 20_000 });
-      const body = page.locator(`iframe[title="${title}"]`).contentFrame().locator("body");
-      await body.filter({ hasText: text }).waitFor({ timeout: 20_000 });
-      return await body.innerText();
-    } finally {
-      await opened.close();
-      proxy.close();
-    }
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
@@ -353,93 +150,29 @@ const commands = {
       agent.emit(event);
     }
   },
-  /** Ends the agent's current process. */
-  agentFinish(_context: unknown, code = 0, stderr = "") {
-    agent.exit(code, stderr);
-  },
-  /**
-   * Real mouse moves, presses, and releases, at points of the test's page, which the browser
-   * shows in a frame of its own.
-   */
-  async mouse(
-    context: Context,
-    steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
-  ) {
-    const frame = await context.frame();
-    const box = await (await frame.frameElement()).boundingBox();
-    const width = await frame.evaluate(() => window.innerWidth);
-    const scale = box ? box.width / width : 1;
-    for (const step of steps) {
-      if (step.type === "move") {
-        await context.page.mouse.move(
-          (box?.x ?? 0) + step.x! * scale,
-          (box?.y ?? 0) + step.y! * scale,
-          { steps: 4 },
-        );
-      } else if (step.type === "down") {
-        await context.page.mouse.down();
-      } else if (step.type === "up") {
-        await context.page.mouse.up();
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, step.ms));
-      }
-    }
-  },
 };
 
 export type RepoCommands = {
   addChange: (folder: string, files: Record<string, string>) => Promise<void>;
   addFeaturePages: () => Promise<void>;
   addPlan: (folder: string) => Promise<void>;
-  addSpecFeature: (options?: Parameters<typeof addSpecFeature>[1]) => Promise<void>;
-  addStoryFeature: (options?: Parameters<typeof addStoryFeature>[1]) => Promise<void>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
-  agentFinish: (code?: number, stderr?: string) => Promise<void>;
   agentSent: () => Promise<
     Array<{ id: string; images: Array<string>; text: string; when: string }>
   >;
   commitOnBranch: (branch: string, files: Record<string, string | null>) => Promise<void>;
-  committedFiles: (at: string, path: string) => Promise<Array<string>>;
-  fixtureImage: (name: string) => Promise<string>;
   fixtureText: (name: string) => Promise<string>;
-  frameAttribute: (title: string, selector: string, name: string) => Promise<string | null>;
-  frameClick: (title: string, role: FrameRole, name?: string, force?: boolean) => Promise<void>;
-  frameOutlined: (title: string, role: FrameRole, name?: string) => Promise<boolean>;
-  framePress: (title: string, key: string) => Promise<void>;
-  frameReload: (title: string) => Promise<void>;
-  frameRun: (title: string, script: string) => Promise<void>;
-  frameSecret: () => Promise<string>;
-  frameText: (title: string) => Promise<string>;
-  innerFrameText: (title: string, inner: string) => Promise<string>;
-  mouse: (
-    steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
-  ) => Promise<void>;
-  openThroughHost: (path: string, title: string, text: string) => Promise<string>;
-  previewStarts: () => Promise<Array<{ base: string; cwd: string; pid: number; port: number }>>;
   readRepo: (path?: string) => Promise<string>;
   releaseRepo: (token: number) => Promise<void>;
-  repoFileSize: (path: string) => Promise<number>;
-  slowChatImages: (ms: number) => Promise<void>;
-  stopPreview: () => Promise<void>;
   takeRepo: () => Promise<{ name: string; token: number }>;
   writeRepo: (text: string, path?: string) => Promise<void>;
 };
 
 export default defineConfig({
   ...base,
-  plugins: [
-    ...plugins,
-    slowChatImages,
-    // SC-006's page, under the listed host name, is its own origin, which the guard allows.
-    uraedaServer({
-      adapter: agent,
-      allowOrigins: (port) => [`http://${LISTED_HOST}:${port}`],
-      signIn: false,
-    }),
-  ],
-  // Vite answers the listed host name too (R12).
-  server: { ...base.server, allowedHosts: [LISTED_HOST], strictPort: false },
+  plugins: [...plugins, uraedaServer({ adapter: agent, signIn: false })],
+  server: { ...base.server, strictPort: false },
   // StyleX's runtime injection is imported by the compiled styles, which Vite finds only once the
   // tests run: bundled late, on a cold cache, it reloads the browser and fails the test files.
   // `pele` too, which a diagram imports on demand only.
@@ -459,7 +192,7 @@ export default defineConfig({
     fileParallelism: false,
     // WebKit, at a phone's size and a desktop's.
     browser: {
-      commands: { ...commands, setColorScheme, setReducedMotion },
+      commands: { ...commands, setColorScheme },
       enabled: true,
       headless: true,
       // Times read in UTC, as the UI tests' (see `vite.config.ts`): a feature's stages cross midnight
