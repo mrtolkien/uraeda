@@ -89,10 +89,10 @@ skill's reference files only. See the [spec's architecture](spec.md#architecture
 
 | I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional | VI. Checked code |
 | -------------------- | -------------- | ---------- | ----------------- | ----------------- | ---------------- |
-| ✅                   | ✅             | ✅         | ✅                | ✅                | ⚠️               |
+| ✅                   | ✅             | ✅         | ✅                | ✅                | ✅               |
 
-VI: the spec narrows the tests' scope, which the constitution forbids until the human amends it.
-Task 1 stops the build until its text holds the amendment.
+VI: the human amended it to 2.0.0 before the build, so the narrowed test scope is allowed. Task 1
+checked it.
 
 ## Complexity tracking
 
@@ -160,7 +160,7 @@ unchanged server, so a server flow and a web flow do not share code.
 
 - Produces: the go-ahead of the build.
 
-- [ ] **Step 1: Check the constitution's rule VI**
+- [x] **Step 1: Check the constitution's rule VI**
 
 Read `specs/CONSTITUTION.md`. The build continues only if rule VI requires tests of the behaviour
 that matters (a story's main scenarios, `high` edge cases, and success criteria), forbids a test
