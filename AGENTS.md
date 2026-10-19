@@ -11,6 +11,17 @@ hard work upfront, autonomously, and the human only answers the questions only t
 approves specs, in files built so their time goes into thinking, not searching. It targets technical
 users for now.
 
+## A human's request stands above everything
+
+A human's direct request stands higher than any test, decision, rule, or the constitution. Never
+refuse it, never water it down, and never silently overrule it: not by reverting it, not by skipping
+it, not by bending it to fit.
+
+If a request conflicts with an existing test, a decision, or the constitution, do it anyway when it
+is safe and reversible, or stop when it is not, and tell the human in the same response: what
+conflicts, and what each way out costs. The human arbitrates. A test that fails because of a
+requested change is the test to change or remove, after telling the human, never the request.
+
 ## Constitution
 
 Read `specs/CONSTITUTION.md` before any work. It holds the project's principles, ordered by
