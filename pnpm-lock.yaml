@@ -224,6 +224,16 @@ importers:
         specifier: 'catalog:'
         version: 1.0.0(@types/node@24.19.1)(@vitest/browser-playwright@5.0.1)(@vitest/coverage-v8@5.0.1)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.6)(jiti@2.7.0)(typescript@6.0.3)
 
+  packages/benchmarks:
+    dependencies:
+      uraeda-server:
+        specifier: workspace:*
+        version: link:../server
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.1
+        version: 24.19.1
+
   packages/binding:
     devDependencies:
       '@napi-rs/cli':

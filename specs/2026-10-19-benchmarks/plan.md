@@ -222,9 +222,10 @@ tools.
 The probe checks, against one real V2 image of the smallest candidate (`ansible`, about 700 MB),
 what the spec marks as not verified:
 
-1. The image runs under local Docker, and the host's `claude` binary and `ura`, mounted read-only,
-   start inside it (`claude --version`, `ura --version`). If the binary does not run there, the
-   fallback is installing Claude Code in a layer built on the image: record which one worked.
+1. The image runs under local Docker, and the host's `claude` binary, mounted read-only, starts
+   inside it beside `git` (`claude --version`; `ura` needs a newer glibc than the image has, see
+   R1). If the binary does not run there, the fallback is installing Claude Code in a layer built on
+   the image: record which one worked.
 2. A fresh `CLAUDE_CONFIG_DIR` answers "Not logged in" from inside the container, so the folder is
    isolated.
 3. With `CLAUDE_CODE_OAUTH_TOKEN` set: a `claude -p` session in the container with a fresh
@@ -233,7 +234,7 @@ what the spec marks as not verified:
 4. With the token: a session in `--permission-mode auto` runs the repository's own test command and
    edits a file without a block, and a run of ten such commands lists how many `auto` blocked.
 
-- [ ] **Step 1: Write the probe's unit tests, and the helpers they use**
+- [x] **Step 1: Write the probe's unit tests, and the helpers they use**
 
 ```ts
 // packages/benchmarks/src/__tests__/probe.test.ts
@@ -257,18 +258,18 @@ The break each test catches:
 - The failed check: a probe that reports success while a check failed.
 - The skipped check: a missing token counted as a pass, which would unlock the later tasks falsely.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/benchmarks`
 - Expected: FAIL, `Cannot find module '../probe.ts'` or `runProbe is not a function`
 
-- [ ] **Step 3: Implement `runProbe` and `scripts/probe.ts`**
+- [x] **Step 3: Implement `runProbe` and `scripts/probe.ts`**
 
 `runProbe({checks, env})` runs the checks in order and returns `{exitCode, lines}`: `0` when all
 passed, `1` when one failed, `2` when none failed and one was skipped for the token. The script
 holds the four checks above, through `docker` and the real `claude`. It never prints the token.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp check && nix develop -c vp test packages/benchmarks`
 - Expected: PASS
