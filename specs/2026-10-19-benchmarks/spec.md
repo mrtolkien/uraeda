@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Benchmarks
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Changes requested on 2026-10-19: 4 comments in spec-review.md.
 >
 > - You approve a benchmark of the full flow on five SWE-bench Pro V2 cases, run with Sonnet 5.5 for
 >   every role, and compared with a plain Claude Code run. Its runner and results live in
