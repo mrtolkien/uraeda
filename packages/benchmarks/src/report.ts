@@ -5,6 +5,7 @@ import { openBrowser } from "uraeda-server/browser";
 import { isBaseline } from "./baseline.ts";
 import type { ListedRun } from "./recorder.ts";
 import { listRuns } from "./recorder.ts";
+import { matrixSection } from "./report-matrix.ts";
 import { REPORT_STYLE } from "./report-style.ts";
 
 const escape = (value: string | number) =>
@@ -176,7 +177,7 @@ export function renderReport(runs: Array<ListedRun>, now = new Date()): string {
   const sections = ordered.map(([name, suiteRuns], index) =>
     suiteSection(name, suiteRuns, index === 0, baselines),
   );
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Uraeda benchmarks</title><style>${REPORT_STYLE}</style></head><body><main><h1>Uraeda benchmarks</h1><p class="lede">Latest suite first. Five cases show gross failures and large gains, never a score.</p>${sections.join("")}<footer>Generated from benchmarks/runs/ on ${now.toISOString().slice(0, 16).replace("T", " at ")}.</footer></main></body></html>\n`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Uraeda benchmarks</title><style>${REPORT_STYLE}</style></head><body><main><h1>Uraeda benchmarks</h1><p class="lede">The latest results first, then each suite, newest first. Five cases show gross failures and large gains, never a score.</p>${matrixSection(runs)}${sections.join("")}<footer>Generated from benchmarks/runs/ on ${now.toISOString().slice(0, 16).replace("T", " at ")}.</footer></main></body></html>\n`;
 }
 
 export type ReportResult = { empty: true } | { opened: boolean; path: string };

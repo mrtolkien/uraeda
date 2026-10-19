@@ -115,3 +115,46 @@ test("the screening comes after the suites that were run, though its folder name
   expect(html.match(/class="latest"/g)).toHaveLength(1);
   expect(html.indexOf('class="latest"')).toBeLessThan(html.indexOf("screening · 2026-10-19"));
 });
+
+/** A run of a case, on a model and effort, in a suite folder. */
+function configured(
+  folder: string,
+  caseId: string,
+  arm: "uraeda" | "plain",
+  model: string,
+  effort: string,
+  resolved: boolean,
+): ListedRun {
+  const made = run(folder, caseId, arm, { resolved });
+  made.record.models.asked = model;
+  made.record.effort = effort;
+  return made;
+}
+
+/** The matrix section alone. */
+const matrix = (html: string) => /<table data-matrix>.*?<\/table>/s.exec(html)?.[0] ?? "";
+
+test("the results matrix comes first, with a column pair for each model and effort", () => {
+  const html = renderReport([
+    configured("2026-10-19-first-haiku-high", "c", "plain", "claude-haiku-5-5", "high", false),
+    configured("2026-10-19-first", "c", "uraeda", "claude-sonnet-5-5", "medium", true),
+    configured("2026-10-19-first-opus-high", "c", "uraeda", "claude-opus-5-5", "high", true),
+    run("2026-10-19-screening", "x", "plain"),
+  ]);
+
+  const headings = [...matrix(html).matchAll(/<th colspan="2">(.*?)<\/th>/g)].map((m) => m[1]);
+  expect(headings).toEqual(["Opus 5.5 · high", "Sonnet 5.5 · medium", "Haiku 5.5 · high"]);
+  expect(html.indexOf("Latest results")).toBeLessThan(html.indexOf("first · 2026-10-19"));
+  expect(matrix(html)).not.toContain(">x<");
+});
+
+test("a matrix cell shows the newest run's tests, and a count of the cases resolved", () => {
+  const html = renderReport([
+    configured("2026-10-18-first", "c", "plain", "claude-sonnet-5-5", "medium", false),
+    configured("2026-10-19-first", "c", "plain", "claude-sonnet-5-5", "medium", true),
+  ]);
+
+  expect(matrix(html)).toContain("✓ 3/5");
+  expect(matrix(html)).not.toContain("✕");
+  expect(matrix(html)).toContain("1 of 1");
+});
