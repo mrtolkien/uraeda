@@ -560,7 +560,7 @@ following the end), and the page's scroll.
 - Produces: `Tail` in `tail.tsx`, drawn by `Transcript` in place of its map of turns, with the same
   `Actions`; `TAIL_MESSAGES = 20`. `Transcript`'s props do not change.
 
-- [ ] **Step 1: Structural: move the message components out of `Transcript.tsx`**
+- [x] **Step 1: Structural: move the message components out of `Transcript.tsx`**
 
 Move `Message`, `AgentMessage`, `Denial`, `TranscriptItems`, `sentAt`, and the `Actions` type to
 `TranscriptMessages.tsx`, re-exporting `Actions` and `sentAt` from `Transcript.tsx` where other
