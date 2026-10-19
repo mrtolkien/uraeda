@@ -11,6 +11,10 @@ use super::File;
 
 /// The folder a link is relative to: the linking file's folder, from the root.
 fn folder_of(path: &str) -> String {
+    // A candidate's links resolve as if it sat in `specs/decisions/`, as the decision it replaces.
+    if let Some(folder) = crate::decisions::links_folder(path) {
+        return folder;
+    }
     Path::new(path)
         .parent()
         .map(|p| p.to_string_lossy().into_owned())

@@ -171,3 +171,30 @@ fn a_view_without_any_candidate_folder_has_none() {
 
     assert!(view(&repo).candidates.is_empty());
 }
+
+#[test]
+fn a_candidate_copied_from_a_decision_is_checked_as_that_decision() {
+    let repo = check_repo();
+    repo.write(
+        "specs/decisions/preview.md",
+        &common::repository_file("skills/uraeda/assets/example/specs/decisions/preview.md"),
+    );
+    repo.write("specs/CONSTITUTION.md", "# Constitution\n");
+    // Relative links of a decision resolve from `specs/decisions/`, as if the candidate sat there.
+    repo.write(
+        CANDIDATE,
+        &format!(
+            "{}\nSee [preview](preview.md) and [the constitution](../CONSTITUTION.md).\n",
+            fixture("decisions-check/q1-a/ui-components.md").trim_end()
+        ),
+    );
+    // `preview.md` takes the preview fields.
+    repo.write(
+        "specs/decisions-check/q1-b/preview.md",
+        &common::repository_file("skills/uraeda/assets/example/specs/decisions/preview.md"),
+    );
+
+    let found = check::check(repo.path(), &repo.path().join("specs/decisions-check")).unwrap();
+
+    assert_eq!(rules(&found), Vec::<String>::new());
+}

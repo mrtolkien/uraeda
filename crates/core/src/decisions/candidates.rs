@@ -38,6 +38,21 @@ pub fn option_folder(name: &str) -> Option<(&str, &str)> {
         .then_some((question, option))
 }
 
+/// The folder a candidate's relative links resolve from, from the root: the `decisions/` folder
+/// beside the check's, where the decision of the same name sits. None for a path that is no
+/// candidate's.
+pub fn links_folder(path: &str) -> Option<String> {
+    let parts: Vec<&str> = path.split('/').collect();
+    let [home @ .., check, option, _file] = parts.as_slice() else {
+        return None;
+    };
+    (CHECK_DIR.ends_with(&format!("/{check}")) && option_folder(option).is_some()).then(|| {
+        format!("{}/decisions", home.join("/"))
+            .trim_start_matches('/')
+            .to_string()
+    })
+}
+
 /// A candidate's file, by folder name and file name, and its text.
 struct Found {
     folder: String,

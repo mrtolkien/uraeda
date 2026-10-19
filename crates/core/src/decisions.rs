@@ -8,6 +8,6 @@ mod parts;
 mod strength;
 
 pub use branch::{BranchSides, branch_changes, branch_decision};
-pub use candidates::{Candidate, option_folder};
+pub use candidates::{Candidate, links_folder, option_folder};
 pub use change::{DecisionChange, PartChange, Run, SectionChange, compare};
 pub use strength::{Strength, strength};

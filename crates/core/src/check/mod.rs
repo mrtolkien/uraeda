@@ -223,7 +223,11 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
         return Some(Checked::Decision);
     }
     if names::is_candidate_folder(dir) && name.ends_with(".md") && name != "CONSTITUTION.md" {
-        return Some(Checked::Decision);
+        return Some(if name == "preview.md" {
+            Checked::PreviewDecision
+        } else {
+            Checked::Decision
+        });
     }
     let grandparent = dir.parent().and_then(Path::file_name);
     if parent.as_deref() == Some("done")
