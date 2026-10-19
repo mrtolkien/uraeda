@@ -17,6 +17,7 @@ import {
 
 const WEB_UI = "2026-10-11-web-ui";
 const ROUND = `/f/${WEB_UI}/clarifications-01.md`;
+const UNDERWAY = `/f/${WEB_UI}/clarifications-02.md`;
 const CLI = "2026-10-12-cli-tuis";
 const RECURRING = "2026-10-06-recurring-tasks";
 const SPEC = `/f/${RECURRING}/spec.md`;
@@ -371,4 +372,64 @@ test("a refused hand-over says why in the composer, and the commit stays done", 
   );
   expect((await composer()).textContent).toBe(ANSWERED);
   expect(agent.sent).toHaveLength(0);
+});
+
+/**
+ * The web UI's round 02, answered while its plan is being built: round 01 is answered, with an
+ * approved spec and plan.
+ */
+function underwayRepo() {
+  const repo = answeredRepo();
+  const folder = join(repo, ".worktrees", WEB_UI, "specs", WEB_UI);
+  const round = readFileSync(join(folder, "clarifications-01.md"), "utf8");
+  writeFileSync(join(folder, "clarifications-02.md"), round);
+  writeFileSync(
+    join(folder, "clarifications-01.md"),
+    round.replace("status: awaiting-human", "status: answered"),
+  );
+  writeFileSync(
+    join(folder, "spec.md"),
+    "---\nstatus: approved\nrevision: 1\nclarifications: 1\nrisk-tier: low\n---\n\n# Spec: Web UI\n\nA feature.\n\n## Decisions\n\nRelied on:\n\n- None.\n",
+  );
+  writeFileSync(
+    join(folder, "plan.md"),
+    "---\nstatus: approved\nspec-revision: 1\n---\n\n# Plan: Web UI\n\n## Task 1: One\n\n- [ ] **Step 1: Do**\n",
+  );
+  const worktree = join(repo, ".worktrees", WEB_UI);
+  git(worktree, "add", "specs");
+  git(worktree, "commit", "--quiet", "--no-verify", "--message", "work on the plan");
+  return repo;
+}
+
+test("a round asked during the implementation offers to continue it, as the primary button", async () => {
+  const { agent, repo } = await renderPage(UNDERWAY, underwayRepo(), { agent: true });
+
+  await click(await screen.findByRole("button", { name: "Answer and continue implementing" }));
+
+  await opensWith(
+    WEB_UI,
+    /Implement the plan, starting with skills\/uraeda\/references\/implementation.md/,
+  );
+  const text = git(repo, "show", `${WEB_UI}:specs/${WEB_UI}/clarifications-02.md`);
+  expect(text).toContain("status: answered\nresumes: implementation\n");
+  expect(window.location.search).toBe("?continue=answers&file=clarifications-02.md");
+  expect(agent.sent).toHaveLength(0);
+});
+
+test("a round asked during the implementation still goes back to the spec on request", async () => {
+  const { repo } = await renderPage(UNDERWAY, underwayRepo(), { agent: true });
+
+  await click(await screen.findByRole("button", { name: "Answer and revise the spec" }));
+
+  await opensWith(WEB_UI, ANSWERED);
+  expect(git(repo, "show", `${WEB_UI}:specs/${WEB_UI}/clarifications-02.md`)).not.toContain(
+    "resumes",
+  );
+});
+
+test("a round asked before the implementation has no button to continue it", async () => {
+  await renderPage(ROUND, answeredRepo(), { agent: true });
+
+  expect(await screen.findByRole("button", { name: "Commit and start the agent" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Answer and continue implementing" })).toBeNull();
 });

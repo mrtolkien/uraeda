@@ -77,7 +77,7 @@ export function useRoundSubmit(
 
   /** Hands the feature over to the agent, once the round is committed. */
   const proceed = () => handOver(file.folder, "answers", file.name);
-  const submit = async (next: boolean) => {
+  const submit = async (next: boolean, resumes = false) => {
     setError(undefined);
     continues.current = next;
     const saved = await Promise.all([...[...pending].map((flush) => flush()), notes.flush()]);
@@ -89,7 +89,7 @@ export function useRoundSubmit(
       });
       return false;
     }
-    const result = await writes.submit(file.name);
+    const result = await writes.submit(file.name, resumes);
     if (result.error) {
       setError(refusal(result.error));
       return false;
@@ -216,6 +216,16 @@ export function RoundEnd({
             isDisabled={blank.length > 0}
             label="Submit answers"
             onCommit={submit}
+            // A round asked during the implementation may continue it, the spec as approved.
+            {...(file.resumable
+              ? {
+                  continueLabel: "Answer and revise the spec",
+                  resume: {
+                    label: "Answer and continue implementing",
+                    onCommit: () => submit(true, true),
+                  },
+                }
+              : {})}
           />
         )}
       </div>

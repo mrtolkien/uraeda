@@ -150,6 +150,7 @@ function missingFile(id: string, folder: string, name: string): FileRecord {
     missing: true,
     name,
     path: "",
+    resumable: false,
     reviewStale: false,
     takesImages: false,
   };

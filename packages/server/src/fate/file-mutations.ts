@@ -44,11 +44,17 @@ export const fileMutations = {
     type: "WorkflowFile",
   },
   "answers.submit": {
-    resolve: async ({ ctx, input, select }: Resolver<{ file?: string; folder: string }>) => {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ file?: string; folder: string; resumes?: boolean }>) => {
       await writable(ctx, input);
       return file(
         ctx,
-        await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder, input.file)),
+        await refusable(() =>
+          ctx.binding.submitAnswers(ctx.repo, input.folder, input.file, input.resumes),
+        ),
         select,
       );
     },
