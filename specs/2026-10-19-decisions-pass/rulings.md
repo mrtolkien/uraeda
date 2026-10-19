@@ -26,3 +26,18 @@ the counts that the decisions page tests make.
 **Alternatives:** Adding `ui-coherence.md` to the fixture.
 
 **If wrong:** The fixture gains the decision, and the tests open it.
+
+## R3: No core code refuses a second check
+
+**Decided:** A second check requested while one waits is refused by the page's disabled button, as
+the triage's is, and by no function of the core: task 4 has no test for it.
+
+**Why:** The triage has no `ensure_triage` that refuses in the core, as the plan assumed: its button
+is disabled on the page and its file is simply overwritten by the agent run. Sharing the triage's
+behaviour means sharing that.
+
+**Alternatives:** A core check that the file exists before a start message: a rule the triage does
+not have, and the start message is task 5's.
+
+**If wrong:** Task 5's start message refuses when the file exists, in the server, and its test
+covers it.

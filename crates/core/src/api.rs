@@ -38,8 +38,9 @@ mod start;
 pub use answers::*;
 pub(crate) use decision::fingerprints as branch_decision_fingerprints;
 pub use decision::{BranchDecision, read_decision};
-use default_branch::{default_checkout, on_default, reach_default, reach_default_from};
+pub(crate) use default_branch::default_checkout;
 pub use default_branch::{default_root, on_default_branch};
+use default_branch::{on_default, reach_default, reach_default_from};
 pub use drafts::{
     commit_text, create_draft, proposal_hints, read_draft, read_text, save_text, set_discovery,
 };
@@ -373,6 +374,7 @@ fn file_view(
         takes_images: true,
         resumable: crate::steps::building(feature),
         decision_changes,
+        candidates: Vec::new(),
         answered,
     })
 }

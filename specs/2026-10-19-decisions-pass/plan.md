@@ -144,7 +144,7 @@ fixture, which `ura check` validates in task 4; each says so below.
 | Edge: a rule has no "Checked by" words                                       | 3    | `decision-rules.test.tsx`                                                                                                            |
 | Edge: an unreadable decision file                                            | 3    | `ledger.rs`: an unreadable file has empty `rules` and keeps its problem                                                              |
 | SC-003: `ura check` reports no problem on the ledger and on a check's files  | 4    | `decisions_check.rs`: `api::check` on the fixture check; `ura check specs/` on the repository                                        |
-| SC-004: one questions file per run, none after applying                      | 4, 6 | `decisions_check.rs`: a second check is refused as the triage is; the apply deletes the files (reference)                            |
+| SC-004: one questions file per run, none after applying                      | 4, 6 | Task 7: the button disables as the triage's does (no core code refuses); the apply deletes the files (reference)                     |
 | Review focus: candidates never reach the ledger                              | 3    | `ledger.rs`                                                                                                                          |
 | Review focus: a triage and a check together                                  | 2    | `tests/default_rounds.rs`                                                                                                            |
 | Review focus: a stray or missing candidate                                   | 4    | `decisions_check.rs`                                                                                                                 |
@@ -440,6 +440,15 @@ git commit -m "feat(decisions-pass): draw a decision's rules as the spec page do
   `status: proposed`)
 - Test: `crates/core/tests/decisions_check.rs`
 
+**Built beyond the interfaces:** `decisions::candidates::{read_at(git, tip), option_folder}` (the
+view reads from the tip when no checkout has the default branch), `api::default_checkout` made
+`pub(crate)` for the watcher, `names.candidate` as the check's rule, `candidates` added to the inbox
+hash of `watch.rs`, and `candidates: []` in the server's `missingFile`. The server's and the web's
+file selections do not list `candidates` yet: tasks 5 and 7 add it. Step 2 did not run as written:
+the tests were written with the implementation, and the breaks below stood in for it. `sections.rs`
+finds no `DECISIONS-CHECK.md` template, so the fixture's sections are unchecked until task 6 adds
+it.
+
 **Interfaces:**
 
 - Consumes: `DefaultRound::DecisionsCheck` from task 2, `decisions::compare`.
@@ -463,7 +472,7 @@ directly in a folder named `q<N>-<letter>`, inside `specs/decisions-check/`, as 
 candidate that is not a decision, a folder not named `q<N>-<letter>`, and a file named
 `CONSTITUTION.md` ("only a human amends the constitution").
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/decisions_check.rs
@@ -486,9 +495,10 @@ fn a_candidate_that_edits_the_constitution_is_a_problem() { /* q1-a/CONSTITUTION
 #[test]
 fn a_stray_folder_is_reported_and_an_option_with_no_candidate_shows_none() {}
 
-#[test]
-fn a_second_check_is_refused_while_one_waits() { /* as the triage's */ }
 ```
+
+No core test refuses a second check: the triage's refusal is the page's disabled button (task 7),
+and no core code does it (ruling 2).
 
 The break each test catches: a candidate checked as an unknown file or not at all, a candidate that
 offers to edit the constitution, a view that crashes on a missing candidate. The fixture's
@@ -500,19 +510,19 @@ merge as option A, keeping them as option B.
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test decisions_check`
 - Expected: FAIL to compile, `no field candidates on type FileView`
 
-- [ ] **Step 3: Implement the kinds, the reader, and the view**
+- [x] **Step 3: Implement the kinds, the reader, and the view**
 
 Add the walk's cases, the reader, and fill `candidates` in the check's view only. Add the check's
 text to `Workspace` and to the watcher's snapshot. A decision under `decisions-check/` is never read
 by the ledger or the branch's decisions: tested in task 3.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c cargo nextest run`, `nix develop -c cargo clippy --all-targets`,
   `nix develop -c vp check`, `ura check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages fixtures

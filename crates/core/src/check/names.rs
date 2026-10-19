@@ -4,6 +4,7 @@
 use std::fs;
 use std::path::Path;
 
+use crate::decisions::option_folder;
 use crate::workspace::{FileKind, Problem, Severity, folder_slug};
 
 fn name(path: &Path) -> String {
@@ -24,7 +25,14 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
     let here = name(dir);
     let parent = dir.parent().map(name).unwrap_or_default();
     let fixed: &[&str] = if here == "specs" {
-        &["drafts", "backlog", "decisions", "changes", "done"]
+        &[
+            "drafts",
+            "backlog",
+            "decisions",
+            "decisions-check",
+            "changes",
+            "done",
+        ]
     } else if here == "changes" && parent == "specs" {
         &[]
     } else {
@@ -62,6 +70,54 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
             message: format!(
                 "\"{folder}\" is not a feature folder: YYYY-MM-DD-<slug>, with a real date"
             ),
+            severity: Severity::Error,
+        });
+    }
+}
+
+/// Whether a folder is the decisions check's, `specs/decisions-check/`.
+fn is_check_folder(dir: &Path) -> bool {
+    name(dir) == "decisions-check" && dir.parent().map(name).as_deref() == Some("specs")
+}
+
+/// Whether a folder holds the candidates of one option, `specs/decisions-check/q<N>-<letter>/`.
+pub(super) fn is_candidate_folder(dir: &Path) -> bool {
+    dir.parent().is_some_and(is_check_folder) && option_folder(&name(dir)).is_some()
+}
+
+/// Checks the entries of the decisions check's folder: only folders named `q<N>-<letter>`, each
+/// holding decisions, never the constitution ("only a human amends the constitution").
+pub(super) fn check_candidates(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
+    let (check, option) = (is_check_folder(dir), is_candidate_folder(dir));
+    if !check && !option {
+        return;
+    }
+    let mut entries: Vec<(String, bool)> = fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| {
+            let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
+            (name(&entry.path()), is_dir)
+        })
+        .filter(|(entry, _)| !entry.starts_with('.'))
+        .collect();
+    entries.sort();
+    for (entry, is_dir) in entries {
+        let message = if check && !(is_dir && option_folder(&entry).is_some()) {
+            "the decisions check holds only folders named q<N>-<letter>, like q1-a"
+        } else if option && entry == "CONSTITUTION.md" {
+            "a check never changes the constitution: only a human amends it"
+        } else if option && (is_dir || !entry.ends_with(".md")) {
+            "a candidate is a decision: a Markdown file named after its topic"
+        } else {
+            continue;
+        };
+        problems.push(Problem {
+            file: super::relative(root, &dir.join(&entry)),
+            line: None,
+            rule: "names.candidate".into(),
+            message: message.into(),
             severity: Severity::Error,
         });
     }

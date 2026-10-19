@@ -7,7 +7,9 @@ use std::path::Path;
 use crate::actions::answer;
 use crate::actions::default_round::{self, DefaultRound};
 use crate::actions::place::Place;
-use crate::api::{Result, on_default, open, reach_default, refused, write_lock};
+use crate::api::{Result, default_checkout, on_default, open, reach_default, refused, write_lock};
+use crate::decisions::Candidate;
+use crate::decisions::candidates;
 use crate::files::document;
 use crate::files::frontmatter;
 use crate::files::items::{Items, round};
@@ -43,6 +45,7 @@ fn view(
     text: String,
     committed: Option<String>,
     tip: Option<ObjectId>,
+    candidates: Vec<Candidate>,
 ) -> FileView {
     let status = frontmatter::parse(&text)
         .ok()
@@ -65,6 +68,7 @@ fn view(
         takes_images: false,
         resumable: false,
         decision_changes: Vec::new(),
+        candidates,
         answered: None,
     }
 }
@@ -76,7 +80,16 @@ fn written(place: &Place, round: DefaultRound, text: String) -> Result<FileView>
     let committed = tip
         .and_then(|tip| git.read_file(tip, round.path()).ok().flatten())
         .and_then(|bytes| String::from_utf8(bytes).ok());
-    Ok(view(round, text, committed, tip))
+    let found = candidates_of(round, || candidates::read(&place.root));
+    Ok(view(round, text, committed, tip, found))
+}
+
+/// The candidates of the round, none for a round that has none.
+fn candidates_of(round: DefaultRound, read: impl FnOnce() -> Vec<Candidate>) -> Vec<Candidate> {
+    match round {
+        DefaultRound::DecisionsCheck => read(),
+        DefaultRound::Triage => Vec::new(),
+    }
 }
 
 /// The round on the default branch, from the checkout that has it, else from its tip, without
@@ -88,7 +101,19 @@ pub fn read_round(repo: &Path, round: DefaultRound) -> Result<Option<FileView>> 
         .default_branch
         .as_deref()
         .and_then(|default| git.tip(default));
-    Ok(text.map(|text| view(round, text, committed, tip)))
+    let found = candidates_of(round, || {
+        match workspace
+            .default_branch
+            .as_deref()
+            .and_then(|default| default_checkout(&git, default))
+        {
+            Some(root) => candidates::read(&root),
+            None => tip
+                .map(|tip| candidates::read_at(&git, tip))
+                .unwrap_or_default(),
+        }
+    });
+    Ok(text.map(|text| view(round, text, committed, tip, found)))
 }
 
 /// Saves one answer of the round, from the letters picked and a comment, over the answer last

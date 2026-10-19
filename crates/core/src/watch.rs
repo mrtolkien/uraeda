@@ -164,6 +164,11 @@ fn snapshot(root: &Path) -> Snapshot {
                 &workspace.inbox,
                 &workspace.triage,
                 &workspace.decisions_check,
+                workspace
+                    .default_branch
+                    .as_deref()
+                    .and_then(|default| crate::api::default_checkout(&git, default))
+                    .map(|root| crate::decisions::candidates::read(&root)),
             ))
             .unwrap_or_default(),
         ),

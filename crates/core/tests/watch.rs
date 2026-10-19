@@ -262,6 +262,22 @@ fn an_edit_of_the_inbox_triage_is_reported() {
     assert!(next(&receiver).inbox);
 }
 
+/// The check's view follows its candidates, which are files of their own.
+#[test]
+fn an_edit_of_a_decisions_check_candidate_is_reported() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.write(
+        "specs/decisions-check/q1-a/git.md",
+        "---\nstatus: proposed\n---\n\n# Git\n\nA choice.\n",
+    );
+
+    let changes = next(&receiver);
+    assert!(changes.inbox);
+    assert!(!changes.decisions);
+}
+
 /// The decisions page follows an edit of a decision or of the constitution, and only that.
 #[test]
 fn an_edit_of_a_decision_or_the_constitution_is_reported() {

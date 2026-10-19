@@ -533,6 +533,19 @@ export interface BranchDecision {
 
 export type CalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution' | 'question'
 
+/** The candidate of one option of a question of a decisions check. */
+export interface Candidate {
+  /** The question's folder part, like `q1`. */
+  question: string
+  /** The option's letter, lowercase, like `a`. */
+  option: string
+  /**
+   * The candidate against the active decision of the same name: a new decision when there is
+   * none.
+   */
+  change: DecisionChange
+}
+
 /** A file changed on a feature's branch, from the default branch's merge base to its tip. */
 export interface ChangedFile {
   /** From the repository's top level; the new path of a renamed file. */
@@ -880,6 +893,11 @@ export interface FileView {
    * listed ones first, in the items' order, then the others by name. Empty for other files.
    */
   decisionChanges: Array<DecisionChange>
+  /**
+   * For the decisions check, each option's candidate decision against the active one, by
+   * question and option. Empty for other files.
+   */
+  candidates: Array<Candidate>
   /**
    * For `spec.md` at revision 2 or later, the review that requested the revision, as it stood
    * when the revision was first committed: the one `## Your review` answers, whatever the review

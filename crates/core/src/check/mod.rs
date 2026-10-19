@@ -191,6 +191,7 @@ fn canonical_file(path: &Path) -> PathBuf {
 fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
     names::check_change_files(root, dir, problems);
+    names::check_candidates(root, dir, problems);
     let found = check_folder_files(root, dir, false, problems);
     problems.extend(found.into_values().flatten());
     let mut subfolders: Vec<PathBuf> = fs::read_dir(dir)
@@ -211,7 +212,7 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     }
 }
 
-/// What kind of file a name is, in a folder: decisions in `decisions/`, records in `specs/done/`,
+/// What kind of file a name is, in a folder: decisions in `decisions/` and a check's candidates, records in `specs/done/`,
 /// priorities anywhere, and the inbox and its triage in `specs/`.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     let parent = dir.file_name().map(|n| n.to_string_lossy().into_owned());
@@ -219,6 +220,9 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
         return Some(Checked::PreviewDecision);
     }
     if parent.as_deref() == Some("decisions") && name.ends_with(".md") {
+        return Some(Checked::Decision);
+    }
+    if names::is_candidate_folder(dir) && name.ends_with(".md") && name != "CONSTITUTION.md" {
         return Some(Checked::Decision);
     }
     let grandparent = dir.parent().and_then(Path::file_name);
