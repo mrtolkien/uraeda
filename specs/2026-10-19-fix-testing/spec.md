@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Fix testing
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 15 minutes.
+> Approved on 2026-10-19.
 >
 > - You approve replacing every test suite with a small set of flows that guard behaviour that
 >   matters, a fast check after each task, and testing rules that stop agents bending a product to a
