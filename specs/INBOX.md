@@ -130,3 +130,6 @@
 - [agent] [fix-testing] Skill template: skills/uraeda/assets/templates/specs/CONSTITUTION.md rule VI
   still says "tests covering the spec's acceptance scenarios", so a new project's constitution
   forbids what the testing rules now ask: needs the human's wording
+- [agent] [fix-testing] Server error page: "Try again" on "Could not reach the Uraeda server" does
+  not recover once the server is back, since the fate client keeps the failed read; only a reload
+  does
