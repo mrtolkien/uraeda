@@ -87,7 +87,11 @@ test("the settings set the model, turn the fallback off, and deny the upstream's
 
   expect(settings).toMatchObject({
     effort: "medium",
-    env: { ANTHROPIC_SMALL_FAST_MODEL: "claude-sonnet-5-5", DISABLE_AUTOUPDATER: "1" },
+    env: {
+      ANTHROPIC_SMALL_FAST_MODEL: "claude-sonnet-5-5",
+      CLAUDE_CODE_SUBAGENT_MODEL: "claude-sonnet-5-5",
+      DISABLE_AUTOUPDATER: "1",
+    },
     model: "claude-sonnet-5-5",
     switchModelsOnFlag: false,
   });

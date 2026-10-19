@@ -38,6 +38,7 @@ export function makeConfigDir(options: {
     env: {
       ANTHROPIC_DEFAULT_HAIKU_MODEL: options.model,
       ANTHROPIC_SMALL_FAST_MODEL: options.model,
+      CLAUDE_CODE_SUBAGENT_MODEL: options.model,
       DISABLE_AUTOUPDATER: "1",
     },
     model: options.model,
