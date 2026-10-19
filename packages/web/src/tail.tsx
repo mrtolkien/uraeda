@@ -49,7 +49,7 @@ type Piece = {
 };
 
 /** A press of "Show earlier messages" waiting for its messages to draw, from the pieces it left. */
-type Press = { done: () => void; from: string };
+type Press = { done: () => void; from: string; next: number };
 
 /** Where the tail starts, kept while the page is open: the first item it drew. */
 type Start = { page: number; seq: number | undefined; turn: string };
@@ -79,6 +79,8 @@ type Walking = {
   onPieces: (pieces: ReadonlyArray<Piece>) => void;
   /** A page of the turn, or its last. */
   page: number | "last";
+  /** Looking back for a message before the pieces, which draws nothing: `acc` is complete. */
+  probe?: boolean;
   /** Whether this is the session's latest turn's last page, which may still grow. */
   root: boolean;
   /** Where the tail starts: new messages draw after it. */
@@ -136,15 +138,20 @@ function Settled({
  * count while the address names an older turn, to that turn's first page.
  */
 function WalkPage({ pages, ...walking }: Walking & { pages: number }) {
-  const { anchor, index, need, root, turns } = walking;
+  const { anchor, index, need, probe, root, turns } = walking;
   const page = walking.page === "last" ? pages - 1 : walking.page;
   const turn = turns[index]!;
   const log = useTurnLog(`${turn}:${page}`, root && page === pages - 1);
   const items = log?.items ?? [];
   const messages = items.flatMap((item, at) => (isMessage(item) ? [at] : []));
   const previous = before(walking, page);
+  if (probe) {
+    return probeBack(walking, previous, messages.length > 0);
+  }
   // The tail keeps its start: a message arriving moves nothing the reader sees.
-  const kept = walking.start.current;
+  // A start whose turn left the session is dropped: the walk would look for it back to the first.
+  const pinned = walking.start.current;
+  const kept = pinned && turns.includes(pinned.turn) ? pinned : undefined;
   const keptHere = kept?.turn === turn && kept.page === page;
   const goOn =
     previous !== undefined &&
@@ -154,9 +161,13 @@ function WalkPage({ pages, ...walking }: Walking & { pages: number }) {
   const reached = anchor === index && page === 0;
   const from =
     goOn || reached ? 0 : cut(items, messages, keptHere ? kept : undefined, kept ? 0 : need);
-  const earlier = !goOn && (previous !== undefined || messages.some((at) => at < from));
+  const earlier = !goOn && messages.some((at) => at < from);
   const count = messages.filter((at) => at >= from).length;
   const acc = [{ count, earlier, from, page, seq: items[from]?.seq, turn }, ...walking.acc];
+  if (!goOn && !earlier && previous !== undefined) {
+    // Pages or turns lie before, and may hold no message: the button shows only if one does.
+    return <Walk {...walking} acc={acc} {...previous} probe root={false} />;
+  }
   return goOn ? (
     <Walk
       {...walking}
@@ -171,6 +182,27 @@ function WalkPage({ pages, ...walking }: Walking & { pages: number }) {
 }
 
 /**
+ * A step of the probe, past the pieces: it settles on them, the first offering "Show earlier
+ * messages" when this page holds a message, else goes on to the page before, or settles without.
+ */
+function probeBack(walking: Walking, previous: ReturnType<typeof before>, found: boolean) {
+  if (!found && previous !== undefined) {
+    return <Walk {...walking} {...previous} />;
+  }
+  return (
+    <Settled
+      keep={walking.keep}
+      onPieces={walking.onPieces}
+      pieces={offering(walking.acc, found)}
+    />
+  );
+}
+
+/** The pieces, the first offering the button, or not. */
+const offering = (pieces: ReadonlyArray<Piece>, earlier: boolean) =>
+  pieces.map((piece, at) => (at === 0 ? { ...piece, earlier } : piece));
+
+/**
  * Walks back from a turn's page: the turn's record says how many pages it has. A turn with no item
  * yet draws nothing and does not stop the walk. It draws nothing itself, and suspends until what it
  * reads is in, so the tail's pieces appear at once.
@@ -183,6 +215,9 @@ function Walk(props: Walking) {
     return <WalkPage {...props} pages={pages} />;
   }
   const previous = before(props, 0);
+  if (props.probe) {
+    return probeBack(props, previous, false);
+  }
   const piece: Piece = {
     count: 0,
     earlier: false,
@@ -391,7 +426,7 @@ export function Tail({
       anchor ? topOf(anchor) : () => Number.NaN,
       () =>
         new Promise<void>((done) => {
-          presses.current.push({ done, from: drawnKey.current });
+          presses.current.push({ done, from: drawnKey.current, next });
           startTransition(() => {
             setShown(next);
             updateEntry({ shown: next });
@@ -416,10 +451,12 @@ export function Tail({
             redraw();
             return;
           }
-          // Drawn: the presses that left other pieces than these are done.
-          const waiting = presses.current.filter((press) => press.from !== key);
-          presses.current = presses.current.filter((press) => press.from === key);
-          waiting.forEach(({ done }) => done());
+          // Drawn: the presses that left other pieces than these are done, and so are those that
+          // asked for more than there is, which leave these.
+          const done = (press: Press) => press.from !== key || shown >= press.next;
+          const waiting = presses.current.filter(done);
+          presses.current = presses.current.filter((press) => !done(press));
+          waiting.forEach((press) => press.done());
         }}
         page="last"
         root

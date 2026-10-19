@@ -283,3 +283,81 @@ test("focus 6: a turn with no item yet at the end draws nothing, and the walk go
   expect(messagesIn(log)[0]!.textContent).toBe("Question 6");
   expect(log.getAllByRole("button", EARLIER)).toHaveLength(1);
 });
+
+/** Appends a message of the agent's, or a tool call, to a turn. */
+function say(fake: Fake, turn: number, text: string) {
+  fake.sessions.cache.appendItem(turn, { kind: "text", streaming: false, text });
+}
+function use(fake: Fake, turn: number, target: string) {
+  fake.sessions.cache.appendItem(turn, {
+    id: target,
+    kind: "tool",
+    name: "Bash",
+    status: "completed",
+    target,
+    toolKind: "execute",
+  });
+}
+
+test("edge: no button when the turns before the 20 messages hold only tool calls", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  const empty = addTurn(fake, chat.id);
+  const tools = addTurn(fake, chat.id);
+  use(fake, tools, "early step");
+  const talk = addTurn(fake, chat.id);
+  for (let index = 1; index <= 20; index += 1) {
+    say(fake, talk, `Reply ${index}`);
+  }
+  for (const turn of [empty, tools, talk]) {
+    fake.sessions.cache.endTurn(turn, { state: "done" });
+  }
+  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  const log = within(await screen.findByRole("log", { name: "Conversation" }));
+  await log.findByText("Reply 20");
+
+  expect(messagesIn(log)).toHaveLength(20);
+  expect(log.queryByRole("button", EARLIER)).toBeNull();
+});
+
+test("edge: the button shows, and a press draws, a message before turns of tool calls", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  const first = addTurn(fake, chat.id);
+  say(fake, first, "Reply 0");
+  const tools = addTurn(fake, chat.id);
+  use(fake, tools, "early step");
+  const talk = addTurn(fake, chat.id);
+  for (let index = 1; index <= 20; index += 1) {
+    say(fake, talk, `Reply ${index}`);
+  }
+  for (const turn of [first, tools, talk]) {
+    fake.sessions.cache.endTurn(turn, { state: "done" });
+  }
+  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  const log = within(await screen.findByRole("log", { name: "Conversation" }));
+  await log.findByText("Reply 20");
+  expect(messagesIn(log)).toHaveLength(20);
+
+  await click(log.getByRole("button", EARLIER));
+
+  await waitFor(() => expect(messagesIn(log)).toHaveLength(21));
+  expect(log.queryByRole("button", EARLIER)).toBeNull();
+});
+
+test("edge: the kept start is dropped when its turn leaves the session", async () => {
+  const { chat, fake, log, turns } = await openChatWith(60);
+  // The window of 20 starts in the third turn: a turn the session loses.
+  expect(messagesIn(log)[0]!.textContent).toBe("Question 21");
+  const { db } = fake.sessions.cache;
+  db.prepare("DELETE FROM items WHERE turn_id = ?").run(turns[2]!);
+  db.prepare("DELETE FROM turns WHERE id = ?").run(turns[2]!);
+  const turn = addTurn(fake, chat.id);
+  say(fake, turn, "Reply 31");
+  await refreshUntil(() => expect(log.getByText("Reply 31")).toBeTruthy());
+
+  // Counting from the end again, not walking back to the session's first turn.
+  expect(messagesIn(log).length).toBeLessThanOrEqual(21);
+});
