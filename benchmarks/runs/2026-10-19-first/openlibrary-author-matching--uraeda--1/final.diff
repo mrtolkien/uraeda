@@ -1,0 +1,401 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 8dcf682ec..7377c9cb0 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -1,6 +1,6 @@
+ from typing import Any, Final
+ import web
+-from openlibrary.catalog.utils import flip_name, author_dates_match, key_int
++from openlibrary.catalog.utils import flip_name, author_dates_match, key_int, re_year
+ 
+ 
+ # Sort by descending length to remove the _longest_ match.
+@@ -110,94 +110,117 @@ def do_flip(author):
+         author['personal_name'] = name
+ 
+ 
++def years_equal(author: dict, record: dict) -> bool:
++    """True when both the birth and the death year of the two are present and equal."""
++    for k in 'birth_date', 'death_date':
++        years = [re_year.search(d.get(k) or '') for d in (author, record)]
++        if not all(years) or years[0].group(1) != years[1].group(1):
++            return False
++    return True
++
++
+ def pick_from_matches(author, match):
+     """
+     Finds the best match for author from a list of OL authors records, match.
++    A record whose birth and death years both equal the author's wins,
++    then the lowest key in numeric order.
+ 
+     :param dict author: Author import representation
+     :param list match: List of matching OL author records
+     :rtype: dict
+     :return: A single OL author record from match
+     """
+-    maybe = []
+-    if 'birth_date' in author and 'death_date' in author:
+-        maybe = [m for m in match if 'birth_date' in m and 'death_date' in m]
+-    elif 'date' in author:
++    maybe = [m for m in match if years_equal(author, m)]
++    if not maybe and 'date' in author:
+         maybe = [m for m in match if 'date' in m]
+     if not maybe:
+         maybe = match
+-    if len(maybe) == 1:
+-        return maybe[0]
+     return min(maybe, key=key_int)
+ 
+ 
+-def find_author(name):
++def walk_redirects(obj, seen):
++    seen.add(obj['key'])
++    while obj['type']['key'] == '/type/redirect':
++        assert obj['location'] != obj['key']
++        obj = web.ctx.site.get(obj['location'])
++        seen.add(obj['key'])
++    return obj
++
++
++def search_authors(field: str, patterns: list[str]) -> list:
++    """
++    Searches OL for authors whose `field` matches one of the case-insensitive
++    patterns, where `*` is a wildcard. Redirects are followed, and each author
++    appears once.
+     """
+-    Searches OL for an author by name.
++    authors: dict = {}
++    for pattern in patterns:
++        q = {'type': '/type/author', field + '~': pattern}  # FIXME no limit
++        for k in web.ctx.site.things(q):
++            authors.setdefault(k, web.ctx.site.get(k))
++    if any(a.type.key != '/type/author' for a in authors.values()):
++        seen: set = set()
++        resolved = [
++            walk_redirects(a, seen) for a in authors.values() if a['key'] not in seen
++        ]
++        authors = {a['key']: a for a in resolved}
++    return list(authors.values())
++
++
++def find_author(author: dict) -> list:
++    """
++    Searches OL for the existing authors matching an import author, in priority
++    order, and returns the candidates of the first step that finds any:
++    1. the name (and its flipped form), whose dates must not contradict the
++       author's when it has both birth_date and death_date;
++    2. the alternate_names, then 3. the surname, which both need the author's
++       birth and death dates, and a record with the same two years.
++    Matching is case-insensitive, and `*` is a wildcard.
+ 
+-    :param str name: Author's name
++    :param dict author: Author import dict {"name": "Some One"}
+     :rtype: list
+-    :return: A list of OL author representations than match name
++    :return: A list of OL author records matching the author
+     """
+-
+-    def walk_redirects(obj, seen):
+-        seen.add(obj['key'])
+-        while obj['type']['key'] == '/type/redirect':
+-            assert obj['location'] != obj['key']
+-            obj = web.ctx.site.get(obj['location'])
+-            seen.add(obj['key'])
+-        return obj
+-
+-    q = {'type': '/type/author', 'name': name}  # FIXME should have no limit
+-    reply = list(web.ctx.site.things(q))
+-    authors = [web.ctx.site.get(k) for k in reply]
+-    if any(a.type.key != '/type/author' for a in authors):
+-        seen = set()
+-        authors = [walk_redirects(a, seen) for a in authors if a['key'] not in seen]
+-    return authors
++    name = author['name']
++    patterns = [name] + ([flip_name(name)] if ', ' in name else [])
++    things = search_authors('name', patterns)
++    et = author.get('entity_type')
++    if et and et != 'person':
++        return things
++    check_dates = ('birth_date' in author and 'death_date' in author) or 'date' in author
++    if check_dates:
++        things = [a for a in things if author_dates_match(author, a)]
++    if things or not ('birth_date' in author and 'death_date' in author):
++        return things
++    things = search_authors('alternate_names', patterns)
++    if not (things := [a for a in things if years_equal(author, a)]):
++        surname = flip_name(name).split()[-1:]
++        if surname:
++            things = search_authors('name', ['*' + surname[0]])
++            things = [a for a in things if years_equal(author, a)]
++    return things
+ 
+ 
+ def find_entity(author):
+     """
+-    Looks for an existing Author record in OL by name
+-    and returns it if found.
++    Looks for an existing Author record in OL by name, alternate names,
++    or surname, and returns it if found.
+ 
+     :param dict author: Author import dict {"name": "Some One"}
+     :rtype: dict|None
+     :return: Existing Author record, if one is found
+     """
+-    name = author['name']
+-    things = find_author(name)
++    things = find_author(author)
++    if not things:
++        return None
+     et = author.get('entity_type')
+     if et and et != 'person':
+-        if not things:
+-            return None
+         db_entity = things[0]
+         assert db_entity['type']['key'] == '/type/author'
+         return db_entity
+-    if ', ' in name:
+-        things += find_author(flip_name(name))
+-    match = []
+-    seen = set()
+     for a in things:
+-        key = a['key']
+-        if key in seen:
+-            continue
+-        seen.add(key)
+-        orig_key = key
+         assert a.type.key == '/type/author'
+-        if 'birth_date' in author and 'birth_date' not in a:
+-            continue
+-        if 'birth_date' not in author and 'birth_date' in a:
+-            continue
+-        if not author_dates_match(author, a):
+-            continue
+-        match.append(a)
+-    if not match:
+-        return None
+-    if len(match) == 1:
+-        return match[0]
+-    return pick_from_matches(author, match)
++    return pick_from_matches(author, things)
+ 
+ 
+ def remove_author_honorifics(author: dict[str, Any]) -> dict[str, Any]:
+diff --git a/openlibrary/catalog/add_book/tests/test_load_book.py b/openlibrary/catalog/add_book/tests/test_load_book.py
+index 216de202d..52828f2e7 100644
+--- a/openlibrary/catalog/add_book/tests/test_load_book.py
++++ b/openlibrary/catalog/add_book/tests/test_load_book.py
+@@ -89,3 +89,147 @@ class TestImportAuthor:
+         author = {'name': name}
+         got = remove_author_honorifics(author=author)
+         assert got == {'name': expected}
++
++
++def save_author(mock_site, n, name, **fields):
++    mock_site.save(
++        {
++            'key': f'/authors/OL{n}A',
++            'type': {'key': '/type/author'},
++            'name': name,
++            **fields,
++        }
++    )
++
++
++def found(author):
++    existing = load_book.find_entity(author)
++    return existing and existing['key']
++
++
++class TestFindEntity:
++    def test_name_match_ignores_case(self, mock_site):
++        save_author(mock_site, 1, 'John Smith', birth_date='1900', death_date='1970')
++        author = {'name': 'john smith', 'birth_date': '1900', 'death_date': '1970'}
++        assert found(author) == '/authors/OL1A'
++
++    def test_dates_pick_record(self, mock_site):
++        save_author(mock_site, 1, 'John Smith', birth_date='1900', death_date='1970')
++        save_author(mock_site, 2, 'John Smith', birth_date='1950', death_date='2000')
++        author = {'name': 'JOHN SMITH', 'birth_date': '1950', 'death_date': '2000'}
++        assert found(author) == '/authors/OL2A'
++
++    def test_undated_import_matches_dated_author(self, mock_site):
++        save_author(mock_site, 1, 'John Smith', birth_date='1900', death_date='1970')
++        assert found({'name': 'john smith'}) == '/authors/OL1A'
++
++    def test_flipped_name_is_searched(self, mock_site):
++        save_author(mock_site, 1, 'John Smith')
++        assert found({'name': 'Smith, John'}) == '/authors/OL1A'
++
++    def test_one_import_date_matches_on_name(self, mock_site):
++        save_author(mock_site, 1, 'John Smith', birth_date='1950', death_date='2000')
++        assert found({'name': 'John Smith', 'birth_date': '1900'}) == '/authors/OL1A'
++
++    def test_lowest_numeric_key_wins(self, mock_site):
++        save_author(mock_site, 10, 'John Smith')
++        save_author(mock_site, 2, 'John Smith')
++        assert found({'name': 'John Smith'}) == '/authors/OL2A'
++
++    def test_org_returns_first_match(self, mock_site):
++        save_author(mock_site, 1, 'Acme', birth_date='1900')
++        author = {'name': 'acme', 'entity_type': 'org', 'birth_date': '1990'}
++        assert found(author) == '/authors/OL1A'
++
++    def test_redirect_is_followed(self, mock_site):
++        save_author(mock_site, 2, 'John Smith')
++        mock_site.save(
++            {
++                'key': '/authors/OL1A',
++                'type': {'key': '/type/redirect'},
++                'location': '/authors/OL2A',
++                'name': 'John Smith',
++            }
++        )
++        assert found({'name': 'John Smith'}) == '/authors/OL2A'
++
++    @pytest.mark.parametrize(
++        'name, dates, expected',
++        [
++            ('mark twain', ('1835', '1910'), '/authors/OL1A'),
++            ('Mark Twain', ('1835', '1911'), None),
++            ('Mark Twain', ('1835', None), None),
++        ],
++    )
++    def test_alternate_name_match(self, mock_site, name, dates, expected):
++        save_author(
++            mock_site,
++            1,
++            'Samuel Clemens',
++            alternate_names=['Mark Twain'],
++            birth_date='1835',
++            death_date='1910',
++        )
++        author = {'name': name, 'birth_date': dates[0]}
++        if dates[1]:
++            author['death_date'] = dates[1]
++        assert found(author) == expected
++
++    @pytest.mark.parametrize(
++        'dates, expected',
++        [
++            (('1900', '1970'), '/authors/OL1A'),
++            (('1900', '1971'), None),
++            ((None, None), None),
++        ],
++    )
++    def test_surname_match(self, mock_site, dates, expected):
++        save_author(mock_site, 1, 'John Smith', birth_date='1900', death_date='1970')
++        author = {'name': 'J. Smith'}
++        if dates[0]:
++            author.update(birth_date=dates[0], death_date=dates[1])
++        assert found(author) == expected
++
++    def test_name_beats_alternate_name_beats_surname(self, mock_site):
++        dates = {'birth_date': '1900', 'death_date': '1970'}
++        save_author(mock_site, 1, 'Jo Smith', **dates)
++        save_author(mock_site, 2, 'Other', alternate_names=['J. Smith'], **dates)
++        save_author(mock_site, 3, 'J. Smith', **dates)
++        assert found({'name': 'J. Smith', **dates}) == '/authors/OL3A'
++        mock_site.save({'key': '/authors/OL3A', 'type': {'key': '/type/delete'}})
++        assert found({'name': 'J. Smith', **dates}) == '/authors/OL2A'
++
++    def test_later_steps_need_record_dates(self, mock_site):
++        save_author(mock_site, 1, 'Other', alternate_names=['Mark Twain'])
++        save_author(mock_site, 2, 'John Smith', birth_date='1900')
++        dates = {'birth_date': '1900', 'death_date': '1970'}
++        assert found({'name': 'Mark Twain', **dates}) is None
++        assert found({'name': 'J. Smith', **dates}) is None
++
++    def test_year_mismatch_falls_through_to_alternate_name(self, mock_site):
++        dates = {'birth_date': '1900', 'death_date': '1970'}
++        save_author(mock_site, 1, 'John Smith', birth_date='1800', death_date='1870')
++        save_author(mock_site, 2, 'Other', alternate_names=['John Smith'], **dates)
++        assert found({'name': 'John Smith', **dates}) == '/authors/OL2A'
++
++    def test_same_record_found_twice_is_one_candidate(self, mock_site):
++        save_author(mock_site, 1, 'a, a')
++        assert len(load_book.find_author({'name': '*, *'})) == 1
++
++    def test_surname_step_with_star_or_empty_name(self, mock_site):
++        dates = {'birth_date': '1900', 'death_date': '1970'}
++        save_author(mock_site, 1, 'John Smith', **dates)
++        assert found({'name': 'J. *', **dates}) == '/authors/OL1A'
++        assert found({'name': '', **dates}) is None
++
++    def test_wildcard_returns_lowest_key(self, mock_site):
++        save_author(mock_site, 9, 'John Smith')
++        save_author(mock_site, 3, 'Johnny Cash')
++        assert found({'name': 'John*'}) == '/authors/OL3A'
++
++    def test_unmatched_import_keeps_fields(self, mock_site):
++        author = {'name': 'John*', 'birth_date': '1900', 'death_date': '1970'}
++        result = import_author(author)
++        assert 'key' not in result
++        assert result['name'] == 'John*'
++        assert (result['birth_date'], result['death_date']) == ('1900', '1970')
+diff --git a/openlibrary/mocks/mock_infobase.py b/openlibrary/mocks/mock_infobase.py
+index 38480ac2a..c684e8841 100644
+--- a/openlibrary/mocks/mock_infobase.py
++++ b/openlibrary/mocks/mock_infobase.py
+@@ -5,6 +5,7 @@ import datetime
+ import glob
+ import json
+ import pytest
++import re
+ import web
+ 
+ from infogami.infobase import client, common, account, config as infobase_config
+@@ -183,10 +184,18 @@ class MockSite:
+         keys = sorted(keys)
+         return keys[offset : offset + limit]
+ 
++    def regex_ilike(self, pattern: str, text: str) -> bool:
++        """Mimics the production ILIKE: case-insensitive, matching the full text.
++        `*` matches any run of characters, and `_` is ignored in the pattern.
++        """
++        chunks = pattern.replace("_", "").split("*")
++        regex = ".*".join(re.escape(c) for c in chunks)
++        return re.fullmatch(regex, text, re.IGNORECASE | re.DOTALL) is not None
++
+     def filter_index(self, index, name, value):
+         operations = {
+             "~": lambda i, value: isinstance(i.value, str)
+-            and i.value.startswith(web.rstrips(value, "*")),
++            and self.regex_ilike(value, i.value),
+             "<": lambda i, value: i.value < value,
+             ">": lambda i, value: i.value > value,
+             "!": lambda i, value: i.value != value,
+diff --git a/openlibrary/mocks/tests/test_mock_infobase.py b/openlibrary/mocks/tests/test_mock_infobase.py
+index 5deea2f4d..ddc987589 100644
+--- a/openlibrary/mocks/tests/test_mock_infobase.py
++++ b/openlibrary/mocks/tests/test_mock_infobase.py
+@@ -18,6 +18,29 @@ class TestMockSite:
+         akey = mock_site.new_key('/type/author')
+         assert akey == '/authors/OL2A'
+ 
++    def test_regex_ilike(self, mock_site):
++        assert mock_site.regex_ilike("john*", "John Smith")
++        assert mock_site.regex_ilike("JOHN SMITH", "john smith")
++        assert mock_site.regex_ilike("*smith", "John Smith")
++        assert not mock_site.regex_ilike("john", "john smith")
++        assert mock_site.regex_ilike("jo_hn", "john")
++        assert mock_site.regex_ilike("a.c", "a.c")
++        assert not mock_site.regex_ilike("a.c", "abc")
++
++    def test_things_tilde_matches_alternate_names(self, mock_site):
++        mock_site.save(
++            {
++                "key": "/authors/OL1A",
++                "type": {"key": "/type/author"},
++                "name": "Samuel Clemens",
++                "alternate_names": ["Mark Twain", "S. Clemens"],
++            }
++        )
++        q = {"type": "/type/author", "alternate_names~": "mark twain"}
++        assert mock_site.things(q) == ["/authors/OL1A"]
++        q = {"type": "/type/author", "alternate_names~": "clemens"}
++        assert mock_site.things(q) == []
++
+     def test_get(self, mock_site):
+         doc = {
+             "key": "/books/OL1M",
