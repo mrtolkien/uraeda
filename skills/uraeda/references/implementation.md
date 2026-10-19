@@ -197,6 +197,12 @@ Never work around it. Let the other implementers of the wave finish, and merge t
 tasks already committed stay checked. Once the human answers, the spec is amended and approved, and
 the plan revised: the unchecked tasks follow the new plan.
 
+**An answer that continues the implementation.** The human may answer a round asked here to
+continue, which adds `resumes: implementation` to its front matter. Then the spec and the plan stay
+as approved: carry out the answers in the unchecked tasks, and write each choice they made as a
+[ruling](#rulings). An answer that turns out to change the spec's behaviour, a decision, or a task
+already built is not small: stop, and start a new round.
+
 ## Final review
 
 ### Catch up with the default branch

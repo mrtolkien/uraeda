@@ -18,7 +18,7 @@ current branch's feature, or the only one waiting for that action.
 | `ura draft <text>`                                                    | [Drafts](projects.md#starting-postponing-and-dropping-a-feature) a line                 |
 | `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`  | [Adds a note](inbox.md#capture) to the inbox, and commits it                            |
 | `ura start <draft>`, `--switch`, `--change`                           | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change |
-| `ura answer [feature] <Q2> <answer>`, `--submit`                      | Answers a round of questions, then submits it                                           |
+| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`          | Answers a round of questions, then submits it                                           |
 | `ura review [feature] --comment`, `--approve`, `--request-changes`    | [Reviews](conventions.md#review-files) a spec or a plan                                 |
 | `ura clean [feature]`, `--all`, `--dry-run`                           | [Cleans](finish.md#after-the-merge) a merged feature                                    |
 | `ura upgrade`                                                         | Installs `ura`'s latest release, then updates the user's skill                          |
@@ -33,10 +33,11 @@ decisions. `decision.unapproved` warns on a decision edited on a branch after it
 It exits with an error when it found a problem, and with success when it found only warnings.
 `ura lsp` sends warnings to editors with the Warning severity.
 
-`ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
-runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through
-its worktree (see [Branches](conventions.md#branches)); `ura start --switch` switches the checkout
-instead.
+`ura answer --submit --resume` adds `resumes: implementation` to the round, and is refused unless
+the implementation is under way. `ura answer --submit` and `ura review` set the human's status,
+record the block, and commit: a human runs them, or an agent the human asked, with `--no-commit`.
+Every command writes on a branch through its worktree (see [Branches](conventions.md#branches));
+`ura start --switch` switches the checkout instead.
 
 `ura` refuses, before writing anything, what would break these rules by hand too:
 

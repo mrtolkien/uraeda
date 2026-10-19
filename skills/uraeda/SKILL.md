@@ -137,25 +137,25 @@ step. By hand:
    [Branches](references/conventions.md#branches)). In its spec folder, `NN` is the highest
    clarifications round. Go down this table and run the first row that matches.
 
-| State of the spec folder                                                                      | Step                                                         |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `proposal.md` is not committed, and the branch has no record in `specs/done/`                 | **Human gate**: the human writes it, then commits it         |
-| The record is in `specs/done/`, and no pull request is ready                                  | [Finish](references/finish.md)                               |
-| The record, and the pull request has changes requested                                        | [Implementation](references/implementation.md), comments     |
-| The record, and the pull request is ready for review                                          | **Human gate**: the review happens on the pull request       |
-| A file has `status: awaiting-human`                                                           | **Human gate**: stop                                         |
-| No `clarifications-01.md`                                                                     | [Discovery](references/discovery.md), round 01               |
-| `clarifications-NN.md` is `answered`, and there is no `spec.md`, or its `clarifications` < NN | [Spec and decisions](references/spec.md)                     |
-| `spec.md` is `changes-requested`                                                              | [Spec](references/spec.md), revision                         |
-| `spec.md` is `approved`, and a decision an item of its `## Decisions` names is `proposed`     | [Approval](references/approval.md)                           |
-| `spec.md` is `approved`, and there is no `plan.md`                                            | [Plan](references/plan.md)                                   |
-| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`               | [Plan](references/plan.md), revision                         |
-| `plan.md` is `changes-requested`                                                              | [Plan](references/plan.md), revision                         |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                              | [Implementation](references/implementation.md), next wave    |
-| Every step of `plan.md` is checked, and the pull request is a draft                           | [Finish](references/finish.md)                               |
-| Every step of `plan.md` is checked, and the branch has no pull request                        | [Implementation](references/implementation.md), final review |
-| The branch's pull request has changes requested                                               | [Implementation](references/implementation.md), comments     |
-| The branch has an open pull request                                                           | **Human gate**: the review happens on the pull request       |
+| State of the spec folder                                                                           | Step                                                         |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `proposal.md` is not committed, and the branch has no record in `specs/done/`                      | **Human gate**: the human writes it, then commits it         |
+| The record is in `specs/done/`, and no pull request is ready                                       | [Finish](references/finish.md)                               |
+| The record, and the pull request has changes requested                                             | [Implementation](references/implementation.md), comments     |
+| The record, and the pull request is ready for review                                               | **Human gate**: the review happens on the pull request       |
+| A file has `status: awaiting-human`                                                                | **Human gate**: stop                                         |
+| No `clarifications-01.md`                                                                          | [Discovery](references/discovery.md), round 01               |
+| `clarifications-NN.md` is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec and decisions](references/spec.md)                     |
+| `spec.md` is `changes-requested`                                                                   | [Spec](references/spec.md), revision                         |
+| `spec.md` is `approved`, and a decision an item of its `## Decisions` names is `proposed`          | [Approval](references/approval.md)                           |
+| `spec.md` is `approved`, and there is no `plan.md`                                                 | [Plan](references/plan.md)                                   |
+| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`                    | [Plan](references/plan.md), revision                         |
+| `plan.md` is `changes-requested`                                                                   | [Plan](references/plan.md), revision                         |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                   | [Implementation](references/implementation.md), next wave    |
+| Every step of `plan.md` is checked, and the pull request is a draft                                | [Finish](references/finish.md)                               |
+| Every step of `plan.md` is checked, and the branch has no pull request                             | [Implementation](references/implementation.md), final review |
+| The branch's pull request has changes requested                                                    | [Implementation](references/implementation.md), comments     |
+| The branch has an open pull request                                                                | **Human gate**: the review happens on the pull request       |
 
 For a change branch, see [Change](references/change.md).
 
@@ -175,10 +175,7 @@ in the new format first, from its template. Keep its content, and the human's an
 comments, word for word. Commit it on its own, `chore(<slug>): rewrite <file> in the new format`,
 then run the step. An answered round stays answered: only its form changes.
 
-The last two rows of the table are for pull requests opened before the
-[Finish](references/finish.md) step existed. When a merged feature still has a worktree or a local
-branch, tell the human to run `ura clean`, or give them the commands of
-[Finish](references/finish.md#after-the-merge).
+The last two rows are for pull requests opened before [Finish](references/finish.md) existed.
 
 ### Going back to the human with new questions
 
@@ -187,9 +184,9 @@ feedback asking for options, a plan or implementation blocked by something the s
 not allow. Never work around it, and never leave it as a note only: start a new round. Write
 `discovery-NN.md` and `clarifications-NN.md` with the next number, following
 [Discovery](references/discovery.md), in the same commit. The new questions wait for the human like
-the first ones, and the spec is amended once they are answered. A change's round differs: it has no
-discovery file, and a new decision there is an offer to upgrade: see
-[Change](references/change.md#asking).
+the first ones, and the spec is amended once they are answered, unless the human answers to continue
+the implementation. A change's round differs: it has no discovery file, and a new decision there is
+an offer to upgrade: see [Change](references/change.md#asking).
 
 ### Coming back to the human
 
@@ -245,9 +242,8 @@ need an answer: Q3 and Q5", and commit.
 The human may also write under **Notes:**, at the end of the questions, about the points settled
 without them: the spec step reads the notes like answers. A comment on one settled point is a bullet
 at the end of the notes, starting with that point's bold subject:
-`- **Undoing a completion**: Keep the undo, but say what it restored.` Its further lines are
-indented by two spaces. The web UI writes comments on settled points this way, and a human can write
-them by hand.
+`- **Undoing a completion**: Keep the undo, but say what it restored.` See
+[the notes](references/writing.md#the-notes).
 
 ## References
 
