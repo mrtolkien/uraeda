@@ -29,6 +29,22 @@ pub struct Candidate {
     pub change: DecisionChange,
 }
 
+/// The name of the check's folder inside `specs/`, from `CHECK_DIR`.
+pub fn check_folder() -> &'static str {
+    CHECK_DIR.rsplit('/').next().unwrap_or(CHECK_DIR)
+}
+
+/// Whether a file name is the constitution's, in any case: a candidate never is, as only a human
+/// amends it.
+pub fn is_constitution(name: &str) -> bool {
+    name.eq_ignore_ascii_case("CONSTITUTION.md")
+}
+
+/// Whether a file name in an option's folder is a candidate: Markdown, and not the constitution.
+pub fn is_candidate_file(name: &str) -> bool {
+    name.ends_with(".md") && !is_constitution(name)
+}
+
 /// The question and the option letter of a candidate folder named `q<N>-<letter>`, like `q1-a`:
 /// `("q1", "a")`. None for any other name.
 pub fn option_folder(name: &str) -> Option<(&str, &str)> {
@@ -141,7 +157,7 @@ fn build(found: Vec<Found>, active: impl Fn(&str) -> Option<String>) -> Vec<Cand
         .filter_map(|found| {
             let (question, option) = option_folder(&found.folder)?;
             let topic = found.file.strip_suffix(".md")?;
-            if topic == "CONSTITUTION" || topic.contains('/') {
+            if !is_candidate_file(&found.file) || topic.contains('/') {
                 return None;
             }
             let before = active(topic);

@@ -4,6 +4,7 @@
 use std::fs;
 use std::path::Path;
 
+use crate::decisions::candidates::{check_folder, is_candidate_file, is_constitution};
 use crate::decisions::option_folder;
 use crate::workspace::{FileKind, Problem, Severity, folder_slug};
 
@@ -29,7 +30,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
             "drafts",
             "backlog",
             "decisions",
-            "decisions-check",
+            check_folder(),
             "changes",
             "done",
         ]
@@ -77,7 +78,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
 
 /// Whether a folder is the decisions check's, `specs/decisions-check/`.
 fn is_check_folder(dir: &Path) -> bool {
-    name(dir) == "decisions-check" && dir.parent().map(name).as_deref() == Some("specs")
+    name(dir) == check_folder() && dir.parent().map(name).as_deref() == Some("specs")
 }
 
 /// Whether a folder holds the candidates of one option, `specs/decisions-check/q<N>-<letter>/`.
@@ -106,9 +107,9 @@ pub(super) fn check_candidates(root: &Path, dir: &Path, problems: &mut Vec<Probl
     for (entry, is_dir) in entries {
         let message = if check && !(is_dir && option_folder(&entry).is_some()) {
             "the decisions check holds only folders named q<N>-<letter>, like q1-a"
-        } else if option && entry == "CONSTITUTION.md" {
+        } else if option && is_constitution(&entry) {
             "a check never changes the constitution: only a human amends it"
-        } else if option && (is_dir || !entry.ends_with(".md")) {
+        } else if option && (is_dir || !is_candidate_file(&entry)) {
             "a candidate is a decision: a Markdown file named after its topic"
         } else {
             continue;

@@ -222,7 +222,7 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     if parent.as_deref() == Some("decisions") && name.ends_with(".md") {
         return Some(Checked::Decision);
     }
-    if names::is_candidate_folder(dir) && name.ends_with(".md") && name != "CONSTITUTION.md" {
+    if names::is_candidate_folder(dir) && crate::decisions::candidates::is_candidate_file(name) {
         return Some(if name == "preview.md" {
             Checked::PreviewDecision
         } else {

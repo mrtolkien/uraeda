@@ -198,3 +198,18 @@ fn a_candidate_copied_from_a_decision_is_checked_as_that_decision() {
 
     assert_eq!(rules(&found), Vec::<String>::new());
 }
+
+#[test]
+fn a_candidate_named_constitution_in_any_case_is_a_problem_and_no_candidate() {
+    let repo = check_repo();
+    repo.write(
+        "specs/decisions-check/q1-a/constitution.md",
+        "# Constitution\n",
+    );
+
+    assert_eq!(
+        rules(&problems(&repo)),
+        vec!["specs/decisions-check/q1-a/constitution.md: names.candidate"]
+    );
+    assert_eq!(view(&repo).candidates.len(), 1);
+}
