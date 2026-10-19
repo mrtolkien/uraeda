@@ -717,7 +717,7 @@ git commit -m "feat(redesign-session): tell the human's messages from the agent'
   `sendButtons` and `footerActions`, moved from `Composer.tsx`. `useSessionControls` returns
   `allowAll`.
 
-- [ ] **Step 1: Structural: move `sendButtons` and `footerActions` out of `Composer.tsx`**
+- [x] **Step 1: Structural: move `sendButtons` and `footerActions` out of `Composer.tsx`**
 
 Move them to `ComposerSend.tsx`, import them back, change nothing else. Run
 `nix develop -c vp test packages/web/src/__tests__`: it passes before and after. Commit alone:
