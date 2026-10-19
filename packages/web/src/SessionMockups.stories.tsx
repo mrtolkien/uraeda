@@ -1,4 +1,4 @@
-// The session page of the session redesign (`specs/2026-10-19-redesign-session/spec.md`), as a
+// The session page of the session redesign (`specs/done/2026-10-19-redesign-session.md`), as a
 // phone reads it: the human's messages in a tinted bubble, the agent's as flat text across the page,
 // a 3-row composer, and the bar of actions above it. Built from Astryx's chat components over fixed
 // text, with no server: the stories show the look, and the page's data is the real page's.
