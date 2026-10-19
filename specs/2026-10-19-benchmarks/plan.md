@@ -605,8 +605,8 @@ The break each test catches:
 The repository is copied out of the image with `docker create` and `docker cp`, initialised as a git
 repository at the base commit if the image has none, given `origin` as a bare repository in a host
 folder, and the wrapper runs `docker run --rm -i` with the user's uid, the mounts of the test,
-`-w /app`, `-e` for each variable by name, and the host's `claude` and `ura` mounted read-only, or
-the way Task 1's finding says. The wrapper receives the adapter's arguments and passes them on.
+`-w /app`, `-e` for each variable by name, and the host's `claude` mounted read-only (no `ura`: R1),
+or the way Task 1's finding says. The wrapper receives the adapter's arguments and passes them on.
 
 - [ ] **Step 4: Run the project's validation**
 
