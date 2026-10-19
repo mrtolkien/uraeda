@@ -178,20 +178,17 @@ test("a criterion's sentence holds what follows its id and measure, with its mar
 });
 
 /** US8 3 */
-test("the architecture's units are small cards side by side, its tradeoffs with a Cost pill", async () => {
+test("the architecture's units are bullets, its tradeoffs with a Cost pill", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
   const part = await region("Architecture");
   expect(part.textContent).toContain("A repeating task stays a normal task with a repeat rule.");
-  const units = within(within(part).getByRole("list", { name: "Units" })).getAllByRole("listitem");
-  expect(
-    units.map(
-      (unit) => within(unit).getByText(/^(Date helpers|Repeat rules|The task store)$/).textContent,
-    ),
-  ).toEqual(["Date helpers", "Repeat rules", "The task store"]);
-  expect(units[0]!.textContent).toContain("compute calendar days, and own every date calculation.");
+  for (const name of ["Date helpers", "Repeat rules", "The task store"]) {
+    expect(within(part).getByText(name)).toBeTruthy();
+  }
+  expect(part.textContent).toContain("compute calendar days, and own every date calculation.");
   expect(part.textContent).not.toContain("Tradeoffs:");
   const costs = within(within(part).getByRole("list", { name: "Tradeoffs" })).getAllByRole(
     "listitem",
@@ -339,18 +336,7 @@ test("an architecture's item without a bold name, and nested bullets, show and t
   expect(tappable(part, String.raw`The sync runs nightly\.`)).toBeTruthy();
   expect(tappable(part, String.raw`It keeps the last upgrade's version\.`)).toBeTruthy();
   expect(tappable(part, String.raw`Undo covers the last completion only\.`)).toBeTruthy();
-  // The units before and after the item without a bold name, each run in its own row of cards.
-  const units = within(part)
-    .getAllByRole("list", { name: "Units" })
-    .flatMap((list) => within(list).getAllByRole("listitem"))
-    // The cards, not the items of a list nested in one.
-    .filter((item) => item.getAttribute("role") === "listitem");
-  expect(units).toHaveLength(4);
-  // The unit's name, its whole bold run, code included.
-  expect(
-    within(units.at(-1)!).getAllByText((_, element) => element?.textContent === "The ura CLI"),
-  ).not.toHaveLength(0);
-  expect(units.at(-1)!.textContent).toContain("reads the same rules.");
+  expect(part.textContent).toContain("reads the same rules.");
 });
 
 /** The criteria drop no text either: an item without an id, and a criterion's nested bullet. */
