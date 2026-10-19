@@ -397,7 +397,7 @@ of the agent's process, and a rule shared by the runner, the record, and the pag
 `nix develop -c vp test packages/server/src/runner`: it passes before and after. Commit alone:
 `refactor(redesign-session): move allowing a blocked action out of sessions.ts`.
 
-- [ ] **Step 2: Write the failing tests, and the helpers they use**
+- [x] **Step 2: Write the failing tests, and the helpers they use**
 
 Helpers: `blockedTwo()` next to `blockedPush`, in `runner/__tests__/sessions.test.ts`: a feature's
 session whose first turn ended with `Bash(rm -rf dist)` and `Edit(src/store/tasks.ts)` blocked.
@@ -429,7 +429,10 @@ covered, rejects with the refusals (focus 2); a reopen made to fail (the fake ad
 throws) leaves every denial not allowed and starts no turn (focus 4); the rules end with the process
 (US3 more 3, as `US5.3` does); `claudeArgs` puts `--allowedTools`, then each rule as its own
 argument, last; in `__tests__/sessions.test.ts`, the Session record's `allowable` is 2 after the
-blocked turn, 1 after one `allow`, and 0 after a normal message.
+blocked turn, 1 after one `allow` whose retry is blocked on the other action again (an allow begins
+a newer turn: see
+[R5](rulings.md#r5-the-tests-that-asserted-a-string-now-assert-a-list-and-one-after-one-allow-needs-a-re-block)),
+and 0 after a normal message.
 
 The break each catches:
 
@@ -439,12 +442,12 @@ The break each catches:
 - The failed-reopen test: denials marked allowed before the process opened.
 - `allowable`: a button whose number differs from what the press allows.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
   - Run:
     `nix develop -c vp test packages/server/src/runner packages/server/src/__tests__/sessions.test.ts`
   - Expected: FAIL, `sessions.allowAll is not a function`
 
-- [ ] **Step 4: Implement the list and `allowAll`**
+- [x] **Step 4: Implement the list and `allowAll`**
 
 `allowDenials` keeps the order of `allow` today: refuse while a turn runs or waits, open the process
 (`processes.open`, which throws before anything is marked), begin the retry turn with the stored
@@ -455,11 +458,11 @@ in both `sessions.test.ts` files, and the two in `claude.test.ts`) to the list: 
 type, not of what they check; write it in a ruling. Regenerate the web client
 (`nix develop -c vp run --filter uraeda-web build`) and add `allowable: true` to `SessionView`.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
   - Run: `nix develop -c vp check` then `nix develop -c vp run ts:test`
   - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server packages/web/src/views.ts packages/web/.fate specs/2026-10-19-redesign-session/rulings.md specs/2026-10-19-redesign-session/plan.md

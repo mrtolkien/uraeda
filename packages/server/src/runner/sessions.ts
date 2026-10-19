@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
-import { allowDenial } from "./allow.ts";
+import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import type { TurnActivity, TurnKind, UsageLimit } from "./events.ts";
@@ -351,6 +351,17 @@ export class Sessions {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
     return this.#context.live.serial(live, () => allowDenial(this.#context, live, turn, seq));
+  }
+
+  /**
+   * Allows every covered blocked action of the session's latest turn at once: one reopen of its
+   * process with every rule, and one turn asking the agent to try them again. Refused while a turn
+   * runs or waits, and with no covered action.
+   */
+  async allowAll(repo: string, session: string): Promise<{ turn: number }> {
+    this.#available();
+    const live = this.#context.live.of(await this.#own(repo, session));
+    return this.#context.live.serial(live, () => allowAll(this.#context, live));
   }
 
   /** Renames a chat, by the title's first line that is not blank, cut at 80 characters. */
