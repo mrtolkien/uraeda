@@ -298,7 +298,7 @@ WebKit tests run the page at 390 and 1440 px.
 
 - Produces: a transcript that a keystroke in the composer does not redraw.
 
-- [ ] **Step 1: Write the profile as a test**
+- [x] **Step 1: Write the profile as a test**
 
 A chat with many agent messages is seeded in the cache (as `session-turns.test.tsx` seeds a run),
 the page is rendered, and the test types five characters into the composer's field. It counts the
@@ -321,7 +321,7 @@ The break it catches: the draft's text held by the page, whose every change redr
 Also write the one line of the finding in `rulings.md` (a ruling): how many agent messages redrew
 per keystroke before the change.
 
-- [ ] **Step 2: Run it to check it fails, or to find the cause is not the page**
+- [x] **Step 2: Run it to check it fails, or to find the cause is not the page**
   - Run: `nix develop -c vp test packages/web/src/__tests__/session-cost.test.tsx`
   - Expected: FAIL, `expected 150 to be 30`, or a count multiple of the messages drawn. **If it
     passes**, the page's redraw is not the cause of the lag: keep the test as the guard, write that
@@ -338,11 +338,11 @@ draft being held by the page). Moving the field's text into the composer is allo
 memoisation cannot hold, with a ruling saying why and a test that a created session keeps its typed
 text.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
   - Run: `nix develop -c vp check` then `nix develop -c vp test packages/web/src/__tests__`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/__tests__/session-cost.test.tsx packages/web/src/SessionPage.tsx specs/2026-10-19-redesign-session/
@@ -532,7 +532,7 @@ needs no change if the new rows fit its `NeedsYouRow` type (`href`, `id`, `key`,
   - Run: `nix develop -c vp check` then `nix develop -c vp run ts:test`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/fate packages/server/src/__tests__/needs-you.test.ts packages/web/src/__tests__/notify.test.tsx specs/2026-10-19-redesign-session/
@@ -686,7 +686,7 @@ back its inset with `--page-bleed` (the mockup's `list`), which Task 6's `Page i
     `nix develop -c vp run browser:desktop`
   - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-19-redesign-session/plan.md
