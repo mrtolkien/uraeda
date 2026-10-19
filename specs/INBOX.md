@@ -28,3 +28,6 @@
   core's comparison keeps plain words, so a rule linking another decision is no longer a link
 - [agent] [decisions-pass] An option of a decisions check that removes a decision (half of a merge)
   is drawn with no candidate card
+- [agent] [fix-testing] Skill template: skills/uraeda/assets/templates/specs/CONSTITUTION.md rule VI
+  still says "tests covering the spec's acceptance scenarios", so a new project's constitution
+  forbids what the testing rules now ask: needs the human's wording
