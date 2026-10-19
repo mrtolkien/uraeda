@@ -136,7 +136,8 @@ function Status({ item }: { item: CardItem }) {
     <HStack align="center" gap={1}>
       {item.hasBackgroundCommand && <Icon color="secondary" icon="uraeda:terminal" size="sm" />}
       {item.pending ? (
-        <Spinner label={item.pending} size="sm" />
+        // Read in the card's name: a `label` would show as text over the card.
+        <Spinner aria-hidden size="sm" />
       ) : (
         <StatusMark label={item.status.label} status={item.status.status} />
       )}
