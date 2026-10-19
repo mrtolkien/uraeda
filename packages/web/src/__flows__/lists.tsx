@@ -53,7 +53,18 @@ export type ListApp = {
   /** The page at an address as given, `/` or `/r/old-site/`. */
   open: (path: string, options?: { reload?: boolean }) => Promise<ReturnType<typeof render>>;
   sessions: ReturnType<typeof fakeSessions>["sessions"];
+  /** Waits until the server answered every request the page sent, those sent meanwhile too. */
+  settle: () => Promise<void>;
 };
+
+/** Waits until every request in `pending` is answered, those sent meanwhile too. */
+async function settled(pending: Set<Promise<unknown>>) {
+  do {
+    // A request the page queued as it went is sent at the next turn of the event loop.
+    await new Promise((resolve) => setImmediate(resolve));
+    await Promise.allSettled(pending);
+  } while (pending.size > 0);
+}
 
 /** The server over the list `repositories` makes, closed after the file's last test. */
 export function startListApp(
@@ -63,6 +74,7 @@ export function startListApp(
   const app = {} as ListApp;
   const pending = new Set<Promise<unknown>>();
   const closers: Array<() => Promise<void> | void> = [];
+  const settle = () => settled(pending);
   beforeAll(async () => {
     const dataDir = temporaryFolder("uraeda-data");
     writeList(dataDir, repositories());
@@ -131,6 +143,7 @@ export function startListApp(
         );
       },
       sessions: fake.sessions,
+      settle,
     });
   }, 60_000);
   beforeEach(() => {
@@ -142,10 +155,7 @@ export function startListApp(
   });
   afterEach(async () => {
     cleanup();
-    do {
-      await new Promise((resolve) => setImmediate(resolve));
-      await Promise.allSettled(pending);
-    } while (pending.size > 0);
+    await settle();
   });
   afterAll(async () => {
     for (const close of closers) {

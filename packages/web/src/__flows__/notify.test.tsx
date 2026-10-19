@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { commitOnBranch, fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
-import { click, quiet } from "./harness.tsx";
+import { click } from "./harness.tsx";
 import { startListApp } from "./lists.tsx";
 
 const repos = { a: fixtureRepo(), b: fixtureRepo() };
@@ -140,7 +140,7 @@ async function readAgain(back: DocumentVisibilityState = "hidden") {
     document.dispatchEvent(new Event("visibilitychange"));
   });
   // Every request the reading sent is answered, and drawn.
-  await quiet();
+  await act(app.settle);
 }
 
 /** The number the tab's title counts, 0 when it counts nothing. */
@@ -235,7 +235,7 @@ test("of two tabs in the background only one notifies, and the other takes over 
     await readAgain();
     expect(link(first) && link(second)).toBe(true);
   });
-  await quiet();
+  await act(app.settle);
   expect(shown).toHaveLength(1);
 
   // The notifying tab closes: the other notifies the next ask. A tab that reads an ask only once it
