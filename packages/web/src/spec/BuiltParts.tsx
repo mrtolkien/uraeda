@@ -1,12 +1,10 @@
 // "How it is built, and its limits": the parts after the stories, each drawn for what it holds. The
-// architecture's units as small cards, then each tradeoff with a "Cost" pill; the edge cases by
+// architecture's units as bullets, then each tradeoff with a "Cost" pill; the edge cases by
 // importance, the niche ones folded; each criterion's id and measure as pills before its sentence;
 // the assumptions as their blocks. The core finds each part's items: the page draws them, and every
 // item, row, and other block takes a comment as the spec's other blocks do.
 import { Badge } from "@astryxdesign/core/Badge";
-import { Card } from "@astryxdesign/core/Card";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { Grid } from "@astryxdesign/core/Grid";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -49,10 +47,6 @@ const styles = stylex.create({
     borderBlockStartStyle: "solid",
     borderBlockStartWidth: spacingVars["--spacing-0-5"],
     paddingBlockStart: spacingVars["--spacing-3"],
-  },
-  unit: {
-    // A unit's card fills its cell of the row, as tall as the tallest beside it.
-    height: "100%",
   },
 });
 
@@ -136,46 +130,6 @@ function Leftover({ item, props }: { item: Block; props: PartProps }) {
   );
 }
 
-/** A list's items in runs, in their order: each run of those among `ours`, or of the others. */
-function runsOf(props: PartProps, list: number, ours: ReadonlySet<number>) {
-  const runs: Array<{ items: Array<Block>; ours: boolean }> = [];
-  for (const item of props.document.blocks.filter((b) => b.parent === list)) {
-    const mine = ours.has(item.id);
-    const last = runs.at(-1);
-    if (last?.ours === mine) {
-      last.items.push(item);
-    } else {
-      runs.push({ items: [item], ours: mine });
-    }
-  }
-  return runs;
-}
-
-/**
- * A unit of the architecture, a small card: its name, the bold spans it starts with, then what it
- * does, in the one paragraph it was written in, and the blocks nested in it.
- */
-function Unit({ item, props }: { item: Block; props: PartProps }) {
-  const at = item.spans.findIndex((span) => !span.strong);
-  const name = at < 0 ? item.spans : item.spans.slice(0, at);
-  const rest = at < 0 ? [] : item.spans.slice(at);
-  return (
-    <Card padding={3} role="listitem" variant="muted" xstyle={styles.unit}>
-      <Selectable block={item} selection={props.selection}>
-        <VStack gap={1}>
-          <Text display="block" type="inherit" xstyle={styles.reading}>
-            <Text type="inherit" weight="semibold">
-              <Spans spans={name} />
-            </Text>
-            <Spans spans={rest} />
-          </Text>
-          <Nested item={item} props={props} />
-        </VStack>
-      </Selectable>
-    </Card>
-  );
-}
-
 /** A tradeoff of the architecture, after its "Cost" pill, then the blocks nested in it. */
 function Cost({ item, props }: { item: Block; props: PartProps }) {
   return (
@@ -193,46 +147,15 @@ function Cost({ item, props }: { item: Block; props: PartProps }) {
   );
 }
 
-/** A run of units, small cards in a row on a wide screen. */
-function UnitGrid({ cards, props }: { cards: ReadonlyArray<Block>; props: PartProps }) {
-  return (
-    <Grid
-      aria-label="Units"
-      columns={props.wide ? Math.min(cards.length, 2) : 1}
-      gap={3}
-      role="list"
-    >
-      {cards.map((item) => (
-        <Unit item={item} key={item.id} props={props} />
-      ))}
-    </Grid>
-  );
-}
-
 /**
- * The architecture: its blocks in order, the units of its list drawn as small cards and its other
- * items as written, the paragraph "Tradeoffs:" giving way to each tradeoff with a "Cost" pill.
+ * The architecture: its blocks in order as written, its units as bullets, the paragraph
+ * "Tradeoffs:" giving way to each tradeoff with a "Cost" pill.
  */
 function Architecture({ items, part, props }: DrawingProps) {
-  const units = parentsOf(props, items.units);
   const tradeoffs = parentsOf(props, items.tradeoffs);
   // The paragraph "Tradeoffs:", right before their list, where the core cuts the units from them.
   const title = part.blocks[part.blocks.findIndex((id) => tradeoffs.has(id)) - 1];
-  const ours = new Set(items.units);
   return inOrder(part, props, (block) => {
-    if (units.has(block.id)) {
-      return (
-        <VStack gap={3} key={block.id}>
-          {runsOf(props, block.id, ours).map((run) =>
-            run.ours ? (
-              <UnitGrid cards={run.items} key={run.items[0]!.id} props={props} />
-            ) : (
-              run.items.map((item) => <Leftover item={item} key={item.id} props={props} />)
-            ),
-          )}
-        </VStack>
-      );
-    }
     if (tradeoffs.has(block.id)) {
       return (
         <VStack aria-label="Tradeoffs" as="ul" gap={2} key={block.id} xstyle={styles.list}>
