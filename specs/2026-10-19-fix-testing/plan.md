@@ -397,17 +397,17 @@ git commit -m "test(fix-testing): rebuild the server tests as flows"
   shared helpers that build one repository per file, not per test.
 - Produces: flows asserting behaviour by role, state, and navigation.
 
-- [ ] **Step 1: Inventory and coverage**, as in Task 4, for `packages/web`.
-- [ ] **Step 2: Write the flows.** One repository and server per file, shared by its tests. Include
+- [x] **Step 1: Inventory and coverage**, as in Task 4, for `packages/web`.
+- [x] **Step 2: Write the flows.** One repository and server per file, shared by its tests. Include
       US1 1 and 2: the home page lists a feature at a gate with its Answer action and opening it
       reaches the round, and no assertion reads the heading's words. The break of each: remove the
       action, break the link target.
-- [ ] **Step 3: Run them**: `nix develop -c vp test --project web --run`. Expected: PASS; the
+- [x] **Step 3: Run them**: `nix develop -c vp test --project web --run`. Expected: PASS; the
       runtime of the project's files is under a third of the old 690 s.
-- [ ] **Step 4: Delete the old tests**, run the coverage again, and list in the ruling what the area
+- [x] **Step 4: Delete the old tests**, run the coverage again, and list in the ruling what the area
       no longer runs.
-- [ ] **Step 5: Run the project's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 6: Commit**
+- [x] **Step 5: Run the project's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-10-19-fix-testing/rulings.md
