@@ -21,6 +21,11 @@ Some layout reviews:
 - User stories "Given, When, Then" are hard too read (gray and small) + not aligned with the text
   that follows
 - In specs, "Data model" should leave, not even sure what the card does
+- The chats in the sidebar are distracting, they stay there too long. Sidebar should be _relevant_
+  stuff, not finished chats. Archiving is a solution but annoying and requires pointless user
+  action.
+  - Chats/Changes should be a single feature tbh, in that a chat should be able to _also_ become a
+    change whenever it's needed
 
 ## Why
 
