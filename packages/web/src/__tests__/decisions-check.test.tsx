@@ -115,7 +115,7 @@ test("an option shows its candidate as the spec page shows a changed decision", 
   await renderPage("/decisions/check", withCheck(), { agent: true });
   await screen.findByRole("heading", { level: 1, name: "Decisions check" });
 
-  const card = document.getElementById("q1-a-candidate") as HTMLElement;
+  const card = document.getElementById("q1-a-ui-components") as HTMLElement;
   expect(within(question("Q1")).getByRole("heading", { name: "UI components" })).toBeTruthy();
   expect(within(card).getByText("Changed")).toBeTruthy();
   // Under option A's card, inside the question; the added rule carries its own pill.
@@ -124,8 +124,24 @@ test("an option shows its candidate as the spec page shows a changed decision", 
   // Its rules, as the core compared them with the active decision, as the spec page draws them.
   expect(within(card).getAllByRole("img", { name: "Must" }).length).toBeGreaterThan(0);
   // Option B and the second question have no candidate folder: no card under them.
-  expect(document.getElementById("q1-b-candidate")).toBeNull();
+  expect(document.getElementById("q1-b-ui-components")).toBeNull();
   expect(within(question("Q2")).queryByText("Changed")).toBeNull();
+});
+
+/** An option can leave more than one decision: each candidate has its own card. */
+test("an option with two candidates shows both", async () => {
+  const repo = withCheck();
+  copyFileSync(
+    join(repo, "specs/decisions-check/q1-a/ui-components.md"),
+    join(repo, "specs/decisions-check/q1-a/ui-coherence.md"),
+  );
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "-m", "chore: add a second candidate");
+  await renderPage("/decisions/check", repo, { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Decisions check" });
+
+  expect(document.getElementById("q1-a-ui-components")).toBeTruthy();
+  expect(document.getElementById("q1-a-ui-coherence")).toBeTruthy();
 });
 
 /** The check's answers go to its own file, never the triage's. */

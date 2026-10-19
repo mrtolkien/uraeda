@@ -9,29 +9,27 @@ import { DecisionCard } from "../spec/DecisionCard.tsx";
 export const CandidatesContext = createContext<ReadonlyArray<Candidate>>([]);
 
 /**
- * The card of the candidate of an option, `letter` of question `id` (`Q1`, `A`), found by the folder
- * `q1-a` the core named it with; nothing for an option with none.
+ * The cards of the candidates of an option, `letter` of question `id` (`Q1`, `A`), found by the
+ * folder `q1-a` the core named them with, one per decision; nothing for an option with none.
  */
 export function CandidateCard({ id, letter }: { id: string; letter: string }) {
   const question = id.toLowerCase();
   const option = letter.toLowerCase();
   const candidates = useContext(CandidatesContext);
-  const candidate = candidates.find((one) => one.question === question && one.option === option);
-  if (!candidate) {
-    return null;
-  }
-  const { change } = candidate;
-  return (
-    <DecisionCard
-      change={change}
-      comments={[]}
-      crumbs={[`Option ${letter}`]}
-      href={undefined}
-      id={`${question}-${option}-candidate`}
-      kind={change.kind}
-      name={change.name}
-      parts={undefined}
-      title={change.title}
-    />
-  );
+  return candidates
+    .filter((one) => one.question === question && one.option === option)
+    .map(({ change }) => (
+      <DecisionCard
+        change={change}
+        comments={[]}
+        crumbs={[`Option ${letter}`]}
+        href={undefined}
+        id={`${question}-${option}-${change.name}`}
+        key={change.name}
+        kind={change.kind}
+        name={change.name}
+        parts={undefined}
+        title={change.title}
+      />
+    ));
 }
