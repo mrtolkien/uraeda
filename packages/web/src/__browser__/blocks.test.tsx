@@ -1,5 +1,5 @@
 // US2 scenario 5 and the edge case "A table wider than its region on a wide screen", at a phone's
-// size and a desktop's: a table's columns keep a floor of 144 px, past which the table scrolls
+// size and a desktop's: a table is as wide as its columns, into the margin to the screen's edge, past which the table scrolls
 // sideways in its own region, never the page, and its cells keep their links.
 import { screen } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -41,21 +41,18 @@ function region(element: HTMLTableElement) {
   return element.closest<HTMLElement>('[role="group"]')!;
 }
 
-test("a table's columns keep 144 px and it scrolls in its own region (US2 5)", async () => {
+test("a table reaches into the margin and scrolls in its own region past it (US2 5)", async () => {
   await writeRound();
   await show(`/f/${FOLDER}/clarifications-01.md`, "How users pick a repeat");
 
   const narrow = table("Product");
   const wide = table("Column A");
   for (const each of [narrow, wide]) {
-    const headers = [...each.querySelectorAll("th")];
-    expect(headers.length).toBeGreaterThanOrEqual(3);
-    for (const header of headers) {
-      expect(header.getBoundingClientRect().width, header.textContent!).toBeGreaterThanOrEqual(144);
-    }
+    expect(each.querySelectorAll("th").length).toBeGreaterThanOrEqual(3);
   }
-  // At 402 px the 3 columns are wider than the region; on a wide screen, the 8 are.
-  const scrolling = window.innerWidth < 768 ? [narrow, wide] : [wide];
+  // A table reaches into the margin, to the screen's edge, and scrolls past it: the 8 columns are
+  // wider than that.
+  const scrolling = [wide];
   for (const each of scrolling) {
     const scroller = region(each);
     expect(scroller).toBeTruthy();

@@ -6,7 +6,7 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useContext, useMemo } from "react";
+import { type ReactNode, useContext, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
@@ -37,6 +37,9 @@ const CALLOUT_TITLES: Record<string, string> = {
 };
 
 const styles = stylex.create({
+  // A table as wide as its columns: past the reading measure into the page's margin, scrolling only
+  // past that.
+  // Its maximum width is set by `TableBlock`, which measures what remains of the screen.
   block: {
     marginBlockEnd: spacingVars["--spacing-3"],
   },
@@ -95,6 +98,7 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-bold"],
     minWidth: spacingVars["--spacing-4"],
   },
+  table: { maxWidth: "100%", minWidth: "100%", width: "max-content" },
   warning: { color: colorVars["--color-warning"] },
 });
 
@@ -144,6 +148,29 @@ function diagramPlace(block: Block, document: Document): Place {
     index: diagrams.findIndex((other) => other.id === block.id) + 1,
     total: diagrams.length,
   };
+}
+
+/** A table in a block of its own, which may reach into the margin, as far as the screen's edge. */
+function TableBlock({ block, context }: { block: Block; context: BlockContext }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+    const measure = () => {
+      const room = window.innerWidth - element.getBoundingClientRect().left - 16;
+      element.style.maxWidth = `min(calc(100% + 16rem), ${Math.max(0, room)}px)`;
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+  return (
+    <div {...stylex.props(styles.block, styles.table)} ref={ref}>
+      <TableNode block={block} context={context} />
+    </div>
+  );
 }
 
 function Children({ block, context }: { block: Block; context: BlockContext }) {
@@ -260,11 +287,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
         </Blockquote>
       );
     case "table":
-      return (
-        <div {...stylex.props(styles.block)}>
-          <TableNode block={block} context={context} />
-        </div>
-      );
+      return <TableBlock block={block} context={context} />;
     case "row":
     case "cell":
       // Drawn by their table.

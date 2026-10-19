@@ -32,6 +32,7 @@
   - The diff needs colors (green/red)
   - We need ~+2px bottom border I think, sometimes text and pills looked like they had not enough
     space (don't have an example on hand)
+- "Why it matters" should be a question callout
 
 ## Changes
 
