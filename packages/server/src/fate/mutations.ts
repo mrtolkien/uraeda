@@ -108,9 +108,13 @@ const repositoryMutations = {
     type: "Draft",
   },
   "feature.start": {
-    resolve: async ({ ctx, input, select }: Resolver<{ draft: string; slug?: string }>) => {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ draft: string; kind?: "change" | "feature"; slug?: string }>) => {
       const started = await refusable(() =>
-        ctx.binding.startFeature(ctx.repo, input.draft, input.slug),
+        ctx.binding.startFeature(ctx.repo, input.draft, input.slug, input.kind),
       );
       const feature = await ctx.binding.readFeature(ctx.repo, started.folder);
       return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);

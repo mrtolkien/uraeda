@@ -7,6 +7,7 @@ import { refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
 import { currentEntry, navigate, redirect, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
+import { useStartChange } from "./useStartChange.ts";
 import { DraftView, PrioritiesView } from "../views.ts";
 
 /** A line found in the priorities, with its section and its place in it. */
@@ -117,5 +118,5 @@ export function usePriorityActions(
     redirect(here(origin()));
   };
 
-  return { draft, message, move, remove, rename };
+  return { draft, message, move, remove, rename, startChange: useStartChange(entry.id, hash, run) };
 }
