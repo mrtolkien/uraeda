@@ -816,3 +816,22 @@ Files with `test` in their path that are no tests: the shared helpers and setup
 `packages/benchmarks/src/tests-source.ts`), the three benchmarks (`*.bench.ts`, R4),
 `scripts/test-run.ts` and `.config/nextest.toml` (the runners, R5), `JumpToLatest.tsx` (a
 component), and the drafts and records in `specs/` and `docs/`, which are prose.
+
+## R10: The wording the web flows still read, accepted
+
+- **Decision**: a web flow reads a state, a role, or an attribute where one exists. These reads of
+  words stay, because no state of the page carries the same fact and a mark for it would be added
+  only for the test:
+  - `shell.test.tsx` reads a card's status from its mark's name (`Needs you`, `Working`,
+    `Needs attention`): the mark's accessible name is the status.
+  - `shell.test.tsx` matches `\d+ of \d+` in the task line: its count has no attribute of its own.
+  - `notify.test.tsx` reads the count of the tab's title, `(3) Uraeda`: the title is the product.
+  - `session-feature.test.tsx` reads the `Current: ` and `Done: ` prefixes of the task steps'
+    labels: the label says which step is which.
+- **Rationale**: SC-006 asks that a flow not break when a sentence is reworded. These four are the
+  accessible names or the title the page gives, which a rewording of them would break for its
+  readers too. The others, a sentence to find an element, were replaced by a role (`alert`) or a
+  described-by link.
+- **Alternatives considered**: a `data-` attribute on each, which only tests would read.
+- **If wrong**: replace each read by a state when the page gets one.
+- **Where**: `packages/web/src/__flows__/`.
