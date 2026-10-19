@@ -484,10 +484,10 @@ git commit -m "test(fix-testing): keep the tooling tests that enforce a rule"
 - Produces: flows for the runner (fake adapter, no network), the record's schema, and each rule the
   benchmarks decision ends with "Checked by ... tests".
 
-- [ ] **Step 1: Inventory**, **Step 2: write the flows** with a break by hand, **Step 3: run them**
+- [x] **Step 1: Inventory**, **Step 2: write the flows** with a break by hand, **Step 3: run them**
       (`nix develop -c vp test --project benchmarks --run`), **Step 4: delete the old tests** and
       list them by rule, **Step 5: run `nix develop -c vp run fast`**.
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/benchmarks specs/2026-10-19-fix-testing/rulings.md

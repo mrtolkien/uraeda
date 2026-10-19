@@ -305,3 +305,59 @@ take 7 s more.
 - **Rationale**: SC-005 and the plan's Task 8.
 - **If wrong**: restore the dropped file from the commit before this task.
 - **Where**: tooling tests of `packages/server`, `packages/web`, and `crates/cli`.
+
+## R6: The benchmarks flows, and what the old tests became
+
+- **Decision**: `packages/benchmarks/src/__flows__/` holds five flows over the runner with a fake
+  adapter and no network, each from a rule of the [Benchmarks](../decisions/benchmarks.md) decision
+  ending "Checked by ...": `loop.test.ts` (the loop, models, blocks, leak audit), `human.test.ts`
+  (the simulated human, on real git), `run.test.ts` (`runFlow` end to end on fakes: approval,
+  record, skill commit, hidden tests, judge model, baseline), `record.test.ts` (the schema and what
+  git keeps), and `sandbox.test.ts` (the credentials, the pinned model). `harness.ts` is their
+  helper. The old `__tests__/` folder is deleted whole, since none of its helpers is used by a flow.
+- **Rules and their flows**: approval, in `run.test.ts`; skill from a named commit, in
+  `run.test.ts`; the human sees only what a human would open and the invalid run, in `human.test.ts`
+  and `run.test.ts` (the hidden tests are fetched after the flow, outside its checkout); the wrong
+  model fails the run, in `loop.test.ts` and `run.test.ts` (the judge), with the settings that pin
+  it in `sandbox.test.ts`; the record's fields, in `record.test.ts` (one case per required field)
+  and `run.test.ts`; git holds the record and not the transcripts, in `record.test.ts` and
+  `run.test.ts`; the baseline's reuse, in `run.test.ts`; the addresses fetched and the leak flag, in
+  `loop.test.ts`; the agents decision's blocked actions allowed once, in `loop.test.ts`.
+- **Breaks, run by hand, each caught**: approval not required; the skill copied from the working
+  tree; the schema not asking for `urls`; `transcripts/` removed from `.gitignore`; the human's
+  commit outside the folder allowed; the loop ignoring a wrong model; the judge's model unchecked;
+  the hidden tests fetched before the loop; the upstream never flagged; finished without a push; the
+  token's value in the container's arguments; a baseline borrowed across models; the same block
+  allowed again; a fallback model allowed in the settings; the record not holding the approval; the
+  human's change requests uncapped. Each made at least one flow fail, and the code was restored.
+- **Before and after**: 11 test files and 97 tests (1,983 lines with helpers) in about 6.3 seconds
+  of Vitest, 77% of statements covered; 5 files and 50 tests (every field of the record is a case)
+  in about 2.3 seconds, 50% of statements covered. What the flows no longer run: the screening
+  (`screen.ts`), the results page (`report*.ts`), `prepare-case.ts`, `probe.ts`, `case.ts`,
+  `suite.ts`, the CLI, and `prepareSandbox` itself, whose docker steps the flows replace by a
+  sandbox of real git on a bare origin.
+- **Old test files**:
+
+| Old file                                                               | Flow, or the rule that dropped it                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `__tests__/loop.test.ts`                                               | `__flows__/loop.test.ts` for the order of turns, the cap, the models, usage limit, blocks, leak flags, the human's turns, and errors; the late round and the `ura next` step tests dropped: they pin the shape of the fake `ura` answer |
+| `__tests__/loop-helpers.ts`                                            | `__flows__/harness.ts`, written for the flows                                                                                                                                                                                           |
+| `__tests__/human.test.ts`                                              | `__flows__/human.test.ts`; the test of the guidelines' wording ("at most twice", "confirm the risk tier") is dropped: it asserts text, and the cap is checked by the change-request flow                                                |
+| `__tests__/run-case.test.ts`                                           | `__flows__/run.test.ts` for the run, the skill commit, the judge's model, hidden tests, the baseline; screening, `prepare-case`, and the plain arm's own record dropped: no decision rule, a tool read by its use                       |
+| `__tests__/data.test.ts`                                               | `__flows__/record.test.ts` for the schema and git; the suite and case readers dropped: no decision rule, and a bad file shows at the first run                                                                                          |
+| `__tests__/skill.test.ts`                                              | `__flows__/run.test.ts`, the skill's commit and a missing commit                                                                                                                                                                        |
+| `__tests__/sandbox.test.ts`                                            | `__flows__/sandbox.test.ts` for the credentials and the pinned model; the mounts, the container labels, and the cleanup dropped: they pin the fake docker's calls, and the first real run shows them                                    |
+| `__tests__/grader.test.ts`                                             | `__flows__/run.test.ts` for the scores of passing and failing tests and the hidden tests' place; the parsing of Python literals, the judge's message, and the counts of rounds dropped: no decision rule, checked by the first run      |
+| `__tests__/session.test.ts`                                            | dropped: the SIGTERM and SIGKILL grace is a timing rule, and the decision's rules do not name it; a hung process shows in the first run                                                                                                 |
+| `__tests__/report.test.ts`                                             | dropped: the results page has no rule in the decision, and its test asserts what the page shows                                                                                                                                         |
+| `__tests__/probe.test.ts`                                              | dropped: the probe is a tool for a human to run, with no rule in the decision                                                                                                                                                           |
+| `__tests__/server-exports.test.ts`                                     | dropped: "the benchmark reaches agents through the server's adapter" is checked by review, as the decision says; the flows import the same exports                                                                                      |
+| `__tests__/fake-bin.ts`, `samples.ts`, `fixtures/next-after-push.json` | helpers of the deleted tests: replaced by `__flows__/harness.ts`                                                                                                                                                                        |
+
+- **Rationale**: the benchmarks decision's "Checked by the runner's tests" rules are the ones a flow
+  must keep (SC-004). The rest of the tooling checks no decision's rule.
+- **Alternatives considered**: keeping the report and screening tests, which pin what a page shows
+  and the order of candidates.
+- **If wrong**: restore a deleted file from the commit before this one and rebuild its flow from the
+  rule it guards.
+- **Where**: `packages/benchmarks/src/__flows__/`, task 9 of the plan.
