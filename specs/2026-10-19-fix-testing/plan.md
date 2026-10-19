@@ -306,13 +306,13 @@ with "Checked by ... tests": a gap guards nothing.
 - Consumes: the fast check (Task 3) and the existing `common/` helpers, kept where a flow uses them.
 - Produces: flows owning the git, repositories, settings, attachments, problems, and cli rules.
 
-- [ ] **Step 1: Take the inventory and the coverage**
+- [x] **Step 1: Take the inventory and the coverage**
 
 Run `nix develop -c vp run coverage` for the area, keep its summary, and list each old test file
 with the behaviour it guards, from its test names and bodies. Write the mapping skeleton in
 `rulings.md`.
 
-- [ ] **Step 2: Write the flows**
+- [x] **Step 2: Write the flows**
 
 Write the flows from the specs and the decisions' rules: the real `ura` binary and the core on
 temporary git repositories. Cover at least: reading a branch's step only from its latest commit (US1
@@ -324,23 +324,23 @@ words except where a decision's rule fixes them.
 The break each flow catches, by hand: for each flow of a write, git, or security rule, break the
 code (read an older commit, skip a write, drop a validation) and record the failure in the ruling.
 
-- [ ] **Step 3: Run them**
+- [x] **Step 3: Run them**
 
 - Run: `nix develop -c cargo nextest run`
 - Expected: PASS on the flows and the old tests; each break run FAILS on its flow.
 
-- [ ] **Step 4: Delete the old tests**
+- [x] **Step 4: Delete the old tests**
 
 Delete every old Rust test file and unit test the ruling's mapping places, or drops by a rule of the
 spec (fails on a refactor, duplicates a faster path, asserts text, counts, or sizes, only observes).
 Run the coverage again and list in the ruling what the area no longer runs.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `nix develop -c vp run fast` then `nix develop -c vp run ready:rust`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates specs/2026-10-19-fix-testing/rulings.md
