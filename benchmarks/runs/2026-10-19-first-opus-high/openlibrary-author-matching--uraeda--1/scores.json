@@ -1,0 +1,71 @@
+{
+  "questions": 5,
+  "revisions": 2,
+  "rounds": 1,
+  "requirements": {
+    "covered": 11,
+    "items": [
+      {
+        "line": "Steps 1 to 4 run only when the import has both dates and is a person... 1. The name and, for \"Surname, Forename\", its flipped form, with both years exact. ... 3. The same names among `alternate_names`, on a candidate with both years exact. 4. The surname, on a candidate with both years exact.",
+        "requirement": "find_entity must attempt resolution in priority order: name with birth/death dates, alternate_names with dates, surname with dates",
+        "verdict": "covered"
+      },
+      {
+        "line": "1. The name and, for \"Surname, Forename\", its flipped form, with both years exact. 2. The same names with today's tolerant date rule",
+        "requirement": "When both birth_date and death_date are present they disambiguate records, and an exact year match for both takes precedence",
+        "verdict": "covered"
+      },
+      {
+        "line": "Otherwise there is a single step, the name and its flipped form alone.",
+        "requirement": "When either date is absent, fall back to case-insensitive name matching alone and return an existing record if one exists",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the stored authors, **When** an import sends \"WILLIAM H. BREWER\" born \"1829\" died \"1910\", **Then** `find_entity` returns OL2A, the lowest numeric key, not OL10A.",
+        "requirement": "Matching must be case-insensitive; different casings resolve to the same author record",
+        "verdict": "covered"
+      },
+      {
+        "line": "**When** an import sends \"Zed*\" born \"1829\" died \"1910\", **Then** `import_author` returns a new candidate with the name \"Zed*\", born \"1829\", died \"1910\".",
+        "requirement": "Support wildcards in name patterns; \"John*\" returns first candidate by numeric key; if none, a new candidate preserving the name including *",
+        "verdict": "covered"
+      },
+      {
+        "line": "The same names among `alternate_names`, on a candidate with both years exact.",
+        "requirement": "Alternate_names match requires both birth_date and death_date present and exactly matching the candidate's values",
+        "verdict": "covered"
+      },
+      {
+        "line": "**When** an import sends \"Mr. Harry J. Brewer\" born \"1829\" with no death date, **Then** `find_entity` returns `None`.",
+        "requirement": "Surname match requires both dates present and exactly matching; must not resolve if either is missing or mismatched",
+        "verdict": "covered"
+      },
+      {
+        "line": "`import_author` returns a new candidate with the name \"William H. Brewer\", born \"1829\", died \"1912\".",
+        "requirement": "If no valid match, return a new author candidate dict preserving name, birth_date, death_date unchanged",
+        "verdict": "covered"
+      },
+      {
+        "line": "It owns the year rule: both sides have a four-digit year, found with `re_year`, and they are equal.",
+        "requirement": "Year comparison considers only the year component; any year difference invalidates a match",
+        "verdict": "covered"
+      },
+      {
+        "line": "**`find_entity(author)`** returns the first candidate of `find_author`, or `None`.",
+        "requirement": "find_author(author) accepts the import dict and returns list of candidates; find_entity delegates to find_author and returns an existing record or None",
+        "verdict": "covered"
+      },
+      {
+        "line": "It first removes every `_` from `pattern`, then `*` matches any run of characters, and every other character is literal.",
+        "requirement": "Mock query behavior replicates production ILIKE semantics: case-insensitive full-string, * multi-char wildcard, _ ignored in patterns",
+        "verdict": "covered"
+      }
+    ],
+    "total": 11
+  },
+  "tests": {
+    "passed": 8,
+    "resolved": true,
+    "total": 8
+  }
+}

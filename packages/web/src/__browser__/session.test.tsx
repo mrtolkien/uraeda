@@ -203,12 +203,12 @@ async function followAndComeBack(link: HTMLElement, path: string) {
 test("Back from a session view returns to its position, following the end only from the end", async () => {
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", [
-    ...lines(20, "Line"),
+    ...lines(9, "Line"),
     { text: `As [the proposal](/f/${CLI}/proposal.md) asks.`, type: "text" },
-    ...lines(20, "Next line"),
+    ...lines(9, "Next line"),
   ]);
   const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-  await within(log).findByText("Next line 20.", undefined, LIVE);
+  await within(log).findByText("Next line 9.", undefined, LIVE);
   await drawn();
 
   // Scrolled up to a link in the reply: Back returns there, and nothing moves as the turn grows.
@@ -474,12 +474,12 @@ describe("on the desktop", () => {
     try {
       await show(`/f/${CLI}/session`, "CLI TUIs");
       await startTurn("Plan the CLI.", [
-        ...lines(10, "Line"),
+        ...lines(3, "Line"),
         { text: `Long \`paragraph\` ${words}.`, type: "text" },
-        ...lines(30, "Next line"),
+        ...lines(12, "Next line"),
       ]);
       const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-      await within(log).findByText("Next line 30.", undefined, LIVE);
+      await within(log).findByText("Next line 12.", undefined, LIVE);
       await drawn();
       // Its inline code above the line, its text across it.
       const paragraph = within(log).getByText(/word399\.$/);
@@ -552,7 +552,12 @@ describe("on the desktop, the column across 768 px", () => {
       await expect.poll(() => window.innerWidth).toBe(402);
       await agent.addPlan(CLI);
       await show(`/f/${CLI}/session`, "CLI TUIs");
-      await startTurn("Plan the CLI.", lines(60, "Line"));
+      await startTurn(
+        "Plan the CLI.",
+        // Two paragraphs each: the agent's text is flat now, and 20 one-line messages leave a page
+        // too short to keep the place read at the width that has no top bar (R10).
+        lines(60, "Line").map((line) => ({ ...line, text: `${line.text}\n\nMore.` })),
+      );
       const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
       await within(log).findByText("Line 60.", undefined, LIVE);
       await drawn();

@@ -2,6 +2,7 @@
 // pages, the sidebar's list and search, and the workflow's message.
 import type { FeatureView, WorkspaceView } from "uraeda-binding";
 import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
+import { coveredDenials } from "../runner/allow.ts";
 import type { Trigger } from "../runner/events.ts";
 import { commentsReference, runMessage } from "../runner/message.ts";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -101,6 +102,7 @@ function turnsOf(cache: SessionCache, session: string) {
         .map((tool) => ({ description: tool.subagent?.description ?? "", id: tool.id }))
     : [];
   return {
+    allowable: latest ? coveredDenials(cache, latest.id).length : 0,
     blocked: latest ? cache.itemsOf(latest.id, "denial").some((denial) => !denial.allowed) : false,
     latest,
     queued: turns.some((turn) => turn.state === "queued"),
@@ -163,6 +165,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
   const feature = row.folder === null ? undefined : await featureOf(ctx, row.folder);
   return {
     agent: row.agent,
+    allowable: read.allowable,
     folder: row.folder,
     id: row.id,
     title: titleOf(row, feature),
@@ -276,6 +279,26 @@ export async function featureStatuses(ctx: RepoContext) {
           ? { status: "needs-you" as const, statusReason: "step" as const }
           : { status: "idle" as const, statusReason: null };
       return { feature, status: status.status, statusReason: status.statusReason };
+    });
+}
+
+/**
+ * Each chat of the server's repository that is not archived, with its title and its status, from
+ * the same rules as the sidebar's.
+ */
+export async function chatStatuses(ctx: RepoContext) {
+  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
+  const { cache } = ctx.sessions;
+  if (root === undefined) {
+    return [];
+  }
+  return cache
+    .sessions(root, { limit: LIST_LIMIT })
+    .filter((row) => row.folder === null && row.archivedAt === null)
+    .map((row) => {
+      const read = turnsOf(cache, row.id);
+      const { status, statusReason } = statusOf(row, read);
+      return { latest: read.latest, row, status, statusReason, title: titleOf(row) };
     });
 }
 

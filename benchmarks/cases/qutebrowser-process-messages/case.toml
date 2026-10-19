@@ -1,0 +1,5 @@
+source = "swe-bench-pro-v2"
+task = "instance_qutebrowser__qutebrowser-e70f5b03187bdd40e8bf70f5f3ead840f52d1f42-v02ad04386d5238fe2d1a1be450df257370de4b6a"
+image = "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:4ff91edc813834b1bc90e69b84c4046ad6de5b0ef7bbd0a754a0b7f997e6ed87"
+upstream = "https://github.com/qutebrowser/qutebrowser"
+repository = "/app"

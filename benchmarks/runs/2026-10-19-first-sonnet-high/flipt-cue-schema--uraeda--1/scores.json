@@ -1,0 +1,111 @@
+{
+  "questions": 3,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 19,
+    "items": [
+      {
+        "line": "**`DefaultConfig()`** in [`config.go`](/internal/config/config.go) returns the canonical default `*Config`, moved from the test helper.",
+        "requirement": "The default Flipt configuration must be available through a function `DefaultConfig()` in the config package that takes no arguments and returns a `*Config`, and it must return the same canonical default values used by the configuration loading path.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**`DecodeHooks`**, exported from the same file, is the one list of string-to-value conversions. `Load` and the schema test both use it.",
+        "requirement": "The configuration decode hook chain must be reusable through the exported `DecodeHooks` value in the config package, so decoding the default configuration into a `map[string]any` uses the same conversions as normal configuration loading.",
+        "verdict": "covered"
+      },
+      {
+        "line": "| Normal     | A duration has a fraction, such as `1.5s`                          | The pattern accepts it, since `time.Duration` produces such strings                  |",
+        "requirement": "Every duration setting of the configuration must be accepted by the CUE schema when written in Go's duration string form, the form a `time.Duration` value takes when converted to a string.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**`#FliptSpec`** in [`flipt.schema.cue`](/config/flipt.schema.cue) is the schema.",
+        "requirement": "The CUE configuration schema must expose a top-level `#FliptSpec` definition that can be used to validate decoded Flipt configuration maps.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-002** (12 sections): `#FliptSpec` accepts `log`, `ui`, `cors`, `cache`, `server`, `tracing`, `db`, `meta`, `authentication`, `audit`, `experimental`, and `storage`.",
+        "requirement": "`#FliptSpec` must accept every top-level section emitted by the decoded default configuration, including `log`, `ui`, `cors`, `cache`, `server`, `tracing`, `db`, `meta`, `authentication`, `audit`, `experimental`, and `storage`.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**The tags and `fieldKey`** name each mapstructure field as the schema does. `fieldKey` returns the tag's name when the attribute is `omitempty`.",
+        "requirement": "Mapstructure field names must align with the schema field names used for validation, and `omitempty` options in mapstructure tags must not prevent the correct field name from being used.",
+        "verdict": "covered"
+      },
+      {
+        "line": "Optional fields whose default is empty carry `omitempty`, so they are absent from the map.",
+        "requirement": "Optional fields that are empty in the default configuration must not cause CUE validation failures, including optional nested fields in authentication, database, storage, tracing, audit, and other configuration sections.",
+        "verdict": "covered"
+      },
+      {
+        "line": "| Normal     | `storage.git.authentication` is omitted or empty                   | The schema accepts both, and no empty `basic` or `token` object is emitted           |",
+        "requirement": "Storage configuration must support omitted `local`, `git`, and authentication subsections without emitting invalid empty objects during default configuration validation.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**`StorageConfig`** in [`storage.go`](/internal/config/storage.go) holds `Local *Local` and `Git *Git`, nil unless selected.",
+        "requirement": "`StorageConfig.Local` and `StorageConfig.Git` must become nil-able pointer fields, typed `*Local` and `*Git`, nil when the backend is not selected, carrying the supplied settings when selected, omitted from the decoded configuration; deliberate breaking change; source covered must continue to build, construction sites outside the change's scope are reconciled elsewhere.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `storage.type` `git` with `repository`, `ref` `production`, `poll_interval` `5s`, and `authentication.basic` of `user` and `pass`, **When** validated, **Then** it passes.",
+        "requirement": "The CUE schema must accept storage configurations for database, git, and local storage, including git repository settings, refs, poll intervals, and either basic or token authentication when provided.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**The URL form needs only `url`.** The parts form needs all five fields. Either form accepts the shared options: password, connection limits, connection lifetime, and prepared statements.",
+        "requirement": "Database configuration validation must accept either a URL-based configuration or a protocol, host, port, name, and user based configuration, while still allowing shared database options such as password, connection limits, connection lifetime, and prepared statement settings.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `cors.allowed_origins` is the string `foo.com`, then the list `[\"foo.com\", \"bar.com\"]`, **When** each is validated, **Then** both pass.",
+        "requirement": "CORS configuration must accept `allowed_origins` as either a list of origins or a single string.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `advanced.yml`, **When** it is loaded, **Then** `Storage.Type` is `git` and `Storage.Local` is nil. `Storage.Git` has `Repository` `https://github.com/flipt-io/flipt.git`, `Ref` `production`, `PollInterval` 5s, and basic authentication of `user` and `pass`.",
+        "requirement": "The config package's fully populated example configuration document `advanced.yml` must be extended to also cover audit, tracing OTLP, and git storage sections with the exact values given.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-001** (no CUE errors): `DefaultConfig()`, decoded and converted, validates against `#FliptSpec` with `cue.Concrete(true)` and no error.",
+        "requirement": "The configuration returned by `DefaultConfig()`, with its durations in string form, must validate against `#FliptSpec` without errors when every value is required to be concrete.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-003** (equality): loading an empty file with no `FLIPT_` variables equals `DefaultConfig()`.",
+        "requirement": "The default Flipt configuration must be available through `DefaultConfig()` in the config package, and it must return the same canonical default values used by the configuration loading path.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** that decoded map before conversion, **When** the cache TTL is read, **Then** it is a `time.Duration` of one minute. After conversion it is the string `1m0s`.",
+        "requirement": "Decoding `DefaultConfig()` with `mapstructure.ComposeDecodeHookFunc(DecodeHooks...)` must preserve duration fields as `time.Duration` values before schema validation adaptation.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the default configuration, **When** its durations are converted to strings, **Then** they read `24h0m0s` (token lifetime), `10m0s` (state lifetime), `1m0s` (cache TTL), `5m0s` (cache eviction interval), and `2m0s` (audit flush period).",
+        "requirement": "Duration values emitted from the default configuration must be valid after conversion to their string form, including values such as `1m0s`, `24h0m0s`, `10m0s`, `5m0s`, and `2m0s`.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `advanced.yml`, **When** it is loaded, **Then** `Audit.Sinks.LogFile` is enabled with `File` `/path/to/logs.txt`, and `Audit.Buffer` has `Capacity` 10 and `FlushPeriod` 3m.",
+        "requirement": "The example configuration document `advanced.yml` must be extended so that it also exercises the sections this change introduces or reshapes, and load into exactly the audit, tracing, and storage values given.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `DefaultConfig()`, **When** it is decoded to a `map[string]any` with `DecodeHooks` and validated against `#FliptSpec` with `cue.Concrete(true)`, **Then** CUE reports no error.",
+        "requirement": "Validating the decoded and adapted `DefaultConfig()` map against `#FliptSpec` with concrete CUE validation must complete without errors.",
+        "verdict": "covered"
+      }
+    ],
+    "total": 19
+  },
+  "tests": {
+    "passed": 12,
+    "resolved": false,
+    "total": 15
+  }
+}

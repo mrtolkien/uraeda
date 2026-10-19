@@ -293,6 +293,12 @@ const packageIcon = outline(
   h("path", { d: "m7.5 4.27 9 5.15" }),
 );
 
+/** Lucide's `gauge`. */
+const gauge = outline(
+  h("path", { d: "m12 14 4-4" }),
+  h("path", { d: "M3.34 19a10 10 0 1 1 17.32 0" }),
+);
+
 /** Lucide's `repeat`. */
 const repeat = outline(
   h("path", { d: "m17 2 4 4-4 4" }),
@@ -406,6 +412,7 @@ const DECISION_ICONS = {
   eye: review,
   "file-text": fileText,
   "folder-git-2": folderGit2,
+  gauge,
   "git-branch": gitBranch,
   history,
   "key-round": keyRound,

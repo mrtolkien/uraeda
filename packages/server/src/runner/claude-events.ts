@@ -35,8 +35,15 @@ const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
  * A Bash rule with a `*` is a wildcard, which Claude Code cannot be told to read literally: a
  * command with one has no rule. A file rule is a gitignore pattern, so its special characters are
  * escaped, as Claude Code escapes the paths it saves.
+ *
+ * A rule with a line break has none either: the turn stores its rules a line each.
  */
-export function allowRule({ input, tool }: Denial): string | undefined {
+export function allowRule(denial: Denial): string | undefined {
+  const rule = narrowRule(denial);
+  return rule?.includes("\n") ? undefined : rule;
+}
+
+function narrowRule({ input, tool }: Denial): string | undefined {
   const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
   const command = value("command");
   if (tool === "Bash" && command) {
@@ -384,9 +391,13 @@ function resultEvent(message: Json): AgentEvent {
     input: isObject(denial.tool_input) ? denial.tool_input : {},
     tool: text(denial.tool_name),
   }));
+  const cost = message.total_cost_usd;
+  const models = isObject(message.modelUsage) ? Object.keys(message.modelUsage) : [];
   return {
+    ...(typeof cost === "number" && Number.isFinite(cost) ? { costUsd: cost } : {}),
     denials,
     errors,
+    ...(models.length > 0 ? { models } : {}),
     ok,
     type: "result",
     // An interrupt ends the turn this way, with only diagnostics in its errors.

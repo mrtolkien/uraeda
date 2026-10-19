@@ -1,12 +1,9 @@
-import { Button } from "@astryxdesign/core/Button";
 import {
   ChatComposer,
   ChatComposerInput,
   type ChatComposerInputHandle,
   type ChatComposerInputProps,
-  ChatSendButton,
 } from "@astryxdesign/core/Chat";
-import { HStack } from "@astryxdesign/core/HStack";
 import * as stylex from "@stylexjs/stylex";
 import {
   type Dispatch,
@@ -14,7 +11,6 @@ import {
   type ReactNode,
   type RefObject,
   type SetStateAction,
-  Suspense,
   useEffect,
   useRef,
   useState,
@@ -32,21 +28,31 @@ import { useAgent } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { FreshDefault, useFreshRun } from "./HandOver.tsx";
-import { type Inserted, RecommendedMessage, withInserted } from "./RecommendedMessage.tsx";
+import { footerActions, sendButtons } from "./ComposerSend.tsx";
+import { type Inserted, withInserted } from "./RecommendedMessage.tsx";
 import { sendMessage } from "./sessions.ts";
 import { SessionView } from "./views.ts";
 import { clearPending, markPending } from "./writes/store.ts";
 
 const styles = stylex.create({
   input: { minHeight: "var(--size-composer-input)" },
+  narrow: { minHeight: "var(--size-composer-input-narrow)" },
 });
 
 /**
- * The composer's field: 7 rows empty, growing upward with its text up to 20 (the UI behaviour
- * decision), its text scrolling inside them past that.
+ * The composer's field: 7 rows empty on wide screens, 3 on the phone, growing upward with its text
+ * up to 20 rows, or 9 on the phone (the UI behaviour decision), its text scrolling inside them past
+ * that.
  */
 function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">) {
-  return <ChatComposerInput {...props} maxRows={20} xstyle={styles.input} />;
+  const wide = useWidthClass() === "wide";
+  return (
+    <ChatComposerInput
+      {...props}
+      maxRows={wide ? 20 : 9}
+      xstyle={wide ? styles.input : styles.narrow}
+    />
+  );
 }
 
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
@@ -57,7 +63,14 @@ const WORKFLOW_KEEPS_IMAGES =
 type Workflow = { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
 
 /** The composer's props. */
-type ComposerProps = {
+export type ComposerProps = {
+  /**
+   * The session's blocked actions of the latest turn that an allow rule can match: from two,
+   * "Allow all (N)" shows beside Send. The server counts them.
+   */
+  allow?: { count: number; onAllowAll: () => Promise<void> };
+  /** A chat's Archive, in the footer: "Unarchive" once archived. */
+  archive?: { archived: boolean; onArchive: () => Promise<void> };
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
   blocked?: string;
   folder?: string;
@@ -238,79 +251,6 @@ function composerStatus(
 }
 
 /**
- * The composer's send buttons, in its send row: Send, or "Start the agent" while it holds the
- * workflow's message, "Start once this turn ends" during a turn, or the page's own `label`. During
- * a chat's turn, Send steers the message into it, beside Stop: shown, disabled, while its images
- * are saved. While `onSend` is `pending`, the page's button is busy, its spinner shown.
- */
-function sendButtons({
-  canSend,
-  hasContent,
-  label,
-  pending,
-  send,
-  waits,
-  workflow,
-  working,
-}: {
-  canSend: boolean;
-  hasContent: boolean;
-  label: string | undefined;
-  pending: boolean;
-  send: () => void;
-  waits: string | undefined;
-  workflow: boolean;
-  working: boolean;
-}): { sendActions?: ReactNode; sendButton?: ReactNode } {
-  // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
-  const sendButton = (
-    <ChatSendButton isDisabled={!canSend || pending} isStopShown={false} onSend={send} />
-  );
-  if (workflow || label !== undefined) {
-    return {
-      sendButton: (
-        <Button
-          clickAction={send}
-          isDisabled={!canSend || waits !== undefined}
-          // A disabled button with a tooltip stays focusable, through `aria-disabled`.
-          {...(waits === undefined ? {} : { tooltip: waits })}
-          isLoading={pending}
-          label={label ?? (working ? "Start once this turn ends" : "Start the agent")}
-          variant="primary"
-        />
-      ),
-    };
-  }
-  return working ? (hasContent ? { sendActions: sendButton } : {}) : { sendButton };
-}
-
-/**
- * The composer's footer: the controls of the workflow's run while it holds its message, else the
- * paperclip, `attach`, and the recommended message, unless the composer is unavailable.
- */
-function footerActions(
-  { folder, options, recommended, workflow }: ComposerProps,
-  attach: ReactNode,
-  { insert, unavailable }: { insert: (message: Inserted) => void; unavailable?: string },
-) {
-  if (workflow) {
-    return options;
-  }
-  // Read on its own: the composer draws before the recommendation.
-  const offer = recommended && folder !== undefined && !unavailable && (
-    <Suspense fallback={null}>
-      <RecommendedMessage folder={folder} onInsert={insert} />
-    </Suspense>
-  );
-  return attach || offer ? (
-    <HStack align="center" gap={2} wrap="wrap">
-      {attach}
-      {offer}
-    </HStack>
-  ) : undefined;
-}
-
-/**
  * The recommended message inserted (R30): its run, the composer's workflow unless the page gives
  * one, until it is sent or the human empties the field. `props` are the composer's, with that
  * workflow; `edit` is the field's change, and `insert` puts the message before what was typed.
@@ -425,6 +365,7 @@ export function Composer(given: ComposerProps) {
     }
   }, [inserts]);
   const buttons = sendButtons({
+    allow: props.allow,
     canSend,
     hasContent,
     label: props.sendLabel,

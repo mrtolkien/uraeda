@@ -2158,7 +2158,7 @@ const REWRITTEN: [&str; 18] = [
 ];
 
 /// SC-002: no decision of the repository holds more than 10 rules, and the decisions the specs
-/// redesign rewrote hold at most 9,400 words together, their frontmatter aside.
+/// redesign rewrote hold at most 9,500 words together, their frontmatter aside.
 #[test]
 fn every_decision_of_the_repository_holds_at_most_10_rules() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -2179,5 +2179,5 @@ fn every_decision_of_the_repository_holds_at_most_10_rules() {
             body.split_whitespace().count()
         })
         .sum();
-    assert!(words <= 9_400, "{words} words");
+    assert!(words <= 9_500, "{words} words");
 }

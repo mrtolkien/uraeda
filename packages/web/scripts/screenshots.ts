@@ -49,6 +49,7 @@ import {
   wait,
 } from "./shots.ts";
 import { AGENT, takeImplementation, takeSessions } from "./sessionShots.ts";
+import { takeSessionLook } from "./session-look-shots.ts";
 
 const web = fileURLToPath(new URL("..", import.meta.url));
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -273,6 +274,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   const first = shots[0]!.page;
   await takeReviews(each, first);
   await takeSessions(each, first, adapter);
+  await takeSessionLook(each, first, adapter);
 
   await each("sidebar", ({ page, size }) => sidebar(page, size));
   await takeShell(each, sidebar);

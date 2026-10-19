@@ -1,0 +1,71 @@
+{
+  "questions": 1,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 11,
+    "items": [
+      {
+        "line": "**`GUIProcess._on_finished`** owns what is emitted and logged. It appends ` See :process {self.pid} for details.` to the outcome.",
+        "requirement": "When a process finishes, the message that GUIProcess emits about the outcome must reference the PID of the finished process, structure \"{self.outcome} See :process {self.pid} for details.\"",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a process with PID 1234 exiting with code 0 and `--verbose` set, **When** it finishes, **Then** one info message reads `Testprocess exited successfully. See :process 1234 for details.`",
+        "requirement": "Verbose flag and successful exit: info-level message \"{self.outcome} See :process {self.pid} for details.\"; outcome text `{What} exited successfully.`",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a `Testprocess` with PID 1234 that exits with code 1, **When** it finishes, **Then** one error message reads `Testprocess exited with status 1. See :process 1234 for details.`",
+        "requirement": "Failed process (non-zero exit) reported via error-level message with same structure and PID; outcome text `{What} exited with status {code}.`",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a `Testprocess` with PID 1234 killed by `SIGSEGV`, **When** it finishes, **Then** its outcome text is `Testprocess crashed with status 11 (SIGSEGV).`, and one error message adds ` See :process 1234 for details.`",
+        "requirement": "Process terminated by a signal: outcome formatted `{What} {state} with status {code} ({signal_name}).`, state terminated for SIGTERM, crashed otherwise, code is signal number",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the same process, **When** its outcome is read, **Then** `was_successful()` is false and the text is the terminated form, not `Testprocess exited successfully.`",
+        "requirement": "state_str() returns terminated for SIGTERM and crashed for other signals; SIGTERM is not successful (was_successful() false), text stays terminated form",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the same process with `--verbose`, **When** it finishes, **Then** the last emitted message is the info message `Testprocess terminated with status 15 (SIGTERM). See :process 1234 for details.`",
+        "requirement": "SIGTERM treated like success only for GUI messaging: no error-level message unless --verbose; with --verbose info-level message with PID suffix, final message; without --verbose no message of any level",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a process with PID 1234 exiting with code 0 and `--verbose` set, **When** it finishes, **Then** one info message reads `Testprocess exited successfully. See :process 1234 for details.`",
+        "requirement": "Verbose flag and successful exit info message, example Testprocess PID 1234 produces \"Testprocess exited successfully. See :process 1234 for details.\"",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the same failed exit, **When** it finishes, **Then** the last entry of the process log is that same text.",
+        "requirement": "Failed process error message with PID example, and the same text must be the final entry written to the process log",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a `Testprocess` with PID 1234 killed by `SIGSEGV`, **When** it finishes, **Then** its outcome text is `Testprocess crashed with status 11 (SIGSEGV).`",
+        "requirement": "Signal outcome message format with {process}, examples SIGSEGV -> \"Testprocess crashed with status 11 (SIGSEGV).\" and SIGTERM -> \"Testprocess terminated with status 15 (SIGTERM).\"",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a `Testprocess` killed by `SIGTERM`, **When** its `state_str()` is read, **Then** it returns `terminated`.",
+        "requirement": "state_str() must return terminated for SIGTERM and crashed for any other terminating signal",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a `Testprocess` with PID 1234 killed by `SIGTERM` and no `--verbose`, **When** it finishes, **Then** no message of any level is emitted.",
+        "requirement": "SIGTERM treated like successful exit for messaging: no error message unless --verbose; with --verbose info message (never error), final message, example with PID 1234; without --verbose no message of any level",
+        "verdict": "covered"
+      }
+    ],
+    "total": 11
+  },
+  "tests": {
+    "passed": 43,
+    "resolved": true,
+    "total": 43
+  }
+}

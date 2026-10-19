@@ -1,0 +1,111 @@
+{
+  "questions": 4,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 19,
+    "items": [
+      {
+        "line": "**The default configuration**, `DefaultConfig()` in `config.go`, owns the canonical default values. The loading test and the schema test both use it, replacing the test helper.",
+        "requirement": "DefaultConfig() function in config package, no args, returns *Config, same canonical defaults as loading path",
+        "verdict": "covered"
+      },
+      {
+        "line": "**The decode hooks**, the exported `DecodeHooks`, own the conversions applied when decoding. `Load` adds its experimental-field hook to a copy, never to the shared list.",
+        "requirement": "Decode hook chain reusable through exported DecodeHooks",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Schema durations**: every duration field takes the duration pattern, with decimals, or an integer. This includes `conn_max_lifetime`, `bootstrap.expiration`, and the audit `flush_period`.",
+        "requirement": "Every duration setting accepted by CUE schema in Go duration string form",
+        "verdict": "covered"
+      },
+      {
+        "line": "**The schema**, `#FliptSpec` in [`config/flipt.schema.cue`](/config/flipt.schema.cue), owns the contract: its sections, the duration pattern, and the database and git alternatives.",
+        "requirement": "CUE schema exposes top-level #FliptSpec definition",
+        "verdict": "covered"
+      },
+      {
+        "line": "each of `log`, `ui`, `cors`, `cache`, `server`, `tracing`, `db`, `meta`, `authentication`, `audit`, `experimental`, and `storage` is accepted, and `version` is absent.",
+        "requirement": "#FliptSpec accepts every top-level section emitted by decoded default (log, ui, cors, cache, server, tracing, db, meta, authentication, audit, experimental, storage)",
+        "verdict": "covered"
+      },
+      {
+        "line": "Given the field tag `mapstructure:\"flush_period,omitempty\"`, **When** `fieldKey` reads it, **Then** it returns `flush_period`, so `FLIPT_AUDIT_BUFFER_FLUSH_PERIOD` binds.",
+        "requirement": "Mapstructure field names align with schema names; omitempty must not prevent correct field name",
+        "verdict": "covered"
+      },
+      {
+        "line": "**The tags** own what the decoded map leaves out: `omitempty` on optional fields removes empty values, so nil pointers and zero scalars never reach validation.",
+        "requirement": "Optional empty fields in default config must not cause CUE validation failures (authentication, database, storage, tracing, audit, etc.)",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** the default configuration, whose storage type is empty, **When** it is decoded, **Then** `Storage.Local` and `Storage.Git` are nil, and `storage` has no `local` or `git` key.",
+        "requirement": "Storage config supports omitted local, git, and authentication subsections without emitting invalid empty objects",
+        "verdict": "covered"
+      },
+      {
+        "line": "| Niche      | A construction site outside `internal/config` builds `Local{}`    | none exists today; a build error there is expected, not avoided |",
+        "requirement": "StorageConfig.Local and Git become nil-able pointers *Local and *Git, nil when not selected, populated when selected, omitted from decoded config; deliberate breaking change; source in scope must build; out-of-scope value construction sites' build errors expected",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Schema git entry**: `repository` is required, as the loader requires it. `ref` and `poll_interval` are optional, with the loader's defaults `main` and `30s`.",
+        "requirement": "CUE schema accepts storage configs for database, git, local, including git repository settings, refs, poll intervals, and basic or token authentication",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `db` with url `postgres://postgres@localhost:5432/flipt` and `max_idle_conn: 10`, **When** it is validated, **Then** it is accepted.",
+        "requirement": "Database config accepts either URL-based or protocol/host/port/name/user based config, while allowing shared options (password, connection limits, lifetime, prepared statements)",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `cors.allowed_origins` as `[\"foo.com\", \"bar.com\"]`, and then as `\"foo.com\"`, **When** each is validated, **Then** both are accepted.",
+        "requirement": "CORS allowed_origins accepted as list or single string",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `advanced.yml`, **When** it is loaded, **Then** storage has type `git`, and `git` has repository `https://github.com/flipt-io/flipt.git`, ref `production`, poll interval 5s, and basic authentication with username `user` and password `pass`. `Storage.Local` is nil.",
+        "requirement": "advanced.yml extended with audit, tracing otlp, and git storage, loading into exactly the stated values",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-001** (zero errors): Validating the decoded and adapted `DefaultConfig()` against `#FliptSpec` with concrete values returns no errors.",
+        "requirement": "DefaultConfig() with string durations validates against #FliptSpec without errors when concrete",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `Load(\"./testdata/default.yml\")`, **When** its result is compared with `DefaultConfig()`, **Then** they are equal.",
+        "requirement": "DefaultConfig() available in config package returning same canonical defaults as loading path (duplicate)",
+        "verdict": "covered"
+      },
+      {
+        "line": "**When** it is decoded into a `map[string]any` with `mapstructure.ComposeDecodeHookFunc(DecodeHooks...)`, **Then** `audit.buffer.flush_period` is still a `time.Duration` of 2 minutes.",
+        "requirement": "Decoding DefaultConfig() with ComposeDecodeHookFunc(DecodeHooks...) preserves duration fields as time.Duration before adaptation",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** that map with durations as strings (`\"2m0s\"`, `\"24h0m0s\"`, `\"10m0s\"`, `\"1m0s\"`, `\"5m0s\"`), **When** it is validated against `#FliptSpec` with concrete values required, **Then** there are no errors.",
+        "requirement": "Duration values emitted from default valid after string conversion, e.g. 1m0s, 24h0m0s, 10m0s, 5m0s, 2m0s",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** `advanced.yml`, **When** it is loaded, **Then** `audit.sinks.log` is enabled with file `/path/to/logs.txt`, and `audit.buffer` has capacity 10 and flush period 3m.",
+        "requirement": "advanced.yml extended (duplicate statement) to load into exactly the stated audit, tracing, storage values",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-001** (zero errors): Validating the decoded and adapted `DefaultConfig()` against `#FliptSpec` with concrete values returns no errors.",
+        "requirement": "Validating decoded and adapted DefaultConfig() map against #FliptSpec with concrete validation completes without errors",
+        "verdict": "covered"
+      }
+    ],
+    "total": 19
+  },
+  "tests": {
+    "passed": 15,
+    "resolved": true,
+    "total": 15
+  }
+}

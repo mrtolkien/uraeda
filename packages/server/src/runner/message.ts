@@ -241,10 +241,14 @@ export function chatOpening(input: { branch: string; feature: Subject }): string
   );
 }
 
-/** The message that asks the agent to retry an action the human allowed. */
-export function retryMessage(denial: { target?: string; tool: string }): string {
-  const action = denial.target ? `${denial.tool} ${denial.target}` : denial.tool;
-  return `Try the blocked action again, now allowed: ${action}`;
+/** The message that asks the agent to retry the actions the human allowed: a line each, from two. */
+export function retryMessage(denials: ReadonlyArray<{ target?: string; tool: string }>): string {
+  const actions = denials.map((denial) =>
+    denial.target ? `${denial.tool} ${denial.target}` : denial.tool,
+  );
+  return actions.length === 1
+    ? `Try the blocked action again, now allowed: ${actions[0]}`
+    : `Try the blocked actions again, now allowed:\n${actions.map((action) => `- ${action}`).join("\n")}`;
 }
 
 const TITLE_LENGTH = 80;

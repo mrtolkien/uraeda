@@ -1,0 +1,5 @@
+source = "swe-bench-pro-v2"
+task = "instance_navidrome__navidrome-bf2bcb12799b21069f137749e0c331f761d1f693"
+image = "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:62d0155f9c2bf00cad36f1dd925388cb6d3717772271bb643023d0886b7e5773"
+upstream = "https://github.com/navidrome/navidrome"
+repository = "/app"

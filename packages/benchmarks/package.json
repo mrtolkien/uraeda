@@ -1,0 +1,13 @@
+{
+  "name": "uraeda-benchmarks",
+  "private": true,
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "dependencies": {
+    "smol-toml": "1.9.1",
+    "uraeda-server": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1"
+  }
+}

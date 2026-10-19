@@ -26,6 +26,7 @@ const SESSION_FIELDS = [
   "archived",
   "subagents",
   "backgroundCommands",
+  "allowable",
 ];
 const TURN_FIELDS = [
   "id",
@@ -699,9 +700,79 @@ test("US5.2: session.allow reopens the process with the rule, in a turn of its o
   );
   await server.sessions.settled(Number(allowed.data.turns.at(-1)));
 
-  expect(server.adapter.opens.at(-1)?.allowed).toBe("Bash(git push origin HEAD)");
+  expect(server.adapter.opens.at(-1)?.allowed).toEqual(["Bash(git push origin HEAD)"]);
   const [turn] = await byId(server.app, "Turn", [allowed.data.turns.at(-1)], TURN_FIELDS);
   expect(turn).toMatchObject({ allowed: "Bash(git push origin HEAD)", kind: "allow" });
+});
+
+test("US3: the session's allowable count follows what Allow all would allow", async () => {
+  const server = await testServer();
+  server.adapter.script([
+    result({
+      denials: [
+        { input: { command: "rm -rf dist" }, tool: "Bash" },
+        { input: { file_path: "src/store/tasks.ts" }, tool: "Edit" },
+        { input: { command: "rm -rf build/*" }, tool: "Bash" },
+      ],
+    }),
+  ]);
+  const session = await send(server, { folder: AGENT, text: "Clean up" });
+  await settle(server, session);
+  const allowable = async () =>
+    (await byId(server.app, "Session", [session.id], ["id", "allowable"]))[0].allowable;
+  const [page] = await byId(server.app, "TurnLog", [`${session.turns[0]}:0`], ["id", "items"]);
+  const first = page.items.find((item: { kind: string }) => item.kind === "denial");
+
+  // The command with a `*` has no rule: two of the three count.
+  expect(await allowable()).toBe(2);
+  // The retry turn is the latest: the agent is blocked on the edit again, and only that counts.
+  server.adapter.script([
+    result({ denials: [{ input: { file_path: "src/store/tasks.ts" }, tool: "Edit" }] }),
+  ]);
+  const allowed = await mutate(
+    server.app,
+    "session.allow",
+    { seq: first.seq, session: session.id, turn: session.turns[0] },
+    ["id", "turns"],
+  );
+  await server.sessions.settled(Number(allowed.data.turns.at(-1)));
+  expect(await allowable()).toBe(1);
+  server.adapter.script([]);
+  await settle(server, await send(server, { folder: AGENT, text: "Thanks" }));
+  expect(await allowable()).toBe(0);
+});
+
+test("US3: session.allowAll allows the covered actions in one turn, and refuses with none", async () => {
+  const server = await testServer();
+  server.adapter.script([
+    result({
+      denials: [
+        { input: { command: "rm -rf dist" }, tool: "Bash" },
+        { input: { file_path: "src/store/tasks.ts" }, tool: "Edit" },
+      ],
+    }),
+  ]);
+  const session = await send(server, { folder: AGENT, text: "Clean up" });
+  await settle(server, session);
+  server.adapter.script([]);
+
+  const allowed = await mutate(server.app, "session.allowAll", { session: session.id }, [
+    "id",
+    "turns",
+    "allowable",
+  ]);
+  await server.sessions.settled(Number(allowed.data.turns.at(-1)));
+
+  expect(allowed.data.turns).toHaveLength(2);
+  expect(server.adapter.opens.at(-1)?.allowed).toEqual([
+    "Bash(rm -rf dist)",
+    "Edit(src/store/tasks.ts)",
+  ]);
+  const again = await mutate(server.app, "session.allowAll", { session: session.id }, ["id"]);
+  expect(again.error).toMatchObject({
+    code: "BAD_REQUEST",
+    message: "refused: No blocked action to allow.",
+  });
 });
 
 test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a message", async () => {

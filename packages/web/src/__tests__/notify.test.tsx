@@ -145,6 +145,36 @@ test("an item coming to need the human notifies at once, and its click opens it"
   }
 });
 
+/** A chat the agent was refused an action in: it has no folder, and its page is under `/chats`. */
+const chatRow = (id: string, key = `${id}:blocked:1`): NeedsYouRow => ({
+  href: `/r/uraeda/chats/${id}`,
+  id: `uraeda/chats/${id}`,
+  key,
+  label: "Push it",
+  message: "The agent was refused an action",
+});
+
+/** US5.1, US5.3 */
+test("a blocked chat notifies once, its click opens it, and it counts in the title", async () => {
+  const page = await tab();
+
+  page.rerender({ now: [chatRow("c1"), row(SETTINGS)] });
+  await settle();
+
+  expect(shown.map((n) => [n.title, n.options.body])).toEqual([
+    ["Push it needs you", "The agent was refused an action"],
+    ["settings-page needs you", "Questions to answer"],
+  ]);
+  expect(document.title).toBe("(2) Uraeda");
+  act(() => shown[0]!.onclick!());
+  expect(window.location.pathname).toBe("/r/uraeda/chats/c1");
+
+  page.rerender({ now: [row(SETTINGS)] });
+  await settle();
+  expect(document.title).toBe("(1) Uraeda");
+  expect(shown).toHaveLength(2);
+});
+
 /** US6.6 */
 test("no notification while a Uraeda tab is in front: this one, or another", async () => {
   visibility = "visible";

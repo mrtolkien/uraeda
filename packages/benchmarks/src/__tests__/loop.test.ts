@@ -1,0 +1,311 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import type { NextJson } from "../next.ts";
+import { expect, test } from "vite-plus/test";
+import {
+  blockedTurn,
+  commandTurn,
+  fetchTurn,
+  humanSession,
+  InvalidRun,
+  result,
+  runScripted,
+  view,
+} from "./loop-helpers.ts";
+
+const agent = (name: string, implemented = false) => view("agent", name, { implemented });
+const human = view("human", "human-gate");
+const ok = [result()];
+
+test("US1.2: the human runs at a gate and the agent only after the answers", async () => {
+  const calls: Array<string> = [];
+
+  const { loop } = await runScripted({
+    human: async (_, sessions) => {
+      calls.push(`human after ${sessions} agent sessions`);
+      return { commit: "c1", gate: "answered", session: humanSession() };
+    },
+    pushedAfter: 2,
+    turns: [ok, ok],
+    views: [agent("discovery"), human, agent("spec", true)],
+  });
+
+  expect(loop.steps.map((step) => step.role)).toEqual(["agent", "human", "agent"]);
+  expect(calls).toEqual(["human after 1 agent sessions"]);
+  expect(loop.steps[1]?.gate).toBe("answered");
+});
+
+test("US1.3: 30 sessions end the run as stalled and keep the steps", async () => {
+  const { loop } = await runScripted({
+    maxSteps: 30,
+    turns: Array.from({ length: 30 }, () => ok),
+    views: [agent("discovery")],
+  });
+
+  expect(loop.outcome).toBe("stalled");
+  expect(loop.steps).toHaveLength(30);
+});
+
+test("the run ends finished once the branch is pushed after the implementation", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 2,
+    turns: [ok, ok],
+    views: [agent("implementation"), agent("final-review", true), agent("final-review", true)],
+  });
+
+  expect(loop.outcome).toBe("finished");
+  expect(loop.steps).toHaveLength(2);
+});
+
+test("a branch that is not pushed is not finished, however implemented", async () => {
+  const { loop } = await runScripted({
+    maxSteps: 3,
+    turns: [ok, ok, ok],
+    views: [agent("final-review", true)],
+  });
+
+  expect(loop.outcome).toBe("stalled");
+});
+
+test("a result naming another model fails the run, naming it", async () => {
+  const { loop } = await runScripted({
+    turns: [[result({ models: ["claude-opus-4-8"] })]],
+    views: [agent("discovery")],
+  });
+
+  expect(loop).toMatchObject({
+    outcome: "failed",
+    reason: expect.stringContaining("claude-opus-4-8"),
+  });
+});
+
+test("a usage limit ends the run as usage-limit", async () => {
+  const { loop } = await runScripted({
+    turns: [[result({ errors: ["Claude usage limit reached"], ok: false })]],
+    views: [agent("discovery")],
+  });
+
+  expect(loop.outcome).toBe("usage-limit");
+});
+
+test("an auto block is allowed once with the adapter's rule, and recorded", async () => {
+  const { adapter, loop } = await runScripted({
+    pushedAfter: 2,
+    turns: [blockedTurn("npm test"), ok],
+    views: [agent("implementation"), agent("final-review", true)],
+  });
+
+  expect(adapter.opens[1]).toMatchObject({ allowed: "Bash(npm test)", resume: true });
+  expect(loop.blocked).toEqual([{ rule: "Bash(npm test)", target: "npm test", tool: "Bash" }]);
+});
+
+test("the same block twice fails the run", async () => {
+  const { loop } = await runScripted({
+    turns: [blockedTurn("npm test"), ok, blockedTurn("npm test")],
+    views: [agent("implementation")],
+  });
+
+  expect(loop).toMatchObject({ outcome: "failed", reason: expect.stringContaining("again") });
+});
+
+test("a fetched address of the upstream flags the run leak-suspected, and is recorded", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [fetchTurn("https://github.com/ansible/ansible/pull/1")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual(["leak-suspected"]);
+  expect(loop.urls).toEqual(["https://github.com/ansible/ansible/pull/1"]);
+});
+
+test("an address outside the upstream does not flag the run", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [fetchTurn("https://docs.python.org/3/")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual([]);
+});
+
+test("a late new round is answered like the first, within the cap", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 3,
+    turns: [ok, ok, ok],
+    views: [
+      agent("discovery"),
+      human,
+      agent("implementation"),
+      human,
+      agent("implementation", true),
+    ],
+  });
+
+  expect(loop.steps.map((step) => step.role)).toEqual([
+    "agent",
+    "human",
+    "agent",
+    "human",
+    "agent",
+  ]);
+  expect(loop.outcome).toBe("finished");
+});
+
+test("a human's invalid turn ends the run as invalid", async () => {
+  const { loop } = await runScripted({
+    human: async () => {
+      throw new InvalidRun("the human's commit touched src/app.py");
+    },
+    turns: [ok],
+    views: [agent("discovery"), human],
+  });
+
+  expect(loop).toMatchObject({
+    outcome: "invalid",
+    reason: "the human's commit touched src/app.py",
+  });
+});
+
+test("the step ura names once every task is checked, with no pull request host, is finished when pushed", async () => {
+  const after: NextJson = JSON.parse(
+    readFileSync(join(import.meta.dirname, "fixtures/next-after-push.json"), "utf8"),
+  );
+
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [ok],
+    views: [agent("implementation"), after],
+  });
+
+  expect(after.step).toMatchObject({
+    implemented: true,
+    name: "final-review",
+    "waits-on": "agent",
+  });
+  expect(loop.outcome).toBe("finished");
+});
+
+test("a human turn that makes no commit fails the run instead of repeating the gate", async () => {
+  const { loop } = await runScripted({
+    human: async () => ({ gate: "no action", session: humanSession() }),
+    turns: [ok],
+    views: [agent("discovery"), human],
+  });
+
+  expect(loop).toMatchObject({ outcome: "failed", reason: expect.stringContaining("no commit") });
+});
+
+test("the human is told the feature's folder, and a rule it breaks keeps its session in the record", async () => {
+  const turns: Array<string> = [];
+
+  const { loop } = await runScripted({
+    human: async (turn) => {
+      turns.push(`${turn.folder}/${turn.file}`);
+      throw new InvalidRun("the human touched a file", humanSession({ nativeId: "h1" }));
+    },
+    turns: [ok],
+    views: [agent("discovery"), human],
+  });
+
+  expect(turns).toEqual(["specs/2026-10-19-case/clarifications-01.md"]);
+  expect(loop.steps.map((step) => step.role)).toEqual(["agent", "human"]);
+  expect(loop.steps[1]?.gate).toBe("invalid");
+});
+
+test("a block no narrow rule allows is recorded, and the run goes on without it", async () => {
+  const { adapter, loop } = await runScripted({
+    pushedAfter: 2,
+    turns: [blockedTurn("find . -name '*.py'"), ok],
+    views: [agent("implementation"), agent("final-review", true)],
+  });
+
+  expect(loop.blocked).toEqual([{ rule: "none", target: "find . -name '*.py'", tool: "Bash" }]);
+  expect(adapter.opens.map((open) => open.allowed)).toEqual([undefined, undefined]);
+  expect(loop.outcome).toBe("finished");
+});
+
+test("a command that fetches names its address, one that only mentions it does not", async () => {
+  const fetching = await runScripted({
+    pushedAfter: 1,
+    turns: [commandTurn("curl -s https://example.org/page")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+  const mentioning = await runScripted({
+    pushedAfter: 1,
+    turns: [
+      commandTurn("cat > cfg.yml <<EOF\nrepository: https://github.com/ansible/ansible.git\nEOF"),
+    ],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(fetching.loop.urls).toEqual(["https://example.org/page"]);
+  expect(mentioning.loop.urls).toEqual([]);
+  expect(mentioning.loop.flags).toEqual([]);
+});
+
+test("the benchmark's own repository and dataset are flagged like the upstream", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [
+      fetchTurn(
+        "https://raw.githubusercontent.com/scaleapi/SWE-bench_Pro-os/main/v2/hard51_ids.txt",
+      ),
+    ],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual(["leak-suspected"]);
+});
+
+test("a repository whose name only starts like the upstream's is not flagged", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [fetchTurn("https://github.com/ansible/ansible-lint")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual([]);
+});
+
+test("an error in a step ends the run as failed, keeping the steps so far", async () => {
+  const { loop } = await runScripted({
+    nextThrowsAt: 2,
+    turns: [ok],
+    views: [agent("discovery"), agent("discovery")],
+  });
+
+  expect(loop).toMatchObject({ outcome: "failed", reason: "ura exploded" });
+  expect(loop.steps).toHaveLength(1);
+});
+
+test("the human's sessions are held to the human's model, not the agent's", async () => {
+  const sonnet = humanSession({ models: ["claude-sonnet-5-5"] });
+  const { adapter, loop } = await runScripted({
+    human: async () => ({ commit: "c1", gate: "answered", session: sonnet }),
+    humanModel: "claude-sonnet-5-5",
+    model: "claude-opus-5-5",
+    pushedAfter: 2,
+    turns: [[result({ models: ["claude-opus-5-5"] })], [result({ models: ["claude-opus-5-5"] })]],
+    views: [agent("discovery"), human, agent("spec", true)],
+  });
+
+  expect(adapter.sent).toHaveLength(2);
+  expect(loop.outcome).toBe("finished");
+
+  const wrong = await runScripted({
+    human: async () => ({
+      commit: "c1",
+      gate: "answered",
+      session: humanSession({ models: ["claude-opus-5-5"] }),
+    }),
+    humanModel: "claude-sonnet-5-5",
+    model: "claude-opus-5-5",
+    turns: [[result({ models: ["claude-opus-5-5"] })]],
+    views: [agent("discovery"), human],
+  });
+  expect(wrong.loop).toMatchObject({
+    outcome: "failed",
+    reason: expect.stringContaining("not claude-sonnet-5-5"),
+  });
+});

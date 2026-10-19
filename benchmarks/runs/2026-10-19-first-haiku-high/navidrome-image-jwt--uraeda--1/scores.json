@@ -1,0 +1,56 @@
+{
+  "questions": 1,
+  "revisions": 0,
+  "rounds": 1,
+  "requirements": {
+    "covered": 8,
+    "items": [
+      {
+        "line": "**The link encoder** (`EncodeArtworkID`) turns an artwork ID into a token that carries only the `id` claim.",
+        "requirement": "`EncodeArtworkID` must transform a `model.ArtworkID` into a public token string that encodes only the artwork's `id` value (as a string `id` claim) and does not include image size information.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-003** (round trip): Each token from `EncodeArtworkID` decodes to the same artwork ID.",
+        "requirement": "`EncodeArtworkID` followed by `DecodeArtworkID` must round-trip: decoding the token produced for a valid artwork id must return that same `model.ArtworkID` value with no error.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**The link decoder** (`DecodeArtworkID`) owns token validity: the signature, the required `id` claim, its type, and the artwork ID it names. Every verification failure reports as \"invalid JWT\", so callers get one error for a bad link.",
+        "requirement": "`DecodeArtworkID` must decode a provided token string, require an `id` claim, verify that the claim is a string, parse it into a `model.ArtworkID`, and return an error when the token is invalid, unauthorized, missing the required claim, has an invalid ID type, or contains an invalid artwork ID.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**SC-004** (error text): A token that fails verification gives \"invalid JWT\".",
+        "requirement": "`DecodeArtworkID` must return an error satisfying `MatchError(\"invalid JWT\")` for structurally invalid or unverifiable token strings (e.g. the input `\"xx-123\"`).",
+        "verdict": "covered"
+      },
+      {
+        "line": "A valid token with an unusable `id` gives \"invalid artwork id\", and one with no `id` gives an error.",
+        "requirement": "`DecodeArtworkID` must return an error satisfying `MatchError(\"invalid artwork id\")` when the `id` claim is present and a valid string but cannot be parsed into a valid artwork id (e.g. the token produced by encoding an empty `model.ArtworkID{}`).",
+        "verdict": "covered"
+      },
+      {
+        "line": "A valid token with an unusable `id` gives \"invalid artwork id\", and one with no `id` gives an error.",
+        "requirement": "`DecodeArtworkID` must return a non-nil error when given a valid public token that contains no `id` claim.",
+        "verdict": "covered"
+      },
+      {
+        "line": "A PNG stays a PNG and a JPEG stays a JPEG when resized, as the code does today.",
+        "requirement": "Artwork resizing must preserve the source image format when resizing; a PNG source must continue to be returned as a PNG after resizing.",
+        "verdict": "covered"
+      },
+      {
+        "line": "**Given** a 16 by 16 pixel PNG, **When** a client asks for `size=15`, **Then** the server returns a 15 by 15 pixel PNG.",
+        "requirement": "When resizing a PNG source to a requested size of `15`, the returned image must be a PNG decoding to bounds of `15` x `15` pixels.",
+        "verdict": "covered"
+      }
+    ],
+    "total": 8
+  },
+  "tests": {
+    "passed": 1,
+    "resolved": true,
+    "total": 1
+  }
+}

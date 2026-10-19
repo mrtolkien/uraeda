@@ -1,0 +1,40 @@
+diff --git a/lib/ansible/module_utils/common/text/formatters.py b/lib/ansible/module_utils/common/text/formatters.py
+index 3096abec7c..789f6aeac0 100644
+--- a/lib/ansible/module_utils/common/text/formatters.py
++++ b/lib/ansible/module_utils/common/text/formatters.py
+@@ -35,6 +35,12 @@ def lenient_lowercase(lst):
+     return lowered
+ 
+ 
++_FULL_PREFIX = {
++    'Y': 'yotta', 'Z': 'zetta', 'E': 'exa', 'P': 'peta', 'T': 'tera',
++    'G': 'giga', 'M': 'mega', 'K': 'kilo', 'B': '',
++}
++
++
+ def human_to_bytes(number, default_unit=None, isbits=False):
+     """Convert number in string format into bytes (ex: '2K' => 2048) or using unit argument.
+ 
+@@ -53,7 +59,7 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+         The function expects 'b' (lowercase) as a bit identifier, e.g. 'Mb'/'Kb'/etc.
+         if 'MB'/'KB'/... is passed, the ValueError will be rased.
+     """
+-    m = re.search(r'^\s*(\d*\.?\d*)\s*([A-Za-z]+)?', str(number), flags=re.IGNORECASE)
++    m = re.match(r'(\d*\.?\d*) *([A-Za-z]+)? *\Z', str(number), flags=re.ASCII)
+     if m is None:
+         raise ValueError("human_to_bytes() can't interpret following string: %s" % str(number))
+     try:
+@@ -87,9 +93,11 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+         if range_key == 'B':
+             expect_message = 'expect %s or %s' % (unit_class, unit_class_name)
+ 
+-        if unit_class_name in unit.lower():
++        full_names = ('%s%s' % (_FULL_PREFIX[range_key], unit_class_name)).lower()
++        lowered = unit.lower()
++        if lowered in (full_names, full_names + 's'):
+             pass
+-        elif unit[1] != unit_class:
++        elif range_key == 'B' or len(unit) != 2 or unit[1] != unit_class:
+             raise ValueError("human_to_bytes() failed to convert %s. Value is not a valid string (%s)" % (number, expect_message))
+ 
+     return int(round(num * limit))

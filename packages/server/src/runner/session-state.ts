@@ -33,6 +33,8 @@ export const REFUSALS = {
   blank: "The message is empty.",
   /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
   noRule: "No allow rule can match only this action.",
+  /** An "Allow all" with no blocked action of the latest turn that has a rule. */
+  nothingToAllow: "No blocked action to allow.",
   ...IMAGE_REFUSALS,
   /** An image ID with no file in the data folder: removed, or never uploaded. */
   imageGone: "This image is gone: add it again.",

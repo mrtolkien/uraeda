@@ -272,6 +272,13 @@ const repositoryMutations = {
     },
     type: "Session",
   },
+  "session.allowAll": {
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
+      await refusedOn(() => ctx.sessions.allowAll(ctx.repo, input.session));
+      return session(ctx, input.session, select);
+    },
+    type: "Session",
+  },
   "session.archive": {
     resolve: async ({ ctx, input, select }: Resolver<{ archived: boolean; session: string }>) => {
       await onSession(ctx, () => ctx.sessions.archive(ctx.repo, input.session, input.archived));

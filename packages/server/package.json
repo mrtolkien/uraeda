@@ -13,6 +13,13 @@
     "./limits": "./src/limits.ts",
     "./paths": "./src/paths.ts",
     "./round-messages": "./src/runner/round-messages.ts"
+    "./triage-messages": "./src/runner/triage-messages.ts",
+    "./runner/adapter": "./src/runner/adapter.ts",
+    "./runner/claude": "./src/runner/claude.ts",
+    "./runner/events": "./src/runner/events.ts",
+    "./runner/fake": "./src/runner/fake.ts",
+    "./runner/message": "./src/runner/message.ts",
+    "./browser": "./src/browser.ts"
   },
   "scripts": {
     "start": "node src/main.ts"

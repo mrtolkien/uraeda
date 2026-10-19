@@ -18,6 +18,12 @@ const styles = stylex.create({
     paddingInline: "var(--page-inset)",
     width: "100%",
   },
+  snug: {
+    // On the phone, an 8 px inset, for a page that is read as text from edge to edge: a session.
+    "--page-bleed": `calc(-1 * ${spacingVars["--spacing-2"]})`,
+    "--page-inset": spacingVars["--spacing-2"],
+    paddingBlock: spacingVars["--spacing-3"],
+  },
   tight: {
     // On the phone, the smallest inset, for a page whose parts take the screen's width.
     "--page-bleed": `calc(-1 * ${spacingVars["--spacing-3"]})`,
@@ -39,16 +45,29 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
 
 /**
  * A page's content: its inset, and its column on wide screens. `isTight` gives it the smallest inset
- * on the phone, 12 px.
+ * on the phone, 12 px, and `isSnug` 8 px.
  */
-export function Page({ children, isTight = false }: { children: ReactNode; isTight?: boolean }) {
+export function Page({
+  children,
+  isSnug = false,
+  isTight = false,
+}: {
+  children: ReactNode;
+  isSnug?: boolean;
+  isTight?: boolean;
+}) {
   const wide = useWidthClass() === "wide";
   const column = useRef<HTMLDivElement>(null);
   return (
     <PageColumn value={column}>
       <div
         ref={column}
-        {...stylex.props(styles.page, isTight && styles.tight, wide && styles.wide)}
+        {...stylex.props(
+          styles.page,
+          isTight && styles.tight,
+          isSnug && styles.snug,
+          wide && styles.wide,
+        )}
       >
         {children}
       </div>

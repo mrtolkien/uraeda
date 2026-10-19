@@ -1,0 +1,674 @@
+diff --git a/core/artwork/artwork.go b/core/artwork/artwork.go
+index c1c6ac2b..1247c1d6 100644
+--- a/core/artwork/artwork.go
++++ b/core/artwork/artwork.go
+@@ -109,10 +109,33 @@ func (a *artwork) getArtworkReader(ctx context.Context, artID model.ArtworkID, s
+ 	return artReader, err
+ }
+ 
+-func PublicLink(artID model.ArtworkID, size int) string {
++// EncodeArtworkID returns the public token of an artwork: a signed JWT whose only claim is the artwork ID.
++// The signing error is ignored: a failed signature gives an empty link.
++func EncodeArtworkID(artID model.ArtworkID) string {
+ 	token, _ := auth.CreatePublicToken(map[string]any{
+-		"id":   artID.String(),
+-		"size": size,
++		"id": artID.String(),
+ 	})
+ 	return token
+ }
++
++// DecodeArtworkID verifies a public token and returns the artwork ID it names. Every verification
++// failure is reported as "invalid JWT", so a bad link gives one error.
++func DecodeArtworkID(tokenString string) (model.ArtworkID, error) {
++	claims, err := auth.Validate(tokenString)
++	if err != nil {
++		return model.ArtworkID{}, errors.New("invalid JWT")
++	}
++	claim, ok := claims["id"]
++	if !ok {
++		return model.ArtworkID{}, errors.New("missing id claim")
++	}
++	id, ok := claim.(string)
++	if !ok {
++		return model.ArtworkID{}, errors.New("invalid id claim type")
++	}
++	artID, err := model.ParseArtworkID(id)
++	if err != nil || artID.ID == "" {
++		return model.ArtworkID{}, errors.New("invalid artwork id")
++	}
++	return artID, nil
++}
+diff --git a/core/artwork/artwork_token_test.go b/core/artwork/artwork_token_test.go
+new file mode 100644
+index 00000000..bbb07428
+--- /dev/null
++++ b/core/artwork/artwork_token_test.go
+@@ -0,0 +1,105 @@
++package artwork_test
++
++import (
++	"encoding/base64"
++
++	"github.com/go-chi/jwtauth/v5"
++	"github.com/navidrome/navidrome/core/artwork"
++	"github.com/navidrome/navidrome/core/auth"
++	"github.com/navidrome/navidrome/model"
++	. "github.com/onsi/ginkgo/v2"
++	. "github.com/onsi/gomega"
++)
++
++var _ = Describe("Public artwork tokens", func() {
++	artID := model.NewArtworkID(model.KindArtistArtwork, "1234")
++
++	BeforeEach(func() {
++		auth.TokenAuth = jwtauth.New("HS256", []byte("test secret"), nil)
++	})
++
++	sign := func(key *jwtauth.JWTAuth, claims map[string]any) string {
++		_, token, err := key.Encode(claims)
++		Expect(err).ToNot(HaveOccurred())
++		return token
++	}
++
++	It("round-trips an artwork ID", func() {
++		decoded, err := artwork.DecodeArtworkID(artwork.EncodeArtworkID(artID))
++
++		Expect(err).ToNot(HaveOccurred())
++		Expect(decoded).To(Equal(artID))
++	})
++
++	It("carries only the id claim", func() {
++		claims, err := auth.Validate(artwork.EncodeArtworkID(artID))
++
++		Expect(err).ToNot(HaveOccurred())
++		Expect(claims).To(HaveKeyWithValue("id", "ar-1234"))
++		Expect(claims).ToNot(HaveKey("size"))
++	})
++
++	DescribeTable("reports invalid JWT for a token that does not verify",
++		func(token string) {
++			_, err := artwork.DecodeArtworkID(token)
++
++			Expect(err).To(MatchError("invalid JWT"))
++		},
++		Entry("an empty token", ""),
++		Entry("a malformed token", "xx-123"),
++	)
++
++	It("rejects a token signed with another key", func() {
++		token := sign(jwtauth.New("HS256", []byte("other secret"), nil), map[string]any{"id": "ar-1234"})
++
++		_, err := artwork.DecodeArtworkID(token)
++
++		Expect(err).To(MatchError("invalid JWT"))
++	})
++
++	It("rejects an unsigned token", func() {
++		header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none","typ":"JWT"}`))
++		payload := base64.RawURLEncoding.EncodeToString([]byte(`{"id":"ar-1234"}`))
++
++		_, err := artwork.DecodeArtworkID(header + "." + payload + ".")
++
++		Expect(err).To(MatchError("invalid JWT"))
++	})
++
++	DescribeTable("reports invalid artwork id for an id that does not parse",
++		func(id string) {
++			_, err := artwork.DecodeArtworkID(sign(auth.TokenAuth, map[string]any{"id": id}))
++
++			Expect(err).To(MatchError("invalid artwork id"))
++		},
++		Entry("an unknown kind", "xx-1234"),
++		Entry("an empty ID after the kind", "ar-"),
++		Entry("no kind", "1234"),
++		Entry("an empty id", ""),
++	)
++
++	It("reports invalid artwork id for the token of an empty artwork ID", func() {
++		_, err := artwork.DecodeArtworkID(artwork.EncodeArtworkID(model.ArtworkID{}))
++
++		Expect(err).To(MatchError("invalid artwork id"))
++	})
++
++	It("rejects a token with no id claim", func() {
++		_, err := artwork.DecodeArtworkID(sign(auth.TokenAuth, map[string]any{"size": 0}))
++
++		Expect(err).To(MatchError("missing id claim"))
++	})
++
++	It("rejects an id claim that is not a string", func() {
++		_, err := artwork.DecodeArtworkID(sign(auth.TokenAuth, map[string]any{"id": 1234}))
++
++		Expect(err).To(MatchError("invalid id claim type"))
++	})
++
++	It("decodes an old token with a size claim", func() {
++		decoded, err := artwork.DecodeArtworkID(sign(auth.TokenAuth, map[string]any{"id": "ar-1234", "size": 300}))
++
++		Expect(err).ToNot(HaveOccurred())
++		Expect(decoded).To(Equal(artID))
++	})
++})
+diff --git a/core/artwork/reader_resized.go b/core/artwork/reader_resized.go
+index d7594b12..e0672771 100644
+--- a/core/artwork/reader_resized.go
++++ b/core/artwork/reader_resized.go
+@@ -4,6 +4,7 @@ import (
+ 	"bufio"
+ 	"bytes"
+ 	"context"
++	"errors"
+ 	"fmt"
+ 	"image"
+ 	"image/jpeg"
+@@ -68,7 +69,8 @@ func (a *resizedArtworkReader) Reader(ctx context.Context) (io.ReadCloser, strin
+ func asImageReader(r io.Reader) (io.Reader, string, error) {
+ 	br := bufio.NewReader(r)
+ 	buf, err := br.Peek(512)
+-	if err != nil {
++	// A short image has fewer than 512 bytes: Peek returns them with io.EOF, which is not a failure
++	if err != nil && !errors.Is(err, io.EOF) {
+ 		return nil, "", err
+ 	}
+ 	return br, http.DetectContentType(buf), nil
+diff --git a/core/artwork/reader_resized_test.go b/core/artwork/reader_resized_test.go
+new file mode 100644
+index 00000000..00f3e720
+--- /dev/null
++++ b/core/artwork/reader_resized_test.go
+@@ -0,0 +1,127 @@
++package artwork
++
++import (
++	"bytes"
++	"context"
++	"image"
++	"image/jpeg"
++	"image/png"
++	"io"
++	"os"
++
++	"github.com/navidrome/navidrome/conf"
++	"github.com/navidrome/navidrome/conf/configtest"
++	"github.com/navidrome/navidrome/model"
++	"github.com/navidrome/navidrome/tests"
++	"github.com/navidrome/navidrome/utils/number"
++	. "github.com/onsi/ginkgo/v2"
++	. "github.com/onsi/gomega"
++)
++
++var _ = Describe("Resizing public images", func() {
++	solid := func(w, h int) image.Image {
++		return image.NewRGBA(image.Rect(0, 0, w, h))
++	}
++	encodePNG := func(w, h int) []byte {
++		var buf bytes.Buffer
++		Expect(png.Encode(&buf, solid(w, h))).To(Succeed())
++		return buf.Bytes()
++	}
++	encodeJPEG := func(w, h int) []byte {
++		var buf bytes.Buffer
++		Expect(jpeg.Encode(&buf, solid(w, h), nil)).To(Succeed())
++		return buf.Bytes()
++	}
++	resize := func(src []byte, size int) []byte {
++		r, _, err := resizeImage(bytes.NewReader(src), size)
++		Expect(err).ToNot(HaveOccurred())
++		out, err := io.ReadAll(r)
++		Expect(err).ToNot(HaveOccurred())
++		return out
++	}
++	decode := func(r io.Reader) (string, image.Point) {
++		img, format, err := image.Decode(r)
++		Expect(err).ToNot(HaveOccurred())
++		return format, img.Bounds().Size()
++	}
++
++	It("resizes a 16 by 16 PNG to 15 by 15 and keeps the PNG format", func() {
++		format, bounds := decode(bytes.NewReader(resize(encodePNG(16, 16), 15)))
++
++		Expect(format).To(Equal("png"))
++		Expect(bounds).To(Equal(image.Pt(15, 15)))
++	})
++
++	It("keeps the proportions of a wide PNG", func() {
++		format, bounds := decode(bytes.NewReader(resize(encodePNG(1200, 600), 300)))
++
++		Expect(format).To(Equal("png"))
++		Expect(bounds).To(Equal(image.Pt(300, 150)))
++	})
++
++	It("resizes the longer side of a tall PNG", func() {
++		_, bounds := decode(bytes.NewReader(resize(encodePNG(600, 1200), 300)))
++
++		Expect(bounds).To(Equal(image.Pt(150, 300)))
++	})
++
++	It("keeps a JPEG as a JPEG", func() {
++		format, bounds := decode(bytes.NewReader(resize(encodeJPEG(1200, 600), 300)))
++
++		Expect(format).To(Equal("jpeg"))
++		Expect(bounds).To(Equal(image.Pt(300, 150)))
++	})
++
++	It("resizes to the 1000 pixel limit", func() {
++		_, bounds := decode(bytes.NewReader(resize(encodePNG(1200, 600), 1000)))
++
++		Expect(bounds).To(Equal(image.Pt(1000, 500)))
++	})
++
++	It("gives each size from 1 to 1000 as its longer side", func() {
++		src := encodePNG(40, 20)
++		for size := 1; size <= 1000; size++ {
++			_, bounds := decode(bytes.NewReader(resize(src, size)))
++			Expect(number.Max(bounds.X, bounds.Y)).To(Equal(size), "size %d", size)
++		}
++	})
++
++	Context("through the artwork service", func() {
++		var aw *artwork
++
++		BeforeEach(func() {
++			DeferCleanup(configtest.SetupConfig())
++			conf.Server.ImageCacheSize = "0" // Disable cache
++			conf.Server.CoverArtPriority = "front.png, index.html"
++
++			ds := &tests.MockDataStore{MockedTranscoding: &tests.MockTranscodingRepo{}}
++			ds.Album(context.Background()).(*tests.MockAlbumRepo).SetData(model.Albums{
++				{ID: "444", Name: "Only external", ImageFiles: "tests/fixtures/front.png"},
++				{ID: "777", Name: "Not an image", ImageFiles: "tests/fixtures/index.html"},
++			})
++			aw = NewArtwork(ds, GetImageCache(), tests.NewMockFFmpeg("")).(*artwork)
++		})
++
++		It("resizes the 16 by 16 front.png to 15 by 15 as a PNG", func() {
++			r, _, err := aw.Get(context.Background(), "al-444", 15)
++			Expect(err).ToNot(HaveOccurred())
++			defer r.Close()
++
++			format, bounds := decode(r)
++
++			Expect(format).To(Equal("png"))
++			Expect(bounds).To(Equal(image.Pt(15, 15)))
++		})
++
++		It("serves an undecodable cover as stored at a size", func() {
++			stored, err := os.ReadFile("tests/fixtures/index.html")
++			Expect(err).ToNot(HaveOccurred())
++
++			r, _, err := aw.Get(context.Background(), "al-777", 300)
++			Expect(err).ToNot(HaveOccurred())
++			defer r.Close()
++
++			Expect(io.ReadAll(r)).To(Equal(stored))
++		})
++	})
++})
+diff --git a/server/public/public_endpoints.go b/server/public/public_endpoints.go
+index 31d04e5e..c64ac623 100644
+--- a/server/public/public_endpoints.go
++++ b/server/public/public_endpoints.go
+@@ -5,13 +5,11 @@ import (
+ 	"errors"
+ 	"io"
+ 	"net/http"
++	"strconv"
+ 	"time"
+ 
+ 	"github.com/go-chi/chi/v5"
+-	"github.com/go-chi/jwtauth/v5"
+-	"github.com/lestrrat-go/jwx/v2/jwt"
+ 	"github.com/navidrome/navidrome/core/artwork"
+-	"github.com/navidrome/navidrome/core/auth"
+ 	"github.com/navidrome/navidrome/log"
+ 	"github.com/navidrome/navidrome/model"
+ 	"github.com/navidrome/navidrome/server"
+@@ -34,8 +32,6 @@ func (p *Router) routes() http.Handler {
+ 
+ 	r.Group(func(r chi.Router) {
+ 		r.Use(server.URLParamsMiddleware)
+-		r.Use(jwtVerifier)
+-		r.Use(validator)
+ 		r.Get("/img/{jwt}", p.handleImages)
+ 	})
+ 	return r
+@@ -45,19 +41,14 @@ func (p *Router) handleImages(w http.ResponseWriter, r *http.Request) {
+ 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+ 	defer cancel()
+ 
+-	_, claims, _ := jwtauth.FromContext(ctx)
+-	id, ok := claims["id"].(string)
+-	if !ok {
+-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+-		return
+-	}
+-	size, ok := claims["size"].(float64)
+-	if !ok {
+-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
++	artID, err := artwork.DecodeArtworkID(r.URL.Query().Get(":jwt"))
++	if err != nil {
++		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+ 		return
+ 	}
++	id := artID.String()
+ 
+-	imgReader, lastUpdate, err := p.artwork.Get(ctx, id, int(size))
++	imgReader, lastUpdate, err := p.artwork.Get(ctx, id, imageSize(r.URL.Query().Get("size")))
+ 	w.Header().Set("cache-control", "public, max-age=315360000")
+ 	w.Header().Set("last-modified", lastUpdate.Format(time.RFC1123))
+ 
+@@ -81,26 +72,15 @@ func (p *Router) handleImages(w http.ResponseWriter, r *http.Request) {
+ 	}
+ }
+ 
+-func jwtVerifier(next http.Handler) http.Handler {
+-	return jwtauth.Verify(auth.TokenAuth, func(r *http.Request) string {
+-		return r.URL.Query().Get(":jwt")
+-	})(next)
+-}
+-
+-func validator(next http.Handler) http.Handler {
+-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		token, _, err := jwtauth.FromContext(r.Context())
+-
+-		validErr := jwt.Validate(token,
+-			jwt.WithRequiredClaim("id"),
+-			jwt.WithRequiredClaim("size"),
+-		)
+-		if err != nil || token == nil || validErr != nil {
+-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+-			return
+-		}
++// maxImageSize is the largest size a public link can ask for: a larger one serves the original image
++const maxImageSize = 1000
+ 
+-		// Token is authenticated, pass it through
+-		next.ServeHTTP(w, r)
+-	})
++// imageSize returns the size a request asks for, when it is a whole number from 1 to maxImageSize.
++// Anything else returns 0, which serves the original image.
++func imageSize(value string) int {
++	size, err := strconv.Atoi(value)
++	if err != nil || size < 1 || size > maxImageSize {
++		return 0
++	}
++	return size
+ }
+diff --git a/server/public/public_endpoints_test.go b/server/public/public_endpoints_test.go
+new file mode 100644
+index 00000000..feeb6fa1
+--- /dev/null
++++ b/server/public/public_endpoints_test.go
+@@ -0,0 +1,202 @@
++package public_test
++
++import (
++	"bytes"
++	"context"
++	"image"
++	"image/jpeg"
++	"image/png"
++	"net/http"
++	"net/http/httptest"
++	"os"
++	"path/filepath"
++
++	"github.com/go-chi/jwtauth/v5"
++	"github.com/navidrome/navidrome/conf"
++	"github.com/navidrome/navidrome/conf/configtest"
++	"github.com/navidrome/navidrome/core/artwork"
++	"github.com/navidrome/navidrome/core/auth"
++	"github.com/navidrome/navidrome/model"
++	"github.com/navidrome/navidrome/server/public"
++	"github.com/navidrome/navidrome/tests"
++	. "github.com/onsi/ginkgo/v2"
++	. "github.com/onsi/gomega"
++)
++
++var _ = Describe("Public image links", func() {
++	var router *public.Router
++	var storedFront, storedIndex, widePNG, wideJPEG []byte
++
++	solid := func(w, h int) image.Image {
++		return image.NewRGBA(image.Rect(0, 0, w, h))
++	}
++
++	// BeforeEach writes a 1200 by 600 PNG and JPEG to a temporary folder, and points albums at them
++	BeforeEach(func() {
++		DeferCleanup(configtest.SetupConfig())
++		conf.Server.ImageCacheSize = "0" // Disable cache
++		conf.Server.CoverArtPriority = "front.png, cover.jpg, index.html"
++		auth.TokenAuth = jwtauth.New("HS256", []byte("test secret"), nil)
++
++		var pngBuf, jpegBuf bytes.Buffer
++		Expect(png.Encode(&pngBuf, solid(1200, 600))).To(Succeed())
++		Expect(jpeg.Encode(&jpegBuf, solid(1200, 600), nil)).To(Succeed())
++		widePNG, wideJPEG = pngBuf.Bytes(), jpegBuf.Bytes()
++
++		dir := GinkgoT().TempDir()
++		Expect(os.WriteFile(filepath.Join(dir, "front.png"), widePNG, 0600)).To(Succeed())
++		Expect(os.WriteFile(filepath.Join(dir, "cover.jpg"), wideJPEG, 0600)).To(Succeed())
++		storedFront, _ = os.ReadFile("tests/fixtures/front.png")
++		storedIndex, _ = os.ReadFile("tests/fixtures/index.html")
++
++		ds := &tests.MockDataStore{MockedTranscoding: &tests.MockTranscodingRepo{}}
++		ds.Album(context.Background()).(*tests.MockAlbumRepo).SetData(model.Albums{
++			{ID: "444", Name: "Only external", ImageFiles: "tests/fixtures/front.png"},
++			{ID: "777", Name: "Not an image", ImageFiles: "tests/fixtures/index.html"},
++			{ID: "888", Name: "Wide PNG", ImageFiles: filepath.Join(dir, "front.png")},
++			{ID: "999", Name: "Wide JPEG", ImageFiles: filepath.Join(dir, "cover.jpg")},
++		})
++		router = public.New(artwork.NewArtwork(ds, artwork.GetImageCache(), tests.NewMockFFmpeg("")))
++	})
++
++	// get serves /img/<token>, with the query as given
++	get := func(token, query string) *httptest.ResponseRecorder {
++		rec := httptest.NewRecorder()
++		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/img/"+token+"?"+query, nil))
++		return rec
++	}
++	// signed makes a token with the given claims, as a link issued before this change may have
++	signed := func(claims map[string]any) string {
++		token, err := auth.CreatePublicToken(claims)
++		Expect(err).ToNot(HaveOccurred())
++		return token
++	}
++	// decode reads the format and the bounds of an image served by the route
++	decode := func(body []byte) (string, image.Point) {
++		img, format, err := image.Decode(bytes.NewReader(body))
++		Expect(err).ToNot(HaveOccurred())
++		return format, img.Bounds().Size()
++	}
++
++	It("serves the stored bytes when no size is given", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-444")), "")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		Expect(rec.Body.Bytes()).To(Equal(storedFront))
++	})
++
++	It("serves the original for a token issued with a size claim", func() {
++		rec := get(signed(map[string]any{"id": "al-444", "size": 300}), "")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		Expect(rec.Body.Bytes()).To(Equal(storedFront))
++	})
++
++	It("answers 404 Not Found for a token signed with another key", func() {
++		_, token, err := jwtauth.New("HS256", []byte("other secret"), nil).Encode(map[string]any{"id": "al-444"})
++		Expect(err).ToNot(HaveOccurred())
++
++		rec := get(token, "")
++
++		Expect(rec.Code).To(Equal(http.StatusNotFound))
++		Expect(rec.Body.String()).To(ContainSubstring("Not Found"))
++	})
++
++	DescribeTable("answers 404 for a token whose id is missing or unusable",
++		func(claims map[string]any) {
++			rec := get(signed(claims), "")
++
++			Expect(rec.Code).To(Equal(http.StatusNotFound))
++		},
++		Entry("with no id claim", map[string]any{"size": 300}),
++		Entry("with an id claim that is not a string", map[string]any{"id": 1234}),
++		Entry("with an id that is not an artwork ID", map[string]any{"id": "xx-1234"}),
++	)
++
++	It("answers 404 Artwork not found for a valid token whose artwork is gone", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-9999")), "")
++
++		Expect(rec.Code).To(Equal(http.StatusNotFound))
++		Expect(rec.Body.String()).To(ContainSubstring("Artwork not found"))
++	})
++
++	It("resizes a 16 by 16 PNG to 15 by 15", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-444")), "size=15")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		format, bounds := decode(rec.Body.Bytes())
++		Expect(format).To(Equal("png"))
++		Expect(bounds).To(Equal(image.Pt(15, 15)))
++	})
++
++	It("enlarges a 16 by 16 PNG to size 300", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-444")), "size=300")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		_, bounds := decode(rec.Body.Bytes())
++		Expect(bounds).To(Equal(image.Pt(300, 300)))
++	})
++
++	It("resizes the longer side of a wide PNG", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-888")), "size=300")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		format, bounds := decode(rec.Body.Bytes())
++		Expect(format).To(Equal("png"))
++		Expect(bounds).To(Equal(image.Pt(300, 150)))
++	})
++
++	It("resizes to the 1000 pixel limit", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-888")), "size=1000")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		_, bounds := decode(rec.Body.Bytes())
++		Expect(bounds).To(Equal(image.Pt(1000, 500)))
++	})
++
++	It("serves the original for a size above 1000", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-888")), "size=1001")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		Expect(rec.Body.Bytes()).To(Equal(widePNG))
++	})
++
++	DescribeTable("serves the original for a size that is not a positive whole number",
++		func(size string) {
++			rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-888")), "size="+size)
++
++			Expect(rec.Code).To(Equal(http.StatusOK))
++			Expect(rec.Body.Bytes()).To(Equal(widePNG))
++		},
++		Entry("abc", "abc"),
++		Entry("zero", "0"),
++		Entry("negative", "-5"),
++		Entry("not a whole number", "15.5"),
++		Entry("empty", ""),
++		Entry("a space", "%20"),
++		Entry("a lone plus sign", "%2B"),
++	)
++
++	It("serves the original for a size too large for an integer", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-888")), "size=99999999999999999999")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		Expect(rec.Body.Bytes()).To(Equal(widePNG))
++	})
++
++	It("keeps a JPEG as a JPEG", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-999")), "size=300")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		format, bounds := decode(rec.Body.Bytes())
++		Expect(format).To(Equal("jpeg"))
++		Expect(bounds).To(Equal(image.Pt(300, 150)))
++	})
++
++	It("serves an undecodable cover as stored at a size", func() {
++		rec := get(artwork.EncodeArtworkID(model.MustParseArtworkID("al-777")), "size=300")
++
++		Expect(rec.Code).To(Equal(http.StatusOK))
++		Expect(rec.Body.Bytes()).To(Equal(storedIndex))
++	})
++})
+diff --git a/server/public/public_suite_test.go b/server/public/public_suite_test.go
+new file mode 100644
+index 00000000..d81aa9b4
+--- /dev/null
++++ b/server/public/public_suite_test.go
+@@ -0,0 +1,17 @@
++package public_test
++
++import (
++	"testing"
++
++	"github.com/navidrome/navidrome/log"
++	"github.com/navidrome/navidrome/tests"
++	. "github.com/onsi/ginkgo/v2"
++	. "github.com/onsi/gomega"
++)
++
++func TestPublic(t *testing.T) {
++	tests.Init(t, false)
++	log.SetLevel(log.LevelFatal)
++	RegisterFailHandler(Fail)
++	RunSpecs(t, "Public Suite")
++}
+diff --git a/server/subsonic/helpers.go b/server/subsonic/helpers.go
+index f77cd05f..b4590b4c 100644
+--- a/server/subsonic/helpers.go
++++ b/server/subsonic/helpers.go
+@@ -90,7 +90,7 @@ func toArtist(r *http.Request, a model.Artist) responses.Artist {
+ 		AlbumCount:     a.AlbumCount,
+ 		UserRating:     a.Rating,
+ 		CoverArt:       a.CoverArtID().String(),
+-		ArtistImageUrl: artistCoverArtURL(r, a.CoverArtID(), 0),
++		ArtistImageUrl: artistCoverArtURL(r, a.CoverArtID()),
+ 	}
+ 	if a.Starred {
+ 		artist.Starred = &a.StarredAt
+@@ -104,7 +104,7 @@ func toArtistID3(r *http.Request, a model.Artist) responses.ArtistID3 {
+ 		Name:           a.Name,
+ 		AlbumCount:     a.AlbumCount,
+ 		CoverArt:       a.CoverArtID().String(),
+-		ArtistImageUrl: artistCoverArtURL(r, a.CoverArtID(), 0),
++		ArtistImageUrl: artistCoverArtURL(r, a.CoverArtID()),
+ 		UserRating:     a.Rating,
+ 	}
+ 	if a.Starred {
+@@ -113,8 +113,8 @@ func toArtistID3(r *http.Request, a model.Artist) responses.ArtistID3 {
+ 	return artist
+ }
+ 
+-func artistCoverArtURL(r *http.Request, artID model.ArtworkID, size int) string {
+-	link := artwork.PublicLink(artID, size)
++func artistCoverArtURL(r *http.Request, artID model.ArtworkID) string {
++	link := artwork.EncodeArtworkID(artID)
+ 	url := filepath.Join(consts.URLPathPublicImages, link)
+ 	return server.AbsoluteURL(r, url)
+ }
+diff --git a/server/subsonic/searching.go b/server/subsonic/searching.go
+index 90759240..537c955b 100644
+--- a/server/subsonic/searching.go
++++ b/server/subsonic/searching.go
+@@ -112,7 +112,7 @@ func (api *Router) Search2(r *http.Request) (*responses.Subsonic, error) {
+ 			AlbumCount:     artist.AlbumCount,
+ 			UserRating:     artist.Rating,
+ 			CoverArt:       artist.CoverArtID().String(),
+-			ArtistImageUrl: artistCoverArtURL(r, artist.CoverArtID(), 0),
++			ArtistImageUrl: artistCoverArtURL(r, artist.CoverArtID()),
+ 		}
+ 		if artist.Starred {
+ 			searchResult2.Artist[i].Starred = &as[i].StarredAt

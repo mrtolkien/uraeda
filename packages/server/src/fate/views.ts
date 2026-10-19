@@ -155,6 +155,8 @@ export type SubagentRecord = { description: string; id: string };
 export type SessionRecord = {
   /** The agent's kind. */
   agent: string;
+  /** How many blocked actions of its latest turn "Allow all" would allow: 0 without a turn. */
+  allowable: number;
   archived: boolean;
   /** The background commands of its running turn still running. */
   backgroundCommands: number;
@@ -371,6 +373,7 @@ export const agentDataView = dataView<AgentRecord>("Agent")({
 
 export const sessionDataView = dataView<SessionRecord>("Session")({
   agent: true,
+  allowable: true,
   archived: true,
   backgroundCommands: true,
   folder: true,

@@ -1,0 +1,5 @@
+source = "swe-bench-pro-v2"
+task = "instance_element-hq__element-web-ecfd1736e5dd9808e87911fc264e6c816653e1a9-vnan"
+image = "ghcr.io/scaleapi/swe-bench_pro-v2@sha256:b05662eed301c0c6fa444dd54e7038b1f75c439ea57e620519661c5f778aa86c"
+upstream = "https://github.com/element-hq/element-web"
+repository = "/app"

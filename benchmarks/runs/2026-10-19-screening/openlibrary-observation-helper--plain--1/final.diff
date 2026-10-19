@@ -1,0 +1,129 @@
+diff --git a/openlibrary/core/observations.py b/openlibrary/core/observations.py
+index 48dd42e06..331026c09 100644
+--- a/openlibrary/core/observations.py
++++ b/openlibrary/core/observations.py
+@@ -24,3 +24,107 @@ def get_aspects():
+     response = requests.get(TBBO_URL + '/api/aspects')
+ 
+     return response.text
++
++
++from collections import namedtuple
++
++from . import db
++
++# Catalog of observation types. Value ids are unique across all types.
++_OBSERVATION_TYPES = [
++    {'id': 1, 'label': 'pace', 'multi_choice': False,
++     'description': 'How would you describe the pace of this book?',
++     'order': [1, 2, 3],
++     'values': [{'id': 1, 'name': 'slow'}, {'id': 2, 'name': 'medium'},
++                {'id': 3, 'name': 'fast'}]},
++    {'id': 2, 'label': 'fictionality', 'multi_choice': False,
++     'description': 'Is this book fiction or nonfiction?',
++     'order': [4, 5, 6],
++     'values': [{'id': 4, 'name': 'nonfiction'}, {'id': 5, 'name': 'fiction'},
++                {'id': 6, 'name': 'biography'}]},
++    {'id': 10, 'label': 'genres', 'multi_choice': True,
++     'description': 'What are the genres of this book?',
++     'order': [7, 8, 9, 10, 11],
++     'values': [{'id': 7, 'name': 'mystery'}, {'id': 8, 'name': 'romance'},
++                {'id': 9, 'name': 'science fiction'}, {'id': 10, 'name': 'fantasy'},
++                {'id': 11, 'name': 'history'}]},
++]
++
++
++def _sort_values(order_list, values_list):
++    """Returns value names ordered by order_list; ids missing from either
++    list are dropped."""
++    names = {v['id']: v['name'] for v in values_list}
++    return [names[i] for i in order_list if i in names]
++
++
++def get_observations():
++    """Returns the observation types with their value names."""
++    return {'observations': [
++        {
++            'label': t['label'],
++            'description': t['description'],
++            'multi_choice': t['multi_choice'],
++            'values': _sort_values(t['order'], t['values']),
++        } for t in _OBSERVATION_TYPES
++    ]}
++
++
++KeyValue = namedtuple('KeyValue', ['key', 'value'])
++
++
++class Observations(object):
++
++    @classmethod
++    def get_key_value_pair(cls, type_id, value_id):
++        for t in _OBSERVATION_TYPES:
++            if t['id'] == type_id:
++                for v in t['values']:
++                    if v['id'] == value_id:
++                        return KeyValue(t['label'], v['name'])
++        return None
++
++    @classmethod
++    def _ids(cls, label, name):
++        for t in _OBSERVATION_TYPES:
++            if t['label'] == label:
++                for v in t['values']:
++                    if v['name'] == name:
++                        return t['id'], v['id']
++        return None
++
++    @classmethod
++    def persist_observations(cls, username, work_id, observations):
++        oldb = db.get_db()
++        submitted = set()
++        for obs in observations:
++            for label, name in obs.items():
++                ids = cls._ids(label, name)
++                if ids:
++                    submitted.add(ids)
++        stored = {(r['type'], r['value'])
++                  for r in cls.get_patron_observations(username, work_id)}
++
++        with oldb.transaction():
++            for type_id, value_id in submitted - stored:
++                oldb.insert(
++                    'observations',
++                    observation_type=type_id,
++                    observation_value=value_id,
++                    username=username,
++                    work_id=work_id)
++            for type_id, value_id in stored - submitted:
++                oldb.delete(
++                    'observations',
++                    where=('work_id=$work_id AND username=$username AND '
++                           'observation_type=$type AND observation_value=$value'),
++                    vars={'work_id': work_id, 'username': username,
++                          'type': type_id, 'value': value_id})
++
++    @classmethod
++    def get_patron_observations(cls, username, work_id):
++        oldb = db.get_db()
++        return list(oldb.query(
++            'SELECT observation_type AS type, observation_value AS value '
++            'FROM observations WHERE username=$username AND work_id=$work_id',
++            vars={'username': username, 'work_id': work_id}))
+diff --git a/openlibrary/core/schema.sql b/openlibrary/core/schema.sql
+index 54cf058db..1c7f42e76 100644
+--- a/openlibrary/core/schema.sql
++++ b/openlibrary/core/schema.sql
+@@ -49,3 +49,12 @@ CREATE TABLE bookshelves_votes (
+ INSERT INTO bookshelves (name, description) VALUES ('Want to Read', 'A list of books I want to read');
+ INSERT INTO bookshelves (name, description) VALUES ('Currently Reading', 'A list of books I am currently reading');
+ INSERT INTO bookshelves (name, description) VALUES ('Already Read', 'A list of books I have finished reading');
++
++CREATE TABLE observations (
++    work_id text not null,
++    username text not null,
++    observation_type integer not null,
++    observation_value integer not null,
++    created timestamp without time zone default (current_timestamp at time zone 'utc'),
++    primary key (work_id, username, observation_type, observation_value)
++);

@@ -224,6 +224,7 @@ export default {
     projects: [
       "packages/binding",
       "packages/server",
+      "packages/benchmarks",
       "packages/uraeda",
       "packages/web",
       // The layout at an iPhone 17's size and a desktop's, in WebKit: `nix develop` provides it.

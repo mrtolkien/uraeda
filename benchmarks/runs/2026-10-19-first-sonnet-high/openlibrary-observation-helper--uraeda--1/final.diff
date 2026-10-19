@@ -1,0 +1,383 @@
+diff --git a/openlibrary/core/observations.py b/openlibrary/core/observations.py
+index 48dd42e06..72c24a725 100644
+--- a/openlibrary/core/observations.py
++++ b/openlibrary/core/observations.py
+@@ -1,14 +1,160 @@
+ """Module for handling patron observation functionality"""
+ 
++from collections import namedtuple
++
+ import requests
+ 
+ from infogami import config
+ from openlibrary import accounts
+-from . import cache
++from . import cache, db
+ 
+ # URL for TheBestBookOn
+ TBBO_URL = config.get('tbbo_url')
+ 
++KeyValuePair = namedtuple('KeyValuePair', 'key value')
++
++
++def _values(*names):
++    """Numbers value names from 1, the value ids stored in the database."""
++    return [{'id': i, 'name': name} for i, name in enumerate(names, 1)]
++
++
++# The only home of observation type and value ids. Stored rows keep these
++# ids, so an id must never change meaning. `order` lists value ids in display order.
++OBSERVATIONS = [
++    {
++        'id': 1,
++        'label': 'pace',
++        'description': 'How fast the story moves',
++        'multi_choice': False,
++        'order': [1, 2, 3],
++        'values': _values('slow', 'medium', 'fast'),
++    },
++    {
++        'id': 2,
++        'label': 'fictionality',
++        'description': 'Whether the book is made up or true',
++        'multi_choice': False,
++        'order': [1, 2, 3],
++        'values': _values('nonfiction', 'fiction', 'biography'),
++    },
++    {
++        'id': 10,
++        'label': 'genres',
++        'description': 'The kinds of story the book tells',
++        'multi_choice': True,
++        'order': [1, 2, 3, 4, 5, 6, 7, 8, 9],
++        'values': _values(
++            'adventure', 'comedy', 'fantasy', 'historical', 'horror',
++            'romance', 'mystery', 'science fiction', 'thriller'),
++    },
++]
++
++
++def _sort_values(order_list, values_list):
++    """Returns the names of the values whose id is in `order_list`, in that
++    order. An id with no value is absorbed, a value whose id is not in the
++    order is excluded, and a repeated id counts once, the first of each winning.
++    """
++    names = {}
++    for value in values_list:
++        names.setdefault(value['id'], value['name'])
++
++    ordered = []
++    seen = set()
++    for value_id in order_list:
++        if value_id in names and value_id not in seen:
++            seen.add(value_id)
++            ordered.append(names[value_id])
++    return ordered
++
++
++def get_observations():
++    """Returns the observation types with their value names in display order."""
++    return {
++        'observations': [
++            {
++                'label': o['label'],
++                'description': o['description'],
++                'multi_choice': o['multi_choice'],
++                'values': _sort_values(o['order'], o['values']),
++            }
++            for o in OBSERVATIONS
++        ]
++    }
++
++
++class Observations(object):
++
++    @classmethod
++    def get_key_value_pair(cls, type_id, value_id):
++        """Returns the label of an observation type and the name of one of its
++        values as a `KeyValuePair`, or None if either id is not in the catalog.
++        """
++        for observation in OBSERVATIONS:
++            if observation['id'] != type_id:
++                continue
++            for value in observation['values']:
++                if value['id'] == value_id:
++                    return KeyValuePair(observation['label'], value['name'])
++        return None
++
++    @classmethod
++    def _to_ids(cls, observations):
++        """Maps submitted `{label: value_name}` dicts to a set of
++        (type id, value id), raising ValueError for an unknown label or name.
++        """
++        ids = set()
++        for observation in observations:
++            for label, name in observation.items():
++                type_ = next((o for o in OBSERVATIONS if o['label'] == label), None)
++                if type_ is None:
++                    raise ValueError('Unknown observation type: %r' % label)
++                value = next((v for v in type_['values'] if v['name'] == name), None)
++                if value is None:
++                    raise ValueError('Unknown value %r for observation %r' % (name, label))
++                ids.add((type_['id'], value['id']))
++        return ids
++
++    @classmethod
++    def persist_observations(cls, username, work_id, observations):
++        """Makes the patron's stored observations of the work equal to
++        `observations`, a list of single-entry `{label: value_name}` dicts.
++        Other works and other patrons are untouched.
++        """
++        submitted = cls._to_ids(observations)
++        oldb = db.get_db()
++        key = {'username': username, 'work_id': work_id}
++
++        with oldb.transaction():
++            stored = {(r['type'], r['value'])
++                      for r in cls.get_patron_observations(username, work_id)}
++
++            for type_id, value_id in stored - submitted:
++                oldb.delete(
++                    'observations',
++                    where=('username=$username AND work_id=$work_id AND '
++                           'observation_type=$observation_type AND '
++                           'observation_value=$observation_value'),
++                    vars=dict(key, observation_type=type_id, observation_value=value_id))
++
++            new_rows = [dict(key, observation_type=type_id, observation_value=value_id)
++                        for type_id, value_id in sorted(submitted - stored)]
++            if new_rows:
++                oldb.multiple_insert('observations', new_rows)
++
++    @classmethod
++    def get_patron_observations(cls, username, work_id):
++        """Returns the patron's stored observations of the work as records with
++        `type` and `value`, the ids of the observation type and of its value.
++        """
++        oldb = db.get_db()
++        query = (
++            "SELECT observation_type AS type, observation_value AS value "
++            "FROM observations WHERE username=$username AND work_id=$work_id")
++        return list(oldb.query(query, vars={'username': username, 'work_id': work_id}))
++
++
+ def post_observation(data, s3_keys):
+     headers = {
+         'x-s3-access': s3_keys['access'],
+diff --git a/openlibrary/core/schema.sql b/openlibrary/core/schema.sql
+index 54cf058db..bf89124b5 100644
+--- a/openlibrary/core/schema.sql
++++ b/openlibrary/core/schema.sql
+@@ -19,6 +19,14 @@ CREATE TABLE booknotes (
+     primary key (username, work_id)
+ );
+ 
++CREATE TABLE observations (
++    username text NOT NULL,
++    work_id integer NOT NULL,
++    observation_type integer NOT NULL,
++    observation_value integer NOT NULL,
++    primary key (username, work_id, observation_type, observation_value)
++);
++
+ CREATE TABLE bookshelves (
+     id serial not null primary key,
+     name text,
+diff --git a/openlibrary/tests/core/test_observations.py b/openlibrary/tests/core/test_observations.py
+new file mode 100644
+index 000000000..670efd027
+--- /dev/null
++++ b/openlibrary/tests/core/test_observations.py
+@@ -0,0 +1,192 @@
++from contextlib import contextmanager
++
++import pytest
++
++from openlibrary.core import observations
++from openlibrary.core.observations import Observations
++
++VALUES = [{'id': 1, 'name': 'a'}, {'id': 2, 'name': 'b'}, {'id': 3, 'name': 'c'}]
++
++
++def _entry(label):
++    entries = observations.get_observations()['observations']
++    return next(e for e in entries if e['label'] == label)
++
++
++def test_sort_values_follows_order_list():
++    assert observations._sort_values([3, 1, 2], VALUES) == ['c', 'a', 'b']
++
++
++def test_sort_values_absorbs_missing_value():
++    assert observations._sort_values([2, 9, 1], VALUES) == ['b', 'a']
++
++
++def test_sort_values_excludes_unordered():
++    assert observations._sort_values([1], VALUES) == ['a']
++
++
++def test_sort_values_repeated_id_counts_once():
++    values = [{'id': 1, 'name': 'a'}, {'id': 1, 'name': 'z'}]
++    assert observations._sort_values([1, 1], values) == ['a']
++
++
++def test_get_observations_entries_have_the_expected_keys():
++    entries = observations.get_observations()['observations']
++
++    assert entries
++    for entry in entries:
++        assert set(entry) >= {'label', 'description', 'multi_choice', 'values'}
++
++
++def test_pace_values_in_order():
++    pace = _entry('pace')
++
++    assert pace['multi_choice'] is False
++    assert pace['values'] == ['slow', 'medium', 'fast']
++
++
++def test_fictionality_values_in_order():
++    assert _entry('fictionality')['values'] == ['nonfiction', 'fiction', 'biography']
++
++
++def test_get_key_value_pair():
++    pair = Observations.get_key_value_pair(1, 1)
++    assert (pair.key, pair.value) == ('pace', 'slow')
++
++    pair = Observations.get_key_value_pair(10, 7)
++    assert (pair.key, pair.value) == ('genres', 'mystery')
++
++
++def test_get_key_value_pair_unpacks():
++    key, value = Observations.get_key_value_pair(1, 1)
++
++    assert (key, value) == ('pace', 'slow')
++
++
++def test_get_key_value_pair_unknown_returns_none():
++    assert Observations.get_key_value_pair(99, 1) is None
++    assert Observations.get_key_value_pair(1, 99) is None
++
++
++class FakeDB(object):
++    """An in-memory `observations` table. Like Postgres, it casts `work_id` to
++    an integer, and it refuses a second row with the same four fields."""
++
++    def __init__(self):
++        self.rows = []
++        self.transactions = 0
++        self.inserted = []
++
++    def seed(self, username, work_id, pairs):
++        for type_id, value_id in pairs:
++            self.rows.append({
++                'username': username, 'work_id': work_id,
++                'observation_type': type_id, 'observation_value': value_id})
++
++    def rows_of(self, username, work_id):
++        return {(r['observation_type'], r['observation_value'])
++                for r in self.rows
++                if r['username'] == username and r['work_id'] == work_id}
++
++    @contextmanager
++    def transaction(self):
++        self.transactions += 1
++        yield
++
++    def query(self, sql, vars=None):
++        return [{'type': r['observation_type'], 'value': r['observation_value']}
++                for r in self.rows
++                if r['username'] == vars['username']
++                and r['work_id'] == int(vars['work_id'])]
++
++    def delete(self, table, where, vars=None):
++        match = {'username': vars['username'], 'work_id': int(vars['work_id']),
++                 'observation_type': vars['observation_type'],
++                 'observation_value': vars['observation_value']}
++        self.rows = [r for r in self.rows if r != match]
++
++    def multiple_insert(self, table, values):
++        for row in values:
++            assert set(row) == {'username', 'work_id', 'observation_type', 'observation_value'}
++            row = dict(row, work_id=int(row['work_id']))
++            assert row not in self.rows, 'primary key violated'
++            self.inserted.append(row)
++            self.rows.append(row)
++
++
++@pytest.fixture
++def fake_db(monkeypatch):
++    db = FakeDB()
++    monkeypatch.setattr(observations.db, 'get_db', lambda: db)
++    return db
++
++
++def test_persist_inserts_new_rows(fake_db):
++    Observations.persist_observations('mek', '123', [{'pace': 'slow'}, {'genres': 'mystery'}])
++
++    assert fake_db.rows_of('mek', 123) == {(1, 1), (10, 7)}
++    assert all(r['username'] == 'mek' and r['work_id'] == 123 for r in fake_db.inserted)
++
++
++def test_persist_replaces_stored_set(fake_db):
++    fake_db.seed('mek', 123, [(1, 1), (10, 7)])
++
++    Observations.persist_observations('mek', '123', [{'pace': 'slow'}, {'fictionality': 'fiction'}])
++
++    assert fake_db.rows_of('mek', 123) == {(1, 1), (2, 2)}
++    assert [(r['observation_type'], r['observation_value']) for r in fake_db.inserted] == [(2, 2)]
++
++
++def test_persist_empty_removes_all(fake_db):
++    fake_db.seed('mek', 123, [(1, 1)])
++
++    Observations.persist_observations('mek', '123', [])
++
++    assert fake_db.rows_of('mek', 123) == set()
++
++
++def test_persist_leaves_other_works_and_patrons(fake_db):
++    fake_db.seed('someone', 123, [(1, 2)])
++    fake_db.seed('mek', 456, [(1, 3)])
++    fake_db.seed('mek', 123, [(1, 1)])
++
++    Observations.persist_observations('mek', '123', [{'genres': 'comedy'}])
++
++    assert fake_db.rows_of('someone', 123) == {(1, 2)}
++    assert fake_db.rows_of('mek', 456) == {(1, 3)}
++    assert fake_db.rows_of('mek', 123) == {(10, 2)}
++
++
++def test_get_patron_observations_records(fake_db):
++    fake_db.seed('mek', 123, [(1, 1)])
++
++    records = Observations.get_patron_observations('mek', '123')
++
++    assert [(r['type'], r['value']) for r in records] == [(1, 1)]
++
++
++@pytest.mark.parametrize('submission', [
++    [{'pace': 'slow'}, {'speed': 'fast'}],
++    [{'speed': 'fast'}, {'pace': 'slow'}],
++    [{'pace': 'sluggish'}],
++])
++def test_persist_unknown_label_or_value_changes_nothing(fake_db, submission):
++    fake_db.seed('mek', 123, [(10, 7)])
++
++    with pytest.raises(ValueError):
++        Observations.persist_observations('mek', '123', submission)
++
++    assert fake_db.rows_of('mek', 123) == {(10, 7)}
++    assert fake_db.transactions == 0
++
++
++def test_persist_two_single_choice_values_stored(fake_db):
++    Observations.persist_observations('mek', '123', [{'pace': 'slow'}, {'pace': 'fast'}])
++
++    assert fake_db.rows_of('mek', 123) == {(1, 1), (1, 3)}
++
++
++def test_persist_duplicate_submission_stores_once(fake_db):
++    Observations.persist_observations('mek', '123', [{'pace': 'slow'}, {'pace': 'slow'}])
++
++    assert len(fake_db.rows) == 1

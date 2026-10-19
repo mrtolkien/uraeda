@@ -60,7 +60,7 @@ export function claudeArgs(
     imagesDir,
     options.resume ? "--resume" : "--session-id",
     options.nativeId,
-    ...(options.allowed === undefined ? [] : ["--allowedTools", options.allowed]),
+    ...(options.allowed === undefined ? [] : ["--allowedTools", ...options.allowed]),
   ];
 }
 
