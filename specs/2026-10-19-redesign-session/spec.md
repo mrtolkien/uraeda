@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Redesign session
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 15 minutes.
+> Changes requested on 2026-10-19: 5 comments in spec-review.md.
 >
 > - You approve a session page that opens on its latest 20 messages, reads flat on a phone, allows
 >   all blocked actions in one press, and notifies you of a blocked chat.
