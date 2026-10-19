@@ -1,5 +1,5 @@
 ---
-discovery: medium # low, medium, or high: how far the agent researches before asking
+discovery: high # low, medium, or high: how far the agent researches before asking
 ---
 
 # Redesign session
@@ -12,8 +12,14 @@ A functional pass on the session page.
   passed the last X messages by default
 - Text input still feels a bit laggy on sessions page, might be due to the huge page height
 - Reading the messages on mobile is extremely hard, take inspiration from Gemini/Claude/ChatGPT
-  mobile UIs.
+  mobile UIs. There's way too much padding, borders, ...
+- There should be a different color for user messages vs agent messages
 - When there's multiple "blocked by auto mode", we should be able to allow them ALL at once!
+- All relevant buttons should be at the BOTTOM of the page, next to the composer
+- In a standard chat on desktop, the right sidebar is empty: it should have a list of file changes
+  made in this chat at least (based on tool calls maybe, in case it's on main?). Also sources
+  checked (online links, files, ...). Suggest good content for the right sidebar, take inspiration
+  from existing chat web UIs.
 
 ## Why
 
