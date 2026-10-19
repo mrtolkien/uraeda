@@ -5,7 +5,7 @@
 use napi_derive::napi;
 use serde::Serialize;
 
-use crate::decisions::DecisionChange;
+use crate::decisions::{Candidate, DecisionChange};
 use crate::files::document::{Document, Span};
 use crate::files::items::{Items, ReviewItems};
 use crate::files::markdown;
@@ -109,6 +109,9 @@ pub struct FileView {
     /// For `spec.md`, the decisions its branch changed, and those its `## Decisions` lists: the
     /// listed ones first, in the items' order, then the others by name. Empty for other files.
     pub decision_changes: Vec<DecisionChange>,
+    /// For the decisions check, each option's candidate decision against the active one, by
+    /// question and option. Empty for other files.
+    pub candidates: Vec<Candidate>,
     /// For `spec.md` at revision 2 or later, the review that requested the revision, as it stood
     /// when the revision was first committed: the one `## Your review` answers, whatever the review
     /// file holds now. `None` when that review did not request changes.

@@ -32,7 +32,7 @@ pub struct Changes {
     /// Whether the priorities record changed: `PRIORITIES.md`, the drafts, or the step of a feature
     /// an entry links.
     pub priorities: bool,
-    /// Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed.
+    /// Whether the default branch's `INBOX.md`, `INBOX-TRIAGE.md`, or `DECISIONS-CHECK.md` changed.
     pub inbox: bool,
     /// The decisions a feature's branch has that changed, as `<folder>/<name>`: its text on the
     /// branch, committed or not, or at the merge base.
@@ -160,7 +160,13 @@ fn snapshot(root: &Path) -> Snapshot {
             .unwrap_or_default(),
         ),
         inbox: hash(
-            &serde_json::to_string(&(&workspace.inbox, &workspace.triage)).unwrap_or_default(),
+            &serde_json::to_string(&(
+                &workspace.inbox,
+                &workspace.triage,
+                &workspace.decisions_check,
+                crate::decisions::candidates::on_default(&git, &workspace),
+            ))
+            .unwrap_or_default(),
         ),
         decisions: crate::api::ledger_hash(&git),
         workspace: hash(

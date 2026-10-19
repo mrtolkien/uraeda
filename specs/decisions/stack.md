@@ -14,32 +14,21 @@ gave a secret.
 ## Rules
 
 - Workflow logic, parsing, validation, and states MUST live in the Rust core, and TypeScript MUST
-  reach them only through the binding, with the types napi-rs generates, never reimplemented.
-  Checked by review.
+  reach them only through the binding, never reimplemented. Checked by review.
 - The `ura` CLI MUST be Rust needing no runtime, the server TypeScript on Node, and the web UI React
   with Astryx, fed only by the server through fate. Checked by review.
-- The web UI MUST draw workflow files from the core's document tree, never parsing their markdown;
-  only an agent's messages MAY use Astryx's `Markdown`. Checked by review.
-- The server MUST listen on 127.0.0.1 only, and reject a `Host` other than `127.0.0.1` or
-  `localhost` on its port, or a host name its flag, variable, or settings file allows, in the
-  [settings](settings.md) order, reread on each request. Checked by the guard's tests.
-- The server MUST reject a present `Origin` other than its own, `https://` on an allowed host name,
-  or an allowed origin; only GET, HEAD, and WebSocket upgrades on preview and mockup paths with the
-  current [frame secret](sign-in.md) MAY send `Origin: null`. Checked by the guard's tests.
-- The server MUST forward only that process's GET, HEAD, and WebSocket upgrades, on its preview
-  path, with `Access-Control-Allow-Origin: *` and
-  `Content-Security-Policy: sandbox allow-scripts allow-popups` on every response. It MUST forward
-  Storybook's channel only as a preview's, whatever role the upgrade asks, so no frame saves,
-  creates, or opens files through Storybook. Checked by the preview proxy's tests.
-- The web UI MUST show a preview only in frames sandboxed without `allow-same-origin`, accept
-  messages only from them, and give them only the story, its colour mode, and pick mode. Checked by
-  the embed's tests.
-- Editor plugins, in `editors/`, MUST reach workflow files only through `ura lsp`, and `ura lsp`
-  only through the core, over stdio, on `lsp-server` without an async runtime. Checked by review.
-- Completions and code actions MUST edit only the open document: writing another file or committing
-  MUST be a command the user runs. Checked by review.
-- The server MAY run a checkout's active [preview](preview.md) command in that checkout, on
-  127.0.0.1 and a free port, and MUST stop it when the server stops. Checked by the runner's tests.
+- The web UI MUST draw workflow files from the core's document tree, never parsing their markdown.
+  Checked by review.
+- The server MUST accept only requests that Uraeda's own pages, or frames it gave a secret, make,
+  and MUST listen only on the loopback interface. Checked by the guard's tests.
+- The server MUST NOT let a preview's frame save, create, or open files, through Storybook or
+  otherwise, and the web UI MUST sandbox previews apart from Uraeda's origin. Checked by the preview
+  proxy's and the embed's tests.
+- Editor plugins MUST reach workflow files only through `ura lsp`, over the core, and completions
+  and code actions MUST edit only the open document: committing MUST be a command the user runs.
+  Checked by review.
+- The server MAY run a checkout's active [preview](preview.md) command, and MUST stop it when the
+  server stops. Checked by the runner's tests.
 
 ## Why
 

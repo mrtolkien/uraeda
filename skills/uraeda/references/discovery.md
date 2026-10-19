@@ -288,9 +288,10 @@ Ask only what only the human can decide:
 - Scope boundaries: what the feature includes, and what it leaves out.
 - Tradeoffs between their goals, like simplicity against coverage.
 - Visual direction.
-- Any choice that would become a [decision](spec.md#what-is-a-decision), including adding a
-  dependency, or a change to an active one. The spec step creates or changes a decision only from an
-  answer, so a choice not asked here cannot become one.
+- Any choice that would become a [decision](spec.md#what-is-a-decision), which states the human's
+  intent and not a value the code holds, including adding a dependency, or a change to an active
+  one. The spec step creates or changes a decision only from an answer, so a choice not asked here
+  cannot become one.
 - A conflict with an active decision or with the constitution.
 - Loosening a security guard, said as what an attacker could then do.
 - Dropping or shrinking the feature, when the evidence says its cost outweighs its gain.

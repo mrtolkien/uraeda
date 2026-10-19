@@ -29,7 +29,7 @@ pub(super) fn on_default(
 }
 
 /// The working tree that has the default branch checked out, if any.
-pub(super) fn default_checkout(git: &Git, default: &str) -> Option<PathBuf> {
+pub(crate) fn default_checkout(git: &Git, default: &str) -> Option<PathBuf> {
     if git.current_branch().as_deref() == Some(default) {
         Some(git.root().to_path_buf())
     } else {

@@ -1,10 +1,12 @@
 import { expect, test } from "vite-plus/test";
 import {
+  APPLY_DECISIONS_CHECK,
   APPLY_TRIAGE,
   chatOpening,
   chatTitle,
   ORGANIZE_INBOX,
   retryMessage,
+  RUN_DECISIONS_CHECK,
   runMessage,
   toolTarget,
 } from "../message.ts";
@@ -148,5 +150,14 @@ test("the inbox's triage messages", () => {
   );
   expect(APPLY_TRIAGE).toBe(
     "/uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
+  );
+});
+
+test("the decisions check's messages", () => {
+  expect(RUN_DECISIONS_CHECK).toBe(
+    "/uraeda Check the decisions: write specs/DECISIONS-CHECK.md, following references/decisions-check.md. Stop when the check waits for my answers.",
+  );
+  expect(APPLY_DECISIONS_CHECK).toBe(
+    "/uraeda Apply my answers in specs/DECISIONS-CHECK.md, following references/decisions-check.md.",
   );
 });

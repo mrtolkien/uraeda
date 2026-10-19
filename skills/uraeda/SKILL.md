@@ -75,7 +75,8 @@ specs/
   CONSTITUTION.md           # project principles, by priority: always binding
   PRIORITIES.md             # Now, Next, Later, Blocked
   INBOX.md                  # notes to organize later, by category
-  INBOX-TRIAGE.md           # an agent's proposed outcome for each note, answered like questions
+  INBOX-TRIAGE.md           # an agent's proposed outcome for each note, as questions
+  DECISIONS-CHECK.md        # questions on the decisions, options in decisions-check/
   drafts/                   # upcoming features, human-written, free form
   backlog/                  # nice-to-have features, not scheduled
                             # in both, a folder is a postponed feature, or a draft with images:
@@ -110,16 +111,14 @@ apply to your work: their **Applies to** section says where. The constitution wi
 and decisions win over specs and plans. Decisions are high-impact choices made by the human, and
 they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
 
-A decision changes only on the branch that asks for it, edited in place. It stays `proposed` until
-the human approves the spec that lists it, or a change's round. The default branch keeps the active
-text until the branch merges. See
+A decision changes only on the branch that asks for it, edited in place, and stays `proposed` until
+the human approves the spec that lists it, or a change's round. See
 [new decision or change](references/spec.md#new-decision-or-change) and
 [Change](references/change.md#decisions).
 
 Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
 for a todo app, is in `assets/example/specs/`: `2026-10-06-recurring-tasks/` is the model of every
-file, from the proposal to a fully checked plan, with the blocks that waited for the human kept as
-records. Other files show work still waiting for the human.
+file, from the proposal to a fully checked plan. Other files show work waiting for the human.
 
 ## Finding the next step
 
@@ -157,7 +156,8 @@ step. By hand:
 | The branch's pull request has changes requested                                                    | [Implementation](references/implementation.md), comments     |
 | The branch has an open pull request                                                                | **Human gate**: the review happens on the pull request       |
 
-For a change branch, see [Change](references/change.md).
+For a change branch, see [Change](references/change.md). The last two rows are for pull requests
+opened before [Finish](references/finish.md) existed.
 
 3. **Run the step**, following its reference file, and commit. A message asking to address the pull
    request's comments runs
@@ -171,11 +171,9 @@ For a change branch, see [Change](references/change.md).
 
 **A file in an old format.** When a workflow file of the target fails `ura check`, or the rules of
 [Conventions](references/conventions.md#markdown), because the skill changed its format, rewrite it
-in the new format first, from its template. Keep its content, and the human's answers, notes, and
-comments, word for word. Commit it on its own, `chore(<slug>): rewrite <file> in the new format`,
-then run the step. An answered round stays answered: only its form changes.
-
-The last two rows are for pull requests opened before [Finish](references/finish.md) existed.
+from its template first, keeping its content, and the human's answers, notes, and comments, word for
+word. Commit it on its own, `chore(<slug>): rewrite <file> in the new format`, then run the step. An
+answered round stays answered: only its form changes.
 
 ### Going back to the human with new questions
 
@@ -266,6 +264,7 @@ Read a step's reference before running it, and the others when the step needs th
   worktrees, and commits; read it before writing or committing a workflow file.
 - [Inbox](references/inbox.md): the inbox's format, writing notes, organizing them by hand or with a
   triage, and noting a problem found outside your task.
+- [The decisions check](references/decisions-check.md): asking how to keep the ledger clean.
 - [Projects](references/projects.md): setting up a project, starting, postponing, or dropping a
   feature, and finishing one; read it when the human asks for one of these.
 - [The `ura` CLI](references/cli.md): every command and what it refuses; read it before running

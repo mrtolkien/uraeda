@@ -1632,6 +1632,57 @@ fn a_waiting_triage_is_measured() {
     );
 }
 
+const DECISIONS_CHECK: &str = "specs/DECISIONS-CHECK.md";
+
+fn decisions_check_template() -> String {
+    repository_file("skills/uraeda/assets/templates/specs/DECISIONS-CHECK.md")
+}
+
+/// The decisions check is validated against its own template, as the triage is against its: the
+/// title, the sections, and no heading the template lacks.
+#[test]
+fn a_decisions_check_has_its_templates_title_and_sections() {
+    let check = repository_file("fixtures/DECISIONS-CHECK.md");
+    let rows: Vec<(&str, String, &str)> = vec![
+        (
+            "another title",
+            check.replace("# Decisions check", "# Check"),
+            "sections.title",
+        ),
+        (
+            "no context",
+            check.replace("## Context", "## Reading"),
+            "sections.missing",
+        ),
+        (
+            "a section the template lacks",
+            check.replace("**Notes:**", "## Extra\n\n**Notes:**"),
+            "sections.unknown",
+        ),
+    ];
+    for (name, text, rule) in rows {
+        let example = Example::new();
+        example.write(DECISIONS_CHECK, &text);
+        let rules: Vec<String> = example
+            .problems()
+            .into_iter()
+            .filter(|p| p.file == DECISIONS_CHECK)
+            .map(|p| p.rule)
+            .collect();
+
+        assert!(rules.iter().any(|r| r == rule), "{name}: {rules:?}");
+    }
+}
+
+/// The template itself is a valid check.
+#[test]
+fn the_decisions_check_template_passes_as_a_check() {
+    let example = Example::new();
+    example.write(DECISIONS_CHECK, &decisions_check_template());
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
 /// The fixture rounds checked by `every_fixture_round_passes`, from the repository's top level.
 /// The repository-branch copies of the example, under `fixtures/repo/branches/`, are checked in
 /// place, where their fixture repository lacks the discovery, the priorities, and the

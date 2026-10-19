@@ -15,7 +15,7 @@ fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static 
     match kind {
         Checked::Workflow(FileKind::Proposal) => Some((&[], &["discovery"])),
         Checked::Workflow(FileKind::Clarifications) => Some((&["status"], &["resumes"])),
-        Checked::Triage => Some((&["status"], &[])),
+        Checked::DefaultRound(_) => Some((&["status"], &[])),
         Checked::Workflow(FileKind::Spec) => Some((
             &["status", "revision", "clarifications", "risk-tier"],
             &["plan-review"],
@@ -35,7 +35,7 @@ fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static 
 fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
     match (kind, key) {
         (Checked::Workflow(kind), "status") => Some(kind.statuses()),
-        (Checked::Triage, "status") => Some(FileKind::Clarifications.statuses()),
+        (Checked::DefaultRound(_), "status") => Some(FileKind::Clarifications.statuses()),
         (Checked::Decision | Checked::PreviewDecision, "status") => Some(&["proposed", "active"]),
         (Checked::Record, "kind") => Some(&["feature", "change"]),
         (_, "resumes") => Some(&["implementation"]),
@@ -109,7 +109,7 @@ fn field_kind(kind: Checked, key: &str) -> FieldKind {
 fn action(kind: Checked, key: &str, value: &str) -> Option<Action> {
     let kind = match kind {
         Checked::Workflow(kind) => kind,
-        Checked::Triage => FileKind::Clarifications,
+        Checked::DefaultRound(_) => FileKind::Clarifications,
         _ => return None,
     };
     match (kind, key, value) {

@@ -3,14 +3,8 @@ import type { Binding } from "./fate/context.ts";
 import { changedRecords, takeWatched, type Watched } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
 import { SETTINGS_ID } from "./fate/settings.ts";
-import {
-  AGENT_ID,
-  INBOX_ID,
-  PRIORITIES_ID,
-  SESSION_LIST_ID,
-  TRIAGE_ID,
-  WORKSPACE_ID,
-} from "./fate/views.ts";
+import { AGENT_ID, INBOX_ID, PRIORITIES_ID, SESSION_LIST_ID, WORKSPACE_ID } from "./fate/views.ts";
+import { DEFAULT_ROUND_IDS } from "./runner/round-messages.ts";
 import { type LiveBus, live as globalLive } from "./fate.ts";
 import { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 import { LEDGER_ID } from "./fate/views-ledger.ts";
@@ -41,9 +35,9 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
 /**
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
  * reports. A feature's change may change its step, which its session's status reads, its
- * branch's changes, and its history, and a feature that goes leaves the sidebar: the list and the features'
- * sessions go too. A change of the inbox sends its triage too, and one of the constitution or a
- * decision, the ledger; a decision a branch changed sends its page, and its spec's file.
+ * branch's changes, and its history, and a feature that goes leaves the sidebar: the list and the
+ * features' sessions go too. A change of the inbox sends its triage and the decisions check too, and
+ * one of the constitution or a decision, the ledger; a decision a branch changed sends its page, and its spec's file.
  */
 export function publish(changes: Changes, host: Pick<Host, "path" | "live">, sessions?: Sessions) {
   const { live } = host;
@@ -67,11 +61,14 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
     live.update("Inbox", INBOX_ID, { eventId: eventId("inbox") });
   }
-  if (changes.decisions) {
+  // The ledger carries the decisions check's status, which a change of the inbox's rounds moves.
+  if (changes.decisions || changes.inbox) {
     live.update("Ledger", LEDGER_ID, { eventId: eventId("ledger") });
   }
   if (changes.inbox) {
-    live.update("WorkflowFile", TRIAGE_ID, { eventId: eventId(`file:${TRIAGE_ID}`) });
+    for (const id of DEFAULT_ROUND_IDS) {
+      live.update("WorkflowFile", id, { eventId: eventId(`file:${id}`) });
+    }
   }
   if (sessions && (changes.features.length > 0 || changes.workspace)) {
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });

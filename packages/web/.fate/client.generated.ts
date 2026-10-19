@@ -36,6 +36,26 @@ const mutations = {
     FateAPI['mutations']['commit.retry']['input'],
     FateAPI['mutations']['commit.retry']['output']
   >('WorkflowFile'),
+  'defaultRound.answer': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['defaultRound.answer']['input'],
+    FateAPI['mutations']['defaultRound.answer']['output']
+  >('WorkflowFile'),
+  'defaultRound.notes': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['defaultRound.notes']['input'],
+    FateAPI['mutations']['defaultRound.notes']['output']
+  >('WorkflowFile'),
+  'defaultRound.retry': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['defaultRound.retry']['input'],
+    FateAPI['mutations']['defaultRound.retry']['output']
+  >('WorkflowFile'),
+  'defaultRound.submit': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['defaultRound.submit']['input'],
+    FateAPI['mutations']['defaultRound.submit']['output']
+  >('WorkflowFile'),
   'draft.create': mutation<
     Draft,
     FateAPI['mutations']['draft.create']['input'],
@@ -326,26 +346,6 @@ const mutations = {
     FateAPI['mutations']['text.save']['input'],
     FateAPI['mutations']['text.save']['output']
   >('Draft'),
-  'triage.answer': mutation<
-    WorkflowFile,
-    FateAPI['mutations']['triage.answer']['input'],
-    FateAPI['mutations']['triage.answer']['output']
-  >('WorkflowFile'),
-  'triage.notes': mutation<
-    WorkflowFile,
-    FateAPI['mutations']['triage.notes']['input'],
-    FateAPI['mutations']['triage.notes']['output']
-  >('WorkflowFile'),
-  'triage.retry': mutation<
-    WorkflowFile,
-    FateAPI['mutations']['triage.retry']['input'],
-    FateAPI['mutations']['triage.retry']['output']
-  >('WorkflowFile'),
-  'triage.submit': mutation<
-    WorkflowFile,
-    FateAPI['mutations']['triage.submit']['input'],
-    FateAPI['mutations']['triage.submit']['output']
-  >('WorkflowFile'),
 } as const;
 
 const roots = {

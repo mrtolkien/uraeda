@@ -6,6 +6,7 @@ pub mod attach;
 pub mod changes;
 pub mod clean;
 pub mod commit;
+pub mod default_round;
 pub mod draft;
 pub mod images;
 pub mod inbox;

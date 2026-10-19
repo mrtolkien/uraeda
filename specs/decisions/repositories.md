@@ -12,21 +12,18 @@ through the core.
 
 ## Rules
 
-- The list MUST be stored as versioned JSON in `repositories.json`, in the data folder the
-  [settings](settings.md) decision names, never in a repository or the session cache. Checked by the
-  core's tests.
-- The Rust core MUST be the only code that finds the data folder and reads or writes the list,
-  replacing the file whole through a renamed temporary file. Checked by the core's tests and review.
-- Each entry MUST be a git repository's main checkout, by absolute path, listed once, under a unique
-  name of letters, digits, `.`, `_`, and `-`. Checked by the core's tests.
+- The list MUST be data in the data folder, never in a repository or the session cache, and only the
+  Rust core MUST read or write it. Checked by the core's tests and review.
+- Each entry MUST be a git repository's main checkout, listed once, under a unique readable name.
+  Checked by the core's tests.
 - Removing a repository from the list MUST NOT change its files or its cached sessions. Checked by
   the core's tests.
-- One server process MUST serve every listed repository, and every UI page and server route that
-  reads or writes a repository's data MUST start with `/r/<name>/`. Checked by the server's tests.
-- Each repository MUST have its own fate endpoint and live updates; only the global `/fate` MAY span
-  every repository. Checked by the server's tests.
-- An entry MAY hold sidebar names and colours for its features and changes, which belong to the UI:
-  workflow rules MUST NOT read them. Checked by the core's tests and review.
+- One server MUST serve every listed repository, and every page and route that touches a
+  repository's data MUST be scoped to it by name, never mixing two. Checked by the server's tests.
+- Each repository MUST have its own data endpoint and live updates; only a global one MAY span every
+  repository. Checked by the server's tests.
+- An entry MAY hold UI presentation, which workflow rules MUST NOT read. Checked by the core's tests
+  and review.
 
 ## Why
 

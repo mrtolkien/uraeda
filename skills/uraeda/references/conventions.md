@@ -77,8 +77,9 @@ checks:
   and its opening `> [!NOTE]` block;
 - `PRIORITIES.md`'s `## Now`, `## Next`, `## Later`, and `## Blocked`;
 - `specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
-- `specs/INBOX-TRIAGE.md` as a round of questions, with its template's title and sections, its
-  `status`, its answers, and its block;
+- `specs/INBOX-TRIAGE.md` and `specs/DECISIONS-CHECK.md` as rounds of questions, with their
+  templates' titles and sections, their `status`, their answers, and their blocks;
+- the files of `specs/decisions-check/q<N>-<letter>/` as decisions, each in an option's folder;
 - links and images to markdown files and into `specs/` that resolve, anchors included. Links from
   `PRIORITIES.md` and `INBOX.md` into a started feature's or change's folder, whose files live on
   its branch, are exempt;
@@ -106,6 +107,7 @@ Workflow files track their state in frontmatter fields.
 | `decisions/*.md`       | `approved-by`     | the approver, on approval, if known   | the approver                                      |
 | `decisions/*.md`       | `icon`            | a Lucide icon name, like `git-branch` | may change it                                     |
 | `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                                        |
+| `DECISIONS-CHECK.md`   | `status`          | `awaiting-human`                      | `answered`                                        |
 | `decisions/preview.md` | `preview-folder`  | where Storybook runs: `.`, `web`      |                                                   |
 | `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                                   |
 

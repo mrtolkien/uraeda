@@ -1,8 +1,8 @@
 # Writing for the human
 
 The writing rules of every document written for the human. They cover a round of questions, the
-inbox triage, a spec, a decision, a plan to review, and a pull request. Each rule says why it
-exists, and the limit it sets. The steps link here instead of repeating the rules.
+inbox triage, the decisions check, a spec, a decision, a plan to review, and a pull request. Each
+rule says why it exists, and the limit it sets. The steps link here instead of repeating the rules.
 
 The human reads a document once, top to bottom, when they have time, often days after the step that
 wrote it. They have not read the discovery, the code, or the agent's session. Every rule below
@@ -72,8 +72,8 @@ shows a change's round waiting for the human. In order, a round holds:
 - `## Settled without the human`, with its points under `###` groups;
 - the line `**Notes:**`, left empty for the human.
 
-The inbox triage follows the same rules, with two exceptions. Its Context is free text without
-parts. It has no settled points.
+The inbox triage and [the decisions check](decisions-check.md) follow the same rules, with two
+exceptions. Their Context is free text without parts. They have no settled points.
 
 ### The notes
 
@@ -212,8 +212,8 @@ A decision, in `specs/decisions/`, is written from
 applies to, and the human approves each of its lines.
 
 33. **The intent first.** Two or three sentences before `## Rules`: the choice and what it protects.
-    Specifics appear only where they are hard constraints. A reader who stops there knows what the
-    decision is for.
+    A reader who stops there knows what the decision is for. A decision states intent, not
+    mechanism: see [what is a decision](spec.md#what-is-a-decision).
 34. **One sentence per rule**, then how it is checked: "Checked by review." A rule holding two ideas
     is two rules, or one too detailed.
 35. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come

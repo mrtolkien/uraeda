@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use super::{Result, default_checkout};
 use crate::check;
+use crate::decisions::{PartChange, compare};
 use crate::files::document::{self, BlockKind, Document, hash};
 use crate::files::frontmatter;
 use crate::git::{Git, ObjectId};
@@ -80,6 +81,9 @@ pub struct Decision {
     /// The date of the last commit of the default branch touching it, `YYYY-MM-DD`.
     pub changed: Option<String>,
     pub document: Document,
+    /// The kept parts of its `## Rules` section, each with its strength and its check; empty for
+    /// an unreadable file or one without the section.
+    pub rules: Vec<PartChange>,
     /// The first problem `ura check` finds in it.
     pub problem: Option<String>,
     /// Whether it cannot be parsed, like a frontmatter that is not valid YAML: its title is then its
@@ -261,6 +265,17 @@ fn first_sentence(text: &str) -> &str {
     text
 }
 
+/// The parts of the `## Rules` section, as the spec page's comparison reads them: the decision
+/// compared with itself, so every part is kept.
+fn rules_of(name: &str, text: &str) -> Vec<PartChange> {
+    compare(name, Some(text), Some(text))
+        .sections
+        .into_iter()
+        .find(|section| section.title == "Rules")
+        .map(|section| section.parts)
+        .unwrap_or_default()
+}
+
 fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem]) -> Decision {
     let name = file.strip_suffix(".md").unwrap_or(file).to_string();
     let document = document::parse(text, DECISIONS);
@@ -284,6 +299,11 @@ fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem
         .take_while(|block| block.kind != BlockKind::Heading || block.level == Some(1))
         .find(|block| block.kind == BlockKind::Paragraph)
         .map(|block| first_sentence(&document.text(block.id)).to_string());
+    let rules = if unreadable {
+        Vec::new()
+    } else {
+        rules_of(&name, text)
+    };
     Decision {
         title: heading(&document, 1)
             .filter(|_| !unreadable)
@@ -295,6 +315,7 @@ fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem
         changed,
         problem: problems.first().map(|problem| problem.message.clone()),
         unreadable,
+        rules,
         name,
         document,
     }

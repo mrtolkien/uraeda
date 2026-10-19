@@ -10,6 +10,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useLayoutEffect } from "react";
+import type { Block } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { useHash } from "../routes.tsx";
 import { decisionIcon } from "../theme/icons.ts";
@@ -19,6 +20,7 @@ import {
   principleName,
   versionLine,
 } from "./ConstitutionRegion.tsx";
+import { DecisionRules } from "./DecisionRules.tsx";
 import type { LedgerDecision } from "./model.ts";
 
 const styles = stylex.create({
@@ -73,6 +75,36 @@ export function PrincipleDetail({
 }
 
 /**
+ * The top-level blocks past the title, as ids. With `drawn` rules, the blocks up to and including
+ * the `## Rules` heading come first, `before`, and those after the section, `after`: the section's
+ * own blocks are left out, for `DecisionRules` to draw. Without, all are `before` and `after` is
+ * null.
+ */
+function aroundRules(
+  blocks: ReadonlyArray<Block>,
+  drawn: boolean,
+): { after: Array<number> | null; before: Array<number> } {
+  const before: Array<number> = [];
+  const after: Array<number> = [];
+  let state: "before" | "in" | "after" = "before";
+  for (const block of blocks) {
+    if (block.parent !== undefined || (block.kind === "heading" && block.level === 1)) {
+      continue;
+    }
+    const section = block.kind === "heading" && block.level === 2;
+    if (drawn && section && state === "before" && block.heading === "Rules") {
+      state = "in";
+    } else if (state === "in" && section) {
+      state = "after";
+    } else if (state === "in") {
+      continue;
+    }
+    (state === "after" ? after : before).push(block.id);
+  }
+  return { after: drawn ? after : null, before };
+}
+
+/**
  * A decision: its icon and title, status, and approver, the first problem `ura check` finds in it, as an
  * error when it cannot be parsed and a warning otherwise, then its document past its title.
  */
@@ -86,11 +118,7 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
     }
   }, [hash, decision.name]);
   // The title is the pane's heading already.
-  const ids = document.blocks
-    .filter(
-      (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
-    )
-    .map((block) => block.id);
+  const { after, before } = aroundRules(document.blocks, decision.rules.length > 0);
   return (
     <article aria-label={decision.title}>
       <VStack gap={4}>
@@ -123,7 +151,9 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
           ) : (
             <Banner status="warning" title={decision.problem} />
           ))}
-        <Blocks document={document} ids={ids} />
+        <Blocks document={document} ids={before} />
+        {after !== null && <DecisionRules parts={decision.rules} />}
+        {after !== null && after.length > 0 && <Blocks document={document} ids={after} />}
       </VStack>
     </article>
   );

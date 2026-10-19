@@ -12,25 +12,19 @@ with a secret instead. Nothing but code turns sign-in off.
 
 ## Rules
 
-- Every request MUST carry a valid session, except the built UI's files, the `/session` routes,
-  `/open` and `/session/key` with the host token, and preview and mockup paths with the current
-  frame secret. Checked by a table-driven test over every route.
-- The server MUST have one access key of 32 random bytes, shown only once and never stored: its
-  SHA-256 hash and the sessions live only in one `0600` file in the data folder, replaced
-  atomically. Checked by the sign-in store's tests.
-- A session MUST be a random token of at least 128 bits, stored hashed, sent only in an `HttpOnly`,
-  `SameSite=Lax` cookie, named `__Host-uraeda` and `Secure` over HTTPS. Checked by the sign-in
-  routes' tests.
-- A session MUST end 30 days after its last use, at sign-out, or when the key changes, and signing
+- Every request MUST carry a valid session, except the built UI's files, the sign-in routes, and
+  preview and mockup paths that carry the current frame secret. Checked by a table-driven test over
+  every route.
+- The access key MUST be generated, shown once, and stored only as a hash; sessions MUST be random
+  and stored hashed. Checked by the sign-in store's tests.
+- A session MUST end after 30 days without use, at sign-out, or when the key changes, and signing
   out MUST end its live streams. Checked by the sign-in routes' tests.
-- A failed sign-in MUST wait at least one second before answering, and be logged with the request's
-  address, never the key typed. Checked by the sign-in routes' tests.
-- The frame secret MUST be 32 random bytes, made at each start, replaced whenever a session ends,
-  and given only to signed-in pages. Checked by the preview proxy's and the files' tests.
-- A process the server runs, like a Storybook, MUST NOT receive Uraeda's cookie or an
-  `Authorization` header. Checked by the preview proxy's tests.
-- The server MUST NOT treat a request as signed in for its address, `Host`, or a proxy's header, and
-  a public address MUST reach it through a same-machine proxy that ends TLS. Checked by review.
+- A failed sign-in MUST NOT lock the owner out, and MUST NOT be a cheap guess. Checked by the
+  sign-in routes' tests.
+- The frame secret MUST change whenever a session ends and reach only signed-in pages, and a process
+  the server runs MUST NOT receive Uraeda's credentials. Checked by the preview proxy's tests.
+- The server MUST NOT treat an address, `Host`, or proxy header as proof of identity, and a public
+  address MUST reach it through a same-machine proxy that ends TLS. Checked by review.
 - Sign-in MUST NOT be turned off by a flag, an environment variable, or a setting: only code MAY
   build an app without it, for tests and Uraeda's own Storybook fixture. Checked by review.
 

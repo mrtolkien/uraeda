@@ -16,6 +16,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useContext } from "react";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
+import { CandidateCard } from "./decisions/Candidates.tsx";
 import { StaticImages } from "./ImageView.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -173,12 +174,15 @@ function OptionCard({
   disabled,
   document,
   onToggle,
+  question,
   selected,
 }: {
   choice: Choice;
   disabled: boolean;
   document: Document;
   onToggle: () => void;
+  /** The id of the question the option belongs to, which names its candidate. */
+  question: string;
   selected: boolean;
 }) {
   const wide = useWidthClass() === "wide";
@@ -218,6 +222,7 @@ function OptionCard({
           <Blocks document={document} ids={variants} />
         </div>
       )}
+      <CandidateCard id={question} letter={choice.letter} />
     </div>
   );
 }
@@ -314,6 +319,7 @@ export function Options({
           document={document}
           key={choice.letter}
           onToggle={() => answer.toggle(choice.letter)}
+          question={question.id}
           selected={answer.letters.includes(choice.letter)}
         />
       ))}

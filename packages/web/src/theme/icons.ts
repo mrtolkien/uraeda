@@ -258,6 +258,13 @@ const layers = outline(
   h("path", { d: "M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" }),
 );
 
+/** Lucide's `layout-template`. */
+const layoutTemplate = outline(
+  h("rect", { height: 7, rx: 1, width: 18, x: 3, y: 3 }),
+  h("rect", { height: 7, rx: 1, width: 9, x: 3, y: 14 }),
+  h("rect", { height: 7, rx: 1, width: 5, x: 16, y: 14 }),
+);
+
 /** Lucide's `layout-panel-left`. */
 const layoutPanelLeft = outline(
   h("rect", { height: 18, rx: 1, width: 7, x: 3, y: 3 }),
@@ -411,6 +418,7 @@ const DECISION_ICONS = {
   "key-round": keyRound,
   layers,
   "layout-panel-left": layoutPanelLeft,
+  "layout-template": layoutTemplate,
   "mouse-pointer-click": mousePointerClick,
   package: packageIcon,
   paperclip: attach,

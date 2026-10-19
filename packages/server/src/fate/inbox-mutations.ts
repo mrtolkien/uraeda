@@ -1,8 +1,8 @@
 /**
  * The mutations of the inbox, each written on the default branch over the hash it was read at: its
  * notes' edits, their moves into the priorities and drafts, the commit bar's Commit and Discard,
- * and the triage's answers. None writes a feature's files, so none is refused while an agent works:
- * `writable` guards features only.
+ * and the answers of the default branch's rounds. None writes a feature's files, so none is
+ * refused while an agent works: `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";
 import { refusable } from "./errors.ts";
@@ -42,6 +42,69 @@ export const inboxMutations = {
       return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select);
     },
     type: "Priorities",
+  },
+  "defaultRound.answer": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{
+      /** The hash of the round as the page read or wrote it last. */
+      base: string;
+      comment: string;
+      /** The round's id among workflow files: `inbox-triage` or `decisions-check`. */
+      id: string;
+      letters: Array<string>;
+      previous: string;
+      question: string;
+    }>) => {
+      return defaultRound(
+        ctx,
+        await refusable(() =>
+          ctx.binding.saveRoundAnswer(
+            ctx.repo,
+            input.id,
+            input.question,
+            input.letters,
+            input.comment,
+            input.previous,
+            input.base,
+          ),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
+  "defaultRound.notes": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ base: string; id: string; notes: string; previous: string }>) => {
+      return defaultRound(
+        ctx,
+        await refusable(() =>
+          ctx.binding.saveRoundNotes(ctx.repo, input.id, input.notes, input.previous, input.base),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
+  "defaultRound.retry": {
+    resolve: async ({ ctx, input, select }: Resolver<{ id: string }>) =>
+      defaultRound(ctx, await refusable(() => ctx.binding.retryRound(ctx.repo, input.id)), select),
+    type: "WorkflowFile",
+  },
+  "defaultRound.submit": {
+    resolve: async ({ ctx, input, select }: Resolver<{ id: string; previous: string }>) =>
+      defaultRound(
+        ctx,
+        await refusable(() => ctx.binding.submitRound(ctx.repo, input.id, input.previous)),
+        select,
+      ),
+    type: "WorkflowFile",
   },
   "inbox.add": {
     resolve: async ({ ctx, input, select }: Resolver<AddInput>) => {
@@ -225,69 +288,9 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
-  "triage.answer": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{
-      /** The hash of the triage as the page read or wrote it last. */
-      base: string;
-      comment: string;
-      letters: Array<string>;
-      previous: string;
-      question: string;
-    }>) => {
-      return triage(
-        ctx,
-        await refusable(() =>
-          ctx.binding.saveTriageAnswer(
-            ctx.repo,
-            input.question,
-            input.letters,
-            input.comment,
-            input.previous,
-            input.base,
-          ),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "triage.notes": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ base: string; notes: string; previous: string }>) => {
-      return triage(
-        ctx,
-        await refusable(() =>
-          ctx.binding.saveTriageNotes(ctx.repo, input.notes, input.previous, input.base),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "triage.retry": {
-    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
-      triage(ctx, await refusable(() => ctx.binding.retryTriage(ctx.repo)), select),
-    type: "WorkflowFile",
-  },
-  "triage.submit": {
-    resolve: async ({ ctx, input, select }: Resolver<{ previous: string }>) =>
-      triage(
-        ctx,
-        await refusable(() => ctx.binding.submitTriage(ctx.repo, input.previous)),
-        select,
-      ),
-    type: "WorkflowFile",
-  },
 };
 
-/** The triage a mutation wrote, masked to the fields the client selected. */
-function triage(ctx: Resolver<unknown>["ctx"], record: FileRecord, select: Array<string>) {
+/** The round on the default branch a mutation wrote, masked to the fields the client selected. */
+function defaultRound(ctx: Resolver<unknown>["ctx"], record: FileRecord, select: Array<string>) {
   return sources.masked(fileDataView, ctx, sentFile(record), select);
 }

@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
+import { CandidatesContext } from "./decisions/Candidates.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -9,7 +10,7 @@ import { RoundOpening } from "./RoundOpening.tsx";
 import { type NavQuestion, RoundIndex, RoundNav } from "./RoundNav.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
-import { isTriage, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
+import { isDefaultRound, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { askAbout, quoted } from "./sessions.ts";
 import { SettledPoints } from "./SettledPoints.tsx";
@@ -27,7 +28,7 @@ const styles = stylex.create({
     justifyContent: "center",
   },
   measure: {
-    // The round's reading text, the triage's too, holds to the round's measure.
+    // The round's reading text, a default-branch round's too, holds to the round's measure.
     "--size-reading-measure": "var(--size-round-measure)",
   },
   questions: {
@@ -41,11 +42,12 @@ const styles = stylex.create({
 /**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
  * points settled without the human, the notes, and Submit. `target` is what it answers: a
- * feature's round, with its crumbs and its agent to ask, or the inbox's triage, which has neither.
+ * feature's round, with its crumbs and its agent to ask, or a round on the default branch, the
+ * inbox's triage or the decisions check, which has neither.
  */
 export function RoundPage({ file, target }: { file: File; target: RoundTarget }) {
   const agent = useAgent();
-  const triage = isTriage(target);
+  const onDefaultBranch = isDefaultRound(target);
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const readOnly = file.status !== "awaiting-human";
@@ -87,7 +89,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
       <RoundOpening
         document={document}
         round={round}
-        {...(triage ? {} : { crumbs: { folder: file.folder, name: file.name } })}
+        {...(onDefaultBranch ? {} : { crumbs: { folder: file.folder, name: file.name } })}
       >
         {navigates && !wide && <RoundIndex questions={nav} />}
       </RoundOpening>
@@ -98,7 +100,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         readOnly={readOnly}
         takes={file.takesImages}
         target={target}
-        {...(agent?.available && !triage ? { onAsk: ask } : {})}
+        {...(agent?.available && !onDefaultBranch ? { onAsk: ask } : {})}
       />
       {/* On the phone, a band before the settled points, which a wide screen draws in a card. */}
       {!wide && round.settledGroups.length > 0 && <Band />}
@@ -118,18 +120,20 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
 
   return (
     <RoundHash value={hash}>
-      <PendingSaves value={pending}>
-        {navigates ? (
-          <div {...stylex.props(wide && styles.columns)}>
-            <div {...stylex.props(styles.questions)}>
-              <Page>{content}</Page>
+      <CandidatesContext value={file.candidates}>
+        <PendingSaves value={pending}>
+          {navigates ? (
+            <div {...stylex.props(wide && styles.columns)}>
+              <div {...stylex.props(styles.questions)}>
+                <Page>{content}</Page>
+              </div>
+              <RoundNav onSubmit={toEnd} questions={nav} />
             </div>
-            <RoundNav onSubmit={toEnd} questions={nav} />
-          </div>
-        ) : (
-          <Page>{content}</Page>
-        )}
-      </PendingSaves>
+          ) : (
+            <Page>{content}</Page>
+          )}
+        </PendingSaves>
+      </CandidatesContext>
     </RoundHash>
   );
 }

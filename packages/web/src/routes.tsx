@@ -21,6 +21,7 @@ export type Route =
   | { key: string; page: "note" }
   | { page: "triage" }
   | { page: "decisions" }
+  | { page: "decisions-check" }
   | { name: string; page: "decision" }
   | { folder: string; name: string; page: "branch-decision" }
   | { page: "principle"; slug: string }
@@ -168,10 +169,13 @@ export function branchDecisionPath(folder: string, name: string): string {
   return `/f/${encodeURIComponent(folder)}/decisions/${encodeURIComponent(name)}`;
 }
 
-/** `/decisions`, `/decisions/<name>`, or `/decisions/constitution/<slug>`. */
+/** `/decisions`, `/decisions/check`, `/decisions/<name>`, or `/decisions/constitution/<slug>`. */
 function decisionsRoute(parts: Array<string>, pathname: string): Route {
   if (parts.length === 1) {
     return { page: "decisions" };
+  }
+  if (parts.length === 2 && parts[1] === "check") {
+    return { page: "decisions-check" };
   }
   if (parts.length === 2) {
     return { name: parts[1], page: "decision" };

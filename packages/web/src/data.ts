@@ -37,8 +37,6 @@ export const WORKSPACE_ID = "workspace";
 const PRIORITIES_ID = "priorities";
 const INBOX_ID = "inbox";
 const LEDGER_ID = "ledger";
-/** The inbox's triage, among workflow files: it has no feature folder. */
-const TRIAGE_ID = "inbox-triage";
 const AGENT_ID = "agent";
 const PROPOSAL_HINTS_ID = "proposal";
 const REPOSITORIES_ID = "repositories";
@@ -104,9 +102,12 @@ export function useFile(folder: string, name: string) {
   return useLiveView(FileView, workflowFile);
 }
 
-/** The inbox's triage, `specs/INBOX-TRIAGE.md`, as a round of questions: missing until written. */
-export function useTriage() {
-  const request = { workflowFile: { id: TRIAGE_ID, view: FileView } };
+/**
+ * A round on the default branch, the triage or the decisions check, by its id, as a round of
+ * questions: missing until written.
+ */
+export function useRound(id: string) {
+  const request = { workflowFile: { id, view: FileView } };
   const { workflowFile } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(FileView, workflowFile);

@@ -295,6 +295,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
 
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   answered: true,
+  candidates: true,
   committed: true,
   current: true,
   decisionChanges: true,
@@ -440,8 +441,6 @@ export const slugProposalDataView = dataView<SlugProposalRecord>("SlugProposal")
 export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
 export const INBOX_ID = "inbox";
-/** The inbox's triage, among workflow files: the core's id for it, as it has no feature. */
-export const TRIAGE_ID = "inbox-triage";
 export const AGENT_ID = "agent";
 export const SESSION_LIST_ID = "all";
 export const PROPOSAL_HINTS_ID = "proposal";

@@ -13,45 +13,28 @@ workflow runs and the human's chat follow each other.
 
 ## Rules
 
-- The server MUST run the user's installed `claude` binary, and MUST NOT bundle an agent or depend
-  on the Agent SDK. Checked by review.
-- Every agent MUST be reached through one adapter, in
-  [`packages/server/src/runner/`](/packages/server/src/runner/), that keeps its formats inside and
-  declares what it can do; the UI MUST offer only that, and `vp run ready`'s tests MUST use a fake
-  adapter. Checked by review.
-- Sessions, turns, and items MUST be stored and shown in one agent-neutral shape, with tool calls in
-  the [Agent Client Protocol](https://agentclientprotocol.com/protocol/tool-calls)'s kinds and
-  statuses, and a turn MUST end only once its reply and its non-ambient background tasks have.
-  Checked by the runner's tests.
-- Sessions MUST pass `--permission-mode auto`, never a mode that skips permissions; a granted
-  permission MUST be a narrow `--allowedTools` rule until the process closes, never saved; tools
-  MUST NOT touch the agent's credentials, model, effort, attribution, or settings. Checked by the
-  runner's tests and review.
-- A session MUST work in its feature's worktree, or the main checkout without a feature, MUST load
-  the server's copy of the Uraeda skill, failing to open without it, and MUST NOT switch a checkout.
-  Checked by the runner's tests.
-- A feature MUST have at most one session, with one live process and one turn at a time, and a
-  message sent during a turn MUST be steered into it or queued, as the adapter declares, never start
-  a second process. Checked by the runner's tests.
-- Every message MUST be stored and shown as the human's turn: a workflow run's carries its step,
-  reference, and trigger, and a chat after a run opens by saying a human is chatting, so the agent
-  acts only when asked. Checked by the runner's tests.
-- The run after a spec's approval MUST start a fresh agent session in the feature's session when the
-  `build_in_fresh_session` setting is on, its default, keeping earlier turns in view. Checked by the
-  runner's and the web UI's tests.
-- Stopping MUST use the agent's own interrupt, which keeps the session, then SIGINT and SIGTERM 10
-  seconds apart; an idle process MUST close after 15 minutes, never while a background task runs.
-  Checked by the runner's tests.
-- Sessions MUST be cached in `runner.sqlite`, through `node:sqlite`, in Uraeda's data folder, MUST
-  NOT hold workflow state, and MUST NOT live in a repository. Checked by review.
+- The server MUST run the user's installed agent and MUST NOT bundle one or depend on its SDK.
+  Checked by review.
+- Every agent MUST be reached through one adapter that keeps its formats inside and declares what it
+  can do, and tests MUST use a fake adapter. Checked by review.
+- Sessions, turns, and items MUST be stored and shown in one agent-neutral shape. Checked by the
+  runner's tests.
+- An agent MUST run with the least permission that still finishes unattended steps, never skipping
+  permissions, and Uraeda MUST NOT touch its credentials or settings. Checked by the runner's tests
+  and review.
+- A feature MUST have one session, in its worktree and with the server's copy of the skill, where
+  runs and chat follow each other and the agent acts on a chat only when asked. Checked by the
+  runner's tests.
+- Sessions MUST be a cache in Uraeda's data folder, never workflow state and never in a repository.
+  Checked by review.
 
 ## Why
 
 The installed `claude` runs on the user's own binary, settings, and login: the use Anthropic's terms
 allow with a subscription
 ([how the server runs Claude Code](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q1-how-does-the-server-run-claude-code)).
-`auto` is the safest mode that still finishes unattended steps on the user's machine. One live
-process per session lets the human chat with a working agent, and keeps its prompt cache
+A permission-gated mode is the safest that still finishes unattended steps on the user's machine.
+One live process per session lets the human chat with a working agent, and keeps its prompt cache
 ([keeping a conversation going](../done/2026-10-13-chat-in-the-web-ui.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)).
 
 ## Alternatives considered

@@ -338,10 +338,11 @@ test("US4 2 and 3: answers the triage, then submits it", async () => {
   // Each save is based on the hash the last one wrote: the page saw all of the triage.
   const answered = await mutate(
     app,
-    "triage.answer",
+    "defaultRound.answer",
     {
       base: opened.current.document.hash,
       comment: "",
+      id: "inbox-triage",
       letters: ["A"],
       previous: "",
       question: "Q1",
@@ -352,17 +353,22 @@ test("US4 2 and 3: answers the triage, then submits it", async () => {
   for (const question of ["Q2", "Q3"]) {
     const saved = await mutate(
       app,
-      "triage.answer",
-      { base, comment: "", letters: ["B"], previous: "", question },
+      "defaultRound.answer",
+      { base, comment: "", id: "inbox-triage", letters: ["B"], previous: "", question },
       FILE,
     );
     base = saved.data.current.document.hash;
   }
-  const noted = await mutate(app, "triage.notes", { base, notes: "Later.", previous: "" }, FILE);
+  const noted = await mutate(
+    app,
+    "defaultRound.notes",
+    { base, id: "inbox-triage", notes: "Later.", previous: "" },
+    FILE,
+  );
   const submitted = await mutate(
     app,
-    "triage.submit",
-    { previous: noted.data.current.document.hash },
+    "defaultRound.submit",
+    { id: "inbox-triage", previous: noted.data.current.document.hash },
     FILE,
   );
 
@@ -382,9 +388,12 @@ test("a triage changed since the page read it is not submitted", async () => {
     read.current.text.replaceAll("**Answer:**\n", "**Answer:** A\n"),
   );
 
-  const result = await mutate(app, "triage.submit", { previous: read.current.document.hash }, [
-    "id",
-  ]);
+  const result = await mutate(
+    app,
+    "defaultRound.submit",
+    { id: "inbox-triage", previous: read.current.document.hash },
+    ["id"],
+  );
 
   expect(result.ok).toBe(false);
   expect(result.error?.code).toBe("BAD_REQUEST");

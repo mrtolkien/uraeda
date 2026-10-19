@@ -1,23 +1,32 @@
-// What a round of questions answers into: a feature's latest round, or the inbox's triage, which
-// has no feature. The answers, the notes, the submit, and its retry go through the target's own
-// mutations.
+// What a round of questions answers into: a feature's latest round, or a round on the default
+// branch, the inbox's triage or the decisions check, which has no feature. The answers, the notes,
+// the submit, and its retry go through the target's own mutations.
 import { createContext, useContext, useEffect, useState } from "react";
 import { useFateClient } from "react-fate";
+import { DECISIONS_CHECK_ID } from "uraeda-server/round-messages";
 import { FileView } from "./views.ts";
 
-/** A feature's round, by its folder, or the triage, `specs/INBOX-TRIAGE.md`. */
-export type RoundTarget = { folder: string } | { triage: true };
+/**
+ * A feature's round, by its folder, or a round on the default branch, by its id among workflow
+ * files: `inbox-triage` or `decisions-check`.
+ */
+export type RoundTarget = { folder: string } | { round: string };
 
-/** Whether the target is the inbox's triage. */
-export function isTriage(target: RoundTarget): target is { triage: true } {
-  return "triage" in target;
+/** The page a default-branch round goes back to once submitted: the one that offers to apply it. */
+export function defaultRoundHome(target: RoundTarget): string {
+  return "round" in target && target.round === DECISIONS_CHECK_ID ? "/decisions" : "/inbox";
+}
+
+/** Whether the target is a round on the default branch. */
+export function isDefaultRound(target: RoundTarget): target is { round: string } {
+  return "round" in target;
 }
 
 /**
- * The hash of the round's text as the page last read or wrote it, `current`: the triage's saves
- * and its submit are based on it, and the core refuses them once the file holds anything else, as
- * another page's answer. The page's writes to the triage run one after another, each based on the
- * hash the last one left. A read drawn while a write is sent may hold the text from before it: it
+ * The hash of the round's text as the page last read or wrote it, `current`: a default-branch
+ * round's saves and its submit are based on it, and the core refuses them once the file holds
+ * anything else, as another page's answer. The page's writes to a default-branch round run one
+ * after another, each based on the hash the last one left. A read drawn while a write is sent may hold the text from before it: it
  * waits for the write, and is dropped once the write wrote, the write's hash being as new. Any
  * other read is taken, a text the page had before included, as another page may write it back.
  */
@@ -99,12 +108,12 @@ export function useHashes(hash: string) {
 type Written = { current: { document: { hash: string } } } | null | undefined;
 
 /**
- * The round's writes into its target. The triage's are based on the hash `hashes` keeps, which
- * each keeps in turn.
+ * The round's writes into its target. A default-branch round's are based on the hash `hashes`
+ * keeps, which each keeps in turn.
  */
 export function useRoundWrites(target: RoundTarget, hashes: Hashes) {
   const fate = useFateClient();
-  /** Runs a triage's write in turn, keeping the hash of the text it wrote. */
+  /** Runs a default-branch round's write in turn, keeping the hash of the text it wrote. */
   const based = <T extends { result?: Written }>(write: (base: string) => Promise<T>) =>
     hashes.serial(async (base) => {
       const result = await write(base);
@@ -121,9 +130,12 @@ export function useRoundWrites(target: RoundTarget, hashes: Hashes) {
       previous: string;
       question: string;
     }) =>
-      isTriage(target)
+      isDefaultRound(target)
         ? based((base) =>
-            fate.mutations.triage.answer({ input: { ...input, base }, view: FileView }),
+            fate.mutations.defaultRound.answer({
+              input: { ...input, base, id: target.round },
+              view: FileView,
+            }),
           )
         : fate.mutations.answer.save({
             input: { ...input, folder: target.folder },
@@ -131,27 +143,33 @@ export function useRoundWrites(target: RoundTarget, hashes: Hashes) {
           }),
     /** Saves the round's notes, over the notes last read, `previous`. */
     notes: (input: { notes: string; previous: string }) =>
-      isTriage(target)
+      isDefaultRound(target)
         ? based((base) =>
-            fate.mutations.triage.notes({ input: { ...input, base }, view: FileView }),
+            fate.mutations.defaultRound.notes({
+              input: { ...input, base, id: target.round },
+              view: FileView,
+            }),
           )
         : fate.mutations.notes.save({ input: { ...input, folder: target.folder }, view: FileView }),
     /** Commits the round again after a hook refused it: `name` in a feature's folder. */
     retry: (name: string) =>
-      isTriage(target)
-        ? fate.mutations.triage.retry({ input: {}, view: FileView })
+      isDefaultRound(target)
+        ? fate.mutations.defaultRound.retry({ input: { id: target.round }, view: FileView })
         : fate.mutations.commit.retry({
             input: { file: name, folder: target.folder },
             view: FileView,
           }),
     /**
-     * Submits the round, `name` in a feature's folder, or the triage over the hash kept. `resumes`
-     * answers it to continue the implementation.
+     * Submits the round, `name` in a feature's folder, or a default-branch round over the hash
+     * kept. `resumes` answers it to continue the implementation.
      */
     submit: (name: string, resumes = false) =>
-      isTriage(target)
+      isDefaultRound(target)
         ? hashes.serial((previous) =>
-            fate.mutations.triage.submit({ input: { previous }, view: FileView }),
+            fate.mutations.defaultRound.submit({
+              input: { id: target.round, previous },
+              view: FileView,
+            }),
           )
         : fate.mutations.answers.submit({
             input: { file: name, folder: target.folder, ...(resumes ? { resumes } : {}) },

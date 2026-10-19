@@ -54,7 +54,6 @@ import {
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
-  TRIAGE_ID,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -62,6 +61,11 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+import {
+  DECISIONS_CHECK_ID,
+  DEFAULT_ROUND_FILES,
+  DEFAULT_ROUND_IDS,
+} from "../runner/round-messages.ts";
 import { type BranchChangesRecord, branchChangesDataView, sentChanges } from "./views-branch.ts";
 import { historyDataView, sentHistory } from "./views-history.ts";
 import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";
@@ -142,6 +146,7 @@ export function repositoriesRecord(ctx: Context, added: string | null = null): R
 /** The record of a file its feature does not have: marked missing, its other fields empty. */
 function missingFile(id: string, folder: string, name: string): FileRecord {
   return {
+    candidates: [],
     current: { document: { blocks: [], hash: "" }, items: {}, stories: [], text: "" },
     decisionChanges: [],
     folder,
@@ -289,10 +294,10 @@ export const sources = createSources<Context>([
     repository({
       byIds: ({ binding, repo }, ids) =>
         each(ids, async (id): Promise<FileRecord> => {
-          if (id === TRIAGE_ID) {
-            // The triage has no feature: missing until an agent writes it.
-            const triage = await binding.readTriage(repo);
-            return sentFile(triage ?? missingFile(id, "", "INBOX-TRIAGE.md"));
+          if (DEFAULT_ROUND_IDS.includes(id)) {
+            // A round on the default branch has no feature: missing until an agent writes it.
+            const round = await binding.readRound(repo, id);
+            return sentFile(round ?? missingFile(id, "", DEFAULT_ROUND_FILES[id]));
           }
           const [folder, name] = id.split("/");
           try {
@@ -344,8 +349,13 @@ export const sources = createSources<Context>([
   fileSource(
     ledgerDataView,
     repository({
-      byIds: async ({ binding, repo }, ids) =>
-        ids.includes(LEDGER_ID) ? [sentLedger(await binding.readLedger(repo))] : [],
+      byIds: async ({ binding, repo }, ids) => {
+        if (!ids.includes(LEDGER_ID)) {
+          return [];
+        }
+        const check = await binding.readRound(repo, DECISIONS_CHECK_ID);
+        return [sentLedger(await binding.readLedger(repo), check?.status ?? null)];
+      },
     }),
   ),
   fileSource(

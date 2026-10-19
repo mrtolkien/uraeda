@@ -6,7 +6,8 @@ icon:
 
 # [Topic]
 
-[The intent: the choice and what it means for the project, in two or three plain sentences.]
+[The intent: the choice and what it means for the project, in two or three plain sentences. The goal
+or approach, not a value the code holds.]
 
 ## Rules
 

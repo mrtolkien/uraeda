@@ -22,6 +22,8 @@ export type LedgerRecord = {
   /** Null without `specs/CONSTITUTION.md`. */
   constitution: ConstitutionRecord | null;
   decisions: Array<DecisionRecord>;
+  /** The status of `DECISIONS-CHECK.md`, null when there is none: the page's "Check decisions". */
+  decisionsCheck: string | null;
   id: string;
   problems: Ledger["problems"];
 };
@@ -32,7 +34,10 @@ export const LEDGER_ID = "ledger";
  * The ledger as it is sent: every optional field, when absent, sent as null, so each has one
  * shape wherever the UI reads it, and the client's cache keeps no field an answer leaves out.
  */
-export function sentLedger({ constitution, decisions, problems }: Ledger): LedgerRecord {
+export function sentLedger(
+  { constitution, decisions, problems }: Ledger,
+  decisionsCheck: string | null = null,
+): LedgerRecord {
   return {
     constitution: constitution
       ? {
@@ -51,6 +56,7 @@ export function sentLedger({ constitution, decisions, problems }: Ledger): Ledge
       status: decision.status ?? null,
       summary: decision.summary ?? null,
     })),
+    decisionsCheck,
     id: LEDGER_ID,
     problems,
   };
@@ -59,6 +65,7 @@ export function sentLedger({ constitution, decisions, problems }: Ledger): Ledge
 export const ledgerDataView = dataView<LedgerRecord>("Ledger")({
   constitution: true,
   decisions: true,
+  decisionsCheck: true,
   id: true,
   problems: true,
 });

@@ -15,7 +15,13 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
 import { jumpTo } from "./RoundNav.tsx";
 import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx";
-import { type Hashes, isTriage, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
+import {
+  defaultRoundHome,
+  type Hashes,
+  isDefaultRound,
+  type RoundTarget,
+  useRoundWrites,
+} from "./roundTarget.ts";
 import { navigateHere } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSaveSettled } from "./settledWrites.ts";
@@ -60,7 +66,7 @@ export function HookRefusal({
  * A round's submit: what is still being typed is saved first, the notes, every save in `pending`,
  * then the settled points' comments, and nothing is submitted unless it all is. `next` hands the
  * feature over to the agent once the round is committed; a hook's refusal is tried again with
- * `retry`. The triage, submitted, goes back to the inbox, which offers to apply it.
+ * `retry`. A default-branch round, submitted, goes back to the page that offers to apply it.
  */
 export function useRoundSubmit(
   file: File,
@@ -94,8 +100,8 @@ export function useRoundSubmit(
       setError(refusal(result.error));
       return false;
     }
-    if (isTriage(target)) {
-      navigateHere("/inbox");
+    if (isDefaultRound(target)) {
+      navigateHere(defaultRoundHome(target));
     } else if (next) {
       proceed();
     }
@@ -107,8 +113,8 @@ export function useRoundSubmit(
     if (result.error) {
       return;
     }
-    if (isTriage(target)) {
-      navigateHere("/inbox");
+    if (isDefaultRound(target)) {
+      navigateHere(defaultRoundHome(target));
     } else if (continues.current) {
       proceed();
     }
@@ -202,8 +208,8 @@ export function RoundEnd({
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
       {refused || (error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>)}
       <div ref={submitRow}>
-        {isTriage(target) ? (
-          // The triage hands nothing over: the inbox offers to apply it.
+        {isDefaultRound(target) ? (
+          // A default-branch round hands nothing over: its page offers to apply it.
           <WriteButton
             isDisabled={blank.length > 0}
             label="Submit answers"

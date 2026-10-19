@@ -21,6 +21,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::actions::default_round::DefaultRound;
 use crate::files::{frontmatter, markdown, review};
 use crate::git::{Git, ObjectId};
 use crate::workspace::{FileKind, Problem, Severity};
@@ -41,8 +42,8 @@ pub(crate) enum Checked {
     Priorities,
     /// `INBOX.md`: its title and categories.
     Inbox,
-    /// `INBOX-TRIAGE.md`: a round of questions about the inbox's notes.
-    Triage,
+    /// A round of questions on the default branch: `INBOX-TRIAGE.md` or `DECISIONS-CHECK.md`.
+    DefaultRound(DefaultRound),
     /// The record of a finished feature or change, in `specs/done/`.
     Record,
 }
@@ -190,6 +191,7 @@ fn canonical_file(path: &Path) -> PathBuf {
 fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
     names::check_change_files(root, dir, problems);
+    names::check_candidates(root, dir, problems);
     let found = check_folder_files(root, dir, false, problems);
     problems.extend(found.into_values().flatten());
     let mut subfolders: Vec<PathBuf> = fs::read_dir(dir)
@@ -210,8 +212,9 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     }
 }
 
-/// What kind of file a name is, in a folder: decisions in `decisions/`, records in `specs/done/`,
-/// priorities anywhere, and the inbox and its triage in `specs/`.
+/// What kind of file a name is, in a folder: decisions in `decisions/` and a check's candidates,
+/// records in `specs/done/`, priorities anywhere, and the inbox and the default-branch rounds in
+/// `specs/`.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     let parent = dir.file_name().map(|n| n.to_string_lossy().into_owned());
     if parent.as_deref() == Some("decisions") && name == "preview.md" {
@@ -219,6 +222,13 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     }
     if parent.as_deref() == Some("decisions") && name.ends_with(".md") {
         return Some(Checked::Decision);
+    }
+    if names::is_candidate_folder(dir) && crate::decisions::candidates::is_candidate_file(name) {
+        return Some(if name == "preview.md" {
+            Checked::PreviewDecision
+        } else {
+            Checked::Decision
+        });
     }
     let grandparent = dir.parent().and_then(Path::file_name);
     if parent.as_deref() == Some("done")
@@ -230,12 +240,13 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     if name == "PRIORITIES.md" {
         return Some(Checked::Priorities);
     }
-    // The inbox and its triage are files of `specs/` itself: one elsewhere is the human's.
+    // The inbox and the default-branch rounds are files of `specs/` itself: one elsewhere is the human's.
     if parent.as_deref() == Some("specs") {
-        match name {
-            "INBOX.md" => return Some(Checked::Inbox),
-            "INBOX-TRIAGE.md" => return Some(Checked::Triage),
-            _ => {}
+        if name == "INBOX.md" {
+            return Some(Checked::Inbox);
+        }
+        if let Some(round) = DefaultRound::from_file_name(name) {
+            return Some(Checked::DefaultRound(round));
         }
     }
     if !any_folder && !names::is_workflow_folder(dir) {
@@ -400,13 +411,13 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
             ));
         }
     }
-    if let Checked::Workflow(FileKind::Clarifications) | Checked::Triage = file.kind {
+    if let Checked::Workflow(FileKind::Clarifications) | Checked::DefaultRound(_) = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);
     }
     // A round's document tree, parsed once for the checks that read it.
     let tree = matches!(
         file.kind,
-        Checked::Workflow(FileKind::Clarifications) | Checked::Triage
+        Checked::Workflow(FileKind::Clarifications) | Checked::DefaultRound(_)
     )
     .then(|| crate::files::document::parse(file.text, ""));
     if let Some(tree) = tree

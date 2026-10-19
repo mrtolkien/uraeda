@@ -1,6 +1,7 @@
 mod common;
 
 use common::repo::TestRepo;
+use uraeda_core::actions::default_round::DefaultRound;
 use uraeda_core::api;
 
 const TRIAGE: &str = "specs/INBOX-TRIAGE.md";
@@ -23,7 +24,7 @@ fn triage_repo() -> TestRepo {
 
 /// The hash of the triage as it is now, which a save is based on: the page read all of it.
 fn base(repo: &TestRepo) -> String {
-    api::read_triage(repo.path())
+    api::read_round(repo.path(), DefaultRound::Triage)
         .unwrap()
         .map(|triage| triage.current.document.hash)
         .unwrap_or_default()
@@ -51,7 +52,10 @@ fn without_a_triage_there_is_none_to_read() {
     repo.write("specs/README.md", "# Specs\n");
     repo.commit("chore: specs");
 
-    assert_eq!(api::read_triage(repo.path()).unwrap(), None);
+    assert_eq!(
+        api::read_round(repo.path(), DefaultRound::Triage).unwrap(),
+        None
+    );
 }
 
 /// The triage reads as a round of questions, outside any feature.
@@ -59,7 +63,9 @@ fn without_a_triage_there_is_none_to_read() {
 fn the_triage_reads_as_a_round_of_questions() {
     let repo = triage_repo();
 
-    let triage = api::read_triage(repo.path()).unwrap().unwrap();
+    let triage = api::read_round(repo.path(), DefaultRound::Triage)
+        .unwrap()
+        .unwrap();
 
     assert_eq!(triage.id, "inbox-triage");
     assert_eq!(triage.folder, "");
@@ -80,8 +86,16 @@ fn the_triage_reads_as_a_round_of_questions() {
 fn an_answer_is_written_under_its_question() {
     let repo = triage_repo();
 
-    let saved =
-        api::save_triage_answer(repo.path(), "Q1", &letters(&["A"]), "", "", &base(&repo)).unwrap();
+    let saved = api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q1",
+        &letters(&["A"]),
+        "",
+        "",
+        &base(&repo),
+    )
+    .unwrap();
 
     let text = repo.read(TRIAGE);
     assert!(
@@ -101,10 +115,27 @@ fn an_answer_is_written_under_its_question() {
 #[test]
 fn an_answer_changed_elsewhere_is_refused() {
     let repo = triage_repo();
-    api::save_triage_answer(repo.path(), "Q1", &letters(&["A"]), "", "", &base(&repo)).unwrap();
+    api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q1",
+        &letters(&["A"]),
+        "",
+        "",
+        &base(&repo),
+    )
+    .unwrap();
 
-    let error = api::save_triage_answer(repo.path(), "Q1", &letters(&["B"]), "", "", &base(&repo))
-        .unwrap_err();
+    let error = api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q1",
+        &letters(&["B"]),
+        "",
+        "",
+        &base(&repo),
+    )
+    .unwrap_err();
 
     assert_eq!(error.code, "conflict", "{}", error.message);
     assert!(question(&repo.read(TRIAGE), "Q1").contains("**Answer:** A\n"));
@@ -114,8 +145,9 @@ fn an_answer_changed_elsewhere_is_refused() {
 fn the_notes_are_written_last() {
     let repo = triage_repo();
 
-    api::save_triage_notes(
+    api::save_round_notes(
         repo.path(),
+        DefaultRound::Triage,
         "Keep the CLI notes for later.",
         "",
         &base(&repo),
@@ -134,7 +166,16 @@ fn from_a_feature_branch_answers_go_to_the_default_branch() {
     let repo = triage_repo();
     repo.switch_new("2026-10-14-run-ui");
 
-    api::save_triage_answer(repo.path(), "Q2", &letters(&["B"]), "", "", &base(&repo)).unwrap();
+    api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q2",
+        &letters(&["B"]),
+        "",
+        "",
+        &base(&repo),
+    )
+    .unwrap();
 
     assert!(
         question(&repo.read(".worktrees/main/specs/INBOX-TRIAGE.md"), "Q2")
@@ -148,13 +189,28 @@ fn from_a_feature_branch_answers_go_to_the_default_branch() {
 fn submitting_commits_the_answered_triage() {
     let repo = triage_repo();
     for (id, letter) in [("Q1", "A"), ("Q2", "B"), ("Q3", "A")] {
-        api::save_triage_answer(repo.path(), id, &letters(&[letter]), "", "", &base(&repo))
-            .unwrap();
+        api::save_round_answer(
+            repo.path(),
+            DefaultRound::Triage,
+            id,
+            &letters(&[letter]),
+            "",
+            "",
+            &base(&repo),
+        )
+        .unwrap();
     }
 
-    let read = api::read_triage(repo.path()).unwrap().unwrap();
+    let read = api::read_round(repo.path(), DefaultRound::Triage)
+        .unwrap()
+        .unwrap();
 
-    let submitted = api::submit_triage(repo.path(), &read.current.document.hash).unwrap();
+    let submitted = api::submit_round(
+        repo.path(),
+        DefaultRound::Triage,
+        &read.current.document.hash,
+    )
+    .unwrap();
 
     assert_eq!(repo.subjects("main")[0], "chore: answer the inbox triage");
     assert_eq!(repo.changed_in("HEAD"), [TRIAGE]);
@@ -173,11 +229,27 @@ fn submitting_commits_the_answered_triage() {
 #[test]
 fn a_triage_with_blank_answers_is_not_submitted() {
     let repo = triage_repo();
-    api::save_triage_answer(repo.path(), "Q1", &letters(&["A"]), "", "", &base(&repo)).unwrap();
+    api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q1",
+        &letters(&["A"]),
+        "",
+        "",
+        &base(&repo),
+    )
+    .unwrap();
 
-    let read = api::read_triage(repo.path()).unwrap().unwrap();
+    let read = api::read_round(repo.path(), DefaultRound::Triage)
+        .unwrap()
+        .unwrap();
 
-    let error = api::submit_triage(repo.path(), &read.current.document.hash).unwrap_err();
+    let error = api::submit_round(
+        repo.path(),
+        DefaultRound::Triage,
+        &read.current.document.hash,
+    )
+    .unwrap_err();
 
     assert_eq!(error.message, "Q2 and Q3 have no answer");
     assert_eq!(repo.subjects("main")[0], "chore: propose an inbox triage");
@@ -193,8 +265,16 @@ fn an_answered_triage_takes_no_answer() {
     repo.write(TRIAGE, &answered);
     repo.commit("chore: answer the inbox triage");
 
-    let error = api::save_triage_answer(repo.path(), "Q1", &letters(&["A"]), "", "", &base(&repo))
-        .unwrap_err();
+    let error = api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q1",
+        &letters(&["A"]),
+        "",
+        "",
+        &base(&repo),
+    )
+    .unwrap_err();
 
     assert_eq!(error.message, "INBOX-TRIAGE.md is not waiting for answers");
 }
@@ -204,13 +284,37 @@ fn an_answered_triage_takes_no_answer() {
 fn a_triage_changed_elsewhere_is_not_submitted() {
     let repo = triage_repo();
     for (id, letter) in [("Q1", "A"), ("Q2", "B")] {
-        api::save_triage_answer(repo.path(), id, &letters(&[letter]), "", "", &base(&repo))
-            .unwrap();
+        api::save_round_answer(
+            repo.path(),
+            DefaultRound::Triage,
+            id,
+            &letters(&[letter]),
+            "",
+            "",
+            &base(&repo),
+        )
+        .unwrap();
     }
-    let read = api::read_triage(repo.path()).unwrap().unwrap();
-    api::save_triage_answer(repo.path(), "Q3", &letters(&["B"]), "", "", &base(&repo)).unwrap();
+    let read = api::read_round(repo.path(), DefaultRound::Triage)
+        .unwrap()
+        .unwrap();
+    api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q3",
+        &letters(&["B"]),
+        "",
+        "",
+        &base(&repo),
+    )
+    .unwrap();
 
-    let error = api::submit_triage(repo.path(), &read.current.document.hash).unwrap_err();
+    let error = api::submit_round(
+        repo.path(),
+        DefaultRound::Triage,
+        &read.current.document.hash,
+    )
+    .unwrap_err();
 
     assert_eq!(error.code, "conflict", "{}", error.message);
     assert_eq!(repo.subjects("main")[0], "chore: propose an inbox triage");
@@ -226,11 +330,35 @@ fn a_triage_changed_elsewhere_is_not_submitted() {
 fn a_save_over_a_triage_changed_elsewhere_is_refused() {
     let repo = triage_repo();
     let seen = base(&repo);
-    api::save_triage_answer(repo.path(), "Q2", &letters(&["B"]), "", "", &seen).unwrap();
+    api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q2",
+        &letters(&["B"]),
+        "",
+        "",
+        &seen,
+    )
+    .unwrap();
 
-    let notes = api::save_triage_notes(repo.path(), "Start with the bug.", "", &seen).unwrap_err();
-    let answer =
-        api::save_triage_answer(repo.path(), "Q1", &letters(&["A"]), "", "", &seen).unwrap_err();
+    let notes = api::save_round_notes(
+        repo.path(),
+        DefaultRound::Triage,
+        "Start with the bug.",
+        "",
+        &seen,
+    )
+    .unwrap_err();
+    let answer = api::save_round_answer(
+        repo.path(),
+        DefaultRound::Triage,
+        "Q1",
+        &letters(&["A"]),
+        "",
+        "",
+        &seen,
+    )
+    .unwrap_err();
 
     assert_eq!(notes.code, "conflict", "{}", notes.message);
     assert_eq!(answer.code, "conflict", "{}", answer.message);
@@ -244,15 +372,23 @@ fn a_save_over_a_triage_changed_elsewhere_is_refused() {
 fn a_refused_submit_is_committed_by_a_retry() {
     let repo = triage_repo();
     for (id, letter) in [("Q1", "A"), ("Q2", "B"), ("Q3", "A")] {
-        api::save_triage_answer(repo.path(), id, &letters(&[letter]), "", "", &base(&repo))
-            .unwrap();
+        api::save_round_answer(
+            repo.path(),
+            DefaultRound::Triage,
+            id,
+            &letters(&[letter]),
+            "",
+            "",
+            &base(&repo),
+        )
+        .unwrap();
     }
     repo.set_hook("echo 'refused'\nexit 1");
-    let error = api::submit_triage(repo.path(), &base(&repo)).unwrap_err();
+    let error = api::submit_round(repo.path(), DefaultRound::Triage, &base(&repo)).unwrap_err();
     assert_eq!(error.code, "hook", "{}", error.message);
     repo.set_hook("exit 0");
 
-    let retried = api::retry_triage(repo.path()).unwrap();
+    let retried = api::retry_round(repo.path(), DefaultRound::Triage).unwrap();
 
     assert_eq!(repo.subjects("main")[0], "chore: answer the inbox triage");
     assert_eq!(repo.changed_in("HEAD"), [TRIAGE]);
@@ -265,7 +401,7 @@ fn a_refused_submit_is_committed_by_a_retry() {
 fn a_triage_not_answered_is_not_retried() {
     let repo = triage_repo();
 
-    let error = api::retry_triage(repo.path()).unwrap_err();
+    let error = api::retry_round(repo.path(), DefaultRound::Triage).unwrap_err();
 
     assert_eq!(error.message, "INBOX-TRIAGE.md has nothing to commit again");
 }

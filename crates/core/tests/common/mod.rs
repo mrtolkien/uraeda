@@ -15,12 +15,14 @@ pub fn fixture(path: &str) -> PathBuf {
         .join(path)
 }
 
+/// A path of this repository, from its top level.
+pub fn repository_path(path: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join(path)
+}
+
 /// A file of this repository, from its top level.
 pub fn repository_file(path: &str) -> String {
-    std::fs::read_to_string(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join(path),
-    )
-    .unwrap()
+    std::fs::read_to_string(repository_path(path)).unwrap()
 }
