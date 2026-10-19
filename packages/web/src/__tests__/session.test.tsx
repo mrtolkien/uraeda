@@ -240,7 +240,10 @@ test("a refused send keeps the text and shows the reason under the composer", as
 
   await send("Why did you recommend A in Q6?");
 
-  expect(await screen.findByText("Claude Code is not available on this machine.")).toBeTruthy();
+  // The agent's card says it too, once the page has read the check.
+  expect(
+    (await screen.findAllByText("Claude Code is not available on this machine.")).length,
+  ).toBeGreaterThan(0);
   expect((await composer()).textContent).toBe("Why did you recommend A in Q6?");
   expect(fake.adapter.sent).toHaveLength(0);
 });
@@ -1084,7 +1087,10 @@ test("a refused send puts its images back in the composer", async () => {
 
   await send("This one");
 
-  expect(await screen.findByText("Claude Code is not available on this machine.")).toBeTruthy();
+  // The agent's card says it too, once the page has read the check.
+  expect(
+    (await screen.findAllByText("Claude Code is not available on this machine.")).length,
+  ).toBeGreaterThan(0);
   expect(screen.getAllByRole("button", { name: /^Remove / })).toHaveLength(1);
   expect(fake.adapter.sent).toHaveLength(0);
 });

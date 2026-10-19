@@ -566,7 +566,11 @@ test("another git write blocks the pane's Commit and Start the feature", async (
   });
   try {
     for (const name of ["Commit", "Start the feature"]) {
-      expect(pane.getByRole("button", { name }).getAttribute("aria-disabled")).toBe("true");
+      await waitFor(async () =>
+        expect((await pane.findByRole("button", { name })).getAttribute("aria-disabled")).toBe(
+          "true",
+        ),
+      );
     }
   } finally {
     await act(async () => {
@@ -574,7 +578,9 @@ test("another git write blocks the pane's Commit and Start the feature", async (
       await write;
     });
   }
-  expect(pane.getByRole("button", { name: "Commit" }).getAttribute("aria-disabled")).not.toBe(
-    "true",
+  await waitFor(async () =>
+    expect(
+      (await pane.findByRole("button", { name: "Commit" })).getAttribute("aria-disabled"),
+    ).not.toBe("true"),
   );
 });
