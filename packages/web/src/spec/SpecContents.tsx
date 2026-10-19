@@ -1,6 +1,6 @@
 // "Contents", the spec page's column on a wide screen: every part, decision, and story, each with
-// the count of pending comments on it, a tap jumping to it, and the verdict at its foot. Hidden
-// with its button or `]`, the choice kept in the browser, the verdict then at the page's end.
+// the count of pending comments on it, a tap jumping to it. Hidden with its button or `]`, the
+// choice kept in the browser.
 import { Badge } from "@astryxdesign/core/Badge";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
@@ -206,20 +206,17 @@ export function useContentsShown() {
 }
 
 /**
- * The page beside "Contents" on a wide screen: its entries, then `verdict`, given only while it
- * shows. On the phone, the page alone.
+ * The page beside "Contents" on a wide screen: its entries. On the phone, the page alone.
  */
 export function SpecContents({
   children,
   entries,
   shown: [isShown, setShown],
-  verdict,
 }: {
   /** The page. */
   children: ReactNode;
   entries: ReadonlyArray<Entry>;
   shown: ReturnType<typeof useContentsShown>;
-  verdict: ReactNode;
 }) {
   return (
     <SideColumn
@@ -227,13 +224,11 @@ export function SpecContents({
       isShown={isShown}
       label="Contents"
       onShownChange={setShown}
-      // Room for the verdict's longest button, "Request changes and start the agent", uncut.
-      sizes={{ default: 440, min: 420 }}
+      sizes={{ default: 320, min: 280 }}
       storageKey="uraeda.specContents.width"
     >
       <VStack gap={4} xstyle={styles.column}>
         <Entries entries={entries} />
-        {verdict}
       </VStack>
     </SideColumn>
   );

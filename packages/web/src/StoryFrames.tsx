@@ -2,11 +2,10 @@
 // at the phone's width or the desktop's: a change of width resizes and rescales it, and never
 // reloads it. On a wide screen, the phone's frame stands centred on a background of its own, framed
 // as a phone's screen, and the desktop's is 1440 px wide, scaled to the embed's width. The frame is
-// as tall as its story says, up to the theme's maximum, until the human drags its handle; full
-// screen, it fills the screen. Its colour mode is sent when it says it is ready and when it changes,
+// as tall as its story says, up to the theme's maximum, the phone's frame 50% taller; full screen,
+// it fills the screen. Its colour mode is sent when it says it is ready and when it changes,
 // with pick mode, and its pick script reports the elements picked. It loads its story only once its
 // box is on screen, then stays loaded: a page of many embeds loads only those it shows.
-import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { useTheme } from "@astryxdesign/core/theme";
 import {
   colorVars,
@@ -100,9 +99,8 @@ type FrameMessage = {
 
 const SANDBOX = "allow-scripts allow-popups";
 
-/** The heights the handle can give the frame, in px. */
-const MIN_HEIGHT = 120;
-const MAX_HEIGHT = 4000;
+/** How much taller the phone's frame is than the theme's heights, which the desktop's keep. */
+const PHONE_TALLER = 1.5;
 
 /** A length in px from a style's value, 0 when it has none. */
 const px = (value: string) => Number.parseFloat(value) || 0;
@@ -273,36 +271,8 @@ function useStage(stage: RefObject<HTMLElement | null>) {
 }
 
 /**
- * The frame's height the handle sets, in px shown on the page: none until the human drags it, and
- * the region, kept at the height shown meanwhile, so a drag starts from what the human sees.
- */
-function useChosenHeight(shown: number | undefined) {
-  const [chosen, setChosen] = useState<number>();
-  const synced = useRef<number>(undefined);
-  const region = useResizable({
-    defaultSize: shown ?? 560,
-    direction: "vertical",
-    maxSize: MAX_HEIGHT,
-    minSize: MIN_HEIGHT,
-    onSizeChange: (size: number) => {
-      if (synced.current === undefined || Math.abs(size - synced.current) > 0.5) {
-        setChosen(size);
-      }
-    },
-  });
-  const { resize } = region;
-  useEffect(() => {
-    if (chosen === undefined && shown !== undefined) {
-      synced.current = Math.min(Math.max(shown, MIN_HEIGHT), MAX_HEIGHT);
-      resize(shown);
-    }
-  }, [chosen, resize, shown]);
-  return { chosen, region };
-}
-
-/**
  * The story's frame, at `width`: the phone's alone on narrow screens. Full screen, it fills the
- * space below the embed's bar, without its handle. An element picked names its width on wide
+ * space below the embed's bar. An element picked names its width on wide
  * screens, where both can show.
  */
 export function StoryFrames({
@@ -333,10 +303,11 @@ export function StoryFrames({
   const space = useStage(stage);
   const desktop = shownWidth === "desktop";
   const scale = desktop && space ? space.width / space.desktop : 1;
-  // The height the story asks for, shown on the page: at most the theme's, scaled with the frame.
-  const asked = space && Math.min(reported ?? space.story, space.max) * scale;
-  const { chosen, region } = useChosenHeight(asked);
-  const shown = full ? space?.height : chosen;
+  // The height the story asks for, shown on the page: at most the theme's, scaled with the frame,
+  // the phone's taller.
+  const taller = desktop ? 1 : PHONE_TALLER;
+  const asked = space && Math.min(reported ?? space.story * taller, space.max * taller) * scale;
+  const shown = full ? space?.height : asked;
   // The frame's own height, before its scale: the story's, or what the page shows, unscaled.
   const frameHeight = shown === undefined ? undefined : shown / scale;
   return (
@@ -375,9 +346,6 @@ export function StoryFrames({
           />
         </div>
       </div>
-      {!full && (
-        <ResizeHandle direction="vertical" label={`Resize ${label}`} resizable={region.props} />
-      )}
     </>
   );
 }
