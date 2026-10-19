@@ -29,7 +29,9 @@ is deleted when the check is applied.
    - two decisions that say the same thing, or one that the other makes redundant;
    - a decision, or a rule, that fails the bar: it names a flag, a timeout, a file name, a size, or
      another mechanism that its code holds and changes without the human;
-   - a decision that conflicts with another, or with the constitution.
+   - a decision that conflicts with another, or with the constitution;
+   - a decision file `ura check` cannot parse, like one with broken frontmatter: the question quotes
+     the problem it reports, and its options repair the file or delete the decision.
 3. **Write each finding as a question**, after the template, following
    [Writing for the human](writing.md) as a round of questions does, but for its free Context and
    its lack of settled points:
