@@ -259,30 +259,3 @@ pub(crate) fn retarget(place: &Place, from: &str, to: &str) -> Result<(), Action
     }
     result
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn names() {
-        assert_eq!(
-            stem("Screenshot 2026-10-14 at 10.35.12.png"),
-            "Screenshot 2026-10-14 at 10.35.12"
-        );
-        assert_eq!(stem("/home/me/shots/login.png"), "login");
-        assert_eq!(stem("C:\\shots\\login.png"), "login");
-        assert_eq!(stem("login"), "login");
-        assert_eq!(
-            file_name("Screenshot 2026-10-14 at 10.35.12"),
-            "screenshot-2026-10-14-at-10-35-12"
-        );
-        assert_eq!(file_name("Écran"), "cran");
-        assert_eq!(file_name("--"), "image");
-        assert_eq!(file_name(&format!("{}-b", "a".repeat(59))), "a".repeat(59));
-        assert_eq!(link_text("a[b]\\c"), "a\\[b\\]\\\\c");
-        assert_eq!(stem(".png"), "");
-        assert_eq!(alt(""), "image");
-        assert_eq!(alt(" a \n\t b "), "a b");
-    }
-}

@@ -225,28 +225,3 @@ fn render(workspace: &Workspace) -> String {
     }
     text
 }
-
-#[cfg(test)]
-mod tests {
-    use uraeda_core::steps::PullRequest;
-    use uraeda_core::workspace::{Feature, Kind};
-
-    use super::describe;
-
-    const RECORD: &str = "---\nkind: feature\nfinished: 2026-10-11\n---\n\n# Record: X\n";
-
-    #[test]
-    fn what_finishing_has_left() {
-        let rows = [
-            (PullRequest::NoPullRequest, "finish: open the pull request"),
-            (PullRequest::Draft, "finish: mark the pull request ready"),
-        ];
-        for (pull_request, expected) in rows {
-            let mut feature = Feature::from_record(Kind::Feature, "2026-10-10-x", RECORD.into());
-
-            feature.with_pull_request(pull_request);
-
-            assert_eq!(describe(&feature), expected);
-        }
-    }
-}

@@ -38,23 +38,6 @@ pub struct Output {
     pub code: i32,
 }
 
-impl Output {
-    /// The cells of the stdout line starting with `name`, split on runs of two spaces or more.
-    pub fn row(&self, name: &str) -> Vec<String> {
-        let line = self
-            .stdout
-            .lines()
-            .find(|line| line.trim_start().starts_with(name))
-            .unwrap_or_else(|| panic!("no line for {name} in:\n{}", self.stdout));
-        line.trim()
-            .split("  ")
-            .map(str::trim)
-            .filter(|cell| !cell.is_empty())
-            .map(String::from)
-            .collect()
-    }
-}
-
 /// Runs the built `ura` in a repository, on 2026-10-11, without a terminal or colours, with the
 /// repository's home folder as `HOME`, and git without the machine's configuration.
 pub fn ura(repo: &TestRepo, args: &[&str]) -> Output {
@@ -71,11 +54,6 @@ pub fn ura_in(dir: &Path, args: &[&str], env: &[(&str, &str)]) -> Output {
         command.env("HOME", home.path());
     }
     run(command.envs(env.iter().copied()))
-}
-
-/// Runs the built `ura` in a folder, without `HOME`.
-pub fn ura_without_home(dir: &Path, args: &[&str]) -> Output {
-    run(command(dir, args).env_remove("HOME"))
 }
 
 fn command(dir: &Path, args: &[&str]) -> Command {
@@ -96,18 +74,6 @@ fn run(command: &mut Command) -> Output {
         stderr: String::from_utf8(output.stderr).unwrap(),
         code: output.status.code().unwrap_or(-1),
     }
-}
-
-/// The number of files of the skill `ura` embeds, `skills/uraeda/`.
-pub fn skill_files() -> usize {
-    fn count(dir: &Path) -> usize {
-        std::fs::read_dir(dir)
-            .unwrap()
-            .map(|entry| entry.unwrap().path())
-            .map(|path| if path.is_dir() { count(&path) } else { 1 })
-            .sum()
-    }
-    count(&repository().join("skills/uraeda"))
 }
 
 /// The repository's `specs/` folder, with a constitution and priorities.

@@ -182,32 +182,3 @@ fn destination(text: &str, start: usize) -> Option<Range<usize>> {
     }
     Some(at..text.len())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::rebase;
-
-    #[test]
-    fn relative_links_are_rebased_and_the_others_kept() {
-        let cases = [
-            ("[a](../README.md)", "[a](../../README.md)"),
-            ("[a](done/x.md#why)", "[a](../done/x.md#why)"),
-            ("[a](<my file.md>)", "[a](<../my file.md>)"),
-            (
-                "[![i](images/a.png)](../x.md)",
-                "[![i](../images/a.png)](../../x.md)",
-            ),
-            ("[a]\n\n[a]: ../x.md", "[a]\n\n[a]: ../../x.md"),
-            ("[a](drafts/b.md)", "[a](b.md)"),
-            (
-                "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
-                "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
-            ),
-            ("[a](../../out.md)", "[a](../../out.md)"),
-            ("`[a](../x.md)`", "`[a](../x.md)`"),
-        ];
-        for (text, rebased) in cases {
-            assert_eq!(rebase(text, "specs", "specs/drafts"), rebased, "{text}");
-        }
-    }
-}

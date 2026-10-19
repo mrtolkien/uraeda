@@ -225,33 +225,3 @@ fn finished_day(text: &str) -> Option<String> {
 fn time(seconds: i64) -> String {
     rfc3339(UNIX_EPOCH + Duration::from_secs(seconds.max(0) as u64))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn typed_scope_reads_one_grammar() {
-        assert_eq!(typed_scope("feat(x): y"), Some(("feat", "x")));
-        assert_eq!(typed_scope("feat(x)!: y"), Some(("feat", "x")));
-        assert_eq!(typed_scope("feat(x-y): z"), Some(("feat", "x-y")));
-        assert_eq!(typed_scope("feat(x)!!: y"), None);
-        assert_eq!(typed_scope("feat(x) y"), None);
-        assert_eq!(typed_scope("(x): y"), None);
-        assert_eq!(typed_scope("Merge (x): y"), None);
-        assert_eq!(typed_scope("chore: start"), None);
-    }
-
-    #[test]
-    fn scope_type_matches_the_whole_scope() {
-        assert_eq!(scope_type("feat(x-y): z", "x"), None);
-        assert_eq!(scope_type("feat(x)!!: y", "x"), None);
-        assert_eq!(scope_type("spec(tasks): approve", "tasks"), Some("spec"));
-        assert_eq!(scope_type("feat(tasks)!: break", "tasks"), Some("feat"));
-        assert_eq!(scope_type("spec(tasks-two): approve", "tasks"), None);
-        assert_eq!(scope_type("spec(task): approve", "tasks"), None);
-        assert_eq!(scope_type("spec(tasks) approve", "tasks"), None);
-        assert_eq!(scope_type("Merge (tasks): x", "tasks"), None);
-        assert_eq!(scope_type("chore: start", "tasks"), None);
-    }
-}

@@ -13,7 +13,5 @@ fail-fast = false
 slow-timeout = { period = "30s", terminate-after = 4 }
 leak-timeout = { period = "500ms", result = "fail" }
 
-# `vp run coverage`'s profile: the default's settings, without the iCCP bomb's memory test, whose
-# 40 MiB bound the instrumentation exceeds. It still runs in `ready`, under the default profile.
+# `vp run coverage`'s profile: the default's settings, under a name of its own for the task.
 [profile.coverage]
-default-filter = "not test(an_iccp_bomb_is_read_in_bounded_memory)"

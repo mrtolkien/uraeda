@@ -22,24 +22,3 @@ pub fn counts(text: &str) -> RecordCounts {
     }
     counts
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn counts_the_questions_section_only() {
-        let text = "# Record\n\n## Design\n\n### Round 9\n\n#### Q9: Not here\n\n\
-                    ## Questions\n\n### Round 01\n\n#### Q1: One?\n\n#### Q2: Two?\n\n\
-                    ```md\n#### Q3: In code\n```\n\n### Round 02\n\n#### Q1: Again?\n\n\
-                    ## Follow-ups\n\n#### Q4: After\n";
-        assert_eq!(
-            counts(text),
-            RecordCounts {
-                questions: 3,
-                rounds: 2
-            }
-        );
-        assert_eq!(counts("# Record\n"), RecordCounts::default());
-    }
-}

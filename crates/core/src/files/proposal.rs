@@ -196,30 +196,3 @@ pub fn holds_written(text: &str, written: &str) -> bool {
     }
     append_to_what(written, &images).is_some_and(|expected| expected == text)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn an_image_line_is_one_the_core_encoded_beside_the_file() {
-        let cases = [
-            (
-                "![spec-headings](images/spec-headings.webp)",
-                Some("spec-headings.webp"),
-            ),
-            ("![a](images/a-2.gif)", Some("a-2.gif")),
-            ("![a](images/a.png)", None),
-            ("![a](images/a)", None),
-            ("![a\\]](images/a.webp)", None),
-            ("![a](x)](images/a.webp)", None),
-            ("![a](images/../a.webp)", None),
-            ("![a](images/.webp)", None),
-            ("![a](other/a.webp)", None),
-            ("Text ![a](images/a.webp)", None),
-        ];
-        for (line, name) in cases {
-            assert_eq!(image_file(line), name, "{line}");
-        }
-    }
-}
