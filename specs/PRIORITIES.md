@@ -7,6 +7,7 @@
 > Features for v1.0.0
 
 - [Redesign session](/specs/2026-10-19-redesign-session/proposal.md)
+- [Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are ready, see backlog, with a discovery round and partial answers.](/specs/2026-10-19-benchmarks/proposal.md)
 
 - [Review home](drafts/review-home.md)
 
@@ -28,11 +29,6 @@
 > [!NOTE]
 >
 > Goals once I'm happy with the core feature set
-
-- Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
-  ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
-  - Speed up the process: iteration speed is too slow atm
-  - This only doable once we have a good benchmark!
 
 - [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
