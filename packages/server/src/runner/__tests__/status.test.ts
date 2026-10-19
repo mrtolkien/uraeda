@@ -60,6 +60,11 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
   ],
   [
     "a chat turn that ended while the step waits on the agent",
+    { latest: ended("done", "chat"), seenAt: "2026-10-13T09:00", waitsOnAgent: true },
+    { label: "Needs attention", reason: "halted", status: "attention" },
+  ],
+  [
+    "a chat turn that ended while the step waits on the agent, seen",
     { latest: ended("done", "chat"), seenAt: "2026-10-13T11:00", waitsOnAgent: true },
     { label: "Idle", status: "idle" },
   ],

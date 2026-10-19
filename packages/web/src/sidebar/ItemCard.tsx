@@ -61,9 +61,12 @@ export type CardItem = {
 const styles = stylex.create({
   activity: {
     minWidth: 0,
+    // Room under the first line, so its selected background never covers the progress.
     paddingBlockEnd: spacingVars["--spacing-1"],
+    paddingBlockStart: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-2"],
   },
+  added: { color: colorVars["--color-success"] },
   card: {
     borderColor: colorVars["--color-border"],
     borderRadius: radiusVars["--radius-element"],
@@ -87,6 +90,7 @@ const styles = stylex.create({
     flexDirection: "column",
     gap: spacingVars["--spacing-1"],
   },
+  removed: { color: colorVars["--color-error"] },
   stripe: {
     borderInlineStartWidth: spacingVars["--spacing-1"],
   },
@@ -200,8 +204,16 @@ function Activity({ hasChangeTag, item }: { hasChangeTag: boolean; item: CardIte
       {changes && (
         // Read in the card's name, in words.
         <HStack aria-hidden gap={1} xstyle={styles.changes}>
-          <Text color="success" hasTabularNumbers type="supporting">{`+${changes.added}`}</Text>
-          <Text color="error" hasTabularNumbers type="supporting">{`−${changes.removed}`}</Text>
+          <Text
+            hasTabularNumbers
+            type="supporting"
+            xstyle={styles.added}
+          >{`+${changes.added}`}</Text>
+          <Text
+            hasTabularNumbers
+            type="supporting"
+            xstyle={styles.removed}
+          >{`−${changes.removed}`}</Text>
         </HStack>
       )}
     </HStack>

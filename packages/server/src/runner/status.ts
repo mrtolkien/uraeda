@@ -20,8 +20,8 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
 
 /**
  * A session's status, from the first rule that matches: a running or queued turn, a blocked action
- * not allowed or a step that waits on the human, a latest turn that failed, was stopped, or ran the
- * workflow while the step still waits on the agent, a latest turn that ended after the human last
+ * not allowed or a step that waits on the human, a latest turn that failed, was stopped, or ended
+ * while the step still waits on the agent, a latest turn that ended after the human last
  * saw the session, and otherwise idle.
  */
 export function sessionStatus(input: {
@@ -47,15 +47,18 @@ export function sessionStatus(input: {
   if (latest?.state === "failed" || latest?.state === "stopped") {
     return { label: "Needs attention", reason: latest.state, status: "attention" };
   }
+  const unseen =
+    latest?.endedAt && (seenAt === null || Date.parse(latest.endedAt) > Date.parse(seenAt));
+  // A chat turn flags until the human opens the session; a workflow turn, until the agent moves on.
   if (
     latest?.state === "done" &&
-    latest.kind !== "chat" &&
+    (latest.kind !== "chat" || unseen) &&
     waitsOnAgent &&
     stepName !== "pull-request-unknown"
   ) {
     return { label: "Needs attention", reason: "halted", status: "attention" };
   }
-  if (latest?.endedAt && (seenAt === null || Date.parse(latest.endedAt) > Date.parse(seenAt))) {
+  if (unseen) {
     return { label: "New reply", status: "unread" };
   }
   return { label: "Idle", status: "idle" };
