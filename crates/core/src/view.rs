@@ -103,6 +103,9 @@ pub struct FileView {
     /// Whether images can be attached to it: a feature's or a change's file can, the inbox's
     /// triage, committed alone, cannot.
     pub takes_images: bool,
+    /// Whether its round can be answered to continue the implementation: the feature is being
+    /// built, see `steps::building`.
+    pub resumable: bool,
     /// For `spec.md`, the decisions its branch changed, and those its `## Decisions` lists: the
     /// listed ones first, in the items' order, then the others by name. Empty for other files.
     pub decision_changes: Vec<DecisionChange>,

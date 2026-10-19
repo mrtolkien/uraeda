@@ -242,7 +242,13 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
     let spec_number = |key: &str| {
         spec_text.and_then(|text| crate::files::frontmatter::parse(text).ok()?.integer(key))
     };
+    // A round answered to continue the implementation leaves the approved spec as it is.
+    let resumes = feature
+        .text(&latest.name)
+        .and_then(|text| crate::files::frontmatter::parse(text).ok())
+        .is_some_and(|front| front.text("resumes") == Some("implementation"));
     if latest.status.as_deref() == Some("answered")
+        && !resumes
         && (spec.is_none() || spec_number("clarifications").unwrap_or(0) < i64::from(round))
     {
         return Step::agent(StepName::Spec, "spec");
@@ -300,6 +306,17 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         };
     }
     after_the_last_step(pull_request, StepName::FinalReview, "implementation")
+}
+
+/// Whether a feature is being built: its spec is approved, and its approved plan has an unchecked
+/// step. A round asked then may be answered to continue the implementation.
+pub fn building(feature: &Feature) -> bool {
+    let status = |kind| feature.file(kind).and_then(|file| file.status.as_deref());
+    status(FileKind::Spec) == Some("approved")
+        && matches!(status(FileKind::Plan), Some("approved" | "auto-approved"))
+        && plan::tasks(feature.text("plan.md").unwrap_or_default(), &feature.path)
+            .iter()
+            .any(|task| task.done < task.total)
 }
 
 fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: &str) -> Step {

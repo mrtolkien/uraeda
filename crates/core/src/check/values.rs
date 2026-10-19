@@ -14,7 +14,8 @@ use super::{Checked, File};
 fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static str])> {
     match kind {
         Checked::Workflow(FileKind::Proposal) => Some((&[], &["discovery"])),
-        Checked::Workflow(FileKind::Clarifications) | Checked::Triage => Some((&["status"], &[])),
+        Checked::Workflow(FileKind::Clarifications) => Some((&["status"], &["resumes"])),
+        Checked::Triage => Some((&["status"], &[])),
         Checked::Workflow(FileKind::Spec) => Some((
             &["status", "revision", "clarifications", "risk-tier"],
             &["plan-review"],
@@ -37,6 +38,7 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
         (Checked::Triage, "status") => Some(FileKind::Clarifications.statuses()),
         (Checked::Decision | Checked::PreviewDecision, "status") => Some(&["proposed", "active"]),
         (Checked::Record, "kind") => Some(&["feature", "change"]),
+        (_, "resumes") => Some(&["implementation"]),
         (_, "risk-tier" | "discovery") => Some(&["low", "medium", "high"]),
         (_, "verdict") => Some(&["pending", "approved", "changes-requested"]),
         _ => None,

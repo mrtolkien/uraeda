@@ -1,7 +1,7 @@
 mod common;
 
 use common::repo::{TestRepo, run_git};
-use common::texts::{proposal, spec};
+use common::texts::{self, proposal, spec};
 use uraeda_core::actions::place::{self, Place};
 use uraeda_core::actions::review::{self, DecisionTarget, Tier};
 use uraeda_core::actions::{ActionError, answer, draft, start, text};
@@ -166,7 +166,7 @@ fn submits_and_commits_on_the_features_branch() {
     let repo = repo_with(&round("B", "A", "A"));
     let (feature, place) = reach(&repo);
 
-    let committed = answer::submit_and_commit(&place, &feature, today()).unwrap();
+    let committed = answer::submit_and_commit(&place, &feature, today(), false).unwrap();
 
     assert_eq!(
         committed.change.subject,
@@ -195,7 +195,7 @@ fn submitting_keeps_the_verdict() {
     ));
     let (feature, place) = reach(&repo);
 
-    answer::submit_and_commit(&place, &feature, Date::parse("2026-10-18").unwrap()).unwrap();
+    answer::submit_and_commit(&place, &feature, Date::parse("2026-10-18").unwrap(), false).unwrap();
 
     let text = read(&place, ROUND);
     assert!(
@@ -212,7 +212,7 @@ fn a_refused_commit_keeps_the_answers_and_can_be_tried_again() {
     repo.set_hook("echo 'VITE+ - pre-commit script failed (code 1)'\nexit 1");
     let (feature, place) = reach(&repo);
 
-    let error = answer::submit_and_commit(&place, &feature, today()).unwrap_err();
+    let error = answer::submit_and_commit(&place, &feature, today(), false).unwrap_err();
 
     let ActionError::Hook { output, .. } = &error else {
         panic!("{error}");
@@ -1396,7 +1396,7 @@ fn us4_3_submitted_answers_commit_their_images() {
     put(&place, &format!("{IMAGES}/one.webp"), b"one");
     put(&place, &format!("{IMAGES}/two.webp"), b"two");
 
-    answer::submit_and_commit(&place, &feature, today()).unwrap();
+    answer::submit_and_commit(&place, &feature, today(), false).unwrap();
 
     assert_eq!(
         repo.changed_in(FOLDER),
@@ -1582,7 +1582,7 @@ fn a_refusal_over_staged_files_keeps_the_images() {
         error.to_string().contains("other files are staged"),
         "{error}"
     );
-    let error = answer::submit_and_commit(&place, &feature, today()).unwrap_err();
+    let error = answer::submit_and_commit(&place, &feature, today(), false).unwrap_err();
     assert!(
         error.to_string().contains("other files are staged"),
         "{error}"
@@ -2029,7 +2029,7 @@ fn a_rounds_last_answer_ends_at_the_notes() {
     let repo = repo_with(&unsettled);
     let (feature, place) = reach(&repo);
 
-    let blank = answer::submit_and_commit(&place, &feature, today()).unwrap_err();
+    let blank = answer::submit_and_commit(&place, &feature, today(), false).unwrap_err();
     answer::save(&place, &feature, "Q2", &letters(&["A"]), "", "").unwrap();
     answer::save_notes(&place, &feature, "Fine.", "").unwrap();
 
@@ -2039,4 +2039,41 @@ fn a_rounds_last_answer_ends_at_the_notes() {
         "{}",
         read(&place, ROUND)
     );
+}
+
+#[test]
+fn submitting_to_resume_marks_the_round_when_the_implementation_is_under_way() {
+    let repo = repo_with(&round("B", "A", "A"));
+    repo.switch(FOLDER);
+    repo.write(
+        "specs/2026-10-11-web-ui/spec.md",
+        &texts::spec("approved", 1, 1),
+    );
+    repo.write(
+        "specs/2026-10-11-web-ui/plan.md",
+        &texts::plan("approved", 1, &[("One", 0, 1)]),
+    );
+    repo.commit("plan(web-ui): plan");
+    repo.switch("main");
+    let (feature, place) = reach(&repo);
+
+    answer::submit_and_commit(&place, &feature, today(), true).unwrap();
+
+    let text = read(&place, ROUND);
+    assert!(
+        text.starts_with("---\nstatus: answered\nresumes: implementation\n---\n"),
+        "{text}"
+    );
+}
+
+#[test]
+fn submitting_to_resume_is_refused_before_the_implementation_is_under_way() {
+    let repo = repo_with(&round("B", "A", "A"));
+    let (feature, place) = reach(&repo);
+
+    let error = answer::submit_and_commit(&place, &feature, today(), true).unwrap_err();
+
+    assert!(matches!(error, ActionError::Refused(_)), "{error}");
+    assert!(read(&place, ROUND).contains("status: awaiting-human"));
+    assert!(!read(&place, ROUND).contains("resumes"));
 }
