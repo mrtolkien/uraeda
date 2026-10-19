@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Fix testing
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions and 1 follow-up, about 25 minutes.
+> Answered on 2026-10-19.
 >
 > - Verdict: worth building, with changes. The cull and the faster loop are right. They conflict
 >   with the constitution's test-per-scenario rule and the toolchain's "run everything after every
@@ -90,7 +90,7 @@ rewrite fights it, and the suite grows back.
   - [pro] no amendment.
   - [con] agents keep adding a test per scenario, so the suite grows back.
 
-**Answer:**
+**Answer:** A: Advise me on what to change, let's improve the constitution
 
 ### Q1.A: Which scenarios besides the main ones need a test?
 
@@ -108,7 +108,7 @@ Why it matters: it sets the line between tested and reviewed cases for every spe
   - [pro] fewer unguarded cases.
   - [con] about twice the edge-case tests of A.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How much should the cull remove, and by what rule?
 
@@ -139,7 +139,8 @@ survives.
   - [pro] the cleanest result, built for the new rules.
   - [con] the riskiest: nothing guards the product while it is rewritten.
 
-**Answer:**
+**Answer:** C: You'll be running all night and no other development will take place. Let's make it
+as clean as possible.
 
 ## Q3: Should an agent run a fast command after each task, and the full check only before pushing?
 
@@ -167,7 +168,7 @@ how long every agent waits per task.
   - [pro] one command.
   - [con] a green `ready` could skip a test a change broke, so it stops meaning "everything passes".
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Which browser tests should stay?
 
@@ -195,7 +196,7 @@ are keeps CI near 10 minutes.
   - [pro] the fastest option.
   - [con] it breaks the UI-checks decision's page-check rule, and needs your amendment.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Which tests of tooling, Neovim, and benchmarks stay?
 
@@ -222,7 +223,7 @@ and guard the least.
   - [pro] the fastest.
   - [con] a plugin change can break the editor unseen.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: How should the skill's testing wording change?
 
@@ -249,7 +250,7 @@ fails against your request makes the agent stop and ask.
   - [pro] a small change.
   - [con] volume keeps growing.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Should the final review check test changes separately from the product's?
 
@@ -275,7 +276,7 @@ Why it matters: this is how you find out, without reading every diff, that an ag
   - [con] a new tool rule, easy to bypass by editing a threshold, and Constitution V says tools only
     enforce what agents can follow unaided.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Should the cull be approved before it is deleted?
 
@@ -294,7 +295,7 @@ Why it matters: it sets how much of your time the cull takes, and how much trust
   - [pro] full control.
   - [con] hundreds of test names to read, and several rounds.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
