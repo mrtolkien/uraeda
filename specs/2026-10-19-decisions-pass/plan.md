@@ -184,7 +184,7 @@ history with the check's commit.
   chose, like 30 days, stays and the Why links the answer. The other files link to it and repeat
   nothing. `ura check` gains no measure.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```rust
 // crates/core/tests/decisions_bar.rs
@@ -207,27 +207,27 @@ is a `--flag`, a number followed by a unit of time (`seconds`, `minutes`, `days`
 file name with an extension, outside links. The break it catches: a rewritten decision that drifts
 back to a flag, a timeout, or a file that nothing checks.
 
-- [ ] **Step 2: Run it to check it fails or passes on the rewritten ledger**
+- [x] **Step 2: Run it to check it fails or passes on the rewritten ledger**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test decisions_bar`
 - Expected: PASS on the rewritten ledger. If a decision fails, fix its rule's wording, keeping the
   intent, and note it in the pull request: the human approved the rewrite, so a rule that names a
   value it checks stays.
 
-- [ ] **Step 3: Write the bar in `spec.md`, and link it from the other files**
+- [x] **Step 3: Write the bar in `spec.md`, and link it from the other files**
 
 Add the fourth test and its examples to "What is a decision". In "Writing a decision" and the
 self-review, add: "Is each rule the human's goal or approach, or a value the code holds?" Replace
 the text of `writing.md`'s decision rules, `discovery.md`'s and the template's by a link to it,
 keeping `writing.md`'s limit of 10 rules.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c vp check` then `nix develop -c cargo nextest run -p uraeda-core` and
   `ura check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills crates/core/tests/decisions_bar.rs

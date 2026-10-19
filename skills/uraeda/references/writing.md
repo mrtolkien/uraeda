@@ -212,8 +212,8 @@ A decision, in `specs/decisions/`, is written from
 applies to, and the human approves each of its lines.
 
 33. **The intent first.** Two or three sentences before `## Rules`: the choice and what it protects.
-    Specifics appear only where they are hard constraints. A reader who stops there knows what the
-    decision is for.
+    A reader who stops there knows what the decision is for. A decision states intent, not
+    mechanism: see [what is a decision](spec.md#what-is-a-decision).
 34. **One sentence per rule**, then how it is checked: "Checked by review." A rule holding two ideas
     is two rules, or one too detailed.
 35. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come

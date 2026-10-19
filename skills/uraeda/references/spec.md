@@ -82,7 +82,7 @@ A decision records a choice a human made that agents must follow across the code
 reliably make on their own. The ledger is the current state of what the human wants. It grows as the
 project grows, and decisions change when the human changes their mind.
 
-An answer becomes a decision only if it passes all three tests:
+An answer becomes a decision only if it passes all four tests:
 
 1. **An agent would not guess it.** A capable agent, reading the code and the constitution, could
    reasonably do something else. If any agent would do it anyway, it is noise.
@@ -91,6 +91,19 @@ An answer becomes a decision only if it passes all three tests:
    rule, is recorded by the code.
 3. **Getting it wrong is costly**: inconsistent code, a hard migration, a rewrite, a look and feel
    that drifts.
+4. **Intent, not mechanism.** It states the human's goal or approach, not a value the code holds: a
+   flag, a timeout, a file name, a size, a version, an exit code. The code, its configuration, and
+   its checks hold those, and change them without the human. A rule keeps a value only when the
+   human chose that value, and its **Why** then links the answer.
+
+Examples:
+
+- An answer "harnesses must not use CLI flags" names a mechanism. It is an assumption of the spec,
+  not a decision.
+- An answer "agents never run with permissions skipped" is a boundary. It is a decision, and its
+  rule is written without the flag's name.
+- An answer "a session lasts 30 days" is a value the human chose. The rule keeps the 30 days, and
+  the **Why** links the answer.
 
 Typical decisions: how the code is organized, dependencies, the technical approach to a problem, and
 visual direction. Others are cross-cutting conventions (errors, dates, logging), and transitions,
@@ -135,10 +148,11 @@ Writing for the human says:
 - **Intent**: before `## Rules`, two or three plain sentences: the choice and what it protects.
   Specifics appear only where they are hard constraints.
 - **Rules**: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY rules that a spec, a plan, or code can be
-  checked against. Each rule is one sentence that stands on its own, since plans copy it word for
-  word. It ends with how it is checked: a lint, a test, `ura check`, or "Checked by review." Rules
-  come strongest first, at most 10. A check a tool could run but does not yet becomes a line of the
-  plan's test map, and a task. See
+  checked against. Each rule is the human's goal or approach, not a value the code holds (the fourth
+  test of [what is a decision](#what-is-a-decision)). Each rule is one sentence that stands on its
+  own, since plans copy it word for word. It ends with how it is checked: a lint, a test,
+  `ura check`, or "Checked by review." Rules come strongest first, at most 10. A check a tool could
+  run but does not yet becomes a line of the plan's test map, and a task. See
   [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
 - **Why**: the problem and what the choice optimizes for, with links to the question and the
   discovery topic. Once the feature is [finished](finish.md#rewrite-the-links), these links point to
@@ -450,8 +464,8 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 6. **Linear reading**: nothing is referred to before it is introduced, the block names subjects, and
    each rule is stated once.
 7. **Decisions**: each one listed comes from an answer or a review comment, and a new one passes the
-   three tests. Each reads intent first, its rules strongest first, one sentence each, with how it
-   is checked.
+   four tests. Each reads intent first, its rules strongest first, one sentence each, with how it is
+   checked.
 8. **Risks**: every unverified outside behaviour and every relaxed guard is in the block, a guard as
    what an attacker could do.
 
@@ -466,6 +480,7 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 | "This choice deserves a decision"                             | Only an answer or a review comment creates one. Ask the human in a new round.                       |
 | "The spec should list the components and tests"               | Those are the plan's. The spec keeps the units, the data model, and what users get.                 |
 | "The decision should say how we got here"                     | The decision states its intent and rules. The history stays in the feature's record.                |
+| "The decision should name the flag, the timeout, the file"    | Those are values the code holds. The rule states the intent, unless the human chose the value.      |
 
 ## Revising
 
