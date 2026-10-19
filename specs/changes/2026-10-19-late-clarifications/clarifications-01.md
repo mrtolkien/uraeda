@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Clarifications during implementation can resume implementation
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 5 minutes.
+> Answered on 2026-10-19.
 >
 > - Verdict: worth building as proposed, with one catch. The choice must live in git, so it needs a
 >   new key in the front matter of `clarifications-NN.md`. That is a file format change, a reason to
@@ -72,7 +72,7 @@ request shows it instead.
   - [pro] the key's shape and the new step are reviewed in a spec first.
   - [con] a spec to approve, then a plan, before any code.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What does "continue implementing" do to the approved spec?
 
@@ -96,7 +96,7 @@ does the same today for any conflict with the spec.
   - [pro] the spec stays the one source of truth.
   - [con] the spec changes without your approval, which the workflow never allows.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
