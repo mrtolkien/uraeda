@@ -56,3 +56,10 @@ strip = true
 # The profile that dist builds releases with.
 [profile.dist]
 inherits = "release"
+
+# The image tests encode photos in the test profile, where an unoptimized encoder takes seconds.
+[profile.dev.package.image]
+opt-level = 3
+
+[profile.dev.package.libwebp-sys]
+opt-level = 3
