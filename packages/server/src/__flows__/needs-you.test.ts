@@ -206,7 +206,7 @@ test.each<[string, Partial<Status>, boolean]>([
   ["a running turn", { latest: turn("running", "workflow") }, false],
   ["a chat reply the human has not seen", { latest: turn("done", "chat") }, false],
   ["an idle session", {}, false],
-])("%s is listed by the notifier: %s", (_, input, listed) => {
+])("the notifier's list on %s", (_, input, listed) => {
   const { reason, status } = sessionStatus({ ...NONE, ...input });
 
   const asked = needsYouReason({ status, statusReason: reason ?? null, step: "plan" });
