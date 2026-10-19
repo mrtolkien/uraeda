@@ -143,3 +143,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: loosening the 2 px, which drops what the test guards.
 - **If wrong**: restore the one-line seed, and the test fails on the short page.
 - **Where**: task 5 of the plan.
+
+## R11: The chat composer's WebKit test reads the field's rows by width class
+
+- **Decision**: `fields.test.tsx`'s "the chat composer is 7 rows, grows upward to 20, and scrolls
+  past them" expects 3 rows empty and 9 at most on the phone, and 7 and 20 on wide screens, as it
+  did for both.
+- **Rationale**: SC-005 and US2.3 give the phone a 3-row field that grows to 9 rows: the test failed
+  with `expected 3 to be close to 7` at 402 px, as it should. What it guards is unchanged: the field
+  grows upward, holds its text inside its edge, and scrolls past its last row. The new
+  `session-look.test.tsx` measures the heights in pixels.
+- **Alternatives considered**: leaving the phone at 7 rows, which breaks SC-005.
+- **If wrong**: restore the single count, and the test fails on the phone.
+- **Where**: task 6 of the plan.
