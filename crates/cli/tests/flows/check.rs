@@ -70,11 +70,24 @@ fn json_lists_every_result_with_its_rule_file_and_severity() {
     };
     assert_eq!(rule("sections.missing")["file"], "specs/PRIORITIES.md");
     assert_eq!(rule("inbox.category")["file"], "specs/INBOX.md");
-    assert!(
-        problems
-            .iter()
-            .all(|p| p["severity"] == "error" || p["severity"] == "warning")
-    );
+    // Each result keeps the severity the core gives it: the UI reads a note out of an error, the
+    // CLI never downgrades one.
+    assert_eq!(rule("sections.missing")["severity"], "error");
+    assert_eq!(rule("inbox.category")["severity"], "error");
+}
+
+#[test]
+fn a_missing_section_alone_fails_the_check() {
+    let repo = TestRepo::new();
+    specs(&repo, "# Priorities\n\n## Now\n\n## Next\n\n## Later\n");
+
+    let (json, code) = json(&repo, &["check", "--json"]);
+
+    let problems = json["problems"].as_array().unwrap();
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert_eq!(problems[0]["rule"], "sections.missing");
+    assert_eq!(problems[0]["severity"], "error");
+    assert_eq!(code, 1);
 }
 
 #[test]
