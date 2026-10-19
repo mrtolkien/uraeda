@@ -451,6 +451,12 @@ export function Tail({
             redraw();
             return;
           }
+          // The count drawn is kept in the entry when messages arrived past `shown` after the
+          // start, so Back and a reload draw the same window (R15).
+          const drawn = settled.reduce((total, piece) => total + piece.count, 0);
+          if (start.current && drawn > shown && drawn > (currentEntry().shown ?? 0)) {
+            updateEntry({ shown: drawn });
+          }
           // Drawn: the presses that left other pieces than these are done, and so are those that
           // asked for more than there is, which leave these.
           const done = (press: Press) => press.from !== key || shown >= press.next;
