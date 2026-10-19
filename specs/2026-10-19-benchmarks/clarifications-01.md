@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Benchmarks
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 11 questions, about 25 minutes.
+> Answered on 2026-10-19.
 >
 > - Verdict: worth building as proposed. The runner, the adapter, and `ura next --json` now exist,
 >   so the loop is small. Only the choices below stay open.
@@ -85,7 +85,7 @@ know.
   - [pro] two kinds of task and grader.
   - [con] two graders to integrate for five cases.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What should a run measure?
 
@@ -108,7 +108,7 @@ Why it matters: it sets what "not completely stupid" means, and how much the run
   - [pro] shows where the flow is weak, stage by stage.
   - [con] a rubric per artifact, and judge noise on every number.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What is each run compared against?
 
@@ -134,7 +134,7 @@ B can come on top of A.
   - [pro] nothing more to run.
   - [con] nothing says whether the flow helped.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How does the benchmark reach the agents?
 
@@ -162,7 +162,7 @@ integration, and whether a decision changes.
   - [pro] about 40 agents built in, and results in a standard format.
   - [con] steps are fixed upfront, and its user talks in a chat, not by editing files.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What does the simulated human know?
 
@@ -188,7 +188,10 @@ dictates the solution.
   - [pro] reproducible, and it measures which questions were asked.
   - [con] a list to write per case, and answers no real owner would give.
 
-**Answer:**
+**Answer:** Having information built from the hidden requirements breaks the benchmarks, right?
+
+The goal is that the questions asked by the workflow in the clarification step should NATURALLY push
+towards fulfilling hidden requirements, I think.
 
 ## Q6: How does the simulated human behave at the gates?
 
@@ -219,7 +222,7 @@ alone.
   - [pro] closest to real users' pushback.
   - [con] more rounds and cost, and preferences invented beyond the brief.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Where does the agent run?
 
@@ -243,7 +246,7 @@ Why it matters: it decides whether the agent can test its work, and the effort p
   - [pro] full control of the environment.
   - [con] an environment to write for each case.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Can the agents use the web during runs?
 
@@ -267,7 +270,7 @@ find the answer.
   - [pro] nothing to set up.
   - [con] a result can come from the published solution.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: How many runs, and with what budget?
 
@@ -291,7 +294,8 @@ Why it matters: it sets what a failed run costs, and whether per-case reliabilit
   - [pro] money goes where the signal is weak.
   - [con] a rule for "unclear" to write, and uneven numbers per case.
 
-**Answer:**
+**Answer:** A: No caps though, but benchmarks are only run on clear human approval (you have my
+approval to run them for this feature)
 
 ## Q10: Which account pays for the runs?
 
@@ -311,7 +315,8 @@ Why it matters: it sets the rate limits, the terms the runs rely on, and whether
   - [pro] within what you already pay.
   - [con] subscription rate limits, and terms that could change after the results exist.
 
-**Answer:**
+**Answer:** B: Well our existing uraeda stack is a wrapper around claude code, so... yeah it should
+stay the same
 
 ## Q11: What is committed to the repository?
 
@@ -335,7 +340,7 @@ and what code lands in it.
   - [pro] minimal, and no third-party code.
   - [con] numbers only: a failure cannot be read afterwards.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -393,4 +398,5 @@ and what code lands in it.
 
   See [discovery](discovery-01.md#needs-no-choice).
 
-**Notes:**
+**Notes:** Let's actually use Sonnet 5.5 as the model for everything. It's what I set in the CLI,
+it's enough for us and it'll make it less likely we hit limits.
