@@ -4,10 +4,10 @@
 // never interrupted; the tab's title counts what waits. The browser's `Notification`, Web Locks, and
 // visibility are fakes; what needs the human is what the real server says.
 import { readFileSync } from "node:fs";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { commitOnBranch, fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
-import { click } from "./harness.tsx";
+import { click, quiet } from "./harness.tsx";
 import { startListApp } from "./lists.tsx";
 
 const repos = { a: fixtureRepo(), b: fixtureRepo() };
@@ -221,18 +221,30 @@ test("of two tabs in the background only one notifies, and the other takes over 
   await waitFor(() => expect(counted()).toBeGreaterThan(0));
   const before = counted();
 
-  askSomething(repos.a);
+  const folder = askSomething(repos.a);
   await untilCounted(before);
   await waitFor(() => expect(shown).toHaveLength(1));
   const now = counted();
-  await readAgain();
+  // Both tabs read the ask, and each page draws it, before the notifying one closes.
+  const link = (tab: { container: HTMLElement }) =>
+    within(tab.container)
+      .queryAllByRole("link")
+      .some((l) => l.getAttribute("href")?.includes(folder));
+  await waitFor(async () => {
+    await readAgain();
+    expect(link(first) && link(second)).toBe(true);
+  });
+  await quiet();
   expect(shown).toHaveLength(1);
 
-  // The notifying tab closes: the other notifies the next ask.
+  // The notifying tab closes: the other notifies the next ask. A tab that reads an ask only once it
+  // took over may notify it again, and the browser folds those, as they share the item's tag: the
+  // items notified are what counts.
   first.unmount();
-  askSomething(repos.a);
+  const next = askSomething(repos.a);
   await untilCounted(now);
-  await waitFor(() => expect(shown).toHaveLength(2));
+  await waitFor(() => expect(new Set(shown.map((n) => n.options.tag)).size).toBe(2));
+  expect(shown.at(-1)!.options.tag).toContain(next);
   second.unmount();
 });
 
