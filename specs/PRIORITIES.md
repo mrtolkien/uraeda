@@ -68,6 +68,8 @@
 
 - [Stable dev environment for UI review](drafts/stable-dev-environment-for-ui-review.md)
 
+- [Chat's right column](drafts/chat-right-column.md)
+
 ## Later
 
 > [!NOTE]
