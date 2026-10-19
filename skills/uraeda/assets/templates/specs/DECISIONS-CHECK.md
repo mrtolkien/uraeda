@@ -35,7 +35,7 @@ Why it matters: [what this finding costs the ledger if it stays].
 
 **Answer:**
 
-### Q1.B: [Follow-up question, only when it matters for a single answer]
+### Q1.B: [Follow-up question, only when it matters for a single answer; its options edit no decision]
 
 Only if you picked B in Q1. [Context.]
 

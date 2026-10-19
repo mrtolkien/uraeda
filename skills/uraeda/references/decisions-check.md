@@ -50,7 +50,8 @@ is deleted when the check is applied.
      `specs/decisions-check/q<N>-<letter>/<topic>.md`: the whole decision as it would read, with
      `status: proposed` and `approved-by:` empty. An option that edits two decisions has two files,
      and an option that removes a decision has none: its text says which one goes. An option that
-     keeps things as they are has no folder.
+     keeps things as they are has no folder. A follow-up question's options edit no decision: it has
+     no folder.
    - **No option edits the constitution.** Only a human amends it. A decision that conflicts with it
      is a finding whose every option changes the decision, and the question says what the
      constitution asks.
