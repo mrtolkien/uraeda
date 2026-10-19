@@ -6,17 +6,18 @@ import type { FeatureView } from "uraeda-binding";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { itemLooks } from "./items.ts";
-import { featureStatuses } from "./sessions.ts";
+import { chatStatuses, featureStatuses } from "./sessions.ts";
 
 /** Why an item needs the human, in the order a notification picks it. */
 export type NeedsYouReason = "blocked" | "attention" | "step" | "pull-request";
 
 /** An item that needs the human. */
 export type NeedsYouRow = {
-  folder: string;
+  /** The feature's folder; a chat has none. */
+  folder?: string;
   /** Its page, from the server's root: where the human answers it. */
   href: string;
-  /** `<repository>/<folder>`. */
+  /** `<repository>/<folder>`, or `<repository>/chats/<session id>`. */
   id: string;
   /** Changes with the reason and the step or the turn, so a new ask notifies again. */
   key: string;
@@ -64,10 +65,12 @@ const ASKS: Record<string, string> = {
   spec: "The spec to review",
 };
 
+const REFUSED = "The agent was refused an action";
+
 function messageOf(feature: FeatureView, reason: NeedsYouReason, why: StatusReason | null) {
   switch (reason) {
     case "blocked":
-      return "The agent was refused an action";
+      return REFUSED;
     case "attention":
       return why === "failed" ? "The run failed" : "The run stopped before a gate";
     case "pull-request":
@@ -93,8 +96,34 @@ function hrefOf(name: string, feature: FeatureView, reason: NeedsYouReason) {
   return `${base}/f/${feature.folder}`;
 }
 
-/** The items of one repository that need the human. */
+/** The chats of one repository whose latest turn was refused an action: archived ones are put away. */
+async function chatRowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow>> {
+  return (await chatStatuses(ctx)).flatMap(({ latest, row, status, statusReason, title }) => {
+    if (needsYouReason({ status, statusReason, step: "" }) !== "blocked") {
+      return [];
+    }
+    const id = `${name}/chats/${row.id}`;
+    return [
+      {
+        href: `/r/${name}/chats/${row.id}`,
+        id,
+        key: `${id}:blocked:${latest?.id ?? ""}`,
+        label: title,
+        message: REFUSED,
+        reason: "blocked" as const,
+        repository: name,
+        title,
+      },
+    ];
+  });
+}
+
+/** The items of one repository that need the human: its features, then its chats. */
 async function rowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow>> {
+  return [...(await featureRowsOf(ctx, name)), ...(await chatRowsOf(ctx, name))];
+}
+
+async function featureRowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow>> {
   const looks = itemLooks(ctx);
   return (await featureStatuses(ctx)).flatMap(({ feature, status, statusReason }) => {
     const reason = needsYouReason({ status, statusReason, step: feature.step.name });

@@ -282,6 +282,26 @@ export async function featureStatuses(ctx: RepoContext) {
     });
 }
 
+/**
+ * Each chat of the server's repository that is not archived, with its title and its status, from
+ * the same rules as the sidebar's.
+ */
+export async function chatStatuses(ctx: RepoContext) {
+  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
+  const { cache } = ctx.sessions;
+  if (root === undefined) {
+    return [];
+  }
+  return cache
+    .sessions(root, { limit: LIST_LIMIT })
+    .filter((row) => row.folder === null && row.archivedAt === null)
+    .map((row) => {
+      const read = turnsOf(cache, row.id);
+      const { status, statusReason } = statusOf(row, read);
+      return { latest: read.latest, row, status, statusReason, title: titleOf(row) };
+    });
+}
+
 export async function sessionList(ctx: RepoContext): Promise<SessionListRecord> {
   // A repository the core gives no main checkout for, like one without a commit, has no sessions.
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);

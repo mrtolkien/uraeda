@@ -489,7 +489,7 @@ git commit -m "feat(redesign-session): allow every blocked action of the latest 
   `reason` `"blocked"`, and a `key` `<id>:blocked:<latest turn id>`, which changes with the blocked
   turn. `needsYouReason` is unchanged and decides for both.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("a blocked chat is listed, with its title and address, and a finished reply is not", async () => {
@@ -519,19 +519,19 @@ blocked feature ("(2)"), and once it leaves the list the count drops with no sec
 The break each catches: chat rows built by the web's own logic; a key that does not change with the
 turn, so a second block stays silent; a row for a reply.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run:
     `nix develop -c vp test packages/server/src/__tests__/needs-you.test.ts packages/web/src/__tests__/notify.test.tsx`
   - Expected: FAIL, `expected [] to have a length of 1`
 
-- [ ] **Step 3: Implement the chat rows**
+- [x] **Step 3: Implement the chat rows**
 
 Chat rows come from the same `turnsOf` and `statusOf` as a feature's, through `chatStatuses`, and
 only `statusReason === "blocked"` becomes a row. The notifier's web code reads the list as it is: it
 needs no change if the new rows fit its `NeedsYouRow` type (`href`, `id`, `key`, `label`,
 `message`).
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
   - Run: `nix develop -c vp check` then `nix develop -c vp run ts:test`
   - Expected: PASS
 
