@@ -14,10 +14,13 @@ const repos = { a: fixtureRepo(), b: fixtureRepo() };
 /** The Turn on button of the banner, when it shows. */
 const turnOn = () => screen.queryByRole("button", { name: /turn on/i });
 
-const app = startListApp(() => [
-  ["alpha", repos.a],
-  ["beta", repos.b],
-]);
+const app = startListApp(
+  () => [
+    ["alpha", repos.a],
+    ["beta", repos.b],
+  ],
+  { agent: true },
+);
 
 /** The notifications shown, and what the browser answers to the question. */
 const shown: Array<FakeNotification> = [];
@@ -282,4 +285,30 @@ test("a browser without notifications shows no banner", async () => {
   await screen.findAllByRole("link");
 
   expect(screen.queryByRole("button", { name: /turn on/i })).toBeNull();
+});
+
+test("a chat whose action was blocked notifies once, its click opens the chat, and the title counts it", async () => {
+  await app.open("/r/alpha/");
+  await waitFor(() => expect(counted()).toBeGreaterThan(0));
+  const before = counted();
+
+  app.agent.script([
+    {
+      denials: [{ input: { command: "ls" }, tool: "Bash" }],
+      errors: [],
+      interrupted: false,
+      ok: true,
+      type: "result",
+    },
+  ]);
+  const chat = await app.sessions.newChat(repos.a);
+  const { turn } = await app.sessions.send(repos.a, chat.id, { text: "List it" });
+  await app.sessions.settled(turn);
+  await untilCounted(before);
+
+  await waitFor(() => expect(shown).toHaveLength(1));
+  await readAgain();
+  expect(shown).toHaveLength(1);
+  act(() => shown[0].onclick!());
+  expect(window.location.pathname).toBe(`/r/alpha/chats/${chat.id}`);
 });

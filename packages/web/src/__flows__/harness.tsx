@@ -187,6 +187,9 @@ export function startApp(options: AppOptions = {}): Flow {
   // The page goes, which may send its last saves; the server answers every request it was sent
   // while its repository is still there.
   afterEach(async () => {
+    for (const release of releases.splice(0)) {
+      release();
+    }
     cleanup();
     await settleRequests();
   });
@@ -270,7 +273,7 @@ export function holding(held: string) {
   const opened = Promise.withResolvers<void>();
   const hold = { held, open: opened.promise, seen: 0 };
   gate = hold;
-  afterEachRelease(() => {
+  releases.push(() => {
     opened.resolve();
     if (gate === hold) {
       gate = undefined;
@@ -287,16 +290,8 @@ export function holding(held: string) {
   };
 }
 
-/** A release to run once the test ends, so a test that fails never leaves a request held. */
-function afterEachRelease(release: () => void) {
-  releases.push(release);
-}
+/** The releases of the gates a test opened: run first once it ends, so a failure holds nothing. */
 const releases: Array<() => void> = [];
-afterEach(() => {
-  for (const release of releases.splice(0)) {
-    release();
-  }
-});
 
 /** A `fetch` calling the app in process, its answers recorded; with a jar, a browser's cookies. */
 function fetchOn(created: ReturnType<typeof createApp>, jar?: Jar): typeof globalThis.fetch {
