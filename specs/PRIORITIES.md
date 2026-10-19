@@ -6,7 +6,8 @@
 >
 > Features for v1.0.0
 
-- [Redesign session](drafts/redesign-session.md)
+- [Redesign session](/specs/2026-10-19-redesign-session/proposal.md)
+
 - [Review home](drafts/review-home.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
