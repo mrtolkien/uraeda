@@ -16,7 +16,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, radiusVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
@@ -28,15 +28,6 @@ const styles = stylex.create({
     // The agent's text takes the page's width: no bubble, no padding of its own.
     paddingInline: 0,
   },
-  bar: {
-    // The session's actions, in a line above the composer, in reach of the thumb.
-    alignItems: "center",
-    display: "flex",
-    flexWrap: "wrap",
-    gap: spacingVars["--spacing-2"],
-    justifyContent: "space-between",
-    paddingBlock: spacingVars["--spacing-2"],
-  },
   composer: {
     backgroundColor: colorVars["--color-background-surface"],
     bottom: 0,
@@ -47,10 +38,30 @@ const styles = stylex.create({
     // 3 rows empty, 22 px each.
     minHeight: "var(--size-composer-input-narrow)",
   },
+  jump: {
+    // Centred above the composer, over the transcript's end, without moving it.
+    bottom: "100%",
+    display: "flex",
+    insetInline: 0,
+    justifyContent: "center",
+    paddingBlockEnd: spacingVars["--spacing-2"],
+    position: "absolute",
+  },
+  jumpButton: {
+    // The secondary button's fill is translucent: the surface under it keeps the text from showing.
+    backgroundColor: colorVars["--color-background-surface"],
+    borderRadius: radiusVars["--radius-element"],
+    display: "inline-flex",
+  },
   list: {
-    // The list's own 12 px inset is taken back: the page's inset is the only one, so the agent's
+    // The list's own 8 px inset is taken back: the page's inset is the only one, so the agent's
     // text takes the width the phone has.
     marginInline: "var(--page-bleed)",
+  },
+  surface: {
+    // The app's shell paints the page's surface: the story does the same.
+    backgroundColor: colorVars["--color-background-surface"],
+    minHeight: "var(--size-viewport-height)",
   },
   user: {
     backgroundColor: colorVars["--color-background-blue"],
@@ -116,61 +127,60 @@ function Session({
 }) {
   const [text, setText] = useState("");
   return (
-    <Page isTight>
-      <VStack gap={3}>
-        <VStack gap={1}>
-          <Heading level={1}>Recurring tasks</Heading>
-          <Text color="secondary" type="supporting">
-            Needs you · Claude Code · main
-          </Text>
+    <div {...stylex.props(styles.surface)}>
+      <Page isSnug>
+        <VStack gap={3}>
+          <VStack gap={1}>
+            <Heading level={1}>Recurring tasks</Heading>
+            <Text color="secondary" type="supporting">
+              Needs you · Claude Code · main
+            </Text>
+          </VStack>
+          {earlier && <Button label="Show earlier messages" variant="secondary" />}
+          <ChatMessageList
+            align="top"
+            aria-label="Conversation"
+            density="compact"
+            xstyle={styles.list}
+          >
+            <Human>Make completing a repeating task move its due date, and keep the undo.</Human>
+            <ChatMessage sender="assistant">
+              <ChatToolCalls calls={[...CALLS]} label="3 tool calls" />
+            </ChatMessage>
+            <Agent>{REPLY}</Agent>
+            {blocked.map((action) => (
+              <Blocked action={action} key={action} />
+            ))}
+          </ChatMessageList>
+          <div {...stylex.props(styles.composer)}>
+            {scrolled && (
+              <div {...stylex.props(styles.jump)}>
+                <span {...stylex.props(styles.jumpButton)}>
+                  <Button label="Jump to the latest" size="sm" variant="secondary" />
+                </span>
+              </div>
+            )}
+            <ChatComposer
+              footerActions={
+                <HStack align="center" gap={2}>
+                  <Button label="Archive" size="sm" variant="ghost" />
+                </HStack>
+              }
+              input={
+                <ChatComposerInput label="Message Claude Code" maxRows={9} xstyle={styles.input} />
+              }
+              onChange={setText}
+              onSubmit={() => setText("")}
+              placeholder="Message Claude Code"
+              sendActions={
+                blocked.length > 1 ? <Button label={`Allow all (${blocked.length})`} /> : undefined
+              }
+              value={text}
+            />
+          </div>
         </VStack>
-        {earlier && <Button label="Show earlier messages" variant="secondary" />}
-        <ChatMessageList
-          align="top"
-          aria-label="Conversation"
-          density="compact"
-          xstyle={styles.list}
-        >
-          <Human>Make completing a repeating task move its due date, and keep the undo.</Human>
-          <ChatMessage sender="assistant">
-            <ChatToolCalls calls={[...CALLS]} label="3 tool calls" />
-          </ChatMessage>
-          <Agent>{REPLY}</Agent>
-          {blocked.map((action) => (
-            <Blocked action={action} key={action} />
-          ))}
-        </ChatMessageList>
-        <div {...stylex.props(styles.composer)}>
-          {(blocked.length > 0 || scrolled) && (
-            <div {...stylex.props(styles.bar)}>
-              {scrolled && <Button label="Jump to the latest" size="sm" variant="secondary" />}
-              {blocked.length > 0 && (
-                <>
-                  <Text color="secondary" type="supporting">
-                    {`${blocked.length} actions blocked by auto mode`}
-                  </Text>
-                  <Button label={`Allow all (${blocked.length})`} />
-                </>
-              )}
-            </div>
-          )}
-          <ChatComposer
-            footerActions={
-              <HStack align="center" gap={2}>
-                <Button label="Archive" size="sm" variant="ghost" />
-              </HStack>
-            }
-            input={
-              <ChatComposerInput label="Message Claude Code" maxRows={9} xstyle={styles.input} />
-            }
-            onChange={setText}
-            onSubmit={() => setText("")}
-            placeholder="Message Claude Code"
-            value={text}
-          />
-        </div>
-      </VStack>
-    </Page>
+      </Page>
+    </div>
   );
 }
 
@@ -185,16 +195,16 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * Reading: the human's message in a tinted bubble, the agent's as flat text across a 12 px inset,
+ * Reading: the human's message in a tinted bubble, the agent's as flat text across an 8 px inset,
  * the tool calls in one line, and a 3-row composer with Archive in its footer. "Show earlier
  * messages" opens the list, as the session holds more.
  */
 export const Reading: Story = {};
 
-/** Two actions blocked: "Allow all" sits above the composer, and each has its own button. */
+/** Two actions blocked: "Allow all (2)" sits beside Send, and each action has its own button. */
 export const Blocking: Story = {
   args: { blocked: ["Bash rm -rf dist", "Edit src/store/tasks.ts"], earlier: false },
 };
 
-/** Reading above the end: "Jump to the latest" sits in the same bar, above the composer. */
+/** Reading above the end: "Jump to the latest" floats, centred, above the composer. */
 export const Scrolled: Story = { args: { earlier: false, scrolled: true } };
