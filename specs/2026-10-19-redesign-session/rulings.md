@@ -102,7 +102,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: the tail keeps the first piece it drew as its start, in memory, never in the history
   entry, which keeps `shown` alone: a message arriving draws after the pieces, so the count drawn
   grows past `shown` while the page stays open. A press of "Show earlier messages" releases the
-  start and counts from what is drawn. A reload or Back draws the latest `shown` again.
+  start and counts from what is drawn. A reload or Back draws the latest `shown` again, which
+  [R15](#r15-the-entry-keeps-the-count-the-tail-grew-to) raises to the count drawn.
   [R2](#r2-the-window-slides-by-one-when-a-message-arrives)'s slide is dropped.
 - **Rationale**: the slide takes the oldest message from above the reader as one arrives. The
   existing WebKit test US4.2 ("scrolled up, the page keeps its position as lines arrive") failed
@@ -195,3 +196,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   human amends.
 - **If wrong**: restore 9,400 and shorten the decisions the specs redesign rewrote.
 - **Where**: task 7 of the plan.
+
+## R15: The entry keeps the count the tail grew to
+
+- **Decision**: when messages arrived after the kept start and the tail draws more than `shown`, it
+  writes the drawn count to the history entry (`shown`), as a press does. Back and a reload then
+  draw the latest messages of that count: the same ones, the arrivals included. This replaces the
+  cost [R8](#r8-the-tail-keeps-its-start-while-the-page-is-open-and-grows-as-messages-arrive)
+  accepted, that Back drew the latest `shown` and so lost the oldest messages the reader saw.
+- **Rationale**: the final review found Back after an arrival drawing 20 of the 21 messages seen.
+  The new test failed with `expected [ …(20) ] to have a length of 21 but got 20`.
+- **Alternatives considered**: keeping the start's `seq` in the entry, which ties the entry to a
+  database position a reload may not share.
+- **If wrong**: drop the write in `Tail`'s `onPieces`: Back draws `shown` again, as R8 said.
+- **Where**: the final review of the feature.

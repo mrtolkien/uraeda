@@ -284,6 +284,23 @@ test("focus 6: a turn with no item yet at the end draws nothing, and the walk go
   expect(log.getAllByRole("button", EARLIER)).toHaveLength(1);
 });
 
+test("R8: Back after messages arrived draws the same messages, the arrivals too", async () => {
+  const { chat, fake, log } = await openChatWith(120);
+  const turn = addTurn(fake, chat.id);
+  fake.sessions.cache.appendItem(turn, { kind: "text", streaming: false, text: "Reply 61" });
+  await refreshUntil(() => expect(log.getByText("Reply 61")).toBeTruthy());
+  expect(messagesIn(log)).toHaveLength(21);
+
+  await act(async () => navigate(atRepo("/")));
+  await waitFor(() => expect(screen.queryByRole("log", { name: "Conversation" })).toBeNull());
+  await act(async () => window.history.back());
+
+  const again = within(await screen.findByRole("log", { name: "Conversation" }));
+  await waitFor(() => expect(messagesIn(again)).toHaveLength(21));
+  expect(messagesIn(again)[0]!.textContent).toBe("Question 51");
+  expect(messagesIn(again).at(-1)!.textContent).toBe("Reply 61");
+});
+
 /** Appends a message of the agent's, or a tool call, to a turn. */
 function say(fake: Fake, turn: number, text: string) {
   fake.sessions.cache.appendItem(turn, { kind: "text", streaming: false, text });
