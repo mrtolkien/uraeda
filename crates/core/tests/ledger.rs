@@ -346,3 +346,57 @@ fn a_decision_with_a_non_ascii_name_has_its_date() {
         Some("2026-10-12")
     );
 }
+
+/// US2: a decision's rules are the kept parts of its `## Rules` section, each with its strength,
+/// its words, and its check.
+#[test]
+fn rules_of_a_decision_are_its_kept_parts_with_strength_and_check() {
+    let repo = TestRepo::new();
+    repo.write("specs/decisions/git.md", GIT);
+    repo.commit("decision: git");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    let rules = &decision(&ledger.decisions, "git").rules;
+    assert_eq!(rules.len(), 1, "{rules:?}");
+    assert_eq!(rules[0].kind, "kept");
+    assert_eq!(rules[0].strength.as_deref(), Some("must-not"));
+    let words = |runs: &[uraeda_core::decisions::Run]| {
+        runs.iter()
+            .map(|run| run.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    assert_eq!(words(&rules[0].runs), "Tools MUST NOT bypass hooks.");
+    assert_eq!(words(&rules[0].check), "Checked by review.");
+}
+
+/// Edge case: a decision that cannot be parsed has no rules, and keeps its problem.
+#[test]
+fn an_unreadable_decision_has_no_rules_and_keeps_its_problem() {
+    let repo = TestRepo::new();
+    repo.write(
+        "specs/decisions/git.md",
+        &GIT.replace("status: active", "status: [active"),
+    );
+    repo.commit("decision: git");
+
+    let git = api::read_ledger(repo.path()).unwrap().decisions.remove(0);
+
+    assert!(git.rules.is_empty());
+    assert!(git.problem.is_some());
+}
+
+/// A candidate under `specs/decisions-check/` is not a decision of the ledger.
+#[test]
+fn files_under_decisions_check_are_not_in_the_ledger() {
+    let repo = TestRepo::new();
+    repo.write("specs/decisions/git.md", GIT);
+    repo.write("specs/decisions-check/q1-a/git-extra.md", GIT);
+    repo.commit("decision: git");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    let names: Vec<&str> = ledger.decisions.iter().map(|d| d.name.as_str()).collect();
+    assert_eq!(names, ["git"]);
+}

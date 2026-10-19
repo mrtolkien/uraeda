@@ -364,7 +364,7 @@ git commit -m "refactor(decisions-pass): answer default-branch rounds through on
   the decision's intent and other sections with `Blocks` as now, and leaves the `## Rules` section's
   blocks out, so each rule is drawn once.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/src/__tests__/decision-rules.test.tsx
@@ -397,29 +397,30 @@ fn an_unreadable_decision_has_no_rules_and_keeps_its_problem() {}
 fn files_under_decisions_check_are_not_in_the_ledger() { /* a candidate in specs/decisions-check/q1-a/x.md */ }
 ```
 
-The fixture repository gets the decision and the feature the second test names, in
-`fixtures/specs/decisions/`, if it lacks them. The break each test catches: the page drawing a rule
-as a plain bullet, a second renderer with its own colours, a candidate listed as a decision.
+The tests read the fixture repository's `git` decision (a MUST with its check) and its
+`task-storage` decision, whose MUST NOT the spec page's feature also lists, so the fixtures need no
+new file (ruling R2). The break each test catches: the page drawing a rule as a plain bullet, a
+second renderer with its own colours, a candidate listed as a decision.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test ledger` and
   `nix develop -c vp test run packages/web/src/__tests__/decision-rules.test.tsx`
 - Expected: FAIL, `no field rules on type Decision`, and
   `Unable to find an accessible element with the role "img" and name "Must"`
 
-- [ ] **Step 3: Implement `rules` and `DecisionRules`**
+- [x] **Step 3: Implement `rules` and `DecisionRules`**
 
 The ledger fills `rules` from the compared "Rules" section for each readable decision, over the same
 text it already reads. The page's `DecisionRules` is built from the story's markup, with the styles
 of the spec page's `RuleLine`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `nix develop -c cargo nextest run`, `nix develop -c vp check`, `nix develop -c vp test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages fixtures

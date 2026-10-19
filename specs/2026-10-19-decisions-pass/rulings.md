@@ -12,3 +12,17 @@ feature is the fallback only when a change cannot carry the edit.
 **Alternatives:** Starting a feature for any merge: a spec and a plan for a text edit.
 
 **If wrong:** The apply run starts a feature for merges, and the reference changes in one place.
+
+## R2: Task 3 tests use the fixture's existing decisions
+
+**Decided:** The decision rules tests open `/decisions/git` and `/decisions/task-storage` in the
+fixture repository, and the spec page's `Task storage` card, instead of a new `ui-coherence`
+decision and feature.
+
+**Why:** The fixture's `git` decision has a MUST with its check, and its `task-storage` has a MUST
+NOT that the spec page's feature lists, so no new file is needed. A sixth decision would also change
+the counts that the decisions page tests make.
+
+**Alternatives:** Adding `ui-coherence.md` to the fixture.
+
+**If wrong:** The fixture gains the decision, and the tests open it.

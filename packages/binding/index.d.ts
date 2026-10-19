@@ -666,6 +666,11 @@ export interface Decision {
   /** The date of the last commit of the default branch touching it, `YYYY-MM-DD`. */
   changed?: string
   document: Document
+  /**
+   * The kept parts of its `## Rules` section, each with its strength and its check; empty for
+   * an unreadable file or one without the section.
+   */
+  rules: Array<PartChange>
   /** The first problem `ura check` finds in it. */
   problem?: string
   /**
