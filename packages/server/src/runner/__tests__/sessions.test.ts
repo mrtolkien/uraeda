@@ -831,6 +831,22 @@ test("two denials with the same rule pass one rule, and both are marked allowed"
   expect(cache.itemsOf(turn, "denial").every((denial) => denial.allowed)).toBe(true);
 });
 
+test("a blocked Write and Edit of one file share a rule, and the retry message lists both", async () => {
+  const { adapter, cache, repo, session, sessions, turn } = await blockedTwo([
+    { input: { file_path: "src/store/tasks.ts" }, tool: "Write" },
+  ]);
+  adapter.script([]);
+
+  const allowed = await sessions.allowAll(repo, session.id);
+  await sessions.settled(allowed.turn);
+
+  expect(adapter.opens[1]?.allowed).toEqual(["Bash(rm -rf dist)", "Edit(src/store/tasks.ts)"]);
+  expect(adapter.sent.at(-1)?.text).toBe(
+    "Try the blocked actions again, now allowed:\n- Bash rm -rf dist\n- Edit src/store/tasks.ts\n- Write src/store/tasks.ts",
+  );
+  expect(cache.itemsOf(turn, "denial").every((denial) => denial.allowed)).toBe(true);
+});
+
 test("two Allow all pressed at once: one allows, the other is refused as working", async () => {
   // No script: the retry turn never ends, so the second press finds it working.
   const { adapter, repo, session, sessions } = await blockedTwo();
