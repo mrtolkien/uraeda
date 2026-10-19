@@ -81,7 +81,18 @@ export async function runVerifier(options: {
 
 /** The branch's diff against `base`, without the `specs/` folder: what the verifier grades. */
 export function finalDiff(repo: string, base: string): Promise<string> {
-  return git(repo, ["diff", "--binary", base, "HEAD", "--", ".", ":(exclude)specs"]);
+  return git(repo, [
+    "diff",
+    "--binary",
+    "--no-ext-diff",
+    "--no-textconv",
+    "--no-color",
+    base,
+    "HEAD",
+    "--",
+    ".",
+    ":(exclude)specs",
+  ]);
 }
 
 /** Runs the task's hidden tests on the branch's final diff. */

@@ -30,6 +30,8 @@ async function repository(change: boolean) {
   await git(repo, ["init", "-q", "-b", "main"]);
   await git(repo, ["config", "user.email", "t@example.com"]);
   await git(repo, ["config", "user.name", "t"]);
+  // A user's diff tool must not change the patch the verifier applies.
+  await git(repo, ["config", "diff.external", "echo EXTERNAL"]);
   write(join(repo, "app.py"), "a\n");
   await git(repo, ["add", "-A"]);
   await git(repo, ["commit", "-q", "-m", "base"]);
@@ -76,7 +78,7 @@ test("US4.1: applies the diff without specs/ to a fresh container", async () => 
   const { calls, tests } = await grade(true, ["t::new", "t::other", "t::old"]);
 
   expect(calls).toHaveLength(1);
-  expect(calls[0]?.patch).toContain("app.py");
+  expect(calls[0]?.patch).toMatch(/^diff --git a\/app\.py b\/app\.py/);
   expect(calls[0]?.patch).not.toContain("specs/");
   expect(calls[0]?.args.slice(0, 3)).toEqual(["run", "--rm", "--entrypoint"]);
   expect(tests).toEqual({ passed: 3, resolved: true, total: 3 });
