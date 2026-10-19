@@ -138,8 +138,9 @@ async function readAgain(back: DocumentVisibilityState = "hidden") {
     document.dispatchEvent(new Event("visibilitychange"));
     visibility = back;
     document.dispatchEvent(new Event("visibilitychange"));
-    await new Promise((resolve) => setTimeout(resolve, 30));
   });
+  // Every request the reading sent is answered, and drawn.
+  await quiet();
 }
 
 /** The number the tab's title counts, 0 when it counts nothing. */

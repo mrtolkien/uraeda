@@ -128,7 +128,9 @@ test("a wrong key keeps the text, signs nothing in, and says something other tha
 
 /** The page's text once the sign-in's answer has been drawn. */
 async function settledText() {
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
+  await waitFor(() =>
+    expect(document.body.textContent).toMatch(/not Uraeda's access key|Could not reach the Uraeda/),
+  );
   return document.body.textContent ?? "";
 }
 

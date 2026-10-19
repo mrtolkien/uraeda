@@ -246,7 +246,10 @@ test("a verdict with a comment open that holds text is refused and commits nothi
   await writeComment("Half a tho");
 
   await click(screen.getByRole("button", { name: "Approve" }));
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 100)));
+  // The refusal is said before any commit starts, so none follows it.
+  await waitFor(() =>
+    expect(document.body.textContent).toContain("Add or cancel your comment first."),
+  );
 
   expect(lastSubject(FOLDERS.unsent)).toBe(`work on ${FOLDERS.unsent}`);
   expect(field().value).toBe("Half a tho");

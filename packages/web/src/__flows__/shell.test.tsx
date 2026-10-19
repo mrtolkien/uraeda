@@ -285,7 +285,9 @@ test("＋'s Undo refuses once the line it added was changed, and changes nothing
   await click(undo);
 
   // Nothing is removed: the human's line stays, as it was edited, and the toast says why.
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+  await screen.findByText(
+    `Could not undo: "Show the agent's last commit" is no longer in PRIORITIES.md.`,
+  );
   expect(read(app.repo)).toBe(edited);
 });
 

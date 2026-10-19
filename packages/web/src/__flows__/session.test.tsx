@@ -1,8 +1,9 @@
 // Flow: a chat and a feature's session. A message reaches the agent and its reply is shown; one
 // sent during a turn waits and can be taken back; Stop ends a turn; a refusal keeps the human's
 // text next to the composer; images are attached, removable, and deleted when removed.
-import { act, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
+import { IMAGE_REFUSALS } from "uraeda-server/limits";
 import { click, refreshUntil, startApp, type } from "./harness.tsx";
 import {
   composer,
@@ -165,7 +166,8 @@ test("an agent that takes no images refuses them, and attaches nothing", async (
   await paste([png()]);
   await drop([png()]);
 
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
+  // The refusal is said, so both the paste and the drop were handled.
+  await waitFor(() => expect(document.body.textContent).toContain(IMAGE_REFUSALS.noImages));
   expect(screen.queryAllByRole("button", { name: /^Remove / })).toHaveLength(0);
   expect(screen.queryByLabelText(/^Add image/, { selector: "input" })).toBeNull();
 });
