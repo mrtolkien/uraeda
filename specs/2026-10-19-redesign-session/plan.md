@@ -390,7 +390,7 @@ of the agent's process, and a rule shared by the runner, the record, and the pag
   - A turn's stored `allowed`: the rules joined with `\n`, deduplicated in first-seen order.
   - `allowRule` returns `undefined` when its rule contains `\n`.
 
-- [ ] **Step 1: Structural: move the allow logic out of `sessions.ts`**
+- [x] **Step 1: Structural: move the allow logic out of `sessions.ts`**
 
 `sessions.ts` is 487 lines and `allow` grows. Move `allow`'s body into `runner/allow.ts`, with
 `Sessions.allow` calling it, and change nothing else. Run
