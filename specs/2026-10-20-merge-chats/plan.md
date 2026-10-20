@@ -967,7 +967,7 @@ git commit -m "feat(merge-chats): a feature's page lists its sessions, with New 
   `references/conventions.md` ("chat" wording), `README.md` if it names chats or "New change"
 - Test: `nix develop -c cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`
 
-- [ ] **Step 1: Rewrite the texts**
+- [x] **Step 1: Rewrite the texts**
 
 - Rule 8 becomes "In a session, offer a change for a code change": the offer is a fenced block,
   ` ```uraeda-offer change ` holding the proposal in the human's words with `# Title` first, or
@@ -983,13 +983,13 @@ git commit -m "feat(merge-chats): a feature's page lists its sessions, with New 
   give the human `git branch -D <branch>`.
 - Replace "chat" by "session" where it means Uraeda's conversation.
 
-- [ ] **Step 2: Check the skill**
+- [x] **Step 2: Check the skill**
 
 - Run:
   `nix develop -c cargo run -q -p uraeda-cli -- check specs && nix develop -c cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && nix develop -c vp check`
 - Expected: PASS; `rg -n -w chat skills/uraeda` finds only generic uses.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills README.md specs/2026-10-20-merge-chats/plan.md

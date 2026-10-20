@@ -14,7 +14,7 @@ delivers the branch as a pull request for the human to review.
 Build the plan's tasks within the approved behaviour and required contracts, prove the change and
 preserved guarantees, and leave the record in git. Private implementation choices can improve as the
 code reveals a simpler design: amend the plan and record the reason in `rulings.md`. Nobody waits in
-a chat: do not stop to check in between tasks. Git is the only memory: the checked boxes of
+the session: do not stop to check in between tasks. Git is the only memory: the checked boxes of
 `plan.md` and the commits say how far the work went, so any agent can resume it.
 
 ## Before the first task
@@ -331,7 +331,8 @@ description, written when it is marked ready, reads like a file waiting for the 
 - **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 If you cannot open a pull request, push the branch, and put the description in the body of the last
-commit. In a chat session, say the same in one or two sentences, with the pull request's link.
+commit. When the human talks with you in the session, say the same in one or two sentences, with the
+pull request's link.
 
 ## Comments on the pull request
 

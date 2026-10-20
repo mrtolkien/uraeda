@@ -164,11 +164,12 @@ The record replaces its folder in the branch's last commit, while git keeps the 
 When your answers raise new questions, a second round follows, `discovery-02.md` and
 `clarifications-02.md`, and so on.
 
-Bug fixes and small changes take a lighter flow, a change. You type the request under "New change"
-in the web UI, and its agent works in its own branch and worktree. It investigates and asks only
-what you must decide. It makes the change with tests that fail first, has a fresh reviewer check it,
-and opens a pull request. There is no spec and no plan, and often nothing to answer before the
-review. A change that turns out too big is offered to you as a feature.
+Bug fixes and small changes take a lighter flow, a change. You type the request under Change on the
+web UI's New page, or accept the change the agent offers in a session. Its agent works in its own
+branch and worktree. It investigates and asks only what you must decide. It makes the change with
+tests that fail first, has a fresh reviewer check it, and opens a pull request. There is no spec and
+no plan, and often nothing to answer before the review. A change that turns out too big is offered
+to you as a feature, and becomes one in place, its code kept.
 
 Small things you notice while working, a misaligned icon or a confusing command, go in the inbox,
 `specs/INBOX.md`, in a few seconds. Use the web UI's ＋, or `ura note`, which agents use too. You
@@ -337,20 +338,20 @@ listens on 127.0.0.1 only. `tailscale serve --bg 4310` reaches it from your phon
 `https://mac.tail1234.ts.net/`. The npm package reads no `.env`: its settings come from its flags,
 its environment, and your settings file.
 
-Sessions need `claude` installed and signed in on the machine. Each feature has one session, in its
-worktree, where the workflow's runs and your chat follow each other. "New chat" opens one without a
-feature, in the main checkout. The buttons that hand a feature over, like "Commit and start the
-agent" and "Approve and start the agent", commit. They then open its session with the workflow's
-message in the composer. Nothing goes until you send it. A message sent while the agent works is
-steered into its turn. Stop ends the turn and keeps the session. The sidebar shows every session
-with what needs you, what works, and each new reply. Claude Code runs in `auto` permission mode,
-with your own settings, and with the server's copy of the skill as a plugin: see the
-[agents](specs/decisions/agents.md) decision. Without `claude`, the pages only commit. Sessions are
-kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder, `~/.local/share/uraeda/`
-on Linux. There, a running server keeps the files that only live while it runs, like its host token
-and its Storybooks' records, in `run/`. When Claude Code changes and sessions break,
-`vp run validate:claude` checks the integration against the installed `claude`, with a few short
-sessions.
+Sessions need `claude` installed and signed in on the machine. Every conversation with the agent is
+a session. "＋ New" opens one in the main checkout, or starts a change or a feature. A change or a
+feature holds one or more sessions, in its worktree, where the workflow's runs and your messages
+follow each other. The buttons that hand a feature over, like "Commit and start the agent" and
+"Approve and start the agent", commit. They then open its session with the workflow's message in the
+composer. Nothing goes until you send it. A message sent while the agent works is steered into its
+turn. Stop ends the turn and keeps the session. The sidebar shows every session with what needs you,
+what works, and each new reply. Claude Code runs in `auto` permission mode, with your own settings,
+and with the server's copy of the skill as a plugin: see the [agents](specs/decisions/agents.md)
+decision. Without `claude`, the pages only commit. Sessions are kept in `runner.sqlite`, in
+`URAEDA_DATA_DIR` or your system's data folder, `~/.local/share/uraeda/` on Linux. There, a running
+server keeps the files that only live while it runs, like its host token and its Storybooks'
+records, in `run/`. When Claude Code changes and sessions break, `vp run validate:claude` checks the
+integration against the installed `claude`, with a few short sessions.
 
 The code is under the MIT or Apache-2.0 licenses, at your option.
 
