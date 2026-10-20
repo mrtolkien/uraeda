@@ -82,9 +82,12 @@ test("each fixture repository owns its history, refs, index, configuration, and 
   // No git data is shared, even through a hard link or an alternate object store: a copy's file
   // with another link may be changed in place through that link.
   for (const repo of [before, changed, after]) {
-    const linked = filesUnder(join(repo, ".git")).filter((file) => statSync(file).nlink > 1);
+    // The working files count too: `cp -al` links them without touching `.git`.
+    const linked = filesUnder(repo).filter((file) => statSync(file).nlink > 1);
     expect(linked).toEqual([]);
     expect(existsSync(join(repo, ".git/objects/info/alternates"))).toBe(false);
+    // `git clone --shared` borrows through its own `alternate:` line, whatever the files say.
+    expect(git(repo, "count-objects", "-v")).not.toContain("alternate:");
   }
 });
 
@@ -127,6 +130,8 @@ test("a commit that fails on a branch removes the temporary worktree it added", 
 
 /** How many of the tests' temporary folders the file's temporary folder holds. */
 function leftovers(): number {
+  // The count is of this file's own folder only because the setup isolates `TMPDIR`.
+  expect(tmpdir()).toContain("uraeda-test-");
   return readdirSync(tmpdir()).filter((name) => name.startsWith("uraeda-")).length;
 }
 

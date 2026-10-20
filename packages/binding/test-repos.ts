@@ -96,6 +96,7 @@ function owned(prefix: string, fill: (folder: string) => void): string {
     fill(folder);
   } catch (error) {
     rmSync(folder, { force: true, recursive: true });
+    temporary.splice(temporary.indexOf(folder), 1);
     throw error;
   }
   return folder;
