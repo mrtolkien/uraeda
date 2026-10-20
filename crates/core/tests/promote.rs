@@ -326,13 +326,27 @@ fn a_refused_relink_renames_nothing() {
     assert_eq!(repo.git(&["branch", "--list", FOLDER]), "");
 }
 
-/// Edge case: a pushed change is renamed locally; its remote branch stays.
+/// Edge case: a pushed change is renamed locally; its remote branch stays, and is no longer its
+/// upstream, so a later `git push -u` sets the feature's.
 #[test]
 fn a_pushed_change_is_renamed_locally_only() {
     let repo = started(Kind::Change);
     repo.push(CHANGE_BRANCH);
+    repo.git(&[
+        "branch",
+        "--quiet",
+        "--set-upstream-to",
+        &format!("origin/{CHANGE_BRANCH}"),
+        CHANGE_BRANCH,
+    ]);
 
     promote(&repo).unwrap();
+
+    let config = repo.git(&["config", "--list", "--local"]);
+    assert!(
+        !config.contains(&format!("branch.{FOLDER}.merge")),
+        "{config}"
+    );
 
     let remote = repo.git(&["ls-remote", "--heads", "origin"]);
     assert!(
