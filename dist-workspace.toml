@@ -11,8 +11,8 @@ ci = "github"
 installers = ["shell", "homebrew"]
 # A GitHub repo to push Homebrew formulas to
 tap = "mrtolkien/homebrew-tap"
-# Publish jobs to run in CI
-publish-jobs = ["homebrew"]
+# Publish jobs to run in CI: our Homebrew job adds Tab completion to the formula dist generates
+publish-jobs = ["./publish-homebrew"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
   "aarch64-apple-darwin",
