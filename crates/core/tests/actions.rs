@@ -1841,6 +1841,23 @@ fn a_typed_text_starts_a_change() {
     assert_eq!(repo.porcelain(), "");
 }
 
+/// A session moving to a change leaves the main checkout's edits where they are: a typed text
+/// starts over them, and they stay uncommitted.
+#[test]
+fn a_typed_text_starts_over_uncommitted_changes_elsewhere() {
+    let repo = draft_repo();
+    repo.write("README.md", "# Changed\n");
+    repo.write("src/auth/guard.ts", "export {};\n");
+
+    start_text(&repo, TYPED, &[], Some("centred-x")).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore(centred-x): start Centre the x in failure circles"
+    );
+    assert_eq!(repo.porcelain(), " M README.md\n?? src/\n");
+}
+
 /// US1.2: the images are saved in the change's folder and committed with its proposal, on main.
 #[test]
 fn a_typed_text_brings_its_images() {

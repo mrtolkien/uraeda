@@ -204,7 +204,11 @@ impl Start<'_> {
         };
         // Which of the draft's files are committed, read before any write of ours.
         let tracked = self.tracked(&files);
-        self.check_clean(&files)?;
+        match &origin {
+            Origin::Draft(_) => self.check_clean(&files)?,
+            // A typed change commits its own folder with the entry: the main checkout's edits stay.
+            Origin::Text(..) => check_staged(&self.at)?,
+        }
         let destination = folder_path(self.kind, &folder);
         let target = format!("/{destination}/proposal.md");
         let priorities_text =
@@ -332,6 +336,11 @@ pub(crate) fn check_clean(at: &Git, files: &[String]) -> Result<(), StartError> 
             others.join(", ")
         )));
     }
+    check_staged(at)
+}
+
+/// Refuses staged files other than `PRIORITIES.md`, which a start commit would carry.
+fn check_staged(at: &Git) -> Result<(), StartError> {
     let staged = crate::git::others_staged(&at.staged_files()?, &["specs/PRIORITIES.md".into()]);
     if !staged.is_empty() {
         return Err(GitError::OtherStagedFiles(staged).into());
