@@ -34,7 +34,7 @@ import {
 } from "../fate.ts";
 import { callSiteError } from "../fate/errors.ts";
 import { mutations } from "../fate/mutations.ts";
-import { withWholeFields } from "../fate/select.ts";
+import { rewritten } from "../fate/select.ts";
 import { createSources, type DataView, fileSource } from "../fate/source.ts";
 import type { AgentRecord, SessionRecord } from "../fate/views.ts";
 import type { ChatImage } from "../runner/images.ts";
@@ -215,13 +215,7 @@ export function createRequestFixture(options: RequestFixtureOptions) {
       return fail(`${request.method} ${pathname} after the test`);
     }
     if (request.method === "POST" && pathname === `${base}/fate`) {
-      return server.handleRequest(
-        new Request(request.url, {
-          body: JSON.stringify(withWholeFields(await request.json())),
-          headers: { "content-type": "application/json" },
-          method: "POST",
-        }),
-      );
+      return server.handleRequest(await rewritten(request));
     }
     if (request.method === "POST" && pathname === `${base}/attach` && options.attach) {
       // The server reads the target and the name from the query, before the body.
