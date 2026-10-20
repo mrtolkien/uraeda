@@ -1,9 +1,13 @@
-// The feature page's features, one per state its stories, browser tests, and screenshots show, each
-// with typed commits dated in UTC, so its stages are timed: built on the fixture repository's
-// `main`, from the recurring tasks' files of `fixtures/repo/`.
+// The sample features Storybook's fixture, the screenshots, and the sandbox build, each "a feature
+// at a step", on the fixture repository's `main`: the feature page's, one per state its stories,
+// browser tests, and screenshots show, from the recurring tasks' files of `fixtures/repo/`, each
+// with typed commits dated in UTC, so its stages are timed; the round page's mockups, from
+// `fixtures/round-mockup/`; and the spec page's features, from `fixtures/spec-page/`.
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  addSpecFeature,
+  commitOnBranch,
   commitsAt,
   type DatedCommit,
   ELEVEN,
@@ -13,10 +17,75 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { recordRun } from "uraeda-server/testing";
-import { FEATURE_PAGES } from "./checkouts.ts";
+import { FEATURE_PAGES, SPEC_PAGES } from "./folders.ts";
+
+/** The date of every commit a dated build makes, but the feature page's own. */
+export const DATE = "2026-10-16T09:00:00Z";
+
+/**
+ * Runs `build` with git's author and committer dates set to `DATE`, so its commits are the same at
+ * every run, then restores the dates the environment had.
+ */
+export function dated<T>(build: () => T): T {
+  const names = ["GIT_AUTHOR_DATE", "GIT_COMMITTER_DATE"] as const;
+  const before = names.map((name) => process.env[name]);
+  for (const name of names) {
+    process.env[name] = DATE;
+  }
+  try {
+    return build();
+  } finally {
+    names.forEach((name, index) => {
+      const value = before[index];
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    });
+  }
+}
+
+/** A file of the round page's mockup feature, from `fixtures/round-mockup/` (R5). */
+function roundMockupFile(name: string): string {
+  return readFileSync(fixture(`round-mockup/${name}`), "utf8");
+}
+
+/**
+ * Adds a round page's mockup feature, its round in the clarifications redesign's format with its
+ * Q1 answered `answer`, on its own branch, from `main`, without a worktree. Answered B, its Q1 asks
+ * its follow-up.
+ */
+export function addRoundMockup(repo: string, folder: string, answer: string) {
+  git(repo, "branch", folder, "main");
+  // Q1's answer line is the round's first.
+  const round = roundMockupFile("clarifications-01.md").replace(
+    "**Answer:**\n",
+    `**Answer:** ${answer}\n`,
+  );
+  commitOnBranch(repo, folder, {
+    [`specs/${folder}/clarifications-01.md`]: round,
+    [`specs/${folder}/proposal.md`]: roundMockupFile("proposal.md"),
+  });
+}
+
+/** Adds the spec page's features to `repo`: its spec waiting for review, and approved. */
+export function addSpecPages(repo: string) {
+  addSpecFeature(repo, { folder: SPEC_PAGES.waiting });
+  addSpecFeature(repo, { folder: SPEC_PAGES.approved, status: "approved" });
+}
+
+/** A pull request as `gh pr list --json` lists it. */
+export type FakePullRequest = {
+  headRefName: string;
+  isDraft: boolean;
+  number: number;
+  reviewDecision: "" | "CHANGES_REQUESTED";
+  url: string;
+};
 
 /** The pull request `gh` lists for `FEATURE_PAGES.pullRequest`. */
-const PULL_REQUEST = {
+const PULL_REQUEST: FakePullRequest = {
   headRefName: FEATURE_PAGES.pullRequest,
   isDraft: false,
   number: 31,
@@ -53,13 +122,13 @@ const RUNS = [
 ] as const;
 
 /** A file of the recurring tasks' feature in `fixtures/repo/`. */
-function recurring(name: string): string {
+export function recurring(name: string): string {
   const folder = "2026-10-06-recurring-tasks";
   return readFileSync(fixture(`repo/branches/${folder}/specs/${folder}/${name}`), "utf8");
 }
 
 /** The slug of a folder: its name without its date. */
-const slugOf = (folder: string) => folder.slice(11);
+export const slugOf = (folder: string) => folder.slice(11);
 
 /** `count` numbered lines of code. */
 function lines(count: number, prefix: string): string {
@@ -67,14 +136,15 @@ function lines(count: number, prefix: string): string {
 }
 
 /** A proposal titled `title`. */
-const proposal = (title: string) =>
+export const proposal = (title: string) =>
   `# ${title}\n\n## What\n\nRounds of questions read as a flat list.\n\n## Why\n\nThey take too long to answer.\n`;
 
 /** The spec of the recurring tasks, its status `status`. */
-const spec = (status: string) => recurring("spec.md").replace(/^status: .*$/m, `status: ${status}`);
+export const spec = (status: string) =>
+  recurring("spec.md").replace(/^status: .*$/m, `status: ${status}`);
 
 /** A UTC time of Oct 17 or Oct 18, 2026, "17 10:52" giving Oct 17 at 10:52. */
-const at = (time: string) => `2026-10-${time.replace(" ", "T")}:00Z`;
+export const at = (time: string) => `2026-10-${time.replace(" ", "T")}:00Z`;
 
 /**
  * The commits of a feature's first stages, from its proposal at 10:52 on Oct 17 to its plan at
@@ -303,14 +373,21 @@ export function recordFeatureRuns(dataDir: string, repo: string) {
 }
 
 /**
- * Puts first on this process's PATH a `gh` that lists `FEATURE_PAGES.pullRequest`'s pull request,
- * #31, open, as `feature-page.test.tsx` fakes it (R24): the server and the core read it as they
- * read GitHub's, and answer as they do.
+ * Puts first on this process's PATH a `gh` that lists `pullRequests` as the open ones: the server
+ * and the core read it as they read GitHub's, and answer as they do.
  */
-export function listPullRequest() {
+export function fakeGh(pullRequests: Array<FakePullRequest>) {
   const bin = temporaryFolder("uraeda-gh");
   const gh = join(bin, "gh");
-  writeFileSync(gh, `#!/bin/sh\necho '${JSON.stringify([PULL_REQUEST])}'\n`);
+  writeFileSync(gh, `#!/bin/sh\necho '${JSON.stringify(pullRequests)}'\n`);
   chmodSync(gh, 0o755);
   process.env.PATH = `${bin}:${process.env.PATH ?? ""}`;
+}
+
+/**
+ * Puts first on this process's PATH a `gh` that lists `FEATURE_PAGES.pullRequest`'s pull request,
+ * #31, open, as `feature-page.test.tsx` fakes it (R24).
+ */
+export function listPullRequest() {
+  fakeGh([PULL_REQUEST]);
 }

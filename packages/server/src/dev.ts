@@ -118,7 +118,8 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
  * origins the server of a port allows besides its own, none by default. `lockedList` locks the
  * server's list, as Uraeda's own Storybook does: see `unlockedList`. Sessions are checked unless
  * `signIn` is false, as for the browser tests and Uraeda's own Storybook; a key the start makes is
- * printed, as `uraeda` prints it. A start that fails answers 500 with its reason, and the next
+ * printed, as `uraeda` prints it. `started` is called with the server once it has started, as the
+ * sandbox starts its turn at work. A start that fails answers 500 with its reason, and the next
  * request tries again.
  */
 export function devHandler(
@@ -128,12 +129,14 @@ export function devHandler(
     allowOrigins,
     lockedList = false,
     signIn = true,
+    started,
     ...sources
   }: {
     adapter?: Adapter;
     allowOrigins?: (port: number) => Array<string>;
     lockedList?: boolean;
     signIn?: boolean;
+    started?: (server: Server) => void;
   } & Sources = {},
 ) {
   const env = loadEnv(root, process.env, sources);
@@ -167,19 +170,20 @@ export function devHandler(
     if (server.key !== undefined) {
       process.stdout.write(keyLines(server.key));
     }
+    started?.(server);
     return { listener: getRequestListener(server.app.fetch), server };
   };
   const serverOf = (port: number) => {
-    let started = servers.get(port);
-    if (!started) {
-      started = start(port);
-      servers.set(port, started);
-      started.catch((error: Error) => {
+    let pending = servers.get(port);
+    if (!pending) {
+      pending = start(port);
+      servers.set(port, pending);
+      pending.catch((error: Error) => {
         servers.delete(port);
         process.stderr.write(`uraeda: ${error.message}\n`);
       });
     }
-    return started;
+    return pending;
   };
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (!SERVER_PATHS.test(req.url ?? "")) {

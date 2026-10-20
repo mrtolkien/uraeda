@@ -8,10 +8,13 @@
   },
   "include": [
     "src",
+    "sandbox",
+    "samples",
     "scripts",
     ".storybook",
     "vite.config.ts",
     "vite.browser.config.ts",
+    "vite.sandbox.config.ts",
     ".fate/*.ts"
   ]
 }

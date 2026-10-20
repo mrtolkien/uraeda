@@ -27,9 +27,23 @@ async function main() {
   return within(await screen.findByRole("main"));
 }
 
-/** A count of home's top, by its name: its whole text, its number included. */
-async function count(name: string) {
-  return (await (await main()).findByRole("group", { name })).textContent;
+/** A count of home's top, by its name or its place: its whole text, its number included. */
+async function count(name: string | number) {
+  const page = await main();
+  if (typeof name === "number") {
+    return (await page.findAllByRole("group"))[name]?.textContent;
+  }
+  return (await page.findByRole("group", { name })).textContent;
+}
+
+/**
+ * The card of what waits on the human, which comes first: found by its place and its rows' actions,
+ * not by its heading's words, which a rename changes.
+ */
+async function needsCard() {
+  const page = await main();
+  await page.findAllByRole("link", { name: /Web UI for the workflow files/ });
+  return within((await page.findAllByRole("region"))[0]);
 }
 
 /** A card of home, by its heading, which names it: its heading and its rows. */
@@ -53,7 +67,7 @@ function row(list: HTMLElement, name: RegExp) {
 /** The headings of home's cards, in the page's order. */
 async function headings() {
   const page = await main();
-  await page.findByRole("heading", { name: /^Needs you/ });
+  await needsCard();
   return page.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
 }
 
@@ -79,13 +93,13 @@ test("shows the four counts, then the cards in their order", async () => {
 
   // The tests' fixture: three features at a gate and one agent's, where Storybook's, with its
   // checkouts of the story embeds, has four and four (R15).
-  expect(await count("Needs you")).toMatch(/^Needs you3/);
+  expect(await count(0)).toMatch(/^\D+3\D/);
   expect(await count("Agents")).toMatch(/^Agents1/);
   // The four entries of Now are started, so none waits.
   expect(await count("Now")).toMatch(/^Now04 ongoing/);
   expect(await count("Inbox")).toMatch(/^Inbox10/);
   expect(await headings()).toEqual([
-    expect.stringMatching(/^Needs you/),
+    expect.any(String),
     expect.stringMatching(/^Agents at work/),
     "Recently done",
     expect.stringMatching(/^Priorities/),
@@ -99,8 +113,8 @@ test("shows the four counts, then the cards in their order", async () => {
 test("Needs you lists what waits on the human, by action", async () => {
   await renderPage();
 
-  const needs = await card(/^Needs you/);
-  const list = needs.getByRole("list", { name: "Needs you" });
+  const needs = await needsCard();
+  const list = needs.getByRole("list");
   const web = row(list, /Web UI for the workflow files/).row;
   expect(web.getByText("Answer")).toBeTruthy();
   expect(
@@ -257,8 +271,9 @@ test("Needs you says so when nothing waits on the human", async () => {
   }
   await renderPage("/", repo);
 
-  expect((await card(/^Needs you/)).getByText("Nothing waits on you.")).toBeTruthy();
-  expect(await count("Needs you")).toMatch(/^Needs you0/);
+  const first = within((await (await main()).findAllByRole("region"))[0]);
+  expect(await first.findByText("Nothing waits on you.")).toBeTruthy();
+  expect(await count(0)).toMatch(/^\D+0\D/);
 });
 
 /** US7 8 */
@@ -270,9 +285,9 @@ test("on a phone, the counts and the cards come in the same order", async () => 
     const counts = (await (await main()).findAllByRole("group")).map((group) =>
       group.getAttribute("aria-label"),
     );
-    expect(counts).toEqual(["Needs you", "Agents", "Now", "Inbox"]);
+    expect(counts).toEqual([expect.any(String), "Agents", "Now", "Inbox"]);
     expect(await headings()).toEqual([
-      expect.stringMatching(/^Needs you/),
+      expect.any(String),
       expect.stringMatching(/^Agents at work/),
       "Recently done",
       expect.stringMatching(/^Priorities/),
@@ -381,7 +396,7 @@ test("a spec whose status cannot be read needs a fix", async () => {
   });
   await renderPage("/", repo);
 
-  const needs = await card(/^Needs you/);
-  const tuis = row(needs.getByRole("list", { name: "Needs you" }), /CLI TUIs/);
+  const needs = await needsCard();
+  const tuis = row(needs.getByRole("list"), /CLI TUIs/);
   expect(tuis.row.getByText("Fix")).toBeTruthy();
 });

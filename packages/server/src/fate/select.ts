@@ -29,3 +29,11 @@ export function withWholeFields(body: unknown): unknown {
     ),
   };
 }
+
+/** The request with its selections as whole fields, the way they reach fate. */
+export const rewritten = async (request: Request) =>
+  new Request(request.url, {
+    body: JSON.stringify(withWholeFields(await request.json().catch(() => undefined))),
+    headers: request.headers,
+    method: "POST",
+  });

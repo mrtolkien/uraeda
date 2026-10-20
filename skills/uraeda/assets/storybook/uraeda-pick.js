@@ -5,9 +5,14 @@
 // To the embedding page, `window.parent`, it posts:
 // - `{ uraeda: "ready" }` once loaded;
 // - `{ uraeda: "size", height }` when the story's height changes;
-// - `{ uraeda: "picked", role, name, text }` for the element pressed or clicked in pick mode;
+// - `{ uraeda: "picked", role, name, text, source, html }` for the element pressed or clicked in
+//   pick mode, or focused when Enter or Space is pressed without a modifier: `text` is its text,
+//   cut at 200 characters and then ending with "…", `source` the nearest `data-insp-path` of the
+//   element or its parents, else `null`, and `html` its outer HTML, cut at 2000 characters;
 // - `{ uraeda: "pick-stopped" }` when Escape ends pick mode.
-// From it, it obeys `{ uraeda: "pick", on }`, and ignores every other window.
+// From it, it obeys `{ uraeda: "pick", on }`, and ignores every other window. Elements inside
+// `[data-uraeda-pick-ignore]` are never outlined or picked, and their events reach them in pick
+// mode, so a page's own controls for picking keep working.
 //
 // Its names are kept in a block, out of the page's global scope.
 
@@ -122,6 +127,12 @@
   /** The native controls, which keep their role under `presentation` or `none`. */
   const NATIVE = "a[href], button, input, select, summary, textarea";
 
+  /** The elements pick mode leaves to the page, and all inside them. */
+  const IGNORED = "[data-uraeda-pick-ignore]";
+
+  /** The keys that pick the focused element. */
+  const KEYS = new Set(["Enter", " "]);
+
   /** The roles that say an element has none; never reported. */
   const NO_ROLE = new Set(["none", "presentation"]);
 
@@ -147,11 +158,18 @@
    */
   const TOUCH = ["touchstart", "touchmove", "touchend"];
 
-  /** The events that pick. */
-  const PICKS = ["pointerup", "click"];
-
   /** How long the rest of a picking press is kept from the story, at most, in milliseconds. */
   const PRESS_MS = 1000;
+
+  /**
+   * How long the rest of a picking key press, its repeats and key up, is kept from the story, at
+   * most, in milliseconds: a key held longer is the story's again.
+   */
+  const KEY_MS = 5000;
+
+  /** The most of an element's text, then "…", and of its outer HTML, a pick posts. */
+  const TEXT_MAX = 200;
+  const HTML_MAX = 2000;
 
   /** The white space of a text, collapsed. */
   const SPACES = /\s+/g;
@@ -162,8 +180,9 @@
   let outline = null;
   /** The last height posted. */
   let height = -1;
-  /** Ends keeping the rest of a picking press from the story, while it is kept. */
+  /** End keeping the rest of a picking press, or key press, from the story, while it is kept. */
   let endPress = null;
+  let endKey = null;
 
   /** Posts a message to the embedding page. */
   const post = (message) => page.parent.postMessage(message, "*");
@@ -171,11 +190,15 @@
   /** The trimmed text of an element, its white space collapsed. */
   const textOf = (element) => (element?.textContent ?? "").replaceAll(SPACES, " ").trim();
 
+  /** Whether the element is left to the page in pick mode. */
+  const ignored = (element) => element.closest(IGNORED) !== null;
+
   /**
-   * The element a pointer event picks: the control it is in, a label's control, or its own target.
+   * The element a pointer event picks: the control it is in, a label's control, or its own target;
+   * none inside an ignored element.
    */
   const targetOf = (event) => {
-    if (typeof event.target?.closest !== "function") {
+    if (typeof event.target?.closest !== "function" || ignored(event.target)) {
       return null;
     }
     const control = event.target.closest(CONTROLS);
@@ -261,10 +284,12 @@
     }
   };
 
-  /** Outlines the element under the pointer. */
+  /** Outlines the element under the pointer, and none over an ignored element. */
   const draw = (event) => {
     const target = targetOf(event);
     if (!target) {
+      outline?.remove();
+      outline = null;
       return;
     }
     const box = target.getBoundingClientRect();
@@ -321,38 +346,100 @@
   };
 
   /**
+   * Keeps the rest of the key press that picked from the story, its repeats and its key up, which
+   * would type a space or press a button, until that key up, the window's blur, as the key up then
+   * comes elsewhere or never, pick mode's next start, or `KEY_MS`.
+   */
+  const keepKeyRest = (key) => {
+    const rest = (event) => {
+      if (event.key !== key) {
+        return;
+      }
+      keep(event);
+      if (event.type === "keyup") {
+        endKey();
+      }
+    };
+    const timer = page.setTimeout(() => endKey?.(), KEY_MS);
+    page.addEventListener("keydown", rest, true);
+    page.addEventListener("keyup", rest, true);
+    const blur = () => endKey();
+    page.addEventListener("blur", blur);
+    endKey = () => {
+      page.clearTimeout(timer);
+      page.removeEventListener("keydown", rest, true);
+      page.removeEventListener("keyup", rest, true);
+      page.removeEventListener("blur", blur);
+      endKey = null;
+    };
+  };
+
+  /** Ends pick mode, and posts the element picked. */
+  const pick = (target) => {
+    const role = roleOf(target);
+    const text = textOf(target);
+    stop();
+    post({
+      html: target.outerHTML.slice(0, HTML_MAX),
+      name: nameOf(target, role),
+      role,
+      source: target.closest("[data-insp-path]")?.getAttribute("data-insp-path") ?? null,
+      text: text.length > TEXT_MAX ? `${text.slice(0, TEXT_MAX)}…` : text,
+      uraeda: "picked",
+    });
+  };
+
+  /**
    * Keeps a pointer or touch event from the story; a press outlines its element, as touch has no
-   * hover, and its end, or a click without one, picks it and ends pick mode.
+   * hover, and its end, or a click without one, picks it and ends pick mode. An ignored element's
+   * events reach it.
    */
   const onPointer = (event) => {
+    if (typeof event.target?.closest === "function" && ignored(event.target)) {
+      return;
+    }
     keep(event);
     if (event.type === "pointerdown") {
       draw(event);
     }
     const target = targetOf(event);
-    if (!PICKS.includes(event.type) || !target) {
+    if ((event.type !== "pointerup" && event.type !== "click") || !target) {
       return;
     }
-    const role = roleOf(target);
-    stop();
+    pick(target);
     if (event.type === "pointerup") {
       keepPressRest();
     }
-    post({
-      name: nameOf(target, role),
-      role,
-      text: textOf(target).slice(0, 200),
-      uraeda: "picked",
-    });
   };
 
-  const onEscape = (event) => {
+  /**
+   * Escape ends pick mode, and Enter or Space picks the focused element: the story gets neither key.
+   * A key with a modifier, or one composing text, is the story's, and so is a key with nothing
+   * focused, the body, or an ignored element.
+   */
+  const onKey = (event) => {
     if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopImmediatePropagation();
+      keep(event);
       stop();
       post({ uraeda: "pick-stopped" });
+      return;
     }
+    const focused = page.document.activeElement;
+    const modified = event.ctrlKey || event.metaKey || event.altKey || event.shiftKey;
+    if (
+      !KEYS.has(event.key) ||
+      modified ||
+      event.isComposing ||
+      !focused ||
+      focused === page.document.body ||
+      focused === page.document.documentElement ||
+      ignored(focused)
+    ) {
+      return;
+    }
+    keep(event);
+    keepKeyRest(event.key);
+    pick(focused);
   };
 
   const start = () => {
@@ -361,8 +448,9 @@
     }
     picking = true;
     endPress?.();
+    endKey?.();
     page.addEventListener("pointermove", draw, true);
-    page.addEventListener("keydown", onEscape, true);
+    page.addEventListener("keydown", onKey, true);
     for (const type of [...POINTER, ...TOUCH]) {
       page.addEventListener(type, onPointer, true);
     }
@@ -371,7 +459,7 @@
   const stop = () => {
     picking = false;
     page.removeEventListener("pointermove", draw, true);
-    page.removeEventListener("keydown", onEscape, true);
+    page.removeEventListener("keydown", onKey, true);
     for (const type of [...POINTER, ...TOUCH]) {
       page.removeEventListener(type, onPointer, true);
     }

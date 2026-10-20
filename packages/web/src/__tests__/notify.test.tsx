@@ -4,7 +4,7 @@
 import { act, renderHook, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { type NeedsYouRow, useNotifier } from "../notify/useNotifier.ts";
-import { click, renderPage, refreshUntil } from "./helpers.tsx";
+import { click, homeShown, renderPage, refreshUntil } from "./helpers.tsx";
 
 /** The notifications shown, and the browser's answer to the question. */
 const shown: Array<FakeNotification> = [];
@@ -258,7 +258,7 @@ test("the banner asks nothing of the browser, and Not now keeps it away", async 
   await click(screen.getByRole("button", { name: "Not now" }));
   expect(screen.queryByText("Get notified when an agent needs you")).toBeNull();
   await renderPage("/", repo, { reload: true });
-  await screen.findByRole("heading", { name: /^Needs you/ });
+  await homeShown();
   expect(screen.queryByText("Get notified when an agent needs you")).toBeNull();
 });
 
@@ -290,6 +290,6 @@ test("Turn on, blocked, says so, with Dismiss", async () => {
 test("a browser without notifications shows no banner", async () => {
   vi.stubGlobal("Notification", undefined);
   await renderPage("/");
-  await screen.findByRole("heading", { name: /^Needs you/ });
+  await homeShown();
   expect(screen.queryByText("Get notified when an agent needs you")).toBeNull();
 });

@@ -234,6 +234,15 @@ const folderGit2 = outline(
   h("circle", { cx: 20, cy: 19, r: 2 }),
 );
 
+/** Lucide's `flask-conical`. */
+const flaskConical = outline(
+  h("path", {
+    d: "M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2",
+  }),
+  h("path", { d: "M6.453 15h11.094" }),
+  h("path", { d: "M8.5 2h7" }),
+);
+
 /** Lucide's `git-branch`. */
 const gitBranch = outline(
   h("path", { d: "M15 6a9 9 0 0 0-9 9V3" }),
@@ -411,6 +420,7 @@ const DECISION_ICONS = {
   database,
   eye: review,
   "file-text": fileText,
+  "flask-conical": flaskConical,
   "folder-git-2": folderGit2,
   gauge,
   "git-branch": gitBranch,

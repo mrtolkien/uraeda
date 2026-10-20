@@ -428,7 +428,14 @@ fn a_new_worktree_is_reported_then_watched() {
         "# Changed\n",
     )
     .unwrap();
-    let changes = next(&receiver);
+    // A report of the new worktree's own watch can land after the quiet window above on a loaded
+    // machine (one did, with no files): the write's report is the first that lists a file.
+    let changes = loop {
+        let changes = next(&receiver);
+        if !changes.files.is_empty() {
+            break changes;
+        }
+    };
     assert_eq!(changes.files, ["2026-10-11-web-ui/proposal.md"]);
 }
 

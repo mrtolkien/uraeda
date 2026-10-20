@@ -1,6 +1,6 @@
 // The feature page at both sizes: every stage's line on one line on a desktop (C3), "Next" beside
 // the agent on a desktop and first on the phone (C8), and every layout check in both themes, over
-// the feature page's features of `.storybook/featurePages.ts`, their times read in UTC.
+// the feature page's features of `samples/features.ts`, their times read in UTC.
 import { screen, within } from "@testing-library/react";
 import { page, userEvent } from "vite-plus/test/browser";
 import { afterEach, describe, expect, test } from "vite-plus/test";

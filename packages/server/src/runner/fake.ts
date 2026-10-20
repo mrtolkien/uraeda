@@ -2,8 +2,13 @@ import type { Adapter, AgentProcess, Capabilities, OpenOptions, Outgoing } from 
 import { allowRule } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
 
-/** A scripted step of a fake turn: an event, or a function run in the process's `cwd`. */
-export type FakeStep = AgentEvent | ((cwd: string) => void);
+/**
+ * A scripted step of a fake turn: an event, or a function run in the process's `cwd`, awaited before
+ * the next step is read, so a step can hold the turn, as a wait between streamed events. The
+ * interrupt, the close, and a kill that end the turn cut a pending step short, and abort its signal,
+ * so a wait of its own can stop too. A step that throws ends the process, with its error.
+ */
+export type FakeStep = AgentEvent | ((cwd: string, signal: AbortSignal) => void | Promise<void>);
 
 type Signal = Parameters<AgentProcess["kill"]>[0];
 
@@ -14,6 +19,8 @@ const EXIT_CODES: Record<Signal, number> = { SIGINT: 130, SIGKILL: 137, SIGTERM:
 class FakeProcess implements AgentProcess {
   #steps: Array<FakeStep> = [];
   #wake: (() => void) | undefined;
+  /** Aborted when the steps not read yet are dropped, which ends the step being awaited. */
+  #cut = new AbortController();
   #exited = false;
   #adapter: FakeAdapter;
   #cwd: string;
@@ -52,7 +59,25 @@ class FakeProcess implements AgentProcess {
             continue;
           }
           if (typeof step === "function") {
-            step(this.#cwd);
+            const { signal } = this.#cut;
+            let onAbort!: () => void;
+            const cut = new Promise<void>((resolve) => {
+              onAbort = resolve;
+              signal.addEventListener("abort", onAbort, { once: true });
+            });
+            try {
+              await Promise.race([step(this.#cwd, signal), cut]);
+            } catch (error) {
+              if (signal.aborted) {
+                continue;
+              }
+              this.#drop();
+              this.#exited = true;
+              return { done: false, value: { code: 1, stderr: String(error), type: "exit" } };
+            } finally {
+              // The signal lives as long as the turn: a listener left per step would pile up.
+              signal.removeEventListener("abort", onAbort);
+            }
             continue;
           }
           return { done: false, value: step };
@@ -61,11 +86,17 @@ class FakeProcess implements AgentProcess {
     }),
   };
 
-  /** Records the message, and plays the next scripted turn: read, its steps, then its result. */
+  /**
+   * Records the message, and plays the next scripted turn, else the fallback turn: read, its steps,
+   * then its result.
+   */
   send(message: Outgoing) {
     this.#adapter.sent.push(message);
-    const script = this.#adapter.nextScript();
-    if (script === undefined || this.#exited) {
+    if (this.#exited) {
+      return;
+    }
+    const script = this.#adapter.nextScript() ?? this.#adapter.fallback?.(message);
+    if (script === undefined) {
       return;
     }
     this.push({ id: message.id, type: "accepted" });
@@ -80,6 +111,23 @@ class FakeProcess implements AgentProcess {
     }
   }
 
+  /** Drops the steps not read yet, and cuts short the one being awaited. */
+  #drop() {
+    this.#steps = [];
+    this.#cut.abort();
+    this.#cut = new AbortController();
+  }
+
+  /**
+   * Cuts short the step being awaited and the steps left to await, keeping the events already
+   * written: a process whose stdin ends still flushes what it wrote, but waits no more.
+   */
+  #flush() {
+    this.#steps = this.#steps.filter((step) => typeof step !== "function");
+    this.#cut.abort();
+    this.#cut = new AbortController();
+  }
+
   takeBack(id: string) {
     this.#adapter.takenBack.push(id);
   }
@@ -90,28 +138,36 @@ class FakeProcess implements AgentProcess {
     if (this.#adapter.ignoreInterrupt || this.#exited) {
       return;
     }
-    this.#steps = [];
+    this.#drop();
     this.push({ denials: [], errors: [], interrupted: true, ok: false, type: "result" });
   }
 
-  /** Ends it, unless it ignores its stdin's end. */
+  /**
+   * Ends it after the events it already wrote, cutting its waits short, unless it ignores its
+   * stdin's end.
+   */
   close() {
     this.#adapter.closes++;
-    if (this.#adapter.ignoreClose) {
+    if (this.#adapter.ignoreClose || this.#exited) {
       return;
     }
+    this.#flush();
     this.push({ code: 0, stderr: "", type: "exit" });
   }
 
-  /** SIGKILL ends it; SIGTERM too, unless it ignores it; SIGINT too, unless it is stuck. */
+  /**
+   * SIGKILL ends it; SIGTERM too, unless it ignores it; SIGINT too, unless it is stuck. Each drops
+   * the steps not read yet.
+   */
   kill(signal: Signal) {
     this.#adapter.kills.push(signal);
     if (signal === "SIGINT" && this.#adapter.ignoreInterrupt) {
       return;
     }
-    if (signal === "SIGTERM" && this.#adapter.ignoreTerm) {
+    if ((signal === "SIGTERM" && this.#adapter.ignoreTerm) || this.#exited) {
       return;
     }
+    this.#drop();
     this.push({ code: EXIT_CODES[signal], stderr: "", type: "exit" });
   }
 }
@@ -153,6 +209,11 @@ export class FakeAdapter implements Adapter {
   ignoreTerm = false;
   /** Whether a process says `init` as it opens, with its own session ID; else a test emits it. */
   autoInit = true;
+  /**
+   * The turn played on a message when no turn is scripted, as an agent that answers anything, given
+   * that message; with none, such a message plays nothing.
+   */
+  fallback: ((message: Outgoing) => Array<FakeStep>) | undefined;
   #scripts: Array<Array<FakeStep>> = [];
   #current: FakeProcess | undefined;
 

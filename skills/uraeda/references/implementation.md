@@ -34,8 +34,8 @@ a chat: do not stop to check in between tasks. Git is the only memory: the check
    task's commit: see [Coming back to the human](../SKILL.md#coming-back-to-the-human). When they
    approved it with comments, `plan-review.md` holds them: carry each one out, and say how in the
    pull request's description.
-5. Run the project's validation once, before any change: formatter, linter, type checker, tests. A
-   failure that is already there is reported in the pull request, not fixed in passing.
+5. Run the project's complete validation once, before any change: formatter, linter, type checker,
+   tests. A failure that is already there is reported in the pull request, not fixed in passing.
 
 **Resuming**: start at the first wave with an unchecked step; with `ura`, `ura next` names its first
 unchecked task. The feature branch is the only progress: a task whose boxes are checked on it is
@@ -63,9 +63,9 @@ is reviewed: the review of a wave runs while the next one is built.
    built one after the other. A conflict outside the shared files the plan's **Waves** names means
    the tasks were not independent: give the later task to a fresh implementer, to rebuild on the
    merged code, and write a ruling. In `plan.md`, keep both sides' checked boxes.
-3. **Run the project's validation** on the merged wave. A failure its tasks passed alone is a
-   problem of their combination: give it to a fresh implementer, as [the code is wrong](#each-task)
-   says, before the next wave starts.
+3. **Run the project's complete validation** on the merged wave. A failure its tasks passed alone is
+   a problem of their combination: give it to a fresh implementer, as
+   [the code is wrong](#each-task) says, before the next wave starts.
 4. **Start the review of the wave** in the background, as [review the waves](#review-the-waves)
    says, and **start the next wave** without waiting for it.
 
@@ -101,17 +101,24 @@ again from the repository.
 2. **Work its steps in order.** A structural step comes first, and is committed on its own, with its
    box checked. Write the tests first. Tests of new behaviour must fail for the intended reason
    before implementation; checks of preserved behaviour may already pass and must keep passing. Then
-   implement, and run every command the plan gives. Once a new test passes, make the break its step
-   names, see the test fail, revert it, and report the failure seen in the task's commit body: see
-   [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests never sleep for a fixed
-   time. A problem found outside the task is fixed on the branch when it matters to the feature,
-   dropped when it does not, and noted in the inbox only when it passes the two tests of
-   [agents' notes](inbox.md#agents-notes). Compare each output with the step's **Expected** line:
+   implement, and run every command the plan gives. Once a new test of a risky guarantee passes,
+   make the break its step names, see the test fail, revert it, and report the failure seen in the
+   task's commit body: see [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests
+   never sleep for a fixed time. A problem found outside the task is fixed on the branch when it
+   matters to the feature, dropped when it does not, and noted in the inbox only when it passes the
+   two tests of [agents' notes](inbox.md#agents-notes). Compare each output with the step's
+   **Expected** line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
      a [change](change.md#investigating) does for a bug. Never change a test or an expected value to
-     make a run pass. Changing or deleting an existing test for any other reason takes a ruling.
+     make a run pass. Removing, skipping, or loosening an existing test, or raising a timeout, takes
+     a ruling. A test that fails because of a change the human requested is changed when the change
+     is safe and reversible, and the same response says which test and why; otherwise the work
+     stops, and the response says what conflicts and what each way out costs. Only a case where the
+     spec, the test, and a requested behaviour cannot all hold is a conflict: the work stops, the
+     report says what conflicts and what each way out costs, in the commit body, or in a new round
+     of questions when the human must decide, and the assertion is never weakened.
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in
@@ -124,11 +131,14 @@ again from the repository.
 3. **Run the validation the step needs**, the smallest first:
    - **While working**: the tests the task adds or touches, by file or project, and the fast checks
      (formatter, linter, type checker).
-   - **Before each commit**: the project's validation once. When it is one cached command, run it
-     whole: its cache skips what the task did not change. Otherwise, run its slow suites, such as
-     browser tests and screenshots, only when the task changes what they cover: a UI behaviour, a
-     layout, a route.
-   - **At the final review**: every check the project runs locally, slow suites included.
+   - **Before each commit**: the project's fast check when an active decision defines one, which
+     selects the checks the change can affect and names the checks it defers. Otherwise the
+     project's validation once: when it is one cached command, run it whole, as its cache skips what
+     the task did not change; else run its slow suites, such as browser tests and screenshots, only
+     when the task changes what they cover: a UI behaviour, a layout, a route. Write the deferred
+     checks in the commit body.
+   - **At the final review, and before every push**: the project's complete validation, every check
+     it runs locally, slow suites included. A green fast check never stands for it.
 
    A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
    at most twice. A test that fails intermittently follows the project's rule for flaky tests, when
@@ -233,8 +243,8 @@ branch, there is nothing to do.
    - **In `PRIORITIES.md`**: take the default branch's version, with this feature's entry kept in
      it.
    - **In a decision or the constitution**: stop, and start a new round of questions.
-4. **Run the project's validation.** A failure the default branch brings in is fixed like a final
-   review finding, with a test that fails first, in a commit with the feature's scope.
+4. **Run the project's complete validation.** A failure the default branch brings in is fixed like a
+   final review finding, with a test that fails first, in a commit with the feature's scope.
 
 ### Review the branch
 
@@ -256,9 +266,10 @@ Review the changed subsystem and affected callers, including relevant code outsi
 - **Evidence**: ask which plausible incorrect implementation each important test would reject. For
   risky guarantees, verify this in isolated tests with a focused fault injection or temporary
   removal of the protection, then restore it. Exercise relevant sequences, failures, retries, and
-  changes made elsewhere; use property-based tests when they provide useful coverage. Check explicit
-  architectural constraints separately from functional outcomes, through existing checks where
-  practical. Report what was actually exercised and any unverified assumptions.
+  changes made elsewhere; use property-based tests when they provide useful coverage. List the tests
+  the branch removed, skipped, or loosened, and its timeout changes, with their rulings. Check
+  explicit architectural constraints separately from functional outcomes, through existing checks
+  where practical. Report what was actually exercised and any unverified assumptions.
 - **Change cost**: identify duplicated decisions, unnecessary indirection, and obsolete paths. Trace
   where a likely follow-up change would belong without implementing that feature. Would it need the
   same rule edited in several places, or unrelated internals understood together? Judge the
@@ -311,7 +322,8 @@ description, written when it is marked ready, reads like a file waiting for the 
   without a fresh reviewer.
 - **Links** to the record, and to `spec.md` and `plan.md` at the commit before finishing.
 - **Tests**: each acceptance scenario and review-focus item, with the test that covers it, from the
-  plan's test map.
+  plan's test map. Then, apart, the tests removed, skipped, or loosened and the timeouts changed,
+  each with its ruling and the check that keeps its guarantee, or none.
 - **Size**: each function and file the branch grew, with its length before and after.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Review comments**: when the plan was approved with comments, how each was carried out.
@@ -378,7 +390,8 @@ the bot wrote is part of what they asked.
 **Nothing is written on GitHub**: the agent does not reply to a comment or resolve a thread. Its
 last message lists each comment with what it did, one line each, and the commits say the rest.
 
-**The pass ends** when the pull request is ready for review again: the branch pushed, and the pull
+**The pass ends** when the pull request is ready for review again: the project's complete validation
+run after the pass's last commit (see [each task](#each-task)), the branch pushed, and the pull
 request not a draft, with `gh pr ready`. A new round of questions ends it earlier, at that round's
 gate. A file waiting for the human, `status: awaiting-human`, ends it at that gate too, once the
 comments are handled: the pull request stays a draft, and nothing is finished before the human

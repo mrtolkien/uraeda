@@ -127,6 +127,8 @@ test("refuses a cross-site upload", async () => {
   );
 
   expect(response.status).toBe(403);
+  // The guard's refusal of the origin, not another 403.
+  expect(await response.text()).toBe("Forbidden origin");
   expect(existsSync(join(repo, ".worktrees/2026-10-12-cli-tuis"))).toBe(false);
 });
 
@@ -215,13 +217,14 @@ test("does not serve or delete a chat image outside the images folder", async ()
   expect(removed.status).toBe(404);
 });
 
-test("refuses a chunked upload over the body limit, said to be 21 MB", async () => {
-  // No content-length: the body is counted as it is read, and refused past the limit.
+test("refuses a chunked upload over the body limit, said to be 21 MB, and stops reading it", async () => {
+  // No content-length: the body is counted as it is read, and refused past the limit, 21 MiB.
   const chunk = new Uint8Array(1024 * 1024);
   let sent = 0;
+  // Three times the limit: a server that read it whole would pull every chunk.
   const body = new ReadableStream({
     pull(controller) {
-      if (sent++ < 22) {
+      if (sent++ < 64) {
         controller.enqueue(chunk);
       } else {
         controller.close();
@@ -244,6 +247,24 @@ test("refuses a chunked upload over the body limit, said to be 21 MB", async () 
   expect(await response.json()).toEqual({
     error: "refused: This image is over 20 MB: huge.png is 21 MB.",
   });
+  // The 22nd MiB passes the limit: reading stops there (23 chunks measured), the stream pulling ahead; 30 stays far under the 64 sent.
+  expect(sent).toBeLessThanOrEqual(30);
+});
+
+test("refuses a body under the limit that holds no file, with its own refusal", async () => {
+  const repo = fixtureRepo();
+  const served = await testApp(repo);
+  const body = new FormData();
+  body.set("text", "not an image");
+
+  const response = await served.app.request(
+    `${base(served)}/attach?name=desktop.png&path=${PROPOSAL}`,
+    { body, method: "POST" },
+  );
+
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({ error: "refused: The body holds no file." });
+  expect(existsSync(join(repo, ".worktrees/2026-10-12-cli-tuis"))).toBe(false);
 });
 
 test("refuses an upload with both a path and chat=1, or neither", async () => {
@@ -330,6 +351,9 @@ test("refuses a cross-site upload or deletion without an Origin header", async (
 
   expect(posted.status).toBe(403);
   expect(deleted.status).toBe(403);
+  // The guard's refusal of the site, not another 403.
+  expect(await posted.text()).toBe("Forbidden site");
+  expect(await deleted.text()).toBe("Forbidden site");
   expect(existsSync(join(server.dataDir, "images"))).toBe(false);
 });
 

@@ -8,7 +8,7 @@ import "../theme/built/uraeda.css";
 import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
 import { configure, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, TestRunner } from "vite-plus/test";
+import { afterEach, beforeEach, expect, onTestFinished, TestRunner } from "vite-plus/test";
 import { commands as browserCommands, server, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { App } from "../App.tsx";
@@ -618,4 +618,92 @@ export async function attached(path: string, file: File) {
     throw new Error(answer.error ?? `HTTP ${response.status}`);
   }
   return answer.link;
+}
+
+/** A message the pick script posts for the element picked in pick mode. */
+export type PickedMessage = {
+  html: string;
+  name: string;
+  role: string;
+  source: string | null;
+  text: string;
+  uraeda: "picked";
+};
+
+/**
+ * Turns the pick script's pick mode on or off, resolving once it has: a listener added after the
+ * script's gets the message after it.
+ */
+function pickMode(on: boolean) {
+  return new Promise<void>((resolve) => {
+    const delivered = (event: MessageEvent) => {
+      const data = event.data as { on?: boolean; uraeda?: string } | null;
+      if (data?.uraeda === "pick" && data.on === on) {
+        window.removeEventListener("message", delivered);
+        resolve();
+      }
+    };
+    window.addEventListener("message", delivered);
+    window.postMessage({ on, uraeda: "pick" }, "*");
+  });
+}
+
+/** The skill's pick script, loaded once into the test's page: a second copy would pick twice. */
+let pickScript: Promise<void> | undefined;
+
+/**
+ * Loads the skill's pick script into the test's page, as the sandbox loads it at the top of its own
+ * page: `start` turns pick mode on, `next` waits for the next pick, and `taken` lists the picks
+ * received since. Pick mode is turned off when the test finishes: the script stays loaded, and its
+ * listeners would otherwise keep the next test's clicks as picks.
+ */
+export async function pickScriptOnPage() {
+  pickScript ??= import("../../../../skills/uraeda/assets/storybook/uraeda-pick.js?raw").then(
+    ({ default: source }) => {
+      // Vitest runs each test in a frame of its own page, so the test's `window.parent` is Vitest's
+      // page: the script would post its picks there, and ignore the test's messages, which do not
+      // come from its parent. Run with a view of the test's window whose parent is that window,
+      // it behaves as at the top of the sandbox's page (R8). Methods are bound to the real window,
+      // which they need as `this`; constructors, capitalized, are left as they are.
+      const top = new Proxy(window, {
+        get(target, key) {
+          if (key === "parent") {
+            return window;
+          }
+          const value = Reflect.get(target, key) as unknown;
+          return typeof value === "function" && !/^[A-Z]/.test(String(key))
+            ? value.bind(target)
+            : value;
+        },
+      });
+      new Function("globalThis", source)(top);
+    },
+  );
+  await pickScript;
+  const taken: Array<PickedMessage> = [];
+  const waiting: Array<(message: PickedMessage) => void> = [];
+  const onMessage = (event: MessageEvent) => {
+    if ((event.data as { uraeda?: string } | null)?.uraeda !== "picked") {
+      return;
+    }
+    const message = event.data as PickedMessage;
+    taken.push(message);
+    waiting.shift()?.(message);
+  };
+  window.addEventListener("message", onMessage);
+  onTestFinished(async () => {
+    await pickMode(false);
+    window.removeEventListener("message", onMessage);
+  });
+  let read = 0;
+  return {
+    next() {
+      const index = read++;
+      return index < taken.length
+        ? Promise.resolve(taken[index])
+        : new Promise<PickedMessage>((resolve) => waiting.push(resolve));
+    },
+    start: () => pickMode(true),
+    taken: () => [...taken],
+  };
 }

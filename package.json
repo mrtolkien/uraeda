@@ -8,6 +8,7 @@
     "dev": "node packages/server/scripts/dev.ts",
     "start": "vp run --filter uraeda-binding build && vp run --filter uraeda-web build && node packages/server/src/main.ts",
     "release": "node packages/uraeda/scripts/bump.ts",
+    "sandbox": "node packages/web/sandbox/main.ts",
     "validate:claude": "node packages/server/scripts/validate-claude.ts"
   },
   "devDependencies": {

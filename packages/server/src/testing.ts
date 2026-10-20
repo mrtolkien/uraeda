@@ -8,6 +8,7 @@ import { createSessions, type HostsOf } from "./live.ts";
 import { SessionCache } from "./runner/cache.ts";
 import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
+import type { Sessions } from "./runner/sessions.ts";
 import { ServerSettings } from "./settings.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { OneTimeLinks } from "./sign-in/links.ts";
@@ -16,22 +17,27 @@ import { SignInStore } from "./sign-in/store.ts";
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
 
-export { FakeAdapter };
+export { FakeAdapter, type Sessions };
 
 /**
- * A session manager on the fake adapter, publishing live updates to `hosts`, and not checked yet:
- * it reads unavailable until `sessions.check()`, which finds the agent when `installed`.
+ * A session manager on the fake adapter, `adapter` or a new one, publishing live updates to `hosts`,
+ * and not checked yet: it reads unavailable until `sessions.check()`, which finds the agent when
+ * `installed`. Its cache is in memory, or in the file `cache`, which the caller closes.
  */
-export function fakeSessions({
+export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
+  adapter = new FakeAdapter() as T,
+  cache = ":memory:",
   hosts = () => undefined,
   installed = true,
-}: { hosts?: HostsOf; installed?: boolean } = {}) {
-  const adapter = new FakeAdapter();
+}: { adapter?: T; cache?: string; hosts?: HostsOf; installed?: boolean } = {}): {
+  adapter: T;
+  sessions: Sessions;
+} {
   adapter.installed = installed;
   const sessions = createSessions({
     adapter,
     binding,
-    cache: SessionCache.open(":memory:"),
+    cache: SessionCache.open(cache),
     hosts,
   });
   return { adapter, sessions };

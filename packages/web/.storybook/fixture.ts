@@ -6,10 +6,8 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  addSpecFeature,
   addStoryFeature,
   commitOnBranch,
-  fixture,
   fixtureRepo,
   git,
   previewDecision,
@@ -18,12 +16,18 @@ import {
 import { FakeAdapter } from "uraeda-server/testing";
 import type { Plugin } from "vite-plus";
 import { uraedaServer } from "../vite.config.ts";
-import { CHECKOUTS, ROUND_MOCKUPS, SPEC_PAGES } from "./checkouts.ts";
+import {
+  addFeaturePages,
+  addRoundMockup,
+  addSpecPages,
+  DATE,
+  dated,
+  listPullRequest,
+  recordFeatureRuns,
+  ROUND_MOCKUPS,
+} from "../samples/index.ts";
+import { CHECKOUTS } from "./checkouts.ts";
 import { fateOverGet } from "./fateOverGet.ts";
-import { addFeaturePages, listPullRequest, recordFeatureRuns } from "./featurePages.ts";
-
-/** The date of every commit the fixture is built with. */
-const DATE = "2026-10-16T09:00:00Z";
 
 /** A feature's proposal, for a branch the core reads as that feature. */
 function proposal(title: string): string {
@@ -50,28 +54,6 @@ function addFeature(
   }
 }
 
-/** A file of the round page's mockup feature, from `fixtures/round-mockup/` (R5). */
-function roundMockupFile(name: string): string {
-  return readFileSync(fixture(`round-mockup/${name}`), "utf8");
-}
-
-/**
- * Adds a round page's mockup feature, its round in the clarifications redesign's format with its
- * Q1 answered `answer`, on its own branch, from `main`, without a worktree.
- */
-function addRoundMockup(repo: string, folder: string, answer: string) {
-  git(repo, "branch", folder, "main");
-  // Q1's answer line is the round's first.
-  const round = roundMockupFile("clarifications-01.md").replace(
-    "**Answer:**\n",
-    `**Answer:** ${answer}\n`,
-  );
-  commitOnBranch(repo, folder, {
-    [`specs/${folder}/clarifications-01.md`]: round,
-    [`specs/${folder}/proposal.md`]: roundMockupFile("proposal.md"),
-  });
-}
-
 /** The children of the inbox's note the `Note` pane story shows, committed on `main`. */
 function addNoteChildren(repo: string) {
   const inbox = join(repo, "specs/INBOX.md");
@@ -87,9 +69,7 @@ function addNoteChildren(repo: string) {
  * data and config folders, the config folder empty, all removed when Storybook exits.
  */
 export function storybookFixture(): { configDir: string; dataDir: string; repo: string } {
-  const dates = { GIT_AUTHOR_DATE: DATE, GIT_COMMITTER_DATE: DATE };
-  Object.assign(process.env, dates);
-  try {
+  return dated(() => {
     const repo = join(temporaryFolder("uraeda-storybook"), "fixture");
     renameSync(fixtureRepo(), repo);
     addNoteChildren(repo);
@@ -100,8 +80,7 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
     addFeature(repo, CHECKOUTS.failed, { mode: "fail", worktree: true });
     addFeature(repo, CHECKOUTS.noWorktree, { mode: "ok", worktree: false });
     // The spec page's features: its spec waiting for review, and approved.
-    addSpecFeature(repo, { folder: SPEC_PAGES.waiting });
-    addSpecFeature(repo, { folder: SPEC_PAGES.approved, status: "approved" });
+    addSpecPages(repo);
     // The round page's mockups, in the clarifications redesign's format.
     addRoundMockup(repo, ROUND_MOCKUPS.waiting, "B");
     addRoundMockup(
@@ -114,11 +93,7 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
     const dataDir = temporaryFolder("uraeda-storybook-data");
     recordFeatureRuns(dataDir, repo);
     return { configDir: temporaryFolder("uraeda-storybook-config"), dataDir, repo };
-  } finally {
-    for (const name of Object.keys(dates)) {
-      delete process.env[name];
-    }
-  }
+  });
 }
 
 /**
@@ -130,7 +105,8 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
 export function fixtureServer(): Array<Plugin> {
   const { configDir, dataDir, repo } = storybookFixture();
   listPullRequest();
-  process.env.URA_TODAY = "2026-10-16";
+  // "Today" is the day of the fixture's commits.
+  process.env.URA_TODAY = DATE.slice(0, 10);
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = dataDir;
   process.env.URAEDA_CONFIG_DIR = configDir;

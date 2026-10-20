@@ -15,6 +15,7 @@ const toolchainInputs = [
 const rootConfig = [
   "vite.config.ts",
   "vite.tasks.ts",
+  "scripts/test-policy.ts",
   "tsconfig.json",
   "tsconfig.base.json",
   ...toolchainInputs,
@@ -98,6 +99,12 @@ const tsTestInputs = [
  * The `ready:*` groups, which run nothing themselves, are the units CI's jobs run, uncached.
  */
 export const tasks = {
+  // Selection has no cached result: HEAD and the working tree are runtime inputs. It takes a heavy
+  // slot itself, after selecting, and none when it escalates to ready, whose tasks take their own.
+  fast: {
+    cache: false,
+    command: `${testRun()} ${isolatedGit} node scripts/fast-check.ts`,
+  },
   // The benchmarks of the specs' success criteria: they measure time, so are never replayed.
   bench: {
     cache: false,
@@ -277,11 +284,12 @@ export const tasks = {
         "packages/web/src/**",
         "packages/web/.storybook/**",
         "packages/web/vite.config.ts",
+        "packages/web/vite.transforms.ts",
         "packages/web/package.json",
         "packages/server/src/**",
         "skills/uraeda/assets/storybook/uraeda-preview.js",
         "skills/uraeda/assets/storybook/uraeda-pick.js",
-        "packages/binding/test-utils.ts",
+        "packages/binding/test-{utils,repos}.ts",
         "fixtures/preview/**",
         "pnpm-lock.yaml",
         ...rootConfig,
@@ -334,8 +342,10 @@ export const tasks = {
         ".github/workflows/ci.yml",
         "crates/*/Cargo.toml",
         "crates/*/src/lib.rs",
-        // `vp run coverage`'s summary, tested with the server's tests.
+        // `vp run coverage`'s summary, tested with the server's tests, and fast's selection and
+        // focused configuration, which the scripts tests run.
         "scripts/**",
+        "vite.fast.config.ts",
       ],
       output: [],
       untrackedEnv: testEnv,

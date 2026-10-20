@@ -1,4 +1,5 @@
-// US2: the pick script in a frame of its own, as the spec's messages describe it.
+// US2: the pick script in a frame of its own, as the spec's messages describe it; picks carry the
+// element's source, none here, and its outer HTML (the UI sandbox's task 4).
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type BrowserWindow, type HTMLElement as FrameElement, Window } from "happy-dom";
@@ -87,8 +88,10 @@ test("pick mode reports the clicked element's role and name, and ends", async ()
   frame.click("button");
 
   expect(frame.posted()).toContainEqual({
+    html: "<button>Hide the sidebar</button>",
     name: "Hide the sidebar",
     role: "button",
+    source: null,
     text: "Hide the sidebar",
     uraeda: "picked",
   });
@@ -105,8 +108,10 @@ test("a disabled button, which gets no click, is picked as the press ends", asyn
   frame.dispatch("button", "pointerup");
 
   expect(frame.posted()).toContainEqual({
+    html: '<button disabled="">Save</button>',
     name: "Save",
     role: "button",
+    source: null,
     text: "Save",
     uraeda: "picked",
   });
@@ -171,8 +176,10 @@ test("a click inside a link picks the link", async () => {
   frame.click("span");
 
   expect(frame.posted()).toContainEqual({
+    html: '<a href="/docs" aria-label="Read the docs"><span>Docs</span></a>',
     name: "Read the docs",
     role: "link",
+    source: null,
     text: "Docs",
     uraeda: "picked",
   });
@@ -185,8 +192,10 @@ test("a separator has its role and no name", async () => {
   frame.click("div");
 
   expect(frame.posted()).toContainEqual({
+    html: '<div role="separator" aria-orientation="vertical"></div>',
     name: "",
     role: "separator",
+    source: null,
     text: "",
     uraeda: "picked",
   });
@@ -251,8 +260,10 @@ test("a click inside a dialog picks what it hits, not the dialog", async () => {
   frame.click("p");
 
   expect(frame.posted()).toContainEqual({
+    html: "<p>Sidebar width</p>",
     name: "",
     role: "paragraph",
+    source: null,
     text: "Sidebar width",
     uraeda: "picked",
   });
@@ -283,19 +294,37 @@ test.each([
     "a label pointing at nothing gives way to the text",
     '<button aria-labelledby="missing">Save</button>',
     "button",
-    { name: "Save", role: "button", text: "Save" },
+    {
+      html: '<button aria-labelledby="missing">Save</button>',
+      name: "Save",
+      role: "button",
+      source: null,
+      text: "Save",
+    },
   ],
   [
     "a label clicked picks its control",
     '<label for="q">Search tasks</label><input id="q" type="search">',
     "label",
-    { name: "Search tasks", role: "searchbox", text: "" },
+    {
+      html: '<input id="q" type="search">',
+      name: "Search tasks",
+      role: "searchbox",
+      source: null,
+      text: "",
+    },
   ],
   [
     "a text box without a label is named by its placeholder",
     '<input placeholder="Filter by tag">',
     "input",
-    { name: "Filter by tag", role: "textbox", text: "" },
+    {
+      html: '<input placeholder="Filter by tag">',
+      name: "Filter by tag",
+      role: "textbox",
+      source: null,
+      text: "",
+    },
   ],
 ])("%s", async (_, html, selector, picked) => {
   const frame = await pickFrame(html);

@@ -1,12 +1,12 @@
 /**
  * The screenshots' views of the feature page and the session's composer, over the feature page's
- * features that `.storybook/featurePages.ts` builds, their times read in UTC: each state of the
+ * features that `samples/features.ts` builds, their times read in UTC: each state of the
  * page, a done feature's record, decisions, and questions, the notes open, and the composer with its
  * recommended message, inserted, or none. The agent at work is taken last: its run stays open.
  */
 import type { Page } from "playwright";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { FEATURE_PAGES } from "../.storybook/checkouts.ts";
+import { FEATURE_PAGES } from "../samples/index.ts";
 import { type Each, forget, type Shot, settle, show, wait } from "./shots.ts";
 
 const page = (folder: string) => `/f/${folder}`;

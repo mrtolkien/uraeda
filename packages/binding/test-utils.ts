@@ -1,94 +1,10 @@
 import { execFileSync } from "node:child_process";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { expect, onTestFinished, vi } from "vite-plus/test";
+import { fixture, git, temporaryFolder } from "./test-repos.ts";
 
-const fixtures = join(import.meta.dirname, "../../fixtures");
-
-/**
- * Keeps git away from the machine's: every test that builds a repository imports this module, and
- * the core's own git commands, run by the binding in the same process, inherit its environment. A
- * global or system `core.hooksPath` or `init.templateDir` would run the developer's hooks on the
- * tests' commits, and the variables a git hook exports would point git at another repository. Each
- * repository's own configuration still applies.
- */
-function isolateGit() {
-  process.env.GIT_CONFIG_GLOBAL = "/dev/null";
-  process.env.GIT_CONFIG_NOSYSTEM = "1";
-  for (const name of ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"]) {
-    delete process.env[name];
-  }
-}
-isolateGit();
-
-const temporary: Array<string> = [];
-process.once("exit", () => {
-  for (const folder of temporary) {
-    rmSync(folder, { force: true, recursive: true });
-  }
-});
-
-/**
- * A new folder in the system's temporary folder, its name starting with `<prefix>-`, removed when
- * the process exits: thousands of test runs would otherwise fill a `/tmp` held in memory.
- */
-export function temporaryFolder(prefix: string): string {
-  const folder = realpathSync(mkdtempSync(join(tmpdir(), `${prefix}-`)));
-  temporary.push(folder);
-  return folder;
-}
-
-/** A path inside the repository's shared `fixtures/` folder. */
-export function fixture(path: string): string {
-  // Not `new URL(path, import.meta.url)`: Vite rewrites that pattern in the UI's tests.
-  return join(fixtures, path);
-}
-
-/** Runs git in a folder, without hooks, and returns its output. */
-export function git(cwd: string, ...args: Array<string>): string {
-  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-}
-
-/**
- * A git repository in a temporary folder, built from `fixtures/<name>/`: `main/` committed on
- * `main`, then each folder of `branches/` committed on a branch of its name, from `main`. The
- * checkout is left on `main`.
- */
-export function fixtureRepo(name = "repo"): string {
-  const source = fixture(name);
-  const repo = temporaryFolder("uraeda-repo");
-  git(repo, "init", "--quiet", "--initial-branch", "main");
-  for (const [key, value] of [
-    ["user.name", "Test"],
-    ["user.email", "test@example.com"],
-    ["commit.gpgSign", "false"],
-  ]) {
-    git(repo, "config", key, value);
-  }
-  cpSync(join(source, "main"), repo, { recursive: true });
-  git(repo, "add", "--all");
-  git(repo, "commit", "--quiet", "--no-verify", "--message", "chore: specs");
-  const branches = join(source, "branches");
-  for (const branch of existsSync(branches) ? readdirSync(branches).sort() : []) {
-    git(repo, "switch", "--quiet", "--create", branch, "main");
-    cpSync(join(branches, branch), repo, { recursive: true });
-    git(repo, "add", "--all");
-    git(repo, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
-    git(repo, "switch", "--quiet", "main");
-  }
-  return repo;
-}
+export { fixture, fixtureRepo, git, initRepository, temporaryFolder } from "./test-repos.ts";
 
 /** The worktree a branch is checked out in, if any. */
 function worktreeOf(repo: string, branch: string): string | undefined {
@@ -258,17 +174,18 @@ export type FakeMode = "ok" | "fail" | "hang" | "hang-later" | "bad-index" | "no
 const PREVIEW_DECISION = "specs/decisions/preview.md";
 
 /**
- * An active preview decision running the fake preview in `folder`, logging its starts to `log`.
- * The command ends in `&& true`, so its shell waits for the fake, as `pnpm exec` waits for
- * Storybook: only a signal to the whole process group stops both.
+ * An active preview decision running the fake preview in `folder`, logging its starts to `log`, or
+ * nowhere when `null`. The command ends in `&& true`, so its shell waits for the fake, as
+ * `pnpm exec` waits for Storybook: only a signal to the whole process group stops both.
  */
 export function previewDecision(
-  log: string,
+  log: string | null,
   folder: string,
   mode: FakeMode,
   delay: number,
 ): string {
-  const command = `node ${fixture("preview/serve.mjs")} --port {port} --mode ${mode} --delay ${delay} --log ${log} && true`;
+  const logged = log === null ? "" : ` --log ${log}`;
+  const command = `node ${fixture("preview/serve.mjs")} --port {port} --mode ${mode} --delay ${delay}${logged} && true`;
   return `---\nstatus: active\napproved-by: Test\npreview-folder: ${folder}\npreview-command: ${command}\n---\n\n# Preview\n\nThe tests' fake Storybook.\n`;
 }
 
@@ -293,18 +210,18 @@ export function addPreview(
   options: { delay?: number; folder?: string; mode?: FakeMode } = {},
 ): string {
   const log = join(temporaryFolder("uraeda-preview"), "starts.log");
-  const text = previewDecision(
-    log,
-    options.folder ?? "packages/web",
-    options.mode ?? "ok",
-    options.delay ?? 0,
-  );
+  const { delay = 0, folder = "packages/web", mode = "ok" } = options;
+  commitPreview(repo, previewDecision(log, folder, mode, delay));
+  return log;
+}
+
+/** Commits a preview decision's `text` as `addPreview` does. */
+export function commitPreview(repo: string, text: string) {
   commitOnMain(repo, { [PREVIEW_DECISION]: text });
   const branches = git(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads").split("\n");
   for (const branch of branches.filter((name) => name !== "" && name !== "main")) {
     commitOnBranch(repo, branch, { [PREVIEW_DECISION]: text });
   }
-  return log;
 }
 
 /** Each start the fake preview logged: its base path, its folder, its process, and its port. */

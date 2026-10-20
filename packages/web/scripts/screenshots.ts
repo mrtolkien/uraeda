@@ -23,14 +23,21 @@ import { addStoryFeature, fixtureRepo, git, STORY_FEATURE } from "uraeda-binding
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
-import { addFeaturePages, listPullRequest, recordFeatureRuns } from "../.storybook/featurePages.ts";
+import {
+  addFeaturePages,
+  addRoundMockup,
+  addSpecPages,
+  listPullRequest,
+  recordFeatureRuns,
+  ROUND_MOCKUPS,
+} from "../samples/index.ts";
 import { takeChanges } from "./change-shots.ts";
 import { takeFeaturePage } from "./feature-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
-import { addRoundMockup, takeRound } from "./round-shots.ts";
+import { takeRound } from "./round-shots.ts";
 import { type Serve, takeSettings } from "./settings-shots.ts";
-import { addSpecPages, takeSpecPage } from "./spec-shots.ts";
+import { takeSpecPage } from "./spec-shots.ts";
 import { takeShell } from "./shell-shots.ts";
 import { takeSignIn } from "./sign-in-shots.ts";
 import { takeTextInputs } from "./text-input-shots.ts";
@@ -77,7 +84,7 @@ function repository() {
   git(repo, "commit", "--quiet", "--no-verify", "--message", "docs: mockup repeat.html");
   git(repo, "switch", "--quiet", "main");
   // The round page's mockup feature, whose round holds a diagram, a follow-up, and every group.
-  addRoundMockup(repo);
+  addRoundMockup(repo, ROUND_MOCKUPS.waiting, "B");
   // The spec page's features, waiting for review and approved, and their decisions' changes.
   addSpecPages(repo);
   // The feature page's features, one per state.

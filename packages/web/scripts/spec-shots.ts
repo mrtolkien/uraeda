@@ -1,22 +1,16 @@
 /**
- * The screenshots' views of the spec page, over the spec page's feature that `addSpecFeature` builds
- * from `fixtures/spec-page/`: waiting for review, its opening; with every fold open, its decisions,
- * a story, and how it is built; approved; and a decision's own page on the feature's branch.
+ * The screenshots' views of the spec page, over the spec page's features that the sample builders'
+ * `addSpecPages` builds from `fixtures/spec-page/`: waiting for review, its opening; with every
+ * fold open, its decisions, a story, and how it is built; approved; and a decision's own page on
+ * the feature's branch.
  */
 import type { Page } from "playwright";
-import { addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
+import { SPEC_PAGES } from "../samples/index.ts";
 import { type Each, forget, settle, show, wait } from "./shots.ts";
 
-const APPROVED = `${SPEC_FEATURE}-approved`;
-const WAITING_PAGE = `/f/${SPEC_FEATURE}/spec.md`;
-const APPROVED_PAGE = `/f/${APPROVED}/spec.md`;
-const DECISION_PAGE = `/f/${SPEC_FEATURE}/decisions/task-storage`;
-
-/** Adds the spec page's features to `repo`: its spec waiting for review, and approved. */
-export function addSpecPages(repo: string) {
-  addSpecFeature(repo);
-  addSpecFeature(repo, { folder: APPROVED, status: "approved" });
-}
+const WAITING_PAGE = `/f/${SPEC_PAGES.waiting}/spec.md`;
+const APPROVED_PAGE = `/f/${SPEC_PAGES.approved}/spec.md`;
+const DECISION_PAGE = `/f/${SPEC_PAGES.waiting}/decisions/task-storage`;
 
 /**
  * Scrolls the page so a part starts near its top, below the phone's top bar: the part's region, as

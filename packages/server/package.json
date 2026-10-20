@@ -10,6 +10,7 @@
     "./free-port": "./src/free-port.ts",
     "./fresh-binding": "./src/fresh-binding.ts",
     "./testing": "./src/testing.ts",
+    "./request-fixture": "./src/__tests__/request-fixture.ts",
     "./limits": "./src/limits.ts",
     "./paths": "./src/paths.ts",
     "./round-messages": "./src/runner/round-messages.ts",

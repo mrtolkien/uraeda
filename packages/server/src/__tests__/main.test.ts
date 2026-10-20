@@ -74,6 +74,23 @@ function start(
   return started;
 }
 
+/**
+ * Waits until `condition` holds of a start, and fails with its stderr if it exits first. The bound
+ * only matters when the process is broken: a start is slow under machine load, not wrong.
+ */
+async function until(started: Started, condition: () => boolean) {
+  const { child, output } = started;
+  await expect
+    .poll(() => condition() || child.exitCode !== null || child.signalCode !== null, {
+      interval: 5,
+      timeout: 15_000,
+    })
+    .toBe(true);
+  expect(condition(), `exited ${child.exitCode ?? child.signalCode} first: ${output.stderr}`).toBe(
+    true,
+  );
+}
+
 /** Runs `main.ts` to its end: its output and exit code. */
 async function run(args: Array<string>, options: Parameters<typeof start>[1] = {}) {
   const started = start(args, options);
@@ -138,6 +155,10 @@ function linkIn(address: string): { link: string; page: string } {
 
 /** The host token file of the server on `port` with the data folder `data`, in its `run/`. */
 const tokenFile = (data: string, port: number) => join(data, "run", `server-${port}.token`);
+
+/** The host token file's content, empty when the file is not there yet. */
+const readTokenFile = (data: string, port: number) =>
+  existsSync(tokenFile(data, port)) ? readFileSync(tokenFile(data, port), "utf8") : "";
 
 /** The access key a start printed. */
 const keyIn = (stdout: string) => /shown once: (ura_[\w-]{43})\n/.exec(stdout)![1];
@@ -436,14 +457,20 @@ test("a second start during the first's start waits for it", async () => {
   const data = temporaryFolder("uraeda-data");
   const port = await freePort();
   const [first, notes, todo] = [fixtureRepo(), fixtureRepo(), fixtureRepo()];
-  start(["--repo", first, "--port", String(port)], { env: { URAEDA_DATA_DIR: data } });
-  // The host token is written as soon as the port is taken, before the server starts.
-  await expect.poll(() => existsSync(tokenFile(data, port)), { interval: 5 }).toBe(true);
-  const token = readFileSync(tokenFile(data, port), "utf8");
+  const running = start(["--repo", first, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+  });
+  // The host token is written as soon as the port is taken, before the server starts: the file
+  // exists a moment before it holds the token.
+  const written = () => /^[\w-]{43}$/.test(readTokenFile(data, port));
+  await until(running, written);
+  const token = readTokenFile(data, port);
 
   // A request as soon as the port is taken, while the server may still start, and a second start.
+  // The request waits for the start, which takes seconds under machine load: its bound, past the
+  // 2 seconds of a start's handoff, only matters when the server never answers.
   const [early, second] = await Promise.all([
-    handOff(port, { folder: notes, given: true }, token),
+    handOff(port, { folder: notes, given: true }, token, 30_000),
     run(["--repo", todo, "--port", String(port)], { env: { URAEDA_DATA_DIR: data } }),
   ]);
 
@@ -544,7 +571,7 @@ const NEW_KEY_LINES = /^New access key, shown once: ura_[\w-]{43}\nEvery device 
 test("the first start prints the key once", async () => {
   const { data, port, repo, server } = await firstStart();
   const address = `Uraeda server on http://127.0.0.1:${port}\n`;
-  await expect.poll(() => server.output.stdout.length).toBeGreaterThan(address.length);
+  await until(server, () => server.output.stdout.length > address.length);
   server.child.kill("SIGTERM");
   await server.exited;
 
@@ -573,7 +600,7 @@ test("a first start that fails leaves no key, and the next start shows one", asy
 
   const next = start(["--repo", fixtureRepo(), "--port", String(port)], { env });
   await ready(next);
-  await expect.poll(() => next.output.stdout).toMatch(/Access key, shown once: ura_/);
+  await until(next, () => /Access key, shown once: ura_/.test(next.output.stdout));
   const key = keyIn(next.output.stdout);
   expect(readFileSync(join(data, "sign-in.json"), "utf8")).toContain(hash(key));
 });
@@ -694,7 +721,7 @@ test("a new key without a server prints the two lines, then starts", async () =>
   });
   await ready(next);
   const address = `Uraeda server on http://127.0.0.1:${port}\n`;
-  await expect.poll(() => next.output.stdout.length).toBeGreaterThan(address.length);
+  await until(next, () => next.output.stdout.length > address.length);
 
   expect(next.output.stdout.slice(0, address.length)).toBe(address);
   expect(next.output.stdout.slice(address.length)).toMatch(NEW_KEY_LINES);
@@ -713,7 +740,7 @@ test("a new key at the first start makes one key", async () => {
   });
   await ready(server);
   const address = `Uraeda server on http://127.0.0.1:${port}\n`;
-  await expect.poll(() => server.output.stdout.length).toBeGreaterThan(address.length);
+  await until(server, () => server.output.stdout.length > address.length);
 
   expect(server.output.stdout.slice(address.length)).toMatch(NEW_KEY_LINES);
   expect(server.output.stdout.match(/ura_/g)).toHaveLength(1);

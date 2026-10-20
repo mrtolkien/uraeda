@@ -28,3 +28,27 @@
   core's comparison keeps plain words, so a rule linking another decision is no longer a link
 - [agent] [decisions-pass] An option of a decisions check that removes a decision (half of a merge)
   is drawn with no candidate card
+- [agent] [fix-testing] Skill template: skills/uraeda/assets/templates/specs/CONSTITUTION.md rule VI
+  still says "tests covering the spec's acceptance scenarios", so a new project's constitution
+  forbids what the testing rules now ask: needs the human's wording
+- [agent] [fix-testing] Server error page: "Try again" on "Could not reach the Uraeda server" does
+  not recover once the server is back, since the fate client keeps the failed read; only a reload
+  does
+- [agent] [fix-testing] Priorities list: after Enter on a row, focus goes to the page body while the
+  inbox keeps it on the row, so the two lists do not share one keyboard behaviour; a click on a row
+  on a wide screen drops focus the same way
+- [agent] [fix-testing] Phone navigation: the drawer is not a history entry, so Back leaves the page
+  where a sheet's Back closes the sheet
+- [agent] [fix-testing] Flows: a few wording or format pins are accepted in the rulings (status
+  labels, N of M, the tab title count, Current and Done prefixes)
+- [agent] [fix-testing] Benchmarks flows: the record test never removes the nested step fields
+  seconds and gate, and the simulated human's invalid-run rule is tested only with a file outside
+  specs/, not another feature's folder or PRIORITIES.md
+- [agent] [fix-testing] Core flows: settings never place a config.toml in a repository to check it
+  is ignored, and nothing drafts a priorities line from a non-default checkout; the Neovim smoke
+  picks the waiting item by the picker label, not its index
+- [agent] [fix-testing] CLI install flow: the permission test returns silently as root, the kind of
+  test the rebuild dropped elsewhere
+- [agent] [ui-sandbox] Sandbox seed: two seeds started within the same 100 ms after a killed seed
+  can both remove its stale `.sandbox.lock`, so both rebuild `.sandbox/` at once; the stale-lock
+  recovery itself needs a lock
