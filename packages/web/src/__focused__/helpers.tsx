@@ -147,6 +147,7 @@ export async function renderComposer(
   const endpoint = createRequestFixture({
     ...options,
     agent: options.agent ?? agentRecord(),
+    chatImages: (options.images ?? []).flatMap(({ image }) => (image ? [image.id] : [])),
     repo: REPO,
   });
   fixtures.push(endpoint);

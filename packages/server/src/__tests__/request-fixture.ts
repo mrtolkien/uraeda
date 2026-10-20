@@ -58,8 +58,13 @@ export type MutationHandlers = {
 /** What a test scripts: the records reads return, the mutations, and chat image uploads. */
 export type RequestFixtureOptions = {
   agent: AgentRecord;
-  /** Answers `POST /r/<repo>/attach?chat=1` with a saved chat image, or a refusal's message. */
+  /**
+   * Answers `POST /r/<repo>/attach?chat=1&name=<name>` with a saved chat image, or a refusal's
+   * message. An upload without `chat=1`, with a `path`, or without a file is unexpected.
+   */
   attach?: (file: File) => Promise<ChatImage | { error: string }>;
+  /** The chat images saved before the case, which `DELETE /r/<repo>/chat-images/<id>` removes. */
+  chatImages?: ReadonlyArray<string>;
   mutations?: MutationHandlers;
   /** The repository's name, `/r/<repo>/` in every path. */
   repo?: string;
@@ -70,7 +75,7 @@ export type RequestFixtureOptions = {
 export type FixtureRequest =
   | { input: unknown; kind: "mutation"; name: string }
   | { ids: Array<string>; kind: "read"; type: string }
-  | { kind: "attach"; name: string }
+  | { kind: "attach"; name: string | null }
   | { kind: "delete"; path: string };
 
 /** A refusal as the core words it, sent the way the server's resolvers send one. */
@@ -198,6 +203,8 @@ export function createRequestFixture(options: RequestFixtureOptions) {
     requests: [],
   };
   const { fail, requests } = ledger;
+  /** The chat images saved and not deleted: deleting another one answers 404, as the server does. */
+  const saved = new Set(options.chatImages);
   const server = scriptedServer(ledger, options.mutations);
 
   const fetch: typeof globalThis.fetch = async (input, init) => {
@@ -217,14 +224,24 @@ export function createRequestFixture(options: RequestFixtureOptions) {
       );
     }
     if (request.method === "POST" && pathname === `${base}/attach` && options.attach) {
-      const file = (await formOf(request, init?.body)).get("file") as File;
-      requests.push({ kind: "attach", name: file.name });
+      // The server reads the target and the name from the query, before the body.
+      const query = new URL(request.url, "http://127.0.0.1").searchParams;
+      const file = (await formOf(request, init?.body)).get("file");
+      // A field's text is a string; a file part is a `File`.
+      if (query.get("chat") !== "1" || query.has("path") || typeof file !== "object" || !file) {
+        return fail(`POST ${pathname}?${query} is not a chat image upload with its file`);
+      }
+      requests.push({ kind: "attach", name: query.get("name") });
       const answer = await options.attach(file);
+      if (!("error" in answer)) {
+        saved.add(answer.id);
+      }
       return Response.json(answer, { status: "error" in answer ? 400 : 200 });
     }
     if (request.method === "DELETE" && pathname.startsWith(`${base}/chat-images/`)) {
       requests.push({ kind: "delete", path: pathname });
-      return new Response(null, { status: 204 });
+      const id = decodeURIComponent(pathname.slice(`${base}/chat-images/`.length));
+      return new Response(null, { status: saved.delete(id) ? 204 : 404 });
     }
     return fail(`${request.method} ${pathname}`);
   };
