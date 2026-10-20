@@ -109,6 +109,13 @@
               "uraeda-cli"
             ];
             doCheck = false;
+            # Tab completion, where fish and zsh find it: each script asks `ura` at every Tab.
+            nativeBuildInputs = [ pkgs.installShellFiles ];
+            postInstall = ''
+              installShellCompletion --cmd ura \
+                --fish <(COMPLETE=fish $out/bin/ura) \
+                --zsh <(COMPLETE=zsh $out/bin/ura)
+            '';
             meta.mainProgram = "ura";
           };
         }
