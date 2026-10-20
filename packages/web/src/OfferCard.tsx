@@ -107,17 +107,32 @@ function Actions({
   );
 }
 
-/** The slug field: the slug proposed for the proposal, until the human types one. */
-function Slug({ onChange, proposal, typed }: SlugProps) {
+/** Reads the slug proposed for the proposal, and gives it to `onProposed`; draws nothing. */
+function ProposedSlug({
+  onProposed,
+  proposal,
+}: {
+  onProposed: (slug: string) => void;
+  proposal: string;
+}) {
   const proposed = useSlugProposal(useSettled(proposal));
-  const slug = typed ?? proposed;
+  useEffect(() => onProposed(proposed), [onProposed, proposed]);
+  return null;
+}
+
+/**
+ * The slug field and the line under it: the slug proposed for the proposal, until the human types
+ * one. Drawn empty while the proposal's slug loads, so the card keeps its height and the session
+ * opened at its end still shows the card's buttons.
+ */
+function SlugField({ onChange, value }: { onChange: (slug: string) => void; value: string }) {
   return (
     <>
       <TextInput
         description="Two words at most: it names the folder and the branch."
         label="Slug"
         onChange={onChange}
-        value={slug}
+        value={value}
       />
       <Text color="secondary" type="supporting">
         This session goes on in the change’s worktree, on its own branch. The files it edited move
@@ -127,13 +142,12 @@ function Slug({ onChange, proposal, typed }: SlugProps) {
   );
 }
 
-type SlugProps = { onChange: (slug: string) => void; proposal: string; typed: string | undefined };
-
 /** "Start a change": the proposal and its slug, then "Start the change", which moves the session. */
 function ChangeCard({ heading, latest, onClose, proposal: given, session }: CardProps) {
   const fate = useFateClient();
   const [proposal, setProposal] = useState(given);
   const [typed, setTyped] = useState<string>();
+  const [proposed, setProposed] = useState("");
   const [error, setError] = useState<string>();
   const start = async () => {
     setError(undefined);
@@ -161,8 +175,9 @@ function ChangeCard({ heading, latest, onClose, proposal: given, session }: Card
     <Frame heading={heading} title="Start a change">
       <TextArea label="Proposal" onChange={setProposal} rows={5} value={proposal} />
       <Suspense fallback={null}>
-        <Slug onChange={setTyped} proposal={proposal} typed={typed} />
+        <ProposedSlug onProposed={setProposed} proposal={proposal} />
       </Suspense>
+      <SlugField onChange={setTyped} value={typed ?? proposed} />
       <Actions
         action={{ label: "Start the change", onClick: start }}
         close={{ label: "Not now", onClick: onClose }}
