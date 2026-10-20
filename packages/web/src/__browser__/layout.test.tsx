@@ -85,9 +85,9 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["the priorities", "/priorities", "Ongoing", null],
   // Its agent's card opens the session: the test server's agent is the fake one.
   ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Open the session", null],
-  // A feature's session before its first message, and an empty chat.
+  // A feature's session before its first message, and the New page with Session picked.
   ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
-  ["a new chat", "/new", "New chat", null],
+  ["a new session", "/new", "It offers a change when the work grows.", null],
   // The settings page: its categories, the Server category with the test server's override note,
   // and Sign-in (SC-005 of the settings page).
   ["the settings", "/settings", "Host names, port, and start", null],
@@ -437,7 +437,7 @@ describe("the session on the phone", () => {
 
 /** Starts a chat with a turn whose action auto mode blocked. */
 async function blockedChat() {
-  await show("/new", "New chat");
+  await show("/new", "It offers a change when the work grows.");
   await sendMessage("Tag v0.3.0 and push the tag.");
   // At once: a reply that ends the turn before the new chat's view listens still shows.
   await agent.agentAccept();
@@ -470,7 +470,7 @@ async function blockedChat() {
 // SC-004: a chat with one reply.
 test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
   await colorScheme(mode);
-  await show("/new", "New chat");
+  await show("/new", "It offers a change when the work grows.");
   await sendMessage("Why is CI slow on WebKit?");
   await agent.agentAccept();
   await agent.agentEmit([

@@ -273,3 +273,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `sessionStatus` (`runner/status.ts`).
 - **Where**: review of task 6, `packages/server/src/fate/sessions.ts`,
   `packages/server/src/runner/status.ts`.
+
+## R17: The New change tests move to the New page, and the pages' waits change text
+
+- **Decision**: `__tests__/new-change.test.tsx` becomes `__tests__/new-page.test.tsx`, its four
+  cases kept as they were, beside the New page's. `/new` draws the New page, whose heading is "New":
+  the waits for "New chat" or the heading "New change" now wait for the Session sentence's "It
+  offers a change when the work grows.", "Describe the bug or the change.", or the heading "New", in
+  `__tests__/links.test.ts`, `__browser__/layout.test.tsx`, `__browser__/new-change.test.tsx`, and
+  the screenshot scripts `image-shots.ts`, `sessionShots.ts`, and `session-look-shots.ts`. The
+  layout case "a new chat" is "a new session". `SessionPage`'s `newChat` page goes: nothing draws
+  it.
+- **Rationale**: the plan moves the cases; the other tests checked the page at `/new`, which is now
+  the New page with Session picked, and only the text they wait for changed.
+- **Alternatives considered**: keeping a "New chat" heading on the New page: the spec's mockup has
+  one heading, "New".
+- **If wrong**: the texts the tests wait for, one line each.
+- **Where**: task 9.

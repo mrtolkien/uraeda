@@ -1,8 +1,8 @@
-// Mockups of starting and growing a session once chats and changes merge
-// (`specs/2026-10-20-merge-chats/spec.md`): the New page and its selector; a session's actions, in a
-// "…" beside its composer, and the agent's offer to make it a change, or a change a feature; then the
-// sessions a change's or a feature's page lists, with "New session". Built from Astryx's components
-// over fixed text, with no server: the stories show the look.
+// Mockups of growing a session once chats and changes merge (`specs/2026-10-20-merge-chats/spec.md`):
+// a session's actions, in a "…" beside its composer, and the agent's offer to make it a change, or a
+// change a feature; then the sessions a change's or a feature's page lists, with "New session".
+// Built from Astryx's components over fixed text, with no server: the stories show the look. The
+// New page's stories are in `NewPage.stories.tsx`, drawn by the page itself.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
@@ -17,7 +17,6 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
@@ -40,135 +39,6 @@ const styles = stylex.create({
   },
   user: { backgroundColor: colorVars["--color-background-blue"] },
 });
-
-type Kind = "change" | "feature" | "session";
-
-const LINES = [
-  { source: "Inbox", text: "The PR texts lack context: start with what was done" },
-  { source: "Priorities", text: "CLI auto-expand in fish and zsh" },
-  { source: "Priorities", text: "Empty inbox" },
-];
-
-/** The notes and priority lines a change or a feature can start from. */
-function Lines({ action }: { action: string }) {
-  return (
-    <VStack gap={1} xstyle={styles.list}>
-      <Text type="label">Or start from a note or a priority</Text>
-      {LINES.map((line) => (
-        <SideNavItem
-          endContent={<Button label={action} size="sm" variant="secondary" />}
-          href="#"
-          key={line.text}
-          label={`${line.source} · ${line.text}`}
-        />
-      ))}
-    </VStack>
-  );
-}
-
-/** What each kind is, and the steps that wait on the human, in order. */
-const ABOUT: Record<Kind, { steps: Array<{ icon: string; label: string }>; text: string }> = {
-  change: {
-    steps: [
-      { icon: "uraeda:step-proposal", label: "Prompt" },
-      { icon: "uraeda:step-questions", label: "Questions, if any" },
-      { icon: "uraeda:step-pull-request", label: "Pull request" },
-    ],
-    text: "A bug fix or a small change, on its own branch. The agent asks only what it must, then opens a pull request.",
-  },
-  feature: {
-    steps: [
-      { icon: "uraeda:step-proposal", label: "Prompt" },
-      { icon: "uraeda:step-questions", label: "Questions" },
-      { icon: "uraeda:step-spec", label: "Spec" },
-      { icon: "uraeda:step-pull-request", label: "Pull request" },
-    ],
-    text: "A larger piece of work, on its own branch. You answer its questions and approve its spec before any code.",
-  },
-  session: {
-    steps: [],
-    text: "A conversation with the agent, in the main checkout, like plain Claude Code. It offers a change when the work grows.",
-  },
-};
-
-/** The kind's explanation, and its steps as a line of icons and arrows. */
-function About({ kind }: { kind: Kind }) {
-  const { steps, text } = ABOUT[kind];
-  return (
-    <VStack gap={2}>
-      <Text color="secondary">{text}</Text>
-      {steps.length > 0 && (
-        <HStack align="center" gap={2} wrap="wrap">
-          {steps.map((step, index) => (
-            <HStack align="center" gap={1} key={step.label}>
-              {index > 0 && (
-                <Text aria-hidden color="secondary">
-                  →
-                </Text>
-              )}
-              <Icon color="secondary" icon={step.icon} size="sm" />
-              <Text type="supporting">{step.label}</Text>
-            </HStack>
-          ))}
-        </HStack>
-      )}
-    </VStack>
-  );
-}
-
-/** The New page: the selector, then what the kind picked asks for. */
-function NewPage({ kind: initial = "session" }: { kind?: Kind }) {
-  const [kind, setKind] = useState<Kind>(initial);
-  const [text, setText] = useState("");
-  return (
-    <div {...stylex.props(styles.surface)}>
-      <Page>
-        <VStack gap={4}>
-          <Heading level={1}>New</Heading>
-          <SegmentedControl
-            label="What to start"
-            onChange={(value: string) => setKind(value as Kind)}
-            value={kind}
-          >
-            <SegmentedControlItem label="Session" value="session" />
-            <SegmentedControlItem label="Change" value="change" />
-            <SegmentedControlItem label="Feature" value="feature" />
-          </SegmentedControl>
-          <About kind={kind} />
-          {kind !== "feature" && (
-            <ChatComposer
-              input={<ChatComposerInput label="Message Claude Code" maxRows={9} />}
-              onChange={setText}
-              onSubmit={() => setText("")}
-              placeholder={
-                kind === "change"
-                  ? "Describe the bug or the change. The first line is its title."
-                  : "Message Claude Code"
-              }
-              sendLabel={kind === "change" ? "Start the change" : "Send"}
-              value={text}
-            />
-          )}
-          {kind === "change" && (
-            <>
-              <TextInput label="Slug" value="login-redirect" />
-              <Lines action="Start the change" />
-            </>
-          )}
-          {kind === "feature" && (
-            <>
-              <HStack align="end" gap={2}>
-                <TextInput label="Title" value="" />
-                <Button label="Write the proposal" />
-              </HStack>
-              <Lines action="Open the draft" />
-            </>
-          )}
-        </VStack>
-      </Page>
-    </div>
-  );
-}
 
 const PROPOSAL = `# Login redirects twice
 
@@ -390,15 +260,6 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
-
-/** "＋ New", with Session picked: the composer only. */
-export const NewSessionPage: Story = { render: () => <NewPage /> };
-
-/** "＋ New", with Change picked: the composer, the slug, and the notes and priorities to start from. */
-export const NewChangePage: Story = { render: () => <NewPage kind="change" /> };
-
-/** "＋ New", with Feature picked: a title for a new proposal, or a note or a priority to draft. */
-export const NewFeaturePage: Story = { render: () => <NewPage kind="feature" /> };
 
 /** The agent offers a change: its proposal and slug, editable, then "Start the change". */
 export const ChangeOffer: Story = { render: () => <Growing /> };

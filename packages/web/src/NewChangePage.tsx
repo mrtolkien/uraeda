@@ -1,9 +1,6 @@
-// "New change": a composer that starts a change from a typed text and its images, then sends its
-// first run, under a slug the core proposes for the text. Shaped like a new chat's page, in one
-// column at both widths.
+// The New page's change part: a composer that starts a change from a typed text and its images,
+// then sends its first run, under a slug the core proposes for the text.
 import { Banner } from "@astryxdesign/core/Banner";
-import { Heading } from "@astryxdesign/core/Heading";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -12,9 +9,8 @@ import { Composer } from "./Composer.tsx";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useTextField } from "./fields/useTextField.ts";
-import { Page } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
-import { navigate, useRepoPath, useRestoreScroll } from "./routes.tsx";
+import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { SlugField } from "./SlugField.tsx";
 import { useDraft } from "./useDraft.ts";
@@ -91,11 +87,10 @@ function useStart(text: ReturnType<typeof useTextField>, slug: ReturnType<typeof
 }
 
 /**
- * The "New change" page: the composer, its text kept in the browser until the change starts (R2),
- * the slug proposed for its text until edited, and "Start the change".
+ * The New page's change part: the composer, its text kept in the browser until the change starts
+ * (R2), the slug proposed for its text until edited, and "Start the change".
  */
-export function NewChangePage() {
-  useRestoreScroll(true);
+export function NewChange() {
   // Kept as a new chat's text is: leaving the page does not ask.
   const text = useTextField("new-change", "", { drawn: false });
   const { images, setImages } = useDraft();
@@ -106,36 +101,27 @@ export function NewChangePage() {
   const { running } = useWrites();
   const [starting, setStarting] = useState(false);
   return (
-    <Page>
-      <VStack gap={4}>
-        <VStack gap={2}>
-          <Heading level={1}>New change</Heading>
-          <Paragraph color="secondary">
-            Describe the bug or the change. The first line is its title.
-          </Paragraph>
-        </VStack>
-        <Composer
-          images={images}
-          onChange={text.change}
-          onImagesChange={setImages}
-          // Its branch and worktree are written: the other writes wait, as for a commit.
-          onSend={(sent, images) => {
-            setStarting(true);
-            return runWrite({ label: "Starting the change…" }, () => start(sent, images)).finally(
-              () => setStarting(false),
-            );
-          }}
-          sendLabel="Start the change"
-          sendWaits={running && !starting ? "Another change is being saved to git" : undefined}
-          value={text.text}
-        />
-        <SlugField field={slug} restoreNotice={false} />
-        {error && <Banner collapsible={false} status="error" title={error} />}
-        <Text color="secondary" type="supporting">
-          Creates its branch and worktree, and adds it to Now. The agent asks only what it must,
-          then opens a pull request.
-        </Text>
-      </VStack>
-    </Page>
+    <VStack gap={4}>
+      <Paragraph color="secondary">
+        Describe the bug or the change. The first line is its title.
+      </Paragraph>
+      <Composer
+        images={images}
+        onChange={text.change}
+        onImagesChange={setImages}
+        // Its branch and worktree are written: the other writes wait, as for a commit.
+        onSend={(sent, images) => {
+          setStarting(true);
+          return runWrite({ label: "Starting the change…" }, () => start(sent, images)).finally(
+            () => setStarting(false),
+          );
+        }}
+        sendLabel="Start the change"
+        sendWaits={running && !starting ? "Another change is being saved to git" : undefined}
+        value={text.text}
+      />
+      <SlugField field={slug} restoreNotice={false} />
+      {error && <Banner collapsible={false} status="error" title={error} />}
+    </VStack>
   );
 }

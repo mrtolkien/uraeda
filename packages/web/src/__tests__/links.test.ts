@@ -128,7 +128,7 @@ const PAGES: Array<[path: string, text: string]> = [
   ["/priorities", "Ongoing · 4"],
   ["/priorities/git-listener", "Git listener process"],
   ["/edit/specs/drafts/git-listener.md", "Git listener"],
-  ["/new", "New chat"],
+  ["/new", "It offers a change when the work grows."],
   ["/new?kind=change", "Describe the bug or the change."],
   ["/decisions", "Decisions · 5"],
   ["/decisions/git", "Approved by mrtolkien"],

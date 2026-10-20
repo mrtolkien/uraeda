@@ -29,7 +29,7 @@ import { Home } from "./Home.tsx";
 import { InboxPage } from "./InboxPage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
 import { BranchDecisionPage } from "./decisions/BranchDecision.tsx";
-import { NewChangePage } from "./NewChangePage.tsx";
+import { NewPage } from "./NewPage.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
@@ -161,8 +161,7 @@ function RoutePage({ route }: { route: Route }) {
     case "session-id":
       return <SessionPage id={route.id} key={route.id} />;
     case "new":
-      // TEMPORARY: the New page (task 9 of merge-chats) draws the three kinds in one page.
-      return route.kind === "change" ? <NewChangePage /> : <SessionPage newChat />;
+      return <NewPage kind={route.kind} />;
     case "moved":
       return <Moved path={route.path} />;
     case "first-run":

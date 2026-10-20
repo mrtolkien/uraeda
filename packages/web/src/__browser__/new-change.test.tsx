@@ -44,7 +44,7 @@ async function openFromNavigation(name: string) {
 async function newChange() {
   await show("/", "Needs you");
   await openFromNavigation("New change");
-  await screen.findByRole("heading", { level: 1, name: "New change" }, LIVE);
+  await screen.findByRole("heading", { level: 1, name: "New" }, LIVE);
   return screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE);
 }
 
@@ -128,7 +128,7 @@ test("a taken slug is refused under the slug field, and the text stays", async (
   await screen.findByRole("heading", { level: 1, name: TITLE }, LIVE);
 
   await openFromNavigation("New change");
-  await screen.findByRole("heading", { level: 1, name: "New change" }, LIVE);
+  await screen.findByRole("heading", { level: 1, name: "New" }, LIVE);
   const box = screen.getByRole("textbox", { name: "Message Claude Code" });
   // Start cleared the text and the slug.
   expect(box.textContent).toBe("");
@@ -160,7 +160,7 @@ test("the text comes back after leaving the page", async () => {
   await screen.findByRole("heading", { level: 1, name: "Priorities" }, LIVE);
   await openFromNavigation("New change");
 
-  await screen.findByRole("heading", { level: 1, name: "New change" }, LIVE);
+  await screen.findByRole("heading", { level: 1, name: "New" }, LIVE);
   const back = screen.getByRole("textbox", { name: "Message Claude Code" });
   expect(back.textContent).toBe(`${TITLE}\n\n${BODY}`);
   expect(slug().value).toBe("centred-x");
@@ -241,7 +241,7 @@ const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
 // The UI checks on "New change", holding a change's text, its slug proposed.
 test.each(MODES)("New change, in $mode", async ({ mode }) => {
   await colorScheme(mode);
-  await show("/new?kind=change", "New change");
+  await show("/new?kind=change", "Describe the bug or the change.");
   expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
   await typeChange(await screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE));
   await expect.poll(() => slug().value, LIVE).toBe("centre-x");

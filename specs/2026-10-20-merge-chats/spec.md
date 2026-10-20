@@ -136,11 +136,11 @@ questions if any, then a pull request for a change; a prompt, questions, a spec,
 for a feature. A change can start from typed text, an inbox note, or a priority line. A feature
 starts from a new title, an inbox note, or a priority line, as a draft opened in the editor.
 
-[New, Session](/packages/web/src/NewSession.stories.tsx#NewSessionPage)
+[New, Session](/packages/web/src/NewPage.stories.tsx#NewSessionPage)
 
-[New, Change](/packages/web/src/NewSession.stories.tsx#NewChangePage)
+[New, Change](/packages/web/src/NewPage.stories.tsx#NewChangePage)
 
-[New, Feature](/packages/web/src/NewSession.stories.tsx#NewFeaturePage)
+[New, Feature](/packages/web/src/NewPage.stories.tsx#NewFeaturePage)
 
 Key scenarios:
 
