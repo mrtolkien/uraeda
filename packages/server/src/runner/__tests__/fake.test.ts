@@ -159,3 +159,94 @@ test("an awaited step holds the next until it resolves", async () => {
   gate.resolve();
   expect(await after).toEqual([{ text: "after", type: "text" }, done()]);
 });
+
+test("an awaited step that never settles ends on the interrupt, and its process on SIGKILL", async () => {
+  const adapter = new FakeAdapter();
+  const signals: Array<AbortSignal> = [];
+  const never = (_cwd: string, signal: AbortSignal) => {
+    signals.push(signal);
+    return new Promise<void>(() => {});
+  };
+  adapter.script([never, { text: "never read", type: "text" }]);
+  adapter.script([never, { text: "never read", type: "text" }]);
+  const agent = adapter.open(options);
+  await readUntil(agent, (event) => event.type === "init");
+
+  agent.send({ id: "m1", images: [], text: "go", when: "steer" });
+  await readUntil(agent, (event) => event.type === "accepted");
+  const interrupted = readUntil(agent, (event) => event.type === "result");
+  await flush();
+  agent.interrupt();
+  expect(await interrupted).toEqual([
+    { denials: [], errors: [], interrupted: true, ok: false, type: "result" },
+  ]);
+  // The step is told, so a wait of its own can stop.
+  expect(signals[0]?.aborted).toBe(true);
+
+  agent.send({ id: "m2", images: [], text: "again", when: "steer" });
+  await readUntil(agent, (event) => event.type === "accepted");
+  const exited = readUntil(agent, () => false);
+  await flush();
+  agent.kill("SIGKILL");
+  expect(await exited).toEqual([{ code: 137, stderr: "", type: "exit" }]);
+  expect(signals[1]?.aborted).toBe(true);
+});
+
+test("an awaited step that never settles ends on the close, which drops the steps left", async () => {
+  const adapter = new FakeAdapter();
+  adapter.script([() => new Promise<void>(() => {}), { text: "never read", type: "text" }]);
+  const agent = adapter.open(options);
+  await readUntil(agent, (event) => event.type === "init");
+  agent.send({ id: "m1", images: [], text: "go", when: "steer" });
+  await readUntil(agent, (event) => event.type === "accepted");
+  const exited = readUntil(agent, () => false);
+  await flush();
+  agent.close();
+  expect(await exited).toEqual([{ code: 0, stderr: "", type: "exit" }]);
+});
+
+test("a stuck process's awaited step holds through the interrupt, and ends on SIGTERM", async () => {
+  const adapter = new FakeAdapter();
+  adapter.ignoreInterrupt = true;
+  adapter.script([() => new Promise<void>(() => {}), { text: "never read", type: "text" }]);
+  const agent = adapter.open(options);
+  await readUntil(agent, (event) => event.type === "init");
+  agent.send({ id: "m1", images: [], text: "go", when: "steer" });
+  await readUntil(agent, (event) => event.type === "accepted");
+  let read = false;
+  const exited = readUntil(agent, () => false).finally(() => (read = true));
+  agent.interrupt();
+  agent.kill("SIGINT");
+  await flush();
+  expect(read).toBe(false);
+  agent.kill("SIGTERM");
+  expect(await exited).toEqual([{ code: 143, stderr: "", type: "exit" }]);
+});
+
+test("a step that throws ends the process with its error", async () => {
+  const adapter = new FakeAdapter();
+  adapter.script([
+    () => Promise.reject(new Error("no such file")),
+    { text: "never read", type: "text" },
+  ]);
+  const agent = adapter.open(options);
+  await readUntil(agent, (event) => event.type === "init");
+  agent.send({ id: "m1", images: [], text: "go", when: "steer" });
+  expect(await readUntil(agent, () => false)).toEqual([
+    { id: "m1", type: "accepted" },
+    { code: 1, stderr: "Error: no such file", type: "exit" },
+  ]);
+});
+
+test("a message sent after the exit plays no fallback", () => {
+  const adapter = new FakeAdapter();
+  let played = 0;
+  adapter.fallback = () => {
+    played++;
+    return [];
+  };
+  const agent = adapter.open(options);
+  agent.close();
+  agent.send({ id: "m1", images: [], text: "late", when: "steer" });
+  expect(played).toBe(0);
+});

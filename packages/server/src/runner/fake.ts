@@ -4,9 +4,11 @@ import type { AgentEvent, Denial } from "./events.ts";
 
 /**
  * A scripted step of a fake turn: an event, or a function run in the process's `cwd`, awaited before
- * the next step is read, so a step can hold the turn, as a wait between streamed events.
+ * the next step is read, so a step can hold the turn, as a wait between streamed events. The
+ * interrupt, the close, and a kill that end the turn cut a pending step short, and abort its signal,
+ * so a wait of its own can stop too. A step that throws ends the process, with its error.
  */
-export type FakeStep = AgentEvent | ((cwd: string) => void | Promise<void>);
+export type FakeStep = AgentEvent | ((cwd: string, signal: AbortSignal) => void | Promise<void>);
 
 type Signal = Parameters<AgentProcess["kill"]>[0];
 
@@ -17,6 +19,8 @@ const EXIT_CODES: Record<Signal, number> = { SIGINT: 130, SIGKILL: 137, SIGTERM:
 class FakeProcess implements AgentProcess {
   #steps: Array<FakeStep> = [];
   #wake: (() => void) | undefined;
+  /** Aborted when the steps not read yet are dropped, which ends the step being awaited. */
+  #cut = new AbortController();
   #exited = false;
   #adapter: FakeAdapter;
   #cwd: string;
@@ -55,7 +59,20 @@ class FakeProcess implements AgentProcess {
             continue;
           }
           if (typeof step === "function") {
-            await step(this.#cwd);
+            const { signal } = this.#cut;
+            const cut = new Promise<void>((resolve) =>
+              signal.addEventListener("abort", () => resolve(), { once: true }),
+            );
+            try {
+              await Promise.race([step(this.#cwd, signal), cut]);
+            } catch (error) {
+              if (signal.aborted) {
+                continue;
+              }
+              this.#drop();
+              this.#exited = true;
+              return { done: false, value: { code: 1, stderr: String(error), type: "exit" } };
+            }
             continue;
           }
           return { done: false, value: step };
@@ -70,8 +87,11 @@ class FakeProcess implements AgentProcess {
    */
   send(message: Outgoing) {
     this.#adapter.sent.push(message);
+    if (this.#exited) {
+      return;
+    }
     const script = this.#adapter.nextScript() ?? this.#adapter.fallback?.();
-    if (script === undefined || this.#exited) {
+    if (script === undefined) {
       return;
     }
     this.push({ id: message.id, type: "accepted" });
@@ -86,6 +106,13 @@ class FakeProcess implements AgentProcess {
     }
   }
 
+  /** Drops the steps not read yet, and cuts short the one being awaited. */
+  #drop() {
+    this.#steps = [];
+    this.#cut.abort();
+    this.#cut = new AbortController();
+  }
+
   takeBack(id: string) {
     this.#adapter.takenBack.push(id);
   }
@@ -96,28 +123,33 @@ class FakeProcess implements AgentProcess {
     if (this.#adapter.ignoreInterrupt || this.#exited) {
       return;
     }
-    this.#steps = [];
+    this.#drop();
     this.push({ denials: [], errors: [], interrupted: true, ok: false, type: "result" });
   }
 
-  /** Ends it, unless it ignores its stdin's end. */
+  /** Ends it, dropping the steps not read yet, unless it ignores its stdin's end. */
   close() {
     this.#adapter.closes++;
-    if (this.#adapter.ignoreClose) {
+    if (this.#adapter.ignoreClose || this.#exited) {
       return;
     }
+    this.#drop();
     this.push({ code: 0, stderr: "", type: "exit" });
   }
 
-  /** SIGKILL ends it; SIGTERM too, unless it ignores it; SIGINT too, unless it is stuck. */
+  /**
+   * SIGKILL ends it; SIGTERM too, unless it ignores it; SIGINT too, unless it is stuck. Each drops
+   * the steps not read yet.
+   */
   kill(signal: Signal) {
     this.#adapter.kills.push(signal);
     if (signal === "SIGINT" && this.#adapter.ignoreInterrupt) {
       return;
     }
-    if (signal === "SIGTERM" && this.#adapter.ignoreTerm) {
+    if ((signal === "SIGTERM" && this.#adapter.ignoreTerm) || this.#exited) {
       return;
     }
+    this.#drop();
     this.push({ code: EXIT_CODES[signal], stderr: "", type: "exit" });
   }
 }

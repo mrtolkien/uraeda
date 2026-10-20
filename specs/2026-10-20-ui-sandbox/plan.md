@@ -453,9 +453,12 @@ git commit -m "refactor(ui-sandbox): one home for the sample builders"
 
 **Interfaces:**
 
-- Produces: `FakeStep = AgentEvent | ((cwd: string) => void | Promise<void>)`, each function step
-  awaited before the next step is read; `FakeAdapter.fallback: (() => Array<FakeStep>) | undefined`,
-  the turn played on `send` when no turn is scripted.
+- Produces: `FakeStep = AgentEvent | ((cwd: string, signal: AbortSignal) => void | Promise<void>)`,
+  each function step awaited before the next step is read, and cut short, its signal aborted, by the
+  interrupt, the close, or a kill that ends the turn, which drop the steps not read yet; a step that
+  throws ends the process with `{ code: 1, stderr: String(error), type: "exit" }`;
+  `FakeAdapter.fallback: (() => Array<FakeStep>) | undefined`, the turn played on `send` when no
+  turn is scripted and the process has not exited.
 
 - [x] **Step 1: Write the failing tests**
 
