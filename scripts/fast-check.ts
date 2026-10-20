@@ -2,7 +2,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { relative } from "node:path";
 import { createVitest } from "vite-plus/test/node";
 import { fastConfig } from "../vite.fast.config.ts";
-import { changedFiles, rustCommands, selectFast } from "./fast-selection.ts";
+import { changedFiles, rustCommands, selectFast, unproven } from "./fast-selection.ts";
 import { acquire, lockFolder } from "./test-run.ts";
 
 function report(...values: Array<unknown>) {
@@ -115,6 +115,13 @@ async function checks(selection: ReturnType<typeof selectFast>, graph: boolean) 
       for (const project of vitest.projects) {
         report(`Graph ${project.name}:`, [...project.vite.moduleGraph.idToModuleMap.keys()]);
       }
+    }
+    const missing = unproven(
+      selection.families,
+      specifications.map((spec) => spec.project.name),
+    );
+    if (missing.length) {
+      throw new Error(`Selected families discovered no tests: ${missing.join(", ")}`);
     }
     if (!specifications.length) {
       report("Zero matching focused tests; the named broader checks remain deferred to ready.");

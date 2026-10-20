@@ -10,6 +10,7 @@ import {
   type Family,
   rustCommands,
   selectFast,
+  unproven,
 } from "../fast-selection.ts";
 
 const folders: Array<string> = [];
@@ -33,14 +34,14 @@ function commit(root: string) {
   git(root, "add", "-A");
   git(root, "commit", "-qm", "fixture");
 }
-const change = (path: string, deleted = false) => ({ deleted, path });
+const change = (path: string, deleted = false, added = false) => ({ added, deleted, path });
 
 test("initial commit and clean-tree latest commit are checked", () => {
   const root = repository();
-  expect(changedFiles(root)).toEqual([change("first.txt")]);
+  expect(changedFiles(root)).toEqual([change("first.txt", false, true)]);
   writeFileSync(join(root, "second.txt"), "two");
   commit(root);
-  expect(changedFiles(root)).toEqual([change("second.txt")]);
+  expect(changedFiles(root)).toEqual([change("second.txt", false, true)]);
 });
 test("explicit bases include committed, staged, unstaged and untracked whitespace paths", () => {
   const root = repository();
@@ -65,7 +66,10 @@ test("invalid explicit base and non-repository errors never become empty success
 test("rename retains old deletion and new path, including whitespace", () => {
   const root = repository();
   git(root, "mv", "first.txt", "renamed file.txt");
-  expect(changedFiles(root)).toEqual([change("first.txt", true), change("renamed file.txt")]);
+  expect(changedFiles(root)).toEqual([
+    change("first.txt", true),
+    change("renamed file.txt", false, true),
+  ]);
 });
 test("Composer chooses related focused UI without App, Rust or native prerequisites", () => {
   const selected = selectFast([change("packages/web/src/Composer.tsx")]);
@@ -101,7 +105,9 @@ test.each([
 });
 test("fixtures broaden consumers; unknown tests and config require ready", () => {
   expect(selectFast([change("fixtures/round/spec.md")]).families).toContain("binding");
-  expect(selectFast([change("packages/web/src/__tests__/new.test.tsx")]).checks).toContain("ready");
+  expect(
+    selectFast([change("packages/web/src/__tests__/new.test.tsx", false, true)]).checks,
+  ).toContain("ready");
   expect(selectFast([change("new-runtime.bin")]).checks).toContain("ready");
   expect(selectFast([change("vite.fast.config.ts")]).families).toContain("ui");
 });
@@ -234,4 +240,25 @@ test("the focused UI project keeps the web tests' isolation and page settings", 
   expect(ui.test?.environmentOptions).toEqual({
     happyDOM: { settings: { disableIframePageLoading: true }, url: "http://127.0.0.1:4310/" },
   });
+});
+test("an edit of an existing test outside fast is deferred to ready by name", () => {
+  const path = "packages/web/src/__tests__/app.test.tsx";
+  const edited = selectFast([change(path)]);
+  expect(edited.checks).not.toContain("ready");
+  expect(edited.deferred).toContain(`existing test ${path}`);
+  expect(selectFast([change(path, true)]).checks).not.toContain("ready");
+  expect(selectFast([change(path, false, true)]).checks).toContain("ready");
+});
+test("only known configuration files broaden every family", () => {
+  const source = selectFast([change("crates/core/src/config.rs")]);
+  expect(source.rust).not.toContain("workspace");
+  expect(source.families).toEqual(["binding"]);
+  for (const path of ["tsconfig.json", "tsconfig.base.json", "vite.config.ts", "package.json"]) {
+    expect(selectFast([change(path)]).rust, path).toContain("workspace");
+  }
+  expect(selectFast([change("packages/web/tsconfig.json")]).families).toContain("ui");
+});
+test("a selected family whose tests were not discovered fails the run", () => {
+  expect(unproven(["ui", "binding"], ["fast-ui"])).toEqual(["binding"]);
+  expect(unproven(["ui"], ["fast-ui", "fast-server"])).toEqual([]);
 });

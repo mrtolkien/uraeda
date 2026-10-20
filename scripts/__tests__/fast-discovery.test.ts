@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 
@@ -9,17 +10,27 @@ import {fastConfig} from "./vite.fast.config.ts";
 import {families,selectFast} from "./scripts/fast-selection.ts";
 process.env.VITEST="true";
 `;
+/**
+ * Runs a nested Vitest through `test-run.ts`, in a process group of its own: a run past its time
+ * under a loaded machine is stopped with every worker it started, and its folder removed.
+ */
 function execute(code: string) {
-  return spawnSync(process.execPath, ["--input-type=module", "-e", setup + code], {
-    cwd: root,
-    encoding: "utf8",
-    timeout: 30_000,
-  });
+  return spawnSync(
+    process.execPath,
+    [
+      join(root, "scripts/test-run.ts"),
+      process.execPath,
+      "--input-type=module",
+      "-e",
+      setup + code,
+    ],
+    { cwd: root, encoding: "utf8", timeout: 120_000 },
+  );
 }
 
 test("focused UI discovery and execution exclude the application and native graph", () => {
   const result = execute(`
-const config=fastConfig(selectFast([{path:"packages/web/src/ComposerImages.tsx",deleted:false}]));
+const config=fastConfig(selectFast([{path:"packages/web/src/ComposerImages.tsx",deleted:false,added:false}]));
 const vitest=await createVitest({config:false,related:config.related,watch:false},{test:config.test});
 try {
   await vitest.standalone();
@@ -41,7 +52,7 @@ test.each([
   ["scripts/test-run.ts", "server/src/__tests__/test-run.test.ts"],
 ])("an edit of %s outside the consumer's package discovers %s", (path, consumer) => {
   const result = execute(`
-const config=fastConfig(selectFast([{path:${JSON.stringify(path)},deleted:false}]));
+const config=fastConfig(selectFast([{path:${JSON.stringify(path)},deleted:false,added:false}]));
 const vitest=await createVitest({config:false,related:config.related,watch:false},{test:config.test});
 try {
   await vitest.standalone();
@@ -55,7 +66,7 @@ try {
 
 test("a discovery transform error exits nonzero and closes the runner", () => {
   const result = execute(`
-const config=fastConfig(selectFast([{path:"packages/web/src/drop.ts",deleted:false}]));
+const config=fastConfig(selectFast([{path:"packages/web/src/drop.ts",deleted:false,added:false}]));
 const project=config.test.projects[0];
 project.plugins.push({name:"broken-discovery",transform(_code,id){if(id.endsWith("drop.test.ts")) throw new Error("discovery fault");}});
 const vitest=await createVitest({config:false,related:config.related,watch:false},{test:config.test});
@@ -70,7 +81,7 @@ finally {await vitest.close(); process.stderr.write("runner closed\\n");}
 test("a required family with no test files fails before discovery", () => {
   const result = execute(`
 families.ui.tests=["missing.test.ts"];
-fastConfig(selectFast([{path:"packages/web/src/deleted.ts",deleted:true}]));
+fastConfig(selectFast([{path:"packages/web/src/deleted.ts",deleted:true,added:false}]));
 `);
   expect(result.status).not.toBe(0);
   expect(result.stderr).toContain("Selected family ui has no test files");
