@@ -877,8 +877,8 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 
 **Interfaces:**
 
-- Consumes: task 7's `/new?kind=`; mutations `change.start`, `inbox.toNewDraft`, `draft.create`,
-  `feature.start` (kind change), `priorities.add` / `priorities.insert`.
+- Consumes: task 7's `/new?kind=`; mutations `change.start`, `change.fromNote`, `inbox.toNewDraft`,
+  `draft.create`, `feature.start` (kind change), `priorities.add` / `priorities.insert`.
 
 - [x] **Step 1: Write the failing tests**
 
@@ -901,12 +901,15 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 
 - [x] **Step 3: Implement the page**
 
-A change from a note or a line is started from its draft (`inbox.toNewDraft` or `draft.create`, then
-`feature.start` with kind change), and its session opens with the workflow's message to send
-(`handOver(folder, "start")`): `feature.start` sends no run. A title is inserted with
-`priorities.insert` before Now's first entry not started, then drafted. The notes listed are those
-not already a draft; the lines, those not started that link no file other than a draft. Each line's
-button is named after it, "Start the change: <text>", since the buttons share their visible text.
+A change from a note starts from the note's text with `change.fromNote`, which takes the note out of
+`INBOX.md`, committed alone, and sends the first run
+([R18](rulings.md#r18-a-change-from-an-inbox-note-starts-from-its-text-and-the-note-leaves-the-inbox-in-its-own-commit)).
+A change from a line is started from its draft (`draft.create`, then `feature.start` with kind
+change), and its session opens with the workflow's message to send (`handOver(folder, "start")`):
+`feature.start` sends no run. A title is inserted with `priorities.insert` before Now's first entry
+not started, then drafted. The notes listed are those not already a draft; the lines, those not
+started that link no file other than a draft. Each line's button is named after it, "Start the
+change: <text>", since the buttons share their visible text.
 
 - [x] **Step 4: Run the web suite**
 

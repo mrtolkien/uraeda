@@ -117,6 +117,14 @@ pub fn remove_note(repo: &Path, id: &str, previous: &str) -> Result<Inbox> {
     Ok(edits::remove(&place, id, Some(previous))?)
 }
 
+/// Removes a note as [`remove_note`] does, then commits `INBOX.md` alone, when it had no other
+/// change, with `chore: remove "<note>" from the inbox`: a note started as a change.
+pub fn remove_note_and_commit(repo: &Path, id: &str, previous: &str) -> Result<(Inbox, Added)> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::remove_and_commit(&place, id, previous)?)
+}
+
 /// Moves a note to the end of a category, or of the notes without one.
 pub fn move_note_to_category(
     repo: &Path,

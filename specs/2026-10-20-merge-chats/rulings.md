@@ -331,3 +331,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   progress and its workflow's composer, so the latest keeps the feature's session page.
 - **If wrong**: `feature/SessionsCard.tsx` and `NextAndSessions` in `FeaturePage.tsx`.
 - **Where**: task 11.
+
+## R20: A change from an inbox note starts from its text, and the note leaves the inbox in its own commit
+
+- **Decision**: "Start the change" on an inbox note calls one mutation,
+  `change.fromNote({ hash, note, slug? })`: the note's text, then its nested lines, start a typed
+  change (`startChange`, so only staged files refuse, R10); then the note leaves `INBOX.md`,
+  committed alone when the file had no other change (new core API `remove_note_and_commit`, binding
+  `removeNoteAndCommit`, subject `chore: remove "<note>" from the inbox`); then the change's first
+  run is sent, as `change.start` sends it, and its session opens. A refused start leaves the note in
+  the inbox. The New page test "a change from an inbox note" now commits the fixture's note and line
+  in `startingRepo`, leaves an unrelated edit uncommitted, and checks the run sent and `INBOX.md`
+  committed; "a change from a note that cannot start keeps the note" is new.
+- **Rationale**: the note went through `inbox.toNewDraft`, which writes `INBOX.md` and
+  `PRIORITIES.md` uncommitted, then `feature.start`, whose draft start refuses uncommitted files: a
+  committed note was always refused, and lost from the inbox. The test passed only because its note
+  was uncommitted. US3 2 says the note's text is the proposal, with no draft.
+- **Alternatives considered**: committing the draft before the start: a draft and a Now line the
+  human never asked for, and a refused start would leave them.
+- **If wrong**: `startFromNote` in `packages/server/src/fate/change-starts.ts`.
+- **Where**: review of task 9, `crates/core/src/actions/inbox.rs`,
+  `packages/server/src/fate/change-starts.ts`, `packages/web/src/useStartFrom.ts`.

@@ -490,3 +490,40 @@ fn ura_note_over_a_staged_inbox_is_not_committed() {
     assert_eq!(repo.git(&["show", &format!(":{INBOX}")]), staged);
     assert!(repo.read(INBOX).contains("- Icons are blurry\n"));
 }
+
+/// US3 2: a note started as a change leaves the inbox in a commit of `INBOX.md` alone; over an
+/// inbox read before it changed, it is refused as a conflict.
+#[test]
+fn a_note_started_as_a_change_leaves_the_inbox_in_its_own_commit() {
+    let repo = fixture_repo();
+    repo.write("README.md", "Typed by hand\n");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (inbox, removed) = api::remove_note_and_commit(repo.path(), "note-3", &read.hash).unwrap();
+
+    assert!(removed.committed);
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: remove \"We need a home icon\" from the inbox"
+    );
+    assert_eq!(repo.changed_in("HEAD"), [INBOX]);
+    assert!(!repo.read(INBOX).contains("We need a home icon"));
+    assert_eq!(inbox.changes, 0);
+    let stale = api::remove_note_and_commit(repo.path(), "note-1", &read.hash).unwrap_err();
+    assert_eq!(stale.code, "conflict");
+}
+
+/// A note started as a change, from an inbox with other changes, leaves it without a commit.
+#[test]
+fn a_note_started_from_a_changed_inbox_is_not_committed() {
+    let repo = fixture_repo();
+    repo.write(INBOX, &format!("{}- Typed by hand\n", repo.read(INBOX)));
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (_, removed) = api::remove_note_and_commit(repo.path(), "note-3", &read.hash).unwrap();
+
+    assert!(!removed.committed);
+    assert_eq!(removed.reason.as_deref(), Some("other-changes"));
+    assert_eq!(repo.subjects("main")[0], "chore: specs");
+    assert!(!repo.read(INBOX).contains("We need a home icon"));
+}
