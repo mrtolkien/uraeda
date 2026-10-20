@@ -11,6 +11,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
+import { checkStages, concurrently } from "../fast-check.ts";
+import { selectFast } from "../fast-selection.ts";
 import { execFileSync } from "node:child_process";
 
 const SCRIPT = join(import.meta.dirname, "../fast-check.ts");
@@ -85,3 +87,34 @@ test("fast's own checks wait for a heavy slot", async () => {
   expect(output).toContain("Waiting for 2 other runs of the heavy tests");
   expect(calls(root)).toBe("");
 }, 20_000);
+
+test("the type check never runs while the binding's generated files are rebuilt", () => {
+  const stages = checkStages(
+    selectFast([{ added: false, deleted: false, path: "crates/binding/src/lib.rs" }]),
+  );
+  for (const stage of stages) {
+    const commands = stage.flat().map(([command, args]) => [command, ...args].join(" "));
+    expect(
+      commands.includes("vp run binding:touch") && commands.includes("vp check"),
+      JSON.stringify(stage),
+    ).toBe(false);
+  }
+  expect(
+    stages
+      .flat()
+      .flat()
+      .map(([, args]) => args.join(" ")),
+  ).toEqual(expect.arrayContaining(["run binding:touch", "check"]));
+});
+
+test("when both chains fail, both failures are reported", async () => {
+  const failure = await concurrently([
+    [["sh", ["-c", "exit 3"]]],
+    [["sh", ["-c", "exit 4"]]],
+  ]).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(AggregateError);
+  expect((failure as AggregateError).errors.map(String)).toEqual([
+    expect.stringContaining("exit 3"),
+    expect.stringContaining("exit 4"),
+  ]);
+});
