@@ -48,7 +48,8 @@ change and makes it a feature in place, as [Upgrading](change.md#upgrading) says
 - A commit while other files are staged, since it would carry them. The exception is `ura note`'s,
   which commits `INBOX.md` alone.
 - With `--switch`, a branch switch over uncommitted changes.
-- A start whose folder or branch name is taken: choose another slug with `--slug`.
+- A start whose folder or branch name is taken: choose another slug with `--slug`. With `--feature`,
+  rename or remove that branch or folder first.
 - With `--feature`, a draft, a feature, or a done change: it takes a started change. A change with a
   pull request, since its branch would be renamed: close it first. A change whose worktree has
   uncommitted changes, or an untracked file in the change's folder or `specs/decisions/`.

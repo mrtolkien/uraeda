@@ -64,7 +64,8 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
     }
     let place = place::reach(git, &default)?;
     let at = Git::open(&place.root)?;
-    check_free(&place.root, &at, workspace, folder, &[Kind::Feature])?;
+    let hint = "rename or remove that branch or folder first";
+    check_free(&place.root, &at, workspace, folder, &[Kind::Feature], hint)?;
     let (name, edited) = relinked(&place.root, change)?;
     let move_ = Move {
         git,

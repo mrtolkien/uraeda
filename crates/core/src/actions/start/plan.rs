@@ -261,7 +261,8 @@ impl Start<'_> {
         }
         let folder = format!("{today}-{slug}");
         let kinds = [Kind::Feature, Kind::Change];
-        check_free(self.root, &self.at, self.workspace, &folder, &kinds)?;
+        let hint = "choose another slug with --slug";
+        check_free(self.root, &self.at, self.workspace, &folder, &kinds, hint)?;
         Ok(folder)
     }
 
@@ -285,13 +286,14 @@ impl Start<'_> {
 }
 
 /// Refuses a dated folder that a record, a branch, or a folder already holds, as one of `kinds`,
-/// from the default branch's working tree at `root`.
+/// from the default branch's working tree at `root`, saying `hint` to get out of it.
 pub(crate) fn check_free(
     root: &Path,
     at: &Git,
     workspace: &Workspace,
     folder: &str,
     kinds: &[Kind],
+    hint: &str,
 ) -> Result<(), StartError> {
     let features = &workspace.features;
     let record = crate::workspace::record_path(folder);
@@ -300,9 +302,7 @@ pub(crate) fn check_free(
             .iter()
             .any(|feature| feature.folder == folder && feature.is_finished());
     if recorded {
-        return Err(StartError::Refused(format!(
-            "{record} exists: choose another slug with --slug"
-        )));
+        return Err(StartError::Refused(format!("{record} exists: {hint}")));
     }
     let branches = at.branches()?;
     let taken = kinds.iter().any(|&kind| {
@@ -313,9 +313,7 @@ pub(crate) fn check_free(
         .iter()
         .any(|feature| feature.folder == folder && kinds.contains(&feature.kind));
     if taken {
-        return Err(StartError::Refused(format!(
-            "{folder} exists: choose another slug with --slug"
-        )));
+        return Err(StartError::Refused(format!("{folder} exists: {hint}")));
     }
     Ok(())
 }
