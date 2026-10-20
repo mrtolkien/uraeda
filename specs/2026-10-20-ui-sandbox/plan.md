@@ -366,7 +366,7 @@ but injects its client into the first module it transforms, whatever its options
   `--project desktop`.
 - Expected: PASS: the dialog on the desktop and the bottom sheet on the phone.
 
-- [ ] **Step 5: Run the project's validation**
+- [x] **Step 5: Run the project's validation**
 
 - Run: `vp run fast`
 - Expected: PASS.
