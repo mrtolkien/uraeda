@@ -122,6 +122,10 @@ No exception is proposed. Plan approval is automatic because the approved spec h
 | Immutable git fixture templates         | Many existing tests need identical committed history but independent writes.                                        | Sharing a mutable repository introduces ordering dependencies; rebuilding history for every case wastes processes.            |
 | Focused render helper                   | Composer cases share context setup and controlled promises, with fresh client/state per case.                       | Reusing the App helper recreates fanout; repeating context and transport setup obscures each assertion.                       |
 
+The shared `scripts/test-policy.ts` worker limit keeps normal and lightweight execution at the same
+`min(4, availableParallelism())` budget. Keeping the expression in both configurations would create
+two owners of the machine resource policy; cache inputs include this shared file.
+
 Existing oversized units are not grown. Split a marked unit before changing its behavior; record any
 necessary extra decomposition here.
 
@@ -269,17 +273,17 @@ runner reports discovered test filenames and executes the selected specification
 lifetime. Produce `uiTransforms()` for normal and focused configurations; no production
 server/fresh-binding import is allowed in lightweight discovery.
 
-- [ ] **Step 1: Add behavior tests and minimal interfaces.** Cover whitespace paths, explicit
+- [x] **Step 1: Add behavior tests and minimal interfaces.** Cover whitespace paths, explicit
       invalid base, clean-tree latest commit, initial commit, untracked files, deleted/renamed
       paths, declaration/config broadening, skill/native/fixture routing, and docs-only changes.
       Assert Composer selects related focused behavior without Rust or App journeys; native/skill
       selects real contracts and Rust; deferred families are named. A wrong selector that ignores a
       deletion, treats a git error as empty, or routes a UI edit to all App tests must fail.
-- [ ] **Step 2: Run the selector tests to observe intended failures.** Use
+- [x] **Step 2: Run the selector tests to observe intended failures.** Use
       `nix develop -c vp test --config scripts/vite.config.ts --run` after creating the minimum
       configuration and interfaces. Expected: behavioral routing assertions fail, rather than a
       missing import or missing helper.
-- [ ] **Step 3: Implement selection and shared transforms.** Use one family/input registry;
+- [x] **Step 3: Implement selection and shared transforms.** Use one family/input registry;
       conservative fallback broadens affected fast families. Keep all old tests in ready. Register
       scripts tests with ready. Unknown new tests default to complete validation rather than
       disappearing. Source declarations and runtime/native dependencies have explicit owners; reuse
@@ -287,12 +291,35 @@ server/fresh-binding import is allowed in lightweight discovery.
       dependency. Build native output only for selected consumers and before loading it. Git and
       discovery failures exit nonzero. Preserve wrapper isolation, process cleanup, and machine-wide
       resource coordination.
-- [ ] **Step 4: Validate configuration and selection.** Run selector tests,
+- [x] **Step 4: Validate configuration and selection.** Run selector tests,
       `nix develop -c vp check`, toolchain tests, a focused pure test, and a retained application
       test. Show the discovered graph for a UI edit cannot load App, createApp,
       `uraeda-server/testing`, or a native loader. Temporarily break native/skill/deletion routing,
       observe the relevant assertion fail, and restore it.
-- [ ] **Step 5: Commit.** `feat(fix-testing): select focused checks before build prerequisites`.
+- [x] **Step 5: Commit.** `feat(fix-testing): select focused checks before build prerequisites`.
+
+Task 1 evidence (2026-10-20):
+
+- The 13 selector cases first failed on behavioral assertions against minimal interfaces. The
+  completed scripts suite passes 16 cases, including actual transitive UI discovery/execution,
+  discovery failure with runner cleanup, and refusal of an empty required family.
+- `nix develop -c vp check` passes. The toolchain suite passes 28 cases. The retained `home` and
+  `composer-images` suites pass 20 cases through the normal UI configuration. No legacy test was
+  removed or excluded from ready; ready now also registers the scripts project.
+- A `ComposerImages.tsx` edit discovers only `composer-images.test.tsx`: 32 discovery modules,
+  without App, createApp, server testing, or a native loader. This passed before this checkout had
+  native output. This is configuration evidence, not the Composer pilot or its timing result.
+- Removing native source ownership, disabling skill/native routing, and ignoring deleted source each
+  made its relevant selector assertion fail; all faults were restored. A native build was explicitly
+  requested only for the retained application/toolchain checks (`binding:touch`, cache hit);
+  lightweight UI discovery did not request it.
+- Application journeys, phone/desktop browsers, production/package builds and smoke, and full
+  workspace/editor checks remain named deferred checks. Legitimate zero related matches are reported
+  separately from discovery errors; a required family with no files is an error.
+
+Task 2 must replace the anticipated `src/__tests__/composer.test.tsx` membership with the pilot's
+actual path, and switch fast binding membership from legacy `index.test.ts` to the new
+`contracts.test.ts` once it exists. The legacy suite stays in ready throughout.
 
 ## Task 2: Prove Composer and real native contracts within the fast budget
 

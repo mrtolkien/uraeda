@@ -15,6 +15,7 @@ const toolchainInputs = [
 const rootConfig = [
   "vite.config.ts",
   "vite.tasks.ts",
+  "scripts/test-policy.ts",
   "tsconfig.json",
   "tsconfig.base.json",
   ...toolchainInputs,
@@ -98,6 +99,11 @@ const tsTestInputs = [
  * The `ready:*` groups, which run nothing themselves, are the units CI's jobs run, uncached.
  */
 export const tasks = {
+  // Selection has no cached result: HEAD and the working tree are runtime inputs.
+  fast: {
+    cache: false,
+    command: `${heavyRun} ${isolatedGit} node scripts/fast-check.ts`,
+  },
   // The benchmarks of the specs' success criteria: they measure time, so are never replayed.
   bench: {
     cache: false,
@@ -277,6 +283,7 @@ export const tasks = {
         "packages/web/src/**",
         "packages/web/.storybook/**",
         "packages/web/vite.config.ts",
+        "packages/web/vite.transforms.ts",
         "packages/web/package.json",
         "packages/server/src/**",
         "skills/uraeda/assets/storybook/uraeda-preview.js",

@@ -172,7 +172,14 @@ function runnerConfigs(): Record<string, string> {
         .filter((file) => /^vite.*\.config\.ts$/.test(file))
         .map((file) => `packages/${name}/${file}`),
     );
-  const paths = [".config/nextest.toml", ".github/workflows/ci.yml", "vite.config.ts", ...packages];
+  const paths = [
+    ".config/nextest.toml",
+    ".github/workflows/ci.yml",
+    "vite.config.ts",
+    "vite.fast.config.ts",
+    "scripts/vite.config.ts",
+    ...packages,
+  ];
   return Object.fromEntries(paths.map((path) => [path, readFileSync(join(ROOT, path), "utf8")]));
 }
 
@@ -273,6 +280,9 @@ function projectNames(): Array<string> {
     const text = uncommented(project, readFileSync(join(ROOT, project), "utf8"));
     const instances = /\binstances:\s*\[([\s\S]*?)\n\s*\]/.exec(text)?.[1] ?? "";
     const names = [...instances.matchAll(/\bname:\s*"([^"]+)"/g)].map(([, name]) => name);
+    if (!names.length && project === "scripts/vite.config.ts") {
+      return ["scripts"];
+    }
     if (!names.length) {
       throw new Error(`no browser instance names in ${project}: teach \`projectNames\` its names`);
     }
@@ -386,6 +396,9 @@ function bindingConfigs(): Record<string, string> {
     projects
       .map((project) => (project.endsWith(".ts") ? project : `${project}/vite.config.ts`))
       .filter((path) => {
+        if (path === "scripts/vite.config.ts") {
+          return false;
+        }
         const manifest = readFileSync(
           join(ROOT, path.slice(0, path.lastIndexOf("/")), "package.json"),
           "utf8",
@@ -399,7 +412,9 @@ function bindingConfigs(): Record<string, string> {
 /** The browser projects' names: the instances of the root's config file projects. */
 function browserProjects(): Array<string> {
   const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
-  const packages = projects.filter((project) => !project.endsWith(".ts")).length;
+  const packages = projects.filter(
+    (project) => !project.endsWith(".ts") || project === "scripts/vite.config.ts",
+  ).length;
   return projectNames().slice(packages);
 }
 
@@ -693,4 +708,14 @@ test("the heavy checks wait for the other checkouts' through a shared limit of t
       " --lock heavy --slots 2",
     );
   }
+});
+
+test("fast selects before optional builds and preserves isolation and coordination", () => {
+  const fast = allTasks().fast;
+  expect(fast.cache).toBe(false);
+  expect(fast.dependsOn ?? []).toEqual([]);
+  expect(fast.command).toContain("scripts/test-run.ts --lock heavy --slots 2");
+  expect(fast.command).toContain("node scripts/fast-check.ts");
+  const config = readFileSync(join(ROOT, "vite.fast.config.ts"), "utf8");
+  expect(config).not.toMatch(/fresh-binding|uraeda-server\/dev|web\/vite.config/);
 });
