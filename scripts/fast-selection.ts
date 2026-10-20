@@ -2,7 +2,8 @@ import { execFileSync } from "node:child_process";
 import { matchesGlob } from "node:path";
 import { SOURCES } from "../packages/server/src/binding.ts";
 
-export type Change = { deleted: boolean; path: string };
+/** A changed path; `added` is a path new since the base, untracked ones included. */
+export type Change = { added: boolean; deleted: boolean; path: string };
 export type FastSelection = {
   checks: Array<string>;
   deferred: Array<string>;
@@ -98,8 +99,9 @@ const deferred = [
   "production builds/package smoke",
   "full workspace/editor checks",
 ];
+/** The toolchain's configuration files, by name: a source named `config.rs` is not one. */
 const config =
-  /(?:^|\/)(?:vite[^/]*\.ts|.*config\.[^/]+|package\.json|pnpm-[^/]+|flake\.[^/]+|rust-toolchain\.toml)$/;
+  /(?:^|\/)(?:vite[^/]*\.ts|[^/]+\.config\.[cm]?[jt]s|tsconfig[^/]*\.json|package\.json|pnpm-[^/]+|flake\.[^/]+|rust-toolchain\.toml)$/;
 export const matches = (path: string, patterns: Array<string>) =>
   patterns.some((pattern) => matchesGlob(path, pattern));
 
@@ -115,7 +117,11 @@ function changes(text: string): Array<Change> {
   const fields = text.split("\0");
   const found: Array<Change> = [];
   for (let index = 0; index + 1 < fields.length; index += 2) {
-    found.push({ deleted: fields[index] === "D", path: fields[index + 1] });
+    found.push({
+      added: fields[index] === "A",
+      deleted: fields[index] === "D",
+      path: fields[index + 1],
+    });
   }
   return found;
 }
@@ -125,7 +131,7 @@ export function changedFiles(root: string, base?: string): Array<Change> {
   const untracked = git(root, "ls-files", "--others", "--exclude-standard", "-z")
     .split("\0")
     .filter(Boolean)
-    .map((path) => ({ deleted: false, path }));
+    .map((path) => ({ added: true, deleted: false, path }));
   const from =
     base === undefined
       ? head
@@ -158,7 +164,8 @@ export function selectFast(changed: Array<Change>): FastSelection {
   const related = new Set<string>();
   const rust = new Set<string>();
   const checks = new Set(["ts:check"]);
-  for (const { deleted, path } of changed) {
+  const named = [...deferred];
+  for (const { added, deleted, path } of changed) {
     const native = matches(path, nativeInputs);
     if (path.endsWith(".md")) {
       checks.add("specs:check");
@@ -196,7 +203,12 @@ export function selectFast(changed: Array<Change>): FastSelection {
         ),
       )
     ) {
-      checks.add("ready");
+      // A new test would otherwise run nowhere before ready; an existing one runs there.
+      if (added) {
+        checks.add("ready");
+      } else {
+        named.push(`existing test ${path}`);
+      }
     }
   }
   if (
@@ -215,7 +227,7 @@ export function selectFast(changed: Array<Change>): FastSelection {
   }
   return {
     checks: [...checks],
-    deferred,
+    deferred: named,
     families: [...whole],
     related: [...related],
     rust: [...rust],
@@ -251,4 +263,9 @@ export function rustCommands(rust: Array<string>): Array<[string, Array<string>]
     ]);
   }
   return commands;
+}
+
+/** The selected whole families none of whose tests was discovered, from the projects' names. */
+export function unproven(selected: Array<string>, discovered: Array<string>): Array<string> {
+  return selected.filter((name) => !discovered.includes(`fast-${name}`));
 }
