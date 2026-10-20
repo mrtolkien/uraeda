@@ -2,7 +2,13 @@ import { execFileSync, spawn } from "node:child_process";
 import { relative } from "node:path";
 import { createVitest } from "vite-plus/test/node";
 import { fastConfig } from "../vite.fast.config.ts";
-import { changedFiles, rustCommands, selectFast, unproven } from "./fast-selection.ts";
+import {
+  changedFiles,
+  type FastSelection,
+  rustCommands,
+  selectFast,
+  unproven,
+} from "./fast-selection.ts";
 import { acquire, lockFolder } from "./test-run.ts";
 
 function report(...values: Array<unknown>) {
@@ -32,9 +38,10 @@ function started(command: string, args: Array<string>): Promise<void> {
 
 /**
  * Runs independent chains of commands at once, each in order, and waits for every chain to end
- * before failing with the first error: no command outlives the run.
+ * before failing: with the one error, or every chain's in an `AggregateError`. No command outlives
+ * the run.
  */
-async function concurrently(chains: Array<Array<[string, Array<string>]>>) {
+export async function concurrently(chains: Array<Array<[string, Array<string>]>>) {
   const results = await Promise.allSettled(
     chains.map(async (chain) => {
       for (const [command, args] of chain) {
@@ -42,9 +49,14 @@ async function concurrently(chains: Array<Array<[string, Array<string>]>>) {
       }
     }),
   );
-  const failed = results.find((result) => result.status === "rejected");
-  if (failed) {
-    throw failed.reason;
+  const failed = results.flatMap((result) =>
+    result.status === "rejected" ? [result.reason as unknown] : [],
+  );
+  if (failed.length > 1) {
+    throw new AggregateError(failed, `${failed.length} check chains failed`);
+  }
+  if (failed.length) {
+    throw failed[0];
   }
 }
 
@@ -80,21 +92,30 @@ async function main() {
   }
 }
 
-async function checks(selection: ReturnType<typeof selectFast>, graph: boolean) {
-  // Types read the committed declarations, so the TypeScript checks need no native build: they run
-  // beside the native and Rust chain, which shares one Cargo build directory and stays in order.
-  const typescript: Array<[string, Array<string>]> = [["vp", ["check"]]];
+type Command = [string, Array<string>];
+
+/** The checks before the tests, in stages of chains that run at once. */
+export function checkStages(selection: FastSelection): Array<Array<Array<Command>>> {
+  // The binding's build regenerates its committed declarations, which the type check reads: it
+  // comes first. Then the TypeScript checks run beside the Rust chain, which shares one Cargo build
+  // directory and stays in order.
+  const typescript: Array<Command> = [["vp", ["check"]]];
   if (selection.checks.includes("specs:check")) {
     typescript.push(["vp", ["run", "specs:check"]]);
   }
-  const native: Array<[string, Array<string>]> = [];
+  const rust = selection.rust.length ? rustCommands(selection.rust) : [];
+  const stages: Array<Array<Array<Command>>> = [];
   if (selection.checks.includes("binding:touch")) {
-    native.push(["vp", ["run", "binding:touch"]]);
+    stages.push([[["vp", ["run", "binding:touch"]]]]);
   }
-  if (selection.rust.length) {
-    native.push(...rustCommands(selection.rust));
+  stages.push([typescript, rust]);
+  return stages;
+}
+
+async function checks(selection: FastSelection, graph: boolean) {
+  for (const stage of checkStages(selection)) {
+    await concurrently(stage);
   }
-  await concurrently([typescript, native]);
   if (!selection.related.length && !selection.families.length) {
     return;
   }

@@ -90,9 +90,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R7: Run fast's TypeScript checks beside its native and Rust chain
 
-- **Decision**: `scripts/fast-check.ts` runs `vp check` (and `specs:check`) concurrently with the
-  ordered native/Rust chain (`binding:touch`, `cargo fmt`, `clippy`, `nextest`), waits for both, and
-  fails with the first error. Vitest still starts only after both succeed.
+- **Decision**: `scripts/fast-check.ts` runs `binding:touch` first when selected, since its build
+  regenerates the committed declarations the type check reads. Then `vp check` (and `specs:check`)
+  runs concurrently with the ordered Rust chain (`cargo fmt`, `clippy`, `nextest`); the run waits
+  for both and fails with the one error, or both in an `AggregateError`. Vitest still starts only
+  after both succeed. The binding build already led the native chain, so the critical path is
+  unchanged.
 - **Rationale**: The core pilot's measured sequential command took 52.18 to 76.50 seconds warm and
   59.98 seconds cold for `uraeda-core` alone; reverse dependents add about 10 seconds. The type
   check reads committed declarations and needs no native output, so its 9 to 14 seconds overlapped
