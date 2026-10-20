@@ -115,10 +115,12 @@ again from the repository.
      make a run pass. Removing, skipping, or loosening an existing test, or raising a timeout, takes
      a ruling. A test that fails because of a change the human requested is changed when the change
      is safe and reversible, and the same response says which test and why; otherwise the work
-     stops, and the response says what conflicts and what each way out costs. Only a case where the
-     spec, the test, and a requested behaviour cannot all hold is a conflict: the work stops, the
-     report says what conflicts and what each way out costs, in the commit body, or in a new round
-     of questions when the human must decide, and the assertion is never weakened.
+     stops, and the response says what conflicts and what each way out costs. A safe, reversible
+     request that contradicts the spec or a test is carried out, never refused: the same response
+     reports what conflicts and what each way out costs, and the human arbitrates. The work stops
+     only for a request that is unsafe or cannot be undone, and then the report says the same, in
+     the commit body, or in a new round of questions when the human must decide. The assertion an
+     agent chose is never weakened to pass.
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in

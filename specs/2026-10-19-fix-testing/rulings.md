@@ -432,9 +432,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   changes below are all of them, read from `git diff main...HEAD` over the test files, the helpers,
   and the configurations (108 removed lines, 13 of them assertions). Each baseline path of the
   [inventory](test-inventory.md) keeps its row, with the disposition its change needs.
-  - **Retained and named, unchanged**: all 305 baseline paths still exist; 274 are changed by
-    neither the branch nor main, 14 are changed by the branch (below), and 17 are changed by main
-    and integrated by R70 without a conflict (none of them is among the branch's 14).
+  - **Retained and named, unchanged**: all 305 baseline paths still exist; 273 are changed by
+    neither the branch nor main, 15 are changed by the branch (below; `watch.rs`, the 15th, changed
+    after the audit, R72 and R90), and 17 are changed by main and integrated by R70 without a
+    conflict (none of them is among the branch's 14).
   - **Strengthened, nothing removed**: `crates/core/tests/clean.rs` `leaves_a_locked_worktree` and
     `leaves_a_worktree_outside_worktrees` assert the whole `left` list (worktree, then branch with
     `WorktreeLeft`), an empty `did`, and that the branch remains; the old assertions on `left[0]`
@@ -450,6 +451,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     for that link instead of the heading (R31, named by R33). These are the 13 removed assertions;
     the home order case now accepts any first heading. The headings' other words, the rows, verbs,
     and links keep their assertions.
+  - **Loosened, by ruling (second)**: `crates/core/tests/watch.rs`
+    `a_new_worktree_is_reported_then_watched` (R72 item 3, bounded by R90). Before the branch it
+    took the first report after its write: `let changes = next(&receiver);` then asserted the file
+    list. R72's fix looped past any number of reports without files; R90 skips exactly one. Its
+    assertion on the file list is unchanged.
   - **Replaced**: `main.test.ts`'s `expect.poll(...)` waits on a spawned server are `until(...)`,
     which waits for the same condition or the process's exit and fails with its stderr (R60). The
     chunked-upload case of `attach.test.ts` sends 64 MiB in place of 22 and asserts the 21 MB
@@ -464,17 +470,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     diff), and no `retry` is configured.
 - **Timeouts and bounds changed** (old to new):
 
-  | Where                                                                                  | Old                          | New                                     | Ruling              |
-  | -------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------- | ------------------- |
-  | `packages/binding/vite.config.ts` `testTimeout`                                        | 5 s (Vitest's default)       | 20 s                                    | R61                 |
-  | `scripts/vite.config.ts` `testTimeout` (new project)                                   | none                         | 130 s, above its nested runs' own 120 s | Task 2 review fixes |
-  | `fast-discovery.test.ts` nested Vitest `timeout` (new)                                 | none                         | 120 s                                   | Task 1              |
-  | fast project `testTimeout` (non-UI families, new)                                      | none                         | 20 s, the server project's              | R11                 |
-  | `main.test.ts` waits on a spawned server                                               | 1 s (`expect.poll` default)  | 15 s, or the process's exit             | R60                 |
-  | `main.test.ts` early request of "a second start during the first's start waits for it" | the handoff's 2 s            | 30 s                                    | R60                 |
-  | `attach.test.ts` chunked upload                                                        | 22 chunks sent, none counted | 64 sent, at most 30 read                | R21                 |
-  | `packages/web/vite.config.ts` `testTimeout`                                            | 20 s                         | 20 s (moved, same value)                | R11                 |
-  | `__focused__` composer cases                                                           | none                         | the web configuration's 20 s            | R11                 |
+  | Where                                                                                  | Old                          | New                                                                                            | Ruling              |
+  | -------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- | ------------------- |
+  | `packages/binding/vite.config.ts` `testTimeout`                                        | 5 s (Vitest's default)       | 20 s                                                                                           | R61                 |
+  | `scripts/vite.config.ts` `testTimeout` (new project)                                   | none                         | 130 s, above its nested runs' own 120 s                                                        | Task 2 review fixes |
+  | `fast-discovery.test.ts` nested Vitest `timeout` (new)                                 | none                         | 120 s                                                                                          | Task 1              |
+  | fast project `testTimeout` (new), per family                                           | none                         | its package's: 20 s (binding, server, benchmarks), 130 s (scripts), Vitest's default (package) | R11, R72, R91       |
+  | `main.test.ts` waits on a spawned server                                               | 1 s (`expect.poll` default)  | 15 s, or the process's exit                                                                    | R60                 |
+  | `main.test.ts` early request of "a second start during the first's start waits for it" | the handoff's 2 s            | 30 s                                                                                           | R60                 |
+  | `attach.test.ts` chunked upload                                                        | 22 chunks sent, none counted | 64 sent, at most 30 read                                                                       | R21                 |
+  | `packages/web/vite.config.ts` `testTimeout`                                            | 20 s                         | 20 s (moved, same value)                                                                       | R11                 |
+  | `__focused__` composer cases                                                           | none                         | the web configuration's 20 s                                                                   | R11                 |
 
 - **Coverage exclusions and denominators**: `**/__focused__/**` joins `**/__tests__/**`,
   `**/__browser__/**`, `**/__lint__/**` in the root coverage `exclude` (R6), so the focused tests
@@ -515,7 +521,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `install.rs` lines 170, 281 to 283, 323, and 382 to 385 are run by no `install.rs` test (Task 4).
 - **Rationale**: SC-005 asks every old file a disposition and every weakening a replacement; the
   inventory and this list are that record. Nothing here removes a case, and the only expectations
-  relaxed are R31's wording pins.
+  relaxed are R31's wording pins and, by R90, one skipped empty report in `watch.rs`.
 - **Alternatives considered**: Listing only the files with a changed assertion, which hides moved
   settings and timeouts.
 - **If wrong**: Restore a loosened pin by its ruling, or a moved setting from `main`'s file.
@@ -532,11 +538,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
      of the other families: a configuration edit's fast run timed out `fast-discovery.test.ts`'s
      nested Vitest at 20 s under a load of 150 (it passes in the `scripts` project).
   3. `crates/core/tests/watch.rs`: `a_new_worktree_is_reported_then_watched` takes the first report
-     that lists a file after its write. Under a load of about 200 it received a late report with no
-     files (`left: []`); alone it passed 60 of 60 stress runs at load 95, so the failure was seen
-     once, in a run of 1,078 tests, and its cause (a report of the new worktree's own watch landing
-     after the 500 ms quiet window) is inferred from the assertion, not reproduced. The expected
-     file list is still asserted exactly.
+     that lists a file after its write (a loop, which R90 bounds to one skipped report). Under a
+     load of about 200 it received a late report with no files (`left: []`); alone it passed 60 of
+     60 stress runs at load 95, so the failure was seen once, in a run of 1,078 tests, and its cause
+     (a report of the new worktree's own watch landing after the 500 ms quiet window) is inferred
+     from the assertion, not reproduced. The expected file list is still asserted exactly.
 - **Rationale**: Measured on this 32-thread machine, which other checkouts' stress loops (64 busy
   loops each) kept at a load of 80 to 216 for about an hour; the quiet-machine samples are those
   with a load below 35 at their start. Complete uncached `vp run --no-cache ready` (the commands CI
@@ -605,3 +611,55 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: A hosted run of the same commit decides the open browser case and the SC-001 budget.
 - **Where**: `scripts/fast-selection.ts`, `scripts/__tests__/fast-selection.test.ts`,
   `vite.fast.config.ts`, `crates/core/tests/watch.rs`.
+
+## R90: The late empty report in `watch.rs` is skipped once, not any number of times
+
+- **Decision**: `a_new_worktree_is_reported_then_watched` takes the report after its write and, when
+  that one lists no file, takes the next; a second report without the file, or a write report that
+  lists none, fails the assertion on the file list. This replaces R72 item 3's loop over any number
+  of empty reports, which would also have passed a watcher that kept reporting nothing. The case
+  passed 60 of 60 stress runs (nextest `--stress-count 60`) at a load of 93 to 111. The cause of the
+  one late report seen (the new worktree's own watch reporting after the 500 ms quiet window) is
+  still inferred, not reproduced. R71's list of loosened expectations names this case, with its
+  before and after; the inventory's row for `watch.rs` points here.
+- **Rationale**: The failure observed was one late report; the guard should tolerate that, and only
+  that.
+- **Alternatives considered**: Keeping the loop (hides a repeating spurious report); restoring the
+  first-report assertion (fails under a load of 200, once).
+- **If wrong**: A stress run showing two late empty reports would need a ruling naming the new
+  bound.
+- **Where**: `crates/core/tests/watch.rs`.
+
+## R91: Fast's families take their packages' settings, setup files are family inputs, and `specs/` has its own check
+
+- **Decision**: Review fixes to Task 1's selection and fast configuration, each a protection kept or
+  added; no case removed.
+  1. The files Vitest loads outside any test's imports are "setups": the binding's `test-setup.ts`,
+     the UI's `setup.ts`, and `scripts/test-policy.ts`. An edit or deletion runs every family they
+     apply to whole (before, the UI's setup selected nothing and fast passed with no test run, and
+     the binding's selected only the contracts). They are inputs of those families.
+  2. Non-UI fast projects have their packages' settings only: `gitTestTimeout` (20 s) for the
+     binding, server and benchmarks, `scriptsTestTimeout` (130 s) for scripts, Vitest's default for
+     the `package` family; setup files only where the package's configuration has them (no setup for
+     the benchmarks, no `TZ`). The constants live in `scripts/test-policy.ts`, which the package
+     configurations and `uiTestOptions()` import; this supersedes R11's and R72's 20 s for every
+     non-UI family. The `package` family's bound is now 5 s, as in `vp test`.
+  3. The UI family's tests are `src/__focused__/**/*.test.tsx` plus the named existing tests, so a
+     new focused test needs no edit of the list. A scripts case fails when a file a family reads is
+     no input of the cached `ts:test` task; it found `benchmarks/**` missing, now added.
+  4. `specs/**` (workflow files and their images) selects `specs:check`; `editors/` and `.github/`
+     still escalate to `ready`, because only `ready` runs the Neovim tests and the toolchain test's
+     read of CI's workflow.
+  5. The `fast` task no longer isolates git's configuration: `fast-check.ts` lists the changed files
+     with the user's, so globally ignored files are not listed as new, then isolates it for every
+     later check. The task still unsets git's repository variables.
+  6. `fast-check.test.ts` stops its child when the "Waiting" line appears, with a 60 s outer bound
+     in place of an 8 s kill; `fast-guards.test.ts` runs `runFocused` over a stub family to prove
+     the unproven-family, failed-module and unhandled-error guards (each failed its case with the
+     guard disabled).
+- **Rationale**: Fast must not pass what `ready` fails, nor pass with nothing run.
+- **Alternatives considered**: Deriving the cache inputs from the families (would narrow `ready`'s
+  cache inputs); loading each package's configuration in fast (loads the native freshness import).
+- **If wrong**: A fast run passing where `ready` fails names the setting to align.
+- **Where**: `scripts/fast-selection.ts`, `scripts/fast-check.ts`, `scripts/test-policy.ts`,
+  `vite.fast.config.ts`, `vite.tasks.ts`, the packages' `vite.config.ts` files.
