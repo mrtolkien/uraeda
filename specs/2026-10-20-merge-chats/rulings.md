@@ -506,9 +506,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R30: A second start with the host token waits a minute for the starting server
 
 - **Decision**: `handOff` waits 2 seconds for an answer on a port without a host token, and a minute
-  with one. "a second start during the first's start waits for it" waits for the token file until
-  the first start writes it, or exits, with no deadline but the test's, instead of `expect.poll`'s 1
-  second.
+  with one. "a second start during the first's start waits for it" waits for the token until the
+  first start writes it, or exits: since the second catch-up, through the default branch's `until`,
+  which fixed the same wait, so this branch's own `written` helper went.
 - **Rationale**: the test failed twice under load, at each of its two timing assumptions. The poll
   gave the first process 1 second to load its binding and take the port. And the handoff gave the
   starting server 2 seconds to answer, which `startServer` passes on a loaded machine: a second
@@ -618,3 +618,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `remove_from_default` and `check_folder` in `crates/core/src/actions/drop.rs`.
 - **Where**: the catch-up, `crates/core/src/actions/drop.rs`, `crates/core/tests/drop.rs`,
   `skills/uraeda/references/projects.md`.
+
+## R36: The default branch's focused-test helpers follow the branch's sessions and drop
+
+- **Decision**: `sessionRecord` in `packages/web/src/__focused__/helpers.tsx` gives a session
+  `name: null` and a `startedAt`, and the request fixture in
+  `packages/server/src/__tests__/request-fixture.ts` serves `droppedDataView`. In the second
+  catch-up, rebasing on the default branch's fix-testing and ui-sandbox merge.
+- **Rationale**: the default branch added both helpers against its own `SessionRecord` and roots.
+  This branch's sessions carry their own name and their start, as several sessions share a folder,
+  and its drop adds the `Dropped` root. Without them the type check failed on `sessionRecord`, and
+  `src/__focused__/composer.test.tsx` failed to load with "The request fixture has no data view for
+  Dropped".
+- **Alternatives considered**: none: both helpers mirror the server's types by design.
+- **If wrong**: the two helpers.
+- **Where**: the second catch-up, `packages/web/src/__focused__/helpers.tsx`,
+  `packages/server/src/__tests__/request-fixture.ts`.
