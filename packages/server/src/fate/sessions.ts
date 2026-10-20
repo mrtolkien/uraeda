@@ -111,11 +111,20 @@ function turnsOf(cache: SessionCache, session: string) {
   };
 }
 
-/** The session's status, from its turns, when it was seen, and its feature's step. */
-function statusOf(row: SessionRow, read: ReturnType<typeof turnsOf>, feature?: FeatureView) {
+/**
+ * The session's status, from its turns, when it was seen, its feature's step, and whether it is its
+ * feature's `latestSession`.
+ */
+function statusOf(
+  row: SessionRow,
+  read: ReturnType<typeof turnsOf>,
+  feature?: FeatureView,
+  latestSession = true,
+) {
   const status = sessionStatus({
     ...(read.latest === undefined ? {} : { latest: read.latest }),
     blocked: read.blocked,
+    latestSession,
     queued: read.queued,
     seenAt: row.seenAt,
     ...(feature ? { stepName: feature.step.name } : {}),
@@ -123,6 +132,11 @@ function statusOf(row: SessionRow, read: ReturnType<typeof turnsOf>, feature?: F
     waitsOnHuman: feature?.step.waitsOn === "human",
   });
   return { status: status.status, statusLabel: status.label, statusReason: status.reason ?? null };
+}
+
+/** Whether the session is its change's or feature's latest, which its runs go to; a chat is. */
+function isLatest(cache: SessionCache, row: SessionRow): boolean {
+  return row.folder === null || cache.latestSession(row.repo, row.folder)?.id === row.id;
 }
 
 function titleOf(row: SessionRow, feature?: FeatureView): string {
@@ -169,7 +183,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     folder: row.folder,
     id: row.id,
     title: titleOf(row, feature),
-    ...statusOf(row, read, feature),
+    ...statusOf(row, read, feature, isLatest(ctx.sessions.cache, row)),
     archived: row.archivedAt !== null,
     backgroundCommands: ctx.sessions.backgroundCommands(row.id),
     place: await placeOf(ctx, row, feature),
@@ -246,7 +260,7 @@ async function rows(
     .map((row) => {
       const feature = row.folder === null ? undefined : features.get(row.folder);
       const read = turnsOf(cache, row.id);
-      const { status, statusLabel } = statusOf(row, read, feature);
+      const { status, statusLabel } = statusOf(row, read, feature, isLatest(cache, row));
       return {
         archived: row.archivedAt !== null,
         backgroundCommands: ctx.sessions.backgroundCommands(row.id),
@@ -265,8 +279,9 @@ async function rows(
 }
 
 /**
- * Each feature in flight of the server's repository, with its status: its most urgent session's,
- * from the same rules as the sidebar's, or, without a session, whether its step waits on the human.
+ * Each feature in flight of the server's repository, with its status: its latest session's, which
+ * its runs go to, from the same rules as the sidebar's, raised to an older session's when that one
+ * works or is blocked; without a session, whether its step waits on the human.
  */
 export async function featureStatuses(ctx: RepoContext) {
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
@@ -274,17 +289,21 @@ export async function featureStatuses(ctx: RepoContext) {
   return (await workspaceOf(ctx, ctx.repo)).features
     .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
     .map((feature) => {
+      const [latest, ...older] =
+        root === undefined ? [] : cache.folderSessions(root, feature.folder);
       const status =
-        (root === undefined ? [] : cache.folderSessions(root, feature.folder))
-          .map((row) => statusOf(row, turnsOf(cache, row.id), feature))
-          .reduce<ReturnType<typeof statusOf> | undefined>(
-            (urgent, each) =>
-              urgent && STATUS_ORDER[urgent.status] <= STATUS_ORDER[each.status] ? urgent : each,
-            undefined,
-          ) ??
-        (feature.step.waitsOn === "human"
-          ? { status: "needs-you" as const, statusReason: "step" as const }
-          : { status: "idle" as const, statusReason: null });
+        latest === undefined
+          ? feature.step.waitsOn === "human"
+            ? { status: "needs-you" as const, statusReason: "step" as const }
+            : { status: "idle" as const, statusReason: null }
+          : older
+              .map((row) => statusOf(row, turnsOf(cache, row.id), feature, false))
+              .filter((each) => each.status === "working" || each.statusReason === "blocked")
+              .reduce(
+                (urgent, each) =>
+                  STATUS_ORDER[each.status] < STATUS_ORDER[urgent.status] ? each : urgent,
+                statusOf(latest, turnsOf(cache, latest.id), feature),
+              );
       return { feature, status: status.status, statusReason: status.statusReason };
     });
 }

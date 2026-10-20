@@ -703,7 +703,10 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
     makes "New reply", and a failed or stopped one "Needs attention"
     ([R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid)).
   - `FeatureRecord` gains `sessions: Array<string>` (latest first); `session` stays the latest.
-  - A feature's status is the most urgent of its sessions' (`STATUS_ORDER`).
+  - A feature's status is its latest session's, raised to an older session's only when that one
+    works or is blocked (`STATUS_ORDER`). A run that ended before a gate halts only the folder's
+    latest session: an older one reads idle, not "Needs attention"
+    ([R15](rulings.md#r15-a-features-status-is-its-latest-sessions-and-only-the-latest-halts)).
   - A feature's `tokens` sum every session of the folder, not the latest only.
   - A search matching a feature finds every session of it (`sessionSearch`).
   - A feature's file change publishes a `Session` update to every session of the folder (`live.ts`
@@ -716,8 +719,10 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
   `done: true`.
 - "a reply brings a done session back": a new turn ending after `seen_at` reads `done: false`, and
   its `startedAt` is unchanged.
-- "a feature's status is its most urgent session's": the older session blocked, the latest idle: the
-  feature needs you.
+- "a feature's status is its latest session's, raised by an older one blocked": the older session
+  blocked, the latest idle: the feature needs you.
+- "an older session's halted run does not hold its feature", and "an older session's failed run does
+  not hold its feature".
 - "a feature's tokens count every session".
 - "a search for a feature finds every session of it".
 - "a feature's change updates every session of it" (`live.test.ts`): a change of the feature, as the
