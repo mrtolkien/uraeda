@@ -1,7 +1,7 @@
 //! `ura install`: the skill, for the user in the home folder or in the repository's top level, in
 //! `.agents/skills/`, `.claude/skills/`, or both, with each answer from a flag or asked.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uraeda_core::actions::install::{self, Folders, InstallLine};
@@ -192,6 +192,16 @@ fn files(count: usize) -> String {
     format!("{count} file{plural}")
 }
 
+/// Notes each copy of the skill at the other scope, `prefix` its shown folder.
+fn notes(other: &Path, prefix: &str) {
+    for path in install::existing(other) {
+        println!(
+            "note    another copy in {prefix}{path}: Claude Code reads the user's copy, \
+             other agents the repository's"
+        );
+    }
+}
+
 const CANCELLED: &str = "cancelled: nothing installed";
 
 pub fn run(flags: Flags) -> Result<ExitCode, String> {
@@ -255,17 +265,12 @@ pub fn run(flags: Flags) -> Result<ExitCode, String> {
             shown
         };
         println!("nothing to update: ura installed no skill in {place}");
-        return Ok(ExitCode::SUCCESS);
-    }
-    print(&lines);
-    // A home folder that is the repository's top level has no other scope.
-    let same = |other: &PathBuf| other.canonicalize().ok() == base.canonicalize().ok();
-    if let Some((other, prefix)) = other.filter(|(other, _)| !same(other)) {
-        for path in install::existing(&other) {
-            println!(
-                "note    another copy in {prefix}{path}: Claude Code reads the user's copy, \
-                 other agents the repository's"
-            );
+    } else {
+        print(&lines);
+        // A home folder that is the repository's top level has no other scope.
+        let same = |other: &PathBuf| other.canonicalize().ok() == base.canonicalize().ok();
+        if let Some((other, prefix)) = other.filter(|(other, _)| !same(other)) {
+            notes(&other, prefix);
         }
     }
     match home {
