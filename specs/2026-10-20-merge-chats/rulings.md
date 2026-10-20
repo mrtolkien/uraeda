@@ -156,3 +156,38 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   rule for the same typed start, and the New page would still refuse a start the move allows.
 - **If wrong**: the `Origin::Text` arm of `Start::plan` in `crates/core/src/actions/start/plan.rs`.
 - **Where**: task 5, `crates/core/src/actions/start/plan.rs`, `crates/core/tests/actions.rs`.
+
+## R11: The tests of a fresh run in the same session follow the new session
+
+- **Decision**: a fresh run now starts a new session of the folder (US5 2), so the tests that pinned
+  a new agent session inside the same session change:
+  - `runner/__tests__/sessions.test.ts`: "a fresh workflow run starts a new agent session in the
+    feature's session, which says so" becomes "a fresh run starts a new session of the feature"; "a
+    fresh workflow run queued after a chat turn starts its new agent session once it ends" becomes
+    "a queued turn waits for the other session"; "a queued turn ended by %s while its process
+    reopens does not start" sends its run with `fresh: false`, to stay in its session.
+  - `runner/__tests__/tokens.test.ts`: "a fresh agent session starts from zero, and its resumed
+    process from its own turns" counts the new session's tokens instead; "a fresh turn taken back
+    while its process opens leaves its line to the next turn" becomes the same case for a gone
+    transcript, whose `REPLACED` line is the only one left to pass on.
+  - `__tests__/sessions.test.ts`: "session.send with a fresh workflow message starts a new agent
+    session in the same session" becomes "…answers with the new session it started".
+- **Rationale**: the data model says `native_id` is "no longer replaced for a fresh step, which
+  starts a new session instead". Each test keeps its case: the token baseline of a new agent
+  session, a line left by a taken-back turn, and the setting that decides a fresh run.
+- **Alternatives considered**: deleting them: the token and taken-back cases still hold.
+- **If wrong**: the tests come back from git history with the in-session fresh run.
+- **Where**: task 5.
+
+## R12: A fresh run sent while its session works waits behind it in the new session
+
+- **Decision**: a fresh run sent to a session whose turn runs or waits is queued in the new session
+  it starts, and starts once the other session is idle. Any other message to a session of a folder
+  where another session works is refused with "Another session of this feature is working".
+- **Rationale**: before, that run was queued in its session, after the turn running; the human sent
+  it to that session, not beside it. US5 3's refusal covers a human writing in an idle session while
+  another works.
+- **Alternatives considered**: refusing it as any other message: "Next" would fail while the agent
+  answers a question, where it used to wait.
+- **If wrong**: the `behind` argument of `deliver` in `runner/send.ts`.
+- **Where**: task 5, `packages/server/src/runner/send.ts`.

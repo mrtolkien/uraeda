@@ -3,26 +3,79 @@ import type { Outgoing } from "./adapter.ts";
 import type { TurnKind } from "./events.ts";
 import { chatTitle } from "./message.ts";
 import { type checkSend, messageItem, openingOf, sendPlace } from "./send-input.ts";
-import { type Live, type Message, rowOf, type SessionContext } from "./session-state.ts";
+import {
+  type Live,
+  type Message,
+  REFUSALS,
+  refused,
+  rowOf,
+  type SessionContext,
+} from "./session-state.ts";
 
 /** The steps whose run starts a fresh agent session by default: the first after a spec's approval. */
 const FRESH_STEPS = new Set(["approval", "plan"]);
 
+type Checked = ReturnType<typeof checkSend>;
+type Place = Awaited<ReturnType<typeof sendPlace>>;
+
 /**
- * Sends a checked message to the session, under its lock, and returns its turn. Idle, it starts a
- * turn, opening the process when it is closed. During a turn, the human's message is steered into
- * it, and the workflow's is queued after it. `available` refuses once the agent is gone.
+ * Sends a checked message to the session, under its lock, and returns the session it went to and
+ * its turn. A run that starts a fresh agent session goes to a new session of the change or the
+ * feature, which becomes its latest: queued there while the session it was sent to works.
+ * `available` refuses once the agent is gone.
  */
 export async function sendTo(
   context: SessionContext,
   live: Live,
-  { held, paths, text, workflow: sent }: ReturnType<typeof checkSend>,
+  checked: Checked,
   available: () => void,
-): Promise<{ turn: number }> {
-  const { adapter, binding, cache, changed, processes, turns } = context;
-  const { asChat, branch, step } = await sendPlace(binding, live, sent);
-  const workflow = asChat === undefined ? sent : undefined;
+): Promise<{ session: string; turn: number }> {
+  const place = await sendPlace(context.binding, live, checked.workflow);
   available();
+  const workflow = place.asChat === undefined ? checked.workflow : undefined;
+  // The run after a spec's approval follows the setting unless the message says (the agents
+  // decision): a composer may send it before it read the setting.
+  const fresh =
+    workflow?.fresh ??
+    (place.step !== null && FRESH_STEPS.has(place.step) && (workflow?.freshByDefault ?? true));
+  // A session that never ran is as new as a new one.
+  if (!fresh || live.folder === null || context.cache.turns(live.id).length === 0) {
+    return deliver(context, live, checked, place, false);
+  }
+  const { adapter, cache } = context;
+  const row = cache.createSession({
+    agent: adapter.kind,
+    folder: live.folder,
+    nativeId: randomUUID(),
+    repo: live.repo,
+    title: null,
+  });
+  const next = context.live.of(row);
+  const behind = live.turn !== undefined || live.queue.length > 0;
+  return context.live.serial(next, () => deliver(context, next, checked, place, behind));
+}
+
+/**
+ * Sends the message in this session: steered into its turn, queued after it, or starting one. A
+ * session whose change or feature works in another session is refused, or, `behind` it, queued.
+ */
+async function deliver(
+  context: SessionContext,
+  live: Live,
+  { held, opening: given, paths, text, workflow: sent }: Checked,
+  { asChat, branch, step }: Place,
+  behind: boolean,
+): Promise<{ session: string; turn: number }> {
+  const { adapter, binding, cache, changed, processes, turns } = context;
+  const workflow = asChat === undefined ? sent : undefined;
+  const busy = () =>
+    live.turn !== undefined ||
+    live.queue.length > 0 ||
+    context.live.otherWorking(live, { queued: true });
+  if (!behind && live.turn === undefined && live.queue.length === 0 && busy()) {
+    const { kind } = await binding.readFeature(live.repo, live.folder as string);
+    throw refused(REFUSALS.otherWorking(kind));
+  }
   const row = rowOf(cache, live);
   if (row.folder === null && row.title === null) {
     cache.updateSession(row.id, { title: chatTitle(text, paths.length > 0) });
@@ -39,16 +92,10 @@ export async function sendTo(
     live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
     changed(live, live.turn.id);
     live.proc?.agent.send({ id, images: paths, text, when: "steer" });
-    return { turn: live.turn.id };
+    return { session: live.id, turn: live.turn.id };
   }
 
-  const kind: TurnKind = workflow ? "workflow" : "chat";
-  // The run after a spec's approval follows the setting unless the message says (the agents
-  // decision): a composer may send it before it read the setting.
-  const fresh =
-    workflow?.fresh ??
-    (step !== null && FRESH_STEPS.has(step) && (workflow?.freshByDefault ?? true));
-  const opening = workflow ? undefined : await openingOf(context, live, branch);
+  const opening = given ?? (workflow ? undefined : await openingOf(context, live, branch));
   const item: Message = {
     ...messageItem(id, origin, text),
     ...(opening === undefined ? {} : { opening }),
@@ -60,15 +107,12 @@ export async function sendTo(
     text: opening === undefined ? text : text === "" ? opening : `${opening}\n${text}`,
     when: "queue",
   };
-  const turn = {
-    allowed: null,
-    kind,
-    step,
-    trigger: workflow?.trigger ?? null,
-  };
+  const kind: TurnKind = workflow ? "workflow" : "chat";
+  const turn = { allowed: null, kind, step, trigger: workflow?.trigger ?? null };
 
-  // A busy session queues the turn: Uraeda writes its message once the running turn ends.
-  if (live.turn || live.queue.length > 0) {
+  // A busy session queues the turn: Uraeda writes its message once the running turn ends, or once
+  // the other session of its folder is idle, which wakes it. Checked with the push, at once.
+  if (busy()) {
     const queued = cache.addTurn({ sessionId: live.id, ...turn, state: "queued" });
     turns.track(queued);
     const seq = cache.appendItem(queued, item);
@@ -76,21 +120,25 @@ export async function sendTo(
       cache.appendItem(queued, { kind: "system", text: asChat });
     }
     live.messages.set(id, { item, seq, turn: queued, written: false });
-    live.queue.push({
-      ...(fresh ? { fresh } : {}),
-      id: queued,
-      message,
-      // Checked again as it starts: the running turn may move its step on.
-      ...(workflow ? { workflow } : {}),
-    });
+    // Checked again as it starts: the running turn may move its step on.
+    live.queue.push({ id: queued, message, ...(workflow ? { workflow } : {}) });
     changed(live, queued, "queued");
-    return { turn: queued };
+    return { session: live.id, turn: queued };
   }
 
-  const { line } = await processes.open(live, { fresh });
-  const started = turns.begin(live, { ...turn, item, line, message });
-  if (asChat !== undefined) {
-    cache.appendItem(started, { kind: "system", text: asChat });
+  live.starting = true;
+  try {
+    const { line } = await processes.open(live);
+    const started = turns.begin(live, { ...turn, item, line, message });
+    if (asChat !== undefined) {
+      cache.appendItem(started, { kind: "system", text: asChat });
+    }
+    return { session: live.id, turn: started };
+  } finally {
+    live.starting = false;
+    // A start that failed lets the sessions waiting for it go.
+    if (live.turn === undefined) {
+      turns.wake(live);
+    }
   }
-  return { turn: started };
 }

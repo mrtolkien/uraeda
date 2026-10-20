@@ -38,6 +38,32 @@ export class LiveSessions {
     return this.#live.values();
   }
 
+  /**
+   * Whether another session of the live session's change or feature works: they share its worktree,
+   * so one works at a time. One works while its turn runs or starts, and, with `queued`, while a
+   * turn of it waits.
+   */
+  otherWorking(live: Live, { queued }: { queued: boolean }): boolean {
+    return this.#others(live).some(
+      (other) =>
+        other.turn !== undefined || other.starting === true || (queued && other.queue.length > 0),
+    );
+  }
+
+  /** The other sessions of the live session's change or feature whose turn waits, none running. */
+  waiting(live: Live): Array<Live> {
+    return this.#others(live).filter((other) => other.turn === undefined && other.queue.length > 0);
+  }
+
+  #others(live: Live): Array<Live> {
+    if (live.folder === null) {
+      return [];
+    }
+    return [...this.#live.values()].filter(
+      (other) => other !== live && other.repo === live.repo && other.folder === live.folder,
+    );
+  }
+
   /** Runs `body` after the session's earlier sends and turn starts. */
   serial<T>(live: Live, body: () => Promise<T>): Promise<T> {
     live.calls++;

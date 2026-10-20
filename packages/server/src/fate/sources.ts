@@ -28,6 +28,7 @@ import {
 import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
+import { droppedDataView } from "./views-dropped.ts";
 import {
   AGENT_ID,
   agentDataView,
@@ -451,6 +452,8 @@ export const sources = createSources<Context>([
         ? [{ hints: await binding.proposalHints(), id: PROPOSAL_HINTS_ID }]
         : [],
   }),
+  // A drop's result, read once, from its mutation: nothing to read again.
+  fileSource(droppedDataView, { byIds: async () => [] }),
   fileSource(slugProposalDataView, {
     byIds: async ({ binding }, ids) =>
       ids.map((text) => ({ id: text, slug: binding.proposeSlug(text) })),

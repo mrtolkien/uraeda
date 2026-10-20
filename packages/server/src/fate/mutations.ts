@@ -8,21 +8,16 @@ import type { ChatImage } from "../runner/images.ts";
 import { changeImages, sentImages } from "./chat-images.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
-import { featureRecord, readSession, readWorkflowMessage, TRIGGERS, writable } from "./sessions.ts";
+import { maskedSession, sessionMoves } from "./session-moves.ts";
+import { featureRecord, readWorkflowMessage, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { settingsMutations } from "./settings-mutations.ts";
 import { sources } from "./sources.ts";
 import { draft, priorities } from "./masked.ts";
-import { featureDataView, sessionDataView } from "./views.ts";
+import { featureDataView } from "./views.ts";
 
 /** A session, masked to the fields the client selected. */
-const session = async (ctx: RepoContext, id: string, select: Array<string>) => {
-  const record = await readSession(ctx, id);
-  if (!record) {
-    throw callSiteError(`refused: no session ${id}`);
-  }
-  return sources.masked(sessionDataView, ctx, record, select);
-};
+const session = maskedSession;
 
 /**
  * Runs a call of the session manager that answers at once, after reading the repository's main
@@ -48,11 +43,12 @@ async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | 
   if (!message?.text) {
     return null;
   }
+  // The change's latest session: its only one, made now, unless a session moved to it.
   const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder));
-  await refusedOn(() =>
+  const sent = await refusedOn(() =>
     ctx.sessions.send(ctx.repo, id, { text: message.text, workflow: { trigger: "start" } }),
   );
-  return id;
+  return sent.session;
 }
 
 /**
@@ -79,6 +75,7 @@ async function startTypedChange(
 
 const repositoryMutations = {
   ...fileMutations,
+  ...sessionMoves,
   "change.start": {
     resolve: async ({
       ctx,
@@ -312,8 +309,9 @@ const repositoryMutations = {
       session?: string;
       text: string;
       /**
-       * The workflow's message, which starts the feature's step: in a new agent session when
-       * `fresh`. `step` is the step it was read at: once the feature moved on, it runs as a chat.
+       * The workflow's message, which starts the feature's step: in a new session of the feature
+       * when `fresh`, which answers. `step` is the step it was read at: once the feature moved on,
+       * it runs as a chat.
        */
       workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
     }>) => {
@@ -336,7 +334,8 @@ const repositoryMutations = {
         await ctx.binding.readFeature(ctx.repo, input.folder);
         return (await ctx.sessions.featureSession(ctx.repo, input.folder)).id;
       });
-      await refusedOn(() =>
+      // A run that starts fresh went to a new session: the one it went to answers.
+      const sent = await refusedOn(() =>
         ctx.sessions.send(ctx.repo, id, {
           text: input.text,
           ...(images.length === 0 ? {} : { images }),
@@ -353,7 +352,7 @@ const repositoryMutations = {
               }),
         }),
       );
-      return session(ctx, id, select);
+      return session(ctx, sent.session, select);
     },
     type: "Session",
   },

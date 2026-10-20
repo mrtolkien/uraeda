@@ -29,6 +29,7 @@ import { previewDataView, storyDataView, storyHrefDataView } from "./fate/previe
 import { recommendedDataView } from "./fate/recommended.ts";
 import { settingsDataView } from "./fate/settings.ts";
 import { branchChangesDataView } from "./fate/views-branch.ts";
+import { droppedDataView } from "./fate/views-dropped.ts";
 import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
@@ -38,6 +39,7 @@ export {
   branchChangesDataView,
   branchDecisionDataView,
   draftDataView,
+  droppedDataView,
   featureDataView,
   fileDataView,
   folderSuggestionsDataView,
@@ -86,6 +88,7 @@ export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
 export type PriorityEntry = Priorities["sections"][number]["entries"][number];
 export type Inbox = Entity<typeof inboxDataView, "Inbox">;
 export type Draft = Entity<typeof draftDataView, "Draft">;
+export type Dropped = Entity<typeof droppedDataView, "Dropped">;
 export type Ledger = Entity<typeof ledgerDataView, "Ledger">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;
 export type Agent = Entity<typeof agentDataView, "Agent">;

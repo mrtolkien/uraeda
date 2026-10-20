@@ -7,6 +7,7 @@ import {
   type Live,
   type Message,
   type Proc,
+  type Queued,
   RESUMED,
   type Running,
   type Sent,
@@ -218,29 +219,46 @@ export class Turns {
     if (proc && !proc.closing && proc.background.size === 0) {
       live.idle = setTimeout(() => this.#context.processes.close(proc), IDLE_CLOSE_MS);
     }
+    this.wake(live);
   }
 
-  /** Starts the first queued turn, reopening the process when it is gone. */
+  /**
+   * Starts the turns of the change's or feature's other sessions that waited for this one, now
+   * idle: the first to start makes the others wait again.
+   */
+  wake(live: Live) {
+    for (const other of this.#context.live.waiting(live)) {
+      this.next(other);
+    }
+  }
+
+  /**
+   * Starts the first queued turn, reopening the process when it is gone. It waits while another
+   * session of its change or feature works: that one wakes it once idle.
+   */
   async #startQueued(live: Live): Promise<void> {
-    const { cache, processes } = this.#context;
+    const { cache, live: sessions } = this.#context;
     if (live.turn) {
       return;
     }
     const queued = live.queue[0];
-    if (!queued) {
+    if (!queued || sessions.otherWorking(live, { queued: false })) {
       return;
     }
     let line: string | undefined;
+    live.starting = true;
     try {
-      await recheckQueued(this.#context, live, queued);
-      ({ line } = await processes.open(live, { fresh: queued.fresh === true }));
+      line = await this.#prepare(live, queued);
     } catch (error) {
       // The turns cannot run: each fails with why.
       const reason = String((error as Error).message ?? error).replace(/^refused: /, "");
       for (const turn of live.queue.splice(0)) {
         this.end(live, turn.id, { reason, state: "failed" });
       }
+      this.wake(live);
       return;
+    } finally {
+      live.starting = false;
     }
     // Stop, or a take-back, may have ended it while the process opened: the next one starts, or
     // the idle timer does.
@@ -257,6 +275,12 @@ export class Turns {
       cache.appendItem(queued.id, { kind: "system", text: line });
     }
     this.#run(live, queued.id, queued.message);
+  }
+
+  /** Checks the queued turn again, and opens the process it starts on: the line of a new one. */
+  async #prepare(live: Live, queued: Queued): Promise<string | undefined> {
+    await recheckQueued(this.#context, live, queued);
+    return (await this.#context.processes.open(live)).line;
   }
 
   /** Clears the timers of the session's running turn. */
