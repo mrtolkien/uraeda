@@ -398,3 +398,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the two existing ones undo.
 - **If wrong**: `titleDraft` and `run` in `packages/web/src/useStartFrom.ts`.
 - **Where**: review of task 9, `packages/web/src/useStartFrom.ts`, `packages/web/src/NewPage.tsx`.
+
+## R22: The sidebar's SC-005 and Done tests check each card's row and US1 2's day
+
+- **Decision**: the sidebar test "each card has its status and its … in its row" names the cards it
+  expects, `cli-tuis` and "Why is CI slow?", finds each link by role, its status by its `img` role
+  and name inside the link, and its "…" by role inside the link's row, the row holding no other
+  button; it reads no `aria-label` or `textContent`. `done.test.ts`'s "Done lists a session read to
+  its end, then a merged change" uses US1 2's day, the session read at 10:00 and `ctrl-enter` merged
+  on 2026-10-19, with a session read the day before, which a "sessions before features" order would
+  put second. New test "a reply brings a done session back under Sessions, at its place" (US1 more
+  1).
+- **Rationale**: the SC-005 test searched the whole group for a button named after a label it read
+  from the card's `aria-label`, so a "…" drawn outside its row passed; the Done test's change was
+  older than its session, so ordering by kind passed too.
+- **Alternatives considered**: a role on the card's row: the row is Astryx's, and a new role would
+  change the navigation's tree for every other test.
+- **If wrong**: the tests alone.
+- **Where**: review of task 8, `packages/web/src/__tests__/sidebar.test.tsx`,
+  `packages/web/src/__tests__/done.test.ts`.
