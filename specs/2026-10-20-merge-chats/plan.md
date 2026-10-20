@@ -682,17 +682,20 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
 
 - Modify: `packages/server/src/fate/sessions.ts` (split first if it passes 500 lines),
   `packages/server/src/fate/views.ts`, `packages/server/src/fate/needs-you.ts`,
-  `packages/server/src/runner/status.ts`, `packages/server/src/live.ts` (`publish`)
+  `packages/server/src/runner/status.ts` (`sessionDone`), `packages/server/src/live.ts` (`publish`),
+  `packages/server/src/fate/tokens.ts` (comments), `packages/server/src/fate/sources.ts`
+  (`missingFeature`), `packages/web/src/views.ts` (`FeatureView.sessions`)
 - Test: `packages/server/src/__tests__/sessions.test.ts`,
-  `packages/server/src/__tests__/needs-you.test.ts`
+  `packages/server/src/__tests__/needs-you.test.ts`, `packages/server/src/__tests__/live.test.ts`,
+  `packages/web/src/__tests__/notify.test.tsx` (its chat row's href, [R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid))
 
 **Interfaces:**
 
 - Consumes: task 4's `folderSessions`, `latestSession`.
 - Produces:
   - `SessionRowRecord` gains `startedAt: string` and `done: boolean`: done when the session has no
-    folder, is not working or waiting on the human, has a turn, and its `seen_at` is later than its
-    last turn's end.
+    folder, its latest turn ended, and its status is idle, which a turn that ended after `seen_at`
+    makes "New reply", and a failed or stopped one "Needs attention" ([R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid)).
   - `FeatureRecord` gains `sessions: Array<string>` (latest first); `session` stays the latest.
   - A feature's status is the most urgent of its sessions' (`STATUS_ORDER`).
   - A feature's `tokens` sum every session of the folder, not the latest only.
@@ -701,7 +704,7 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
     `publish`), not the latest only.
   - Notification and status hrefs use `/r/<name>/sessions/<id>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - "a session read to its end is done": after `session.seen` past its last turn, its row reads
   `done: true`.
@@ -711,25 +714,26 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
   feature needs you.
 - "a feature's tokens count every session".
 - "a search for a feature finds every session of it".
-- "a feature's change updates every session of it": after a file change in the feature, the older
-  session's record reads the new status and title live.
+- "a feature's change updates every session of it" (`live.test.ts`): a change of the feature, as the
+  watcher reports it, sends a `Session` update to the older session too.
+- "a feature's session is never done, however read".
 - "a feature lists its sessions, latest first".
 - `needs-you.test.ts`: a blocked session's href is `/r/<name>/sessions/<id>`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/__tests__/sessions.test.ts packages/server/src/__tests__/needs-you.test.ts`
 - Expected: FAIL, `expected undefined to be true` on `done`.
 
-- [ ] **Step 3: Implement the fields and the statuses**
+- [x] **Step 3: Implement the fields and the statuses**
 
-- [ ] **Step 4: Run the server suite and the checks**
+- [x] **Step 4: Run the server suite and the checks**
 
 - Run: `nix develop -c vp test --project uraeda-server && nix develop -c vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-20-merge-chats/plan.md

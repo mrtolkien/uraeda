@@ -105,7 +105,7 @@ async function chatRowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYo
     const id = `${name}/chats/${row.id}`;
     return [
       {
-        href: `/r/${name}/chats/${row.id}`,
+        href: `/r/${name}/sessions/${row.id}`,
         id,
         key: `${id}:blocked:${latest?.id ?? ""}`,
         label: title,

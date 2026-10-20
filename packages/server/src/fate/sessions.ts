@@ -6,7 +6,7 @@ import { coveredDenials } from "../runner/allow.ts";
 import type { Trigger } from "../runner/events.ts";
 import { commentsReference, runMessage } from "../runner/message.ts";
 import { REFUSALS } from "../runner/sessions.ts";
-import { sessionStatus, STATUS_ORDER } from "../runner/status.ts";
+import { sessionDone, sessionStatus, STATUS_ORDER } from "../runner/status.ts";
 import { itemLooks } from "./items.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
@@ -250,8 +250,10 @@ async function rows(
       return {
         archived: row.archivedAt !== null,
         backgroundCommands: ctx.sessions.backgroundCommands(row.id),
+        done: sessionDone({ ...row, ...(read.latest ? { latest: read.latest } : {}), status }),
         folder: row.folder,
         id: row.id,
+        startedAt: row.createdAt,
         status,
         statusLabel,
         subagents: read.subagents,
@@ -263,8 +265,8 @@ async function rows(
 }
 
 /**
- * Each feature in flight of the server's repository, with its status: its session's, from the same
- * rules as the sidebar's, or, without a session, whether its step waits on the human.
+ * Each feature in flight of the server's repository, with its status: its most urgent session's,
+ * from the same rules as the sidebar's, or, without a session, whether its step waits on the human.
  */
 export async function featureStatuses(ctx: RepoContext) {
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
@@ -272,12 +274,17 @@ export async function featureStatuses(ctx: RepoContext) {
   return (await workspaceOf(ctx, ctx.repo)).features
     .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
     .map((feature) => {
-      const row = root === undefined ? undefined : cache.latestSession(root, feature.folder);
-      const status = row
-        ? statusOf(row, turnsOf(cache, row.id), feature)
-        : feature.step.waitsOn === "human"
+      const status =
+        (root === undefined ? [] : cache.folderSessions(root, feature.folder))
+          .map((row) => statusOf(row, turnsOf(cache, row.id), feature))
+          .reduce<ReturnType<typeof statusOf> | undefined>(
+            (urgent, each) =>
+              urgent && STATUS_ORDER[urgent.status] <= STATUS_ORDER[each.status] ? urgent : each,
+            undefined,
+          ) ??
+        (feature.step.waitsOn === "human"
           ? { status: "needs-you" as const, statusReason: "step" as const }
-          : { status: "idle" as const, statusReason: null };
+          : { status: "idle" as const, statusReason: null });
       return { feature, status: status.status, statusReason: status.statusReason };
     });
 }
@@ -315,7 +322,7 @@ export async function sessionList(ctx: RepoContext): Promise<SessionListRecord> 
 }
 
 /**
- * The sessions whose title, folder, or messages hold the query, ignoring case, with the sessions
+ * The sessions whose title, folder, or messages hold the query, ignoring case, with every session
  * of the features whose title holds it.
  */
 export async function sessionSearch(ctx: RepoContext, query: string): Promise<SessionSearchRecord> {
@@ -331,10 +338,10 @@ export async function sessionSearch(ctx: RepoContext, query: string): Promise<Se
   const ids = new Set(found.map((row) => row.id));
   const needle = query.toLowerCase();
   for (const feature of (await workspaceOf(ctx, ctx.repo)).features) {
-    const row = feature.title.toLowerCase().includes(needle)
-      ? cache.latestSession(root, feature.folder)
-      : undefined;
-    if (row && !ids.has(row.id)) {
+    const rows = feature.title.toLowerCase().includes(needle)
+      ? cache.folderSessions(root, feature.folder)
+      : [];
+    for (const row of rows.filter((each) => !ids.has(each.id))) {
       ids.add(row.id);
       found.push(row);
     }
@@ -389,15 +396,18 @@ export async function readWorkflowMessage(
 }
 
 /**
- * A feature's record: its view, with its session's ID and tokens, and whether it has a preview.
+ * A feature's record: its view, with its sessions' IDs, latest first, their tokens, and whether it
+ * has a preview.
  */
 export async function featureRecord(
   ctx: RepoContext,
   feature: FeatureView,
 ): Promise<FeatureRecord> {
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
-  const session =
-    root === undefined ? undefined : ctx.sessions.cache.latestSession(root, feature.folder);
+  const { cache } = ctx.sessions;
+  const sessions = root === undefined ? [] : cache.folderSessions(root, feature.folder);
+  // Every session's turns, in the order they were added.
+  const turns = sessions.flatMap((row) => cache.turns(row.id)).sort((a, b) => a.id - b.id);
   // A feature without a worktree follows the main checkout's decision (R7).
   const checkout = await checkoutDir(ctx, feature.worktree);
   return {
@@ -405,9 +415,10 @@ export async function featureRecord(
     ...feature,
     ...itemLooks(ctx)(feature.folder),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
-    session: session?.id ?? null,
+    session: sessions[0]?.id ?? null,
+    sessions: sessions.map((row) => row.id),
     step: sentStep(feature.step),
-    tokens: session ? featureTokens(ctx.sessions.cache.turns(session.id)) : null,
+    tokens: featureTokens(turns),
   };
 }
 

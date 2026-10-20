@@ -191,3 +191,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   answers a question, where it used to wait.
 - **If wrong**: the `behind` argument of `deliver` in `runner/send.ts`.
 - **Where**: task 5, `packages/server/src/runner/send.ts`.
+
+## R13: A done session is an idle one, and a blocked session's address is `/sessions/<id>`
+
+- **Decision**: `SessionRowRecord.done` is true for a session without a folder whose latest turn
+  ended and whose status is idle. Idle already means it was seen since its last turn ended (a later
+  end reads "New reply"), and it also leaves out a failed or stopped last turn, which reads "Needs
+  attention" however read. The needs-you test "a blocked chat is listed…" expects the href
+  `/r/<name>/sessions/<id>`, and `notify.test.tsx`'s chat row, the server's row written by hand,
+  uses that href too; both keep the row's ID, `<name>/chats/<id>`, which no address reads.
+- **Rationale**: the spec says a session is done once read to its last message; a failed run asks
+  for the human's attention, so it stays in the list. The plan moves the server's hrefs to
+  `/sessions/<id>` (US1 more 2), and R6 left `notify.test.tsx` on the old href for this task.
+- **Alternatives considered**: the plan's wording, "not working or waiting on the human": a read
+  failed run would leave the list while it reads "Needs attention".
+- **If wrong**: `sessionDone` in `runner/status.ts`, one comparison.
+- **Where**: task 6, `packages/server/src/runner/status.ts`, `fate/needs-you.ts`.

@@ -111,6 +111,7 @@ export const FeatureView = view<Feature>()({
   problems: true,
   pullRequest: { number: true, state: true, url: true },
   session: true,
+  sessions: true,
   slug: true,
   source: true,
   step: {

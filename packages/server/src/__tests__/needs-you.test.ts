@@ -173,7 +173,7 @@ test("a blocked chat is listed, with its title and address, and a finished reply
 
   expect(await listed()).toHaveLength(1);
   expect((await listed())[0]).toMatchObject({
-    href: `/r/${name}/chats/${chat.id}`,
+    href: `/r/${name}/sessions/${chat.id}`,
     id: `${name}/chats/${chat.id}`,
     label: "Push it",
     message: "The agent was refused an action",

@@ -74,10 +74,12 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
      * decision (R7).
      */
     preview: boolean;
-    /** Its session's ID, null before its first message. */
+    /** Its latest session's ID, the one its runs go to, null before its first message. */
     session: string | null;
+    /** Its sessions' IDs, the latest started first. */
+    sessions: Array<string>;
     step: StepRecord;
-    /** Its session's tokens, null when no turn has counts. */
+    /** Its sessions' tokens, summed, null when no turn has counts. */
     tokens: FeatureTokens | null;
   };
 /** A workflow file, or `missing` alone when its feature has no such file. */
@@ -224,8 +226,12 @@ export type SessionRowRecord = {
   archived: boolean;
   /** The background commands of its running turn still running. */
   backgroundCommands: number;
+  /** Whether it is a session without a workflow read to its last message: Done lists it. */
+  done: boolean;
   folder: string | null;
   id: string;
+  /** When it started, which its place in the list follows. */
+  startedAt: string;
   status: SessionStatus;
   statusLabel: string;
   subagents: Array<SubagentRecord>;
@@ -284,6 +290,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   problems: true,
   pullRequest: true,
   session: true,
+  sessions: true,
   slug: true,
   source: true,
   step: true,
