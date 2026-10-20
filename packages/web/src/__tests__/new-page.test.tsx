@@ -141,6 +141,28 @@ test("a change from a note that cannot start keeps the note", async () => {
   expect(read(repo, "specs/INBOX.md")).toContain(NOTE);
 });
 
+/** US3 2, SC-004, from a priority line: two clicks, and the change's agent works. */
+test("a change from a priority line", async () => {
+  const fake = await fakeAgent();
+  fake.adapter.script([]);
+  await renderPage("/new", startingRepo(), { agent: fake });
+
+  await pick("Change");
+  await click(await screen.findByRole("button", { name: "Start the change: Empty inbox" }));
+
+  await waitFor(() =>
+    expect(window.location.pathname).toMatch(
+      new RegExp(`^${atRepo("/f/2026-10-16-")}[^/]+/session$`),
+    ),
+  );
+  expect(window.location.search).toBe("");
+  const folder = window.location.pathname.split("/f/")[1].split("/")[0];
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  expect(fake.adapter.sent[0].text).toMatch(
+    new RegExp(`^/uraeda Continue the change specs/changes/${folder}/`),
+  );
+});
+
 /** US3 3 */
 test("a feature from a title", async () => {
   const repo = fixtureRepo();

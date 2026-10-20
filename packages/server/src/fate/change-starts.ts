@@ -1,5 +1,5 @@
-// The starts of a change that send its first run: from a typed text and its images, or an inbox
-// note.
+// The starts of a change that send its first run: from a typed text and its images, an inbox
+// note, or a draft.
 import type { ChatImage } from "../runner/images.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -111,6 +111,20 @@ async function startFromNote(
   return { folder, sent: await firstRunSent(ctx, folder) };
 }
 
+/**
+ * Starts a draft as a change, as `feature.start` with kind change does, then sends its first run:
+ * a priority line's change starts with its agent at work, as a typed one does.
+ */
+async function startDraft(
+  ctx: RepoContext,
+  input: { draft: string; slug?: string },
+): Promise<{ folder: string; sent: boolean }> {
+  const { folder } = await refusable(() =>
+    ctx.binding.startFeature(ctx.repo, input.draft, input.slug, "change"),
+  );
+  return { folder, sent: await firstRunSent(ctx, folder) };
+}
+
 /** The started change, masked to the fields the client selected: no session when no run was sent. */
 async function started(
   ctx: RepoContext,
@@ -139,6 +153,11 @@ export const changeStarts = {
       select,
     }: Resolver<{ images?: Array<ChatImage>; slug?: string; text: string }>) =>
       started(ctx, await startTypedChange(ctx, input), select),
+    type: "Feature",
+  },
+  "change.startDraft": {
+    resolve: async ({ ctx, input, select }: Resolver<{ draft: string; slug?: string }>) =>
+      started(ctx, await startDraft(ctx, input), select),
     type: "Feature",
   },
 };
