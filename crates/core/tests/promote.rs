@@ -384,6 +384,41 @@ fn a_refused_relink_renames_nothing() {
     assert_eq!(repo.git(&["branch", "--list", FOLDER]), "");
 }
 
+/// Review: a refused relink puts the priorities back with the folder, and says so; a move run again
+/// then commits the entry with the folder.
+#[test]
+fn a_move_run_again_after_a_refused_relink_commits_the_entry() {
+    let repo = started(Kind::Change);
+    repo.set_hook("[ \"$(git branch --show-current)\" != main ] || exit 1");
+    let failed = promote(&repo);
+    let Err(StartError::Partial { left, .. }) = failed else {
+        panic!("a partial move");
+    };
+    assert_eq!(
+        left[0],
+        format!(
+            "relink the entry in Now, and move specs/changes/{FOLDER} to specs/{FOLDER}, on \
+             main, and commit them as \"chore(priorities-sections): start Priorities sections as \
+             a feature\": the refused commit put specs/PRIORITIES.md and the folder back"
+        )
+    );
+    assert_eq!(repo.porcelain(), "");
+    repo.set_hook("exit 0");
+
+    promote(&repo).unwrap();
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.contains(&format!("(/specs/{FOLDER}/proposal.md)")),
+        "{priorities}"
+    );
+    assert!(
+        repo.git(&["ls-tree", "--name-only", "main", "specs/"])
+            .contains(&format!("specs/{FOLDER}")),
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
 /// Edge case: a pushed change is renamed locally; its remote branch stays, and is no longer its
 /// upstream, so a later `git push -u` sets the feature's.
 #[test]
