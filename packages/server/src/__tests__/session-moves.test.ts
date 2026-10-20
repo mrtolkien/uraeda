@@ -4,6 +4,7 @@ import { expect, test, vi } from "vite-plus/test";
 import type { AgentEvent } from "../runner/events.ts";
 import { movedOpening } from "../runner/moves.ts";
 import { binding, type Data, git, mutate, testServer } from "./helpers.ts";
+import { connect, subscribe } from "./live-stream.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -255,6 +256,28 @@ test("a new session of a feature works in its worktree", async () => {
   });
   const root = await server.sessions.mainRoot(server.repo);
   expect(server.sessions.cache.latestSession(root, AGENT)?.id).toBe(created.data.id);
+});
+
+/** US5.1: an open feature's page is sent its new session, so its Sessions card lists both. */
+test("a new session of a feature reaches a subscribed feature", async () => {
+  const server = await testServer();
+  const first = await server.sessions.featureSession(server.repo, AGENT);
+  const stream = await connect(server.app, server.name, "c-new");
+  expect(await stream.arrival("connected", 5000)).toBeDefined();
+  await subscribe(server.app, server.name, "c-new", {
+    entityId: AGENT,
+    select: ["id", "sessions"],
+    type: "Feature",
+  });
+  expect(await stream.arrival(first.id, 5000)).toBeDefined();
+  const before = stream.mark();
+
+  const created = await mutate(server.app, "session.new", { folder: AGENT }, ["id"]);
+
+  const sessions = JSON.stringify([created.data.id, first.id]);
+  const arrived = await stream.arrival(sessions, 5000, before);
+  await stream.close();
+  expect(arrived, "no update of the feature within 5 seconds").toBeDefined();
 });
 
 /** US2 more 4: a dropped change's sessions are archived, and its branch stays. */

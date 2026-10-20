@@ -1,8 +1,17 @@
 // A feature's sessions on its page (US5 of merge chats): the latest first, each with its status and
 // its running sub-agents, "New session" opening a new one on its own page, and Stop for a working one.
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { atRepo, click, type Fake, fakeAgent, fixtureRepo, renderPage, today } from "./helpers.tsx";
+import {
+  atRepo,
+  click,
+  type Fake,
+  fakeAgent,
+  fixtureRepo,
+  refreshUntil,
+  renderPage,
+  today,
+} from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -78,7 +87,7 @@ test("New session opens a session of the feature", async () => {
   const first = await fake.sessions.featureSession(repo, CLI);
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
   const card = await sessionsCard();
-  expect(card.getAllByRole("link")).toHaveLength(1);
+  expect(await card.findAllByRole("link")).toHaveLength(1);
 
   await click(card.getByRole("button", { name: "New session" }));
 
@@ -88,9 +97,12 @@ test("New session opens a session of the feature", async () => {
   expect(fake.sessions.cache.session(id)?.folder).toBe(CLI);
   expect(fake.sessions.cache.turns(id)).toHaveLength(0);
 
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  // Back on the feature's page, in the same app. Live updates do not reach these tests: the page
+  // is read again, as when it comes back to the foreground; the server's tests check the update.
+  act(() => window.history.back());
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${CLI}`)));
   const after = await sessionsCard();
-  await waitFor(() =>
+  await refreshUntil(() =>
     expect(after.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
       atRepo(`/f/${CLI}/session`),
       atRepo(`/sessions/${first.id}`),
