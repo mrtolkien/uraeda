@@ -7,11 +7,12 @@ import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Theme } from "@astryxdesign/core/theme";
 import { render } from "@testing-library/react";
-import { expect, test, vi } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import { Overlay } from "../layout/Overlay.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
-import { pickScriptOnPage } from "./helpers.tsx";
+import { mountSandboxBar } from "../sandbox/mountSandboxBar.tsx";
+import { colorScheme, pickScriptOnPage } from "./helpers.tsx";
 
 test("the pick script, at the top of a page, picks a button inside an open dialog", async () => {
   const picks = await pickScriptOnPage();
@@ -247,4 +248,139 @@ test("a pick's HTML is cut at 2000 characters", async () => {
   await userEvent.click(page.getByRole("paragraph"));
 
   expect((await picks.next()).html).toHaveLength(2000);
+});
+
+/**
+ * The sandbox's bar mounted over the test's page, with the pick script loaded, and a clipboard
+ * that keeps what it is given, or refuses it: headless browsers keep their clipboard to themselves.
+ */
+async function sandboxPage({ clipboard = "kept" }: { clipboard?: "kept" | "refused" } = {}) {
+  await pickScriptOnPage();
+  const copied: Array<string> = [];
+  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      writeText: (text: string) =>
+        clipboard === "refused"
+          ? Promise.reject(new DOMException("denied", "NotAllowedError"))
+          : Promise.resolve(void copied.push(text)),
+    },
+  });
+  const unmount = mountSandboxBar({ document, window });
+  onTestFinished(async () => {
+    unmount();
+    if (original) {
+      Object.defineProperty(navigator, "clipboard", original);
+    } else {
+      Reflect.deleteProperty(navigator, "clipboard");
+    }
+    // The script stays loaded: a pick mode left on would take the next test's clicks.
+    window.postMessage({ on: false, uraeda: "pick" }, "*");
+    await new Promise((resolve) => setTimeout(resolve));
+  });
+  return { copied };
+}
+
+test("a click copies the pick, and the bar names it", async () => {
+  const { copied } = await sandboxPage();
+  render(<Button label="Submit answers" />);
+
+  await userEvent.click(page.getByRole("button", { name: "Pick an element" }));
+  await expect
+    .element(page.getByText("Click an element to copy it. Escape to stop."))
+    .toBeVisible();
+  await userEvent.click(page.getByRole("button", { name: "Submit answers" }));
+
+  await expect
+    .element(page.getByText("Copied button “Submit answers”. Paste it to your agent."))
+    .toBeVisible();
+  expect(copied).toHaveLength(1);
+  expect(copied[0]).toMatch(/^Sandbox pick: .+\nElement: button “Submit answers”\nSource: /);
+  expect(copied[0]).toContain(`\nViewport: ${window.innerWidth} × ${window.innerHeight}, light`);
+  expect(copied[0]).toContain(`Sandbox pick: ${window.location.href}\n`);
+});
+
+test("the pick's theme is the app's colour mode", async () => {
+  await colorScheme("dark");
+  const { copied } = await sandboxPage();
+  render(<Button label="Save" />);
+
+  await userEvent.click(page.getByRole("button", { name: "Pick an element" }));
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+
+  await expect.element(page.getByText(/^Copied button/)).toBeVisible();
+  expect(copied[0]).toMatch(/, dark$/);
+});
+
+test("Escape stops pick mode, and the page gets no Escape", async () => {
+  await sandboxPage();
+  const closed = vi.fn();
+  const dialog = (isOpen: boolean) => (
+    <Theme mode="light" theme={uraedaTheme}>
+      <Overlay isOpen={isOpen} label="Rename" onClose={closed}>
+        <Button label="Save" />
+      </Overlay>
+    </Theme>
+  );
+  const { rerender } = render(dialog(false));
+  // The dialog is modal and covers the bar: pick mode is on before it opens.
+  const toggle = page.getByRole("button", { name: "Pick an element" });
+  await userEvent.click(toggle);
+  rerender(dialog(true));
+  await expect.element(page.getByRole("dialog", { name: "Rename" })).toBeVisible();
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
+
+  await userEvent.keyboard("{Escape}");
+
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect
+    .element(page.getByText("Click an element to copy it. Escape to stop."))
+    .not.toBeInTheDocument();
+  await expect.element(page.getByRole("dialog", { name: "Rename" })).toBeVisible();
+  expect(closed).not.toHaveBeenCalled();
+});
+
+test("a refused clipboard shows the text to copy by hand", async () => {
+  await sandboxPage({ clipboard: "refused" });
+  render(<Button label="Save" />);
+
+  await userEvent.click(page.getByRole("button", { name: "Pick an element" }));
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+
+  await expect
+    .element(page.getByText("Could not copy. Select the text below and copy it."))
+    .toBeVisible();
+  await expect.element(page.getByText(/^Sandbox pick: /)).toBeVisible();
+  await expect.element(page.getByText(/Element: button “Save”/)).toBeVisible();
+});
+
+test("a missing clipboard shows the text to copy by hand", async () => {
+  await sandboxPage();
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
+  render(<Button label="Save" />);
+
+  await userEvent.click(page.getByRole("button", { name: "Pick an element" }));
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+
+  await expect
+    .element(page.getByText("Could not copy. Select the text below and copy it."))
+    .toBeVisible();
+});
+
+test("a click on the bar's toggle in pick mode turns pick mode off, and picks nothing", async () => {
+  const { copied } = await sandboxPage();
+  const toggle = page.getByRole("button", { name: "Pick an element" });
+  await userEvent.click(toggle);
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
+
+  await userEvent.click(toggle);
+
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(copied).toEqual([]);
+  // Pick mode is off in the script too: a click reaches the page.
+  const pressed = vi.fn();
+  render(<Button label="Save" onClick={pressed} />);
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+  expect(pressed).toHaveBeenCalledOnce();
 });

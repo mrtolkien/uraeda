@@ -1,5 +1,6 @@
 // The sandbox's bar, in the page's bottom-left corner, over the app without moving it: the
 // "Sandbox" marker, the pick toggle, and what the last pick did. Only the sandbox's page loads it.
+// The pick script leaves the bar to the page, so its toggle works in pick mode.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -70,7 +71,7 @@ export function SandboxBar({
 }) {
   const line = status(picking, last);
   return (
-    <div data-sandbox-bar {...stylex.props(styles.bar)}>
+    <div data-sandbox-bar data-uraeda-pick-ignore {...stylex.props(styles.bar)}>
       <Badge label="Sandbox" variant="orange" />
       <ToggleButton
         icon={<Icon icon="uraeda:pick" />}

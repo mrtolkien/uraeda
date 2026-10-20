@@ -710,7 +710,9 @@ git commit -m "feat(ui-sandbox): the sample, empty, and broken projects"
 **Files:**
 
 - Start from: `packages/web/src/sandbox/SandboxBar.stories.tsx#Idle`
-- Create: `packages/web/src/sandbox/main.tsx`, `packages/web/src/sandbox/pickText.ts`
+- Create: `packages/web/src/sandbox/main.tsx` (a thin call),
+  `packages/web/src/sandbox/mountSandboxBar.tsx`, `packages/web/src/sandbox/pickText.ts`; test
+  `packages/web/src/__tests__/pickText.test.ts`
 - Modify: `packages/web/src/sandbox/SandboxBar.tsx` (mark the bar `data-uraeda-pick-ignore`)
 - Test: `packages/web/src/__browser__/sandbox-pick.test.tsx`
 
@@ -719,10 +721,13 @@ git commit -m "feat(ui-sandbox): the sample, empty, and broken projects"
 - Consumes: Task 4's `picked` message.
 - Produces:
   `pickText(pick: Picked & { html: string; source: string | null }, page: { address: string; height: number; theme: "dark" | "light"; width: number }): string`,
-  the pick's text; `main.tsx`, which mounts the bar in a root of its own, runs pick mode through the
-  pick script, and copies each pick.
+  the pick's text (an element without a name reads `Element: <role>`, without quotes; a line break
+  inside the text or HTML becomes a space); `mountSandboxBar({ document, window }): () => void` in
+  `mountSandboxBar.tsx`, which mounts the bar in a root of its own, runs pick mode through the pick
+  script by messages to the page itself, copies each pick, and follows the app's colour mode from
+  `<html data-theme>`; `main.tsx` calls it, and Task 8 imports `main.tsx`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("a click copies the pick, and the bar names it", async () => {
@@ -760,19 +765,19 @@ The break each test catches:
 - Refused: an error only in the console, leaving nothing to paste.
 - Cuts: a pick that floods the agent with a page's HTML.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Expected: FAIL, `Cannot find module '../sandbox/main.tsx'`.
 
-- [ ] **Step 3: Implement**, with the exact lines and format of the global constraints. The address
+- [x] **Step 3: Implement**, with the exact lines and format of the global constraints. The address
       is the page's own; the theme is the app's colour mode.
 
-- [ ] **Step 4: Run the browser tests, and review the bar's screenshots**
+- [x] **Step 4: Run the browser tests, and review the bar's screenshots**
 
 - Run: the browser test file.
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/sandbox packages/web/src/__browser__/sandbox-pick.test.tsx
