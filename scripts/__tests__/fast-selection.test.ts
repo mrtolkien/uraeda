@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, matchesGlob, relative } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
-import { changedFiles, selectFast } from "../fast-selection.ts";
+import { fastConfig } from "../../vite.fast.config.ts";
+import { changedFiles, families, type Family, selectFast } from "../fast-selection.ts";
 
 const folders: Array<string> = [];
 afterEach(() =>
@@ -105,3 +106,72 @@ test("documentation gets format and spec validation without native consumers", (
   expect(selected.families).toEqual([]);
   expect(selected.rust).toEqual([]);
 });
+
+const projects = (path: string) =>
+  fastConfig(selectFast([change(path)])).test.projects.map((project) => project.test?.name);
+test.each([
+  ["scripts/test-run.ts", "fast-server"],
+  ["scripts/coverage-summary.ts", "fast-server"],
+  ["packages/binding/test-utils.ts", "fast-ui"],
+  ["packages/server/src/limits.ts", "fast-ui"],
+  ["packages/server/src/runner/round-messages.ts", "fast-ui"],
+  ["packages/server/src/__tests__/request-fixture.ts", "fast-ui"],
+])("an edit of %s reaches its consumers in %s", (path, project) =>
+  expect(projects(path)).toContain(project),
+);
+test("a Composer edit instantiates the UI family only", () =>
+  expect(projects("packages/web/src/Composer.tsx")).toEqual(["fast-ui"]));
+
+const ROOT = join(import.meta.dirname, "../..");
+/** The file a workspace package's export or a relative specifier names, if it is one. */
+function resolved(from: string, specifier: string): string | undefined {
+  const bare = specifier.replace(/\?.*$/, "");
+  const [, name, sub] = /^(uraeda-[a-z]+)(\/.*)?$/.exec(bare) ?? [];
+  if (name) {
+    const folder = { "uraeda-binding": "binding", "uraeda-server": "server" }[name];
+    if (!folder) {
+      return undefined;
+    }
+    const manifest = JSON.parse(
+      readFileSync(join(ROOT, "packages", folder, "package.json"), "utf8"),
+    );
+    const target = manifest.exports[sub ? `.${sub}` : "."];
+    return join("packages", folder, typeof target === "string" ? target : target.default);
+  }
+  const path = bare.startsWith(".") ? relative(ROOT, join(ROOT, dirname(from), bare)) : undefined;
+  return path && existsSync(join(ROOT, path)) && /\.[cm]?[jt]sx?$/.test(path) ? path : undefined;
+}
+/** Every file a family's sources reach through imports, outside its root, transitively. */
+function reached(name: Family): Array<string> {
+  const { root } = families[name];
+  const queue = globSync(`${root}/**/*.{ts,tsx,js,mjs}`, {
+    cwd: ROOT,
+    exclude: (path) =>
+      /(^|\/)(node_modules|dist|storybook-static)$|^packages\/uraeda\/(plugin|web)$/.test(path),
+  });
+  const seen = new Set(queue);
+  const outside = new Set<string>();
+  for (const file of queue) {
+    const text = readFileSync(join(ROOT, file), "utf8");
+    for (const [, specifier] of text.matchAll(/(?:\bfrom|\bimport\(?)\s*["']([^"'\n]+)["']/g)) {
+      const path = resolved(file, specifier);
+      if (path && !seen.has(path)) {
+        seen.add(path);
+        queue.push(path);
+        if (!path.startsWith(`${root}/`)) {
+          outside.add(path);
+        }
+      }
+    }
+  }
+  return [...outside].sort();
+}
+test.each(Object.keys(families) as Array<Family>)(
+  "every file the %s family's sources import outside its root is one of its inputs",
+  (name) =>
+    expect(
+      reached(name).filter(
+        (path) => !families[name].inputs.some((input) => matchesGlob(path, input)),
+      ),
+    ).toEqual([]),
+);

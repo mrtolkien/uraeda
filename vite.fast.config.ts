@@ -3,14 +3,14 @@ import { resolve } from "node:path";
 import type { TestProjectInlineConfiguration } from "vite-plus";
 import { uiTransforms } from "./packages/web/vite.transforms.ts";
 import { testWorkers } from "./scripts/test-policy.ts";
-import { families, type Family, type FastSelection } from "./scripts/fast-selection.ts";
+import { families, type Family, type FastSelection, matches } from "./scripts/fast-selection.ts";
 
 /** Inline projects never inherit a package's production startup or native freshness imports. */
 export function fastConfig(selection: FastSelection) {
   const selected = (Object.keys(families) as Array<Family>).filter(
     (name) =>
       selection.families.includes(name) ||
-      selection.related.some((path) => path.startsWith(`${families[name].root}/`)),
+      selection.related.some((path) => matches(path, families[name].inputs)),
   );
   const wholeTests = selected
     .filter((name) => selection.families.includes(name))
