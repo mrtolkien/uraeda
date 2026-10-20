@@ -34,6 +34,7 @@ import { recommendedDataView } from "./recommended.ts";
 import { settingsDataView } from "./settings.ts";
 import type { FeatureTokens } from "./tokens.ts";
 import { branchChangesDataView } from "./views-branch.ts";
+import { droppedDataView } from "./views-dropped.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
@@ -450,6 +451,7 @@ export const Root = {
   branchChangesList: list(branchChangesDataView),
   branchDecisions: list(branchDecisionDataView),
   drafts: list(draftDataView),
+  droppedItems: list(droppedDataView),
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),
   histories: list(historyDataView),

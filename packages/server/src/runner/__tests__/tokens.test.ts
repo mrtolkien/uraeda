@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import type { AgentEvent } from "../events.ts";
-import { CLEARED, FRESH } from "../session-state.ts";
+import { CLEARED, REPLACED } from "../session-state.ts";
 import { IDLE_CLOSE_MS } from "../sessions.ts";
 import { flush, testSessions } from "./helpers.ts";
 
@@ -93,23 +93,32 @@ test("a resumed process starts from the agent session's recorded total", async (
   expect(cache.turn(second)?.tokens).toEqual(counts(2, 5767, 13_367, 4));
 });
 
-test("a fresh agent session starts from zero, and its resumed process from its own turns", async () => {
-  const { adapter, cache, send, session } = await featureSession();
+test("a fresh run's new session starts from zero, and its resumed process from its own turns", async () => {
+  const { adapter, cache, repo, send, session, sessions } = await featureSession();
   adapter.script([TOTAL(2, 7791, 11_304, 4)]);
   await send("First");
 
   adapter.script([TOTAL(3, 5000, 9000, 6)]);
-  const fresh = await send("Continue the feature.", { fresh: true, trigger: "manual" });
+  const fresh = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: true, trigger: "manual" },
+  });
+  await sessions.settled(fresh.turn);
   expect(adapter.opens[1]).toMatchObject({ resume: false });
-  expect(cache.turn(fresh)?.tokens).toEqual(counts(3, 5000, 9000, 6));
+  expect(cache.turn(fresh.turn)?.tokens).toEqual(counts(3, 5000, 9000, 6));
 
   await idle();
   adapter.script([TOTAL(5, 6000, 20_000, 10)]);
-  const resumed = await send("And now?");
+  const resumed = await sessions.send(repo, fresh.session, { text: "And now?" });
+  await sessions.settled(resumed.turn);
 
-  expect(adapter.opens[2]).toMatchObject({ nativeId: adapter.opens[1]?.nativeId, resume: true });
-  expect(cache.turn(resumed)?.tokens).toEqual(counts(2, 1000, 11_000, 4));
-  expect(cache.agentSessionTokens(session.id)).toEqual(counts(5, 6000, 20_000, 10));
+  expect(adapter.opens.at(-1)).toMatchObject({
+    nativeId: adapter.opens[1]?.nativeId,
+    resume: true,
+  });
+  expect(cache.turn(resumed.turn)?.tokens).toEqual(counts(2, 1000, 11_000, 4));
+  expect(cache.agentSessionTokens(fresh.session)).toEqual(counts(5, 6000, 20_000, 10));
+  expect(cache.agentSessionTokens(session.id)).toEqual(counts(2, 7791, 11_304, 4));
 });
 
 test("two results in one steered turn add up", async () => {
@@ -221,8 +230,8 @@ test("a process resumed after /clear starts from the new agent session's turns",
   expect(cache.agentSessionTokens(session.id)).toEqual(counts(3, 300, 600, 3));
 });
 
-test("a fresh turn taken back while its process opens leaves its line to the next turn", async () => {
-  // The second worktree read, the fresh process's, waits until the test lets it go.
+test("a turn taken back while its process opens leaves its line to the next turn", async () => {
+  // The second worktree read, the reopened process's, waits until the test lets it go.
   let reads = 0;
   const { promise: held, resolve: release } = Promise.withResolvers<void>();
   const { adapter, cache, repo, send, session, sessions } = await featureSession({
@@ -237,27 +246,27 @@ test("a fresh turn taken back while its process opens leaves its line to the nex
     },
   });
   const { turn: first } = await sessions.send(repo, session.id, { text: "What is left?" });
-  const { turn: fresh } = await sessions.send(repo, session.id, {
+  const { turn: taken } = await sessions.send(repo, session.id, {
     text: "Continue the feature.",
-    workflow: { fresh: true, trigger: "manual" },
+    workflow: { fresh: false, trigger: "manual" },
   });
   const { turn: next } = await sessions.send(repo, session.id, {
     text: "Go on.",
     workflow: { fresh: false, trigger: "manual" },
   });
-  adapter.emit({ id: adapter.sent[0]!.id, type: "accepted" });
-  adapter.emit(TOTAL(2, 7791, 11_304, 4));
-  adapter.emit(done);
+  // The process dies, and Claude Code deleted its transcript: the next one starts a new one.
+  adapter.sessions.clear();
+  adapter.exit(1, "crashed");
   await sessions.settled(first);
   await vi.waitFor(() => expect(reads).toBe(2));
 
-  sessions.takeBack(repo, session.id, cache.itemsOf(fresh, "message")[0]!.id);
+  sessions.takeBack(repo, session.id, cache.itemsOf(taken, "message")[0]!.id);
   adapter.script([TOTAL(3, 5000, 9000, 6)]);
   release();
   await sessions.settled(next);
 
   expect(adapter.opens[1]).toMatchObject({ resume: false });
-  expect(cache.itemsOf(next, "system").map((item) => item.text)).toEqual([FRESH]);
+  expect(cache.itemsOf(next, "system").map((item) => item.text)).toEqual([REPLACED]);
   expect(cache.turn(next)?.tokens).toEqual(counts(3, 5000, 9000, 6));
 
   await idle();

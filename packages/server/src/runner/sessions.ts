@@ -39,8 +39,8 @@ const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
 const now = () => new Date().toISOString();
 
 /**
- * Sessions of turns with agents: at most one process and one turn per session, a feature's session
- * in its worktree, a chat in the main checkout. Turns and their items go to the cache, and every
+ * Sessions of turns with agents: at most one process and one turn per session, and one working
+ * session per change or feature, whose sessions work in its worktree; a chat in the main checkout. Turns and their items go to the cache, and every
  * change to `onChange`.
  *
  * It answers the server's calls, and leaves the rest to its parts: the sessions kept in memory,
@@ -176,6 +176,58 @@ export class Sessions {
     );
   }
 
+  /** A new session of a change or a feature, which becomes its latest: its runs go to it. */
+  async newSession(repo: string, folder: string): Promise<SessionRow> {
+    return this.cache.createSession({
+      agent: this.adapter.kind,
+      folder,
+      nativeId: randomUUID(),
+      repo: await this.mainRoot(repo),
+      title: null,
+    });
+  }
+
+  /**
+   * Moves a session without a workflow to the change it became, between turns: refused while its
+   * agent works. Its open process closes, so its next turn opens in the change's worktree, and
+   * resumes its agent session there.
+   */
+  async attach(repo: string, session: string, folder: string): Promise<void> {
+    const { live: sessions, processes } = this.#context;
+    const live = sessions.of(await this.#own(repo, session));
+    await sessions.serial(live, async () => {
+      if (live.turn !== undefined || live.queue.length > 0) {
+        throw refused(REFUSALS.agentWorking);
+      }
+      this.cache.attach(live.id, folder);
+      // Kept in memory with the folder it had: its next turn reads this one.
+      live.folder = folder;
+      if (live.proc) {
+        processes.close(live.proc);
+      }
+      this.#context.changed(live);
+    });
+  }
+
+  /** Whether the session's agent works: a turn of it runs or waits, on this server. */
+  sessionWorking(session: string): boolean {
+    const live = this.#context.live.get(session);
+    return live !== undefined && (live.turn !== undefined || live.queue.length > 0);
+  }
+
+  /** Archives every session of a dropped change or feature, and closes their processes. */
+  async archiveFolder(repo: string, folder: string): Promise<void> {
+    const root = await this.mainRoot(repo);
+    for (const row of this.cache.folderSessions(root, folder)) {
+      const proc = this.#context.live.get(row.id)?.proc;
+      if (proc) {
+        this.#context.processes.close(proc);
+      }
+      this.cache.updateSession(row.id, { archivedAt: now() });
+      this.#options.onChange({ folder, repo: root, session: row.id });
+    }
+  }
+
   /** A new chat, without a feature, titled by its first message. */
   async newChat(repo: string): Promise<SessionRow> {
     return this.cache.createSession({
@@ -188,13 +240,18 @@ export class Sessions {
   }
 
   /**
-   * Sends a message to the session, and returns its turn. Idle, it starts a turn, opening the
+   * Sends a message to the session, and returns the session it went to and its turn. Idle, it starts a turn, opening the
    * process when it is closed. During a turn, the human's message is steered into it, and the
    * workflow's is queued after it. A workflow message that no longer applies, as `sentAsChat`
    * decides, runs as a chat, with the line saying so. A message may be images alone, at most 10, to an agent that declares images; the
-   * workflow's message takes none.
+   * workflow's message takes none. A run that starts fresh goes to a new session of the change or
+   * the feature, which it returns; another session of it working refuses a message.
    */
-  async send(repo: string, session: string, input: SendInput): Promise<{ turn: number }> {
+  async send(
+    repo: string,
+    session: string,
+    input: SendInput,
+  ): Promise<{ session: string; turn: number }> {
     const message = checkSend(input, this.adapter.capabilities);
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
@@ -276,12 +333,9 @@ export class Sessions {
     return this.#context.live.serial(live, () => allowAll(this.#context, live));
   }
 
-  /** Renames a chat, by the title's first line that is not blank, cut at 80 characters. */
+  /** Renames a session, by the title's first line that is not blank, cut at 80 characters. */
   rename(repo: string, session: string, title: string): void {
     const row = this.#ownNow(repo, session);
-    if (row.folder !== null) {
-      throw new Error("a feature's session takes its feature's name");
-    }
     if (title.trim() === "") {
       throw refused(REFUSALS.blank);
     }

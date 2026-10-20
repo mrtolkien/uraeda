@@ -1,9 +1,15 @@
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import { addPlan, ELEVEN, fixtureRepo } from "uraeda-binding/test-utils";
+import { addChange, addPlan, ELEVEN, fixtureRepo } from "uraeda-binding/test-utils";
 import { coveredDenials } from "../allow.ts";
 import type { AgentEvent } from "../events.ts";
-import { IDLE_CLOSE_MS, OUTPUT_LIMIT, TERMINATE_AFTER_MS, WATCHDOG_MS } from "../sessions.ts";
+import {
+  IDLE_CLOSE_MS,
+  OUTPUT_LIMIT,
+  type SendInput,
+  TERMINATE_AFTER_MS,
+  WATCHDOG_MS,
+} from "../sessions.ts";
 import { flush, testSessions } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -1049,10 +1055,8 @@ test("a gone transcript starts a new session, which says so", async () => {
   ]);
 });
 
-const FRESH =
-  "Started a new session for this run: the agent reads the repository, not the turns above.";
-
-test("a fresh workflow run starts a new agent session in the feature's session, which says so", async () => {
+/** US5.2: a fresh step starts a new session of the feature; the earlier one keeps its turns. */
+test("a fresh run starts a new session of the feature", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
@@ -1060,25 +1064,151 @@ test("a fresh workflow run starts a new agent session in the feature's session, 
   await sessions.settled(first.turn);
 
   adapter.script([]);
-  const { turn } = await sessions.send(repo, session.id, {
+  const sent = await sessions.send(repo, session.id, {
     text: "Continue the feature.",
     workflow: { fresh: true, trigger: "approval" },
   });
-  await sessions.settled(turn);
+  await sessions.settled(sent.turn);
 
-  // The open process is closed, and a new one starts a new agent session, not resumed.
-  expect(adapter.closes).toBe(1);
-  expect(adapter.opens).toHaveLength(2);
-  expect(adapter.opens[1]).toMatchObject({ resume: false });
-  expect(adapter.opens[1]?.nativeId).not.toBe(adapter.opens[0]?.nativeId);
-  expect(cache.session(session.id)?.nativeId).toBe(adapter.opens[1]?.nativeId);
-  expect(cache.latestSession(session.repo, AGENT)?.id).toBe(session.id);
-  // The earlier turn stays in the session, above the line.
-  expect(cache.turns(session.id).map((row) => row.id)).toEqual([first.turn, turn]);
-  expect(cache.items(turn, 0, 2)).toEqual([
-    { kind: "system", seq: 0, text: FRESH },
+  expect(sent.session).not.toBe(session.id);
+  const fresh = cache.session(sent.session);
+  expect(fresh).toMatchObject({ folder: AGENT, repo: session.repo });
+  // The earlier session keeps its turns and its agent session.
+  expect(cache.turns(session.id).map((row) => row.id)).toEqual([first.turn]);
+  expect(cache.session(session.id)?.nativeId).toBe(session.nativeId);
+  expect(cache.turns(sent.session).map((row) => row.id)).toEqual([sent.turn]);
+  expect(adapter.opens.at(-1)).toMatchObject({
+    cwd: join(repo, ".worktrees", AGENT),
+    nativeId: fresh?.nativeId,
+    resume: false,
+  });
+  // A new session opens with the message alone: no line says it is new.
+  expect(cache.items(sent.turn, 0, 1)).toEqual([
     expect.objectContaining({ kind: "message", origin: "workflow", text: "Continue the feature." }),
   ]);
+});
+
+/** Review focus 4: "Next" and the feature's session page reach the session a fresh run started. */
+test("a fresh run's session is the latest", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
+
+  adapter.script([]);
+  const sent = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { freshByDefault: true, trigger: "manual" },
+  });
+  await sessions.settled(sent.turn);
+
+  expect(cache.latestSession(session.repo, AGENT)?.id).toBe(sent.session);
+  expect((await sessions.featureSession(repo, AGENT)).id).toBe(sent.session);
+});
+
+/** US5 more 1: a run sent to the feature goes to its latest session, not its first. */
+test("a run goes to the latest session", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const first = await sessions.featureSession(repo, AGENT);
+  const latest = await sessions.newSession(repo, AGENT);
+  adapter.script([]);
+
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Hello" });
+  await sessions.settled(turn);
+
+  expect(session.id).toBe(latest.id);
+  expect(cache.turns(first.id)).toEqual([]);
+  expect(cache.turn(turn)?.sessionId).toBe(latest.id);
+});
+
+/** US5.3: the sessions of a feature share its worktree, so one works at a time. */
+test("a second session of a working feature is refused", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const working = await sessions.featureSession(repo, AGENT);
+  const other = await sessions.newSession(repo, AGENT);
+  const change = "2026-10-20-login-redirect";
+  addChange(repo, change, { "proposal.md": "# Login redirects twice\n" });
+  const changeSession = await sessions.featureSession(repo, change);
+  const changeOther = await sessions.newSession(repo, change);
+  await sessions.send(repo, working.id, { text: "Build it" });
+  await sessions.send(repo, changeSession.id, { text: "Fix it" });
+
+  await expect(sessions.send(repo, other.id, { text: "And this?" })).rejects.toThrow(
+    "refused: Another session of this feature is working",
+  );
+  await expect(sessions.send(repo, changeOther.id, { text: "And this?" })).rejects.toThrow(
+    "refused: Another session of this change is working",
+  );
+  expect(cache.turns(other.id)).toEqual([]);
+  expect(cache.session(other.id)?.title).toBeNull();
+  expect(adapter.opens).toHaveLength(2);
+});
+
+/**
+ * Review focus 3: a turn queued in a session while another of the feature works opens only once
+ * the other's turn ends.
+ */
+test("a queued turn waits for the other session", async () => {
+  // Once armed, the step reads wait until the test lets them go: a queued turn's start reads it.
+  const starts: Array<string> = [];
+  let armed = false;
+  const { promise: held, resolve: release } = Promise.withResolvers<void>();
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: {
+      ...binding,
+      nextStep: async (...args: Parameters<typeof binding.nextStep>) => {
+        if (armed) {
+          starts.push(args[1]);
+          await held;
+        }
+        return binding.nextStep(...args);
+      },
+    },
+  });
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
+  const chat = await sessions.send(repo, session.id, { text: "What is left?" });
+  const run = { text: "Continue the feature.", workflow: { fresh: true, trigger: "approval" } };
+
+  const first = await sessions.send(repo, session.id, run as SendInput);
+  const second = await sessions.send(repo, session.id, run as SendInput);
+  await flush();
+
+  expect(new Set([session.id, first.session, second.session]).size).toBe(3);
+  expect(cache.turn(first.turn)?.state).toBe("queued");
+  expect(cache.turn(second.turn)?.state).toBe("queued");
+  expect(adapter.opens).toHaveLength(1);
+
+  // The chat's turn ends: one waiting session starts, and the other waits for it in turn, without
+  // even reading its step.
+  armed = true;
+  adapter.emit(done());
+  await sessions.settled(chat.turn);
+  await flush();
+  expect(starts).toEqual([AGENT]);
+  armed = false;
+  release();
+  await vi.waitFor(() => expect(adapter.opens).toHaveLength(2));
+  await flush();
+  expect(adapter.opens).toHaveLength(2);
+  expect(cache.turn(first.turn)?.state).toBe("running");
+  expect(cache.turn(second.turn)?.state).toBe("queued");
+
+  adapter.script([]);
+  adapter.emit(done());
+  await sessions.settled(first.turn);
+  await sessions.settled(second.turn);
+
+  expect(adapter.opens).toHaveLength(3);
+  expect(adapter.opens.map((open) => open.nativeId)).toEqual(
+    [session, cache.session(first.session), cache.session(second.session)].map(
+      (row) => row?.nativeId,
+    ),
+  );
+  expect(adapter.sent.at(-1)?.text).toBe("Continue the feature.");
+  expect(cache.turn(second.turn)?.state).toBe("done");
 });
 
 test("a workflow run that is not fresh continues the agent session", async () => {
@@ -1119,30 +1249,6 @@ test("a workflow run at the plan step sent without fresh follows the setting", a
 
     expect(adapter.opens.map((open) => open.resume)).toEqual(on ? [false, false] : [false]);
   }
-});
-
-test("a fresh workflow run queued after a chat turn starts its new agent session once it ends", async () => {
-  const { adapter, cache, repo, sessions } = await testSessions();
-  const session = await sessions.featureSession(repo, AGENT);
-  const chat = await sessions.send(repo, session.id, { text: "What is left?" });
-
-  const workflow = await sessions.send(repo, session.id, {
-    text: "Continue the feature.",
-    workflow: { fresh: true, trigger: "approval" },
-  });
-  expect(cache.turn(workflow.turn)?.state).toBe("queued");
-
-  adapter.script([]);
-  adapter.emit(done());
-  await sessions.settled(chat.turn);
-  await sessions.settled(workflow.turn);
-
-  expect(adapter.opens).toHaveLength(2);
-  expect(adapter.opens[1]?.resume).toBe(false);
-  expect(adapter.opens[1]?.nativeId).not.toBe(adapter.opens[0]?.nativeId);
-  expect(adapter.sent[1]?.text).toBe("Continue the feature.");
-  // The queued message's item came first; the line follows once the turn starts.
-  expect(cache.items(workflow.turn, 1, 1)).toEqual([{ kind: "system", seq: 1, text: FRESH }]);
 });
 
 test("a fresh first run opens the session's own agent session, with no line", async () => {
@@ -1358,7 +1464,7 @@ test.each(["stop", "take back"])(
     const chat = await sessions.send(repo, session.id, { text: "What is left?" });
     const workflow = await sessions.send(repo, session.id, {
       text: "Continue the feature.",
-      workflow: { trigger: "manual" },
+      workflow: { fresh: false, trigger: "manual" },
     });
     adapter.script([]);
     adapter.exit(1, "crashed");
@@ -1392,6 +1498,18 @@ test("review focus 5: a chat title is cut at 80 characters, from the first line 
 
   expect(cache.session(chat.id)?.title).toBe("x".repeat(80));
   await expect(sessions.send(repo, chat.id, { text: "  \n " })).rejects.toThrow(/^refused: /);
+});
+
+test("every session can be renamed, and a feature's is never archived", async () => {
+  const { cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+
+  sessions.rename(repo, session.id, "Spec and plan");
+
+  expect(cache.session(session.id)?.title).toBe("Spec and plan");
+  expect(() => sessions.archive(repo, session.id, true)).toThrow(
+    "a feature's session is not archived",
+  );
 });
 
 test("a chat renamed keeps the first line that is not blank, cut at 80 characters", async () => {

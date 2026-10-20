@@ -13,10 +13,13 @@ export type SentImage = ChatImage & { path: string };
  * A message to send: its text, its chat images, and for the workflow's, what started it, whether
  * its run starts a new agent session, `fresh`, and the step its message was read at, `step`.
  * Without `fresh`, the run after a spec's approval starts one as the `build_in_fresh_session`
- * setting says, `freshByDefault`, on by default.
+ * setting says, `freshByDefault`, on by default. A run that starts a new agent session goes to a
+ * new session of its change or feature. `opening` is a line the server puts before the message,
+ * as the one telling a session moved to a change where it works now.
  */
 export type SendInput = {
   images?: Array<SentImage>;
+  opening?: string;
   text: string;
   workflow?: {
     file?: string;
@@ -44,6 +47,7 @@ export function checkSend(input: SendInput, capabilities: Capabilities) {
       : { images: images.map(({ height, id, width }) => ({ height, id, width })) };
   return {
     held,
+    opening: input.opening,
     paths: images.map(({ path }) => ({ path })),
     text: blank ? "" : input.text,
     workflow: input.workflow,
@@ -168,7 +172,6 @@ export async function recheckQueued(
     ...queued.message,
     text: opening === undefined ? text : `${opening}\n${text}`,
   };
-  delete queued.fresh;
   delete queued.workflow;
   changed(live, queued.id);
 }

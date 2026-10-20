@@ -384,7 +384,7 @@ test("session.send with a step's message the feature moved on from sends it as a
   });
 });
 
-test("session.send with a fresh workflow message starts a new agent session in the same session", async () => {
+test("session.send with a fresh workflow message answers with the new session it started", async () => {
   const server = await testServer();
   server.adapter.script([]);
   const chat = await send(server, { folder: AGENT, text: "Hello" });
@@ -398,7 +398,9 @@ test("session.send with a fresh workflow message starts a new agent session in t
   });
   await settle(server, session);
 
-  expect(session.id).toBe(chat.id);
+  expect(session.id).not.toBe(chat.id);
+  expect(session.folder).toBe(AGENT);
+  expect(session.turns).toHaveLength(1);
   expect(server.adapter.opens).toHaveLength(2);
   expect(server.adapter.opens[1]?.resume).toBe(false);
   expect(server.adapter.opens[1]?.nativeId).not.toBe(server.adapter.opens[0]?.nativeId);

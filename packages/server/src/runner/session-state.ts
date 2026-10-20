@@ -39,6 +39,10 @@ export const REFUSALS = {
   /** An image ID with no file in the data folder: removed, or never uploaded. */
   imageGone: "This image is gone: add it again.",
   unavailable: (name: string) => `${name} is not available on this machine.`,
+  /** A session moved, or a change moved or dropped, while its agent works. */
+  agentWorking: "The agent is working",
+  /** A message to a session of a change or a feature while another of its sessions works. */
+  otherWorking: (kind: string) => `Another session of this ${kind} is working`,
 };
 
 /** The line of a workflow message sent once it no longer applied: the feature waits on the human. */
@@ -53,7 +57,10 @@ export const SENT_AS_CHAT_NO_PULL_REQUEST = "Sent as a chat: no pull request is 
 /** The line a turn shows when its session's transcript was gone, and a new one started. */
 export const REPLACED = "Started a new session: the previous one is gone.";
 
-/** The line a turn shows when it started a new agent session, from the repository alone. */
+/**
+ * The line a turn showed when a fresh run started a new agent session in its session: a fresh run
+ * now starts a new session, but earlier turns keep the line.
+ */
 export const FRESH =
   "Started a new session for this run: the agent reads the repository, not the turns above.";
 
@@ -126,12 +133,11 @@ export type Running = {
 };
 
 /**
- * A turn waiting for the running one to end: its message is written when it starts, in a new agent
- * session when `fresh`. A workflow run's `workflow`, its trigger and the step its message was read
- * at, is checked again then: one that no longer applies starts as a chat.
+ * A turn waiting for the running one to end, or for another session of its change or feature: its
+ * message is written when it starts. A workflow run's `workflow`, its trigger and the step its
+ * message was read at, is checked again then: one that no longer applies starts as a chat.
  */
 export type Queued = {
-  fresh?: boolean;
   id: number;
   message: Outgoing;
   workflow?: { step?: string; trigger: Trigger };
@@ -153,6 +159,8 @@ export type Live = {
   proc?: Proc;
   queue: Array<Queued>;
   repo: string;
+  /** A turn is starting: its process opens. It works, for the other sessions of its folder. */
+  starting?: boolean;
   turn?: Running;
 };
 

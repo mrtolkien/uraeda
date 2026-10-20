@@ -555,16 +555,20 @@ process.
 
 **Files:**
 
-- Create: `packages/server/src/fate/session-moves.ts`, `packages/server/src/runner/moves.ts` (the
-  opening line and the edited files)
-- Modify: `packages/server/src/runner/sessions.ts` (split `#send` first if it passes 100 lines),
-  `packages/server/src/runner/live-sessions.ts`, `packages/server/src/runner/turns.ts`,
-  `packages/server/src/runner/processes.ts`, `packages/server/src/runner/session-state.ts`
-  (`REFUSALS`), `packages/server/src/fate/mutations.ts` (register `session-moves`, `sendFirstRun` to
-  the latest session), `packages/server/src/fate/views.ts` (a `Dropped` record)
+- Create: `packages/server/src/fate/session-moves.ts`, `packages/server/src/fate/views-dropped.ts`
+  (the `Dropped` record), `packages/server/src/runner/moves.ts` (the opening line and the edited
+  files), `packages/server/src/runner/send.ts` (`#send` moved there first, in a `refactor` commit)
+- Modify: `packages/server/src/runner/sessions.ts`, `packages/server/src/runner/live-sessions.ts`,
+  `packages/server/src/runner/turns.ts`, `packages/server/src/runner/processes.ts`,
+  `packages/server/src/runner/send-input.ts`, `packages/server/src/runner/session-state.ts`
+  (`REFUSALS`), `packages/server/src/fate/mutations.ts` (register `session-moves`, `session.send`
+  and `sendFirstRun` answer with the session used), `packages/server/src/fate/views.ts`,
+  `sources.ts`, and `fate.ts` (the `Dropped` root, source, and type), and the core's typed start
+  (`crates/core/src/actions/start/plan.rs`,
+  [R10](rulings.md#r10-a-typed-change-starts-over-the-main-checkouts-uncommitted-changes))
 - Test: `packages/server/src/__tests__/session-moves.test.ts`,
   `packages/server/src/runner/__tests__/moves.test.ts`,
-  `packages/server/src/runner/__tests__/sessions.test.ts`
+  `packages/server/src/runner/__tests__/sessions.test.ts`, `crates/core/tests/actions.rs`
 
 **Interfaces:**
 
@@ -572,22 +576,37 @@ process.
   `latestSession`, `attach`.
 - Produces:
   - `Sessions.newSession(repo: string, folder: string): Promise<SessionRow>`.
-  - `Sessions.attach(repo: string, session: string, folder: string): Promise<void>`: attaches,
-    closes the session's process, and prunes its `Live`, so the next turn reads the new folder.
-  - `Sessions.send` refuses with `REFUSALS.otherWorking` ("Another session of this feature is
-    working", or "of this change") when another session of the folder works; a queued turn of it
-    waits in `turns.next` until the other ends.
-  - A run whose step starts fresh, or `workflow.fresh: true`, goes to a new session of the folder;
-    `session.send` returns that session.
+  - `Sessions.attach(repo: string, session: string, folder: string): Promise<void>`: under the
+    session's lock, refused with `REFUSALS.agentWorking` ("The agent is working") while a turn of it
+    runs or waits; attaches, sets the folder of its `Live`, closes its process, so the next turn
+    opens in the new folder even while the closed process lingers.
+  - `Sessions.sessionWorking(session): boolean`, and `Sessions.archiveFolder(repo, folder)`, which
+    archives every session of a dropped folder and closes their processes.
+  - `Sessions.send` returns `{ session, turn }`. It refuses with `REFUSALS.otherWorking(kind)`
+    ("Another session of this feature is working", or "of this change") when another session of the
+    folder works. The guard lives in `LiveSessions.otherWorking`, which `send.ts` and
+    `turns.#startQueued` call: a queued turn waits until the other session is idle, which wakes it
+    (`Turns.wake`). A session whose turn is starting counts as working.
+  - A run whose step starts fresh, or `workflow.fresh: true`, goes to a new session of the folder,
+    unless its session never ran; sent while its session works, it is queued in the new session
+    behind it. `session.send` returns that session. `Processes.open` loses `fresh`, and `Queued` its
+    `fresh`: `FRESH` stays only for the turns that already show it.
+  - `SendInput.opening`: a line the server puts before a message, as the moved opening.
   - `movedOpening(input: { branch: string; folder: string; worktree: string; edited: Array<string> }): string`
     in `runner/moves.ts`, and `editedFiles(cache, session): Array<string>` (targets of the session's
-    edit and write tool calls, deduplicated, in order).
+    `Edit`, `MultiEdit`, `NotebookEdit`, and `Write` calls not failed, relative to its directory,
+    deduplicated, in order).
   - Mutations in `fate/session-moves.ts`: `session.toChange({ session, text, slug? })` returning the
-    Feature; `session.new({ folder })` returning the Session; `feature.promote({ folder })`
-    returning the Feature; `feature.drop({ folder })` returning `{ branch, worktreeLeft }`.
+    Feature, refused while the agent works, a taken slug refused as "A branch or folder named
+    <folder> exists: pick another slug"; `session.new({ folder })` returning the Session;
+    `feature.promote({ folder })` returning the Feature; `feature.drop({ folder })` returning a
+    `Dropped` `{ id, branch, worktreeLeft, committed }`. A move or a drop of a folder whose session
+    works is refused with "The agent is working".
   - `rename` accepts every session; `archive` stays for sessions without a folder.
+  - The core's typed start refuses only staged files, not the main checkout's uncommitted changes
+    ([R10](rulings.md#r10-a-typed-change-starts-over-the-main-checkouts-uncommitted-changes)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `runner/__tests__/sessions.test.ts`:
 
@@ -599,12 +618,16 @@ process.
   creates a second session; the first keeps its turns and its `nativeId`; `adapter.opens.at(-1)` is
   the new one, in the feature's worktree.
 - "a fresh run's session is the latest" and "a run goes to the latest session".
-- "every session can be renamed".
+- "every session can be renamed, and a feature's is never archived".
+- The tests that pinned a fresh run in the same session change
+  ([R11](rulings.md#r11-the-tests-of-a-fresh-run-in-the-same-session-follow-the-new-session)).
 
 `runner/__tests__/moves.test.ts`:
 
 - "after the move, the next turn runs in the worktree": a chat with an open process attached to a
-  change; the next send opens in `binding.workDir(repo, folder)`, not the repository.
+  change, its closed process lingering; the next send opens in `binding.workDir(repo, folder)`, not
+  the repository, resuming its agent session.
+- "a working session does not move".
 - "the opening names the files the session edited": a chat whose items hold Edit of
   `src/auth/guard.ts` and Read of `README.md`; the opening names `src/auth/guard.ts` only, and says
   to carry it over and restore it in the main checkout, merging by hand when the file changed there
@@ -623,16 +646,17 @@ process.
 - "promote runs the next step in the session": a change promoted; the same session's next turn is a
   run of the feature's next step.
 - "a new session of a feature works in its worktree".
+- "toChange waits while the agent works".
 - "drop archives the sessions": both sessions of a dropped change are archived, and the result names
   the branch.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/sessions.test.ts packages/server/src/runner/__tests__/moves.test.ts packages/server/src/__tests__/session-moves.test.ts`
 - Expected: FAIL, first `sessions.newSession is not a function`.
 
-- [ ] **Step 3: Implement the moves and the guard**
+- [x] **Step 3: Implement the moves and the guard**
 
 The guard lives in one place, a `Sessions` method both `#send` and `turns.next` call. `toChange`
 calls `binding.startChange` without `sendFirstRun`, then `attach`, then sends the start run with
@@ -640,12 +664,12 @@ calls `binding.startChange` without `sendFirstRun`, then `attach`, then sends th
 folder's next step (`readWorkflowMessage`) in the latest session. `drop` calls `binding.dropItem`,
 then archives every session of the folder.
 
-- [ ] **Step 4: Run the server suite and the checks**
+- [x] **Step 4: Run the server suite and the checks**
 
 - Run: `nix develop -c vp test --project uraeda-server && nix develop -c vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-20-merge-chats/plan.md specs/2026-10-20-merge-chats/rulings.md
