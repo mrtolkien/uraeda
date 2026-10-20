@@ -315,6 +315,12 @@ export declare function removeComment(repo: string, folder: string, file: string
 /** Removes a note, sub-items included. */
 export declare function removeNote(repo: string, id: string, previous: string): Promise<Inbox>
 
+/**
+ * Removes a note as `removeNote` does, then commits `INBOX.md` alone when it had no other change:
+ * a note started as a change.
+ */
+export declare function removeNoteAndCommit(repo: string, id: string, previous: string): Promise<InboxAdded>
+
 /** Removes a priority line and its nested lines. */
 export declare function removePriority(repo: string, id: string, previous: string): Promise<Priorities>
 

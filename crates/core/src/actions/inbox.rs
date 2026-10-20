@@ -194,6 +194,22 @@ pub fn add_and_commit(
     Ok((read(place), added))
 }
 
+/// Removes a note over the inbox read at `previous`, then commits `INBOX.md` alone when it had no
+/// other change: a note started as a change leaves the inbox in its own commit.
+pub fn remove_and_commit(
+    place: &Place,
+    id: &str,
+    previous: &str,
+) -> Result<(Inbox, Added), ActionError> {
+    let note = inbox::note(&current(place, PATH, previous)?, id).ok_or_else(|| no_note(id))?;
+    let subject = format!(
+        "chore: remove \"{}\" from the inbox",
+        super::priorities::short(&note.text)
+    );
+    let (_, added) = commit::add_alone(place, PATH, subject, || remove(place, id, Some(previous)))?;
+    Ok((read(place), added))
+}
+
 /// Replaces a note's text, its marks and sub-items kept.
 pub fn edit(
     place: &Place,

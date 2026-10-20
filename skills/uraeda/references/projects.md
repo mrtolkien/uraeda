@@ -98,7 +98,8 @@ Do these only when a human asks.
   steps under its own names: the folder `specs/changes/YYYY-MM-DD-<slug>/`, the branch
   `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI,
   Change on the New page starts one from a typed request, an inbox note, or a priority line, with no
-  draft. A session's offer starts one too: see [Change](change.md#starting-a-change). With `ura`,
+  draft: a note's text is its request, and the note leaves `INBOX.md` in a commit of its own. A
+  session's offer starts one too: see [Change](change.md#starting-a-change). With `ura`,
   `ura start <draft> --slug <slug> --change` starts a draft as a change, and refuses a postponed
   folder holding files a change's folder has no place for, like a feature's `spec.md`: start that
   one as a feature. By hand, the steps above, with the entry linked to

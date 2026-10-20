@@ -78,6 +78,20 @@ pub fn remove_note(repo: String, id: String, previous: String) -> AsyncTask<Job<
     job(move || api::remove_note(Path::new(&repo), &id, &previous))
 }
 
+/// Removes a note as `removeNote` does, then commits `INBOX.md` alone when it had no other change:
+/// a note started as a change.
+#[napi(ts_return_type = "Promise<InboxAdded>")]
+pub fn remove_note_and_commit(
+    repo: String,
+    id: String,
+    previous: String,
+) -> AsyncTask<Job<InboxAdded>> {
+    job(move || {
+        let (inbox, added) = api::remove_note_and_commit(Path::new(&repo), &id, &previous)?;
+        Ok(InboxAdded { inbox, added })
+    })
+}
+
 /// Moves a note to the end of a category, or of the notes without one.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn move_note_to_category(

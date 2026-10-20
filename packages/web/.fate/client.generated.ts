@@ -16,6 +16,11 @@ const mutations = {
     FateAPI['mutations']['answers.submit']['input'],
     FateAPI['mutations']['answers.submit']['output']
   >('WorkflowFile'),
+  'change.fromNote': mutation<
+    Feature,
+    FateAPI['mutations']['change.fromNote']['input'],
+    FateAPI['mutations']['change.fromNote']['output']
+  >('Feature'),
   'change.start': mutation<
     Feature,
     FateAPI['mutations']['change.start']['input'],

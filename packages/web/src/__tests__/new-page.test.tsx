@@ -30,7 +30,7 @@ const FOLDER = "2026-10-16-centre-x";
 
 const NOTE = "The PR texts lack context: start with what was done";
 
-/** The fixture, with the spec's note in the inbox and "Empty inbox" in Next. */
+/** The fixture, with the spec's note in the inbox and "Empty inbox" in Next, both committed. */
 function startingRepo() {
   const repo = fixtureRepo();
   writeFileSync(
@@ -44,6 +44,7 @@ function startingRepo() {
     join(repo, "specs/PRIORITIES.md"),
     read(repo).replace("\n## Later\n", "- Empty inbox\n\n## Later\n"),
   );
+  git(repo, "commit", "-qam", "chore: the spec's note and line");
   return repo;
 }
 
@@ -98,7 +99,11 @@ test("the kind picked is in the address", async () => {
 /** US3 2, SC-004: two clicks, Change, then the note's "Start the change". */
 test("a change from an inbox note", async () => {
   const repo = startingRepo();
-  await renderPage("/new", repo, { agent: true });
+  // The human's edit elsewhere in the main checkout stays, uncommitted.
+  writeFileSync(join(repo, "specs/README.md"), "# Specs, edited\n");
+  const fake = await fakeAgent();
+  fake.adapter.script([]);
+  await renderPage("/new", repo, { agent: fake });
 
   await pick("Change");
   await click(await screen.findByRole("button", { name: `Start the change: ${NOTE}` }));
@@ -108,11 +113,32 @@ test("a change from an inbox note", async () => {
       new RegExp(`^${atRepo("/f/2026-10-16-")}[^/]+/session$`),
     ),
   );
+  expect(window.location.search).toBe("");
   expect(read(repo, "specs/INBOX.md")).not.toContain(NOTE);
+  // The note left the inbox in a commit of its own.
+  expect(git(repo, "status", "--porcelain", "specs/INBOX.md")).toBe("");
+  expect(read(repo, "specs/README.md")).toBe("# Specs, edited\n");
   const folder = window.location.pathname.split("/f/")[1].split("/")[0];
   expect(git(repo, "show", `change/${folder}:specs/changes/${folder}/proposal.md`)).toContain(
     "The PR texts lack context",
   );
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  expect(fake.adapter.sent[0].text).toMatch(
+    new RegExp(`^/uraeda Continue the change specs/changes/${folder}/`),
+  );
+});
+
+test("a change from a note that cannot start keeps the note", async () => {
+  const repo = startingRepo();
+  // The name the note's change would take.
+  git(repo, "branch", "change/2026-10-16-pr-texts");
+  await renderPage("/new?kind=change", repo, { agent: await fakeAgent() });
+
+  await click(await screen.findByRole("button", { name: `Start the change: ${NOTE}` }));
+
+  await screen.findByText(/exists/);
+  expect(window.location.pathname).toBe(atRepo("/new"));
+  expect(read(repo, "specs/INBOX.md")).toContain(NOTE);
 });
 
 /** US3 3 */
