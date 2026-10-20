@@ -720,28 +720,31 @@ git commit -m "feat(merge-chats): sessions are done once read, and a feature lis
 - Produces: routes `{ id; page: "session-id" }` at `/sessions/<id>`, `{ page: "new"; kind }` at
   `/new?kind=session|change|feature` (kind `session` by default). Until task 9, `/new` draws the new
   chat page for a session and `NewChangePage` for a change; `/chats/<id>` redirects to
-  `/sessions/<id>`, `/chats/new` to `/new`, `/changes/new` to `/new?kind=change`, with `redirect`.
+  `/sessions/<id>`, `/chats/new` to `/new`, `/changes/new` to `/new?kind=change`, with `redirect`,
+  through a `{ page: "moved"; path }` route; `parseRoute(pathname, search)` reads the kind, and
+  `sessionIdPath(id)` builds a session's path
+  ([R7](rulings.md#r7-the-new-pages-kind-is-part-of-the-route-and-old-addresses-are-a-moved-route)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - "old addresses redirect": `/chats/abc` lands on `/sessions/abc`; `/changes/new` on
   `/new?kind=change`; `/chats/new` on `/new`.
 - "a new session's first message opens /sessions/<id>".
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/routes.test.ts`
 - Expected: FAIL, the route of `/sessions/abc` is `not-found`.
 
-- [ ] **Step 3: Implement the routes and update the producers**
+- [x] **Step 3: Implement the routes and update the producers**
 
-- [ ] **Step 4: Run the web suite**
+- [x] **Step 4: Run the web suite**
 
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS, after updating the tests that pinned `/chats/<id>` paths to `/sessions/<id>`: a
   ruling lists them.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-20-merge-chats/plan.md specs/2026-10-20-merge-chats/rulings.md

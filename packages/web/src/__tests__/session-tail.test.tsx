@@ -81,7 +81,7 @@ async function openChatWith(count: number) {
   const fake = await fakeAgent();
   const chat = await fake.sessions.newChat(repo);
   const turns = seedMessages(fake, chat.id, count);
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
   const log = await screen.findByRole("log", { name: "Conversation" });
   await within(log).findByText(
     count % 2 === 0 ? `Reply ${count / 2}` : `Question ${(count + 1) / 2}`,
@@ -151,7 +151,7 @@ test("US1 more 1: the link of a turn 90 messages back draws from it to the end, 
   Element.prototype.scrollIntoView = scrolled;
 
   // The third turn holds messages 31 to 45: 90 messages from there to the end.
-  await renderPage(`/chats/${chat.id}#turn-${turns[2]}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}#turn-${turns[2]}`, repo, { agent: fake });
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   await log.findByText("Reply 60");
 
@@ -186,7 +186,7 @@ test("US1 more 3: the reply growing at the end changes no count", async () => {
   const { cache } = fake.sessions;
   const turn = addTurn(fake, chat.id);
   const seq = cache.appendItem(turn, { kind: "text", streaming: true, text: "Reply 61" });
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   await log.findByText("Reply 61");
   expect(messagesIn(log)).toHaveLength(20);
@@ -254,7 +254,7 @@ test("focus 5: a cut inside a turn's last page leaves a sub-agent's later tools 
   cache.endTurn(turn, { state: "done" });
   expect(cache.itemCount(turn)).toBe(250);
 
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   await log.findByText("Reply 30");
 
@@ -280,7 +280,7 @@ test("focus 6: a turn with no item yet at the end draws nothing, and the walk go
   const chat = await fake.sessions.newChat(repo);
   seedMessages(fake, chat.id, 30);
   addTurn(fake, chat.id);
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   await log.findByText("Reply 15");
 
@@ -335,7 +335,7 @@ test("edge: no button when the turns before the 20 messages hold only tool calls
   for (const turn of [empty, tools, talk]) {
     fake.sessions.cache.endTurn(turn, { state: "done" });
   }
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   await log.findByText("Reply 20");
 
@@ -358,7 +358,7 @@ test("edge: the button shows, and a press draws, a message before turns of tool 
   for (const turn of [first, tools, talk]) {
     fake.sessions.cache.endTurn(turn, { state: "done" });
   }
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   await log.findByText("Reply 20");
   expect(messagesIn(log)).toHaveLength(20);

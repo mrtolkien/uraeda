@@ -100,7 +100,7 @@ const result = { denials: [], errors: [], interrupted: false, ok: true, type: "r
 
 /** "New change", with a change typed, and the core's slug proposed for it: `proposed`, if given. */
 async function typeChange(page: Page, text: string, proposed?: string) {
-  await show(page, "/changes/new", "Describe the bug or the change.");
+  await show(page, "/new?kind=change", "Describe the bug or the change.");
   await page.getByRole("textbox", { name: "Message Claude Code" }).fill(text);
   const slug = page.getByRole("textbox", { name: "Slug" });
   for (let value = ""; !value || (proposed && value !== proposed);) {

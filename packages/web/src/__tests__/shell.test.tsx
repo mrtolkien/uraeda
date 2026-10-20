@@ -260,13 +260,13 @@ test("US4.1: New chat opens an empty chat, and its first message lists it in Cha
 
   await click(await nav().findByRole("link", { name: "New chat" }));
 
-  expect(window.location.pathname).toBe(atRepo("/chats/new"));
+  expect(window.location.pathname).toBe(atRepo("/new"));
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
   await type(box, "List the open draft files");
   await click(screen.getByRole("button", { name: "Send" }));
 
   await waitFor(() =>
-    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/chats/")}(?!new)`)),
+    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/sessions/")}(?!new)`)),
   );
   expect(fake.adapter.sent[0].text).toBe("List the open draft files");
   await refreshUntil(() => {
@@ -280,7 +280,7 @@ test("US4.2: renaming a chat in its header renames it in the sidebar", async () 
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo, "List the open draft files");
-  await renderPage(`/chats/${id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
   const main = within(await screen.findByRole("main"));
 
   await click(await main.findByRole("button", { name: "List the open draft files" }));
@@ -298,7 +298,7 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo, "List the open draft files");
-  await renderPage(`/chats/${id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
   const chats = () => within(nav().getByRole("group", { name: "Chats" }));
   await waitFor(() => expect(row("List the open draft files")).toBeTruthy());
 

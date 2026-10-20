@@ -87,7 +87,7 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Open the session", null],
   // A feature's session before its first message, and an empty chat.
   ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
-  ["a new chat", "/chats/new", "New chat", null],
+  ["a new chat", "/new", "New chat", null],
   // The settings page: its categories, the Server category with the test server's override note,
   // and Sign-in (SC-005 of the settings page).
   ["the settings", "/settings", "Host names, port, and start", null],
@@ -437,7 +437,7 @@ describe("the session on the phone", () => {
 
 /** Starts a chat with a turn whose action auto mode blocked. */
 async function blockedChat() {
-  await show("/chats/new", "New chat");
+  await show("/new", "New chat");
   await sendMessage("Tag v0.3.0 and push the tag.");
   // At once: a reply that ends the turn before the new chat's view listens still shows.
   await agent.agentAccept();
@@ -462,7 +462,7 @@ async function blockedChat() {
   ]);
   await expect
     .poll(() => window.location.pathname, LIVE)
-    .toMatch(new RegExp(`^${atRepo("/chats/")}(?!new)`));
+    .toMatch(new RegExp(`^${atRepo("/sessions/")}(?!new)`));
   await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
   await drawn();
 }
@@ -470,7 +470,7 @@ async function blockedChat() {
 // SC-004: a chat with one reply.
 test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
   await colorScheme(mode);
-  await show("/chats/new", "New chat");
+  await show("/new", "New chat");
   await sendMessage("Why is CI slow on WebKit?");
   await agent.agentAccept();
   await agent.agentEmit([
@@ -479,7 +479,7 @@ test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
   ]);
   await expect
     .poll(() => window.location.pathname, LIVE)
-    .toMatch(new RegExp(`^${atRepo("/chats/")}(?!new)`));
+    .toMatch(new RegExp(`^${atRepo("/sessions/")}(?!new)`));
   await screen.findByText(/draws without a GPU/, undefined, LIVE);
   await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
   await drawn();

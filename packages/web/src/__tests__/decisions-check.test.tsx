@@ -85,7 +85,7 @@ test("Check decisions starts a chat with the check's message", async () => {
   await waitFor(() => expect(agent.sent).toHaveLength(1));
   expect(agent.sent[0].text).toBe(RUN_DECISIONS_CHECK);
   await waitFor(() =>
-    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/chats/")}`)),
+    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/sessions/")}`)),
   );
 });
 

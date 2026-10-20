@@ -88,7 +88,7 @@ test("Organize with an agent starts a chat in the main checkout with the triage'
   );
   expect(realpathSync(agent.opens[0].cwd)).toBe(realpathSync(repo));
   await waitFor(() =>
-    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/chats/")}`)),
+    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/sessions/")}`)),
   );
 });
 

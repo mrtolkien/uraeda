@@ -128,7 +128,7 @@ test("US4.1: Archive is in the composer's footer, not the header, and the title 
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo);
-  await renderPage(`/chats/${id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
 
   const archive = await screen.findByRole("button", { name: "Archive" });
 
@@ -145,7 +145,7 @@ test("US4.2: an archived chat reads Unarchive in the footer", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo);
-  await renderPage(`/chats/${id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
 
   await click(await screen.findByRole("button", { name: "Archive" }));
 
@@ -169,7 +169,7 @@ test("Edge: Archive pressed while the session works archives it", async () => {
   const id = await seedChat(fake, repo);
   fake.adapter.script([]);
   await fake.sessions.send(repo, id, { text: "And the closed ones?" });
-  await renderPage(`/chats/${id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
 
   await click(await screen.findByRole("button", { name: "Archive" }));
 

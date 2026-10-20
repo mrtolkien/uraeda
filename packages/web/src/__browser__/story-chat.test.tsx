@@ -50,7 +50,7 @@ test("a story link alone in an agent's message shows the story (US4.1)", async (
 test("a chat on the main checkout shows its story from main (US4.2)", async () => {
   await commands.addStoryFeature();
 
-  await startTurn("Show me", [{ text: LINK, type: "text" }], "/chats/new");
+  await startTurn("Show me", [{ text: LINK, type: "text" }], "/new");
 
   expect(await frameSource()).toMatch(
     new RegExp(

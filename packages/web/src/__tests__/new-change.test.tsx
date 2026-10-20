@@ -22,7 +22,7 @@ const FOLDER = "2026-10-16-centre-x";
 
 test("without the agent, the change's page opens with its message unsent", async () => {
   const fake = await fakeAgent({ installed: false });
-  await renderPage("/changes/new", fixtureRepo(), { agent: fake });
+  await renderPage("/new?kind=change", fixtureRepo(), { agent: fake });
 
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
   await type(box, "Centre the x in failure circles\n\nIn failures the x sits low in its circle.");
@@ -45,7 +45,7 @@ test("without the agent, the change's page opens with its message unsent", async
 test("with the agent, the change's session opens, where its agent works", async () => {
   const fake = await fakeAgent();
   fake.adapter.script([]);
-  await renderPage("/changes/new", fixtureRepo(), { agent: fake });
+  await renderPage("/new?kind=change", fixtureRepo(), { agent: fake });
 
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
   await type(box, "Centre the x in failure circles");
@@ -70,7 +70,7 @@ async function renderHeld() {
     }
     return server(input, init);
   };
-  await renderPage("/changes/new", repo, { agent: fake, fetch });
+  await renderPage("/new?kind=change", repo, { agent: fake, fetch });
   return held;
 }
 
@@ -93,7 +93,7 @@ test("a start that answers after the human left opens nothing, and shows progres
   expect(window.location.pathname).toBe(atRepo("/priorities"));
   expect(window.location.search).toBe("");
   // The change started: its text and slug are gone, so it cannot be started twice.
-  await act(async () => navigate(atRepo("/changes/new")));
+  await act(async () => navigate(atRepo("/new?kind=change")));
   const again = await screen.findByRole("textbox", { name: "Message Claude Code" });
   expect(again.textContent).toBe("");
   expect((screen.getByRole("textbox", { name: "Slug" }) as HTMLInputElement).value).toBe("");
@@ -114,7 +114,7 @@ test("a start that answers late clears only the text and slug it sent", async ()
   await waitFor(() => expect(held).toHaveLength(1));
   await act(async () => navigate(atRepo("/priorities")));
   await screen.findByRole("heading", { level: 1, name: "Priorities" });
-  await act(async () => navigate(atRepo("/changes/new")));
+  await act(async () => navigate(atRepo("/new?kind=change")));
 
   // A newer text and slug, typed while the first change starts.
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
@@ -123,7 +123,7 @@ test("a start that answers late clears only the text and slug it sent", async ()
   await act(async () => held.shift()!());
   await quiet();
 
-  expect(window.location.pathname).toBe(atRepo("/changes/new"));
+  expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new?kind=change"));
   expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(
     "Widen the sidebar",
   );

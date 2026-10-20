@@ -30,7 +30,14 @@ import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
-import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
+import {
+  navigate,
+  redirect,
+  sessionIdPath,
+  useRepoPath,
+  useRestoreScroll,
+  useSearch,
+} from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { type ChatControls, type Controls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
@@ -434,7 +441,7 @@ export function SessionPage(props: { folder: string } | { id: string } | { newCh
   return (
     <SessionPane
       draft={draft}
-      onSent={(id) => navigate(here(`/chats/${id}`), { created: true })}
+      onSent={(id) => navigate(here(sessionIdPath(id)), { created: true })}
       title="New chat"
     />
   );

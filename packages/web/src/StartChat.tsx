@@ -8,7 +8,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { Paragraph } from "./layout/Paragraph.tsx";
-import { navigate, useRepoPath } from "./routes.tsx";
+import { navigate, sessionIdPath, useRepoPath } from "./routes.tsx";
 import { sendMessage } from "./sessions.ts";
 
 const styles = stylex.create({
@@ -35,7 +35,7 @@ export function useStartChat() {
     setError(undefined);
     const sent = await sendMessage(fate, { text });
     if (sent.ok) {
-      navigate(here(`/chats/${sent.session}`), { created: true });
+      navigate(here(sessionIdPath(sent.session)), { created: true });
     } else {
       setError(sent.message);
     }

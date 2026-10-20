@@ -81,3 +81,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `featureSession` in `runner/sessions.ts`.
 - **Where**: Task 4, `packages/server/src/runner/__tests__/cache.test.ts`,
   `packages/server/src/runner/sessions.ts`.
+
+## R6: Tests that pinned the old addresses now use the new ones
+
+- **Decision**: the tests and screenshot scripts that opened or expected `/chats/<id>`,
+  `/chats/new`, or `/changes/new` use `/sessions/<id>`, `/new`, and `/new?kind=change`. Unit:
+  `decisions-check`, `links` (its page list, and its address check now compares the query too),
+  `new-change`, `routes` (`/changes/new` left `parseRoute`'s table for the redirect test),
+  `session-actions`, `session-aside`, `session-cost`, `session-tail`, `session`, `shell`, `triage`,
+  `writes`. Browser: `helpers`, `layout`, `new-change`, `session`, `story-chat`. Scripts:
+  `change-shots`, `image-shots`, `session-look-shots`, `sessionShots`. `notify.test.tsx` keeps
+  `/r/<name>/chats/<id>`: it checks the server's href, task 6's, opened without the app.
+- **Rationale**: the spec moves sessions to `/sessions/<id>` and the New page to `/new` (US1 more 2,
+  US3); the old addresses still open through the redirect, which `routes.test.ts` covers once.
+- **Alternatives considered**: keeping the old paths in tests that only render a page: they would
+  pass through the redirect, but would test an address no link builds any more.
+- **If wrong**: a search and replace of the paths.
+- **Where**: task 7.
+
+## R7: The New page's kind is part of the route, and old addresses are a `moved` route
+
+- **Decision**: `parseRoute(pathname, search)` reads `?kind=` into `{ page: "new"; kind }`, Session
+  for none or an unknown kind; `useRoute` passes the deferred query. `/chats/<x>` and `/changes/new`
+  parse to `{ page: "moved"; path }`, which `App`'s `Moved` replaces with `redirect`, keeping the
+  hash, as `RunRedirect` does. The sidebar's "＋" rows compare the path with its query, so "New
+  chat" (`/new`) and "New change" (`/new?kind=change`) are not both selected.
+- **Rationale**: the plan names `{ page: "new"; kind }`, which needs the query in the route; one
+  `moved` route keeps each old address's target in `routes.tsx`, beside the parsing.
+- **Alternatives considered**: reading the kind with `useSearch` inside the page: the route type the
+  plan names would then lie about what draws.
+- **If wrong**: local to `routes.tsx` and `App.tsx`.
+- **Where**: task 7.

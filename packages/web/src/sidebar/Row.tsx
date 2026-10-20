@@ -4,7 +4,7 @@ import { SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import { navigate, useRepoPath } from "../routes.tsx";
+import { navigate, sessionIdPath, useRepoPath, useSearch } from "../routes.tsx";
 import { StatusMark } from "../StatusMark.tsx";
 import type { Row, Status } from "./cards.ts";
 
@@ -79,6 +79,8 @@ export function NewRow({
   pathname: string;
 }) {
   const here = useRepoPath();
+  // `/new` and `/new?kind=change` are two rows: the query tells them apart.
+  const search = useSearch();
   const { isCollapsed } = useSideNavCollapse();
   if (isCollapsed) {
     return null;
@@ -87,7 +89,7 @@ export function NewRow({
     <SideNavItem
       href={here(path)}
       icon={<span aria-hidden="true">＋</span>}
-      isSelected={pathname === path}
+      isSelected={`${pathname}${search}` === path}
       label={label}
       onClick={(event: React.MouseEvent) => {
         event.preventDefault();
@@ -99,7 +101,7 @@ export function NewRow({
 
 /** A chat's row, and its running sub-agents' under it. */
 export function Chat({ pathname, row }: { pathname: string; row: Row }) {
-  const to = `/chats/${row.id}`;
+  const to = sessionIdPath(row.id);
   const here = useRepoPath();
   const { isCollapsed } = useSideNavCollapse();
   return (

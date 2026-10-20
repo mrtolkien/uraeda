@@ -396,7 +396,7 @@ test("US5.1: a chat has no column", async () => {
   const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the open draft files" });
   await fake.sessions.settled(turn);
 
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
 
   await screen.findByRole("heading", { level: 1, name: "List the open draft files" });
   await waitFor(() => expect(screen.queryByRole("button", { name: "Archive" })).toBeTruthy());
@@ -544,7 +544,7 @@ test("US5.1: a chat on the phone has no progress line", async () => {
   const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the open draft files" });
   await fake.sessions.settled(turn);
 
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
 
   const heading = await screen.findByRole("heading", {
     level: 1,

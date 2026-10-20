@@ -293,7 +293,7 @@ test("a chat whose last message has images opens at its end", async () => {
 
   // Over a slow network, its images come after the view opened.
   await commands.slowChatImages(1000);
-  await show(`/chats/${first.session}`, "These two.");
+  await show(`/sessions/${first.session}`, "These two.");
 
   const log = await screen.findByRole("log", { name: "Conversation" });
   const drawnImages = [...log.querySelectorAll<HTMLImageElement>('a[href*="/chat-images/"] img')];
