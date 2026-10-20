@@ -34,7 +34,7 @@ export async function sendMessage(
     }
     session = (created.result as { id: string } | undefined)?.id;
     if (session === undefined) {
-      return { message: "The chat did not start.", ok: false };
+      return { message: "The session did not start.", ok: false };
     }
   }
   const result = await fate.mutations.session.send({
