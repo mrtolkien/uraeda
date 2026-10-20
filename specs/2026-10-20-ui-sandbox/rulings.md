@@ -151,3 +151,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for the same step.
 - **If wrong**: a sample is rebuilt in `steps.ts`, with its folder in `FEATURE_FOLDERS`.
 - **Where**: tasks 5 and 7.
+
+## R13: The sandbox's agent queues messages, and the usage limit is a failed turn
+
+- **Decision**: `SandboxAgent`, a `FakeAdapter` of `packages/web/sandbox/agent.ts`, declares no
+  steering, so a message sent during a turn queues behind it. The session stopped by the usage limit
+  is a chat whose turn the agent ends with a full five-hour `usage` event and a failed result naming
+  the usage limit, as Claude Code ends one. The sample sessions other than the turn at work are
+  chats of the sample project. `fakeSessions` takes the adapter and the cache's file, so the seed
+  writes `runner.sqlite` through `createSessions`; it also exports the `Sessions` type.
+- **Rationale**: a steered message would join the turn at work and end it with the canned reply's
+  result (review focus 5). The runner has no "limited" turn state: a turn ended by the usage limit
+  fails, with its reason. Chats need no worktree and no step to seed.
+- **Alternatives considered**: a fake that steers without ending the turn: the fake would hold two
+  replies in one turn, which no agent does. Rows written for a "limited" state: against R2.
+- **If wrong**: the failed and stopped sessions move to features waiting on the agent, in
+  `sessions.ts` alone.
+- **Where**: task 7.

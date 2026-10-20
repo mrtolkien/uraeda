@@ -789,17 +789,20 @@ git commit -m "feat(ui-sandbox): pick an element and copy it"
 **Files:**
 
 - Create: `packages/web/sandbox/agent.ts`, `packages/web/sandbox/sessions.ts`
+- Modify: `packages/server/src/testing.ts` (`fakeSessions` takes `adapter` and `cache`, R13)
 - Test: `packages/web/sandbox/__tests__/sessions.test.ts`
 
 **Interfaces:**
 
 - Consumes: Task 3's `fallback` and awaited steps; Task 5's `SAMPLE_FOLDERS`.
-- Produces: `sandboxAgent({ wait }: { wait: (ms: number) => Promise<void> }): FakeAdapter`, with the
-  canned reply as its fallback; `atWork(sessions, repo)`, which starts the turn at work on the
-  implementation feature's session; `seedSessions(dataDir: string, sample: string): Promise<void>`,
-  which writes the finished chat, and the failed, stopped, and usage-limited sessions.
+- Produces: `sandboxAgent({ wait }: { wait?: Wait } = {}): SandboxAgent`, a `FakeAdapter` that does
+  not steer, with the canned reply as its fallback and a timer wait by default;
+  `atWork(sessions, repo): Promise<{ turn }>`, which starts the turn at work on the implementation
+  feature's session, as "Continue" does; `workflowMessage(repo, folder)`, the message "Continue"
+  sends; `CANNED_REPLY`; `seedSessions(dataDir: string, sample: string): Promise<void>`, which
+  writes the finished chat, and the failed, stopped, and usage-limited chats (R13).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("any message gets the canned reply, streamed over 3 seconds", async () => {
@@ -822,6 +825,10 @@ test("a message sent during the turn at work waits for it", async () => {
   /* review focus 5 */
 });
 
+test("the turn at work plays again from its start after a restart stopped it", async () => {
+  /* US3 more 2 */
+});
+
 test("seeded sessions show every state", async () => {
   await seedSessions(dataDir, sample);
 
@@ -838,25 +845,26 @@ The break each test catches:
 - Canned reply: a message that hangs, or a reply that changes a file.
 - At work: a turn that ends at once, or never.
 - During the turn: a reply that cuts the turn short.
+- Restart: a turn at work that cannot start again after the cache stopped the last one.
 - Seeded: a state missing from the sample sessions.
 - Continue: a fake turn that commits.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Expected: FAIL, `Cannot find module '../agent.ts'`.
 
-- [ ] **Step 3: Implement**, the sessions written only through `createSessions` on the data folder's
+- [x] **Step 3: Implement**, the sessions written only through `createSessions` on the data folder's
       `runner.sqlite`.
 
 - [ ] **Step 4: Run the project's validation**
 
-- Run: `vp run ready`
+- Run: `vp run fast`
 - Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/web/sandbox
+git add packages/web/sandbox packages/server/src/testing.ts specs/2026-10-20-ui-sandbox
 git commit -m "feat(ui-sandbox): sample sessions on the sandbox's fake agent"
 ```
 
