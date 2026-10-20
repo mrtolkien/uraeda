@@ -231,7 +231,7 @@ fn a_taken_name_is_refused() {
 
     assert_eq!(
         refused.err().map(|error| error.to_string()).as_deref(),
-        Some("2026-10-20-priorities-sections exists: choose another slug with --slug")
+        Some("2026-10-20-priorities-sections exists: rename or remove that branch or folder first")
     );
     assert_nothing_moved(&repo);
 }

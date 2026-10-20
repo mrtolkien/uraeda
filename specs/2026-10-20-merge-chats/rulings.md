@@ -127,3 +127,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   unrelated edit in the human's checkout.
 - **If wrong**: `check_worktree` in `actions/promote.rs`.
 - **Where**: wave 1 review, `crates/core/src/actions/promote.rs`.
+
+## R9: A move whose feature name is taken says to rename or remove it
+
+- **Decision**: `ura start <change> --feature` refuses a taken `YYYY-MM-DD-<slug>` with "<folder>
+  exists: rename or remove that branch or folder first". `check_free` takes the hint as a parameter;
+  start keeps "choose another slug with --slug". The test `a_taken_name_is_refused` expects the new
+  message.
+- **Rationale**: clap rejects `--slug` with `--feature`, and the move keeps the change's folder
+  name, so start's hint pointed at an option the move does not have.
+- **Alternatives considered**: accepting `--slug` with `--feature`: renames the folder, which the
+  spec's in-place move does not do.
+- **If wrong**: the hint string in `actions/promote.rs`.
+- **Where**: wave 1 review, `crates/core/src/actions/promote.rs`, `actions/start/plan.rs`.
