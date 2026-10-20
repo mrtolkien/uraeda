@@ -401,7 +401,9 @@ test("US5.1: a chat has no column", async () => {
   await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
 
   await screen.findByRole("heading", { level: 1, name: "List the open draft files" });
-  await waitFor(() => expect(screen.queryByRole("button", { name: "Archive" })).toBeTruthy());
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Session actions" })).toBeTruthy(),
+  );
   expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Hide progress" })).toBeNull();
 });
@@ -554,10 +556,16 @@ test("US5.1: a chat on the phone has no progress line", async () => {
     level: 1,
     name: "List the open draft files",
   });
-  await waitFor(() => expect(screen.queryByRole("button", { name: "Archive" })).toBeTruthy());
-  // Under the header, nothing opens or folds: the shell's menu comes before it.
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Session actions" })).toBeTruthy(),
+  );
+  // Between the header and the composer, nothing opens or folds: the shell's menu comes before it,
+  // and the session's "…" after the composer's field.
+  const field = screen.getByRole("textbox", { name: "Message Claude Code" });
   const toggles = [...document.querySelectorAll("[aria-expanded]")].filter(
-    (toggle) => heading.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING,
+    (toggle) =>
+      heading.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING &&
+      field.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_PRECEDING,
   );
   expect(toggles).toEqual([]);
 });

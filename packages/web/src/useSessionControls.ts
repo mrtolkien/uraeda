@@ -5,22 +5,20 @@ import { refusal } from "./errors.ts";
 import type { useSession } from "./sessionData.ts";
 import { SessionView } from "./views.ts";
 
-/**
- * A chat's title, renamed in place, and Archive, which takes it out of the sidebar's list: search
- * still finds it.
- */
-export type ChatControls = {
-  archived: boolean;
-  /** The title's key in the unsaved store. */
+/** A session's title, renamed in place: its key in the unsaved store, and the rename. */
+export type RenameControls = {
   field: string;
-  onArchive: () => Promise<void>;
   onRename: (title: string) => Promise<string | undefined>;
 };
 
+/** A session without a workflow's Archive, which takes it out of the sidebar's list: search still finds it. */
+export type ArchiveControls = { archived: boolean; onArchive: () => Promise<void> };
+
 /**
  * What the human does on a session besides writing to it: allow a tool, or every blocked action of
- * the latest turn, and, for a chat, rename and archive it. The last refusal shows under the
- * transcript. `id` is `undefined` before a first message creates the session.
+ * the latest turn, rename it, and, for a session without a workflow, archive it. The last refusal
+ * shows under the transcript, as one `fail` gives. `id` is `undefined` before a first message
+ * creates the session.
  */
 export function useSessionControls(
   given: string | undefined,
@@ -29,11 +27,22 @@ export function useSessionControls(
   const id = given ?? "";
   const fate = useFateClient();
   const [error, setError] = useState<string>();
-  const chat: ChatControls | undefined =
+  const rename: RenameControls | undefined = session
+    ? {
+        field: `session#${id}:title`,
+        onRename: async (title) => {
+          const result = await fate.mutations.session.rename({
+            input: { session: id, title },
+            view: SessionView,
+          });
+          return result.error ? refusal(result.error).message : undefined;
+        },
+      }
+    : undefined;
+  const archive: ArchiveControls | undefined =
     session && session.folder === null
       ? {
           archived: session.archived,
-          field: `session#${id}:title`,
           onArchive: async () => {
             setError(undefined);
             const result = await fate.mutations.session.archive({
@@ -43,13 +52,6 @@ export function useSessionControls(
             if (result.error) {
               setError(refusal(result.error).message);
             }
-          },
-          onRename: async (title) => {
-            const result = await fate.mutations.session.rename({
-              input: { session: id, title },
-              view: SessionView,
-            });
-            return result.error ? refusal(result.error).message : undefined;
           },
         }
       : undefined;
@@ -73,7 +75,7 @@ export function useSessionControls(
       setError(refusal(result.error).message);
     }
   };
-  return { allow, allowAll, chat, error };
+  return { allow, allowAll, archive, error, fail: setError, rename };
 }
 
 /** What `useSessionControls` returns, shared by the transcript and the composer. */

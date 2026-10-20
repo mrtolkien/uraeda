@@ -302,9 +302,14 @@ test("US4.3: an archived chat leaves the list, search still finds it, and a mess
   const chats = () => within(nav().getByRole("group", { name: "Sessions" }));
   await waitFor(() => expect(row("List the open draft files")).toBeTruthy());
 
-  await click(await screen.findByRole("button", { name: "Archive" }));
+  await click(await screen.findByRole("button", { name: "Session actions" }));
+  await click(await screen.findByRole("menuitem", { name: "Archive" }));
 
-  expect(await screen.findByRole("button", { name: "Unarchive" })).toBeTruthy();
+  await click(await screen.findByRole("button", { name: "Session actions" }));
+  expect(await screen.findByRole("menuitem", { name: "Unarchive" })).toBeTruthy();
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+  });
   await refreshUntil(() =>
     expect(nav().queryByRole("link", { name: /List the open draft files/ })).toBeNull(),
   );
@@ -330,7 +335,8 @@ test("US4.3: an archived chat leaves the list, search still finds it, and a mess
   await refreshUntil(() =>
     expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy(),
   );
-  expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
+  await click(screen.getByRole("button", { name: "Session actions" }));
+  expect(await screen.findByRole("menuitem", { name: "Archive" })).toBeTruthy();
 });
 
 test("US2.1: a feature's card reads its slug, and its title and step for screen readers", async () => {

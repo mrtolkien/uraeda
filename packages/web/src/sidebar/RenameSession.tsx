@@ -1,4 +1,4 @@
-// Rename, from a session's "…" in the sidebar: a dialog on wide screens, a bottom sheet on the phone,
+// Rename, from a session's "…" in the sidebar or on its page: a dialog on wide screens, a bottom sheet on the phone,
 // drawn beside the shell, as a feature's settings are. The server refuses a blank title.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -13,17 +13,20 @@ import { SessionView } from "../views.ts";
 import type { Row } from "./cards.ts";
 import { useAfterDrawer } from "./FeatureSettingsDialog.tsx";
 
+/** The session renamed: its ID and its title. */
+type Renamed = Pick<Row, "id" | "title">;
+
 /** Opens a session's Rename. */
-const OpenContext = createContext<(row: Row) => void>(() => {});
+const OpenContext = createContext<(row: Renamed) => void>(() => {});
 
 /** Opens a session's Rename, once the phone's drawer is closed. */
 export function useOpenRename() {
   const open = useContext(OpenContext);
   const after = useAfterDrawer();
-  return (row: Row) => after(() => open(row));
+  return (row: Renamed) => after(() => open(row));
 }
 
-function Rename({ onClose, row }: { onClose: () => void; row: Row }) {
+function Rename({ onClose, row }: { onClose: () => void; row: Renamed }) {
   const fate = useFateClient();
   const [title, setTitle] = useState(row.title);
   const [error, setError] = useState<string>();
@@ -68,11 +71,11 @@ function Rename({ onClose, row }: { onClose: () => void; row: Row }) {
 
 /** The Rename dialog, drawn beside `children`, the shell, for the session opened. */
 export function RenameSessionHost({ children }: { children: ReactNode }) {
-  const [row, setRow] = useState<Row>();
+  const [row, setRow] = useState<Renamed>();
   // Drawn from its first opening on, as a feature's settings are.
   const [drawn, setDrawn] = useState(false);
   const close = () => setRow(undefined);
-  const open = (opened: Row) => {
+  const open = (opened: Renamed) => {
     setDrawn(true);
     setRow(opened);
   };

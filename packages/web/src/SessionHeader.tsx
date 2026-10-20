@@ -7,7 +7,7 @@ import type { SessionStatus as Status } from "uraeda-server/fate";
 import { useAgent } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { StatusMark } from "./StatusMark.tsx";
-import type { ChatControls } from "./useSessionControls.ts";
+import type { RenameControls } from "./useSessionControls.ts";
 
 /** A session's status: its dot, and its label. */
 export function SessionStatus({ label, status }: { label: string; status: Status }) {
@@ -20,17 +20,17 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 }
 
 /**
- * A session's header: its title, then its status, agent, and place on one line. A chat's
- * title is renamed in place.
+ * A session's header: its title, then its status, agent, and place on one line. Its title
+ * is renamed in place, once the session exists.
  */
 export function SessionHeader({
-  chat,
   place,
+  rename,
   status,
   title,
 }: {
-  chat?: ChatControls;
   place?: string;
+  rename?: RenameControls;
   status?: { label: string; status: Status };
   title: string;
 }) {
@@ -39,8 +39,8 @@ export function SessionHeader({
   return (
     <VStack gap={1}>
       <Heading level={1}>
-        {chat ? (
-          <EditableLine field={chat.field} label="Title" onSave={chat.onRename} value={title} />
+        {rename ? (
+          <EditableLine field={rename.field} label="Title" onSave={rename.onRename} value={title} />
         ) : (
           title
         )}

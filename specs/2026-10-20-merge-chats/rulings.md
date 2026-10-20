@@ -434,3 +434,55 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: review of task 11, `packages/server/src/runner/sessions.ts`,
   `packages/server/src/__tests__/session-moves.test.ts`,
   `packages/web/src/__tests__/feature-sessions.test.tsx`.
+
+## R26: Archive moves into the session's "…", and its footer tests become the "…"'s
+
+- **Decision**: the composer's footer loses Archive and Unarchive: they are items of the session's
+  "…", "Session actions", beside Send. The tests "US4.1: Archive is in the composer's footer…",
+  "US4.2: an archived chat reads Unarchive in the footer", "US4 more 1: a feature's session has no
+  Archive", and "Edge: Archive pressed while the session works archives it" are replaced by "a
+  session's … holds Make it a change, Rename, Archive", "Archive in a session's … archives it, and
+  Unarchive brings it back" (pressed while the session works), and "a feature's … holds Rename and
+  Drop the feature…". `shell.test.tsx`'s "US4.3: an archived chat leaves the list…" archives and
+  reads Unarchive through the "…"; `session-aside.test.tsx`'s chat tests wait for the "…" instead of
+  Archive, and "a chat on the phone has no progress line" looks for toggles between the header and
+  the composer's field, the "…" being after it. `feature-sessions.test.tsx`'s "New session opens a
+  session of the feature" reads its list again with `refreshUntil`: the new session's page, still
+  drawn, now reads its feature's column, and the list's one wait timed out under the full suite.
+- **Rationale**: the spec puts a session's actions in the "…" beside Send, Archive among them for a
+  session without a workflow; the footer tests asserted the place it leaves.
+- **Alternatives considered**: keeping Archive in the footer too: two places for one action.
+- **If wrong**: `SessionActions.tsx` and `footerActions` in `ComposerSend.tsx`.
+- **Where**: task 10, `packages/web/src/__tests__/session-actions.test.tsx`.
+
+## R27: The menu's moves open their card, and a session's own name titles its page
+
+- **Decision**: "Make it a feature" in a change's "…" opens the feature's card at the session's end,
+  as "Make it a change" opens the change's, with "Make it a feature" and "Keep it a change"; it does
+  not move at once. "Rename" opens the sidebar's Rename dialog. Every session's page title renames
+  in place, and shows the session's own name once it has one, else its change's or feature's title.
+  The card's slug is the core's proposal for the proposal's title: "Login redirects twice" gives
+  `login-redirects`, which the tests expect, not the plan's `login-redirect`.
+- **Rationale**: the move renames a branch, so it gets the same one-click confirmation as the
+  change's; a rename of a feature's session sets its name, which its page would not show otherwise.
+  The slug is proposed by the core, whose rule the tests do not restate.
+- **Alternatives considered**: promoting from the menu at once: a branch renamed by a stray tap.
+- **If wrong**: `SessionActions.tsx`, `SessionOffers.tsx`, and the header's title in
+  `SessionPage.tsx`.
+- **Where**: task 10, `packages/web/src/SessionActions.tsx`, `packages/web/src/SessionPage.tsx`.
+
+## R28: An offer's card draws only from a closed block in an ended message
+
+- **Decision**: a message's last closed `uraeda-offer` block draws as the card, once the message
+  ended, when it applies to the session: a change offer in a session without a workflow, a feature
+  offer in a change's session. Of those, only the latest message's has the card; every other block,
+  and one closed with "Not now" or "Keep it a change", reads as a code block. "Not now" lasts while
+  the page is open. The lines a move leaves, "Started as the change …", a made feature's, and a
+  drop's, with the worktree it left, show at the session's end, kept for the page, since the session
+  draws again as its change's.
+- **Rationale**: review focus 6, and the spec's edge cases; the session's page changes layout once
+  it has a change, so the line cannot live in the card.
+- **Alternatives considered**: drawing earlier offers as cards without buttons: the spec says they
+  read as text.
+- **If wrong**: `offers.ts` and `SessionOffers.tsx`.
+- **Where**: task 10, `packages/web/src/SessionOffers.tsx`, `packages/web/src/offers.ts`.
