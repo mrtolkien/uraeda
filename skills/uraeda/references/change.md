@@ -216,7 +216,8 @@ When one item of a batch needs it, offer to split that item out instead.
      `/specs/YYYY-MM-DD-<slug>/proposal.md`. Commit `chore(<slug>): start <name> as a feature`.
   3. Rename the branch: `git branch -m change/YYYY-MM-DD-<slug> YYYY-MM-DD-<slug>`. The worktree
      stays where it is. A pushed branch is renamed locally only: the old remote branch stays until
-     the human deletes it.
+     the human deletes it. Unset its upstream, `git branch --unset-upstream YYYY-MM-DD-<slug>`, so
+     the next `git push -u` sets the feature's.
   4. In the worktree, move `specs/changes/YYYY-MM-DD-<slug>/` to `specs/YYYY-MM-DD-<slug>/`, its
      files unchanged. Set each decision the change applied, the ones the branch changed that read
      `active`, back to `status: proposed`, with an empty `approved-by:`. The human approved them for
