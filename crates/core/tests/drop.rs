@@ -154,3 +154,25 @@ fn a_done_feature_is_not_dropped() {
     );
     assert_eq!(repo.subjects("main"), before);
 }
+
+/// Review: a git error after the entry left the priorities says the entry was removed.
+#[test]
+fn a_failed_worktree_removal_says_the_entry_was_removed() {
+    use std::os::unix::fs::PermissionsExt;
+    let repo = started(Kind::Change);
+    let worktrees = repo.path().join(".worktrees");
+    std::fs::set_permissions(&worktrees, std::fs::Permissions::from_mode(0o555)).unwrap();
+    let (git, workspace) = opened(&repo);
+
+    let failed = drop::run(&git, &workspace, CHANGE);
+
+    std::fs::set_permissions(&worktrees, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let message = failed.unwrap_err().to_string();
+    assert!(
+        message.starts_with(
+            "the entry was removed from specs/PRIORITIES.md, but its worktree was not: "
+        ),
+        "{message}"
+    );
+    assert!(!priorities(&repo).contains("/specs/changes/2026-10-20-login-redirect/"));
+}
