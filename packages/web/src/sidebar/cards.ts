@@ -55,7 +55,7 @@ const KINDS: Record<string, StepKind> = {
  * A feature's step, as its card draws it: a problem whatever its step, then a gate by what it
  * asks, else by the step's name. Its notes stay off the card, on its page.
  */
-export function stepOf(feature: Feature): CardItem["step"] {
+export function stepOf(feature: Feature): NonNullable<CardItem["step"]> {
   if (feature.problems.length > 0) {
     return { kind: "problem", label: "Problem to fix" };
   }
@@ -104,21 +104,41 @@ export function toCard(feature: Feature, row: Row | undefined): CardItem {
   };
 }
 
-/**
- * The features in flight of a section, in the workflow's order, the earliest step first, then the
- * newest folder.
- */
-export function byStep(features: Array<Feature>): Array<Feature> {
-  return [...features].sort(
-    (a, b) => a.step.order - b.step.order || b.folder.localeCompare(a.folder),
-  );
+/** A session without a workflow's card: a speech bubble, its title, and its status. */
+export function sessionCard(row: Row): CardItem {
+  return {
+    folder: row.id,
+    ...(row.backgroundCommands > 0 ? { hasBackgroundCommand: true } : {}),
+    kind: "session",
+    label: row.title,
+    status: { label: row.statusLabel, status: row.status },
+    ...(row.subagents.length > 0 ? { subagents: row.subagents } : {}),
+    title: "",
+  };
 }
 
-/** The features waiting on the human, what needs them first. */
-export function byStatus(features: Array<Feature>, statuses: Map<string, Status>) {
-  return [...features].sort(
-    (a, b) =>
-      STATUS_ORDER[statuses.get(a.folder)!.status] - STATUS_ORDER[statuses.get(b.folder)!.status],
+/**
+ * When a feature or a change started: its first session's start, which a session that became it
+ * keeps, or its folder's date before that.
+ */
+export function startOf(feature: Feature, rows: Array<Row>): string {
+  return rows
+    .filter((row) => row.folder === feature.folder)
+    .reduce(
+      (first, row) => (row.startedAt < first ? row.startedAt : first),
+      feature.folder.slice(0, 10),
+    );
+}
+
+/** Items in the order they started, the oldest first, so a row keeps its place as agents work. */
+export function byStart<T extends { start: string }>(items: Array<T>): Array<T> {
+  return [...items].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+}
+
+/** Items waiting on the human, what needs them first, then the oldest started. */
+export function byStatus<T extends { start: string; status: Status }>(items: Array<T>) {
+  return byStart(items).sort(
+    (a, b) => STATUS_ORDER[a.status.status] - STATUS_ORDER[b.status.status],
   );
 }
 

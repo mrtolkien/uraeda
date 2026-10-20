@@ -253,12 +253,12 @@ test("US3.6: Needs you sorts what needs the human before what needs their attent
   );
 });
 
-test("US4.1: New chat opens an empty chat, and its first message lists it in Chats", async () => {
+test("US4.1: ＋ New opens an empty session, and its first message lists it in Sessions", async () => {
   const fake = await fakeAgent();
   await renderPage("/", fixtureRepo(), { agent: fake });
   await screen.findByRole("navigation", { name: "Side navigation" });
 
-  await click(await nav().findByRole("link", { name: "New chat" }));
+  await click(await nav().findByRole("link", { name: "New" }));
 
   expect(window.location.pathname).toBe(atRepo("/new"));
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
@@ -270,7 +270,7 @@ test("US4.1: New chat opens an empty chat, and its first message lists it in Cha
   );
   expect(fake.adapter.sent[0].text).toBe("List the open draft files");
   await refreshUntil(() => {
-    const chats = within(nav().getByRole("group", { name: "Chats" }));
+    const chats = within(nav().getByRole("group", { name: "Sessions" }));
     const link = chats.getByRole("link", { name: /^List the open draft files, / });
     expect(statusOf(link)).toBe("Working");
   });
@@ -299,7 +299,7 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo, "List the open draft files");
   await renderPage(`/sessions/${id}`, repo, { agent: fake });
-  const chats = () => within(nav().getByRole("group", { name: "Chats" }));
+  const chats = () => within(nav().getByRole("group", { name: "Sessions" }));
   await waitFor(() => expect(row("List the open draft files")).toBeTruthy());
 
   await click(await screen.findByRole("button", { name: "Archive" }));
@@ -319,7 +319,7 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
   );
   await click(screen.getByRole("button", { name: "Send" }));
 
-  // The archived group, open, is inside the Chats section: the chat is back once it is gone.
+  // The archived group, open, is inside the Sessions section: the chat is back once it is gone.
   await refreshUntil(() => expect(nav().queryByRole("button", { name: "Archived" })).toBeNull());
   expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
@@ -331,7 +331,7 @@ test("US2.1: a feature's card reads its slug, and its title and step for screen 
   const cli = await findRow("cli-tuis");
   expect(cli.textContent).toContain("cli-tuis");
   expect(cli.textContent).not.toContain("CLI TUIs");
-  expect(cli.getAttribute("aria-label")).toBe("cli-tuis, CLI TUIs, Plan, Idle");
+  expect(cli.getAttribute("aria-label")).toBe("cli-tuis, CLI TUIs, feature, Plan, Idle");
 });
 
 test("US2.2, US2.3: a feature at its implementation shows its task on its card, which opens it", async () => {

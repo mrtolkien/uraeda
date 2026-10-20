@@ -1,7 +1,9 @@
-// Mockups of the redesigned sidebar, in the app's shell: the work that needs you first, then the
-// inbox, the priorities, the changes, and the features in the flow's order, each item in its card,
-// the chats, and the latest done items at the bottom. On the phone, the shell's top bar starts with
-// the way home. The cards are drawn from the props the server will give them.
+// The sidebar, in the app's shell (`specs/2026-10-20-merge-chats/spec.md`): the work that needs you
+// first, then the inbox, the priorities, and one Sessions section, oldest started first, where a
+// session, a change, and a feature share one card: one line of its icon, name, status, and "…", its
+// icon telling its kind. A second line shows only while there is a task's progress or lines changed.
+// The latest done items sit at the bottom. On the phone, the shell's top bar starts with the way
+// home. Drawn from fixed props, with the real cards.
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
@@ -31,99 +33,85 @@ const styles = stylex.create({
   },
 });
 
+const WORKING = { label: "Working", status: "working" } as const;
+const IDLE = { label: "Idle", status: "idle" } as const;
+const NEEDS = { label: "Needs you", status: "needs-you" } as const;
+
 const NEEDS_YOU: Array<CardItem> = [
+  {
+    folder: "session-3",
+    kind: "session",
+    label: "Why does the login redirect twice?",
+    status: NEEDS,
+    title: "",
+  },
   {
     folder: "2026-10-16-settings-page",
     kind: "feature",
     label: "settings-page",
-    status: { label: "Needs you", status: "needs-you" },
+    status: NEEDS,
     step: { kind: "questions", label: "Questions to answer" },
     title: "Settings page",
   },
-  {
-    changes: { added: 38, removed: 12 },
-    folder: "2026-10-15-flaky-tests",
-    kind: "change",
-    label: "flaky-tests",
-    pullRequest: { number: 24, url: "https://github.com/mrtolkien/uraeda/pull/24" },
-    status: { label: "Needs you", status: "needs-you" },
-    step: { kind: "pull-request", label: "Pull request ready" },
-    title: "Fix the flaky session tests",
-  },
 ];
 
-const CHANGES: Array<CardItem> = [
+/** Oldest started first: a session keeps its place when it becomes a change. */
+const SESSIONS: Array<CardItem> = [
   {
-    changes: { added: 120, removed: 40 },
-    folder: "2026-10-16-tasks-reappear",
-    hasBackgroundCommand: true,
-    kind: "change",
-    label: "tasks-reappear",
-    status: { label: "Working", status: "working" },
-    step: { kind: "change", label: "Change" },
-    title: "Done tasks reappear after a reload",
-  },
-];
-
-/** In the flow's order: the earliest step first. */
-const FEATURES: Array<CardItem> = [
-  {
-    folder: "2026-10-16-look-and-feel",
+    folder: "2026-10-17-look-and-feel",
     kind: "feature",
     label: "look-and-feel",
-    status: { label: "Working", status: "working" },
+    status: WORKING,
     step: { kind: "discovery", label: "Discovery" },
-    subagents: [
-      { description: "Research icon sets", id: "a1" },
-      { description: "Map the theme's tokens", id: "a2" },
-    ],
+    subagents: [{ description: "Research icon sets", id: "a1" }],
     title: "Look and feel pass",
   },
   {
-    folder: "2026-10-16-redesign-priorities",
-    kind: "feature",
-    label: "redesign-priorities",
-    status: { label: "Idle", status: "idle" },
-    step: { kind: "plan", label: "Plan" },
-    title: "Redesign home, inbox, and priorities",
+    changes: { added: 42, removed: 9 },
+    folder: "2026-10-18-flaky-tests",
+    hasBackgroundCommand: true,
+    kind: "change",
+    label: "flaky-tests",
+    status: WORKING,
+    step: { kind: "change", label: "Change" },
+    title: "Fix the flaky session tests",
   },
+  { folder: "session-4", kind: "session", label: "Why is CI slow?", status: WORKING, title: "" },
   {
     changes: { added: 1050, removed: 250 },
-    folder: "2026-10-16-redesign-interface",
+    folder: "2026-10-19-redesign-interface",
     kind: "feature",
-    label: "Sidebar",
+    label: "redesign-interface",
     progress: { position: 7, title: "Session column", total: 11 },
-    status: { label: "Working", status: "working" },
+    status: WORKING,
     step: { kind: "implementation", label: "Implementation" },
-    subagents: [{ description: "Write the card's tests", id: "a3" }],
     title: "Redesign sidebars and global interface",
   },
   {
-    changes: { added: 4537, removed: 495 },
-    folder: "2026-10-16-basic-security",
-    hasBackgroundCommand: true,
-    kind: "feature",
-    label: "basic-security",
-    status: { label: "Working", status: "working" },
-    step: { kind: "review", label: "Final review" },
-    title: "Auth and login for basic security",
+    folder: "2026-10-19-tasks-reappear",
+    kind: "change",
+    label: "tasks-reappear",
+    status: IDLE,
+    step: { kind: "change", label: "Change" },
+    title: "Done tasks reappear after a reload",
+  },
+  {
+    folder: "session-5",
+    kind: "session",
+    label: "Explain the fate protocol's views",
+    status: { label: "New reply", status: "unread" },
+    title: "",
   },
 ];
 
+/** The latest done items: sessions read to their end, and merged changes and features. */
 const DONE: Array<DoneRow> = [
-  "2026-10-15-ui-iteration",
-  "2026-10-15-claude-usage",
-  "2026-10-15-add-scratchpad",
-  "2026-10-15-add-bugfixing",
-  "2026-10-14-testing-review",
-  "2026-10-14-text-inputs",
-  "2026-10-14-session-view",
-].map((folder) => ({
-  folder,
-  href: "#",
-  label: folder.slice(11),
-  title: folder.slice(11).replaceAll("-", " "),
-}));
+  { folder: "session-1", kind: "session" as const, label: "Rename the toolchain task" },
+  { folder: "2026-10-20-session-transcript", label: "session-transcript" },
+  { folder: "2026-10-20-ctrl-enter", label: "ctrl-enter" },
+  { folder: "session-2", kind: "session" as const, label: "What does ura clean keep?" },
+  { folder: "2026-10-20-inbox-noise", label: "inbox-noise" },
+].map((row) => ({ ...row, href: "#", title: row.label }));
 
 /** The repository menu's trigger, as the shell draws it. */
 function Menu() {
@@ -154,25 +142,36 @@ function FlowRow({ add, count, label }: { add: string; count: number; label: str
   );
 }
 
-function Cards({ items, tagged = false }: { items: Array<CardItem>; tagged?: boolean }) {
-  return items.map((item) => (
-    <ItemCard hasChangeTag={tagged} href="#" item={item} key={item.folder} onSettings={() => {}} />
-  ));
+/** The cards: a session's "…" lists its actions, a change's or a feature's opens its settings. */
+function Cards({ items }: { items: Array<CardItem> }) {
+  return items.map((item) =>
+    item.kind === "session" ? (
+      <ItemCard
+        actions={[
+          { label: "Rename", onClick: () => {} },
+          { label: "Archive", onClick: () => {} },
+        ]}
+        href="#"
+        item={item}
+        key={item.folder}
+      />
+    ) : (
+      <ItemCard href="#" item={item} key={item.folder} onSettings={() => {}} />
+    ),
+  );
 }
 
-/** The shell with the redesigned sidebar, beside a page. */
+/** The shell with the sidebar, beside a page. */
 function SidebarMockup({
-  changes = CHANGES,
-  features = FEATURES,
   isFolded = false,
   isRevealed = false,
   needsYou = NEEDS_YOU,
+  sessions = SESSIONS,
 }: {
-  changes?: Array<CardItem>;
-  features?: Array<CardItem>;
   isFolded?: boolean;
   isRevealed?: boolean;
   needsYou?: Array<CardItem>;
+  sessions?: Array<CardItem>;
 }) {
   const [pointer, setPointer] = useState(false);
   const rows = useRef<HTMLDivElement>(null);
@@ -200,21 +199,18 @@ function SidebarMockup({
             ref={rows}
           >
             <SideNavItem href="#" icon={<Icon icon="uraeda:home" />} isSelected label="Home" />
-            <SideNavSection title="Needs you">
-              <Cards items={needsYou} tagged />
-            </SideNavSection>
+            {needsYou.length > 0 && (
+              <SideNavSection title="Needs you">
+                <Cards items={needsYou} />
+              </SideNavSection>
+            )}
             <FlowRow add="Add a note to the inbox" count={4} label="Inbox" />
             <FlowRow add="Add to the priorities" count={12} label="Priorities" />
-            <SideNavSection title="Changes">
-              <SideNavItem href="#" icon={<span aria-hidden="true">＋</span>} label="New change" />
-              <Cards items={changes} />
-            </SideNavSection>
-            <SideNavSection title="Features">
-              <Cards items={features} />
-            </SideNavSection>
-            <SideNavSection title="Chats">
-              <SideNavItem href="#" icon={<span aria-hidden="true">＋</span>} label="New chat" />
-              <SideNavItem href="#" label="Why is CI slow?" />
+            <SideNavSection title="Sessions">
+              {!isFolded && (
+                <SideNavItem href="#" icon={<span aria-hidden="true">＋</span>} label="New" />
+              )}
+              <Cards items={sessions} />
             </SideNavSection>
           </div>
         </SideNav>
@@ -239,26 +235,25 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * The sidebar unfolded: two items need you, a change works with a background command, four features
- * in the flow's order, one renamed "Sidebar", and the five latest done items at the
- * bottom. On the phone, the top bar starts with Home.
+ * One Sessions section, oldest started first: two features, two changes, and two sessions, each a
+ * card of one line, its icon telling its kind. The feature being built shows its task and the lines
+ * it changed under it. Done holds the sessions read to their end, and the merged changes and
+ * features. On the phone, the top bar starts with Home.
  */
-export const Unfolded: Story = { args: {} };
+export const Merged: Story = { args: {} };
+
+/** Nothing in flight: only "＋ New" under Sessions, and the done items below. */
+export const Empty: Story = { args: { needsYou: [], sessions: [] } };
 
 /** Under the pointer: the button that folds the sidebar; every card's "…" is always there. */
 export const UnderThePointer: Story = { args: { isRevealed: true } };
 
-/** Folded to its rail: each item's step icon and status, the button that unfolds it on top. */
+/** Folded to its rail: each item's kind icon and status, the button that unfolds it on top. */
 export const Folded: Story = { args: { isFolded: true } };
-
-/** Fewer items in flight: the latest done items fit at the bottom, as many as the room allows. */
-export const FewItems: Story = {
-  args: { changes: [], features: FEATURES.slice(2, 3), needsYou: NEEDS_YOU.slice(0, 1) },
-};
 
 /** Just after "Submit answers": the card says what runs until the server's status arrives. */
 export const Committing: Story = {
   args: {
-    needsYou: [{ ...NEEDS_YOU[0]!, pending: "Committing…" }, NEEDS_YOU[1]!],
+    needsYou: [NEEDS_YOU[0]!, { ...NEEDS_YOU[1]!, pending: "Committing…" }],
   },
 };

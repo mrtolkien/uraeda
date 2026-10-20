@@ -213,7 +213,7 @@ depends on elapsed time.
 | Spec                                                              | Task     | Test                                                                                                                               |
 | ----------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | US1 1 (one section, oldest started first, kind icons)             | 8        | `web/__tests__/sidebar.test.tsx`, "sessions, changes, and features share one list, oldest first"                                   |
-| US1 2 (done session and merged change in Done)                    | 6, 8     | `server/__tests__/sessions.test.ts` "a session read to its end is done"; sidebar "Done lists…"                                     |
+| US1 2 (done session and merged change in Done)                    | 6, 8     | `server/__tests__/sessions.test.ts` "a session read to its end is done"; `web/__tests__/done.test.ts` "Done lists…"                |
 | US1 3 (rename from the "…")                                       | 8        | sidebar, "a session's … renames it"                                                                                                |
 | US1 more 1 (a new reply brings it back)                           | 6        | `server/__tests__/sessions.test.ts`, "a reply brings a done session back"                                                          |
 | US1 more 2 (`/chats/<id>` redirect)                               | 7        | `web/__tests__/routes.test.ts`, "old addresses redirect"                                                                           |
@@ -793,44 +793,53 @@ git commit -m "feat(merge-chats): sessions live at /sessions/<id>, and the old a
 
 **Files:**
 
-- Start from: [`Sessions.stories.tsx#Merged`](/packages/web/src/sidebar/Sessions.stories.tsx)
+- Start from: `Sessions.stories.tsx#Merged`, the mockup this task replaced with
+  [`Sidebar.stories.tsx#Merged`](/packages/web/src/sidebar/Sidebar.stories.tsx)
 - Modify: `packages/web/src/sidebar/Sidebar.tsx`, `ItemCard.tsx` (a `session` kind, the kind icon,
   the "…" as a menu), `cards.ts` (order by start), `Row.tsx` (`Chat` goes),
-  `packages/web/src/Shell.tsx` (`doneRows` with done sessions), `DoneArea.tsx` (a session's row icon
-  and label), `packages/web/src/views.ts` (`SessionRowView` fields), `Sidebar.stories.tsx`; remove
-  the mockup file once the real sidebar draws the same states
-- Test: `packages/web/src/__tests__/sidebar.test.tsx`, `shell.test.tsx`, `cards.test.ts`
+  `packages/web/src/Shell.tsx`, `DoneArea.tsx` (a session's row icon and label),
+  `FeatureSettingsDialog.tsx` (`useAfterDrawer`, shared), `Sidebar.stories.tsx`; remove the mockup
+  file once the real sidebar draws the same states. `views.ts` needed nothing: the session list's
+  view already sends whole rows.
+- Create: `packages/web/src/sidebar/done.ts` (`doneRows` with done sessions, moved from `Shell.tsx`,
+  and `useKeptSession`), `sidebar/RenameSession.tsx` (a session's Rename dialog)
+- Test: `packages/web/src/__tests__/sidebar.test.tsx`, `done.test.ts`, `shell.test.tsx`,
+  `cards.test.ts`
 
 **Interfaces:**
 
 - Consumes: task 6's `startedAt`, `done`; task 7's paths.
 - Produces: `CardItem.kind: "session" | "change" | "feature"`; `byStart(items)` in `cards.ts`; the
-  "＋ New" row at the top of Sessions, linking `/new`.
+  "＋ New" row at the top of Sessions, linking `/new`. A session needing the human sits under Needs
+  you, as a feature does; the Done area's order is in
+  [R14](rulings.md#r14-the-sidebars-old-sections-tests-follow-one-sessions-list-and-done-dates-a-feature-by-its-folder).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - "sessions, changes, and features share one list, oldest first": the US1 1 data; the "Sessions"
   group lists `look-and-feel`, `flaky-tests`, "Why is CI slow?"; their accessible names include
   "feature", "change", "session"; no "Changes", "Features", or "Chats" group.
-- "Done lists a session read to its end, then a merged change".
+- "Done lists a session read to its end, then a merged change", in `done.test.ts` on `doneRows`: the
+  Done area draws only the rows that fit, which happy-dom cannot measure. The sidebar test "a
+  session read to its end leaves Sessions" checks the rest of US1 2.
 - "a session's … renames it": Rename, type "CI speed", the card reads "CI speed".
 - "the open session stays in the list" until its page is left.
 - "each card has its status and its … in its row" (SC-005), by role, not pixels.
 - Update the tests that pinned the old sections (list them in a ruling).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/sidebar.test.tsx`
 - Expected: FAIL, `Unable to find role "group" and name "Sessions"`.
 
-- [ ] **Step 3: Implement the list**
+- [x] **Step 3: Implement the list**
 
-- [ ] **Step 4: Run the web suite**
+- [x] **Step 4: Run the web suite**
 
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-20-merge-chats/plan.md specs/2026-10-20-merge-chats/rulings.md
@@ -869,7 +878,7 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 - "the steps that wait on you": Change shows Prompt, Questions, if any, Pull request; Feature shows
   Prompt, Questions, Spec, Pull request.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/new-page.test.tsx`
 - Expected: FAIL, `Unable to find role "radiogroup" and name "What to start"`.
@@ -881,7 +890,7 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-20-merge-chats/plan.md
@@ -933,7 +942,7 @@ git commit -m "feat(merge-chats): one New page starts a session, a change, or a 
   `feature.drop`; "Keep the change" calls nothing.
 - Replace "a feature's session has no Archive" and the footer Archive tests (ruling).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/web/src/__tests__/offer.test.tsx packages/web/src/__tests__/session-actions.test.tsx`
@@ -946,7 +955,7 @@ git commit -m "feat(merge-chats): one New page starts a session, a change, or a 
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-20-merge-chats/plan.md specs/2026-10-20-merge-chats/rulings.md
@@ -974,7 +983,7 @@ git commit -m "feat(merge-chats): a session's actions beside Send, and the agent
   `/sessions/<id>` opens, the list then holds both.
 - "Stop stops the working session".
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/feature-sessions.test.tsx`
 - Expected: FAIL, `Unable to find role "heading" and name "Sessions"`.
@@ -986,7 +995,7 @@ git commit -m "feat(merge-chats): a session's actions beside Send, and the agent
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-20-merge-chats/plan.md
@@ -1061,7 +1070,7 @@ confirmation, and a feature's sessions, at both sizes and in both themes.
 - Run: `nix develop -c vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-20-merge-chats

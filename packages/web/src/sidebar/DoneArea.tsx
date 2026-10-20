@@ -1,7 +1,9 @@
-// The sidebar's bottom: up to the five latest done features and changes, after a divider, as many
-// as fit in the room the rows above leave, newest first; gone, heading included, when none fits.
-// "…" opens Home's Done group, which lists them all.
+// The sidebar's bottom: up to the five latest done items, sessions read to their end and merged
+// features and changes, after a divider, as many as fit in the room the rows above leave, newest
+// first; gone, heading included, when none fits. "…" opens Home's Done group, which lists every
+// done feature and change.
 import { Divider } from "@astryxdesign/core/Divider";
+import { Icon } from "@astryxdesign/core/Icon";
 import { SideNavItem, SideNavSection, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -12,10 +14,13 @@ import { StepIcon } from "./StepIcon.tsx";
 export const DONE_ROWS = 5;
 
 export type DoneRow = {
+  /** Its folder, or a session's ID. */
   folder: string;
   href: string;
   /** Whether its page, or one of its own, is open. */
   isSelected?: boolean;
+  /** A session read to its end; a feature or a change otherwise. */
+  kind?: "session";
   label: string;
   title: string;
 };
@@ -109,9 +114,15 @@ export function DoneArea({
       <SideNavSection title="Done">
         {shown.map((row) => (
           <SideNavItem
-            aria-label={`${row.label}, ${row.title}, done`}
+            aria-label={`${row.label}, ${row.kind ?? row.title}, done`}
             href={row.href}
-            icon={<StepIcon step="done" />}
+            icon={
+              row.kind ? (
+                <Icon color="secondary" icon="uraeda:comment" size="sm" />
+              ) : (
+                <StepIcon step="done" />
+              )
+            }
             isSelected={row.isSelected ?? false}
             key={row.folder}
             label={row.label}

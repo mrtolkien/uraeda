@@ -1,19 +1,9 @@
-// The sidebar's plain rows: a page's, like Home or Inbox, a "＋" row opening a new item's page, and
-// a chat's, with its running sub-agents.
+// The sidebar's plain rows: a page's, like Home or Inbox, and a "＋" row opening a new item's page.
 import { SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import { navigate, sessionIdPath, useRepoPath, useSearch } from "../routes.tsx";
+import { navigate, useRepoPath } from "../routes.tsx";
 import { StatusMark } from "../StatusMark.tsx";
-import type { Row, Status } from "./cards.ts";
-
-const styles = stylex.create({
-  subagent: {
-    // A sub-agent's row, under its chat's.
-    paddingInlineStart: spacingVars["--spacing-6"],
-  },
-});
+import type { Status } from "./cards.ts";
 
 /** Whether a row leading to `to` is selected: its page or one of its own pages is open. */
 export function selects(pathname: string, to: string) {
@@ -66,8 +56,8 @@ export function Item({
 }
 
 /**
- * A "＋" row opening a new item's page at `path`, like "New change" or "New chat"; left out of the
- * folded navigation, where it would be a ＋ with no label.
+ * A "＋" row opening a new item's page at `path`, like "＋ New", selected on that page whatever its
+ * query; left out of the folded navigation, where it would be a ＋ with no label.
  */
 export function NewRow({
   label,
@@ -79,8 +69,6 @@ export function NewRow({
   pathname: string;
 }) {
   const here = useRepoPath();
-  // `/new` and `/new?kind=change` are two rows: the query tells them apart.
-  const search = useSearch();
   const { isCollapsed } = useSideNavCollapse();
   if (isCollapsed) {
     return null;
@@ -89,44 +77,12 @@ export function NewRow({
     <SideNavItem
       href={here(path)}
       icon={<span aria-hidden="true">＋</span>}
-      isSelected={`${pathname}${search}` === path}
+      isSelected={pathname === path}
       label={label}
       onClick={(event: React.MouseEvent) => {
         event.preventDefault();
         navigate(here(path));
       }}
     />
-  );
-}
-
-/** A chat's row, and its running sub-agents' under it. */
-export function Chat({ pathname, row }: { pathname: string; row: Row }) {
-  const to = sessionIdPath(row.id);
-  const here = useRepoPath();
-  const { isCollapsed } = useSideNavCollapse();
-  return (
-    <>
-      <Item
-        label={row.title}
-        pathname={pathname}
-        status={{ label: row.statusLabel, status: row.status }}
-        to={to}
-      />
-      {!isCollapsed &&
-        row.subagents.map((subagent) => (
-          <SideNavItem
-            aria-label={`${subagent.description}, Working`}
-            href={here(to)}
-            icon={<StatusMark label="Working" small status="working" />}
-            key={subagent.id}
-            label={subagent.description}
-            onClick={(event: React.MouseEvent) => {
-              event.preventDefault();
-              navigate(here(to));
-            }}
-            xstyle={styles.subagent}
-          />
-        ))}
-    </>
   );
 }
