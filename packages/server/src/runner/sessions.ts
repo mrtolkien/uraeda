@@ -14,6 +14,7 @@ import {
   type Live,
   REFUSALS,
   commandCount,
+  ofDropped,
   refused,
   type SessionChange,
   type SessionContext,
@@ -162,31 +163,42 @@ export class Sessions {
     return commandCount(this.#context.live.get(session)?.proc?.background);
   }
 
-  /** The latest session of a change or a feature, created when it has none. */
+  /**
+   * The latest session of a change or a feature, created when it has none: refused for a dropped
+   * one, whose sessions are all archived, so its runs never recreate its worktree.
+   */
   async featureSession(repo: string, folder: string): Promise<SessionRow> {
     const { cache } = this;
     const root = await this.mainRoot(repo);
     // One transaction: another server cannot create a first session between the read and the write.
-    return transaction(
-      cache.db,
-      () =>
-        cache.latestSession(root, folder) ??
+    return transaction(cache.db, () => {
+      const latest = cache.latestSession(root, folder);
+      if (latest && ofDropped(latest)) {
+        throw refused(REFUSALS.dropped);
+      }
+      return (
+        latest ??
         cache.createSession({
           agent: this.adapter.kind,
           folder,
           nativeId: randomUUID(),
           repo: root,
           title: null,
-        }),
-    );
+        })
+      );
+    });
   }
 
   /**
    * A new session of a change or a feature, which becomes its latest: its runs go to it. Its
-   * feature's open pages are sent it.
+   * feature's open pages are sent it. Refused for a dropped one.
    */
   async newSession(repo: string, folder: string): Promise<SessionRow> {
     const root = await this.mainRoot(repo);
+    const latest = this.cache.latestSession(root, folder);
+    if (latest && ofDropped(latest)) {
+      throw refused(REFUSALS.dropped);
+    }
     const row = this.cache.createSession({
       agent: this.adapter.kind,
       folder,

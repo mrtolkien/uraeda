@@ -656,3 +656,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   application journeys to ready.
 - **If wrong**: `families` in `scripts/fast-selection.ts`.
 - **Where**: the second catch-up.
+
+## R38: A dropped change or feature takes no message, run, or new session
+
+- **Decision**: a session of a dropped change or feature, one with a folder and archived, refuses a
+  message with "This change or feature was dropped: its branch stays.", checked before the send
+  reads the feature, and again after each wait, so a drop during a send refuses it too. A run sent
+  to the folder, its "Next", and "New session" are refused the same way while the folder's latest
+  session is archived. Only a drop archives a session with a folder, so that reads as dropped. A
+  chat, without a folder, still comes back from the archive with a message. New server test "a
+  dropped change refuses %s", for a message, a run, and a new session: each leaves the worktree
+  absent and opens no process.
+- **Rationale**: the final review found that a message to a dropped change's session un-archived it
+  and opened a turn in its removed worktree, which `workDir` recreated from the branch the drop
+  keeps.
+- **Alternatives considered**: skipping archived sessions when picking the folder's latest: the run
+  would then make a new session, whose first turn recreates the worktree all the same.
+- **If wrong**: an item dropped before it had any session has no archived session to tell it by, so
+  a run to its folder still makes one. A marker of dropped folders would close it.
+- **Where**: the final review's fixes, `ofDropped` and `REFUSALS.dropped` in
+  `packages/server/src/runner/session-state.ts`, `sendTo` and `deliver` in `runner/send.ts`,
+  `featureSession` and `newSession` in `runner/sessions.ts`.

@@ -43,7 +43,13 @@ export const REFUSALS = {
   agentWorking: "The agent is working",
   /** A message to a session of a change or a feature while another of its sessions works. */
   otherWorking: (kind: string) => `Another session of this ${kind} is working`,
+  /** A message, a run, or a new session of a dropped change or feature: its sessions are archived. */
+  dropped: "This change or feature was dropped: its branch stays.",
 };
+
+/** Whether the session belongs to a dropped change or feature: a session with a folder archived. */
+export const ofDropped = (row: { archivedAt: string | null; folder: string | null }) =>
+  row.folder !== null && row.archivedAt !== null;
 
 /** The line of a workflow message sent once it no longer applied: the feature waits on the human. */
 export const SENT_AS_CHAT = "Sent as a chat: the feature now waits on you.";
