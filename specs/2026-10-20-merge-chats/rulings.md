@@ -417,3 +417,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the tests alone.
 - **Where**: review of task 8, `packages/web/src/__tests__/sidebar.test.tsx`,
   `packages/web/src/__tests__/done.test.ts`.
+
+## R25: A new session's live update is checked by the server; the web test reads the page again
+
+- **Decision**: `session.new` publishes a session change with its folder, as `attach` does, so an
+  open feature's page is sent its new session. The server test "a new session of a feature reaches a
+  subscribed feature" checks it. The web test "New session opens a session of the feature" stays in
+  one app: it presses New session, goes back with the browser's history, and reads the page again
+  with `refreshUntil` until the card lists both sessions, instead of rendering a second app.
+- **Rationale**: the second `renderPage` left two apps mounted, and failed under load without a bug.
+  happy-dom has no `EventSource`, so live updates never reach the web tests: no web test can fail
+  without the live update, and the server's tests check it, as `helpers.tsx` says.
+- **Alternatives considered**: the client adding the new session to the feature from the mutation's
+  result: a second path for what the live update already sends every open page.
+- **If wrong**: the web test alone.
+- **Where**: review of task 11, `packages/server/src/runner/sessions.ts`,
+  `packages/server/src/__tests__/session-moves.test.ts`,
+  `packages/web/src/__tests__/feature-sessions.test.tsx`.

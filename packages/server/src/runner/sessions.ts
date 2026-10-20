@@ -181,15 +181,21 @@ export class Sessions {
     );
   }
 
-  /** A new session of a change or a feature, which becomes its latest: its runs go to it. */
+  /**
+   * A new session of a change or a feature, which becomes its latest: its runs go to it. Its
+   * feature's open pages are sent it.
+   */
   async newSession(repo: string, folder: string): Promise<SessionRow> {
-    return this.cache.createSession({
+    const root = await this.mainRoot(repo);
+    const row = this.cache.createSession({
       agent: this.adapter.kind,
       folder,
       nativeId: randomUUID(),
-      repo: await this.mainRoot(repo),
+      repo: root,
       title: null,
     });
+    this.#options.onChange({ folder, repo: root, session: row.id });
+    return row;
   }
 
   /**
