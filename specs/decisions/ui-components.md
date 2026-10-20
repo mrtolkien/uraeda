@@ -39,7 +39,10 @@ choice for dragging on touch screens in React 19
 - A size or a colour changes in one place, the theme, and reaches every view.
 - StyleX's lint runs through oxlint's JavaScript plugins, still in alpha: an oxlint upgrade may need
   care.
-- Astryx gaps are listed in plans, so they can be reported upstream.
+- Astryx gaps are listed in plans, so they can be reported upstream. One is known: `ChatToolCalls`
+  and the like mount every row while collapsed, so a long list is drawn through a shared component
+  that hands them only what shows (`ToolGroups.tsx`).
+- Read an Astryx component's source and measure the page before patching around it.
 
 ## Applies to
 
