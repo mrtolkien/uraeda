@@ -33,17 +33,17 @@ the pages are browsed together, as a user does.
 ## Why
 
 UI work needs the app in many states, and the review of the built UI was dropped from the UI
-iteration flow ([discovery](../2026-10-20-ui-sandbox/discovery-01.md#worth-it-and-feasibility)). The
-human chose a whole-app command beside Storybook
-([where the sandbox lives](../2026-10-20-ui-sandbox/clarifications-01.md#q2-where-does-the-sandbox-live)),
-a fake agent
-([agents in the sandbox](../2026-10-20-ui-sandbox/clarifications-01.md#q4-how-do-agents-behave-inside-the-sandbox)),
+iteration flow ([the sandbox's record](../done/2026-10-20-ui-sandbox.md)). The human chose a
+whole-app command beside Storybook
+([where the sandbox lives](../done/2026-10-20-ui-sandbox.md#q2-where-does-the-sandbox-live)), a fake
+agent
+([agents in the sandbox](../done/2026-10-20-ui-sandbox.md#q4-how-do-agents-behave-inside-the-sandbox)),
 state kept until a reset
-([state lifetime](../2026-10-20-ui-sandbox/clarifications-01.md#q5-how-long-does-the-sandboxs-state-last)),
-picks pasted to the agent from the clipboard
-([where a pick goes](../2026-10-20-ui-sandbox/clarifications-01.md#q3-where-does-a-pick-go)), and
-source locations from a build plugin
-([what a pick tells the agent](../2026-10-20-ui-sandbox/clarifications-01.md#q7-what-does-a-pick-tell-the-agent)).
+([state lifetime](../done/2026-10-20-ui-sandbox.md#q5-how-long-does-the-sandboxs-state-last)), picks
+pasted to the agent from the clipboard
+([where a pick goes](../done/2026-10-20-ui-sandbox.md#q3-where-does-a-pick-go)), and source
+locations from a build plugin
+([what a pick tells the agent](../done/2026-10-20-ui-sandbox.md#q7-what-does-a-pick-tell-the-agent)).
 
 ## Alternatives considered
 

@@ -8,7 +8,6 @@
 
 - [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
 - [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
-- [Stable dev environment for UI review](/specs/2026-10-20-ui-sandbox/proposal.md)
 
 - Empty inbox
 

@@ -40,7 +40,7 @@ address or header proves the sender, since proxies connect from 127.0.0.1 and ca
 Sandboxed frames get no `Lax` cookie and share one Storybook, so they share one secret in their path
 ([how previews prove themselves](../done/2026-10-16-basic-security.md#q6-how-do-previews-and-mockups-prove-they-come-from-you)).
 The sandbox holds sample projects only, and an agent must open its pages without signing in
-([sign-in in the sandbox](../2026-10-20-ui-sandbox/clarifications-01.md#q8-does-the-sandbox-need-sign-in)).
+([sign-in in the sandbox](../done/2026-10-20-ui-sandbox.md#q8-does-the-sandbox-need-sign-in)).
 
 ## Alternatives considered
 
