@@ -200,6 +200,15 @@ skill for your user. Without `ura`, install the skill for any agent with
 `npx skills add mrtolkien/uraeda`. `ura upgrade` installs the latest release, through the installer
 script or Homebrew, then updates your skill; with Nix, update the flake input.
 
+Tab completes `ura`'s commands, flags, and values in fish and zsh: drafts after `ura start`, the
+features and changes under way after `ura next`, and the open questions after `ura answer`. Set it
+up once with one line, which asks `ura` itself at each Tab, so it follows every upgrade:
+
+```sh
+echo 'COMPLETE=fish ura | source' > ~/.config/fish/completions/ura.fish  # fish
+echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh, after compinit
+```
+
 The web UI comes from npm. In a repository, run `npx @uraeda/ui`: it starts the server on
 http://127.0.0.1:4310 and opens the repository in your browser. It needs Node 24 or later, and
 sessions need `claude` installed and signed in. Run `npx @uraeda/ui` in another repository and it
