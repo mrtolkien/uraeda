@@ -1,17 +1,14 @@
 import { Banner } from "@astryxdesign/core/Banner";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFateClient, useView } from "react-fate";
-import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
+import type { Session, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { MAIN_CHECKOUT, useAgent, useFeature } from "./data.ts";
+import { MAIN_CHECKOUT, useFeature } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import {
   composerDraft,
@@ -20,7 +17,7 @@ import {
   takeBackInto,
   useDraft,
 } from "./useDraft.ts";
-import { EditableLine } from "./EditableLine.tsx";
+import { SessionHeader } from "./SessionHeader.tsx";
 import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
@@ -32,8 +29,7 @@ import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
 import { redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
-import { type ChatControls, type Controls, useSessionControls } from "./useSessionControls.ts";
-import { StatusMark } from "./StatusMark.tsx";
+import { type Controls, useSessionControls } from "./useSessionControls.ts";
 import { StoriesProvider } from "./stories.tsx";
 import { Transcript } from "./Transcript.tsx";
 import { useKeepPlace } from "./useKeepPlace.ts";
@@ -49,52 +45,6 @@ const styles = stylex.create({
     position: "sticky",
   },
 });
-
-/** A session's status: its dot, and its label. */
-export function SessionStatus({ label, status }: { label: string; status: Status }) {
-  return (
-    <HStack align="center" gap={2}>
-      <StatusMark label={label} status={status} />
-      <Text weight="semibold">{label}</Text>
-    </HStack>
-  );
-}
-
-/**
- * A session's header: its title, then its status, agent, and place on one line. A chat's
- * title is renamed in place.
- */
-function Header({
-  chat,
-  place,
-  status,
-  title,
-}: {
-  chat?: ChatControls;
-  place?: string;
-  status?: { label: string; status: Status };
-  title: string;
-}) {
-  const agent = useAgent();
-  const meta = [agent?.name, place].filter((part): part is string => Boolean(part));
-  return (
-    <VStack gap={1}>
-      <Heading level={1}>
-        {chat ? (
-          <EditableLine field={chat.field} label="Title" onSave={chat.onRename} value={title} />
-        ) : (
-          title
-        )}
-      </Heading>
-      <HStack align="center" gap={2} wrap="wrap">
-        {status && <SessionStatus label={status.label} status={status.status} />}
-        <Text color="secondary" type="supporting">
-          {meta.join(" · ")}
-        </Text>
-      </HStack>
-    </VStack>
-  );
-}
 
 /**
  * What a feature's session was opened for: the workflow's message, while the composer holds it,
@@ -166,7 +116,7 @@ function SessionLog({
   }
   return (
     <VStack gap={3}>
-      <Header
+      <SessionHeader
         place={session.place}
         status={{ label: session.statusLabel, status: session.status }}
         title={session.title}
@@ -257,14 +207,14 @@ function SessionPane({
         {crumbs !== undefined && <Crumbs folder={crumbs} session />}
         {id === undefined ? (
           <VStack gap={3}>
-            <Header title={title ?? ""} />
+            <SessionHeader title={title ?? ""} />
             {crumbs !== undefined && <ProgressLine folder={crumbs} />}
             <Transcript session={{ id: "", turns: [] }} />
           </VStack>
         ) : (
           // Read once the first message created the session: its title stays, and the composer, as
           // it is read. The transcript waits for it: a page shows one log.
-          <Suspense fallback={title === undefined ? null : <Header title={title} />}>
+          <Suspense fallback={title === undefined ? null : <SessionHeader title={title} />}>
             <SessionLog
               controls={controls}
               crumbs={crumbs}
