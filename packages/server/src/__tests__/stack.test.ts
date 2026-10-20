@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 
@@ -37,15 +37,17 @@ test("no package depends on a markdown parser, and no source imports one", () =>
     ).toEqual([]);
     const source = join(packages, name, "src");
     for (const file of statSync(source, { throwIfNoEntry: false }) ? files(source) : []) {
+      // The lint fixtures are each a banned pattern, imported to be refused.
+      if (file.includes(`${sep}__lint__${sep}`)) {
+        continue;
+      }
       const text = readFileSync(file, "utf8");
       // The stack decision lets an agent's messages, which are not workflow files, render with
-      // Astryx's `Markdown`: the transcript's messages alone do, and the session's mockups, which
-      // show them.
-      const agentMessages = [
-        "Transcript.tsx",
-        "TranscriptMessages.tsx",
-        "SessionMockups.stories.tsx",
-      ].some((name) => file.endsWith(join("web", "src", name)));
+      // Astryx's `Markdown`: `Prose.tsx` alone draws it, for the transcript's messages, and the
+      // session's mockups, which show them.
+      const agentMessages = ["Transcript.tsx", "Prose.tsx", "SessionMockups.stories.tsx"].some(
+        (name) => file.endsWith(join("web", "src", name)),
+      );
       for (const parser of [
         ...PARSERS,
         ...(agentMessages ? [] : ["@astryxdesign/core/Markdown"]),
