@@ -9,6 +9,7 @@
 - [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
 - [Inbox screenshots](/specs/changes/2026-10-20-inbox-images/proposal.md)
 - [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
+- [Stable dev environment for UI review](/specs/2026-10-20-ui-sandbox/proposal.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
@@ -56,8 +57,6 @@
 - Keyboard navigation of the lists, and how users discover it: the ↑ ↓ / j k keys of the priorities,
   inbox, and decisions lists, without a hint taking room (from the redesign of the priorities' spec
   review)
-
-- [Stable dev environment for UI review](drafts/stable-dev-environment-for-ui-review.md)
 
 - [Chat's right column](drafts/chat-right-column.md)
 
