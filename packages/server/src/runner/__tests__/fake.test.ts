@@ -1,3 +1,4 @@
+import { getEventListeners } from "node:events";
 import { expect, test } from "vite-plus/test";
 import type { AgentProcess } from "../adapter.ts";
 import type { AgentEvent } from "../events.ts";
@@ -113,7 +114,7 @@ test("capabilities, availability, and the allow rule", async () => {
 
 test("a message with no scripted turn plays the fallback, and a scripted turn comes first", async () => {
   const adapter = new FakeAdapter();
-  adapter.fallback = () => [{ text: "canned", type: "text" }];
+  adapter.fallback = ({ text }) => [{ text: `canned for ${text}`, type: "text" }];
   adapter.script([{ text: "scripted", type: "text" }]);
   const agent = adapter.open(options);
   await readUntil(agent, (event) => event.type === "init");
@@ -128,7 +129,7 @@ test("a message with no scripted turn plays the fallback, and a scripted turn co
   ]);
   expect(await readUntil(agent, (event) => event.type === "result")).toEqual([
     { id: "m2", type: "accepted" },
-    { text: "canned", type: "text" },
+    { text: "canned for hello", type: "text" },
     done(),
   ]);
 });
@@ -257,4 +258,23 @@ test("a message sent after the exit plays no fallback", () => {
   agent.close();
   agent.send({ id: "m1", images: [], text: "late", when: "steer" });
   expect(played).toBe(0);
+});
+
+test("awaited steps leave no listener on the signal they were given", async () => {
+  const adapter = new FakeAdapter();
+  const signals: Array<AbortSignal> = [];
+  adapter.script(
+    Array.from({ length: 20 }, () => async (_cwd: string, signal: AbortSignal) => {
+      signals.push(signal);
+    }),
+  );
+  const agent = adapter.open(options);
+  await readUntil(agent, (event) => event.type === "init");
+
+  agent.send({ id: "m1", images: [], text: "go", when: "steer" });
+  await readUntil(agent, (event) => event.type === "result");
+
+  // One signal for the whole turn, which nothing cut: a listener left per step would pile up.
+  expect(new Set(signals).size).toBe(1);
+  expect(getEventListeners(signals[0]!, "abort")).toEqual([]);
 });

@@ -6,6 +6,7 @@ import type { AgentEvent } from "uraeda-server/runner/events";
 import { type FakeStep } from "uraeda-server/runner/fake";
 import { runMessage } from "uraeda-server/runner/message";
 import { FakeAdapter, type Sessions } from "uraeda-server/testing";
+import type { Outgoing } from "uraeda-server/runner/adapter";
 import { SAMPLE_FOLDERS } from "../samples/index.ts";
 
 /** Waits `ms`, or less once `signal` aborts: a stop or a close ends the wait. */
@@ -21,22 +22,25 @@ const REPLY_MS = 3000;
 /** How long the turn at work streams tool calls. */
 const AT_WORK_MS = 10 * 60 * 1000;
 
-/** A wait on a timer, cleared when `signal` aborts. */
-const timerWait: Wait = (ms, signal) =>
+/**
+ * A wait on a timer, cleared when `signal` aborts. The signal lives as long as the turn: its
+ * listener goes when the timer fires, or it would pile up over the turn's waits.
+ */
+export const timerWait: Wait = (ms, signal) =>
   new Promise((resolve) => {
     if (signal?.aborted) {
       resolve();
       return;
     }
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      { once: true },
-    );
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
   });
 
 /** The `count` parts of `total`, whole numbers that add up to it exactly. */
@@ -47,6 +51,9 @@ function shares(total: number, count: number): Array<number> {
   );
 }
 
+/** The plan the turn at work reads: the implementation feature's. */
+const PLAN = `specs/${SAMPLE_FOLDERS.features.implementation}/plan.md`;
+
 /** The tool calls the turn at work cycles through: reading, searching, editing, testing. */
 const TOOL_CALLS: Array<{
   input: Record<string, unknown>;
@@ -56,11 +63,11 @@ const TOOL_CALLS: Array<{
   target: string;
 }> = [
   {
-    input: { file_path: "specs/2026-10-17-redesign-clarifications/plan.md" },
+    input: { file_path: PLAN },
     kind: "read",
     name: "Read",
     output: "The plan's current task.",
-    target: "specs/2026-10-17-redesign-clarifications/plan.md",
+    target: PLAN,
   },
   {
     input: { pattern: "Clarifications" },
@@ -94,12 +101,32 @@ const AT_WORK_CALLS = 40;
  */
 export class SandboxAgent extends FakeAdapter {
   #wait: Wait;
+  /** The messages that start the turn at work, each once, by their text. */
+  #atWorkMessages: Array<string> = [];
 
   constructor(wait: Wait) {
     super();
     this.#wait = wait;
-    this.capabilities = { ...this.capabilities, steer: false };
-    this.fallback = () => this.reply();
+    // It never says a message was taken back, which a take-back waits for.
+    this.capabilities = { ...this.capabilities, steer: false, takeBack: false };
+    this.fallback = (message) => this.#answer(message);
+  }
+
+  /**
+   * Plays the turn at work on the next message of `text`, rather than the canned reply: chosen by
+   * the message itself, so another session's message, reaching the agent first, cannot take it.
+   */
+  playAtWorkOn(text: string) {
+    this.#atWorkMessages.push(text);
+  }
+
+  #answer({ text }: Outgoing): Array<FakeStep> {
+    const index = this.#atWorkMessages.indexOf(text);
+    if (index === -1) {
+      return this.reply();
+    }
+    this.#atWorkMessages.splice(index, 1);
+    return this.atWork();
   }
 
   /** A step that waits `ms`, cut short as the turn ends. */
@@ -171,12 +198,12 @@ export async function workflowMessage(repo: string, folder: string): Promise<str
  */
 export async function atWork(sessions: Sessions, repo: string): Promise<{ turn: number }> {
   const agent = sessions.adapter as Partial<SandboxAgent>;
-  if (agent.atWork === undefined || agent.script === undefined) {
+  if (agent.playAtWorkOn === undefined) {
     throw new Error("The turn at work runs on the sandbox's agent.");
   }
   const folder = SAMPLE_FOLDERS.features.implementation;
   const session = await sessions.featureSession(repo, folder);
   const text = await workflowMessage(repo, folder);
-  agent.script(agent.atWork());
+  agent.playAtWorkOn(text);
   return sessions.send(repo, session.id, { text, workflow: { trigger: "manual" } });
 }

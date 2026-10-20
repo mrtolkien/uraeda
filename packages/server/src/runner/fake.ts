@@ -60,9 +60,11 @@ class FakeProcess implements AgentProcess {
           }
           if (typeof step === "function") {
             const { signal } = this.#cut;
-            const cut = new Promise<void>((resolve) =>
-              signal.addEventListener("abort", () => resolve(), { once: true }),
-            );
+            let onAbort!: () => void;
+            const cut = new Promise<void>((resolve) => {
+              onAbort = resolve;
+              signal.addEventListener("abort", onAbort, { once: true });
+            });
             try {
               await Promise.race([step(this.#cwd, signal), cut]);
             } catch (error) {
@@ -72,6 +74,9 @@ class FakeProcess implements AgentProcess {
               this.#drop();
               this.#exited = true;
               return { done: false, value: { code: 1, stderr: String(error), type: "exit" } };
+            } finally {
+              // The signal lives as long as the turn: a listener left per step would pile up.
+              signal.removeEventListener("abort", onAbort);
             }
             continue;
           }
@@ -90,7 +95,7 @@ class FakeProcess implements AgentProcess {
     if (this.#exited) {
       return;
     }
-    const script = this.#adapter.nextScript() ?? this.#adapter.fallback?.();
+    const script = this.#adapter.nextScript() ?? this.#adapter.fallback?.(message);
     if (script === undefined) {
       return;
     }
@@ -205,10 +210,10 @@ export class FakeAdapter implements Adapter {
   /** Whether a process says `init` as it opens, with its own session ID; else a test emits it. */
   autoInit = true;
   /**
-   * The turn played on a message when no turn is scripted, as an agent that answers anything; with
-   * none, such a message plays nothing.
+   * The turn played on a message when no turn is scripted, as an agent that answers anything, given
+   * that message; with none, such a message plays nothing.
    */
-  fallback: (() => Array<FakeStep>) | undefined;
+  fallback: ((message: Outgoing) => Array<FakeStep>) | undefined;
   #scripts: Array<Array<FakeStep>> = [];
   #current: FakeProcess | undefined;
 

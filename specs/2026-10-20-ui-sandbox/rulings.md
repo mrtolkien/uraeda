@@ -155,16 +155,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R13: The sandbox's agent queues messages, and the usage limit is a failed turn
 
 - **Decision**: `SandboxAgent`, a `FakeAdapter` of `packages/web/sandbox/agent.ts`, declares no
-  steering, so a message sent during a turn queues behind it. The session stopped by the usage limit
-  is a chat whose turn the agent ends with a full five-hour `usage` event and a failed result naming
-  the usage limit, as Claude Code ends one. The sample sessions other than the turn at work are
-  chats of the sample project. `fakeSessions` takes the adapter and the cache's file, so the seed
-  writes `runner.sqlite` through `createSessions`; it also exports the `Sessions` type.
+  steering, so a message sent during a turn queues behind it. The runner has no "limited" state: the
+  sample session stopped by the usage limit is a chat whose turn failed, its reason naming the usage
+  limit, exactly as a real limited session shows. Its agent first reports a full five-hour `usage`
+  event, as Claude Code's `rate_limit_event` at a limit maps to; it has no lasting effect, since the
+  runner keeps five-hour reports in memory per process, and its `resetsAt` is in the past. The
+  sample sessions other than the turn at work are chats of the sample project. `fakeSessions` takes
+  the adapter and the cache's file, so the seed writes `runner.sqlite` through `createSessions`; it
+  also exports the `Sessions` type.
 - **Rationale**: a steered message would join the turn at work and end it with the canned reply's
-  result (review focus 5). The runner has no "limited" turn state: a turn ended by the usage limit
-  fails, with its reason. Chats need no worktree and no step to seed.
+  result (review focus 5). A turn ended by the usage limit fails, with its reason, in the runner as
+  in the app. Chats need no worktree and no step to seed.
 - **Alternatives considered**: a fake that steers without ending the turn: the fake would hold two
-  replies in one turn, which no agent does. Rows written for a "limited" state: against R2.
+  replies in one turn, which no agent does. Rows written for a "limited" state: against R2, and a
+  state the runner does not have.
 - **If wrong**: the failed and stopped sessions move to features waiting on the agent, in
   `sessions.ts` alone.
 - **Where**: task 7.
@@ -205,3 +209,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `buildBroken` in `samples/projects.ts` skips `spec.md`, and the test's exception
   goes.
 - **Where**: task 5.
+
+## R16: The turn at work is chosen by its message, and the sandbox's agent takes nothing back
+
+- **Decision**: `FakeAdapter.fallback` is given the message it answers. `atWork` marks the turn at
+  work's message with `SandboxAgent.playAtWorkOn(text)`, and the agent's fallback plays the turn at
+  work for the next message of that text, once, and the canned reply for any other. The sandbox's
+  agent declares `takeBack: false`.
+- **Rationale**: a scripted turn is the adapter's, not a session's: queued before the message, it
+  went to whichever session's message reached the agent first, so a chat message sent as the sandbox
+  starts could take the turn at work. The text is the workflow message of the implementation
+  feature, which no chat sends. The fake never emits `cancelled`, which a take-back waits for:
+  offered, it would never complete.
+- **Alternatives considered**: a script queued per session: a new ability of the fake for one
+  caller. A `cancelled` event on take-back: a message taken back from a canned reply changes nothing
+  a human reviews.
+- **If wrong**: `atWork` scripts the turn again, and the race is left, or `SandboxAgent` emits
+  `cancelled` and offers the take-back.
+- **Where**: tasks 3 and 7.

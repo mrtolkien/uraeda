@@ -466,8 +466,9 @@ git commit -m "refactor(ui-sandbox): one home for the sample builders"
   each function step awaited before the next step is read, and cut short, its signal aborted, by the
   interrupt, the close, or a kill that ends the turn, which drop the steps not read yet; a step that
   throws ends the process with `{ code: 1, stderr: String(error), type: "exit" }`;
-  `FakeAdapter.fallback: (() => Array<FakeStep>) | undefined`, the turn played on `send` when no
-  turn is scripted and the process has not exited.
+  `FakeAdapter.fallback: ((message: Outgoing) => Array<FakeStep>) | undefined`, the turn played on
+  `send`, given its message, when no turn is scripted and the process has not exited (R16). An
+  awaited step's abort listener is removed once it ends, as the signal lasts the turn.
 
 - [x] **Step 1: Write the failing tests**
 
@@ -798,11 +799,13 @@ git commit -m "feat(ui-sandbox): pick an element and copy it"
 
 - Consumes: Task 3's `fallback` and awaited steps; Task 5's `SAMPLE_FOLDERS`.
 - Produces: `sandboxAgent({ wait }: { wait?: Wait } = {}): SandboxAgent`, a `FakeAdapter` that does
-  not steer, with the canned reply as its fallback and a timer wait by default;
-  `atWork(sessions, repo): Promise<{ turn }>`, which starts the turn at work on the implementation
-  feature's session, as "Continue" does; `workflowMessage(repo, folder)`, the message "Continue"
+  not steer and offers no take-back, with the canned reply as its fallback and a timer wait
+  (`timerWait`) by default; `atWork(sessions, repo): Promise<{ turn }>`, which starts the turn at
+  work on the implementation feature's session, as "Continue" does, its message marked with
+  `SandboxAgent.playAtWorkOn(text)` (R16); `workflowMessage(repo, folder)`, the message "Continue"
   sends; `CANNED_REPLY`; `seedSessions(dataDir: string, sample: string): Promise<void>`, which
-  writes the finished chat, and the failed, stopped, and usage-limited chats (R13).
+  writes the finished chat, and the failed and stopped chats, and one failed with its reason naming
+  the usage limit (R13).
 
 - [x] **Step 1: Write the failing tests**
 
@@ -831,10 +834,12 @@ test("the turn at work plays again from its start after a restart stopped it", a
   /* US3 more 2 */
 });
 
-test("seeded sessions show every state", async () => {
+test("seeded sessions are done, failed, stopped, and failed, its reason naming the usage limit", async () => {
   await seedSessions(dataDir, sample);
 
-  expect(sessionStates(dataDir, sample)).toEqual(new Set(["done", "failed", "stopped", "limited"]));
+  expect(sessionStates(dataDir, sample)).toEqual(
+    new Set(["done", "failed", "stopped", "failed: usage limit"]),
+  );
 });
 
 test("Continue gets the canned reply, and the feature's step stays", async () => {
