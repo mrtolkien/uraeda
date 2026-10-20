@@ -989,8 +989,12 @@ git commit -m "feat(merge-chats): a session's actions beside Send, and the agent
 
 **Files:**
 
-- Start from: [`NewSession.stories.tsx#FeatureSessions`](/packages/web/src/NewSession.stories.tsx)
-- Create: `packages/web/src/feature/SessionsCard.tsx`
+- Start from: the mockup `NewSession.stories.tsx#FeatureSessions`, now
+  [`SessionsCard.stories.tsx#FeatureSessions`](/packages/web/src/feature/SessionsCard.stories.tsx)
+- Create: `packages/web/src/feature/SessionsCard.tsx` and its story
+- Modify: `packages/server/src/fate/views.ts`, `fate/sessions.ts` (`SessionRecord.name` and
+  `startedAt`,
+  [R18](rulings.md#r18-a-features-session-is-titled-by-its-own-title-else-its-first-runs-step))
 - Modify: `packages/web/src/feature/FeaturePage.tsx` (`NextAndAgent`, `FeatureBody`),
   `packages/web/src/views.ts` (`FeatureView.sessions`); remove `AgentCard.tsx` once its parts move
 - Test: `packages/web/src/__tests__/feature-sessions.test.tsx`
@@ -999,7 +1003,7 @@ git commit -m "feat(merge-chats): a session's actions beside Send, and the agent
 
 - Consumes: task 6's `FeatureRecord.sessions`, task 5's `session.new`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - "a feature's page lists its sessions, latest first, with their sub-agents".
 - "New session opens a session of the feature": `session.new` called with the folder, the page
@@ -1011,9 +1015,9 @@ git commit -m "feat(merge-chats): a session's actions beside Send, and the agent
 - Run: `nix develop -c vp test packages/web/src/__tests__/feature-sessions.test.tsx`
 - Expected: FAIL, `Unable to find role "heading" and name "Sessions"`.
 
-- [ ] **Step 3: Implement the card**
+- [x] **Step 3: Implement the card**
 
-- [ ] **Step 4: Run the web suite**
+- [x] **Step 4: Run the web suite**
 
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS.
@@ -1021,7 +1025,7 @@ git commit -m "feat(merge-chats): a session's actions beside Send, and the agent
 - [x] **Step 5: Commit**
 
 ```bash
-git add packages/web specs/2026-10-20-merge-chats/plan.md
+git add packages/web packages/server specs/2026-10-20-merge-chats
 git commit -m "feat(merge-chats): a feature's page lists its sessions, with New session"
 ```
 

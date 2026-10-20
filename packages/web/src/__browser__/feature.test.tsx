@@ -106,7 +106,7 @@ describe("on a desktop", () => {
 /** Where "Next" and the agent's card are drawn. */
 function nextAndAgent() {
   return {
-    agent: screen.getByRole("region", { name: "Agent" }).getBoundingClientRect(),
+    agent: screen.getByRole("region", { name: "Sessions" }).getBoundingClientRect(),
     next: screen.getByRole("region", { name: "Next" }).getBoundingClientRect(),
   };
 }

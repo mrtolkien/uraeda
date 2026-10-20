@@ -182,6 +182,8 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     allowable: read.allowable,
     folder: row.folder,
     id: row.id,
+    name: row.title,
+    startedAt: row.createdAt,
     title: titleOf(row, feature),
     ...statusOf(row, read, feature, isLatest(ctx.sessions.cache, row)),
     archived: row.archivedAt !== null,

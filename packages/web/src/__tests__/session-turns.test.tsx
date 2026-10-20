@@ -85,16 +85,16 @@ async function cachedRun(
   return id;
 }
 
-/** The feature page's agent card. */
+/** The feature page's sessions card. */
 function panel() {
-  return within(screen.getByRole("region", { name: "Agent" }));
+  return within(screen.getByRole("region", { name: "Sessions" }));
 }
 
-/** Opens the feature's page from the session's crumbs, and waits for its agent card. */
+/** Opens the feature's page from the session's crumbs, and waits for its sessions card. */
 async function openFeaturePage(title: string) {
   const crumbs = within(screen.getByRole("navigation", { name: "Breadcrumbs" }));
   await click(crumbs.getByRole("link", { name: title }));
-  await screen.findByRole("region", { name: "Agent" });
+  await screen.findByRole("region", { name: "Sessions" });
 }
 
 /** The session's transcript, once drawn. */
@@ -161,14 +161,14 @@ test("US2.3: a run ending at a gate shows its closing text last, and Needs you",
   const text = screen.getByRole("log", { name: "Conversation" }).textContent ?? "";
   expect(text.trimEnd().endsWith(closing.textContent ?? "")).toBe(true);
   expect(sidebarStatus("web-ui")).toBe("Needs you");
-  // The feature page says what waits on the human; the agent rests.
+  // The feature page says what waits on the human, and its session needs them.
   await openFeaturePage("Web UI for the workflow files");
   expect(
     within(screen.getByRole("region", { name: "Next" })).getByRole("heading", {
       name: "You answer the questions",
     }),
   ).toBeTruthy();
-  expect(panel().getByText("Idle")).toBeTruthy();
+  expect(await panel().findByRole("img", { name: "Needs you" })).toBeTruthy();
 });
 
 /** US5.1, US5.2 */
@@ -191,7 +191,7 @@ test("US5.1: a blocked action shows Allow and retry, and Needs you", async () =>
   ).toBeTruthy();
   expect(sidebarStatus("cli-tuis")).toBe("Needs you");
   await openFeaturePage("CLI TUIs");
-  expect(panel().getByText("Needs you")).toBeTruthy();
+  expect(await panel().findByRole("img", { name: "Needs you" })).toBeTruthy();
   await act(async () => window.history.back());
 
   await click((await log()).getByRole("button", { name: "Allow and retry" }));
