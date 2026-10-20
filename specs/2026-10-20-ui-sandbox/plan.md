@@ -863,12 +863,12 @@ The break each test catches:
 - [x] **Step 3: Implement**, the sessions written only through `createSessions` on the data folder's
       `runner.sqlite`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/sandbox packages/server/src/testing.ts specs/2026-10-20-ui-sandbox
