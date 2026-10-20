@@ -69,3 +69,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Resolve a specific integration defect against the current main behavior, never
   restore the old Enter-to-send rule or delete the new bounded-mount checks.
 - **Where**: Tasks 1, 2, 5, 6, and 7. The plan's rule map includes the new UI guarantees.
+
+## R6: Product coverage and test inventory before repairs
+
+- **Decision**: Use the completed coverage run and [baseline inventory](test-inventory.md) to
+  diagnose lost protection. The inventory retains every baseline path by default; individual
+  expectation changes still need behavioral evidence.
+- **Rationale**: On main through `85b4f233`, before implementation, TypeScript coverage passed 2,031
+  tests in 147 files (271.23 seconds). It measured 80.87% of lines (13,966/17,268), 79.60% of
+  statements, 75.93% of branches, and 78.36% of functions. Rust line coverage was 94.8%; its
+  coverage profile passed 1,039 tests with 11 existing skips in 15.986 seconds. The ordinary ready
+  profile retains its memory-limit case; coverage's extra exclusion is not a new skip.
+- **Alternatives considered**: Reusing the failed rewrite's smaller coverage denominator, treating
+  coverage as a pass threshold, or using counts alone to claim equivalent protection.
+- **If wrong**: Compare changed product paths and owning assertions on equivalent coverage inputs;
+  coverage cannot establish that a particular important guard is asserted.
+- **Where**: Tasks 2 through 7. Raw LCOV files are temporary diagnostics; this summary and the
+  inventory are durable. Focused test/helper directories must be excluded from product coverage
+  consistently with existing test/helper directories.
