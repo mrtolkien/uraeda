@@ -5,7 +5,7 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { useFateClient } from "react-fate";
 import { refusal } from "./errors.ts";
 import { useConfirm } from "./fields/Confirm.tsx";
-import { addNote, openOffer } from "./offers.ts";
+import { addNote, markDropped, openOffer, useDropped } from "./offers.ts";
 import { useOpenRename } from "./sidebar/RenameSession.tsx";
 import type { Controls } from "./useSessionControls.ts";
 import { DroppedView } from "./views.ts";
@@ -53,6 +53,7 @@ function useDrop(session: string, item: SessionItem | undefined, fail: (error: s
       fail(refusal(result.error).message);
       return;
     }
+    markDropped(session);
     const dropped = result.result as { worktreeLeft?: string | null } | undefined;
     addNote(
       session,
@@ -71,7 +72,8 @@ function useDrop(session: string, item: SessionItem | undefined, fail: (error: s
  * The session's "…", "Session actions": for a session without a workflow, Make it a change,
  * Rename, and Archive; for a change, Make it a feature, Rename, and "Drop the change…"; for a
  * feature, Rename and "Drop the feature…". Making it a change or a feature opens its card at the
- * session's end. `isMenuOpen` opens it from the start, as its story shows it.
+ * session's end. Once its change or feature is dropped, which archives the session, only Rename
+ * stays. `isMenuOpen` opens it from the start, as its story shows it.
  */
 export function SessionActions({
   controls,
@@ -82,15 +84,19 @@ export function SessionActions({
   controls: Controls;
   isMenuOpen?: boolean;
   item?: SessionItem | undefined;
-  session: { folder: string | null; id: string; title: string };
+  session: { archived?: boolean; folder: string | null; id: string; title: string };
 }) {
   const rename = useOpenRename();
   const drop = useDrop(session.id, item, controls.fail);
+  const dropped = useDropped(session.id);
   const { archive } = controls;
+  // A dropped change or feature archived its sessions: they move it no more.
+  const live =
+    item && !dropped && !(session.folder !== null && session.archived) ? item : undefined;
   const items = [
     ...(session.folder === null
       ? [{ label: "Make it a change", onClick: () => openOffer(session.id, "change") }]
-      : item?.kind === "change"
+      : live?.kind === "change"
         ? [{ label: "Make it a feature", onClick: () => openOffer(session.id, "feature") }]
         : []),
     { label: "Rename", onClick: () => rename(session) },
@@ -102,7 +108,7 @@ export function SessionActions({
           },
         ]
       : []),
-    ...(item ? [{ label: `Drop the ${item.kind}…`, onClick: () => void drop() }] : []),
+    ...(live ? [{ label: `Drop the ${live.kind}…`, onClick: () => void drop() }] : []),
   ];
   return <MoreMenu isMenuOpen={isMenuOpen} items={items} label="Session actions" size="sm" />;
 }

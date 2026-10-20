@@ -1,6 +1,8 @@
 // The actions by the session's composer: "Allow all (N)" beside Send (US3), from the server's
 // record, not the page's own count, and the session's "…" beside it (merge chats US2): making it a
 // change, or its change a feature, renaming, archiving, and dropping its change or feature.
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { addChange } from "uraeda-binding/test-utils";
@@ -246,4 +248,35 @@ test("Drop the change… asks first", async () => {
   await waitFor(() =>
     expect(git(repo, "branch", "--list", `change/${CHANGE}`).trim()).toBe(`change/${CHANGE}`),
   );
+});
+
+/** Merge chats edge: a dropped change's worktree with uncommitted changes. */
+test("a drop over uncommitted work says what stayed, and offers no second drop", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedChange(fake, repo);
+  git(repo, "worktree", "add", "--quiet", `.worktrees/${CHANGE}`, `change/${CHANGE}`);
+  writeFileSync(join(repo, ".worktrees", CHANGE, "notes.txt"), "Half done.\n");
+  await renderPage(`/f/${CHANGE}/session`, repo, { agent: fake });
+
+  await click((await askDrop()).getByRole("button", { name: "Drop the change" }));
+
+  expect(
+    await screen.findByText(
+      `Its worktree has uncommitted changes: it stays at .worktrees/${CHANGE}`,
+    ),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(`Dropped the change login-redirect: its branch change/${CHANGE} stays.`),
+  ).toBeTruthy();
+  expect(existsSync(join(repo, ".worktrees", CHANGE, "notes.txt"))).toBe(true);
+  // Read again, as once its feature lists the archived session no more: the session stays shown.
+  await refreshUntil(() =>
+    expect(
+      screen.getByText(`Its worktree has uncommitted changes: it stays at .worktrees/${CHANGE}`),
+    ).toBeTruthy(),
+  );
+  const after = await actions();
+  expect(after).not.toContain("Drop the change…");
+  expect(after).toContain("Rename");
 });
