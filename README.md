@@ -202,9 +202,12 @@ script or Homebrew, then updates your skill; with Nix, update the flake input.
 
 Tab completes `ura`'s commands, flags, and values in fish and zsh: drafts after `ura start`, the
 features and changes under way after `ura next`, and the open questions after `ura answer`. Homebrew
-and the Nix package set it up. Otherwise, in fish, `ura install` offers to set it up, and
-`ura install --completions` does it alone. In zsh, add one line to `~/.zshrc`, after `compinit`.
-Either way, the shell asks `ura` itself at each Tab, so completion follows every upgrade:
+and the Nix package install its scripts, which a fish or zsh from the same package manager finds
+without setup; another zsh needs their folder on its `fpath`, as Homebrew's
+[shell completion](https://docs.brew.sh/Shell-Completion) page says, or the line below. Otherwise,
+in fish, `ura install` offers to set it up, and `ura install --completions` does it alone. In zsh,
+add one line to `~/.zshrc`, after `compinit`. Either way, the shell asks `ura` itself at each Tab,
+so completion follows every upgrade:
 
 ```sh
 echo 'COMPLETE=fish ura | source' > ~/.config/fish/completions/ura.fish  # fish, by hand
