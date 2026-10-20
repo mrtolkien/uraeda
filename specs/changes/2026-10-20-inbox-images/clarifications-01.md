@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Inbox screenshots
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 10 minutes.
+> Answered on 2026-10-20.
 >
 > - Verdict: worth building, with changes: a note can carry one image today, but only as a new note.
 >   Notes that exist need a home for theirs.
@@ -72,7 +72,8 @@ every project, which makes this change a feature.
   - [con] a new folder in every project, and the code that moves a note must move its image. It is
     an upgrade to a feature.
 
-**Answer:**
+**Answer:** A: We should also add a "ura inbox clean" or similar command that cleans up orphan
+images if there are any
 
 ## Q2: How should the inbox show a note's image?
 
@@ -89,7 +90,7 @@ Why it matters: it decides how much the list grows. A thumbnail on every row mak
   - [pro] the list stays as it is.
   - [con] you must open a note to learn it has an image.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -110,3 +111,6 @@ Why it matters: it decides how much the list grows. A thumbnail on every row mak
   says.
 
 **Notes:**
+
+- **Several images**: I disgaree, there could be two inline images in a note, or in bullet points.
+  There's no reason to limit it to one?
