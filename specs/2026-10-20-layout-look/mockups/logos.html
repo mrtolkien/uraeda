@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uraeda · five logo concepts</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f3efe4;
+        --ink: #1c1c1a;
+        --card: #fbf9f2;
+        --line: #d9d3c0;
+        --soft: #6b6a5e;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141412;
+          --ink: #ecece6;
+          --card: #1d1d1a;
+          --line: #34342e;
+          --soft: #9c9b8e;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px 20px 60px;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 4px;
+      }
+      p.lead {
+        color: var(--soft);
+        margin: 0 0 22px;
+        max-width: 70ch;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+      }
+      .c {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px 18px;
+      }
+      .c h2 {
+        margin: 0;
+        font-size: 17px;
+      }
+      .c .k {
+        font:
+          12px ui-monospace,
+          monospace;
+        color: var(--soft);
+      }
+      .c p {
+        margin: 6px 0 12px;
+        color: var(--soft);
+        font-size: 14px;
+      }
+      .row {
+        display: flex;
+        gap: 14px;
+        align-items: flex-end;
+      }
+      .tile {
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .tile.l {
+        background: #f6f2e6;
+        color: #1f2a1a;
+      }
+      .tile.d {
+        background: #15130f;
+        color: #e9e6d2;
+      }
+      .tile.s {
+        background: #fff;
+        color: #222;
+        border: 1px solid #ddd;
+        padding: 6px;
+      }
+      .tile.s.d2 {
+        background: #222;
+        color: #eee;
+        border: 1px solid #444;
+      }
+      .lock {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        font:
+          600 22px/1 ui-serif,
+          Georgia,
+          serif;
+        letter-spacing: -0.02em;
+      }
+      svg {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Five logo concepts for Uraeda</h1>
+    <p class="lead">
+      裏枝 (ura-eda) is the back branch of a bonsai: it grows behind the trunk and gives the tree
+      its depth. Each mark is drawn in one colour, so it works as a favicon. Shown at 96, 32 and 16
+      px, on light and dark.
+    </p>
+    <div class="grid" id="g"></div>
+    <script>
+      const C = [
+        [
+          "A",
+          "Back-branch mon",
+          "A family-crest circle. One branch grows behind the trunk, and only its tip shows.",
+          (s) =>
+            `<svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="29" stroke-width="3"/><path d="M32 46c0-6 5-8 11-12" stroke-width="3.5" opacity=".45"/><path d="M43 34c3-1 6-1 8 1" stroke-width="3.5" opacity=".45"/><path d="M32 52V25M32 36c-5-1-8-4-9-9M32 29c4-1 7-4 8-9" stroke-width="5"/><path d="M23 27c-4-1-7-3-8-7M40 20c3-1 6-3 7-6" stroke-width="3"/></svg>`,
+        ],
+        [
+          "B",
+          "Ensō with a bud",
+          "An open brush circle, the gap closed by one new bud: work that is never quite finished.",
+          (s) =>
+            `<svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M46 12A26 26 0 1 0 54 30" stroke-width="5"/><path d="M50 14c4-5 9-6 12-5-1 4-4 8-9 9" fill="currentColor" stroke="none"/><path d="M50 15l-6 6" stroke-width="2.5"/></svg>`,
+        ],
+        [
+          "C",
+          "Git fork as a bonsai",
+          "Commit nodes joined by lines in the shape of a small tree: the git-driven part, made visible.",
+          (s) =>
+            `<svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M32 54V34M32 40c-8 0-14-5-14-13M32 34c8 0 14-5 14-13M32 34V18" stroke-width="4"/><circle cx="18" cy="23" r="5" fill="currentColor"/><circle cx="46" cy="17" r="5" fill="currentColor"/><circle cx="32" cy="12" r="5" fill="currentColor"/><path d="M20 56h24" stroke-width="5"/></svg>`,
+        ],
+        [
+          "D",
+          "Vermilion seal",
+          'A hanko stamp with the two characters. Can double as the "approved" stamp on specs.',
+          (s) =>
+            `<svg width="${s}" height="${s}" viewBox="0 0 64 64"><rect x="5" y="5" width="54" height="54" rx="8" fill="#c8402f"/><rect x="9" y="9" width="46" height="46" rx="5" fill="none" stroke="#fbeee8" stroke-width="1.6" opacity=".7"/><text x="32" y="30" text-anchor="middle" font-size="22" font-family="'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif" font-weight="700" fill="#fbeee8">裏</text><text x="32" y="52" text-anchor="middle" font-size="22" font-family="'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif" font-weight="700" fill="#fbeee8">枝</text></svg>`,
+        ],
+        [
+          "E",
+          "Dot-matrix tree",
+          "A pixel bonsai on a grid, like the terminal look. Crisp at 16 px, and it can grow dot by dot.",
+          (s) => {
+            const m = [
+              "..xxxx..",
+              ".xxxxxx.",
+              "xxxxxxxx",
+              ".xxxxxx.",
+              "...xx...",
+              "..xx....",
+              "...xx...",
+              "..xxxx..",
+            ];
+            let r = "";
+            m.forEach((row, y) =>
+              [...row].forEach((c, x) => {
+                if (c === "x")
+                  r += `<rect x="${x * 8}" y="${y * 8}" width="7" height="7" rx="1.2" fill="currentColor"/>`;
+              }),
+            );
+            return `<svg width="${s}" height="${s}" viewBox="0 0 64 64">${r}</svg>`;
+          },
+        ],
+      ];
+      const g = document.getElementById("g");
+      C.forEach(([k, name, d, f]) => {
+        const el = document.createElement("section");
+        el.className = "c";
+        el.innerHTML = `<div class="k">Concept ${k}</div><h2>${name}</h2><p>${d}</p>
+      <div class="row"><div class="tile l">${f(96)}</div><div class="tile d">${f(96)}</div><div style="display:grid;gap:8px"><div class="tile s">${f(32)}</div><div class="tile s d2">${f(16)}</div></div></div>
+      <div class="lock">${f(30)} uraeda</div>`;
+        g.appendChild(el);
+      });
+    </script>
+  </body>
+</html>

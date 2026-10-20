@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uraeda · compare the five directions</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f4f1;
+        --ink: #1c1c1a;
+        --card: #fff;
+        --line: #d8d8d2;
+        --acc: #2f6f3e;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #151514;
+          --ink: #ecece8;
+          --card: #1f1f1d;
+          --line: #35352f;
+          --acc: #8fd19e;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 22px;
+        align-items: center;
+        padding: 10px 16px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 {
+        font-size: 16px;
+        margin: 0;
+      }
+      .group {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .group span {
+        color: #888;
+        margin-right: 4px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 3px 10px;
+        cursor: pointer;
+      }
+      button.on {
+        background: var(--ink);
+        color: var(--bg);
+        border-color: var(--ink);
+      }
+      main {
+        display: grid;
+        gap: 14px;
+        padding: 14px 16px 40px;
+        grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+        align-items: start;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .card h2 {
+        margin: 0;
+        font-size: 13px;
+        padding: 7px 12px;
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+      }
+      .card h2 a {
+        color: var(--acc);
+        font-weight: 500;
+      }
+      .vp {
+        position: relative;
+        overflow: hidden;
+      }
+      .vp iframe {
+        position: absolute;
+        left: 0;
+        top: 0;
+        border: 0;
+        transform-origin: 0 0;
+        background: #fff;
+      }
+      p.note {
+        grid-column: 1 / -1;
+        margin: 0;
+        color: #888;
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Five directions, same data</h1>
+      <div class="group" id="views"><span>View</span></div>
+      <div class="group" id="widths"><span>Width</span></div>
+      <div class="group" id="cols"><span>Columns</span></div>
+    </header>
+    <main id="grid"></main>
+    <script>
+      const DIRS = [
+        ["natural", "Natural"],
+        ["cyber", "Cyber"],
+        ["terminal", "Terminal"],
+        ["glass", "Glass"],
+        ["blueprint", "Blueprint"],
+      ];
+      const VIEWS = [
+        ["home", "Home"],
+        ["inbox", "Inbox"],
+        ["priorities", "Priorities"],
+        ["feature/merge-chats", "Feature"],
+        ["clar", "Questions"],
+        ["spec", "Spec"],
+        ["session/layout-look", "Session"],
+        ["new", "New"],
+        ["decisions", "Decisions"],
+      ];
+      const WIDTHS = [
+        [1440, "1440 desktop"],
+        [960, "960 half screen"],
+        [390, "390 phone"],
+      ];
+      const q = new URLSearchParams(location.search);
+      const st = {
+        view: q.get("view") || "home",
+        w: +(q.get("w") || 1440),
+        cols: +(q.get("cols") || 3),
+      };
+      const H = 820;
+      function btn(group, items, key, label) {
+        const g = document.getElementById(group);
+        items.forEach(([v, t]) => {
+          const b = document.createElement("button");
+          b.textContent = t;
+          b.dataset.v = v;
+          b.onclick = () => {
+            st[key] = key === "view" ? v : +v;
+            draw();
+          };
+          g.appendChild(b);
+        });
+      }
+      btn("views", VIEWS, "view");
+      btn("widths", WIDTHS, "w");
+      btn(
+        "cols",
+        [
+          [1, "1"],
+          [2, "2"],
+          [3, "3"],
+          [5, "5"],
+        ],
+        "cols",
+      );
+      function draw() {
+        document
+          .querySelectorAll("#views button")
+          .forEach((b) => b.classList.toggle("on", b.dataset.v === st.view));
+        document
+          .querySelectorAll("#widths button")
+          .forEach((b) => b.classList.toggle("on", +b.dataset.v === st.w));
+        document
+          .querySelectorAll("#cols button")
+          .forEach((b) => b.classList.toggle("on", +b.dataset.v === st.cols));
+        const grid = document.getElementById("grid");
+        grid.style.setProperty("--cols", st.cols);
+        grid.innerHTML = "";
+        DIRS.forEach(([d, label]) => {
+          const c = document.createElement("section");
+          c.className = "card";
+          c.innerHTML = `<h2>${label}<a href="${d}.html#/${st.view}" target="_blank">open ↗</a></h2><div class="vp"><iframe loading="eager" title="${label}" width="${st.w}" height="${H}" src="${d}.html#/${st.view}"></iframe></div>`;
+          grid.appendChild(c);
+        });
+        fit();
+      }
+      function fit() {
+        document.querySelectorAll(".vp").forEach((vp) => {
+          const s = Math.min(1, vp.clientWidth / st.w);
+          const f = vp.firstElementChild;
+          f.style.transform = `scale(${s})`;
+          vp.style.height = H * s + "px";
+        });
+      }
+      addEventListener("resize", fit);
+      draw();
+    </script>
+  </body>
+</html>
