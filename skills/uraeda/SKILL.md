@@ -169,11 +169,8 @@ opened before [Finish](references/finish.md) existed.
    the implementation. Do not stop between steps to report or to check in. If you cannot go on, say
    why in your last message: the next run finds the step with this same table.
 
-**A file in an old format.** When a workflow file of the target fails `ura check`, or the rules of
-[Conventions](references/conventions.md#markdown), because the skill changed its format, rewrite it
-from its template first, keeping its content, and the human's answers, notes, and comments, word for
-word. Commit it on its own, `chore(<slug>): rewrite <file> in the new format`, then run the step. An
-answered round stays answered: only its form changes.
+**A file in an old format** is rewritten from its template before the step runs: see
+[Conventions](references/conventions.md#a-file-in-an-old-format).
 
 ### Going back to the human with new questions
 

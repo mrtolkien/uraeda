@@ -1,7 +1,8 @@
 # Conventions
 
-The conventions shared by all steps: how workflow files are written and track their state, and how
-the human reviews them. Also where each feature's branch lives, and how every step commits.
+The conventions shared by all steps: how workflow files are written and track their state, how one
+in an old format is rewritten, and how the human reviews them. Also where each feature's branch
+lives, and how every step commits.
 
 ## Markdown
 
@@ -128,6 +129,14 @@ so in its body: "Approved by the human in chat." When the human changes a spec's
 approval without naming `plan-review`, set `plan-review` to `false`. With `ura`, pass `--no-commit`
 to `ura answer` or `ura review`, and commit with that message and body. With `changes-requested`,
 the human's feedback is in the file's [review file](#review-files).
+
+## A file in an old format
+
+When a workflow file of the target fails `ura check`, or the rules of [Markdown](#markdown), because
+the skill changed its format, rewrite it from its template first, keeping its content, and the
+human's answers, notes, and comments, word for word. Commit it on its own,
+`chore(<slug>): rewrite <file> in the new format`, then run the step. An answered round stays
+answered: only its form changes.
 
 ## Review files
 
