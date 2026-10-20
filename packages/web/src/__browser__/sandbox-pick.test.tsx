@@ -1,7 +1,9 @@
 // The sandbox's picker: the skill's pick script, loaded at the top of the sandbox's page, picks the
-// element a click means, inside the app's open dialogs and sheets too, or the focused element on
-// Enter or Space; it names the element's source and HTML, and leaves ignored elements to the page.
+// element a click means, inside the app's open dialogs, sheets, and popovers too, or the focused
+// element on Enter or Space; it names the element's source and HTML, and leaves ignored elements to
+// the page.
 import { Button } from "@astryxdesign/core/Button";
+import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Theme } from "@astryxdesign/core/theme";
 import { render } from "@testing-library/react";
@@ -25,6 +27,27 @@ test("the pick script, at the top of a page, picks a button inside an open dialo
   await userEvent.click(page.getByRole("button", { name: "Save" }));
 
   expect(await picks.next()).toMatchObject({ name: "Save", role: "button" });
+});
+
+test("the pick script picks an item of an open popover menu, which it does not run", async () => {
+  const picks = await pickScriptOnPage();
+  const moved = vi.fn();
+  render(
+    <Theme mode="light" theme={uraedaTheme}>
+      <DropdownMenu
+        button={{ label: "Move" }}
+        items={[{ label: "Now", onClick: moved }]}
+        presentation="popover"
+      />
+    </Theme>,
+  );
+  await userEvent.click(page.getByRole("button", { name: "Move" }));
+
+  await picks.start();
+  await userEvent.click(page.getByRole("menuitem", { name: "Now" }));
+
+  expect(await picks.next()).toMatchObject({ name: "Now", role: "menuitem" });
+  expect(moved).not.toHaveBeenCalled();
 });
 
 test("Enter in pick mode picks the focused text box, and the page gets no Enter", async () => {
