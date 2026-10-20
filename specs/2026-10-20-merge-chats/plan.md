@@ -658,7 +658,7 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
 
 - Modify: `packages/server/src/fate/sessions.ts` (split first if it passes 500 lines),
   `packages/server/src/fate/views.ts`, `packages/server/src/fate/needs-you.ts`,
-  `packages/server/src/runner/status.ts`
+  `packages/server/src/runner/status.ts`, `packages/server/src/live.ts` (`publish`)
 - Test: `packages/server/src/__tests__/sessions.test.ts`,
   `packages/server/src/__tests__/needs-you.test.ts`
 
@@ -671,6 +671,10 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
     last turn's end.
   - `FeatureRecord` gains `sessions: Array<string>` (latest first); `session` stays the latest.
   - A feature's status is the most urgent of its sessions' (`STATUS_ORDER`).
+  - A feature's `tokens` sum every session of the folder, not the latest only.
+  - A search matching a feature finds every session of it (`sessionSearch`).
+  - A feature's file change publishes a `Session` update to every session of the folder (`live.ts`
+    `publish`), not the latest only.
   - Notification and status hrefs use `/r/<name>/sessions/<id>`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -679,8 +683,12 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
   `done: true`.
 - "a reply brings a done session back": a new turn ending after `seen_at` reads `done: false`, and
   its `startedAt` is unchanged.
-- "a feature's status is its most urgent session's": one session blocked, one idle: the feature
-  needs you.
+- "a feature's status is its most urgent session's": the older session blocked, the latest idle: the
+  feature needs you.
+- "a feature's tokens count every session".
+- "a search for a feature finds every session of it".
+- "a feature's change updates every session of it": after a file change in the feature, the older
+  session's record reads the new status and title live.
 - "a feature lists its sessions, latest first".
 - `needs-you.test.ts`: a blocked session's href is `/r/<name>/sessions/<id>`.
 
