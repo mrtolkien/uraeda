@@ -383,3 +383,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: keeping the group collapsed: the list would still hold it.
 - **If wrong**: the session filter of `entriesOf` in `packages/web/src/sidebar/Sidebar.tsx`.
 - **Where**: review of task 8, `packages/web/src/sidebar/Sidebar.tsx`.
+
+## R21: A start refused or failed on the New page leaves its files, and says why
+
+- **Decision**: "Write the proposal" inserts the title in Now, then drafts it; when the draft is
+  refused, the line is removed again (`priorities.remove`, over the hash the insert returned), the
+  draft's refusal is shown, and the title stays typed. Any start whose read or call rejects, as a
+  network failure, shows its error in the page's refusal banner instead of escaping to the error
+  boundary. New tests: "a feature from a title whose draft cannot be written leaves Now as it was"
+  and "a start whose read fails shows why".
+- **Rationale**: the refused draft left an uncommitted Now line the human never saw added, and the
+  title was cleared; a rejected read threw out of the click, and the page showed nothing useful.
+- **Alternatives considered**: inserting and drafting in one server call: a new mutation for a case
+  the two existing ones undo.
+- **If wrong**: `titleDraft` and `run` in `packages/web/src/useStartFrom.ts`.
+- **Where**: review of task 9, `packages/web/src/useStartFrom.ts`, `packages/web/src/NewPage.tsx`.
