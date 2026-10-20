@@ -54,4 +54,4 @@ and the changes asked on the pull request, one line each, said in words, without
 
 ## Follow-ups
 
-[Optional: the deferred minor findings and the work left, one line each.]
+[Optional: the agents' notes the feature added to the inbox, and the work left, one line each.]

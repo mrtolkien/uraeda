@@ -194,15 +194,35 @@ Once `INBOX-TRIAGE.md` is `answered`:
 
 ## Agents' notes
 
-An agent working on a feature or a [change](change.md) that finds a problem outside its task or the
-change's proposal, like a slow page or a confusing message, does not fix it in passing, and does not
-drop it. It adds a note:
+An agent's note is exceptional. The human reads every note and decides what it becomes, so each one
+costs their attention. Most features and changes add none. Whatever an agent finds while working on
+a feature or a [change](change.md), like a slow page, a confusing message, or a review's finding,
+goes one of three ways:
+
+- **It matters to the feature or the change**: it is part of the work. Fix it on the branch, with a
+  test when it is behaviour, and name it in the pull request. A problem in the behaviour the branch
+  builds, or in the code it writes or changes, is the branch's to fix, whichever task finds it.
+- **It does not matter enough to fix**: drop it. It goes nowhere: not in the inbox, not in
+  `rulings.md`, not in the pull request.
+- **It meets all three tests below**: add a note.
+
+The three tests:
+
+1. **It is important**: users lose data, time, or trust, a security guard is missing, or every later
+   change will pay for it. A name, a style preference, a function near a size limit, or a missing
+   test of code the branch did not change is not.
+2. **It needs the human**: fixing it takes their choice, a product direction, a tradeoff, a decision
+   to change, or work they have not approved.
+3. **It clearly falls outside the feature or change**: fixing it on the branch would grow the scope
+   the human approved, so it waits for them to start it. When in doubt, it is not a note: fix it on
+   the branch when the work needs it, or drop it.
+
+A note is written:
 
 - marked `[agent]`, then with the slug of the feature or change the note is about;
-- under the category that fits, or a new one named like the others; a review's minor finding, left
-  unfixed, goes under **Deferred fixes**;
+- under the category that fits, or a new one named like the others;
 - with `ura note <text> --agent --about <slug> --category <name>`, or by hand, in its own worktree
   and branch, never in the default branch's checkout: the note is committed alone with
   `chore: add "<note>" to the inbox`, and reaches the default branch with the branch's merge.
 
-Then it names the note in its step's report, and in the pull request when it opens one.
+Then the agent names the note in its step's report, and in the pull request when it opens one.
