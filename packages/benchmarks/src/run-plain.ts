@@ -8,7 +8,13 @@ import { git } from "./git.ts";
 import type { Outcome } from "./record.ts";
 import type { Suite } from "./suite.ts";
 import { runFolderPath, writeRun } from "./recorder.ts";
-import { baseRecord, copyTranscripts, nextRunFolder, requireApproval } from "./run-common.ts";
+import {
+  baseRecord,
+  copyTranscripts,
+  nextRunFolder,
+  requireApproval,
+  stateOf,
+} from "./run-common.ts";
 import { isUpstream } from "./loop.ts";
 import { runSession, stepOf } from "./session.ts";
 
@@ -33,6 +39,7 @@ export async function runPlain(
   const approvedBy = requireApproval(options.approvedBy);
   const { case: found, suite } = options;
   const started = deps.now();
+  const repository = await stateOf(deps.repository);
   const work = mkdtempSync(join(tmpdir(), "benchmarks-plain-"));
   const sandbox = await deps.prepareSandbox({
     case: found,
@@ -75,12 +82,13 @@ export async function runPlain(
     writeRun(folder, {
       diff: await finalDiff(sandbox.repo, sandbox.base),
       record: {
-        ...(await baseRecord(deps, {
+        ...(await baseRecord({
           adapter,
           approvedBy,
           effort: suite.effort,
           guidelines: suite.human.commit,
           model: suite.model,
+          repository,
           skill: { commit: "none", dirty: false },
           started,
           task: { id: found.task, image: found.image, source: found.source },

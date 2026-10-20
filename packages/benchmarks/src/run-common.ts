@@ -56,19 +56,18 @@ export function copyTranscripts(
 }
 
 /** The record's fields that do not depend on the arm. */
-export async function baseRecord(
-  deps: Deps,
-  options: {
-    adapter: Adapter;
-    approvedBy: string;
-    effort: string;
-    guidelines: string;
-    model: string;
-    skill: Commit;
-    started: Date;
-    task: RunRecord["task"];
-  },
-): Promise<
+export async function baseRecord(options: {
+  adapter: Adapter;
+  approvedBy: string;
+  effort: string;
+  guidelines: string;
+  model: string;
+  /** The repository's state as the run started, read with `stateOf`. */
+  repository: Commit;
+  skill: Commit;
+  started: Date;
+  task: RunRecord["task"];
+}): Promise<
   Omit<RunRecord, "blocked" | "ended" | "models" | "outcome" | "steps" | "transcripts" | "urls">
 > {
   return {
@@ -79,7 +78,7 @@ export async function baseRecord(
       version: (await options.adapter.version()) ?? "unknown",
     },
     human: { guidelines: options.guidelines, model: options.model },
-    repository: await stateOf(deps.repository),
+    repository: options.repository,
     skill: options.skill,
     started: options.started.toISOString(),
     task: options.task,
