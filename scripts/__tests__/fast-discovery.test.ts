@@ -26,7 +26,8 @@ try {
   const specs=await vitest.getRelevantTestSpecifications();
   const graph=vitest.projects.flatMap(project=>[...project.vite.moduleGraph.idToModuleMap.keys()]);
   if (graph.some(path=>/App\\.tsx|createApp|server[\\/](?:src[\\/])?(?:testing|app)|binding[\\/]index\\.js|\\.node$/.test(path))) throw new Error("application/native dependency");
-  if (specs.length!==1 || !specs[0].moduleId.endsWith("composer-images.test.tsx")) throw new Error("wrong focused selection");
+  const found=specs.map(spec=>spec.moduleId.split("/src/").pop()).sort().join(",");
+  if (found!=="__focused__/composer.test.tsx,__tests__/composer-images.test.tsx") throw new Error("wrong focused selection: "+found);
   const result=await vitest.runTestSpecifications(specs);
   if (result.unhandledErrors.length || result.testModules.some(module=>!module.ok())) process.exitCode=1;
 } finally { await vitest.close(); }

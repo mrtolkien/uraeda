@@ -23,7 +23,7 @@ export const families = {
     inputs: [...SOURCES.map((path) => `${path}{,/**}`), "packages/binding/**", "fixtures/**"],
     native: true,
     root: "packages/binding",
-    tests: ["index.test.ts", "contracts.test.ts"],
+    tests: ["contracts.test.ts"],
   },
   package: {
     inputs: ["packages/uraeda/**"],
@@ -48,7 +48,7 @@ export const families = {
     native: false,
     root: "packages/web",
     tests: [
-      "src/__tests__/composer.test.tsx",
+      "src/__focused__/composer.test.tsx",
       "src/__tests__/composer-images.test.tsx",
       "src/__tests__/drop.test.ts",
       "src/__tests__/draft-text.test.ts",

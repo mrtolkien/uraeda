@@ -87,3 +87,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: Tasks 2 through 7. Raw LCOV files are temporary diagnostics; this summary and the
   inventory are durable. Focused test/helper directories must be excluded from product coverage
   consistently with existing test/helper directories.
+
+## R7: Run fast's TypeScript checks beside its native and Rust chain
+
+- **Decision**: `scripts/fast-check.ts` runs `vp check` (and `specs:check`) concurrently with the
+  ordered native/Rust chain (`binding:touch`, `cargo fmt`, `clippy`, `nextest`), waits for both, and
+  fails with the first error. Vitest still starts only after both succeed.
+- **Rationale**: The core pilot's measured sequential command took 52.18 to 76.50 seconds warm and
+  59.98 seconds cold for `uraeda-core` alone; reverse dependents add about 10 seconds. The type
+  check reads committed declarations and needs no native output, so its 9 to 14 seconds overlapped
+  nothing. Concurrent, the same edit with `uraeda-core`, `uraeda-cli` and `uraeda-lsp` took 46.41 to
+  50.73 seconds under a load average above 60. No check, test, or package was removed.
+- **Alternatives considered**: Dropping clippy's `--all-targets`, running fewer Rust packages, or
+  splitting the Cargo build directory, which delete protection or defeat the seeded cache.
+- **If wrong**: Interleaved output from the two chains is harder to read; prefix it or move the type
+  check after the native build, then re-measure SC-002.
+- **Where**: Task 2's core pilot; Task 7's edit matrix re-measures it.
+
+## R8: Fast's binding and Composer membership follow the pilots' actual files
+
+- **Decision**: Fast's binding family runs `packages/binding/contracts.test.ts` only; the legacy
+  `index.test.ts`, `repositories.test.ts`, `stories.test.ts` and `test-utils.test.ts` stay in ready.
+  The UI family's anticipated `src/__tests__/composer.test.tsx` is replaced by
+  `src/__focused__/composer.test.tsx`. The discovery test's `ComposerImages.tsx` case now expects
+  both suites that import it, the new focused Composer suite included.
+- **Rationale**: The contracts suite proves the binding's transport (camelCase shape, a real write
+  and reload, synchronous throws, rejection codes) in about 0.2 seconds; the legacy suite's watcher
+  and git cases remain detailed ready coverage. The focused Composer suite imports
+  `ComposerImages.tsx` through `Composer.tsx`, so excluding it would be the wrong selection.
+- **Alternatives considered**: Keeping `index.test.ts` in fast, which adds its git fixtures and
+  10-second watcher bound to every core edit.
+- **If wrong**: Add a legacy binding case to fast only with its measured cost.
+- **Where**: `scripts/fast-selection.ts`, `scripts/__tests__/fast-discovery.test.ts`.
