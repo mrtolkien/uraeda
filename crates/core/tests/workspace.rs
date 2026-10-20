@@ -115,8 +115,7 @@ fn priority_entries_name_their_draft() {
 /// The edge case of the spec: a merged feature whose branch still exists is done, once.
 #[test]
 fn a_merged_feature_with_its_branch_is_done() {
-    let repo = repo();
-    repo.git(&["merge", "--quiet", "--no-edit", FOLDER]);
+    let repo = finished_and_merged();
 
     let workspace = workspace(&repo);
 
@@ -251,6 +250,7 @@ fn a_record_only_on_origin_is_merged() {
 fn a_merged_folder_is_still_done() {
     let repo = repo();
     merge(&repo, FOLDER);
+    repo.delete_branch(FOLDER);
 
     let feature = feature(&repo, FOLDER);
 

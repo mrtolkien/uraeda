@@ -117,6 +117,7 @@ fn merged_features_are_done() {
     let repo = repo_with_priorities();
     for folder in ["2026-10-10-stack-decision", "2026-10-10-cli-core"] {
         feature(&repo, folder, &[("proposal.md", proposal())]);
+        finish(&repo, folder);
         repo.git(&["merge", "--quiet", "--no-edit", folder]);
     }
     repo.push("2026-10-10-stack-decision");

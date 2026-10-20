@@ -38,6 +38,9 @@ pub fn run(
         switch,
     ) {
         Ok(started) => {
+            for (from, to) in &started.moves {
+                println!("moved   {from} -> {to}");
+            }
             println!(
                 "on {}: committed \"{}\"",
                 started.default_branch, started.start_subject
@@ -46,10 +49,6 @@ pub fn run(
                 Some(worktree) => println!("created branch {} in {worktree}", started.branch),
                 None => println!("created branch {}", started.branch),
             }
-            for (from, to) in &started.moves {
-                println!("moved   {from} -> {to}");
-            }
-            println!("committed \"{}\"", started.proposal_subject);
             let next = match kind {
                 Kind::Feature => "discovery",
                 Kind::Change => "change",

@@ -1,7 +1,6 @@
 //! A change typed as a text: its title, its proposal, and the writes of its proposal and images.
 
 use std::fs;
-use std::path::Path;
 
 use crate::actions::attach;
 use crate::images::Encoded;
@@ -90,26 +89,42 @@ fn trim_ends(text: &str) -> &str {
 
 impl Start<'_> {
     /// Writes a typed change's images, `image-1`, `image-2`, and so on, in its folder's `images/`,
-    /// then its proposal linking them, in `target_root`.
+    /// then its proposal linking them, on the default branch.
     pub(super) fn write_text(
         &self,
         typed: &Typed,
         plan: &Plan,
         images: &[Encoded],
-        target_root: &Path,
-        done: &[String],
     ) -> Result<(), StartError> {
-        let left = || vec![plan.write_left.clone(), plan.commit_left()];
+        let left = || {
+            vec![
+                plan.write_left.clone(),
+                plan.commit_left(self.default),
+                plan.branch_left(self.switch),
+            ]
+        };
         let mut names = Vec::new();
         for (index, image) in images.iter().enumerate() {
             let base = format!("image-{}", index + 1);
-            let name = attach::save(target_root, &plan.destination, &base, image)
-                .map_err(|error| partial(done, left(), error))?;
+            let name =
+                attach::save(self.root, &plan.destination, &base, image).map_err(|error| {
+                    // Nothing saved yet: a plain refusal, which switches back.
+                    if names.is_empty() {
+                        StartError::Refused(error.to_string())
+                    } else {
+                        let done = [format!(
+                            "the images {} in {}/images/",
+                            names.join(", "),
+                            plan.destination
+                        )];
+                        partial(&done, left(), error)
+                    }
+                })?;
             names.push(name);
         }
-        let folder = target_root.join(&plan.destination);
+        let folder = self.root.join(&plan.destination);
         fs::create_dir_all(&folder)
             .and_then(|()| fs::write(folder.join("proposal.md"), typed.proposal(&names)))
-            .map_err(|error| partial(done, left(), error))
+            .map_err(|error| partial(&[], left(), error))
     }
 }

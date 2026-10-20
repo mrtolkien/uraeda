@@ -213,12 +213,16 @@ fn a_draft_starts_a_feature() {
         })
     );
     assert!(proposal.exists());
+    assert!(!path.exists());
     assert_eq!(
         repo.subjects("main")[0],
         "chore(codex-runtime): start Codex runtime"
     );
-    assert_eq!(repo.subjects(folder)[0], "chore(codex-runtime): proposal");
-    assert_eq!(repo.hook_runs(), 2);
+    assert_eq!(
+        repo.subjects(folder)[0],
+        "chore(codex-runtime): start Codex runtime"
+    );
+    assert_eq!(repo.hook_runs(), 1);
 
     let created = session.server_requests("window/workDoneProgress/create");
     assert_eq!(created.len(), 1);
@@ -844,12 +848,12 @@ fn a_failing_hook_lists_the_files_written() {
     let error = session
         .command("uraeda.start", json!({ "uri": uri(&path) }))
         .unwrap_err();
-    // The start commit failed: the priorities are written, the draft is where it was.
+    // The start commit failed: the priorities are written, the draft is in its dated folder.
     assert_eq!(
         error.data.unwrap()["written"],
-        json!([abs(&repo.path().join(PRIORITIES))])
+        json!([abs(&repo.path().join(PRIORITIES)), abs(&path)])
     );
-    assert!(path.exists());
+    assert!(!path.exists());
 }
 
 /// A refusal before any write lists nothing.

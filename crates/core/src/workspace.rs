@@ -476,16 +476,16 @@ impl Workspace {
             .into_iter()
             .flatten()
             .collect();
+        let branches = git.branches()?;
         let reading = Reading {
             git,
-            merged: Merged::read(&reader, &tips, only),
+            merged: Merged::read(&reader, &tips, only, &branches),
             reader,
             root,
             main_root: git.main_root(),
             checked_out,
             only,
         };
-        let branches = git.branches()?;
         let mut features = reading.working_tree_features(current_branch.as_deref());
         reading.add_branch_features(&branches, &mut features);
         let mut features: Vec<Feature> = features.into_values().collect();

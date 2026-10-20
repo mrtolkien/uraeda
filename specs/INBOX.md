@@ -2,13 +2,6 @@
 
 ## Quickfixes
 
-- Fix " ├╴ Link to non-existent document '/specs/2026-10-13-image-attachments/proposal.md' Marksman
-  (2)"
-  - Happens when there's a feature in a worktree: we should not link from main to worktree-only
-    files
-  - There's no simple fix atm, because the file is only in the worktree: we should likely change the
-    commit/worktree flow a bit
-
 ## UI
 
 - Home does not use the same icons as the sidebar: this is clearly AGAINST the ui coherence decision

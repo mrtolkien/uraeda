@@ -33,8 +33,9 @@ Without it, the file names and their `status` fields still tell where each featu
 - `images/`, in a feature's, a change's, or a draft's folder: the images a human attached, as WebP
   or animated GIF, linked from the folder's files with `![alt](images/name.webp)`, and deleted with
   a feature's or a change's folder when it is finished
-- `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started, on the branch of the
-  same name until it is finished into its record, with these files, in workflow order:
+- `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started: its proposal is on
+  the default branch from the start, and the rest on the branch of the same name until it is
+  finished into its record, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human
   - `discovery-NN.md`: the agent's investigation of the code and outside sources, with the options
     found, never decisions

@@ -131,9 +131,8 @@ enum Origin<'a> {
 pub(super) struct Plan {
     /// Whether the draft is a postponed folder rather than a file.
     pub(super) folder_draft: bool,
-    /// Whether the proposal commit takes the whole destination folder: a postponed folder's, or a
-    /// typed change's, its images included.
-    pub(super) whole_folder: bool,
+    /// The draft's file or postponed folder, for a start from a draft.
+    pub(super) draft: Option<String>,
     pub(super) files: Vec<String>,
     /// The draft's files that are committed.
     pub(super) tracked: Vec<String>,
@@ -146,7 +145,6 @@ pub(super) struct Plan {
     /// `PRIORITIES.md` with the entry moved to **Now**.
     pub(super) priorities: String,
     pub(super) start_subject: String,
-    pub(super) proposal_subject: String,
     /// `specs/<folder>`, or `specs/changes/<folder>` for a change.
     pub(super) destination: String,
     /// What puts the proposal in `destination`, as the step left to do by hand.
@@ -154,17 +152,27 @@ pub(super) struct Plan {
 }
 
 impl Plan {
-    /// The proposal commit, as the step left to do by hand.
-    pub(super) fn commit_left(&self) -> String {
-        if self.whole_folder {
-            format!(
-                "commit {}/ as \"{}\"",
-                self.destination, self.proposal_subject
-            )
+    /// The start commit, as the step left to do by hand: with the draft's removal, when it was
+    /// committed.
+    pub(super) fn commit_left(&self, default: &str) -> String {
+        let removal = match &self.draft {
+            Some(draft) if !self.tracked.is_empty() => format!(", the removal of {draft},"),
+            _ => String::new(),
+        };
+        format!(
+            "commit specs/PRIORITIES.md{removal} and {}/ on {default} as \"{}\"",
+            self.destination, self.start_subject
+        )
+    }
+
+    /// The branch, as the step left to do by hand.
+    pub(super) fn branch_left(&self, switch: bool) -> String {
+        if switch {
+            format!("create the branch {}", self.branch)
         } else {
             format!(
-                "commit {}/proposal.md as \"{}\"",
-                self.destination, self.proposal_subject
+                "create the branch {} in .worktrees/{}",
+                self.branch, self.folder
             )
         }
     }
@@ -216,11 +224,13 @@ impl Start<'_> {
         let folder_draft = matches!(&origin, Origin::Draft(drafted) if drafted.folder_draft);
         Ok(Plan {
             folder_draft,
-            whole_folder: folder_draft || matches!(origin, Origin::Text(..)),
+            draft: match &origin {
+                Origin::Draft(drafted) => Some(drafted.draft.to_string()),
+                Origin::Text(..) => None,
+            },
             files,
             tracked,
             start_subject: format!("chore({slug}): start {name}"),
-            proposal_subject: format!("chore({slug}): proposal"),
             write_left,
             destination,
             branch: folder_branch(self.kind, &folder),
