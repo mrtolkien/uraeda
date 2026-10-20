@@ -3,6 +3,7 @@
 import { readInbox, readPriorities, readWorkspace, refreshPullRequests } from "uraeda-binding";
 import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { beforeAll, expect, test } from "vite-plus/test";
+import { homeFeatures } from "../../src/home/features.ts";
 import {
   fakeGh,
   FEATURE_STEPS,
@@ -81,17 +82,22 @@ test("empty is a project just set up", async () => {
   expect(categories.flatMap(({ notes }) => notes)).toEqual([]);
 });
 
-test("each of broken's features is flagged with a problem ura check reports", async () => {
+test("each of broken's features shows on Home with a problem ura check reports", async () => {
   const { features } = await readWorkspace(projects.broken);
+  const invalid = homeFeatures(features).invalid.map(({ folder }) => folder);
 
   expect(features.length).toBeGreaterThan(0);
-  for (const { folder, problems } of features) {
+  for (const { folder, step, title } of features) {
+    // Each on its own branch, unmerged, with a title of its own: a feature merged on `main` is done,
+    // which Home shows without its problems.
+    expect(step.name, folder).not.toBe("done");
+    expect(title, folder).toBe(`Broken ${folder.replace("2026-10-19-broken-", "")}`);
     // Its spec misses a section, a warning of `ura check`, which the app leaves out of a feature's
     // problems: it shows as a feature like any other (R15).
     if (folder === "2026-10-19-broken-spec") {
       continue;
     }
-    expect(problems.length, folder).toBeGreaterThan(0);
+    expect(invalid, folder).toContain(folder);
   }
 });
 

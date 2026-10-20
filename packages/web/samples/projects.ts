@@ -65,19 +65,24 @@ function buildSample(repo: string) {
 
 /**
  * The broken project: set up, then one feature per file of `fixtures/broken/`, its proposal and
- * that file, each with the problem `ura check` reports in it.
+ * that file, each with the problem `ura check` reports in it. Each is on a branch of its own, as a
+ * feature at work is: one merged on `main` would be done, which shows without its problems.
  */
 function buildBroken(repo: string) {
   initRepository(repo);
   setUp(repo);
   const source = fixture("broken");
   for (const name of readdirSync(source)) {
-    const folder = join(repo, "specs", `2026-10-19-broken-${name.replace(/\.md$/, "")}`);
-    mkdirSync(folder, { recursive: true });
-    writeFileSync(join(folder, "proposal.md"), proposal("Broken"));
-    copyFileSync(join(source, name), join(folder, name));
+    const file = name.replace(/\.md$/, "");
+    const folder = `2026-10-19-broken-${file}`;
+    // Copied byte for byte, in the project's own checkout: one fixture is not UTF-8.
+    git(repo, "switch", "--quiet", "--create", folder, "main");
+    mkdirSync(join(repo, "specs", folder));
+    writeFileSync(join(repo, "specs", folder, "proposal.md"), proposal(`Broken ${file}`));
+    copyFileSync(join(source, name), join(repo, "specs", folder, name));
+    commitAll(repo, `docs(${folder}): proposal`);
   }
-  commitAll(repo, "chore: broken features");
+  git(repo, "switch", "--quiet", "main");
 }
 
 /**

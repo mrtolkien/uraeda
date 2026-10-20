@@ -20,7 +20,13 @@ export function agentState(feature: Feature, running: Array<string>) {
  * The features as home sorts them: waiting on the human, on an agent, with problems in their files,
  * and merged, latest first.
  */
-export function homeFeatures(features: Array<Feature>) {
+export function homeFeatures<
+  F extends {
+    folder: string;
+    problems: Array<unknown>;
+    step: Pick<Feature["step"], "name" | "waitsOn">;
+  },
+>(features: Array<F>) {
   return {
     agents: features.filter(
       (f) => f.step.waitsOn === "agent" && f.step.name !== "none" && !f.problems.length,

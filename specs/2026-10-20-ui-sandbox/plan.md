@@ -690,7 +690,9 @@ Build each missing step from the typed commits its step reads, on top of `fixtur
 "sample". The spec's sample feature with stories keeps the fake Storybook's preview decision. Pull
 request states come from Task 2's fake `gh`, extended with the draft and changes-requested ones.
 "empty" is `specs/` as setup writes it. "broken" is a repository holding
-[`fixtures/broken/`](/fixtures/broken/)'s files as features. Every commit is dated with `dated`.
+[`fixtures/broken/`](/fixtures/broken/)'s files as features, each on its own branch
+`2026-10-19-broken-<file>`, titled `Broken <file>`: merged on `main`, a feature is done, and Home
+shows a done feature without its problems. Every commit is dated with `dated`.
 
 - [x] **Step 4: Run the project's validation**
 
