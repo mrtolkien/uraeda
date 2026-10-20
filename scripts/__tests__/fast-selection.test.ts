@@ -228,3 +228,10 @@ test.each([["workspace"], ["uraeda-core"], ["uraeda-binding", "uraeda-core"]])(
     }
   },
 );
+test("the focused UI project keeps the web tests' isolation and page settings", () => {
+  const ui = fastConfig(selectFast([change("packages/web/src/Composer.tsx")])).test.projects[0];
+  expect(ui.test?.setupFiles).toContain(join(ROOT, "packages/binding/test-setup.ts"));
+  expect(ui.test?.environmentOptions).toEqual({
+    happyDOM: { settings: { disableIframePageLoading: true }, url: "http://127.0.0.1:4310/" },
+  });
+});

@@ -1,7 +1,7 @@
 import { globSync } from "node:fs";
 import { resolve } from "node:path";
 import type { TestProjectInlineConfiguration } from "vite-plus";
-import { uiTransforms } from "./packages/web/vite.transforms.ts";
+import { uiTestOptions, uiTransforms } from "./packages/web/vite.transforms.ts";
 import { testWorkers } from "./scripts/test-policy.ts";
 import { families, type Family, type FastSelection, matches } from "./scripts/fast-selection.ts";
 
@@ -32,17 +32,18 @@ export function fastConfig(selection: FastSelection) {
           extends: false,
           plugins: name === "ui" ? uiTransforms() : [],
           root: resolve(family.root),
+          // The UI's are the web configuration's own settings, isolation included.
           test: {
-            env: { TZ: "UTC" },
-            environment: name === "ui" ? "happy-dom" : "node",
+            ...(name === "ui"
+              ? uiTestOptions()
+              : {
+                  env: { TZ: "UTC" },
+                  environment: "node",
+                  setupFiles: family.native ? [resolve("packages/binding/test-setup.ts")] : [],
+                  testTimeout: 20_000,
+                }),
             include: family.tests,
             name: `fast-${name}`,
-            setupFiles: family.native
-              ? [resolve("packages/binding/test-setup.ts")]
-              : name === "ui"
-                ? [resolve("packages/web/src/__tests__/setup.ts")]
-                : [],
-            testTimeout: 20_000,
           },
         };
       }),
