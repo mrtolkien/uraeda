@@ -104,6 +104,25 @@ fn in_fish_never_overwrites_a_file_of_the_user() {
 }
 
 #[test]
+fn in_fish_never_overwrites_a_file_it_cannot_read_as_text() {
+    let repo = TestRepo::new();
+    let file = repo.home().join(FISH_FILE);
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, b"# caf\xe9\ncomplete -c ura -f\n").unwrap();
+
+    let output = install(&repo, "fish", &["--completions"]);
+
+    assert_eq!(
+        output.stdout,
+        format!(
+            "kept    ~/{FISH_FILE}: not written by ura, add `{}` to it\n",
+            FISH_LINE.trim()
+        )
+    );
+    assert_eq!(fs::read(&file).unwrap(), b"# caf\xe9\ncomplete -c ura -f\n");
+}
+
+#[test]
 fn in_zsh_names_the_line_to_add_and_writes_nothing() {
     let repo = TestRepo::new();
 
@@ -130,6 +149,33 @@ fn in_another_shell_says_which_ones_it_sets_up() {
     );
     assert_eq!(entries(&repo.home()), 0);
     assert_eq!(output.code, 0);
+}
+
+#[test]
+fn without_shell_names_what_is_missing() {
+    let repo = TestRepo::new();
+
+    let output = install(&repo, "", &["--completions"]);
+
+    assert_eq!(
+        output.stdout,
+        "note    Tab completion: SHELL is not set, so ura cannot tell fish from zsh\n"
+    );
+    assert_eq!(output.code, 0);
+}
+
+#[test]
+fn update_with_nothing_installed_still_sets_completion_up() {
+    let repo = TestRepo::new();
+
+    let output = install(&repo, "fish", &["--user", "--update", "--completions"]);
+
+    assert_eq!(
+        output.stdout,
+        format!("nothing to update: ura installed no skill in ~/\ncreated ~/{FISH_FILE}\n"),
+        "{}",
+        output.stderr
+    );
 }
 
 #[test]

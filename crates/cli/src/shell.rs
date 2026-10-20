@@ -56,6 +56,10 @@ pub fn set_up(home: &Path) -> Result<(), String> {
             println!("note    Tab completion in zsh: add `{ZSH_LINE}` to ~/.zshrc, after compinit");
             Ok(())
         }
+        (Shell::Other, name) if name.is_empty() => {
+            println!("note    Tab completion: SHELL is not set, so ura cannot tell fish from zsh");
+            Ok(())
+        }
         (Shell::Other, name) => {
             println!("note    Tab completion: ura sets it up in fish and zsh, not in {name}");
             Ok(())
@@ -66,9 +70,13 @@ pub fn set_up(home: &Path) -> Result<(), String> {
 fn write_fish(home: &Path) -> Result<(), String> {
     let file = fish_file(home);
     let path = shown(&file, home);
-    match fs::read_to_string(&file) {
-        Ok(text) if text.trim() == FISH_LINE => println!("kept    {path}"),
+    // Read as bytes: a file that is not UTF-8 is still someone's, never overwritten.
+    match fs::read(&file) {
+        Ok(bytes) if bytes.trim_ascii() == FISH_LINE.as_bytes() => println!("kept    {path}"),
         Ok(_) => println!("kept    {path}: not written by ura, add `{FISH_LINE}` to it"),
+        Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
+            return Err(format!("{path}: {error}"));
+        }
         Err(_) => {
             let folder = file.parent().unwrap_or(home);
             fs::create_dir_all(folder)
@@ -81,7 +89,8 @@ fn write_fish(home: &Path) -> Result<(), String> {
 }
 
 /// What a terminal install offers: in fish, without its file, to write it; in zsh, the line to
-/// add, since ura cannot tell whether `~/.zshrc` has it.
+/// add, since ura cannot tell whether `~/.zshrc` has it. Neither looks for a package's script:
+/// a fish file of the user's own only shadows it, with the same script.
 pub fn offer(home: &Path) -> Result<(), String> {
     match shell().0 {
         Shell::Fish if !fish_file(home).exists() => ask(home),
@@ -91,7 +100,7 @@ pub fn offer(home: &Path) -> Result<(), String> {
 }
 
 /// The question a terminal install asks in fish, yes first.
-pub fn picker() -> Picker {
+fn picker() -> Picker {
     let items = vec![
         Item {
             label: "Yes".to_string(),
