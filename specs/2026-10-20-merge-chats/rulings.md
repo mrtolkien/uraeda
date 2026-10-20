@@ -737,3 +737,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: keeping the old ID: nothing depends on it.
 - **If wrong**: `chatRowsOf` in `packages/server/src/fate/needs-you.ts`.
 - **Where**: the final review's fixes.
+
+## R43: The failed-attach test sends a message after the attach failed
+
+- **Decision**: "a failed attach leaves the session without a workflow" in
+  `packages/server/src/__tests__/session-moves.test.ts` goes on: the session's next message runs as
+  a chat, with no opening, in the main checkout, and no change's folder reads as working while it
+  runs.
+- **Rationale**: the final review asked the test to catch a swap of the cache write and
+  `live.folder` in `Sessions.attach`. The session's process stays open across the failed attach, so
+  the directory it opened in cannot tell: `working()` during the turn does, and the swap failed it.
+- **Alternatives considered**: ending the process first: the session then leaves memory, and comes
+  back from its row, without the swapped folder.
+- **If wrong**: the test.
+- **Where**: the final review's fixes.
