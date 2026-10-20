@@ -33,7 +33,7 @@ const styles = stylex.create({
 
 type SessionData = NonNullable<ReturnType<typeof useSession>>;
 
-/** "Last run: Plan · done · 12 min": the session's latest turn. */
+/** "Last run: Plan · done · 12 min": the session's latest turn, a step, a retry, or a message. */
 function LastRun({ id }: { id: string }) {
   const turn = useTurn(id, true);
   if (!turn) {
@@ -44,7 +44,7 @@ function LastRun({ id }: { id: string }) {
       ? stepLabel(turn.step ?? "")
       : turn.kind === "allow"
         ? "Retry"
-        : "Chat";
+        : "Message";
   // How long an ended turn ran; a running one's time would stand still between updates.
   const time =
     turn.startedAt && turn.endedAt

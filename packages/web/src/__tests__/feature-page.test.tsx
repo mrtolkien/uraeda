@@ -558,6 +558,21 @@ test("a run that ends before a human gate needs attention, and opens its session
   expect(await screen.findByText("The agent stopped before a human gate.")).toBeTruthy();
 });
 
+// US1 of merge chats: the word "chat" leaves the UI; a turn the human sent is a message.
+test("a session's last run sent by the human reads as a message", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const session = await fake.sessions.featureSession(repo, CLI);
+  fake.adapter.script([{ text: "Read.", type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, session.id, { text: "Read the plan." });
+  await fake.sessions.settled(turn);
+
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+
+  await waitFor(() => expect(sessionsCard().getByText(/^Last run: Message · done/)).toBeTruthy());
+  expect(sessionsCard().queryByText(/Chat/)).toBeNull();
+});
+
 test("a working agent shows Working, Stop, and its run, and Stop stops it", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
