@@ -99,6 +99,19 @@ test("Start the change from the agent's offer", async () => {
   );
 });
 
+/** Review: an agent that writes CRLF line ends offers a card too. */
+test("an offer with CRLF line ends shows its card", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo, [offer().replaceAll("\n", "\r\n")]);
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+
+  const shown = await card();
+
+  const proposal = shown.getByRole("textbox", { name: "Proposal" }) as HTMLTextAreaElement;
+  expect(proposal.value.replaceAll("\r\n", "\n")).toBe(PROPOSAL);
+});
+
 /** The card keeps its height while its slug loads: the session opened at its end shows its buttons. */
 test("the slug field shows, empty, while its slug loads", async () => {
   const repo = fixtureRepo();

@@ -19,6 +19,7 @@ import {
   applies,
   closeOffer,
   lastOffer,
+  offerBody,
   OFFER_LANGUAGE,
   type Offer,
   offerKind,
@@ -134,7 +135,7 @@ export function useOfferPlugins(
             fencePlugin({
               language: OFFER_LANGUAGE,
               read: ({ code, meta }) =>
-                offerKind(meta) === offer.kind && code.trim() === offer.body
+                offerKind(meta) === offer.kind && offerBody(code) === offer.body
                   ? { body: offer.body, kind: offer.kind }
                   : undefined,
               render: (data) => <MessageOffer at={key} offer={data as Offer} scope={shown} />,
