@@ -24,6 +24,9 @@ const packageOptions: Record<
 
 /** Inline projects never inherit a package's production startup or native freshness imports. */
 export function fastConfig(selection: FastSelection) {
+  // Before the plugins are made: the stylex plugin reads it, and without it keeps a dev server's
+  // timer, which holds the process open after the tests end.
+  process.env.VITEST = "true";
   const selected = (Object.keys(families) as Array<Family>).filter(
     (name) =>
       selection.families.includes(name) ||

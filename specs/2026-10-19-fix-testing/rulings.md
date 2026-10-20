@@ -657,6 +657,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
      in place of an 8 s kill; `fast-guards.test.ts` runs `runFocused` over a stub family to prove
      the unproven-family, failed-module and unhandled-error guards (each failed its case with the
      guard disabled).
+  7. `runFocused` (item 6) first set `VITEST` after `fastConfig` had made the stylex plugin, which
+     reads it: a complete `vp run fast` for a UI edit then never exited (its tests passed, then the
+     process idled 10 minutes on the plugin's dev-server timer). `fastConfig` sets it first, as
+     before the refactor; a scripts case fails without it, and the run exits in 35 s.
 - **Rationale**: Fast must not pass what `ready` fails, nor pass with nothing run.
 - **Alternatives considered**: Deriving the cache inputs from the families (would narrow `ready`'s
   cache inputs); loading each package's configuration in fast (loads the native freshness import).

@@ -139,7 +139,6 @@ export async function runFocused(
   selection: Pick<FastSelection, "families">,
   graph = false,
 ): Promise<number> {
-  process.env.VITEST = "true";
   const vitest = await createVitest(
     { config: false, related: config.related, watch: false },
     { test: config.test },
