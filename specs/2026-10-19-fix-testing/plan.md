@@ -513,23 +513,57 @@ approved scope are reported.
 full file/history/image matrix; binding and callers prove representative mapping rather than
 duplicate every row.
 
-- [ ] **Step 1: Audit assertion adequacy against the approved guarantees.** Retain distinct
+- [x] **Step 1: Audit assertion adequacy against the approved guarantees.** Retain distinct
       merge/squash shapes, exact bytes, resource bounds, permission scope, queue/lifecycle
       transitions, image content/orientation/delays, and no-write refusal effects. Add a rollback
       case that fails after partial staging, rather than only before the temporary directory can be
       made.
-- [ ] **Step 2: Run preserved guards and the new rollback case.** Identify the first specific
+- [x] **Step 2: Run preserved guards and the new rollback case.** Identify the first specific
       failing outcome; do not weaken any old guard merely to get green. Controlled input must
       isolate the intended refusal, including oversize before reading and chunked bounds.
-- [ ] **Step 3: Make targeted repairs and remove only established duplication/incidental
+- [x] **Step 3: Make targeted repairs and remove only established duplication/incidental
       expectations.** Record every removed/skipped/loosened case and its retained guarantee. Keep
       cheap core tables. Do not restore the failed all-flow deletion strategy or introduce a blanket
       ban on text/count/size assertions.
-- [ ] **Step 4: Run affected Rust/server tests, native contracts, and selective guard faults.**
+- [x] **Step 4: Run affected Rust/server tests, native contracts, and selective guard faults.**
       Break comment preservation, permission narrowing, body-limit enforcement, and history lookup
       in isolation; each owning check must fail, then restore. Collect comparable product-only
       coverage for changed areas; record unexecuted code and what asserts its behavior.
-- [ ] **Step 5: Commit.** `test(fix-testing): preserve independent guard assertions`.
+- [x] **Step 5: Commit.** `test(fix-testing): preserve independent guard assertions`.
+
+Task 4 evidence (2026-10-20, 32-thread Linux machine shared with other checkouts' runs, load average
+25 to 35):
+
+- Audit: the read guards hold their contracts (R22). Added and strengthened: the install rollback
+  after partial staging (R20), with `ura_with_file_limit` in `crates/cli/tests/common/mod.rs`; the
+  chunked upload's read bound, the guard's refusal texts on both cross-site cases, and the no-file
+  refusal (R21). Nothing removed, skipped, or loosened.
+- Rollback: the new case passes on the product as it is. With the copy's cleanup removed, it fails
+  (`left: 1, right: 0`, the `uraeda.ura-tmp` folder left in `.agents/skills`) while the old
+  `a_failed_first_install_leaves_nothing` still passes.
+- Faults, each restored after its run: removing a name dropped the comment and line end before it
+  (`removing_a_name_takes_its_comments_with_it`); a replaced value lost its comment
+  (`keeps_windows_line_ends`, `# usual` missing); a command's rule broadened to `Bash` (2 adapter
+  cases, 9 session cases); a command with `*` given a rule (3 cases); path escaping skipped (3 rule
+  rows); the body limit removed (both limit cases received `refused: The body holds no file.`); a
+  chunked body read whole before refusing (only the strengthened case:
+  `expected 65 to be less than or equal to 24`); the no-file check skipped (the new case:
+  `Cannot read properties of undefined`); history read on first parents only
+  (`a_merged_revision_keeps_the_review_it_answers`: `None`); the review read at the tip (3
+  `answered.rs` cases).
+- Runs: `cargo fmt --check`, `vp check`, clippy (`uraeda-core`, `uraeda-cli`, all targets) pass;
+  nextest `uraeda-core` and `uraeda-cli` 965 passed, 9 skipped; server attach, adapter, sessions,
+  and preview suites 221; binding contracts 5. Each changed case passes alone by name. `vp run fast`
+  selected `uraeda-cli` and the attach suite (209 Rust tests, 16 Vitest) and passed in about 36 s at
+  load 32. Deferred to ready: application journeys, browser phone/desktop, production builds/package
+  smoke, full workspace/editor checks.
+- Coverage (product files of the changed tests, on demand): `attach.ts` from its suite, 70% of lines
+  before the no-file case; its one line no test ran was that refusal, now asserted; lines 50 to 74
+  (`/inbox/note-image`) are run by `inbox.test.ts`. `crates/core/src/actions/install.rs` from
+  `install.rs`: the cleanup line was already counted as run, by the old case, whose staging folder
+  never exists, so line coverage could not show the gap. Not run by `install.rs`: a stale temporary
+  file (170), an update writing a missing file (281 to 283), a manifest naming a missing file (323),
+  and a link that would not reach `.agents` (382 to 385). The capped run writes no profile (R20).
 
 ## Task 5: Keep critical UI and browser journeys while removing expensive duplication
 

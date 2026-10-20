@@ -801,6 +801,50 @@ fn a_failed_first_install_leaves_nothing() {
     assert_eq!(entries(&skills), 0);
 }
 
+/// The embedded skill's files, with their sizes, in the order a first install writes them: by path.
+fn skill_in_write_order() -> Vec<(String, u64)> {
+    fn walk(dir: &Path, prefix: &str, out: &mut Vec<(String, u64)>) {
+        for entry in fs::read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            let name = format!("{prefix}{}", entry.file_name().to_string_lossy());
+            if entry.file_type().unwrap().is_dir() {
+                walk(&entry.path(), &format!("{name}/"), out);
+            } else {
+                out.push((name, entry.metadata().unwrap().len()));
+            }
+        }
+    }
+    let mut files = Vec::new();
+    walk(&repository().join("skills/uraeda"), "", &mut files);
+    files.sort();
+    files
+}
+
+/// The copy fails after it staged files, rather than before its temporary folder exists: each
+/// file is capped at the first one's size, so the first is written whole and the copy fails at the
+/// first larger one, which is partly written.
+#[cfg(unix)]
+#[test]
+fn a_first_install_failing_after_staging_files_leaves_nothing() {
+    let files = skill_in_write_order();
+    let blocks = files[0].1.div_ceil(512);
+    let failing = files
+        .iter()
+        .position(|(_, size)| *size > blocks * 512)
+        .expect("a file larger than the first");
+    let repo = TestRepo::new();
+
+    let output = ura_with_file_limit(&repo, blocks, &["install", "--user", "--agents"]);
+
+    let expected = format!(
+        "ura: could not write ~/.agents/skills/uraeda/{}: File too large",
+        files[failing].0
+    );
+    assert!(output.stderr.starts_with(&expected), "{}", output.stderr);
+    assert_eq!(output.code, 1);
+    assert_eq!(entries(&repo.home().join(".agents/skills")), 0);
+}
+
 #[test]
 fn the_manifest_checks_with_sha256sum() {
     let repo = TestRepo::new();

@@ -224,3 +224,57 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   would need its own ruling and the human's agreement.
 - **Where**: `packages/server/src/preview/__tests__/helpers.ts`,
   `packages/web/src/__tests__/helpers.tsx` (unchanged).
+
+## R20: The install rollback case fails a first copy after it staged files
+
+- **Decision**: `a_first_install_failing_after_staging_files_leaves_nothing` runs `ura install`
+  under a POSIX shell's `ulimit -f`, the signal past it ignored, through the CLI tests'
+  `ura_with_file_limit`. Each file is capped at the first embedded file's size, in 512-byte blocks:
+  the first file is written whole, the copy fails with `EFBIG` at the first larger one, and the case
+  asserts that file's name in the error, exit 1, and an empty `.agents/skills`. The capped run's
+  coverage profile goes to `/dev/null`. The old `a_failed_first_install_leaves_nothing` is retained:
+  it owns the distinct refusal when the staging folder cannot be made.
+- **Rationale**: The old case fails before the temporary folder exists, so it passes with the
+  cleanup removed; the new one fails then (`left: 1, right: 0`, the `uraeda.ura-tmp` folder left
+  behind). The cap needs no product seam or dependency, and its file order and sizes are read from
+  `skills/uraeda/`, so editing the skill does not break it. Under `cargo llvm-cov`, a profile cut at
+  the cap failed the whole merge ("file header is corrupt").
+- **Alternatives considered**: A test-only failure hook in `install.rs`, a product change the plan
+  limits to precise seams; an unwritable folder inside the staging folder, which the copy removes
+  and makes again; `prlimit`, a util-linux command that is not everywhere.
+- **If wrong**: A shell whose `ulimit -f` counts in 1024-byte blocks fails at a later file, or not
+  at all, and the case fails on its expected error, not silently.
+- **Where**: `crates/cli/tests/install.rs`, `crates/cli/tests/common/mod.rs`.
+
+## R21: Attachment refusals must be their own, not another refusal
+
+- **Decision**: In `packages/server/src/__tests__/attach.test.ts`, the chunked case's body is 64
+  MiB, three times the limit, and the case asserts reading stopped by the 24th chunk; it is renamed
+  "…, and stops reading it". The two cross-site cases assert the guard's text, `Forbidden origin`
+  and `Forbidden site`, besides 403. A new case sends a body under the limit holding no file and
+  expects `refused: The body holds no file.`, with no worktree made.
+- **Rationale**: Review focus 2. With the body limit removed, both limit cases receive
+  `refused: The body holds no file.`, so their exact texts already separate the limit from a parse
+  failure; but a limit that read a chunked body whole before refusing kept the old case green (22
+  MiB sent, the same 21 MB text) and fails the new bound
+  (`expected 65 to be less than or equal to 24`). The no-file refusal was the one line of
+  `attach.ts` no test ran. No assertion was loosened or removed.
+- **Alternatives considered**: Asserting the exact chunk count, 23, which a stream's read-ahead
+  could change without a defect.
+- **If wrong**: Raise the bound by the stream's read-ahead, never past the 64 chunks sent.
+- **Where**: `packages/server/src/__tests__/attach.test.ts`.
+
+## R22: Task 4's audit retains every guard it read
+
+- **Decision**: No case of `answered.rs`, `settings_writes.rs`, `images.rs`, `clean.rs`,
+  `install.rs`, `claude.test.ts`, `sessions.test.ts`, or the preview lifecycle cases is removed,
+  skipped, or loosened. Their merge/squash shapes, exact bytes, pixel placement, frame delays,
+  permission rules, and controlled-clock lifecycles are the contracts the plan names, and no
+  duplicate across them was established.
+- **Rationale**: Each injected fault failed its owning case (Task 4 evidence). The comment beside a
+  replaced value is owned by `keeps_windows_line_ends` alone, which also owns CRLF; one case owning
+  both is not a gap.
+- **Alternatives considered**: Merging the core preservation cases into tables, which changes no
+  protection and is not needed for the budget.
+- **If wrong**: Remove a case only with the duplicate that owns its guarantee named.
+- **Where**: Task 4's files.

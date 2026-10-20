@@ -78,8 +78,31 @@ pub fn ura_without_home(dir: &Path, args: &[&str]) -> Output {
     run(command(dir, args).env_remove("HOME"))
 }
 
+/// Runs the built `ura` in a repository as `ura` does, under a POSIX shell's `ulimit -f`: each file
+/// it writes is capped at `blocks` of 512 bytes, and the signal past the cap is ignored, so a write
+/// past it fails with `EFBIG` after the bytes that fit. Under `cargo llvm-cov`, its coverage profile
+/// goes to `/dev/null`, which has no cap: a profile cut at the cap would fail the coverage merge.
+#[cfg(unix)]
+pub fn ura_with_file_limit(repo: &TestRepo, blocks: u64, args: &[&str]) -> Output {
+    let mut shell = Command::new("sh");
+    shell.args([
+        "-c",
+        r#"trap '' XFSZ && ulimit -f "$1" && shift && exec "$@""#,
+        "sh",
+        &blocks.to_string(),
+        env!("CARGO_BIN_EXE_ura"),
+    ]);
+    run(configured(shell, repo.path(), args)
+        .env("HOME", repo.home())
+        .env("LLVM_PROFILE_FILE", "/dev/null"))
+}
+
 fn command(dir: &Path, args: &[&str]) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ura"));
+    configured(Command::new(env!("CARGO_BIN_EXE_ura")), dir, args)
+}
+
+/// `command`, `ura` or what runs it, with `ura`'s arguments, folder, and environment.
+fn configured(mut command: Command, dir: &Path, args: &[&str]) -> Command {
     repo::without_user_git(&mut command)
         .args(args)
         .current_dir(dir)
