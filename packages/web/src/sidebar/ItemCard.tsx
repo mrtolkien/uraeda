@@ -143,7 +143,10 @@ function Status({ item }: { item: CardItem }) {
         // Read in the card's name: a `label` would show as text over the card.
         <Spinner aria-hidden size="sm" />
       ) : (
-        <StatusMark label={item.status.label} status={item.status.status} />
+        // A click on it opens the status's own page: see `onStatus`.
+        <span data-card-status>
+          <StatusMark label={item.status.label} status={item.status.status} />
+        </span>
       )}
     </HStack>
   );
@@ -227,6 +230,7 @@ export function ItemCard({
   item,
   onOpen,
   onSettings,
+  onStatus,
 }: {
   /** Whether a change says so with a tag: where changes and features share a section. */
   hasChangeTag?: boolean;
@@ -236,6 +240,8 @@ export function ItemCard({
   /** Opens the item's page inside the app, instead of loading `href`. */
   onOpen?: () => void;
   onSettings: () => void;
+  /** Opens what its status points to, on a click on the status: its session, or what it asks. */
+  onStatus?: () => void;
 }) {
   const { isCollapsed } = useSideNavCollapse();
   return (
@@ -257,11 +263,16 @@ export function ItemCard({
         icon={<CardIcon item={item} />}
         isSelected={isSelected}
         label={item.label}
-        {...(onOpen
+        {...(onOpen || onStatus
           ? {
               onClick: (event: React.MouseEvent) => {
-                event.preventDefault();
-                onOpen();
+                if (onStatus && (event.target as Element).closest("[data-card-status]")) {
+                  event.preventDefault();
+                  onStatus();
+                } else if (onOpen) {
+                  event.preventDefault();
+                  onOpen();
+                }
               },
             }
           : {})}

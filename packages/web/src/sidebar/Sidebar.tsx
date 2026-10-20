@@ -10,7 +10,9 @@ import * as stylex from "@stylexjs/stylex";
 import { Suspense } from "react";
 import { useBranchChanges, useInbox } from "../data.ts";
 import { type useNavigation, useSessionSearch } from "../sessionData.ts";
+import { waiting } from "../labels.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
+import { sessionPath } from "../sessions.ts";
 import { AddNoteButton, AddPriorityButton } from "../SidebarAdd.tsx";
 import { Allowance } from "./Allowance.tsx";
 import {
@@ -48,6 +50,20 @@ function InboxCount() {
   return count(inbox?.count ?? 0);
 }
 
+/**
+ * Where a card's status leads: what the human must do while it needs them, the page asking it for a
+ * gate or the feature's page for a problem; its session otherwise.
+ */
+function statusPath(feature: Feature, status: Status) {
+  if (!needsYou(status)) {
+    return sessionPath(feature.folder);
+  }
+  if (feature.problems.length > 0) {
+    return `/f/${feature.folder}`;
+  }
+  return feature.step.waitsOn === "human" ? waiting(feature).href : sessionPath(feature.folder);
+}
+
 /** A feature's or a change's card, with the lines its branch changed once read. */
 function FeatureCard({
   feature,
@@ -71,6 +87,7 @@ function FeatureCard({
       item={item}
       onOpen={() => navigate(here(to))}
       onSettings={() => settings(feature)}
+      onStatus={() => navigate(here(statusPath(feature, item.status)))}
     />
   );
   const base = toCard(feature, row);
