@@ -55,13 +55,15 @@ export function fencePlugin<Data extends Record<string, string>>({
   render: (data: Data) => ReactNode;
 }): ProsePlugin {
   const name = `fence-${language}`;
+  // The node keeps the block's own text beside what `read` made of it: its text is the block's.
+  const of = (node: MarkdownExtensionNode) => node.data as { code: string; read: Data };
   return createMarkdownPlugin({
     apiVersion: 1,
     name,
     renderers: {
       fence: {
-        render: ({ node }: { node: MarkdownExtensionNode }) => render(node.data as Data),
-        toText: (node: MarkdownExtensionNode) => Object.values(node.data as Data).join("\n"),
+        render: ({ node }: { node: MarkdownExtensionNode }) => render(of(node).read),
+        toText: (node: MarkdownExtensionNode) => of(node).code,
       },
     },
     transform: createMarkdownFenceTransform({
@@ -69,7 +71,13 @@ export function fencePlugin<Data extends Record<string, string>>({
         const data = read({ code, meta: meta ?? "" });
         return data === undefined
           ? undefined
-          : ({ data, display: "block", name: "fence", plugin: name, type: "extension" } as const);
+          : ({
+              data: { code, read: data },
+              display: "block",
+              name: "fence",
+              plugin: name,
+              type: "extension",
+            } as const);
       },
       languages: [language],
     }),
