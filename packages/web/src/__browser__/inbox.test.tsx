@@ -162,7 +162,7 @@ test("a note with an image is added as a draft that holds it, linked from the in
 
   expect(await within(form).findByText("spec-headings.png")).toBeTruthy();
   expect(
-    within(form).getByText("With an image, the note is saved as a draft, linked from the inbox."),
+    within(form).getByText("With images, the note is saved as a draft, linked from the inbox."),
   ).toBeTruthy();
   expect(within(form).queryByRole("button", { name: "Add" })).toBeNull();
   await checkLayout(form);

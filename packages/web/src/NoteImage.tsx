@@ -19,8 +19,8 @@ import { InboxView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
-/** The line under the image, saying what Add does with it. */
-export const AS_DRAFT = "With an image, the note is saved as a draft, linked from the inbox.";
+/** The line under the images, saying what Add does with them. */
+export const AS_DRAFT = "With images, the note is saved as a draft, linked from the inbox.";
 
 /** An image picked for a note, and its preview, made once as it is picked. */
 export type Picked = { file: File; preview?: string };
@@ -34,19 +34,41 @@ function previewOf(file: File): string | undefined {
   }
 }
 
-/** The image picked for a note, its preview freed as another replaces it or it goes. */
-export function usePickedImage() {
-  const [picked, setPicked] = useState<Picked>();
-  const pick = (file: File | undefined) => {
-    if (picked?.preview !== undefined) {
-      URL.revokeObjectURL(picked.preview);
+/** What changes the images picked for a note. */
+export type PickedChanges = {
+  add: (files: ReadonlyArray<File>) => void;
+  clear: () => void;
+  remove: (image: Picked) => void;
+};
+
+/** The images picked for a note, in order, their previews freed as they go. */
+export function usePickedImages(): readonly [ReadonlyArray<Picked>, PickedChanges] {
+  const [picked, setPicked] = useState<ReadonlyArray<Picked>>([]);
+  const free = (images: ReadonlyArray<Picked>) => {
+    for (const image of images) {
+      if (image.preview !== undefined) {
+        URL.revokeObjectURL(image.preview);
+      }
     }
-    setPicked(file ? { file, preview: previewOf(file) } : undefined);
   };
-  return [picked, pick] as const;
+  return [
+    picked,
+    {
+      add: (files: ReadonlyArray<File>) =>
+        setPicked((now) => [...now, ...files.map((file) => ({ file, preview: previewOf(file) }))]),
+      clear: () => {
+        free(picked);
+        setPicked([]);
+      },
+      remove: (image: Picked) => {
+        free([image]);
+        setPicked((now) => now.filter((one) => one !== image));
+      },
+    },
+  ] as const;
 }
 
-/** The image picked for the note: its thumbnail, its name, and Remove. */
+/** An image picked for the note: its thumbnail, its name, and Remove. */
 export function PickedImage({ image, onRemove }: { image: Picked; onRemove: () => void }) {
   const name = image.file.name;
   return (
@@ -135,37 +157,23 @@ async function addedAfterAll(fate: Fate, before: Notes, text: string) {
 }
 
 /**
- * Adds a note with an image in one request to the repository's `POST /r/<name>/inbox/note-image`:
- * the core encodes the image and writes the draft folder holding the note and the image, linked
- * from the inbox, all or nothing, so a refusal leaves nothing to clean up. Its status shows under
- * the image: "Adding <name>…", then the refusal, which a conflict leaves to the form. A request
- * whose answer is lost is done when the inbox now holds its note, so a retry never adds it twice.
+ * Posts images to the repository's `POST /r/<name>/inbox/note-image`, with the form's `fields`: the
+ * core encodes them and writes the draft folder, all or nothing. Gives the draft's path, or the
+ * refusal.
  */
-export function useAddWithImage() {
-  const fate = useFateClient();
+function useNoteImagesPost() {
   const fetch = useServerFetch();
   const repo = useRepository();
-  const announce = useAnnounce();
-  // The image the status is about: another one picked since shows none.
-  const [shown, setShown] = useState<{ image: File; status: AttachStatus }>();
-
-  const show = (image: File, text: string, error = false) => {
-    setShown({ image, status: { error, text } });
-    announce(text, error ? "assertive" : "polite");
-  };
-
-  const refused = (image: File, message: string): AddedAsDraft => {
-    show(image, message, true);
-    return { byImage: true, kind: "refused", message, ok: false };
-  };
-
-  const send = async (input: AddInput, image: File) => {
+  return async (fields: Record<string, string>, images: ReadonlyArray<File>) => {
     const body = new FormData();
-    for (const [key, value] of Object.entries(input)) {
+    for (const [key, value] of Object.entries(fields)) {
       body.append(key, value);
     }
-    body.append("file", image);
-    const query = new URLSearchParams(image.name ? { name: image.name } : {});
+    for (const image of images) {
+      body.append("file", image);
+    }
+    // One name per image, in order: an empty one for a pasted image, which the core names.
+    const query = new URLSearchParams(images.map((image) => ["name", image.name]));
     const response = await fetch(`${repoPath(repo, "/inbox/note-image")}?${query}`, {
       body,
       method: "POST",
@@ -174,16 +182,60 @@ export function useAddWithImage() {
     const answer = (await response.json().catch(() => ({}))) as { draft?: string; error?: string };
     return answer.draft ?? refusal(answer.error ?? `HTTP ${response.status}`);
   };
+}
 
-  const add = async (input: AddInput, image: File, before: Notes): Promise<AddedAsDraft> => {
-    const name = image.name || "pasted image";
-    if (image.size > IMAGE_LIMIT) {
-      return refused(image, overLimit(name, image.size));
+/** The first image over the core's size limit, as its refusal, if any. */
+function tooBig(images: ReadonlyArray<File>): string | undefined {
+  const big = images.find((image) => image.size > IMAGE_LIMIT);
+  return big && overLimit(big.name || "pasted image", big.size);
+}
+
+/** What an upload's status is about: the images it was shown for, and the status. */
+type Shown = { images: ReadonlyArray<File>; status: AttachStatus };
+
+/** The status of the upload of `images`: none once other images are picked. */
+function statusFor(shown: Shown | undefined, images: ReadonlyArray<File>) {
+  const same =
+    shown?.images.length === images.length && shown.images.every((file, i) => file === images[i]);
+  return same ? shown.status : undefined;
+}
+
+/**
+ * Adds a note with images in one request: the core encodes the images and writes the draft folder
+ * holding the note and the images, linked from the inbox, all or nothing, so a refusal leaves
+ * nothing to clean up. Its status shows under the images: "Adding <name>…", then the refusal,
+ * which a conflict leaves to the form. A request whose answer is lost is done when the inbox now
+ * holds its note, so a retry never adds it twice.
+ */
+export function useAddWithImage() {
+  const fate = useFateClient();
+  const post = useNoteImagesPost();
+  const announce = useAnnounce();
+  const [shown, setShown] = useState<Shown>();
+
+  const show = (images: ReadonlyArray<File>, text: string, error = false) => {
+    setShown({ images, status: { error, text } });
+    announce(text, error ? "assertive" : "polite");
+  };
+
+  const refused = (images: ReadonlyArray<File>, message: string): AddedAsDraft => {
+    show(images, message, true);
+    return { byImage: true, kind: "refused", message, ok: false };
+  };
+
+  const add = async (
+    input: AddInput,
+    images: ReadonlyArray<File>,
+    before: Notes,
+  ): Promise<AddedAsDraft> => {
+    const big = tooBig(images);
+    if (big) {
+      return refused(images, big);
     }
-    show(image, `Adding ${name}…`);
+    show(images, `Adding ${images.map((image) => image.name || "pasted image").join(", ")}…`);
     let sent: string | Refusal;
     try {
-      sent = await send(input, image);
+      sent = await post(input, images);
     } catch (error) {
       const done = await addedAfterAll(fate, before, input.text);
       if (done) {
@@ -191,21 +243,69 @@ export function useAddWithImage() {
         return { ...done, ok: true };
       }
       const timedOut = (error as { name?: unknown } | null)?.name === "TimeoutError";
-      return refused(image, timedOut ? TIMED_OUT : "Could not reach the Uraeda server.");
+      return refused(images, timedOut ? TIMED_OUT : "Could not reach the Uraeda server.");
     }
     if (typeof sent !== "string") {
       if (sent.kind === "conflict") {
         setShown(undefined);
         return { ...sent, ok: false };
       }
-      return refused(image, sent.message);
+      return refused(images, sent.message);
     }
     rereadChanges(fate);
     return { draft: sent, note: await noteOfDraft(fate, sent), ok: true };
   };
 
-  const statusOf = (image: File) => (shown?.image === image ? shown.status : undefined);
-  return { add, statusOf };
+  return { add, statusOf: (images: ReadonlyArray<File>) => statusFor(shown, images) };
+}
+
+/**
+ * Adds images to an existing note, one request: into the draft it links, or into the draft it
+ * becomes. Its status shows under the note's images; gives the note's draft, or nothing once
+ * refused, which the status says.
+ */
+export function useAttachToNote() {
+  const fate = useFateClient();
+  const post = useNoteImagesPost();
+  const announce = useAnnounce();
+  const [status, setStatus] = useState<AttachStatus>();
+
+  const say = (text: string, error = false) => {
+    setStatus({ error, text });
+    announce(text, error ? "assertive" : "polite");
+  };
+
+  const attach = async (note: { hash: string; id: string }, files: ReadonlyArray<File>) => {
+    const big = tooBig(files);
+    if (big) {
+      say(big, true);
+      return undefined;
+    }
+    say(`Adding ${files.map((file) => file.name || "pasted image").join(", ")}…`);
+    let sent: string | Refusal;
+    try {
+      sent = await post({ hash: note.hash, id: note.id }, files);
+    } catch (error) {
+      const timedOut = (error as { name?: unknown } | null)?.name === "TimeoutError";
+      say(
+        timedOut ? "The server did not answer in time." : "Could not reach the Uraeda server.",
+        true,
+      );
+      return undefined;
+    }
+    if (typeof sent !== "string") {
+      say(sent.message, true);
+      if (sent.kind === "conflict") {
+        rereadChanges(fate);
+      }
+      return undefined;
+    }
+    setStatus(undefined);
+    rereadChanges(fate);
+    return sent;
+  };
+
+  return { attach, status };
 }
 
 /** The refusal of an add the server did not answer in time. */

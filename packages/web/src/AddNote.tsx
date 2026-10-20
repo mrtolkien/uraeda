@@ -3,11 +3,14 @@ import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
+import { type ClipboardEvent, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
+import { DropHint, dropStyles } from "./attach/DropHint.tsx";
+import { useImageDrop } from "./attach/useImageDrop.ts";
+import { pastedImages } from "./attach/useImageText.ts";
 import { useInbox } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
@@ -21,6 +24,7 @@ import {
   AS_DRAFT,
   type Picked,
   PickedImage,
+  type PickedChanges,
   useAddWithImage,
 } from "./NoteImage.tsx";
 import {
@@ -120,18 +124,18 @@ export type NoteAdded = {
 };
 
 /**
- * Add, Add as a draft with an image, or "Add and commit": the note through the core, its refusal as
+ * Add, Add as a draft with images, or "Add and commit": the note through the core, its refusal as
  * the message to show, and a conflict reading the inbox again, for the next try to add to it as it
  * is now. When "Add and commit" only added, `notice` says why, and the form stays open.
  */
 function useAdd({
   about,
-  image,
+  images,
   onAdded,
   typed,
 }: {
   about?: string;
-  image?: Picked;
+  images: ReadonlyArray<Picked>;
   onAdded: (added: NoteAdded) => void;
   typed: ReturnType<typeof useTypedNote>;
 }) {
@@ -151,8 +155,8 @@ function useAdd({
     }
   };
 
-  const withImage = async (input: AddInput, file: File) => {
-    const result = await withImages.add(input, file, inbox?.categories ?? []);
+  const withImage = async (input: AddInput, files: ReadonlyArray<File>) => {
+    const result = await withImages.add(input, files, inbox?.categories ?? []);
     if (!result.ok) {
       if (!result.byImage) {
         refused(result);
@@ -175,8 +179,11 @@ function useAdd({
       ...(chosen === undefined ? {} : { category: chosen }),
       ...(about === undefined ? {} : { about }),
     };
-    if (image) {
-      await withImage(input, image.file);
+    if (images.length > 0) {
+      await withImage(
+        input,
+        images.map((image) => image.file),
+      );
       return;
     }
     const before = inbox?.categories ?? [];
@@ -208,7 +215,7 @@ function useAdd({
     names: inbox?.names ?? [],
     notice,
     ready,
-    status: image && withImages.statusOf(image.file),
+    status: withImages.statusOf(images.map((image) => image.file)),
   };
 }
 
@@ -217,36 +224,38 @@ function useAdd({
  * a new one, named in its own field. It reads the inbox when it opens, for the version it adds to.
  * `about`, on a feature's or a change's page, is its folder, which marks the note with its slug. Its
  * text is kept as the overlay closes and restored as it opens again (`useTypedNote`); Cancel asks
- * "Discard your changes?" first when it holds text or an image. Enter adds and commits, as "Add and
- * commit" does, beside Add. With `image`, picked with "Attach an image" and held by the overlay
- * (`onImage`), Add becomes "Add as a draft", the one way to add, which Enter takes.
+ * "Discard your changes?" first when it holds text or images. Enter adds and commits, as "Add and
+ * commit" does, beside Add. With `images`, picked with "Attach an image", dropped, or pasted, and
+ * held by the overlay (`picked`), Add becomes "Add as a draft", the one way to add, which Enter takes.
  */
 export function AddNote({
   about,
-  image,
+  images,
   onAdded,
   onCancel,
-  onImage,
+  picked,
 }: {
   about?: string;
-  image?: Picked;
+  images: ReadonlyArray<Picked>;
   onAdded: (added: NoteAdded) => void;
   onCancel: () => void;
-  onImage: (image: File | undefined) => void;
+  picked: PickedChanges;
 }) {
   const confirm = useConfirm();
   const typed = useTypedNote();
-  const { add, message, names, notice, ready, status } = useAdd({ about, image, onAdded, typed });
-  // A draft with its image is never committed by its add.
-  const commits = image === undefined;
+  const { add, message, names, notice, ready, status } = useAdd({ about, images, onAdded, typed });
+  // A draft with its images is never committed by its add.
+  const commits = images.length === 0;
+  const field = useRef<HTMLTextAreaElement>(null);
+  const drop = useImageDrop({ label: "the note", onFiles: picked.add, priority: 1, ref: field });
   const commit = useAddAndCommit(() => add(true));
 
   const cancel = async () => {
-    if ((typed.dirty || image) && !(await confirm(DISCARD_CHANGES))) {
+    if ((typed.dirty || images.length > 0) && !(await confirm(DISCARD_CHANGES))) {
       return;
     }
     typed.discard();
-    onImage(undefined);
+    picked.clear();
     onCancel();
   };
 
@@ -256,17 +265,28 @@ export function AddNote({
         // Its saved text is always empty: it never changes since.
         <RestoreNotice changed="" onDiscard={typed.discard} restored={typed.restored} />
       )}
-      <TextField
-        hasAutoFocus
-        isLabelHidden
-        kind="line"
-        label="Note"
-        onChange={typed.note.change}
-        // A note is one line: Enter adds and commits it, or adds it as a draft with its image.
-        onKeyDown={enterAdds(() => (commits ? ready && commit.onAddAndCommit() : void add()))}
-        placeholder="What did you notice?"
-        value={typed.note.text}
-      />
+      <DropHint hint={drop.hint}>
+        <TextField
+          hasAutoFocus
+          isLabelHidden
+          kind="line"
+          label="Note"
+          onChange={typed.note.change}
+          // A note is one line: Enter adds and commits it, or adds it as a draft with its images.
+          onKeyDown={enterAdds(() => (commits ? ready && commit.onAddAndCommit() : void add()))}
+          onPaste={(event: ClipboardEvent<HTMLTextAreaElement>) => {
+            const files = pastedImages(event);
+            if (files) {
+              event.preventDefault();
+              picked.add(files);
+            }
+          }}
+          placeholder="What did you notice?"
+          ref={field}
+          value={typed.note.text}
+          xstyle={drop.isTarget ? dropStyles.target : undefined}
+        />
+      </DropHint>
       <CategoryField
         category={typed.category}
         name={typed.name.text}
@@ -274,9 +294,15 @@ export function AddNote({
         onCategory={typed.setCategory}
         onName={typed.name.change}
       />
-      {image && (
+      {images.length > 0 && (
         <VStack gap={2}>
-          <PickedImage image={image} onRemove={() => onImage(undefined)} />
+          {images.map((image) => (
+            <PickedImage
+              image={image}
+              key={image.preview ?? image.file.name}
+              onRemove={() => picked.remove(image)}
+            />
+          ))}
           <AttachStatus status={status} />
           <Text color="secondary" type="supporting">
             {AS_DRAFT}
@@ -286,12 +312,12 @@ export function AddNote({
       {message && <Banner status="error" title={message} />}
       <CommitBanner notice={notice} />
       <AddButtons
-        addLabel={image ? "Add as a draft" : "Add"}
+        addLabel={commits ? "Add" : "Add as a draft"}
         isReady={ready}
         onAdd={() => add()}
         {...(commits ? commit : {})}
         onCancel={() => void cancel()}
-        start={<AttachButton onFiles={([file]) => onImage(file)} text="Attach an image" />}
+        start={<AttachButton multiple onFiles={picked.add} text="Attach an image" />}
       />
     </VStack>
   );

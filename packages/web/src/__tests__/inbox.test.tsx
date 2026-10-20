@@ -190,6 +190,65 @@ async function attachImage(form: ReturnType<typeof within>, name = "spec-heading
   });
 }
 
+/** A note takes several images, picked one after the other: the draft holds them in order. */
+test("a note with several images is a draft that links each, in the order they were picked", async () => {
+  const { repo } = await renderPage("/inbox");
+  const form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "Headings are flat");
+  await attachImage(form, "first.png");
+  await attachImage(form, "second.png");
+  expect(form.getByText("first.png")).toBeTruthy();
+  expect(form.getByText("second.png")).toBeTruthy();
+
+  await click(form.getByRole("button", { name: "Add as a draft" }));
+  await toast("Added to the inbox as a draft, not committed");
+
+  const draft = read(repo, "specs/drafts/headings-are-flat/proposal.md");
+  expect(draft).toContain(
+    "Headings are flat\n\n![first](images/first.webp)\n\n![second](images/second.webp)\n",
+  );
+});
+
+/** A pasted image joins the note's images, named by the core, while pasted text pastes as text. */
+test("an image pasted in the note's field is picked for it, text is not", async () => {
+  await renderPage("/inbox");
+  const form = await openForm();
+  const field = form.getByPlaceholderText("What did you notice?");
+  const bytes = readFileSync(fixture("images/phone.png"));
+  const image = new File([bytes], "", { type: "image/png" });
+
+  await act(async () => {
+    fireEvent.paste(field, { clipboardData: { files: [image], getData: () => "" } });
+  });
+
+  expect(form.getByRole("button", { name: "Add as a draft" })).toBeTruthy();
+  await click(form.getByRole("button", { name: "Cancel" }));
+  const confirm = await screen.findByRole("dialog", { name: "Discard your changes?" });
+  await click(within(confirm).getByRole("button", { name: "Discard" }));
+  const again = await openForm();
+
+  await act(async () => {
+    fireEvent.paste(again.getByPlaceholderText("What did you notice?"), {
+      clipboardData: { files: [image], getData: () => "a table" },
+    });
+  });
+
+  expect(again.getByRole("button", { name: "Add" })).toBeTruthy();
+});
+
+/** Removing one of several images leaves the others for the add. */
+test("Remove drops one of several images, and the others stay", async () => {
+  await renderPage("/inbox");
+  const form = await openForm();
+  await attachImage(form, "first.png");
+  await attachImage(form, "second.png");
+
+  await click(form.getByRole("button", { name: "Remove first.png" }));
+
+  expect(form.queryByText("first.png")).toBeNull();
+  expect(form.getByText("second.png")).toBeTruthy();
+});
+
 /**
  * Ruling R21: the image waits for Add as the text does, kept as the form closes and opens again;
  * Remove drops it, and Cancel asks first, then drops it.

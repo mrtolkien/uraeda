@@ -45,7 +45,12 @@ function NoteForm() {
       sheetHeight="hug"
       width="var(--size-quick-add)"
     >
-      <AddNote onAdded={() => {}} onCancel={() => {}} onImage={() => {}} />
+      <AddNote
+        images={[]}
+        onAdded={() => {}}
+        onCancel={() => {}}
+        picked={{ add: () => {}, clear: () => {}, remove: () => {} }}
+      />
     </Overlay>
   );
 }
