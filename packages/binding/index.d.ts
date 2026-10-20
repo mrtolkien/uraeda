@@ -776,10 +776,15 @@ export interface DraftView {
   emptySections: Array<string>
 }
 
-/** A feature or a change dropped: its branch, kept, and why its worktree stays, when it does. */
+/**
+ * A feature or a change dropped: its branch, kept, why its worktree stays, when it does, and
+ * whether its entry's removal was committed.
+ */
 export interface DroppedView {
   branch: string
   worktreeLeft?: string
+  /** Whether the entry's removal was committed: when not, it stays written for the commit bar. */
+  committed: boolean
 }
 
 /** A row of the `## Edge cases` table. */
