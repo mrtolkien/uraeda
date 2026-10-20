@@ -48,8 +48,11 @@ home folder (`--user`) or in the repository's top level (`--repo`), in `.agents/
 (`--agents`), `.claude/skills/uraeda` (`--claude`), or both, the second then a link to the first. It
 writes a `.ura-manifest` of the files' hashes, so running it again updates the files nobody edited,
 and it never writes into a folder it did not install, nor through a link. `ura install --update`
-updates every copy it installed. Agents always pass these flags and `--no-input`: an agent's
-terminal can pass the terminal check, yet no one presses its keys.
+updates every copy it installed. `--completions` sets up Tab completion of `ura` in the user's
+shell: in fish, it writes `ura.fish` in fish's completions folder, and in zsh, it names the line to
+add to `~/.zshrc`; alone, it leaves the skill as it is. In a terminal, `ura install` offers it.
+Agents always pass these flags and `--no-input`: an agent's terminal can pass the terminal check,
+yet no one presses its keys.
 
 ## Starting, postponing, and dropping a feature
 

@@ -15,6 +15,7 @@ mod note;
 mod output;
 mod picker;
 mod review;
+mod shell;
 mod start;
 mod status;
 mod terminal;

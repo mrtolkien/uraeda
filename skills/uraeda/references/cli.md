@@ -8,23 +8,23 @@ A command that acts on a feature, a change, or a draft takes it as a path under 
 take a name matching one item instead: its folder name or slug. Without it, the command takes the
 current branch's feature, or the only one waiting for that action.
 
-| Command                                                               | What it does                                                                            |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `ura init`                                                            | [Sets a project up](projects.md#setting-up-a-project)                                   |
-| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update` | [Installs the skill](projects.md#setting-up-a-project)                                  |
-| `ura status`                                                          | Every feature and change, its step, and who it waits on                                 |
-| `ura next [feature]`                                                  | The target and its step, from [the table](../SKILL.md#finding-the-next-step)            |
-| `ura check [path]`                                                    | The rules of [Markdown](conventions.md#markdown), file by file                          |
-| `ura draft <text>`                                                    | [Drafts](projects.md#starting-postponing-and-dropping-a-feature) a line                 |
-| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`  | [Adds a note](inbox.md#capture) to the inbox, and commits it                            |
-| `ura inbox clean`, `--dry-run`                                        | Deletes [the orphan images](inbox.md#images-on-a-note) of drafts and the backlog        |
-| `ura start <draft>`, `--switch`, `--change`                           | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change |
-| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`          | Answers a round of questions, then submits it                                           |
-| `ura review [feature] --comment`, `--approve`, `--request-changes`    | [Reviews](conventions.md#review-files) a spec or a plan                                 |
-| `ura clean [feature]`, `--all`, `--dry-run`                           | [Cleans](finish.md#after-the-merge) a merged feature                                    |
-| `ura upgrade`                                                         | Installs `ura`'s latest release, then updates the user's skill                          |
-| `ura lsp`                                                             | Serves workflow files to editors: diagnostics, completion, outline, actions             |
-| `ura add [folder]`                                                    | Adds the repository holding a folder to the web UI's list                               |
+| Command                                                                                | What it does                                                                            |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `ura init`                                                                             | [Sets a project up](projects.md#setting-up-a-project)                                   |
+| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update`, `--completions` | [Installs the skill](projects.md#setting-up-a-project), and Tab completion              |
+| `ura status`                                                                           | Every feature and change, its step, and who it waits on                                 |
+| `ura next [feature]`                                                                   | The target and its step, from [the table](../SKILL.md#finding-the-next-step)            |
+| `ura check [path]`                                                                     | The rules of [Markdown](conventions.md#markdown), file by file                          |
+| `ura draft <text>`                                                                     | [Drafts](projects.md#starting-postponing-and-dropping-a-feature) a line                 |
+| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, and commits it                            |
+| `ura inbox clean`, `--dry-run`                                                         | Deletes [the orphan images](inbox.md#images-on-a-note) of drafts and the backlog        |
+| `ura start <draft>`, `--switch`, `--change`                                            | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change |
+| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                           | Answers a round of questions, then submits it                                           |
+| `ura review [feature] --comment`, `--approve`, `--request-changes`                     | [Reviews](conventions.md#review-files) a spec or a plan                                 |
+| `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature                                    |
+| `ura upgrade`                                                                          | Installs `ura`'s latest release, then updates the user's skill                          |
+| `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions             |
+| `ura add [folder]`                                                                     | Adds the repository holding a folder to the web UI's list                               |
 
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of
