@@ -84,7 +84,7 @@ async function lineDraft(fate: Fate, entry: StartLine): Promise<Made> {
 
 /**
  * Writes the title as the first of Now's entries that has not started, then drafts it: the
- * started ones stay above it.
+ * started ones stay above it. A draft refused takes the line back out, so Now is as it was.
  */
 async function titleDraft(fate: Fate, title: string): Promise<Made> {
   const { hash, sections } = await readPriorities(fate);
@@ -98,13 +98,22 @@ async function titleDraft(fate: Fate, title: string): Promise<Made> {
   if (inserted.error || !inserted.result) {
     return made(inserted, "path");
   }
-  return made(
+  const line = `${NOW}-${index + 1}`;
+  const drafted = made(
     await fate.mutations.draft.create({
-      input: { hash: inserted.result.hash, line: `${NOW}-${index + 1}` },
+      input: { hash: inserted.result.hash, line },
       view: DraftView,
     }),
     "path",
   );
+  if ("error" in drafted) {
+    // The refusal shown is the draft's: a line left behind is in the commit bar's changes.
+    await fate.mutations.priorities.remove({
+      input: { entry: line, hash: inserted.result.hash },
+      view: PrioritiesView,
+    });
+  }
+  return drafted;
 }
 
 /**
@@ -129,14 +138,21 @@ export function useStartFrom() {
   const fate = useFateClient();
   const here = useRepoPath();
   const [error, setError] = useState<string>();
+  // Whether it opened what it made: a refusal, or a read that failed, shows why.
   const run = async <T>(making: () => Promise<Made<T>>, open: (value: T) => void) => {
     setError(undefined);
-    const result = await making();
+    let result: Made<T>;
+    try {
+      result = await making();
+    } catch (error) {
+      result = { error: refusal(error).message };
+    }
     if ("error" in result) {
       setError(result.error);
-      return;
+      return false;
     }
     open(result.value);
+    return true;
   };
   const edit = (path: string) => navigate(here(`/edit/${path}`));
   const change = (starting: () => Promise<Made<Started>>) =>

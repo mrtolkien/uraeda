@@ -187,6 +187,47 @@ test("a feature from a title", async () => {
   ]);
 });
 
+test("a feature from a title whose draft cannot be written leaves Now as it was", async () => {
+  const repo = fixtureRepo();
+  // The draft the title would be written to.
+  writeFileSync(join(repo, "specs/drafts/keyboard-navigation.md"), "# Keyboard navigation\n");
+  const before = read(repo);
+  await renderPage("/new?kind=feature", repo);
+
+  await type(await screen.findByRole("textbox", { name: "Title" }), "Keyboard navigation");
+  await click(screen.getByRole("button", { name: "Write the proposal" }));
+
+  await screen.findByText("specs/drafts/keyboard-navigation.md exists");
+  expect(read(repo)).toBe(before);
+  // The title stays, to change and send again.
+  expect((screen.getByRole("textbox", { name: "Title" }) as HTMLInputElement).value).toBe(
+    "Keyboard navigation",
+  );
+  expect(window.location.pathname).toBe(atRepo("/new"));
+});
+
+test("a start whose read fails shows why", async () => {
+  const repo = startingRepo();
+  const server = serverFetch(repo);
+  let failing = false;
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    // The start's first read fails, once.
+    if (failing) {
+      failing = false;
+      throw new TypeError("Failed to fetch");
+    }
+    return server(input, init);
+  };
+  await renderPage("/new?kind=feature", repo, { fetch });
+  const start = await screen.findByRole("button", { name: `Open the draft: ${NOTE}` });
+
+  failing = true;
+  await click(start);
+
+  expect(await screen.findByText("Failed to fetch")).toBeTruthy();
+  expect(read(repo, "specs/INBOX.md")).toContain(NOTE);
+});
+
 /** US3 more 1 */
 test("a feature from a priority line", async () => {
   await renderPage("/new?kind=feature", startingRepo());

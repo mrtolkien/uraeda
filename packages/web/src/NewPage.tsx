@@ -91,15 +91,15 @@ function About({ kind }: { kind: NewKind }) {
 }
 
 /** A note or a priority line to start from: its row opens it, and its button starts from it. */
-type Line = { href: string; label: string; start: () => Promise<void>; text: string };
+type Line = { href: string; label: string; start: () => Promise<unknown>; text: string };
 
 /**
  * The notes and the priority lines a change or a feature can start from: the notes that are not
  * a draft already, and the lines that have not started and link no other file than a draft.
  */
 function useLines(starts: {
-  fromLine: (entry: StartLine) => Promise<void>;
-  fromNote: (note: StartNote) => Promise<void>;
+  fromLine: (entry: StartLine) => Promise<unknown>;
+  fromNote: (note: StartNote) => Promise<unknown>;
 }): Array<Line> {
   const here = useRepoPath();
   const inbox = useInbox();
@@ -193,8 +193,8 @@ function FeaturePart() {
   const title = useTextField("new-feature", "", { drawn: false });
   const write = async () => {
     const text = title.text.trim();
-    await starts.feature.fromTitle(text);
-    if (title.unsavedNow()?.text.trim() === text) {
+    // A refused title stays, to change and write again.
+    if ((await starts.feature.fromTitle(text)) && title.unsavedNow()?.text.trim() === text) {
       title.discard();
     }
   };
