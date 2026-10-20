@@ -1123,7 +1123,7 @@ git commit -m "docs(merge-chats): the skill offers moves in a session, moves a c
 The sidebar, the New page's three kinds, a session with its offer and its actions, the drop
 confirmation, and a feature's sessions, at both sizes and in both themes.
 
-- [ ] **Step 4: Run the full validation**
+- [x] **Step 4: Run the full validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS.
