@@ -1072,7 +1072,7 @@ test("a fresh workflow run starts a new agent session in the feature's session, 
   expect(adapter.opens[1]).toMatchObject({ resume: false });
   expect(adapter.opens[1]?.nativeId).not.toBe(adapter.opens[0]?.nativeId);
   expect(cache.session(session.id)?.nativeId).toBe(adapter.opens[1]?.nativeId);
-  expect(cache.featureSession(session.repo, AGENT)?.id).toBe(session.id);
+  expect(cache.latestSession(session.repo, AGENT)?.id).toBe(session.id);
   // The earlier turn stays in the session, above the line.
   expect(cache.turns(session.id).map((row) => row.id)).toEqual([first.turn, turn]);
   expect(cache.items(turn, 0, 2)).toEqual([

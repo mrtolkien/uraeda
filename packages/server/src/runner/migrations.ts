@@ -140,6 +140,9 @@ export const migrations: Array<Migration> = [
   ALTER TABLE turns ADD COLUMN cache_write_tokens INTEGER;
   ALTER TABLE turns ADD COLUMN cache_read_tokens INTEGER;
   ALTER TABLE turns ADD COLUMN output_tokens INTEGER;`,
+  // A change or a feature holds several sessions: its folder is no longer unique.
+  `DROP INDEX one_session_per_feature;
+  CREATE INDEX sessions_by_folder ON sessions (repo, folder) WHERE folder IS NOT NULL;`,
 ];
 
 /**

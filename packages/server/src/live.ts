@@ -74,7 +74,7 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });
     // The host's path is the main checkout, which keys its sessions.
     for (const folder of changes.features) {
-      const session = sessions.cache.featureSession(host.path, folder);
+      const session = sessions.cache.latestSession(host.path, folder);
       if (session) {
         live.update("Session", session.id, { eventId: eventId(`Session:${session.id}`) });
       }

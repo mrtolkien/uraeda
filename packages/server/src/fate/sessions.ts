@@ -272,7 +272,7 @@ export async function featureStatuses(ctx: RepoContext) {
   return (await workspaceOf(ctx, ctx.repo)).features
     .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
     .map((feature) => {
-      const row = root === undefined ? undefined : cache.featureSession(root, feature.folder);
+      const row = root === undefined ? undefined : cache.latestSession(root, feature.folder);
       const status = row
         ? statusOf(row, turnsOf(cache, row.id), feature)
         : feature.step.waitsOn === "human"
@@ -332,7 +332,7 @@ export async function sessionSearch(ctx: RepoContext, query: string): Promise<Se
   const needle = query.toLowerCase();
   for (const feature of (await workspaceOf(ctx, ctx.repo)).features) {
     const row = feature.title.toLowerCase().includes(needle)
-      ? cache.featureSession(root, feature.folder)
+      ? cache.latestSession(root, feature.folder)
       : undefined;
     if (row && !ids.has(row.id)) {
       ids.add(row.id);
@@ -397,7 +397,7 @@ export async function featureRecord(
 ): Promise<FeatureRecord> {
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
   const session =
-    root === undefined ? undefined : ctx.sessions.cache.featureSession(root, feature.folder);
+    root === undefined ? undefined : ctx.sessions.cache.latestSession(root, feature.folder);
   // A feature without a worktree follows the main checkout's decision (R7).
   const checkout = await checkoutDir(ctx, feature.worktree);
   return {

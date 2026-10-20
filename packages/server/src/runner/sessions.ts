@@ -6,6 +6,7 @@ import type { SessionCache, SessionRow } from "./cache.ts";
 import type { TurnActivity, TurnKind, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatTitle } from "./message.ts";
+import { transaction } from "./migrations.ts";
 import { Processes } from "./processes.ts";
 import { checkSend, messageItem, openingOf, type SendInput, sendPlace } from "./send-input.ts";
 import {
@@ -160,30 +161,23 @@ export class Sessions {
     return commandCount(this.#context.live.get(session)?.proc?.background);
   }
 
-  /** The feature's one session, created when it has none. */
+  /** The latest session of a change or a feature, created when it has none. */
   async featureSession(repo: string, folder: string): Promise<SessionRow> {
     const { cache } = this;
     const root = await this.mainRoot(repo);
-    const existing = cache.featureSession(root, folder);
-    if (existing) {
-      return existing;
-    }
-    try {
-      return cache.createSession({
-        agent: this.adapter.kind,
-        folder,
-        nativeId: randomUUID(),
-        repo: root,
-        title: null,
-      });
-    } catch (error) {
-      // Another request, or another server, created it first.
-      const created = cache.featureSession(root, folder);
-      if (created) {
-        return created;
-      }
-      throw error;
-    }
+    // One transaction: another server cannot create a first session between the read and the write.
+    return transaction(
+      cache.db,
+      () =>
+        cache.latestSession(root, folder) ??
+        cache.createSession({
+          agent: this.adapter.kind,
+          folder,
+          nativeId: randomUUID(),
+          repo: root,
+          title: null,
+        }),
+    );
   }
 
   /** A new chat, without a feature, titled by its first message. */

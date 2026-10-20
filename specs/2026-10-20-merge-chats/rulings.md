@@ -66,3 +66,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   check.
 - **If wrong**: colours come back with their field, enum, and these tests from git history.
 - **Where**: task 3.
+
+## R5: "A feature has one session" is replaced, and the get-or-create is one transaction
+
+- **Decision**: The cache test "a feature has one session" is replaced by "a folder holds several
+  sessions, latest first", since US5 gives a change or a feature several sessions. With the unique
+  index gone, `Sessions.featureSession` no longer catches a unique-index race: it reads the latest
+  session and creates one when there is none in one `BEGIN IMMEDIATE` transaction.
+- **Rationale**: The old test pins the index the spec removes. Without the index, two servers
+  creating a feature's first session at once would make two; a write transaction taken before the
+  read serializes them, as `claimSession` does.
+- **Alternatives considered**: Keeping the catch: nothing throws anymore, so it would never run.
+- **If wrong**: Two first sessions of one folder; `latestSession` still picks one. Undo by reverting
+  `featureSession` in `runner/sessions.ts`.
+- **Where**: Task 4, `packages/server/src/runner/__tests__/cache.test.ts`,
+  `packages/server/src/runner/sessions.ts`.

@@ -93,7 +93,7 @@ export function recordRun(
   try {
     const repoRoot = realpathSync(repo);
     const session =
-      cache.featureSession(repoRoot, folder) ??
+      cache.latestSession(repoRoot, folder) ??
       cache.createSession({
         agent: "fake",
         folder,

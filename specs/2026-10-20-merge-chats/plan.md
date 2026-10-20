@@ -514,7 +514,7 @@ git commit -m "feat(merge-chats): items have a name and no colour"
     throws `refused: the session already belongs to <folder>` otherwise.
   - `SessionRow.createdAt` already exists; `lastEndedAt(id): string | null` for the done state.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - "a folder holds several sessions, latest first": two `createSession` with the same folder succeed,
   and `folderSessions` returns the second first.
@@ -522,24 +522,26 @@ git commit -m "feat(merge-chats): items have a name and no colour"
   open the cache: both rows are there, and a second session of the folder can be created.
 - "attach sets a session's folder once": a chat attached to `2026-10-20-login-redirect` reads that
   folder; attaching it again throws the refusal.
-- Replace "a feature has one session" (line 68) by the first test: a ruling records it.
+- "a session's last end is its latest ended turn's, null before any ends", for `lastEndedAt`.
+- Replace "a feature has one session" (line 68) by the first test: a ruling records it
+  ([R5](rulings.md#r5-a-feature-has-one-session-is-replaced-and-the-get-or-create-is-one-transaction)).
 
 Breaks caught: a migration that recreates the table and loses rows; `latestSession` ordered by
 `updated_at`, so a busy older session wins.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/cache.test.ts`
 - Expected: FAIL, `UNIQUE constraint failed: sessions.repo, sessions.folder`.
 
-- [ ] **Step 3: Implement the store's changes**
+- [x] **Step 3: Implement the store's changes**
 
-- [ ] **Step 4: Run the server tests**
+- [x] **Step 4: Run the server tests**
 
 - Run: `nix develop -c vp test --project uraeda-server && nix develop -c vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner specs/2026-10-20-merge-chats/plan.md specs/2026-10-20-merge-chats/rulings.md

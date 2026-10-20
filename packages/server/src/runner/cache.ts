@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
 import type { Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 import { migrate, transaction } from "./migrations.ts";
-import { CLEARED, FRESH, REPLACED } from "./session-state.ts";
+import { CLEARED, FRESH, REPLACED, refused } from "./session-state.ts";
 
 export type { SessionRow, TurnRow } from "./cache-rows.ts";
 export { migrations } from "./migrations.ts";
@@ -115,7 +115,7 @@ export class SessionCache {
     }
   }
 
-  /** Records a new session, with a new ID. Throws when the feature has one already. */
+  /** Records a new session, with a new ID: a folder may hold several. */
   createSession(row: {
     agent: string;
     folder: string | null;
@@ -147,12 +147,44 @@ export class SessionCache {
     return row ? toSession(row) : undefined;
   }
 
-  /** The feature's one session. */
-  featureSession(repo: string, folder: string): SessionRow | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM sessions WHERE repo = ? AND folder = ?")
-      .get(repo, folder) as Row | undefined;
-    return row ? toSession(row) : undefined;
+  /** The sessions of a change or a feature, the latest started first. */
+  folderSessions(repo: string, folder: string): Array<SessionRow> {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM sessions WHERE repo = ? AND folder = ?
+         ORDER BY created_at DESC, rowid DESC`,
+      )
+      .all(repo, folder) as Array<Row>;
+    return rows.map(toSession);
+  }
+
+  /** The latest started session of a change or a feature, the one its runs go to. */
+  latestSession(repo: string, folder: string): SessionRow | undefined {
+    return this.folderSessions(repo, folder)[0];
+  }
+
+  /** Gives a session without a folder its change's or feature's: a folder is set once. */
+  attach(id: string, folder: string): void {
+    transaction(this.db, () => {
+      const row = this.db.prepare("SELECT folder FROM sessions WHERE id = ?").get(id) as
+        | { folder: string | null }
+        | undefined;
+      if (!row) {
+        throw new Error(`no session ${id}`);
+      }
+      if (row.folder !== null) {
+        throw refused(`the session already belongs to ${row.folder}`);
+      }
+      this.db.prepare("UPDATE sessions SET folder = ? WHERE id = ?").run(folder, id);
+    });
+  }
+
+  /** When the session's latest ended turn ended, null when none has. */
+  lastEndedAt(id: string): string | null {
+    const { ended } = this.db
+      .prepare("SELECT MAX(ended_at) AS ended FROM turns WHERE session_id = ?")
+      .get(id) as { ended: string | null };
+    return ended;
   }
 
   /** Changes the session's fields that are given. */

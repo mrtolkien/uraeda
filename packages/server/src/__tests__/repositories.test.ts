@@ -379,7 +379,7 @@ test("removing leaves the folder and its sessions", async () => {
   expect(result.data.rows).toEqual([]);
   expect(opened.hosts.get(opened.name)).toBeUndefined();
   expect(existsSync(join(opened.repo, "specs"))).toBe(true);
-  expect(opened.sessions.cache.featureSession(root, "2026-10-11-web-ui")?.id).toBe(session.id);
+  expect(opened.sessions.cache.latestSession(root, "2026-10-11-web-ui")?.id).toBe(session.id);
 });
 
 /** US5.3 */
