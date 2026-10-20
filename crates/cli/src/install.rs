@@ -8,7 +8,7 @@ use uraeda_core::actions::install::{self, Folders, InstallLine};
 use uraeda_core::git::Git;
 
 use crate::picker::{self, Answer, Item, Picker};
-use crate::terminal;
+use crate::{shell, terminal};
 
 #[derive(clap::Args)]
 pub struct Flags {
@@ -27,9 +27,20 @@ pub struct Flags {
     /// Update every copy ura installed, keeping the files you edited
     #[arg(long, conflicts_with_all = ["agents", "claude"])]
     pub update: bool,
+    /// Set up Tab completion: in fish, write its file; in zsh, name the line to add. Alone, the
+    /// skill is left as it is
+    #[arg(long)]
+    pub completions: bool,
     /// Never ask: without the flags it needs, fail and name them
     #[arg(long)]
     pub no_input: bool,
+}
+
+impl Flags {
+    /// Whether only Tab completion is asked for: `--completions` without a flag of the skill.
+    fn completions_only(&self) -> bool {
+        self.completions && !(self.user || self.repo || self.agents || self.claude || self.update)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -184,9 +195,14 @@ fn files(count: usize) -> String {
 const CANCELLED: &str = "cancelled: nothing installed";
 
 pub fn run(flags: Flags) -> Result<ExitCode, String> {
+    if flags.completions_only() {
+        shell::set_up(&home().ok_or("HOME is not set: set it")?)?;
+        return Ok(ExitCode::SUCCESS);
+    }
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let git = Git::discover(&cwd);
-    let (scope, folders) = resolve(&flags, terminal::interactive(flags.no_input), git.is_ok())?;
+    let interactive = terminal::interactive(flags.no_input);
+    let (scope, folders) = resolve(&flags, interactive, git.is_ok())?;
     let scope = match scope {
         Choice::Given(scope) => scope,
         Choice::Implied(scope) => {
@@ -211,12 +227,14 @@ pub fn run(flags: Flags) -> Result<ExitCode, String> {
     let top = git.as_ref().ok().map(|git| git.root().to_path_buf());
     let (base, shown, other) = match scope {
         Scope::User => {
-            let base = home.ok_or("HOME is not set: set it, or pass --repo")?;
+            let base = home
+                .clone()
+                .ok_or("HOME is not set: set it, or pass --repo")?;
             (base, "~/", top.map(|top| (top, "")))
         }
         Scope::Repo => {
             let top = git.map_err(|error| error.to_string())?.root().to_path_buf();
-            (top, "", home.map(|home| (home, "~/")))
+            (top, "", home.clone().map(|home| (home, "~/")))
         }
     };
     let lines = match folders {
@@ -250,6 +268,11 @@ pub fn run(flags: Flags) -> Result<ExitCode, String> {
             );
         }
     }
+    match home {
+        Some(home) if flags.completions => shell::set_up(&home)?,
+        Some(home) if interactive && !flags.update => shell::offer(&home)?,
+        _ => {}
+    }
     Ok(ExitCode::SUCCESS)
 }
 
@@ -265,6 +288,7 @@ mod tests {
             agents: has("agents"),
             claude: has("claude"),
             update: has("update"),
+            completions: has("completions"),
             no_input: has("no_input"),
         }
     }

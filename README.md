@@ -201,12 +201,14 @@ skill for your user. Without `ura`, install the skill for any agent with
 script or Homebrew, then updates your skill; with Nix, update the flake input.
 
 Tab completes `ura`'s commands, flags, and values in fish and zsh: drafts after `ura start`, the
-features and changes under way after `ura next`, and the open questions after `ura answer`. Set it
-up once with one line, which asks `ura` itself at each Tab, so it follows every upgrade:
+features and changes under way after `ura next`, and the open questions after `ura answer`. In fish,
+`ura install` offers to set it up, and `ura install --completions` does it alone. In zsh, add one
+line to `~/.zshrc`, after `compinit`. Either way, the shell asks `ura` itself at each Tab, so
+completion follows every upgrade:
 
 ```sh
-echo 'COMPLETE=fish ura | source' > ~/.config/fish/completions/ura.fish  # fish
-echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh, after compinit
+echo 'COMPLETE=fish ura | source' > ~/.config/fish/completions/ura.fish  # fish, by hand
+echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
 ```
 
 The web UI comes from npm. In a repository, run `npx @uraeda/ui`: it starts the server on
