@@ -1,10 +1,21 @@
 import { Button } from "@astryxdesign/core/Button";
 import { ChatSendButton } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import type { ComposerProps } from "./Composer.tsx";
 import { type Inserted, RecommendedMessage } from "./RecommendedMessage.tsx";
+
+/** The send key drawn in the button, beside its label: Ctrl and the Enter key. */
+function SendKeys() {
+  return (
+    <HStack align="center" aria-hidden="true" gap={1}>
+      <span>Ctrl</span>
+      <Icon icon="uraeda:enter" label="Enter" />
+    </HStack>
+  );
+}
 
 /**
  * The composer's send buttons, in its send row: Send, or "Start the agent" while it holds the
@@ -18,6 +29,7 @@ export function sendButtons({
   allow,
   canSend,
   hasContent,
+  keys,
   label,
   pending,
   send,
@@ -28,6 +40,8 @@ export function sendButtons({
   allow: ComposerProps["allow"];
   canSend: boolean;
   hasContent: boolean;
+  /** Whether to show the send key, Ctrl+Enter: on wide screens, where a keyboard is likely. */
+  keys: boolean;
   label: string | undefined;
   pending: boolean;
   send: () => void;
@@ -63,6 +77,7 @@ export function sendButtons({
           isDisabled={!canSend || waits !== undefined}
           // A disabled button with a tooltip stays focusable, through `aria-disabled`.
           {...(waits === undefined ? {} : { tooltip: waits })}
+          endContent={keys && <SendKeys />}
           isLoading={pending}
           label={label ?? (working ? "Start once this turn ends" : "Start the agent")}
           variant="primary"

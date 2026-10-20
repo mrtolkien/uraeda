@@ -211,13 +211,12 @@ function useSend(
 }
 
 /**
- * On the phone, Return adds a line: the keyboard has no Shift to hold. Astryx sends text alone on
- * Enter: a message of images alone, or images still being saved, are this handler's (an Astryx gap,
- * see the plan).
+ * Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI coherence decision); Enter
+ * adds a line, on every screen. Astryx sends text alone on Enter: a message of images alone, or
+ * images still being saved, are this handler's (an Astryx gap, see the plan).
  */
 function useEnter(
   input: RefObject<ChatComposerInputHandle | null>,
-  wide: boolean,
   send: (() => void) | undefined,
 ) {
   return (event: KeyboardEvent<HTMLDivElement>) => {
@@ -225,10 +224,10 @@ function useEnter(
       return;
     }
     event.preventDefault();
-    if (!wide) {
-      input.current?.insertText("\n");
-    } else {
+    if (event.ctrlKey || event.metaKey) {
       send?.();
+    } else {
+      input.current?.insertText("\n");
     }
   };
 }
@@ -303,8 +302,8 @@ function useInserted(given: ComposerProps) {
 /**
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
  * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
- * once this turn ends" while the session works on a chat. Enter sends on wide screens; on the
- * phone, Return adds a line and only the button sends. It sends to
+ * once this turn ends" while the session works on a chat. Ctrl+Enter or Cmd+Enter sends, and the button
+ * shows the key on wide screens; Enter adds a line. It sends to
  * `session`, else to the feature of `folder`, else to a new chat, then calls `onSent` with the
  * session's ID. A refused send keeps the text and the images, with the reason under it until the
  * next send, as a refused Stop does.
@@ -356,9 +355,9 @@ export function Composer(given: ComposerProps) {
     canSend,
     sent: attaching.sent,
   });
-  const onKeyDown = useEnter(input, wide, canSend ? () => submit(value.trim()) : undefined);
+  const onKeyDown = useEnter(input, canSend ? () => submit(value.trim()) : undefined);
   const placeholder = `Message ${name}`;
-  // The button goes once inserted: the field takes the focus, for Enter or more keys.
+  // The button goes once inserted: the field takes the focus.
   useEffect(() => {
     if (inserts > 0) {
       input.current?.focus();
@@ -368,6 +367,7 @@ export function Composer(given: ComposerProps) {
     allow: props.allow,
     canSend,
     hasContent,
+    keys: wide,
     label: props.sendLabel,
     pending,
     send: () => submit(value.trim()),

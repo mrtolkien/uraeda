@@ -91,13 +91,16 @@ test("a typed change starts with its agent, in two clicks", async () => {
 describe("on the desktop", () => {
   atSize("desktop");
 
-  // SC-002: Enter in the composer on wide screens.
-  test("Enter starts it on a desktop", async () => {
+  // SC-002: Ctrl+Enter in the composer on wide screens; Enter adds a line.
+  test("Ctrl+Enter starts it on a desktop, and Enter does not", async () => {
     const box = await newChange();
     await typeChange(box);
     await expect.poll(() => slug().value, LIVE).toBe("centre-x");
 
     await userEvent.keyboard("{Enter}");
+    expect(window.location.pathname).not.toMatch(/\/session$/);
+
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
 
     expect(await opened()).toMatch(/-centre-x$/);
     await screen.findByRole("heading", { level: 1, name: TITLE }, LIVE);

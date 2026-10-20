@@ -676,14 +676,14 @@ test('US2.4: an image alone is sent, and its chat is titled "Image"', async () =
   expect(await screen.findByRole("heading", { name: "Image" })).toBeTruthy();
 });
 
-test("an image alone is sent with Enter on a wide screen", async () => {
+test("an image alone is sent with Ctrl+Enter on a wide screen", async () => {
   const fake = await fakeAgent();
   await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
   await pick([png()]);
   await thumbnails(1);
 
   await act(async () => {
-    fireEvent.keyDown(await composer(), { key: "Enter" });
+    fireEvent.keyDown(await composer(), { ctrlKey: true, key: "Enter" });
   });
 
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
@@ -1042,7 +1042,7 @@ test("Send shows, disabled, while an image is saved during a turn", async () => 
   );
 });
 
-test("Enter while an image is saved does not send", async () => {
+test("Ctrl+Enter while an image is saved does not send", async () => {
   const fake = await fakeAgent();
   const repo = fixtureRepo();
   const uploads = holding(repo, fake);
@@ -1052,13 +1052,32 @@ test("Enter while an image is saved does not send", async () => {
   await type(await composer(), "Look");
 
   await act(async () => {
-    fireEvent.keyDown(await composer(), { key: "Enter" });
+    fireEvent.keyDown(await composer(), { ctrlKey: true, key: "Enter" });
   });
 
   await uploads.releaseAll();
   await thumbnails(1);
   expect(fake.adapter.sent).toHaveLength(0);
   expect((await composer()).textContent).toBe("Look");
+});
+
+test("on a wide screen, Enter adds a line and sends nothing, Cmd+Enter sends", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  await type(await composer(), "Look");
+
+  await act(async () => {
+    fireEvent.keyDown(await composer(), { key: "Enter" });
+  });
+
+  await waitFor(async () => expect((await composer()).textContent).toBe("Look\n"));
+  expect(fake.adapter.sent).toHaveLength(0);
+
+  await act(async () => {
+    fireEvent.keyDown(await composer(), { key: "Enter", metaKey: true });
+  });
+
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
 });
 
 test("on the phone, Return with images adds a line", async () => {
