@@ -11,6 +11,9 @@
 
 ## UI
 
+- Home does not use the same icons as the sidebar: this is clearly AGAINST the ui coherence decision
+  - Fix home by taking inspiration from the sidebar looks
+  - Make sure the ui decision is well written and would trigger on similar specs in the future
 - In clarifications the card with two columns + questions on the right felt a bit cramped, the card
   should be a bit wider + the left part should be bigger + the right column should be right-aligned
 - "Why it matters" should be a question callout

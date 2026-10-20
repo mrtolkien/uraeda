@@ -30,3 +30,7 @@ Agent runs survive what happens around them, and keep going until the next human
 About 6.5 hours of stalls and 1.5 hours of redone work on 2026-10-15 and 2026-10-16 alone, and a
 "Continue" typed by the human after every interruption: the workflow is asynchronous, but its runs
 still need a human to restart them.
+
+## Notes
+
+- Will need a few settings, should be able to turn it off too
