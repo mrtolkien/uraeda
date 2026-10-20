@@ -9,7 +9,6 @@
 - [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
 - [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
 - [Stable dev environment for UI review](/specs/2026-10-20-ui-sandbox/proposal.md)
-- [CLI auto-expand in fish and ?zsh?](/specs/changes/2026-10-20-shell-completions/proposal.md)
 - [Chat's right column](/specs/2026-10-20-chat-right/proposal.md)
 
 - Empty inbox
