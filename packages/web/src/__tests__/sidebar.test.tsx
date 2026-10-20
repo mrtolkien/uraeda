@@ -264,6 +264,37 @@ test("a session read to its end leaves Sessions", async () => {
   expect(group.queryByRole("link", { name: /What does ura clean keep/ })).toBeNull();
 });
 
+/** Merge chats US1 more 1 */
+test("a reply brings a done session back under Sessions, at its place", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const read = await seedSession(
+    fake,
+    repo,
+    "What does ura clean keep?",
+    "2026-10-18T09:00:00.000Z",
+  );
+  await seedSession(fake, repo, "Why is CI slow?", "2026-10-19T09:00:00.000Z");
+  fake.sessions.seen(repo, read);
+  await renderPage("/", repo, { agent: fake });
+  const group = await sessions();
+  await waitFor(() => group.getByRole("link", { name: /^Why is CI slow\?, / }));
+  expect(group.queryByRole("link", { name: /What does ura clean keep/ })).toBeNull();
+
+  fake.adapter.script([{ text: "Its worktree, until merged.", type: "text" }]);
+  await fake.sessions.settled(
+    (await fake.sessions.send(repo, read, { text: "And the branch?" })).turn,
+  );
+
+  // Started first, it is back above the later session.
+  await refreshUntil(() =>
+    expect(group.getByRole("link", { name: /^What does ura clean keep\?, / })).toBeTruthy(),
+  );
+  const links = names(group);
+  const at = (start: string) => links.findIndex((name: string) => name.startsWith(start));
+  expect(at("What does ura clean keep?")).toBe(at("Why is CI slow?") - 1);
+});
+
 /** Merge chats US1 3 */
 test("a session's … renames it", async () => {
   const repo = fixtureRepo();
@@ -309,14 +340,16 @@ test("each card has its status and its … in its row", async () => {
   const group = await sessions();
   await waitFor(() => group.getByRole("link", { name: /^Why is CI slow\?, / }));
 
-  const cards = group.getAllByRole("link").filter((link) => link.textContent !== "＋New");
-  expect(cards.length).toBeGreaterThan(1);
-  for (const link of cards) {
-    const label = link.getAttribute("aria-label")!.split(", ")[0]!;
-    expect(within(link).getByRole("img")).toBeTruthy();
-    expect(
-      group.queryByRole("button", { name: `Settings of ${label}` }) ??
-        group.queryByRole("button", { name: `Actions of ${label}` }),
-    ).toBeTruthy();
+  const cards = [
+    { more: "Settings of cli-tuis", name: /^cli-tuis, /, status: "Idle" },
+    { more: "Actions of Why is CI slow?", name: /^Why is CI slow\?, /, status: "New reply" },
+  ];
+  for (const card of cards) {
+    const link = group.getByRole("link", { name: card.name });
+    expect(within(link).getByRole("img", { name: card.status })).toBeTruthy();
+    // The card's row, its link and its "…", holds its own "…" and no other.
+    const row = within(link.parentElement!);
+    const more = row.getByRole("button", { name: card.more });
+    expect(row.getAllByRole("button")).toEqual([more]);
   }
 });

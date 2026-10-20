@@ -13,9 +13,12 @@ const session = (id: string, title: string, done: boolean, updatedAt: string) =>
   ({ archived: false, done, folder: null, id, title, updatedAt }) as Row;
 
 test("Done lists a session read to its end, then a merged change", () => {
+  // US1 2's day: the session read at 10:00, the change merged at 09:00, both on 2026-10-19; and a
+  // session read the day before, which comes after them, whatever its kind.
   const rows = doneRows(
-    [feature("2026-10-16-ctrl-enter", "done"), feature("2026-10-18-flaky-tests", "change")],
+    [feature("2026-10-19-ctrl-enter", "done"), feature("2026-10-18-flaky-tests", "change")],
     [
+      session("c", "Where are the logs?", true, "2026-10-18T16:00:00.000Z"),
       session("a", "What does ura clean keep?", true, "2026-10-19T10:00:00.000Z"),
       session("b", "Why is CI slow?", false, "2026-10-19T11:00:00.000Z"),
     ],
@@ -24,7 +27,8 @@ test("Done lists a session read to its end, then a merged change", () => {
 
   expect(rows.map((row) => [row.label, row.href])).toEqual([
     ["What does ura clean keep?", "/sessions/a"],
-    ["ctrl-enter", "/f/2026-10-16-ctrl-enter"],
+    ["ctrl-enter", "/f/2026-10-19-ctrl-enter"],
+    ["Where are the logs?", "/sessions/c"],
   ]);
 });
 
