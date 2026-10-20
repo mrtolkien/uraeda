@@ -404,6 +404,37 @@ Task 2 evidence (2026-10-20, 32-thread Linux machine shared with other checkouts
   the normal web configuration. (3) Affected the core samples as above. (4) Not exercised.
 - Focused helpers are excluded from coverage like `__tests__`.
 
+Wave 1 review fixes (2026-10-20, same shared machine; rulings R9 to R11, R7 updated):
+
+- Fixed: cross-package consumers (I1), reverse dependents and binding clippy (I2), no nextest
+  `--workspace` (I3), `vite.fast.config.ts` in `ts:test` (I4), heavy slot after selection (I5),
+  shared UI test options (I6), unproven families (M1), named configuration files (M2), legacy test
+  edits deferred (M3), nested runs through `test-run.ts` (M4). Wave 2: the fixture's upload contract
+  (W1), shared `rewritten` (W2), binding build before the type check (W3), local image path routed
+  to the UI (W4), restored `EventSource` (W5), refused-send image order (W6). W7 is not done:
+  mutation `type`s are plain strings, so typing answers needs production `as const`.
+- `nix develop -c vp check` passes; the scripts suite passes 46 cases, the toolchain suite 29, the
+  focused Composer and composer-images cases 6, the binding project 32 (contracts 5), and the
+  server's `test-run`, `coverage-summary` and `fate` suites 48.
+- Composer edit (`Composer.tsx` comment, warm): selects only the focused Composer suite; 14.26,
+  14.47, 13.78 s at load 7 to 13; 25.99, 14.72, 30.46, 32.23, 21.82 s at load 14 to 73.
+- Core edit (`settings.rs` comment, warm): Rust `uraeda-core`, `uraeda-binding` (clippy only),
+  `uraeda-cli`, `uraeda-lsp`, 1,040 Rust tests, `contracts.test.ts`. 55.19 s at load 9; 56.24,
+  56.27, 59.00 s at load 28 to 52; 69.36 to 95.00 s at load 37 to 87 (one with a lock wait). Phases
+  at load 36: startup 6.5 s, napi build 7.4 s plus 8 s of Vite Task saving its output, fmt and
+  clippy 11 s, test build 25 s, nextest 23 s, Vitest 0.5 s. An alternating comparison with the type
+  check beside the binding build (71.86 to 88.45 s) and after it (65.76 to 95.37 s), at load 42 to
+  100, showed no difference; clippy with or without `uraeda-binding` took 8 to 10 s. The core pilot
+  meets SC-002 only below a load of about 50.
+- Server edit (`limits.ts` comment): 34 server files, 6 benchmarks files and the focused Composer
+  suite, 797 tests; 75.64 and 85.91 s at load 44 to 58, Vitest 59.5 to 64.6 s; 157 and 216 s at load
+  65 to 67, where `runner.test.ts` once hit its 10-second hook timeout. Over SC-002: the server
+  family's related run, from Task 1, holds 34 of the files; I1 adds the benchmarks files (3.6 s
+  alone) and the Composer suite. Left to Task 7's matrix.
+- One Composer sample escalated to ready for an unnamed untracked input, likely another process's
+  file in this checkout; ready then failed the UI discovery case on Vitest's 5-second default. The
+  scripts project's timeout is now 130 s, and fast prints the changed paths.
+
 ## Task 3: Reuse immutable history while keeping every case independent
 
 **Risky:** Shared fixture state, copied git metadata, or incomplete cleanup can contaminate
