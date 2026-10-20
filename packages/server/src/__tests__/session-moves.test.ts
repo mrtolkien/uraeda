@@ -202,6 +202,24 @@ test("a failed attach leaves the session without a workflow", async () => {
   );
   expect(server.sessions.cache.session(chat)?.folder).toBeNull();
   expect(server.sessions.cache.turns(chat)).toHaveLength(1);
+  // Its next message is a chat's, in the main checkout: no change's folder works while it runs.
+  vi.restoreAllMocks();
+  let working: Array<string> | undefined;
+  server.adapter.script([
+    () => {
+      working = server.sessions.working(server.repo);
+    },
+  ]);
+  const sent = await mutate(server.app, "session.send", { session: chat, text: "Go on" }, ["id"]);
+  expect(sent.error).toBeUndefined();
+  const turn = server.sessions.cache.turns(chat).at(-1)!;
+  await server.sessions.settled(turn.id);
+  expect(turn).toMatchObject({ kind: "chat", step: null });
+  expect(server.sessions.cache.items(turn.id, 0, 1)).toEqual([
+    expect.not.objectContaining({ opening: expect.anything() }),
+  ]);
+  expect(working).toEqual([]);
+  expect(server.adapter.opens.at(-1)?.cwd).toBe(server.repo);
 });
 
 /** US4.1: the same session goes on with the feature's next step. */
