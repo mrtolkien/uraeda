@@ -294,7 +294,7 @@ depends on elapsed time.
   - Binding: `promoteChange(repo: string, folder: string): Promise<PromotedView>`.
   - CLI: `ura start <change> --feature`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/promote.rs`, on a `TestRepo` with a change `2026-10-20-priorities-sections`
 started from a draft (its **Now** entry linking
@@ -332,12 +332,12 @@ The breaks they catch: renaming before relinking the entry (a branch whose entry
 `set(...,"approved-by","")` writing a trailing space; moving the folder with a copy that leaves the
 old one; the PR check reading the default branch's pulls instead of the change's.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test promote`
 - Expected: FAIL to compile, `unresolved import uraeda_core::actions::promote`.
 
-- [ ] **Step 3: Implement the move**
+- [x] **Step 3: Implement the move**
 
 Order, so each failure leaves a consistent state: refuse first (not a change, a pull request,
 uncommitted changes in the change's worktree via `check_clean`'s message, a taken name via
@@ -351,13 +351,13 @@ folder with the filesystem, set each decision the branch changed and that reads 
 with `Purpose::Inspect` when `--feature` is given, and prints
 `Started <folder> as a feature, on <branch>.`
 
-- [ ] **Step 4: Run the tests, then the Rust checks**
+- [x] **Step 4: Run the tests, then the Rust checks**
 
 - Run:
   `nix develop -c cargo nextest run -p uraeda-core --test promote && nix develop -c cargo nextest run -p uraeda-cli --test start && nix develop -c cargo clippy --workspace --all-targets -- -D warnings && nix develop -c vp run --filter uraeda-binding build`
 - Expected: PASS, no warnings; `packages/binding/index.d.ts` declares `promoteChange`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding/index.js packages/binding/index.d.ts specs/2026-10-20-merge-chats/plan.md

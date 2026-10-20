@@ -63,7 +63,7 @@ pub use repository_list::{
 pub use reviews::{
     add_comment, approve, edit_comment, remove_comment, request_changes, start_over,
 };
-pub use start::{propose_slug, start_change, start_feature, start_kind};
+pub use start::{promote_change, propose_slug, start_change, start_feature, start_kind};
 
 /// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
 /// or `hook` for a commit a hook refused, with its whole `output`.

@@ -71,9 +71,11 @@ enum Command {
     /// Work on the inbox
     #[command(subcommand)]
     Inbox(inbox::Command),
-    /// Start a drafted feature or change: its entry in Now, its branch, and its proposal
+    /// Start a drafted feature or change: its entry in Now, its branch, and its proposal. With
+    /// --feature, make a started change a feature, in place
     Start {
-        /// The draft: a file or folder in specs/drafts/ or specs/backlog/, or its name
+        /// The draft: a file or folder in specs/drafts/ or specs/backlog/, or its name; with
+        /// --feature, the change
         #[arg(add = complete::drafts())]
         target: Option<String>,
         /// The slug of the feature's or change's folder and branch, instead of the draft's name
@@ -86,6 +88,10 @@ enum Command {
         /// .worktrees/
         #[arg(long)]
         switch: bool,
+        /// Make a started change a feature, in place: its branch loses its change/ prefix, its
+        /// folder moves to specs/, and its applied decisions are proposed again
+        #[arg(long, conflicts_with_all = ["change", "slug", "switch"])]
+        feature: bool,
     },
     /// Show where every feature and change stands, across branches
     Status {
@@ -214,9 +220,15 @@ fn main() -> ExitCode {
         Command::Inbox(command) => inbox::run(command),
         Command::Start {
             target,
+            feature: true,
+            ..
+        } => start::promote(target),
+        Command::Start {
+            target,
             slug,
             change,
             switch,
+            feature: false,
         } => start::run(target, slug, change, switch),
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),

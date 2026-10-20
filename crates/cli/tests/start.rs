@@ -394,3 +394,39 @@ fn a_postponed_feature_is_refused_as_a_change() {
     assert_eq!(repo.subjects("main")[0], "postponed");
     assert_eq!(repo.git(&["branch", "--list", "change/*"]), "");
 }
+
+/// US4.1: `ura start <change> --feature` makes the change a feature, in place.
+#[test]
+fn feature_moves_a_change() {
+    let repo = repo_with_a_draft();
+    let started = ura(&repo, &["start", DRAFT, "--change"]);
+    assert_eq!(started.code, 0, "{}", started.stderr);
+
+    let output = ura(&repo, &["start", "git-listener", "--feature"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(
+        output.stdout,
+        format!("Started {BRANCH} as a feature, on {BRANCH}.\n")
+    );
+    assert_eq!(
+        repo.subjects(BRANCH)[0],
+        "chore(git-listener): upgrade to a feature"
+    );
+    assert!(repo.exists(&in_worktree(PROPOSAL)));
+    assert_eq!(repo.git(&["branch", "--list", "change/*"]), "");
+}
+
+#[test]
+fn feature_on_a_draft_is_refused() {
+    let repo = repo_with_a_draft();
+
+    let output = ura(&repo, &["start", DRAFT, "--feature"]);
+
+    assert_eq!(output.code, 1);
+    assert_eq!(
+        output.stderr,
+        "ura: --feature takes a change: start a draft as a feature without it\n"
+    );
+    assert_eq!(repo.subjects("main")[0], "draft");
+}

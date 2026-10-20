@@ -4,9 +4,10 @@
 use std::path::Path;
 
 use super::{Result, encode_image, open, plain, refused, write_lock};
+use crate::actions::promote;
 use crate::actions::start::{self, StartError, Started};
 use crate::today;
-use crate::view::StartedView;
+use crate::view::{PromotedView, StartedView};
 use crate::workspace::Kind;
 
 /// Starts a drafted feature, or a change with `Kind::Change`, in its own worktree.
@@ -56,6 +57,20 @@ pub fn start_change(
     ))
 }
 
+/// Makes the change in `folder` a feature, in place, in its worktree.
+pub fn promote_change(repo: &Path, folder: &str) -> Result<PromotedView> {
+    let _lock = write_lock();
+    let (git, workspace) = open(repo)?;
+    match promote::run(&git, &workspace, folder) {
+        Ok(promoted) => Ok(PromotedView {
+            folder: promoted.folder,
+            branch: promoted.branch,
+            decisions: promoted.decisions,
+        }),
+        Err(error) => Err(refusal(error)),
+    }
+}
+
 /// The kind a start takes from its name: a feature when none is given.
 pub fn start_kind(name: Option<&str>) -> Result<Kind> {
     match name {
@@ -82,18 +97,23 @@ fn view(started: std::result::Result<Started, StartError>) -> Result<StartedView
             branch: started.branch,
             worktree: started.worktree,
         }),
-        Err(StartError::Partial { done, left, cause }) => {
+        Err(error) => Err(refusal(error)),
+    }
+}
+
+/// A start's or a move's refusal: a failure after the first write says what was done, if
+/// anything, and what is left.
+fn refusal(error: StartError) -> super::ApiError {
+    match error {
+        StartError::Partial { done, left, cause } => {
             let done = if done.is_empty() {
                 String::new()
             } else {
                 format!(" Done: {}.", done.join(", "))
             };
-            Err(refused(format!(
-                "{cause}.{done} Left: {}.",
-                left.join(", then ")
-            )))
+            refused(format!("{cause}.{done} Left: {}.", left.join(", then ")))
         }
-        Err(error) => Err(refused(error.to_string())),
+        error => refused(error.to_string()),
     }
 }
 

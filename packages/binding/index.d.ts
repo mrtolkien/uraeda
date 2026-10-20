@@ -224,6 +224,13 @@ export declare function placeNote(repo: string, id: string, index: number, previ
  */
 export declare function preview(checkout: string): Promise<Preview | null>
 
+/**
+ * Makes the change in `folder` a feature, in place: its branch loses its `change/` prefix, its
+ * folder moves to `specs/`, and **Now** links it. Rejects a change with a pull request, with
+ * uncommitted changes, or whose feature's name is taken.
+ */
+export declare function promoteChange(repo: string, folder: string): Promise<PromotedView>
+
 /** Each section of the proposal template, with the guidance the editor shows while it is empty. */
 export declare function proposalHints(): Promise<Array<ProposalHint>>
 
@@ -1202,6 +1209,15 @@ export interface ProblemView {
   line?: number
   rule: string
   message: string
+}
+
+/** A change made a feature, in place. */
+export interface PromotedView {
+  folder: string
+  /** The feature's branch, the folder's name. */
+  branch: string
+  /** The decisions the change applied, proposed again for the feature's spec. */
+  decisions: Array<string>
 }
 
 /** A section of the proposal template, with the guidance the editor shows while it is empty. */

@@ -26,6 +26,7 @@ use uraeda_core::watch::{self, Changes};
 pub mod file_writes;
 pub mod history;
 pub mod inbox_writes;
+pub mod moves;
 pub mod settings;
 
 /// A core operation, run off the main thread.

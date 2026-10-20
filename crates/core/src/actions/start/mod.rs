@@ -17,6 +17,8 @@ mod commits;
 mod plan;
 mod typed;
 
+pub(crate) use plan::{check_clean, check_free};
+
 use typed::Typed;
 
 /// What a start did.
@@ -153,7 +155,7 @@ struct Start<'a> {
 }
 
 /// A failure after the first write.
-fn partial(done: &[String], left: Vec<String>, cause: impl ToString) -> StartError {
+pub(crate) fn partial(done: &[String], left: Vec<String>, cause: impl ToString) -> StartError {
     StartError::Partial {
         done: done.to_vec(),
         left,

@@ -105,6 +105,18 @@ pub struct StartedView {
     pub worktree: Option<String>,
 }
 
+/// A change made a feature, in place.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromotedView {
+    pub folder: String,
+    /// The feature's branch, the folder's name.
+    pub branch: String,
+    /// The decisions the change applied, proposed again for the feature's spec.
+    pub decisions: Vec<String>,
+}
+
 impl From<&Step> for StepView {
     fn from(step: &Step) -> StepView {
         StepView {
