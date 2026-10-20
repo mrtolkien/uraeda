@@ -10,8 +10,8 @@
 - [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
 - [Stable dev environment for UI review](/specs/2026-10-20-ui-sandbox/proposal.md)
 - [CLI auto-expand in fish and ?zsh?](/specs/changes/2026-10-20-shell-completions/proposal.md)
+- [Chat's right column](/specs/2026-10-20-chat-right/proposal.md)
 
-- [Chat's right column](drafts/chat-right-column.md)
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 - Empty inbox
 
