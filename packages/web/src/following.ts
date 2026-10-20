@@ -47,6 +47,21 @@ export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
   }, []);
 }
 
+/**
+ * Keeps the end in view as an element at the transcript's end first draws, when the human was at
+ * the end before it: what is past the end once it draws is no more than its own height. A card
+ * drawn after the page opened at its end, as an offer's, would otherwise sit under the composer.
+ */
+export function keepsEnd(element: HTMLElement) {
+  const box = scroller(element);
+  const past = box
+    ? box.scrollHeight - box.scrollTop - box.clientHeight
+    : document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+  if (past - element.getBoundingClientRect().height <= AT_END) {
+    toEnd(box);
+  }
+}
+
 /** Scrolls `box`, or the window without one, to its end. */
 function toEnd(box: HTMLElement | undefined) {
   if (box) {
