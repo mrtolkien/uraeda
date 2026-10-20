@@ -265,13 +265,17 @@ behavior.
 `packages/web/vite.config.ts`; update `packages/server/src/__tests__/toolchain.test.ts` for the new
 fast task.
 
-**Interfaces:** Produce `Change = { path: string; deleted: boolean }`,
+**Interfaces:** Produce `Change = { path: string; deleted: boolean; added: boolean }` (ruling R10),
 `changedFiles(root: string, base?: string): Change[]`, and
 `selectFast(changes: Change[]): FastSelection`. `FastSelection` exposes related source paths, whole
 selected families, affected Rust packages/workspace, required checks, and named deferred checks. The
 runner reports discovered test filenames and executes the selected specifications in one Vitest
-lifetime. Produce `uiTransforms()` for normal and focused configurations; no production
-server/fresh-binding import is allowed in lightweight discovery.
+lifetime. Produce `uiTransforms()` and `uiTestOptions()` for normal and focused configurations
+(R11); no production server/fresh-binding import is allowed in lightweight discovery. After the wave
+1 review (R9, R10): a family's inputs include the files its sources import from outside its root,
+`rustCommands(rust)` builds the Rust chain with reverse dependents and never nextests the binding or
+the workspace flag, `unproven` fails a selected family with no discovered test, and fast takes its
+heavy slot itself, after selecting, never around ready.
 
 - [x] **Step 1: Add behavior tests and minimal interfaces.** Cover whitespace paths, explicit
       invalid base, clean-tree latest commit, initial commit, untracked files, deleted/renamed
@@ -335,8 +339,10 @@ image/watch, and core preservation tests.
 **Interfaces:** Consume Task 1 selection/configuration. Produce `createRequestFixture(options)`
 returning `{ fetch, requests, close }`, typed from production Agent/Session and mutation inputs. Use
 actual fate server/data views/source serialization, with scripted handlers and controlled promises;
-unexpected calls fail immediately. The focused render helper renders Composer under actual fate,
-repository, Suspense, and fetch contexts with a fresh client per case.
+unexpected calls fail immediately. A chat upload must carry `chat=1` and its `name` in the query, as
+the server requires, and `chatImages` lists the images a case starts with (R11). The focused render
+helper renders Composer under actual fate, repository, Suspense, and fetch contexts with a fresh
+client per case.
 
 - [x] **Step 1: Add focused contract cases.** Refused multiline text and two saved images must reach
       an available endpoint and restore exact text/order with a visible error. A pending custom send

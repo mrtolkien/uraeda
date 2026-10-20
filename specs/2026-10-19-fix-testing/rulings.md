@@ -122,3 +122,60 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   10-second watcher bound to every core edit.
 - **If wrong**: Add a legacy binding case to fast only with its measured cost.
 - **Where**: `scripts/fast-selection.ts`, `scripts/__tests__/fast-discovery.test.ts`.
+
+## R9: Fast takes its heavy slot itself, after selecting
+
+- **Decision**: The `fast` task runs `scripts/fast-check.ts` in a plain `test-run.ts` run folder,
+  without `--lock heavy`. The script selects first; an escalation runs `vp run ready` holding no
+  slot, and otherwise it takes one of the machine's two heavy slots in its own process (`acquire`
+  from `test-run.ts`) around its checks and tests, released when they end.
+- **Rationale**: Under the wrapper's lock, an escalation ran ready inside a held slot, and ready's
+  `ts:check`, `rust:clippy` and `rust:test` each wait for one: two checkouts escalating at once held
+  both slots and waited forever (wave 1 review, item 5).
+- **Alternatives considered**: Releasing the wrapper's slot before ready, which `test-run.ts` cannot
+  do for its command; one slot per command, which would let fast's concurrent type check and Rust
+  chain take both slots of the machine.
+- **If wrong**: A fast run killed with SIGKILL leaves its lock file, which the next run frees by its
+  owner's liveness, as for every other slot.
+- **Where**: `vite.tasks.ts`, `scripts/fast-check.ts`, `scripts/test-run.ts` (`lockFolder`
+  exported); `scripts/__tests__/fast-check.test.ts` and the toolchain test.
+
+## R10: Selection interfaces after the wave 1 review
+
+- **Decision**: `Change` is `{ path, deleted, added }`, `added` for git's `A` or an untracked path.
+  An edited existing test outside fast's lists is named in `deferred` (`existing test <path>`); only
+  an added unknown test escalates to ready. A family's `inputs` list every file outside its root
+  that its sources import, and the focused configuration instantiates each family whose inputs match
+  a related path. `rustCommands(rust)` builds the Rust chain: selected crates plus their reverse
+  dependents, clippy on all of them (`--workspace` for a root change), nextest on the default
+  members or the selected crates without `uraeda-binding`. `unproven(families, projects)` names a
+  selected whole family with no discovered test, which fails the run. Configuration files are
+  matched by name (`vite*.ts`, `*.config.{js,ts}`, `tsconfig*.json`, `package.json`, `pnpm-*`,
+  `flake.*`, `rust-toolchain.toml`).
+- **Rationale**: The wave 1 review found an edit of a file another package imports ran none of its
+  consumers, a core edit skipped `uraeda-cli` and `uraeda-lsp`, a root change ran nextest on the
+  workspace (which links napi into every crate's tests), an edited legacy test escalated to the full
+  ready run, and a source named `config.rs` broadened everything.
+- **Alternatives considered**: Instantiating every family for any related path, which loads the
+  server's whole graph for a Composer edit; reading `cargo metadata` at run time, which adds a cargo
+  call to every fast run (a test compares the static map with it instead).
+- **If wrong**: A missing import owner fails the selection test that walks each family's imports; a
+  missing reverse dependent fails the `cargo metadata` comparison.
+- **Where**: `scripts/fast-selection.ts`, `scripts/fast-check.ts`, `vite.fast.config.ts`, and their
+  tests.
+
+## R11: The focused UI project and endpoint follow the web configuration and the server
+
+- **Decision**: `uiTestOptions()` in `packages/web/vite.transforms.ts` holds the web tests' settings
+  (time zone, happy-dom page URL and frame loading, the binding's per-file setup, the UI setup,
+  timeout); the web configuration and fast's UI project both spread it. The request fixture accepts
+  a chat upload only with `chat=1`, no `path`, and a file part, records the query's `name`, and
+  answers a `DELETE` of a chat image it did not save, or the case did not start with (`chatImages`),
+  with 404. `rewritten` moved to `fate/select.ts`, shared by the app and the fixture.
+- **Rationale**: The copied UI settings dropped per-file isolation; the fixture accepted uploads the
+  server refuses, so a client dropping `chat=1` stayed green (wave 1 item 6, wave 2 items 1 and 2).
+- **Alternatives considered**: Loading the web configuration in fast, which imports the native
+  freshness check and dev server (R2).
+- **If wrong**: Move further shared settings into `uiTestOptions()` rather than copying them.
+- **Where**: `packages/web/vite.{config,transforms}.ts`, `vite.fast.config.ts`,
+  `packages/server/src/__tests__/request-fixture.ts`, `packages/web/src/__focused__/helpers.tsx`.
