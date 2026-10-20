@@ -415,11 +415,14 @@ fn untracked_files_the_move_would_commit_are_refused() {
     }
 }
 
-/// Review: a change merged into the default branch, its record not yet written, is done.
+/// Review: a change merged into the default branch, its record not yet written, is done once its
+/// branch is gone: while the branch is there, the folder on the default branch is the branch's.
 #[test]
 fn a_done_change_is_refused() {
     let repo = started(Kind::Change);
     repo.git(&["merge", "--quiet", "--no-ff", "--no-edit", CHANGE_BRANCH]);
+    repo.git(&["worktree", "remove", &format!(".worktrees/{FOLDER}")]);
+    repo.delete_branch(CHANGE_BRANCH);
     let before = repo.subjects("main");
 
     let refused = promote(&repo);
@@ -429,8 +432,5 @@ fn a_done_change_is_refused() {
         Some("2026-10-20-priorities-sections is done: ura clean removes it")
     );
     assert_eq!(repo.subjects("main"), before);
-    assert_eq!(
-        run_git(&worktree(&repo), &["branch", "--show-current"]).trim(),
-        CHANGE_BRANCH
-    );
+    assert_eq!(repo.git(&["branch", "--list", FOLDER]), "");
 }

@@ -553,3 +553,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the tests named, `checkPage` in `__browser__/helpers.tsx`, and `Lines` in
   `NewPage.tsx`.
 - **Where**: task 13, `packages/web/src/__browser__/`, `packages/web/src/NewPage.tsx`.
+
+## R33: A merged change is done for the move once its branch is gone
+
+- **Decision**: `a_done_change_is_refused` removes the change's worktree and deletes its branch
+  after the merge, then expects the "is done" refusal. Changing an existing test, after the catch-up
+  with the default branch.
+- **Rationale**: the default branch's `fix(start): commit the proposal on main with the start` makes
+  a dated folder on the default branch its branch's while the branch exists, locally or on `origin`:
+  it reads as merged only once the branch is gone, and a finish writes the record before the merge.
+  A merged change with its branch still there now reads as the branch's, in flight, so the old setup
+  no longer reached the refusal.
+- **Alternatives considered**: refusing the move for any change merged into the default branch,
+  branch or not: a second meaning of "merged", against the default branch's.
+- **If wrong**: the test, in `crates/core/tests/promote.rs`, and the `StepName::Done` check of
+  `promote::run`.
+- **Where**: the catch-up, `crates/core/tests/promote.rs`.
