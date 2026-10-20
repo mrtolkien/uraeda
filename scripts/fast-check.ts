@@ -122,8 +122,20 @@ async function checks(selection: FastSelection, graph: boolean) {
   if (!selection.related.length && !selection.families.length) {
     return;
   }
+  process.exitCode = await runFocused(fastConfig(selection), selection, graph);
+}
+
+/**
+ * Discovers and runs the focused tests, and returns the exit code: 1 when a module failed or an
+ * error went unhandled. It throws when a selected whole family discovered no tests, which would
+ * otherwise pass with nothing run.
+ */
+export async function runFocused(
+  config: Pick<ReturnType<typeof fastConfig>, "related" | "test">,
+  selection: Pick<FastSelection, "families">,
+  graph = false,
+): Promise<number> {
   process.env.VITEST = "true";
-  const config = fastConfig(selection);
   const vitest = await createVitest(
     { config: false, related: config.related, watch: false },
     { test: config.test },
@@ -149,15 +161,13 @@ async function checks(selection: FastSelection, graph: boolean) {
     }
     if (!specifications.length) {
       report("Zero matching focused tests; the named broader checks remain deferred to ready.");
-      return;
+      return 0;
     }
     const result = await vitest.runTestSpecifications(specifications);
-    if (result.testModules.some((module) => !module.ok())) {
-      process.exitCode = 1;
-    }
-    if (vitest.state.getUnhandledErrors().length) {
-      process.exitCode = 1;
-    }
+    return result.testModules.some((module) => !module.ok()) ||
+      vitest.state.getUnhandledErrors().length
+      ? 1
+      : 0;
   } finally {
     await vitest.close();
   }
