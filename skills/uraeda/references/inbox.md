@@ -195,27 +195,30 @@ Once `INBOX-TRIAGE.md` is `answered`:
 ## Agents' notes
 
 An agent's note is exceptional. The human reads every note and decides what it becomes, so each one
-costs their attention. Most features and changes add none. Whatever an agent finds while working on
-a feature or a [change](change.md), like a slow page, a confusing message, or a review's finding,
-goes one of three ways:
+costs their attention. Most features and changes add none. A review's findings are graded first, as
+[grade the findings](implementation.md#grade-the-findings) says: a critical or important one is
+fixed or ruled on, never dropped. Anything else an agent finds while working on a feature or a
+[change](change.md), like a slow page or a confusing message, goes one of three ways:
 
-- **It matters to the feature or the change**: it is part of the work. Fix it on the branch, with a
-  test when it is behaviour, and name it in the pull request. A problem in the behaviour the branch
-  builds, or in the code it writes or changes, is the branch's to fix, whichever task finds it.
-- **It does not matter enough to fix**: drop it. It goes nowhere: not in the inbox, not in
-  `rulings.md`, not in the pull request.
-- **It meets all three tests below**: add a note.
+- **The work needs it**: a problem in the behaviour the branch builds, in the code it writes, or one
+  the approved work cannot ship without. It is part of the work: fix it on the branch, with a test
+  when it is behaviour, and name it in the pull request.
+- **It passes the two tests below**: add a note.
+- **Neither**: drop it. It goes nowhere: not in the inbox, not in `rulings.md`, not in the pull
+  request.
 
-The three tests:
+A problem that was already there, in code the branch touches but does not need fixed, is not the
+work's. A failure the project's validation shows is reported in the pull request, as the
+[implementation](implementation.md#before-the-first-task) step says; anything else is a note or
+nothing. The two tests:
 
 1. **It is important**: users lose data, time, or trust, a security guard is missing, or every later
    change will pay for it. A name, a style preference, a function near a size limit, or a missing
-   test of code the branch did not change is not.
-2. **It needs the human**: fixing it takes their choice, a product direction, a tradeoff, a decision
-   to change, or work they have not approved.
-3. **It clearly falls outside the feature or change**: fixing it on the branch would grow the scope
-   the human approved, so it waits for them to start it. When in doubt, it is not a note: fix it on
-   the branch when the work needs it, or drop it.
+   test of code the branch did not change is not. When in doubt, it is not important: drop it.
+2. **It needs the human, because it clearly falls outside the feature or change**: fixing it would
+   grow the scope they approved, and only they start new work, or it takes their choice, a product
+   direction, a tradeoff, or a decision to change. An important problem outside the work is never
+   fixed in passing, and never dropped.
 
 A note is written:
 

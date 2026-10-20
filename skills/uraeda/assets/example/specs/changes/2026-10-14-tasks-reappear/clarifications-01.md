@@ -106,7 +106,8 @@ message in the list.
 ### Check these
 
 - **The slow save on completion** is left out: completing a task rewrites all 5,000 tasks in about
-  300 ms. It does not lose data, so it is noted in the inbox for later.
+  300 ms. It slows every completion, and fixing it changes how tasks are stored, beyond your report,
+  so it is noted in the inbox.
 
 ### Behaviour
 

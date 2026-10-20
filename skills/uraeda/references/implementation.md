@@ -105,7 +105,7 @@ again from the repository.
    names, see the test fail, revert it, and report the failure seen in the task's commit body: see
    [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests never sleep for a fixed
    time. A problem found outside the task is fixed on the branch when it matters to the feature,
-   dropped when it does not, and noted in the inbox only when it passes the three tests of
+   dropped when it does not, and noted in the inbox only when it passes the two tests of
    [agents' notes](inbox.md#agents-notes). Compare each output with the step's **Expected** line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
@@ -158,13 +158,13 @@ compliance first, then quality, with the criteria of [Review the branch](#review
 to the tasks, and flags what the tasks grew, not sizes that were already there
 ([extract, don't grow](code-quality.md#extract-dont-grow)).
 
-Its findings are [graded](#grade-the-findings) like the final review's: only the critical and
-important ones are fixed. Once the review ends, fix them at the next point between two waves, after
-a wave is merged and before the next one starts: give them to a fresh implementer on the feature
-branch, each behaviour fix with a test that fails first, in its own commit. After the last wave, fix
-them as soon as the review ends. The next review checks those fix commits with its wave. Structural
-fixes must keep behavioural tests passing and satisfy explicit architectural constraints. A finding
-still open after two reviews is ruled on, in `rulings.md`.
+Its findings are [graded](#grade-the-findings) like the final review's: the critical and important
+ones are fixed, with the minor ones worth fixing. Once the review ends, fix them at the next point
+between two waves, after a wave is merged and before the next one starts: give them to a fresh
+implementer on the feature branch, each behaviour fix with a test that fails first, in its own
+commit. After the last wave, fix them as soon as the review ends. The next review checks those fix
+commits with its wave. Structural fixes must keep behavioural tests passing and satisfy explicit
+architectural constraints. A finding still open after two reviews is ruled on, in `rulings.md`.
 
 ### Rulings
 
@@ -289,7 +289,7 @@ others.
 A second reviewer, such as another tool's review skill, can review the branch too, after the first.
 Its findings are graded and fixed the same way, and the pull request names it. It reviews the branch
 once; after its fixes, a second pass reviews only the fix commits. Its critical and important
-findings are fixed once more, without another review, and the rest is listed in the pull request.
+findings are fixed once more, without another review, and its minor ones are fixed or dropped.
 
 Then push the branch, open its pull request as a draft, and run the [finish](finish.md) step: it
 replaces the folder with its record, and marks the pull request ready.
