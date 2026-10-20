@@ -1,7 +1,7 @@
 ---
 status: approved
-revision: 2
-clarifications: 2
+revision: 3
+clarifications: 3
 risk-tier: high
 plan-review: false
 ---
@@ -214,11 +214,13 @@ Tradeoffs:
 
 - **SC-001** (CI under 5 minutes): Three consecutive successful CI runs each finish within 5
   minutes, including setup and builds.
-- **SC-002** (fast under 1 minute): Complete fast-check command time after a one-file edit is under
-  1 minute on the development machine. Measure Composer, a leaf, a shared helper, core Rust, skill,
-  fixture, declaration, configuration, deletion, and documentation changes. Report startup,
-  prerequisites, lock waits, execution, and cleanup; distinguish cold and warm state without waiving
-  a failed sample.
+- **SC-002** (fast under 1 minute): Complete fast-check command time after a one-file edit of a
+  source, test, fixture, declaration, skill, or documentation file is under 1 minute on the
+  development machine. The time is the median of 3 warm runs while no other checkout runs checks. A
+  root configuration, lock, or toolchain file edit is measured and reported, without a budget.
+  Measure Composer, a leaf, a shared helper, core Rust, skill, fixture, declaration, configuration,
+  deletion, and documentation changes. Report startup, prerequisites, lock waits, execution, and
+  cleanup; distinguish cold and warm state without waiving a failed sample.
 - **SC-003** (stable): The same commit passes five complete CI runs in a row, without retries.
 - **SC-004** (decisions kept): Every active rule requiring tests has an owning meaningful check in
   the plan's test map and final review.
@@ -266,6 +268,15 @@ implement the current Constitution VI.
 regressions even when local checks pass.
 
 ## History
+
+> [!NOTE]
+>
+> Revision 3 was approved on 2026-10-21 by your answer to
+> [round 03](clarifications-03.md#q1-how-should-the-one-minute-fast-budget-read-given-these-measurements)
+> Q1, option A: SC-002 keeps its minute for a one-file edit of a source, test, fixture, declaration,
+> skill, or documentation file, as the median of 3 warm runs on a quiet machine, and a root
+> configuration, lock, or toolchain edit is measured and reported without a budget. Nothing else in
+> the spec changed. Q2, option A, is a product fix the implementation carries out as a ruling.
 
 > [!NOTE]
 >
