@@ -111,6 +111,15 @@ test("fixtures broaden consumers; unknown tests and config require ready", () =>
   expect(selectFast([change("new-runtime.bin")]).checks).toContain("ready");
   expect(selectFast([change("vite.fast.config.ts")]).families).toContain("ui");
 });
+test("the binding package's own files run its contracts, not the Rust tests", () => {
+  for (const path of ["packages/binding/test-repos.ts", "packages/binding/index.d.ts"]) {
+    const selected = selectFast([change(path)]);
+    expect(selected.families, path).toContain("binding");
+    expect(selected.checks, path).toContain("binding:touch");
+    expect(selected.rust, path).toEqual([]);
+  }
+  expect(selectFast([change("fixtures/round/spec.md")]).rust).toContain("uraeda-core");
+});
 test("documentation gets format and spec validation without native consumers", () => {
   const selected = selectFast([change("README.md")]);
   expect(selected.checks).toEqual(["ts:check", "specs:check"]);
