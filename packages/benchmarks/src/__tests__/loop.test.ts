@@ -244,6 +244,34 @@ test("a command that fetches names its address, one that only mentions it does n
   expect(mentioning.loop.flags).toEqual([]);
 });
 
+test.each([
+  "gh repo clone ansible/ansible",
+  "gh api repos/ansible/ansible/pulls/1",
+  "gh pr view 1 --repo ansible/ansible",
+  "git clone git@github.com:ansible/ansible.git",
+  "git fetch ssh://git@github.com/ansible/ansible.git",
+])("a command reaching the upstream without http, %s, is flagged", async (command) => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [commandTurn(command)],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual(["leak-suspected"]);
+  expect(loop.urls).toHaveLength(1);
+});
+
+test("gh on another repository, or on the checkout's own, is not flagged", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [commandTurn("gh repo view cli/cli && gh pr list")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual([]);
+  expect(loop.urls).toEqual(["https://github.com/cli/cli"]);
+});
+
 test("the benchmark's own repository and dataset are flagged like the upstream", async () => {
   const { loop } = await runScripted({
     pushedAfter: 1,

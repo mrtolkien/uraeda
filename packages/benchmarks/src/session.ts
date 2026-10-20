@@ -36,13 +36,33 @@ export type SessionResult = {
   usageLimit: boolean;
 };
 
-const URL_PATTERN = /https?:\/\/[^\s"'<>)`,;]+/g;
+const URL_PATTERN = /\b(?:https?|ssh|git):\/\/[^\s"'<>)`,;]+/g;
+/** A git remote in scp form, `git@github.com:owner/repo.git`: its host and its path. */
+const SCP_PATTERN = /\b[\w.-]+@([\w.-]+\.[a-z]+):\/?([\w.-]+\/[\w.-]+)/g;
+/** A repository `gh` is pointed at: `gh repo clone owner/repo`, or `--repo owner/repo`. */
+const GH_REPO_PATTERN = /(?:\bgh\s+repo\s+[\w-]+|\s(?:--repo|-R))[\s=]+([\w.-]+\/[\w.-]+)/g;
+/** A path `gh api` reads on GitHub's API: `gh api repos/owner/repo/pulls`. */
+const GH_API_PATTERN = /\bgh\s+api\s+\/?(repos\/[^\s"'<>)`,;]+)/g;
 /** A command that reaches a network address, not one that merely mentions it (a test's config). */
 const FETCHING =
   /\b(curl|wget|gh|git\s+(clone|fetch|pull|ls-remote|remote)|pip3?\s+(download|install)|httpie?|nc|ssh)\b/;
 /** The server gives a process that long to end after its result, twice. */
 const GRACE_MS = 10_000;
 const LIMIT_PATTERN = /usage limit|limit reached|rate.?limit/i;
+
+/**
+ * The network addresses a fetch or a command names, as URLs: its URLs, its scp-form git remotes,
+ * and the GitHub repositories and API paths `gh` reaches without one.
+ */
+function addressesOf(text: string): Array<string> {
+  const all = (pattern: RegExp) => [...text.matchAll(pattern)];
+  return [
+    ...(text.match(URL_PATTERN) ?? []),
+    ...all(SCP_PATTERN).map(([, host, path]) => `https://${host}/${path}`),
+    ...all(GH_REPO_PATTERN).map(([, repository]) => `https://github.com/${repository}`),
+    ...all(GH_API_PATTERN).map(([, path]) => `https://api.github.com/${path}`),
+  ];
+}
 
 /**
  * Runs one fresh session: opens the adapter's process, sends the message, reads the events until
@@ -93,7 +113,7 @@ export async function runSession(options: {
     } else if (event.type === "toolStart") {
       const text = event.target ?? "";
       const fetches = event.kind === "fetch" || (event.kind === "execute" && FETCHING.test(text));
-      result.urls.push(...(fetches ? (text.match(URL_PATTERN) ?? []) : []));
+      result.urls.push(...(fetches ? addressesOf(text) : []));
     } else if (event.type === "usage") {
       result.usageLimit ||= event.fiveHour.percentUsed >= 100;
     } else if (event.type === "result") {
