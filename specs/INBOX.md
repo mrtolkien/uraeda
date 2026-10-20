@@ -26,10 +26,6 @@
 
 ## Prompts
 
-- The implement step creates WAY TOO MANY inbox notes: inbox notes should be _meaningful_ issues
-  that require human attention. If it's random bullshit why is it here, if it's important why isn't
-  it done.
-
 - The PR texts suck: I often work on 3+ features in parallel and when a PR drops I'm lacking
   context. It talks about "Approach" and "What stays unchanged" but ffs start with some good context
   about what was _done_.

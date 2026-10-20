@@ -13,7 +13,7 @@
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
-- Fix agent -> inbox flow, it creates way too much noise at the moment
+- [Fix agent -> inbox flow, it creates way too much noise at the moment](drafts/inbox-noise.md)
 
 - Empty inbox
 - [Merge chats and changes](drafts/merge-chats-and-changes.md)
