@@ -112,3 +112,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   plan names would then lie about what draws.
 - **If wrong**: local to `routes.tsx` and `App.tsx`.
 - **Where**: task 7.
+
+## R8: The move checks the change's worktree alone, and names it
+
+- **Decision**: `ura start <change> --feature` refuses uncommitted changes in the change's worktree
+  only, with "cannot move: the change's worktree <path> has uncommitted changes in <files>", the
+  path from the main checkout. The main checkout's edits never refuse it. The test
+  `uncommitted_changes_in_the_changes_worktree_are_refused` expects this message instead of start's
+  "cannot start: uncommitted changes in README.md".
+- **Rationale**: the plan requires a clean worktree only; the default branch's commit stages
+  `PRIORITIES.md` alone, and `Git::commit` refuses other staged files. Start's message named neither
+  the action nor the working tree, and the human may have two.
+- **Alternatives considered**: keeping start's `check_clean` on both: refuses the move over an
+  unrelated edit in the human's checkout.
+- **If wrong**: `check_worktree` in `actions/promote.rs`.
+- **Where**: wave 1 review, `crates/core/src/actions/promote.rs`.
