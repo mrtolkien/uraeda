@@ -58,14 +58,18 @@ const checkout = join(import.meta.dirname, "../../..");
 
 /**
  * What the sample projects and sessions are built from: their builders, the fixtures and templates
- * they copy, and the test helpers they call. A change to any of them makes a seed stale.
+ * they copy, and the test helpers and fake agent they call, every module they import that the
+ * sandbox's server does not (a test checks it). A change to any of them makes a seed stale.
  */
-const SOURCES = [
+export const SOURCES = [
   "packages/web/samples",
   "packages/web/sandbox/agent.ts",
   "packages/web/sandbox/sessions.ts",
   "packages/web/sandbox/seed.ts",
   "packages/binding/test-utils.ts",
+  "packages/binding/test-repos.ts",
+  "packages/server/src/testing.ts",
+  "packages/server/src/runner/fake.ts",
   "fixtures/repo",
   "fixtures/broken",
   "fixtures/round-mockup",

@@ -901,9 +901,10 @@ git commit -m "feat(ui-sandbox): sample sessions on the sandbox's fake agent"
 - Produces:
   `seed(root: string, { reset }: { reset: boolean }): Promise<{ configDir; dataDir; projects; stale: boolean }>`,
   building `.sandbox/` into a temporary folder renamed into place, completed there, and stamped last
-  with the builders' version (R17); `sandboxEnv(sandbox, environment)`;
-  `sandboxConfig({ checkout, port })`; `devHandler`'s `started?: (server: Server) => void`;
-  `dev.ts [--config <file>]`, through `viteArgs(args)`.
+  with the builders' version (R17), a hash of `SOURCES`: every module the builders import that the
+  sandbox's server does not, which `builders-version.test.ts` checks;
+  `sandboxEnv(sandbox, environment)`; `sandboxConfig({ checkout, port })`; `devHandler`'s
+  `started?: (server: Server) => void`; `dev.ts [--config <file>]`, through `viteArgs(args)`.
 
 - [x] **Step 1: Write the failing tests**
 

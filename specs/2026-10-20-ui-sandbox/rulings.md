@@ -240,8 +240,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the list and the sessions record each project's absolute path, which must be the
   final one: the sessions are keyed by it, and only the session manager writes them (R2). A rename
   of the whole state therefore cannot be its last step; the stamp's rename is. The builders' version
-  hashes the samples, the sandbox's agent, sessions and seed, the binding's test helpers, and the
-  fixtures and templates they copy.
+  hashes the samples, the sandbox's agent, sessions and seed, the binding's test helpers, the
+  server's test helpers and fake agent, and the fixtures and templates they copy: every module the
+  builders import that the sandbox's server does not, as a test checks, since the server's own
+  modules are the app it serves.
 - **Alternatives considered**: everything built in the temporary folder: its paths in the list and
   the sessions would point at a folder gone after the rename. `.sandbox` as a symbolic link to a
   folder built in place: no rename of the projects, but a second layout to explain. A lock file: the
