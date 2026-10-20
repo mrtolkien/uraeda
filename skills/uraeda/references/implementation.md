@@ -104,9 +104,9 @@ again from the repository.
    implement, and run every command the plan gives. Once a new test passes, make the break its step
    names, see the test fail, revert it, and report the failure seen in the task's commit body: see
    [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests never sleep for a fixed
-   time. A problem found outside the task is not fixed in passing: note it in the inbox, as
-   [agents' notes](inbox.md#agents-notes) says. Compare each output with the step's **Expected**
-   line:
+   time. A problem found outside the task is fixed on the branch when it matters to the feature,
+   dropped when it does not, and noted in the inbox only when it passes the three tests of
+   [agents' notes](inbox.md#agents-notes). Compare each output with the step's **Expected** line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
@@ -132,8 +132,8 @@ again from the repository.
 
    A failure unrelated to the task that passes when run again is not hunted in rerun loops: rerun it
    at most twice. A test that fails intermittently follows the project's rule for flaky tests, when
-   an active decision has one; otherwise note it in the inbox, as
-   [agents' notes](inbox.md#agents-notes) says, and go on.
+   an active decision has one; otherwise name it in the pull request, as a failure that was already
+   there, and go on.
 
 4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
    plan's commit message. Check a box only for a step that ran, with the output the plan expects:
@@ -275,16 +275,16 @@ that triggers it:
   structural fixes with behavioural regression checks and any explicit architectural checks. Do not
   manufacture a failing test that only pins a private implementation shape. Run the full validation.
   Commit with the feature's scope: `fix(recurring-tasks): keep the undo after a reload`.
-- **Minor**: do not fix them, and do not let an implementer fix them in passing. Add each to the
-  inbox under **Deferred fixes**, as an [agent's note](inbox.md#agents-notes) about the feature, for
-  the human to decide, and list them in the pull request.
+- **Minor**: fix the ones worth fixing in the same pass, and drop the rest. A minor finding is never
+  an [agent's note](inbox.md#agents-notes): the branch either fixes it or leaves it.
 
 A maintenance defect can be important before it causes a user-visible failure. Name the likely
 change or failure it makes harder, and the duplicated edits, coupling, or missing ownership behind
 that cost. A preference for different names or formatting alone is minor; a unit the branch grew
 past a limit, or a copy of a rule ([one home per rule](code-quality.md#one-home-per-rule)), is not.
 
-A finding you decide not to fix is a ruling, written in `rulings.md` with the others.
+A critical or important finding you decide not to fix is a ruling, written in `rulings.md` with the
+others.
 
 A second reviewer, such as another tool's review skill, can review the branch too, after the first.
 Its findings are graded and fixed the same way, and the pull request names it. It reviews the branch
@@ -312,7 +312,7 @@ description, written when it is marked ready, reads like a file waiting for the 
 - **Size**: each function and file the branch grew, with its length before and after.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Review comments**: when the plan was approved with comments, how each was carried out.
-- **Deferred fixes**: the minor findings of the reviews, as noted in the inbox.
+- **Inbox notes**: the [agents' notes](inbox.md#agents-notes) the feature added, when there are any.
 - **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 If you cannot open a pull request, push the branch, and put the description in the body of the last

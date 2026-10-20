@@ -77,7 +77,7 @@ the plan, the rulings, and the review files.
 - **Changes after approval**: the rulings that change behaviour, the spec's revisions after its
   approval, and the changes asked on the pull request. Say each change in words, never by its
   ruling's number: the folder and its `rulings.md` are gone for the record's reader.
-- **Follow-ups**: the minor findings deferred by the reviews, noted in the inbox, and the work left.
+- **Follow-ups**: the agents' notes the feature added to the inbox, and the work left.
 
 The record links no image: the folder's `images/` is deleted with it, and git keeps them. Describe
 in words what an image showed, when the record needs it.

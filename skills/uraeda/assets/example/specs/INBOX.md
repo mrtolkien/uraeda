@@ -10,7 +10,3 @@
 ## Storage
 
 - [agent] [tasks-reappear] Completing a task rewrites all 5,000 tasks in IndexedDB, in 300 ms
-
-## Deferred fixes
-
-- [agent] [recurring-tasks] The repeat menu's options are rebuilt at every render of a task row
