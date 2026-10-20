@@ -1200,6 +1200,31 @@ test("a fresh run sent to an idle session while another works starts no session"
   expect(cache.latestSession(idle.repo, AGENT)?.id).toBe(working.id);
 });
 
+/** R12: a fresh run sent while its session works waits behind it, in the new session. */
+test("a fresh run sent while its session works is queued in the new session", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
+  const chat = await sessions.send(repo, session.id, { text: "What is left?" });
+
+  adapter.script([]);
+  const run = await sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: true, trigger: "approval" },
+  });
+
+  expect(run.session).not.toBe(session.id);
+  expect(cache.turn(run.turn)).toMatchObject({ sessionId: run.session, state: "queued" });
+  expect(adapter.opens).toHaveLength(1);
+  adapter.emit(done());
+  await sessions.settled(chat.turn);
+  await sessions.settled(run.turn);
+  expect(cache.turn(run.turn)?.state).toBe("done");
+  expect(adapter.opens.at(-1)?.nativeId).toBe(cache.session(run.session)?.nativeId);
+  expect(adapter.sent.at(-1)?.text).toBe("Continue the feature.");
+});
+
 /**
  * Review focus 3: a turn queued in a session while another of the feature works opens only once
  * the other's turn ends.
