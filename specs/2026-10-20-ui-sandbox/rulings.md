@@ -295,3 +295,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   text, one of them dead in story embeds.
 - **If wrong**: the cut moves back to `pickText`, and the script posts its text whole.
 - **Where**: tasks 4 and 6.
+
+## R21: The "Sandbox" marker hides the bar but itself, and shows it again
+
+- **Decision**: the marker is a button, named "Sandbox, hide the bar" or "Sandbox, show the bar",
+  with `aria-expanded`, that hides the pick toggle and the status line, and shows them again.
+  Hidden, pick mode still toggles by Alt+Shift+P, picks still copy, the status is still announced,
+  and a failed copy still shows its line and text. Each viewer's choice is kept in `localStorage` as
+  `uraeda.sandboxBar`, through the layout's `useStoredShown`, which survives a browser refusing it.
+  It adds behaviour beyond the spec's text, inside its settled placement, so the pull request names
+  it.
+- **Rationale**: the bar sits over the page without moving it, as the spec settles, and on a phone
+  it covered the page's last controls, such as the round's "Commit and start the agent". Hiding it
+  is the smallest change that keeps that placement and frees the corner.
+- **Alternatives considered**: moving the page up by the bar's height: the spec keeps layouts as
+  they are. A bar that moves to the other corner: the controls under it change, and none is freed
+  for sure. A close button of its own: one more control on a bar meant to stay small.
+- **If wrong**: `SandboxBar` drops `shown`, and the marker is a badge again.
+- **Where**: task 6, at the final review.

@@ -1,10 +1,13 @@
 // The sandbox's bar, in the page's bottom-left corner, over the app without moving it: the
-// "Sandbox" marker, the pick toggle, and what the last pick did. Only the sandbox's page loads it.
-// The pick script leaves the bar to the page, so its toggle works in pick mode.
+// "Sandbox" marker, the pick toggle, and what the last pick did. The marker hides the rest, and
+// shows it again, so the bar uncovers the page's last controls (R21). Only the sandbox's page
+// loads it. The pick script leaves the bar to the page, so its toggles work in pick mode.
 import { Badge } from "@astryxdesign/core/Badge";
+import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import {
   borderVars,
   colorVars,
@@ -35,6 +38,8 @@ const styles = stylex.create({
     // Above the app's own dialogs and popovers.
     zIndex: 2_147_483_647,
   },
+  // Out of the bar's flow, its text hidden and still announced: no gap after the bar's last button.
+  unseen: { position: "absolute" },
   // A framed box, so its clipped last line reads as more to scroll to.
   copy: {
     borderColor: colorVars["--color-border"],
@@ -74,30 +79,59 @@ function status(picking: boolean, last: PickStatus): string | undefined {
 export function SandboxBar({
   last,
   onPickingChange,
+  onShownChange,
   picking,
   shortcut,
+  shown = true,
 }: {
   last: PickStatus;
   onPickingChange: (picking: boolean) => void;
+  /** Hides the bar but its marker, or shows it again. */
+  onShownChange?: (shown: boolean) => void;
   picking: boolean;
   /** The keyboard shortcut that toggles pick mode, as `aria-keyshortcuts` names it. */
   shortcut?: string;
+  /** Whether the bar shows more than its marker. */
+  shown?: boolean;
 }) {
   const line = status(picking, last);
+  // Hidden, the bar still shows a copy that failed, an error to deal with, and still announces the
+  // rest.
+  const failed = !picking && last.kind === "failed";
+  const seen = line !== undefined && (shown || failed);
   return (
     <div data-sandbox-bar data-uraeda-pick-ignore {...stylex.props(styles.bar)}>
-      <Badge label="Sandbox" variant="orange" />
-      <ToggleButton
-        aria-keyshortcuts={shortcut}
-        icon={<Icon icon="uraeda:pick" />}
-        isPressed={picking}
-        label="Pick an element"
-        onPressedChange={onPickingChange}
+      <Button
+        aria-expanded={shown}
+        label={shown ? "Sandbox, hide the bar" : "Sandbox, show the bar"}
+        onClick={() => onShownChange?.(!shown)}
         size="sm"
-        tooltip={shortcut && `Pick an element, ${shortcut}`}
-      />
-      <div role="status">{line !== undefined && <Text size="sm">{line}</Text>}</div>
-      {!picking && last.kind === "failed" && (
+        variant="ghost"
+      >
+        <Badge label="Sandbox" variant="orange" />
+      </Button>
+      {shown && (
+        <ToggleButton
+          aria-keyshortcuts={shortcut}
+          icon={<Icon icon="uraeda:pick" />}
+          isPressed={picking}
+          label="Pick an element"
+          onPressedChange={onPickingChange}
+          size="sm"
+          tooltip={shortcut && `Pick an element, ${shortcut}`}
+        />
+      )}
+      <div role="status" {...stylex.props(!seen && styles.unseen)}>
+        {line !== undefined &&
+          (seen ? (
+            <Text size="sm">{line}</Text>
+          ) : (
+            <VisuallyHidden>
+              <Text size="sm">{line}</Text>
+            </VisuallyHidden>
+          ))}
+      </div>
+      {failed && (
         // Reached by Tab, and selected whole as it takes focus, ready to copy with the keyboard.
         <pre
           aria-label="The pick's text"

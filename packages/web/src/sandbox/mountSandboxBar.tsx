@@ -6,6 +6,7 @@ import { colorVars, typographyVars } from "@astryxdesign/core/theme/tokens.style
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { useStoredShown } from "../layout/useStoredShown.ts";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 import { elementOf, type Pick, pickText } from "./pickText.ts";
 import { type PickStatus, SandboxBar } from "./SandboxBar.tsx";
@@ -15,6 +16,9 @@ import { type PickStatus, SandboxBar } from "./SandboxBar.tsx";
  * the bar from inside the app's dialogs and popovers, which a click on the bar would close (R14).
  */
 export const PICK_SHORTCUT = "Alt+Shift+P";
+
+/** Where the browser keeps whether the bar shows more than its marker, for each viewer (R21). */
+const SHOWN_KEY = "uraeda.sandboxBar";
 
 /**
  * Whether a key press is the pick shortcut: by its physical key, the same on every layout, and with
@@ -88,6 +92,7 @@ async function copy(page: Window, text: string) {
 function Picker({ page }: { page: Window }) {
   const [picking, setPicking] = useState(false);
   const [last, setLast] = useState<PickStatus>({ kind: "idle" });
+  const [shown, setShown] = useStoredShown(SHOWN_KEY);
   const mode = useColorMode(page);
   const theme = useMemo(() => ({ mode, theme: uraedaTheme }), [mode]);
   const pick = (on: boolean) => {
@@ -149,7 +154,14 @@ function Picker({ page }: { page: Window }) {
         data-theme={mode}
         {...stylex.props(styles.theme, styles[mode])}
       >
-        <SandboxBar last={last} onPickingChange={pick} picking={picking} shortcut={PICK_SHORTCUT} />
+        <SandboxBar
+          last={last}
+          onPickingChange={pick}
+          onShownChange={setShown}
+          picking={picking}
+          shortcut={PICK_SHORTCUT}
+          shown={shown}
+        />
       </div>
     </ThemeContext>
   );

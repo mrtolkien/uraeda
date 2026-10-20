@@ -271,9 +271,14 @@ async function sandboxPage({ clipboard = "kept" }: { clipboard?: "kept" | "refus
           : Promise.resolve(void copied.push(text)),
     },
   });
-  const unmount = mountSandboxBar({ document, window });
+  let unmount = mountSandboxBar({ document, window });
   onTestFinished(async () => {
     unmount();
+    try {
+      localStorage.removeItem("uraeda.sandboxBar");
+    } catch {
+      // A browser without storage kept nothing.
+    }
     if (original) {
       Object.defineProperty(navigator, "clipboard", original);
     } else {
@@ -283,7 +288,12 @@ async function sandboxPage({ clipboard = "kept" }: { clipboard?: "kept" | "refus
     window.postMessage({ on: false, uraeda: "pick" }, "*");
     await new Promise((resolve) => setTimeout(resolve));
   });
-  return { copied };
+  /** Removes the bar and mounts it again, as a page loaded again does. */
+  const remount = () => {
+    unmount();
+    unmount = mountSandboxBar({ document, window });
+  };
+  return { copied, remount };
 }
 
 test("a click copies the pick, and the bar names it", async () => {
@@ -537,4 +547,33 @@ test("the bar removed in pick mode turns pick mode off", async () => {
   await userEvent.click(page.getByRole("button", { name: "Save" }));
 
   expect(pressed).toHaveBeenCalledOnce();
+});
+
+test("the badge hides the bar but itself, the shortcut still picks, and the choice is kept", async () => {
+  const { copied, remount } = await sandboxPage();
+  render(<Button label="Save" />);
+  const hide = page.getByRole("button", { name: "Sandbox, hide the bar" });
+  await expect.element(hide).toHaveAttribute("aria-expanded", "true");
+
+  await userEvent.click(hide);
+
+  await expect
+    .element(page.getByRole("button", { name: "Pick an element" }))
+    .not.toBeInTheDocument();
+  const show = page.getByRole("button", { name: "Sandbox, show the bar" });
+  await expect.element(show).toHaveAttribute("aria-expanded", "false");
+  await userEvent.keyboard(PICK_SHORTCUT);
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+  await expect.poll(() => copied).toHaveLength(1);
+  expect(copied[0]).toContain("Element: button “Save”");
+
+  remount();
+  await expect.element(page.getByRole("button", { name: "Sandbox, show the bar" })).toBeVisible();
+  (show.element() as HTMLElement).focus();
+  await userEvent.keyboard("{Enter}");
+
+  await expect.element(page.getByRole("button", { name: "Pick an element" })).toBeVisible();
+  await expect
+    .element(page.getByRole("button", { name: "Sandbox, hide the bar" }))
+    .toHaveAttribute("aria-expanded", "true");
 });

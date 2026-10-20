@@ -1,6 +1,6 @@
 // The sandbox's bar, mockups of the UI sandbox's picker: the marker and the pick toggle at rest,
-// pick mode on, a pick copied, and a copy the browser refused, which shows the pick's text to
-// select by hand.
+// pick mode on, a pick copied, a copy the browser refused, which shows the pick's text to select by
+// hand, and the bar hidden but its marker.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type PickStatus, SandboxBar } from "./SandboxBar.tsx";
 
@@ -12,8 +12,8 @@ Text: Submit answers
 HTML: <button type="submit" class="x1n2onr6 x9f619">Submit answers</button>
 Viewport: 1440 × 900, dark`;
 
-function Bar({ last, picking }: { last: PickStatus; picking: boolean }) {
-  return <SandboxBar last={last} onPickingChange={() => {}} picking={picking} />;
+function Bar({ last, picking, shown }: { last: PickStatus; picking: boolean; shown?: boolean }) {
+  return <SandboxBar last={last} onPickingChange={() => {}} picking={picking} shown={shown} />;
 }
 
 const meta = {
@@ -39,3 +39,6 @@ export const Copied: Story = {
 
 /** The browser refused the clipboard: the pick's text, to select and copy by hand. */
 export const CopyFailed: Story = { args: { last: { kind: "failed", text: PICK }, picking: false } };
+
+/** Hidden by its marker, which shows it again: the page's corner is free, and picks still copy. */
+export const Collapsed: Story = { args: { last: { kind: "idle" }, picking: false, shown: false } };

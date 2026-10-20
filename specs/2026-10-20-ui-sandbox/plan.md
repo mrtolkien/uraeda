@@ -731,7 +731,11 @@ git commit -m "feat(ui-sandbox): the sample, empty, and broken projects"
   script by messages to the page itself, copies each pick, and follows the app's colour mode from
   `<html data-theme>`; `main.tsx` calls it, and Task 8 imports `main.tsx`. Pick mode also toggles by
   `PICK_SHORTCUT`, Alt+Shift+P, and the bar's host moves into the topmost open modal dialog while
-  one is open, so a pick inside a dialog or a popover menu can start (R14).
+  one is open, so a pick inside a dialog or a popover menu can start (R14). The pick's `Source`
+  keeps `data-insp-path`'s path, line, and column, without its tag name, and its HTML drops every
+  `data-insp-path` attribute before its cut. The "Sandbox" marker is a button that hides the bar but
+  itself, and shows it again, kept in `localStorage` as `uraeda.sandboxBar`; hidden, pick mode still
+  toggles by the shortcut, and a failed copy still shows (R21).
 
 - [x] **Step 1: Write the failing tests**
 
