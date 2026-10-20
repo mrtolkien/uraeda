@@ -81,6 +81,12 @@ test("Start the change from the agent's offer", async () => {
   expect(proposal.value).toBe(PROPOSAL);
   const slug = (await shown.findByRole("textbox", { name: "Slug" })) as HTMLInputElement;
   await waitFor(() => expect(slug.value).toBe(SLUG));
+  // The branch's date is the server's: the card does not guess it from the browser's clock.
+  expect(
+    shown.getByText(
+      "This session goes on in the change’s worktree, on its own branch. The files it edited move there too.",
+    ),
+  ).toBeTruthy();
   fake.adapter.script([]);
   await click(shown.getByRole("button", { name: "Start the change" }));
 

@@ -24,15 +24,6 @@ export type OfferSession = { folder?: string; id: string; working: boolean };
 /** Why a card's button waits while the session's agent works: a move sends the next run in it. */
 const WORKING = "The agent is working";
 
-/** A month or a day, on two digits. */
-const pad = (value: number) => String(value).padStart(2, "0");
-
-/** Today, as the core names a folder with it: the change's branch the card names. */
-function today() {
-  const now = new Date();
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
 /** The card's frame: its heading, named for the region, then its parts. */
 function Frame({ children, title }: { children: ReactNode; title: string }) {
   return (
@@ -102,7 +93,8 @@ function Slug({ onChange, proposal, typed }: SlugProps) {
         value={slug}
       />
       <Text color="secondary" type="supporting">
-        {`This session goes on in the change’s worktree, on change/${today()}-${slug}. The files it edited move there too.`}
+        This session goes on in the change’s worktree, on its own branch. The files it edited move
+        there too.
       </Text>
     </>
   );
