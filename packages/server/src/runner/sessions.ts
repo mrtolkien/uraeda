@@ -44,8 +44,8 @@ const working = (live: Live) =>
 
 /**
  * Sessions of turns with agents: at most one process and one turn per session, and one working
- * session per change or feature, whose sessions work in its worktree; a chat in the main checkout. Turns and their items go to the cache, and every
- * change to `onChange`.
+ * session per change or feature, whose sessions work in its worktree; a chat in the main checkout.
+ * Turns and their items go to the cache, and every change to `onChange`.
  *
  * It answers the server's calls, and leaves the rest to its parts: the sessions kept in memory,
  * their processes, their turns, and the transcript their events are recorded in.
@@ -134,7 +134,10 @@ export class Sessions {
       .map((live) => live.folder as string);
   }
 
-  /** Whether any session of the repository, a feature's or a chat, has a turn running, starting, or queued. */
+  /**
+   * Whether any session of the repository, a feature's or a chat, has a turn running, starting, or
+   * queued.
+   */
   busy(repo: string): boolean {
     return this.#busy(repo).length > 0;
   }
@@ -262,12 +265,13 @@ export class Sessions {
   }
 
   /**
-   * Sends a message to the session, and returns the session it went to and its turn. Idle, it starts a turn, opening the
-   * process when it is closed. During a turn, the human's message is steered into it, and the
-   * workflow's is queued after it. A workflow message that no longer applies, as `sentAsChat`
-   * decides, runs as a chat, with the line saying so. A message may be images alone, at most 10, to an agent that declares images; the
-   * workflow's message takes none. A run that starts fresh goes to a new session of the change or
-   * the feature, which it returns; another session of it working refuses a message.
+   * Sends a message to the session, and returns the session it went to and its turn. Idle, it
+   * starts a turn, opening the process when it is closed. During a turn, the human's message is
+   * steered into it, and the workflow's is queued after it. A workflow message that no longer
+   * applies, as `sentAsChat` decides, runs as a chat, with the line saying so. A message may be
+   * images alone, at most 10, to an agent that declares images; the workflow's message takes none.
+   * A run that starts fresh goes to a new session of the change or the feature, which it returns;
+   * another session of it working refuses a message.
    */
   async send(
     repo: string,
@@ -382,7 +386,9 @@ export class Sessions {
     this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
   }
 
-  /** How many of the session's messages this server keeps: those of its turns not ended, or unread. */
+  /**
+   * How many of the session's messages this server keeps: those of its turns not ended, or unread.
+   */
   tracked(session: string): number {
     return this.#context.live.get(session)?.messages.size ?? 0;
   }

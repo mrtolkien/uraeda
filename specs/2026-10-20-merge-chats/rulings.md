@@ -143,9 +143,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R10: A typed change starts over the main checkout's uncommitted changes
 
-- **Decision**: a change started from a typed text, as `session.toChange` and the New page start
-  one, refuses only staged files other than `PRIORITIES.md`, not uncommitted changes in the main
-  checkout. A draft's start keeps refusing them. New core test
+- **Decision**: any start from a typed text, of a change or a feature, as `session.toChange` and the
+  New page start one, refuses only staged files other than `PRIORITIES.md`, not uncommitted changes
+  in the main checkout. A draft's start keeps refusing them. New core test
   `a_typed_text_starts_over_uncommitted_changes_elsewhere`.
 - **Rationale**: US2 2 starts the change while the session's edit to `src/auth/guard.ts` and the
   human's to `README.md` are uncommitted in the main checkout, and the skill says to leave every
