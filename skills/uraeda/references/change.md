@@ -37,8 +37,8 @@ A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
 
 ## Starting a change
 
-Only when a human asks. A change starts like a feature, with its own names: from Change on the web
-UI's New page, with `ura start <draft> --slug <slug> --change`, or by hand. See **Start as a
+Only when a human asks. A change starts like a feature, with its own names. Start it from Change on
+the web UI's New page, with `ura start <draft> --slug <slug> --change`, or by hand. See **Start as a
 change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature).
 
 **From a session on the main checkout**, a request for a code change is offered as a change, not
@@ -55,15 +55,20 @@ After signing in, the app shows the home page, then the sign-in page again.
 ````
 
 Uraeda shows the block as a card, where the human edits the proposal and its slug, then starts the
-change. Every other reader sees the block as text. Offer once: only the latest offer of a session
-has buttons, and an offer of a change in a change's or a feature's session reads as text, since a
+change. Every other reader sees the block as text. Offer once. Only the latest offer of a session
+has buttons. An offer of a change in a change's or a feature's session reads as text, since a
 session only moves up. Change no file before the human says yes.
 
 When the card starts the change, the same session goes on in the change's worktree. Its next message
 names the worktree, the branch, and the files you edited on the main checkout, to carry over. A file
 the human also edited since stays on the main checkout: merge it by hand. Leave every other
-uncommitted file where it is. When the human says yes in words instead, commit the draft on the
-default branch, `chore: draft <title>`, start it as
+uncommitted file where it is.
+
+When the human says yes in words instead, in Uraeda, offer the block again, and ask the human to
+start the change from its card. Only the card moves this session into the change's worktree. Started
+any other way, the change later gets a second session in the same worktree. The human may also start
+it from the New page, and talk in the change's session. In a harness without Uraeda, commit the
+draft on the default branch, `chore: draft <title>`. Start it as
 [Projects](projects.md#starting-postponing-and-dropping-a-feature) says, and run the change in its
 worktree.
 
@@ -192,8 +197,8 @@ The upgrade moves the change in place: its branch, its folder, its code, and its
 feature's. Offer it, and never make it alone:
 
 - **When the human talks with you in the session**, offer it in a fenced block whose info string is
-  `uraeda-offer feature`, holding the reason in one sentence. Uraeda shows it as a card the human
-  accepts:
+  `uraeda-offer feature`. The block holds the reason in one sentence. Uraeda shows it as a card the
+  human accepts:
 
   ````markdown
   ```uraeda-offer feature
@@ -214,7 +219,8 @@ When one item of a batch needs it, offer to split that item out instead.
      `specs/decisions/`. No branch or folder named `YYYY-MM-DD-<slug>` exists: if one does, rename
      or remove it first.
   2. On the default branch, relink the change's **Now** entry, in place, to
-     `/specs/YYYY-MM-DD-<slug>/proposal.md`. Commit `chore(<slug>): start <name> as a feature`.
+     `/specs/YYYY-MM-DD-<slug>/proposal.md`. When no entry links the change, add one at the top of
+     **Now** instead, named `<slug>`. Commit `chore(<slug>): start <name> as a feature`.
   3. Rename the branch: `git branch -m change/YYYY-MM-DD-<slug> YYYY-MM-DD-<slug>`. The worktree
      stays where it is. A pushed branch is renamed locally only: the old remote branch stays until
      the human deletes it. Unset its upstream, `git branch --unset-upstream YYYY-MM-DD-<slug>`, so
