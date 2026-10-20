@@ -9,6 +9,7 @@
 - [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
 - [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
 - [Stable dev environment for UI review](/specs/2026-10-20-ui-sandbox/proposal.md)
+- [CLI auto-expand in fish and ?zsh?](/specs/changes/2026-10-20-shell-completions/proposal.md)
 
 - [Chat's right column](drafts/chat-right-column.md)
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
@@ -26,7 +27,6 @@
 >
 > Goals once I'm happy with the core feature set
 
-- [CLI auto-expand in fish and ?zsh?](drafts/cli-auto-expand-in-fish-and-zsh.md)
 - Neovim plugin: an "open priorities/inbox" shortcut, and review its shortcuts, they are very bad
   atm -> overall a small review as I've used it for a bit now
   - Would be nice to be able to connect to a running server to start steps?
