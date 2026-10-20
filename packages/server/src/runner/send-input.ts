@@ -141,7 +141,7 @@ export async function openingOf(
 /**
  * Checks a queued workflow run again as it starts, with `sendPlace`'s rule: one that no longer
  * applies starts as a chat, from the human, with the line saying so, and the chat opening when a
- * chat there opens with it. Refused once its feature is merged.
+ * chat there opens with it, after the opening it was sent with. Refused once its feature is merged.
  */
 export async function recheckQueued(
   context: SessionContext,
@@ -157,13 +157,16 @@ export async function recheckQueued(
   if (asChat === undefined) {
     return;
   }
-  const opening = await openingOf(context, live, branch, queued.id);
+  const chat = await openingOf(context, live, branch, queued.id);
   // A take-back, or Stop, may have ended it meanwhile.
   const sent = live.messages.get(queued.message.id);
   if (!sent || !live.queue.includes(queued)) {
     return;
   }
   const { text } = sent.item;
+  // A workflow message's opening is the one it was sent with, as the moved opening: it stays first.
+  const lines = [sent.item.opening, chat].filter((line) => line !== undefined);
+  const opening = lines.length === 0 ? undefined : lines.join("\n");
   sent.item = { ...sent.item, origin: "human", ...(opening === undefined ? {} : { opening }) };
   cache.updateItem(queued.id, sent.seq, sent.item);
   cache.retypeTurn(queued.id, { kind: "chat", step: null, trigger: null });

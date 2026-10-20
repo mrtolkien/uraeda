@@ -592,7 +592,8 @@ process.
     behind it. Sent to an idle session while another session of the folder works, it is refused
     before the new session is created. `session.send` returns that session. `Processes.open` loses
     `fresh`, and `Queued` its `fresh`: `FRESH` stays only for the turns that already show it.
-  - `SendInput.opening`: a line the server puts before a message, as the moved opening.
+  - `SendInput.opening`: a line the server puts before a message, as the moved opening. A queued run
+    that starts as a chat keeps it, before the chat opening.
   - `movedOpening(input: { branch: string; folder: string; worktree: string; edited: Array<string> }): string`
     in `runner/moves.ts`, and `editedFiles(cache, session): Array<string>` (targets of the session's
     `Edit`, `MultiEdit`, `NotebookEdit`, and `Write` calls not failed, relative to its directory,

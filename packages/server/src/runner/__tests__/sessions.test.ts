@@ -660,6 +660,35 @@ test("a workflow message queued behind a run that moved the step on starts as a 
   ]);
 });
 
+test("a queued run with a moved opening that starts as a chat keeps its opening", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const run = await sessions.send(repo, session.id, {
+    text: "Write the plan",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+  const moved = "This session moved: you now work in the feature's worktree.";
+  const inserted = await sessions.send(repo, session.id, {
+    opening: moved,
+    text: "Continue, write the plan",
+    workflow: { step: "plan", trigger: "manual" },
+  });
+
+  // The run writes the plan, which then waits on the human: the queued run starts as a chat.
+  addPlan(repo, AGENT, ELEVEN, "awaiting-human");
+  adapter.script([]);
+  adapter.emit(done());
+  await sessions.settled(run.turn);
+  await flush();
+  await sessions.settled(inserted.turn);
+
+  expect(cache.turn(inserted.turn)).toMatchObject({ kind: "chat", state: "done" });
+  expect(adapter.sent[1]?.text).toBe(`${moved}\n${opening(AGENT)}\nContinue, write the plan`);
+  expect(cache.items(inserted.turn, 0, 1)).toEqual([
+    expect.objectContaining({ opening: `${moved}\n${opening(AGENT)}`, origin: "human" }),
+  ]);
+});
+
 test("US4.1: a new chat works in the main checkout, without an opening line, and is titled by its first line", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
