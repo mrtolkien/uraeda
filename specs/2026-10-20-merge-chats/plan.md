@@ -600,13 +600,15 @@ process.
     deduplicated, in order).
   - Mutations in `fate/session-moves.ts`: `session.toChange({ session, text, slug? })` returning the
     Feature, refused while the agent works, a taken slug refused as "A branch or folder named
-    <folder> exists: pick another slug"; `session.new({ folder })` returning the Session;
-    `feature.promote({ folder })` returning the Feature; `feature.drop({ folder })` returning a
-    `Dropped` `{ id, branch, worktreeLeft, committed }`. A move or a drop of a folder whose session
-    works, its turn running, starting, or queued, is refused with "The agent is working". The move
-    holds the folder, or `toChange` the session, through the core's call (`Sessions.hold`,
-    `LiveSessions.hold`): a message sent to one of its sessions meanwhile is refused with "The agent
-    is working" ([R15](rulings.md#r15-a-move-or-a-drop-holds-its-sessions-through-the-cores-call)).
+    <folder> exists: pick another slug", whether a record, a branch, a folder, or the worktree's
+    folder holds the name, and whatever letters the slug holds; `session.new({ folder })` returning
+    the Session; `feature.promote({ folder })` returning the Feature; `feature.drop({ folder })`
+    returning a `Dropped` `{ id, branch, worktreeLeft, committed }`. A move or a drop of a folder
+    whose session works, its turn running, starting, or queued, is refused with "The agent is
+    working". The move holds the folder, or `toChange` the session, through the core's call
+    (`Sessions.hold`, `LiveSessions.hold`): a message sent to one of its sessions meanwhile is
+    refused with "The agent is working"
+    ([R15](rulings.md#r15-a-move-or-a-drop-holds-its-sessions-through-the-cores-call)).
   - `rename` accepts every session; `archive` stays for sessions without a folder.
   - The core's typed start refuses only staged files, not the main checkout's uncommitted changes
     ([R10](rulings.md#r10-a-typed-change-starts-over-the-main-checkouts-uncommitted-changes)).
@@ -707,7 +709,7 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
   - A feature's status is its latest session's, raised to an older session's only when that one
     works or is blocked (`STATUS_ORDER`). A run that ended before a gate halts only the folder's
     latest session: an older one reads idle, not "Needs attention"
-    ([R15](rulings.md#r15-a-features-status-is-its-latest-sessions-and-only-the-latest-halts)).
+    ([R16](rulings.md#r16-a-features-status-is-its-latest-sessions-and-only-the-latest-halts)).
   - A feature's `tokens` sum every session of the folder, not the latest only.
   - A search matching a feature finds every session of it (`sessionSearch`).
   - A feature's file change publishes a `Session` update to every session of the folder (`live.ts`
