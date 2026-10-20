@@ -264,16 +264,19 @@ when it is marked ready, following [Coming back to the human](../SKILL.md#coming
 in this order:
 
 1. **First line**: what is asked, and an honest time: "Pull request to review, about 5 minutes."
-2. **The root cause or the approach**, in a few lines.
-3. **What stays unchanged**, and the test of each item.
-4. **The points you settled** without asking: the human checks your reading of the proposal here.
+2. **What was done**, in two to four sentences, before any detail: the problem the proposal raised,
+   and what behaves differently now, in the human's terms. The human often has several changes in
+   flight, and comes to this one without its context.
+3. **The root cause or the approach**, in a few lines.
+4. **What stays unchanged**, and the test of each item.
+5. **The points you settled** without asking: the human checks your reading of the proposal here.
    Then a failure that was already there, such as a flaky test, when there is one.
-5. **Size**: each function and file the branch grew, with its length before and after.
-6. **Screenshots** of a UI change.
-7. **Rulings**: a link to `rulings.md` at the commit before finishing, and the ones that change
+6. **Size**: each function and file the branch grew, with its length before and after.
+7. **Screenshots** of a UI change.
+8. **Rulings**: a link to `rulings.md` at the commit before finishing, and the ones that change
    behaviour, one line each.
-8. **Inbox notes**: the [agents' notes](inbox.md#agents-notes) the change added, when there are any.
-9. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
+9. **Inbox notes**: the [agents' notes](inbox.md#agents-notes) the change added, when there are any.
+10. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 Comments on the pull request are handled as for a feature, as
 [implementation](implementation.md#comments-on-the-pull-request) and

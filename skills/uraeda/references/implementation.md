@@ -303,6 +303,9 @@ description, written when it is marked ready, reads like a file waiting for the 
 [Coming back to the human](../SKILL.md#coming-back-to-the-human):
 
 - **First line**: what is asked, and an honest time: "Pull request to review, about 20 minutes."
+- **What was done**, in two to four sentences, before any detail: what users can do now that they
+  could not before, and the main parts of the code it touched. The human often has several features
+  in flight, and comes to this one without its context.
 - **What most needs attention**, one line each: the rulings that change behaviour, the plan's text
   edited during the work, a new dependency, a failure that was already there, a final review done
   without a fresh reviewer.
