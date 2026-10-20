@@ -1,5 +1,5 @@
 ---
-discovery: high # low, medium, or high: how far the agent researches before asking
+discovery: medium # low, medium, or high: how far the agent researches before asking
 ---
 
 # Merge chats and changes
@@ -16,7 +16,7 @@ Also if there's a `+` near changes/chats there should also be one near features.
 
 ## Why
 
-A change it's just a chat that grew
+A change it's just a chat that grew to code that shouldn't just be on main directly
 
 A feature is a change that grew
 
