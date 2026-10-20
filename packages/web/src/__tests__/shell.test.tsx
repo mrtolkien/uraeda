@@ -294,7 +294,7 @@ test("US4.2: renaming a chat in its header renames it in the sidebar", async () 
   await refreshUntil(() => expect(row("Drafts")).toBeTruthy());
 });
 
-test("US4.3: an archived chat moves under Archived, and a message brings it back", async () => {
+test("US4.3: an archived chat leaves the list, search still finds it, and a message brings it back", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo, "List the open draft files");
@@ -306,11 +306,19 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
 
   expect(await screen.findByRole("button", { name: "Unarchive" })).toBeTruthy();
   await refreshUntil(() =>
-    expect(chats().queryByRole("link", { name: /List the open draft files/ })).toBeNull(),
+    expect(nav().queryByRole("link", { name: /List the open draft files/ })).toBeNull(),
   );
-  await click(chats().getByRole("button", { name: "Archived" }));
-  const archived = within(nav().getByRole("group", { name: "Archived" }));
-  expect(archived.getByRole("link", { name: /List the open draft files/ })).toBeTruthy();
+  // No group holds it: it left the list, and Done.
+  expect(nav().queryByRole("button", { name: "Archived" })).toBeNull();
+  const search = screen.getByRole("searchbox", { name: "Search sessions" });
+  await type(search, "open draft");
+  await refreshUntil(() =>
+    expect(chats().getByRole("link", { name: /List the open draft files/ })).toBeTruthy(),
+  );
+  await type(search, "");
+  await refreshUntil(() =>
+    expect(nav().queryByRole("link", { name: /List the open draft files/ })).toBeNull(),
+  );
 
   fake.adapter.script([{ text: "Two drafts.", type: "text" }]);
   await type(
@@ -319,9 +327,9 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
   );
   await click(screen.getByRole("button", { name: "Send" }));
 
-  // The archived group, open, is inside the Sessions section: the chat is back once it is gone.
-  await refreshUntil(() => expect(nav().queryByRole("button", { name: "Archived" })).toBeNull());
-  expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy();
+  await refreshUntil(() =>
+    expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy(),
+  );
   expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
 });
 

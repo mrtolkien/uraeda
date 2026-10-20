@@ -370,3 +370,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `startDraft` in `packages/server/src/fate/change-starts.ts`.
 - **Where**: review of task 9, `packages/server/src/fate/change-starts.ts`,
   `packages/web/src/useStartFrom.ts`.
+
+## R20: An archived session leaves the sidebar's list, and search still finds it
+
+- **Decision**: the sidebar's Sessions section has no "Archived" group. Outside a search, an
+  archived session is in neither the list nor Done; a search lists it among the sessions it finds,
+  with Unarchive in its "…". The shell test US4.3, which opened the "Archived" group (R14), now
+  checks that no such group shows, that searching "open draft" finds the archived chat, and that a
+  message still brings it back to the list.
+- **Rationale**: the spec's Assumptions say Archive "leaves Done and the list, and search still
+  finds it"; the group kept it in the list, one click away.
+- **Alternatives considered**: keeping the group collapsed: the list would still hold it.
+- **If wrong**: the session filter of `entriesOf` in `packages/web/src/sidebar/Sidebar.tsx`.
+- **Where**: review of task 8, `packages/web/src/sidebar/Sidebar.tsx`.

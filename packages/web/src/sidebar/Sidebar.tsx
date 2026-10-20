@@ -4,7 +4,7 @@
 // cards it found.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
-import { SideNavItem, SideNavSection, useSideNavCollapse } from "@astryxdesign/core/SideNav";
+import { SideNavSection, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -185,33 +185,20 @@ function EntryCard({ entry, pathname }: { entry: Entry; pathname: string }) {
   );
 }
 
-/** Archived sessions stay hidden until asked for, as archiving hides a session. */
-function Archived({ pathname, rows }: { pathname: string; rows: Array<Row> }) {
-  return (
-    <SideNavItem collapsible={{ defaultIsCollapsed: true }} label="Archived">
-      {rows.map((row) => (
-        <SessionCard key={row.id} pathname={pathname} row={row} />
-      ))}
-    </SideNavItem>
-  );
-}
-
 /**
  * The Sessions section: "＋ New" outside a search, every session, change, and feature in flight,
- * oldest started first, the archived sessions, then the Claude allowance.
+ * oldest started first, then the Claude allowance.
  */
 function Sessions({
-  archived,
   entries,
   pathname,
   searching,
 }: {
-  archived: Array<Row>;
   entries: Array<Entry>;
   pathname: string;
   searching: boolean;
 }) {
-  if (searching && entries.length === 0 && archived.length === 0) {
+  if (searching && entries.length === 0) {
     return null;
   }
   return (
@@ -224,7 +211,6 @@ function Sessions({
           pathname={pathname}
         />
       ))}
-      {archived.length > 0 && <Archived pathname={pathname} rows={archived} />}
       {!searching && <Allowance />}
     </SideNavSection>
   );
@@ -270,8 +256,9 @@ function Flow({ data, pathname }: { data: Data; pathname: string }) {
 
 /**
  * The list's entries: the features and changes in flight, each with its most urgent session's row,
- * and the sessions without a workflow not archived. Outside a search, a session read to its end is
- * done, in the Done area, unless it is `kept`, open since before.
+ * and the sessions without a workflow. Outside a search, an archived session is left out, and a
+ * session read to its end is done, in the Done area, unless it is `kept`, open since before; a
+ * search lists every session it finds.
  */
 function entriesOf(
   data: Data,
@@ -307,7 +294,7 @@ function entriesOf(
       };
     }),
     ...sessions
-      .filter((row) => !row.archived && (found || !row.done || row.id === kept))
+      .filter((row) => found || (!row.archived && (!row.done || row.id === kept)))
       .map((row) => ({
         kind: "session" as const,
         row,
@@ -315,7 +302,7 @@ function entriesOf(
         status: { label: row.statusLabel, status: row.status },
       })),
   ];
-  return { archived: sessions.filter((row) => row.archived), entries };
+  return entries;
 }
 
 /**
@@ -335,8 +322,8 @@ function Rows({
   pathname: string;
   query: string;
 }) {
-  const { archived, entries } = entriesOf(data, { found, ...(kept ? { kept } : {}), query });
-  if (found && entries.length === 0 && archived.length === 0) {
+  const entries = entriesOf(data, { found, ...(kept ? { kept } : {}), query });
+  if (found && entries.length === 0) {
     return (
       <Text color="secondary" display="block" xstyle={styles.empty}>
         No session matches “{query}”.
@@ -362,7 +349,6 @@ function Rows({
       )}
       {!found && <Flow data={data} pathname={pathname} />}
       <Sessions
-        archived={archived}
         entries={byStart(entries.filter((entry) => !needsYou(entry.status)))}
         pathname={pathname}
         searching={!!found}
