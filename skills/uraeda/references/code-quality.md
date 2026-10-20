@@ -105,11 +105,11 @@ and the risky ones are shown to catch it.
   task marked **Risky**, makes that break in the code once the test passes, sees the test fail,
   reverts it, and reports the failure it saw in the task's commit body. For a low-risk check, the
   reading of the test against its named break is the proof, and the review counts it.
-- **A spec conflict stops the work**: a test that fails because the code is wrong gets the code
-  fixed within the task's scope. A conflict is only the case where the spec, the test, and a
-  requested behaviour cannot all hold: the work stops, and the report says what conflicts and what
-  each way out costs, in the commit body, or in a new round of questions when the human must decide.
-  The assertion is never weakened to pass.
+- **A spec conflict is reported**: a test that fails because the code is wrong gets the code fixed
+  within the task's scope. A human's safe, reversible request that contradicts the spec or a test is
+  carried out, and the report says what conflicts and what each way out costs, in the commit body,
+  or in a new round of questions when the human must decide. The work stops only for a request that
+  is unsafe or cannot be undone. The assertion is never weakened to pass.
 - **Waits**: unit tests never sleep for a fixed time or assert how long something took. They wait
   for the condition, or set the clock. Benchmarks of a spec's success criteria are not unit tests.
 - **Existing tests**: removing, skipping, or loosening one, or raising a timeout, takes a ruling,
