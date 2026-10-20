@@ -647,10 +647,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   test outside a family. Fast ran on the catch-up's fixes (R36) and passed.
 - **Rationale**: the default branch's `specs/decisions/toolchain.md` rules "after every task, fast
   MUST check…" and "an agent MUST run `vp run ready` before pushing a branch".
-- **Ready before the push**: not yet green. The catch-up's last ready runs on the branch failed only
-  in the browser tasks, on load-sensitive tests that fail on the default branch's `053924c7` too:
-  `attach.test.tsx` "the link goes where the cursor was at the drop…" and `session-tail.test.tsx`
-  "US1.2: Show earlier messages…". To fill in with the passing run before the push.
+- **Ready before the push**: green. `vp run ready` passed on the rebased head, with nothing else
+  running, before the push. Earlier runs had failed only in the browser tasks, on load-sensitive
+  tests that fail on the default branch's `053924c7` too: `attach.test.tsx` "the link goes where the
+  cursor was at the drop…", `session-tail.test.tsx` "US1.2: Show earlier messages…", and once
+  `session.test.tsx` "opening the line moves the place read…" on the desktop.
 - **Alternatives considered**: adding the journey tests to fast's UI family: the decision defers
   application journeys to ready.
 - **If wrong**: `families` in `scripts/fast-selection.ts`.
