@@ -1,4 +1,5 @@
-// US8: a feature's name and colour in the sidebar, from its card's "…".
+// US8: a feature's name in the sidebar, from its card's "…". Colours are gone (merge chats, US1
+// more 3).
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import {
@@ -25,12 +26,14 @@ async function openSettings(name = "cli-tuis") {
   return screen.findByRole("textbox", { name: "Name in the sidebar" });
 }
 
-/** US8.1, US8.5 */
-test("a name and a colour rename the card, and leave the feature's slug", async () => {
+/** US8.1, US8.5, and merge chats US1 more 3: the dialog offers a name and no colour. */
+test("a name renames the card, and leaves the feature's slug", async () => {
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
 
   await type(await openSettings(), "Sidebar");
-  await click(screen.getByRole("radio", { name: "Purple" }));
+  const dialog = within(screen.getByRole("dialog", { name: "Feature settings" }));
+  expect(dialog.queryByRole("radiogroup", { name: "Colour" })).toBeNull();
+  expect(dialog.queryByRole("radio")).toBeNull();
   await click(screen.getByRole("button", { name: "Save" }));
 
   await refreshUntil(() =>

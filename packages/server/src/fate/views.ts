@@ -53,7 +53,7 @@ export function sentStep(step: StepView): StepRecord {
 }
 
 export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
-  /** Its features, each step sent as `sentStep` sends it, with its name and colour (R2). */
+  /** Its features, each step sent as `sentStep` sends it, with its name (R2). */
   features: Array<Omit<FeatureView, "step"> & ItemLook & { step: StepRecord }>;
   id: string;
   /** Whether the main checkout has an active preview decision. */
@@ -64,7 +64,7 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
 
 /** A feature, or `missing` alone when no feature has its folder. */
 export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
-  // Its name and colour in the sidebar, or null (R2).
+  // Its name in the sidebar, or null (R2).
   ItemLook & {
     id: string;
     missing?: boolean;
@@ -268,7 +268,6 @@ export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
 export const featureDataView = dataView<FeatureRecord>("Feature")({
   behind: true,
   branch: true,
-  color: true,
   files: true,
   folder: true,
   id: true,

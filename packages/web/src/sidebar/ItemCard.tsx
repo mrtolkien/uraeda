@@ -23,24 +23,10 @@ import { StatusMark } from "../StatusMark.tsx";
 import { needsYou } from "./cards.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 
-/** The colours a feature can be given, from the theme's palette. */
-export const COLORS = [
-  "red",
-  "orange",
-  "yellow",
-  "green",
-  "teal",
-  "blue",
-  "purple",
-  "pink",
-] as const;
-export type CardColor = (typeof COLORS)[number];
-
 /** What the sidebar shows of a feature or a change. */
 export type CardItem = {
   /** Lines its branch added and removed outside its folder, once it changed any. */
   changes?: { added: number; removed: number };
-  color?: CardColor;
   folder: string;
   /** Whether a background command of its run is still going. */
   hasBackgroundCommand?: boolean;
@@ -91,25 +77,10 @@ const styles = stylex.create({
     gap: spacingVars["--spacing-1"],
   },
   removed: { color: colorVars["--color-error"] },
-  stripe: {
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-  },
   subagent: {
     paddingBlockEnd: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-6"],
   },
-});
-
-/** The stripe at a card's start, in its colour. */
-const stripes = stylex.create({
-  blue: { borderInlineStartColor: colorVars["--color-border-blue"] },
-  green: { borderInlineStartColor: colorVars["--color-border-green"] },
-  orange: { borderInlineStartColor: colorVars["--color-border-orange"] },
-  pink: { borderInlineStartColor: colorVars["--color-border-pink"] },
-  purple: { borderInlineStartColor: colorVars["--color-border-purple"] },
-  red: { borderInlineStartColor: colorVars["--color-border-red"] },
-  teal: { borderInlineStartColor: colorVars["--color-border-teal"] },
-  yellow: { borderInlineStartColor: colorVars["--color-border-yellow"] },
 });
 
 /**
@@ -245,7 +216,7 @@ export function ItemCard({
 }) {
   const { isCollapsed } = useSideNavCollapse();
   return (
-    <div {...stylex.props(styles.card, item.color && [styles.stripe, stripes[item.color]])}>
+    <div {...stylex.props(styles.card)}>
       <SideNavItem
         // Always drawn, muted, so the card keeps its size under the pointer (C4).
         actions={

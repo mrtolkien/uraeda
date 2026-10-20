@@ -1,6 +1,6 @@
 // "Feature settings", opened from a card's "…": a dialog on wide screens, a bottom sheet on the
 // phone, drawn beside the shell, so the phone's drawer closes first, as the ＋ forms do. Saving
-// keeps the name and the colour in the server's list, for the repository (R2).
+// keeps the name in the server's list, for the repository (R2).
 import { useAppShellMobile } from "@astryxdesign/core/AppShell";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -38,13 +38,12 @@ function Settings({ feature, onClose }: { feature: Feature; onClose: () => void 
   return (
     <VStack gap={2}>
       <FeatureSettingsForm
-        color={feature.color ?? undefined}
         label={feature.label ?? ""}
         onCancel={onClose}
-        onSave={async ({ color, label }) => {
+        onSave={async ({ label }) => {
           setError(undefined);
           const result = await fate.mutations.item.settings({
-            input: { color: color ?? null, folder: feature.folder, label },
+            input: { folder: feature.folder, label },
             view: FeatureView,
           });
           if (result.error) {

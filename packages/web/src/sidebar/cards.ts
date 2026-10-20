@@ -89,9 +89,8 @@ export const needsYou = (status: Status) =>
 
 /** A feature's card, from its session's row when it has one. */
 export function toCard(feature: Feature, row: Row | undefined): CardItem {
-  const { color, label, pullRequest, step } = feature;
+  const { label, pullRequest, step } = feature;
   return {
-    ...(color ? { color } : {}),
     folder: feature.folder,
     ...((row?.backgroundCommands ?? 0) > 0 ? { hasBackgroundCommand: true } : {}),
     kind: feature.kind === "change" ? "change" : "feature",

@@ -7,7 +7,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use common::repo::{TestRepo, run_git};
 use tempfile::TempDir;
-use uraeda_core::repositories::{self, Color, ItemSettings, ListError, Repository};
+use uraeda_core::repositories::{self, ItemSettings, ListError, Repository};
 
 fn tempdir() -> TempDir {
     TempDir::new().expect("a temporary folder")
@@ -414,42 +414,56 @@ fn settings_of(data: &Path, folder: &str) -> Option<ItemSettings> {
 
 /// US8.1
 #[test]
-fn a_name_and_a_colour_are_kept_by_folder() {
+fn a_name_is_kept_by_folder() {
     let (data, _repo) = listed();
 
-    repositories::set_item(
-        data.path(),
-        "todo-app",
-        FOLDER,
-        Some("Sidebar".into()),
-        Some(Color::Purple),
-    )
-    .unwrap();
+    repositories::set_item(data.path(), "todo-app", FOLDER, Some("Sidebar".into())).unwrap();
 
     let settings = settings_of(data.path(), FOLDER).unwrap();
     assert_eq!(settings.label.as_deref(), Some("Sidebar"));
-    assert_eq!(settings.color, Some(Color::Purple));
     let text = fs::read_to_string(data.path().join("repositories.json")).unwrap();
     let json: serde_json::Value = serde_json::from_str(&text).unwrap();
     assert_eq!(
         json["repositories"][0]["items"][FOLDER],
-        serde_json::json!({ "label": "Sidebar", "color": "purple" })
+        serde_json::json!({ "label": "Sidebar" })
     );
 }
 
-/// US8.2: an empty name removes it, and an item without name or colour leaves the file.
+/// Merge chats, US1 more 3: a colour given before colours were removed reads as nothing, and the
+/// next write drops it.
+#[test]
+fn a_colour_saved_before_is_ignored_and_dropped() {
+    let (data, _repo) = listed();
+    let file = data.path().join("repositories.json");
+    let mut json: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
+    json["repositories"][0]["items"] = serde_json::json!({
+        FOLDER: { "label": "Sidebar", "color": "purple" },
+        "2026-10-17-other": { "color": "teal" },
+    });
+    fs::write(&file, json.to_string()).unwrap();
+
+    assert_eq!(
+        settings_of(data.path(), FOLDER).unwrap().label.as_deref(),
+        Some("Sidebar")
+    );
+    repositories::set_item(data.path(), "todo-app", FOLDER, Some("Sidebar".into())).unwrap();
+
+    let text = fs::read_to_string(&file).unwrap();
+    assert!(!text.contains("color"), "{text}");
+    assert_eq!(settings_of(data.path(), "2026-10-17-other"), None);
+}
+
+/// US8.2: an empty name removes it, and an item without a name leaves the file.
 #[test]
 fn an_empty_name_removes_it() {
     let (data, _repo) = listed();
-    let set = |label: &str, color| {
-        repositories::set_item(data.path(), "todo-app", FOLDER, Some(label.into()), color).unwrap()
+    let set = |label: &str| {
+        repositories::set_item(data.path(), "todo-app", FOLDER, Some(label.into())).unwrap()
     };
-    set("Sidebar", Some(Color::Purple));
+    set("Sidebar");
 
-    set("", Some(Color::Purple));
-    assert_eq!(settings_of(data.path(), FOLDER).unwrap().label, None);
-
-    set("", None);
+    set("");
     assert_eq!(settings_of(data.path(), FOLDER), None);
     let text = fs::read_to_string(data.path().join("repositories.json")).unwrap();
     assert!(!text.contains("items"));
@@ -460,7 +474,7 @@ fn an_empty_name_removes_it() {
 fn a_name_is_trimmed_and_spaces_only_remove_it() {
     let (data, _repo) = listed();
     let set = |label: &str| {
-        repositories::set_item(data.path(), "todo-app", FOLDER, Some(label.into()), None).unwrap()
+        repositories::set_item(data.path(), "todo-app", FOLDER, Some(label.into())).unwrap()
     };
 
     set("  Sidebar  ");
@@ -478,8 +492,7 @@ fn a_name_over_40_characters_is_refused() {
     let (data, _repo) = listed();
     let name = "a".repeat(41);
 
-    let error =
-        repositories::set_item(data.path(), "todo-app", FOLDER, Some(name), None).unwrap_err();
+    let error = repositories::set_item(data.path(), "todo-app", FOLDER, Some(name)).unwrap_err();
 
     assert_eq!(
         error.to_string(),
@@ -487,5 +500,5 @@ fn a_name_over_40_characters_is_refused() {
     );
     assert_eq!(settings_of(data.path(), FOLDER), None);
     let forty = "a".repeat(40);
-    repositories::set_item(data.path(), "todo-app", FOLDER, Some(forty), None).unwrap();
+    repositories::set_item(data.path(), "todo-app", FOLDER, Some(forty)).unwrap();
 }
