@@ -922,7 +922,10 @@ export interface HistoryView {
   current: number
   /** Rounds of questions, when it had any. */
   rounds?: number
-  /** Whether a done item's commits were found on the default branch: false after a squash merge. */
+  /**
+   * Whether a done item's commits were found on the default branch: false after a squash merge,
+   * or for one from before typed commits.
+   */
   found: boolean
   /** For a done item not found: its record's `finished` day, `YYYY-MM-DD`. */
   finished?: string

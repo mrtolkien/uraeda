@@ -246,7 +246,7 @@ function jumpInPage(open: ((id: string) => void) | undefined) {
 /**
  * The figures of what a feature produced, in a grid that wraps. A live item's lines lead to its
  * files below; a done one's to its pull request's files, when its record names it. A done item
- * whose commits never reached the default branch says so in place of its figures.
+ * whose commits cannot be traced on the default branch says so in place of its figures.
  */
 export function Figures({
   change = false,
@@ -268,7 +268,7 @@ export function Figures({
 }) {
   const wide = useWidthClass() === "wide";
   if (done && !history.found) {
-    return <Text color="secondary">Not found on the default branch</Text>;
+    return <Text color="secondary">No figures: its commits could not be traced</Text>;
   }
   const figures = done
     ? doneFigures(history, tokens, change, pullRequest)
