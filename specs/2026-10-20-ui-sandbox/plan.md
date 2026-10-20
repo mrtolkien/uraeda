@@ -532,10 +532,11 @@ git commit -m "feat(ui-sandbox): awaited steps and a fallback turn for the fake 
 **Interfaces:**
 
 - Produces: `picked` messages gain `source: string | null`, the nearest `data-insp-path` of the
-  element or its parents, and `html: string`, the element's full outer HTML. Elements inside
-  `[data-uraeda-pick-ignore]` are never outlined or picked, and their events reach them. In pick
-  mode, Enter or Space picks the focused element, and neither the key nor its key up reaches the
-  page.
+  element or its parents, and `html: string`, the element's outer HTML, cut at 2000 characters.
+  Elements inside `[data-uraeda-pick-ignore]` are never outlined or picked, and their events reach
+  them. In pick mode, Enter or Space without a modifier, not composing text, picks the focused
+  element, unless none is (the body), and neither the key, its repeats, nor its key up reaches the
+  page, until that key up, the window's blur, the next start, or 5 seconds.
 
 - [x] **Step 1: Write the failing tests**
 

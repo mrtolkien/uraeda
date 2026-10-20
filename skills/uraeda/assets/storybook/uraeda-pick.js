@@ -6,8 +6,9 @@
 // - `{ uraeda: "ready" }` once loaded;
 // - `{ uraeda: "size", height }` when the story's height changes;
 // - `{ uraeda: "picked", role, name, text, source, html }` for the element pressed or clicked in
-//   pick mode, or focused when Enter or Space is pressed: `source` is the nearest `data-insp-path`
-//   of the element or its parents, else `null`, and `html` the element's full outer HTML;
+//   pick mode, or focused when Enter or Space is pressed without a modifier: `source` is the
+//   nearest `data-insp-path` of the element or its parents, else `null`, and `html` the element's
+//   outer HTML, cut at its first 2000 characters;
 // - `{ uraeda: "pick-stopped" }` when Escape ends pick mode.
 // From it, it obeys `{ uraeda: "pick", on }`, and ignores every other window. Elements inside
 // `[data-uraeda-pick-ignore]` are never outlined or picked, and their events reach them in pick
@@ -163,6 +164,15 @@
   /** How long the rest of a picking press is kept from the story, at most, in milliseconds. */
   const PRESS_MS = 1000;
 
+  /**
+   * How long the rest of a picking key press, its repeats and key up, is kept from the story, at
+   * most, in milliseconds: a key held longer is the story's again.
+   */
+  const KEY_MS = 5000;
+
+  /** The most of an element's outer HTML a pick posts, in characters. */
+  const HTML_MAX = 2000;
+
   /** The white space of a text, collapsed. */
   const SPACES = /\s+/g;
 
@@ -174,6 +184,8 @@
   let height = -1;
   /** Ends keeping the rest of a picking press from the story, while it is kept. */
   let endPress = null;
+  /** Ends keeping the rest of a picking key press from the story, while it is kept. */
+  let endKey = null;
 
   /** Posts a message to the embedding page. */
   const post = (message) => page.parent.postMessage(message, "*");
@@ -337,17 +349,32 @@
   };
 
   /**
-   * Keeps the rest of the key press that picked from the story: its key up, which would type a
-   * space or press a button.
+   * Keeps the rest of the key press that picked from the story, its repeats and its key up, which
+   * would type a space or press a button, until that key up, the window's blur, as the key up then
+   * comes elsewhere or never, pick mode's next start, or `KEY_MS`.
    */
-  const keepKeyUp = (key) => {
+  const keepKeyRest = (key) => {
     const rest = (event) => {
-      if (event.key === key) {
-        page.removeEventListener("keyup", rest, true);
-        keep(event);
+      if (event.key !== key) {
+        return;
+      }
+      keep(event);
+      if (event.type === "keyup") {
+        endKey();
       }
     };
+    const timer = page.setTimeout(() => endKey?.(), KEY_MS);
+    page.addEventListener("keydown", rest, true);
     page.addEventListener("keyup", rest, true);
+    const blur = () => endKey();
+    page.addEventListener("blur", blur);
+    endKey = () => {
+      page.clearTimeout(timer);
+      page.removeEventListener("keydown", rest, true);
+      page.removeEventListener("keyup", rest, true);
+      page.removeEventListener("blur", blur);
+      endKey = null;
+    };
   };
 
   /** Ends pick mode, and posts the element picked. */
@@ -355,7 +382,7 @@
     const role = roleOf(target);
     stop();
     post({
-      html: target.outerHTML,
+      html: target.outerHTML.slice(0, HTML_MAX),
       name: nameOf(target, role),
       role,
       source: target.closest("[data-insp-path]")?.getAttribute("data-insp-path") ?? null,
@@ -388,8 +415,9 @@
   };
 
   /**
-   * Escape ends pick mode, and Enter or Space picks the focused element, unless it is ignored: the
-   * story gets neither key.
+   * Escape ends pick mode, and Enter or Space picks the focused element: the story gets neither key.
+   * A key with a modifier, or one composing text, is the story's, and so is a key with nothing
+   * focused, the body, or an ignored element.
    */
   const onKey = (event) => {
     if (event.key === "Escape") {
@@ -399,11 +427,20 @@
       return;
     }
     const focused = page.document.activeElement;
-    if (!KEYS.has(event.key) || !focused || ignored(focused)) {
+    const modified = event.ctrlKey || event.metaKey || event.altKey || event.shiftKey;
+    if (
+      !KEYS.has(event.key) ||
+      modified ||
+      event.isComposing ||
+      !focused ||
+      focused === page.document.body ||
+      focused === page.document.documentElement ||
+      ignored(focused)
+    ) {
       return;
     }
     keep(event);
-    keepKeyUp(event.key);
+    keepKeyRest(event.key);
     pick(focused);
   };
 
@@ -413,6 +450,7 @@
     }
     picking = true;
     endPress?.();
+    endKey?.();
     page.addEventListener("pointermove", draw, true);
     page.addEventListener("keydown", onKey, true);
     for (const type of [...POINTER, ...TOUCH]) {
