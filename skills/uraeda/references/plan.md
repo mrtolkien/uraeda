@@ -89,8 +89,8 @@ when the implementation shows a better fit.
   structural step that splits it: see [extract, don't grow](code-quality.md#extract-dont-grow).
 - Tests are code too. They follow the project's test layout. They share helpers, fixtures, and fakes
   (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
-  The [writing tests](code-quality.md#writing-tests) rules apply: integration tests by default,
-  Arrange, Act, Assert.
+  The [writing tests](code-quality.md#writing-tests) rules apply: focused tests for local behaviour,
+  boundary tests for contracts, Arrange, Act, Assert.
 - A view whose mockups are stories of the project's own Storybook starts from them: the picked
   variant's component is the starting point, not a rewrite. The first task of that view names the
   story in its **Files**, as `Start from`. It adds the tests of the view's scenarios, then wires the
@@ -145,8 +145,9 @@ Each step is one action with a checkable result:
 - "Write the failing tests" is a step.
 - "Run them to check they fail" is a step.
 - "Implement the code that makes them pass" is a step.
-- "Run the project's validation" is a step. It names the slow suites, such as browser tests, only
-  for a task that changes what they cover.
+- "Run the task's validation" is a step: the project's fast check when it has one, else its usual
+  validation. It names the slow suites, such as browser tests, only for a task that changes what
+  they cover, and the checks it defers to the complete validation before the push.
 - "Commit" is a step.
 
 ## Plan document
@@ -251,9 +252,11 @@ What goes in each section:
 
 - **Test map**: a table mapping each acceptance scenario, edge case, and success criterion of the
   spec to its task and test. A review-focus item gets its row, named "Review focus:" with its
-  subject. It opens with a sentence on how the integration tests run: what they render, on which
-  store, with which clock. The [writing tests](code-quality.md#writing-tests) rules say how to write
-  them. An error the code handles but no edge case names gets its row too.
+  subject. It opens with a sentence on how the tests run: what they render, on which store, with
+  which clock, and which checks use a real boundary. A row names the check that owns the guarantee:
+  one test may own several rows, and a row needs no test of its own when another owns it. The
+  [writing tests](code-quality.md#writing-tests) rules say how to write them. An error the code
+  handles but no edge case names gets its row too.
 - **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
   the shared files they each add to, if any. The implementation reads this section to decide what
   runs at the same time.
@@ -315,7 +318,7 @@ The break each test catches:
 contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
 to the implementer.]
 
-- [ ] **Step 4: Run the project's validation**
+- [ ] **Step 4: Run the task's validation**
 
 - Run: `npx vitest run`
 - Expected: PASS
@@ -345,8 +348,9 @@ simpler private design from what the code shows:
 - **A test step**: the tests' names and their assertions, as code, with the spec's exact values in
   them, including the human's approval comments. Each test names the break it catches, the realistic
   mistake that makes it fail: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
-  expectations from the approved behaviour, independently of the proposed implementation.
-  Integration tests by default, short, Arrange, Act, Assert, on the shared helpers. The step also
+  expectations from the approved behaviour, independently of the proposed implementation. Focused
+  tests by default, a boundary test for a git, native, or request contract, short, Arrange, Act,
+  Assert, on the shared helpers. A task marked **Risky** names the breaks to make. The step also
   creates the helpers its tests use, so the first failure is about the feature, not a missing
   helper. Checks of preserved behaviour may already pass before the change.
 - **A run step**: the command to run, and the output that means it worked. For a failing run, the
@@ -369,8 +373,9 @@ After writing the complete plan, read the spec again with fresh eyes, check the 
 fix what you find inline. This is a checklist you run yourself.
 
 1. **Spec coverage**: skim each user story, acceptance scenario, edge case, success criterion, and
-   global constraint. Can you point to its row of the test map, a task, and a test that asserts it,
-   exact text and timings included? Add a task for any requirement without one.
+   global constraint. Can you point to its row of the test map, a task, and a check that owns it,
+   exact text and timings included? Add a task for any requirement without one. A test that replaces
+   or loosens an existing one has its ruling.
 2. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
    that decides nothing is a gap; private code the implementer can choose is unnecessary
    prescription. Fix both. Explain an algorithm when correctness depends on it.

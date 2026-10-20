@@ -656,18 +656,38 @@ owning assertions, selected boundary checks, explicit deferral, and complete rea
 Existing project constitutions remain authoritative, including a stricter installed template; no
 constitution file is amended here.
 
-- [ ] **Step 1: Rewrite the testing rules together.** Remove automatic whole-app/browser tests for
+- [x] **Step 1: Rewrite the testing rules together.** Remove automatic whole-app/browser tests for
       every UI scenario and mandatory fault injection for every low-risk assertion. Keep selective
       proof for security/git/writes, explicit conflict reporting, and exact contract assertions.
-- [ ] **Step 2: Update plan/test-map and final-review wording in templates and example.** Cover
+- [x] **Step 2: Update plan/test-map and final-review wording in templates and example.** Cover
       important guarantees without requiring a separate new test for every sentence.
       Removed/skipped/loosened tests and timeout changes are independently visible with their
       rulings; human intent takes precedence.
-- [ ] **Step 3: Check references and examples against the same rules.** Run `ura check specs`,
+- [x] **Step 3: Check references and examples against the same rules.** Run `ura check specs`,
       `ura check skills/uraeda/assets/example/specs`, formatting/lint/types, and fast's skill/native
       routing. Self-review confirms no remaining requirement to run full ready after each task
       contradicts the active decision.
-- [ ] **Step 4: Commit.** `docs(fix-testing): align behavioral testing and validation loops`.
+- [x] **Step 4: Commit.** `docs(fix-testing): align behavioral testing and validation loops`.
+
+Task 6 evidence (2026-10-20, shared 32-thread machine, load average 39 to 92):
+
+- Rewritten together: `code-quality.md` (writing tests, tests that can fail, UIs verified end to
+  end), `plan.md`, `implementation.md`, `change.md`, the plan template, and the recurring-tasks
+  example's plan. Whole-app browser tests for every UI scenario are now one run of the main
+  scenario; fault injection is required for risky guarantees (security, git, writes, exact
+  contracts, **Risky** tasks), and the reading of a named break covers a low-risk check.
+- Added: the coverage rule (one test may own several rows of the test map), exact contract
+  assertions, the stop for a spec conflict without a human request, a human's request outranking a
+  test, rulings for removed, skipped, or loosened tests and changed timeouts, and their separate
+  listing in the final review and the pull request. A task's validation is the fast check naming
+  what it defers; the complete validation runs before the push and at the final review.
+- Constitutions: the guidance says a project's stricter constitution stays in force (R3). No
+  constitution file, including the template, is edited. `README.md` lists `vp run fast`.
+- Checks: `ura check specs` and `ura check skills/uraeda/assets/example/specs` report no problems;
+  `vp check` passes; `vp run fast` selected the skill's Rust consumers and the binding contracts and
+  passed (1041 Rust tests, 5 binding tests), in about 2 minutes under load. No ruling beyond R3.
+- Self-review: no step requires complete ready after each task; the remaining complete-validation
+  points are the pre-change baseline, a merged wave, the catch-up, and the final review.
 
 ## Task 7: Reconcile current main and deliver complete evidence
 

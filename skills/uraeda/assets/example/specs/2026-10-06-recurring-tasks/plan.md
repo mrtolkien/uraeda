@@ -164,7 +164,9 @@ From [the spec](spec.md):
 
 ## Test map
 
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+Each scenario, edge case, and criterion of the spec, and the task whose tests cover it. The tests
+render the real app on an in-memory IndexedDB, with the clock and timezone set by the test; none
+uses a real browser, since the app has no browser runner. One test may own several rows.
 
 | Spec                                                     | Task | Test                                                                                           |
 | -------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------- |
@@ -281,7 +283,7 @@ The break each test catches:
   `console.warn("Due date is not a date:", raw)` when it returns `null`.
 - `createTask`, the edit panel, and the task row read and write `CalendarDay`.
 
-- [x] **Step 5: Run the project's validation, and the benchmark**
+- [x] **Step 5: Run the task's validation, and the benchmark**
 
 - Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
 - Expected: PASS, and no benchmark slower than the baseline beyond its margin of error.
@@ -478,7 +480,7 @@ break each test catches:
 previous date; for other tasks, unchanged. The task row shows "Next: ..." and "Undo" for 5 seconds,
 with the checkbox disabled meanwhile, and "Could not save" when the store rejects.
 
-- [x] **Step 5: Run the project's validation, and the benchmark**
+- [x] **Step 5: Run the task's validation, and the benchmark**
 
 - Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
 - Expected: PASS, and no benchmark slower than the baseline beyond its margin of error.
@@ -598,7 +600,7 @@ The break each test catches:
   its store holds.
 - Task row: the repeat icon, labelled "Repeats", when `repeat` is set.
 
-- [x] **Step 4: Run the project's validation, and the benchmark**
+- [x] **Step 4: Run the task's validation, and the benchmark**
 
 - Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
 - Expected: PASS, and no benchmark slower than the baseline beyond its margin of error (SC-002).
@@ -702,7 +704,7 @@ The `Custom` story's dialog keeps its number input for the interval, its unit `S
 weeks, its seven day toggles. "Save" is enabled only for a valid pattern, an interval of at least 1
 and, for weeks, a day chosen, and calls `setRepeat` through the edit panel.
 
-- [x] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `npx vitest run`
 - Expected: PASS.
@@ -822,7 +824,7 @@ final period, with any whole number from 1 as the interval. Unrecognized phrases
 only of a repeat phrase stay unchanged. `createTask` and `renameTask` call it before saving, then
 `setRepeat` with the pattern; the parser's private implementation is left to the implementer.
 
-- [x] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `npx vitest run`
 - Expected: PASS.

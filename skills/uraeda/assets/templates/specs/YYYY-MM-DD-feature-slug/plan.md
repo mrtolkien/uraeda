@@ -68,7 +68,9 @@ task that carries it out. State which spec clause it supersedes when it explicit
 
 ## Test map
 
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it.
+Each scenario, edge case, and criterion of the spec, and the task whose tests cover it. [How the
+tests run: what they render, on which store, with which clock, and which checks use a real boundary.
+One test may own several rows.]
 
 | Spec                                                              | Task | Test                       |
 | ----------------------------------------------------------------- | ---- | -------------------------- |
@@ -142,10 +144,11 @@ The break each test catches:
 contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
 to the implementer.]
 
-- [ ] **Step 5: Run the project's validation[, and the benchmark]**
+- [ ] **Step 5: Run the task's validation[, and the benchmark]**
 
 - Run: `[command]`
-- Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets].
+- Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets],
+  with the checks it defers to the complete validation named.
 
 - [ ] **Step 6: Commit**
 
