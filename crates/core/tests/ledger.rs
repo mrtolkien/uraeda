@@ -3,10 +3,23 @@ mod common;
 use std::process::Command;
 
 use common::repo::{TestRepo, without_user_git};
-use common::repository_file;
 use uraeda_core::api::{self, Decision};
 
 const CONSTITUTION: &str = "specs/CONSTITUTION.md";
+
+/// A constitution in this repository's shape, fixed: amending the real one must not break the test.
+const FIXED_CONSTITUTION: &str = "# Uraeda Constitution\n\n\
+    Principles are listed by priority.\n\n## Core Principles\n\n\
+    ### I. Humans stay in control\n\n- Agents MUST stay within the approved scope.\n\n\
+    Rationale: agents must not decide alone.\n\n\
+    ### II. Git and plain text first\n\n- State MUST be plain text in git.\n\n\
+    Rationale: git gives history.\n\n\
+    ### III. Asynchronous by default\n\n- Steps MUST end with a commit.\n\n\
+    Rationale: work resumes anywhere.\n\n\
+    ### IV. Review effort matches impact\n\n- Questions MUST carry a recommendation.\n\n\
+    Rationale: human attention is the scarcest resource in the workflow.\n\n\
+    ## Governance\n\n- Only humans amend this constitution.\n\n\
+    **Version**: 1.3.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14\n";
 
 /// A decision with every field, its summary two sentences long.
 const GIT: &str = "---\nstatus: active\napproved-by: mrtolkien\nicon: git-branch\n---\n\n# Git\n\n\
@@ -35,11 +48,11 @@ fn decision<'a>(decisions: &'a [Decision], name: &str) -> &'a Decision {
         .unwrap_or_else(|| panic!("no decision {name}"))
 }
 
-/// US8 scenario 1: this repository's constitution, its version line and its six principles.
+/// US8 scenario 1: a constitution's version line and its principles.
 #[test]
 fn the_ledger_reads_the_constitution() {
     let repo = TestRepo::new();
-    repo.write(CONSTITUTION, &repository_file(CONSTITUTION));
+    repo.write(CONSTITUTION, FIXED_CONSTITUTION);
     repo.commit("docs: constitution");
 
     let constitution = api::read_ledger(repo.path())
@@ -63,8 +76,6 @@ fn the_ledger_reads_the_constitution() {
             ("II", "ii", "Git and plain text first"),
             ("III", "iii", "Asynchronous by default"),
             ("IV", "iv", "Review effort matches impact"),
-            ("V", "v", "Tools are optional"),
-            ("VI", "vi", "Code is checked and stays maintainable"),
         ]
     );
     // A principle's blocks: its heading, its rules, and its rationale, up to the next principle.
