@@ -236,7 +236,7 @@ time, one commit per item:
   [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit,
   as the [implementation step](implementation.md#rulings) describes.
 - **Findings outside the proposal.** A problem the change's items need fixed is part of the change.
-  Any other problem is dropped, unless it passes the three tests of
+  Any other problem is dropped, unless it passes the two tests of
   [agents' notes](inbox.md#agents-notes): then note it with the change's slug, and name it in the
   pull request's description.
 
@@ -267,6 +267,7 @@ in this order:
 2. **The root cause or the approach**, in a few lines.
 3. **What stays unchanged**, and the test of each item.
 4. **The points you settled** without asking: the human checks your reading of the proposal here.
+   Then a failure that was already there, such as a flaky test, when there is one.
 5. **Size**: each function and file the branch grew, with its length before and after.
 6. **Screenshots** of a UI change.
 7. **Rulings**: a link to `rulings.md` at the commit before finishing, and the ones that change

@@ -128,8 +128,9 @@ three sides below.
 - Trace the proposal's user path through the code, step by step. Then trace every existing action
   that meets the new feature: undo, delete, uncheck, edit, empty fields. Each one that behaves
   differently with the feature is a finding. A problem you meet outside the feature, like a slow
-  page, is not a finding: drop it, unless it passes the three tests of
-  [agents' notes](inbox.md#agents-notes).
+  page, is not a finding: drop it, unless it passes the two tests of
+  [agents' notes](inbox.md#agents-notes). When it changes what the feature should be, ask about it
+  in the round instead.
 - List who owns each rule the feature touches, and where it is copied: see
   [one home per rule](code-quality.md#one-home-per-rule).
 - Find the existing patterns the feature should follow, and the problems in the way. Examples are a
