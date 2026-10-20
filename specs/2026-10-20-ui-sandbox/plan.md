@@ -543,6 +543,7 @@ git commit -m "feat(ui-sandbox): awaited steps and a fallback turn for the fake 
 
 - Produces: `picked` messages gain `source: string | null`, the nearest `data-insp-path` of the
   element or its parents, and `html: string`, the element's outer HTML, cut at 2000 characters.
+  `text` is cut at 200 characters, then ends with "…": the script alone cuts the text (R20).
   Elements inside `[data-uraeda-pick-ignore]` are never outlined or picked, and their events reach
   them. In pick mode, Enter or Space without a modifier, not composing text, picks the focused
   element, unless none is (the body), and neither the key, its repeats, nor its key up reaches the
@@ -752,8 +753,8 @@ test("a refused clipboard shows the text to copy by hand", async () => {
   await expect.element(page.getByText(/^Sandbox pick:/)).toBeVisible();
 });
 
-test("pickText cuts text at 200 and HTML at 500, and names an unknown source", () => {
-  const text = pickText({ html: "<p>".padEnd(600, "a"), name: "", role: "paragraph", source: null, text: "b".repeat(250) }, PAGE);
+test("pickText cuts HTML at 500, keeps the text the pick script cut, and names an unknown source", () => {
+  const text = pickText({ html: "<p>".padEnd(600, "a"), name: "", role: "paragraph", source: null, text: `${"b".repeat(200)}…` }, PAGE);
 
   expect(text).toContain("Source: unknown");
   expect(text).toContain(`Text: ${"b".repeat(200)}…`);

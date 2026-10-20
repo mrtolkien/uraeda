@@ -33,14 +33,14 @@ test("a pick names the page, the element, its source, text, HTML, and viewport, 
   );
 });
 
-test("pickText cuts text at 200 and HTML at 500, and names an unknown source", () => {
+test("pickText cuts HTML at 500, keeps the text the pick script cut, and names an unknown source", () => {
   const text = pickText(
     {
       html: "<p>".padEnd(600, "a"),
       name: "",
       role: "paragraph",
       source: null,
-      text: "b".repeat(250),
+      text: `${"b".repeat(200)}…`,
     },
     PAGE,
   );

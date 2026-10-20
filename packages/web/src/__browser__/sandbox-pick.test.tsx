@@ -322,6 +322,17 @@ test("a pick's source is its path, line, and column, and its HTML has no source 
   expect(copied[0]).toContain("\nHTML: <p>Saved <strong>now</strong></p>\n");
 });
 
+test("a long text is cut at 200 characters, ending with “…”", async () => {
+  const { copied } = await sandboxPage();
+  render(<p>{"a".repeat(250)}</p>);
+
+  await userEvent.click(page.getByRole("button", { name: "Pick an element" }));
+  await userEvent.click(page.getByRole("paragraph"));
+
+  await expect.element(page.getByText(/^Copied paragraph/)).toBeVisible();
+  expect(copied[0]).toContain(`\nText: ${"a".repeat(200)}…\n`);
+});
+
 test("the pick's theme is the app's colour mode", async () => {
   await colorScheme("dark");
   const { copied } = await sandboxPage();

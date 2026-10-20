@@ -11,6 +11,7 @@ export type Pick = {
    * code-inspector's `<path>:<line>:<column>:<tag name>`.
    */
   source: string | null;
+  /** Its text on one line, cut by the pick script at 200 characters, then ending with "…". */
   text: string;
 };
 
@@ -22,7 +23,7 @@ export type PickPage = {
   width: number;
 };
 
-const TEXT_MAX = 200;
+/** The most of the picked HTML the text holds, then "…": the pick script cuts its text itself. */
 const HTML_MAX = 500;
 
 /** A source's path, line, and column, without the tag name code-inspector adds after them. */
@@ -59,7 +60,7 @@ export function pickText(pick: Pick, page: PickPage): string {
     `Sandbox pick: ${page.address}`,
     `Element: ${elementOf(pick)}`,
     `Source: ${sourceOf(pick.source)}`,
-    `Text: ${oneLine(pick.text, TEXT_MAX)}`,
+    `Text: ${pick.text}`,
     `HTML: ${oneLine(pick.html.replaceAll(SOURCE_ATTRIBUTES, ""), HTML_MAX)}`,
     `Viewport: ${page.width} × ${page.height}, ${page.theme}`,
   ].join("\n");

@@ -281,3 +281,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   developer's. `viteArgs` in a module of its own: a file for one function.
 - **If wrong**: the check goes, in `vite.sandbox.config.ts` alone.
 - **Where**: task 8.
+
+## R20: The pick script alone cuts a pick's text, ending it with "…"
+
+- **Decision**: `uraeda-pick.js` posts `text` cut at 200 characters, then ending with "…"; the
+  sandbox's `pickText` copies it as posted, and cuts only the HTML, at 500.
+- **Rationale**: the script already cut the text at 200, so `pickText`'s own cut never ran, and a
+  long text reached the agent without its "…". One owner of the cut keeps both from disagreeing. A
+  story comment shows the text's first 40 characters, so its "…" never shows there.
+- **Alternatives considered**: the script posting more text for `pickText` to cut: two cuts of one
+  text, one of them dead in story embeds.
+- **If wrong**: the cut moves back to `pickText`, and the script posts its text whole.
+- **Where**: tasks 4 and 6.

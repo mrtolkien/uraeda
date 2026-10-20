@@ -6,9 +6,9 @@
 // - `{ uraeda: "ready" }` once loaded;
 // - `{ uraeda: "size", height }` when the story's height changes;
 // - `{ uraeda: "picked", role, name, text, source, html }` for the element pressed or clicked in
-//   pick mode, or focused when Enter or Space is pressed without a modifier: `source` is the
-//   nearest `data-insp-path` of the element or its parents, else `null`, and `html` the element's
-//   outer HTML, cut at its first 2000 characters;
+//   pick mode, or focused when Enter or Space is pressed without a modifier: `text` is its text,
+//   cut at 200 characters and then ending with "…", `source` the nearest `data-insp-path` of the
+//   element or its parents, else `null`, and `html` its outer HTML, cut at 2000 characters;
 // - `{ uraeda: "pick-stopped" }` when Escape ends pick mode.
 // From it, it obeys `{ uraeda: "pick", on }`, and ignores every other window. Elements inside
 // `[data-uraeda-pick-ignore]` are never outlined or picked, and their events reach them in pick
@@ -158,9 +158,6 @@
    */
   const TOUCH = ["touchstart", "touchmove", "touchend"];
 
-  /** The events that pick. */
-  const PICKS = ["pointerup", "click"];
-
   /** How long the rest of a picking press is kept from the story, at most, in milliseconds. */
   const PRESS_MS = 1000;
 
@@ -170,7 +167,8 @@
    */
   const KEY_MS = 5000;
 
-  /** The most of an element's outer HTML a pick posts, in characters. */
+  /** The most of an element's text, then "…", and of its outer HTML, a pick posts. */
+  const TEXT_MAX = 200;
   const HTML_MAX = 2000;
 
   /** The white space of a text, collapsed. */
@@ -182,9 +180,8 @@
   let outline = null;
   /** The last height posted. */
   let height = -1;
-  /** Ends keeping the rest of a picking press from the story, while it is kept. */
+  /** End keeping the rest of a picking press, or key press, from the story, while it is kept. */
   let endPress = null;
-  /** Ends keeping the rest of a picking key press from the story, while it is kept. */
   let endKey = null;
 
   /** Posts a message to the embedding page. */
@@ -380,13 +377,14 @@
   /** Ends pick mode, and posts the element picked. */
   const pick = (target) => {
     const role = roleOf(target);
+    const text = textOf(target);
     stop();
     post({
       html: target.outerHTML.slice(0, HTML_MAX),
       name: nameOf(target, role),
       role,
       source: target.closest("[data-insp-path]")?.getAttribute("data-insp-path") ?? null,
-      text: textOf(target).slice(0, 200),
+      text: text.length > TEXT_MAX ? `${text.slice(0, TEXT_MAX)}…` : text,
       uraeda: "picked",
     });
   };
@@ -405,7 +403,7 @@
       draw(event);
     }
     const target = targetOf(event);
-    if (!PICKS.includes(event.type) || !target) {
+    if ((event.type !== "pointerup" && event.type !== "click") || !target) {
       return;
     }
     pick(target);
