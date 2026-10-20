@@ -45,26 +45,32 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, Ac
     let main_root = git.main_root();
     let git = &Git::open(&main_root)?;
     let place = place::reach(git, default).map_err(|e| ActionError::Refused(e.to_string()))?;
-    remove_entry(&place, feature)?;
+    let removed = remove_entry(&place, feature)?;
     let branch = folder_branch(feature.kind, folder);
-    let worktree = match clean::worktree(git, &main_root, &here, &branch, false)? {
-        Some(Err(left)) => Some(left),
-        Some(Ok(_)) | None => None,
+    let worktree = match clean::worktree(git, &main_root, &here, &branch, false) {
+        Ok(Some(Err(left))) => Some(left),
+        Ok(Some(Ok(_)) | None) => None,
+        Err(error) if removed => {
+            return Err(ActionError::Io(format!(
+                "the entry was removed from {PATH}, but its worktree was not: {error}"
+            )));
+        }
+        Err(error) => return Err(error),
     };
     Ok(Dropped { branch, worktree })
 }
 
-/// Removes the entry linking the feature's proposal, `chore(<slug>): drop <entry>`. Nothing when
-/// no entry links it.
-fn remove_entry(place: &Place, feature: &Feature) -> Result<(), ActionError> {
+/// Removes the entry linking the feature's proposal, `chore(<slug>): drop <entry>`: whether one
+/// did. Nothing when no entry links it.
+fn remove_entry(place: &Place, feature: &Feature) -> Result<bool, ActionError> {
     let file = place.root.join(PATH);
     let text = fs::read_to_string(&file).unwrap_or_default();
     let proposal = format!("{}/proposal.md", folder_path(feature.kind, &feature.folder));
     let Some((without, name)) = priorities::remove_linked(&text, &proposal) else {
-        return Ok(());
+        return Ok(false);
     };
     let slug = folder_slug(&feature.folder).unwrap_or(&feature.folder);
     let subject = format!("chore({slug}): drop {name}");
     add_alone(place, PATH, subject, || Ok(fs::write(&file, without)?))?;
-    Ok(())
+    Ok(true)
 }
