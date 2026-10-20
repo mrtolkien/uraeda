@@ -177,7 +177,7 @@ function pullRequest(
 
 /**
  * The pull requests `gh` lists for the sample: the feature page's #31 open, the finished feature's
- * draft, the one with changes requested, and the change's, open.
+ * draft, the one with changes requested, and the changes': open, draft, and changes requested.
  */
 export function samplePullRequests(): Array<FakePullRequest> {
   return [
@@ -185,5 +185,7 @@ export function samplePullRequests(): Array<FakePullRequest> {
     pullRequest(FEATURE_FOLDERS.finish, 33, true, ""),
     pullRequest(FEATURE_FOLDERS["pull-request-changes"], 34, false, "CHANGES_REQUESTED"),
     pullRequest(`change/${CHANGE_FOLDERS["pull-request"]}`, 35, false, ""),
+    pullRequest(`change/${CHANGE_FOLDERS.finish}`, 36, true, ""),
+    pullRequest(`change/${CHANGE_FOLDERS["pull-request-changes"]}`, 37, false, "CHANGES_REQUESTED"),
   ];
 }

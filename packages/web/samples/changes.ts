@@ -1,5 +1,5 @@
 // The sample project's changes, one at each state a change's step reads: at work, a round waiting,
-// its pull request open, and merged.
+// its draft pull request, its pull request open, changes requested on it, and merged.
 import { readFileSync } from "node:fs";
 import { addChange, fixture, STORY_FEATURE } from "uraeda-binding/test-utils";
 import { proposal } from "./features.ts";
@@ -13,8 +13,12 @@ export const CHANGE_FOLDERS = {
   done: FEATURE_PAGES.doneChange,
   /** A round of questions waiting for the human. */
   "human-gate": "2026-10-19-date-format",
+  /** Its draft pull request, #36: the agent finishes. */
+  finish: "2026-10-18-loading-state",
   /** Its pull request, #35, open. */
   "pull-request": "2026-10-18-empty-state",
+  /** Its pull request, #37, with changes requested. */
+  "pull-request-changes": "2026-10-18-error-copy",
 } as const;
 
 /** Adds the changes `addFeaturePages` leaves out, each on its branch `change/<folder>`. */
@@ -28,5 +32,9 @@ export function addChanges(repo: string) {
     ),
     "proposal.md": proposal("Date format"),
   });
+  addChange(repo, CHANGE_FOLDERS.finish, { "proposal.md": proposal("Loading state") });
   addChange(repo, CHANGE_FOLDERS["pull-request"], { "proposal.md": proposal("Empty state") });
+  addChange(repo, CHANGE_FOLDERS["pull-request-changes"], {
+    "proposal.md": proposal("Error copy"),
+  });
 }

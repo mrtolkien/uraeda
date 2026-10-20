@@ -651,7 +651,9 @@ test("sample has a feature at every step, and a change at each of its steps", ()
   const { sample } = buildProjects(temporaryFolder("samples"));
 
   expect(featureSteps(sample)).toEqual(new Set(FEATURE_STEPS));
-  expect(changeStates(sample)).toEqual(new Set(["change", "human-gate", "pull-request", "done"]));
+  expect(changeStates(sample)).toEqual(
+    new Set(["change", "human-gate", "finish", "pull-request", "pull-request-changes", "done"]),
+  );
 });
 
 test("empty is a project just set up", () => {
@@ -688,11 +690,12 @@ The break each test catches:
 
 Build each missing step from the typed commits its step reads, on top of `fixtureRepo()` for
 "sample". The spec's sample feature with stories keeps the fake Storybook's preview decision. Pull
-request states come from Task 2's fake `gh`, extended with the draft and changes-requested ones.
-"empty" is `specs/` as setup writes it. "broken" is a repository holding
-[`fixtures/broken/`](/fixtures/broken/)'s files as features, each on its own branch
-`2026-10-19-broken-<file>`, titled `Broken <file>`: merged on `main`, a feature is done, and Home
-shows a done feature without its problems. Every commit is dated with `dated`.
+request states come from Task 2's fake `gh`, extended with the draft and changes-requested ones, for
+features and changes alike: every change step has a sample, as SC-002 asks. "empty" is `specs/` as
+setup writes it. "broken" is a repository holding [`fixtures/broken/`](/fixtures/broken/)'s files as
+features, each on its own branch `2026-10-19-broken-<file>`, titled `Broken <file>`: merged on
+`main`, a feature is done, and Home shows a done feature without its problems. Every commit is dated
+with `dated`.
 
 - [x] **Step 4: Run the project's validation**
 

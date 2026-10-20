@@ -55,7 +55,7 @@ test("sample has a feature at every step, and a change at each of its steps", as
 
   expect(await featureSteps(sample)).toEqual(new Set(FEATURE_STEPS));
   expect(await changeStates(sample)).toEqual(
-    new Set(["change", "human-gate", "pull-request", "done"]),
+    new Set(["change", "human-gate", "finish", "pull-request", "pull-request-changes", "done"]),
   );
 });
 
