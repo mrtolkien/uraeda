@@ -15,7 +15,13 @@ import { runLoop } from "./loop.ts";
 import type { Scores } from "./record.ts";
 import type { Sandbox } from "./sandbox.ts";
 import { runPlain } from "./run-plain.ts";
-import { baseRecord, copyTranscripts, nextRunFolder, requireApproval } from "./run-common.ts";
+import {
+  baseRecord,
+  copyTranscripts,
+  nextRunFolder,
+  requireApproval,
+  stateOf,
+} from "./run-common.ts";
 import { runFolderPath, writeRun } from "./recorder.ts";
 import { run } from "./run-command.ts";
 import { snapshotSkill } from "./skill.ts";
@@ -65,6 +71,7 @@ export async function runFlow(
     await runPlain(deps, { approvedBy, case: found, suite, suiteName: options.suiteName });
   }
   const started = deps.now();
+  const repository = await stateOf(deps.repository);
   const work = mkdtempSync(join(tmpdir(), "benchmarks-flow-"));
   let sandbox: Sandbox | undefined;
   try {
@@ -123,12 +130,13 @@ export async function runFlow(
     writeRun(folder, {
       diff: await finalDiff(sandbox.repo, sandbox.base),
       record: {
-        ...(await baseRecord(deps, {
+        ...(await baseRecord({
           adapter: host,
           approvedBy,
           effort: suite.effort,
           guidelines: suite.human.commit,
           model: suite.human.model,
+          repository,
           skill: { commit: skill.commit, dirty: skill.dirty },
           started,
           task: { id: found.task, image: found.image, source: found.source },
