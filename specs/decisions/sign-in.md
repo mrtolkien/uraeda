@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: key-round
 ---
 
@@ -26,7 +26,8 @@ with a secret instead. Nothing but code turns sign-in off.
 - The server MUST NOT treat an address, `Host`, or proxy header as proof of identity, and a public
   address MUST reach it through a same-machine proxy that ends TLS. Checked by review.
 - Sign-in MUST NOT be turned off by a flag, an environment variable, or a setting: only code MAY
-  build an app without it, for tests and Uraeda's own Storybook fixture. Checked by review.
+  build an app without it, for tests, Uraeda's own Storybook fixture, and the [sandbox](sandbox.md).
+  Checked by review.
 
 ## Why
 
@@ -38,6 +39,8 @@ address or header proves the sender, since proxies connect from 127.0.0.1 and ca
 ([trusting the tailnet](../done/2026-10-16-basic-security.md#q4-does-your-tailnet-sign-you-in)).
 Sandboxed frames get no `Lax` cookie and share one Storybook, so they share one secret in their path
 ([how previews prove themselves](../done/2026-10-16-basic-security.md#q6-how-do-previews-and-mockups-prove-they-come-from-you)).
+The sandbox holds sample projects only, and an agent must open its pages without signing in
+([sign-in in the sandbox](../2026-10-20-ui-sandbox/clarifications-01.md#q8-does-the-sandbox-need-sign-in)).
 
 ## Alternatives considered
 
