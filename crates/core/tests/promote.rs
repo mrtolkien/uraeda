@@ -14,6 +14,9 @@ const FOLDER: &str = "2026-10-20-priorities-sections";
 const CHANGE_BRANCH: &str = "change/2026-10-20-priorities-sections";
 const DRAFT: &str = "specs/drafts/priorities-sections.md";
 const DECISION: &str = "specs/decisions/inbox.md";
+/// An active decision the change leaves alone.
+const OTHER_DECISION: &str = "specs/decisions/stack.md";
+const OTHER_TEXT: &str = "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Stack\n\nRust.\n";
 
 /// `main` with the draft "Priorities sections", linked from Next, and an active decision, started
 /// as `kind` on 2026-10-20 in its worktree.
@@ -29,6 +32,7 @@ fn started(kind: Kind) -> TestRepo {
         DECISION,
         "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Inbox\n\nA choice.\n",
     );
+    repo.write(OTHER_DECISION, OTHER_TEXT);
     repo.commit("chore: draft Priorities sections");
     let (git, workspace) = opened(&repo);
     let day = Date::parse("2026-10-20").unwrap();
@@ -164,6 +168,15 @@ fn a_decision_the_change_applied_is_proposed_again() {
     assert_eq!(
         repo.read(DECISION),
         "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Inbox\n\nA choice.\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(worktree(&repo).join(OTHER_DECISION)).unwrap(),
+        OTHER_TEXT
+    );
+    assert!(
+        !repo
+            .changed_in(FOLDER)
+            .contains(&OTHER_DECISION.to_string())
     );
 }
 
