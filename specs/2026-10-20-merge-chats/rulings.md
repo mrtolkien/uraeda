@@ -534,3 +534,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and computes it beside the order, not after it.
 - **If wrong**: `drag` in `packages/web/src/__browser__/inbox.test.tsx`.
 - **Where**: `packages/web/src/__browser__/inbox.test.tsx`.
+
+## R32: The browser tests follow the one Sessions list and the New page
+
+- **Decision**: `new-change.test.tsx` reaches a change's composer by the sidebar's "＋ New" and
+  Change, not a "New change" row, and waits for the change's line before typing; `layout.test.tsx`'s
+  folded navigation has no "New" row, where it had no "New change". `change.test.tsx`'s sidebar test
+  finds the change's card in the one Sessions section, and a feature's card naming its kind, as
+  `cardName` does for every card. The layout check lets a session's title in the phone's drawer be
+  cut by an ellipsis, as it already did beside the page: the drawer has no `nav`. The feature page's
+  accessibility test runs once per theme: its ten pages, each reading its sessions now, took longer
+  than one test's 30 s. The New page's notes and lines are a wrapping link and their button, not a
+  sidebar row: the row cut their text on a phone, and its link was under 44 px.
+- **Rationale**: US1 and US3 of the spec; the UI layout decision's checks, which the cut text and
+  the short tap area failed at 402 px.
+- **Alternatives considered**: raising the feature test's timeout: one theme's failure would then
+  hide the other's.
+- **If wrong**: the tests named, `checkPage` in `__browser__/helpers.tsx`, and `Lines` in
+  `NewPage.tsx`.
+- **Where**: task 13, `packages/web/src/__browser__/`, `packages/web/src/NewPage.tsx`.

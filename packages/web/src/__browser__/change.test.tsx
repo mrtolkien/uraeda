@@ -173,9 +173,9 @@ describe("on the desktop", () => {
     ).toEqual([`${CENTRED}.md`]);
   });
 
-  // US4.4: the tag is for Needs you, where changes and features share a section; the Changes
-  // section needs none, and the name says it.
-  test("the sidebar names a change, in its own section", async () => {
+  // US1 of merge chats: one Sessions section holds changes and features, each card's name saying
+  // its kind, which its icon shows.
+  test("the sidebar names a change's kind, in the one Sessions section", async () => {
     await centred();
     await show(`/f/${CENTRED}/session`, CENTRED_TITLE);
     await startTurn("Carry on.", [{ text: "Investigating.", type: "text" }]);
@@ -188,12 +188,13 @@ describe("on the desktop", () => {
     );
     expect(row.getAttribute("href")).toBe(atRepo(`/f/${CENTRED}`));
     expect(row.textContent).toBe("centred-x");
-    const changes = nav.getByRole("group", { name: "Changes" });
-    expect(changes.contains(row)).toBe(true);
-    expect(within(changes).queryByText("Change")).toBeNull();
-    // A feature's name has no kind.
+    const sessions = nav.getByRole("group", { name: "Sessions" });
+    expect(sessions.contains(row)).toBe(true);
+    expect(within(sessions).queryByText("Change")).toBeNull();
+    // A feature's card, in the same section, names its kind too.
     const feature = nav.getByRole("link", { name: /^cli-tuis, / });
-    expect(feature.getAttribute("aria-label")).not.toMatch(/change|feature/);
+    expect(sessions.contains(feature)).toBe(true);
+    expect(feature.getAttribute("aria-label")).toMatch(/, feature, /);
   });
 });
 

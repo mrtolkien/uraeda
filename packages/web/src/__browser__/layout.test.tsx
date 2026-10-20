@@ -221,7 +221,7 @@ describe("on the desktop", () => {
       expect(within(nav()).queryByRole("button", { name: "Add to the priorities" })).toBeNull();
       // Folded: no repository menu, and no ＋ rows without their label.
       expect(within(nav()).queryByRole("button", { name: `Uraeda ${repository()}` })).toBeNull();
-      expect(within(nav()).queryByRole("link", { name: /New change/ })).toBeNull();
+      expect(within(nav()).queryByRole("link", { name: "New" })).toBeNull();
       await userEvent.click(within(nav()).getByRole("link", { name: "Home" }));
       await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
 

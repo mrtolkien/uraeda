@@ -117,7 +117,7 @@ async function startChange(adapter: FakeAdapter, page: Page, text: string, slug:
   await typeChange(page, text);
   await page.getByRole("textbox", { name: "Slug" }).fill(slug);
   const sent = adapter.sent.length;
-  await page.getByRole("button", { name: "Start the change" }).click();
+  await page.getByRole("button", { exact: true, name: "Start the change" }).click();
   while (adapter.sent.length === sent) {
     await wait(50);
   }
