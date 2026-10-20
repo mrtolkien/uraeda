@@ -8,11 +8,11 @@
 
 - [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
 - [Inbox screenshots](/specs/changes/2026-10-20-inbox-images/proposal.md)
+- [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
 - Empty inbox
-- [Merge chats and changes](drafts/merge-chats-and-changes.md)
 
 - [Look and feel pass](drafts/look-and-feel/proposal.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
