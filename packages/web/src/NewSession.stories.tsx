@@ -3,7 +3,6 @@
 // "…" beside its composer, and the agent's offer to make it a change, or a change a feature; then the
 // sessions a change's or a feature's page lists, with "New session". Built from Astryx's components
 // over fixed text, with no server: the stories show the look.
-import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
@@ -16,6 +15,7 @@ import {
 } from "@astryxdesign/core/Chat";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { SideNavItem } from "@astryxdesign/core/SideNav";
@@ -66,6 +66,56 @@ function Lines({ action }: { action: string }) {
   );
 }
 
+/** What each kind is, and the steps that wait on the human, in order. */
+const ABOUT: Record<Kind, { steps: Array<{ icon: string; label: string }>; text: string }> = {
+  change: {
+    steps: [
+      { icon: "uraeda:step-proposal", label: "Prompt" },
+      { icon: "uraeda:step-questions", label: "Questions, if any" },
+      { icon: "uraeda:step-pull-request", label: "Pull request" },
+    ],
+    text: "A bug fix or a small change, on its own branch. The agent asks only what it must, then opens a pull request.",
+  },
+  feature: {
+    steps: [
+      { icon: "uraeda:step-proposal", label: "Prompt" },
+      { icon: "uraeda:step-questions", label: "Questions" },
+      { icon: "uraeda:step-spec", label: "Spec" },
+      { icon: "uraeda:step-pull-request", label: "Pull request" },
+    ],
+    text: "A larger piece of work, on its own branch. You answer its questions and approve its spec before any code.",
+  },
+  session: {
+    steps: [],
+    text: "A conversation with the agent, in the main checkout, like plain Claude Code. It offers a change when the work grows.",
+  },
+};
+
+/** The kind's explanation, and its steps as a line of icons and arrows. */
+function About({ kind }: { kind: Kind }) {
+  const { steps, text } = ABOUT[kind];
+  return (
+    <VStack gap={2}>
+      <Text color="secondary">{text}</Text>
+      {steps.length > 0 && (
+        <HStack align="center" gap={2} wrap="wrap">
+          {steps.map((step, index) => (
+            <HStack align="center" gap={1} key={step.label}>
+              {index > 0 && (
+                <Text aria-hidden color="secondary">
+                  →
+                </Text>
+              )}
+              <Icon color="secondary" icon={step.icon} size="sm" />
+              <Text type="supporting">{step.label}</Text>
+            </HStack>
+          ))}
+        </HStack>
+      )}
+    </VStack>
+  );
+}
+
 /** The New page: the selector, then what the kind picked asks for. */
 function NewPage({ kind: initial = "session" }: { kind?: Kind }) {
   const [kind, setKind] = useState<Kind>(initial);
@@ -84,11 +134,7 @@ function NewPage({ kind: initial = "session" }: { kind?: Kind }) {
             <SegmentedControlItem label="Change" value="change" />
             <SegmentedControlItem label="Feature" value="feature" />
           </SegmentedControl>
-          {kind === "session" && (
-            <Text color="secondary" type="supporting">
-              Talk with the agent in the main checkout. It offers a change when the work grows.
-            </Text>
-          )}
+          <About kind={kind} />
           {kind !== "feature" && (
             <ChatComposer
               input={<ChatComposerInput label="Message Claude Code" maxRows={9} />}
@@ -167,7 +213,7 @@ function Offer({ kind }: { kind: "change" | "feature" }) {
   );
 }
 
-type Stage = "change" | "change-offer" | "feature-offer" | "session";
+type Stage = "change" | "change-offer" | "drop" | "feature-offer" | "session";
 
 /**
  * A session's page. Its actions sit in the "…" beside the composer's Send, where they stay in reach
@@ -175,7 +221,7 @@ type Stage = "change" | "change-offer" | "feature-offer" | "session";
  */
 function Growing({ menu = false, stage = "change-offer" }: { menu?: boolean; stage?: Stage }) {
   const [text, setText] = useState("");
-  const isChange = stage === "change" || stage === "feature-offer";
+  const isChange = stage === "change" || stage === "drop" || stage === "feature-offer";
   const title =
     stage === "feature-offer" ? "priorities-sections" : "Why does the login redirect twice?";
   const actions = [
@@ -183,7 +229,9 @@ function Growing({ menu = false, stage = "change-offer" }: { menu?: boolean; sta
       ? { label: "Make it a feature", onClick: () => {} }
       : { label: "Make it a change", onClick: () => {} },
     { label: "Rename", onClick: () => {} },
-    ...(isChange ? [] : [{ label: "Archive", onClick: () => {} }]),
+    isChange
+      ? { label: "Drop the change…", onClick: () => {} }
+      : { label: "Archive", onClick: () => {} },
   ];
   return (
     <div {...stylex.props(styles.surface)}>
@@ -192,14 +240,11 @@ function Growing({ menu = false, stage = "change-offer" }: { menu?: boolean; sta
           <VStack gap={1}>
             <Heading level={1}>{title}</Heading>
             <HStack align="center" gap={2}>
-              <Badge
-                label={isChange ? "Change" : "Session"}
-                variant={isChange ? "orange" : "neutral"}
-              />
+              <Icon color="secondary" icon={isChange ? "wrench" : "uraeda:comment"} size="sm" />
               <Text color="secondary" type="supporting">
                 {isChange
-                  ? "Idle · Claude Code · change/2026-10-20-login-redirect"
-                  : "Idle · Claude Code · main"}
+                  ? "Change · Idle · Claude Code · change/2026-10-20-login-redirect"
+                  : "Session · Idle · Claude Code · main"}
               </Text>
             </HStack>
           </VStack>
@@ -222,7 +267,7 @@ function Growing({ menu = false, stage = "change-offer" }: { menu?: boolean; sta
             </ChatMessage>
             {stage === "change-offer" && <Offer kind="change" />}
             {stage === "feature-offer" && <Offer kind="feature" />}
-            {stage === "change" && (
+            {(stage === "change" || stage === "drop") && (
               <Banner
                 collapsible={false}
                 status="info"
@@ -230,6 +275,7 @@ function Growing({ menu = false, stage = "change-offer" }: { menu?: boolean; sta
               />
             )}
           </ChatMessageList>
+          {stage === "drop" && <DropDialog />}
           <ChatComposer
             input={<ChatComposerInput label="Message Claude Code" maxRows={9} />}
             onChange={setText}
@@ -248,6 +294,28 @@ function Growing({ menu = false, stage = "change-offer" }: { menu?: boolean; sta
         </VStack>
       </Page>
     </div>
+  );
+}
+
+/**
+ * "Drop the change…", confirmed: as the app's confirmations read, a dialog on a desktop and a sheet
+ * on a phone. The branch stays, since tools never delete a branch the default branch lacks.
+ */
+function DropDialog() {
+  return (
+    <Card>
+      <VStack gap={3}>
+        <Heading level={3}>Drop the change login-redirect?</Heading>
+        <Text>
+          Its entry leaves Now, its worktree is removed, and its sessions are archived. Its branch
+          stays, so nothing is lost: git branch -D change/2026-10-20-login-redirect deletes it.
+        </Text>
+        <HStack gap={2} justify="end">
+          <Button label="Keep the change" variant="ghost" />
+          <Button label="Drop the change" variant="destructive" />
+        </HStack>
+      </VStack>
+    </Card>
   );
 }
 
@@ -338,8 +406,11 @@ export const ChangeOffer: Story = { render: () => <Growing /> };
 /** A session's actions, open beside Send: make it a change, rename, archive. */
 export const SessionActions: Story = { render: () => <Growing menu stage="session" /> };
 
-/** Once started: the session says so, its badge says Change, and its actions offer a feature. */
+/** Once started: the session says so, and its actions offer a feature, and dropping the change. */
 export const ChangeStarted: Story = { render: () => <Growing menu stage="change" /> };
+
+/** "Drop the change…" picked in the change's actions: what goes, and what stays. */
+export const DropChange: Story = { render: () => <Growing stage="drop" /> };
 
 /** In a change's session, the agent offers to make it a feature, with its reason. */
 export const FeatureOffer: Story = { render: () => <Growing stage="feature-offer" /> };

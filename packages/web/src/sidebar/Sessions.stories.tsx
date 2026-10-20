@@ -1,9 +1,11 @@
 // Mockups of the sidebar once chats and changes merge (`specs/2026-10-20-merge-chats/spec.md`): one
 // Sessions section, oldest started first, where a session, a change, and a feature share one card:
-// its icon, its name, its status, and its "…" on the first line, and its kind's badge on the second.
-// A session the human has read to its end is done, at the bottom. Drawn from fixed props.
+// one line of its icon, name, status, and "…". The icon tells the kind: a speech bubble for a
+// session, a wrench for a change, and a feature's step. A second line shows only while there is
+// activity to read: a task's progress or the lines changed. A session the human has read to its end
+// is done, at the bottom. Drawn from fixed props.
 import { AppShell } from "@astryxdesign/core/AppShell";
-import { Badge, type BadgeVariant } from "@astryxdesign/core/Badge";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -39,8 +41,10 @@ const styles = stylex.create({
     overflow: "hidden",
   },
   line: {
+    // Under the name, as the sub-agents' lines are.
     paddingBlockEnd: spacingVars["--spacing-1"],
-    paddingInline: spacingVars["--spacing-2"],
+    paddingInlineEnd: spacingVars["--spacing-2"],
+    paddingInlineStart: spacingVars["--spacing-6"],
   },
   page: {
     paddingBlock: spacingVars["--spacing-6"],
@@ -60,17 +64,27 @@ type Entry = {
   changes?: { added: number; removed: number };
   kind: Kind;
   name: string;
+  /** Its task's progress, during a feature's implementation. */
+  progress?: { position: number; title: string; total: number };
   status: { label: string; status: SessionStatus };
   /** A change's or a feature's step; a session has none. */
   step?: { kind: StepKind; label: string };
   subagents?: Array<string>;
 };
 
-const BADGES: Record<Kind, { label: string; variant: BadgeVariant }> = {
-  change: { label: "Change", variant: "orange" },
-  feature: { label: "Feature", variant: "blue" },
-  session: { label: "Session", variant: "neutral" },
-};
+/** The kind's icon: a feature's is its step's, since its steps are its own. */
+function KindIcon({ entry }: { entry: Entry }) {
+  if (entry.kind === "feature" && entry.step) {
+    return <StepIcon step={entry.step.kind} />;
+  }
+  return (
+    <Icon
+      color="secondary"
+      icon={entry.kind === "change" ? "wrench" : "uraeda:comment"}
+      size="sm"
+    />
+  );
+}
 
 const WORKING = { label: "Working", status: "working" } as const;
 const IDLE = { label: "Idle", status: "idle" } as const;
@@ -103,6 +117,14 @@ const SESSIONS: Array<Entry> = [
     step: { kind: "change", label: "Change" },
   },
   { kind: "session", name: "Why is CI slow?", status: WORKING },
+  {
+    changes: { added: 1050, removed: 250 },
+    kind: "feature",
+    name: "redesign-interface",
+    progress: { position: 7, title: "Session column", total: 11 },
+    status: WORKING,
+    step: { kind: "implementation", label: "Implementation" },
+  },
   {
     kind: "change",
     name: "tasks-reappear",
@@ -138,37 +160,38 @@ function Actions({ entry }: { entry: Entry }) {
   );
 }
 
-/** One card, whatever the kind: the first line, then the badge and the lines changed. */
+/** One card, whatever the kind: one line, then its activity while it has any. */
 function Card({ entry }: { entry: Entry }) {
-  const badge = BADGES[entry.kind];
+  const { changes, progress } = entry;
   return (
     <div {...stylex.props(styles.card)}>
       <SideNavItem
         actions={<Actions entry={entry} />}
+        aria-label={[entry.name, entry.kind, entry.step?.label, entry.status.label]
+          .filter(Boolean)
+          .join(", ")}
         endContent={<StatusMark label={entry.status.label} status={entry.status.status} />}
         href="#"
-        icon={
-          entry.step ? (
-            <StepIcon step={entry.step.kind} />
-          ) : (
-            <Icon color="secondary" icon="uraeda:comment" size="sm" />
-          )
-        }
+        icon={<KindIcon entry={entry} />}
         label={entry.name}
       />
-      <HStack align="center" gap={2} justify="between" xstyle={styles.line}>
-        <Badge label={badge.label} variant={badge.variant} />
-        {entry.changes && (
-          <HStack gap={1}>
-            <Text hasTabularNumbers type="supporting" xstyle={styles.added}>
-              {`+${entry.changes.added}`}
-            </Text>
-            <Text hasTabularNumbers type="supporting" xstyle={styles.removed}>
-              {`−${entry.changes.removed}`}
-            </Text>
-          </HStack>
-        )}
-      </HStack>
+      {(changes || progress) && (
+        <HStack align="center" gap={2} justify="between" xstyle={styles.line}>
+          <Text color="secondary" maxLines={1} type="supporting">
+            {progress ? `${progress.position}/${progress.total} · ${progress.title}` : ""}
+          </Text>
+          {changes && (
+            <HStack gap={1}>
+              <Text hasTabularNumbers type="supporting" xstyle={styles.added}>
+                {`+${changes.added}`}
+              </Text>
+              <Text hasTabularNumbers type="supporting" xstyle={styles.removed}>
+                {`−${changes.removed}`}
+              </Text>
+            </HStack>
+          )}
+        </HStack>
+      )}
       {entry.subagents?.map((subagent) => (
         <HStack align="center" gap={2} key={subagent} xstyle={styles.subagent}>
           <StatusMark label="Working" small status="working" />
@@ -267,9 +290,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * One Sessions section, oldest started first: a feature, two changes, and two sessions, each one
- * card with its icon, name, status, and "…" on one line, and its kind's badge under it. Done holds
- * the sessions read to their end, and the merged changes and features.
+ * One Sessions section, oldest started first: two features, two changes, and two sessions, each a
+ * card of one line, its icon telling its kind. The feature being built shows its task and the lines
+ * it changed under it. Done holds the sessions read to their end, and the merged changes and
+ * features.
  */
 export const Merged: Story = {};
 
