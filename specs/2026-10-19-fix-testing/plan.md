@@ -1,6 +1,6 @@
 ---
 status: auto-approved
-spec-revision: 2
+spec-revision: 3
 ---
 
 # Plan: Fix testing
@@ -14,7 +14,8 @@ before optional prerequisites and never imports the production dev server. Reusa
 is immutable; every caller receives independent mutable state. See the
 [approved architecture](spec.md#architecture).
 
-**Spec:** [spec.md](spec.md), revision 2, approved on 2026-10-20.
+**Spec:** [spec.md](spec.md), revision 3, approved on 2026-10-21: [round 03](clarifications-03.md)
+amended SC-002.
 
 ## Review focus
 
@@ -157,7 +158,7 @@ promises and clocks replace fixed sleeps.
 | High shared state; SC-007; Review focus: fixture ownership | 3       | Fixture copies have independent refs, index, settings, and objects; independent cases run by name and in the suite.                              |
 | High incoming main; Review focus: incoming work            | 7       | Latest-base reconciliation, decision test map refresh, full ready, and hosted CI for final reviewed commit.                                      |
 | Niche Neovim                                               | 5, 7    | Preserve main-action smoke and run in CI against real LSP.                                                                                       |
-| SC-001, SC-002, SC-003                                     | 2, 7    | Full command edit matrix; three green CI runs below five minutes; five green runs of the same commit without retries.                            |
+| SC-001, SC-002, SC-003                                     | 2, 7, 8 | Full command edit matrix; three green CI runs below five minutes; five green runs of the same commit without retries.                            |
 
 Active test-backed decision rules are mapped individually below. These are retained owners, not
 permission to delete their cases. When main changes a rule, Task 7 updates the row and checks the
@@ -250,7 +251,10 @@ actual assertion.
 4. Tasks 5 and 6: UI/browser/editor cases versus skill/template/example wording; no shared code
    files.
 5. Task 7 alone: reconciles main, validates every family, audits coverage/deletions, and produces
-   hosted evidence and the pull request.
+   hosted evidence and the pull request. Its steps 1 to 3 are done.
+6. Task 8 alone, before Task 7's steps 4 to 6: round 03's two answers, the transcript's following of
+   its end and SC-002's re-measurement. The review, push, and hosted evidence judge the code after
+   it.
 
 ---
 
@@ -746,3 +750,43 @@ other checkouts' stress loops for about an hour; loads are given with each time)
   package does not select Rust, the scripts family takes its project's 130 s, and one late empty
   watch report is skipped. One whole `ready` has not passed here: its phone job failed one case that
   passes alone and in its own job run; SC-001 and SC-003 await the hosted runs.
+
+---
+
+## Task 8: Keep the transcript following its end when a banner leaves, and re-measure SC-002
+
+**Risky:** Changes a shared hook every transcript page uses, and the product's scroll behavior.
+
+**Files:** Modify `packages/web/src/following.ts` (`useFollowEnd`) and, only if the hook cannot own
+it, the session page's end layout; add the forcing case to
+`packages/web/src/__browser__/session.test.tsx`; update `rulings.md` and this plan. The merge-chats
+branch's changes to `following.ts` are on main: read the file as it is.
+
+**Interfaces:** `useFollowEnd(ref, enabled)` keeps returning `{ following, jumpToLatest }`.
+[Round 03 Q2, option A](clarifications-03.md#q2-how-should-the-transcript-keep-following-its-end-when-the-page-shortens-just-before-a-reply):
+while the human follows the end, the session page never gets shorter. What leaves at its end (a
+stopped, failed, or halted session's banner) leaves blank space, until new content fills it or the
+human scrolls up. "Jump to the latest" keeps showing when the human is away from the end, and brings
+them back. Only the human's scroll stops following; the transcript growing never does.
+
+- [ ] **Step 1: Write the case that forces the race, and see it fail on today's code.** In the
+      browser session file, a case that removes an end banner and draws the reply only after the
+      browser has queued the clamp's scroll event (no timer and no sleep: control the draw with the
+      case's own gate), then asserts the reply is in view and "Jump to the latest" is not shown. Run
+      it against the unchanged hook: it fails every run. Record the failure.
+- [ ] **Step 2: Implement the fix in `useFollowEnd`**, so every page that follows a transcript gets
+      it. Read [discovery round 03](discovery-03.md#following-the-end-through-a-layout-clamp) first:
+      two fixes were tried and reverted, ignoring scrolls that come with page growth, which also
+      swallowed the human's own scroll, and judging a position where a draw first leaves it.
+- [ ] **Step 3: Prove it.** The new case passes, and the whole browser session file passes 40 runs
+      in a row under 20 to 24 busy loops, as the thumbnail-focus race was proven. The three sibling
+      cases that failed once each under load (the progress line case, "a run that fails while the
+      human is at its end", "an ended session scrolled up") are taken as the same race: a remaining
+      failure comes back as a ruling and a question, not a loosened case or a longer wait. No retry.
+- [ ] **Step 4: Re-measure SC-002 as amended.** For each edit the criterion lists, the median of 3
+      warm runs of the complete `vp run fast`, while no other checkout runs checks (check the load
+      first and say it); a root configuration, lock, or toolchain edit is measured and reported
+      without a budget. Write the table in a ruling with the load of each sample.
+- [ ] **Step 5: Run the project's validation and commit.** `vp run fast`, the browser projects, and
+      the Rust tests, then commit with the feature's scope; the plan's own text edits are listed in
+      the ruling.
