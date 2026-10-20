@@ -192,9 +192,13 @@ test("an awaited step that never settles ends on the interrupt, and its process 
   expect(signals[1]?.aborted).toBe(true);
 });
 
-test("an awaited step that never settles ends on the close, which drops the steps left", async () => {
+test("an awaited step that never settles ends on the close, which keeps the events left", async () => {
   const adapter = new FakeAdapter();
-  adapter.script([() => new Promise<void>(() => {}), { text: "never read", type: "text" }]);
+  adapter.script([
+    () => new Promise<void>(() => {}),
+    { text: "flushed", type: "text" },
+    () => new Promise<void>(() => {}),
+  ]);
   const agent = adapter.open(options);
   await readUntil(agent, (event) => event.type === "init");
   agent.send({ id: "m1", images: [], text: "go", when: "steer" });
@@ -202,7 +206,11 @@ test("an awaited step that never settles ends on the close, which drops the step
   const exited = readUntil(agent, () => false);
   await flush();
   agent.close();
-  expect(await exited).toEqual([{ code: 0, stderr: "", type: "exit" }]);
+  expect(await exited).toEqual([
+    { text: "flushed", type: "text" },
+    { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
+    { code: 0, stderr: "", type: "exit" },
+  ]);
 });
 
 test("a stuck process's awaited step holds through the interrupt, and ends on SIGTERM", async () => {

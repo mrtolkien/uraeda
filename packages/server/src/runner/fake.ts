@@ -113,6 +113,16 @@ class FakeProcess implements AgentProcess {
     this.#cut = new AbortController();
   }
 
+  /**
+   * Cuts short the step being awaited and the steps left to await, keeping the events already
+   * written: a process whose stdin ends still flushes what it wrote, but waits no more.
+   */
+  #flush() {
+    this.#steps = this.#steps.filter((step) => typeof step !== "function");
+    this.#cut.abort();
+    this.#cut = new AbortController();
+  }
+
   takeBack(id: string) {
     this.#adapter.takenBack.push(id);
   }
@@ -127,13 +137,16 @@ class FakeProcess implements AgentProcess {
     this.push({ denials: [], errors: [], interrupted: true, ok: false, type: "result" });
   }
 
-  /** Ends it, dropping the steps not read yet, unless it ignores its stdin's end. */
+  /**
+   * Ends it after the events it already wrote, cutting its waits short, unless it ignores its
+   * stdin's end.
+   */
   close() {
     this.#adapter.closes++;
     if (this.#adapter.ignoreClose || this.#exited) {
       return;
     }
-    this.#drop();
+    this.#flush();
     this.push({ code: 0, stderr: "", type: "exit" });
   }
 
