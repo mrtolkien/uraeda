@@ -17,7 +17,7 @@ use super::{ActionError, Change, Committed, STALE, changes, commit, draft};
 mod image;
 mod undo;
 
-pub use image::add_with_image;
+pub use image::{NoteImage, add_with_image, attach_to_note};
 pub use undo::{
     undo_add, undo_as_draft, undo_category, undo_committed, undo_to_draft, undo_to_priorities,
 };

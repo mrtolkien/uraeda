@@ -71,13 +71,12 @@ fn to_priorities(place: &place::Place, text: &str, section: Section) {
 fn add_with_image(repo: &TestRepo, category: Option<&str>, text: &str) -> String {
     let inbox = api::read_inbox(repo.path()).unwrap();
     let image = std::fs::read(common::fixture("images/phone.png")).unwrap();
-    let (_, draft) = api::add_note_with_image(
+    let (_, draft) = api::add_note_with_images(
         repo.path(),
         category.map(String::from),
         None,
         text,
-        &image,
-        Some("phone.png"),
+        &[(image, Some("phone.png".to_string()))],
         &inbox.hash,
     )
     .unwrap();

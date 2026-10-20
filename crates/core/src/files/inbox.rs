@@ -382,6 +382,21 @@ pub fn edit(text: &str, id: &str, new_text: &str) -> Option<String> {
     .ok()
 }
 
+/// Replaces a note, sub-items included, with one line whose text is `link`, its marker and marks
+/// kept: a note that became a draft, which holds the sub-items now. `None` when the note is gone.
+pub fn relink(text: &str, id: &str, link: &str) -> Option<String> {
+    let (lines, text_lines) = unmarked_lines(text, id)?;
+    let nested = lines.len() - text_lines;
+    let edited = edit(text, id, link)?;
+    super::with_unix_newlines(&edited, |edited| {
+        let at = find(edited, id).ok_or(())?.line;
+        let mut all: Vec<&str> = edited.split('\n').collect();
+        all.drain(at..at + nested);
+        Ok::<_, ()>(all.join("\n"))
+    })
+    .ok()
+}
+
 /// Removes a note, sub-items included.
 pub fn remove(text: &str, id: &str) -> Option<String> {
     super::with_unix_newlines(text, |text| {
