@@ -217,8 +217,8 @@ impl Move<'_> {
     }
 
     /// Writes the relinked priorities, when they change, and moves the change's folder, when the
-    /// default branch has it, then commits them there: a refused commit moves the folder back, and
-    /// leaves every step.
+    /// default branch has it, then commits them there: a refused commit puts both back as they
+    /// were, so a move run again relinks and commits them, and leaves every step.
     fn relink(
         &self,
         at: &Git,
@@ -231,26 +231,46 @@ impl Move<'_> {
             folder_path(Kind::Change, self.folder),
             folder_path(Kind::Feature, self.folder),
         );
+        // The priorities as they were, the main checkout's own edits kept: `None` when absent.
+        let before = fs::read_to_string(root.join(PRIORITIES)).ok();
+        let restore = || {
+            if edited.is_some() {
+                let _ = match &before {
+                    Some(text) => fs::write(root.join(PRIORITIES), text),
+                    None => fs::remove_file(root.join(PRIORITIES)),
+                };
+            }
+        };
         let mut paths = Vec::new();
         if let Some(edited) = edited {
             fs::write(root.join(PRIORITIES), edited)?;
             paths.push(PRIORITIES.to_string());
         }
         if self.on_default {
-            fs::rename(root.join(&old), root.join(&new))?;
+            fs::rename(root.join(&old), root.join(&new)).inspect_err(|_| restore())?;
             paths.extend([old.clone(), new.clone()]);
         }
         at.commit(&paths, subject, None).map_err(|error| {
+            restore();
             if self.on_default {
                 let _ = fs::rename(root.join(&new), root.join(&old));
             }
-            let what = match (edited.is_some(), self.on_default) {
-                (true, true) => format!("{PRIORITIES} with the move of {old} to {new}"),
-                (false, true) => format!("the move of {old} to {new}"),
-                _ => PRIORITIES.to_string(),
+            let (what, them, back) = match (edited.is_some(), self.on_default) {
+                (true, true) => (
+                    format!("relink the entry in Now, and move {old} to {new},"),
+                    "them",
+                    format!("{PRIORITIES} and the folder"),
+                ),
+                (false, true) => (format!("move {old} to {new}"), "it", "the folder".into()),
+                _ => (
+                    "relink the entry in Now".into(),
+                    "it",
+                    PRIORITIES.to_string(),
+                ),
             };
             let mut left = vec![format!(
-                "commit {what} on {} as \"{subject}\"",
+                "{what} on {}, and commit {them} as \"{subject}\": the refused commit put {back} \
+                 back",
                 self.default
             )];
             left.extend(rest.into_iter().cloned());
