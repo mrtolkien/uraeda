@@ -612,6 +612,49 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `scripts/fast-selection.ts`, `scripts/__tests__/fast-selection.test.ts`,
   `vite.fast.config.ts`, `crates/core/tests/watch.rs`.
 
+## R80: The load-sensitive `idle at the end, send` case is a product race, found and not yet fixed
+
+- **Decision**: No code changes. The case
+  `idle at the end, send: the reply stays in view and no button shows` (phone, `session.test.tsx`)
+  is left as it is: its wait is the right condition, and raising `LIVE` cannot help, because the
+  state it waits for never comes back. A human must decide the product fix (see If wrong); two
+  attempts are recorded here so the next one does not repeat them.
+- **Cause**: `useFollowEnd` (`packages/web/src/following.ts`) takes every scroll event as the
+  human's and measures the page when the event is dispatched. A trace of a failing run (state
+  recorded from the page, no sampler) shows: the session at its end after a failed run (the page
+  1260 px tall, scrolled to 386); the human sends; the message draws and the failure banner leaves
+  (the page shortens by 28 px, so the browser clamps the position to 358); the reply draws (the page
+  grows to 1588 px); only then the browser dispatches the clamp's scroll event, which finds the
+  human 356 px from the end and sets following to false for good, with the "Jump to the latest"
+  button showing. Without load the clamp event comes before the reply, and following holds. A user
+  on a slow machine, or with a slow reply, can hit the same order: the page then stops following and
+  offers the button, which still works.
+- **Reproduction**: whole-file runs of `session.test.tsx` on the phone project, 20 to 24 busy loops
+  over the machine's own load (load 37 to 120): the case failed in 4 of about 26 runs (other cases
+  of the same family, `a run that fails while the human is at its end keeps how it ended in view`,
+  `US3.3`, `an ended session scrolled up also offers Jump to the latest`, failed in single runs).
+  The case alone passed 40 of 40 at load 10 to 80, and 6 of 6 whole-file runs without load: the
+  earlier cases of the file and the load decide it.
+- **Attempts, not kept**: (1) Ignoring a scroll that comes with the page growing: it also swallows
+  the human's own scroll (`a working session: a page of its own, following its end` failed 2 of 6
+  runs without load). (2) Judging each position once, where a draw first leaves it (a layout effect
+  and a `MutationObserver`), and reading that for a later event at the same position: a case that
+  shortens then grows the page across a task passed with it and failed without it, but the real
+  failure remained (1 in 40 whole-file runs under load, against about 4 in 26 before; 5 in 33 in
+  another batch with other cases), because the shortening and the reply were drawn with no
+  observable moment between them: the first measure already saw 358 px at a page 1588 px tall, the
+  same as a human scrolling up 28 px. Both were reverted.
+- **Rationale**: A fix that cannot tell the layout's clamp from the human's scroll hides a failure
+  instead of fixing it; the remaining options change what the human sees, so they are not decided
+  here.
+- **Alternatives considered**: Telling the human's scrolls by input events (wheel, touch, keys,
+  scrollbar): the browser tests scroll with `scrollTo` and would change; keeping the page from
+  shortening while the human follows (keeping the failure banner's space until the reply draws):
+  changes the layout.
+- **If wrong**: A human decides between the two alternatives above, or accepts the race as a
+  cosmetic one (the button shows, and pressing it follows again) and loosens the case with a ruling.
+- **Where**: `packages/web/src/following.ts`, `packages/web/src/__browser__/session.test.tsx`.
+
 ## R90: The late empty report in `watch.rs` is skipped once, not any number of times
 
 - **Decision**: `a_new_worktree_is_reported_then_watched` takes the report after its write and, when
