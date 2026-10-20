@@ -91,7 +91,7 @@ test("a session shown at a gate is recorded as seen once its turn ends, though i
   // The feature waits on you: "Needs you" outranks a new reply, which the view shows all the same.
   await refreshUntil(() => expect(log().getByText("Because A keeps one process.")).toBeTruthy());
   const { cache } = fake.sessions;
-  const session = cache.featureSession(await fake.sessions.mainRoot(repo), WEB_UI)!;
+  const session = cache.latestSession(await fake.sessions.mainRoot(repo), WEB_UI)!;
   await waitFor(() => {
     const [turn] = cache.turns(session.id);
     const { seenAt } = cache.session(session.id)!;

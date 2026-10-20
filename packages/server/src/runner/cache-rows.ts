@@ -6,7 +6,7 @@ export type SessionRow = {
   agent: string;
   archivedAt: string | null;
   createdAt: string;
-  /** The feature's folder, null for a chat. */
+  /** The change's or feature's folder, set once, null for a session without one. */
   folder: string | null;
   /** Uraeda's own ID, a UUID. */
   id: string;

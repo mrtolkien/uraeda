@@ -52,8 +52,8 @@ test("a session keeps its fields, and their updates", () => {
   expect(created.id).toMatch(/^[0-9a-f-]{36}$/);
   expect(created.updatedAt).toBe(created.createdAt);
   expect(cache.session(created.id)).toEqual(created);
-  expect(cache.featureSession(REPO, FOLDER)).toEqual(created);
-  expect(cache.featureSession("/repo/b", FOLDER)).toBeUndefined();
+  expect(cache.latestSession(REPO, FOLDER)).toEqual(created);
+  expect(cache.latestSession("/repo/b", FOLDER)).toBeUndefined();
   expect(cache.session("nope")).toBeUndefined();
 
   cache.updateSession(created.id, { nativeId: "9a9a", seenAt: "2026-10-13T10:00:00.000Z" });
@@ -65,12 +65,53 @@ test("a session keeps its fields, and their updates", () => {
   });
 });
 
-test("a feature has one session", () => {
+test("a folder holds several sessions, latest first", () => {
   const cache = SessionCache.open(":memory:");
-  cache.createSession(feature);
+  const first = cache.createSession(feature);
+  const second = cache.createSession({ ...feature, nativeId: "9a9a" });
+  cache.createSession({ ...feature, repo: "/repo/b" });
+  // The first updated last: a busy older session is still not the latest.
+  cache.db
+    .prepare("UPDATE sessions SET updated_at = '2099-01-01T00:00:00.000Z' WHERE id = ?")
+    .run(first.id);
 
-  expect(() => cache.createSession({ ...feature, nativeId: "9a9a" })).toThrow();
-  expect(cache.createSession({ ...feature, repo: "/repo/b" })).toMatchObject({ repo: "/repo/b" });
+  expect(cache.folderSessions(REPO, FOLDER).map((session) => session.id)).toEqual([
+    second.id,
+    first.id,
+  ]);
+  expect(cache.latestSession(REPO, FOLDER)?.id).toBe(second.id);
+  expect(cache.folderSessions(REPO, "2026-10-20-other")).toEqual([]);
+});
+
+test("attach sets a session's folder once", () => {
+  const cache = SessionCache.open(":memory:");
+  const session = cache.createSession(chat);
+
+  cache.attach(session.id, "2026-10-20-login-redirect");
+
+  expect(cache.session(session.id)?.folder).toBe("2026-10-20-login-redirect");
+  expect(() => cache.attach(session.id, "2026-10-20-other")).toThrow(
+    "refused: the session already belongs to 2026-10-20-login-redirect",
+  );
+  expect(cache.session(session.id)?.folder).toBe("2026-10-20-login-redirect");
+});
+
+test("a session's last end is its latest ended turn's, null before any ends", () => {
+  const cache = SessionCache.open(":memory:");
+  const session = cache.createSession(feature);
+  const first = cache.addTurn({ sessionId: session.id, ...workflowTurn });
+
+  expect(cache.lastEndedAt(session.id)).toBeNull();
+
+  cache.endTurn(first, { state: "done" });
+  const second = cache.addTurn({ sessionId: session.id, ...workflowTurn });
+  cache.endTurn(second, { state: "done" });
+  // Ended in the same millisecond, the turns would not tell the latest apart.
+  cache.db
+    .prepare("UPDATE turns SET ended_at = '2026-10-12T10:00:00.000Z' WHERE id = ?")
+    .run(first);
+
+  expect(cache.lastEndedAt(session.id)).toBe(cache.turn(second)!.endedAt);
 });
 
 test("a chat has no folder, and many are allowed", () => {
@@ -419,7 +460,7 @@ test("a cache another process holds locked is kept, never replaced", () => {
 
   other.exec("ROLLBACK");
   other.close();
-  expect(SessionCache.open(path).featureSession(REPO, FOLDER)).toBeUndefined();
+  expect(SessionCache.open(path).latestSession(REPO, FOLDER)).toBeUndefined();
   expect(new DatabaseSync(path).prepare("PRAGMA user_version").get()).toEqual({
     user_version: migrations.length,
   });
@@ -481,6 +522,31 @@ test("migration 5 adds the turns' token counts, null for older turns", () => {
     input: 0,
     output: 0,
   });
+});
+
+test("migration 6 keeps every session, and lets a folder hold several", () => {
+  const path = tempPath();
+  const old = new DatabaseSync(path);
+  for (const migration of migrations.slice(0, 5)) {
+    if (typeof migration === "string") {
+      old.exec(migration);
+    } else {
+      migration(old);
+    }
+  }
+  old.exec("PRAGMA user_version = 5");
+  old.exec(`INSERT INTO sessions (id, repo, folder, agent, native_id, created_at, updated_at)
+    VALUES ('f', '${REPO}', '${FOLDER}', 'claude', '3f2c', '2026-10-12', '2026-10-12');
+    INSERT INTO sessions (id, repo, folder, agent, native_id, title, created_at, updated_at)
+    VALUES ('c', '${REPO}', NULL, 'claude', '9a9a', 'New chat', '2026-10-13', '2026-10-13');`);
+  old.close();
+
+  const cache = SessionCache.open(path);
+
+  expect(cache.session("f")).toMatchObject({ folder: FOLDER, nativeId: "3f2c" });
+  expect(cache.session("c")).toMatchObject({ folder: null, title: "New chat" });
+  const second = cache.createSession(feature);
+  expect(cache.folderSessions(REPO, FOLDER).map((session) => session.id)).toEqual([second.id, "f"]);
 });
 
 // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the version 2 rows in a helper of their own
@@ -560,7 +626,7 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
   old.close();
 
   const cache = SessionCache.open(path);
-  const session = cache.featureSession(REPO, "f")!;
+  const session = cache.latestSession(REPO, "f")!;
 
   expect(session).toMatchObject({
     agent: "claude",
@@ -598,12 +664,12 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
   expect(cache.items(second, 0, 10)).toEqual([
     { kind: "system", seq: 0, text: "Started a new session" },
   ]);
-  expect(cache.featureSession("/repo/b", "f")).toMatchObject({ nativeId: "cccc" });
-  expect(cache.featureSession(REPO, "g")).toMatchObject({
+  expect(cache.latestSession("/repo/b", "f")).toMatchObject({ nativeId: "cccc" });
+  expect(cache.latestSession(REPO, "g")).toMatchObject({
     createdAt: "2026-10-12T09:00:00.000Z",
     nativeId: "dddd",
   });
-  expect(cache.turns(cache.featureSession(REPO, "g")!.id)).toEqual([]);
+  expect(cache.turns(cache.latestSession(REPO, "g")!.id)).toEqual([]);
   expect(cache.interrupted("Stopped: the server stopped while it ran.")).toHaveLength(1);
   // Opened again, the migrated file is not migrated twice.
   expect(
