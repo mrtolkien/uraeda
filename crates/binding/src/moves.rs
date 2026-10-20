@@ -1,10 +1,11 @@
-//! The moves of a change: to a feature, in place.
+//! Moving a feature or a change through its life: a change to a feature, in place, and dropping
+//! either.
 
 use std::path::Path;
 
 use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
-use uraeda_core::api;
+use uraeda_core::api::{self, DroppedView};
 use uraeda_core::view::PromotedView;
 
 use super::{Job, job};
@@ -15,4 +16,11 @@ use super::{Job, job};
 #[napi(ts_return_type = "Promise<PromotedView>")]
 pub fn promote_change(repo: String, folder: String) -> AsyncTask<Job<PromotedView>> {
     job(move || api::promote_change(Path::new(&repo), &folder))
+}
+
+/// Drops a started feature or change: its entry leaves the priorities, its worktree is removed
+/// unless it has uncommitted changes, never forced, and its branch stays.
+#[napi(ts_return_type = "Promise<DroppedView>")]
+pub fn drop_item(repo: String, folder: String) -> AsyncTask<Job<DroppedView>> {
+    job(move || api::drop_item(Path::new(&repo), &folder))
 }

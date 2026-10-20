@@ -24,6 +24,7 @@ mod answers;
 mod decision;
 mod default_branch;
 mod drafts;
+mod drop;
 mod files;
 mod history;
 mod inbox_edits;
@@ -44,6 +45,7 @@ use default_branch::{on_default, reach_default, reach_default_from};
 pub use drafts::{
     commit_text, create_draft, proposal_hints, read_draft, read_text, save_text, set_discovery,
 };
+pub use drop::{DroppedView, drop_item};
 pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use history::read_history;
 pub use inbox_edits::*;

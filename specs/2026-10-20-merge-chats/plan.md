@@ -373,21 +373,26 @@ git commit -m "feat(merge-chats): a change becomes a feature in place, with ura 
 - Create: `crates/core/src/actions/drop.rs`
 - Modify: `crates/core/src/actions/mod.rs`, `crates/core/src/api.rs` (re-export),
   `crates/core/src/api/drop.rs` (create), `crates/binding/src/moves.rs` (add; create it if task 1's
-  is not merged yet) and `crates/binding/src/lib.rs` (module line)
+  is not merged yet) and `crates/binding/src/lib.rs` (module line),
+  `crates/core/src/actions/clean.rs` (its worktree step shared), and
+  `crates/core/src/files/priorities/edits.rs` (`remove_linked`)
 - Test: `crates/core/tests/drop.rs`
 
 **Interfaces:**
 
-- Consumes: `files::priorities::edits::remove`, `Git::remove_worktree`, `Git::has_local_changes`,
-  `actions::clean`'s `WhyLeft` (reuse the type).
+- Consumes: `files::priorities::remove_linked` (added beside `remove`, finding the entry by its
+  link), `actions::clean::worktree` (the never-forced worktree step, extracted from `clean` in a
+  `refactor` commit, over `Git::remove_worktree` and `Git::has_local_changes`), `actions::clean`'s
+  `Left` and `WhyLeft` (reused), and `actions::commit::add_alone`.
 - Produces:
   `actions::drop::run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, ActionError>`,
-  `pub struct Dropped { branch: String, worktree: Option<WhyLeft> }`;
+  `pub struct Dropped { branch: String, worktree: Option<Left> }` (the `Left` carries the worktree's
+  path, which the text needs: see [R1](rulings.md#r1-a-dropped-worktree-says-where-it-stays));
   `api::drop_item(repo: &Path, folder: &str) -> Result<DroppedView>`
   (`DroppedView { branch: String, worktree_left: Option<String> }`, the reason as the spec's text);
   binding `dropItem(repo: string, folder: string): Promise<DroppedView>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/drop.rs`, on a started change `2026-10-20-login-redirect`:
 
@@ -404,24 +409,24 @@ In `crates/core/tests/drop.rs`, on a started change `2026-10-20-login-redirect`:
 Breaks caught: a forced worktree removal; a `branch -D`; removing the entry of another item with the
 same name.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test drop`
 - Expected: FAIL to compile, `unresolved import uraeda_core::actions::drop`.
 
-- [ ] **Step 3: Implement the drop**
+- [x] **Step 3: Implement the drop**
 
 From the main checkout, as `clean` reaches it: remove the entry whose link is the folder's
 `proposal.md` and commit it; then remove the worktree only when it has no local changes and is not
 the caller's own, never forced; never touch the branch.
 
-- [ ] **Step 4: Run the tests, then the Rust checks and the binding build**
+- [x] **Step 4: Run the tests, then the Rust checks and the binding build**
 
 - Run:
   `nix develop -c cargo nextest run -p uraeda-core --test drop && nix develop -c cargo clippy --workspace --all-targets -- -D warnings && nix develop -c vp run --filter uraeda-binding build`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding/index.js packages/binding/index.d.ts specs/2026-10-20-merge-chats/plan.md

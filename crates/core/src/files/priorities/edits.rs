@@ -275,3 +275,22 @@ pub fn remove(text: &str, id: &str) -> Option<String> {
     })
     .ok()
 }
+
+/// Removes the first entry whose link leads to `path`, from the top level, with its nested lines:
+/// the text without it, and the entry's text. `None` when no entry links it.
+pub fn remove_linked(text: &str, path: &str) -> Option<(String, String)> {
+    let mut name = None;
+    let without = super::super::with_unix_newlines(text, |text| {
+        let entry = parse(text)
+            .into_iter()
+            .find(|entry| {
+                (entry.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
+                    == Some(path.to_string())
+            })
+            .ok_or(())?;
+        name = Some(entry.text.clone());
+        Ok::<_, ()>(lines::remove(text, &entry.item))
+    })
+    .ok()?;
+    Some((without, name?))
+}
