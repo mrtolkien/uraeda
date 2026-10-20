@@ -1,7 +1,7 @@
 // The actions by the session's composer: "Allow all (N)" beside Send (US3), from the server's
 // record, not the page's own count, and the session's "…" beside it (merge chats US2): making it a
 // change, or its change a feature, renaming, archiving, and dropping its change or feature.
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -279,4 +279,32 @@ test("a drop over uncommitted work says what stayed, and offers no second drop",
   const after = await actions();
   expect(after).not.toContain("Drop the change…");
   expect(after).toContain("Rename");
+});
+
+/** Merge chats R2: a drop beside the human's own edits to the priorities commits nothing. */
+test("a drop that could not commit the priorities says so", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedChange(fake, repo);
+  const file = join(repo, "specs/PRIORITIES.md");
+  const text = readFileSync(file, "utf8");
+  writeFileSync(
+    file,
+    text.replace("## Next", `- [Login redirect](/specs/changes/${CHANGE}/proposal.md)\n\n## Next`),
+  );
+  git(repo, "commit", "--quiet", "--no-verify", "--all", "--message", "chore: login redirect");
+  writeFileSync(file, `${readFileSync(file, "utf8")}\n- A thought of mine\n`);
+  await renderPage(`/f/${CHANGE}/session`, repo, { agent: fake });
+
+  await click((await askDrop()).getByRole("button", { name: "Drop the change" }));
+
+  expect(
+    await screen.findByText(
+      "The priorities were not committed: if Now listed it, its entry’s removal waits in specs/PRIORITIES.md.",
+    ),
+  ).toBeTruthy();
+  expect(readFileSync(file, "utf8")).not.toContain(CHANGE);
+  expect(git(repo, "status", "--porcelain", "specs/PRIORITIES.md")).toBe(
+    " M specs/PRIORITIES.md\n",
+  );
 });

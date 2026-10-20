@@ -31,9 +31,16 @@ export function dropQuestion({ kind, slug }: SessionItem, branch: string) {
 }
 
 /**
+ * Why a drop's priorities stay uncommitted: they held the human's own edits, a hook refused the
+ * commit, or Now did not list the item, so nothing was removed.
+ */
+const UNCOMMITTED =
+  "The priorities were not committed: if Now listed it, its entry’s removal waits in specs/PRIORITIES.md.";
+
+/**
  * Drops the session's change or feature once confirmed: its entry leaves **Now**, its worktree is
  * removed unless it holds uncommitted changes, and its sessions are archived. The page says what
- * stayed.
+ * stayed, with the branch the server kept, and when the priorities were left uncommitted.
  */
 function useDrop(session: string, item: SessionItem | undefined, fail: (error: string) => void) {
   const fate = useFateClient();
@@ -54,16 +61,19 @@ function useDrop(session: string, item: SessionItem | undefined, fail: (error: s
       return;
     }
     markDropped(session);
-    const dropped = result.result as { worktreeLeft?: string | null } | undefined;
+    const dropped = result.result as
+      | { branch?: string; committed?: boolean; worktreeLeft?: string | null }
+      | undefined;
     addNote(
       session,
       {
         status: "info",
-        title: `Dropped the ${item.kind} ${item.slug}: its branch ${branch} stays.`,
+        title: `Dropped the ${item.kind} ${item.slug}: its branch ${dropped?.branch ?? branch} stays.`,
       },
       ...(dropped?.worktreeLeft
         ? [{ status: "warning" as const, title: dropped.worktreeLeft }]
         : []),
+      ...(dropped?.committed === false ? [{ status: "warning" as const, title: UNCOMMITTED }] : []),
     );
   };
 }

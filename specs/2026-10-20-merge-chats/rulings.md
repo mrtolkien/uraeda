@@ -486,3 +486,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   read as text.
 - **If wrong**: `offers.ts` and `SessionOffers.tsx`.
 - **Where**: task 10, `packages/web/src/SessionOffers.tsx`, `packages/web/src/offers.ts`.
+
+## R29: A drop that commits nothing says so, without naming why
+
+- **Decision**: when the drop's result says its priorities were not committed, the session's end
+  adds "The priorities were not committed: if Now listed it, its entry’s removal waits in
+  specs/PRIORITIES.md." The "Dropped the change …" line names the branch the server kept.
+- **Rationale**: the core's `committed` is false in three cases it does not tell apart: the
+  priorities held the human's own edits (R2), a hook refused the commit, or no entry linked the
+  item, so nothing was removed. One sentence true in all three avoids a wider result for a rare
+  case.
+- **Alternatives considered**: telling the cases apart in the core's `DroppedView`: a binding and
+  server change for a line the commit bar already backs up.
+- **If wrong**: `useDrop` in `packages/web/src/SessionActions.tsx`, and `committed` in
+  `crates/core/src/actions/drop.rs`.
+- **Where**: review of task 10, `packages/web/src/SessionActions.tsx`.
