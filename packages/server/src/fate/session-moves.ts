@@ -8,8 +8,14 @@ import { sources } from "./sources.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { featureDataView, sessionDataView } from "./views.ts";
 
-/** The core's refusal of a taken slug, whose `--slug` hint is the CLI's. */
-const TAKEN = /^refused: (\d{4}-\d{2}-\d{2}-[a-z0-9-]+) exists: choose another slug with --slug$/;
+/**
+ * The core's refusals of a taken name: a record, a branch, or a folder, whose `--slug` hint is the
+ * CLI's, or the worktree's folder. The dated folder is the name, whatever letters its slug holds.
+ */
+const TAKEN = [
+  /^refused: (?:specs\/done\/)?(\d{4}-\d{2}-\d{2}-[^\s/]+?)(?:\.md)? exists: /u,
+  /^refused: cannot create the worktree: \.worktrees\/(\d{4}-\d{2}-\d{2}-[^\s/]+) exists$/u,
+];
 
 /** A session, masked to the fields the client selected. */
 export async function maskedSession(ctx: RepoContext, id: string, select: Array<string>) {
@@ -81,7 +87,8 @@ async function startChange(ctx: RepoContext, text: string, slug?: string) {
     try {
       return await ctx.binding.startChange(ctx.repo, text, [], slug);
     } catch (error) {
-      const taken = TAKEN.exec((error as Error).message);
+      const message = (error as Error).message;
+      const taken = TAKEN.map((pattern) => pattern.exec(message)).find((match) => match !== null);
       if (!taken) {
         throw error;
       }

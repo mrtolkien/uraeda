@@ -253,7 +253,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/server/src/runner/sessions.ts`, `packages/server/src/runner/live-sessions.ts`,
   `packages/server/src/runner/send.ts`.
 
-## R15: A feature's status is its latest session's, and only the latest halts
+## R16: A feature's status is its latest session's, and only the latest halts
 
 - **Decision**: `featureStatuses` takes the folder's latest session's status, and raises it to an
   older session's only when that one works or is blocked by an action to allow. An older session's

@@ -126,6 +126,38 @@ test("a taken slug is refused with its message", async () => {
   expect(server.sessions.cache.session(second)?.folder).toBeNull();
 });
 
+/** The core's other taken-name refusals read the card's words, never the CLI's `--slug` hint. */
+test.each(["a slug with an accent", "a worktree folder"])(
+  "a name taken by %s is refused with the card's message",
+  async (taken) => {
+    const server = await testServer();
+    const first = await chatThatEdited(server);
+    const second = await chatThatEdited(server);
+    const slug = taken === "a worktree folder" ? "login-redirect" : "connexion-réussie";
+    let folder: string;
+    if (taken === "a worktree folder") {
+      const today = ((await toChange(server, first, "other")).data.folder as string).slice(0, 10);
+      folder = `${today}-${slug}`;
+      mkdirSync(join(server.repo, ".worktrees", folder), { recursive: true });
+    } else {
+      folder = (await toChange(server, first, slug)).data.folder as string;
+    }
+
+    server.adapter.script([]);
+    const refused = await mutate(
+      server.app,
+      "session.toChange",
+      { session: second, slug, text: PROPOSAL },
+      FEATURE_FIELDS,
+    );
+
+    expect(refused.error?.message).toBe(
+      `refused: A branch or folder named ${folder} exists: pick another slug`,
+    );
+    expect(server.sessions.cache.session(second)?.folder).toBeNull();
+  },
+);
+
 /** US2 more 2: the card's start waits while the agent works. */
 test("toChange waits while the agent works", async () => {
   const server = await testServer();
