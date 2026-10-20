@@ -501,3 +501,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `useDrop` in `packages/web/src/SessionActions.tsx`, and `committed` in
   `crates/core/src/actions/drop.rs`.
 - **Where**: review of task 10, `packages/web/src/SessionActions.tsx`.
+
+## R30: A second start with the host token waits a minute for the starting server
+
+- **Decision**: `handOff` waits 2 seconds for an answer on a port without a host token, and a minute
+  with one. "a second start during the first's start waits for it" waits for the token file until
+  the first start writes it, or exits, with no deadline but the test's, instead of `expect.poll`'s 1
+  second.
+- **Rationale**: the test failed twice under load, at each of its two timing assumptions. The poll
+  gave the first process 1 second to load its binding and take the port. And the handoff gave the
+  starting server 2 seconds to answer, which `startServer` passes on a loaded machine: a second
+  start then said the port was "used by another program", the follow-up `run-ui` left. The token is
+  written by the data folder's own server as it takes the port, so a port with one is that server's.
+- **Alternatives considered**: no deadline with a token: a token a killed server left, on a port a
+  program then holds without answering, would hang the start. A "starting" answer the second start
+  asks again after: a protocol change for the same result.
+- **If wrong**: `packages/server/src/open-client.ts`.
+- **Where**: `packages/server/src/open-client.ts`, `packages/server/src/__tests__/main.test.ts`.
