@@ -8,7 +8,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } 
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
-import { addFeaturePages } from "./.storybook/featurePages.ts";
+import { addFeaturePages } from "./samples/index.ts";
 import {
   addChange,
   addPlan,

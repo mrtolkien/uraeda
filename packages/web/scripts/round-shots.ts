@@ -1,40 +1,15 @@
 /**
  * The screenshots' views of a round of questions, over the round page's mockup feature
- * (`fixtures/round-mockup/`), its Q1 answered B: the round's opening, its verdict and its context;
+ * (`fixtures/round-mockup/`) that the sample builders' `addRoundMockup` adds, its Q1 answered B: the round's opening, its verdict and its context;
  * Q1 with its diagram; the follow-up Q1.B after it; the settled points, every group open; and, on
  * the phone, the index of the questions.
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
-import { commitOnBranch, git } from "uraeda-binding/test-utils";
+import { ROUND_MOCKUPS } from "../samples/index.ts";
 import { type Each, forget, settle, show, wait } from "./shots.ts";
 
-const root = fileURLToPath(new URL("../../..", import.meta.url));
-const FOLDER = "2026-10-17-round-mockup";
-const ROUND = `/f/${FOLDER}/clarifications-01.md`;
+const ROUND = `/f/${ROUND_MOCKUPS.waiting}/clarifications-01.md`;
 const QUESTION = "When does the next occurrence appear?";
-
-/** A file of the round page's mockup feature. */
-const mockupFile = (name: string) =>
-  readFileSync(join(root, "fixtures/round-mockup", name), "utf8");
-
-/**
- * Adds the round page's mockup feature to `repo`, on its own branch from `main`, its Q1 answered B,
- * which asks its follow-up.
- */
-export function addRoundMockup(repo: string) {
-  git(repo, "branch", FOLDER, "main");
-  commitOnBranch(repo, FOLDER, {
-    // Q1's answer line is the round's first.
-    [`specs/${FOLDER}/clarifications-01.md`]: mockupFile("clarifications-01.md").replace(
-      "**Answer:**\n",
-      "**Answer:** B\n",
-    ),
-    [`specs/${FOLDER}/proposal.md`]: mockupFile("proposal.md"),
-  });
-}
 
 /** Scrolls the page so an element is near its top, below the phone's top bar. */
 async function toTop(page: Page, locator: ReturnType<Page["locator"]>) {

@@ -1,9 +1,13 @@
-// The feature page's features, one per state its stories, browser tests, and screenshots show, each
-// with typed commits dated in UTC, so its stages are timed: built on the fixture repository's
-// `main`, from the recurring tasks' files of `fixtures/repo/`.
+// The sample features Storybook's fixture, the screenshots, and the sandbox build, each "a feature
+// at a step": the feature page's, one per state its stories, browser tests, and screenshots show,
+// each with typed commits dated in UTC, so its stages are timed, the round page's mockups, and the
+// spec page's features. Built on the fixture repository's `main`, from the recurring tasks' files of
+// `fixtures/repo/`.
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  addSpecFeature,
+  commitOnBranch,
   commitsAt,
   type DatedCommit,
   ELEVEN,
@@ -13,7 +17,100 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { recordRun } from "uraeda-server/testing";
-import { FEATURE_PAGES } from "./checkouts.ts";
+
+/** The date of every commit a dated build makes, but the feature page's own. */
+export const DATE = "2026-10-16T09:00:00Z";
+
+/**
+ * Runs `build` with git's author and committer dates set to `DATE`, so its commits are the same at
+ * every run, then restores the dates the environment had.
+ */
+export function dated<T>(build: () => T): T {
+  const names = ["GIT_AUTHOR_DATE", "GIT_COMMITTER_DATE"] as const;
+  const before = names.map((name) => process.env[name]);
+  for (const name of names) {
+    process.env[name] = DATE;
+  }
+  try {
+    return build();
+  } finally {
+    names.forEach((name, index) => {
+      const value = before[index];
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    });
+  }
+}
+
+/**
+ * The feature page's features, by state, which `addFeaturePages` builds: `FeaturePage.stories.tsx`'s,
+ * the browser tests', and the screenshots'.
+ */
+export const FEATURE_PAGES = {
+  /** At implementation, task 7 of 11 current: the agent builds. */
+  working: "2026-10-17-redesign-clarifications",
+  /** Its spec waiting for review. */
+  waiting: "2026-10-17-recurring-reminders",
+  /** Its spec's status unreadable, "aproved": the workflow cannot go on. */
+  blocked: "2026-10-17-due-dates",
+  /** Finished on its branch, its pull request #31 open once `gh` lists it. */
+  pullRequest: "2026-10-17-keyboard-shortcuts",
+  /** Merged by rebase, its build started the day after its plan, its record in place. */
+  done: "2026-10-17-redesign-rounds",
+  /** A change merged by rebase, without a round of questions. */
+  doneChange: "2026-10-17-symlinks",
+} as const;
+
+/**
+ * The round page's mockup features, `RoundPage.stories.tsx`'s and the screenshots', without a
+ * worktree: `Waiting`'s, its Q1 answered B, and `CommentOnly`'s, its Q1 answered with a comment
+ * alone.
+ */
+export const ROUND_MOCKUPS = {
+  commentOnly: "2026-10-17-round-mockup-comment",
+  waiting: "2026-10-17-round-mockup",
+} as const;
+
+/**
+ * The spec page's features, `SpecPage.stories.tsx`'s and the screenshots', built by
+ * `addSpecFeature` without a worktree: its spec waiting for review, and the same spec approved.
+ */
+export const SPEC_PAGES = {
+  approved: "2026-10-17-spec-page-approved",
+  waiting: "2026-10-17-spec-page",
+} as const;
+
+/** A file of the round page's mockup feature, from `fixtures/round-mockup/` (R5). */
+function roundMockupFile(name: string): string {
+  return readFileSync(fixture(`round-mockup/${name}`), "utf8");
+}
+
+/**
+ * Adds a round page's mockup feature, its round in the clarifications redesign's format with its
+ * Q1 answered `answer`, on its own branch, from `main`, without a worktree. Answered B, its Q1 asks
+ * its follow-up.
+ */
+export function addRoundMockup(repo: string, folder: string, answer: string) {
+  git(repo, "branch", folder, "main");
+  // Q1's answer line is the round's first.
+  const round = roundMockupFile("clarifications-01.md").replace(
+    "**Answer:**\n",
+    `**Answer:** ${answer}\n`,
+  );
+  commitOnBranch(repo, folder, {
+    [`specs/${folder}/clarifications-01.md`]: round,
+    [`specs/${folder}/proposal.md`]: roundMockupFile("proposal.md"),
+  });
+}
+
+/** Adds the spec page's features to `repo`: its spec waiting for review, and approved. */
+export function addSpecPages(repo: string) {
+  addSpecFeature(repo, { folder: SPEC_PAGES.waiting });
+  addSpecFeature(repo, { folder: SPEC_PAGES.approved, status: "approved" });
+}
 
 /** The pull request `gh` lists for `FEATURE_PAGES.pullRequest`. */
 const PULL_REQUEST = {

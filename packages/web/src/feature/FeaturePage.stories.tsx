@@ -1,5 +1,5 @@
 // The page of a feature or a change, as the app draws it, over the feature page's features that
-// `.storybook/featurePages.ts` builds, one per state: their data comes from Uraeda's server in
+// `samples/features.ts` builds, one per state: their data comes from Uraeda's server in
 // Storybook, through fate, their stages timed from their commits, in the browser's time zone.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { FEATURE_PAGES } from "../../.storybook/checkouts.ts";

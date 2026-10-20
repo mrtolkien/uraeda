@@ -1,5 +1,5 @@
 // The session's composer and its recommended message, as a feature's session draws it, over the
-// feature page's features that `.storybook/featurePages.ts` builds: the recommendation comes from
+// feature page's features that `samples/features.ts` builds: the recommendation comes from
 // Uraeda's server in Storybook, through fate.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";

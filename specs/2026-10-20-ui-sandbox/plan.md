@@ -386,7 +386,9 @@ share.
 **Files:**
 
 - Create: `packages/web/samples/features.ts`, `packages/web/samples/index.ts`
-- Modify: `packages/web/.storybook/fixture.ts`, `packages/web/scripts/screenshots.ts`
+- Modify: `packages/web/.storybook/fixture.ts`, `packages/web/.storybook/checkouts.ts`,
+  `packages/web/scripts/screenshots.ts`, `round-shots.ts`, `spec-shots.ts`, `feature-shots.ts`,
+  `packages/web/vite.browser.config.ts`
 - Delete: `packages/web/.storybook/featurePages.ts` (moved)
 - Test: `packages/web/samples/__tests__/storybook-states.test.ts`
 
@@ -395,43 +397,50 @@ share.
 - Produces, from `packages/web/samples/index.ts`: `addFeaturePages(repo)`,
   `recordFeatureRuns(dataDir, repo)`, `listPullRequest()`, `addRoundMockup(repo, folder, answer)`,
   `addSpecPages(repo)`, `DATE = "2026-10-16T09:00:00Z"`, and `dated<T>(build: () => T): T`, which
-  runs `build` with the git date variables set and restores them.
+  runs `build` with the git date variables set and restores them. Also the folders they build,
+  `FEATURE_PAGES`, `ROUND_MOCKUPS`, and `SPEC_PAGES`, which `.storybook/checkouts.ts` re-exports for
+  the stories (R9).
 
-- [ ] **Step 1: Write the test of today's states**
+- [x] **Step 1: Write the test of today's states**
 
 ```ts
-test("Storybook's fixture holds the same features at the same steps", () => {
+test("Storybook's fixture holds the same features at the same steps", async () => {
+  listPullRequest();
   const { repo } = storybookFixture();
+  await refreshPullRequests(repo);
 
-  expect(stepsOf(repo)).toEqual(STORYBOOK_STEPS);
+  expect(await stepsOf(repo)).toEqual(STORYBOOK_STEPS);
 });
 ```
 
 `STORYBOOK_STEPS` is the map of folder to step read from today's fixture, before the move, written
-into the test. `stepsOf` reads the binding's workspace view.
+into the test. `stepsOf` reads the binding's workspace view. The fake `gh` Storybook's server is
+given, read as the server reads it, sets the finished feature's step to `pull-request`.
 
 The break it catches: a builder lost or changed in the move.
 
-- [ ] **Step 2: Run it on today's code**
+- [x] **Step 2: Run it on today's code**
 
 - Run: `vp test packages/web/samples/__tests__/storybook-states.test.ts`
 - Expected: PASS before the move.
 
-- [ ] **Step 3: Move the builders**
+- [x] **Step 3: Move the builders**
 
 Move `featurePages.ts`, and the round mockup and spec page builders of `fixture.ts` and
 `screenshots.ts`, into `samples/`, merging the two variants of each into one. `fixture.ts` and
 `screenshots.ts` call them, and keep their own preview-state features.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
 - Run: `vp run ready`, and `vp run --filter uraeda-web screenshots 2026-10-20-ui-sandbox home`
-- Expected: PASS, the same steps, and the same home screenshot.
+- Expected: PASS, the same steps, and the same home screenshot, but for the name of its temporary
+  repository.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web/samples packages/web/.storybook packages/web/scripts/screenshots.ts
+git add packages/web/samples packages/web/.storybook packages/web/scripts \
+  packages/web/vite.browser.config.ts packages/web/src
 git commit -m "refactor(ui-sandbox): one home for the sample builders"
 ```
 

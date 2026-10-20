@@ -94,3 +94,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   file every Storybook loads.
 - **If wrong**: a test of the sandbox's own page, at the top, replaces the helper, in task 6.
 - **Where**: tasks 1, 4, and 6.
+
+## R9: The sample features' folder names move with their builders
+
+- **Decision**: `FEATURE_PAGES`, `ROUND_MOCKUPS`, and `SPEC_PAGES` move from
+  `.storybook/checkouts.ts` to `samples/features.ts`, exported by `samples/index.ts`; `checkouts.ts`
+  keeps the story embeds' `CHECKOUTS` and re-exports the others for the stories. The round page's
+  and spec page's screenshot scripts read the folders from there too.
+- **Rationale**: the builders name the folders they build: left in `.storybook/`, the samples, which
+  the sandbox also builds, would depend on Storybook's files.
+- **Alternatives considered**: the builders importing the names from `.storybook/checkouts.ts`: the
+  dependency backwards. Every story importing from `samples/`: eight files changed for no behaviour.
+- **If wrong**: the stories import the names from `samples/index.ts`, and the re-export goes.
+- **Where**: task 2.
