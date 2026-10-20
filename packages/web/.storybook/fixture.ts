@@ -20,6 +20,7 @@ import {
   addFeaturePages,
   addRoundMockup,
   addSpecPages,
+  DATE,
   dated,
   listPullRequest,
   recordFeatureRuns,
@@ -104,7 +105,8 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
 export function fixtureServer(): Array<Plugin> {
   const { configDir, dataDir, repo } = storybookFixture();
   listPullRequest();
-  process.env.URA_TODAY = "2026-10-16";
+  // "Today" is the day of the fixture's commits.
+  process.env.URA_TODAY = DATE.slice(0, 10);
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = dataDir;
   process.env.URAEDA_CONFIG_DIR = configDir;

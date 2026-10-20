@@ -23,7 +23,7 @@ import {
 import { join, relative } from "node:path";
 import { addRepository } from "uraeda-binding";
 import { git } from "uraeda-binding/test-utils";
-import { buildProjects } from "../samples/index.ts";
+import { buildProjects, DATE } from "../samples/index.ts";
 import { seedSessions } from "./sessions.ts";
 
 /** What a start prints when the stamp is not the builders' version. */
@@ -31,7 +31,7 @@ export const STALE_WARNING =
   "The sample projects were built by older code: run with --reset to rebuild them.";
 
 /** "Today" in the sandbox, the day the sample projects' commits are dated. */
-export const SANDBOX_TODAY = "2026-10-16";
+export const SANDBOX_TODAY = DATE.slice(0, 10);
 
 /** The sample projects' folders, by the name the server lists each one by. */
 export type Projects = { broken: string; empty: string; sample: string };
