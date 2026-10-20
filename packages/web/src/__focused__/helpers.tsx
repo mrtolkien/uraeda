@@ -14,7 +14,7 @@ import {
   type RequestFixtureOptions,
   type SessionRecord,
 } from "uraeda-server/request-fixture";
-import { afterEach, beforeEach } from "vite-plus/test";
+import { afterEach, beforeEach, vi } from "vite-plus/test";
 import type { DraftImage } from "../attach/chatImages.ts";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
@@ -44,7 +44,7 @@ const fixtures: Array<RequestFixture> = [];
 const pending = new Set<Promise<unknown>>();
 
 beforeEach(() => {
-  (globalThis as { EventSource?: unknown }).EventSource = SilentEventSource;
+  vi.stubGlobal("EventSource", SilentEventSource);
 });
 
 afterEach(async () => {
@@ -56,6 +56,7 @@ afterEach(async () => {
     await new Promise((resolve) => setImmediate(resolve));
     await Promise.allSettled(pending);
   } while (pending.size > 0);
+  vi.unstubAllGlobals();
   for (const endpoint of fixtures.splice(0)) {
     endpoint.close();
   }
