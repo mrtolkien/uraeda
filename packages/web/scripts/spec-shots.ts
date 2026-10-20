@@ -1,7 +1,8 @@
 /**
  * The screenshots' views of the spec page, over the spec page's features that the sample builders'
- * `addSpecPages` builds from `fixtures/spec-page/`: waiting for review, its opening; with every fold open, its decisions,
- * a story, and how it is built; approved; and a decision's own page on the feature's branch.
+ * `addSpecPages` builds from `fixtures/spec-page/`: waiting for review, its opening; with every
+ * fold open, its decisions, a story, and how it is built; approved; and a decision's own page on
+ * the feature's branch.
  */
 import type { Page } from "playwright";
 import { SPEC_PAGES } from "../samples/index.ts";

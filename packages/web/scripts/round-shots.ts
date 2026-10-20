@@ -1,8 +1,8 @@
 /**
  * The screenshots' views of a round of questions, over the round page's mockup feature
- * (`fixtures/round-mockup/`) that the sample builders' `addRoundMockup` adds, its Q1 answered B: the round's opening, its verdict and its context;
- * Q1 with its diagram; the follow-up Q1.B after it; the settled points, every group open; and, on
- * the phone, the index of the questions.
+ * (`fixtures/round-mockup/`) that the sample builders' `addRoundMockup` adds, its Q1 answered B:
+ * the round's opening, its verdict and its context; Q1 with its diagram; the follow-up Q1.B after
+ * it; the settled points, every group open; and, on the phone, the index of the questions.
  */
 import type { Page } from "playwright";
 import { ROUND_MOCKUPS } from "../samples/index.ts";

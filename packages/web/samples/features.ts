@@ -1,8 +1,8 @@
 // The sample features Storybook's fixture, the screenshots, and the sandbox build, each "a feature
-// at a step": the feature page's, one per state its stories, browser tests, and screenshots show,
-// each with typed commits dated in UTC, so its stages are timed, the round page's mockups, and the
-// spec page's features. Built on the fixture repository's `main`, from the recurring tasks' files of
-// `fixtures/repo/`.
+// at a step", on the fixture repository's `main`: the feature page's, one per state its stories,
+// browser tests, and screenshots show, from the recurring tasks' files of `fixtures/repo/`, each
+// with typed commits dated in UTC, so its stages are timed; the round page's mockups, from
+// `fixtures/round-mockup/`; and the spec page's features, from `fixtures/spec-page/`.
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -14,6 +14,7 @@ import {
   fixture,
   git,
   planText,
+  SPEC_FEATURE,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { recordRun } from "uraeda-server/testing";
@@ -46,8 +47,8 @@ export function dated<T>(build: () => T): T {
 }
 
 /**
- * The feature page's features, by state, which `addFeaturePages` builds: `FeaturePage.stories.tsx`'s,
- * the browser tests', and the screenshots'.
+ * The feature page's features, by state, which `addFeaturePages` builds:
+ * `FeaturePage.stories.tsx`'s, the browser tests', and the screenshots'.
  */
 export const FEATURE_PAGES = {
   /** At implementation, task 7 of 11 current: the agent builds. */
@@ -80,7 +81,7 @@ export const ROUND_MOCKUPS = {
  */
 export const SPEC_PAGES = {
   approved: "2026-10-17-spec-page-approved",
-  waiting: "2026-10-17-spec-page",
+  waiting: SPEC_FEATURE,
 } as const;
 
 /** A file of the round page's mockup feature, from `fixtures/round-mockup/` (R5). */
