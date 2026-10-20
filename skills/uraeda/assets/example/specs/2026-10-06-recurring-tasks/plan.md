@@ -10,8 +10,8 @@ spec-revision: 2
 > Approved on 2026-10-10.
 >
 > - Five inputs the spec does not mention get a test each: see [review focus](#review-focus).
-> - Beyond the spec: a new development dependency, `fake-indexeddb`, so integration tests run the
->   real store in memory. The project's tests have no IndexedDB today.
+> - Beyond the spec: a new development dependency, `fake-indexeddb`, so focused tests run the real
+>   store in memory. The project's tests have no IndexedDB today.
 > - Calendar-day due dates and their upgrade come first, so every later task is built and tested on
 >   them.
 
@@ -159,7 +159,7 @@ From [the spec](spec.md):
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `src/lib/dates.ts` and `CalendarDay`                    | The one place where due dates meet `Date`, as the due dates decision requires             | date-fns calls spread in components would convert due dates everywhere          |
 | `RepeatPattern` and `RepeatRule`, shared by every entry | One format for the menu, the screen, and the parser, from the [data model](data-model.md) | Three formats would need three versions of `nextDueDate`                        |
-| `renderApp` and its helpers, in `tests/helpers/`        | Each integration test stays a few lines long                                              | Setting up the database, clock, and timezone in each test buries what it checks |
+| `renderApp` and its helpers, in `tests/helpers/`        | Each focused test stays a few lines long                                                  | Setting up the database, clock, and timezone in each test buries what it checks |
 | The failing store, in `renderApp`                       | Tests "Could not save" through the real app                                               | Mocking the store in one test would test the mock, not the error path           |
 
 ## Test map

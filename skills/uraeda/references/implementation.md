@@ -113,9 +113,12 @@ again from the repository.
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
      a [change](change.md#investigating) does for a bug. Never change a test or an expected value to
      make a run pass. Removing, skipping, or loosening an existing test, or raising a timeout, takes
-     a ruling. A test that conflicts with the human's request is changed, and the conflict is
-     reported; one that fails against the spec with no such request is a conflict to report, never
-     an assertion to weaken.
+     a ruling. A test that fails because of a change the human requested is changed when the change
+     is safe and reversible, and the same response says which test and why; otherwise the work
+     stops, and the response says what conflicts and what each way out costs. Only a case where the
+     spec, the test, and a requested behaviour cannot all hold is a conflict: the work stops, the
+     report says what conflicts and what each way out costs, in the commit body, or in a new round
+     of questions when the human must decide, and the assertion is never weakened.
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in
@@ -387,7 +390,8 @@ the bot wrote is part of what they asked.
 **Nothing is written on GitHub**: the agent does not reply to a comment or resolve a thread. Its
 last message lists each comment with what it did, one line each, and the commits say the rest.
 
-**The pass ends** when the pull request is ready for review again: the branch pushed, and the pull
+**The pass ends** when the pull request is ready for review again: the project's complete validation
+run after the pass's last commit (see [each task](#each-task)), the branch pushed, and the pull
 request not a draft, with `gh pr ready`. A new round of questions ends it earlier, at that round's
 gate. A file waiting for the human, `status: awaiting-human`, ends it at that gate too, once the
 comments are handled: the pull request stays a draft, and nothing is finished before the human

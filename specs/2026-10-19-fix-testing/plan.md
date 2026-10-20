@@ -681,6 +681,11 @@ Task 6 evidence (2026-10-20, shared 32-thread machine, load average 39 to 92):
   test, rulings for removed, skipped, or loosened tests and changed timeouts, and their separate
   listing in the final review and the pull request. A task's validation is the fast check naming
   what it defers; the complete validation runs before the push and at the final review.
+- Review fixes (Task 6): the human-request rule now carries the stop for an unsafe or irreversible
+  change and what each way out costs; one spec-conflict rule in `code-quality.md` and
+  `implementation.md`; the template's deferral line applies only with a fast check; the complete
+  validation is linked where the comment pass ends and in `change.md`; the example says "focused
+  tests".
 - Constitutions: the guidance says a project's stricter constitution stays in force (R3). No
   constitution file, including the template, is edited. `README.md` lists `vp run fast`.
 - Checks: `ura check specs` and `ura check skills/uraeda/assets/example/specs` report no problems;

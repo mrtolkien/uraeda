@@ -105,16 +105,20 @@ and the risky ones are shown to catch it.
   task marked **Risky**, makes that break in the code once the test passes, sees the test fail,
   reverts it, and reports the failure it saw in the task's commit body. For a low-risk check, the
   reading of the test against its named break is the proof, and the review counts it.
-- **A spec conflict stops the work**: a test that fails against the spec, with no human request
-  behind the change, is fixed within the task's scope or reported as a conflict, with what each way
-  out costs. The assertion is never weakened to pass.
+- **A spec conflict stops the work**: a test that fails because the code is wrong gets the code
+  fixed within the task's scope. A conflict is only the case where the spec, the test, and a
+  requested behaviour cannot all hold: the work stops, and the report says what conflicts and what
+  each way out costs, in the commit body, or in a new round of questions when the human must decide.
+  The assertion is never weakened to pass.
 - **Waits**: unit tests never sleep for a fixed time or assert how long something took. They wait
   for the condition, or set the clock. Benchmarks of a spec's success criteria are not unit tests.
 - **Existing tests**: removing, skipping, or loosening one, or raising a timeout, takes a ruling,
   saying what it checked, which check owns it now, and why that no longer holds. A test is never
   loosened to pass. The final review and the pull request list these changes apart from the rest.
-- **A human's request outranks a test**: when a requested change breaks a test, the test changes,
-  and the response says which one and why.
+- **A human's request outranks a test**: when a requested change breaks a test and the change is
+  safe and reversible, the test changes, and the same response says which test and why. When it is
+  not safe or not reversible, the work stops, and the response says what conflicts and what each way
+  out costs.
 - **The reviews** count a test that asserts nothing, or nothing the spec asks, as an important
   finding.
 

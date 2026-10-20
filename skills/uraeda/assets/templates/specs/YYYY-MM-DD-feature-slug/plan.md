@@ -148,7 +148,8 @@ to the implementer.]
 
 - Run: `[command]`
 - Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets],
-  with the checks it defers to the complete validation named.
+  [with the checks it defers to the complete validation named, when the project has a fast check:
+  the plan names only the expected deferrals, and the commit body names the real ones].
 
 - [ ] **Step 6: Commit**
 

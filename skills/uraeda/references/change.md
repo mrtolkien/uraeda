@@ -259,6 +259,9 @@ open its draft pull request, and run the finish step, as
 
 ## The pull request
 
+Push only after the project's complete validation, run after the last commit, as
+[every push](implementation.md#each-task) requires.
+
 Run the [finish](finish.md) step: the folder becomes its record, `kind: change`, and the finishing
 commit removes the change's entry from `PRIORITIES.md`. The pull request's description is written
 when it is marked ready, following [Coming back to the human](../SKILL.md#coming-back-to-the-human),
