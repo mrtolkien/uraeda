@@ -357,6 +357,24 @@ test("a refused clipboard shows the text to copy by hand", async () => {
   await expect.element(page.getByText(/Element: button “Save”/)).toBeVisible();
 });
 
+test("the text to copy by hand is reached by Tab, and selected whole", async () => {
+  await sandboxPage({ clipboard: "refused" });
+  render(<Button label="Save" />);
+  const toggle = page.getByRole("button", { name: "Pick an element" });
+  await userEvent.click(toggle);
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+  const text = page.getByRole("textbox", { name: "The pick's text" });
+  await expect.element(text).toBeVisible();
+
+  (toggle.element() as HTMLElement).focus();
+  await userEvent.tab();
+
+  await expect.element(text).toHaveFocus();
+  const selected = window.getSelection()?.toString() ?? "";
+  expect(selected).toMatch(/^Sandbox pick: .+\nElement: button “Save”\n/);
+  expect(selected).toMatch(/\nViewport: .+$/);
+});
+
 test("a missing clipboard shows the text to copy by hand", async () => {
   await sandboxPage();
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });

@@ -6,6 +6,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
 import {
+  borderVars,
   colorVars,
   radiusVars,
   shadowVars,
@@ -23,17 +24,27 @@ const styles = stylex.create({
     display: "flex",
     flexWrap: "wrap",
     gap: spacingVars["--spacing-2"],
+    // Both insets bound the bar by the viewport, gutters included, on a phone; its own width keeps
+    // it at its content's, in the start corner.
+    insetInlineEnd: spacingVars["--spacing-3"],
     insetInlineStart: spacingVars["--spacing-3"],
     maxWidth: "var(--size-form)",
     padding: spacingVars["--spacing-2"],
     position: "fixed",
+    width: "fit-content",
     // Above the app's own dialogs and popovers.
     zIndex: 2_147_483_647,
   },
+  // A framed box, so its clipped last line reads as more to scroll to.
   copy: {
+    borderColor: colorVars["--color-border"],
+    borderRadius: radiusVars["--radius-element"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
     margin: 0,
     maxHeight: "var(--size-message-image)",
     overflow: "auto",
+    padding: spacingVars["--spacing-1"],
     userSelect: "all",
     whiteSpace: "pre-wrap",
     width: "100%",
@@ -87,7 +98,18 @@ export function SandboxBar({
       />
       <div role="status">{line !== undefined && <Text size="sm">{line}</Text>}</div>
       {!picking && last.kind === "failed" && (
-        <pre {...stylex.props(styles.copy)}>
+        // Reached by Tab, and selected whole as it takes focus, ready to copy with the keyboard.
+        <pre
+          aria-label="The pick's text"
+          aria-multiline
+          aria-readonly
+          onFocus={(event) =>
+            event.currentTarget.ownerDocument.getSelection()?.selectAllChildren(event.currentTarget)
+          }
+          role="textbox"
+          tabIndex={0}
+          {...stylex.props(styles.copy)}
+        >
           <Text size="sm">{last.text}</Text>
         </pre>
       )}
