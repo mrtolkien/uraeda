@@ -21,12 +21,17 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
 /**
  * A session's status, from the first rule that matches: a running or queued turn, a blocked action
  * not allowed or a step that waits on the human, a latest turn that failed, was stopped, or ended
- * while the step still waits on the agent, a latest turn that ended after the human last
- * saw the session, and otherwise idle.
+ * while the step still waits on the agent, in its folder's latest session, a latest turn that
+ * ended after the human last saw the session, and otherwise idle.
  */
 export function sessionStatus(input: {
   blocked: boolean;
   latest?: Pick<TurnRow, "endedAt" | "kind" | "state">;
+  /**
+   * Whether the session is its change's or feature's latest: an older one's run halted nothing, as
+   * the folder's runs go to the latest.
+   */
+  latestSession?: boolean;
   queued: boolean;
   seenAt: string | null;
   /** The feature's step: past its last task without `gh`, a run that ended there halted nothing. */
@@ -34,7 +39,8 @@ export function sessionStatus(input: {
   waitsOnAgent?: boolean;
   waitsOnHuman: boolean;
 }): { label: string; reason?: StatusReason; status: SessionStatus } {
-  const { blocked, latest, queued, seenAt, stepName, waitsOnAgent = false, waitsOnHuman } = input;
+  const { blocked, latest, latestSession = true, queued, seenAt, stepName, waitsOnHuman } = input;
+  const waitsOnAgent = latestSession && input.waitsOnAgent === true;
   if (queued || latest?.state === "running" || latest?.state === "queued") {
     return { label: "Working", status: "working" };
   }

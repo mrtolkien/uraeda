@@ -252,3 +252,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: review of tasks 5 and 6, `packages/server/src/fate/session-moves.ts`,
   `packages/server/src/runner/sessions.ts`, `packages/server/src/runner/live-sessions.ts`,
   `packages/server/src/runner/send.ts`.
+
+## R15: A feature's status is its latest session's, and only the latest halts
+
+- **Decision**: `featureStatuses` takes the folder's latest session's status, and raises it to an
+  older session's only when that one works or is blocked by an action to allow. An older session's
+  failed, stopped, halted, or unread state stays on its own row. A run that ended while the step
+  still waits on the agent reads "Needs attention" (halted) in the latest session only:
+  `sessionStatus` takes `latestSession`, false for an older session of the folder, which then reads
+  idle. The test "a feature's status is its most urgent session's" becomes "a feature's status is
+  its latest session's, raised by an older one blocked", its case unchanged.
+- **Rationale**: the folder's runs go to its latest session (US5). With the most urgent status, an
+  older session's stale failure or halted run made the feature "Needs attention", and notified,
+  after every fresh run that started a new session, and an older session read halted because the
+  step waits on the agent while another session works on it. A blocked action and a working agent
+  still matter whichever session holds them.
+- **Alternatives considered**: the most urgent of every session (task 6's text): flags features the
+  human already moved on from.
+- **If wrong**: the reduce in `featureStatuses` (`fate/sessions.ts`), and `latestSession` in
+  `sessionStatus` (`runner/status.ts`).
+- **Where**: review of task 6, `packages/server/src/fate/sessions.ts`,
+  `packages/server/src/runner/status.ts`.

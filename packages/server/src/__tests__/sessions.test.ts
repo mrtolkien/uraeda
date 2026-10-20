@@ -1227,26 +1227,33 @@ async function folderSession(server: Server, folder: string) {
   });
 }
 
-/** Adds a turn to a session that ends done, with its token counts when given. */
+/**
+ * Adds a turn to a session that ends done, or as `state`, or still runs, with its token counts when
+ * given.
+ */
 function doneTurn(
   server: Server,
   session: string,
   {
     denied = false,
+    kind = "chat",
+    state = "done",
     tokens,
   }: {
     denied?: boolean;
+    kind?: "chat" | "workflow";
+    state?: "done" | "failed" | "running";
     tokens?: Parameters<Server["sessions"]["cache"]["addTurnTokens"]>[1];
   } = {},
 ) {
   const { cache } = server.sessions;
   const turn = cache.addTurn({
     allowed: null,
-    kind: "chat",
+    kind,
     sessionId: session,
     state: "running",
-    step: null,
-    trigger: null,
+    step: kind === "workflow" ? "plan" : null,
+    trigger: kind === "workflow" ? "manual" : null,
   });
   if (denied) {
     cache.appendItem(turn, {
@@ -1260,7 +1267,9 @@ function doneTurn(
   if (tokens) {
     cache.addTurnTokens(turn, tokens);
   }
-  cache.endTurn(turn, { state: "done" });
+  if (state !== "running") {
+    cache.endTurn(turn, { state });
+  }
   return turn;
 }
 
@@ -1314,7 +1323,7 @@ test("a feature's session is never done, however read", async () => {
   expect(await rowOf(server, session.id)).toMatchObject({ done: false });
 });
 
-test("a feature's status is its most urgent session's", async () => {
+test("a feature's status is its latest session's, raised by an older one blocked", async () => {
   const server = await testServer();
   const older = await folderSession(server, AGENT);
   doneTurn(server, older.id, { denied: true });
@@ -1327,6 +1336,38 @@ test("a feature's status is its most urgent session's", async () => {
   expect(
     (needsYou!.rows as Array<Record<string, string>>).find((row) => row.folder === AGENT),
   ).toMatchObject({ reason: "blocked" });
+});
+
+/** The feature's row in what needs the human, if any. */
+async function needsYouRow(server: Server, folder: string) {
+  const [needsYou] = await byIdAt(server.app, null, "NeedsYouList", ["all"], ["rows"]);
+  return (needsYou!.rows as Array<Record<string, string>>).find((row) => row.folder === folder);
+}
+
+/** An older session's run that ended before a gate does not halt the feature its latest works on. */
+test("an older session's halted run does not hold its feature", async () => {
+  const server = await testServer();
+  const older = await folderSession(server, AGENT);
+  doneTurn(server, older.id, { kind: "workflow" });
+  await mutate(server.app, "session.seen", { session: older.id }, ["id"]);
+  const latest = await folderSession(server, AGENT);
+  doneTurn(server, latest.id, { state: "running" });
+
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+  expect(await rowOf(server, older.id)).toMatchObject({ status: "idle" });
+  expect(await rowOf(server, latest.id)).toMatchObject({ status: "working" });
+});
+
+test("an older session's failed run does not hold its feature", async () => {
+  const server = await testServer();
+  const older = await folderSession(server, AGENT);
+  doneTurn(server, older.id, { state: "failed" });
+  const latest = await folderSession(server, AGENT);
+  doneTurn(server, latest.id);
+  await mutate(server.app, "session.seen", { session: latest.id }, ["id"]);
+
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+  expect(await rowOf(server, latest.id)).toMatchObject({ status: "idle" });
 });
 
 test("a feature lists its sessions, latest first", async () => {
