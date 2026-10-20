@@ -55,3 +55,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   standalone measurements separate from concurrent baseline timings.
 - **Where**: Before Task 1. Main already contains the stack-test repair, which is integrated before
   the pilot. The temporary raw log is diagnostic only; these facts remain durable in git.
+
+## R5: Integrate the completed keyboard, transcript, and inbox changes before the pilot
+
+- **Decision**: Rebased onto main through `85b4f233`. Preserve Ctrl+Enter submission, bounded
+  transcript mounting, shared Prose rendering, and the updated rule against noisy inbox notes.
+- **Rationale**: These changes were approved and merged while planning. Their contract counts and
+  structural lint checks protect requested behavior, consistent with the testing spec's revised
+  assertion rule.
+- **Alternatives considered**: Deferring integration until final review, which would build the
+  Composer pilot against obsolete keyboard behavior and leave the known baseline stack failure in
+  place.
+- **If wrong**: Resolve a specific integration defect against the current main behavior, never
+  restore the old Enter-to-send rule or delete the new bounded-mount checks.
+- **Where**: Tasks 1, 2, 5, 6, and 7. The plan's rule map includes the new UI guarantees.
