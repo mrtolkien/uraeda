@@ -35,6 +35,7 @@ import { takeChanges } from "./change-shots.ts";
 import { takeFeaturePage } from "./feature-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
+import { takeMergeChats } from "./merge-chats-shots.ts";
 import { takeRound } from "./round-shots.ts";
 import { type Serve, takeSettings } from "./settings-shots.ts";
 import { takeSpecPage } from "./spec-shots.ts";
@@ -143,6 +144,7 @@ async function main() {
     await takeImages(shooter(shots, out, views), shots[0]!.page, adapter, repo, `${url}${at}`);
     await takeTextInputs(shooter(shots, out, views));
     await takeChanges(shooter(shots, out, views), shots[0]!.page, adapter, repo);
+    await takeMergeChats(shooter(shots, out, views), shots[0]!.page, adapter);
     await takeStories(shooter(shots, out, views));
     // `settings` names every view of the settings page. Its second server reads `env` with its
     // first request, so `env` stays in the environment until it is closed.
