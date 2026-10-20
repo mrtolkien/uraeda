@@ -1,4 +1,4 @@
-// The sidebar, in the app's shell (`specs/2026-10-20-merge-chats/spec.md`): the work that needs you
+// The sidebar, in the app's shell (`specs/done/2026-10-20-merge-chats.md`): the work that needs you
 // first, then the inbox, the priorities, and one Sessions section, oldest started first, where a
 // session, a change, and a feature share one card: one line of its icon, name, status, and "…", its
 // icon telling its kind. A second line shows only while there is a task's progress or lines changed.

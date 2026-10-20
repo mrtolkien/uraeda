@@ -7,7 +7,6 @@
 > Features for v1.0.0
 
 - [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
-- [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
 - [Layout and look and feel: the information architecture first, then 3 to 5 prototyped directions to pick from](/specs/2026-10-20-layout-look/proposal.md)
 
 - Empty inbox

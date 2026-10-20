@@ -41,10 +41,10 @@ One live process per session lets the human chat with a working agent, and keeps
 ([keeping a conversation going](../done/2026-10-13-chat-in-the-web-ui.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)).
 A session is one concept whatever workflow surrounds it, and a feature's work spans several, each
 with its own page
-([the session moves up](../2026-10-20-merge-chats/clarifications-01.md#q3-does-the-chats-conversation-become-the-changes-session),
-[several sessions](../2026-10-20-merge-chats/spec.md#us5-several-sessions-for-a-change-or-a-feature-p2)).
-The agent offers the move, and the human accepts it in one click, so nothing starts without them
-([who moves a session up](../2026-10-20-merge-chats/clarifications-01.md#q1-who-may-move-a-chat-up-to-a-change-or-a-change-up-to-a-feature)).
+([the session moves up](../done/2026-10-20-merge-chats.md#q3-does-the-chats-conversation-become-the-changes-session),
+[several sessions](../done/2026-10-20-merge-chats.md)). The agent offers the move, and the human
+accepts it in one click, so nothing starts without them
+([who moves a session up](../done/2026-10-20-merge-chats.md#q1-who-may-move-a-chat-up-to-a-change-or-a-change-up-to-a-feature)).
 
 ## Alternatives considered
 
