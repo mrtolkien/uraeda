@@ -1,12 +1,277 @@
 ---
-status: approved
-revision: 1
-clarifications: 1
+status: awaiting-human
+revision: 2
+clarifications: 2
 risk-tier: high
 plan-review: false
 ---
 
 # Spec: Fix testing
+
+> [!IMPORTANT]
+>
+> Spec to review, about 10 minutes.
+>
+> - You approve retaining useful focused tests, repairing costly boundaries, and keeping a few
+>   whole-app journeys alongside a deliberately partial fast check.
+> - Since approval: no blanket replacement or ban on exact values. Human text, protocol values,
+>   security bounds, and required counts remain testable.
+> - Changed: Toolchain. Fast checks affected focused and boundary behavior; it names broader
+>   journeys and browser checks deferred to ready.
+> - Speed is unproven: Composer and core/binding pilots come first. The one-minute local and
+>   five-minute CI targets remain requirements.
+> - Coverage diagnoses lost protection, without a percentage gate. Each deletion needs evidence
+>   about behavior, beyond an old-file mapping.
+> - Main keeps changing: integrate it regularly and before the pull request, preserving newly added
+>   behavior and tests.
+> - Risk remains high; the plan does not wait for review. Constitution VI already contains the
+>   approved amendment; no further amendment is needed.
+
+Uraeda's tests should catch meaningful regressions quickly and survive changes that preserve
+behavior. The discarded all-flow rebuild lost useful protection while retaining expensive whole-app
+imports. This revision repairs test boundaries and setup, keeps valuable tests, and separates local
+feedback from complete delivery checks. See the [proposal](proposal.md), [review](discovery-02.md),
+and [answered round 02](clarifications-02.md).
+
+## Decisions
+
+- **Changed: [Toolchain](../decisions/toolchain.md)**. Fast checks affected focused tests and
+  boundary checks, explicitly deferring broader application journeys and browser checks to ready.
+
+Relied on:
+
+| Decision                                                                                                                 | What it means for this spec                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| [Stack](../decisions/stack.md)                                                                                           | Workflow logic stays in Rust; binding contracts supplement core tests rather than copying their complete case matrix.         |
+| [Git](../decisions/git.md) and [repositories](../decisions/repositories.md)                                              | Real git checks protect work, hooks, committed state, and repository isolation, including the current rules for inbox writes. |
+| [Sign-in](../decisions/sign-in.md), [settings](../decisions/settings.md), and [attachments](../decisions/attachments.md) | Security boundaries, refusal side effects, and human-owned data remain protected.                                             |
+| [UI checks](../decisions/ui-checks.md) and [preview](../decisions/preview.md)                                            | Ready keeps the required page matrix and Storybook build; stories do not become tests.                                        |
+| [Agents](../decisions/agents.md) and [benchmarks](../decisions/benchmarks.md)                                            | Ordinary tests use a fake adapter and never start chargeable benchmark runs.                                                  |
+| [Code quality](../decisions/code-quality.md)                                                                             | Existing limits and isolation hold; controlled clocks replace elapsed-time dependencies in unit tests.                        |
+
+## User stories
+
+### US1: Keep useful protection at affordable boundaries (P1)
+
+You run ready and get focused behavioral checks plus a small set of complete application journeys.
+Existing tests remain when they provide distinct protection; duplication and incidental expectations
+are repaired or removed with evidence.
+
+Key scenarios:
+
+1. **Given** a home heading changes from "Needs you" to "Waiting on you", **When** validation runs,
+   **Then** unchanged feature actions still pass.
+2. **Given** settings contain comments inside a multiline host array, **When** a host is removed,
+   **Then** remaining comments and unrelated bytes are preserved.
+3. **Given** a feature at a human gate, **When** its action is opened and answers submitted,
+   **Then** one commit records them and reload shows the resulting step.
+
+More scenarios:
+
+1. **Given** a merged revision and a squash-merged revision, **When** their previous reviews are
+   read, **Then** the merged revision quotes its previous review and the squash-merged revision has
+   none.
+2. **Given** a preview frame, **When** another window sends a pick message, **Then** no comment is
+   created; a trusted pick still persists.
+
+### US2: Get fast feedback with an explicit limit (P1)
+
+After a task, you run `vp run fast` for formatting, lint, types, affected focused tests, and
+affected boundary checks. Its output names selected checks and broader checks deferred to ready;
+success does not mean the complete affected application passed.
+
+Key scenarios:
+
+1. **Given** only `Composer.tsx` changes, **When** fast runs, **Then** it checks related focused UI
+   behavior without selecting every page through App or running Rust tests.
+2. **Given** core Rust changes, **When** fast runs, **Then** affected Rust tests and real binding
+   contract checks run; broader binding-loading journeys are explicitly deferred.
+3. **Given** fast passes, **When** the branch is ready to push, **Then** ready runs all required
+   checks and any failure is resolved before pushing.
+
+More scenarios:
+
+1. **Given** a declaration, fixture, skill, root configuration, or deleted source changes, **When**
+   fast selects checks, **Then** it accounts for affected non-import dependencies conservatively.
+2. **Given** changed files cannot be determined, **When** fast runs, **Then** it fails with the
+   cause instead of treating the error as an empty change.
+
+### US3: Write behavioral tests without rebuilding the same problem (P2)
+
+The skill assigns each important guarantee to its cheapest adequate boundary and uses complete
+journeys to prove integration. Tests derive expected behavior from the spec, decisions, and human
+intent, rather than reproducing implementation details.
+
+Key scenarios:
+
+1. **Given** a feature has main scenarios, high-risk edges, and success criteria, **When** its plan
+   is written, **Then** those guarantees map to meaningful checks.
+2. **Given** exact user text, permission scope, or a required commit count is the contract, **When**
+   a check is written, **Then** it asserts that contract precisely.
+3. **Given** a test conflicts with a direct human request, **When** the change is made, **Then** the
+   request is preserved and the test change is reported.
+
+More scenarios:
+
+1. **Given** a test fails against the spec without a conflicting human request, **When** it cannot
+   be fixed within scope, **Then** work reports the conflict rather than weakening the assertion.
+2. **Given** a lifecycle rule depends on a timeout, **When** its unit check runs, **Then** a
+   controlled clock exercises the boundary without sleeping for that duration.
+
+### US4: See what protection changed (P2)
+
+The final review and pull request separately list removed, skipped, and loosened tests, with their
+rulings and preserved guarantees. Coverage reports help locate omissions; neither fewer tests nor a
+percentage alone establishes adequate protection.
+
+Key scenarios:
+
+1. **Given** an old test is replaced, **When** deletion is reviewed, **Then** its important
+   guarantees have owning assertions or an explicit justified disposition.
+2. **Given** a timeout rises from 20,000 to 40,000 milliseconds, **When** final review runs,
+   **Then** both values and the ruling appear in the test-change list.
+
+## Architecture
+
+Use [layered repairs](discovery-02.md#a-test-architecture-matched-to-this-application), as the
+latest answers chose. A boundary is the interface where a behavior can be exercised and its effects
+observed independently. Retain useful cases across all existing suites; the discarded rebuild is
+evidence, not the implementation to restore wholesale.
+
+- **Focused checks** exercise public core APIs, cohesive UI behavior, editing/storage logic, and
+  adapter transformations with only their relevant real collaborators. They own detailed behavioral
+  cases without whole-app imports or unnecessary git setup.
+- **Boundary checks** use real git for history, hooks, writes, and cleanup; real binding output for
+  serialization; isolated caches and fake adapters for sessions. Server request checks own
+  authorization, repository scoping, bounded reads, and refusal side effects. A caller proves its
+  mapping and integration, without repeating every case owned below it.
+- **Application journeys** exercise the real UI, fate, server, binding, files, and git for
+  answering, review, conflicts, runner control, and repository/authentication boundaries. They own
+  the wiring between layers rather than every edge case.
+- **Browser checks** own actual frame messaging/isolation, focus, keyboard, scrolling, and other
+  browser behavior an emulator cannot establish. Ready also checks every governed page at phone and
+  desktop sizes in both themes for accessibility and readability.
+- **Fixtures and execution** reuse immutable setup while giving independent cases their own mutable
+  repository, settings, sessions, and browser state. Each independent test passes alone; a necessary
+  multistep journey stays one test. Waits observe the state needed for the next action, and teardown
+  closes requests, watchers, and processes.
+- **Fast selection** follows transitive dependencies within focused checks and routes changes to
+  their affected boundary checks, including native and filesystem inputs. Selection precedes
+  optional build prerequisites; tests consuming built output still receive that output. Shared edits
+  do not select all application journeys through a common App harness. Full application journeys,
+  browser checks, and required production builds remain in ready.
+- **Skill guidance and review** express these rules together in the testing, planning,
+  implementation, and change references, templates, and example. Main scenarios, high-risk edges,
+  and success criteria require tests; other cases may share checks or be reviewed. A text, count, or
+  size assertion is judged by the behavior it protects, not by its value's type. Incidental copy,
+  fixture totals, and internal implementation expectations do not become contracts.
+
+Before expanding repairs, a Composer pilot and core/binding probe must demonstrate the selected
+boundaries and measure complete command time. If their timing or adequacy misses the approved
+requirements, resolve it or return the conflict before extending the rewrite. Do not delete
+protection to fit a timing sample.
+
+For every area, compare coverage with consistent product exclusions and explain lost execution at
+the behavioral level. Security, git, and file-writing replacements must fail for a plausible defect
+in the guard they claim to protect. A refusal caused by another invalid input is insufficient
+evidence. The record maps every old test file to retained checks, moves, replacements, or justified
+removals, and names important guarantees inside changed files. These records implement Constitution
+VI without adding a permanent coverage gate or a separate test for every sentence.
+
+Refresh remote main and integrate the latest main regularly during implementation and before
+creating the pull request. After integration, reconcile changed decisions, scenarios, and new tests
+against the updated base and rerun affected validation. No concurrent product change is discarded to
+preserve an obsolete test inventory.
+
+Tradeoffs:
+
+- Fast deliberately defers some integration failures until ready; its output makes that limit
+  visible.
+- More useful existing tests may survive than in the discarded rebuild; there is no test-count or
+  line-count target.
+- Coverage cannot prove assertion strength, and focused fault checks cannot establish every possible
+  behavior.
+- Fixture and task-boundary changes need their own correctness evidence; faster setup must not
+  introduce shared mutable state or stale cached passes.
+- Concurrent development can require repeated integration and validation; the approved scope does
+  not assume development is paused.
+
+## Edge cases
+
+| Importance | Situation                                                                              | What happens                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| High       | A required decision rule or unique old behavior loses its only guard                   | The record identifies its owning assertion or justified disposition; important missing protection blocks final review.              |
+| High       | A replacement passes for an unrelated refusal or always returns the accepted result    | A targeted faulty implementation must make the relevant high-risk check fail.                                                       |
+| High       | A test depends on an earlier test's writes                                             | Its preconditions become independent, or the necessary sequence becomes one journey; sharing mutable setup is not the optimization. |
+| High       | Skill, fixture, declaration, configuration, or native inputs bypass JavaScript imports | Selection and cache dependencies account for them; uncertain selection broadens checks instead of silently omitting them.           |
+| High       | Fast defers integration checks                                                         | Output names the deferred families; ready retains every required check before pushing.                                              |
+| High       | Main adds or changes behavior during the rewrite                                       | Integrate regularly, reconcile the inventory and decisions, and validate against the latest base before creating the pull request.  |
+| Normal     | A readiness condition occurs before the next action is possible                        | Await the action's actual required state; do not raise a timeout or add retries to conceal the race.                                |
+| Normal     | A test legitimately conflicts with a requested product change                          | Preserve the human's request, update the expectation, and report the conflict and change.                                           |
+| Niche      | Neovim is unavailable locally                                                          | Keep its main-action smoke against real LSP in CI, as previously agreed.                                                            |
+
+## Success criteria
+
+- **SC-001** (CI under 5 minutes): Three consecutive successful CI runs each finish within 5
+  minutes, including setup and builds.
+- **SC-002** (fast under 1 minute): Complete fast-check command time after a one-file edit is under
+  1 minute on the development machine. Measure Composer, a leaf, a shared helper, core Rust, skill,
+  fixture, declaration, configuration, deletion, and documentation changes. Report startup,
+  prerequisites, lock waits, execution, and cleanup; distinguish cold and warm state without waiving
+  a failed sample.
+- **SC-003** (stable): The same commit passes five complete CI runs in a row, without retries.
+- **SC-004** (decisions kept): Every active rule requiring tests has an owning meaningful check in
+  the plan's test map and final review.
+- **SC-005** (protection accounted for): Every old test file has a disposition, and important
+  guarantees affected by removal or weakening have behavioral replacement evidence.
+- **SC-006** (contract assertions): Incidental copy changes pass; incorrect human text, protocol
+  values, security bounds, and required side effects fail their owning checks.
+- **SC-007** (independent checks): Changed independent cases pass individually and in their suite
+  without depending on earlier tests' mutations.
+
+Timing and stability evidence identify the measured commit, machine, input changes,
+selected/deferred checks, and cache state in the review record. Unmet criteria remain unmet; the
+final record does not silently relax them.
+
+## Assumptions
+
+The settled points of [round 02](clarifications-02.md#settled-without-the-human) hold. They
+supersede round 01's complete replacement and blanket assertion exclusions. Earlier choices remain
+where unchanged: Neovim main-action smoke, decision-backed tooling/benchmark checks, fake adapters,
+and no new mutation-testing tool. Settled while writing this spec:
+
+- **Scope** covers testing and the validation workflow, not unrelated product fixes or a new paid
+  service.
+- **Data and constitution** remain unchanged. Constitution VI already holds the behavior-based
+  amendment; this feature does not amend any constitution.
+- **Pilot evidence** is not yet available. The plan starts with representative measurements before
+  expanding changes, as the answered settled point requires.
+- **Rebasing** follows the human's note in round 02. Newly active decisions and tests are read again
+  after each integration.
+- **Plan review** stays false, as previously approved; the high risk tier does not introduce another
+  gate by itself.
+
+## Constitution check
+
+| I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional | VI. Checked code |
+| -------------------- | -------------- | ---------- | ----------------- | ----------------- | ---------------- |
+| ✅                   | ✅             | ✅         | ✅                | ✅                | ✅               |
+
+No exception is proposed. Behavioral evidence, visible test changes, and selective fault checks
+implement the current Constitution VI.
+
+## Risk tier
+
+**High**: changes to test protection and selection can hide security, data-loss, or integration
+regressions even when local checks pass.
+
+## History
+
+> [!NOTE]
+>
+> Revision 1 was approved on 2026-10-19. Its implementation was rejected after coverage losses,
+> insufficient speed, and failed CI. Round 02 was answered on 2026-10-20: retain useful focused
+> tests and explicitly defer broad journeys from fast to ready.
 
 > [!NOTE]
 >
@@ -25,212 +290,3 @@ plan-review: false
 >   exercises, from the coverage report, in the record.
 > - The time budgets in the success criteria are mine: change them if they are wrong.
 > - Risk tier `high`, as one change replaces every guard. The plan does not wait for your review.
-
-The tests are 77,700 lines, take 12 to 16 minutes in CI, and failed 15 of the last 20 finished runs,
-mostly on text, counts, and sizes the product had changed. This feature rebuilds them as a small
-suite of flows across systems, gives agents a fast loop, and rewrites the skill's testing rules. It
-is for you and the agents building Uraeda. See the [proposal](proposal.md), the
-[discovery](discovery-01.md), and the [answers](clarifications-01.md).
-
-## Decisions
-
-- **Changed: [Toolchain](../decisions/toolchain.md)**. A fast check runs after every task, and
-  `ready` runs before a push and in CI, where it ran after every task.
-
-Relied on:
-
-| Decision                                     | What it means for this spec                                                                                                     |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| [UI checks](../decisions/ui-checks.md)       | Every page keeps its check at a phone and a desktop size, in both themes, and a UI test still guards something a spec asks for. |
-| [Code quality](../decisions/code-quality.md) | New tests stay within the limits, and no test depends on elapsed time.                                                          |
-| [Agents](../decisions/agents.md)             | Tests of the runner use a fake adapter.                                                                                         |
-| [Git](../decisions/git.md)                   | The tests that check its rules are rebuilt, not dropped.                                                                        |
-
-## User stories
-
-### US1: The suites are rebuilt as flows (P1)
-
-You run `ready` and every system is checked by a few flows through real components: real git, real
-files, the real server, the real app. Each active decision rule that ends "Checked by ... tests"
-keeps a test. No test pins a text, a count, or a size the product may change.
-
-Why this priority: it removes the slowness and the failures, and the other stories rely on a suite
-that is small.
-
-Key scenarios:
-
-1. **Given** the home page's heading "Needs you" is renamed "Waiting on you", **When** `ready` runs,
-   **Then** no test fails, since no test asserts the heading's words.
-2. **Given** a feature at a gate in the fixture repository, **When** the home page renders, **Then**
-   it lists that feature with its Answer action, and opening the action reaches the round.
-3. **Given** the rule "a branch is read only from its latest commit", **When** `ready` runs,
-   **Then** a flow in the core fails if the branch's step is read from an earlier commit.
-
-More scenarios:
-
-1. **Given** an old test file with no flow covering its behaviour and no rule to drop it by,
-   **When** the final review reads the record, **Then** the file is listed under the area as an
-   unplaced test, which fails the review.
-
-### US2: A fast check after each task (P1)
-
-An agent finishes a task and runs the fast check, not `ready`. It gets formatting, lint, types, and
-the tests of what the task touched, and moves on. Before pushing it runs `ready`.
-
-Key scenarios:
-
-1. **Given** a task that changes `packages/web/src/Composer.tsx` only, **When** the agent runs the
-   fast check, **Then** it runs the formatter, the linter, the types, and the web tests that reach
-   that file, and no Rust test.
-2. **Given** a task that changes a file under `crates/core/`, **When** the agent runs the fast
-   check, **Then** it also runs the core's Rust tests and the TypeScript tests that load the
-   binding.
-3. **Given** a branch with every task checked, **When** the agent is about to push, **Then** it runs
-   `ready`, and a red `ready` is fixed before the push.
-
-### US3: Agents write tests that guard behaviour (P2)
-
-The skill tells an agent to test the behaviour that matters, from the spec and not from its own
-code, and to stop and report when a test and your intent differ.
-
-Key scenarios:
-
-1. **Given** a spec with 5 scenarios, of which 2 are `normal` edge cases, **When** the plan is
-   written, **Then** its test map covers the main scenarios, the `high` edge cases, and the success
-   criteria, and the `normal` edge cases only as lines of tests that exist.
-2. **Given** you ask for the "Needs you" count to read "Waiting 3", and a test asserts "Needs you3",
-   **When** the agent makes the change, **Then** it changes the test and tells you in the same
-   response.
-3. **Given** an implementation that fails a test of the spec, with no request from you, **When** the
-   agent cannot fix the code within the spec, **Then** it stops and reports, and does not edit the
-   test or the product to make them agree.
-
-### US4: Test changes are visible in review (P2)
-
-The final review lists every test removed, skipped, or changed in what it expects, apart from the
-product's diff, with the ruling that explains it. The pull request's description repeats the list.
-
-Key scenarios:
-
-1. **Given** a task that raises a test's timeout from 20,000 to 40,000 ms, **When** the final review
-   runs, **Then** the list names the test, the old and new values, and the ruling.
-2. **Given** a feature that only adds tests, **When** the final review runs, **Then** the list says
-   no test was removed, skipped, or loosened.
-
-## Architecture
-
-The rebuild goes area by area, as
-[the answers](clarifications-01.md#q2-how-much-should-the-cull-remove-and-by-what-rule) chose: a
-flow suite for each system replaces the old tests, built first and deleted after, so every area is
-guarded at each commit. Areas do not share files, so they build in parallel waves. The fast check
-and the skill's wording follow the discovery's
-[evidence](discovery-01.md#evidence-on-agents-and-tests).
-
-- **The core, CLI, and LSP flows** run the real `ura` binary and the core on temporary git
-  repositories, one flow per command family or workflow step, and an LSP flow per protocol feature.
-  They own the rules the git, repositories, and agents decisions end with "Checked by ... tests".
-- **The server flows** go through the routes and the fate protocol with a fake runner, and own the
-  sign-in, host guard, preview, and streaming rules.
-- **The web flows** render the real app against the real server in happy-dom, one flow per page
-  (home, priorities, inbox, decisions, round, spec, review, session, settings, editor). They assert
-  behaviour, never wording or counts.
-- **The browser flows** keep every page check at both sizes and in both themes, and a few
-  interaction flows that need a real layout. A browser flow that happy-dom already covers, or that
-  measures pixels, is dropped.
-- **The Neovim smoke** runs the plugin's main actions against the real `ura lsp`, in CI only.
-- **The tooling and benchmarks tests** keep a test only where it enforces an active decision's rule.
-- **The fast check** is a cached task of the task graph that runs the checks above for what a task
-  touched, through the tools' own selection. It owns the rule that a Rust or skill change also runs
-  the tests loading the binding, which selection by imports misses.
-- **The skill's testing rules** are `code-quality.md`'s "Writing tests", "Tests that can fail", and
-  "UIs verified end to end", the plan's Test map, the implementation's validation steps and final
-  review, the change's tests-first rule, the templates, and the example, kept in step. They own the
-  rules in US3 and US4.
-- **The constitution's test rule** is amended by you. The proposal below is advice, since only a
-  human edits it.
-
-> [!NOTE]
->
-> Proposed amendment of Constitution VI, a major version, 2.0.0, as it redefines a MUST:
->
-> - Implementations MUST include tests of the behaviour that matters: each story's main scenarios,
->   the edge cases marked high, and the success criteria. Other scenarios MAY be checked by review.
-> - A test MUST fail when behaviour that matters breaks, and MUST NOT fail when a change keeps it.
-> - A test MUST NOT be loosened, skipped, or deleted to make a run pass, except at a human's request
->   or with a ruling the review lists.
-
-The rebuild's rule for what a flow guards, and what is deleted without a replacement, is the
-criteria of the answers: a test goes if it fails on a refactor, duplicates a faster path, asserts
-text, counts, or sizes, or only observes. The old tests are read as an inventory of behaviour, never
-copied.
-
-Tradeoffs:
-
-- Nothing but the new flows guards the product after the deletion, and a gap shows only as a later
-  regression. The coverage report, run before and after each area, shows what the area no longer
-  runs.
-- The pull request is huge, and it conflicts with any branch that edits a test. You said no other
-  development takes place while it runs.
-- The fast check can pass where `ready` fails, which the push then finds.
-- Test selection by imports misses dynamic imports, and the Rust code behind the binding.
-
-## Edge cases
-
-| Importance | Situation                                                                                  | What happens                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| High       | An active decision's rule ends "Checked by ... tests" and its test went with the old suite | The plan lists every such rule with its new flow, and the final review fails on one with none.                     |
-| High       | A behaviour guarded only by an old test no spec records                                    | The inventory names it, and it gets a flow if it passes the criteria, or is listed as dropped with its rule.       |
-| High       | A new flow passes whatever the code does                                                   | A flow of an area that writes files, touches git, or guards security is shown to fail with a break its step names. |
-| High       | A task changes Rust or the skill and the fast check skips the TypeScript tests             | It runs them, since they load the binding.                                                                         |
-| Normal     | A test fails on a change you asked for                                                     | The agent changes the test, after telling you, never the request.                                                  |
-| Normal     | A new flow fails without a bug                                                             | It is fixed in the pull request, with no retry, as the toolchain says.                                             |
-| Normal     | The fast check passes and `ready` fails before the push                                    | The agent fixes it before pushing, and a red CI still means a bug.                                                 |
-| Niche      | Neovim is not installed on the machine                                                     | The smoke runs in CI only, as today.                                                                               |
-
-## Success criteria
-
-- **SC-001** (CI under 5 minutes): Three consecutive CI runs of the branch each finish in under 5
-  minutes.
-- **SC-002** (fast check under 1 minute): After a one-file change, the fast check finishes in under
-  1 minute on the development machine.
-- **SC-003** (stable): The same commit passes five CI runs in a row.
-- **SC-004** (decisions kept): Every active rule ending "Checked by ... tests" has a test, listed in
-  the plan's test map.
-- **SC-005** (nothing unplaced): The record maps every old test file to the flow that replaces its
-  behaviour, or to the rule that dropped it.
-- **SC-006** (no wording pins): No test asserts a heading, label, count, or size the product may
-  change, except a page check's accessibility rules.
-
-These are measured on CI logs and the development machine, and recorded in the pull request, not
-asserted in a test.
-
-## Assumptions
-
-The points settled in the [clarifications](clarifications-01.md#settled-without-the-human) hold as
-written there, except that Rust is rebuilt too, as your answer chose all suites. Settled while
-writing this spec:
-
-- **The Neovim smoke** keeps the plugin's main actions, and the test of `SKILL.md`'s length goes, as
-  nothing guards a decision.
-- **A conflict between a test and the spec, with no request from you,** stops the agent. A request
-  from you is done, and the test changed, as the workflow's top rule already says.
-- **Success criteria budgets** are mine, since your answer set no number.
-- **No new decision** holds the testing rules: they live in the skill and the constitution, as you
-  did not ask for one.
-- **The constitution is amended before the implementation.** The plan's first task checks it and
-  stops if it is not.
-
-## Constitution check
-
-| I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional | VI. Checked code |
-| -------------------- | -------------- | ---------- | ----------------- | ----------------- | ---------------- |
-| ✅                   | ✅             | ✅         | ✅                | ✅                | ⚠️               |
-
-VI: the spec narrows "tests covering the spec's acceptance scenarios" to the behaviour that matters,
-which the current text forbids until you amend it. You accepted the amendment in your answer, and
-the plan stops until the constitution holds it.
-
-## Risk tier
-
-**High**: one change replaces every test and the validation loop, so a gap guards nothing until a
-regression shows it.
