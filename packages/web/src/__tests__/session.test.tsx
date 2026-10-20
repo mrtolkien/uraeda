@@ -319,12 +319,15 @@ test("US5.1: at 1440 px, a chat is a page of its own, with a level-1 heading", a
   ).toBeTruthy();
 });
 
-test("US1.8: Open the session replaces the feature page, and Back returns to it", async () => {
-  await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: await fakeAgent() });
+test("US1.8: a session's link replaces the feature page, and Back returns to it", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await fake.sessions.featureSession(repo, WEB_UI);
+  await renderPage(`/f/${WEB_UI}`, repo, { agent: fake });
   await screen.findByRole("list", { name: "Files" });
   window.scrollTo(0, 120);
 
-  await click(await screen.findByRole("link", { name: "Open the session" }));
+  await click(await screen.findByRole("link", { name: / \d\d:\d\d$/ }));
   await screen.findByRole("log", { name: "Conversation" });
   expect(screen.queryByRole("list", { name: "Files" })).toBeNull();
   await act(async () => window.history.back());

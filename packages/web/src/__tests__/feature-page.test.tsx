@@ -43,9 +43,9 @@ async function nextCard() {
   return within(await screen.findByRole("region", { name: "Next" }));
 }
 
-/** The agent's card. */
-function agentCard() {
-  return within(screen.getByRole("region", { name: "Agent" }));
+/** The sessions' card, beside "Next". */
+function sessionsCard() {
+  return within(screen.getByRole("region", { name: "Sessions" }));
 }
 
 /** The stages' list. */
@@ -245,16 +245,14 @@ test("a first stage started after the folder's day shows its date", async () => 
 });
 
 /** US1 more 3 */
-test("an idle agent reads Idle", async () => {
+test("a feature without a session lists none, and offers New session", async () => {
   await renderPage(`/f/${RECURRING}`, fixtureRepo(), { agent: true });
 
   await nextCard();
-  const agent = agentCard();
-  expect(agent.getByText("Idle")).toBeTruthy();
-  expect(agent.queryByRole("heading")).toBeNull();
-  expect(agent.getByRole("link", { name: "Open the session" }).getAttribute("href")).toBe(
-    atRepo(`/f/${RECURRING}/session`),
-  );
+  const card = sessionsCard();
+  expect(card.getByText("No session yet.")).toBeTruthy();
+  expect(card.queryByRole("link")).toBeNull();
+  expect(card.getByRole("button", { name: "New session" })).toBeTruthy();
 });
 
 /** US3.1 */
@@ -267,7 +265,7 @@ test("a change opens its page, with Fix marked and the session one click away", 
   expect(await screen.findByRole("heading", { level: 1, name: "A home logo" })).toBeTruthy();
   expect(currentStage()).toBe("Fix");
   expect(screen.queryByRole("log", { name: "Conversation" })).toBeNull();
-  expect(screen.getAllByRole("link", { name: "Open the session" })).toHaveLength(1);
+  expect(screen.getAllByRole("button", { name: "New session" })).toHaveLength(1);
 });
 
 /** US5.1, the page */
@@ -399,7 +397,7 @@ test.each([
   ["a spec to review", RECURRING],
   ["a change", CHANGE],
   ["a done feature", DONE],
-])("%s has exactly one Open the session", async (_, folder) => {
+])("%s has exactly one New session", async (_, folder) => {
   const repo = fixtureRepo();
   addChange(repo, CHANGE, { "proposal.md": "# A home logo\n" });
   doneFeature(repo);
@@ -407,7 +405,7 @@ test.each([
   await renderPage(`/f/${folder}`, repo, { agent: true });
 
   await nextCard();
-  expect(screen.getAllByRole("link", { name: "Open the session" })).toHaveLength(1);
+  expect(screen.getAllByRole("button", { name: "New session" })).toHaveLength(1);
   expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 });
 
@@ -415,7 +413,7 @@ test("without the agent, its card says so", async () => {
   await renderPage(`/f/${CLI}`, fixtureRepo(), { agent: await fakeAgent({ installed: false }) });
 
   await nextCard();
-  expect(agentCard().getByText("Claude Code is not available on this machine.")).toBeTruthy();
+  expect(sessionsCard().getByText("Claude Code is not available on this machine.")).toBeTruthy();
 });
 
 test("an agent's step names it, and that the session starts it", async () => {
@@ -550,10 +548,11 @@ test("a run that ends before a human gate needs attention, and opens its session
 
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
-  await waitFor(() => expect(agentCard().getByText("Needs attention")).toBeTruthy());
-  expect(agentCard().getByRole("img", { name: "Needs attention" })).toBeTruthy();
-  expect(agentCard().getByText(/^Last run: Plan · done · /)).toBeTruthy();
-  await click(agentCard().getByRole("link", { name: "Open the session" }));
+  await waitFor(() =>
+    expect(sessionsCard().getByRole("img", { name: "Needs attention" })).toBeTruthy(),
+  );
+  expect(sessionsCard().getByText(/^Last run: Plan · done · /)).toBeTruthy();
+  await click(sessionsCard().getByRole("link", { name: / \d\d:\d\d$/ }));
 
   await opensEmpty(CLI);
   expect(await screen.findByText("The agent stopped before a human gate.")).toBeTruthy();
@@ -564,18 +563,20 @@ test("a working agent shows Working, Stop, and its run, and Stop stops it", asyn
   const fake = await fakeAgent();
   await liveRun(fake, repo);
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(agentCard().getByText("Working")).toBeTruthy());
+  await waitFor(() => expect(sessionsCard().getByRole("img", { name: "Working" })).toBeTruthy());
   // A turn runs: "Next" no longer says the session starts it.
   expect(
     (await nextCard()).queryByText("The agent takes it from here: open the session to start it."),
   ).toBeNull();
 
-  await click(agentCard().getByRole("button", { name: "Stop" }));
+  await click(sessionsCard().getByRole("button", { name: "Stop" }));
 
   await waitFor(() => expect(agent.interrupts).toBe(1));
-  await refreshUntil(() => expect(agentCard().getByText(/^Last run: Plan · stopped/)).toBeTruthy());
-  expect(agentCard().getByText("Needs attention")).toBeTruthy();
-  await click(agentCard().getByRole("link", { name: "Open the session" }));
+  await refreshUntil(() =>
+    expect(sessionsCard().getByText(/^Last run: Plan · stopped/)).toBeTruthy(),
+  );
+  expect(sessionsCard().getByRole("img", { name: "Needs attention" })).toBeTruthy();
+  await click(sessionsCard().getByRole("link", { name: / \d\d:\d\d$/ }));
 
   await opensEmpty(CLI);
   expect(await screen.findByText("You stopped the agent.")).toBeTruthy();
@@ -587,14 +588,14 @@ test("a Stop that fails says why in the card", async () => {
   const fake = await fakeAgent();
   await liveRun(fake, repo);
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(agentCard().getByText("Working")).toBeTruthy());
+  await waitFor(() => expect(sessionsCard().getByRole("img", { name: "Working" })).toBeTruthy());
   vi.spyOn(fake.sessions, "stop").mockImplementation(() => {
     throw new Error("refused: The agent did not take the interrupt.");
   });
 
-  await click(agentCard().getByRole("button", { name: "Stop" }));
+  await click(sessionsCard().getByRole("button", { name: "Stop" }));
 
-  expect(await agentCard().findByText("The agent did not take the interrupt.")).toBeTruthy();
+  expect(await sessionsCard().findByText("The agent did not take the interrupt.")).toBeTruthy();
 });
 
 test("a failed run needs attention, and opens its session unfilled", async () => {
@@ -604,10 +605,10 @@ test("a failed run needs attention, and opens its session unfilled", async () =>
     { denials: [], errors: ["Rate limit reached"], interrupted: false, ok: false, type: "result" },
   ]);
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(agentCard().getByText(/^Last run: Plan · failed/)).toBeTruthy());
-  expect(agentCard().getByText("Needs attention")).toBeTruthy();
+  await waitFor(() => expect(sessionsCard().getByText(/^Last run: Plan · failed/)).toBeTruthy());
+  expect(sessionsCard().getByRole("img", { name: "Needs attention" })).toBeTruthy();
 
-  await click(agentCard().getByRole("link", { name: "Open the session" }));
+  await click(sessionsCard().getByRole("link", { name: / \d\d:\d\d$/ }));
 
   await opensEmpty(CLI);
   expect(await screen.findByText("The agent's run failed.")).toBeTruthy();
@@ -653,8 +654,8 @@ test("a merged feature's session opens from its card, with its last run and no S
 
   await nextCard();
   expect(
-    await agentCard().findByText(/^Last run: Finishing, draft pull request · done/),
+    await sessionsCard().findByText(/^Last run: Finishing, draft pull request · done/),
   ).toBeTruthy();
-  expect(agentCard().getByRole("link", { name: "Open the session" })).toBeTruthy();
+  expect(sessionsCard().getByRole("link", { name: / \d\d:\d\d$/ })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
 });

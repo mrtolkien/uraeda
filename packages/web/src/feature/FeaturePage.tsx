@@ -1,5 +1,5 @@
 // The page of a feature or a change, top to bottom: where it is, what blocks it, what's next beside
-// the agent, what it produced, a done one's record, and its notes, folded.
+// its sessions, what it produced, a done one's record, and its notes, folded.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
 import { Grid, GridSpan } from "@astryxdesign/core/Grid";
@@ -15,7 +15,6 @@ import { useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
 import { useOpenKeys } from "../useOpenKeys.ts";
-import { AgentCard, type AgentSession } from "./AgentCard.tsx";
 import { Figures } from "./Figures.tsx";
 import { FileList } from "./FileList.tsx";
 import { nextOf } from "./next.ts";
@@ -23,6 +22,7 @@ import { NextCard } from "./NextCard.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
 import { QUESTIONS_KEY, Record } from "./Record.tsx";
 import { Section } from "./Section.tsx";
+import { SessionsCard } from "./SessionsCard.tsx";
 import { Stages } from "./Stages.tsx";
 import { day } from "./times.ts";
 
@@ -44,33 +44,34 @@ function headerLine(feature: FeatureData): string {
   return parts.join(" · ");
 }
 
-/** "Next" beside the agent's card: one row on a wide screen, "Next" twice as wide; stacked on the phone. */
-function NextAndAgent({
+/** "Next" beside its sessions: one row on a wide screen, "Next" twice as wide; stacked on the phone. */
+function NextAndSessions({
   feature,
   history,
-  session,
+  working = false,
 }: {
   feature: FeatureData;
   history: HistoryData;
-  session?: AgentSession;
+  working?: boolean;
 }) {
   const wide = useWidthClass() === "wide";
   const merge = history.stages.find((stage) => stage.name === "merged")?.started;
-  const next = nextOf(feature, {
-    merged: merge ?? history.finished ?? undefined,
-    working: session?.status === "working",
-  });
+  const next = nextOf(feature, { merged: merge ?? history.finished ?? undefined, working });
   return (
     <Grid columns={wide ? 3 : 1} gap={3}>
       <GridSpan columns={wide ? 2 : 1}>
         <NextCard next={next} />
       </GridSpan>
-      <AgentCard folder={feature.folder} progress={feature.step.progress} session={session} />
+      <SessionsCard
+        folder={feature.folder}
+        progress={feature.step.progress}
+        sessions={feature.sessions}
+      />
     </Grid>
   );
 }
 
-/** "Next" and the agent, once the feature's session is read. */
+/** "Next" and the sessions, once the feature's latest session is read, which its runs go to. */
 function WithSession({
   feature,
   history,
@@ -81,7 +82,9 @@ function WithSession({
   id: string;
 }) {
   const session = useSession(id);
-  return <NextAndAgent feature={feature} history={history} session={session ?? undefined} />;
+  return (
+    <NextAndSessions feature={feature} history={history} working={session?.status === "working"} />
+  );
 }
 
 /** What a finished feature left behind: its worktree, its branch, or both. */
@@ -174,7 +177,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         {feature.session ? (
           <WithSession feature={feature} history={history} id={feature.session} />
         ) : (
-          <NextAndAgent feature={feature} history={history} />
+          <NextAndSessions feature={feature} history={history} />
         )}
       </Suspense>
       <Produced feature={feature} history={history} />

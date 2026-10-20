@@ -57,11 +57,9 @@ function lines(count: number, prefix: string) {
   }));
 }
 
-/** Opens the feature's session from its page, and starts a turn that writes 40 lines. */
+/** Opens the feature's session, and starts a turn that writes 40 lines. */
 async function openWorkingSession() {
-  await show(`/f/${CLI}`, "Open the session");
-  await userEvent.click(screen.getByRole("link", { name: "Open the session" }));
-  await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
+  await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", lines(40, "Line"));
   const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
   await within(log).findByText("Line 40.", undefined, LIVE);
@@ -459,7 +457,7 @@ describe("on the desktop", () => {
         name: /^cli-tuis, /,
       }),
     );
-    await userEvent.click(await screen.findByRole("link", { name: "Open the session" }, LIVE));
+    await userEvent.click(await screen.findByRole("link", { name: / \d\d:\d\d$/ }, LIVE));
 
     await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
     const last = await within(

@@ -290,3 +290,44 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   one heading, "New".
 - **If wrong**: the texts the tests wait for, one line each.
 - **Where**: task 9.
+
+## R18: A feature's session is titled by its own title, else its first run's step
+
+- **Decision**: the session record gains `name`, its own title (a chat's, kept once it became a
+  change's or a feature's, null for a session started in one), and `startedAt`, its start. The
+  sessions card titles a session by its `name`, else by its first turn's step label when that turn
+  is a workflow run ("Plan"), else "Session", and shows its start, "Oct 17, 10:02", beside it.
+- **Rationale**: a feature's session's `title` is its feature's, the same for every session of the
+  list; the step of its first run says what it was started for, as the mockup's "Spec and plan" and
+  "Build: tasks 4 to 7" do, and its start tells two plain sessions apart.
+- **Alternatives considered**: "Session of <date>": repeats the start beside it; changing `title`
+  for a feature's session: the session page's header and the sidebar read it as the feature's.
+- **If wrong**: `SessionItem` and `TitledByTurn` in `feature/SessionsCard.tsx`, and the two fields
+  of `SessionRecord`.
+- **Where**: task 11, `packages/server/src/fate/views.ts`, `fate/sessions.ts`,
+  `packages/web/src/feature/SessionsCard.tsx`.
+
+## R19: The sessions card replaces the agent's card, and the tests that pinned it follow
+
+- **Decision**: the feature page's "Agent" card is gone: its status, Stop, the task's progress, the
+  last run, and the agent's absence move into the "Sessions" card, per session (status, Stop) or for
+  the latest (progress, last run). A session's link replaces "Open the session": the latest's opens
+  `/f/<folder>/session`, the feature's session that "Next" hands runs to, and an earlier one's its
+  own page, `/sessions/<id>`. A feature without a session reads "No session yet." beside "New
+  session", which is hidden when the agent is not on this machine. Its status is the session's own,
+  as the sidebar shows it, so a session waiting on the human reads "Needs you" where the card read
+  "Idle".
+- **Tests changed**: `feature-page.test.tsx` ("an idle agent reads Idle" becomes "a feature without
+  a session lists none, and offers New session"; "exactly one Open the session" becomes "exactly one
+  New session"; the run tests read the status mark and click the session's link),
+  `session-turns.test.tsx` (the card's "Idle" becomes the "Needs you" mark), `session.test.tsx`
+  (US1.8 opens a session's link), `session-aside.test.tsx` (a new visit goes by the session's path,
+  the feature having no session to link); the browser tests `feature.test.tsx`, `change.test.tsx`,
+  `layout.test.tsx`, and `session.test.tsx` read the "Sessions" card, "New session", or the
+  session's link, or open `/f/<folder>/session` directly; the screenshot `agent-section` becomes
+  `sessions-card`.
+- **Rationale**: US5 lists each session with its status and Stop for a working one; two cards for
+  one agent would say it twice. `/sessions/<id>` draws a feature's session as a chat, without its
+  progress and its workflow's composer, so the latest keeps the feature's session page.
+- **If wrong**: `feature/SessionsCard.tsx` and `NextAndSessions` in `FeaturePage.tsx`.
+- **Where**: task 11.

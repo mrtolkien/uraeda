@@ -216,11 +216,11 @@ async function takeWorking(each: Each, first: Page, adapter: FakeAdapter) {
   await each("session-working", async ({ page }) => {
     await show(page, `${AGENT}/session`, "Not read yet");
   });
-  await each("agent-section", async ({ page }) => {
-    await show(page, AGENT, "Open the session");
-    // The section at the top, below the phone's top bar.
+  await each("sessions-card", async ({ page }) => {
+    await show(page, AGENT, "New session");
+    // The card at the top, below the phone's top bar.
     await page
-      .getByRole("region", { name: "Agent" })
+      .getByRole("region", { name: "Sessions" })
       .evaluate((element) =>
         window.scrollBy(
           0,

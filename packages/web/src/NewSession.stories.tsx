@@ -1,8 +1,8 @@
 // Mockups of growing a session once chats and changes merge (`specs/2026-10-20-merge-chats/spec.md`):
 // a session's actions, in a "…" beside its composer, and the agent's offer to make it a change, or a
-// change a feature; then the sessions a change's or a feature's page lists, with "New session".
-// Built from Astryx's components over fixed text, with no server: the stories show the look. The
-// New page's stories are in `NewPage.stories.tsx`, drawn by the page itself.
+// change a feature. Built from Astryx's components over fixed text, with no server: the stories show
+// the look. The New page's stories are in `NewPage.stories.tsx`, and a feature's sessions in
+// `feature/SessionsCard.stories.tsx`, drawn by the real components.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
@@ -17,7 +17,6 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -27,7 +26,6 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { Page } from "./layout/Page.tsx";
-import { StatusMark } from "./StatusMark.tsx";
 
 const styles = stylex.create({
   agent: { paddingInline: 0 },
@@ -189,69 +187,6 @@ function DropDialog() {
   );
 }
 
-/** A session attached to a change or a feature, as its page lists it. */
-type Attached = {
-  started: string;
-  status: "idle" | "working";
-  subagents: Array<string>;
-  title: string;
-};
-
-const ATTACHED: Array<Attached> = [
-  {
-    started: "Started 2026-10-20 09:12",
-    status: "working",
-    subagents: ["Write the card's tests", "Map the theme's tokens"],
-    title: "Build: tasks 4 to 7",
-  },
-  { started: "Started 2026-10-19 16:40", status: "idle", subagents: [], title: "Spec and plan" },
-];
-
-/** The sessions card of a change's or a feature's page, beside "Next", newest first. */
-function Sessions() {
-  return (
-    <div {...stylex.props(styles.surface)}>
-      <Page>
-        <Card>
-          <VStack gap={3}>
-            <HStack align="center" justify="between">
-              <Heading level={3}>Sessions</Heading>
-              <Button label="New session" variant="secondary" />
-            </HStack>
-            {ATTACHED.map((session) => (
-              <VStack gap={1} key={session.title}>
-                <SideNavItem
-                  endContent={
-                    <Text color="secondary" type="supporting">
-                      {session.started}
-                    </Text>
-                  }
-                  href="#"
-                  icon={
-                    <StatusMark
-                      label={session.status === "working" ? "Working" : "Idle"}
-                      status={session.status}
-                    />
-                  }
-                  label={session.title}
-                />
-                {session.subagents.map((subagent) => (
-                  <HStack align="center" gap={2} key={subagent} xstyle={styles.subagent}>
-                    <StatusMark label="Working" small status="working" />
-                    <Text color="secondary" maxLines={1} type="supporting">
-                      {subagent}
-                    </Text>
-                  </HStack>
-                ))}
-              </VStack>
-            ))}
-          </VStack>
-        </Card>
-      </Page>
-    </div>
-  );
-}
-
 const meta = {
   parameters: { layout: "fullscreen" },
   title: "Mockups/New and growing sessions",
@@ -275,9 +210,3 @@ export const DropChange: Story = { render: () => <Growing stage="drop" /> };
 
 /** In a change's session, the agent offers to make it a feature, with its reason. */
 export const FeatureOffer: Story = { render: () => <Growing stage="feature-offer" /> };
-
-/**
- * A feature's sessions, on its page: the working one first with its sub-agents, then the earlier
- * one, and "New session", which opens a new session in the feature's worktree, on its own page.
- */
-export const FeatureSessions: Story = { render: () => <Sessions /> };

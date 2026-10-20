@@ -5,8 +5,10 @@ import { join } from "node:path";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { addPlan, commitOnBranch, ELEVEN, temporaryFolder } from "uraeda-binding/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import {
   answered,
+  atRepo,
   atWidth,
   type Binding,
   click,
@@ -507,7 +509,9 @@ test("the open line is kept on a reload, and a new visit starts collapsed", asyn
   expect(kept.getAttribute("aria-expanded")).toBe("true");
 
   await click(await screen.findByRole("link", { name: "Feature page" }));
-  await click(await screen.findByRole("link", { name: "Open the session" }));
+  // The feature has no session yet for its page to link: the session is visited again by its path.
+  await screen.findByRole("heading", { name: "Sessions" });
+  await act(async () => navigate(atRepo(`/f/${CLI}/session`)));
   const fresh = await screen.findByRole("button", { name: LINE });
   expect(fresh.getAttribute("aria-expanded")).toBe("false");
 });

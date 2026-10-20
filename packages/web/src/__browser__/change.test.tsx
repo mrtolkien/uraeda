@@ -110,12 +110,12 @@ describe("on the desktop", () => {
   // US3.1 of the feature page redesign: a change opens the same page as a feature.
   test("a change's page is a feature's page, with Fix and its session", async () => {
     await centred();
-    await show(`/f/${CENTRED}`, "Open the session");
+    await show(`/f/${CENTRED}`, "New session");
 
     expect(screen.getByRole("heading", { level: 1, name: CENTRED_TITLE })).toBeTruthy();
     const stages = within(screen.getByRole("list", { name: "Stages" }));
     expect(stages.getByText("Fix")).toBeTruthy();
-    expect(screen.getAllByRole("link", { name: "Open the session" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "New session" })).toHaveLength(1);
     expect(screen.queryByRole("textbox", { name: "Message Claude Code" })).toBeNull();
   });
 

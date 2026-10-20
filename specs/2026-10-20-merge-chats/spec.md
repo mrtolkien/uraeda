@@ -194,7 +194,7 @@ A change's or a feature's page lists its sessions, newest first, each with its s
 running sub-agents. "New session" opens a new session in its worktree, on a page of its own; the
 earlier ones stay, each on its page.
 
-[A feature's sessions](/packages/web/src/NewSession.stories.tsx#FeatureSessions)
+[A feature's sessions](/packages/web/src/feature/SessionsCard.stories.tsx#FeatureSessions)
 
 Key scenarios:
 

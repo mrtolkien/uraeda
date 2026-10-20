@@ -166,8 +166,15 @@ export type SessionRecord = {
   /** The feature's folder, null for a chat. */
   folder: string | null;
   id: string;
+  /**
+   * Its own title, a chat's, kept once it became a change's or a feature's: null for a session
+   * started in a change or a feature, whose `title` is its feature's.
+   */
+  name: string | null;
   /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
   place: string;
+  /** When it started, which its place in a feature's sessions follows. */
+  startedAt: string;
   status: SessionStatus;
   /** "Working", "Needs you", "Needs attention", "New reply", or "Idle". */
   statusLabel: string;
@@ -385,7 +392,9 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   backgroundCommands: true,
   folder: true,
   id: true,
+  name: true,
   place: true,
+  startedAt: true,
   status: true,
   statusLabel: true,
   statusReason: true,

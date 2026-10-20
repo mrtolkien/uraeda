@@ -83,8 +83,8 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["a plan under review", "/f/2026-10-13-plan-review/plan.md", "Task 5", null],
   ["a task view", TASK, "Claude Code runner", null],
   ["the priorities", "/priorities", "Ongoing", null],
-  // Its agent's card opens the session: the test server's agent is the fake one.
-  ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Open the session", null],
+  // Its sessions' card offers a new one: the test server's agent is the fake one.
+  ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "New session", null],
   // A feature's session before its first message, and the New page with Session picked.
   ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
   ["a new session", "/new", "It offers a change when the work grows.", null],
@@ -324,9 +324,13 @@ test.each(
   }
   await drawn();
   await checkLayout();
-  // The feature page's agent card, on its own page.
-  await show(`/f/${CLI}`, "Open the session");
-  await screen.findAllByText(state === "working" ? "Working" : /· failed/, undefined, LIVE);
+  // The feature page's sessions card, on its own page.
+  await show(`/f/${CLI}`, "New session");
+  if (state === "working") {
+    await screen.findAllByRole("img", { name: "Working" }, LIVE);
+  } else {
+    await screen.findAllByText(/· failed/, undefined, LIVE);
+  }
   await checkLayout();
 });
 
