@@ -72,3 +72,49 @@ test("a line break in the HTML does not start another field", () => {
   expect(text).toContain("HTML: <ul> <li>One</li> </ul>");
   expect(text).toContain("Viewport: 1440 × 900, light");
 });
+
+test("the source names the path, line, and column, without code-inspector's tag name", () => {
+  const text = pickText(
+    {
+      html: "<div></div>",
+      name: "",
+      role: "element",
+      source: "packages/web/src/X.tsx:3:5:div",
+      text: "",
+    },
+    PAGE,
+  );
+
+  expect(text).toContain("\nSource: packages/web/src/X.tsx:3:5\n");
+});
+
+test("a source without a tag name is kept whole", () => {
+  const text = pickText(
+    {
+      html: "<p></p>",
+      name: "",
+      role: "paragraph",
+      source: "packages/web/src/X.tsx:3:5",
+      text: "",
+    },
+    PAGE,
+  );
+
+  expect(text).toContain("\nSource: packages/web/src/X.tsx:3:5\n");
+});
+
+test("the HTML holds no source attribute, and is cut after it is removed", () => {
+  const inner = `<span data-insp-path="packages/web/src/Y.tsx:9:7:span">Hi</span>`;
+  const text = pickText(
+    {
+      html: `<p data-insp-path="packages/web/src/X.tsx:3:5:p" class="a">${inner}${"b".repeat(430)}</p>`,
+      name: "",
+      role: "paragraph",
+      source: "packages/web/src/X.tsx:3:5:p",
+      text: "",
+    },
+    PAGE,
+  );
+
+  expect(text).toContain(`\nHTML: <p class="a"><span>Hi</span>${"b".repeat(430)}</p>\n`);
+});

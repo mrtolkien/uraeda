@@ -305,6 +305,23 @@ test("a click copies the pick, and the bar names it", async () => {
   expect(copied[0]).toContain(`Sandbox pick: ${window.location.href}\n`);
 });
 
+test("a pick's source is its path, line, and column, and its HTML has no source attribute", async () => {
+  const { copied } = await sandboxPage();
+  render(
+    <p data-insp-path="packages/web/src/X.tsx:3:5:Note">
+      Saved <strong data-insp-path="packages/web/src/X.tsx:4:7:strong">now</strong>
+    </p>,
+  );
+
+  await userEvent.click(page.getByRole("button", { name: "Pick an element" }));
+  // At its centre, right of its short text: the paragraph itself.
+  await userEvent.click(page.getByRole("paragraph"));
+
+  await expect.element(page.getByText(/^Copied paragraph/)).toBeVisible();
+  expect(copied[0]).toContain("\nSource: packages/web/src/X.tsx:3:5\n");
+  expect(copied[0]).toContain("\nHTML: <p>Saved <strong>now</strong></p>\n");
+});
+
 test("the pick's theme is the app's colour mode", async () => {
   await colorScheme("dark");
   const { copied } = await sandboxPage();
