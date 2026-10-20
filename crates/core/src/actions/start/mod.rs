@@ -17,7 +17,7 @@ mod commits;
 mod plan;
 mod typed;
 
-pub(crate) use plan::{check_clean, check_free};
+pub(crate) use plan::check_free;
 
 use typed::Typed;
 
