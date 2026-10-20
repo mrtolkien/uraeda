@@ -62,10 +62,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   chat, into the first module it transforms: `skipSnippets`, `hotKeys: false`, and `server: "close"`
   only blank its settings. The spec's "without its own overlay or server" holds only without the
   wrapper. The wrapper also writes a record file into its own `dist/` in `node_modules`
-  (`resetFileRecord`); the core's transform does not. Relative paths come from
-  `git rev-parse --show-toplevel`, run when the core is imported: the root of the checkout the
-  sandbox runs in. The core's optional `node-pty`, for its terminal, is never used: its build script
-  is refused with `node-pty: false` in `pnpm-workspace.yaml`'s `allowBuilds`.
+  (`resetFileRecord`); the core's transform does not. The core's relative paths come from
+  `git rev-parse --show-toplevel` run in the process's working folder as it is imported, so the
+  plugin asks for absolute paths and makes them relative to the root of the checkout holding Vite's
+  root, found as the config resolves. The core's optional `node-pty`, for its terminal, is never
+  used: its build script is refused with `node-pty: false` in `pnpm-workspace.yaml`'s `allowBuilds`.
 - **Alternatives considered**: the Vite plugin with its client in the sandbox's page, against the
   spec; stripping the client from its output, which depends on its internals; no source locations,
   which drops the pick's "Source" line.

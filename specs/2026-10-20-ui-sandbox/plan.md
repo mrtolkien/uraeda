@@ -274,8 +274,9 @@ The picker's tests are browser tests, on the real pick script.
 
 - Produces: `sourceLocations(): Plugin`, a Vite plugin of our own calling code-inspector's core
   transform, `transformCode` from `@code-inspector/core`, on the UI's `.jsx` and `.tsx` files:
-  `apply: "serve"`, `enforce: "pre"`, paths relative to the repository's root, and no client,
-  overlay, hotkeys, console snippet, or server (R6). It goes first, before `uiTransforms()` (R7).
+  `apply: "serve"`, `enforce: "pre"`, paths relative to the root of the checkout holding Vite's
+  root, and no client, overlay, hotkeys, console snippet, or server (R6). It goes first, before
+  `uiTransforms()` (R7).
 - Produces, for the browser tests of tasks 4 and 6:
   `pickScriptOnPage(): Promise<{ next(): Promise<PickedMessage>; start(): void; taken(): Array<PickedMessage> }>`,
   and `PickedMessage`.
@@ -289,8 +290,13 @@ test("a component keeps the compiler's and StyleX's output, and gains its source
 
   const code = await transformed(served, "/src/sandbox/SandboxBar.tsx");
 
-  // The bar's badge, at its line and column in the file as written.
-  expect(code).toContain('"data-insp-path": "packages/web/src/sandbox/SandboxBar.tsx:74:7:Badge"');
+  // The bar's badge, at its line and column in the file as written, both counted from 1.
+  const lines = (await readFile(join(web, "src/sandbox/SandboxBar.tsx"), "utf8")).split("\n");
+  const line = lines.findIndex((text) => text.includes("<Badge"));
+  const column = lines[line].indexOf("<Badge") + 1;
+  expect(code).toContain(
+    `"data-insp-path": "packages/web/src/sandbox/SandboxBar.tsx:${line + 1}:${column}:Badge"`,
+  );
   expect(code).toMatch(/react[/_]compiler-runtime/);
   expect(code).not.toContain("stylex.create(");
 });
@@ -355,7 +361,10 @@ The break each test catches:
 - [x] **Step 3: Implement `sourceLocations()`**
 
 A plugin of our own, `uraeda-source-locations`, calling `transformCode` with `fileType: "jsx"` and
-`pathType: "relative"` on `.jsx` and `.tsx` files outside `node_modules`. code-inspector's own Vite
+`pathType: "absolute"` on `.jsx` and `.tsx` files outside `node_modules`, each path then made
+relative to the root of the checkout holding Vite's `config.root`, found in `configResolved` with
+`git rev-parse --show-toplevel`: code-inspector's `"relative"` is from the checkout of the process's
+working folder, whatever Vite serves (checked by the file's last test). code-inspector's own Vite
 plugin, `code-inspector-plugin`, was tried first: it compiles with the React Compiler and StyleX,
 but injects its client into the first module it transforms, whatever its options (R6).
 
