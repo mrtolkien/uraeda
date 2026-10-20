@@ -17,6 +17,7 @@ current branch's feature, or the only one waiting for that action.
 | `ura check [path]`                                                    | The rules of [Markdown](conventions.md#markdown), file by file                          |
 | `ura draft <text>`                                                    | [Drafts](projects.md#starting-postponing-and-dropping-a-feature) a line                 |
 | `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`  | [Adds a note](inbox.md#capture) to the inbox, and commits it                            |
+| `ura inbox clean`, `--dry-run`                                        | Deletes [the orphan images](inbox.md#images-on-a-note) of drafts and the backlog        |
 | `ura start <draft>`, `--switch`, `--change`                           | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change |
 | `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`          | Answers a round of questions, then submits it                                           |
 | `ura review [feature] --comment`, `--approve`, `--request-changes`    | [Reviews](conventions.md#review-files) a spec or a plan                                 |

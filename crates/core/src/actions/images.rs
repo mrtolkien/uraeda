@@ -85,23 +85,97 @@ impl Linked {
     }
 }
 
-/// Deletes every file under `dir` that is not linked, then `dir` once empty, never following a
-/// symbolic link: a link is deleted as a file.
-fn prune(root: &Path, dir: &str, linked: &Linked) -> std::io::Result<()> {
+/// Every file under `dir` that is not linked, from the top level, never following a symbolic
+/// link: a link is a file.
+fn unlinked(
+    root: &Path,
+    dir: &str,
+    linked: &Linked,
+    found: &mut Vec<String>,
+) -> std::io::Result<()> {
     for entry in fs::read_dir(root.join(dir))?.flatten() {
         let Ok(kind) = entry.file_type() else {
             continue;
         };
         let path = format!("{dir}/{}", entry.file_name().to_string_lossy());
         if kind.is_dir() {
-            prune(root, &path, linked)?;
+            unlinked(root, &path, linked, found)?;
         } else if !linked.contains(&path) {
-            fs::remove_file(entry.path())?;
+            found.push(path);
+        }
+    }
+    Ok(())
+}
+
+/// Deletes the files of `paths`, then every folder left empty under `dir`, `dir` included.
+fn remove(root: &Path, dir: &str, paths: &[String]) -> std::io::Result<()> {
+    for path in paths {
+        fs::remove_file(root.join(path))?;
+    }
+    empty_folders(root, dir);
+    Ok(())
+}
+
+/// Removes `dir` and its subfolders once empty: a folder that holds anything stays.
+fn empty_folders(root: &Path, dir: &str) {
+    if let Ok(entries) = fs::read_dir(root.join(dir)) {
+        for entry in entries.flatten() {
+            if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+                empty_folders(
+                    root,
+                    &format!("{dir}/{}", entry.file_name().to_string_lossy()),
+                );
+            }
         }
     }
     // Fails while the folder holds anything, as it should.
     let _ = fs::remove_dir(root.join(dir));
-    Ok(())
+}
+
+/// Every image under `<folder>/images/` that no markdown file of `<folder>` or of its subfolders
+/// links, by an image, a link, a wikilink, or an embed: those a commit of the folder deletes. In
+/// order, from the top level. Nothing when `<folder>/images` is no folder of its own, as when it
+/// is reached through a symbolic link.
+pub fn unlinked_images(root: &Path, folder: &str) -> Vec<String> {
+    let images = images_folder(folder);
+    let mut found = Vec::new();
+    if root.join(&images).is_dir() && in_place(root, &images) {
+        let _ = unlinked(root, &images, &Linked::read(root, folder), &mut found);
+    }
+    found.sort();
+    found
+}
+
+/// The unlinked images of every folder draft and folder of the backlog: `specs/drafts/<slug>/` and
+/// `specs/backlog/<slug>/`.
+pub fn unlinked_in_drafts(root: &Path) -> Vec<String> {
+    let mut found = Vec::new();
+    for parent in ["specs/backlog", "specs/drafts"] {
+        let Ok(entries) = fs::read_dir(root.join(parent)) else {
+            continue;
+        };
+        let mut folders: Vec<String> = entries
+            .flatten()
+            .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+            .map(|entry| format!("{parent}/{}", entry.file_name().to_string_lossy()))
+            .collect();
+        folders.sort();
+        for folder in folders {
+            found.extend(unlinked_images(root, &folder));
+        }
+    }
+    found
+}
+
+/// Deletes the images [`unlinked_in_drafts`] finds, and the `images/` folders they leave empty.
+/// Returns them.
+pub fn delete_unlinked_in_drafts(root: &Path) -> Result<Vec<String>, ActionError> {
+    let found = unlinked_in_drafts(root);
+    for path in &found {
+        let folder = path.split("/images/").next().unwrap_or_default();
+        remove(root, &images_folder(folder), std::slice::from_ref(path))?;
+    }
+    Ok(found)
 }
 
 /// Whether `<folder>/images` is that folder itself, not reached through a symbolic link: files are
@@ -123,7 +197,8 @@ pub fn linked_images(place: &Place, folder: &str) -> Result<Vec<String>, ActionE
     let images = images_folder(folder);
     let dir = place.root.join(&images);
     if dir.is_dir() && in_place(&place.root, &images) {
-        prune(&place.root, &images, &Linked::read(&place.root, folder))?;
+        let found = unlinked_images(&place.root, folder);
+        remove(&place.root, &images, &found)?;
     }
     let git = Git::open(&place.root)?;
     let tracked = match git.head() {

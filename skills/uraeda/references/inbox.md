@@ -89,8 +89,31 @@ and add that title to a file without one.
   change's page, the note gets its slug. "Add and commit" commits the note alone, with
   `chore: add "<note>" to the inbox`, unless `INBOX.md` had other changes; its Undo commits the
   removal, `chore: remove "<note>" from the inbox`. "Add" leaves it for the commit bar's Commit. A
-  note with an image becomes a draft that holds it, and the note links to the draft.
+  note with images becomes a draft that holds them: pick, paste, or drop as many as it needs. The
+  note links to the draft.
 - **In the editor**: the plugin's "Add a note" action, which writes without committing.
+
+### Images on a note
+
+An image belongs beside the file that links it, and `INBOX.md` has no folder of its own: a note's
+images live in its draft, as [the attachments decision](/specs/decisions/attachments.md) says. By
+hand, to add images to a note:
+
+1. When the note links no draft, make one as [a new draft](#organizing-by-hand) says, with the note
+   in place of a priority: the note's text is its title and the first paragraph of What, its
+   sub-items follow, and the note's line becomes a link to the draft, with its marks kept and no
+   sub-items left.
+2. Put each image in the draft folder's `images/`, and link it at the end of What, each on a line of
+   its own after a blank line: `![alt](images/name.webp)`. A single-file draft becomes a folder
+   first, and the links to it follow.
+
+The web UI does it from a note's page, with "Add images", or by dropping them on the page, and draws
+the images under the note's text, and the first one on its row.
+
+An image no file of its folder links is an orphan: a commit of the folder deletes it, and one left
+in a folder nobody has committed stays on disk. `ura inbox clean` lists them with `--dry-run`, and
+deletes them without it, in every draft and backlog folder, leaving the deletion uncommitted. By
+hand, delete the files of `images/` that no markdown file of the folder links.
 
 ## Organizing by hand
 

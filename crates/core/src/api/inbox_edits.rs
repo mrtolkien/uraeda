@@ -364,3 +364,17 @@ pub fn undo_note_add(repo: &Path, lines: &[String]) -> Result<Inbox> {
     edits::undo_add(&place, lines)?;
     Ok(edits::read(&place))
 }
+
+/// The images of drafts and of the backlog that no markdown file of their folder links, from the
+/// top level, in order: deleted unless `dry_run`, with the `images/` folders they leave empty, on
+/// the default branch, uncommitted.
+pub fn clean_images(repo: &Path, dry_run: bool) -> Result<Vec<String>> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    if dry_run {
+        return Ok(crate::actions::images::unlinked_in_drafts(&place.root));
+    }
+    Ok(crate::actions::images::delete_unlinked_in_drafts(
+        &place.root,
+    )?)
+}
