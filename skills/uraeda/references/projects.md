@@ -103,8 +103,8 @@ Do these only when a human asks.
   folder holding files a change's folder has no place for, like a feature's `spec.md`: start that
   one as a feature. By hand, the steps above, with the entry linked to
   `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
-- **Start a change as a feature**: a started change becomes a feature in place, keeping its code,
-  its worktree, and its sessions, on the human's yes. With `ura`, `ura start <change> --feature`. By
+- **Start a change as a feature**: on the human's yes, a started change becomes a feature in place.
+  It keeps its code, its worktree, and its sessions. With `ura`, `ura start <change> --feature`. By
   hand, as [Upgrading](change.md#upgrading) says.
 - **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
   `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
@@ -115,11 +115,13 @@ Do these only when a human asks.
   Commit with `chore(<slug>): postpone <feature name>`, merge the branch into the default branch,
   and delete it.
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
-  `PRIORITIES.md` entry and its dated folder, in one commit, `chore(<slug>): drop <name>`. Remove
-  its worktree, never forced, and only when it has no uncommitted changes: otherwise it stays, and
-  say where. Keep the branch, so nothing is lost, and give the human `git branch -D <branch>` to
-  delete it. In the web UI, "Drop the change…" or "Drop the feature…" in a session's actions does
-  it. A merged feature is not dropped: `ura clean` removes it.
+  `PRIORITIES.md` entry and its dated folder, and commit them alone, `chore(<slug>): drop <name>`,
+  only when `PRIORITIES.md` had no other changes: otherwise the removals stay uncommitted, beside
+  the human's edits. Remove its worktree, never forced. It stays when it has uncommitted changes, is
+  locked, is the one you are in, or is outside `.worktrees/`: then say where it stays. Keep the
+  branch, so nothing is lost, and give the human `git branch -D <branch>` to delete it. In the web
+  UI, "Drop the change…" or "Drop the feature…" in a session's actions does it. A merged feature is
+  not dropped: `ura clean` removes it.
 
 ## Finishing a feature
 
