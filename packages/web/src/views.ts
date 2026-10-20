@@ -6,6 +6,7 @@ import type {
   BranchChanges,
   BranchDecision,
   Draft,
+  Dropped,
   Feature,
   FolderSuggestions,
   History,
@@ -128,6 +129,14 @@ export const FeatureView = view<Feature>()({
   tokens: { input: true, output: true, partial: true, since: true },
   uncommitted: true,
   worktree: true,
+});
+
+/** A change or a feature dropped: its branch, which stays, and the worktree left, with why. */
+export const DroppedView = view<Dropped>()({
+  branch: true,
+  committed: true,
+  id: true,
+  worktreeLeft: true,
 });
 
 /** A feature's branch changes, by its folder: null without a branch, and whether they `failed`. */

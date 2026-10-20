@@ -64,13 +64,13 @@ type Workflow = { file?: string; fresh?: boolean; step?: string; trigger: Trigge
 
 /** The composer's props. */
 export type ComposerProps = {
+  /** The session's actions, its "…", beside Send. */
+  actions?: ReactNode;
   /**
    * The session's blocked actions of the latest turn that an allow rule can match: from two,
    * "Allow all (N)" shows beside Send. The server counts them.
    */
   allow?: { count: number; onAllowAll: () => Promise<void> };
-  /** A chat's Archive, in the footer: "Unarchive" once archived. */
-  archive?: { archived: boolean; onArchive: () => Promise<void> };
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
   blocked?: string;
   folder?: string;
@@ -363,6 +363,7 @@ export function Composer(given: ComposerProps) {
   const onKeyDown = useEnter(input, canSend ? () => submit(value.trim()) : undefined);
   const placeholder = `Message ${name}`;
   const buttons = sendButtons({
+    actions: props.actions,
     allow: props.allow,
     canSend,
     hasContent,

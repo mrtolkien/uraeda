@@ -1,20 +1,25 @@
-// The actions by the session's composer: "Allow all (N)" beside Send (US3), and Archive in its
-// footer (US4), both from the server's record, not the page's own count.
+// The actions by the session's composer: "Allow all (N)" beside Send (US3), from the server's
+// record, not the page's own count, and the session's "…" beside it (merge chats US2): making it a
+// change, or its change a feature, renaming, archiving, and dropping its change or feature.
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
+import { addChange } from "uraeda-binding/test-utils";
 import {
   atWidth,
   click,
   type Fake,
   fakeAgent,
   fixtureRepo,
+  git,
   refreshUntil,
   renderPage,
+  serverFetch,
   today,
   type,
 } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
+const CHANGE = "2026-10-20-login-redirect";
 
 today("2026-10-12");
 
@@ -124,54 +129,121 @@ test("US3 more 2: after a normal message, Allow all is gone and the old banners 
   expect((await log()).getAllByRole("button", { name: "Allow and retry" })).toHaveLength(2);
 });
 
-test("US4.1: Archive is in the composer's footer, not the header, and the title still renames", async () => {
+/** The session's "…" beside Send, opened: its actions' names. */
+async function actions() {
+  await click(await screen.findByRole("button", { name: "Session actions" }));
+  await screen.findByRole("menu");
+  return screen.getAllByRole("menuitem").map((item) => item.textContent);
+}
+
+/** The change `login-redirect`, with a session. */
+async function seedChange(fake: Fake, repo: string) {
+  addChange(repo, CHANGE, { "proposal.md": "# Login redirects twice\n" });
+  await fake.sessions.featureSession(repo, CHANGE);
+}
+
+/** Merge chats US2.3, US4 */
+test("a session's … holds Make it a change, Rename, Archive", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo);
   await renderPage(`/sessions/${id}`, repo, { agent: fake });
 
-  const archive = await screen.findByRole("button", { name: "Archive" });
-
-  expect(archive.closest("h1")).toBeNull();
-  // After the transcript, with the composer, not in the header's block.
-  const field = screen.getByRole("textbox", { name: "Message Claude Code" });
-  expect(field.compareDocumentPosition(archive) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  const heading = screen.getByRole("heading", { level: 1 });
-  expect(heading.parentElement?.contains(archive)).toBe(false);
-  expect(within(heading).getByRole("button", { name: "List the drafts" })).toBeTruthy();
+  expect(await actions()).toEqual(["Make it a change", "Rename", "Archive"]);
 });
 
-test("US4.2: an archived chat reads Unarchive in the footer", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  const id = await seedChat(fake, repo);
-  await renderPage(`/sessions/${id}`, repo, { agent: fake });
-
-  await click(await screen.findByRole("button", { name: "Archive" }));
-
-  expect(await screen.findByRole("button", { name: "Unarchive" })).toBeTruthy();
-});
-
-test("US4 more 1: a feature's session has no Archive", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await blockedRun(fake, repo, TWO);
-  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
-  await screen.findByRole("textbox", { name: "Message Claude Code" });
-
-  expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
-});
-
-test("Edge: Archive pressed while the session works archives it", async () => {
+test("Archive in a session's … archives it, and Unarchive brings it back", async () => {
   atWidth(402);
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const id = await seedChat(fake, repo);
+  // Pressed while the session works.
   fake.adapter.script([]);
   await fake.sessions.send(repo, id, { text: "And the closed ones?" });
   await renderPage(`/sessions/${id}`, repo, { agent: fake });
 
-  await click(await screen.findByRole("button", { name: "Archive" }));
+  await actions();
+  await click(screen.getByRole("menuitem", { name: "Archive" }));
 
-  expect(await screen.findByRole("button", { name: "Unarchive" })).toBeTruthy();
+  await waitFor(() => expect(fake.sessions.cache.session(id)?.archivedAt).not.toBeNull());
+  expect(await actions()).toContain("Unarchive");
+});
+
+test("Rename in a session's … renames it, and every session's title renames in place", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await blockedRun(fake, repo, TWO);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+  const heading = await screen.findByRole("heading", { level: 1 });
+  expect(within(heading).getByRole("button")).toBeTruthy();
+
+  await actions();
+  await click(screen.getByRole("menuitem", { name: "Rename" }));
+  await type(await screen.findByRole("textbox", { name: "Title" }), "CLI and TUIs");
+  await click(screen.getByRole("button", { name: "Save" }));
+
+  await refreshUntil(() =>
+    expect(
+      within(screen.getByRole("heading", { level: 1 })).getByText("CLI and TUIs"),
+    ).toBeTruthy(),
+  );
+});
+
+/** Merge chats US2 more 3 */
+test("a change's … holds Make it a feature, Rename, Drop the change…", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedChange(fake, repo);
+  await renderPage(`/f/${CHANGE}/session`, repo, { agent: fake });
+
+  expect(await actions()).toEqual(["Make it a feature", "Rename", "Drop the change…"]);
+});
+
+test("a feature's … holds Rename and Drop the feature…", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await blockedRun(fake, repo, TWO);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+
+  expect(await actions()).toEqual(["Rename", "Drop the feature…"]);
+});
+
+/** "Drop the change…", picked in the session's "…": its confirmation. */
+async function askDrop() {
+  await actions();
+  await click(screen.getByRole("menuitem", { name: "Drop the change…" }));
+  return within(await screen.findByRole("dialog", { name: "Drop the change login-redirect?" }));
+}
+
+/** Merge chats US2.4 */
+test("Drop the change… asks first", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedChange(fake, repo);
+  const server = serverFetch(repo, fake.sessions);
+  let drops = 0;
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    if (typeof init?.body === "string" && init.body.includes("feature.drop")) {
+      drops++;
+    }
+    return server(input, init);
+  };
+  await renderPage(`/f/${CHANGE}/session`, repo, { agent: fake, fetch });
+  const dialog = await askDrop();
+  expect(
+    dialog.getByText(
+      `Its entry leaves Now, its worktree is removed, and its sessions are archived. Its branch stays, so nothing is lost: git branch -D change/${CHANGE} deletes it.`,
+    ),
+  ).toBeTruthy();
+  expect(dialog.getByRole("button", { name: "Drop the change" })).toBeTruthy();
+  await click(dialog.getByRole("button", { name: "Keep the change" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(drops).toBe(0);
+
+  await click((await askDrop()).getByRole("button", { name: "Drop the change" }));
+
+  await waitFor(() => expect(drops).toBe(1));
+  await waitFor(() =>
+    expect(git(repo, "branch", "--list", `change/${CHANGE}`).trim()).toBe(`change/${CHANGE}`),
+  );
 });

@@ -94,13 +94,13 @@ When a session's work should not land on the default branch directly, the agent 
 the session, or you pick "Make it a change" in the "…" beside Send. You edit its proposal and slug,
 start it, and the same session goes on in the change's worktree.
 
-[The offer](/packages/web/src/NewSession.stories.tsx#ChangeOffer)
+[The offer](/packages/web/src/OfferCard.stories.tsx#ChangeOffer)
 
-[A session's actions](/packages/web/src/NewSession.stories.tsx#SessionActions)
+[A session's actions](/packages/web/src/SessionActions.stories.tsx#SessionActions)
 
-[Once started](/packages/web/src/NewSession.stories.tsx#ChangeStarted)
+[Once started](/packages/web/src/SessionActions.stories.tsx#ChangeStarted)
 
-[Dropping a change](/packages/web/src/NewSession.stories.tsx#DropChange)
+[Dropping a change](/packages/web/src/SessionActions.stories.tsx#DropChange)
 
 Key scenarios:
 
@@ -165,7 +165,7 @@ When the agent finds a change needs an approved spec, before or after its round 
 offers to make it a feature. On your yes, the branch and folder become a feature's, the code stays,
 and the same session goes on with the feature's discovery.
 
-[The offer](/packages/web/src/NewSession.stories.tsx#FeatureOffer)
+[The offer](/packages/web/src/OfferCard.stories.tsx#FeatureOffer)
 
 Key scenarios:
 

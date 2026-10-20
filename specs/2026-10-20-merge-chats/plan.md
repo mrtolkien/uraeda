@@ -933,15 +933,25 @@ git commit -m "feat(merge-chats): one New page starts a session, a change, or a 
 
 **Files:**
 
-- Start from: [`NewSession.stories.tsx#ChangeOffer`](/packages/web/src/NewSession.stories.tsx),
-  `#SessionActions`, `#ChangeStarted`, `#DropChange`, `#FeatureOffer`
-- Create: `packages/web/src/OfferCard.tsx`, `packages/web/src/SessionActions.tsx`
+- Start from: the mockups `NewSession.stories.tsx#ChangeOffer`, `#SessionActions`, `#ChangeStarted`,
+  `#DropChange`, `#FeatureOffer`, now
+  [`OfferCard.stories.tsx#ChangeOffer`](/packages/web/src/OfferCard.stories.tsx), `#FeatureOffer`,
+  and [`SessionActions.stories.tsx#SessionActions`](/packages/web/src/SessionActions.stories.tsx),
+  `#ChangeStarted`, `#DropChange`, on the real components; `NewSession.stories.tsx` is deleted
+- Create: `packages/web/src/OfferCard.tsx`, `packages/web/src/SessionActions.tsx`,
+  `packages/web/src/SessionOffers.tsx` (the offer's place in the transcript, the card the "…" opens,
+  and the lines a move leaves), `packages/web/src/offers.ts` (the offer block, and what the page
+  keeps of it), their stories
 - Modify: `packages/web/src/Composer.tsx` (structural split first:
   `refactor(merge-chats): split the composer's send actions`), `ComposerSend.tsx`, `Prose.tsx`
-  (`plugins` prop), `TranscriptMessages.tsx` (`AgentMessage` draws the offer), `SessionPage.tsx`
-  (header rename for every session; the "…" in place of the footer's Archive),
-  `useSessionControls.ts`
-- Test: `packages/web/src/__tests__/offer.test.tsx`, `session-actions.test.tsx`
+  (`plugins` prop, `fencePlugin`), `TranscriptMessages.tsx` (`AgentMessage` draws the offer),
+  `SessionPage.tsx` (header moved to `SessionHeader.tsx` first,
+  `refactor(merge-chats): move the session's header to its own file`; header rename for every
+  session; the "…" in place of the footer's Archive; an earlier session drawn as its feature's),
+  `useSessionControls.ts`, `sidebar/RenameSession.tsx` (opened from the page too), `views.ts`
+  (`DroppedView`), `NewChangePage.tsx` (`useSettled` exported)
+- Test: `packages/web/src/__tests__/offer.test.tsx`, `session-actions.test.tsx`,
+  `feature-sessions.test.tsx`
 
 **Interfaces:**
 
@@ -955,14 +965,16 @@ crumbs, its side column, and its workflow composer, the run handed to that sessi
 without a folder keeps today's page. Test: "an earlier session of a feature opens with its feature's
 column and crumbs".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `offer.test.tsx`:
 
 - "Start the change from the agent's offer": an agent message with a ` ```uraeda-offer change `
-  block holding `# Login redirects twice` and its text; the card shows them, the slug
-  `login-redirect`; "Start the change" calls `session.toChange` once (SC-001), and the page shows
-  "Started as the change Login redirects twice, on change/2026-10-20-login-redirect".
+  block holding `# Login redirects twice` and its text; the card shows them, the slug the core
+  proposes, `login-redirects`
+  ([R27](rulings.md#r27-the-menus-moves-open-their-card-and-a-sessions-own-name-titles-its-page));
+  "Start the change" calls `session.toChange` once (SC-001), and the page shows "Started as the
+  change Login redirects twice, on change/2026-10-20-login-redirects".
 - "Not now closes the card and writes nothing".
 - "Start the change waits while the agent works": the button is disabled with "The agent is
   working".
@@ -978,17 +990,21 @@ column and crumbs".
 - "a change's … holds Make it a feature, Rename, Drop the change…".
 - "Drop the change… asks first": the confirmation's exact title, body, and buttons; confirming calls
   `feature.drop`; "Keep the change" calls nothing.
-- Replace "a feature's session has no Archive" and the footer Archive tests (ruling).
+- "a feature's … holds Rename and Drop the feature…", "Archive in a session's … archives it, and
+  Unarchive brings it back", and "Rename in a session's … renames it, and every session's title
+  renames in place" replace "a feature's session has no Archive" and the footer Archive tests
+  ([R26](rulings.md#r26-archive-moves-into-the-sessions--and-its-footer-tests-become-the-s)).
 
 - [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/web/src/__tests__/offer.test.tsx packages/web/src/__tests__/session-actions.test.tsx`
-- Expected: FAIL, `Unable to find role "button" and name "Start the change"`.
+- Expected: FAIL, `Unable to find role="region" and name "Start a change"` (the card), and
+  `Unable to find role="button" and name "Session actions"`.
 
-- [ ] **Step 3: Implement the actions and the card**
+- [x] **Step 3: Implement the actions and the card**
 
-- [ ] **Step 4: Run the web suite**
+- [x] **Step 4: Run the web suite**
 
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS.

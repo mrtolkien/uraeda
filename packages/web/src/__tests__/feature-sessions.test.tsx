@@ -122,3 +122,19 @@ test("Stop stops the working session", async () => {
   await waitFor(() => expect(agent.interrupts).toBe(1));
   expect(card.getAllByRole("button", { name: "Stop" })).toHaveLength(1);
 });
+
+/** US5 more 1: an earlier session is its feature's session page, at its own address. */
+test("an earlier session of a feature opens with its feature's column and crumbs", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const { first } = await twoSessions(fake, repo);
+
+  await renderPage(`/sessions/${first.id}`, repo, { agent: fake });
+
+  expect(await screen.findByRole("navigation", { name: "Breadcrumbs" })).toBeTruthy();
+  expect(await screen.findByRole("complementary", { name: "Progress" })).toBeTruthy();
+  // Its own transcript, not the latest session's.
+  const log = within(await screen.findByRole("log", { name: "Conversation" }));
+  expect(await log.findByText("Planned.")).toBeTruthy();
+  expect(log.queryByText("Build it.")).toBeNull();
+});

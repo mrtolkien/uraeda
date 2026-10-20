@@ -17,7 +17,9 @@ import {
   takeBackInto,
   useDraft,
 } from "./useDraft.ts";
+import { SessionActions, type SessionItem } from "./SessionActions.tsx";
 import { SessionHeader } from "./SessionHeader.tsx";
+import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
 import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
@@ -27,7 +29,7 @@ import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
-import { redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
+import { redirect, sessionIdPath, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { type Controls, useSessionControls } from "./useSessionControls.ts";
 import { StoriesProvider } from "./stories.tsx";
@@ -60,15 +62,33 @@ type Handing = {
   workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
 };
 
+/** What a page cannot find, with the way home. */
+function Missing({ title }: { title: string }) {
+  const here = useRepoPath();
+  return (
+    <Banner
+      collapsible={false}
+      description={
+        <Link hasUnderline href={here("/")}>
+          Open home
+        </Link>
+      }
+      status="error"
+      title={title}
+    />
+  );
+}
+
 /**
  * A session's header, transcript, and errors, or why there is no session `id`. While the human
  * reads above its end, it gives the pane the jump back to the latest.
  */
 function SessionLog({
-  controls: { allow, chat, error },
+  controls: { allow, error, rename },
   crumbs,
   draft,
   id,
+  item,
   onJump,
 }: {
   /** What the pane's controls hold: the composer shares them. */
@@ -76,11 +96,12 @@ function SessionLog({
   crumbs?: string | undefined;
   draft: Draft;
   id: string;
+  /** The change or the feature the session belongs to. */
+  item?: SessionItem | undefined;
   /** Called with the jump to the latest while the page does not follow the end, or `undefined`. */
   onJump?: (jump: (() => void) | undefined) => void;
 }) {
   const fate = useFateClient();
-  const here = useRepoPath();
   const session = useSession(id);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
@@ -101,26 +122,19 @@ function SessionLog({
     }
   }, [fate, id, unseen]);
   if (!session) {
-    return (
-      <Banner
-        collapsible={false}
-        description={
-          <Link hasUnderline href={here("/")}>
-            Open home
-          </Link>
-        }
-        status="error"
-        title={`No session ${id}.`}
-      />
-    );
+    return <Missing title={`No session ${id}.`} />;
   }
+  // A session whose change or feature is gone offers nothing.
+  const kind = session.folder === null ? "session" : (item?.kind ?? "feature");
+  const offering = { ...(item ? { folder: item.folder } : {}), id, working };
   return (
     <VStack gap={3}>
       <SessionHeader
         place={session.place}
         status={{ label: session.statusLabel, status: session.status }}
-        title={session.title}
-        {...(chat ? { chat } : {})}
+        // Its own name once renamed, else its change's or feature's title.
+        title={session.name ?? session.title}
+        {...(rename ? { rename } : {})}
       />
       {crumbs !== undefined && <ProgressLine folder={crumbs} session={id} />}
       <div ref={log}>
@@ -129,13 +143,16 @@ function SessionLog({
           folder={crumbs ?? MAIN_CHECKOUT}
           stories={[]}
         >
-          <Transcript
-            canAllow={!working}
-            groups={groups}
-            onAllow={allow}
-            onTakenBack={takeBackInto(draft)}
-            session={session}
-          />
+          <OffersProvider kind={kind} session={offering} turns={session.turns}>
+            <Transcript
+              canAllow={!working}
+              groups={groups}
+              onAllow={allow}
+              onTakenBack={takeBackInto(draft)}
+              session={session}
+            />
+            <SessionEnd id={id} turns={session.turns} />
+          </OffersProvider>
         </StoriesProvider>
       </div>
       <Attention folder={crumbs} session={session} />
@@ -172,6 +189,7 @@ function SessionPane({
   folder,
   handing = {},
   id,
+  item,
   onSent,
   title,
 }: {
@@ -185,6 +203,8 @@ function SessionPane({
   handing?: Handing;
   /** The session, once it exists. */
   id?: string;
+  /** The change or the feature the session belongs to, once read. */
+  item?: SessionItem;
   /** Called with the session a message created, before it exists. */
   onSent?: (session: string) => void;
   /** The title before the session exists. */
@@ -220,6 +240,7 @@ function SessionPane({
               crumbs={crumbs}
               draft={draft}
               id={id}
+              item={item}
               onJump={(next) => setJump(() => next)}
             />
           </Suspense>
@@ -231,13 +252,17 @@ function SessionPane({
             {...composerDraft(draft)}
             {...(id === undefined ? {} : { session: id })}
             working={session?.status === "working"}
-            {...(session && controls.chat
+            {...(session && id !== undefined
               ? {
-                  archive: { archived: controls.chat.archived, onArchive: controls.chat.onArchive },
+                  actions: (
+                    <SessionActions
+                      controls={controls}
+                      item={item}
+                      session={{ ...session, title: session.name ?? session.title }}
+                    />
+                  ),
+                  allow: { count: session.allowable, onAllowAll: controls.allowAll },
                 }
-              : {})}
-            {...(session
-              ? { allow: { count: session.allowable, onAllowAll: controls.allowAll } }
               : {})}
             {...handing}
             {...(blocked === undefined ? {} : { blocked })}
@@ -262,8 +287,10 @@ const NO_BRANCH = "This feature has no branch left: it is merged.";
  * A hand-over refused, as when the feature waits on you, shows why and holds no workflow: what the
  * composer holds goes as a chat. Opened to ask about a block (`?ask=<quote>`), it starts with the
  * quote and an empty line. Otherwise, its composer offers the feature's recommended message.
+ * Given the ID of one of its sessions, an earlier one, it draws that session, and its run goes
+ * there; one whose change or feature is gone, as once dropped, draws as a session alone.
  */
-function FeatureSession({ folder }: { folder: string }) {
+function FeatureSession({ folder, id: given }: { folder: string; id?: string }) {
   const feature = useFeature(folder);
   const here = useRepoPath();
   const aside = useAsideShown();
@@ -293,25 +320,24 @@ function FeatureSession({ folder }: { folder: string }) {
     }
   }, [workflow, ask, search, setText]);
   if (!feature || feature.missing) {
-    return (
+    return given === undefined ? (
       <Page>
-        <Banner
-          collapsible={false}
-          description={
-            <Link hasUnderline href={here("/")}>
-              Open home
-            </Link>
-          }
-          status="error"
-          title={`No feature ${folder}.`}
-        />
+        <Missing title={`No feature ${folder}.`} />
       </Page>
+    ) : (
+      <SessionPane draft={draft} id={given} />
     );
   }
   // A feature whose proposal is not committed has no branch for the agent to work on: the server
   // refuses every message with the same words.
   const blocked = feature.branch ? undefined : NO_BRANCH;
-  const id = feature.session ?? created;
+  const id = given ?? feature.session ?? created;
+  const item: SessionItem = {
+    branch: feature.branch ?? null,
+    folder,
+    kind: feature.kind === "change" ? "change" : "feature",
+    slug: feature.slug,
+  };
   const read = (message: ReadMessage) => {
     setRefusal(message.refusal === null ? undefined : { search, text: message.refusal });
     fresh.read(message);
@@ -322,7 +348,8 @@ function FeatureSession({ folder }: { folder: string }) {
     }
   };
   // Sent: the address no longer asks for the message, or the quote.
-  const sent = () => redirect(here(sessionPath(folder)));
+  const sent = () =>
+    redirect(here(given === undefined ? sessionPath(folder) : sessionIdPath(given)));
   const handing: Handing = workflow
     ? refused === undefined
       ? { ...fresh.handing(workflow), onSent: sent }
@@ -341,6 +368,7 @@ function FeatureSession({ folder }: { folder: string }) {
         draft={draft}
         folder={folder}
         handing={handing}
+        item={item}
         title={feature.title}
         {...(id === undefined ? {} : { id })}
         {...(blocked === undefined ? {} : { blocked })}
@@ -355,9 +383,16 @@ function FeatureSession({ folder }: { folder: string }) {
   );
 }
 
-/** A chat, with its announcer. */
-function ChatSession({ draft, id }: { draft: Draft; id: string }) {
+/**
+ * A session by its ID, with its announcer: a change's or a feature's draws as its session page,
+ * its crumbs and column, and a session without a workflow alone.
+ */
+function IdSession({ draft, id }: { draft: Draft; id: string }) {
   const created = useCreatedHere();
+  const folder = useSession(id)?.folder;
+  if (folder) {
+    return <FeatureSession folder={folder} id={id} />;
+  }
   return (
     <>
       <SessionPane draft={draft} id={id} />
@@ -366,7 +401,7 @@ function ChatSession({ draft, id }: { draft: Draft; id: string }) {
   );
 }
 
-/** A session's page: a feature's, by its folder, or a chat, by its ID. */
+/** A session's page: a feature's latest, by its folder, or any session, by its ID. */
 export function SessionPage(props: { folder: string } | { id: string }) {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
@@ -374,5 +409,5 @@ export function SessionPage(props: { folder: string } | { id: string }) {
   if ("folder" in props) {
     return <FeatureSession folder={props.folder} />;
   }
-  return <ChatSession draft={draft} id={props.id} />;
+  return <IdSession draft={draft} id={props.id} />;
 }

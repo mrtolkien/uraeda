@@ -15,6 +15,7 @@ import { refusal } from "./errors.ts";
 import { statusStyles } from "./Question.tsx";
 import { ProseMarkdown } from "./Prose.tsx";
 import { MessageBody } from "./MessageBody.tsx";
+import { useOfferPlugins } from "./SessionOffers.tsx";
 import { ToolGroup, type ToolGroupSlot } from "./ToolGroups.tsx";
 import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
@@ -147,16 +148,25 @@ function Message({
 }
 
 /**
- * An agent's message, as markdown, with the stories it links once it ended: flat text across the
- * page, with no bubble of its own, so a story shows in the width the page has.
+ * An agent's message, as markdown, with the stories it links and its offer card once it ended:
+ * flat text across the page, with no bubble of its own, so a story shows in the width the page
+ * has. `at` is its place in the session, `<turn>:<seq>`.
  */
-function AgentMessage({ streaming, text }: { streaming: boolean; text: string }) {
+function AgentMessage({ at, streaming, text }: { at: string; streaming: boolean; text: string }) {
   const stories = useMemo<MessageStories>(() => ({ ended: !streaming }), [streaming]);
+  const plugins = useOfferPlugins(at, streaming, text);
   return (
     <ChatMessage sender="assistant">
       <ChatMessageBubble variant="ghost" width={AGENT_WIDTH} xstyle={styles.agent}>
         <MessageStories value={stories}>
-          <ProseMarkdown components={agentStories}>{text}</ProseMarkdown>
+          {/* Drawn again once its offer shows: Astryx keeps a text's parse while the text stays. */}
+          <ProseMarkdown
+            components={agentStories}
+            key={plugins ? "offer" : "text"}
+            plugins={plugins}
+          >
+            {text}
+          </ProseMarkdown>
         </MessageStories>
       </ChatMessageBubble>
     </ChatMessage>
@@ -261,7 +271,14 @@ export function TranscriptItems({
         <Message actions={actions} canTakeBack={canTakeBack} item={item} key={item.seq} />,
       );
     } else if (item.kind === "text") {
-      shown.push(<AgentMessage key={item.seq} streaming={item.streaming} text={item.text} />);
+      shown.push(
+        <AgentMessage
+          at={`${turn}:${item.seq}`}
+          key={item.seq}
+          streaming={item.streaming}
+          text={item.text}
+        />,
+      );
     } else if (item.kind === "system") {
       shown.push(
         <ChatSystemMessage key={item.seq} xstyle={styles.notice}>

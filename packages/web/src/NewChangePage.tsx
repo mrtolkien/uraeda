@@ -21,7 +21,7 @@ import { runWrite, useWrites } from "./writes/store.ts";
 const PROPOSAL_DELAY = 200;
 
 /** The text, as typed 200 ms ago: what the slug is proposed for. */
-function useSettled(text: string) {
+export function useSettled(text: string) {
   const [settled, setSettled] = useState(text);
   useEffect(() => {
     const timer = setTimeout(() => startTransition(() => setSettled(text)), PROPOSAL_DELAY);
