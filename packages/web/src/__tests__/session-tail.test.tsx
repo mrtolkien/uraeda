@@ -262,11 +262,16 @@ test("focus 5: a cut inside a turn's last page leaves a sub-agent's later tools 
   expect(messagesIn(log)).toHaveLength(20);
   expect(log.getByText("Reply 11")).toBeTruthy();
   expect(log.queryByText("Reply 10")).toBeNull();
-  // The 14 children, whose sub-agent was cut, all draw, without a label of the sub-agent.
+  // The 14 children, whose sub-agent was cut, are a group of their own, without a label of the
+  // sub-agent. Folded, it draws its latest call, in its header and one row, and no other row; open,
+  // all 14 draw.
   expect(log.queryByText("Explore the tests")).toBeNull();
   expect(log.getAllByRole("button", EARLIER)).toHaveLength(1);
-  const children = new Set(log.getAllByText(/^child-\d+$/).map((element) => element.textContent));
-  expect(children.size).toBe(14);
+  const children = () =>
+    new Set(log.getAllByText(/^child-\d+$/).map((element) => element.textContent));
+  expect(children().size).toBe(1);
+  await click(log.getAllByText("child-13")[0]!);
+  expect(children().size).toBe(14);
 });
 
 test("focus 6: a turn with no item yet at the end draws nothing, and the walk goes on", async () => {
