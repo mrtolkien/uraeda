@@ -4,7 +4,7 @@
 use std::path::{Component, Path, PathBuf};
 
 use crate::steps::StepName;
-use crate::workspace::{Workspace, branch_folder};
+use crate::workspace::{Feature, Workspace, branch_folder};
 
 /// What the command is for, which decides the candidates and what waits for it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -187,6 +187,19 @@ fn by_name(workspace: &Workspace, name: &str, purpose: Purpose) -> Result<Target
     }
 }
 
+/// Whether a feature or change waits at a gate for the human's action: a round of questions for
+/// [`Purpose::Answers`], a spec or a plan for [`Purpose::Review`].
+pub fn waits_for(feature: &Feature, purpose: Purpose) -> bool {
+    let step = &feature.step;
+    let file = step.file.as_deref().unwrap_or_default();
+    step.name == StepName::HumanGate
+        && match purpose {
+            Purpose::Answers => file.starts_with("clarifications-"),
+            Purpose::Review => ["spec.md", "plan.md"].contains(&file),
+            _ => false,
+        }
+}
+
 fn waiting(workspace: &Workspace, purpose: Purpose) -> Result<Target, TargetError> {
     if let Some(index) = workspace
         .current_branch
@@ -196,16 +209,7 @@ fn waiting(workspace: &Workspace, purpose: Purpose) -> Result<Target, TargetErro
     {
         return Ok(Target::Feature(index));
     }
-    let gate = |index: &usize| {
-        let step = &workspace.features[*index].step;
-        let file = step.file.as_deref().unwrap_or_default();
-        step.name == StepName::HumanGate
-            && match purpose {
-                Purpose::Answers => file.starts_with("clarifications-"),
-                Purpose::Review => ["spec.md", "plan.md"].contains(&file),
-                _ => false,
-            }
-    };
+    let gate = |index: &usize| waits_for(&workspace.features[*index], purpose);
     let candidates: Vec<usize> = (0..workspace.features.len()).filter(gate).collect();
     match candidates.as_slice() {
         [index] => Ok(Target::Feature(*index)),
