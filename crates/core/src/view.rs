@@ -15,7 +15,7 @@ use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
 mod feature;
 
-pub use feature::{FeatureView, FileSummary, StartedView, StepView};
+pub use feature::{FeatureView, FileSummary, PromotedView, StartedView, StepView};
 
 mod version;
 

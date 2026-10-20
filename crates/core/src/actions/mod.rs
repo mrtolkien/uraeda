@@ -14,6 +14,7 @@ pub mod init;
 pub mod install;
 pub mod place;
 pub mod priorities;
+pub mod promote;
 pub mod review;
 pub mod start;
 pub mod text;

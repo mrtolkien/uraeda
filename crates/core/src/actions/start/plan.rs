@@ -9,10 +9,10 @@ use crate::actions::place;
 use crate::check::change_holds;
 use crate::files::markdown::Document;
 use crate::files::priorities::{self, Entry};
-use crate::git::GitError;
+use crate::git::{Git, GitError};
 use crate::target::draft_name;
 use crate::today::Date;
-use crate::workspace::{Kind, folder_branch, folder_path, resolve};
+use crate::workspace::{Kind, Workspace, folder_branch, folder_path, resolve};
 
 use super::typed::Typed;
 use super::{Source, Start, StartError};
@@ -260,29 +260,8 @@ impl Start<'_> {
             )));
         }
         let folder = format!("{today}-{slug}");
-        let features = &self.workspace.features;
-        let record = crate::workspace::record_path(&folder);
-        let recorded = self.root.join(&record).exists()
-            || features
-                .iter()
-                .any(|feature| feature.folder == folder && feature.is_finished());
-        if recorded {
-            return Err(StartError::Refused(format!(
-                "{record} exists: choose another slug with --slug"
-            )));
-        }
         let kinds = [Kind::Feature, Kind::Change];
-        let branches = self.at.branches()?;
-        let taken = kinds.iter().any(|&kind| {
-            let branch_name = folder_branch(kind, &folder);
-            branches.iter().any(|branch| branch.name == branch_name)
-                || self.root.join(folder_path(kind, &folder)).exists()
-        }) || features.iter().any(|feature| feature.folder == folder);
-        if taken {
-            return Err(StartError::Refused(format!(
-                "{folder} exists: choose another slug with --slug"
-            )));
-        }
+        check_free(self.root, &self.at, self.workspace, &folder, &kinds)?;
         Ok(folder)
     }
 
@@ -301,25 +280,65 @@ impl Start<'_> {
     /// Refuses uncommitted changes outside the draft and `PRIORITIES.md`, and staged files the
     /// start commit would carry.
     fn check_clean(&self, files: &[String]) -> Result<(), StartError> {
-        let others: Vec<String> = self
-            .at
-            .changed_files()?
-            .into_iter()
-            .filter(|file| file != "specs/PRIORITIES.md" && !files.contains(file))
-            .collect();
-        if !others.is_empty() {
-            return Err(StartError::Refused(format!(
-                "cannot start: uncommitted changes in {}",
-                others.join(", ")
-            )));
-        }
-        let staged =
-            crate::git::others_staged(&self.at.staged_files()?, &["specs/PRIORITIES.md".into()]);
-        if !staged.is_empty() {
-            return Err(GitError::OtherStagedFiles(staged).into());
-        }
-        Ok(())
+        check_clean(&self.at, files)
     }
+}
+
+/// Refuses a dated folder that a record, a branch, or a folder already holds, as one of `kinds`,
+/// from the default branch's working tree at `root`.
+pub(crate) fn check_free(
+    root: &Path,
+    at: &Git,
+    workspace: &Workspace,
+    folder: &str,
+    kinds: &[Kind],
+) -> Result<(), StartError> {
+    let features = &workspace.features;
+    let record = crate::workspace::record_path(folder);
+    let recorded = root.join(&record).exists()
+        || features
+            .iter()
+            .any(|feature| feature.folder == folder && feature.is_finished());
+    if recorded {
+        return Err(StartError::Refused(format!(
+            "{record} exists: choose another slug with --slug"
+        )));
+    }
+    let branches = at.branches()?;
+    let taken = kinds.iter().any(|&kind| {
+        let branch_name = folder_branch(kind, folder);
+        branches.iter().any(|branch| branch.name == branch_name)
+            || root.join(folder_path(kind, folder)).exists()
+    }) || features
+        .iter()
+        .any(|feature| feature.folder == folder && kinds.contains(&feature.kind));
+    if taken {
+        return Err(StartError::Refused(format!(
+            "{folder} exists: choose another slug with --slug"
+        )));
+    }
+    Ok(())
+}
+
+/// Refuses uncommitted changes in the working tree of `at` outside `files` and `PRIORITIES.md`,
+/// and staged files a commit would carry.
+pub(crate) fn check_clean(at: &Git, files: &[String]) -> Result<(), StartError> {
+    let others: Vec<String> = at
+        .changed_files()?
+        .into_iter()
+        .filter(|file| file != "specs/PRIORITIES.md" && !files.contains(file))
+        .collect();
+    if !others.is_empty() {
+        return Err(StartError::Refused(format!(
+            "cannot start: uncommitted changes in {}",
+            others.join(", ")
+        )));
+    }
+    let staged = crate::git::others_staged(&at.staged_files()?, &["specs/PRIORITIES.md".into()]);
+    if !staged.is_empty() {
+        return Err(GitError::OtherStagedFiles(staged).into());
+    }
+    Ok(())
 }
 
 /// What puts a typed change's proposal, and its images, in `destination`, as the step left to do

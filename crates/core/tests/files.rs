@@ -84,6 +84,16 @@ fn frontmatter_set_keeps_every_other_byte() {
 }
 
 #[test]
+fn setting_a_field_to_nothing_leaves_no_trailing_space() {
+    let text = "---\nstatus: active\napproved-by: mrtolkien\n---\n";
+
+    assert_eq!(
+        frontmatter::set(text, "approved-by", ""),
+        "---\nstatus: active\napproved-by:\n---\n"
+    );
+}
+
+#[test]
 fn setting_a_field_keeps_its_comment() {
     let text = "---\ndiscovery: high # low, medium, or high\n---\n";
 
