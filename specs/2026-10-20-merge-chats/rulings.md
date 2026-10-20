@@ -519,7 +519,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `packages/server/src/open-client.ts`.
 - **Where**: `packages/server/src/open-client.ts`, `packages/server/src/__tests__/main.test.ts`.
 
-## R30: The inbox's drags drop once the note is drawn where it goes
+## R31: The inbox's drags drop once the note is drawn where it goes
 
 - **Decision**: the inbox's mouse drags measure their target once the page is laid out, fonts loaded
   and animations ended, and drop once the page draws the note at its place in the target category,
