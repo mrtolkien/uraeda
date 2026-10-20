@@ -80,6 +80,7 @@ fn dropping_a_change_removes_its_entry_and_its_worktree_and_keeps_its_branch() {
 
     assert_eq!(dropped.branch, CHANGE_BRANCH);
     assert_eq!(dropped.worktree, None);
+    assert!(dropped.committed);
     assert_eq!(
         repo.subjects("main")[0],
         "chore(login-redirect): drop Login redirects twice"
@@ -124,6 +125,7 @@ fn a_feature_is_dropped_the_same_way() {
 
     let dropped = api::drop_item(repo.path(), CHANGE).unwrap();
 
+    assert!(dropped.committed);
     assert_eq!(dropped.branch, CHANGE);
     assert_eq!(dropped.worktree_left, None);
     assert_eq!(
@@ -175,4 +177,26 @@ fn a_failed_worktree_removal_says_the_entry_was_removed() {
         "{message}"
     );
     assert!(!priorities(&repo).contains("/specs/changes/2026-10-20-login-redirect/"));
+}
+
+/// Rulings R2: the priorities' other changes keep the removal uncommitted, and the drop says so.
+#[test]
+fn a_removal_beside_other_changes_is_not_committed() {
+    let repo = started(Kind::Feature);
+    let edited = repo
+        .read("specs/PRIORITIES.md")
+        .replace("## Blocked\n", "## Blocked\n\n- A note\n");
+    repo.write("specs/PRIORITIES.md", &edited);
+    let before = repo.subjects("main");
+
+    let dropped = api::drop_item(repo.path(), CHANGE).unwrap();
+
+    assert!(!dropped.committed);
+    assert_eq!(repo.subjects("main"), before);
+    let text = repo.read("specs/PRIORITIES.md");
+    assert!(text.contains("- A note\n"), "{text}");
+    assert!(
+        !text.contains("/specs/2026-10-20-login-redirect/"),
+        "{text}"
+    );
 }
