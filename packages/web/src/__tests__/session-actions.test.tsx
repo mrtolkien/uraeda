@@ -308,3 +308,21 @@ test("a drop that could not commit the priorities says so", async () => {
     " M specs/PRIORITIES.md\n",
   );
 });
+
+/** Accessibility: Rename's dialog gives the focus back to the "…" it was opened from. */
+test("Rename's dialog, closed, gives the focus back to the …", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await seedChat(fake, repo);
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+
+  await actions();
+  await click(screen.getByRole("menuitem", { name: "Rename" }));
+  await screen.findByRole("textbox", { name: "Title" });
+  await click(screen.getByRole("button", { name: "Cancel" }));
+
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
+  await waitFor(() =>
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Session actions" })),
+  );
+});
