@@ -138,6 +138,8 @@ export default {
       "packages/web/src/theme/built/**",
       ".sandbox/**",
       ".sandbox-*/**",
+      // Throwaway prototypes of an investigation: plain browser scripts, never app code.
+      "specs/**/mockups/**",
       // One file per banned pattern, which `packages/web/src/__tests__/lint.test.ts` lints one by
       // one, with this variable set.
       ...((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env
