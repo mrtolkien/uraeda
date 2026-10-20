@@ -14,22 +14,23 @@ export type Served = {
 };
 
 /**
- * The sandbox's Vite server for the checkout `checkout`, whose `.env` it must not read, on a port
- * the system picks: the tests of several checkouts run at once.
+ * The sandbox's Vite server for the checkout `checkout`, whose `.env` it must not read, on `port`,
+ * else the next free one, or by default on a port the system picks: the tests of several checkouts
+ * run at once.
  */
-export async function serveSandbox(checkout: string): Promise<Served> {
+export async function serveSandbox(checkout: string, port = 0): Promise<Served> {
   const lines: Array<string> = [];
   const logger = createLogger("silent");
   logger.info = (message) => void lines.push(message);
   const server = await createServer({
-    ...sandboxConfig({ checkout, port: 0 }),
+    ...sandboxConfig({ checkout, port }),
     configFile: false,
     customLogger: logger,
   });
   await server.listen();
   const address = server.httpServer?.address();
-  const port = typeof address === "object" && address !== null ? address.port : 0;
-  return { close: () => server.close(), lines, port, url: `http://127.0.0.1:${port}/` };
+  const taken = typeof address === "object" && address !== null ? address.port : 0;
+  return { close: () => server.close(), lines, port: taken, url: `http://127.0.0.1:${taken}/` };
 }
 
 /** A fate operation's result, as the endpoint answers it. */
