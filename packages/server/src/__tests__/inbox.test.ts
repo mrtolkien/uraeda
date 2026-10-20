@@ -222,18 +222,25 @@ test("US2 3: adds a note to a draft's What", async () => {
   );
 });
 
-/** Posts a note with an image to the repository's `/inbox/note-image`, as the add form does. */
+/**
+ * Posts a note with images to the repository's `/inbox/note-image`, as the add form does, or the
+ * images of the note `id`, as a note's pane does: each `files` entry is a fixture, named
+ * `<fixture>` in the query string.
+ */
 async function noteImage(
   served: Awaited<ReturnType<typeof testApp>>,
   fields: Record<string, string>,
-  file: string,
+  files: ReadonlyArray<string>,
+  names = ["spec-headings.png"],
 ) {
   const body = new FormData();
   for (const [key, value] of Object.entries(fields)) {
     body.set(key, value);
   }
-  body.set("file", new File([readFileSync(fixture(`images/${file}`))], file));
-  const query = new URLSearchParams({ name: "spec-headings.png" });
+  for (const file of files) {
+    body.append("file", new File([readFileSync(fixture(`images/${file}`))], file));
+  }
+  const query = new URLSearchParams(names.map((name) => ["name", name]));
   return served.app.request(`http://127.0.0.1:${port}/r/${served.name}/inbox/note-image?${query}`, {
     body,
     method: "POST",
@@ -245,11 +252,9 @@ test("US6 2: adds a note with an image as a draft folder, linked from the inbox"
   const served = await testApp(repo);
   const { hash } = await readInbox(served.app);
 
-  const response = await noteImage(
-    served,
-    { category: "UI", hash, text: "Headings are flat" },
+  const response = await noteImage(served, { category: "UI", hash, text: "Headings are flat" }, [
     "phone.png",
-  );
+  ]);
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ draft: "specs/drafts/headings-are-flat/proposal.md" });
@@ -261,13 +266,53 @@ test("US6 2: adds a note with an image as a draft folder, linked from the inbox"
   );
 });
 
+test("a note takes several images, in the order they were sent", async () => {
+  const repo = fixtureRepo();
+  const served = await testApp(repo);
+  const { hash } = await readInbox(served.app);
+
+  const response = await noteImage(
+    served,
+    { hash, text: "Headings are flat" },
+    ["phone.png", "desktop.png"],
+    ["first.png", "second.png"],
+  );
+
+  expect(response.status).toBe(200);
+  const draft = read(repo, "specs/drafts/headings-are-flat/proposal.md");
+  expect(draft.indexOf("![first](images/first.webp)")).toBeGreaterThan(0);
+  expect(draft.indexOf("![second](images/second.webp)")).toBeGreaterThan(
+    draft.indexOf("![first](images/first.webp)"),
+  );
+});
+
+test("images sent with a note's id go to that note, which becomes a draft", async () => {
+  const repo = fixtureRepo();
+  const served = await testApp(repo);
+  const inbox = await readInbox(served.app);
+
+  const response = await noteImage(
+    served,
+    { hash: inbox.hash, id: noteOf(inbox, "Make sure agents are resumable").id },
+    ["phone.png"],
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({
+    draft: "specs/drafts/make-sure-agents-are-resumable/proposal.md",
+  });
+  expect(read(repo, "specs/INBOX.md")).toContain(
+    "- [Make sure agents are resumable](drafts/make-sure-agents-are-resumable/proposal.md)\n",
+  );
+});
+
 test("US6: an image the core refuses adds nothing", async () => {
   const repo = fixtureRepo();
   const served = await testApp(repo);
   const before = read(repo, "specs/INBOX.md");
   const { hash } = await readInbox(served.app);
 
-  const response = await noteImage(served, { hash, text: "Headings are flat" }, "drawing.svg");
+  const response = await noteImage(served, { hash, text: "Headings are flat" }, ["drawing.svg"]);
 
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({

@@ -167,29 +167,61 @@ pub fn note_to_draft(
     job(move || api::note_to_draft(Path::new(&repo), &id, &draft, &previous))
 }
 
-/// Adds a note as a new draft folder holding its text and the image `bytes`, linked from the end
-/// of a category, all written or none. `name` is the image's file name. Returns the draft's path.
+/// The images of a call, as the core takes them: each one's bytes, and its file name, `names` holding
+/// an empty one for a pasted image.
+fn note_images(images: Vec<Buffer>, names: Vec<String>) -> Vec<api::NoteImage> {
+    images
+        .into_iter()
+        .zip(names)
+        .map(|(bytes, name)| {
+            (
+                Vec::<u8>::from(bytes),
+                Some(name).filter(|name| !name.is_empty()),
+            )
+        })
+        .collect()
+}
+
+/// Adds a note as a new draft folder holding its text and the `images`, linked from the end of a
+/// category, all written or none. `names` holds each image's file name, empty for a pasted one.
+/// Returns the draft's path.
 #[napi(ts_return_type = "Promise<string>")]
-pub fn add_note_with_image(
+pub fn add_note_with_images(
     repo: String,
     text: String,
     previous: String,
-    bytes: Buffer,
-    name: Option<String>,
+    images: Vec<Buffer>,
+    names: Vec<String>,
     category: Option<String>,
     about: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    let bytes = Vec::<u8>::from(bytes);
+    let images = note_images(images, names);
     job(move || {
-        let (_, draft) = api::add_note_with_image(
+        let (_, draft) = api::add_note_with_images(
             Path::new(&repo),
             category,
             about,
             &text,
-            &bytes,
-            name.as_deref(),
+            &images,
             &previous,
         )?;
+        Ok(draft)
+    })
+}
+
+/// Adds `images` to the note `id`, into the draft it links or into the draft it becomes. `names`
+/// holds each image's file name, empty for a pasted one. Returns the draft's path.
+#[napi(ts_return_type = "Promise<string>")]
+pub fn attach_note_images(
+    repo: String,
+    id: String,
+    previous: String,
+    images: Vec<Buffer>,
+    names: Vec<String>,
+) -> AsyncTask<Job<String>> {
+    let images = note_images(images, names);
+    job(move || {
+        let (_, draft) = api::attach_note_images(Path::new(&repo), &id, &images, &previous)?;
         Ok(draft)
     })
 }
