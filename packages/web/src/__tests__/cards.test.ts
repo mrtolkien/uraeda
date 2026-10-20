@@ -34,6 +34,11 @@ test.each<[string, Array<Row>, string]>([
     ],
     "2026-10-17T22:00:00.000Z",
   ],
+  [
+    "its first session's start, on its folder's own day",
+    [session("2026-10-18-flaky-tests", "2026-10-18T09:00:00.000Z")],
+    "2026-10-18T09:00:00.000Z",
+  ],
 ])("a change's start: %s", (_, rows, start) => {
   expect(startOf(feature("2026-10-18-flaky-tests"), rows)).toBe(start);
 });
