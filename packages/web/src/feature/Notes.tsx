@@ -45,7 +45,15 @@ function ProblemLines({ problems }: { problems: Array<Problem> }) {
 }
 
 /** The problems that stop the workflow, and a button to the first one's file. */
-export function Blocking({ folder, problems }: { folder: string; problems: Array<Problem> }) {
+export function Blocking({
+  change,
+  folder,
+  problems,
+}: {
+  change: boolean;
+  folder: string;
+  problems: Array<Problem>;
+}) {
   const here = useRepoPath();
   const first = problems[0];
   if (!first) {
@@ -60,7 +68,7 @@ export function Blocking({ folder, problems }: { folder: string; problems: Array
         <Button href={here(`/f/${folder}/${name}`)} label={`Open ${name}`} variant="secondary" />
       }
       status="error"
-      title="This feature cannot go on"
+      title={`This ${change ? "change" : "feature"} cannot go on`}
     />
   );
 }

@@ -164,7 +164,11 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         </Text>
       </VStack>
       <Stages history={history} />
-      <Blocking folder={feature.folder} problems={feature.problems} />
+      <Blocking
+        change={feature.kind === "change"}
+        folder={feature.folder}
+        problems={feature.problems}
+      />
       <LeftBanner feature={feature} />
       <Suspense fallback={null}>
         {feature.session ? (
