@@ -82,16 +82,14 @@ function ToolGroupView({
   );
 }
 
-const last = (tools: Array<ToolItem>) => tools.at(-1);
-
-/** Redraws only when the group's size, last call, open state or turn's end changed. */
+/** Redraws only when a call of the group, the turn's end, or the group's open state changed. */
 export const ToolGroup = memo(
   ToolGroupView,
   (a, b) =>
     a.ended === b.ended &&
     a.group.key === b.group.key &&
+    a.group.label === b.group.label &&
     a.group.tools.length === b.group.tools.length &&
-    last(a.group.tools)?.status === last(b.group.tools)?.status &&
-    last(a.group.tools)?.output === last(b.group.tools)?.output &&
+    a.group.tools.every((tool, index) => tool === b.group.tools[index]) &&
     a.groups?.open.includes(a.group.key) === b.groups?.open.includes(b.group.key),
 );
