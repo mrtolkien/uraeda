@@ -23,6 +23,9 @@ pub struct InboxNote {
     /// The markdown of that link's text, unescaped: a note added as a draft as it was typed, which
     /// an add whose answer was lost finds it by.
     pub draft_title: Option<String>,
+    /// The images the draft links, in order, from the repository's top level: filled in from the
+    /// draft, where it is read. Empty for a note with no draft.
+    pub images: Vec<String>,
     pub start_line: u32,
     pub end_line: u32,
     /// Its lines as written, sub-items included: what an Undo of its removal writes back.
@@ -80,6 +83,7 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
         agent: note.agent,
         about: note.about,
         draft_title,
+        images: Vec::new(),
         draft,
         start_line: note.line as u32,
         end_line: note.end as u32,

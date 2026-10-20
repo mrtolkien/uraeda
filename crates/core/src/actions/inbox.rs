@@ -17,7 +17,7 @@ use super::{ActionError, Change, Committed, STALE, changes, commit, draft};
 mod image;
 mod undo;
 
-pub use image::{NoteImage, add_with_image, attach_to_note};
+pub use image::{NoteImage, add_with_image, attach_to_note, with_images};
 pub use undo::{
     undo_add, undo_as_draft, undo_category, undo_committed, undo_to_draft, undo_to_priorities,
 };
@@ -61,7 +61,10 @@ pub fn of(text: &str, triage: Option<&str>, changes: u32) -> Inbox {
 
 fn read_text(place: &Place, written: &str) -> Inbox {
     let triage = fs::read_to_string(place.root.join(DefaultRound::Triage.path())).ok();
-    of(written, triage.as_deref(), changes::list(place).count)
+    with_images(
+        of(written, triage.as_deref(), changes::list(place).count),
+        |draft| fs::read_to_string(place.root.join(draft)).ok(),
+    )
 }
 
 /// The inbox, with its changes since the last commit and the triage's status. A file that cannot

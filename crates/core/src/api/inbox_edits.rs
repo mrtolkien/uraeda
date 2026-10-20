@@ -22,11 +22,14 @@ pub fn read_inbox(repo: &Path) -> Result<Inbox> {
         &workspace,
         crate::actions::default_round::DefaultRound::Triage.path(),
     );
-    Ok(edits::of(
+    let inbox = edits::of(
         &text.unwrap_or_default(),
         triage.as_deref(),
         change_count(&git, &workspace),
-    ))
+    );
+    Ok(edits::with_images(inbox, |draft| {
+        on_default(&git, &workspace, draft).0
+    }))
 }
 
 /// The marks of a note added from the web UI: `about` is the folder of the page it was added from,

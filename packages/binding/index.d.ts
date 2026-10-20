@@ -986,6 +986,11 @@ export interface InboxNote {
    * an add whose answer was lost finds it by.
    */
   draftTitle?: string
+  /**
+   * The images the draft links, in order, from the repository's top level: filled in from the
+   * draft, where it is read. Empty for a note with no draft.
+   */
+  images: Array<string>
   startLine: number
   endLine: number
   /** Its lines as written, sub-items included: what an Undo of its removal writes back. */

@@ -4,8 +4,11 @@
 
 use std::fs;
 
-use crate::files::{inbox, proposal};
+use crate::files::inbox::{self, Inbox};
+use crate::files::markdown::Document;
+use crate::files::proposal;
 use crate::images::Encoded;
+use crate::workspace::resolve;
 
 use super::super::place::Place;
 use super::super::{ActionError, attach, draft};
@@ -148,4 +151,23 @@ fn write_draft(
         .ok_or_else(|| ActionError::Refused("no proposal template".to_string()))?;
     fs::write(place.root.join(path), text)?;
     Ok(())
+}
+
+/// The inbox with each note's `images`: those its draft links, in order, from the top level.
+/// `draft_text` reads a draft, from the top level, wherever the caller reads files.
+pub fn with_images(mut inbox: Inbox, draft_text: impl Fn(&str) -> Option<String>) -> Inbox {
+    for note in inbox.categories.iter_mut().flat_map(|c| &mut c.notes) {
+        let Some(draft) = &note.draft else { continue };
+        let Some(text) = draft_text(draft) else {
+            continue;
+        };
+        let folder = draft.rsplit_once('/').map_or("", |(folder, _)| folder);
+        note.images = Document::parse(&text)
+            .links
+            .iter()
+            .filter(|link| link.image && !link.wiki)
+            .filter_map(|link| resolve(folder, &link.target))
+            .collect();
+    }
+    inbox
 }

@@ -501,3 +501,43 @@ fn commit_holds_the_draft_of_a_note_with_an_image() {
     assert_eq!(repo.changed_in("main"), [INBOX.to_string(), image, path]);
     assert_eq!(repo.porcelain(), "");
 }
+
+/// The inbox lists the images of each note's draft, in the order the draft links them: what the
+/// note's row and pane draw. A note with no draft has none.
+#[test]
+fn the_inbox_lists_the_images_of_each_notes_draft() {
+    let repo = fixture_repo();
+    let id = note_id(&repo, "Draft to proposal on mobile went 404");
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let (after, path) = api::attach_note_images(
+        repo.path(),
+        &id,
+        &[
+            note_image("phone.png", "one.png"),
+            note_image("desktop.png", "two.png"),
+        ],
+        &inbox.hash,
+    )
+    .unwrap();
+
+    let folder = path.trim_end_matches("proposal.md");
+    let expected = vec![
+        format!("{folder}images/one.webp"),
+        format!("{folder}images/two.webp"),
+    ];
+    for inbox in [after, api::read_inbox(repo.path()).unwrap()] {
+        let notes: Vec<_> = inbox
+            .categories
+            .iter()
+            .flat_map(|category| &category.notes)
+            .collect();
+        let with = notes.iter().find(|note| note.draft.is_some()).unwrap();
+        assert_eq!(with.images, expected);
+        assert!(
+            notes
+                .iter()
+                .filter(|note| note.draft.is_none())
+                .all(|note| note.images.is_empty())
+        );
+    }
+}
