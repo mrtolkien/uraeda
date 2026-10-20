@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Merge chats and changes
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions and 1 follow-up, about 20 minutes.
+> Answered on 2026-10-20.
 >
 > - Verdict: worth building, with changes: a chat cannot become a change today. A change becomes a
 >   feature only through a merge and a fresh start, so both moves must be built in place.
@@ -94,7 +94,7 @@ the **Now** entry on your default branch, without asking.
   - [pro] the agent never interrupts.
   - [con] you must notice yourself that a chat has outgrown itself.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Where does a new chat work?
 
@@ -120,7 +120,10 @@ and setup each chat costs.
   - [con] a worktree per chat, to set up and clean up. Inbox triage would still need the main
     checkout.
 
-**Answer:**
+**Answer:** Anywhere? A chat is an agent running, it could create a branch or a worktree. It's just
+not structured with a workflow. So yeah it starts in main but could decide to move.
+
+Changes and features are workflows. Chats are unstructured, like a "normal" agent.
 
 ### Q2.A: What may a chat change on your main checkout?
 
@@ -169,7 +172,12 @@ session, in its worktree". Option A rewords it so a chat's session may become th
   - [pro] the change's runs start clean, and the decision stays as it is.
   - [con] the agent rereads what the chat already settled, and you follow two sessions.
 
-**Answer:**
+**Answer:** A: Well I'm again a "Chats list" that's the thing.
+
+We need to align session everywhere: an agent run is a session, whether it's a chat, a change, or a
+feature.
+
+What changes is the workflow around.
 
 ## Q4: How does a change become a feature?
 
@@ -198,7 +206,11 @@ the change already wrote.
   - [pro] nothing new to build.
   - [con] a merge, a fresh start, and a new session: not smooth.
 
-**Answer:**
+**Answer:** B: Well if it upgrades to a feature it should mean that the scope of the code changes is
+too big, so there would have been no code changes.
+
+The upgrade from change to feature should be before or after clarification, if the agent decides
+that this is a big change requiring specs approval
 
 ## Q5: How do chats and changes show and start in the sidebar?
 
@@ -224,7 +236,18 @@ see.
   - [pro] nothing changes in the sidebar.
   - [con] the two concepts stay apart, against the proposal.
 
-**Answer:**
+**Answer:** Let's use the "Session" word everywhere. As I said above, we have raw sessions (chat
+today) that can also be attached to a workflow (change or feature)
+
+This way it's more coherent and there are less concepts to learn. And that's how people use agents.
+
+Imo we should make it a single thing:
+
+- A sidebar with ongoing sessions, changes, and features
+- A "done" part with the 5 last finished sessions/changes/features
+- A single button to start any of those, with a selector to select which we want to start (session =
+  opens the composer, change = opens the composer and offers to pick a line from inbox/priorities,
+  feature = offers to open a line from inbox/priorities/write a proposal from scratch)
 
 ## Q6: What does the `+` next to Features open?
 
@@ -246,7 +269,7 @@ Why it matters: it decides whether a feature can start without writing a draft f
   - [pro] the proposal comes out sharper.
   - [con] the proposal is no longer purely in your words.
 
-**Answer:**
+**Answer:** Answered above
 
 ## Q7: Can a feature go back down to a change, or a change to a chat?
 
@@ -265,7 +288,7 @@ Why it matters: a move down needs its own path in the skill and the code.
   - [pro] a feature that turns out small loses no time.
   - [con] a reverse move to build, test, and document.
 
-**Answer:**
+**Answer:** A: A feature that turns out small is just finished fast?
 
 ## Settled without the human
 
