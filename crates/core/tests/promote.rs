@@ -315,3 +315,31 @@ fn a_pushed_change_is_renamed_locally_only() {
         "{remote}"
     );
 }
+
+/// Review: a move run again after its rename failed relinks nothing twice, and completes.
+#[test]
+fn a_move_run_again_after_a_failed_rename_completes_with_one_entry() {
+    let repo = started(Kind::Change);
+    let lock = repo.path().join(format!(".git/refs/heads/{FOLDER}.lock"));
+    std::fs::write(&lock, "").unwrap();
+    let failed = promote(&repo);
+    assert!(
+        matches!(failed, Err(StartError::Partial { ref done, .. }) if done.len() == 1),
+        "{:?}",
+        failed.err().map(|error| error.to_string())
+    );
+    std::fs::remove_file(&lock).unwrap();
+
+    promote(&repo).unwrap();
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert_eq!(priorities.matches("- [").count(), 1, "{priorities}");
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore(priorities-sections): start Priorities sections as a feature"
+    );
+    assert_eq!(
+        repo.subjects(FOLDER)[0],
+        "chore(priorities-sections): upgrade to a feature"
+    );
+}

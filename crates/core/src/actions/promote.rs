@@ -70,7 +70,7 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
         to: folder_branch(Kind::Feature, folder),
         default: &default,
     };
-    move_.run(&at, &name, &edited)
+    move_.run(&at, &name, edited.as_deref())
 }
 
 /// A move under way: the change, and its branch's names before and after.
@@ -86,7 +86,7 @@ struct Move<'a> {
 impl Move<'_> {
     /// The two commits and the rename between them: a failure after the first commit says what
     /// was done and what is left.
-    fn run(&self, at: &Git, name: &str, edited: &str) -> Result<Promoted, StartError> {
+    fn run(&self, at: &Git, name: &str, edited: Option<&str>) -> Result<Promoted, StartError> {
         let (folder, slug) = (self.folder, self.slug);
         let default_subject = format!("chore({slug}): start {name} as a feature");
         let subject = format!("chore({slug}): upgrade to a feature");
@@ -100,18 +100,13 @@ impl Move<'_> {
             "set each decision the change applied back to proposed, and commit them with both \
              folders as \"{subject}\""
         );
-        fs::write(at.root().join(PRIORITIES), edited)?;
-        if let Err(error) = at.commit(&[PRIORITIES.to_string()], &default_subject, None) {
-            let left = vec![
-                format!(
-                    "commit {PRIORITIES} on {} as \"{default_subject}\"",
-                    self.default
-                ),
-                rename_left,
-                move_left,
-                commit_left,
-            ];
-            return Err(partial(&[], left, error));
+        if let Some(edited) = edited {
+            self.relink(
+                at,
+                edited,
+                &default_subject,
+                [&rename_left, &move_left, &commit_left],
+            )?;
         }
         let mut done = vec![format!("the entry in Now, relinked on {}", self.default)];
         if let Err(error) = self.git.rename_branch(&self.from, &self.to) {
@@ -149,6 +144,27 @@ impl Move<'_> {
             subject,
             decisions,
         })
+    }
+
+    /// Writes and commits the relinked priorities on the default branch: a refused commit leaves
+    /// every step.
+    fn relink(
+        &self,
+        at: &Git,
+        edited: &str,
+        subject: &str,
+        rest: [&String; 3],
+    ) -> Result<(), StartError> {
+        fs::write(at.root().join(PRIORITIES), edited)?;
+        at.commit(&[PRIORITIES.to_string()], subject, None)
+            .map_err(|error| {
+                let mut left = vec![format!(
+                    "commit {PRIORITIES} on {} as \"{subject}\"",
+                    self.default
+                )];
+                left.extend(rest.into_iter().cloned());
+                partial(&[], left, error)
+            })
     }
 
     /// Sets each decision the branch changed, and that reads `active`, back to `proposed`, its
@@ -189,31 +205,39 @@ fn decision_path(name: &str) -> String {
 }
 
 /// The entry's name, and `PRIORITIES.md` with the entry linking the change's proposal linking the
-/// feature's, or a new one on top of **Now** when none links it.
-fn relinked(root: &Path, change: &Feature) -> Result<(String, String), StartError> {
+/// feature's, or a new one on top of **Now** when none links it. Nothing to write when an entry
+/// already links the feature's: a move run again after a failure relinked it.
+fn relinked(root: &Path, change: &Feature) -> Result<(String, Option<String>), StartError> {
     let text = fs::read_to_string(root.join(PRIORITIES)).unwrap_or_default();
     let old = format!("{}/proposal.md", folder_path(Kind::Change, &change.folder));
     let target = format!(
         "/{}/proposal.md",
         folder_path(Kind::Feature, &change.folder)
     );
-    let entry = priorities::parse(&text).into_iter().find(|entry| {
-        entry
-            .link
-            .as_deref()
-            .and_then(|link| resolve("specs", link))
-            == Some(old.clone())
-    });
-    match entry {
+    let entries = priorities::parse(&text);
+    let linking = |path: &str| {
+        entries.iter().find(|entry| {
+            entry
+                .link
+                .as_deref()
+                .and_then(|link| resolve("specs", link))
+                .as_deref()
+                == Some(path)
+        })
+    };
+    if let Some(entry) = linking(&target[1..]) {
+        return Ok((entry.text.clone(), None));
+    }
+    match linking(&old) {
         Some(entry) => {
             let edited = priorities::link(&text, entry.line, &target)
                 .ok_or_else(|| StartError::Refused("cannot relink the entry".into()))?;
-            Ok((entry.text, edited))
+            Ok((entry.text.clone(), Some(edited)))
         }
         None => {
             let name = change.slug.clone();
             let edited = priorities::add_started(&text, &name, &target);
-            Ok((name, edited))
+            Ok((name, Some(edited)))
         }
     }
 }
