@@ -87,6 +87,11 @@ export const families = {
 };
 export type Family = keyof typeof families;
 const names = Object.keys(families) as Array<Family>;
+/** The crates depending on each crate, which its change can break: checked against `cargo metadata`. */
+const dependents: Record<string, Array<string>> = {
+  "uraeda-core": ["uraeda-binding", "uraeda-cli", "uraeda-lsp"],
+  "uraeda-lsp": ["uraeda-cli"],
+};
 const deferred = [
   "application journeys",
   "browser phone/desktop",
@@ -167,8 +172,7 @@ export function selectFast(changed: Array<Change>): FastSelection {
       rust.add("uraeda-core");
     }
     if (path.startsWith("crates/")) {
-      const crate = path.split("/")[1];
-      rust.add(crate === "binding" ? "uraeda-core" : `uraeda-${crate}`);
+      rust.add(`uraeda-${path.split("/")[1]}`);
     }
     const broad =
       deleted || path.endsWith(".d.ts") || config.test(path) || !/\.[cm]?[jt]sx?$/.test(path);
@@ -203,6 +207,9 @@ export function selectFast(changed: Array<Change>): FastSelection {
   ) {
     checks.add("binding:touch");
   }
+  for (const name of rust) {
+    dependents[name]?.forEach((dependent) => rust.add(dependent));
+  }
   if (rust.size) {
     checks.add("rust:checks");
   }
@@ -213,4 +220,35 @@ export function selectFast(changed: Array<Change>): FastSelection {
     related: [...related],
     rust: [...rust],
   };
+}
+
+/**
+ * The Rust checks of the selected packages. Clippy checks the binding too, but nextest never builds
+ * it: selecting it unifies the core's `napi` feature, and the other crates' tests then fail to link
+ * (see the root `Cargo.toml`). The workspace's tests are its default members, as in `rust:test`.
+ */
+export function rustCommands(rust: Array<string>): Array<[string, Array<string>]> {
+  const workspace = rust.includes("workspace");
+  const tested = rust.filter((name) => name !== "uraeda-binding");
+  const commands: Array<[string, Array<string>]> = [
+    ["cargo", ["fmt", "--check"]],
+    [
+      "cargo",
+      [
+        "clippy",
+        ...(workspace ? ["--workspace"] : rust.flatMap((name) => ["-p", name])),
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings",
+      ],
+    ],
+  ];
+  if (workspace || tested.length) {
+    commands.push([
+      "cargo",
+      ["nextest", "run", ...(workspace ? [] : tested.flatMap((name) => ["-p", name]))],
+    ]);
+  }
+  return commands;
 }
