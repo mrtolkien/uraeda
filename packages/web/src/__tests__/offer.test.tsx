@@ -99,6 +99,32 @@ test("Start the change from the agent's offer", async () => {
   );
 });
 
+/** The card keeps its height while its slug loads: the session opened at its end shows its buttons. */
+test("the slug field shows, empty, while its slug loads", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo);
+  const server = serverFetch(repo, fake.sessions);
+  const { promise: held, resolve: release } = Promise.withResolvers<void>();
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    if (typeof init?.body === "string" && init.body.includes("SlugProposal")) {
+      await held;
+    }
+    return server(input, init);
+  };
+  await renderPage(`/sessions/${id}`, repo, { agent: fake, fetch });
+
+  const shown = await card();
+  const slug = shown.getByRole("textbox", { name: "Slug" }) as HTMLInputElement;
+  expect(slug.value).toBe("");
+  expect(shown.getByRole("button", { name: "Start the change" })).toBeTruthy();
+
+  release();
+  await waitFor(() =>
+    expect((shown.getByRole("textbox", { name: "Slug" }) as HTMLInputElement).value).toBe(SLUG),
+  );
+});
+
 /** US2 more 1 */
 test("Not now closes the card and writes nothing", async () => {
   const repo = fixtureRepo();
