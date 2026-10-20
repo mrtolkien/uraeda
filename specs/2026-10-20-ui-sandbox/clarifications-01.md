@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Stable dev environment for UI review
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions and 1 follow-up, about 25 minutes.
+> Answered on 2026-10-20.
 >
 > - Verdict: worth building, with changes: most parts exist apart, but two active decisions stand in
 >   the way. "Frozen" and "behaves normally" also pull against each other.
@@ -81,7 +81,7 @@ Why it matters: one spec reviews them together, but the sandbox reaches you late
   - [pro] the sandbox arrives sooner, with a smaller spec.
   - [con] a second round of questions and a second spec for a small part.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Where does the sandbox live?
 
@@ -108,7 +108,7 @@ decision recorded.
   - [pro] one command for everything.
   - [con] sample and real data in one app, and the real data folder takes the sample's sessions.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Where does a pick go?
 
@@ -143,7 +143,8 @@ C can come on top of A or B.
   - [pro] pick, ask, and watch the reload on one page.
   - [con] a second chat UI to build, beside Uraeda's sessions.
 
-**Answer:**
+**Answer:** C: Well I'll have to type text with the pick anyways, it's ok if I need to paste it
+first
 
 ### Q3.B: Which session does a pick open?
 
@@ -186,7 +187,7 @@ Why it matters: it sets how far "behaves normally" goes, and whether the sandbox
   - [pro] fully normal.
   - [con] costs tokens, slow, and never frozen.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How long does the sandbox's state last?
 
@@ -207,7 +208,7 @@ Why it matters: it decides whether a server change throws you back to the start 
   - [pro] always the fresh seed, nothing to reset.
   - [con] every server edit loses your place.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Which states does the sample project hold?
 
@@ -233,7 +234,7 @@ review.
   - [pro] nothing to build.
   - [con] half the steps missing, and no change or session.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: What does a pick tell the agent?
 
@@ -258,7 +259,7 @@ Why it matters: it decides how fast the agent finds the code, and whether a depe
   - [pro] no build change.
   - [con] relies on React's private data, which already broke once.
 
-**Answer:**
+**Answer:** B
 
 ## Q8: Does the sandbox need sign-in?
 
@@ -281,7 +282,7 @@ Why it matters: it changes an active security decision, or adds a sign-in to eve
   - [pro] no decision change, and only you can post picks.
   - [con] a sign-in after every reset.
 
-**Answer:**
+**Answer:** A: It's important that an agent can easily access the HTML page. It's simpler.
 
 ## Settled without the human
 
