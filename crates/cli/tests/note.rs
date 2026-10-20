@@ -81,6 +81,29 @@ fn a_note_from_a_feature_worktree_is_committed_on_main() {
     assert_eq!(repo.porcelain(), "");
 }
 
+/// An agent's note from a feature's worktree is committed on the feature's branch, never on `main`.
+#[test]
+fn an_agents_note_from_a_feature_worktree_stays_on_its_branch() {
+    let repo = repo();
+    let worktree = feature_worktree(&repo);
+    let main_head = repo.subjects("main");
+
+    let output = ura_in(
+        &worktree,
+        &["note", "Status hangs on a broken worktree", "--agent"],
+        &[],
+    );
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(repo.subjects("main"), main_head);
+    assert_eq!(
+        repo.subjects(FEATURE)[0],
+        "chore: add \"Status hangs on a broken worktree\" to the inbox"
+    );
+    assert_eq!(repo.changed_in(FEATURE), [INBOX]);
+    assert_eq!(repo.porcelain(), "");
+}
+
 /// US5 1: an agent's note, about another feature, in a file that does not exist yet.
 #[test]
 fn an_agents_note_about_a_feature() {

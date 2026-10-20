@@ -1,4 +1,5 @@
-//! `ura note`: a note added to `specs/INBOX.md` on the default branch, and committed alone.
+//! `ura note`: a note added to `specs/INBOX.md`, and committed alone: on the default branch, or in
+//! the agent's own worktree with `--agent`.
 
 use std::process::ExitCode;
 
@@ -31,7 +32,16 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         .default_branch
         .clone()
         .ok_or("no default branch: commit on main first")?;
-    let place = place::reach(&git, &default).map_err(|error| error.to_string())?;
+    // An agent's note stays in its own worktree, and reaches the default branch with its merge.
+    let place = if options.agent && git.current_branch().as_deref() != Some(default.as_str()) {
+        place::Place {
+            root: git.root().to_path_buf(),
+            created: false,
+            switched: None,
+        }
+    } else {
+        place::reach(&git, &default).map_err(|error| error.to_string())?
+    };
     let noted = inbox::note(
         &place,
         options.category.as_deref(),

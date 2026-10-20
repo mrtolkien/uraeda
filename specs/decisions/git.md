@@ -23,6 +23,8 @@ Tools never lose the user's work.
   Checked by the core's workspace tests.
 - Drafts, the backlog, and the human's inbox and priorities MUST be written on the default branch.
   Checked by the core's tests.
+- An agent's inbox notes MUST be written in its own worktree, never on the default branch. Checked
+  by the CLI's tests.
 - Tools SHOULD keep their worktrees out of the user's `git status` without editing a tracked file.
   Checked by the core's tests.
 

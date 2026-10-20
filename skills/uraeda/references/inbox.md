@@ -66,24 +66,25 @@ same.
 
 ## Capture
 
-Notes are written on the default branch, from any checkout, like `PRIORITIES.md`: in the checkout or
-worktree that has the default branch, see [Branches](conventions.md#branches). Write one line per
-note, at the end of its category, or after the last note without one. A new category goes at the end
-of the file. When `INBOX.md` does not exist, create it as `# Inbox`, a blank line, and the note, and
-add that title to a file without one.
+The human's notes are written on the default branch, from any checkout, like `PRIORITIES.md`: in the
+checkout or worktree that has the default branch, see [Branches](conventions.md#branches). An
+agent's notes are written in its own worktree, see [agents' notes](#agents-notes). Write one line
+per note, at the end of its category, or after the last note without one. A new category goes at the
+end of the file. When `INBOX.md` does not exist, create it as `# Inbox`, a blank line, and the note,
+and add that title to a file without one.
 
 - **By hand**: add the line, then commit `specs/INBOX.md` alone, with
   `chore: add "<note>" to the inbox`. When it has other uncommitted changes, write the note without
   committing: they are someone's work in progress.
 - **With `ura`**:
   `ura note <text> [--category <name>] [--about <feature or change>] [--agent] [--no-commit]` writes
-  the note on the default branch, and commits `specs/INBOX.md` alone. When `INBOX.md` had other
-  uncommitted changes, it writes without committing, and says "INBOX.md had uncommitted changes: the
-  note is written but not committed." `--about` writes the slug of the target's folder; inside a
-  feature's or a change's worktree, it defaults to that one. `--category` names the category,
-  created when missing; `--agent` adds the `[agent]` mark; `--no-commit` leaves the file for you to
-  commit. It refuses a blank note with "A note needs text.", and runs only in a repository with a
-  `specs/` folder.
+  the note on the default branch, or in this checkout with `--agent`, and commits `specs/INBOX.md`
+  alone. When `INBOX.md` had other uncommitted changes, it writes without committing, and says
+  "INBOX.md had uncommitted changes: the note is written but not committed." `--about` writes the
+  slug of the target's folder; inside a feature's or a change's worktree, it defaults to that one.
+  `--category` names the category, created when missing; `--agent` adds the `[agent]` mark;
+  `--no-commit` leaves the file for you to commit. It refuses a blank note with "A note needs
+  text.", and runs only in a repository with a `specs/` folder.
 - **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's or a
   change's page, the note gets its slug. "Add and commit" commits the note alone, with
   `chore: add "<note>" to the inbox`, unless `INBOX.md` had other changes; its Undo commits the
@@ -200,7 +201,8 @@ drop it. It adds a note:
 - marked `[agent]`, then with the slug of the feature or change the note is about;
 - under the category that fits, or a new one named like the others; a review's minor finding, left
   unfixed, goes under **Deferred fixes**;
-- with `ura note <text> --agent --about <slug> --category <name>`, or by hand in the default
-  branch's checkout, committed alone with `chore: add "<note>" to the inbox`.
+- with `ura note <text> --agent --about <slug> --category <name>`, or by hand, in its own worktree
+  and branch, never in the default branch's checkout: the note is committed alone with
+  `chore: add "<note>" to the inbox`, and reaches the default branch with the branch's merge.
 
 Then it names the note in its step's report, and in the pull request when it opens one.
