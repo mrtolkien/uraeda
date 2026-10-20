@@ -634,3 +634,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the two helpers.
 - **Where**: the second catch-up, `packages/web/src/__focused__/helpers.tsx`,
   `packages/server/src/__tests__/request-fixture.ts`.
+
+## R37: The branch follows the toolchain's fast check and its ready before the push
+
+- **Decision**: since the second catch-up, the toolchain decision applies: `vp run fast` after each
+  task, and `vp run ready` before the push. The branch's new tests need no registration. Ready finds
+  them by its globs: the Rust tests `drop.rs` and `promote.rs` under cargo-nextest, the server's
+  `src/**/*.test.ts`, the web's `__tests__`, and the browser's `src/__browser__/**/*.test.tsx`.
+  Fast's families take the server's tests by glob. Its UI family lists only the focused tests, so a
+  new application-journey test (`offer.test.tsx`, `new-page.test.tsx`, `feature-sessions.test.tsx`,
+  `done.test.ts`, `offer-card.test.tsx`) makes fast ask for ready, as `selectFast` does for any new
+  test outside a family. Fast ran on the catch-up's fixes (R36) and passed.
+- **Rationale**: the default branch's `specs/decisions/toolchain.md` rules "after every task, fast
+  MUST check…" and "an agent MUST run `vp run ready` before pushing a branch".
+- **Ready before the push**: not yet green. The catch-up's last ready runs on the branch failed only
+  in the browser tasks, on load-sensitive tests that fail on the default branch's `053924c7` too:
+  `attach.test.tsx` "the link goes where the cursor was at the drop…" and `session-tail.test.tsx`
+  "US1.2: Show earlier messages…". To fill in with the passing run before the push.
+- **Alternatives considered**: adding the journey tests to fast's UI family: the decision defers
+  application journeys to ready.
+- **If wrong**: `families` in `scripts/fast-selection.ts`.
+- **Where**: the second catch-up.
