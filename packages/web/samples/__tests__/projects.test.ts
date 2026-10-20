@@ -42,14 +42,15 @@ async function problemCount(repo: string): Promise<number> {
 
 // Building the three projects commits on dozens of branches: once for the three tests.
 let projects: ReturnType<typeof buildProjects>;
-beforeAll(() => {
+beforeAll(async () => {
   fakeGh(samplePullRequests());
   projects = buildProjects(temporaryFolder("samples"));
+  // The pull request steps read what `gh` lists, as the server reads it at start.
+  await refreshPullRequests(projects.sample);
 }, 120_000);
 
 test("sample has a feature at every step, and a change at each of its steps", async () => {
   const { sample } = projects;
-  await refreshPullRequests(sample);
 
   expect(await featureSteps(sample)).toEqual(new Set(FEATURE_STEPS));
   expect(await changeStates(sample)).toEqual(
@@ -80,10 +81,18 @@ test("empty is a project just set up", async () => {
   expect(categories.flatMap(({ notes }) => notes)).toEqual([]);
 });
 
-test("broken's features carry the problems ura check reports", async () => {
-  const { broken } = projects;
+test("each of broken's features is flagged with a problem ura check reports", async () => {
+  const { features } = await readWorkspace(projects.broken);
 
-  expect(await problemCount(broken)).toBeGreaterThan(0);
+  expect(features.length).toBeGreaterThan(0);
+  for (const { folder, problems } of features) {
+    // Its spec misses a section, a warning of `ura check`, which the app leaves out of a feature's
+    // problems: it shows as a feature like any other (R15).
+    if (folder === "2026-10-19-broken-spec") {
+      continue;
+    }
+    expect(problems.length, folder).toBeGreaterThan(0);
+  }
 });
 
 test("sample's fake Storybook logs its starts nowhere, so it runs after its builder exits", () => {

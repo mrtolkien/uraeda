@@ -190,3 +190,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the shortcut is `PICK_SHORTCUT` and `isPickShortcut` in `mountSandboxBar.tsx` alone;
   the dialog's following is `followModals` there.
 - **Where**: task 6.
+
+## R15: The broken project's spec feature shows no problem
+
+- **Decision**: the broken project keeps one feature per file of `fixtures/broken/`, and its test
+  checks that each is flagged on Home but `2026-10-19-broken-spec`, whose spec misses its "## User
+  stories" section.
+- **Rationale**: a missing section is a warning of `ura check`, and the app keeps warnings out of a
+  feature's problems: that feature shows as any merged one, which is what the app shows for it. The
+  test names the exception, so a fixture that stops failing is still caught.
+- **Alternatives considered**: dropping the spec from the broken project: one fixture fewer, chosen
+  by a rule of the app's rather than the fixtures'. Rewriting its status to an invalid one: a second
+  copy of the rounds' frontmatter cases.
+- **If wrong**: `buildBroken` in `samples/projects.ts` skips `spec.md`, and the test's exception
+  goes.
+- **Where**: task 5.

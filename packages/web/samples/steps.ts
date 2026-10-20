@@ -1,9 +1,15 @@
 // The sample project's features at the steps the fixture repository and the feature page's builders
 // leave out, each built from exactly the files and the pull request its step reads in the core
 // (`crates/core/src/steps.rs`), on top of the recurring tasks' files of `fixtures/repo/`.
+import {
+  commitsAt,
+  type DatedCommit,
+  ELEVEN,
+  git,
+  planText,
+  STORY_FEATURE,
+} from "uraeda-binding/test-utils";
 import { CHANGE_FOLDERS } from "./changes.ts";
-import { commitsAt, type DatedCommit, ELEVEN, git, planText } from "uraeda-binding/test-utils";
-import { STORY_FEATURE } from "uraeda-binding/test-utils";
 import { type FakePullRequest, at, proposal, recurring, slugOf, spec } from "./features.ts";
 import { FEATURE_PAGES } from "./folders.ts";
 
@@ -31,12 +37,9 @@ export type FeatureStep = (typeof FEATURE_STEPS)[number];
 
 /** The folder of each step's sample feature. */
 export const FEATURE_FOLDERS: Record<FeatureStep, string> = {
-  discovery: "2026-10-19-dark-mode",
-  "round-waiting": "2026-10-11-web-ui",
-  spec: "2026-10-19-csv-export",
-  // Its spec embeds stories, which run the fake Storybook.
   approval: "2026-10-19-tags",
   blocked: FEATURE_PAGES.blocked,
+  discovery: "2026-10-19-dark-mode",
   done: FEATURE_PAGES.done,
   "final-review": "2026-10-18-archive",
   finish: "2026-10-18-themes",
@@ -46,7 +49,10 @@ export const FEATURE_FOLDERS: Record<FeatureStep, string> = {
   "plan-waiting": "2026-10-19-notifications",
   "pull-request": FEATURE_PAGES.pullRequest,
   "pull-request-changes": "2026-10-18-offline",
+  "round-waiting": "2026-10-11-web-ui",
+  spec: "2026-10-19-csv-export",
   "spec-revision": "2026-10-19-share-links",
+  // Its spec embeds stories, which run the fake Storybook.
   "spec-waiting": STORY_FEATURE,
 };
 
