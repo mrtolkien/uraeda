@@ -518,3 +518,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   asks again after: a protocol change for the same result.
 - **If wrong**: `packages/server/src/open-client.ts`.
 - **Where**: `packages/server/src/open-client.ts`, `packages/server/src/__tests__/main.test.ts`.
+
+## R30: The inbox's drags drop once the note is drawn where it goes
+
+- **Decision**: the inbox's mouse drags measure their target once the page is laid out, fonts loaded
+  and animations ended, and drop once the page draws the note at its place in the target category,
+  not once its drag is announced.
+- **Rationale**: "a note drags within its category" failed once under load with the inbox unchanged.
+  The announcement of a drag's start says nothing of where it is over: dnd-kit takes pointer moves
+  and finds where the note is over in later frames, and a drop before then moves nothing. A point
+  measured while the page still settles may also land on another line. The order the page draws
+  during a drag is the order the drop writes, as the priorities' drag test waits for a line to make
+  room.
+- **Alternatives considered**: waiting for the "Moved:" announcement: dnd-kit debounces it by 500 ms
+  and computes it beside the order, not after it.
+- **If wrong**: `drag` in `packages/web/src/__browser__/inbox.test.tsx`.
+- **Where**: `packages/web/src/__browser__/inbox.test.tsx`.
