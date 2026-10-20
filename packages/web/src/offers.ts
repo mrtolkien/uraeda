@@ -102,9 +102,16 @@ export function openOffer(session: string, kind: OfferKind | undefined) {
   changed();
 }
 
-/** Counts the agent's card of `kind` as the session's live card, until the returned call. */
+/**
+ * Counts the agent's card of `kind` as the session's live card, until the returned call: a card of
+ * that kind the "…" opened closes, as the session has one live card, the latest.
+ */
 export function showLive(session: string, kind: OfferKind) {
   live.set(session, kind);
+  if (opened.get(session) === kind) {
+    opened.delete(session);
+    changed();
+  }
   return () => {
     if (live.get(session) === kind) {
       live.delete(session);
