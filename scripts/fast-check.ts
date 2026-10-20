@@ -73,6 +73,10 @@ async function main() {
     throw new Error("usage: vp run fast [--base <commit>] [--graph]");
   }
   const changed = changedFiles(process.cwd(), baseIndex >= 0 ? args[baseIndex + 1] : undefined);
+  // Listed with the user's git configuration, whose global excludes hide the files they ignore:
+  // every check after it, and the tests' repositories, get git's defaults (as `vite.tasks.ts`'s).
+  process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+  process.env.GIT_CONFIG_NOSYSTEM = "1";
   report(
     "Changed:",
     changed.map(({ path }) => path),

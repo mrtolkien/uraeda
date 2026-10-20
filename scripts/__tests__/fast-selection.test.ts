@@ -1,9 +1,19 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  globSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, matchesGlob, relative } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
+import { tasks } from "../../vite.tasks.ts";
 import { fastConfig } from "../../vite.fast.config.ts";
+import { gitTestTimeout, scriptsTestTimeout } from "../test-policy.ts";
 import {
   changedFiles,
   families,
@@ -274,3 +284,74 @@ test("a selected family whose tests were not discovered fails the run", () => {
 });
 test("an edit of the images the focused UI tests read selects the UI family", () =>
   expect(selectFast([change("fixtures/images/phone.png")]).families).toContain("ui"));
+test.each([
+  ["packages/web/src/__tests__/setup.ts", ["ui"]],
+  ["packages/binding/test-setup.ts", ["binding", "server", "ui", "benchmarks"]],
+  ["scripts/test-policy.ts", ["binding", "server", "ui", "benchmarks", "scripts"]],
+])("an edit of %s, which no test imports, runs every family it sets up", (path, whole) => {
+  const selected = selectFast([change(path)]);
+  expect(selected.families.sort()).toEqual(expect.arrayContaining([...whole].sort()));
+  expect(selected.related).toEqual([]);
+  expect(selected.checks).not.toContain("ready");
+});
+test("deleting or editing a setup file selects the same whole families", () =>
+  expect(selectFast([change("packages/web/src/__tests__/setup.ts", true)]).families).toEqual(
+    selectFast([change("packages/web/src/__tests__/setup.ts")]).families,
+  ));
+test("a new focused test and the workflow's images need no full validation", () => {
+  expect(
+    selectFast([change("packages/web/src/__focused__/other.test.tsx", false, true)]).checks,
+  ).not.toContain("ready");
+  const image = selectFast([change("specs/2026-10-19-fix-testing/diagram.webp", false, true)]);
+  expect(image.checks).toEqual(["ts:check", "specs:check"]);
+  expect(image.families).toEqual([]);
+  expect(selectFast([change("editors/nvim/lua/uraeda/init.lua")]).checks).toContain("ready");
+  expect(selectFast([change(".github/workflows/ci.yml")]).checks).toContain("ready");
+});
+const projectOptions = (path: string) =>
+  Object.fromEntries(
+    fastConfig(selectFast([change(path)])).test.projects.map((project) => [
+      project.test?.name,
+      project.test,
+    ]),
+  );
+
+test("the non-UI projects keep their packages' time bounds and setup files", () => {
+  const all = projectOptions("scripts/test-policy.ts");
+  expect(all["fast-scripts"]?.testTimeout).toBe(scriptsTestTimeout);
+  expect(all["fast-server"]?.testTimeout).toBe(gitTestTimeout);
+  expect(all["fast-benchmarks"]?.setupFiles).toBeUndefined();
+  expect(all["fast-benchmarks"]?.env).toBeUndefined();
+  expect(all["fast-server"]?.setupFiles).toEqual([join(ROOT, "packages/binding/test-setup.ts")]);
+});
+
+const undotted = (path: string) => path.replaceAll(/(^|\/)\./g, "$1dot-");
+const hit = (input: string, pattern: string) => matchesGlob(undotted(input), undotted(pattern));
+/** `ts:test`'s cache inputs as Vite Task matches them: explicit globs, excludes winning. */
+function tracked(file: string): boolean {
+  const cache = tasks["ts:test"].cache;
+  const inputs = (typeof cache === "object" ? (cache.input ?? []) : []).filter(
+    (input): input is string => typeof input === "string",
+  );
+  return (
+    inputs.some((input) => !input.startsWith("!") && hit(file, input)) &&
+    !inputs.some((input) => input.startsWith("!") && hit(file, input.slice(1)))
+  );
+}
+const isFile = (path: string) =>
+  existsSync(join(ROOT, path)) && !statSync(join(ROOT, path)).isDirectory();
+test("every file a family's tests read is an input of the cached ts:test task", () => {
+  const files = Object.values(families).flatMap(({ inputs }) =>
+    inputs.flatMap((pattern) =>
+      globSync(pattern, {
+        cwd: ROOT,
+        exclude: (path) =>
+          /(^|\/)(node_modules|dist|\.vitest|storybook-static|target|\.git)$/.test(path) ||
+          /^packages\/uraeda\/(plugin|web)$/.test(path),
+      }),
+    ),
+  );
+  // A folder is no input itself: its files are.
+  const missing = [...new Set(files)].filter((file) => isFile(file) && !tracked(file));
+  expect(missing.slice(0, 20)).toEqual([]);
+});

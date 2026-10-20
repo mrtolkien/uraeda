@@ -4,6 +4,7 @@ import { unplugin as stylex } from "@stylexjs/unplugin";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fate } from "react-fate/vite";
 import type { Plugin, PluginOption } from "vite-plus";
+import { gitTestTimeout } from "../../scripts/test-policy.ts";
 
 /**
  * Compiles the app's `stylex.create` calls. `vp dev` gets the CSS through the tags it adds to
@@ -58,6 +59,6 @@ export function uiTestOptions() {
       fileURLToPath(new URL("src/__tests__/setup.ts", import.meta.url)),
     ],
     // Each test builds a git repository and reads it through the binding.
-    testTimeout: 20_000,
+    testTimeout: gitTestTimeout,
   };
 }

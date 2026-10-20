@@ -23,6 +23,14 @@ const nativeInputs = [...rustInputs, "packages/binding/**"];
 /** The server's sources and the binding's loaders, which other packages' tests import. */
 const server = "packages/server/src/**";
 const loaders = "packages/binding/{index.js,test-utils.ts,test-repos.ts}";
+const policy = "scripts/test-policy.ts";
+/**
+ * The files Vitest loads outside every test's imports, its setup files and the settings shared by
+ * the configurations: an edit runs the whole family they apply to, as a test found through imports
+ * would never reach it. The binding's setup isolates each file's temporary and settings folders for
+ * the server, the UI and the benchmarks too.
+ */
+const setups = ["packages/binding/test-setup.ts", "packages/web/src/__tests__/setup.ts", policy];
 
 /**
  * One owner for test membership, filesystem inputs and optional native prerequisites. A family's
@@ -31,13 +39,13 @@ const loaders = "packages/binding/{index.js,test-utils.ts,test-repos.ts}";
  */
 export const families = {
   benchmarks: {
-    inputs: ["packages/benchmarks/**", "benchmarks/**", server, loaders],
+    inputs: ["packages/benchmarks/**", "benchmarks/**", server, loaders, setups[0], policy],
     native: true,
     root: "packages/benchmarks",
     tests: ["src/**/*.test.ts"],
   },
   binding: {
-    inputs: [...nativeInputs, "packages/server/src/{binding,fresh-binding,paths}.ts"],
+    inputs: [...nativeInputs, "packages/server/src/{binding,fresh-binding,paths}.ts", policy],
     native: true,
     root: "packages/binding",
     tests: ["contracts.test.ts"],
@@ -66,6 +74,7 @@ export const families = {
       "fixtures/**",
       loaders,
       "scripts/{coverage-summary,test-policy,test-run}.ts",
+      setups[0],
       "vite*.ts",
     ],
     native: true,
@@ -80,18 +89,15 @@ export const families = {
       loaders,
       "skills/uraeda/assets/storybook/**",
       "fixtures/images/**",
+      setups[0],
+      policy,
     ],
     native: false,
     root: "packages/web",
+    // Every focused test, and the existing tests that need no application or native binding.
     tests: [
-      "src/__focused__/composer.test.tsx",
-      "src/__tests__/composer-images.test.tsx",
-      "src/__tests__/drop.test.ts",
-      "src/__tests__/draft-text.test.ts",
-      "src/__tests__/insertLink.test.ts",
-      "src/__tests__/keep-place.test.ts",
-      "src/__tests__/readLetters.test.ts",
-      "src/__tests__/edited.test.ts",
+      "src/__focused__/**/*.test.tsx",
+      "src/__tests__/{composer-images,drop,draft-text,insertLink,keep-place,readLetters,edited}.test.{ts,tsx}",
     ],
   },
 };
@@ -193,15 +199,22 @@ export function selectFast(changed: Array<Change>): FastSelection {
       rust.add(`uraeda-${path.split("/")[1]}`);
     }
     const broad =
-      deleted || path.endsWith(".d.ts") || config.test(path) || !/\.[cm]?[jt]sx?$/.test(path);
+      deleted ||
+      path.endsWith(".d.ts") ||
+      config.test(path) ||
+      matches(path, setups) ||
+      !/\.[cm]?[jt]sx?$/.test(path);
     if (config.test(path) && !path.startsWith("packages/")) {
       names.forEach((name) => whole.add(name));
       rust.add("workspace");
     } else if (owners.length) {
       owners.forEach((name) => (broad ? whole.add(name) : related.add(path)));
-    } else if (path.endsWith(".md")) {
+    } else if (path.endsWith(".md") || path.startsWith("specs/")) {
+      // The workflow's own files, images included, which the specs check reads and no test does.
       checks.add("specs:check");
     } else if (!path.startsWith("crates/")) {
+      // Anything else, `editors/` (its Neovim tests) and `.github/` (CI's workflow, which the
+      // toolchain test reads) included, is read by a check only `ready` runs.
       names.forEach((name) => whole.add(name));
       checks.add("ready");
     }
