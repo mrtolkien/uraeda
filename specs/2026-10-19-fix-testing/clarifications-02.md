@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Fix testing
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 10 minutes.
+> Answered on 2026-10-20.
 >
 > - Verdict: not as proposed. The all-flow rebuild lost distinct protections while keeping the
 >   dependency graph that makes shared edits slow.
@@ -114,7 +114,7 @@ exclusions. It determines which behavior the next suite can protect.
   - [pro] minimizes immediate loss of protection.
   - [con] preserves redundant or weak assertions and does not complete the requested testing reform.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: May the fast check defer broad application journeys while running affected focused tests and boundary checks?
 
@@ -150,7 +150,7 @@ must run broad application coverage immediately.
   - [con] shared components and core changes may still select almost the entire application; the
     one-minute budget remains unproven.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -176,4 +176,5 @@ must run broad application coverage immediately.
   unchanged in this round. The next spec revision follows these answers. See
   [why this round](discovery-02.md#why-this-round).
 
-**Notes:**
+**Notes:** Btw there'll be a big rebasing work at the end because I work on features at the same
+time today. Make sure you pull main regularly during the testing rewrite and before creating the PR
