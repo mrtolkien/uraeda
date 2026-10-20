@@ -3,7 +3,7 @@ import { type Context as HonoContext, Hono, type Next } from "hono";
 import { attach } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
 import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
-import { withWholeFields } from "./fate/select.ts";
+import { rewritten } from "./fate/select.ts";
 import { files } from "./files.ts";
 import { warmPreview } from "./fate/preview.ts";
 import { guard, PREVIEW_PATH } from "./guard.ts";
@@ -23,14 +23,6 @@ export { livePreviews } from "./live.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 type Context = HonoContext<{ Variables: FateVariables }>;
-
-/** The request with its selections as whole fields, the way they reach fate (see `fate/select.ts`). */
-const rewritten = async (request: Request) =>
-  new Request(request.url, {
-    body: JSON.stringify(withWholeFields(await request.json().catch(() => undefined))),
-    headers: request.headers,
-    method: "POST",
-  });
 
 /** What `createApp` takes, and its route groups. */
 type AppOptions = {

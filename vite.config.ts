@@ -1,5 +1,5 @@
-import { availableParallelism } from "node:os";
 import nkzw from "@nkzw/oxlint-config";
+import { testWorkers } from "./scripts/test-policy.ts";
 import { tasks } from "./vite.tasks.ts";
 
 /**
@@ -230,13 +230,14 @@ export default {
   test: {
     // Each isolated UI worker loads a native binding and builds real git repositories. Letting
     // the host's CPU count start dozens of them puts avoidable pressure on memory.
-    maxWorkers: Math.min(4, availableParallelism()),
+    maxWorkers: testWorkers,
     // `vp run coverage`'s report, so no thresholds. Under `--project`, Vitest matches these from
     // each project's folder: every package's `src/` and `scripts/`, without the tests' helpers, the
     // lint fixtures, and generated files, so the binding has none: its loader is napi's.
     coverage: {
       exclude: [
         "**/__tests__/**",
+        "**/__focused__/**",
         "**/__browser__/**",
         "**/__lint__/**",
         "**/*.d.ts",
@@ -249,6 +250,7 @@ export default {
     },
     // Each package runs with its own Vite config: the UI's needs React, fate, and happy-dom.
     projects: [
+      "scripts/vite.config.ts",
       "packages/binding",
       "packages/server",
       "packages/benchmarks",

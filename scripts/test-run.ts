@@ -186,7 +186,7 @@ export async function acquire(
 }
 
 /** Where the machine's slots are: the user's cache, the same for every checkout. */
-function lockFolder(): string {
+export function lockFolder(): string {
   return join(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "uraeda", "locks");
 }
 
