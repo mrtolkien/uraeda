@@ -9,12 +9,12 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type ReactNode, Suspense, useState } from "react";
+import { type ReactNode, type RefObject, Suspense, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useSettled } from "./NewChangePage.tsx";
-import { addNote, type OfferKind, proposalTitle } from "./offers.ts";
+import { addNote, type OfferKind, proposalTitle, returnFocus, useAsks } from "./offers.ts";
 import { FeatureView } from "./views.ts";
 import { runWrite } from "./writes/store.ts";
 
@@ -24,13 +24,40 @@ export type OfferSession = { folder?: string; id: string; working: boolean };
 /** Why a card's button waits while the session's agent works: a move sends the next run in it. */
 const WORKING = "The agent is working";
 
+/**
+ * The card's heading, focused each time the session's "…" asks for the card: at once for the card
+ * it opened, `isOpened`, and at a later ask for the agent's.
+ */
+function useTakesFocus(session: string, isOpened: boolean): RefObject<HTMLHeadingElement | null> {
+  const asks = useAsks(session);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const seen = useRef(isOpened ? -1 : asks);
+  useEffect(() => {
+    if (seen.current !== asks) {
+      seen.current = asks;
+      heading.current?.focus();
+    }
+  }, [asks]);
+  return heading;
+}
+
 /** The card's frame: its heading, named for the region, then its parts. */
-function Frame({ children, title }: { children: ReactNode; title: string }) {
+function Frame({
+  children,
+  heading,
+  title,
+}: {
+  children: ReactNode;
+  heading: RefObject<HTMLHeadingElement | null>;
+  title: string;
+}) {
   return (
     <section aria-label={title}>
       <Card padding={4}>
         <VStack gap={3}>
-          <Heading level={3}>{title}</Heading>
+          <Heading level={3} ref={heading} tabIndex={-1}>
+            {title}
+          </Heading>
           {children}
         </VStack>
       </Card>
@@ -103,7 +130,7 @@ function Slug({ onChange, proposal, typed }: SlugProps) {
 type SlugProps = { onChange: (slug: string) => void; proposal: string; typed: string | undefined };
 
 /** "Start a change": the proposal and its slug, then "Start the change", which moves the session. */
-function ChangeCard({ latest, onClose, proposal: given, session }: CardProps) {
+function ChangeCard({ heading, latest, onClose, proposal: given, session }: CardProps) {
   const fate = useFateClient();
   const [proposal, setProposal] = useState(given);
   const [typed, setTyped] = useState<string>();
@@ -131,7 +158,7 @@ function ChangeCard({ latest, onClose, proposal: given, session }: CardProps) {
     onClose();
   };
   return (
-    <Frame title="Start a change">
+    <Frame heading={heading} title="Start a change">
       <TextArea label="Proposal" onChange={setProposal} rows={5} value={proposal} />
       <Suspense fallback={null}>
         <Slug onChange={setTyped} proposal={proposal} typed={typed} />
@@ -148,7 +175,7 @@ function ChangeCard({ latest, onClose, proposal: given, session }: CardProps) {
 }
 
 /** "Make this change a feature": the agent's reason, then "Make it a feature", in place. */
-function FeatureCard({ latest, onClose, reason, session }: CardProps) {
+function FeatureCard({ heading, latest, onClose, reason, session }: CardProps) {
   const fate = useFateClient();
   const [error, setError] = useState<string>();
   const promote = async () => {
@@ -169,7 +196,7 @@ function FeatureCard({ latest, onClose, reason, session }: CardProps) {
     onClose();
   };
   return (
-    <Frame title="Make this change a feature">
+    <Frame heading={heading} title="Make this change a feature">
       {reason && <Text>{reason}</Text>}
       <Text color="secondary" type="supporting">
         Same branch and session, without change/, and its discovery starts next.
@@ -186,6 +213,7 @@ function FeatureCard({ latest, onClose, reason, session }: CardProps) {
 }
 
 type CardProps = {
+  heading: RefObject<HTMLHeadingElement | null>;
   latest: boolean;
   onClose: () => void;
   proposal: string;
@@ -196,10 +224,12 @@ type CardProps = {
 /**
  * The agent's offer, or the one the session's "…" opened: for a change, the proposal, `# Title`
  * first, and its slug; for a feature, the reason. Only the latest offer of a session has buttons,
- * which wait while the agent works; "Not now" closes it, and writes nothing.
+ * which wait while the agent works; "Not now" closes it, and writes nothing. Closed, or once its
+ * move is made, it gives the focus back to the session's "…".
  */
 export function OfferCard({
   isLatest,
+  isOpened = false,
   kind,
   onClose,
   proposal = "",
@@ -207,12 +237,19 @@ export function OfferCard({
   session,
 }: {
   isLatest: boolean;
+  /** Whether the session's "…" opened it: it takes the focus as it draws. */
+  isOpened?: boolean;
   kind: OfferKind;
   onClose: () => void;
   proposal?: string;
   reason?: string;
   session: OfferSession;
 }) {
-  const props = { latest: isLatest, onClose, proposal, reason, session };
+  const heading = useTakesFocus(session.id, isOpened);
+  const close = () => {
+    onClose();
+    returnFocus(session.id);
+  };
+  const props = { heading, latest: isLatest, onClose: close, proposal, reason, session };
   return kind === "change" ? <ChangeCard {...props} /> : <FeatureCard {...props} />;
 }

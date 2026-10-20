@@ -50,6 +50,10 @@ export type MoveNote = { status: "info" | "warning"; title: string };
 
 const closed = new Set<string>();
 const dropped = new Set<string>();
+/** How many times the session's "…" asked for a card: each ask focuses it. */
+const asks = new Map<string, number>();
+/** The sessions whose "…" takes the focus back, once a card closed. */
+const giveBack = new Set<string>();
 const opened = new Map<string, OfferKind>();
 const notes = new Map<string, ReadonlyArray<MoveNote>>();
 const listeners = new Set<() => void>();
@@ -79,14 +83,39 @@ export function useOfferClosed(key: string): boolean {
   return useSyncExternalStore(subscribe, () => closed.has(key));
 }
 
-/** Opens the card of `kind` at the session's end, as its "…" does, or closes it, with `undefined`. */
+/**
+ * Opens the card of `kind` at the session's end, as its "…" does, and focuses it, or closes it, with
+ * `undefined`.
+ */
 export function openOffer(session: string, kind: OfferKind | undefined) {
   if (kind === undefined) {
     opened.delete(session);
   } else {
     opened.set(session, kind);
+    asks.set(session, (asks.get(session) ?? 0) + 1);
   }
   changed();
+}
+
+/** How many times the session's "…" asked for a card. */
+export function useAsks(session: string): number {
+  return useSyncExternalStore(subscribe, () => asks.get(session) ?? 0);
+}
+
+/** Gives the focus back to the session's "…", as a card closes. */
+export function returnFocus(session: string) {
+  giveBack.add(session);
+  changed();
+}
+
+/** Whether the session's "…" takes the focus back: `took` says it did. */
+export function useFocusBack(session: string) {
+  const back = useSyncExternalStore(subscribe, () => giveBack.has(session));
+  const took = () => {
+    giveBack.delete(session);
+    changed();
+  };
+  return { back, took };
 }
 
 /** The card opened at the session's end, if any. */

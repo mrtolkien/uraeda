@@ -5,7 +5,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { refusal } from "../errors.ts";
 import { Overlay } from "../layout/Overlay.tsx";
@@ -16,14 +16,16 @@ import { useAfterDrawer } from "./FeatureSettingsDialog.tsx";
 /** The session renamed: its ID and its title. */
 type Renamed = Pick<Row, "id" | "title">;
 
-/** Opens a session's Rename. */
-const OpenContext = createContext<(row: Renamed) => void>(() => {});
+/** Opens a session's Rename, then calls `onClosed` once it closes. */
+type Open = (row: Renamed, onClosed?: () => void) => void;
+
+const OpenContext = createContext<Open>(() => {});
 
 /** Opens a session's Rename, once the phone's drawer is closed. */
 export function useOpenRename() {
   const open = useContext(OpenContext);
   const after = useAfterDrawer();
-  return (row: Renamed) => after(() => open(row));
+  return (row: Renamed, onClosed?: () => void) => after(() => open(row, onClosed));
 }
 
 function Rename({ onClose, row }: { onClose: () => void; row: Renamed }) {
@@ -74,8 +76,17 @@ export function RenameSessionHost({ children }: { children: ReactNode }) {
   const [row, setRow] = useState<Renamed>();
   // Drawn from its first opening on, as a feature's settings are.
   const [drawn, setDrawn] = useState(false);
+  // Called once the dialog closed, when the page outside it takes the focus again.
+  const closed = useRef<() => void>(undefined);
+  useEffect(() => {
+    if (row === undefined) {
+      closed.current?.();
+      closed.current = undefined;
+    }
+  }, [row]);
   const close = () => setRow(undefined);
-  const open = (opened: Renamed) => {
+  const open: Open = (opened, onClosed) => {
+    closed.current = onClosed;
     setDrawn(true);
     setRow(opened);
   };

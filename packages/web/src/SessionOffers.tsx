@@ -154,13 +154,20 @@ function OpenedOffer({ scope, turns }: { scope: Scope; turns: ReadonlyArray<stri
   }
   const close = () => openOffer(scope.id, undefined);
   if (kind === "feature" || turns.length === 0) {
-    return <OfferCard isLatest key={kind} kind={kind} onClose={close} session={scope} />;
+    return <OfferCard isLatest isOpened key={kind} kind={kind} onClose={close} session={scope} />;
   }
   return (
     <Suspense fallback={null}>
       <FirstMessage turn={turns[0]}>
         {(proposal) => (
-          <OfferCard isLatest kind="change" onClose={close} proposal={proposal} session={scope} />
+          <OfferCard
+            isLatest
+            isOpened
+            kind="change"
+            onClose={close}
+            proposal={proposal}
+            session={scope}
+          />
         )}
       </FirstMessage>
     </Suspense>

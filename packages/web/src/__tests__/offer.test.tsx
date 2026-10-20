@@ -316,3 +316,57 @@ async function fakeGh(repo: string, pulls: Array<Record<string, unknown>>) {
   });
   await refreshPullRequests(repo);
 }
+
+/** The session's "…" beside Send. */
+const menuButton = () => screen.getByRole("button", { name: "Session actions" });
+
+/** Picks `name` in the session's "…". */
+async function pick(name: string) {
+  await click(await screen.findByRole("button", { name: "Session actions" }));
+  await click(await screen.findByRole("menuitem", { name }));
+}
+
+/** Accessibility: the card the "…" opens takes the focus, and gives it back once closed. */
+test("the card the … opens takes the focus, and Not now gives it back to the …", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo, ["The guard and the router both redirect."]);
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+
+  await pick("Make it a change");
+
+  const shown = await card();
+  await waitFor(() =>
+    expect(document.activeElement).toBe(shown.getByRole("heading", { name: "Start a change" })),
+  );
+  await click(shown.getByRole("button", { name: "Not now" }));
+  await waitFor(() => expect(document.activeElement).toBe(menuButton()));
+});
+
+test("Keep it a change gives the focus back to the …", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await featureOffered(fake, repo);
+  await renderPage(`/f/${CHANGE}/session`, repo, { agent: fake });
+
+  await click((await featureCard()).getByRole("button", { name: "Keep it a change" }));
+
+  await waitFor(() => expect(document.activeElement).toBe(menuButton()));
+});
+
+test("a change started from the … gives the focus back to the …", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo, ["The guard and the router both redirect."]);
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+  await pick("Make it a change");
+  const shown = await card();
+  const slug = (await shown.findByRole("textbox", { name: "Slug" })) as HTMLInputElement;
+  await waitFor(() => expect(slug.value).not.toBe(""));
+  fake.adapter.script([]);
+
+  await click(shown.getByRole("button", { name: "Start the change" }));
+
+  expect(await screen.findByText(/^Started as the change /)).toBeTruthy();
+  await waitFor(() => expect(document.activeElement).toBe(menuButton()));
+});

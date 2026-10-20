@@ -2,10 +2,18 @@
 // the session: making it a change, or its change a feature, renaming it, archiving a session
 // without a workflow, and dropping a change or a feature, behind a confirmation.
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
+import { useEffect, useRef } from "react";
 import { useFateClient } from "react-fate";
 import { refusal } from "./errors.ts";
 import { useConfirm } from "./fields/Confirm.tsx";
-import { addNote, markDropped, openOffer, useDropped } from "./offers.ts";
+import {
+  addNote,
+  markDropped,
+  openOffer,
+  returnFocus,
+  useDropped,
+  useFocusBack,
+} from "./offers.ts";
 import { useOpenRename } from "./sidebar/RenameSession.tsx";
 import type { Controls } from "./useSessionControls.ts";
 import { DroppedView } from "./views.ts";
@@ -98,6 +106,15 @@ export function SessionActions({
 }) {
   const rename = useOpenRename();
   const drop = useDrop(session.id, item, controls.fail);
+  // The focus comes back here once a card it opened, or Rename, closes.
+  const trigger = useRef<HTMLButtonElement>(null);
+  const { back, took } = useFocusBack(session.id);
+  useEffect(() => {
+    if (back) {
+      trigger.current?.focus();
+      took();
+    }
+  }, [back, took]);
   const dropped = useDropped(session.id);
   const { archive } = controls;
   // A dropped change or feature archived its sessions: they move it no more.
@@ -109,7 +126,7 @@ export function SessionActions({
       : live?.kind === "change"
         ? [{ label: "Make it a feature", onClick: () => openOffer(session.id, "feature") }]
         : []),
-    { label: "Rename", onClick: () => rename(session) },
+    { label: "Rename", onClick: () => rename(session, () => returnFocus(session.id)) },
     ...(archive
       ? [
           {
@@ -120,5 +137,13 @@ export function SessionActions({
       : []),
     ...(live ? [{ label: `Drop the ${live.kind}…`, onClick: () => void drop() }] : []),
   ];
-  return <MoreMenu isMenuOpen={isMenuOpen} items={items} label="Session actions" size="sm" />;
+  return (
+    <MoreMenu
+      isMenuOpen={isMenuOpen}
+      items={items}
+      label="Session actions"
+      ref={trigger}
+      size="sm"
+    />
+  );
 }
