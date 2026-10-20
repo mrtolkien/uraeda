@@ -118,3 +118,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: new session helpers in `fake.test.ts`: code for one test.
 - **If wrong**: the tests move to `sessions.test.ts`, on `testSessions()`.
 - **Where**: task 3.
+
+## R11: The pick script's new cases are in the sandbox's pick tests
+
+- **Decision**: task 4's cases are in `sandbox-pick.test.tsx`, on `pickScriptOnPage()`, not in
+  `story-embed.test.tsx`.
+- **Rationale**: they test the script at the top of a page, as the sandbox loads it, which that
+  helper gives; a story embed's tests go through the fake Storybook and the server, which these
+  cases do not need. The embed's tests still check that a story's pick posts `role`, `name`, and
+  `text`.
+- **Alternatives considered**: the plan's `story-embed.test.tsx`: a frame and a server for a script
+  test.
+- **If wrong**: the cases move into the story embed's file, unchanged but for their setup.
+- **Where**: tasks 4 and 6.

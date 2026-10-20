@@ -235,7 +235,7 @@ The picker's tests are browser tests, on the real pick script.
 | Unverified: picking over a dialog; edge "inside a dialog"                                 | 1    | `packages/web/src/__browser__/sandbox-pick.test.tsx`, a dialog open     |
 | Existing: Storybook's and the screenshots' states                                         | 2    | `packages/web/samples/__tests__/storybook-states.test.ts`               |
 | Existing: `FakeAdapter`'s scripted turns                                                  | 3    | `packages/server/src/runner/__tests__/fake.test.ts`                     |
-| US4 more 2 (Enter picks); review focus 3                                                  | 4    | `packages/web/src/__browser__/story-embed.test.tsx`, pick script cases  |
+| US4 more 2 (Enter picks); review focus 3                                                  | 4    | `packages/web/src/__browser__/sandbox-pick.test.tsx`, pick script cases |
 | US1 3, more 1, 2, 3; SC-002                                                               | 5    | `packages/web/samples/__tests__/projects.test.ts`                       |
 | US4 1, 2, 3, more 1, 3, 4; edge "no source"; edge cuts; SC-005                            | 6    | `packages/web/src/__browser__/sandbox-pick.test.tsx`                    |
 | US3 1, 2, 3, more 1, 2; review focus 5                                                    | 7    | `packages/web/sandbox/__tests__/sessions.test.ts`                       |
@@ -519,27 +519,39 @@ git commit -m "feat(ui-sandbox): awaited steps and a fallback turn for the fake 
 **Files:**
 
 - Modify: `skills/uraeda/assets/storybook/uraeda-pick.js`, its protocol comment
-- Test: `packages/web/src/__browser__/story-embed.test.tsx` (its pick script cases)
+- Modify: `packages/web/src/__browser__/helpers.tsx` (`PickedMessage` gains the new fields;
+  `pickScriptOnPage()`'s `start` resolves once pick mode is on, and pick mode is turned off when the
+  test finishes)
+- Modify: `packages/web/src/__tests__/storybook-pick.test.ts` (its exact picks gain the new fields)
+- Test: `packages/web/src/__browser__/sandbox-pick.test.tsx` (its pick script cases, on
+  `pickScriptOnPage()`, at the top of a page: R11)
 
 **Interfaces:**
 
 - Produces: `picked` messages gain `source: string | null`, the nearest `data-insp-path` of the
-  element or its parents, and `html: string`, the element's outer HTML. Elements inside
-  `[data-uraeda-pick-ignore]` are never outlined or picked, and clicks on them reach them. In pick
-  mode, Enter or Space picks the focused element.
+  element or its parents, and `html: string`, the element's full outer HTML. Elements inside
+  `[data-uraeda-pick-ignore]` are never outlined or picked, and their events reach them. In pick
+  mode, Enter or Space picks the focused element, and neither the key nor its key up reaches the
+  page.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
-test("Enter in pick mode picks the focused button", async () => {
+test("Enter in pick mode picks the focused text box, and the page gets no Enter", async () => {
   const picks = await pickScriptOnPage();
-  render(<Button label="Save" />);
-  page.getByRole("button", { name: "Save" }).element().focus();
+  const submitted = vi.fn((event: SubmitEvent) => event.preventDefault());
+  render(<form onSubmit={(event) => submitted(event.nativeEvent as SubmitEvent)}><input aria-label="Title" /></form>);
+  page.getByRole("textbox", { name: "Title" }).element().focus();
 
-  picks.start();
+  await picks.start();
   await userEvent.keyboard("{Enter}");
 
-  expect(await picks.next()).toMatchObject({ name: "Save", role: "button" });
+  expect(await picks.next()).toMatchObject({ name: "Title", role: "textbox" });
+  expect(submitted).not.toHaveBeenCalled();
+});
+
+test("Space in pick mode picks the focused button, and the page gets no Space", async () => {
+  // A native button with `onClick` and `onKeyUp`: picked once, neither called.
 });
 
 test("an ignored element is not picked, and its click reaches it", async () => {
@@ -547,43 +559,58 @@ test("an ignored element is not picked, and its click reaches it", async () => {
   const pressed = vi.fn();
   render(<div data-uraeda-pick-ignore><Button label="Stop" onClick={pressed} /></div>);
 
-  picks.start();
+  await picks.start();
   await userEvent.click(page.getByRole("button", { name: "Stop" }));
 
   expect(pressed).toHaveBeenCalledOnce();
   expect(picks.taken()).toEqual([]);
 });
 
-test("a pick names the nearest source and the HTML", async () => {
-  render(<div data-insp-path="packages/web/src/X.tsx:3:5"><span>Hi</span></div>);
+test("a pick names the nearest source and the element's HTML", async () => {
+  render(<div data-insp-path="packages/web/src/X.tsx:3:5"><p>Hi</p></div>);
   // ...start, click "Hi"
-  expect(await picks.next()).toMatchObject({ html: "<span>Hi</span>", source: "packages/web/src/X.tsx:3:5" });
+  expect(await picks.next()).toMatchObject({ html: "<p>Hi</p>", source: "packages/web/src/X.tsx:3:5" });
 });
+
+test("pick mode left on by a test", async () => {
+  await (await pickScriptOnPage()).start();
+});
+
+test("is off in the next test, whose click reaches its button", async () => { /* ... */ });
 ```
+
+Enter on a button already picked before this task, through the click Enter makes: the Enter case
+uses a text box, whose Enter makes no click, and Space a button. The last two cases check the
+helper: the script stays loaded for the whole file, and pick mode left on swallowed every later
+test's clicks.
 
 The break each test catches:
 
 - Enter: a keyboard user who cannot pick.
+- Space: the key up reaching the page once pick mode ends.
 - Ignored: the bar's own toggle picked, or swallowed, in pick mode.
 - Source: the element's own attribute only, missing its parent's.
+- Left on: the helper not turning pick mode off as a test finishes.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: the browser test file.
-- Expected: FAIL, the Enter case first: no `picked` message.
+- Expected: FAIL: the Enter case, no `picked` message; the ignored case, no click; the source case,
+  no `source` or `html`.
 
-- [ ] **Step 3: Implement**, keeping `role`, `name`, and `text` as they are, and the parent-only
+- [x] **Step 3: Implement**, keeping `role`, `name`, and `text` as they are, and the parent-only
       rule for `pick` messages.
 
-- [ ] **Step 4: Run the browser tests of story embeds and comments**
+- [x] **Step 4: Run the browser tests of story embeds and comments**
 
-- Run: the `story-embed` and `story-comments` browser tests.
+- Run: the `story-embed`, `story-comments`, and `sandbox-pick` browser tests, at both sizes.
 - Expected: PASS, every existing case unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add skills/uraeda/assets/storybook/uraeda-pick.js packages/web/src/__browser__
+git add skills/uraeda/assets/storybook/uraeda-pick.js packages/web/src/__browser__ \
+  packages/web/src/__tests__/storybook-pick.test.ts specs/2026-10-20-ui-sandbox
 git commit -m "feat(ui-sandbox): picks name their source and HTML, and Enter picks"
 ```
 

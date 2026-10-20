@@ -621,7 +621,32 @@ export async function attached(path: string, file: File) {
 }
 
 /** A message the pick script posts for the element picked in pick mode. */
-export type PickedMessage = { name: string; role: string; text: string; uraeda: "picked" };
+export type PickedMessage = {
+  html: string;
+  name: string;
+  role: string;
+  source: string | null;
+  text: string;
+  uraeda: "picked";
+};
+
+/**
+ * Turns the pick script's pick mode on or off, resolving once it has: a listener added after the
+ * script's gets the message after it.
+ */
+function pickMode(on: boolean) {
+  return new Promise<void>((resolve) => {
+    const delivered = (event: MessageEvent) => {
+      const data = event.data as { on?: boolean; uraeda?: string } | null;
+      if (data?.uraeda === "pick" && data.on === on) {
+        window.removeEventListener("message", delivered);
+        resolve();
+      }
+    };
+    window.addEventListener("message", delivered);
+    window.postMessage({ on, uraeda: "pick" }, "*");
+  });
+}
 
 /** The skill's pick script, loaded once into the test's page: a second copy would pick twice. */
 let pickScript: Promise<void> | undefined;
@@ -629,7 +654,8 @@ let pickScript: Promise<void> | undefined;
 /**
  * Loads the skill's pick script into the test's page, as the sandbox loads it at the top of its own
  * page: `start` turns pick mode on, `next` waits for the next pick, and `taken` lists the picks
- * received since.
+ * received since. Pick mode is turned off when the test finishes: the script stays loaded, and its
+ * listeners would otherwise keep the next test's clicks as picks.
  */
 export async function pickScriptOnPage() {
   pickScript ??= import("../../../../skills/uraeda/assets/storybook/uraeda-pick.js?raw").then(
@@ -665,7 +691,10 @@ export async function pickScriptOnPage() {
     waiting.shift()?.(message);
   };
   window.addEventListener("message", onMessage);
-  onTestFinished(() => window.removeEventListener("message", onMessage));
+  onTestFinished(async () => {
+    await pickMode(false);
+    window.removeEventListener("message", onMessage);
+  });
   let read = 0;
   return {
     next() {
@@ -674,9 +703,7 @@ export async function pickScriptOnPage() {
         ? Promise.resolve(taken[index])
         : new Promise<PickedMessage>((resolve) => waiting.push(resolve));
     },
-    start() {
-      window.postMessage({ on: true, uraeda: "pick" }, "*");
-    },
+    start: () => pickMode(true),
     taken: () => [...taken],
   };
 }
