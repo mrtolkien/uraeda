@@ -417,6 +417,53 @@ fn feature_moves_a_change() {
     assert_eq!(repo.git(&["branch", "--list", "change/*"]), "");
 }
 
+/// US4 more 2: a change whose pull request `gh` lists keeps its branch's name, the pull requests
+/// asked of `gh` before the move.
+#[test]
+fn feature_on_a_change_with_a_pull_request_is_refused() {
+    let repo = repo_with_a_draft();
+    let started = ura(&repo, &["start", DRAFT, "--change"]);
+    assert_eq!(started.code, 0, "{}", started.stderr);
+    let bin = repo.parent().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let gh = bin.join("gh");
+    std::fs::write(
+        &gh,
+        format!(
+            "#!/bin/sh\necho '[{{\"headRefName\":\"change/{BRANCH}\",\"number\":7,\"url\":\"https://github.com/o/r/pull/7\",\"isDraft\":false,\"reviewDecision\":\"\"}}]'\n"
+        ),
+    )
+    .unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let path = format!(
+        "{}:{}",
+        bin.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
+    let home = repo.home();
+
+    let output = ura_in(
+        repo.path(),
+        &["start", "git-listener", "--feature"],
+        &[("PATH", &path), ("HOME", home.to_str().unwrap())],
+    );
+
+    assert_eq!(output.code, 1, "{}", output.stdout);
+    assert_eq!(
+        output.stderr,
+        "ura: This change has a pull request: close it first, since its branch would be renamed\n"
+    );
+    assert_eq!(
+        repo.git(&["branch", "--list", &format!("change/{BRANCH}")])
+            .trim(),
+        format!("+ change/{BRANCH}")
+    );
+}
+
 #[test]
 fn feature_on_a_draft_is_refused() {
     let repo = repo_with_a_draft();

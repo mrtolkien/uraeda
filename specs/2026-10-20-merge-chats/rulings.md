@@ -677,3 +677,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: the final review's fixes, `ofDropped` and `REFUSALS.dropped` in
   `packages/server/src/runner/session-state.ts`, `sendTo` and `deliver` in `runner/send.ts`,
   `featureSession` and `newSession` in `runner/sessions.ts`.
+
+## R39: A change's move asks `gh` for its pull request first
+
+- **Decision**: `ura start <change> --feature` reads the workspace with its pull requests asked of
+  `gh`, as `ura next` does, and the binding's `promoteChange` refreshes them before it reads the
+  workspace, so a change whose pull request `gh` lists now keeps its branch's name. Without `gh`, or
+  when it fails, the check reads what the server last knew, kept 10 minutes after a failure, then
+  nothing: the move goes on, and renames the branch locally only, so the remote branch and its pull
+  request stay. The skill's `cli.md` says the check reads `gh` and is skipped without it. New CLI
+  test `feature_on_a_change_with_a_pull_request_is_refused`, with a fake `gh`.
+- **Rationale**: the final review found the check read only the cached pull requests: the CLI had
+  none, and the server's could be minutes old.
+- **Alternatives considered**: refusing the move when `gh` is missing: a repository without GitHub
+  could never move a change.
+- **If wrong**: `promote` in `crates/cli/src/start.rs`, `promote_change` in
+  `crates/core/src/api/start.rs`.
+- **Where**: the final review's fixes.

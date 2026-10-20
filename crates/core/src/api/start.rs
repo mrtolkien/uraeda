@@ -6,6 +6,7 @@ use std::path::Path;
 use super::{Result, encode_image, open, plain, refused, write_lock};
 use crate::actions::promote;
 use crate::actions::start::{self, StartError, Started};
+use crate::git::Git;
 use crate::today;
 use crate::view::{PromotedView, StartedView};
 use crate::workspace::Kind;
@@ -57,9 +58,11 @@ pub fn start_change(
     ))
 }
 
-/// Makes the change in `folder` a feature, in place, in its worktree.
+/// Makes the change in `folder` a feature, in place, in its worktree: its open pull requests are
+/// asked of `gh` first, since one refuses the move.
 pub fn promote_change(repo: &Path, folder: &str) -> Result<PromotedView> {
     let _lock = write_lock();
+    crate::pulls::refresh(&Git::discover(repo)?.main_root());
     let (git, workspace) = open(repo)?;
     match promote::run(&git, &workspace, folder) {
         Ok(promoted) => Ok(PromotedView {
