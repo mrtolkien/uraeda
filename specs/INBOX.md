@@ -49,3 +49,6 @@
   picks the waiting item by the picker label, not its index
 - [agent] [fix-testing] CLI install flow: the permission test returns silently as root, the kind of
   test the rebuild dropped elsewhere
+- [agent] [ui-sandbox] Sandbox seed: two seeds started within the same 100 ms after a killed seed
+  can both remove its stale `.sandbox.lock`, so both rebuild `.sandbox/` at once; the stale-lock
+  recovery itself needs a lock
