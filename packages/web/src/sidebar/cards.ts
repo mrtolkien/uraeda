@@ -119,15 +119,14 @@ export function sessionCard(row: Row): CardItem {
 
 /**
  * When a feature or a change started: its first session's start, which a session that became it
- * keeps, or its folder's date before that.
+ * keeps, or its folder's date before it has one. The date alone would sort before every start of
+ * its own day.
  */
 export function startOf(feature: Feature, rows: Array<Row>): string {
-  return rows
-    .filter((row) => row.folder === feature.folder)
-    .reduce(
-      (first, row) => (row.startedAt < first ? row.startedAt : first),
-      feature.folder.slice(0, 10),
-    );
+  const starts = rows.filter((row) => row.folder === feature.folder).map((row) => row.startedAt);
+  return starts.length === 0
+    ? feature.folder.slice(0, 10)
+    : starts.reduce((first, start) => (start < first ? start : first));
 }
 
 /** Items in the order they started, the oldest first, so a row keeps its place as agents work. */
