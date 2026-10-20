@@ -45,8 +45,8 @@ export const TRIGGERS: Array<Trigger> = [
 /** How many sessions the sidebar lists: every feature's, and the chats. */
 const LIST_LIMIT = 10_000;
 
-/** A chat's title before its first message. */
-const NEW_CHAT = "New chat";
+/** A session's title before its first message. */
+const NEW_SESSION = "New session";
 
 /** The count of the turn's item pages. */
 export function pages(cache: SessionCache, turn: number): number {
@@ -141,7 +141,7 @@ function isLatest(cache: SessionCache, row: SessionRow): boolean {
 
 function titleOf(row: SessionRow, feature?: FeatureView): string {
   if (row.folder === null) {
-    return row.title ?? NEW_CHAT;
+    return row.title ?? NEW_SESSION;
   }
   return feature?.title || row.folder;
 }

@@ -412,7 +412,7 @@ test("US2.4: a hand-over's message on a feature waiting on the human is sent as 
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
   expect(cache.items(turn, 0, 10)).toEqual([
     expect.objectContaining({ kind: "message", origin: "human", text: "Continue" }),
-    { kind: "system", seq: 1, text: "Sent as a chat: the feature now waits on you." },
+    { kind: "system", seq: 1, text: "Sent as a message: the feature now waits on you." },
   ]);
 });
 
@@ -444,7 +444,7 @@ test("a message inserted for a step that moved on is sent as a chat", async () =
   expect(items).toContainEqual({
     kind: "system",
     seq: 1,
-    text: "Sent as a chat: the feature now waits on you.",
+    text: "Sent as a message: the feature now waits on you.",
   });
 });
 
@@ -506,7 +506,7 @@ test("a message read at a step the feature moved past, still waiting on the agen
 
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
   expect(cache.itemsOf(turn, "system")).toEqual([
-    { kind: "system", seq: 1, text: "Sent as a chat: the feature moved on to another step." },
+    { kind: "system", seq: 1, text: "Sent as a message: the feature moved on to another step." },
   ]);
 });
 
@@ -552,7 +552,7 @@ test("the comments message without a pull request is sent as a chat", async () =
 
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
   expect(cache.itemsOf(turn, "system")).toEqual([
-    { kind: "system", seq: 1, text: "Sent as a chat: no pull request is open." },
+    { kind: "system", seq: 1, text: "Sent as a message: no pull request is open." },
   ]);
 });
 
@@ -573,7 +573,7 @@ test("the comments message while the pull request's state is unknown is sent as 
 
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", step: null, trigger: null });
   expect(cache.itemsOf(turn, "system")).toEqual([
-    { kind: "system", seq: 1, text: "Sent as a chat: the feature moved on to another step." },
+    { kind: "system", seq: 1, text: "Sent as a message: the feature moved on to another step." },
   ]);
 });
 
@@ -656,7 +656,7 @@ test("a workflow message queued behind a run that moved the step on starts as a 
   expect(adapter.sent[1]?.text).toBe(`${opening(AGENT)}\nContinue, write the plan`);
   expect(cache.items(inserted.turn, 0, 10)).toEqual([
     expect.objectContaining({ opening: opening(AGENT), origin: "human", state: "read" }),
-    { kind: "system", seq: 1, text: "Sent as a chat: the feature now waits on you." },
+    { kind: "system", seq: 1, text: "Sent as a message: the feature now waits on you." },
   ]);
 });
 

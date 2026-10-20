@@ -380,7 +380,7 @@ test("session.send with a step's message the feature moved on from sends it as a
   expect(log?.items).toContainEqual({
     kind: "system",
     seq: 1,
-    text: "Sent as a chat: the feature now waits on you.",
+    text: "Sent as a message: the feature now waits on you.",
   });
 });
 
@@ -780,7 +780,7 @@ test("US3: session.allowAll allows the covered actions in one turn, and refuses 
 test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a message", async () => {
   const server = await testServer();
   const chat = (await mutate(server.app, "session.newChat", {}, SESSION_FIELDS)).data;
-  expect(chat).toMatchObject({ folder: null, status: "idle", title: "New chat", turns: [] });
+  expect(chat).toMatchObject({ folder: null, status: "idle", title: "New session", turns: [] });
   expect(chat.place).toMatch(/^main checkout, branch /);
 
   const renamed = await mutate(

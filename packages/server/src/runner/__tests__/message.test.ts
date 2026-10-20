@@ -135,7 +135,7 @@ test.each<[string, string]>([
   ["x".repeat(90), "x".repeat(80)],
   ["List the open draft files", "List the open draft files"],
   ["  \n  Fix the build  \nthen push", "Fix the build"],
-  [" \n ", "New chat"],
+  [" \n ", "New session"],
 ])("the title of %j", (text, title) => expect(chatTitle(text)).toBe(title));
 
 test('a chat of text and images is titled by its text, and of images alone "Image"', () => {

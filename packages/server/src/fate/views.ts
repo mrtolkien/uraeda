@@ -185,7 +185,7 @@ export type SessionRecord = {
   statusReason: StatusReason | null;
   /** The sub-agents of its running turn that have not ended. */
   subagents: Array<SubagentRecord>;
-  /** A chat's title, "New chat" before its first message, or its feature's title. */
+  /** A chat's title, "New session" before its first message, or its feature's title. */
   title: string;
   /** Its turns' IDs, oldest first. */
   turns: Array<string>;

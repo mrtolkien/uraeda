@@ -265,7 +265,7 @@ export function chatTitle(text: string, images = false): string {
   if (line) {
     return line.slice(0, TITLE_LENGTH);
   }
-  return images ? "Image" : "New chat";
+  return images ? "Image" : "New session";
 }
 
 const TARGETS = ["command", "file_path", "url", "pattern", "path"];

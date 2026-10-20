@@ -19,7 +19,7 @@ const feature = {
   title: null,
 };
 
-const chat = { ...feature, folder: null, title: "New chat" };
+const chat = { ...feature, folder: null, title: "New session" };
 
 const workflowTurn = {
   allowed: null,
@@ -121,7 +121,7 @@ test("a chat has no folder, and many are allowed", () => {
   const second = cache.createSession({ ...chat, nativeId: "9a9a" });
 
   expect(first.id).not.toBe(second.id);
-  expect(cache.session(second.id)).toMatchObject({ folder: null, title: "New chat" });
+  expect(cache.session(second.id)).toMatchObject({ folder: null, title: "New session" });
 });
 
 test("a session's turns come back oldest first, with their start and end", () => {
