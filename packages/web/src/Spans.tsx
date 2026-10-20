@@ -118,7 +118,11 @@ function SpanLink({
  * from `/images/`, else none.
  */
 function imageSource(span: Span): string | undefined {
-  const path = span.image?.path;
+  return imagePath(span.image?.path);
+}
+
+/** The path, within its repository, an image under `specs/` is drawn from, else none. */
+export function imagePath(path: string | undefined): string | undefined {
   return path?.startsWith("specs/")
     ? `/images/${path.split("/").map(encodeURIComponent).join("/")}`
     : undefined;

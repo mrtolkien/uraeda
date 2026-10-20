@@ -248,7 +248,7 @@ function useRuns(field: Field, attaching: ReturnType<typeof useAttach>) {
  * The files a paste attaches, as pasted images, named by the core: none when it holds text, as a
  * paste from an office suite carries a picture of the text with the text, which is pasted (R51).
  */
-function pastedImages(event: ClipboardEvent<HTMLTextAreaElement>) {
+export function pastedImages(event: ClipboardEvent<HTMLTextAreaElement>) {
   const files = [...event.clipboardData.files];
   if (files.length === 0 || event.clipboardData.getData("text/plain").trim()) {
     return undefined;

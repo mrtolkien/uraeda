@@ -22,11 +22,14 @@ pub fn read_inbox(repo: &Path) -> Result<Inbox> {
         &workspace,
         crate::actions::default_round::DefaultRound::Triage.path(),
     );
-    Ok(edits::of(
+    let inbox = edits::of(
         &text.unwrap_or_default(),
         triage.as_deref(),
         change_count(&git, &workspace),
-    ))
+    );
+    Ok(edits::with_images(inbox, |draft| {
+        on_default(&git, &workspace, draft).0
+    }))
 }
 
 /// The marks of a note added from the web UI: `about` is the folder of the page it was added from,
@@ -220,32 +223,55 @@ pub fn note_to_draft(repo: &Path, id: &str, draft: &str, previous: &str) -> Resu
     Ok(edits::to_draft(&place, id, draft, previous)?)
 }
 
+/// An image sent with a note: its bytes, and its original file name, `None` for a pasted image.
+pub type NoteImage = (Vec<u8>, Option<String>);
+
+/// Checks and encodes the images first, so that a refused one writes nothing.
+fn encoded(images: &[NoteImage]) -> Result<Vec<edits::NoteImage>> {
+    images
+        .iter()
+        .map(|(bytes, name)| {
+            let encoded = super::encode_image(bytes, name.as_deref().unwrap_or("pasted image"))?;
+            Ok((encoded, name.clone()))
+        })
+        .collect()
+}
+
 /// Adds a note as a new draft folder, `specs/drafts/<slug>/proposal.md`, holding its text and the
-/// image `bytes`, linked from the end of a category: all written or none. The image is checked and
-/// encoded first, so a refused one writes nothing. `name` is its original file name. Returns the
-/// inbox and the draft's path, from the top level.
-pub fn add_note_with_image(
+/// `images`, linked from the end of a category: all written or none. The images are checked and
+/// encoded first, so a refused one writes nothing. Returns the inbox and the draft's path, from
+/// the top level.
+pub fn add_note_with_images(
     repo: &Path,
     category: Option<String>,
     about: Option<String>,
     text: &str,
-    bytes: &[u8],
-    name: Option<&str>,
+    images: &[NoteImage],
     previous: &str,
 ) -> Result<(Inbox, String)> {
     let marks = marks(about);
     edits::checked_note(&marks, text)?;
-    let encoded = super::encode_image(bytes, name.unwrap_or("pasted image"))?;
+    let images = encoded(images)?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    let draft = edits::add_with_image(
-        &place,
-        category.as_deref(),
-        &marks,
-        text,
-        (&encoded, name),
-        previous,
-    )?;
+    let draft =
+        edits::add_with_image(&place, category.as_deref(), &marks, text, &images, previous)?;
+    Ok((edits::read(&place), draft))
+}
+
+/// Adds `images` to the note `id`: into the draft it links, or into the draft it becomes, linked
+/// from the note's own place. The images are checked and encoded first. Returns the inbox and the
+/// draft's path, from the top level.
+pub fn attach_note_images(
+    repo: &Path,
+    id: &str,
+    images: &[NoteImage],
+    previous: &str,
+) -> Result<(Inbox, String)> {
+    let images = encoded(images)?;
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    let draft = edits::attach_to_note(&place, id, &images, previous)?;
     Ok((edits::read(&place), draft))
 }
 
@@ -337,4 +363,18 @@ pub fn undo_note_add(repo: &Path, lines: &[String]) -> Result<Inbox> {
     let place = reach_default(repo)?;
     edits::undo_add(&place, lines)?;
     Ok(edits::read(&place))
+}
+
+/// The images of drafts and of the backlog that no markdown file of their folder links, from the
+/// top level, in order: deleted unless `dry_run`, with the `images/` folders they leave empty, on
+/// the default branch, uncommitted.
+pub fn clean_images(repo: &Path, dry_run: bool) -> Result<Vec<String>> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    if dry_run {
+        return Ok(crate::actions::images::unlinked_in_drafts(&place.root));
+    }
+    Ok(crate::actions::images::delete_unlinked_in_drafts(
+        &place.root,
+    )?)
 }

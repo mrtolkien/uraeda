@@ -39,36 +39,49 @@ const limited = () =>
   });
 
 /**
- * `POST /inbox/note-image`: a note with an image, added in one call to the core, which encodes
- * the image and writes the draft folder holding both, linked from the inbox, all or nothing. The
- * multipart body holds `text`, `hash`, the inbox's as read, `category` and `about` when given, and
- * `file`; the image's name is in the query string, as for `/attach`. Answers `{ draft }`, the
- * draft's path, or `400` with `{ error }`.
+ * `POST /inbox/note-image`: images added to the inbox in one call to the core, which encodes them
+ * and writes the draft folder holding them, all or nothing: a new note's, when the multipart body
+ * holds `text`, with `category` and `about` when given, or those of the note `id`, which becomes a
+ * draft when it links none. The body also holds `hash`, the inbox's as read, and one `file` per
+ * image; the images' names are the query string's `name`s, in the same order, as for `/attach`.
+ * Answers `{ draft }`, the draft's path, or `400` with `{ error }`.
  */
 async function noteImage(context: Context<{ Variables: FateVariables }>) {
   // Mounted under `/r/<name>/` only: the repository is the route's.
   const ctx = inRepository(context.get("fate"));
-  const body = await context.req.parseBody().catch(() => ({}) as Record<string, unknown>);
+  const body = await context.req
+    .parseBody({ all: true })
+    .catch(() => ({}) as Record<string, string | File | Array<string | File>>);
   const field = (key: string) => {
     const value = body[key];
     return typeof value === "string" && value !== "" ? value : undefined;
   };
-  const file = body.file;
+  const files = [body.file].flat().filter(isFile);
   const text = field("text");
+  const id = field("id");
   const hash = field("hash");
-  if (!isFile(file) || text === undefined || hash === undefined) {
-    return context.json({ error: "refused: Give a text, a hash, and a file." }, 400);
+  if (files.length === 0 || hash === undefined || (text === undefined) === (id === undefined)) {
+    return context.json({ error: "refused: Give a hash, a file, and a text or a note id." }, 400);
   }
   try {
-    const draft = await ctx.binding.addNoteWithImage(
-      ctx.repo,
-      text,
-      hash,
-      Buffer.from(await file.arrayBuffer()),
-      context.req.query("name") || undefined,
-      field("category"),
-      field("about"),
+    const images = await Promise.all(
+      files.map(async (file) => Buffer.from(await file.arrayBuffer())),
     );
+    // An empty name stands for a pasted image.
+    const queried = context.req.queries("name") ?? [];
+    const names = images.map((_, index) => queried[index] ?? "");
+    const draft =
+      id === undefined
+        ? await ctx.binding.addNoteWithImages(
+            ctx.repo,
+            text ?? "",
+            hash,
+            images,
+            names,
+            field("category"),
+            field("about"),
+          )
+        : await ctx.binding.attachNoteImages(ctx.repo, id, hash, images, names);
     return context.json({ draft });
   } catch (error) {
     return context.json(refusal(error), 400);

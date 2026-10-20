@@ -37,10 +37,11 @@ export declare function addNote(repo: string, text: string, previous: string, ca
 export declare function addNoteAndCommit(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<InboxAdded>
 
 /**
- * Adds a note as a new draft folder holding its text and the image `bytes`, linked from the end
- * of a category, all written or none. `name` is the image's file name. Returns the draft's path.
+ * Adds a note as a new draft folder holding its text and the `images`, linked from the end of a
+ * category, all written or none. `names` holds each image's file name, empty for a pasted one.
+ * Returns the draft's path.
  */
-export declare function addNoteWithImage(repo: string, text: string, previous: string, bytes: Buffer, name?: string | undefined | null, category?: string | undefined | null, about?: string | undefined | null): Promise<string>
+export declare function addNoteWithImages(repo: string, text: string, previous: string, images: Array<Buffer>, names: Array<string>, category?: string | undefined | null, about?: string | undefined | null): Promise<string>
 
 /** Adds a line at the end of a section of the priorities. */
 export declare function addPriority(repo: string, section: string, text: string, previous: string): Promise<Priorities>
@@ -69,6 +70,12 @@ export declare function approve(repo: string, folder: string, file: string, summ
  * becomes a folder first.
  */
 export declare function attachImage(repo: string, path: string, bytes: Buffer, name?: string | undefined | null): Promise<AttachedView>
+
+/**
+ * Adds `images` to the note `id`, into the draft it links or into the draft it becomes. `names`
+ * holds each image's file name, empty for a pasted one. Returns the draft's path.
+ */
+export declare function attachNoteImages(repo: string, id: string, previous: string, images: Array<Buffer>, names: Array<string>): Promise<string>
 
 /**
  * The files a feature's branch changed outside its folder, from the default branch's merge base,
@@ -979,6 +986,11 @@ export interface InboxNote {
    * an add whose answer was lost finds it by.
    */
   draftTitle?: string
+  /**
+   * The images the draft links, in order, from the repository's top level: filled in from the
+   * draft, where it is read. Empty for a note with no draft.
+   */
+  images: Array<string>
   startLine: number
   endLine: number
   /** Its lines as written, sub-items included: what an Undo of its removal writes back. */

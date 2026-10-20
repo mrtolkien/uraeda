@@ -7,7 +7,7 @@ import { createContext, type ReactNode, Suspense, useContext, useState } from "r
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
-import { undoAsDraft, usePickedImage } from "./NoteImage.tsx";
+import { undoAsDraft, usePickedImages } from "./NoteImage.tsx";
 import { readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -154,7 +154,7 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   const fate = useFateClient();
   const toast = useUndoToast();
   const { route } = useRoute();
-  const [image, setImage] = usePickedImage();
+  const [images, picked] = usePickedImages();
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
 
@@ -168,7 +168,7 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
       );
       return;
     }
-    setImage(undefined);
+    picked.clear();
     // By the lines the add wrote, as `undoAdd` finds its note: the core refuses once it changed.
     toast("Added to the inbox as a draft, not committed", async () =>
       note
@@ -186,13 +186,7 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
       width="var(--size-quick-add)"
     >
       <Suspense fallback={<Spinner label="Loading the inbox" />}>
-        <AddNote
-          about={about}
-          image={image}
-          onAdded={added}
-          onCancel={onClose}
-          onImage={setImage}
-        />
+        <AddNote about={about} images={images} onAdded={added} onCancel={onClose} picked={picked} />
       </Suspense>
     </Overlay>
   );

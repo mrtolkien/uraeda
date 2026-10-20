@@ -6,6 +6,7 @@ mod check;
 mod clean;
 mod draft;
 mod editor;
+mod inbox;
 mod init;
 mod install;
 mod next;
@@ -65,6 +66,9 @@ enum Command {
         #[arg(long)]
         no_commit: bool,
     },
+    /// Work on the inbox
+    #[command(subcommand)]
+    Inbox(inbox::Command),
     /// Start a drafted feature or change: its entry in Now, its branch, and its proposal
     Start {
         /// The draft: a file or folder in specs/drafts/ or specs/backlog/, or its name
@@ -197,6 +201,7 @@ fn main() -> ExitCode {
             agent,
             no_commit,
         }),
+        Command::Inbox(command) => inbox::run(command),
         Command::Start {
             target,
             slug,
