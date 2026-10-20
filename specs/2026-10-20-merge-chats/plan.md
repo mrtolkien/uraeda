@@ -601,7 +601,10 @@ process.
     <folder> exists: pick another slug"; `session.new({ folder })` returning the Session;
     `feature.promote({ folder })` returning the Feature; `feature.drop({ folder })` returning a
     `Dropped` `{ id, branch, worktreeLeft, committed }`. A move or a drop of a folder whose session
-    works is refused with "The agent is working".
+    works, its turn running, starting, or queued, is refused with "The agent is working". The move
+    holds the folder, or `toChange` the session, through the core's call (`Sessions.hold`,
+    `LiveSessions.hold`): a message sent to one of its sessions meanwhile is refused with "The agent
+    is working" ([R15](rulings.md#r15-a-move-or-a-drop-holds-its-sessions-through-the-cores-call)).
   - `rename` accepts every session; `archive` stays for sessions without a folder.
   - The core's typed start refuses only staged files, not the main checkout's uncommitted changes
     ([R10](rulings.md#r10-a-typed-change-starts-over-the-main-checkouts-uncommitted-changes)).

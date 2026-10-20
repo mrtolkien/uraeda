@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
+import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf } from "./live.ts";
 import { SessionCache } from "./runner/cache.ts";
 import type { TokenCounts } from "./runner/events.ts";
@@ -22,21 +23,29 @@ export { FakeAdapter, type Sessions };
 /**
  * A session manager on the fake adapter, `adapter` or a new one, publishing live updates to `hosts`,
  * and not checked yet: it reads unavailable until `sessions.check()`, which finds the agent when
- * `installed`. Its cache is in memory, or in the file `cache`, which the caller closes.
+ * `installed`. Its cache is in memory, or in the file `cache`, which the caller closes. `binding`
+ * replaces the core's, as to hold a call.
  */
 export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
   adapter = new FakeAdapter() as T,
+  binding: using = binding,
   cache = ":memory:",
   hosts = () => undefined,
   installed = true,
-}: { adapter?: T; cache?: string; hosts?: HostsOf; installed?: boolean } = {}): {
+}: {
+  adapter?: T;
+  binding?: Binding;
+  cache?: string;
+  hosts?: HostsOf;
+  installed?: boolean;
+} = {}): {
   adapter: T;
   sessions: Sessions;
 } {
   adapter.installed = installed;
   const sessions = createSessions({
     adapter,
-    binding,
+    binding: using,
     cache: SessionCache.open(cache),
     hosts,
   });

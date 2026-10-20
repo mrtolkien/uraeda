@@ -90,7 +90,11 @@ export async function testHosts(
   }
   // The session manager may read the hosts while they open: undefined until then.
   const opening: { hosts?: Hosts } = {};
-  const { adapter, sessions } = fakeSessions({ hosts: () => opening.hosts, installed });
+  const { adapter, sessions } = fakeSessions({
+    binding: using,
+    hosts: () => opening.hosts,
+    installed,
+  });
   managers.push(sessions);
   const hosts = await Hosts.open({ binding: using, dataDir, sessions });
   opening.hosts = hosts;
@@ -242,12 +246,25 @@ export async function testApp<SignedIn extends boolean = false>(
   } as Awaited<ReturnType<typeof testApp<SignedIn>>>;
 }
 
-/** The server's app with sessions on the fake adapter, checked once. */
-export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
-  const opened = await testHosts([repo], { installed });
+/**
+ * The server's app with sessions on the fake adapter, checked once. `binding` replaces the core's,
+ * as to hold a call.
+ */
+export async function testServer(
+  repo = fixtureRepo(),
+  { binding: using = binding, installed = true }: { binding?: Binding; installed?: boolean } = {},
+) {
+  const opened = await testHosts([repo], { binding: using, installed });
   await opened.sessions.check();
   const { configDir, settings } = await appSettings();
-  return { ...opened, ...app(settings, opened), configDir, name: opened.names[0], repo, settings };
+  return {
+    ...opened,
+    ...app(settings, opened, using),
+    configDir,
+    name: opened.names[0],
+    repo,
+    settings,
+  };
 }
 
 /**

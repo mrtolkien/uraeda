@@ -7,6 +7,8 @@ import type { Live } from "./session-state.ts";
  */
 export class LiveSessions {
   #live = new Map<string, Live>();
+  /** The folders, and the sessions without one, that a move or a drop holds, by `#key`. */
+  #moving = new Set<string>();
 
   /** The session's state, created when it has none. */
   of(row: SessionRow): Live {
@@ -62,6 +64,32 @@ export class LiveSessions {
     return [...this.#live.values()].filter(
       (other) => other !== live && other.repo === live.repo && other.folder === live.folder,
     );
+  }
+
+  /**
+   * Holds the change or the feature, or the session without one, while it moves or is dropped: its
+   * sessions take no message until `release`. None when a move holds it already.
+   */
+  hold(target: { folder: string; repo: string } | { session: string }): (() => void) | undefined {
+    const key = this.#key(target);
+    if (this.#moving.has(key)) {
+      return undefined;
+    }
+    this.#moving.add(key);
+    return () => this.#moving.delete(key);
+  }
+
+  /** Whether a move or a drop holds the session, or its change or feature. */
+  moving(live: Live): boolean {
+    return (
+      this.#moving.has(this.#key({ session: live.id })) ||
+      (live.folder !== null &&
+        this.#moving.has(this.#key({ folder: live.folder, repo: live.repo })))
+    );
+  }
+
+  #key(target: { folder: string; repo: string } | { session: string }): string {
+    return "session" in target ? `session:${target.session}` : `${target.repo}:${target.folder}`;
   }
 
   /** Runs `body` after the session's earlier sends and turn starts. */

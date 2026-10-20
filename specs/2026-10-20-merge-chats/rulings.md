@@ -234,3 +234,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `date` of `doneRows` in `sidebar/done.ts`; the Needs you filter in
   `sidebar/Sidebar.tsx`.
 - **Where**: task 8.
+
+## R15: A move or a drop holds its sessions through the core's call
+
+- **Decision**: `feature.drop` and `feature.promote` hold the folder, and `session.toChange` the
+  session, from the check that no session of it works until the core's call (and, for `toChange`,
+  the attach) returns. A message sent to one of its sessions meanwhile is refused with "The agent is
+  working", checked as the send starts and again just before its turn starts. A session whose turn
+  is starting counts as working for these checks, as it does for another session's send.
+- **Rationale**: the core moves or removes the worktree the sessions work in; a turn started during
+  the call would open in a worktree that moves or goes. The refusal is the one the move gives while
+  the agent works, since the human sees the two the same way.
+- **Alternatives considered**: queuing the message until the move ends: the session may no longer
+  exist as a change, or be archived, once it ends.
+- **If wrong**: `Sessions.hold`, `LiveSessions.hold` and `moving`, and the `unmoved` checks of
+  `deliver` in `runner/send.ts`.
+- **Where**: review of tasks 5 and 6, `packages/server/src/fate/session-moves.ts`,
+  `packages/server/src/runner/sessions.ts`, `packages/server/src/runner/live-sessions.ts`,
+  `packages/server/src/runner/send.ts`.

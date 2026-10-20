@@ -38,6 +38,10 @@ const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
 
 const now = () => new Date().toISOString();
 
+/** Whether a turn of the session runs, starts, or waits. */
+const working = (live: Live) =>
+  live.turn !== undefined || live.starting === true || live.queue.length > 0;
+
 /**
  * Sessions of turns with agents: at most one process and one turn per session, and one working
  * session per change or feature, whose sessions work in its worktree; a chat in the main checkout. Turns and their items go to the cache, and every
@@ -123,23 +127,21 @@ export class Sessions {
     return root;
   }
 
-  /** The folders of the repository whose session has a turn running, or queued. */
+  /** The folders of the repository whose session has a turn running, starting, or queued. */
   working(repo: string): Array<string> {
     return this.#busy(repo)
       .filter((live) => live.folder !== null)
       .map((live) => live.folder as string);
   }
 
-  /** Whether any session of the repository, a feature's or a chat, has a turn running or queued. */
+  /** Whether any session of the repository, a feature's or a chat, has a turn running, starting, or queued. */
   busy(repo: string): boolean {
     return this.#busy(repo).length > 0;
   }
 
   #busy(repo: string) {
     const root = this.#roots.get(repo) ?? repo;
-    return [...this.#context.live.values()].filter(
-      (live) => live.repo === root && (live.turn !== undefined || live.queue.length > 0),
-    );
+    return [...this.#context.live.values()].filter((live) => live.repo === root && working(live));
   }
 
   /** What the turn does now, while it runs on this server's process. */
@@ -209,10 +211,30 @@ export class Sessions {
     });
   }
 
-  /** Whether the session's agent works: a turn of it runs or waits, on this server. */
+  /** Whether the session's agent works: a turn of it runs, starts, or waits, on this server. */
   sessionWorking(session: string): boolean {
     const live = this.#context.live.get(session);
-    return live !== undefined && (live.turn !== undefined || live.queue.length > 0);
+    return live !== undefined && working(live);
+  }
+
+  /**
+   * Holds the change or the feature, or the session without one, for a move or a drop: refused
+   * while one of its sessions works, or another move holds it. Until `release`, its sessions take
+   * no message.
+   */
+  async hold(repo: string, target: { folder: string } | { session: string }): Promise<() => void> {
+    const root = await this.mainRoot(repo);
+    const busy =
+      "folder" in target
+        ? this.working(repo).includes(target.folder)
+        : this.sessionWorking(target.session);
+    const release = busy
+      ? undefined
+      : this.#context.live.hold("folder" in target ? { ...target, repo: root } : target);
+    if (!release) {
+      throw refused(REFUSALS.agentWorking);
+    }
+    return release;
   }
 
   /** Archives every session of a dropped change or feature, and closes their processes. */
