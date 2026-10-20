@@ -61,13 +61,12 @@ export function git(cwd: string, ...args: Array<string>): string {
 }
 
 /**
- * A git repository in a temporary folder, built from `fixtures/<name>/`: `main/` committed on
- * `main`, then each folder of `branches/` committed on a branch of its name, from `main`. The
- * checkout is left on `main`.
+ * An empty git repository on `main`, in `into` or a temporary folder, configured for commits
+ * without a signature.
  */
-export function fixtureRepo(name = "repo"): string {
-  const source = fixture(name);
-  const repo = temporaryFolder("uraeda-repo");
+export function initRepository(into?: string): string {
+  const repo = into ?? temporaryFolder("uraeda-repo");
+  mkdirSync(repo, { recursive: true });
   git(repo, "init", "--quiet", "--initial-branch", "main");
   for (const [key, value] of [
     ["user.name", "Test"],
@@ -76,6 +75,17 @@ export function fixtureRepo(name = "repo"): string {
   ]) {
     git(repo, "config", key, value);
   }
+  return repo;
+}
+
+/**
+ * A git repository in a temporary folder, or in `into`, built from `fixtures/<name>/`: `main/`
+ * committed on `main`, then each folder of `branches/` committed on a branch of its name, from
+ * `main`. The checkout is left on `main`.
+ */
+export function fixtureRepo(name = "repo", into?: string): string {
+  const source = fixture(name);
+  const repo = initRepository(into);
   cpSync(join(source, "main"), repo, { recursive: true });
   git(repo, "add", "--all");
   git(repo, "commit", "--quiet", "--no-verify", "--message", "chore: specs");

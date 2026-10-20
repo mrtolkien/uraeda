@@ -113,8 +113,17 @@ export function addSpecPages(repo: string) {
   addSpecFeature(repo, { folder: SPEC_PAGES.approved, status: "approved" });
 }
 
+/** A pull request as `gh pr list --json` lists it. */
+export type FakePullRequest = {
+  headRefName: string;
+  isDraft: boolean;
+  number: number;
+  reviewDecision: "" | "CHANGES_REQUESTED";
+  url: string;
+};
+
 /** The pull request `gh` lists for `FEATURE_PAGES.pullRequest`. */
-const PULL_REQUEST = {
+const PULL_REQUEST: FakePullRequest = {
   headRefName: FEATURE_PAGES.pullRequest,
   isDraft: false,
   number: 31,
@@ -151,13 +160,13 @@ const RUNS = [
 ] as const;
 
 /** A file of the recurring tasks' feature in `fixtures/repo/`. */
-function recurring(name: string): string {
+export function recurring(name: string): string {
   const folder = "2026-10-06-recurring-tasks";
   return readFileSync(fixture(`repo/branches/${folder}/specs/${folder}/${name}`), "utf8");
 }
 
 /** The slug of a folder: its name without its date. */
-const slugOf = (folder: string) => folder.slice(11);
+export const slugOf = (folder: string) => folder.slice(11);
 
 /** `count` numbered lines of code. */
 function lines(count: number, prefix: string): string {
@@ -165,14 +174,15 @@ function lines(count: number, prefix: string): string {
 }
 
 /** A proposal titled `title`. */
-const proposal = (title: string) =>
+export const proposal = (title: string) =>
   `# ${title}\n\n## What\n\nRounds of questions read as a flat list.\n\n## Why\n\nThey take too long to answer.\n`;
 
 /** The spec of the recurring tasks, its status `status`. */
-const spec = (status: string) => recurring("spec.md").replace(/^status: .*$/m, `status: ${status}`);
+export const spec = (status: string) =>
+  recurring("spec.md").replace(/^status: .*$/m, `status: ${status}`);
 
 /** A UTC time of Oct 17 or Oct 18, 2026, "17 10:52" giving Oct 17 at 10:52. */
-const at = (time: string) => `2026-10-${time.replace(" ", "T")}:00Z`;
+export const at = (time: string) => `2026-10-${time.replace(" ", "T")}:00Z`;
 
 /**
  * The commits of a feature's first stages, from its proposal at 10:52 on Oct 17 to its plan at
@@ -401,14 +411,21 @@ export function recordFeatureRuns(dataDir: string, repo: string) {
 }
 
 /**
- * Puts first on this process's PATH a `gh` that lists `FEATURE_PAGES.pullRequest`'s pull request,
- * #31, open, as `feature-page.test.tsx` fakes it (R24): the server and the core read it as they
- * read GitHub's, and answer as they do.
+ * Puts first on this process's PATH a `gh` that lists `pullRequests` as the open ones: the server
+ * and the core read it as they read GitHub's, and answer as they do.
  */
-export function listPullRequest() {
+export function fakeGh(pullRequests: Array<FakePullRequest>) {
   const bin = temporaryFolder("uraeda-gh");
   const gh = join(bin, "gh");
-  writeFileSync(gh, `#!/bin/sh\necho '${JSON.stringify([PULL_REQUEST])}'\n`);
+  writeFileSync(gh, `#!/bin/sh\necho '${JSON.stringify(pullRequests)}'\n`);
   chmodSync(gh, 0o755);
   process.env.PATH = `${bin}:${process.env.PATH ?? ""}`;
+}
+
+/**
+ * Puts first on this process's PATH a `gh` that lists `FEATURE_PAGES.pullRequest`'s pull request,
+ * #31, open, as `feature-page.test.tsx` fakes it (R24).
+ */
+export function listPullRequest() {
+  fakeGh([PULL_REQUEST]);
 }

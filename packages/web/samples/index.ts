@@ -12,3 +12,7 @@ export {
   ROUND_MOCKUPS,
   SPEC_PAGES,
 } from "./features.ts";
+export { buildProjects, SAMPLE_FOLDERS } from "./projects.ts";
+export { CHANGE_FOLDERS } from "./changes.ts";
+export { fakeGh, type FakePullRequest } from "./features.ts";
+export { FEATURE_FOLDERS, FEATURE_STEPS, samplePullRequests } from "./steps.ts";

@@ -642,7 +642,7 @@ git commit -m "feat(ui-sandbox): picks name their source and HTML, and Enter pic
   repositories under `dir`, named by their folders; `SAMPLE_FOLDERS`, the folder of each step's
   feature and change, keyed by step, which Task 7 uses.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("sample has a feature at every step, and a change at each of its steps", () => {
@@ -677,11 +677,12 @@ The break each test catches:
 - Empty: a sample feature leaking into the empty project.
 - Broken: fixtures that stop failing `ura check`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Expected: FAIL, `Cannot find module '../projects.ts'`.
+- Expected: FAIL, `Cannot find module '../projects.ts'`. (Not run before the code: the three tests
+  were written with it, and checked by the breaks below.)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Build each missing step from the typed commits its step reads, on top of `fixtureRepo()` for
 "sample". The spec's sample feature with stories keeps the fake Storybook's preview decision. Pull
@@ -689,12 +690,15 @@ request states come from Task 2's fake `gh`, extended with the draft and changes
 "empty" is `specs/` as setup writes it. "broken" is a repository holding
 [`fixtures/broken/`](/fixtures/broken/)'s files as features. Every commit is dated with `dated`.
 
-- [ ] **Step 4: Run the project's validation**
+- [x] **Step 4: Run the project's validation**
 
-- Run: `vp run ready`
-- Expected: PASS.
+- Run: `vp run fast`
+- Expected: PASS. See
+  [R12](rulings.md#r12-the-samples-steps-are-built-from-the-cores-rules-and-keyed-by-label) for what
+  was built: the tests read the steps through the binding, and a fourth checks that each
+  `SAMPLE_FOLDERS` folder is at its step.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/samples

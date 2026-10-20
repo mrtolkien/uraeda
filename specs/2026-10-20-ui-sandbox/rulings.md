@@ -132,3 +132,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   test.
 - **If wrong**: the cases move into the story embed's file, unchanged but for their setup.
 - **Where**: tasks 4 and 6.
+
+## R12: The sample's steps are built from the core's rules, and keyed by label
+
+- **Decision**: `FEATURE_STEPS` and `SAMPLE_FOLDERS.features` are keyed by the step's name, a human
+  gate by the file it waits on (`round-waiting`, `spec-waiting`, `plan-waiting`) and `none` by
+  `blocked`; `SAMPLE_FOLDERS.changes` by the step's name. `pull-request-changes` and `finish` are
+  features past their last task with `gh` listing a changes-requested and a draft pull request, not
+  finished ones with a record, since `steps.rs` reads both the same. The sample's `gh` is
+  `samplePullRequests()`, listing four pull requests through a new `fakeGh(rows)`, which
+  `listPullRequest()` now calls. `fixtureRepo` and a new `initRepository` take the folder to build
+  in, so each project is in a folder named after it. `spec-waiting` is the stories feature, whose
+  spec embeds stories; `round-waiting` is the fixture's `2026-10-11-web-ui`.
+- **Rationale**: a step's sample must be what its step reads, and a test that compares sets must not
+  hide a missing step behind another feature of the same step name (the stories feature is a spec
+  gate, not a round gate).
+- **Alternatives considered**: finished features with records for the pull request steps: more files
+  for the same step.
+- **If wrong**: a sample is rebuilt in `steps.ts`, with its folder in `FEATURE_FOLDERS`.
+- **Where**: tasks 5 and 7.
