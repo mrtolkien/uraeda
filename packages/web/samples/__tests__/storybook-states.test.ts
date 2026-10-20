@@ -2,9 +2,10 @@
 // Storybook's fixture after the sample builders moved to `samples/`: the same features, at the same
 // steps, as it held before the move, read through the binding's workspace view.
 import { readWorkspace, refreshPullRequests } from "uraeda-binding";
+import { SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import { storybookFixture } from "../../.storybook/fixture.ts";
-import { listPullRequest } from "../index.ts";
+import { listPullRequest, SPEC_PAGES } from "../index.ts";
 
 /** Each feature's and change's step, by folder, as the workspace view reads them. */
 async function stepsOf(repo: string): Promise<Record<string, string>> {
@@ -44,4 +45,9 @@ test("Storybook's fixture holds the same features at the same steps", async () =
   await refreshPullRequests(repo);
 
   expect(await stepsOf(repo)).toEqual(STORYBOOK_STEPS);
+});
+
+test("the spec page's waiting feature is the one addSpecFeature builds by default", () => {
+  // `folders.ts` cannot import the binding's test utilities, which browsers do not load.
+  expect(SPEC_PAGES.waiting).toBe(SPEC_FEATURE);
 });

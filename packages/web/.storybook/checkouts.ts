@@ -13,5 +13,7 @@ export const CHECKOUTS = {
   noWorktree: "2026-10-23-no-worktree",
 } as const;
 
-// The round page's, the spec page's, and the feature page's features are the sample builders'.
-export { FEATURE_PAGES, ROUND_MOCKUPS, SPEC_PAGES } from "../samples/index.ts";
+// The round page's, the spec page's, and the feature page's features are the sample builders', from
+// the one module of the samples that runs in a browser: `samples/index.ts` also exports the
+// builders, which run git.
+export { FEATURE_PAGES, ROUND_MOCKUPS, SPEC_PAGES } from "../samples/folders.ts";

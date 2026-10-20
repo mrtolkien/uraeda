@@ -14,10 +14,10 @@ import {
   fixture,
   git,
   planText,
-  SPEC_FEATURE,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { recordRun } from "uraeda-server/testing";
+import { FEATURE_PAGES, SPEC_PAGES } from "./folders.ts";
 
 /** The date of every commit a dated build makes, but the feature page's own. */
 export const DATE = "2026-10-16T09:00:00Z";
@@ -45,44 +45,6 @@ export function dated<T>(build: () => T): T {
     });
   }
 }
-
-/**
- * The feature page's features, by state, which `addFeaturePages` builds:
- * `FeaturePage.stories.tsx`'s, the browser tests', and the screenshots'.
- */
-export const FEATURE_PAGES = {
-  /** At implementation, task 7 of 11 current: the agent builds. */
-  working: "2026-10-17-redesign-clarifications",
-  /** Its spec waiting for review. */
-  waiting: "2026-10-17-recurring-reminders",
-  /** Its spec's status unreadable, "aproved": the workflow cannot go on. */
-  blocked: "2026-10-17-due-dates",
-  /** Finished on its branch, its pull request #31 open once `gh` lists it. */
-  pullRequest: "2026-10-17-keyboard-shortcuts",
-  /** Merged by rebase, its build started the day after its plan, its record in place. */
-  done: "2026-10-17-redesign-rounds",
-  /** A change merged by rebase, without a round of questions. */
-  doneChange: "2026-10-17-symlinks",
-} as const;
-
-/**
- * The round page's mockup features, `RoundPage.stories.tsx`'s and the screenshots', without a
- * worktree: `Waiting`'s, its Q1 answered B, and `CommentOnly`'s, its Q1 answered with a comment
- * alone.
- */
-export const ROUND_MOCKUPS = {
-  commentOnly: "2026-10-17-round-mockup-comment",
-  waiting: "2026-10-17-round-mockup",
-} as const;
-
-/**
- * The spec page's features, `SpecPage.stories.tsx`'s and the screenshots', built by
- * `addSpecFeature` without a worktree: its spec waiting for review, and the same spec approved.
- */
-export const SPEC_PAGES = {
-  approved: "2026-10-17-spec-page-approved",
-  waiting: SPEC_FEATURE,
-} as const;
 
 /** A file of the round page's mockup feature, from `fixtures/round-mockup/` (R5). */
 function roundMockupFile(name: string): string {

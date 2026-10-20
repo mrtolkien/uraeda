@@ -2,7 +2,8 @@
 // its pull request open, and merged.
 import { readFileSync } from "node:fs";
 import { addChange, fixture, STORY_FEATURE } from "uraeda-binding/test-utils";
-import { FEATURE_PAGES, proposal } from "./features.ts";
+import { proposal } from "./features.ts";
+import { FEATURE_PAGES } from "./folders.ts";
 
 /** The folder of each state's sample change. */
 export const CHANGE_FOLDERS = {

@@ -4,15 +4,8 @@
 import { CHANGE_FOLDERS } from "./changes.ts";
 import { commitsAt, type DatedCommit, ELEVEN, git, planText } from "uraeda-binding/test-utils";
 import { STORY_FEATURE } from "uraeda-binding/test-utils";
-import {
-  type FakePullRequest,
-  FEATURE_PAGES,
-  at,
-  proposal,
-  recurring,
-  slugOf,
-  spec,
-} from "./features.ts";
+import { type FakePullRequest, at, proposal, recurring, slugOf, spec } from "./features.ts";
+import { FEATURE_PAGES } from "./folders.ts";
 
 /** The steps a feature is at, a gate named by the file it waits on: each has a sample feature. */
 export const FEATURE_STEPS = [

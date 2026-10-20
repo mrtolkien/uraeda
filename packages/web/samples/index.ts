@@ -6,12 +6,10 @@ export {
   addSpecPages,
   DATE,
   dated,
-  FEATURE_PAGES,
   listPullRequest,
   recordFeatureRuns,
-  ROUND_MOCKUPS,
-  SPEC_PAGES,
 } from "./features.ts";
+export { FEATURE_PAGES, ROUND_MOCKUPS, SPEC_PAGES } from "./folders.ts";
 export { buildProjects, SAMPLE_FOLDERS } from "./projects.ts";
 export { CHANGE_FOLDERS } from "./changes.ts";
 export { fakeGh, type FakePullRequest } from "./features.ts";
