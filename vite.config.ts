@@ -237,6 +237,7 @@ export default {
     coverage: {
       exclude: [
         "**/__tests__/**",
+        "**/__focused__/**",
         "**/__browser__/**",
         "**/__lint__/**",
         "**/*.d.ts",

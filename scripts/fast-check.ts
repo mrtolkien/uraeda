@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { relative } from "node:path";
 import { createVitest } from "vite-plus/test/node";
 import { fastConfig } from "../vite.fast.config.ts";
@@ -14,6 +14,37 @@ function report(...values: Array<unknown>) {
 
 function run(command: string, args: Array<string> = []) {
   execFileSync(command, args, { stdio: "inherit" });
+}
+
+/** Runs a command to its end, rejecting with its exit status. */
+function started(command: string, args: Array<string>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: "inherit" });
+    child.once("error", reject);
+    child.once("exit", (code, signal) =>
+      code === 0
+        ? resolve()
+        : reject(new Error(`${command} ${args.join(" ")} failed: ${signal ?? code}`)),
+    );
+  });
+}
+
+/**
+ * Runs independent chains of commands at once, each in order, and waits for every chain to end
+ * before failing with the first error: no command outlives the run.
+ */
+async function concurrently(chains: Array<Array<[string, Array<string>]>>) {
+  const results = await Promise.allSettled(
+    chains.map(async (chain) => {
+      for (const [command, args] of chain) {
+        await started(command, args);
+      }
+    }),
+  );
+  const failed = results.find((result) => result.status === "rejected");
+  if (failed) {
+    throw failed.reason;
+  }
 }
 
 async function main() {
@@ -38,22 +69,27 @@ async function main() {
     run("vp", ["run", "ready"]);
     return;
   }
-  // Types read the committed declarations; only selected test consumers need a native build.
-  run("vp", ["check"]);
+  // Types read the committed declarations, so the TypeScript checks need no native build: they run
+  // beside the native and Rust chain, which shares one Cargo build directory and stays in order.
+  const typescript: Array<[string, Array<string>]> = [["vp", ["check"]]];
   if (selection.checks.includes("specs:check")) {
-    run("vp", ["run", "specs:check"]);
+    typescript.push(["vp", ["run", "specs:check"]]);
   }
+  const native: Array<[string, Array<string>]> = [];
   if (selection.checks.includes("binding:touch")) {
-    run("vp", ["run", "binding:touch"]);
+    native.push(["vp", ["run", "binding:touch"]]);
   }
   if (selection.rust.length) {
-    run("cargo", ["fmt", "--check"]);
     const packages = selection.rust.includes("workspace")
       ? ["--workspace"]
       : selection.rust.flatMap((name) => ["-p", name]);
-    run("cargo", ["clippy", ...packages, "--all-targets", "--", "-D", "warnings"]);
-    run("cargo", ["nextest", "run", ...packages]);
+    native.push(
+      ["cargo", ["fmt", "--check"]],
+      ["cargo", ["clippy", ...packages, "--all-targets", "--", "-D", "warnings"]],
+      ["cargo", ["nextest", "run", ...packages]],
+    );
   }
+  await concurrently([typescript, native]);
   if (!selection.related.length && !selection.families.length) {
     return;
   }

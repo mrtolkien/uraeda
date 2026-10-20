@@ -338,7 +338,7 @@ actual fate server/data views/source serialization, with scripted handlers and c
 unexpected calls fail immediately. The focused render helper renders Composer under actual fate,
 repository, Suspense, and fetch contexts with a fresh client per case.
 
-- [ ] **Step 1: Add focused contract cases.** Refused multiline text and two saved images must reach
+- [x] **Step 1: Add focused contract cases.** Refused multiline text and two saved images must reach
       an available endpoint and restore exact text/order with a visible error. A pending custom send
       retains its draft and submits once; refusal retains it, success clears images while the caller
       owns text. An upload in progress blocks Send/Enter; a workflow sends no draft images and
@@ -346,20 +346,57 @@ repository, Suspense, and fetch contexts with a fresh client per case.
       camelCase settings output, a real settings write/reload, synchronous validation errors, and
       asynchronous rejection mapping. Existing core settings cases retain BOM, CRLF, and surviving
       comments inside arrays.
-- [ ] **Step 2: Run the new cases and prove the required boundary.** Expected: all preserved
+- [x] **Step 2: Run the new cases and prove the required boundary.** Expected: all preserved
       behavior passes; missing context/transport issues are fixed in the fixture, not hidden by
       permissive expectations. Show a refused request reached its handler; temporarily drop restored
       text/images or accept a generic wrong error and observe failure, then restore.
-- [ ] **Step 3: Measure complete fast commands for Composer and core edits.** Use reversible
+- [x] **Step 3: Measure complete fast commands for Composer and core edits.** Use reversible
       one-file content edits, restore them after each measurement, and record actual
       selected/deferred files. Include startup, binding compilation, checks, lock wait, and
       teardown; report cold and warm states separately. Run core through reverse-dependent nextest
       packages and real native contracts, without all App journeys.
-- [ ] **Step 4: Resolve or report the pilot result before expanding.** Both pilots must preserve
+- [x] **Step 4: Resolve or report the pilot result before expanding.** Both pilots must preserve
       their asserted guarantees and meet SC-002. A failed sample is not waived or fixed by deleting
       protection. Fix the measured cause within scope; otherwise return the precise conflict.
-- [ ] **Step 5: Commit the pilot and its evidence.**
+- [x] **Step 5: Commit the pilot and its evidence.**
       `test(fix-testing): prove focused composer and binding contracts`.
+
+Task 2 evidence (2026-10-20, 32-thread Linux machine shared with other checkouts' runs):
+
+- `request-fixture.ts` serves fate's own server with the server's roots, data views, source plans,
+  `withWholeFields` and `callSiteError`; every production mutation name is registered, and one
+  without a handler, an unknown read, or an unscripted path fails the case at teardown. It loads no
+  binding. The five focused Composer cases and five native contracts pass in their suites, one by
+  one (`-t`), and under the normal web/binding configurations; the legacy `index.test.ts` (17) and
+  the discovery/selector suites (16) pass. Keyboard submission is Ctrl+Enter, per R5.
+- The refused send's request reached the `session.send` handler with exact text and image order
+  before the refusal. Faults made the owning case fail, then were restored: dropping restored text
+  (`expected ''`), dropping restored images (`expected []`), a generic error instead of the server's
+  (message not found), workflow sending draft images (extra `images`), sending while saving (Send
+  not disabled), a second custom send while pending (two calls), forgetting a discarded upload (no
+  `delete`), a binding error without its code (`refused:`/`unreadable:` cases), and a swallowed
+  synchronous port error (nothing thrown).
+- Composer edit (`Composer.tsx` comment): selects only
+  `packages/web/src/__focused__/composer.test.tsx` (no App, createApp, server testing/app, or native
+  loader in the graph), Rust none, deferred: application journeys, browser phone/desktop, production
+  builds/package smoke, full workspace/editor checks. Cold (Vite caches removed): 14.49 s. Warm:
+  11.24, 12.57, 12.23 s; after R7, 16.55 and 14.36 s at load average 43 to 45.
+- Core edit (`crates/core/src/settings.rs` comment, new content each run): selects the binding
+  family (`contracts.test.ts`), `binding:touch`, Rust `uraeda-core`. Sequential runner,
+  `uraeda-core` only: cold (no built binding, seeded `target/`) 59.98 s; warm 59.45, 76.50, 52.18 s
+  at load 20 to 63. Phases (warm): startup and selection 3 s, `vp check` 9 to 14 s, napi build 2 to
+  4 s, fmt and clippy 7 s, test build 14 s, nextest 14 to 22 s for 756 tests, Vitest 0.2 s. After
+  R7, still `uraeda-core` only: 45.09, 43.19, 44.06 s.
+- The selector runs only `-p uraeda-core` for a core edit (wave 1 review item 3, fixed separately):
+  with a temporary local commit (dropped after measuring) adding `uraeda-cli` and `uraeda-lsp`, the
+  R7 runner took 46.41, 50.73, 46.87 s warm and 47.46 s with no built binding (1,040 Rust tests),
+  all under 1 minute at load average 54 to 67. A clean `target/` without the dev shell's seed was
+  not measured.
+- Wave 1 review items: (1) a server-only edit, including `request-fixture.ts`, does not reach the
+  focused UI suite; it did not affect these samples, whose edits were in `packages/web` and
+  `crates/core`. (2) The focused Composer cases read no settings or temporary folders and pass under
+  the normal web configuration. (3) Affected the core samples as above. (4) Not exercised.
+- Focused helpers are excluded from coverage like `__tests__`.
 
 ## Task 3: Reuse immutable history while keeping every case independent
 
