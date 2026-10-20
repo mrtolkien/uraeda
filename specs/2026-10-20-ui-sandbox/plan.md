@@ -457,52 +457,57 @@ git commit -m "refactor(ui-sandbox): one home for the sample builders"
   awaited before the next step is read; `FakeAdapter.fallback: (() => Array<FakeStep>) | undefined`,
   the turn played on `send` when no turn is scripted.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
-test("a message with no scripted turn plays the fallback", async () => {
-  const { adapter, sessions } = fakeSessions();
+test("a message with no scripted turn plays the fallback, and a scripted turn comes first", async () => {
   adapter.fallback = () => [{ text: "canned", type: "text" }];
-  const chat = await sessions.newChat(repo);
+  adapter.script([{ text: "scripted", type: "text" }]);
+  agent.send(m1);
+  agent.send(m2);
 
-  await settle(sessions, await sessions.send(repo, chat.id, { text: "hello" }));
-
-  expect(agentTexts(chat)).toEqual(["canned"]);
+  expect(await readUntil(agent, isResult)).toEqual([accepted(m1), text("scripted"), done()]);
+  expect(await readUntil(agent, isResult)).toEqual([accepted(m2), text("canned"), done()]);
 });
 
 test("an awaited step holds the next until it resolves", async () => {
   const gate = Promise.withResolvers<void>();
   adapter.script([() => gate.promise, { text: "after", type: "text" }]);
-  const turn = await sessions.send(repo, chat.id, { text: "go" });
+  agent.send(m1);
+  await readUntil(agent, isAccepted);
 
-  expect(agentTexts(chat)).toEqual([]);
+  const after = readUntil(agent, isResult).finally(() => (read = true));
+  await flush();
+  expect(read).toBe(false);
   gate.resolve();
-  await settle(sessions, turn);
-  expect(agentTexts(chat)).toEqual(["after"]);
+  expect(await after).toEqual([text("after"), done()]);
 });
 ```
+
+The tests read the fake process's events, as the file's existing tests do (R10).
 
 The break each test catches:
 
 - Fallback: a message with nothing scripted that hangs, as today.
 - Awaited step: a promise ignored, so steps run before their wait ends.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/fake.test.ts`
-- Expected: FAIL, `expected [] to deeply equal [ 'canned' ]`.
+- Expected: FAIL, the fallback's test timed out (the message plays nothing), and the awaited step's
+  `expected true to be false` (the step after it was read at once).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Await a function step's result in the process's event iterator. Play `fallback()` in `send` when
 `nextScript()` is empty. Scripted turns keep priority.
 
-- [ ] **Step 4: Run the server's tests**
+- [x] **Step 4: Run the server's tests**
 
 - Run: `vp test packages/server`
 - Expected: PASS, every existing test unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner/fake.ts packages/server/src/runner/__tests__/fake.test.ts

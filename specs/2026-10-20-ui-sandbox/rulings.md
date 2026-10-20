@@ -107,3 +107,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   dependency backwards. Every story importing from `samples/`: eight files changed for no behaviour.
 - **If wrong**: the stories import the names from `samples/index.ts`, and the re-export goes.
 - **Where**: task 2.
+
+## R10: The fake adapter's tests read its events, not the session manager's items
+
+- **Decision**: task 3's tests open a `FakeAdapter` process and read its events, as `fake.test.ts`'s
+  existing tests do, instead of sending through the session manager.
+- **Rationale**: the abilities are the adapter's own; the plan's sketch named session helpers
+  (`settle`, `agentTexts`) that do not exist, and the session manager adds nothing to what is
+  checked. Task 7 checks them through the session manager.
+- **Alternatives considered**: new session helpers in `fake.test.ts`: code for one test.
+- **If wrong**: the tests move to `sessions.test.ts`, on `testSessions()`.
+- **Where**: task 3.

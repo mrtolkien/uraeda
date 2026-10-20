@@ -2,8 +2,11 @@ import type { Adapter, AgentProcess, Capabilities, OpenOptions, Outgoing } from 
 import { allowRule } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
 
-/** A scripted step of a fake turn: an event, or a function run in the process's `cwd`. */
-export type FakeStep = AgentEvent | ((cwd: string) => void);
+/**
+ * A scripted step of a fake turn: an event, or a function run in the process's `cwd`, awaited before
+ * the next step is read, so a step can hold the turn, as a wait between streamed events.
+ */
+export type FakeStep = AgentEvent | ((cwd: string) => void | Promise<void>);
 
 type Signal = Parameters<AgentProcess["kill"]>[0];
 
@@ -52,7 +55,7 @@ class FakeProcess implements AgentProcess {
             continue;
           }
           if (typeof step === "function") {
-            step(this.#cwd);
+            await step(this.#cwd);
             continue;
           }
           return { done: false, value: step };
@@ -61,10 +64,13 @@ class FakeProcess implements AgentProcess {
     }),
   };
 
-  /** Records the message, and plays the next scripted turn: read, its steps, then its result. */
+  /**
+   * Records the message, and plays the next scripted turn, else the fallback turn: read, its steps,
+   * then its result.
+   */
   send(message: Outgoing) {
     this.#adapter.sent.push(message);
-    const script = this.#adapter.nextScript();
+    const script = this.#adapter.nextScript() ?? this.#adapter.fallback?.();
     if (script === undefined || this.#exited) {
       return;
     }
@@ -153,6 +159,11 @@ export class FakeAdapter implements Adapter {
   ignoreTerm = false;
   /** Whether a process says `init` as it opens, with its own session ID; else a test emits it. */
   autoInit = true;
+  /**
+   * The turn played on a message when no turn is scripted, as an agent that answers anything; with
+   * none, such a message plays nothing.
+   */
+  fallback: (() => Array<FakeStep>) | undefined;
   #scripts: Array<Array<FakeStep>> = [];
   #current: FakeProcess | undefined;
 

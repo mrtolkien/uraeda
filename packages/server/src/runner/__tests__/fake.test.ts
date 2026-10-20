@@ -2,6 +2,7 @@ import { expect, test } from "vite-plus/test";
 import type { AgentProcess } from "../adapter.ts";
 import type { AgentEvent } from "../events.ts";
 import { FakeAdapter } from "../fake.ts";
+import { flush } from "./helpers.ts";
 
 const options = { cwd: "/w", nativeId: "s1", resume: false };
 const done = (): AgentEvent => ({
@@ -108,4 +109,53 @@ test("capabilities, availability, and the allow rule", async () => {
   expect(adapter.allowRule({ input: { command: "git push origin HEAD" }, tool: "Bash" })).toBe(
     "Bash(git push origin HEAD)",
   );
+});
+
+test("a message with no scripted turn plays the fallback, and a scripted turn comes first", async () => {
+  const adapter = new FakeAdapter();
+  adapter.fallback = () => [{ text: "canned", type: "text" }];
+  adapter.script([{ text: "scripted", type: "text" }]);
+  const agent = adapter.open(options);
+  await readUntil(agent, (event) => event.type === "init");
+
+  agent.send({ id: "m1", images: [], text: "hi", when: "steer" });
+  agent.send({ id: "m2", images: [], text: "hello", when: "queue" });
+
+  expect(await readUntil(agent, (event) => event.type === "result")).toEqual([
+    { id: "m1", type: "accepted" },
+    { text: "scripted", type: "text" },
+    done(),
+  ]);
+  expect(await readUntil(agent, (event) => event.type === "result")).toEqual([
+    { id: "m2", type: "accepted" },
+    { text: "canned", type: "text" },
+    done(),
+  ]);
+});
+
+test("an awaited step holds the next until it resolves", async () => {
+  const adapter = new FakeAdapter();
+  const gate = Promise.withResolvers<void>();
+  const cwds: Array<string> = [];
+  adapter.script([
+    (cwd) => {
+      cwds.push(cwd);
+      return gate.promise;
+    },
+    { text: "after", type: "text" },
+  ]);
+  const agent = adapter.open(options);
+  await readUntil(agent, (event) => event.type === "init");
+  agent.send({ id: "m1", images: [], text: "go", when: "steer" });
+  await readUntil(agent, (event) => event.type === "accepted");
+
+  // The read after the step waits on its promise: nothing comes while it is pending.
+  let read = false;
+  const after = readUntil(agent, (event) => event.type === "result").finally(() => (read = true));
+  await flush();
+  expect(cwds).toEqual(["/w"]);
+  expect(read).toBe(false);
+
+  gate.resolve();
+  expect(await after).toEqual([{ text: "after", type: "text" }, done()]);
 });
