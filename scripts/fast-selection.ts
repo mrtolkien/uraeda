@@ -71,7 +71,14 @@ export const families = {
     tests: ["src/**/*.test.ts"],
   },
   ui: {
-    inputs: ["packages/web/**", server, loaders, "skills/uraeda/assets/storybook/**"],
+    // The focused tests read the fixtures' images, by path.
+    inputs: [
+      "packages/web/**",
+      server,
+      loaders,
+      "skills/uraeda/assets/storybook/**",
+      "fixtures/images/**",
+    ],
     native: false,
     root: "packages/web",
     tests: [

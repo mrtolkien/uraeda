@@ -262,3 +262,5 @@ test("a selected family whose tests were not discovered fails the run", () => {
   expect(unproven(["ui", "binding"], ["fast-ui"])).toEqual(["binding"]);
   expect(unproven(["ui"], ["fast-ui", "fast-server"])).toEqual([]);
 });
+test("an edit of the images the focused UI tests read selects the UI family", () =>
+  expect(selectFast([change("fixtures/images/phone.png")]).families).toContain("ui"));
