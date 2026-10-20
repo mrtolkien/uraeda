@@ -50,6 +50,8 @@ export type MoveNote = { status: "info" | "warning"; title: string };
 
 const closed = new Set<string>();
 const dropped = new Set<string>();
+/** The kind of the agent's card showing with its buttons, by session. */
+const live = new Map<string, OfferKind>();
 /** How many times the session's "…" asked for a card: each ask focuses it. */
 const asks = new Map<string, number>();
 /** The sessions whose "…" takes the focus back, once a card closed. */
@@ -85,16 +87,29 @@ export function useOfferClosed(key: string): boolean {
 
 /**
  * Opens the card of `kind` at the session's end, as its "…" does, and focuses it, or closes it, with
- * `undefined`.
+ * `undefined`. While the agent's card of that kind shows with its buttons, it focuses that one
+ * instead: a session has one live card.
  */
 export function openOffer(session: string, kind: OfferKind | undefined) {
   if (kind === undefined) {
     opened.delete(session);
   } else {
-    opened.set(session, kind);
+    if (live.get(session) !== kind) {
+      opened.set(session, kind);
+    }
     asks.set(session, (asks.get(session) ?? 0) + 1);
   }
   changed();
+}
+
+/** Counts the agent's card of `kind` as the session's live card, until the returned call. */
+export function showLive(session: string, kind: OfferKind) {
+  live.set(session, kind);
+  return () => {
+    if (live.get(session) === kind) {
+      live.delete(session);
+    }
+  };
 }
 
 /** How many times the session's "…" asked for a card. */
