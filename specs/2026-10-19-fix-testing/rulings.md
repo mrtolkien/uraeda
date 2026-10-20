@@ -279,3 +279,86 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   protection and is not needed for the budget.
 - **If wrong**: Remove a case only with the duplicate that owns its guarantee named.
 - **Where**: Task 4's files.
+
+## R30: The thumbnail-focus failure was a product race, fixed in the product
+
+- **Decision**: `useFocusAfterRemove` (`ComposerImages.tsx`) now records the removed image's index
+  and key, and takes the focus only once the images no longer hold that key. A draw of the same
+  images (such as one just saved) that reaches the effect first leaves the request in place. The
+  case "removing a thumbnail moves the focus to the next one, then to the message" in
+  `session.test.tsx` is unchanged. A new case in `composer-images.test.tsx` draws the same images
+  just before the removal.
+- **Rationale**: The wave 3 failure (`activeElement` had no label for the whole wait) was not a
+  readiness weakness of the test. Reproduced under load (12 busy loops, load 40 to 60), the same
+  case copied 40 times failed 2 of 40, and a focus log showed the first Remove button took the focus
+  (`in Remove one.png — image 1 of 2`) before the removal, then left with its button. The click
+  handler records the target, then removes; an effect owed to an earlier draw (the image's save
+  settling) ran at the start of that update, consumed the request on the old buttons, and the
+  removal then left the focus on the body. A user who removes an image right as its save ends can
+  reach it. With the key check, the same 40 copies passed under the same load, and the new case
+  fails on the old code (the focused element is not the Remove two.png button).
+- **Alternatives considered**: A longer wait or a retry would have hidden it (forbidden). Moving the
+  request into the removal's state update would change how the draft is held.
+- **If wrong**: Revert the key check; the new case and the 40-copy run then fail again.
+- **Where**: `packages/web/src/ComposerImages.tsx`,
+  `packages/web/src/__tests__/composer-images.test.tsx`.
+
+## R31: Home's readiness no longer depends on a heading's words
+
+- **Decision**: `home.test.tsx` finds the first card, the first count and the card's list by place,
+  and waits for a link to a fixture feature that waits on the human; the order cases accept any text
+  for the first heading and the first count's name. `usage.test.tsx`, `sign-in.test.tsx`, and
+  `notify.test.tsx` wait for that link (`homeShown`, `homeHidden` in `helpers.tsx`) instead of the
+  heading "Needs you". The other headings, counts, and the card's rows, verbs, and links keep their
+  assertions.
+- **Rationale**: Renaming the heading "Needs you" to "Waiting on you" (the card, its list, its
+  count) failed 5 cases of `home.test.tsx` and 5 more of `notify`, `sign-in`, and `usage`. All pass
+  now with the rename applied, and also without it. The first card's identity is still checked by
+  its rows (the waiting feature and its verb) and its position.
+- **Alternatives considered**: Renaming in the tests only, which keeps the coupling.
+- **If wrong**: A card moved from first place makes the rows' assertions fail, as they should.
+- **Where**: `packages/web/src/__tests__/{home,usage,sign-in,notify}.test.tsx` and `helpers.tsx`.
+
+## R32: The round's submit case counts its commits from a baseline, then reloads
+
+- **Decision**: "submitting commits the round and shows its record" in `round.test.tsx` captures the
+  feature branch's commit count before the tap, expects exactly one more after, and reloads the page
+  from the repository to see the answered step. Nothing was loosened.
+- **Rationale**: US1 key 3 asks for one commit and the reloaded step; the case asserted the last
+  subject only, which a second commit with the same subject would satisfy. A fault committing an
+  empty duplicate with the same message now fails it (`expected 4 to be 3`).
+- **If wrong**: A product change that adds a record commit to a submit changes the baseline by its
+  count: update it with the human's rule.
+- **Where**: `packages/web/src/__tests__/round.test.tsx`.
+
+## R33: No case moved to the focused boundary; the browser checks are unchanged
+
+- **Decision**: No case of the six application suites was removed, skipped, moved, or loosened, and
+  no file of `__browser__` or `editors/nvim/tests` was edited.
+- **Rationale**: Step 1's map found each local Composer variant of `session.test.tsx` either already
+  owned by `__focused__/composer.test.tsx` (the refused send, the upload gate, the workflow's
+  images, in Task 2) or tied to the session page's own state (the draft across a session's creation,
+  take-back with its images, thumbnails told apart, drops on the page), which the focused fixture
+  does not reproduce. The browser cases hold what no emulator reaches: the frame's sandbox and its
+  messages (`story-embed`, `story-comments`: a size and a pick from a window that is not the embed's
+  frame, trusted picks that persist through a reload and a restart), focus and pick mode in the real
+  frame, scroll and layout at both sizes and both themes (`layout`, `session-tail`), and the
+  editor's smoke (every `tests/test_*.lua`). Moving more would trade a measured protection for a
+  time not asked of this task.
+- **Alternatives considered**: Deleting the `session.test.tsx` image cases that resemble the focused
+  ones: they send through the page's real draft and reload, which the focused cases do not.
+- **If wrong**: Task 7's edit matrix names the cost; move a case only with its duplicate named.
+- **Where**: Task 5's files.
+
+## R34: Browser protection is proven by its messages, not the frame's attributes
+
+- **Decision**: The owners of review focus 4 stay: `story-comments.test.tsx` "a message from another
+  window is ignored" (a frame of the page posts a pick; no form opens, the hint stays) and
+  `story-embed.test.tsx` "a size from any window other than one of the embed's frames is ignored"
+  (also a window posting to itself), beside the trusted picks and sizes of the same files.
+- **Rationale**: With the source check of `StoryFrames.tsx` removed (`false` in place of
+  `frame.current?.contentWindow !== event.source`), exactly those two cases failed on the desktop
+  project, and every other case of both files passed. Restored, all 34 pass.
+- **If wrong**: A frame check that accepts any `MessageEvent.source` is a hole in the stack
+  decision's isolation: do not relax the two cases.
+- **Where**: `packages/web/src/__browser__/{story-embed,story-comments}.test.tsx`.

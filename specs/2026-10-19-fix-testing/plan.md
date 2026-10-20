@@ -595,23 +595,54 @@ Composer variants; retain a real session/send/upload journey and real
 answer/review/conflict/repository/authentication journeys. Browser owns frame isolation/messaging,
 focus, keyboard/touch, scrolling, and the required page matrix.
 
-- [ ] **Step 1: Map old behavior before changing tests.** Identify independently covered variants,
+- [x] **Step 1: Map old behavior before changing tests.** Identify independently covered variants,
       necessary complete journeys, and incidental heading/fixture coupling. Do not treat two
       different boundary refusals as duplicates because one flow reaches both.
-- [ ] **Step 2: Move only proven local cases to focused boundaries.** Retain exact request/draft
+- [x] **Step 2: Move only proven local cases to focused boundaries.** Retain exact request/draft
       assertions; await actual target links, displayed states, persisted outcomes, and completed
       transitions. Replace repeated remounts or fixed sleeps with explicit readiness; independent
       tests establish their own preconditions.
-- [ ] **Step 3: Consolidate required browser page checks and remove redundant setup/work.** Keep
+- [x] **Step 3: Consolidate required browser page checks and remove redundant setup/work.** Keep
       every governed page at both sizes/themes and all unique frame/message/pick protections. Keep
       actual paste/drop/keyboard/focus cases where an emulator cannot establish the behavior. Reduce
       editor checks to its approved main-action smoke only with a guarantee map.
-- [ ] **Step 4: Validate retained protection and independence.** Temporary home-heading rename
+- [x] **Step 4: Validate retained protection and independence.** Temporary home-heading rename
       passes; broken submission, lost draft, untrusted frame message, or duplicate commit fails its
       owner. Run changed cases individually, full affected application suites, phone/desktop browser
       checks, and applicable editor smoke. Collect comparable UI coverage and explain losses; record
       all test expectation changes.
-- [ ] **Step 5: Commit.** `test(fix-testing): focus ui cases and retain browser contracts`.
+- [x] **Step 5: Commit.** `test(fix-testing): focus ui cases and retain browser contracts`.
+
+Task 5 evidence:
+
+- Known failure (R30): the wave 3 `ready` thumbnail-focus failure was a product race, fixed in
+  `ComposerImages.tsx` (the focus waits until the removed key is gone). Before: 2 of 40 copies of
+  the case failed under 12 busy loops (load 40 to 60), with the focus log showing the removed button
+  taking it; after: 0 of 40 under the same load. New case in `composer-images.test.tsx` fails on the
+  old code and passes now.
+- Home rename (R31): "Needs you" renamed to "Waiting on you" in the card, its list, and its count
+  failed 11 cases in 4 files before the changes; with them, `home`, `notify`, `sign-in`, `usage`
+  pass renamed and unrenamed. The whole `uraeda-web` project with the rename: the 6 failures were
+  those cases and `build.test.ts`, which needs `vp run web:build` (a built bundle, absent in this
+  worktree; owned by ready).
+- Faults, each restored after its run: broken submission (the send's `text` emptied): 27 cases
+  failed across `__focused__/composer.test.tsx` and `session.test.tsx`; lost draft (the refusal's
+  `onChange(text)` removed): `composer.test.tsx` "a refused send reaches the endpoint…" and
+  `session.test.tsx` "a refused send keeps the text…"; untrusted frame message (the source check of
+  `StoryFrames.tsx` removed): exactly the two desktop browser cases of R34; duplicate commit (the
+  submit handler adding an empty commit of the same subject): `round.test.tsx` "submitting commits
+  the round…" `expected 4 to be 3` (R32).
+- Runs: `vp check` (format, lint, types, 636 files) passes. Affected jsdom suites (`home`,
+  `session`, `round`, `review`, `settings`, `sidebar`, `composer-images`, `notify`, `sign-in`,
+  `usage`, focused composer): 279 passed in 90 s at load 15 to 25. Full `uraeda-web` project with
+  the rename applied: 1000 passed, 6 failed (above), 6 min 11 s at load 28 to 46. Browser, four
+  named files (`layout`, `story-embed`, `story-comments`, `session-tail`): phone 88 passed, 34
+  skipped (2 min 34 s at load 38 to 22); desktop 117 passed, 5 skipped (3 min 44 s at load 22 to
+  25). Neovim `vp run test:nvim`, every `tests/test_*.lua`: 0 fails, 59 s at load 24 to 16.
+- No test removed, skipped, moved, or loosened (R33), so no UI coverage was lost and none was
+  collected: no product file's executed lines changed except `ComposerImages.tsx`'s new key check,
+  run by the two cases above. Deferred to ready: the whole browser projects, the production build,
+  and the other web suites.
 
 ## Task 6: Align testing guidance, templates, and examples with the proven architecture
 

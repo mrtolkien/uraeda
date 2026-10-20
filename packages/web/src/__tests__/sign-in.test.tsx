@@ -11,6 +11,8 @@ import {
   click,
   fixture,
   fixtureRepo,
+  homeHidden,
+  homeShown,
   refreshUntil,
   renderPage,
   signInServer,
@@ -85,7 +87,7 @@ test("a browser without a session sees the sign-in screen", async () => {
   expect(field().getAttribute("autocomplete")).toBe("current-password");
   expect(button("Sign in").disabled).toBe(true);
   expect(screen.queryByText(name)).toBeNull();
-  expect(screen.queryByRole("heading", { name: /^Needs you/ })).toBeNull();
+  expect(homeHidden()).toBe(true);
 });
 
 /** US1.3 */
@@ -112,7 +114,7 @@ test("the key signs in, and the page shows", async () => {
 
   await waitFor(() => expect(onSignedIn).toHaveBeenCalledOnce());
   await reloaded("/", repo, fetch);
-  expect(await screen.findAllByRole("heading", { name: /^Needs you/ })).toBeTruthy();
+  expect(await homeShown()).toBeTruthy();
   expect(heading()).toBeNull();
 });
 
@@ -294,7 +296,7 @@ test("a live stream that closes on a sign-out elsewhere shows the sign-in screen
   streams.length = 0;
   (globalThis as { EventSource?: unknown }).EventSource = ClosingEventSource;
   const server = await signedInPage();
-  await screen.findAllByRole("heading", { name: /^Needs you/ });
+  await homeShown();
   await waitFor(() => expect(streams.length).toBeGreaterThan(0));
 
   await signOutElsewhere(server);

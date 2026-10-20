@@ -4,6 +4,7 @@ import {
   click,
   fakeAgent,
   fixtureRepo,
+  homeShown,
   refreshUntil,
   renderPage,
   serverFetch,
@@ -59,7 +60,7 @@ test("loading the allowance keeps the page and working features visible", async 
   };
   try {
     await renderPage("/", repo, { agent: fake, fetch });
-    await screen.findByRole("heading", { name: /^Needs you/ });
+    await homeShown();
     const group = within(screen.getByRole("group", { name: "Features" }));
     expect(group.getByRole("link", { name: /^cli-tuis,/ })).toBeTruthy();
     expect(waiting).toBe(true);

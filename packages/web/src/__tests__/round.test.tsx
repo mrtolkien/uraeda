@@ -330,6 +330,7 @@ test("a question left blank on disk with its comment typed is not left, and Subm
 /** US2.9 */
 test("submitting commits the round and shows its record", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const before = Number(git(repo, "rev-list", "--count", FOLDER));
   await renderPage(PAGE, repo);
 
   await tap(await screen.findByRole("button", { name: "Submit answers" }));
@@ -338,7 +339,14 @@ test("submitting commits the round and shows its record", async () => {
   expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(
     "discovery(web-ui): answer round 01",
   );
+  // One commit records the answers, not one per save or per tap.
+  expect(Number(git(repo, "rev-list", "--count", FOLDER))).toBe(before + 1);
   expect(text(repo)).toContain("status: answered");
+  expect(screen.queryByRole("button", { name: "Submit answers" })).toBeNull();
+
+  // Reloaded from the repository, the page shows the same resulting step.
+  await renderPage(PAGE, repo, { reload: true });
+  expect(await screen.findByText("Answered on 2026-10-11.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Submit answers" })).toBeNull();
 });
 

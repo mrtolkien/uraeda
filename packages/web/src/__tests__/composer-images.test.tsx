@@ -14,7 +14,7 @@ import { RepositoryContext } from "../routes.tsx";
 afterEach(cleanup);
 
 /** A synchronous store update must not consume the removal before its focus target is recorded. */
-function Fixture() {
+function Fixture({ drawFirst = false }: { drawFirst?: boolean }) {
   const [images, setImages] = useState<ReadonlyArray<DraftImage>>([
     { key: "one", name: "one.png" },
     { key: "two", name: "two.png" },
@@ -30,9 +30,13 @@ function Fixture() {
             <ComposerImages
               focusAt={focusAt}
               images={images}
-              onRemove={(key) =>
-                flushSync(() => setImages((now) => now.filter((image) => image.key !== key)))
-              }
+              onRemove={(key) => {
+                if (drawFirst) {
+                  // A draw of the same images, as one just saved, lands before the removal.
+                  flushSync(() => setImages((now) => [...now]));
+                }
+                flushSync(() => setImages((now) => now.filter((image) => image.key !== key)));
+              }}
             />
           ) : undefined
         }
@@ -52,4 +56,12 @@ test("synchronous image removal focuses the next image, then the message", async
   expect(document.activeElement).toBe(next);
   await act(async () => fireEvent.click(next));
   expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Message" }));
+});
+
+test("a draw of the same images before the removal does not take the focus first", async () => {
+  render(<Fixture drawFirst />);
+
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: /^Remove one.png/ })));
+
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove two.png" }));
 });
