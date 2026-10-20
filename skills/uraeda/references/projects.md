@@ -116,13 +116,15 @@ Do these only when a human asks.
   Commit with `chore(<slug>): postpone <feature name>`, merge the branch into the default branch,
   and delete it.
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
-  `PRIORITIES.md` entry and its dated folder, and commit them alone, `chore(<slug>): drop <name>`,
-  only when `PRIORITIES.md` had no other changes: otherwise the removals stay uncommitted, beside
-  the human's edits. Remove its worktree, never forced. It stays when it has uncommitted changes, is
-  locked, is the one you are in, or is outside `.worktrees/`: then say where it stays. Keep the
-  branch, so nothing is lost, and give the human `git branch -D <branch>` to delete it. In the web
-  UI, "Drop the change…" or "Drop the feature…" in a session's actions does it. A merged feature is
-  not dropped: `ura clean` removes it.
+  `PRIORITIES.md` entry and its dated folder, which the start put there, so the default branch keeps
+  no folder of a dropped item: it would read as merged once its branch is gone. Stop first when that
+  folder has uncommitted changes, since they would be lost. Commit both alone,
+  `chore(<slug>): drop <name>`, only when `PRIORITIES.md` had no other changes: otherwise the
+  removals stay uncommitted, beside the human's edits. Remove its worktree, never forced. It stays
+  when it has uncommitted changes, is locked, is the one you are in, or is outside `.worktrees/`:
+  then say where it stays. Keep the branch, so nothing is lost, and give the human
+  `git branch -D <branch>` to delete it. In the web UI, "Drop the change…" or "Drop the feature…" in
+  a session's actions does it. A merged feature is not dropped: `ura clean` removes it.
 
 ## Finishing a feature
 

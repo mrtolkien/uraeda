@@ -134,8 +134,57 @@ fn a_feature_is_dropped_the_same_way() {
     );
     assert!(!priorities(&repo).contains("/specs/2026-10-20-login-redirect/"));
     assert!(priorities(&repo).contains(SAME_NAME));
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/2026-10-20-login-redirect/proposal.md",
+            "specs/PRIORITIES.md"
+        ]
+    );
     assert!(!repo.exists(WORKTREE));
     assert!(has_branch(&repo, CHANGE));
+}
+
+/// The start put the change's folder on main: the drop's commit removes it with the entry, so main
+/// keeps no folder of a dropped change, which would read as merged once its branch is gone.
+#[test]
+fn dropping_a_change_removes_its_folder_on_main() {
+    let repo = started(Kind::Change);
+    let before = repo.subjects("main").len();
+
+    let (git, workspace) = opened(&repo);
+    drop::run(&git, &workspace, CHANGE).unwrap();
+
+    assert_eq!(repo.subjects("main").len(), before + 1);
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/PRIORITIES.md",
+            "specs/changes/2026-10-20-login-redirect/proposal.md"
+        ]
+    );
+    assert!(!repo.exists("specs/changes/2026-10-20-login-redirect"));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Uncommitted edits to the item's folder on main would be lost with it: refused, before anything
+/// is written.
+#[test]
+fn uncommitted_changes_to_the_folder_on_main_are_refused() {
+    let repo = started(Kind::Change);
+    let proposal = "specs/changes/2026-10-20-login-redirect/proposal.md";
+    repo.write(proposal, "# Edited\n");
+    let before = repo.subjects("main");
+
+    let refused = api::drop_item(repo.path(), CHANGE).unwrap_err();
+
+    assert_eq!(
+        refused.message,
+        format!("cannot drop: main has uncommitted changes in {proposal}")
+    );
+    assert_eq!(repo.subjects("main"), before);
+    assert_eq!(repo.read(proposal), "# Edited\n");
+    assert!(repo.exists(WORKTREE));
 }
 
 #[test]
@@ -199,4 +248,5 @@ fn a_removal_beside_other_changes_is_not_committed() {
         !text.contains("/specs/2026-10-20-login-redirect/"),
         "{text}"
     );
+    assert!(!repo.exists("specs/2026-10-20-login-redirect"));
 }

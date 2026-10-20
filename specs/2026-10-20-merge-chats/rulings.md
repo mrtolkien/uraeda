@@ -595,3 +595,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `check_on_default` and `Move::relink` in `crates/core/src/actions/promote.rs`.
 - **Where**: the catch-up, `crates/core/src/actions/promote.rs`, `crates/core/tests/promote.rs`,
   `skills/uraeda/references/change.md`, `skills/uraeda/references/cli.md`.
+
+## R35: The drop removes the item's folder on the default branch with its entry
+
+- **Decision**: the drop's commit on the default branch, `chore(<slug>): drop <name>`, removes the
+  item's folder there, `specs/changes/<folder>/` or `specs/<folder>/`, with the **Now** entry, in
+  one commit, under R2's rule: when `PRIORITIES.md` had other changes, both removals stay
+  uncommitted. An item with a folder there and no entry is dropped the same way, named by its slug.
+  Uncommitted changes in that folder refuse the drop, before anything is written: they would be lost
+  with it. New core tests `dropping_a_change_removes_its_folder_on_main` and
+  `uncommitted_changes_to_the_folder_on_main_are_refused`; `a_feature_is_dropped_the_same_way` and
+  `a_removal_beside_other_changes_is_not_committed` now expect the folder gone. The skill's by-hand
+  drop, in `projects.md`, says the same.
+- **Rationale**: since the default branch's
+  `fix(start): commit the proposal on main with the start`, a start commits the item's folder on the
+  default branch, and a folder there reads as the branch's while the branch exists, and as merged
+  once it is gone. A drop that kept the folder would leave the dropped item reading as merged after
+  the human deletes its branch.
+- **Alternatives considered**: deleting the branch with the folder, as the default branch's
+  `projects.md` said: the spec keeps the branch, so nothing is lost (`specs/decisions/git.md`).
+- **If wrong**: `remove_from_default` and `check_folder` in `crates/core/src/actions/drop.rs`.
+- **Where**: the catch-up, `crates/core/src/actions/drop.rs`, `crates/core/tests/drop.rs`,
+  `skills/uraeda/references/projects.md`.
