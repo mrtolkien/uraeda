@@ -1,12 +1,13 @@
 ---
-status: awaiting-human
+status: answered
+resumes: implementation
 ---
 
 # Clarifications, round 03: Fix testing
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 15 minutes.
+> Answered on 2026-10-21.
 >
 > - Verdict: worth building, with changes. The fast check meets its minute for most edits, but not
 >   for a root configuration edit, and a product race blocks a green browser run.
@@ -121,7 +122,7 @@ with an approved criterion recorded as unmet.
   - [con] removes protection, and likely still misses: the type check and 75 test files alone take
     about 65 s, unmeasured.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How should the transcript keep following its end when the page shortens just before a reply?
 
@@ -174,7 +175,7 @@ behind a loosened test.
   - [con] the approved rule stays broken under load, and the case no longer catches a change that
     always breaks following after a send.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -215,4 +216,5 @@ behind a loosened test.
 - **The fix lives in the shared hook**, `useFollowEnd`, so every page that follows a transcript gets
   it, as the UI coherence decision asks.
 
-**Notes:**
+**Notes:** There was a big merge btw pls pull and check, and update the tests that were created if
+necessary
