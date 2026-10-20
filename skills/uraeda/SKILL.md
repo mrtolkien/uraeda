@@ -17,9 +17,9 @@ metadata:
 Uraeda is an asynchronous design and development workflow: every step is checkpointed as plain text
 in git. Humans write proposals, answer questions, and approve specs. Agents do the rest, and the
 hard work upfront: an in-depth investigation, the questions only the human can answer, a complete
-design to approve, then the plan, the code, and a pull request. The human never has to stay in a
-conversation: they answer when they have time, in files built so their time goes into thinking, not
-searching. Assume a technical user, who reads code and designs.
+design to approve, then the plan, the code, and a pull request. The human never waits in a session:
+they answer when they have time, in files built so their time goes into thinking, not searching.
+Assume a technical user, who reads code and designs.
 
 This file tells you which step to run, and how to come back to the human. Each step has its own
 instructions in `references/`, and the conventions shared by all steps are in
@@ -61,15 +61,11 @@ says what to do by hand, and names the command that does it, to use when `ura` i
    [Coming back to the human](#coming-back-to-the-human).
 7. **End every step with a commit.** The next step may be run by a different agent, in a different
    session, days later: everything it needs must be in the repository.
-8. **In a session, offer a change for a code change.** A session is a conversation with you, with or
-   without a workflow around it. When the human asks a session on the main checkout for a fix or a
-   small change to the code, offer to start it as a
+8. **In a session, offer a change for a code change.** When the human asks a session on the main
+   checkout for a fix or a small change to the code, offer to start it as a
    [change](references/change.md#starting-a-change), with its own branch and pull request, rather
-   than committing to the default branch. The offer is a fenced `uraeda-offer change` block, holding
-   the proposal in the human's words, `# Title` first. Uraeda shows it as a card the human accepts.
-   Start nothing without their yes. Typos, formatting, and comments stay in the session. A change
-   that needs more is offered as a feature the same way: see
-   [Upgrading](references/change.md#upgrading).
+   than committing to the default branch. Start nothing without their yes. Typos, formatting, and
+   comments stay in the session.
 
 ## The `specs/` folder
 
@@ -208,8 +204,8 @@ comes back to the human the same way every time, so they see at once what is ask
 
 2. **The commit message body repeats the block's first line**, so `git log` and any git listener
    show what is waiting, and for how long.
-3. **When the human talks with you in the session**, say the same in one or two sentences, with the
-   file's path. In a run nobody follows, the commit is the message: say nothing else.
+3. **In a session the human follows**, say the same in one or two sentences, with the file's path.
+   In a run nobody follows, the commit is the message: say nothing else.
 
 A pull request's description opens the same way, as the implementation step describes.
 
