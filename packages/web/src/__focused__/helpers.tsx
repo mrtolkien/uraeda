@@ -2,10 +2,10 @@
 // contexts, its requests answered by the server's scripted endpoint. Each case gets a new client
 // and endpoint; a request the case did not script fails it.
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { Suspense, useLayoutEffect, useState } from "react";
 import { FateClient } from "react-fate";
-import { fixture } from "uraeda-binding/test-utils";
 import { AGENT_ID } from "uraeda-server/fate";
 import {
   type AgentRecord,
@@ -103,9 +103,11 @@ export function sessionRecord(id: string, overrides: Partial<SessionRecord> = {}
   };
 }
 
+/** The fixtures' image, read by path: the binding's test helpers would isolate git for nothing. */
+const PHONE = join(import.meta.dirname, "../../../../fixtures/images/phone.png");
+
 /** A PNG file, as the system's picker gives one. */
-export const png = (name: string) =>
-  new File([readFileSync(fixture("images/phone.png"))], name, { type: "image/png" });
+export const png = (name: string) => new File([readFileSync(PHONE)], name, { type: "image/png" });
 
 /** A saved draft image, as `POST /attach` answered it. */
 export const savedImage = (id: string, name: string): DraftImage => ({
