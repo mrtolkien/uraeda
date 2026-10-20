@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 3
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Merge chats and changes
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Approved on 2026-10-20.
 >
 > - You approve one kind of thing, the session, which can grow into a change and then a feature, in
 >   place. A change or a feature holds one or more sessions, each on its own page, and one "＋ New"
