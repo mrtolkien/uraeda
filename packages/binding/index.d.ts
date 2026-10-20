@@ -128,6 +128,12 @@ export declare function discardChanges(repo: string): Promise<void>
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
 
+/**
+ * Drops a started feature or change: its entry leaves the priorities, its worktree is removed
+ * unless it has uncommitted changes, never forced, and its branch stays.
+ */
+export declare function dropItem(repo: string, folder: string): Promise<DroppedView>
+
 /** Replaces an allowed host name with another, in its place. */
 export declare function editAllowedHost(dir: string, from: string, to: string): Promise<Settings>
 
@@ -771,6 +777,12 @@ export interface DraftView {
   written: boolean
   /** The headings of its `##` sections that hold no text yet. */
   emptySections: Array<string>
+}
+
+/** A feature or a change dropped: its branch, kept, and why its worktree stays, when it does. */
+export interface DroppedView {
+  branch: string
+  worktreeLeft?: string
 }
 
 /** A row of the `## Edge cases` table. */

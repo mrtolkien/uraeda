@@ -8,6 +8,7 @@ pub mod clean;
 pub mod commit;
 pub mod default_round;
 pub mod draft;
+pub mod drop;
 pub mod images;
 pub mod inbox;
 pub mod init;
