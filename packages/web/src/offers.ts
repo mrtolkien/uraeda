@@ -1,6 +1,6 @@
 // The agent's offers to move a session up, as its messages hold them, and what the page keeps of
 // them while it is open: the offers closed with "Not now", the card opened from the session's "…",
-// and the lines a move leaves on its session, like "Started as the change …". Kept for the page,
+// the changes and features dropped, and the lines a move leaves on its session, like "Started as the change …". Kept for the page,
 // not the component: a session that becomes a change draws again as the change's session.
 import { useSyncExternalStore } from "react";
 
@@ -49,6 +49,7 @@ export function proposalTitle(proposal: string): string {
 export type MoveNote = { status: "info" | "warning"; title: string };
 
 const closed = new Set<string>();
+const dropped = new Set<string>();
 const opened = new Map<string, OfferKind>();
 const notes = new Map<string, ReadonlyArray<MoveNote>>();
 const listeners = new Set<() => void>();
@@ -102,4 +103,15 @@ export function addNote(session: string, ...added: Array<MoveNote>) {
 /** The lines moves left on the session's page. */
 export function useNotes(session: string): ReadonlyArray<MoveNote> {
   return useSyncExternalStore(subscribe, () => notes.get(session) ?? NO_NOTES);
+}
+
+/** Marks the change or the feature of `session` dropped from its page: the session moves it no more. */
+export function markDropped(session: string) {
+  dropped.add(session);
+  changed();
+}
+
+/** Whether the change or the feature of `session` was dropped from its page. */
+export function useDropped(session: string): boolean {
+  return useSyncExternalStore(subscribe, () => dropped.has(session));
 }
