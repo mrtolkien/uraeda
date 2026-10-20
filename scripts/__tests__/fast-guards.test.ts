@@ -67,3 +67,20 @@ test("a selection that discovers nothing reports it and defers, without failing"
   const { output, stderr } = focused(`test("passes", () => {});`, []);
   expect(output, stderr).toContain("EXIT 0");
 });
+
+test("the focused configuration marks the run as Vitest's before its plugins read it", () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `delete process.env.VITEST;
+const {fastConfig}=await import("./vite.fast.config.ts");
+const {selectFast}=await import("./scripts/fast-selection.ts");
+fastConfig(selectFast([{added:false,deleted:false,path:"packages/web/src/Composer.tsx"}]));
+process.stdout.write("VITEST="+process.env.VITEST);`,
+    ],
+    { cwd: root, encoding: "utf8", timeout: 120_000 },
+  );
+  expect(result.stdout, result.stderr).toBe("VITEST=true");
+});
