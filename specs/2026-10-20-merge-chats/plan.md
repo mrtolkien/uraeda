@@ -949,6 +949,12 @@ git commit -m "feat(merge-chats): one New page starts a session, a change, or a 
   `session.rename`, `session.archive`.
 - Produces: `OfferCard({ kind, proposal?, reason?, session, isLatest })`.
 
+**Also, from task 11:** `/sessions/<id>` of a session that belongs to a change or a feature draws it
+as that change's or feature's session page, as `/f/<folder>/session` does for its latest: its
+crumbs, its side column, and its workflow composer, the run handed to that session. A session
+without a folder keeps today's page. Test: "an earlier session of a feature opens with its feature's
+column and crumbs".
+
 - [ ] **Step 1: Write the failing tests**
 
 `offer.test.tsx`:
