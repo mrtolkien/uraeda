@@ -15,7 +15,7 @@ finished: 2026-10-20
 
 Enter no longer starts a change or sends a chat message: Ctrl+Enter or Cmd+Enter does, as every
 other multi-line field already saves. Enter adds a line. The rule follows
-[UI coherence](/specs/decisions/ui-coherence.md): every agent chat composer behaves the same.
+[UI coherence](/specs/decisions/ui-coherence.md): every text input behaves as its class does.
 
 ## Behaviour
 
@@ -40,5 +40,5 @@ screens, which draws the key hint.
 
 ## Decisions
 
-- [UI coherence](/specs/decisions/ui-coherence.md): a new rule for agent chat composers, added on
-  the human's direct request.
+- [UI coherence](/specs/decisions/ui-coherence.md): a new rule, that every text input follows its
+  class (single-line, multi-line markdown, composer), added on the human's direct request.

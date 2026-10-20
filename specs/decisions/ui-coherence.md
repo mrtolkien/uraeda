@@ -18,9 +18,9 @@ everywhere.
   and the human approves it. Checked by review.
 - A change to how information is drawn MUST be made in its shared component, so every page follows.
   Checked by review.
-- An agent chat composer, the field that sends a message to an agent or starts a change, MUST send
-  with Ctrl+Enter or Cmd+Enter, never with Enter, which adds a line, and its send button MUST show
-  that key on wide screens. One-line fields, like the inbox's, are not composers. Checked by test.
+- A text input MUST behave as its class does everywhere: a single-line input, a multi-line markdown
+  input, or a composer. Its keys, its hints, and its buttons are the class's, not the page's.
+  Checked by review.
 
 ## Why
 
