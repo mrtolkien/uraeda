@@ -589,8 +589,9 @@ process.
     (`Turns.wake`). A session whose turn is starting counts as working.
   - A run whose step starts fresh, or `workflow.fresh: true`, goes to a new session of the folder,
     unless its session never ran; sent while its session works, it is queued in the new session
-    behind it. `session.send` returns that session. `Processes.open` loses `fresh`, and `Queued` its
-    `fresh`: `FRESH` stays only for the turns that already show it.
+    behind it. Sent to an idle session while another session of the folder works, it is refused
+    before the new session is created. `session.send` returns that session. `Processes.open` loses
+    `fresh`, and `Queued` its `fresh`: `FRESH` stays only for the turns that already show it.
   - `SendInput.opening`: a line the server puts before a message, as the moved opening.
   - `movedOpening(input: { branch: string; folder: string; worktree: string; edited: Array<string> }): string`
     in `runner/moves.ts`, and `editedFiles(cache, session): Array<string>` (targets of the session's

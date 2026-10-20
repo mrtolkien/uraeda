@@ -42,7 +42,16 @@ export async function sendTo(
   if (!fresh || live.folder === null || context.cache.turns(live.id).length === 0) {
     return deliver(context, live, checked, place, false);
   }
-  const { adapter, cache } = context;
+  const { adapter, binding, cache } = context;
+  const behind = live.turn !== undefined || live.queue.length > 0;
+  // Refused before the new session exists: a refused run leaves no empty session as the latest.
+  if (context.live.moving(live)) {
+    throw refused(REFUSALS.agentWorking);
+  }
+  if (!behind && context.live.otherWorking(live, { queued: true })) {
+    const { kind } = await binding.readFeature(live.repo, live.folder);
+    throw refused(REFUSALS.otherWorking(kind));
+  }
   const row = cache.createSession({
     agent: adapter.kind,
     folder: live.folder,
@@ -51,7 +60,6 @@ export async function sendTo(
     title: null,
   });
   const next = context.live.of(row);
-  const behind = live.turn !== undefined || live.queue.length > 0;
   return context.live.serial(next, () => deliver(context, next, checked, place, behind));
 }
 
