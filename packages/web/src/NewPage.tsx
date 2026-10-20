@@ -7,11 +7,11 @@ import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
+import { Link } from "@astryxdesign/core/Link";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Composer } from "./Composer.tsx";
@@ -32,6 +32,11 @@ import { composerDraft, useDraft } from "./useDraft.ts";
 import { type StartLine, type StartNote, useStartFrom } from "./useStartFrom.ts";
 
 const styles = stylex.create({
+  // The button keeps its text whole; the line's text wraps beside it.
+  action: { flexShrink: 0 },
+  // As tall as its button: a finger's 44 px under a coarse pointer.
+  line: { paddingBlock: spacingVars["--spacing-1"] },
+  link: { alignItems: "center", display: "flex", minHeight: sizeVars["--size-element-sm"] },
   list: {
     listStyle: "none",
     margin: 0,
@@ -137,10 +142,14 @@ function Lines({ action, lines }: { action: string; lines: Array<Line> }) {
       </Text>
       <ul aria-labelledby="new-lines" {...stylex.props(styles.list)}>
         {lines.map((line) => (
-          <li key={line.href}>
-            <SideNavItem
-              actions={
-                // Its name says which line: the buttons share their visible text.
+          <li key={line.href} {...stylex.props(styles.line)}>
+            {/* The whole text, wrapped on a phone rather than cut. */}
+            <HStack align="center" gap={2} justify="between">
+              <Link href={line.href} xstyle={styles.link}>
+                {line.label}
+              </Link>
+              {/* Its name says which line: the buttons share their visible text. */}
+              <span {...stylex.props(styles.action)}>
                 <Button
                   clickAction={line.start}
                   label={`${action}: ${line.text}`}
@@ -149,10 +158,8 @@ function Lines({ action, lines }: { action: string; lines: Array<Line> }) {
                 >
                   {action}
                 </Button>
-              }
-              href={line.href}
-              label={line.label}
-            />
+              </span>
+            </HStack>
           </li>
         ))}
       </ul>

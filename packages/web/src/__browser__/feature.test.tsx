@@ -163,9 +163,12 @@ const STATES: Array<[string, string]> = [
 describe("in both themes", () => {
   atSize("both");
 
-  test("the feature page is accessible in both themes, every fold open", async () => {
-    await commands.addFeaturePages();
-    for (const mode of ["light", "dark"] as const) {
+  // One test per theme: each page also reads its sessions now, and both themes' ten pages took
+  // longer than a test's 30 s.
+  test.each(["light", "dark"] as const)(
+    "the feature page is accessible in %s, every fold open",
+    async (mode) => {
+      await commands.addFeaturePages();
       await colorScheme(mode);
       for (const [folder, text] of STATES) {
         await show(`/f/${folder}`, text);
@@ -177,6 +180,6 @@ describe("in both themes", () => {
         await drawn();
         await checkLayout();
       }
-    }
-  });
+    },
+  );
 });

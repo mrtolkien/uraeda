@@ -1,4 +1,4 @@
-// US1.1, US1.2, and SC-002: "New change", in the sidebar, opens a composer that starts a change and
+// US1.1, US1.2, and SC-002: the sidebar's "＋ New", with Change picked, opens a composer that starts a change and
 // its agent in two clicks and the typing, with its images in the change's proposal. The composer's
 // edge cases: Start disabled while it is empty, a taken name refused under the slug field with the
 // text kept, and the text kept after leaving the page (R2). The page passes the UI checks at both
@@ -40,12 +40,24 @@ async function openFromNavigation(name: string) {
   await userEvent.click(within(nav as HTMLElement).getByRole("link", { name }));
 }
 
-/** Opens "New change" from Home, by the sidebar's row. */
+/** Opens the New page by the sidebar's "＋ New" row, and picks Change. */
+async function pickChange() {
+  await openFromNavigation("New");
+  await screen.findByRole("heading", { level: 1, name: "New" }, LIVE);
+  const selector = screen.getByRole("radiogroup", { name: "What to start" });
+  await userEvent.click(within(selector).getByRole("radio", { name: "Change" }));
+  await expect
+    .poll(() => `${window.location.pathname}${window.location.search}`, LIVE)
+    .toBe(atRepo("/new?kind=change"));
+  // The change's composer, not the session's it replaces.
+  await screen.findByText(INTRO, undefined, LIVE);
+  return screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE);
+}
+
+/** Opens the New page's Change from Home, by the sidebar's "＋ New" row. */
 async function newChange() {
   await show("/", "Needs you");
-  await openFromNavigation("New change");
-  await screen.findByRole("heading", { level: 1, name: "New" }, LIVE);
-  return screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE);
+  return pickChange();
 }
 
 /** Types the title, a blank line, and the body, as the human does. */
@@ -127,9 +139,7 @@ test("a taken slug is refused under the slug field, and the text stays", async (
   const folder = await opened();
   await screen.findByRole("heading", { level: 1, name: TITLE }, LIVE);
 
-  await openFromNavigation("New change");
-  await screen.findByRole("heading", { level: 1, name: "New" }, LIVE);
-  const box = screen.getByRole("textbox", { name: "Message Claude Code" });
+  const box = await pickChange();
   // Start cleared the text and the slug.
   expect(box.textContent).toBe("");
   expect(slug().value).toBe("");
@@ -158,10 +168,7 @@ test("the text comes back after leaving the page", async () => {
 
   await openFromNavigation("Priorities");
   await screen.findByRole("heading", { level: 1, name: "Priorities" }, LIVE);
-  await openFromNavigation("New change");
-
-  await screen.findByRole("heading", { level: 1, name: "New" }, LIVE);
-  const back = screen.getByRole("textbox", { name: "Message Claude Code" });
+  const back = await pickChange();
   expect(back.textContent).toBe(`${TITLE}\n\n${BODY}`);
   expect(slug().value).toBe("centred-x");
   // The draft editor's notice says nothing true of a page kept as a new chat's is.

@@ -235,8 +235,9 @@ export function checkPage(root?: Element) {
     const style = getComputedStyle(element);
     const name = element.outerHTML.slice(0, 120);
     expect(style.getPropertyValue("-webkit-line-clamp") || "none", name).toBe("none");
-    // A chat's title in the navigation is cut by an ellipsis on purpose.
-    if (scrolls(element) || element.closest('nav a[href*="/sessions/"]')) {
+    // A session's title in the navigation, beside it or in the phone's drawer, is cut by an
+    // ellipsis on purpose: its card keeps one line.
+    if (scrolls(element) || element.closest('a[href*="/sessions/"]')?.closest("nav, dialog")) {
       continue;
     }
     // No text is cut where an element clips it, by an ellipsis or not; visually hidden elements,
