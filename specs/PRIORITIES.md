@@ -10,11 +10,10 @@
 - [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
 - [Stable dev environment for UI review](/specs/2026-10-20-ui-sandbox/proposal.md)
 
-- Empty inbox
-
 - [Layout and look and feel](drafts/layout-and-look/proposal.md): the information architecture
   first, then 3 to 5 prototyped directions to pick from
 
+- Empty inbox
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
