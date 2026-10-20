@@ -36,13 +36,25 @@ export type SessionResult = {
   usageLimit: boolean;
 };
 
-const URL_PATTERN = /\b(?:https?|ssh|git):\/\/[^\s"'<>)`,;]+/g;
-/** A git remote in scp form, `git@github.com:owner/repo.git`: its host and its path. */
-const SCP_PATTERN = /\b[\w.-]+@([\w.-]+\.[a-z]+):\/?([\w.-]+\/[\w.-]+)/g;
-/** A repository `gh` is pointed at: `gh repo clone owner/repo`, or `--repo owner/repo`. */
-const GH_REPO_PATTERN = /(?:\bgh\s+repo\s+[\w-]+|\s(?:--repo|-R))[\s=]+([\w.-]+\/[\w.-]+)/g;
-/** A path `gh api` reads on GitHub's API: `gh api repos/owner/repo/pulls`. */
-const GH_API_PATTERN = /\bgh\s+api\s+\/?(repos\/[^\s"'<>)`,;]+)/g;
+/** The characters an address runs on: up to a space, a quote, or punctuation that ends it. */
+const ADDRESS = String.raw`[^\s"'<>)` + "`" + String.raw`,;]+`;
+const URL_PATTERN = new RegExp(String.raw`\b(?:https?|ssh|git)://${ADDRESS}`, "g");
+/**
+ * A git remote in scp form, `git@github.com:owner/repo.git` or `github.com:owner/repo`: its host
+ * and its path. Not inside a URL, and never a port: the path starts with a letter.
+ */
+const SCP_PATTERN = /(?<!\/\/)\b(?:[\w.-]+@)?([\w.-]+\.[a-z]+):\/?([A-Za-z_][\w.-]*\/[\w.-]+)/g;
+/**
+ * A repository `gh` is pointed at: `gh repo clone owner/repo`, or `--repo owner/repo` in the same
+ * `gh` command, quoted or not.
+ */
+const GH_REPO_PATTERN =
+  /(?:\bgh\s+repo\s+[\w-]+|\bgh\s[^;&|\n]*?\s(?:--repo|-R))[\s=]+["']?([\w.-]+\/[\w.-]+)/g;
+/** A path `gh api` reads on GitHub's API, after its flags, quoted or not: `gh api repos/o/r/pulls`. */
+const GH_API_PATTERN = new RegExp(
+  String.raw`\bgh\s+api\s+(?:-\S+\s+)*["']?\/?(repos\/${ADDRESS})`,
+  "g",
+);
 /** A command that reaches a network address, not one that merely mentions it (a test's config). */
 const FETCHING =
   /\b(curl|wget|gh|git\s+(clone|fetch|pull|ls-remote|remote)|pip3?\s+(download|install)|httpie?|nc|ssh)\b/;

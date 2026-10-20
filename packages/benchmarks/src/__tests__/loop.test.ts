@@ -250,6 +250,10 @@ test.each([
   "gh pr view 1 --repo ansible/ansible",
   "git clone git@github.com:ansible/ansible.git",
   "git fetch ssh://git@github.com/ansible/ansible.git",
+  'gh api "repos/ansible/ansible/pulls"',
+  "gh api --paginate repos/ansible/ansible/pulls",
+  'gh pr view 1 --repo "ansible/ansible"',
+  "git clone github.com:ansible/ansible",
 ])("a command reaching the upstream without http, %s, is flagged", async (command) => {
   const { loop } = await runScripted({
     pushedAfter: 1,
@@ -259,6 +263,29 @@ test.each([
 
   expect(loop.flags).toEqual(["leak-suspected"]);
   expect(loop.urls).toHaveLength(1);
+});
+
+test.each([
+  ["a sibling repository through gh api", "gh api repos/ansible/ansible-runner/pulls"],
+  ["another tool's -R after a fetch", "git fetch && grep -R ansible/ansible docs/"],
+])("%s is not flagged", async (_, command) => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [commandTurn(command)],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.flags).toEqual([]);
+});
+
+test("an ssh URL with a port is recorded once", async () => {
+  const { loop } = await runScripted({
+    pushedAfter: 1,
+    turns: [commandTurn("git fetch ssh://git@github.com:22/ansible/ansible.git")],
+    views: [agent("discovery"), agent("discovery", true)],
+  });
+
+  expect(loop.urls).toEqual(["ssh://git@github.com:22/ansible/ansible.git"]);
 });
 
 test("gh on another repository, or on the checkout's own, is not flagged", async () => {
