@@ -1,6 +1,6 @@
 ---
 status: changes-requested
-revision: 2
+revision: 3
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,24 +8,21 @@ plan-review: false
 
 # Spec: Merge chats and changes
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-20: 3 comments in spec-review.md.
+> Spec to review, about 10 minutes.
 >
 > - You approve one kind of thing, the session, which can grow into a change and then a feature, in
 >   place. A change or a feature holds one or more sessions, each on its own page, and one "＋ New"
 >   starts anything.
-> - Changed: Agents. A change or a feature has one or more sessions, all in its worktree, and the
->   agent offers a move but never makes one alone. The rule on keeping the conversation is gone.
-> - Since your review: a feature's page lists its sessions, with "New session" and their sub-agents.
->   A step that started a fresh agent session now starts a new session instead.
-> - Since your review: every row of the sidebar is one card shape, with its kind's badge and its
->   "…". A session is done once you have read its last message. Feature colours are removed.
-> - Since your review: a session's actions sit in a "…" beside Send: make it a change or a feature,
->   rename, archive.
-> - Settled while revising: only one session of a change or a feature works at a time, since they
->   share one worktree. Runs go to its latest session.
-> - Risk tier medium: a session's folder becomes settable, and a branch is renamed in place.
+> - Since your review: a card's icon tells its kind, a speech bubble, a wrench, or a feature's step,
+>   and its second line shows only a task or the lines changed.
+> - Since your review: the New page explains all three kinds, with the steps that wait on you for a
+>   change and a feature.
+> - Since your review: "Drop the change…" in a change's actions. The Git decision forbids deleting a
+>   branch the default branch lacks, so its branch stays, with the command to delete it.
+> - Settled while revising: a feature's actions get "Drop the feature…" too, the same way.
+> - Changed: Agents, unchanged since your last review.
 
 Chats and changes become one thing, the session, with a workflow that can grow around it: none, a
 change, then a feature. Moving up keeps the conversation and the branch, a change or a feature can
@@ -35,22 +32,13 @@ talking to an agent and finds the work bigger than a chat. See the [proposal](pr
 
 ## Your review
 
-- **C1** (a button and a list, not a switch): done. A change's or a feature's page lists its
-  sessions, with "New session": see the new story on several sessions.
-- **C2** (one or more sessions, all in the worktree): done. The Agents rule now says so. Sub-agents
-  are listed under the session that started them, on its page and the feature's.
-- **C3** (the rule on keeping the conversation is obvious): done. The rule is gone; the behaviour
-  stays a scenario.
-- **C4** (cards apart, aligned, a "…" everywhere, no colours): done. Every row is one card shape,
-  with a Session, Change, or Feature badge, and a "…" with Rename. Feature colours are removed.
-- **C5** (when a session is done): done. A session is done once you have read its last message; a
-  change or a feature, once its pull request is merged.
-- **C6** ("Make it a change" on a change): done. Once a change, its actions offer "Make it a
-  feature".
-- **C7** (the button grouped with archiving): done. The actions are one "…" menu.
-- **C8** (the action near the composer): done. The "…" sits beside Send.
-- **C9** (each session its own page): done. A new session is a page of its own, attached to the
-  change or the feature, and the earlier one stays.
+- **C1** (icons, not a line of pills): done. The kind badge is gone: a speech bubble marks a
+  session, a wrench a change, and a feature keeps its step's icon. The second line shows only while
+  there is a task or lines changed.
+- **C2** (an explanation for every kind): done. Each kind has a sentence on the New page, and a
+  change and a feature show the steps that wait on you: prompt, questions, spec, pull request.
+- **C3** (abandoning a change): done. "Drop the change…" sits in a change's actions, behind a
+  confirmation. The Git decision keeps its branch, which the confirmation says how to delete.
 
 ## Decisions
 
@@ -72,8 +60,8 @@ Relied on:
 ### US1: One list of sessions (P1)
 
 The sidebar lists every session in progress, with or without a workflow, in one Sessions section.
-Every row is one card: its icon, name, status, and "…", then its kind's badge. Done items sit at the
-bottom. The word "chat" leaves the UI: a chat is a session without a workflow.
+Every row is one card: its icon, name, status, and "…", on one line, its icon telling its kind. Done
+items sit at the bottom. The word "chat" leaves the UI: a chat is a session without a workflow.
 
 [Merged sidebar](/packages/web/src/sidebar/Sessions.stories.tsx#Merged)
 
@@ -83,8 +71,8 @@ Key scenarios:
 
 1. **Given** a session "Why is CI slow?" started on 2026-10-19, the change `flaky-tests` started on
    2026-10-18, and the feature `look-and-feel` started on 2026-10-17, **When** the sidebar draws,
-   **Then** Sessions lists `look-and-feel`, `flaky-tests`, then "Why is CI slow?", with the badges
-   Feature, Change, and Session.
+   **Then** Sessions lists `look-and-feel`, `flaky-tests`, then "Why is CI slow?", with a discovery
+   icon, a wrench, and a speech bubble.
 2. **Given** the session "What does ura clean keep?", whose last message you read at 10:00, and the
    change `ctrl-enter`, merged at 09:00, **When** the sidebar draws, **Then** neither is under
    Sessions, and Done lists the session, then `ctrl-enter`, 5 rows at most.
@@ -112,6 +100,8 @@ start it, and the same session goes on in the change's worktree.
 
 [Once started](/packages/web/src/NewSession.stories.tsx#ChangeStarted)
 
+[Dropping a change](/packages/web/src/NewSession.stories.tsx#DropChange)
+
 Key scenarios:
 
 1. **Given** a session in the main checkout whose agent offered the change "Login redirects twice",
@@ -132,13 +122,19 @@ More scenarios:
 2. **Given** the agent is working, **When** the card shows, **Then** "Start the change" waits until
    its turn ends, saying "The agent is working".
 3. **Given** the session became a change, **When** you open its "…", **Then** it offers "Make it a
-   feature" and Rename, and its card in the sidebar keeps its place.
+   feature", Rename, and "Drop the change…", and its card in the sidebar keeps its place.
+4. **Given** the change `login-redirect`, **When** you confirm "Drop the change", **Then** its entry
+   leaves **Now**, its worktree is removed, and its sessions are archived. The branch
+   `change/2026-10-20-login-redirect` stays, and the confirmation named
+   `git branch -D change/2026-10-20-login-redirect`.
 
 ### US3: One "＋ New" starts anything (P2)
 
-One "＋ New" row opens the New page, where you pick a session, a change, or a feature. A change can
-start from typed text, an inbox note, or a priority line. A feature starts from a new title, an
-inbox note, or a priority line, as a draft opened in the editor.
+One "＋ New" row opens the New page, where you pick a session, a change, or a feature. Each kind has
+a sentence saying what it is, and a change and a feature show the steps that wait on you: a prompt,
+questions if any, then a pull request for a change; a prompt, questions, a spec, then a pull request
+for a feature. A change can start from typed text, an inbox note, or a priority line. A feature
+starts from a new title, an inbox note, or a priority line, as a draft opened in the editor.
 
 [New, Session](/packages/web/src/NewSession.stories.tsx#NewSessionPage)
 
@@ -242,12 +238,15 @@ through a block the page draws as a card, and the server performs the move on yo
 - **The in-place move**, in the core, renames the branch, moves the folder, relinks **Now**, and
   sets the change's applied decisions back to `proposed`. `ura start <change> --feature` runs it,
   and the skill describes it by hand. It owns the move's refusals.
-- **The sidebar's list** draws every row as one card with its kind's badge and its "…", and the Done
-  area adds the sessions read to their end. The colour of an item's settings goes.
+- **The sidebar's list** draws every row as one card of one line, its icon telling its kind, and its
+  "…"; a second line only for a task or lines changed. The Done area adds the sessions read to their
+  end. The colour of an item's settings goes.
 - **The New page** holds the kind selector, the composer and slug of today's New change, and the
   inbox and priority pickers. It reuses drafting a note or a priority, and the editor's start.
-- **The session page** holds its actions in a "…" beside Send. **The feature page's agent card**
-  becomes its sessions' list, with "New session".
+- **The session page** holds its actions in a "…" beside Send, dropping a change or a feature among
+  them. Dropping removes the **Now** entry and the worktree, never forced, archives the sessions,
+  and keeps the branch. **The feature page's agent card** becomes its sessions' list, with "New
+  session".
 - **The skill** replaces rule 8 and the change's upgrade with the offer and the in-place move. It
   says "session" where it said "chat".
 
@@ -260,16 +259,17 @@ Tradeoffs:
 
 ## Edge cases
 
-| Importance | Situation                                                     | What happens                                                                                                 |
-| ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| High       | A file the session edited was also edited by you since        | it stays on the main checkout, and the opening line names it for the agent to merge by hand                  |
-| High       | The slug's branch or folder exists                            | nothing starts; the card says "A branch or folder named 2026-10-20-login-redirect exists: pick another slug" |
-| High       | A change with a pull request is made a feature                | refused, as US4 says                                                                                         |
-| Normal     | The server restarts between the change's start and the attach | the change exists with its own new session; the old session stays without a workflow                         |
-| Normal     | The agent offers twice in one session                         | only the latest card has buttons; earlier ones read as text                                                  |
-| Normal     | You read a session's last message while its page is open      | it stays under Sessions until you leave its page                                                             |
-| Normal     | An offer block in a feature's session asks for a change       | drawn as text: a session only moves up                                                                       |
-| Niche      | The change's branch was pushed                                | the move renames it locally; the old remote branch stays until you delete it                                 |
+| Importance | Situation                                                     | What happens                                                                                                                      |
+| ---------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| High       | A file the session edited was also edited by you since        | it stays on the main checkout, and the opening line names it for the agent to merge by hand                                       |
+| High       | The slug's branch or folder exists                            | nothing starts; the card says "A branch or folder named 2026-10-20-login-redirect exists: pick another slug"                      |
+| High       | A change with a pull request is made a feature                | refused, as US4 says                                                                                                              |
+| Normal     | The server restarts between the change's start and the attach | the change exists with its own new session; the old session stays without a workflow                                              |
+| Normal     | The agent offers twice in one session                         | only the latest card has buttons; earlier ones read as text                                                                       |
+| Normal     | You read a session's last message while its page is open      | it stays under Sessions until you leave its page                                                                                  |
+| Normal     | An offer block in a feature's session asks for a change       | drawn as text: a session only moves up                                                                                            |
+| High       | A dropped change's worktree has uncommitted changes           | the worktree stays, and the session says "Its worktree has uncommitted changes: it stays at .worktrees/2026-10-20-login-redirect" |
+| Niche      | The change's branch was pushed                                | the move renames it locally; the old remote branch stays until you delete it                                                      |
 
 ## Success criteria
 
@@ -293,6 +293,7 @@ Settled while writing this spec:
 
 - **Sessions oldest started first**: rows keep their place while agents work. A session that becomes
   a change keeps its start.
+- **Dropping a feature** works as dropping a change, from "Drop the feature…" in its actions.
 - **Archive** stays for a session without a workflow: it leaves Done and the list, and search still
   finds it.
 - **A session starts in the main checkout**: its agent may make branches and worktrees on its own,
@@ -317,6 +318,26 @@ Medium: a session's folder becomes settable after its creation, and a branch wit
 place; no data users have changes format.
 
 ## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-20: icons instead of kind badges, an explanation of each kind on the
+> New page, and a way to drop a change.
+>
+> - You approve one kind of thing, the session, which can grow into a change and then a feature, in
+>   place. A change or a feature holds one or more sessions, each on its own page, and one "＋ New"
+>   starts anything.
+> - Changed: Agents. A change or a feature has one or more sessions, all in its worktree, and the
+>   agent offers a move but never makes one alone. The rule on keeping the conversation is gone.
+> - Since your review: a feature's page lists its sessions, with "New session" and their sub-agents.
+>   A step that started a fresh agent session now starts a new session instead.
+> - Since your review: every row of the sidebar is one card shape, with its kind's badge and its
+>   "…". A session is done once you have read its last message. Feature colours are removed.
+> - Since your review: a session's actions sit in a "…" beside Send: make it a change or a feature,
+>   rename, archive.
+> - Settled while revising: only one session of a change or a feature works at a time, since they
+>   share one worktree. Runs go to its latest session.
+> - Risk tier medium: a session's folder becomes settable, and a branch is renamed in place.
 
 > [!NOTE]
 >
