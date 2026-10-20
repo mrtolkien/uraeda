@@ -6,6 +6,7 @@ import { type checkSend, messageItem, openingOf, sendPlace } from "./send-input.
 import {
   type Live,
   type Message,
+  ofDropped,
   REFUSALS,
   refused,
   rowOf,
@@ -22,7 +23,8 @@ type Place = Awaited<ReturnType<typeof sendPlace>>;
  * Sends a checked message to the session, under its lock, and returns the session it went to and
  * its turn. A run that starts a fresh agent session goes to a new session of the change or the
  * feature, which becomes its latest: queued there while the session it was sent to works.
- * `available` refuses once the agent is gone.
+ * `available` refuses once the agent is gone. A session of a dropped change or feature is refused:
+ * its worktree is gone, and stays gone.
  */
 export async function sendTo(
   context: SessionContext,
@@ -30,6 +32,9 @@ export async function sendTo(
   checked: Checked,
   available: () => void,
 ): Promise<{ session: string; turn: number }> {
+  if (ofDropped(rowOf(context.cache, live))) {
+    throw refused(REFUSALS.dropped);
+  }
   const place = await sendPlace(context.binding, live, checked.workflow);
   available();
   const workflow = place.asChat === undefined ? checked.workflow : undefined;
@@ -66,7 +71,7 @@ export async function sendTo(
 /**
  * Sends the message in this session: steered into its turn, queued after it, or starting one. A
  * session whose change or feature works in another session is refused, or, `behind` it, queued;
- * one that a move or a drop holds is refused.
+ * one that a move or a drop holds, or that a drop archived, is refused.
  */
 async function deliver(
   context: SessionContext,
@@ -82,6 +87,9 @@ async function deliver(
     if (context.live.moving(live)) {
       throw refused(REFUSALS.agentWorking);
     }
+    if (ofDropped(rowOf(cache, live))) {
+      throw refused(REFUSALS.dropped);
+    }
   };
   unmoved();
   const busy = () =>
@@ -96,6 +104,7 @@ async function deliver(
   if (row.folder === null && row.title === null) {
     cache.updateSession(row.id, { title: chatTitle(text, paths.length > 0) });
   }
+  // An archived chat comes back with a message: a dropped change's session was refused above.
   if (row.archivedAt !== null) {
     cache.updateSession(row.id, { archivedAt: null });
   }

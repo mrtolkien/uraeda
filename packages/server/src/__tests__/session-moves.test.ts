@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import type { AgentEvent } from "../runner/events.ts";
@@ -11,6 +11,8 @@ const AGENT = "2026-10-12-cli-tuis";
 
 const PROPOSAL =
   "# Login redirects twice\n\nAfter signing in, the app shows the home page, then the sign-in page again.";
+/** The refusal of a message, a run, or a new session of a dropped change or feature. */
+const DROPPED = "This change or feature was dropped: its branch stays.";
 const FEATURE_FIELDS = ["id", "folder", "kind", "session"];
 
 type Server = Awaited<ReturnType<typeof testServer>>;
@@ -306,6 +308,39 @@ test("drop archives the sessions", async () => {
   expect(cache.session(chat)?.archivedAt).not.toBeNull();
   expect(cache.session(created.data.id as string)?.archivedAt).not.toBeNull();
   expect(branches(server, `change/${folder}`).trim()).toBe(`change/${folder}`);
+});
+
+/** Review: a dropped change takes no message, and nothing recreates its worktree. */
+test.each([
+  ["a message to its session", "session"],
+  ["its run", "run"],
+  ["a new session", "new"],
+])("a dropped change refuses %s", async (_name, how) => {
+  const server = await testServer();
+  const chat = await chatThatEdited(server);
+  const folder = (await toChange(server, chat)).data.folder as string;
+  await mutate(server.app, "feature.drop", { folder }, ["id"]);
+  const opens = server.adapter.opens.length;
+
+  const refused =
+    how === "new"
+      ? await mutate(server.app, "session.new", { folder }, ["id"])
+      : await mutate(
+          server.app,
+          "session.send",
+          how === "session"
+            ? { session: chat, text: "Go on" }
+            : { folder, text: "Go on", workflow: { trigger: "manual" } },
+          ["id"],
+        );
+
+  expect(refused.error?.message).toBe(`refused: ${DROPPED}`);
+  const { cache } = server.sessions;
+  expect(cache.session(chat)?.archivedAt).not.toBeNull();
+  expect(cache.folderSessions(cache.session(chat)!.repo, folder)).toHaveLength(1);
+  expect(cache.turns(chat)).toHaveLength(2);
+  expect(server.adapter.opens).toHaveLength(opens);
+  expect(existsSync(join(server.repo, ".worktrees", folder))).toBe(false);
 });
 
 /** A binding whose `call` waits, once `armed`, until the test releases it. */
