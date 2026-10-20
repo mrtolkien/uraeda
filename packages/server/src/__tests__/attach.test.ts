@@ -247,8 +247,8 @@ test("refuses a chunked upload over the body limit, said to be 21 MB, and stops 
   expect(await response.json()).toEqual({
     error: "refused: This image is over 20 MB: huge.png is 21 MB.",
   });
-  // The 22nd MiB passes the limit: reading stops there, the stream pulling a chunk or two ahead.
-  expect(sent).toBeLessThanOrEqual(24);
+  // The 22nd MiB passes the limit: reading stops there (23 chunks measured), the stream pulling ahead; 30 stays far under the 64 sent.
+  expect(sent).toBeLessThanOrEqual(30);
 });
 
 test("refuses a body under the limit that holds no file, with its own refusal", async () => {

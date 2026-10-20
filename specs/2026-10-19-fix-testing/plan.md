@@ -565,6 +565,20 @@ Task 4 evidence (2026-10-20, 32-thread Linux machine shared with other checkouts
   file (170), an update writing a missing file (281 to 283), a manifest naming a missing file (323),
   and a link that would not reach `.agents` (382 to 385). The capped run writes no profile (R20).
 
+Wave 3 review fixes (2026-10-20):
+
+- The tmp leftover count asserts the isolated `TMPDIR` it relies on; the fixture isolation case now
+  checks hard links on the working files as well as `.git`, and requires no `alternate:` line from
+  `git count-objects -v`. A `cp -al` copy and a `git clone --shared` copy (identity copied, `origin`
+  and its refs removed) each fail the real case; a single hard-linked working file fails the new
+  link check alone (`expected [ '.../specs/PRIORITIES.md' ] to deeply equal []`) once the earlier
+  state assertion is set aside, and the state assertion itself fails first otherwise. The
+  `alternates` file check fails the shared clone before the `count-objects` line is reached. A
+  copy's temporary entry is spliced out when its fill fails.
+- The chunked upload's bound is 30 chunks (23 measured, 64 sent); R21's text says so.
+- `clean.rs`'s locked and outside-worktree cases assert the whole `left`, an empty `did`, and the
+  remaining branch; with clean ignoring a left worktree and deleting the branch, both fail.
+
 ## Task 5: Keep critical UI and browser journeys while removing expensive duplication
 
 **Risky:** Wrong readiness or replacement of real browser semantics can hide integration failures.

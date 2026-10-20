@@ -249,16 +249,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R21: Attachment refusals must be their own, not another refusal
 
 - **Decision**: In `packages/server/src/__tests__/attach.test.ts`, the chunked case's body is 64
-  MiB, three times the limit, and the case asserts reading stopped by the 24th chunk; it is renamed
-  "…, and stops reading it". The two cross-site cases assert the guard's text, `Forbidden origin`
-  and `Forbidden site`, besides 403. A new case sends a body under the limit holding no file and
-  expects `refused: The body holds no file.`, with no worktree made.
+  MiB, three times the limit, and the case asserts reading stopped by the 30th chunk (23 measured,
+  the rest read-ahead margin); it is renamed "…, and stops reading it". The two cross-site cases
+  assert the guard's text, `Forbidden origin` and `Forbidden site`, besides 403. A new case sends a
+  body under the limit holding no file and expects `refused: The body holds no file.`, with no
+  worktree made.
 - **Rationale**: Review focus 2. With the body limit removed, both limit cases receive
   `refused: The body holds no file.`, so their exact texts already separate the limit from a parse
   failure; but a limit that read a chunked body whole before refusing kept the old case green (22
   MiB sent, the same 21 MB text) and fails the new bound
-  (`expected 65 to be less than or equal to 24`). The no-file refusal was the one line of
-  `attach.ts` no test ran. No assertion was loosened or removed.
+  (`expected 65 to be less than or equal to 24`, at the first bound). The no-file refusal was the
+  one line of `attach.ts` no test ran. No assertion was loosened or removed.
 - **Alternatives considered**: Asserting the exact chunk count, 23, which a stream's read-ahead
   could change without a defect.
 - **If wrong**: Raise the bound by the stream's read-ahead, never past the 64 chunks sent.
