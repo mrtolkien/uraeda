@@ -86,3 +86,19 @@ fastConfig(selectFast([{path:"packages/web/src/deleted.ts",deleted:true,added:fa
   expect(result.status).not.toBe(0);
   expect(result.stderr).toContain("Selected family ui has no test files");
 });
+
+test("an edit of the UI's setup file discovers the UI family's tests", () => {
+  const result = execute(`
+const config=fastConfig(selectFast([{path:"packages/web/src/__tests__/setup.ts",deleted:false,added:false}]));
+const vitest=await createVitest({config:false,related:config.related,watch:false},{test:config.test});
+try {
+  await vitest.standalone();
+  const specs=await vitest.getRelevantTestSpecifications();
+  process.stdout.write(specs.map(spec=>spec.moduleId.split("/web/").pop()).join("\\n"));
+} finally { await vitest.close(); }
+`);
+  expect(result.status, result.stderr).toBe(0);
+  const found = result.stdout.split("\n");
+  expect(found).toContain("src/__focused__/composer.test.tsx");
+  expect(found).toContain("src/__tests__/edited.test.ts");
+});

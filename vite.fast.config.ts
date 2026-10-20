@@ -2,8 +2,25 @@ import { globSync } from "node:fs";
 import { resolve } from "node:path";
 import type { TestProjectInlineConfiguration } from "vite-plus";
 import { uiTestOptions, uiTransforms } from "./packages/web/vite.transforms.ts";
-import { testWorkers } from "./scripts/test-policy.ts";
+import { gitTestTimeout, scriptsTestTimeout, testWorkers } from "./scripts/test-policy.ts";
 import { families, type Family, type FastSelection, matches } from "./scripts/fast-selection.ts";
+
+const binding = resolve("packages/binding/test-setup.ts");
+/**
+ * The other families' test settings, those of their packages' configurations (`vite.config.ts`,
+ * which an inline project never loads): the same setup files and time bounds, and nothing more. The
+ * package family's has none, so keeps Vitest's defaults as `vp test` there.
+ */
+const packageOptions: Record<
+  Exclude<Family, "ui">,
+  NonNullable<TestProjectInlineConfiguration["test"]>
+> = {
+  benchmarks: { testTimeout: gitTestTimeout },
+  binding: { setupFiles: [binding], testTimeout: gitTestTimeout },
+  package: {},
+  scripts: { testTimeout: scriptsTestTimeout },
+  server: { setupFiles: [binding], testTimeout: gitTestTimeout },
+};
 
 /** Inline projects never inherit a package's production startup or native freshness imports. */
 export function fastConfig(selection: FastSelection) {
@@ -32,17 +49,8 @@ export function fastConfig(selection: FastSelection) {
           extends: false,
           plugins: name === "ui" ? uiTransforms() : [],
           root: resolve(family.root),
-          // The UI's are the web configuration's own settings, isolation included.
           test: {
-            ...(name === "ui"
-              ? uiTestOptions()
-              : {
-                  env: { TZ: "UTC" },
-                  environment: "node",
-                  setupFiles: family.native ? [resolve("packages/binding/test-setup.ts")] : [],
-                  // The scripts' cases run a nested Vitest, bounded at 120 s: their own project's 130 s.
-                  testTimeout: name === "scripts" ? 130_000 : 20_000,
-                }),
+            ...(name === "ui" ? uiTestOptions() : packageOptions[name]),
             include: family.tests,
             name: `fast-${name}`,
           },

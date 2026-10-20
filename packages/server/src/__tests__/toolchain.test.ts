@@ -723,6 +723,10 @@ test("fast selects before optional builds and preserves isolation and coordinati
   // A run escalating to ready holds no slot its heavy tasks wait for: fast-check takes one itself.
   expect(TEST_RUN.exec(fast.command as string)?.[1]).toBe("");
   expect(fast.command).toContain("node scripts/fast-check.ts");
+  // Fast lists the changed files with the user's git configuration (its global excludes), then
+  // isolates it itself: a command isolating it would list every globally ignored file as new.
+  expect(fast.command).not.toContain("GIT_CONFIG_GLOBAL");
+  expect(fast.command).toContain("-u GIT_INDEX_FILE");
   const config = readFileSync(join(ROOT, "vite.fast.config.ts"), "utf8");
   expect(config).not.toMatch(/fresh-binding|uraeda-server\/dev|web\/vite.config/);
 });

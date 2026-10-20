@@ -39,8 +39,8 @@ const testEnv = [
  * A test ignores the host's git: its configuration, so the tests' repositories get git's defaults,
  * and the repository variables a git hook exports, which `--no-cache` and uncached tasks pass on.
  */
-const isolatedGit =
-  "env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1";
+const repositoryVariables = "env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR";
+const isolatedGit = `${repositoryVariables} GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1`;
 
 /**
  * Runs a test command in a temporary folder of its own, `TMPDIR`, removed when it ends (see
@@ -103,7 +103,9 @@ export const tasks = {
   // slot itself, after selecting, and none when it escalates to ready, whose tasks take their own.
   fast: {
     cache: false,
-    command: `${testRun()} ${isolatedGit} node scripts/fast-check.ts`,
+    // Without git's configuration isolated: fast lists the changed files with the user's, whose
+    // `core.excludesFile` hides globally ignored files, and isolates it itself afterwards.
+    command: `${testRun()} ${repositoryVariables} node scripts/fast-check.ts`,
   },
   // The benchmarks of the specs' success criteria: they measure time, so are never replayed.
   bench: {
@@ -346,6 +348,8 @@ export const tasks = {
         // focused configuration, which the scripts tests run.
         "scripts/**",
         "vite.fast.config.ts",
+        // The benchmarks' suites, cases and records, which the runner's tests read.
+        "benchmarks/**",
       ],
       output: [],
       untrackedEnv: testEnv,
