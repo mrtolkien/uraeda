@@ -40,15 +40,24 @@ function gate(feature: NextFeature): Next {
   };
 }
 
-/** The merge: its day, and its pull request when the record names one. */
+/** The action that opens a pull request on GitHub, in a new tab. */
+function openPull(pull: { number: number; url: string }): NextAction {
+  return { external: true, href: pull.url, label: `Open pull request #${pull.number}` };
+}
+
+/** The merge: its day, and its pull request, opened from here, when the record names one. */
 function merged(feature: NextFeature, at?: string): Next {
-  const number = feature.pullRequest?.number;
+  const pull = feature.pullRequest;
   const line = at
-    ? number === undefined
-      ? `On ${day(at)}.`
-      : `On ${day(at)}, in pull request #${number}.`
+    ? pull
+      ? `On ${day(at)}, in pull request #${pull.number}.`
+      : `On ${day(at)}.`
     : undefined;
-  return { ...(line ? { line } : {}), title: "Merged" };
+  return {
+    ...(pull ? { action: openPull(pull) } : {}),
+    ...(line ? { line } : {}),
+    title: "Merged",
+  };
 }
 
 /**
@@ -73,15 +82,7 @@ export function nextOf(
     case "pull-request": {
       const pull = feature.pullRequest;
       return {
-        ...(pull
-          ? {
-              action: {
-                external: true,
-                href: pull.url,
-                label: `Open pull request #${pull.number}`,
-              },
-            }
-          : {}),
+        ...(pull ? { action: openPull(pull) } : {}),
         line: "Review it on GitHub. The session's recommended message sends the agent to its comments.",
         title: pull
           ? `Your review on pull request #${pull.number}`

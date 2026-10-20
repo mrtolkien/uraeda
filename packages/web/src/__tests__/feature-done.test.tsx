@@ -480,3 +480,17 @@ test("a record with its pull request leads Lines changed to its files", async ()
   // In a new tab, as "Open pull request #30".
   expect(lineCard.getAttribute("target")).toBe("_blank");
 });
+
+/** A done feature's Next leads to the pull request it names */
+test("a record with its pull request opens it from Next", async () => {
+  const repo = fixtureRepo();
+  doneFeature(repo, featureRecord("https://github.com/o/r/pull/30"));
+
+  await renderPage(`/f/${DONE}`, repo, { agent: true });
+
+  const next = within(await screen.findByRole("region", { name: "Next" }));
+  expect(next.getByRole("heading", { name: "Merged" })).toBeTruthy();
+  const link = next.getByRole("link", { name: "Open pull request #30" });
+  expect(link.getAttribute("href")).toBe("https://github.com/o/r/pull/30");
+  expect(link.getAttribute("target")).toBe("_blank");
+});
