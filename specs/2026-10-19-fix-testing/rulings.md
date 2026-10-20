@@ -363,3 +363,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: A frame check that accepts any `MessageEvent.source` is a hole in the stack
   decision's isolation: do not relax the two cases.
 - **Where**: `packages/web/src/__browser__/{story-embed,story-comments}.test.tsx`.
+
+## R60: A spawned server's start is awaited by its event, bounded for a broken process
+
+- **Decision**: In `main.test.ts`, the cases that wait for a spawned server's progress (its host
+  token, the lines it prints after its address) wait through `until`: the condition, or the
+  process's exit with its stderr as the failure, bounded at 15 s in place of Vitest's 1 s. "A second
+  start during the first's start waits for it" waits for the token file to hold its 43 characters
+  (the file exists a moment before it does), and gives its early request 30 s in place of the
+  handoff's 2 s default. No retry, no sleep, no assertion was loosened.
+- **Rationale**: Under machine load (16 busy loops over a load of 60 to 80) the case failed 3 times
+  in 30 runs at the 1 s poll: the server process had not taken its port. With that bound lifted it
+  failed 2 in 40 at the handoff's 2 s: the request waits for `startServer`, which takes seconds
+  under load. At the highest load (40 busy loops) the next failures were the poll seeing the token
+  file created and empty (`unauthorized`), and a second start's own 2 s handoff expiring, which the
+  test cannot lengthen: that bound is production behavior and is kept.
+- **Alternatives considered**: Retrying the case or sleeping before the read (forbidden); a longer
+  poll alone (the empty file and the 2 s handoff remained).
+- **If wrong**: A start that is truly broken still fails, with its stderr, within 15 s.
+- **Where**: `packages/server/src/__tests__/main.test.ts`.
