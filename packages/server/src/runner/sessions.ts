@@ -1,21 +1,20 @@
 import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
 import { allowAll, allowDenial } from "./allow.ts";
-import type { Adapter, Outgoing } from "./adapter.ts";
+import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { TurnActivity, TurnKind, UsageLimit } from "./events.ts";
+import type { TurnActivity, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatTitle } from "./message.ts";
 import { transaction } from "./migrations.ts";
 import { Processes } from "./processes.ts";
-import { checkSend, messageItem, openingOf, type SendInput, sendPlace } from "./send-input.ts";
+import { checkSend, type SendInput } from "./send-input.ts";
+import { sendTo } from "./send.ts";
 import {
   type Live,
-  type Message,
   REFUSALS,
   commandCount,
   refused,
-  rowOf,
   type SessionChange,
   type SessionContext,
 } from "./session-state.ts";
@@ -38,9 +37,6 @@ export {
 const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
 
 const now = () => new Date().toISOString();
-
-/** The steps whose run starts a fresh agent session by default: the first after a spec's approval. */
-const FRESH_STEPS = new Set(["approval", "plan"]);
 
 /**
  * Sessions of turns with agents: at most one process and one turn per session, a feature's session
@@ -202,87 +198,9 @@ export class Sessions {
     const message = checkSend(input, this.adapter.capabilities);
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () => this.#send(live, message));
-  }
-
-  async #send(
-    live: Live,
-    { held, paths, text, workflow: sent }: ReturnType<typeof checkSend>,
-  ): Promise<{ turn: number }> {
-    const { adapter, binding, cache, changed, processes, turns } = this.#context;
-    const { asChat, branch, step } = await sendPlace(binding, live, sent);
-    const workflow = asChat === undefined ? sent : undefined;
-    this.#available();
-    const row = rowOf(cache, live);
-    if (row.folder === null && row.title === null) {
-      cache.updateSession(row.id, { title: chatTitle(text, paths.length > 0) });
-    }
-    if (row.archivedAt !== null) {
-      cache.updateSession(row.id, { archivedAt: null });
-    }
-    const id = randomUUID();
-    const origin = workflow ? "workflow" : "human";
-    // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
-    if (live.turn && !live.turn.stop && !sent && adapter.capabilities.steer) {
-      const item: Message = { ...messageItem(id, origin, text), ...held };
-      const seq = cache.appendItem(live.turn.id, item);
-      live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
-      changed(live, live.turn.id);
-      live.proc?.agent.send({ id, images: paths, text, when: "steer" });
-      return { turn: live.turn.id };
-    }
-
-    const kind: TurnKind = workflow ? "workflow" : "chat";
-    // The run after a spec's approval follows the setting unless the message says (the agents
-    // decision): a composer may send it before it read the setting.
-    const fresh =
-      workflow?.fresh ??
-      (step !== null && FRESH_STEPS.has(step) && (workflow?.freshByDefault ?? true));
-    const opening = workflow ? undefined : await openingOf(this.#context, live, branch);
-    const item: Message = {
-      ...messageItem(id, origin, text),
-      ...(opening === undefined ? {} : { opening }),
-      ...held,
-    };
-    const message: Outgoing = {
-      id,
-      images: paths,
-      text: opening === undefined ? text : text === "" ? opening : `${opening}\n${text}`,
-      when: "queue",
-    };
-    const turn = {
-      allowed: null,
-      kind,
-      step,
-      trigger: workflow?.trigger ?? null,
-    };
-
-    // A busy session queues the turn: Uraeda writes its message once the running turn ends.
-    if (live.turn || live.queue.length > 0) {
-      const queued = cache.addTurn({ sessionId: live.id, ...turn, state: "queued" });
-      turns.track(queued);
-      const seq = cache.appendItem(queued, item);
-      if (asChat !== undefined) {
-        cache.appendItem(queued, { kind: "system", text: asChat });
-      }
-      live.messages.set(id, { item, seq, turn: queued, written: false });
-      live.queue.push({
-        ...(fresh ? { fresh } : {}),
-        id: queued,
-        message,
-        // Checked again as it starts: the running turn may move its step on.
-        ...(workflow ? { workflow } : {}),
-      });
-      changed(live, queued, "queued");
-      return { turn: queued };
-    }
-
-    const { line } = await processes.open(live, { fresh });
-    const started = turns.begin(live, { ...turn, item, line, message });
-    if (asChat !== undefined) {
-      cache.appendItem(started, { kind: "system", text: asChat });
-    }
-    return { turn: started };
+    return this.#context.live.serial(live, () =>
+      sendTo(this.#context, live, message, () => this.#available()),
+    );
   }
 
   /**
