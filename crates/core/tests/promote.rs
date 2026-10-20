@@ -121,6 +121,52 @@ fn a_change_becomes_a_feature_in_place() {
     assert_eq!(repo.porcelain(), "");
 }
 
+/// The start put the change's folder on main: its move there takes the folder with the entry, in
+/// one commit, so the entry never links a missing folder.
+#[test]
+fn the_folder_on_main_moves_with_the_entry() {
+    let repo = started(Kind::Change);
+    let before = repo.subjects("main").len();
+
+    promote(&repo).unwrap();
+
+    assert_eq!(repo.subjects("main").len(), before + 1);
+    let tree = repo.git(&["ls-tree", "-r", "--name-only", "main", "specs"]);
+    assert!(
+        tree.contains(&format!("specs/{FOLDER}/proposal.md")),
+        "{tree}"
+    );
+    assert!(!tree.contains("specs/changes/"), "{tree}");
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            format!("specs/{FOLDER}/proposal.md"),
+            "specs/PRIORITIES.md".to_string(),
+            format!("specs/changes/{FOLDER}/proposal.md"),
+        ]
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Uncommitted edits to the change's folder on main would ride along in its move there: refused.
+#[test]
+fn uncommitted_changes_to_the_folder_on_main_are_refused() {
+    let repo = started(Kind::Change);
+    let proposal = format!("specs/changes/{FOLDER}/proposal.md");
+    repo.write(&proposal, "# Edited\n");
+
+    let refused = promote(&repo);
+
+    assert_eq!(
+        refused.err().map(|error| error.to_string()),
+        Some(format!(
+            "cannot move: main has uncommitted changes in {proposal}"
+        ))
+    );
+    assert_nothing_moved(&repo);
+    assert_eq!(repo.read(&proposal), "# Edited\n");
+}
+
 /// US4.3: what the change committed stays on the branch.
 #[test]
 fn the_changes_commits_stay_on_the_branch() {
@@ -263,7 +309,14 @@ fn uncommitted_changes_in_the_main_checkout_stay() {
 
     assert_eq!(repo.read("README.md"), "# Edited\n");
     assert_eq!(repo.porcelain().trim(), "M README.md");
-    assert_eq!(repo.changed_in("main"), ["specs/PRIORITIES.md".to_string()]);
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            format!("specs/{FOLDER}/proposal.md"),
+            "specs/PRIORITIES.md".to_string(),
+            format!("specs/changes/{FOLDER}/proposal.md"),
+        ]
+    );
 }
 
 #[test]
@@ -292,7 +345,10 @@ fn a_failed_commit_reports_what_is_done_and_left() {
     assert_eq!(
         done,
         [
-            "the entry in Now, relinked on main".to_string(),
+            format!(
+                "the entry in Now relinked, and specs/changes/{FOLDER} moved to specs/{FOLDER}, on \
+                 main"
+            ),
             format!("the branch renamed to {FOLDER}"),
             format!("the move of specs/changes/{FOLDER} to specs/{FOLDER}"),
         ]
@@ -319,6 +375,8 @@ fn a_refused_relink_renames_nothing() {
     };
     assert!(done.is_empty(), "{done:?}");
     assert_eq!(left.len(), 4, "{left:?}");
+    assert!(repo.exists(&format!("specs/changes/{FOLDER}/proposal.md")));
+    assert!(!repo.exists(&format!("specs/{FOLDER}")));
     assert_eq!(
         repo.git(&["branch", "--list", CHANGE_BRANCH]).trim(),
         "+ change/2026-10-20-priorities-sections"

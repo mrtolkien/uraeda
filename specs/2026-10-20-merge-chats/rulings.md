@@ -569,3 +569,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the test, in `crates/core/tests/promote.rs`, and the `StepName::Done` check of
   `promote::run`.
 - **Where**: the catch-up, `crates/core/tests/promote.rs`.
+
+## R34: The move takes the change's folder on the default branch with the entry
+
+- **Decision**: the in-place move's default-branch commit,
+  `chore(<slug>): start <name> as a feature`, moves `specs/changes/<folder>/` to `specs/<folder>/`
+  there with the **Now** relink, in one commit, when the default branch has the folder. Uncommitted
+  changes to that folder on the default branch refuse the move, before anything is written; a
+  refused commit moves the folder back. A move run again after its first commit, the feature's
+  folder and entry already on the default branch, checks only that the feature's branch name is
+  free. The done-list's first item names the folder's move. New core tests
+  `the_folder_on_main_moves_with_the_entry` and
+  `uncommitted_changes_to_the_folder_on_main_are_refused`;
+  `uncommitted_changes_in_the_main_checkout_stay` and
+  `a_failed_commit_reports_what_is_done_and_left` now expect the folder in the commit and in the
+  done-list, and `a_refused_relink_renames_nothing` checks the folder moved back. The skill's
+  by-hand move, in `change.md`, and `cli.md`'s refusals say the same.
+- **Rationale**: since the default branch's
+  `fix(start): commit the proposal on main with the start`, a start commits the change's folder on
+  the default branch with its entry. Relinking the entry alone would leave it linking a folder the
+  default branch does not have, the broken link that fix removed, and a change folder there whose
+  branch no longer exists, which reads as merged.
+- **Alternatives considered**: leaving the default branch's folder for the merge to move: the entry
+  links a missing folder until then.
+- **If wrong**: `check_on_default` and `Move::relink` in `crates/core/src/actions/promote.rs`.
+- **Where**: the catch-up, `crates/core/src/actions/promote.rs`, `crates/core/tests/promote.rs`,
+  `skills/uraeda/references/change.md`, `skills/uraeda/references/cli.md`.

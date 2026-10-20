@@ -1,7 +1,8 @@
 //! Making a change a feature, in place, as the skill's change section says: on the default branch,
-//! its **Now** entry links the feature's folder and is committed; then its branch loses its
-//! `change/` prefix, and on it, its folder moves from `specs/changes/` to `specs/`, and each
-//! decision it applied is proposed again, in a second commit. Its worktree and its commits stay,
+//! its **Now** entry links the feature's folder, and the folder the start put there moves from
+//! `specs/changes/` to `specs/`, in one commit; then its branch loses its `change/` prefix, and on
+//! it, its folder moves the same way, and each decision it applied is proposed again, in a second
+//! commit. Its worktree and its commits stay,
 //! and a pushed branch is renamed locally only.
 
 use std::fs;
@@ -26,7 +27,7 @@ pub struct Promoted {
     pub folder: String,
     /// The feature's branch, the folder's name.
     pub branch: String,
-    /// The commit relinking the **Now** entry, on the default branch.
+    /// The commit relinking the **Now** entry, and moving the folder there, on the default branch.
     pub default_subject: String,
     /// The commit moving the folder, on the branch.
     pub subject: String,
@@ -35,8 +36,8 @@ pub struct Promoted {
 }
 
 /// Makes the change in `folder` a feature, in place: refused, before anything is written, for a
-/// feature, a change done or with a pull request, uncommitted changes in its worktree, or a
-/// feature's name already taken.
+/// feature, a change done or with a pull request, uncommitted changes in its worktree or in its
+/// folder on the default branch, or a feature's name already taken.
 pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, StartError> {
     let refused = |message: String| StartError::Refused(message);
     let change = workspace
@@ -65,15 +66,27 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
     let place = place::reach(git, &default)?;
     let at = Git::open(&place.root)?;
     let hint = "rename or remove that branch or folder first";
-    check_free(&place.root, &at, workspace, folder, &[Kind::Feature], hint)?;
+    let on_default = check_on_default(&at, folder, &default)?;
     let (name, edited) = relinked(&place.root, change)?;
+    // A move run again after its first commit: the default branch holds the feature's folder and
+    // entry already, so only the branch's name must be free.
+    let resumed = edited.is_none()
+        && !on_default
+        && place.root.join(folder_path(Kind::Feature, folder)).exists();
+    let to = folder_branch(Kind::Feature, folder);
+    if !resumed {
+        check_free(&place.root, &at, workspace, folder, &[Kind::Feature], hint)?;
+    } else if at.branches()?.iter().any(|branch| branch.name == to) {
+        return Err(refused(format!("{folder} exists: {hint}")));
+    }
     let move_ = Move {
         git,
         folder,
         slug: &change.slug,
         from,
-        to: folder_branch(Kind::Feature, folder),
+        to,
         default: &default,
+        on_default,
     };
     move_.run(&at, &name, edited.as_deref())
 }
@@ -98,7 +111,31 @@ fn check_worktree(git: &Git, path: &Path, folder: &str) -> Result<(), StartError
     )))
 }
 
-/// A move under way: the change, and its branch's names before and after.
+/// Whether the change's folder is on the default branch, checked out at `at`, as a start puts it:
+/// refused while it has uncommitted changes there, which its move would carry.
+fn check_on_default(at: &Git, folder: &str, default: &str) -> Result<bool, StartError> {
+    let old = folder_path(Kind::Change, folder);
+    if !at.root().join(&old).exists() {
+        return Ok(false);
+    }
+    let inside = format!("{old}/");
+    let mut changed: Vec<String> = at
+        .changed_files()?
+        .into_iter()
+        .filter(|path| path.starts_with(&inside))
+        .collect();
+    changed.extend(at.untracked(&[old.as_str()])?);
+    if changed.is_empty() {
+        return Ok(true);
+    }
+    Err(StartError::Refused(format!(
+        "cannot move: {default} has uncommitted changes in {}",
+        changed.join(", ")
+    )))
+}
+
+/// A move under way: the change, its branch's names before and after, and whether its folder is
+/// on the default branch.
 struct Move<'a> {
     git: &'a Git,
     folder: &'a str,
@@ -106,6 +143,7 @@ struct Move<'a> {
     from: String,
     to: String,
     default: &'a str,
+    on_default: bool,
 }
 
 impl Move<'_> {
@@ -125,7 +163,7 @@ impl Move<'_> {
             "set each decision the change applied back to proposed, and commit them with both \
              folders as \"{subject}\""
         );
-        if let Some(edited) = edited {
+        if edited.is_some() || self.on_default {
             self.relink(
                 at,
                 edited,
@@ -133,7 +171,14 @@ impl Move<'_> {
                 [&rename_left, &move_left, &commit_left],
             )?;
         }
-        let mut done = vec![format!("the entry in Now, relinked on {}", self.default)];
+        let mut done = vec![if self.on_default {
+            format!(
+                "the entry in Now relinked, and {old} moved to {new}, on {}",
+                self.default
+            )
+        } else {
+            format!("the entry in Now, relinked on {}", self.default)
+        }];
         if let Err(error) = self.git.rename_branch(&self.from, &self.to) {
             return Err(partial(
                 &done,
@@ -171,25 +216,46 @@ impl Move<'_> {
         })
     }
 
-    /// Writes and commits the relinked priorities on the default branch: a refused commit leaves
-    /// every step.
+    /// Writes the relinked priorities, when they change, and moves the change's folder, when the
+    /// default branch has it, then commits them there: a refused commit moves the folder back, and
+    /// leaves every step.
     fn relink(
         &self,
         at: &Git,
-        edited: &str,
+        edited: Option<&str>,
         subject: &str,
         rest: [&String; 3],
     ) -> Result<(), StartError> {
-        fs::write(at.root().join(PRIORITIES), edited)?;
-        at.commit(&[PRIORITIES.to_string()], subject, None)
-            .map_err(|error| {
-                let mut left = vec![format!(
-                    "commit {PRIORITIES} on {} as \"{subject}\"",
-                    self.default
-                )];
-                left.extend(rest.into_iter().cloned());
-                partial(&[], left, error)
-            })
+        let root = at.root();
+        let (old, new) = (
+            folder_path(Kind::Change, self.folder),
+            folder_path(Kind::Feature, self.folder),
+        );
+        let mut paths = Vec::new();
+        if let Some(edited) = edited {
+            fs::write(root.join(PRIORITIES), edited)?;
+            paths.push(PRIORITIES.to_string());
+        }
+        if self.on_default {
+            fs::rename(root.join(&old), root.join(&new))?;
+            paths.extend([old.clone(), new.clone()]);
+        }
+        at.commit(&paths, subject, None).map_err(|error| {
+            if self.on_default {
+                let _ = fs::rename(root.join(&new), root.join(&old));
+            }
+            let what = match (edited.is_some(), self.on_default) {
+                (true, true) => format!("{PRIORITIES} with the move of {old} to {new}"),
+                (false, true) => format!("the move of {old} to {new}"),
+                _ => PRIORITIES.to_string(),
+            };
+            let mut left = vec![format!(
+                "commit {what} on {} as \"{subject}\"",
+                self.default
+            )];
+            left.extend(rest.into_iter().cloned());
+            partial(&[], left, error)
+        })
     }
 
     /// Sets each decision the branch changed, and that reads `active`, back to `proposed`, its

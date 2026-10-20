@@ -52,6 +52,7 @@ change and makes it a feature in place, as [Upgrading](change.md#upgrading) says
   rename or remove that branch or folder first.
 - With `--feature`, a draft, a feature, or a done change: it takes a started change. A change with a
   pull request, since its branch would be renamed: close it first. A change whose worktree has
-  uncommitted changes, or an untracked file in the change's folder or `specs/decisions/`.
+  uncommitted changes, or an untracked file in the change's folder or `specs/decisions/`, or
+  uncommitted changes in its folder on the default branch.
 - A worktree whose folder is taken by something else.
 - A review file that does not parse: it may hold the human's comments, and is never overwritten.
