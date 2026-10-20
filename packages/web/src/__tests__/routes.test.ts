@@ -45,13 +45,17 @@ test.each([
 
 /** US1 more 2, US3 more 2: links from before sessions open the same page at its new address. */
 test.each([
-  ["/chats/abc", "/sessions/abc", ""],
-  ["/chats/new", "/new", ""],
-  ["/changes/new", "/new", "?kind=change"],
-])("old addresses redirect: %s lands on %s%s", async (old, path, search) => {
+  ["/chats/abc", "/sessions/abc", "", ""],
+  ["/chats/new", "/new", "", ""],
+  ["/changes/new", "/new", "?kind=change", ""],
+  // Their query and their hash come along, the target's query first.
+  ["/chats/abc?from=mail#turn-x", "/sessions/abc", "?from=mail", "#turn-x"],
+  ["/changes/new?from=mail#top", "/new", "?kind=change&from=mail", "#top"],
+])("old addresses redirect: %s lands on %s%s%s", async (old, path, search, hash) => {
   await renderPage(old);
   await waitFor(() => expect(window.location.pathname).toBe(atRepo(path)));
   expect(window.location.search).toBe(search);
+  expect(window.location.hash).toBe(hash);
 });
 
 test("a new session's first message opens /sessions/<id>", async () => {
