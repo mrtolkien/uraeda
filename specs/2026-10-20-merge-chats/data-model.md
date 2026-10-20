@@ -8,14 +8,15 @@ plan's.
 A row of the server's session cache, `runner.sqlite` in Uraeda's data folder. Sessions stay a cache,
 never workflow state ([agents decision](../decisions/agents.md)).
 
-| Field         | Type          | Meaning                                                                | Change                                                          |
-| ------------- | ------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `folder`      | text, or null | The change's or feature's dated folder; null for a session without one | Changed: set once, from null, when the session becomes a change |
-| `native_id`   | text          | The agent's own session id, which `--resume` reopens                   | Changed: replaced when the human asks for a new session         |
-| `title`       | text          | Its name, from its first message                                       |                                                                 |
-| `archived_at` | time, or null | When the human archived it; an archived session counts as done         | Changed: also read for the sidebar's Done area                  |
+| Field         | Type          | Meaning                                                                | Change                                                                           |
+| ------------- | ------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `folder`      | text, or null | The change's or feature's dated folder; null for a session without one | Changed: several sessions may share one; set once, from null, on a move up       |
+| `native_id`   | text          | The agent's own session id, which `--resume` reopens                   | Changed: no longer replaced for a fresh step, which starts a new session instead |
+| `title`       | text          | Its name, from its first message, or the one you gave it               | Changed: renamable for every session                                             |
+| `seen_at`     | time, or null | When you last read its page                                            | Changed: a session is done once it is later than its last message                |
+| `archived_at` | time, or null | When you archived it                                                   |                                                                                  |
 
-A change's folder name does not change when it becomes a feature, so its session's `folder` stays.
+A change's folder name does not change when it becomes a feature, so its sessions' `folder` stays.
 
 ## Offer block
 
@@ -36,3 +37,13 @@ reader reads as text.
 | Worktree          | `.worktrees/YYYY-MM-DD-<slug>/`             | the same                            |         |
 | **Now** entry     | links `/specs/changes/<folder>/proposal.md` | links `/specs/<folder>/proposal.md` | Changed |
 | Decisions applied | `active`, approved for the change           | `proposed`, for the feature's spec  | Changed |
+
+## Item settings
+
+Per repository, in Uraeda's data folder, the name and colour given to a change's or a feature's
+card.
+
+| Field   | Type          | Meaning                        | Change                                                |
+| ------- | ------------- | ------------------------------ | ----------------------------------------------------- |
+| `label` | text, or null | The card's name                |                                                       |
+| `color` | text, or null | The stripe at the card's start | Removed: ignored once read, dropped at the next write |
