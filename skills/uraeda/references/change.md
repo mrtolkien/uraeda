@@ -209,8 +209,9 @@ When one item of a batch needs it, offer to split that item out instead.
 
 - **On yes, or "A"**: with `ura`, `ura start <change> --feature` makes the move. By hand:
   1. Check first, and stop if one fails, saying why. The change has no pull request: close it first,
-     since its branch would be renamed. Its worktree has no uncommitted changes. No branch or folder
-     named `YYYY-MM-DD-<slug>` exists.
+     since its branch would be renamed. Its worktree has no uncommitted changes, and no untracked
+     file in the change's folder or `specs/decisions/`. No branch or folder named
+     `YYYY-MM-DD-<slug>` exists.
   2. On the default branch, relink the change's **Now** entry, in place, to
      `/specs/YYYY-MM-DD-<slug>/proposal.md`. Commit `chore(<slug>): start <name> as a feature`.
   3. Rename the branch: `git branch -m change/YYYY-MM-DD-<slug> YYYY-MM-DD-<slug>`. The worktree
