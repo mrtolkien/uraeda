@@ -371,6 +371,29 @@ test("Make it a change while the agent's card shows focuses that card, without a
   );
 });
 
+/** Review: the agent's card, offered after the human opened one from the "…", replaces it. */
+test("the agent's offer after Make it a change shows one card, the agent's", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo, ["The guard and the router both redirect."]);
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+  await pick("Make it a change");
+  await card();
+
+  fake.adapter.script([{ text: offer(), type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, id, { text: "Make it a change, then." });
+  await fake.sessions.settled(turn);
+
+  await refreshUntil(() =>
+    expect(
+      screen
+        .getAllByRole("textbox", { name: "Proposal" })
+        .some((field) => (field as HTMLTextAreaElement).value === PROPOSAL),
+    ).toBe(true),
+  );
+  expect(screen.getAllByRole("region", { name: "Start a change" })).toHaveLength(1);
+});
+
 /** Accessibility: the card the "…" opens takes the focus, and gives it back once closed. */
 test("the card the … opens takes the focus, and Not now gives it back to the …", async () => {
   const repo = fixtureRepo();
