@@ -417,8 +417,8 @@ export async function readWorkflowMessage(
 }
 
 /**
- * A feature's record: its view, with its sessions' IDs, latest first, their tokens, and whether it
- * has a preview.
+ * A feature's record: its view, with its sessions' IDs, latest first and not archived, their
+ * tokens, and whether it has a preview.
  */
 export async function featureRecord(
   ctx: RepoContext,
@@ -437,7 +437,8 @@ export async function featureRecord(
     ...itemLooks(ctx)(feature.folder),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: sessions[0]?.id ?? null,
-    sessions: sessions.map((row) => row.id),
+    // An archived session, of a dropped change, leaves the lists.
+    sessions: sessions.filter((row) => row.archivedAt === null).map((row) => row.id),
     step: sentStep(feature.step),
     tokens: featureTokens(turns),
   };

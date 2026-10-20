@@ -1393,6 +1393,18 @@ test("a feature lists its sessions, latest first", async () => {
   expect(feature).toEqual({ id: AGENT, session: latest.id, sessions: [latest.id, older.id] });
 });
 
+/** An archived session leaves the lists (the spec's Assumptions): the feature's among them. */
+test("a feature lists no archived session", async () => {
+  const server = await testServer();
+  const older = await folderSession(server, AGENT);
+  const archived = await folderSession(server, AGENT);
+  server.sessions.cache.updateSession(archived.id, { archivedAt: new Date().toISOString() });
+
+  const [feature] = await byId(server.app, "Feature", [AGENT], ["id", "sessions"]);
+
+  expect(feature).toEqual({ id: AGENT, sessions: [older.id] });
+});
+
 test("a feature's tokens count every session", async () => {
   const server = await testServer();
   const counts = { cacheRead: 100, cacheWrite: 20, input: 3, output: 40 };
