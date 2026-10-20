@@ -230,13 +230,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R17: The seed completes `.sandbox/` in place, and its stamp, written last, marks it whole
 
-- **Decision**: `seed` builds the projects, the empty data and config folders, and a `building` file
-  naming its process in `.sandbox-build-<pid>-*`, renames it to `.sandbox/`, then repairs the
-  worktrees, lists the projects with the binding's `addRepository`, seeds the sessions, and writes
-  the stamp last, removing `building`. A `.sandbox/` without a stamp is waited for while its builder
-  runs, and built again once it is gone; a failure removes what the seed built; folders of seeds
-  whose process is gone are removed at the next seed. A seed whose rename finds another seed's
-  `.sandbox/` in place uses that one. `seed` is async: the list and the sessions are.
+- **Decision**: `seed` builds the projects and the empty data and config folders in
+  `.sandbox-build-<pid>-*`, renames it to `.sandbox/`, then repairs the worktrees, lists the
+  projects with the binding's `addRepository`, seeds the sessions, and writes the stamp last. A
+  `.sandbox/` without a stamp is built again; a failure removes what the seed built; folders of
+  seeds whose process is gone are removed at the next seed. Two seeds at once wait for each other
+  (R22). `seed` is async: the list and the sessions are.
 - **Rationale**: the list and the sessions record each project's absolute path, which must be the
   final one: the sessions are keyed by it, and only the session manager writes them (R2). A rename
   of the whole state therefore cannot be its last step; the stamp's rename is. The builders' version
@@ -246,8 +245,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   modules are the app it serves.
 - **Alternatives considered**: everything built in the temporary folder: its paths in the list and
   the sessions would point at a folder gone after the rename. `.sandbox` as a symbolic link to a
-  folder built in place: no rename of the projects, but a second layout to explain. A lock file: the
-  `building` file already names the process to wait for.
+  folder built in place: no rename of the projects, but a second layout to explain.
 - **If wrong**: `build` in `sandbox/seed.ts` alone changes.
 - **Where**: task 8.
 
@@ -313,3 +311,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for sure. A close button of its own: one more control on a bar meant to stay small.
 - **If wrong**: `SandboxBar` drops `shown`, and the marker is a badge again.
 - **Where**: task 6, at the final review.
+
+## R22: Seeds hold a lock, so two at once run one after the other
+
+- **Decision**: `seed` holds `.sandbox.lock`, beside `.sandbox/`, from reading the stamp to
+  returning. The lock names its process: written in full to `.sandbox-lock-<pid>-<uuid>`, then
+  hard-linked into place, which fails while another seed holds it, in this process or another. A
+  waiting seed tries again every 100 ms, and removes a lock whose process is gone. Once it holds the
+  lock, it reads `.sandbox/` again: a seed without `--reset` uses the one just built, and a second
+  reset rebuilds it once more, as asked. The lock is removed when the seed ends, failed or not. It
+  replaces R17's `building` file and the seed's wait on it, and the rename that gave way to another
+  seed's folder.
+- **Rationale**: without it, a second reset moved aside and removed the first one's folder while
+  that one was still listing the projects and seeding the sessions: the first then completed the
+  second's folder, or failed and removed it, though the second had returned it. Only one seed at a
+  time can decide to replace `.sandbox/`, so none moves or removes a folder it does not own. A
+  second reset rebuilding is the simpler rule, and keeps "reset" meaning a fresh build.
+- **Alternatives considered**: checking ownership before replacing and before cleaning up: still a
+  window between the check and the rename. A second reset reusing the first one's build: one rule
+  more, for a case no one runs on purpose. `open` with `O_EXCL`, then writing the pid: a reader can
+  find it empty, and a seed killed between the two leaves a lock no one removes.
+- **If wrong**: two seeds that both find the same dead process's lock can both remove it, the second
+  removing the first one's new lock; it takes a seed killed midway and then two starts within the
+  same 100 ms. `locked` in `sandbox/seed.ts` alone changes.
+- **Where**: task 8, at the final review.

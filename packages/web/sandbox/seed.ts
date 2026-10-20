@@ -3,14 +3,15 @@
 // stamps, and resets it; everything else reads the paths it returns. Nothing here computes the
 // human's own data or config folder.
 //
-// A build writes into a temporary folder beside it, renamed into place, then repairs the
-// projects' worktrees, lists the projects, and seeds the sessions, whose paths must be the final
-// ones. Its stamp, the builders' version, is written last: a `.sandbox/` without one is still being
-// built by the process its `building` file names, or was left by a seed killed midway, and is
-// built again.
-import { createHash } from "node:crypto";
+// A seed holds `.sandbox.lock`, beside it, from what it finds to what it returns: two seeds at
+// once, in one process or two, run one after the other. A build writes into a temporary folder
+// beside it, renamed into place, then repairs the projects' worktrees, lists the projects, and
+// seeds the sessions, whose paths must be the final ones. Its stamp, the builders' version, is
+// written last: a `.sandbox/` without one was left by a seed killed midway, and is built again.
+import { createHash, randomUUID } from "node:crypto";
 import {
   existsSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -18,6 +19,7 @@ import {
   renameSync,
   rmSync,
   statSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join, relative } from "node:path";
@@ -50,8 +52,14 @@ const BUILDERS: Builders = { projects: buildProjects, sessions: seedSessions };
 /** The sandbox's folder, at the checkout's root. */
 const FOLDER = ".sandbox";
 
-/** A folder a seed builds in, or moves an old `.sandbox/` aside to, named after its process. */
-const SCRATCH = /^\.sandbox-(?:build|old)-(\d+)-/;
+/** The lock a seed holds, naming its process. */
+const LOCK = ".sandbox.lock";
+
+/**
+ * A folder a seed builds in, or moves an old `.sandbox/` aside to, or the lock it writes before
+ * linking it into place, named after its process.
+ */
+const SCRATCH = /^\.sandbox-(?:build|old|lock)-(\d+)-/;
 
 /** The checkout this module is in, whose builders the stamp reads. */
 const checkout = join(import.meta.dirname, "../../..");
@@ -142,27 +150,39 @@ function removeLeftovers(root: string) {
   }
 }
 
-/** What a seed finds at `.sandbox/`: a whole one and its stamp, none, or one left unfinished. */
-type Found = { stamp: string } | "none" | "unfinished";
-
 /**
- * What is at `.sandbox/`, once another seed, still running, has completed it: a `.sandbox/` without
- * its stamp whose builder is gone was left by a seed killed midway.
+ * Runs `work` holding `root`'s lock, once no other seed holds it, in this process or another. The
+ * lock names its process, written in full before it is linked into place, which fails while another
+ * is there. One whose process is gone was left by a seed killed midway, and is removed.
  */
-async function found(folder: string): Promise<Found> {
-  for (;;) {
-    const stamp = readIfAny(join(folder, "stamp"));
-    if (stamp !== undefined) {
-      return { stamp };
+async function locked<T>(root: string, work: () => Promise<T>): Promise<T> {
+  const lock = join(root, LOCK);
+  const written = join(root, `${FOLDER}-lock-${process.pid}-${randomUUID()}`);
+  writeFileSync(written, String(process.pid));
+  try {
+    for (;;) {
+      try {
+        linkSync(written, lock);
+        break;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+          throw error;
+        }
+      }
+      const holder = Number(readIfAny(lock));
+      if (holder && !running(holder)) {
+        rmSync(lock, { force: true });
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
     }
-    if (!existsSync(folder)) {
-      return "none";
-    }
-    const builder = Number(readIfAny(join(folder, "building")));
-    if (!builder || !running(builder)) {
-      return "unfinished";
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  } finally {
+    unlinkSync(written);
+  }
+  try {
+    return await work();
+  } finally {
+    unlinkSync(lock);
   }
 }
 
@@ -183,15 +203,14 @@ function repairWorktrees(project: string, from: string, to: string) {
 }
 
 /**
- * Builds `.sandbox/` anew, replacing the one there when `replace` says so: in a temporary folder
- * beside it, renamed into place, then completed there. A failure removes what it built. When another seed renamed its own into
- * place first, this one uses that, once complete.
+ * Builds `.sandbox/` anew, replacing the one there: in a temporary folder beside it, renamed into
+ * place, then completed there. A failure removes what it built. It runs holding the lock, so no
+ * other seed moves or removes either folder meanwhile.
  */
-async function build(root: string, version: string, builders: Builders, replace: boolean) {
+async function build(root: string, version: string, builders: Builders) {
   const folder = join(root, FOLDER);
   const temporary = mkdtempSync(join(root, `${FOLDER}-build-${process.pid}-`));
   try {
-    writeFileSync(join(temporary, "building"), String(process.pid));
     const built = paths(temporary);
     builders.projects(join(temporary, "projects"));
     mkdirSync(built.dataDir);
@@ -200,28 +219,17 @@ async function build(root: string, version: string, builders: Builders, replace:
     rmSync(temporary, { force: true, recursive: true });
     throw error;
   }
-  // The folder replaced goes aside first: a rename never replaces a folder that holds files. Any
-  // other is another seed's, renamed into place meanwhile.
-  let old: string | undefined;
-  if (replace && existsSync(folder)) {
-    old = mkdtempSync(join(root, `${FOLDER}-old-${process.pid}-`));
+  // The folder replaced goes aside first: a rename never replaces a folder that holds files.
+  if (existsSync(folder)) {
+    const old = mkdtempSync(join(root, `${FOLDER}-old-${process.pid}-`));
     renameSync(folder, join(old, FOLDER));
+    rmSync(old, { force: true, recursive: true });
   }
   try {
     renameSync(temporary, folder);
-  } catch {
-    // Another seed's folder is in place: it is the sandbox.
+  } catch (error) {
     rmSync(temporary, { force: true, recursive: true });
-    if (old !== undefined) {
-      rmSync(old, { force: true, recursive: true });
-    }
-    if (typeof (await found(folder)) === "string") {
-      throw new Error(`Another seed left ${folder} unfinished: run the sandbox again.`);
-    }
-    return;
-  }
-  if (old !== undefined) {
-    rmSync(old, { force: true, recursive: true });
+    throw error;
   }
   try {
     const { dataDir, projects } = paths(folder);
@@ -235,7 +243,6 @@ async function build(root: string, version: string, builders: Builders, replace:
     await builders.sessions(dataDir, projects.sample);
     writeFileSync(join(folder, "stamp.new"), version);
     renameSync(join(folder, "stamp.new"), join(folder, "stamp"));
-    rmSync(join(folder, "building"));
   } catch (error) {
     rmSync(folder, { force: true, recursive: true });
     throw error;
@@ -244,23 +251,25 @@ async function build(root: string, version: string, builders: Builders, replace:
 
 /**
  * The sandbox at `root`'s `.sandbox/`: kept as it is, with `stale` when older builders built it,
- * or built when there is none, a seed left it unfinished, or `reset` asks for it.
+ * or built when there is none, a seed left it unfinished, or `reset` asks for it. A seed waits for
+ * the one holding the lock, then reads what it left: a second reset rebuilds it once more.
  */
-export async function seed(
+export function seed(
   root: string,
   { reset }: { reset: boolean },
   builders: Builders = BUILDERS,
 ): Promise<Sandbox> {
-  const folder = join(root, FOLDER);
-  removeLeftovers(root);
-  const version = buildersVersion();
-  const at = await found(folder);
-  if (typeof at === "object" && !reset) {
-    return { ...paths(folder), stale: at.stamp !== version };
-  }
-  // Decided from what was found: a folder another seed renames into place meanwhile is kept.
-  await build(root, version, builders, at !== "none");
-  return { ...paths(folder), stale: false };
+  return locked(root, async () => {
+    const folder = join(root, FOLDER);
+    removeLeftovers(root);
+    const version = buildersVersion();
+    const stamp = readIfAny(join(folder, "stamp"));
+    if (stamp !== undefined && !reset) {
+      return { ...paths(folder), stale: stamp !== version };
+    }
+    await build(root, version, builders);
+    return { ...paths(folder), stale: false };
+  });
 }
 
 /**

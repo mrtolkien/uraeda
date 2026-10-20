@@ -1,7 +1,7 @@
 // @vitest-environment node
 // The sandbox's state: `.sandbox/` built once, kept across starts until a reset, never half built,
 // and the only folders a run writes: the human's own data and config folders stay as they were.
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
@@ -48,11 +48,15 @@ const leftovers = (root: string) =>
 
 /**
  * Builders as quick as can be, for the seed's own steps: three empty repositories, and no session.
- * `fail` throws in the step it names, after that step wrote part of its work.
+ * `fail` throws in the step it names, after that step wrote part of its work. The sessions throw
+ * when the projects beside them are another build's: a seed completing a folder it did not build.
  */
 function quickBuilders(fail?: "projects" | "sessions"): Builders {
+  const own = randomUUID();
   return {
     projects: (dir) => {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "built-by"), own);
       const paths = {
         broken: join(dir, "broken"),
         empty: join(dir, "empty"),
@@ -68,6 +72,9 @@ function quickBuilders(fail?: "projects" | "sessions"): Builders {
       return paths;
     },
     sessions: async (dataDir) => {
+      if (readFileSync(join(dataDir, "..", "projects", "built-by"), "utf8") !== own) {
+        throw new Error("seeding the sessions of another build's projects");
+      }
       writeFileSync(join(dataDir, "runner.sqlite"), "");
       if (fail === "sessions") {
         throw new Error("interrupted while seeding the sessions");
@@ -173,10 +180,11 @@ test("a seed interrupted midway leaves no half-built .sandbox", async () => {
 
 test("a .sandbox a killed seed left is built again, not trusted", async () => {
   const at = temporaryFolder("sandbox-killed");
-  // A seed killed after renaming its folder into place, before its stamp: its process is gone.
+  // A seed killed after renaming its folder into place, before its stamp: its process is gone, and
+  // its lock is left.
   const killed = Number(execFileSync("sh", ["-c", "echo $$"], { encoding: "utf8" }));
   mkdirSync(join(at, ".sandbox", "projects"), { recursive: true });
-  writeFileSync(join(at, ".sandbox", "building"), String(killed));
+  writeFileSync(join(at, ".sandbox.lock"), String(killed));
   // And the temporary folder of another killed seed.
   mkdirSync(join(at, `.sandbox-build-${killed}-abc123`, "projects"), { recursive: true });
 
@@ -184,7 +192,7 @@ test("a .sandbox a killed seed left is built again, not trusted", async () => {
 
   expect(sandbox.stale).toBe(false);
   expect(git(sandbox.projects.sample, "log", "--format=%s")).toBe("chore: start\n");
-  expect(existsSync(join(at, ".sandbox", "building"))).toBe(false);
+  expect(existsSync(join(at, ".sandbox", "stamp"))).toBe(true);
   expect(leftovers(at)).toEqual([]);
 });
 
@@ -200,6 +208,34 @@ test("two seeds at once build one .sandbox, which both use", async () => {
   expect(existsSync(join(at, ".sandbox", "stamp"))).toBe(true);
   expect(leftovers(at)).toEqual([]);
   expect((await readRepositories(first.dataDir)).length).toBe(3);
+});
+
+test("two resets at once each rebuild .sandbox in turn, and it ends whole", async () => {
+  const at = temporaryFolder("sandbox-reset-twice");
+  const before = await seed(at, { reset: false }, quickBuilders());
+
+  const [first, second] = await Promise.all([
+    seed(at, { reset: true }, quickBuilders()),
+    seed(at, { reset: true }, quickBuilders()),
+  ]);
+
+  expect(first).toEqual(before);
+  expect(second).toEqual(before);
+  expect(existsSync(join(at, ".sandbox", "stamp"))).toBe(true);
+  expect(existsSync(join(first.dataDir, "runner.sqlite"))).toBe(true);
+  expect((await readRepositories(first.dataDir)).length).toBe(3);
+  expect(leftovers(at)).toEqual([]);
+});
+
+test("a lock a killed seed left is taken over", async () => {
+  const at = temporaryFolder("sandbox-lock-killed");
+  const killed = Number(execFileSync("sh", ["-c", "echo $$"], { encoding: "utf8" }));
+  writeFileSync(join(at, ".sandbox.lock"), String(killed));
+
+  const sandbox = await seed(at, { reset: false }, quickBuilders());
+
+  expect((await readRepositories(sandbox.dataDir)).length).toBe(3);
+  expect(leftovers(at)).toEqual([]);
 });
 
 test("a .sandbox deleted by hand is built again at the next start", async () => {

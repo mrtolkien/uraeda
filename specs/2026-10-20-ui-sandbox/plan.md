@@ -908,10 +908,11 @@ git commit -m "feat(ui-sandbox): sample sessions on the sandbox's fake agent"
 - Produces:
   `seed(root: string, { reset }: { reset: boolean }): Promise<{ configDir; dataDir; projects; stale: boolean }>`,
   building `.sandbox/` into a temporary folder renamed into place, completed there, and stamped last
-  with the builders' version (R17), a hash of `SOURCES`: every module the builders import that the
-  sandbox's server does not, which `builders-version.test.ts` checks;
-  `sandboxEnv(sandbox, environment)`; `sandboxConfig({ checkout, port })`; `devHandler`'s
-  `started?: (server: Server) => void`; `dev.ts [--config <file>]`, through `viteArgs(args)`.
+  with the builders' version (R17), holding `.sandbox.lock` so two seeds at once run in turn (R22),
+  a hash of `SOURCES`: every module the builders import that the sandbox's server does not, which
+  `builders-version.test.ts` checks; `sandboxEnv(sandbox, environment)`;
+  `sandboxConfig({ checkout, port })`; `devHandler`'s `started?: (server: Server) => void`;
+  `dev.ts [--config <file>]`, through `viteArgs(args)`.
 
 - [x] **Step 1: Write the failing tests**
 
@@ -934,6 +935,8 @@ test("the sample's worktrees work at their place after the rename", () => {
 });
 test("a .sandbox a killed seed left is built again, not trusted", () => {});
 test("two seeds at once build one .sandbox, which both use", () => {}); // review focus 2
+test("two resets at once each rebuild .sandbox in turn, and it ends whole", () => {}); // R22
+test("a lock a killed seed left is taken over", () => {}); // R22
 test("a .sandbox deleted by hand is built again at the next start", () => {});
 
 // sandbox.test.ts
@@ -964,6 +967,8 @@ The break each test catches:
 - Worktrees: links left pointing at the temporary folder the build was renamed from.
 - Killed, two at once, deleted: a stampless folder trusted, a seed's folder moved aside by another,
   or a missing folder never rebuilt.
+- Two resets, killed lock: seeds run without the lock, one completing the other's folder, or a dead
+  process's lock waited for forever.
 - Serves Home: sign-in left on, or the real list shown.
 - Restart: state in a temporary folder.
 - Build: the sandbox's plugin or bar reaching `dist/`.
