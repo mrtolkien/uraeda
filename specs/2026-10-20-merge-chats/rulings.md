@@ -694,3 +694,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `promote` in `crates/cli/src/start.rs`, `promote_change` in
   `crates/core/src/api/start.rs`.
 - **Where**: the final review's fixes.
+
+## R40: A session becomes a change only while its agent is available
+
+- **Decision**: "Start the change", from a session without a workflow, is refused while the agent is
+  not available on this machine, "Claude Code is not available on this machine.", before the change
+  starts, as a run sent to a folder is. New server test "toChange waits for the agent".
+- **Rationale**: the final review found that without the agent the session moved and its first run
+  was not sent, so the line telling the agent where it works now, and which files to carry over, was
+  lost: its next message opened in the worktree without it.
+- **Alternatives considered**: keeping the line for the session's next message: it needs a new
+  column, and the message the human sends later would carry a move it did not see.
+- **If wrong**: the line is still lost when the run is refused after the move, as when another
+  session of the change works: the server logs it. `toChange` in
+  `packages/server/src/fate/session-moves.ts`.
+- **Where**: the final review's fixes.
