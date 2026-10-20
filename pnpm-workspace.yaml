@@ -27,3 +27,5 @@ allowBuilds:
   "@astryxdesign/core": false
   # Storybook's: its postinstall only checks the binary its platform package already installs.
   esbuild: false
+  # code-inspector's optional terminal, which the sandbox's source locations never start.
+  node-pty: false

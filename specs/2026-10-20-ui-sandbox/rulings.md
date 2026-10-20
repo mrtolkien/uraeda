@@ -52,3 +52,45 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: fix testing's later commits conflict with this branch's; its branch is merged in
   again before the final review, and the conflicts resolved there.
 - **Where**: before task 1.
+
+## R6: Source locations from code-inspector's core transform, in a plugin of our own
+
+- **Decision**: `sourceLocations()` is a small Vite plugin of ours that calls `transformCode` from
+  `@code-inspector/core`, pinned at 2.0.9, instead of code-inspector's Vite plugin,
+  `code-inspector-plugin`.
+- **Rationale**: the Vite plugin always injects its client, about 595 KB holding its overlay and its
+  chat, into the first module it transforms: `skipSnippets`, `hotKeys: false`, and `server: "close"`
+  only blank its settings. The spec's "without its own overlay or server" holds only without the
+  wrapper. The wrapper also writes a record file into its own `dist/` in `node_modules`
+  (`resetFileRecord`); the core's transform does not. Relative paths come from
+  `git rev-parse --show-toplevel`, run when the core is imported: the root of the checkout the
+  sandbox runs in. The core's optional `node-pty`, for its terminal, is never used: its build script
+  is refused with `node-pty: false` in `pnpm-workspace.yaml`'s `allowBuilds`.
+- **Alternatives considered**: the Vite plugin with its client in the sandbox's page, against the
+  spec; stripping the client from its output, which depends on its internals; no source locations,
+  which drops the pick's "Source" line.
+- **If wrong**: a newer code-inspector plugin that can leave its client out replaces the module's
+  body, in `packages/web/sandbox/sourceLocations.ts` alone.
+- **Where**: task 1.
+
+## R7: The source locations' plugin goes before the UI's transforms
+
+- **Decision**: the sandbox's config lists `sourceLocations()` first, before `uiTransforms()`.
+- **Rationale**: both run as `pre` plugins, in their listed order; after StyleX, which adds lines to
+  a file, every location is off (`SandboxBar.tsx:180:10` in a file of 90 lines). First, it marks the
+  file as written, and the compiler and StyleX still compile it.
+- **Alternatives considered**: after the transforms, as the plan first wrote: wrong lines.
+- **If wrong**: the source-locations test's exact line and column fail.
+- **Where**: tasks 1 and 8.
+
+## R8: The browser tests run the pick script with the test's window as its parent
+
+- **Decision**: `pickScriptOnPage()` runs `uraeda-pick.js` with `globalThis` a proxy of the test's
+  window, whose `parent` is that window, methods bound to it.
+- **Rationale**: Vitest runs each test in a frame of its own page, so the test's `window.parent` is
+  Vitest's: the script posted its picks there and ignored the test's messages. The proxy makes the
+  test's window what the sandbox's page is, the top, without changing the script.
+- **Alternatives considered**: a parameter of the script for its parent: a test-only change to a
+  file every Storybook loads.
+- **If wrong**: a test of the sandbox's own page, at the top, replaces the helper, in task 6.
+- **Where**: tasks 1, 4, and 6.

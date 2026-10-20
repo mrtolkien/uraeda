@@ -27,8 +27,9 @@ See the [spec's architecture](spec.md#architecture).
 - **Picking** reuses the skill's pick script, `uraeda-pick.js`, loaded at the top of the sandbox's
   page, where its parent is the page itself. The script stays the one home of which element a click
   means, and of its role and name. The bar owns the pick's text and the clipboard.
-- **Source locations** come from code-inspector's Vite plugin, added only by the sandbox's Vite
-  config, with its overlay, hotkeys, and server off.
+- **Source locations** come from code-inspector's core transform, `@code-inspector/core`'s
+  `transformCode`, in a Vite plugin of our own that only the sandbox's Vite config adds, first,
+  before the UI's transforms: code-inspector's own Vite plugin always injects its client (R6, R7).
 - **Restarts** reuse `vp run dev`'s script, `packages/server/scripts/dev.ts`, given the sandbox's
   Vite config. One restart logic serves both.
 
@@ -262,37 +263,50 @@ The picker's tests are browser tests, on the real pick script.
 **Files:**
 
 - Create: `packages/web/sandbox/sourceLocations.ts`
-- Modify: `packages/web/package.json` (add `code-inspector-plugin`, pinned exactly, in
-  `devDependencies`), `packages/web/tsconfig.json` (include `sandbox` and `samples`),
+- Modify: `packages/web/package.json` (add `@code-inspector/core`, pinned exactly, in
+  `devDependencies`), `pnpm-workspace.yaml` (`node-pty: false` in `allowBuilds`),
+  `packages/web/tsconfig.json` (include `sandbox` and `samples`),
   `packages/web/src/__browser__/helpers.tsx` (`pickScriptOnPage`)
 - Test: `packages/web/sandbox/__tests__/source-locations.test.ts`,
   `packages/web/src/__browser__/sandbox-pick.test.tsx`
 
 **Interfaces:**
 
-- Produces: `sourceLocations(): Plugin`, code-inspector's Vite plugin with its overlay, hotkeys,
-  console snippets, and server off, and paths relative to the repository's root.
+- Produces: `sourceLocations(): Plugin`, a Vite plugin of our own calling code-inspector's core
+  transform, `transformCode` from `@code-inspector/core`, on the UI's `.jsx` and `.tsx` files:
+  `apply: "serve"`, `enforce: "pre"`, paths relative to the repository's root, and no client,
+  overlay, hotkeys, console snippet, or server (R6). It goes first, before `uiTransforms()` (R7).
 - Produces, for the browser tests of tasks 4 and 6:
-  `pickScriptOnPage(): Promise<{ next(): Promise<PickedMessage>; start(): void; taken(): Array<PickedMessage> }>`.
+  `pickScriptOnPage(): Promise<{ next(): Promise<PickedMessage>; start(): void; taken(): Array<PickedMessage> }>`,
+  and `PickedMessage`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/sandbox/__tests__/source-locations.test.ts
 test("a component keeps the compiler's and StyleX's output, and gains its source", async () => {
-  const server = await transformServer([...uiTransforms(), sourceLocations()]);
+  const served = await transformServer([sourceLocations(), ...uiTransforms()]);
 
-  const code = await transformed(server, "/src/sandbox/SandboxBar.tsx");
+  const code = await transformed(served, "/src/sandbox/SandboxBar.tsx");
 
-  expect(code).toContain('data-insp-path": "packages/web/src/sandbox/SandboxBar.tsx:');
-  expect(code).toContain("react/compiler-runtime");
+  // The bar's badge, at its line and column in the file as written.
+  expect(code).toContain('"data-insp-path": "packages/web/src/sandbox/SandboxBar.tsx:74:7:Badge"');
+  expect(code).toMatch(/react[/_]compiler-runtime/);
   expect(code).not.toContain("stylex.create(");
 });
 
-test("without the plugin, no source attribute is added", async () => {
-  const server = await transformServer(uiTransforms());
+test("no code-inspector client reaches the page", async () => {
+  const served = await transformServer([sourceLocations(), ...uiTransforms()]);
 
-  expect(await transformed(server, "/src/sandbox/SandboxBar.tsx")).not.toContain("data-insp-path");
+  expect(await transformed(served, "/src/sandbox/SandboxBar.tsx")).not.toContain(
+    "code-inspector-component",
+  );
+});
+
+test("without the plugin, no source attribute is added", async () => {
+  const served = await transformServer(uiTransforms());
+
+  expect(await transformed(served, "/src/sandbox/SandboxBar.tsx")).not.toContain("data-insp-path");
 });
 ```
 
@@ -301,9 +315,11 @@ test("without the plugin, no source attribute is added", async () => {
 test("the pick script, at the top of a page, picks a button inside an open dialog", async () => {
   const picks = await pickScriptOnPage();
   render(
-    <Overlay isOpen label="Rename" onClose={() => {}}>
-      <Button label="Save" />
-    </Overlay>,
+    <Theme mode="light" theme={uraedaTheme}>
+      <Overlay isOpen label="Rename" onClose={() => {}}>
+        <Button label="Save" />
+      </Overlay>
+    </Theme>,
   );
 
   picks.start();
@@ -314,44 +330,51 @@ test("the pick script, at the top of a page, picks a button inside an open dialo
 ```
 
 `transformServer` and `transformed` are helpers of the first file: a Vite server in middleware mode,
-closed after each test. `pickScriptOnPage()`, in the browser tests' helpers, loads `uraeda-pick.js`
-into the test's page. Its `start()` posts `{ uraeda: "pick", on: true }` to the page, `next()` waits
-for the next `picked` message, and `taken()` lists those received.
+closed after each test; the served code imports the compiler's runtime from Vite's prebundled
+`react_compiler-runtime.js`. `pickScriptOnPage()`, in the browser tests' helpers, runs
+`uraeda-pick.js` once in the test's page, with `globalThis` a view of the test's window whose
+`parent` is that window: Vitest runs each test in a frame, whose real parent is Vitest's page (R8).
+Its `start()` posts `{ uraeda: "pick", on: true }` to the page, `next()` waits for the next `picked`
+message, and `taken()` lists those received.
 
 The break each test catches:
 
-- Keeps the output: the plugin placed before the compiler or StyleX, which then skip the file.
-- Gains its source: an absolute path, or no attribute on a compiled component.
+- Gains its source, at its line: the plugin placed after the UI's transforms, whose StyleX output
+  moves every line (R7), or an absolute path.
+- Keeps the output: the compiler or StyleX skipping the marked file.
+- No client: code-inspector's own Vite plugin, which injects its client into the first module (R6).
 - Without the plugin: the plugin leaking into the shared transforms.
-- Inside a dialog: a dialog that blocks the pick script's listeners, or renders out of its reach.
+- Inside a dialog: a dialog that blocks the pick script's listeners, or renders out of its reach;
+  pick mode not started.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/sandbox/__tests__/source-locations.test.ts`
-- Expected: FAIL, `Cannot find module '../sourceLocations.ts'`.
+- Expected: FAIL, `Failed to resolve import "../sourceLocations.ts"`.
 
-- [ ] **Step 3: Implement `sourceLocations()`**
+- [x] **Step 3: Implement `sourceLocations()`**
 
-Configure the plugin with `bundler: "vite"`, its hotkeys off, its server closed, no client or
-console snippet, and `pathType: "relative"` from the repository's root. If the plugin cannot run
-without its client, or breaks the compiler or StyleX, stop here: the spec says picks then lose their
-"Source" line, and this goes back to the human before Task 6.
+A plugin of our own, `uraeda-source-locations`, calling `transformCode` with `fileType: "jsx"` and
+`pathType: "relative"` on `.jsx` and `.tsx` files outside `node_modules`. code-inspector's own Vite
+plugin, `code-inspector-plugin`, was tried first: it compiles with the React Compiler and StyleX,
+but injects its client into the first module it transforms, whatever its options (R6).
 
-- [ ] **Step 4: Run the tests, and the browser test**
+- [x] **Step 4: Run the tests, and the browser test**
 
-- Run: `vp test packages/web/sandbox/__tests__/source-locations.test.ts`, then the browser test.
-- Expected: PASS. If the dialog test fails, stop and go back to the human: the spec marks picking
-  over dialogs unverified.
+- Run: `vp test packages/web/sandbox/__tests__/source-locations.test.ts`, then
+  `vp test --project phone packages/web/src/__browser__/sandbox-pick.test.tsx` and the same with
+  `--project desktop`.
+- Expected: PASS: the dialog on the desktop and the bottom sheet on the phone.
 
 - [ ] **Step 5: Run the project's validation**
 
-- Run: `vp run ready`
+- Run: `vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web/sandbox packages/web/package.json packages/web/tsconfig.json pnpm-lock.yaml packages/web/src/__browser__/sandbox-pick.test.tsx
+git add packages/web/sandbox packages/web/package.json packages/web/tsconfig.json pnpm-lock.yaml pnpm-workspace.yaml packages/web/src/__browser__ specs/2026-10-20-ui-sandbox
 git commit -m "feat(ui-sandbox): source locations from code-inspector, checked"
 ```
 
@@ -851,8 +874,8 @@ The break each test catches:
 
 The command seeds, prints the warning when `stale`, sets `URAEDA_REPO`, `URAEDA_DATA_DIR`,
 `URAEDA_CONFIG_DIR`, and `URA_TODAY`, puts the fake `gh` first, then runs
-`dev.ts --config packages/web/vite.sandbox.config.ts`. The config adds `uiTransforms()`,
-`sourceLocations()`, the pick script and `src/sandbox/main.tsx` to the page, and
+`dev.ts --config packages/web/vite.sandbox.config.ts`. The config adds `sourceLocations()` first,
+then `uiTransforms()` (R7), the pick script and `src/sandbox/main.tsx` to the page, and
 `uraedaServer({ adapter: sandboxAgent(), file: false, lockedList: true, signIn: false, started })`,
 on 127.0.0.1, port 4410 or the next free one, printing `Sandbox: http://127.0.0.1:<port>/`.
 `started` calls `atWork`. `--reset` reaches the seed as `vp run sandbox --reset`.
