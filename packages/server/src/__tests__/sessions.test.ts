@@ -1292,6 +1292,19 @@ test("US1.2: a session read to its end is done", async () => {
   expect(await rowOf(server, chat.id)).toMatchObject({ done: true, startedAt: created });
 });
 
+/** An archived session leaves Done, as it leaves the list. */
+test("an archived session is not done", async () => {
+  const server = await testServer();
+  const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };
+  server.adapter.script([{ text: "It keeps merged branches.", type: "text" }]);
+  await settle(server, await send(server, { session: chat.id, text: "What does ura clean keep?" }));
+  await mutate(server.app, "session.seen", { session: chat.id }, ["id"]);
+
+  await mutate(server.app, "session.archive", { archived: true, session: chat.id }, ["id"]);
+
+  expect(await rowOf(server, chat.id)).toMatchObject({ archived: true, done: false });
+});
+
 test("US1 more 1: a reply brings a done session back, at its start date", async () => {
   const server = await testServer();
   const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };

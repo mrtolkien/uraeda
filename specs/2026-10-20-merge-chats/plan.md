@@ -699,8 +699,8 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
 - Consumes: task 4's `folderSessions`, `latestSession`.
 - Produces:
   - `SessionRowRecord` gains `startedAt: string` and `done: boolean`: done when the session has no
-    folder, its latest turn ended, and its status is idle, which a turn that ended after `seen_at`
-    makes "New reply", and a failed or stopped one "Needs attention"
+    folder, is not archived, its latest turn ended, and its status is idle, which a turn that ended
+    after `seen_at` makes "New reply", and a failed or stopped one "Needs attention"
     ([R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid)).
   - `FeatureRecord` gains `sessions: Array<string>` (latest first); `session` stays the latest.
   - A feature's status is its latest session's, raised to an older session's only when that one
@@ -727,7 +727,7 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
 - "a search for a feature finds every session of it".
 - "a feature's change updates every session of it" (`live.test.ts`): a change of the feature, as the
   watcher reports it, sends a `Session` update to the older session too.
-- "a feature's session is never done, however read".
+- "a feature's session is never done, however read", and "an archived session is not done".
 - "a feature lists its sessions, latest first".
 - `needs-you.test.ts`: a blocked session's href is `/r/<name>/sessions/<id>`.
 
