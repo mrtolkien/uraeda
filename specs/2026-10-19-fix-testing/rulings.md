@@ -382,3 +382,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   poll alone (the empty file and the 2 s handoff remained).
 - **If wrong**: A start that is truly broken still fails, with its stderr, within 15 s.
 - **Where**: `packages/server/src/__tests__/main.test.ts`.
+
+## R61: The binding project's tests share the server project's 20 s test bound
+
+- **Decision**: `packages/binding/vite.config.ts` sets `testTimeout: 20_000`, the server project's
+  value, in place of Vitest's 5 s default. No assertion changed.
+- **Rationale**: Under machine load (20 busy loops over a load of about 55) "each fixture repository
+  owns its history, refs, index, configuration, and files" of `test-utils.test.ts` timed out at 5 s
+  once in 60 whole-project runs (6.1 s for a case of about 60 git processes); the single file alone
+  never failed in 50 runs under 24 busy loops. The case does a fixed amount of git work, so the
+  bound only measured the load.
+- **Alternatives considered**: A timeout on that one case (the other git-heavy cases share the
+  cause); removing its `gc`, hard-link, or alternates checks (protection, kept).
+- **If wrong**: A hung binding test still fails, at 20 s.
+- **Where**: `packages/binding/vite.config.ts`.
