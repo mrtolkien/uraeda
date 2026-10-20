@@ -357,9 +357,14 @@ function middle(element: Element) {
   return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
 }
 
-/** Whether a note was picked up, as the page announces it once its drag starts. */
-function lifted(name: string) {
-  return new RegExp(`(Picked up|Moved:) ${name}`).test(document.body.textContent ?? "");
+/** The notes of a category as the page draws them now, in order: a drag draws them as it goes. */
+function drawnNotes(name: string) {
+  const list = screen.queryByRole("list", { name: `${name} lines` });
+  return list
+    ? within(list)
+        .queryAllByRole("link")
+        .map((link) => link.textContent ?? "")
+    : [];
 }
 
 /** The text of the category `## <name>` of the inbox, up to the next heading. */
@@ -367,16 +372,29 @@ function category(text: string, name: string) {
   return text.split(`## ${name}\n\n`)[1]?.split("\n## ")[0] ?? "";
 }
 
-/** Drags a note by its handle, with the mouse, to a point of the page, and drops it there. */
-async function drag(note: string, to: { x: number; y: number }) {
+/**
+ * Drags a note by its handle, with the mouse, to the point `to` gives once the page is laid out,
+ * and drops it there once the page draws it at `place`, its index among the lines of a category.
+ * A point measured while fonts load or a page animates may land elsewhere once dragged to, and the
+ * drag finds where it is over frames after it starts: a drop before then moves nothing.
+ */
+async function drag(
+  note: string,
+  to: () => { x: number; y: number },
+  place: { category: string; index: number },
+) {
+  await drawn();
   const handle = middle(screen.getByRole("button", { name: `Move ${note}` }));
+  const target = to();
   await commands.mouse([
     { type: "move", x: handle.x, y: handle.y },
     { type: "down" },
     { type: "move", x: handle.x, y: handle.y - 10 },
-    { type: "move", x: to.x, y: to.y },
+    { type: "move", x: target.x, y: target.y },
   ]);
-  await expect.poll(() => lifted(note)).toBe(true);
+  await expect
+    .poll(() => drawnNotes(place.category).findIndex((text) => text.includes(note)))
+    .toBe(place.index);
   await commands.mouse([{ type: "up" }]);
 }
 
@@ -392,9 +410,15 @@ describe("on the desktop, dragging notes", () => {
   /** US5 1 */
   test("a note drags within its category", async () => {
     await show("/inbox", "Icons are blurry on retina screens");
-    const first = screen.getByRole("link", { name: /In failures the/ }).getBoundingClientRect();
 
-    await drag("Icons are blurry on retina screens", { x: first.left + 20, y: first.top + 2 });
+    await drag(
+      "Icons are blurry on retina screens",
+      () => {
+        const first = screen.getByRole("link", { name: /In failures the/ }).getBoundingClientRect();
+        return { x: first.left + 20, y: first.top + 2 };
+      },
+      { category: "UI", index: 0 },
+    );
 
     await expect
       .poll(async () => category(await commands.readRepo(PATH), "UI"), { timeout: 10_000 })
@@ -411,14 +435,17 @@ describe("on the desktop, dragging notes", () => {
     const inbox = await commands.readRepo(PATH);
     await commands.writeRepo(inbox.replace(laggy, `${laggy}  - on long sessions\n`), PATH);
     await show("/inbox", "on long sessions");
-    const last = screen
-      .getByRole("link", { name: /Make sure agents are resumable/ })
-      .getBoundingClientRect();
 
-    await drag("Text input feels laggy on the sessions page", {
-      x: last.left + 20,
-      y: last.bottom - 2,
-    });
+    await drag(
+      "Text input feels laggy on the sessions page",
+      () => {
+        const last = screen
+          .getByRole("link", { name: /Make sure agents are resumable/ })
+          .getBoundingClientRect();
+        return { x: last.left + 20, y: last.bottom - 2 };
+      },
+      { category: "CLI", index: 2 },
+    );
 
     await expect
       .poll(async () => category(await commands.readRepo(PATH), "CLI"), { timeout: 10_000 })
