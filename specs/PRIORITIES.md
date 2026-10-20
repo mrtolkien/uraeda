@@ -10,7 +10,6 @@
 - [Session transcript speed and coherence](/specs/changes/2026-10-20-session-transcript/proposal.md)
 - [Inbox screenshots](/specs/changes/2026-10-20-inbox-images/proposal.md)
 - [Ctrl+Enter sends every composer](/specs/changes/2026-10-20-ctrl-enter/proposal.md)
-- [Fix agent -> inbox flow, it creates way too much noise at the moment](/specs/changes/2026-10-20-inbox-noise/proposal.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
