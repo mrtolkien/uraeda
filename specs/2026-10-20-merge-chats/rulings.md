@@ -352,3 +352,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `startFromNote` in `packages/server/src/fate/change-starts.ts`.
 - **Where**: review of task 9, `crates/core/src/actions/inbox.rs`,
   `packages/server/src/fate/change-starts.ts`, `packages/web/src/useStartFrom.ts`.
+
+## R19: A change from a priority line starts with its agent at work
+
+- **Decision**: "Start the change" on a priority line drafts it when it links no draft, then calls
+  `change.startDraft({ draft, slug? })`, which starts the draft as `feature.start` with kind change
+  does, then sends the change's first run as `change.start` does, a run that cannot be sent logged
+  (R12). The page opens the change's session, and hands its message over unsent only when no run was
+  sent (`session` null), as `NewChangePage.tsx` does. New tests: the server's "change.startDraft
+  starts the draft as a change and sends its first run", and the New page's "a change from a
+  priority line".
+- **Rationale**: `feature.start` sends no run, so a change from a line opened with its message
+  unsent, one more click than SC-004's two, and unlike a typed change or a note's, whose agent
+  starts working.
+- **Alternatives considered**: a `send` flag on `feature.start`: a feature's start would carry an
+  input it never uses.
+- **If wrong**: `startDraft` in `packages/server/src/fate/change-starts.ts`.
+- **Where**: review of task 9, `packages/server/src/fate/change-starts.ts`,
+  `packages/web/src/useStartFrom.ts`.

@@ -107,19 +107,17 @@ async function titleDraft(fate: Fate, title: string): Promise<Made> {
   );
 }
 
-/** Starts the draft as a change: its branch and worktree are written, and its line moves to Now. */
+/**
+ * Starts the draft as a change: its branch and worktree are written, its line moves to Now, and its
+ * first run is sent.
+ */
 async function startChange(fate: Fate, draft: Made): Promise<Made<Started>> {
   if ("error" in draft) {
     return draft;
   }
-  const folder = made(
-    await fate.mutations.feature.start({
-      input: { draft: draft.value, kind: "change" },
-      view: FeatureView,
-    }),
-    "folder",
+  return started(
+    await fate.mutations.change.startDraft({ input: { draft: draft.value }, view: FeatureView }),
   );
-  return "error" in folder ? folder : { value: { folder: folder.value, sent: false } };
 }
 
 /**

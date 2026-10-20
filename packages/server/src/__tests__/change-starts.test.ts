@@ -83,3 +83,25 @@ test("change.fromNote refused keeps the note in the inbox", async () => {
     `change/${taken.data.folder}\n`,
   );
 });
+
+/** US3 2, from a priority line: its draft starts as a change, and the change's agent works. */
+test("change.startDraft starts the draft as a change and sends its first run", async () => {
+  const server = await testServer();
+  server.adapter.script([]);
+
+  const started = await mutate(
+    server.app,
+    "change.startDraft",
+    { draft: "specs/drafts/git-listener.md", slug: "git-listener" },
+    STARTED_FIELDS,
+  );
+
+  expect(started.error).toBeUndefined();
+  const { folder, session } = started.data as Record<string, string>;
+  expect(started.data).toMatchObject({
+    folder: expect.stringMatching(/-git-listener$/),
+    kind: "change",
+  });
+  const [sent] = await sentRun(server, session);
+  expect(sent.text).toMatch(new RegExp(`^/uraeda Continue the change specs/changes/${folder}/`));
+});
