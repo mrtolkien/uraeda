@@ -140,3 +140,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   spec's in-place move does not do.
 - **If wrong**: the hint string in `actions/promote.rs`.
 - **Where**: wave 1 review, `crates/core/src/actions/promote.rs`, `actions/start/plan.rs`.
+
+## R10: A typed change starts over the main checkout's uncommitted changes
+
+- **Decision**: a change started from a typed text, as `session.toChange` and the New page start
+  one, refuses only staged files other than `PRIORITIES.md`, not uncommitted changes in the main
+  checkout. A draft's start keeps refusing them. New core test
+  `a_typed_text_starts_over_uncommitted_changes_elsewhere`.
+- **Rationale**: US2 2 starts the change while the session's edit to `src/auth/guard.ts` and the
+  human's to `README.md` are uncommitted in the main checkout, and the skill says to leave every
+  other uncommitted file where it is. A typed start writes its proposal in the change's worktree and
+  commits `PRIORITIES.md` alone on the default branch, so the main checkout's edits are neither
+  carried nor touched. Without it, a session that edited a file could never become a change.
+- **Alternatives considered**: a flag for the move alone, through the API and the binding: a second
+  rule for the same typed start, and the New page would still refuse a start the move allows.
+- **If wrong**: the `Origin::Text` arm of `Start::plan` in `crates/core/src/actions/start/plan.rs`.
+- **Where**: task 5, `crates/core/src/actions/start/plan.rs`, `crates/core/tests/actions.rs`.
