@@ -213,5 +213,8 @@ export function mountSandboxBar({ document, window }: { document: Document; wind
     unfollow();
     root.unmount();
     host.remove();
+    // The pick script outlives the bar: left on, pick mode would take the page's clicks, with no
+    // toggle left to stop it.
+    window.postMessage({ on: false, uraeda: "pick" }, "*");
   };
 }

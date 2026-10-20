@@ -476,3 +476,19 @@ test("the bar leaves the page's theme attributes in place when it goes", async (
   expect(html.getAttribute("data-theme")).toBe("dark");
   expect(html.getAttribute("data-astryx-theme")).toBe("app");
 });
+
+test("the bar removed in pick mode turns pick mode off", async () => {
+  await pickScriptOnPage();
+  onTestFinished(() => window.postMessage({ on: false, uraeda: "pick" }, "*"));
+  const unmount = mountSandboxBar({ document, window });
+  const toggle = page.getByRole("button", { name: "Pick an element" });
+  await userEvent.click(toggle);
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
+
+  unmount();
+  const pressed = vi.fn();
+  render(<Button label="Save" onClick={pressed} />);
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+
+  expect(pressed).toHaveBeenCalledOnce();
+});
