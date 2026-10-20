@@ -77,9 +77,10 @@ fn failed(error: StartError) -> Result<ExitCode, String> {
     }
 }
 
-/// `ura start <change> --feature`: makes a started change a feature, in place.
+/// `ura start <change> --feature`: makes a started change a feature, in place, its open pull
+/// requests asked of `gh` first: one refuses the move.
 pub fn promote(target_name: Option<String>) -> Result<ExitCode, String> {
-    let (git, workspace) = output::workspace()?;
+    let (git, workspace) = output::workspace_with_pull_requests()?;
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let name = target_name.as_deref();
     let folder = match target::resolve(&workspace, &cwd, name, Purpose::Inspect) {
