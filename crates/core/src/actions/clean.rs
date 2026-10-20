@@ -61,10 +61,6 @@ pub struct Cleaned {
 }
 
 /// Removes a merged feature's worktree and local branch, or, on a dry run, says what it would do.
-#[expect(
-    clippy::too_many_lines,
-    reason = "over the limit before the code quality decision: split the worktree and the branch steps"
-)]
 pub fn clean(
     git: &Git,
     workspace: &Workspace,
@@ -92,50 +88,16 @@ pub fn clean(
         left: Vec::new(),
         dry_run,
     };
-    let shown = |path: &Path| relative(&main_root, path);
 
     // The worktree.
     let mut worktree_left = false;
-    let record = git
-        .worktree_records()?
-        .into_iter()
-        .find(|record| record.branch.as_deref() == Some(branch.as_str()));
-    if let Some(record) = record {
-        let path = shown(&record.path);
-        let why = if record.locked {
-            Some(WhyLeft::Locked)
-        } else if record.missing {
-            None
-        } else if !record.path.starts_with(main_root.join(".worktrees")) {
-            Some(WhyLeft::Outside(path.clone()))
-        } else if here.starts_with(&record.path) {
-            Some(WhyLeft::YouAreInIt)
-        } else if Git::open(&record.path)?.has_local_changes()? {
-            Some(WhyLeft::Changes)
-        } else {
-            None
-        };
-        match why {
-            Some(why) => {
-                worktree_left = true;
-                cleaned.left.push(Left {
-                    what: Leftover::Worktree(path),
-                    why,
-                });
-            }
-            None if record.missing => {
-                if !dry_run {
-                    git.prune_worktrees()?;
-                }
-                cleaned.did.push(Did::PrunedWorktree(path));
-            }
-            None => {
-                if !dry_run {
-                    git.remove_worktree(&record.path)?;
-                }
-                cleaned.did.push(Did::RemovedWorktree(path));
-            }
+    match worktree(git, &main_root, &here, &branch, dry_run)? {
+        Some(Ok(did)) => cleaned.did.push(did),
+        Some(Err(left)) => {
+            worktree_left = true;
+            cleaned.left.push(left);
         }
+        None => {}
     }
 
     // The branch.
@@ -189,6 +151,58 @@ pub fn clean(
         }
     }
     Ok(cleaned)
+}
+
+/// Removes a branch's worktree from `main_root`, the main checkout, or prunes its record when its
+/// folder is gone, never forced; or says why it stays: locked, outside `.worktrees/`, holding
+/// `here`, the caller's working tree, or with local changes. `None` when the branch has none. On a
+/// dry run, says what it would do.
+pub(crate) fn worktree(
+    git: &Git,
+    main_root: &Path,
+    here: &Path,
+    branch: &str,
+    dry_run: bool,
+) -> Result<Option<Result<Did, Left>>, ActionError> {
+    let record = git
+        .worktree_records()?
+        .into_iter()
+        .find(|record| record.branch.as_deref() == Some(branch));
+    let Some(record) = record else {
+        return Ok(None);
+    };
+    let path = relative(main_root, &record.path);
+    let why = if record.locked {
+        Some(WhyLeft::Locked)
+    } else if record.missing {
+        None
+    } else if !record.path.starts_with(main_root.join(".worktrees")) {
+        Some(WhyLeft::Outside(path.clone()))
+    } else if here.starts_with(&record.path) {
+        Some(WhyLeft::YouAreInIt)
+    } else if Git::open(&record.path)?.has_local_changes()? {
+        Some(WhyLeft::Changes)
+    } else {
+        None
+    };
+    Ok(Some(match why {
+        Some(why) => Err(Left {
+            what: Leftover::Worktree(path),
+            why,
+        }),
+        None if record.missing => {
+            if !dry_run {
+                git.prune_worktrees()?;
+            }
+            Ok(Did::PrunedWorktree(path))
+        }
+        None => {
+            if !dry_run {
+                git.remove_worktree(&record.path)?;
+            }
+            Ok(Did::RemovedWorktree(path))
+        }
+    }))
 }
 
 /// A path from the main checkout, with `..` for a path outside it: `.worktrees/x`, `../elsewhere`.
