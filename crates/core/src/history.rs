@@ -32,7 +32,8 @@ pub struct HistoryView {
     pub current: u32,
     /// Rounds of questions, when it had any.
     pub rounds: Option<u32>,
-    /// Whether a done item's commits were found on the default branch: false after a squash merge.
+    /// Whether a done item's commits were found on the default branch: false after a squash merge,
+    /// or for one from before typed commits.
     pub found: bool,
     /// For a done item not found: its record's `finished` day, `YYYY-MM-DD`.
     pub finished: Option<String>,
