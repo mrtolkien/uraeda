@@ -425,3 +425,98 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `fixtures/` or a configuration name falls to the selector's escalation to `ready`, never to no
   check.
 - **Where**: `test-inventory.md`, the plan's rule map, `specs/INBOX.md`, `change.md`.
+
+## R71: The audit of every old test's disposition and every changed assertion
+
+- **Decision**: No baseline test is removed, skipped, ignored, or loosened without a ruling; the
+  changes below are all of them, read from `git diff main...HEAD` over the test files, the helpers,
+  and the configurations (108 removed lines, 13 of them assertions). Each baseline path of the
+  [inventory](test-inventory.md) keeps its row, with the disposition its change needs.
+  - **Retained and named, unchanged**: all 305 baseline paths still exist; 274 are changed by
+    neither the branch nor main, 14 are changed by the branch (below), and 17 are changed by main
+    and integrated by R70 without a conflict (none of them is among the branch's 14).
+  - **Strengthened, nothing removed**: `crates/core/tests/clean.rs` `leaves_a_locked_worktree` and
+    `leaves_a_worktree_outside_worktrees` assert the whole `left` list (worktree, then branch with
+    `WorktreeLeft`), an empty `did`, and that the branch remains; the old assertions on `left[0]`
+    are the first entries of the new ones. Wave 3 of Task 4 recorded it; this is its ruling.
+    `attach.test.ts` (R21), `install.rs` (R20), `round.test.tsx` (R32), `composer-images.test.tsx`
+    (R30), `test-utils.test.ts` (R12: four cases added, its imports moved to `test-repos.ts`'s
+    names), and `toolchain.test.ts` (two cases added: `ts:test` reruns on `vite.fast.config.ts`, and
+    `fast` selects before optional builds; its config readers also list `vite.fast.config.ts` and
+    `scripts/vite.config.ts`, so the project and binding-config cases cover them).
+  - **Loosened, by ruling**: the home page's heading wording "Needs you" and its first count's name
+    are no longer asserted by `home.test.tsx` (the card is found by place, the first count by place,
+    and the card by the waiting feature's link and verb), and `notify`, `sign-in`, and `usage` wait
+    for that link instead of the heading (R31, named by R33). These are the 13 removed assertions;
+    the home order case now accepts any first heading. The headings' other words, the rows, verbs,
+    and links keep their assertions.
+  - **Replaced**: `main.test.ts`'s `expect.poll(...)` waits on a spawned server are `until(...)`,
+    which waits for the same condition or the process's exit and fails with its stderr (R60). The
+    chunked-upload case of `attach.test.ts` sends 64 MiB in place of 22 and asserts the 21 MB
+    refusal and a bound on chunks read (R21): its title gained "and stops reading it".
+  - **Moved, not removed**: `web/vite.config.ts`'s test settings (time zone `UTC`, happy-dom URL and
+    frame loading, the two setup files, 20 s timeout) and its plugin list moved into
+    `uiTestOptions()` and `uiTransforms()` in `vite.transforms.ts` with the same values (the second
+    setup file's path is absolute); `testWorkers` (`min(4, availableParallelism())`) moved to
+    `scripts/test-policy.ts`, read by `vite.config.ts` and the fast configuration; `lockFolder` was
+    exported by `test-run.ts`; `test-utils.ts` lost 84 lines to `test-repos.ts`.
+  - **No skip, `todo`, `only`, ignore, or retry** was added by the branch (a search of the whole
+    diff), and no `retry` is configured.
+- **Timeouts and bounds changed** (old to new):
+
+  | Where                                                                                  | Old                          | New                                     | Ruling              |
+  | -------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------- | ------------------- |
+  | `packages/binding/vite.config.ts` `testTimeout`                                        | 5 s (Vitest's default)       | 20 s                                    | R61                 |
+  | `scripts/vite.config.ts` `testTimeout` (new project)                                   | none                         | 130 s, above its nested runs' own 120 s | Task 2 review fixes |
+  | `fast-discovery.test.ts` nested Vitest `timeout` (new)                                 | none                         | 120 s                                   | Task 1              |
+  | fast project `testTimeout` (non-UI families, new)                                      | none                         | 20 s, the server project's              | R11                 |
+  | `main.test.ts` waits on a spawned server                                               | 1 s (`expect.poll` default)  | 15 s, or the process's exit             | R60                 |
+  | `main.test.ts` early request of "a second start during the first's start waits for it" | the handoff's 2 s            | 30 s                                    | R60                 |
+  | `attach.test.ts` chunked upload                                                        | 22 chunks sent, none counted | 64 sent, at most 30 read                | R21                 |
+  | `packages/web/vite.config.ts` `testTimeout`                                            | 20 s                         | 20 s (moved, same value)                | R11                 |
+  | `__focused__` composer cases                                                           | none                         | the web configuration's 20 s            | R11                 |
+
+- **Coverage exclusions and denominators**: `**/__focused__/**` joins `**/__tests__/**`,
+  `**/__browser__/**`, `**/__lint__/**` in the root coverage `exclude` (R6), so the focused tests
+  and helpers are not product files. `scripts/vite.config.ts` is a new Vitest project, so the
+  coverage command's `vp test` also runs the scripts suite; `scripts/` sources were already in the
+  denominator. The comparison with R6's baseline is in R72.
+- **File and function growth** (existing files the branch grew, lines before to after, from
+  `git diff main...HEAD --stat` and a parse of each file's functions at `main` and `HEAD`; new files
+  are listed in the inventory and are not growth):
+
+  | File                                                  | Lines                | Functions grown or added                                                                                                               |
+  | ----------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+  | `crates/cli/tests/common/mod.rs`                      | 163 to 186           | `ura_with_file_limit` (13) added                                                                                                       |
+  | `crates/cli/tests/install.rs`                         | 834 to 878           | the rollback case (19) and two helpers added                                                                                           |
+  | `crates/core/tests/clean.rs`                          | 417 to 430           | `leaves_a_locked_worktree` 12 to 17; `leaves_a_worktree_outside_worktrees` 23 to 31                                                    |
+  | `packages/binding/test-utils.test.ts`                 | 23 to 148            | four cases (9 to 37 lines) and five helpers added                                                                                      |
+  | `packages/binding/vite.config.ts`                     | 7 to 9               | none                                                                                                                                   |
+  | `packages/server/src/__tests__/attach.test.ts`        | 368 to 392           | cross-site upload 13 to 15; origin-less 14 to 17; the chunked case grew by its comment and a 3-line bound; the no-file case (15) added |
+  | `packages/server/src/__tests__/main.test.ts`          | 881 to 908           | `until` (12) and `readTokenFile` (2) added; "a second start" 21 to 27                                                                  |
+  | `packages/server/src/__tests__/toolchain.test.ts`     | 696 to 728           | `runnerConfigs` 11 to 18; `projectNames` 16 to 19; `bindingConfigs` 15 to 18; `browserProjects` 5 to 7; two cases (5, 10) added        |
+  | `packages/server/src/fate/select.ts`                  | 31 to 39             | `rewritten` (6) added, moved from `app.ts` (199 to 191)                                                                                |
+  | `packages/web/src/ComposerImages.tsx`                 | 90 to 96             | `useFocusAfterRemove` 26 to 27                                                                                                         |
+  | `packages/web/src/__tests__/composer-images.test.tsx` | 55 to 67             | `Fixture` 28 to 32; one case (7) added                                                                                                 |
+  | `packages/web/src/__tests__/helpers.tsx`              | 533 to 554           | `homeShown`, `homeHidden` (3 each) added                                                                                               |
+  | `packages/web/src/__tests__/home.test.tsx`            | 387 to 402           | `count` 3 to 7; `needsCard` (5) added; the empty-card case 14 to 15                                                                    |
+  | `packages/web/src/__tests__/round.test.tsx`           | 1378 to 1386         | the submit case 13 to 21                                                                                                               |
+  | `packages/web/src/__tests__/{sign-in,usage}.test.tsx` | 351 to 353, 69 to 70 | none                                                                                                                                   |
+  | `vite.config.ts`                                      | 261 to 263           | none                                                                                                                                   |
+  | `vite.tasks.ts`                                       | 416 to 426           | none (task entries)                                                                                                                    |
+
+  Shrunk: `packages/binding/test-utils.ts` 486 to 402, `packages/web/vite.config.ts` 139 to 90,
+  `packages/server/src/app.ts` 199 to 191.
+
+- **Unresolved**: (1) the two coverage runs are not on equal inputs: main added tests and code since
+  `85b4f233` (R72). (2) `ready` has not yet passed whole on this machine in one run: the failures
+  are listed in R72, none reproduced alone. (3) SC-001 and SC-003 need hosted runs. (4) W7 of Task 2
+  (typing mutation answers needs production `as const`) was not done. (5) `crates/core/src/actions`
+  `install.rs` lines 170, 281 to 283, 323, and 382 to 385 are run by no `install.rs` test (Task 4).
+- **Rationale**: SC-005 asks every old file a disposition and every weakening a replacement; the
+  inventory and this list are that record. Nothing here removes a case, and the only expectations
+  relaxed are R31's wording pins.
+- **Alternatives considered**: Listing only the files with a changed assertion, which hides moved
+  settings and timeouts.
+- **If wrong**: Restore a loosened pin by its ruling, or a moved setting from `main`'s file.
+- **Where**: `test-inventory.md`, this file.
