@@ -27,8 +27,16 @@ const onServer = (path: unknown): path is string =>
   typeof path === "string" && /^\/(?![/\\])/.test(path);
 
 /**
+ * How long a handoff waits for an answer: 2 seconds for a port without a host token, where any
+ * program may listen, and a minute with one, which the data folder's own server wrote as it took
+ * the port, before its start, which a loaded machine stretches past 2 seconds.
+ */
+const ANSWER_MS = 2000;
+const STARTING_MS = 60_000;
+
+/**
  * Asks the server on 127.0.0.1:`port` to open `request.folder`, with the host token `token`, within
- * `timeoutMs`, 2000 by default. "refused" for a 400 with an `error`; "unauthorized" for a 401;
+ * `timeoutMs`: 2 seconds by default, a minute with a token. "refused" for a 400 with an `error`; "unauthorized" for a 401;
  * "other" for a refused connection, a timeout, an answer without `uraeda`, or one whose `url` or
  * `signIn` is not a path on the server. An answer without `signIn`, from a server without sign-in,
  * opens the page itself.
@@ -37,7 +45,7 @@ export async function handOff(
   port: number,
   request: OpenRequest,
   token?: string,
-  timeoutMs = 2000,
+  timeoutMs = token === undefined ? ANSWER_MS : STARTING_MS,
 ): Promise<HandOff> {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/open`, {
