@@ -38,6 +38,7 @@
 
 - [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
+- Heartbeat/cron jobs
 
 - Keyboard navigation in web UI
   - Leader-key inspired nav and/or vimium for extra links
