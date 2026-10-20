@@ -82,7 +82,7 @@ export function SandboxBar({
   onShownChange,
   picking,
   shortcut,
-  shown = true,
+  shown: shownProp,
 }: {
   last: PickStatus;
   onPickingChange: (picking: boolean) => void;
@@ -91,9 +91,11 @@ export function SandboxBar({
   picking: boolean;
   /** The keyboard shortcut that toggles pick mode, as `aria-keyshortcuts` names it. */
   shortcut?: string;
-  /** Whether the bar shows more than its marker. */
+  /** Whether the bar shows more than its marker: by default, it does. */
   shown?: boolean;
 }) {
+  // Not a default in the parameters, which the React Compiler cannot lower yet.
+  const shown = shownProp !== false;
   const line = status(picking, last);
   // Hidden, the bar still shows a copy that failed, an error to deal with, and still announces the
   // rest.
