@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Stable dev environment for UI review
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 15 minutes.
+> Approved on 2026-10-20.
 >
 > - You approve `vp run sandbox`: the whole app, hot-reloading from its checkout, over three sample
 >   projects and a fake agent, kept until a reset. Its picker copies an element with its source.
