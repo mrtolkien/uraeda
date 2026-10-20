@@ -13,7 +13,7 @@ use crate::git::Git;
 use crate::workspace::{Feature, Kind, Workspace, folder_branch, folder_path, resolve};
 
 use super::place;
-use super::start::{StartError, check_clean, check_free, partial};
+use super::start::{StartError, check_free, partial};
 
 /// The refusal of a change with an open pull request, whose branch the move would rename.
 pub const PULL_REQUEST: &str =
@@ -55,12 +55,11 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
         .into_iter()
         .find(|worktree| worktree.branch.as_deref() == Some(from.as_str()))
     {
-        check_clean(&Git::open(&worktree.path)?, &[])?;
+        check_worktree(git, &worktree.path)?;
     }
     let place = place::reach(git, &default)?;
     let at = Git::open(&place.root)?;
     check_free(&place.root, &at, workspace, folder, &[Kind::Feature])?;
-    check_clean(&at, &[])?;
     let (name, edited) = relinked(&place.root, change)?;
     let move_ = Move {
         git,
@@ -71,6 +70,23 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
         default: &default,
     };
     move_.run(&at, &name, edited.as_deref())
+}
+
+/// Refuses the move while the change's worktree, at `path`, has uncommitted changes: its commit
+/// would carry them, or they would block the folder's move. The main checkout's do not refuse it:
+/// its commit takes `PRIORITIES.md` alone.
+fn check_worktree(git: &Git, path: &Path) -> Result<(), StartError> {
+    let changed = Git::open(path)?.changed_files()?;
+    if changed.is_empty() {
+        return Ok(());
+    }
+    let main_root = git.main_root();
+    let shown = path.strip_prefix(&main_root).unwrap_or(path);
+    Err(StartError::Refused(format!(
+        "cannot move: the change's worktree {} has uncommitted changes in {}",
+        shown.display(),
+        changed.join(", ")
+    )))
 }
 
 /// A move under way: the change, and its branch's names before and after.

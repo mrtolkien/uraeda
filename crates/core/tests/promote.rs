@@ -232,9 +232,25 @@ fn uncommitted_changes_in_the_changes_worktree_are_refused() {
 
     assert_eq!(
         refused.err().map(|error| error.to_string()).as_deref(),
-        Some("cannot start: uncommitted changes in README.md")
+        Some(
+            "cannot move: the change's worktree .worktrees/2026-10-20-priorities-sections has \
+             uncommitted changes in README.md"
+        )
     );
     assert_nothing_moved(&repo);
+}
+
+/// Review: the main checkout's uncommitted edits do not refuse the move, and stay uncommitted.
+#[test]
+fn uncommitted_changes_in_the_main_checkout_stay() {
+    let repo = started(Kind::Change);
+    repo.write("README.md", "# Edited\n");
+
+    promote(&repo).unwrap();
+
+    assert_eq!(repo.read("README.md"), "# Edited\n");
+    assert_eq!(repo.porcelain().trim(), "M README.md");
+    assert_eq!(repo.changed_in("main"), ["specs/PRIORITIES.md".to_string()]);
 }
 
 #[test]
