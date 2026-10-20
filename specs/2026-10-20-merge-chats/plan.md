@@ -1111,14 +1111,14 @@ git commit -m "docs(merge-chats): the skill offers moves in a session, moves a c
   `sidebar.test.tsx`)
 - Write: `specs/2026-10-20-merge-chats/screenshots/*.webp`
 
-- [ ] **Step 1: Update the browser tests to the new views**
+- [x] **Step 1: Update the browser tests to the new views**
 
-- [ ] **Step 2: Run the browser suites**
+- [x] **Step 2: Run the browser suites**
 
 - Run: `nix develop -c vp test --project desktop && nix develop -c vp test --project phone`
 - Expected: PASS.
 
-- [ ] **Step 3: Take and review the screenshots**
+- [x] **Step 3: Take and review the screenshots**
 
 The sidebar, the New page's three kinds, a session with its offer and its actions, the drop
 confirmation, and a feature's sessions, at both sizes and in both themes.
