@@ -4,7 +4,13 @@ import { tmpdir } from "node:os";
 import { dirname, join, matchesGlob, relative } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
 import { fastConfig } from "../../vite.fast.config.ts";
-import { changedFiles, families, type Family, selectFast } from "../fast-selection.ts";
+import {
+  changedFiles,
+  families,
+  type Family,
+  rustCommands,
+  selectFast,
+} from "../fast-selection.ts";
 
 const folders: Array<string> = [];
 afterEach(() =>
@@ -174,4 +180,51 @@ test.each(Object.keys(families) as Array<Family>)(
         (path) => !families[name].inputs.some((input) => matchesGlob(path, input)),
       ),
     ).toEqual([]),
+);
+
+test("a core change checks and tests its reverse dependents, and clippy alone checks the binding", () => {
+  expect(selectFast([change("crates/core/src/settings.rs")]).rust.sort()).toEqual([
+    "uraeda-binding",
+    "uraeda-cli",
+    "uraeda-core",
+    "uraeda-lsp",
+  ]);
+  expect(selectFast([change("crates/lsp/src/lib.rs")]).rust.sort()).toEqual([
+    "uraeda-cli",
+    "uraeda-lsp",
+  ]);
+  const binding = rustCommands(selectFast([change("crates/binding/src/lib.rs")]).rust);
+  const clippy = binding.find(([, args]) => args[0] === "clippy")![1];
+  const nextest = binding.find(([, args]) => args[0] === "nextest")![1];
+  expect(clippy).toEqual(expect.arrayContaining(["-p", "uraeda-binding"]));
+  expect(nextest).not.toContain("uraeda-binding");
+  expect(nextest).toEqual(expect.arrayContaining(["-p", "uraeda-core", "-p", "uraeda-cli"]));
+});
+test("the reverse dependents follow the workspace's manifests", () => {
+  const metadata = JSON.parse(
+    execFileSync("cargo", ["metadata", "--no-deps", "--format-version", "1"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    }),
+  ) as { packages: Array<{ dependencies: Array<{ name: string }>; name: string }> };
+  for (const { name } of metadata.packages) {
+    const selected = selectFast([change(`crates/${name.replace(/^uraeda-/, "")}/src/lib.rs`)]);
+    for (const dependent of metadata.packages) {
+      if (dependent.dependencies.some((dependency) => dependency.name === name)) {
+        expect(selected.rust, `${dependent.name} depends on ${name}`).toContain(dependent.name);
+      }
+    }
+  }
+});
+test.each([["workspace"], ["uraeda-core"], ["uraeda-binding", "uraeda-core"]])(
+  "fast's nextest never selects the workspace or the binding (%s)",
+  (...rust) => {
+    const commands = rustCommands(rust);
+    const nextest = commands.find(([, args]) => args[0] === "nextest")![1];
+    expect(nextest).not.toContain("--workspace");
+    expect(nextest).not.toContain("uraeda-binding");
+    if (rust.includes("workspace")) {
+      expect(commands.find(([, args]) => args[0] === "clippy")![1]).toContain("--workspace");
+    }
+  },
 );

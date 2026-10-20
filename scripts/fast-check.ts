@@ -2,7 +2,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { relative } from "node:path";
 import { createVitest } from "vite-plus/test/node";
 import { fastConfig } from "../vite.fast.config.ts";
-import { changedFiles, selectFast } from "./fast-selection.ts";
+import { changedFiles, rustCommands, selectFast } from "./fast-selection.ts";
 
 function report(...values: Array<unknown>) {
   process.stdout.write(
@@ -80,14 +80,7 @@ async function main() {
     native.push(["vp", ["run", "binding:touch"]]);
   }
   if (selection.rust.length) {
-    const packages = selection.rust.includes("workspace")
-      ? ["--workspace"]
-      : selection.rust.flatMap((name) => ["-p", name]);
-    native.push(
-      ["cargo", ["fmt", "--check"]],
-      ["cargo", ["clippy", ...packages, "--all-targets", "--", "-D", "warnings"]],
-      ["cargo", ["nextest", "run", ...packages]],
-    );
+    native.push(...rustCommands(selection.rust));
   }
   await concurrently([typescript, native]);
   if (!selection.related.length && !selection.families.length) {
