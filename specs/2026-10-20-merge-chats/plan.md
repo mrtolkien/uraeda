@@ -687,7 +687,8 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
   (`missingFeature`), `packages/web/src/views.ts` (`FeatureView.sessions`)
 - Test: `packages/server/src/__tests__/sessions.test.ts`,
   `packages/server/src/__tests__/needs-you.test.ts`, `packages/server/src/__tests__/live.test.ts`,
-  `packages/web/src/__tests__/notify.test.tsx` (its chat row's href, [R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid))
+  `packages/web/src/__tests__/notify.test.tsx` (its chat row's href,
+  [R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid))
 
 **Interfaces:**
 
@@ -695,7 +696,8 @@ git commit -m "feat(merge-chats): a session becomes a change, a change a feature
 - Produces:
   - `SessionRowRecord` gains `startedAt: string` and `done: boolean`: done when the session has no
     folder, its latest turn ended, and its status is idle, which a turn that ended after `seen_at`
-    makes "New reply", and a failed or stopped one "Needs attention" ([R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid)).
+    makes "New reply", and a failed or stopped one "Needs attention"
+    ([R13](rulings.md#r13-a-done-session-is-an-idle-one-and-a-blocked-sessions-address-is-sessionsid)).
   - `FeatureRecord` gains `sessions: Array<string>` (latest first); `session` stays the latest.
   - A feature's status is the most urgent of its sessions' (`STATUS_ORDER`).
   - A feature's `tokens` sum every session of the folder, not the latest only.
