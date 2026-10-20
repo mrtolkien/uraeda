@@ -6,13 +6,17 @@ import { Button } from "@astryxdesign/core/Button";
 import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Theme } from "@astryxdesign/core/theme";
-import { render } from "@testing-library/react";
-import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import { cleanup, render } from "@testing-library/react";
+import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import { Overlay } from "../layout/Overlay.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 import { mountSandboxBar } from "../sandbox/mountSandboxBar.tsx";
 import { colorScheme, pickScriptOnPage } from "./helpers.tsx";
+
+// A test's `Theme` holds the page's theme on `<html>` until it unmounts: the helpers' clearing of
+// the body leaves it mounted, and its mode would be the next test's.
+afterEach(cleanup);
 
 test("the pick script, at the top of a page, picks a button inside an open dialog", async () => {
   const picks = await pickScriptOnPage();
@@ -447,4 +451,28 @@ test("the shortcut turns pick mode off again, and is named on the toggle", async
   await userEvent.keyboard(PICK_SHORTCUT);
 
   await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
+});
+
+test("the bar leaves the page's theme attributes in place when it goes", async () => {
+  await pickScriptOnPage();
+  const html = document.documentElement;
+  const before = ["data-theme", "data-astryx-theme"].map((name) => [name, html.getAttribute(name)]);
+  onTestFinished(() => {
+    for (const [name, value] of before) {
+      if (value === null) {
+        html.removeAttribute(name!);
+      } else {
+        html.setAttribute(name!, value);
+      }
+    }
+  });
+  html.setAttribute("data-theme", "dark");
+  html.setAttribute("data-astryx-theme", "app");
+
+  const unmount = mountSandboxBar({ document, window });
+  await expect.element(page.getByRole("button", { name: "Pick an element" })).toBeVisible();
+  unmount();
+
+  expect(html.getAttribute("data-theme")).toBe("dark");
+  expect(html.getAttribute("data-astryx-theme")).toBe("app");
 });

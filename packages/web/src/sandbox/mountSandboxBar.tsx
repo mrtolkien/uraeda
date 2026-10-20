@@ -1,8 +1,10 @@
 // The sandbox's picker: it mounts the bar in a root of its own, beside the app's, runs pick mode
 // through the skill's pick script, which the page loads at its top, and copies each pick. The app's
 // own entry knows nothing of it. Only the sandbox's page loads it.
-import { Theme } from "@astryxdesign/core/theme";
-import { useEffect, useEffectEvent, useState } from "react";
+import { registerTheme, ThemeContext } from "@astryxdesign/core/theme";
+import { colorVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 import { elementOf, type Pick, pickText } from "./pickText.ts";
@@ -23,6 +25,17 @@ function isPickShortcut(event: KeyboardEvent): boolean {
     event.code === "KeyP" && event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey
   );
 }
+
+const styles = stylex.create({
+  dark: { colorScheme: "dark" },
+  light: { colorScheme: "light" },
+  // What Astryx's `Theme` gives its wrapper.
+  theme: {
+    color: colorVars["--color-text-primary"],
+    display: "contents",
+    fontFamily: typographyVars["--font-family-body"],
+  },
+});
 
 /** A message of the pick script, which at the top of the page posts to the page itself. */
 type PickMessage = ({ uraeda: "picked" } & Pick) | { uraeda: "pick-stopped" };
@@ -76,6 +89,7 @@ function Picker({ page }: { page: Window }) {
   const [picking, setPicking] = useState(false);
   const [last, setLast] = useState<PickStatus>({ kind: "idle" });
   const mode = useColorMode(page);
+  const theme = useMemo(() => ({ mode, theme: uraedaTheme }), [mode]);
   const pick = (on: boolean) => {
     setPicking(on);
     page.postMessage({ on, uraeda: "pick" }, "*");
@@ -126,10 +140,18 @@ function Picker({ page }: { page: Window }) {
     page.addEventListener("message", onMessage);
     return () => page.removeEventListener("message", onMessage);
   }, [page, mode]);
+  // The app's theme and mode, scoped to the bar: Astryx's `Theme`, the first of its own React root,
+  // would take the page's root element as its own, and strip the app's theme from it when it goes.
   return (
-    <Theme mode={mode} theme={uraedaTheme}>
-      <SandboxBar last={last} onPickingChange={pick} picking={picking} shortcut={PICK_SHORTCUT} />
-    </Theme>
+    <ThemeContext value={theme}>
+      <div
+        data-astryx-theme={uraedaTheme.name}
+        data-theme={mode}
+        {...stylex.props(styles.theme, styles[mode])}
+      >
+        <SandboxBar last={last} onPickingChange={pick} picking={picking} shortcut={PICK_SHORTCUT} />
+      </div>
+    </ThemeContext>
   );
 }
 
@@ -171,6 +193,8 @@ function followModals(document: Document, host: HTMLElement): () => void {
  * topmost open modal dialog, and returns what removes it.
  */
 export function mountSandboxBar({ document, window }: { document: Document; window: Window }) {
+  // What Astryx's `Theme` does first: its components find the theme's icons by its name.
+  registerTheme(uraedaTheme);
   const host = document.createElement("div");
   host.popover = "manual";
   // A popover's own box, which the browser centres and frames: the bar positions itself.
