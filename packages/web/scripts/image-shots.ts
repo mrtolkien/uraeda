@@ -221,7 +221,7 @@ async function pickImages(page: Page) {
 
 /** A new chat whose message holds two screenshots, answered by the agent: its path. */
 async function chatWithImages(first: Page, adapter: FakeAdapter) {
-  await show(first, "/new", "New chat");
+  await show(first, "/new", "It offers a change when the work grows.");
   const sent = adapter.sent.length;
   await pickImages(first);
   await first

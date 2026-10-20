@@ -30,14 +30,7 @@ import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
-import {
-  navigate,
-  redirect,
-  sessionIdPath,
-  useRepoPath,
-  useRestoreScroll,
-  useSearch,
-} from "./routes.tsx";
+import { redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { type ChatControls, type Controls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
@@ -423,26 +416,13 @@ function ChatSession({ draft, id }: { draft: Draft; id: string }) {
   );
 }
 
-/**
- * A session's page: a feature's, by its folder; a chat, by its ID; or an empty chat, which its
- * first message creates.
- */
-export function SessionPage(props: { folder: string } | { id: string } | { newChat: true }) {
+/** A session's page: a feature's, by its folder, or a chat, by its ID. */
+export function SessionPage(props: { folder: string } | { id: string }) {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
-  const here = useRepoPath();
   const draft = useDraft();
   if ("folder" in props) {
     return <FeatureSession folder={props.folder} />;
   }
-  if ("id" in props) {
-    return <ChatSession draft={draft} id={props.id} />;
-  }
-  return (
-    <SessionPane
-      draft={draft}
-      onSent={(id) => navigate(here(sessionIdPath(id)), { created: true })}
-      title="New chat"
-    />
-  );
+  return <ChatSession draft={draft} id={props.id} />;
 }

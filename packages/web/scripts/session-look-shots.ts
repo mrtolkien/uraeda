@@ -12,7 +12,7 @@ const result = { denials: [], errors: [], interrupted: false, ok: true, type: "r
 
 /** Sends a message from the new chat's composer, and gives the chat's path once it is made. */
 async function start(adapter: FakeAdapter, page: Page, text: string) {
-  await show(page, "/new", "New chat");
+  await show(page, "/new", "It offers a change when the work grows.");
   const sent = adapter.sent.length;
   await page.getByRole("textbox", { name: "Message Claude Code" }).fill(text);
   await page.getByRole("button", { name: "Send" }).first().click();

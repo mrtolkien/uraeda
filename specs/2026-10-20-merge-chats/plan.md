@@ -94,8 +94,8 @@ drop a change or a feature.
   - The drop confirmation: title "Drop the change <slug>?", body "Its entry leaves Now, its worktree
     is removed, and its sessions are archived. Its branch stays, so nothing is lost: git branch -D
     <branch> deletes it.", buttons "Drop the change" and "Keep the change" (a feature's: "feature").
-  - The New page's sentences, from
-    [`NewSession.stories.tsx`](/packages/web/src/NewSession.stories.tsx)'s `ABOUT`.
+  - The New page's sentences, from [`NewPage.tsx`](/packages/web/src/NewPage.tsx)'s `ABOUT`, moved
+    from the mockup's.
   - "Started a new session: the agent reads the repository, not the turns above." stays the
     `REPLACED`-style line only where a transcript is gone; a fresh step now starts a new session.
 - Existing guarantees kept: one process per session (`claimSession`); a session's rename refuses
@@ -862,13 +862,17 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 
 **Files:**
 
-- Start from: [`NewSession.stories.tsx#NewSessionPage`](/packages/web/src/NewSession.stories.tsx),
-  `#NewChangePage`, `#NewFeaturePage`
+- Start from: [`NewPage.stories.tsx#NewSessionPage`](/packages/web/src/NewPage.stories.tsx),
+  `#NewChangePage`, `#NewFeaturePage` (moved from the mockups of `NewSession.stories.tsx`)
 - Create: `packages/web/src/NewPage.tsx`, `packages/web/src/NewPage.stories.tsx` (the three kinds,
-  from the mockups)
+  drawn by the page itself), `packages/web/src/useStartFrom.ts` (the starts from a note, a line, or
+  a title)
 - Modify: `packages/web/src/App.tsx` (`/new` draws `NewPage`), `packages/web/src/NewChangePage.tsx`
-  (its composer and slug become `NewPage`'s change part; task 8 points the sidebar's "＋ New" row at
-  `/new`)
+  (its composer and slug become `NewChange`, `NewPage`'s change part; task 8 points the sidebar's
+  "＋ New" row at `/new`), `packages/web/src/SessionPage.tsx` (its new-chat page goes),
+  `NewSession.stories.tsx` (the three mockups leave it), and the tests and screenshot scripts that
+  waited for "New chat" or "New change"
+  ([R17](rulings.md#r17-the-new-change-tests-move-to-the-new-page-and-the-pages-waits-change-text))
 - Test: `packages/web/src/__tests__/new-page.test.tsx` (moves `new-change.test.tsx`'s cases)
 
 **Interfaces:**
@@ -876,7 +880,7 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 - Consumes: task 7's `/new?kind=`; mutations `change.start`, `inbox.toNewDraft`, `draft.create`,
   `feature.start` (kind change), `priorities.add` / `priorities.insert`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - "＋ New opens Session, with its sentence": the selector reads Session, the sentence "A
   conversation with the agent, in the main checkout, like plain Claude Code. It offers a change when
@@ -895,9 +899,16 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 - Run: `nix develop -c vp test packages/web/src/__tests__/new-page.test.tsx`
 - Expected: FAIL, `Unable to find role "radiogroup" and name "What to start"`.
 
-- [ ] **Step 3: Implement the page**
+- [x] **Step 3: Implement the page**
 
-- [ ] **Step 4: Run the web suite**
+A change from a note or a line is started from its draft (`inbox.toNewDraft` or `draft.create`, then
+`feature.start` with kind change), and its session opens with the workflow's message to send
+(`handOver(folder, "start")`): `feature.start` sends no run. A title is inserted with
+`priorities.insert` before Now's first entry not started, then drafted. The notes listed are those
+not already a draft; the lines, those not started that link no file other than a draft. Each line's
+button is named after it, "Start the change: <text>", since the buttons share their visible text.
+
+- [x] **Step 4: Run the web suite**
 
 - Run: `nix develop -c vp test --project uraeda-web && nix develop -c vp check`
 - Expected: PASS.
