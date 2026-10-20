@@ -37,17 +37,38 @@ A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
 
 ## Starting a change
 
-Only when a human asks. A change starts like a feature, with its own names: from the web UI's "New
-change", with `ura start <draft> --slug <slug> --change`, or by hand. See **Start as a change** in
-[Projects](projects.md#starting-postponing-and-dropping-a-feature).
+Only when a human asks. A change starts like a feature, with its own names: from Change on the web
+UI's New page, with `ura start <draft> --slug <slug> --change`, or by hand. See **Start as a
+change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature).
 
-**From a chat on the main checkout**, a request for a code change is offered as a change, not
-committed to the default branch. Answer with what you would start: the draft's title, its text in
-the human's own words, and the slug. Ask whether to start it as a change, and change no file before
-the human says yes. On yes, commit the draft on the default branch, `chore: draft <title>`, and
-start it as [Projects](projects.md#starting-postponing-and-dropping-a-feature) says. Then say to
-open `/f/<folder>` in the web UI, where the change's own session runs: the chat stays a chat. Typos,
-formatting, and comments stay in the chat, made there as before.
+**From a session on the main checkout**, a request for a code change is offered as a change, not
+committed to the default branch. A session is a conversation with you: without a workflow, it runs
+on the main checkout. Offer the change in a fenced block whose info string is `uraeda-offer change`.
+It holds the proposal in the human's own words, its `# Title` first:
+
+````markdown
+```uraeda-offer change
+# Login redirects twice
+
+After signing in, the app shows the home page, then the sign-in page again.
+```
+````
+
+Uraeda shows the block as a card, where the human edits the proposal and its slug, then starts the
+change. Every other reader sees the block as text. Offer once: only the latest offer of a session
+has buttons, and an offer of a change in a change's or a feature's session reads as text, since a
+session only moves up. Change no file before the human says yes.
+
+When the card starts the change, the same session goes on in the change's worktree. Its next message
+names the worktree, the branch, and the files you edited on the main checkout, to carry over. A file
+the human also edited since stays on the main checkout: merge it by hand. Leave every other
+uncommitted file where it is. When the human says yes in words instead, commit the draft on the
+default branch, `chore: draft <title>`, start it as
+[Projects](projects.md#starting-postponing-and-dropping-a-feature) says, and run the change in its
+worktree.
+
+Typos, formatting, and comments stay in the session, made there as before. A change or a feature may
+hold several sessions, all in its worktree, and only one of them works at a time.
 
 ## Finding the step
 
@@ -167,32 +188,45 @@ Some changes need more than the light flow allows. Offer to make the change a fe
 
 The size of the diff is never a reason: it goes in the pull request.
 
-Ask in a round, with the question "Make this change a feature?". Its context names the reason, such
-as "It changes the format of `PRIORITIES.md`, which every project has", and option A is the upgrade.
-When one item of a batch needs it, the round offers to split that item out instead.
+The upgrade moves the change in place: its branch, its folder, its code, and its sessions become the
+feature's. Offer it, and never make it alone:
 
-- **On "A"**: the folder is postponed, as a feature's is
-  ([Projects](projects.md#starting-postponing-and-dropping-a-feature)).
-  1. One commit reverts what the branch committed outside the folder, so the merge brings only the
-     folder. It reverts the code commits, with their rulings and screenshots. It also reverts every
-     `decision(<slug>): apply <topic>` commit: the human approved that change for this change only,
-     and the feature proposes it again. Revert them with `git revert --no-commit`, newest first.
-     Commit `revert(<slug>): undo the change before its upgrade`, its body listing the reverted
-     commits.
-  2. The branch's last commit moves the folder to `specs/drafts/<slug>/`, its files unchanged. It
-     restores every decision the change edited to its text at the merge base. It relinks **Now**'s
-     entry to `drafts/<slug>/proposal.md`, moved first after **Now**'s started entries and their
-     blank line, since it is started no more: `chore(<slug>): upgrade to a feature`.
-  3. Merge the branch into the default branch, from the main checkout. The human's "A" asks for the
-     cleanup too. `ura clean` cannot do it, since the merge leaves no record or change folder.
-     Remove the change's worktree and delete its branch as
-     [after the merge](finish.md#after-the-merge) says, never forced, or give the human those
-     commands when you cannot. The human starts the draft as a feature.
+- **When the human talks with you in the session**, offer it in a fenced block whose info string is
+  `uraeda-offer feature`, holding the reason in one sentence. Uraeda shows it as a card the human
+  accepts:
 
-  The started feature has an answered round and no discovery file, so its first step is the
+  ````markdown
+  ```uraeda-offer feature
+  It changes the format of `PRIORITIES.md`, which every project has.
+  ```
+  ````
+
+- **In a run nobody follows**, ask in a round, with the question "Make this change a feature?". Its
+  context names the reason, and option A is the upgrade. The round may come before the change's
+  other questions, or hold them too.
+
+When one item of a batch needs it, offer to split that item out instead.
+
+- **On yes, or "A"**: with `ura`, `ura start <change> --feature` makes the move. By hand:
+  1. Check first, and stop if one fails, saying why. The change has no pull request: close it first,
+     since its branch would be renamed. Its worktree has no uncommitted changes. No branch or folder
+     named `YYYY-MM-DD-<slug>` exists.
+  2. On the default branch, relink the change's **Now** entry, in place, to
+     `/specs/YYYY-MM-DD-<slug>/proposal.md`. Commit `chore(<slug>): start <name> as a feature`.
+  3. Rename the branch: `git branch -m change/YYYY-MM-DD-<slug> YYYY-MM-DD-<slug>`. The worktree
+     stays where it is. A pushed branch is renamed locally only: the old remote branch stays until
+     the human deletes it.
+  4. In the worktree, move `specs/changes/YYYY-MM-DD-<slug>/` to `specs/YYYY-MM-DD-<slug>/`, its
+     files unchanged. Set each decision the change applied, the ones the branch changed that read
+     `active`, back to `status: proposed`, with an empty `approved-by:`. The human approved them for
+     the change only, and the feature's spec lists them again. Commit
+     `chore(<slug>): upgrade to a feature`.
+
+  The code the change committed stays on the branch, and the feature's spec describes it as built.
+  The feature has answered rounds and no discovery file, so its first step is the
   [spec](spec.md#is-the-scope-clear). It reads the change's rounds, which settled the change, not
   the feature's scope. It starts a new round, with its discovery file, at the proposal's
-  [discovery effort](discovery.md#discovery-effort).
+  [discovery effort](discovery.md#discovery-effort). Run it in the same session.
 
 - **On "A", for one item of a batch**: on the default branch, write that item's text as
   `specs/drafts/<item-slug>.md`. Add its entry to **Now**, first after its started entries and their
@@ -202,8 +236,6 @@ When one item of a batch needs it, the round offers to split that item out inste
   branch before it, so the draft's entry stays.
 - **On another answer**: keep the change within that answer, or stop if it leaves nothing to do, and
   say so in the session.
-
-When the merge into the default branch conflicts, stop and say so in the session. Never force it.
 
 ## Making the change
 
@@ -309,7 +341,9 @@ Comments on the pull request are handled as for a feature, as
 | "It is a new field in the file, but a small one"          | Data users already have is an upgrade, whatever its size.                     |
 | "The diff is big, I'll stop and ask"                      | Size is never a stop: list it in the pull request.                            |
 | "One more fix and it will pass"                           | After three failed fixes the approach is wrong: offer the upgrade.            |
-| "It's a small fix, I'll commit it to main from the chat"  | Offer it as a change: its branch, its tests, and its pull request.            |
+| "It's a small fix, I'll commit it to main from here"      | Offer it as a change: its branch, its tests, and its pull request.            |
+| "It is feature-sized, I'll make it a feature now"         | Offer it in a block or a round: the move waits for the human's yes.           |
+| "The feature needs a clean branch, I'll revert the code"  | The code stays: the move renames the branch and the folder in place.          |
 | "I'll write a discovery file for this round"              | A change's round is `clarifications-NN.md` alone: findings go in its Context. |
 
 ## Commit
@@ -319,7 +353,7 @@ Comments on the pull request are handled as for a feature, as
 - **A decision's change, applied**: `decision(<slug>): apply <topic>`.
 - **Code**: `fix(<slug>): <what changed>` for a bug, `feat(<slug>): <what changed>` for a change,
   and `refactor(<slug>):` for a structural commit, each with its tests and its body.
-- **The upgrade**: `revert(<slug>): undo the change before its upgrade`, when the branch committed
-  outside the folder, then `chore(<slug>): upgrade to a feature`.
+- **The upgrade**: `chore(<slug>): start <name> as a feature` on the default branch, then
+  `chore(<slug>): upgrade to a feature` on the branch.
 - **A split-out item**: `chore: draft <Name>`, on the default branch.
 - **The record**: `finish(<slug>): <title>`, as the [finish](finish.md) step says.

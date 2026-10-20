@@ -96,12 +96,16 @@ Do these only when a human asks.
      [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 - **Start as a change**: a bug fix or a small change starts as a [change](change.md), with the same
   steps under its own names: the folder `specs/changes/YYYY-MM-DD-<slug>/`, the branch
-  `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI, "New
-  change" starts one from a typed request, with no draft. With `ura`,
+  `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI,
+  Change on the New page starts one from a typed request, an inbox note, or a priority line, with no
+  draft. A session's offer starts one too: see [Change](change.md#starting-a-change). With `ura`,
   `ura start <draft> --slug <slug> --change` starts a draft as a change, and refuses a postponed
   folder holding files a change's folder has no place for, like a feature's `spec.md`: start that
   one as a feature. By hand, the steps above, with the entry linked to
   `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
+- **Start a change as a feature**: a started change becomes a feature in place, keeping its code,
+  its worktree, and its sessions, on the human's yes. With `ura`, `ura start <change> --feature`. By
+  hand, as [Upgrading](change.md#upgrading) says.
 - **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
   `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
   rounds, and the questions, answered or not, stay as they are. Revert the branch's edits to the
@@ -110,8 +114,12 @@ Do these only when a human asks.
   right section, with the reason when it is blocked, and link it to the folder's `proposal.md`.
   Commit with `chore(<slug>): postpone <feature name>`, merge the branch into the default branch,
   and delete it.
-- **Drop**: after the human confirms, delete the branch, and, on the default branch, the
-  `PRIORITIES.md` entry and the dated folder, in one commit, `chore(<slug>): drop <feature name>`.
+- **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
+  `PRIORITIES.md` entry and its dated folder, in one commit, `chore(<slug>): drop <name>`. Remove
+  its worktree, never forced, and only when it has no uncommitted changes: otherwise it stays, and
+  say where. Keep the branch, so nothing is lost, and give the human `git branch -D <branch>` to
+  delete it. In the web UI, "Drop the change…" or "Drop the feature…" in a session's actions does
+  it. A merged feature is not dropped: `ura clean` removes it.
 
 ## Finishing a feature
 

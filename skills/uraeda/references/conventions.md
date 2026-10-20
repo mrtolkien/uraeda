@@ -125,10 +125,10 @@ branch merges. The approval of the spec, or of a change's round, sets it back to
 
 Only set a human status when the human expressly asks you to in the session, for example "the spec
 is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
-so in its body: "Approved by the human in chat." When the human changes a spec's `risk-tier` on
-approval without naming `plan-review`, set `plan-review` to `false`. With `ura`, pass `--no-commit`
-to `ura answer` or `ura review`, and commit with that message and body. With `changes-requested`,
-the human's feedback is in the file's [review file](#review-files).
+so in its body: "Approved by the human in the session." When the human changes a spec's `risk-tier`
+on approval without naming `plan-review`, set `plan-review` to `false`. With `ura`, pass
+`--no-commit` to `ura answer` or `ura review`, and commit with that message and body. With
+`changes-requested`, the human's feedback is in the file's [review file](#review-files).
 
 ## A file in an old format
 

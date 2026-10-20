@@ -70,9 +70,9 @@ Turn the answered round's `> [!IMPORTANT]` block into a record, as described in
 
 Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown or is
 ambiguous in a way that matters. Start one too when the human asked for more options. A folder from
-an [upgraded change](change.md#upgrading) has rounds with no discovery file, that settled the
-change, not the feature's scope: start a new round for it. Otherwise, write the decisions the
-answers ask for, then the spec.
+a [change made a feature](change.md#upgrading) has rounds with no discovery file, that settled the
+change, not the feature's scope: start a new round for it, at the proposal's discovery effort.
+Otherwise, write the decisions the answers ask for, then the spec.
 
 ## Propose decisions
 

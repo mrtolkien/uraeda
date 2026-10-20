@@ -18,7 +18,7 @@ current branch's feature, or the only one waiting for that action.
 | `ura draft <text>`                                                                     | [Drafts](projects.md#starting-postponing-and-dropping-a-feature) a line                 |
 | `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, and commits it                            |
 | `ura inbox clean`, `--dry-run`                                                         | Deletes [the orphan images](inbox.md#images-on-a-note) of drafts and the backlog        |
-| `ura start <draft>`, `--switch`, `--change`                                            | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change |
+| `ura start <draft>`, `--switch`, `--change`, `--feature`                               | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change |
 | `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                           | Answers a round of questions, then submits it                                           |
 | `ura review [feature] --comment`, `--approve`, `--request-changes`                     | [Reviews](conventions.md#review-files) a spec or a plan                                 |
 | `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature                                    |
@@ -38,7 +38,8 @@ It exits with an error when it found a problem, and with success when it found o
 the implementation is under way. `ura answer --submit` and `ura review` set the human's status,
 record the block, and commit: a human runs them, or an agent the human asked, with `--no-commit`.
 Every command writes on a branch through its worktree (see [Branches](conventions.md#branches));
-`ura start --switch` switches the checkout instead.
+`ura start --switch` switches the checkout instead. `ura start <change> --feature` takes a started
+change and makes it a feature in place, as [Upgrading](change.md#upgrading) says.
 
 `ura` refuses, before writing anything, what would break these rules by hand too:
 
@@ -47,5 +48,9 @@ Every command writes on a branch through its worktree (see [Branches](convention
 - A commit while other files are staged, since it would carry them. The exception is `ura note`'s,
   which commits `INBOX.md` alone.
 - With `--switch`, a branch switch over uncommitted changes.
+- A start whose folder or branch name is taken: choose another slug with `--slug`.
+- With `--feature`, a draft or a feature: it takes a started change. A change with a pull request,
+  since its branch would be renamed: close it first. A change whose worktree has uncommitted
+  changes.
 - A worktree whose folder is taken by something else.
 - A review file that does not parse: it may hold the human's comments, and is never overwritten.
