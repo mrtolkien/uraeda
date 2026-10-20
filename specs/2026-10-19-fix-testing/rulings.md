@@ -333,8 +333,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R33: No case moved to the focused boundary; the browser checks are unchanged
 
-- **Decision**: No case of the six application suites was removed, skipped, moved, or loosened, and
-  no file of `__browser__` or `editors/nvim/tests` was edited.
+- **Decision**: No case of the six application suites was removed, skipped, or moved, and none was
+  loosened except the home page's heading wording and first count's name, which R31 records. No file
+  of `__browser__` or `editors/nvim/tests` was edited.
 - **Rationale**: Step 1's map found each local Composer variant of `session.test.tsx` either already
   owned by `__focused__/composer.test.tsx` (the refused send, the upload gate, the workflow's
   images, in Task 2) or tied to the session page's own state (the draft across a session's creation,
