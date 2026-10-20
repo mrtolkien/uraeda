@@ -152,7 +152,7 @@ test("a message sent after the step moved shows it went as a chat", async () => 
   addPlan(repo, CLI, [["Do", 0, 1]], "awaiting-human");
   await click(screen.getByRole("button", { name: "Start the agent" }));
 
-  expect(await screen.findByText("Sent as a chat: the feature now waits on you.")).toBeTruthy();
+  expect(await screen.findByText("Sent as a message: the feature now waits on you.")).toBeTruthy();
   await waitFor(() => expect(agent.sent).toHaveLength(1));
   expect(
     within(screen.getByRole("log", { name: "Conversation" })).queryByText("Run: Plan"),

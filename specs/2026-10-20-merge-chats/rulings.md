@@ -709,3 +709,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   session of the change works: the server logs it. `toChange` in
   `packages/server/src/fate/session-moves.ts`.
 - **Where**: the final review's fixes.
+
+## R41: An untitled session reads "New session", and a run sent as a message says so
+
+- **Decision**: a session without a workflow and without a title reads "New session", not "New
+  chat", and a workflow message that no longer applied reads "Sent as a message: …", not "Sent as a
+  chat: …". The tests pinning them follow: the server's `sessions.test.ts` (a new chat's title, the
+  queued run's line), `runner/__tests__/sessions.test.ts`, `message.test.ts`, and `cache.test.ts`,
+  and the web's `commit-actions.test.tsx` and `recommended.test.tsx`. A session titled "New chat"
+  before keeps its title: `cache.test.ts`'s migration fixture still reads it.
+- **Rationale**: the final review found "chat" still shown, after the spec merged chats into
+  sessions.
+- **Alternatives considered**: none.
+- **If wrong**: `NEW_SESSION` in `packages/server/src/fate/sessions.ts`, `chatTitle` in
+  `runner/message.ts`, the `SENT_AS_CHAT` lines in `runner/session-state.ts`.
+- **Where**: the final review's fixes.

@@ -141,7 +141,7 @@ test("US2.4: a feature that waits on you again sends the message as a chat", asy
 
   await click(startInComposer());
 
-  expect(await screen.findByText("Sent as a chat: the feature now waits on you.")).toBeTruthy();
+  expect(await screen.findByText("Sent as a message: the feature now waits on you.")).toBeTruthy();
   await waitFor(() => expect(agent.sent).toHaveLength(1));
 });
 

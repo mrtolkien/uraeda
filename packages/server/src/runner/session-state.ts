@@ -52,13 +52,13 @@ export const ofDropped = (row: { archivedAt: string | null; folder: string | nul
   row.folder !== null && row.archivedAt !== null;
 
 /** The line of a workflow message sent once it no longer applied: the feature waits on the human. */
-export const SENT_AS_CHAT = "Sent as a chat: the feature now waits on you.";
+export const SENT_AS_CHAT = "Sent as a message: the feature now waits on you.";
 
 /** The line of a workflow message sent once it no longer applied, at another step. */
-export const SENT_AS_CHAT_MOVED_ON = "Sent as a chat: the feature moved on to another step.";
+export const SENT_AS_CHAT_MOVED_ON = "Sent as a message: the feature moved on to another step.";
 
 /** The line of a comments message sent without a pull request to address. */
-export const SENT_AS_CHAT_NO_PULL_REQUEST = "Sent as a chat: no pull request is open.";
+export const SENT_AS_CHAT_NO_PULL_REQUEST = "Sent as a message: no pull request is open.";
 
 /** The line a turn shows when its session's transcript was gone, and a new one started. */
 export const REPLACED = "Started a new session: the previous one is gone.";
