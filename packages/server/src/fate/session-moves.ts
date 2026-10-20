@@ -1,5 +1,6 @@
 import type { Trigger } from "../runner/events.ts";
 import { editedFiles, movedOpening } from "../runner/moves.ts";
+import { REFUSALS } from "../runner/sessions.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
@@ -102,8 +103,9 @@ async function startChange(ctx: RepoContext, text: string, slug?: string) {
 /**
  * Makes a session without a workflow the change of the card's text and slug: the change starts,
  * the session moves to it, and its first run goes to the session, after the line telling the
- * agent where it works now and which files to carry over. A session that cannot move once the
- * change started stays without a workflow, and the refusal names the change.
+ * agent where it works now and which files to carry over: refused while the agent is unavailable.
+ * A session that cannot move once the change started stays without a workflow, and the refusal
+ * names the change.
  */
 async function toChange(
   ctx: RepoContext,
@@ -117,6 +119,11 @@ async function toChange(
     }
     if (found.folder !== null) {
       throw new Error(`refused: the session already belongs to ${found.folder}`);
+    }
+    // Without the agent, the run telling it where it works now, and which files to carry over,
+    // could not be sent: the move waits for it, as a run does.
+    if (!ctx.sessions.status().available) {
+      throw new Error(`refused: ${REFUSALS.unavailable(ctx.sessions.adapter.name)}`);
     }
     return found;
   });

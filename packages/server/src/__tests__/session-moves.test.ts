@@ -178,6 +178,25 @@ test("toChange waits while the agent works", async () => {
   expect(branches(server, "change/*")).toBe("");
 });
 
+/** Review: without the agent, the session would move with no run to tell it where it works now. */
+test("toChange waits for the agent", async () => {
+  const server = await testServer();
+  const chat = await chatThatEdited(server);
+  server.adapter.installed = false;
+  await server.sessions.check();
+
+  const refused = await mutate(
+    server.app,
+    "session.toChange",
+    { session: chat, slug: "login-redirect", text: PROPOSAL },
+    FEATURE_FIELDS,
+  );
+
+  expect(refused.error?.message).toBe("refused: Claude Code is not available on this machine.");
+  expect(branches(server, "change/*")).toBe("");
+  expect(server.sessions.cache.session(chat)?.folder).toBeNull();
+});
+
 /** Edge case: the change starts, then the session cannot move to it. */
 test("a failed attach leaves the session without a workflow", async () => {
   const server = await testServer();
