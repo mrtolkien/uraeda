@@ -9,6 +9,7 @@ use uraeda_core::embedded;
 use uraeda_core::files::clarifications::AnswerError;
 use uraeda_core::files::document::hash;
 use uraeda_core::git::Git;
+use uraeda_core::steps::StepName;
 use uraeda_core::today::Date;
 use uraeda_core::workspace::{Feature, Kind, Workspace};
 
@@ -1720,8 +1721,19 @@ fn a_draft_starts_as_a_change() {
         in_change(&repo, &proposal),
         "# Login banner\n\n## What\n\nA banner.\n"
     );
-    assert_eq!(repo.changed_in(&branch), [proposal, DRAFT.to_string()]);
-    assert_eq!(repo.subjects(&branch)[0], "chore(centred-x): proposal");
+    assert_eq!(repo.read(&proposal), in_change(&repo, &proposal));
+    assert_eq!(
+        repo.changed_in(&branch),
+        [
+            "specs/PRIORITIES.md".to_string(),
+            proposal,
+            DRAFT.to_string()
+        ]
+    );
+    assert_eq!(
+        repo.subjects(&branch)[0],
+        "chore(centred-x): start Login banner"
+    );
     let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
     assert!(
         priorities.contains(
@@ -1729,6 +1741,31 @@ fn a_draft_starts_as_a_change() {
         ),
         "{priorities}"
     );
+}
+
+/// A started feature's folder is on main from the start: it is its branch's, waiting on discovery,
+/// not merged.
+#[test]
+fn a_started_feature_on_main_is_its_branchs() {
+    let repo = draft_repo();
+    let (git, workspace) = opened(&repo);
+    start::run(
+        &git,
+        &workspace,
+        DRAFT,
+        Some("centred-x"),
+        Kind::Feature,
+        change_day(),
+        false,
+    )
+    .unwrap();
+
+    let (_, workspace) = opened(&repo);
+
+    let feature = workspace.feature(CHANGE_FOLDER).unwrap();
+    assert_eq!(feature.branch.as_deref(), Some(CHANGE_FOLDER));
+    assert_eq!(feature.step.name, StepName::Discovery);
+    assert_eq!(workspace.features.len(), 1);
 }
 
 /// Edge case: a postponed feature's folder, with a discovery round, a spec, and a plan, holds files
@@ -1782,11 +1819,17 @@ fn a_typed_text_starts_a_change() {
         "# Centre the x in failure circles\n\nIn failures the x sits low in its circle.\n"
     );
     let branch = format!("change/{CHANGE_FOLDER}");
-    assert_eq!(repo.changed_in(&branch), [proposal]);
-    assert_eq!(repo.subjects(&branch)[0], "chore(centred-x): proposal");
     assert_eq!(
-        repo.subjects("main")[0],
+        repo.changed_in(&branch),
+        ["specs/PRIORITIES.md".to_string(), proposal]
+    );
+    assert_eq!(
+        repo.subjects(&branch)[0],
         "chore(centred-x): start Centre the x in failure circles"
+    );
+    assert_eq!(
+        repo.git(&["rev-parse", "main"]),
+        repo.git(&["rev-parse", &branch])
     );
     let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
     assert!(
@@ -1798,7 +1841,7 @@ fn a_typed_text_starts_a_change() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// US1.2: the images are saved in the change's folder and committed with its proposal.
+/// US1.2: the images are saved in the change's folder and committed with its proposal, on main.
 #[test]
 fn a_typed_text_brings_its_images() {
     let repo = draft_repo();
@@ -1814,8 +1857,9 @@ fn a_typed_text_brings_its_images() {
         "{proposal}"
     );
     assert_eq!(
-        repo.changed_in(&format!("change/{CHANGE_FOLDER}")),
+        repo.changed_in("main"),
         [
+            "specs/PRIORITIES.md".to_string(),
             format!("{folder}/images/image-1.webp"),
             format!("{folder}/images/image-2.webp"),
             format!("{folder}/proposal.md"),
@@ -1823,7 +1867,7 @@ fn a_typed_text_brings_its_images() {
     );
 }
 
-/// A failed typed start leaves the whole folder to write and commit: the proposal and its images.
+/// A failed typed start leaves the whole folder written, to commit with the entry.
 #[test]
 fn a_failed_typed_start_leaves_its_proposal_and_images() {
     let repo = draft_repo();
@@ -1835,13 +1879,15 @@ fn a_failed_typed_start_leaves_its_proposal_and_images() {
         panic!("not a partial failure")
     };
     let folder = format!("specs/changes/{CHANGE_FOLDER}");
+    assert!(repo.exists(&format!("{folder}/proposal.md")));
+    assert!(repo.exists(&format!("{folder}/images/image-1.webp")));
     assert_eq!(
         left,
         [
-            "commit specs/PRIORITIES.md on main as \"chore(centred-x): start Centre the x in failure circles\"".to_string(),
-            format!("create the branch change/{CHANGE_FOLDER}"),
-            format!("write {folder}/proposal.md from the text, and its images in {folder}/images/"),
-            format!("commit {folder}/ as \"chore(centred-x): proposal\""),
+            format!(
+                "commit specs/PRIORITIES.md and {folder}/ on main as \"chore(centred-x): start Centre the x in failure circles\""
+            ),
+            format!("create the branch change/{CHANGE_FOLDER} in .worktrees/{CHANGE_FOLDER}"),
         ]
     );
 }

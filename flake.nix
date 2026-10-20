@@ -109,6 +109,14 @@
               "uraeda-cli"
             ];
             doCheck = false;
+            # Tab completion, where fish and zsh find it: each script asks `ura` at every Tab. The
+            # scripts come from running `ura`, which a cross build cannot.
+            nativeBuildInputs = [ pkgs.installShellFiles ];
+            postInstall = pkgs.lib.optionalString (pkgs.stdenv.buildPlatform.canExecute pkgs.stdenv.hostPlatform) ''
+              installShellCompletion --cmd ura \
+                --fish <(COMPLETE=fish $out/bin/ura) \
+                --zsh <(COMPLETE=zsh $out/bin/ura)
+            '';
             meta.mainProgram = "ura";
           };
         }

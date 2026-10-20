@@ -72,9 +72,12 @@ async function main() {
   ) {
     throw new Error("usage: vp run fast [--base <commit>] [--graph]");
   }
-  const selection = selectFast(
-    changedFiles(process.cwd(), baseIndex >= 0 ? args[baseIndex + 1] : undefined),
+  const changed = changedFiles(process.cwd(), baseIndex >= 0 ? args[baseIndex + 1] : undefined);
+  report(
+    "Changed:",
+    changed.map(({ path }) => path),
   );
+  const selection = selectFast(changed);
   report("Fast selection:", JSON.stringify(selection, null, 2));
   report(`Deferred to ready: ${selection.deferred.join("; ")}`);
   if (selection.checks.includes("ready")) {

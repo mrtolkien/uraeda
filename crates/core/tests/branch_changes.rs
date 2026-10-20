@@ -158,6 +158,8 @@ fn change(repo: &TestRepo) -> &'static str {
 fn merged(repo: &TestRepo) -> &'static str {
     code(repo);
     repo.git(&["merge", "--quiet", "--no-ff", "--no-edit", FOLDER]);
+    // A folder on the default branch is its branch's while the branch is there.
+    repo.delete_branch(FOLDER);
     FOLDER
 }
 

@@ -200,6 +200,20 @@ skill for your user. Without `ura`, install the skill for any agent with
 `npx skills add mrtolkien/uraeda`. `ura upgrade` installs the latest release, through the installer
 script or Homebrew, then updates your skill; with Nix, update the flake input.
 
+Tab completes `ura`'s commands, flags, and values in fish and zsh: drafts after `ura start`, the
+features and changes under way after `ura next`, and the open questions after `ura answer`. Homebrew
+and the Nix package install its scripts, which a fish or zsh from the same package manager finds
+without setup; another zsh needs their folder on its `fpath`, as Homebrew's
+[shell completion](https://docs.brew.sh/Shell-Completion) page says, or the line below. Otherwise,
+in fish, `ura install` offers to set it up, and `ura install --completions` does it alone. In zsh,
+add one line to `~/.zshrc`, after `compinit`. Either way, the shell asks `ura` itself at each Tab,
+so completion follows every upgrade:
+
+```sh
+echo 'COMPLETE=fish ura | source' > ~/.config/fish/completions/ura.fish  # fish, by hand
+echo 'source <(COMPLETE=zsh ura)' >> ~/.zshrc                            # zsh
+```
+
 The web UI comes from npm. In a repository, run `npx @uraeda/ui`: it starts the server on
 http://127.0.0.1:4310 and opens the repository in your browser. It needs Node 24 or later, and
 sessions need `claude` installed and signed in. Run `npx @uraeda/ui` in another repository and it
@@ -301,7 +315,8 @@ the layout tests find their WebKit browser:
 ```sh
 vp install         # dependencies
 vp run --filter uraeda-binding build  # the Rust core for Node, which vp dev and the tests rebuild when older
-vp run ready       # every check and test; CI also runs the Neovim tests
+vp run fast        # after each task: the checks a change can affect, and the ones left to ready
+vp run ready       # before a push: every check and test; CI also runs the Neovim tests
 vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
 vp run dev         # the same, rebuilding the Rust core and restarting as it or the server changes
 vp run --filter @uraeda/ui build  # the npm package, in packages/uraeda, after the web UI's build

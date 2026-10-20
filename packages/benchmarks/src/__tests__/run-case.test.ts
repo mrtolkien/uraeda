@@ -417,6 +417,26 @@ test("the agent loads the skill as the commit had it, not as the working tree ha
   expect(JSON.parse(readFileSync(join(folder, "record.json"), "utf8")).skill.dirty).toBe(true);
 });
 
+test("the record names the repository's commit as the run started, not as it ended", async () => {
+  const h = await harness();
+  const before = (await git(h.repository, ["rev-parse", "HEAD"])).trim();
+  const adapter = h.deps.adapter;
+  h.deps.adapter = (kind, sandbox, pluginDir) => {
+    // A commit lands in the repository while the flow's agent works.
+    if (kind === "agent" && existsSync(join(pluginDir, "skills/uraeda/SKILL.md"))) {
+      execFileSync("git", ["commit", "-q", "--allow-empty", "-m", "meanwhile"], {
+        cwd: h.repository,
+      });
+    }
+    return adapter(kind, sandbox, pluginDir);
+  };
+
+  const folder = await runFlow(h.deps, { ...target, case: h.case, suite: h.suite });
+
+  const record = JSON.parse(readFileSync(join(folder, "record.json"), "utf8"));
+  expect(record.repository.commit).toBe(before);
+});
+
 test("a judge session answered by another model fails the run", async () => {
   const h = await harness({ judgeModel: "claude-haiku-4-5" });
 

@@ -4,6 +4,7 @@ mod add;
 mod answer;
 mod check;
 mod clean;
+mod complete;
 mod draft;
 mod editor;
 mod inbox;
@@ -14,6 +15,7 @@ mod note;
 mod output;
 mod picker;
 mod review;
+mod shell;
 mod start;
 mod status;
 mod terminal;
@@ -53,11 +55,11 @@ enum Command {
         /// The note's text, on one line
         text: String,
         /// The category, a ## heading of INBOX.md, created when missing
-        #[arg(long)]
+        #[arg(long, add = complete::categories())]
         category: Option<String>,
         /// The feature or change the note is about, written as its slug; by default, the one of
         /// this checkout's branch
-        #[arg(long)]
+        #[arg(long, add = complete::started())]
         about: Option<String>,
         /// Mark the note as written by an agent
         #[arg(long)]
@@ -72,6 +74,7 @@ enum Command {
     /// Start a drafted feature or change: its entry in Now, its branch, and its proposal
     Start {
         /// The draft: a file or folder in specs/drafts/ or specs/backlog/, or its name
+        #[arg(add = complete::drafts())]
         target: Option<String>,
         /// The slug of the feature's or change's folder and branch, instead of the draft's name
         #[arg(long)]
@@ -94,6 +97,7 @@ enum Command {
     Answer {
         /// [target] <question> <answer>: the feature (optional), the question (Q2, Q2.B, or
         /// notes), and the answer
+        #[arg(add = complete::questions())]
         arguments: Vec<String>,
         /// Submit the round: set it answered, record its block, and commit
         #[arg(long)]
@@ -109,6 +113,7 @@ enum Command {
     /// Review a spec or a plan: comment, then approve or request changes
     Review {
         /// The feature or change, or the file's path
+        #[arg(add = complete::started())]
         target: Option<String>,
         /// Comment on lines of the committed file, or on all of it: 50, 50-52, or general
         #[arg(long, num_args = 2, value_names = ["LINES", "TEXT"])]
@@ -138,6 +143,7 @@ enum Command {
     /// Check workflow files against the skill's rules
     Check {
         /// A specs/ folder, a folder under it, or a file; specs/ by default
+        #[arg(add = complete::checked())]
         target: Option<String>,
         /// Print JSON
         #[arg(long)]
@@ -146,6 +152,7 @@ enum Command {
     /// Tell an agent the next step: of a feature or change, or of the first one in Now with work
     Next {
         /// A feature or change: a path under specs/, a folder name, or a slug
+        #[arg(add = complete::started())]
         target: Option<String>,
         /// Print JSON
         #[arg(long)]
@@ -154,6 +161,7 @@ enum Command {
     /// Remove the worktree and the branch merged features left behind
     Clean {
         /// A merged feature or change: a path under specs/, a folder name, or a slug
+        #[arg(add = complete::merged())]
         target: Option<String>,
         /// Clean every merged feature with a worktree or a branch left
         #[arg(long)]
@@ -169,11 +177,13 @@ enum Command {
     /// Add the git repository holding a folder to the web UI's list
     Add {
         /// A folder in the repository; the current folder by default
+        #[arg(value_hint = clap::ValueHint::DirPath)]
         folder: Option<std::path::PathBuf>,
     },
 }
 
 fn main() -> ExitCode {
+    complete::answer();
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(error) if !error.use_stderr() => error.exit(),

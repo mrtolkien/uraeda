@@ -290,9 +290,10 @@ fn a_failed_start_commit_leaves_the_checkout_on_its_branch() {
         repo.read(".worktrees/main/specs/PRIORITIES.md")
             .contains("- [Tags](/specs/2026-10-11-tags/proposal.md)")
     );
+    assert!(repo.exists(".worktrees/main/specs/2026-10-11-tags/proposal.md"));
     assert!(
         output.stderr.ends_with(
-            "ura: git commit failed: boom\nLeft: commit specs/PRIORITIES.md on main as \"chore(tags): start Tags\", then create the branch 2026-10-11-tags, then move specs/drafts/tags.md to specs/2026-10-11-tags, then commit specs/2026-10-11-tags/proposal.md as \"chore(tags): proposal\".\n"
+            "ura: git commit failed: boom\nDone: the move of the draft.\nLeft: commit specs/PRIORITIES.md, the removal of specs/drafts/tags.md, and specs/2026-10-11-tags/ on main as \"chore(tags): start Tags\", then create the branch 2026-10-11-tags in .worktrees/2026-10-11-tags.\n"
         ),
         "{}",
         output.stderr

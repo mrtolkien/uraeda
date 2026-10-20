@@ -1,7 +1,8 @@
 # Conventions
 
-The conventions shared by all steps: how workflow files are written and track their state, and how
-the human reviews them. Also where each feature's branch lives, and how every step commits.
+The conventions shared by all steps: how workflow files are written and track their state, how one
+in an old format is rewritten, and how the human reviews them. Also where each feature's branch
+lives, and how every step commits.
 
 ## Markdown
 
@@ -129,6 +130,14 @@ approval without naming `plan-review`, set `plan-review` to `false`. With `ura`,
 to `ura answer` or `ura review`, and commit with that message and body. With `changes-requested`,
 the human's feedback is in the file's [review file](#review-files).
 
+## A file in an old format
+
+When a workflow file of the target fails `ura check`, or the rules of [Markdown](#markdown), because
+the skill changed its format, rewrite it from its template first, keeping its content, and the
+human's answers, notes, and comments, word for word. Commit it on its own,
+`chore(<slug>): rewrite <file> in the new format`, then run the step. An answered round stays
+answered: only its form changes.
+
 ## Review files
 
 A review of `spec.md` or `plan.md` writes its comments in `spec-review.md` or `plan-review.md`, next
@@ -165,9 +174,11 @@ status, the block's record, and the commit.
 ## Branches
 
 Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`). The
-branch holds everything from the proposal to the code: discovery, questions, spec, decisions, plan,
-and implementation, until its folder is [finished](projects.md#finishing-a-feature) into a record.
-Its pull request merges all of it at once. Decisions become active on the branch when its spec is
+proposal is committed on the default branch when the feature
+[starts](projects.md#starting-postponing-and-dropping-a-feature), and the branch starts from there.
+The branch holds everything after it: discovery, questions, spec, decisions, plan, and
+implementation, until its folder is [finished](projects.md#finishing-a-feature) into a record. Its
+pull request merges all of it at once. Decisions become active on the branch when its spec is
 approved, and bind the rest of the project once the branch is merged. A change lives on
 `change/YYYY-MM-DD-<slug>`, named after its folder, `specs/changes/YYYY-MM-DD-<slug>/`. Run every
 step on the target's branch: the human answers and approves on it too.
@@ -205,19 +216,19 @@ Its rounds use `discovery(<slug>):`, and an approved change to a decision uses
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
 and `chore:` for the rest. `ura` and the web UI write the same messages.
 
-| Commit                         | Example                                                                                             |
-| ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Answer a round of questions    | `discovery(recurring-tasks): answer round 01`                                                       |
-| Approve, or request changes    | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                          |
-| A draft, then its edits        | `chore: draft Recurring tasks`, `chore: edit the draft Recurring tasks`                             |
-| A backlog file, then its edits | `chore: add Benchmarks to the backlog`, `chore: edit Benchmarks in the backlog`                     |
-| A proposal, then its edits     | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                     |
-| Start, postpone                | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks` |
-| `PRIORITIES.md` alone          | `chore: move "Recurring tasks" to Next`                                                             |
-| A note                         | `chore: add "Sort completed tasks" to the inbox`                                                    |
-| `INBOX.md`, and where notes go | `chore: move "Sort completed tasks" from the inbox to Next`                                         |
-| The inbox triage               | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage` |
-| Notes moved into the inbox     | `chore: move the scratchpad to the inbox`                                                           |
+| Commit                         | Example                                                                                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Answer a round of questions    | `discovery(recurring-tasks): answer round 01`                                                                                                       |
+| Approve, or request changes    | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                                                                          |
+| A draft, then its edits        | `chore: draft Recurring tasks`, `chore: edit the draft Recurring tasks`                                                                             |
+| A backlog file, then its edits | `chore: add Benchmarks to the backlog`, `chore: edit Benchmarks in the backlog`                                                                     |
+| A proposal, then its edits     | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                                                                     |
+| Start, postpone, drop          | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks`, `chore(recurring-tasks): drop Recurring tasks` |
+| `PRIORITIES.md` alone          | `chore: move "Recurring tasks" to Next`                                                                                                             |
+| A note                         | `chore: add "Sort completed tasks" to the inbox`                                                                                                    |
+| `INBOX.md`, and where notes go | `chore: move "Sort completed tasks" from the inbox to Next`                                                                                         |
+| The inbox triage               | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage`                                                 |
+| Notes moved into the inbox     | `chore: move the scratchpad to the inbox`                                                                                                           |
 
 A commit of `PRIORITIES.md` alone names its one change: `add "<entry>" to <section>`,
 `remove "<entry>"`, `edit "<entry>"`, `move "<entry>" to <section>`, or

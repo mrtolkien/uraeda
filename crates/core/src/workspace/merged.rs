@@ -1,11 +1,14 @@
 //! What the default branch merged, local or on `origin`: the records of `specs/done/` and the
-//! feature and change folders of each tip.
+//! feature and change folders of each tip whose branch is gone. A started feature's folder is on
+//! the default branch from its start, and is its branch's while the branch is there.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
-use super::{Kind, ReadFrom, Reader, folder_path, folder_slug, record_kind, record_path};
-use crate::git::ObjectId;
+use super::{
+    Kind, ReadFrom, Reader, folder_branch, folder_path, folder_slug, record_kind, record_path,
+};
+use crate::git::{Branch, ObjectId};
 
 impl Reader<'_> {
     /// The records of `specs/done/`, by kind and folder, with their texts.
@@ -86,7 +89,7 @@ impl Reader<'_> {
 }
 
 /// What the default branch merged, local or on `origin`, so a merge made on the forge shows before
-/// the next pull: the records and the folders of each tip.
+/// the next pull: the records, and the folders of each tip without a branch.
 pub(super) struct Merged {
     pub(super) records: Vec<BTreeMap<(Kind, String), String>>,
     pub(super) folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)>,
@@ -96,7 +99,16 @@ pub(super) struct Merged {
 
 impl Merged {
     /// What each tip merged, or only the folder `only`'s record and folders.
-    pub(super) fn read(reader: &Reader<'_>, tips: &[ObjectId], only: Option<&str>) -> Merged {
+    pub(super) fn read(
+        reader: &Reader<'_>,
+        tips: &[ObjectId],
+        only: Option<&str>,
+        branches: &[Branch],
+    ) -> Merged {
+        let branched = |(kind, folder): &(Kind, String)| {
+            let name = folder_branch(*kind, folder);
+            branches.iter().any(|branch| branch.name == name)
+        };
         let records: Vec<BTreeMap<(Kind, String), String>> = tips
             .iter()
             .map(|tip| match only {
@@ -106,9 +118,13 @@ impl Merged {
             .collect();
         let folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)> = tips
             .iter()
-            .map(|tip| match only {
-                Some(folder) => (*tip, reader.folder(*tip, folder)),
-                None => (*tip, reader.folders(ReadFrom::Commit(*tip))),
+            .map(|tip| {
+                let mut folders = match only {
+                    Some(folder) => reader.folder(*tip, folder),
+                    None => reader.folders(ReadFrom::Commit(*tip)),
+                };
+                folders.retain(|key| !branched(key));
+                (*tip, folders)
             })
             .collect();
         let keys = records

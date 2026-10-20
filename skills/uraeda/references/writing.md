@@ -132,44 +132,51 @@ this way, and a human can write them by hand.
 ### Questions
 
 16. **Each question is a card the human decides from alone.** Its heading is the question, as a full
-    sentence ending with a question mark. Then its context, then a paragraph starting "Why it
-    matters:", then its options, then `**Answer:**`, left empty.
-17. **"Why it matters" says what the choice decides, and what it costs later.** One or two
+    sentence ending with a question mark. Then its example when it has one, its context, a paragraph
+    starting "Why it matters:", its options, and `**Answer:**`, left empty.
+17. **An abstract choice opens with an example, and each option gives its outcome.** When the
+    options are rules or behaviours that are hard to picture, a line starting "Example:" sets one
+    concrete case, with real names and values: "'Water the plants' repeats every Monday. You
+    complete it on Monday 5 October." Each option then says, in one line, what happens in that case.
+    The human compares outcomes they can picture, instead of abstract rules. A question whose
+    options are already concrete, such as a library or a name, needs no example.
+18. **"Why it matters" says what the choice decides, and what it costs later.** One or two
     sentences, after the context and before the options. It tells the human how much thought the
     question deserves.
-18. **Adequate context.** A question's context holds what deciding it needs, without the discovery
-    open. That is what exists today, how others do it, the sources linked or quoted, and what each
-    answer leads to. The human answers from the card, and opens a link only to dig deeper.
-    - It has no length limit: a hard question gets the paragraphs, tables, quotes, and diagrams it
-      needs. The 25-word sentence limit still applies.
+19. **Short, adequate context.** A question's context holds what deciding it needs, without the
+    discovery open. That is what exists today, how others do it, the sources linked or quoted, and
+    what each answer leads to. The human answers from the card, and opens a link only to dig deeper.
+    - It stays short: the example carries the stakes, so the context adds only what the example does
+      not show. A comparison gets a table, a flow a diagram, and the rest stays in the discovery,
+      linked.
     - It has no padding: a sentence that changes no option's weight is cut.
     - Dependencies on other questions are said in both: "Where the choice appears is Q6".
     - It links the discovery topic it relies on, for a reader who wants more.
 
 ### Options
 
-19. **Each option is a self-contained sentence, in bold.** "Create the next occurrence as a new task
+20. **Each option is a self-contained sentence, in bold.** "Create the next occurrence as a new task
     when the current one is completed", not "On completion". The human reads options side by side,
     without the context above. Name every detail that matters, like the field a rule is typed in.
-20. **The recommended option comes first, as A.** It is labelled "A (recommended)", with a "Why
+21. **The recommended option comes first, as A.** It is labelled "A (recommended)", with a "Why
     recommended:" line under its pros and cons. The human sees the agent's reading of the evidence
     first, and can disagree with it.
-21. **Under each option, a `[pro]` line and a `[con]` line.** One fact each, short enough to compare
+22. **Under each option, a `[pro]` line and a `[con]` line.** One fact each, short enough to compare
     across options at a glance.
-22. **A point that depends on an answer goes into that option.** "Undo restores the previous due
+23. **A point that depends on an answer goes into that option.** "Undo restores the previous due
     date" belongs under the option that moves due dates, not among the settled points. The human
     weighs it with the choice it follows from.
 
 ### Settled without the human
 
-23. **Settled points sit in three groups, in this order, each left out when empty.** The human
+24. **Settled points sit in three groups, in this order, each left out when empty.** The human
     checks the first group closely, reads the second, and skims the third. Every point sits in one
     group: a point outside a group fails `ura check`.
     - `### Check these`: what the human would want to object to. A scope cut, a choice beyond the
       proposal, an assumption that could be wrong.
     - `### Behaviour`: what users will notice, settled within the constitution and the decisions.
     - `### Under the hood`: choices in the code only, which users never see.
-24. **A settled point starts with its bold subject**, continued by what was chosen and why, then a
+25. **A settled point starts with its bold subject**, continued by what was chosen and why, then a
     link to its source: `- **Undoing a completion** puts back what completing changed. See ...`.
     Subjects are unique in the round: the human comments on a point by its subject.
 
@@ -180,27 +187,27 @@ A spec, `spec.md`, is written from
 [Spec and decisions](spec.md#spec-document) gives. The human approves it in one sitting, without
 opening anything else, so each rule below keeps it short and whole.
 
-25. **The block's first item starts "You approve".** It says in one sentence what approving commits
+26. **The block's first item starts "You approve".** It says in one sentence what approving commits
     to. The human knows what is at stake before any detail. The first line still gives the time.
-26. **At most 7 items, "You approve" included.** Then what most needs attention, most important
+27. **At most 7 items, "You approve" included.** Then what most needs attention, most important
     first, as for a round. `block.items` warns on an eighth item.
-27. **The time counts the reviewed part.** The reviewed part is every section but the "More
+28. **The time counts the reviewed part.** The reviewed part is every section but the "More
     scenarios" lists and `## History`. Count its words at 250 a minute. Add a minute per mockup and
     per changed decision. Round up to the next 5 minutes. A reviewed part of 1,800 words with 2
     mockups and 1 changed decision is 7.2 plus 3, about 15 minutes. On a revision, count only what
     changed since the last review, and `## Your review`: the human reads the rest again only if they
     want to.
-28. **Answers paraphrased, never cited by number.** The block and the spec say what the human chose,
+29. **Answers paraphrased, never cited by number.** The block and the spec say what the human chose,
     in words: "the due date moves", not "A in Q2". A review comment is named by its subject, never
     "C1" alone. The human reads the spec days after the round, without it open.
-29. **Git chores stay out of the block.** A rewritten file, a merge, or a rebase is no choice to
+30. **Git chores stay out of the block.** A rewritten file, a merge, or a rebase is no choice to
     approve: the commits record it. An item spent on one hides an item that mattered.
-30. **Each rule stated once.** A rule lives in one part of the spec, or in a decision, and every
+31. **Each rule stated once.** A rule lives in one part of the spec, or in a decision, and every
     other mention links to it. Two copies drift, and the human reviews the same rule twice.
-31. **The reviewed part aims at 2,000 words.** Length goes to what the human decides. The build's
+32. **The reviewed part aims at 2,000 words.** Length goes to what the human decides. The build's
     details are the plan's, and the rarer scenarios go under "More scenarios". `spec.length` warns
     past 2,500 words on a spec waiting for review.
-32. **The split rule: past 6 stories, 30 scenarios, or 2 changed decisions, the discovery proposes a
+33. **The split rule: past 6 stories, 30 scenarios, or 2 changed decisions, the discovery proposes a
     split.** A larger spec cannot be approved in one sitting. The split is a question of the round,
     with the recommended split as option A.
 
@@ -211,17 +218,17 @@ A decision, in `specs/decisions/`, is written from
 [writing a decision](spec.md#writing-a-decision) describes. Agents read it before every task it
 applies to, and the human approves each of its lines.
 
-33. **The intent first.** Two or three sentences before `## Rules`: the choice and what it protects.
+34. **The intent first.** Two or three sentences before `## Rules`: the choice and what it protects.
     A reader who stops there knows what the decision is for. A decision states intent, not
     mechanism: see [what is a decision](spec.md#what-is-a-decision).
-34. **One sentence per rule**, then how it is checked: "Checked by review." A rule holding two ideas
+35. **One sentence per rule**, then how it is checked: "Checked by review." A rule holding two ideas
     is two rules, or one too detailed.
-35. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come
+36. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come
     first, then SHOULD and SHOULD NOT, then MAY, the most important first within a strength.
     `decision.order` warns on a rule stronger than the one before it.
-36. **At most 10 rules.** Past 10, merge rules by concept, or split the topic into two decisions.
+37. **At most 10 rules.** Past 10, merge rules by concept, or split the topic into two decisions.
     `decision.rules` warns on an eleventh rule.
-37. **The history stays in the record.** How the choice came about, and the investigation behind it,
+38. **The history stays in the record.** How the choice came about, and the investigation behind it,
     stay in the feature's record, linked from **Why**. The decision says what holds now.
 
 ## Self-review

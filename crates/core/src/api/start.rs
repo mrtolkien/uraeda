@@ -82,11 +82,17 @@ fn view(started: std::result::Result<Started, StartError>) -> Result<StartedView
             branch: started.branch,
             worktree: started.worktree,
         }),
-        Err(StartError::Partial { done, left, cause }) => Err(refused(format!(
-            "{cause}. Done: {}. Left: {}.",
-            done.join(", "),
-            left.join(", then ")
-        ))),
+        Err(StartError::Partial { done, left, cause }) => {
+            let done = if done.is_empty() {
+                String::new()
+            } else {
+                format!(" Done: {}.", done.join(", "))
+            };
+            Err(refused(format!(
+                "{cause}.{done} Left: {}.",
+                left.join(", then ")
+            )))
+        }
         Err(error) => Err(refused(error.to_string())),
     }
 }

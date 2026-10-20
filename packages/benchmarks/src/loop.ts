@@ -67,7 +67,8 @@ export function isUpstream(address: string, upstream: string): boolean {
     lower === path ||
     lower.startsWith(`${path}/`) ||
     lower.startsWith(`${path}.git`) ||
-    lower.includes(`/repos${path}`) ||
+    lower.endsWith(`/repos${path}`) ||
+    [`/repos${path}/`, `/repos${path}.`].some((part) => lower.includes(part)) ||
     lower.includes(`${path}/`);
   const inDataset = DATASET_HOSTS.includes(url.hostname) && /\/(scaleapi|scaleai)\//.test(lower);
   return (upstreamHosts(upstream).includes(url.hostname) && inRepository) || inDataset;

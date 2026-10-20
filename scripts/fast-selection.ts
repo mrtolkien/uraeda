@@ -12,15 +12,17 @@ export type FastSelection = {
   rust: Array<string>;
 };
 
-/** What the native binding is built or tested from: a change rebuilds it and runs the core. */
-const nativeInputs = [
-  ...SOURCES.map((path) => `${path}{,/**}`),
-  "packages/binding/**",
-  "fixtures/**",
-];
+/** What the Rust crates and their tests read: a change runs the core's checks and tests. */
+const rustInputs = [...SOURCES.map((path) => `${path}{,/**}`), "fixtures/**"];
+/**
+ * What the native binding is built or tested from: a change rebuilds it and runs its contracts. The
+ * binding package's own files (its loader, declarations and helpers) are no input of the crates, so
+ * they do not run the Rust tests.
+ */
+const nativeInputs = [...rustInputs, "packages/binding/**"];
 /** The server's sources and the binding's loaders, which other packages' tests import. */
 const server = "packages/server/src/**";
-const loaders = "packages/binding/{index.js,test-utils.ts}";
+const loaders = "packages/binding/{index.js,test-utils.ts,test-repos.ts}";
 
 /**
  * One owner for test membership, filesystem inputs and optional native prerequisites. A family's
@@ -183,6 +185,8 @@ export function selectFast(changed: Array<Change>): FastSelection {
     const owners = names.filter((name) => matches(path, families[name].inputs));
     if (native) {
       whole.add("binding");
+    }
+    if (matches(path, rustInputs)) {
       rust.add("uraeda-core");
     }
     if (path.startsWith("crates/")) {

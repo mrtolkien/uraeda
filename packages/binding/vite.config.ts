@@ -3,5 +3,7 @@ import "../server/src/fresh-binding.ts";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  test: { setupFiles: ["./test-setup.ts"] },
+  // Git-heavy cases run several dozen processes: Vitest's 5 s default is a load bound, not a
+  // hang detector, so a loaded machine failed them (as in the server project).
+  test: { setupFiles: ["./test-setup.ts"], testTimeout: 20_000 },
 });

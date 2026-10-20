@@ -168,7 +168,7 @@ actual assertion.
 | [agents](../decisions/agents.md): Sessions, turns, and items MUST be stored and shown in one agent-neutral shape.                                                                                                                                                                                               | `packages/server/src/runner/__tests__/sessions.test.ts; claude.test.ts`                                                                           | 4, 7 |
 | [agents](../decisions/agents.md): An agent MUST run with the least permission that still finishes unattended steps, never skipping permissions, and Uraeda MUST NOT touch its credentials or settings.                                                                                                          | `packages/server/src/runner/__tests__/sessions.test.ts; claude.test.ts`                                                                           | 4, 7 |
 | [agents](../decisions/agents.md): A feature MUST have one session, in its worktree and with the server's copy of the skill, where runs and chat follow each other and the agent acts on a chat only when asked.                                                                                                 | `packages/server/src/runner/__tests__/sessions.test.ts; claude.test.ts`                                                                           | 4, 7 |
-| [attachments](../decisions/attachments.md): An image attached to a workflow file MUST be committed beside that file, linked with a relative markdown image, and leave with its feature; a record MUST NOT link to an image.                                                                                     | `crates/core/tests/attach.rs; images.rs; packages/server/src/__tests__/attach.test.ts`                                                            | 4, 7 |
+| [attachments](../decisions/attachments.md): An image attached to a workflow file MUST be committed beside that file, linked with a relative markdown image, and leave with its feature; a record MUST NOT link to an image.                                                                                     | `crates/core/tests/attach.rs; images.rs; inbox_images.rs; packages/server/src/__tests__/attach.test.ts; crates/cli/tests/inbox_clean.rs`          | 4, 7 |
 | [attachments](../decisions/attachments.md): Images attached to a chat MUST stay out of git, in Uraeda's data folder.                                                                                                                                                                                            | `crates/core/tests/attach.rs; images.rs; packages/server/src/__tests__/attach.test.ts`                                                            | 4, 7 |
 | [attachments](../decisions/attachments.md): The core MUST turn every attached image into one small, safe WebP, whatever tool received it, and MUST refuse types that can carry code, such as SVG.                                                                                                               | `crates/core/tests/attach.rs; images.rs; packages/server/src/__tests__/attach.test.ts`                                                            | 4, 7 |
 | [attachments](../decisions/attachments.md): The server MUST serve attached images so a browser cannot run them as a page.                                                                                                                                                                                       | `crates/core/tests/attach.rs; images.rs; packages/server/src/__tests__/attach.test.ts`                                                            | 4, 7 |
@@ -178,8 +178,8 @@ actual assertion.
 | [benchmarks](../decisions/benchmarks.md): A run MUST be marked failed when a session's models name one other than the model asked for.                                                                                                                                                                          | `packages/benchmarks/src/__tests__/run-case.test.ts; human.test.ts; data.test.ts; grader.test.ts`                                                 | 4, 7 |
 | [benchmarks](../decisions/benchmarks.md): A run MUST record the commits, the harness and its version, the models asked for and answered, the effort, the task and its image digest, the simulated human's model and guidelines, each step's time, cost, and gate outcome, and every address the agents fetched. | `packages/benchmarks/src/__tests__/run-case.test.ts; human.test.ts; data.test.ts; grader.test.ts`                                                 | 4, 7 |
 | [benchmarks](../decisions/benchmarks.md): Git MUST hold each run's record, scores, `specs/` files, and final diff, and MUST NOT hold raw transcripts, which stay local with their SHA-256 recorded.                                                                                                             | `packages/benchmarks/src/__tests__/run-case.test.ts; human.test.ts; data.test.ts; grader.test.ts`                                                 | 4, 7 |
-| [cli](../decisions/cli.md): Every action a TUI offers MUST also be available non-interactively, so an agent never meets a prompt it cannot answer.                                                                                                                                                              | `crates/cli/tests/{answer,check,install,status,next}.rs`                                                                                          | 4, 7 |
-| [cli](../decisions/cli.md): What commands print MUST be stable for tools to read: data apart from messages, and versioned JSON on every read command.                                                                                                                                                           | `crates/cli/tests/{answer,check,install,status,next}.rs`                                                                                          | 4, 7 |
+| [cli](../decisions/cli.md): Every action a TUI offers MUST also be available non-interactively, so an agent never meets a prompt it cannot answer.                                                                                                                                                              | `crates/cli/tests/{answer,check,install,install_completions,complete,status,next}.rs`                                                             | 4, 7 |
+| [cli](../decisions/cli.md): What commands print MUST be stable for tools to read: data apart from messages, and versioned JSON on every read command.                                                                                                                                                           | `crates/cli/tests/{answer,check,install,install_completions,complete,status,next}.rs`                                                             | 4, 7 |
 | [code-quality](../decisions/code-quality.md): The TypeScript lint configuration MUST extend `@nkzw/oxlint-config`, the fate stack's shared one, and MAY turn off its rules only where an active decision conflicts.                                                                                             | `packages/web/src/__tests__/lint.test.ts`                                                                                                         | 4, 7 |
 | [diagrams](../decisions/diagrams.md): The web UI MUST draw a diagram with the [`pele`](/packages/web/package.json) package, and a diagram MUST NOT run a script in the page, even when its text holds one.                                                                                                      | `packages/web/src/__tests__/diagram-hostile.test.tsx; diagram.test.tsx`                                                                           | 5, 7 |
 | [diagrams](../decisions/diagrams.md): A diagram that fails to draw MUST show its source instead.                                                                                                                                                                                                                | `packages/web/src/__tests__/diagram-hostile.test.tsx; diagram.test.tsx`                                                                           | 5, 7 |
@@ -265,13 +265,17 @@ behavior.
 `packages/web/vite.config.ts`; update `packages/server/src/__tests__/toolchain.test.ts` for the new
 fast task.
 
-**Interfaces:** Produce `Change = { path: string; deleted: boolean }`,
+**Interfaces:** Produce `Change = { path: string; deleted: boolean; added: boolean }` (ruling R10),
 `changedFiles(root: string, base?: string): Change[]`, and
 `selectFast(changes: Change[]): FastSelection`. `FastSelection` exposes related source paths, whole
 selected families, affected Rust packages/workspace, required checks, and named deferred checks. The
 runner reports discovered test filenames and executes the selected specifications in one Vitest
-lifetime. Produce `uiTransforms()` for normal and focused configurations; no production
-server/fresh-binding import is allowed in lightweight discovery.
+lifetime. Produce `uiTransforms()` and `uiTestOptions()` for normal and focused configurations
+(R11); no production server/fresh-binding import is allowed in lightweight discovery. After the wave
+1 review (R9, R10): a family's inputs include the files its sources import from outside its root,
+`rustCommands(rust)` builds the Rust chain with reverse dependents and never nextests the binding or
+the workspace flag, `unproven` fails a selected family with no discovered test, and fast takes its
+heavy slot itself, after selecting, never around ready.
 
 - [x] **Step 1: Add behavior tests and minimal interfaces.** Cover whitespace paths, explicit
       invalid base, clean-tree latest commit, initial commit, untracked files, deleted/renamed
@@ -335,8 +339,10 @@ image/watch, and core preservation tests.
 **Interfaces:** Consume Task 1 selection/configuration. Produce `createRequestFixture(options)`
 returning `{ fetch, requests, close }`, typed from production Agent/Session and mutation inputs. Use
 actual fate server/data views/source serialization, with scripted handlers and controlled promises;
-unexpected calls fail immediately. The focused render helper renders Composer under actual fate,
-repository, Suspense, and fetch contexts with a fresh client per case.
+unexpected calls fail immediately. A chat upload must carry `chat=1` and its `name` in the query, as
+the server requires, and `chatImages` lists the images a case starts with (R11). The focused render
+helper renders Composer under actual fate, repository, Suspense, and fetch contexts with a fresh
+client per case.
 
 - [x] **Step 1: Add focused contract cases.** Refused multiline text and two saved images must reach
       an available endpoint and restore exact text/order with a visible error. A pending custom send
@@ -398,6 +404,37 @@ Task 2 evidence (2026-10-20, 32-thread Linux machine shared with other checkouts
   the normal web configuration. (3) Affected the core samples as above. (4) Not exercised.
 - Focused helpers are excluded from coverage like `__tests__`.
 
+Wave 1 review fixes (2026-10-20, same shared machine; rulings R9 to R11, R7 updated):
+
+- Fixed: cross-package consumers (I1), reverse dependents and binding clippy (I2), no nextest
+  `--workspace` (I3), `vite.fast.config.ts` in `ts:test` (I4), heavy slot after selection (I5),
+  shared UI test options (I6), unproven families (M1), named configuration files (M2), legacy test
+  edits deferred (M3), nested runs through `test-run.ts` (M4). Wave 2: the fixture's upload contract
+  (W1), shared `rewritten` (W2), binding build before the type check (W3), local image path routed
+  to the UI (W4), restored `EventSource` (W5), refused-send image order (W6). W7 is not done:
+  mutation `type`s are plain strings, so typing answers needs production `as const`.
+- `nix develop -c vp check` passes; the scripts suite passes 46 cases, the toolchain suite 29, the
+  focused Composer and composer-images cases 6, the binding project 32 (contracts 5), and the
+  server's `test-run`, `coverage-summary` and `fate` suites 48.
+- Composer edit (`Composer.tsx` comment, warm): selects only the focused Composer suite; 14.26,
+  14.47, 13.78 s at load 7 to 13; 25.99, 14.72, 30.46, 32.23, 21.82 s at load 14 to 73.
+- Core edit (`settings.rs` comment, warm): Rust `uraeda-core`, `uraeda-binding` (clippy only),
+  `uraeda-cli`, `uraeda-lsp`, 1,040 Rust tests, `contracts.test.ts`. 55.19 s at load 9; 56.24,
+  56.27, 59.00 s at load 28 to 52; 69.36 to 95.00 s at load 37 to 87 (one with a lock wait). Phases
+  at load 36: startup 6.5 s, napi build 7.4 s plus 8 s of Vite Task saving its output, fmt and
+  clippy 11 s, test build 25 s, nextest 23 s, Vitest 0.5 s. An alternating comparison with the type
+  check beside the binding build (71.86 to 88.45 s) and after it (65.76 to 95.37 s), at load 42 to
+  100, showed no difference; clippy with or without `uraeda-binding` took 8 to 10 s. The core pilot
+  meets SC-002 only below a load of about 50.
+- Server edit (`limits.ts` comment): 34 server files, 6 benchmarks files and the focused Composer
+  suite, 797 tests; 75.64 and 85.91 s at load 44 to 58, Vitest 59.5 to 64.6 s; 157 and 216 s at load
+  65 to 67, where `runner.test.ts` once hit its 10-second hook timeout. Over SC-002: the server
+  family's related run, from Task 1, holds 34 of the files; I1 adds the benchmarks files (3.6 s
+  alone) and the Composer suite. Left to Task 7's matrix.
+- One Composer sample escalated to ready for an unnamed untracked input, likely another process's
+  file in this checkout; ready then failed the UI discovery case on Vitest's 5-second default. The
+  scripts project's timeout is now 130 s, and fast prints the changed paths.
+
 ## Task 3: Reuse immutable history while keeping every case independent
 
 **Risky:** Shared fixture state, copied git metadata, or incomplete cleanup can contaminate
@@ -409,25 +446,57 @@ If a marked helper needs extraction, add a responsibility-specific helper module
 it.
 
 **Interfaces:** Preserve `fixtureRepo(name = "repo"): string` and all existing callers. Build each
-named history once per isolated worker, then return independent mutable copies with valid
-git/worktree metadata. Fixture lifetime remains owned by the existing test-run/file cleanup. Do not
-change production repository behavior.
+named history once per isolated test file (R12), in `packages/binding/test-repos.ts`, then return
+independent mutable copies with valid git/worktree metadata. Fixture lifetime remains owned by the
+existing test-run/file cleanup. Do not change production repository behavior.
 
-- [ ] **Step 1: Add isolation regressions.** Mutate and commit one copy, change refs/index/config,
+- [x] **Step 1: Add isolation regressions.** Mutate and commit one copy, change refs/index/config,
       and verify another copy and a later copy retain original history/content. A repository
       containing linked worktrees must not point at another test's mutable files. Failure cleanup
       releases all owned resources.
-- [ ] **Step 2: Run those cases before optimization and capture fixture setup time.** Existing
+- [x] **Step 2: Run those cases before optimization and capture fixture setup time.** Existing
       preservation assertions should already pass. A deliberately shared mutable directory or
       hard-linked mutable git data must make the isolation case fail.
-- [ ] **Step 3: Implement template reuse and measured lifecycle improvements.** Reuse immutable
+- [x] **Step 3: Implement template reuse and measured lifecycle improvements.** Reuse immutable
       setup, never an evolving repository or server session. Profile server/socket/process cleanup
       before changing waits; release test-owned keepalive connections and child processes explicitly
       where they cause overhead. Do not delete real lifecycle tests or alter product timeouts.
-- [ ] **Step 4: Run fixture tests, affected server/web suites, and independent-by-name probes.**
+- [x] **Step 4: Run fixture tests, affected server/web suites, and independent-by-name probes.**
       Compare setup, execution, cleanup, and overall duration on equal inputs. Run `vp run fast`;
       preserve exact old product assertions unless a separate ruling justifies a change.
-- [ ] **Step 5: Commit.** `test(fix-testing): reuse isolated fixture history`.
+- [x] **Step 5: Commit.** `test(fix-testing): reuse isolated fixture history`.
+
+Task 3 evidence (2026-10-20, 32-thread Linux machine, `/tmp` on btrfs, shared with other checkouts'
+runs; load averages as given):
+
+- Four new cases in `packages/binding/test-utils.test.ts`: a copy changed in every mutable way
+  (commit on `main`, moved and new refs, tag, config, index, working files, `gc`) leaves an earlier
+  and a later copy's refs, config, index, files and objects as built, and no copy holds a
+  hard-linked git file or an alternate object store; a copy's linked worktree points at its own
+  metadata only, and another copy checks out the same branch on its own; a failed `commitsAt`
+  removes its temporary worktree; a failed fixture build leaves no folder and fails again. Each of
+  the five cases passes alone by name (`-t`) and in the suite; the binding project passes 36.
+- Before optimizing, the preserved cases passed and the failed-build case failed
+  (`expected 9 to be 7`: the partial repository was left). Faults, each restored: one shared
+  repository for every call failed the history case (`expected { …(6) } to deeply equal { …(6) }`,
+  also with the path check removed), the worktree, `commitsAt` and failed-build cases; a hard-linked
+  copy (`cp -al`) failed the history case on its state; dropping the failed build's removal failed
+  it (`expected 13 to be 11`); removing `commitsAt`'s `finally` failed the worktree-cleanup case. A
+  `git clone --shared` copy failed three cases, on its missing commit identity rather than on its
+  alternates.
+- Fixture setup, summed over 4 workers: server project 522 calls, 90.5 to 99.8 s before, 22.9 s
+  after (69 template builds of about 260 ms, copies about 10 ms); web project 871 calls, 245.6 s
+  before, 27.7 to 27.9 s after. Teardown was profiled and left as it was (R13).
+- Wall time on equal inputs, alternating the old and new `test-utils.ts`: server project 93.4 and
+  81.4 s before, 53.2 and 50.2 s after (load 24 to 34); web project 306.6 s before (load 23 to 55),
+  218.7 s after (load 55 to 22), and earlier 303.3 s before, 255.9, 248.7 and 245.5 s after (load 21
+  to 42). All 888 server and 1,005 web cases pass in every run.
+- `nix develop -c vp check` passes. `vp run fast` passed in 146 s at load 21 to 38: 75 files, 1,097
+  tests, the Rust workspace (1,040 tests, `vite.tasks.ts` changed); deferred: application journeys,
+  browser phone/desktop, production builds/package smoke, full workspace/editor checks, and the
+  edited `test-utils.test.ts`, run directly above. Removing `test-repos.ts` from fast's loaders
+  fails three selection cases. The browser project, which copies `fixtureRepo`'s result for each
+  case, was not run: deferred to ready.
 
 ## Task 4: Preserve and strengthen core, server, and runner guard assertions
 
@@ -444,23 +513,71 @@ approved scope are reported.
 full file/history/image matrix; binding and callers prove representative mapping rather than
 duplicate every row.
 
-- [ ] **Step 1: Audit assertion adequacy against the approved guarantees.** Retain distinct
+- [x] **Step 1: Audit assertion adequacy against the approved guarantees.** Retain distinct
       merge/squash shapes, exact bytes, resource bounds, permission scope, queue/lifecycle
       transitions, image content/orientation/delays, and no-write refusal effects. Add a rollback
       case that fails after partial staging, rather than only before the temporary directory can be
       made.
-- [ ] **Step 2: Run preserved guards and the new rollback case.** Identify the first specific
+- [x] **Step 2: Run preserved guards and the new rollback case.** Identify the first specific
       failing outcome; do not weaken any old guard merely to get green. Controlled input must
       isolate the intended refusal, including oversize before reading and chunked bounds.
-- [ ] **Step 3: Make targeted repairs and remove only established duplication/incidental
+- [x] **Step 3: Make targeted repairs and remove only established duplication/incidental
       expectations.** Record every removed/skipped/loosened case and its retained guarantee. Keep
       cheap core tables. Do not restore the failed all-flow deletion strategy or introduce a blanket
       ban on text/count/size assertions.
-- [ ] **Step 4: Run affected Rust/server tests, native contracts, and selective guard faults.**
+- [x] **Step 4: Run affected Rust/server tests, native contracts, and selective guard faults.**
       Break comment preservation, permission narrowing, body-limit enforcement, and history lookup
       in isolation; each owning check must fail, then restore. Collect comparable product-only
       coverage for changed areas; record unexecuted code and what asserts its behavior.
-- [ ] **Step 5: Commit.** `test(fix-testing): preserve independent guard assertions`.
+- [x] **Step 5: Commit.** `test(fix-testing): preserve independent guard assertions`.
+
+Task 4 evidence (2026-10-20, 32-thread Linux machine shared with other checkouts' runs, load average
+25 to 35):
+
+- Audit: the read guards hold their contracts (R22). Added and strengthened: the install rollback
+  after partial staging (R20), with `ura_with_file_limit` in `crates/cli/tests/common/mod.rs`; the
+  chunked upload's read bound, the guard's refusal texts on both cross-site cases, and the no-file
+  refusal (R21). Nothing removed, skipped, or loosened.
+- Rollback: the new case passes on the product as it is. With the copy's cleanup removed, it fails
+  (`left: 1, right: 0`, the `uraeda.ura-tmp` folder left in `.agents/skills`) while the old
+  `a_failed_first_install_leaves_nothing` still passes.
+- Faults, each restored after its run: removing a name dropped the comment and line end before it
+  (`removing_a_name_takes_its_comments_with_it`); a replaced value lost its comment
+  (`keeps_windows_line_ends`, `# usual` missing); a command's rule broadened to `Bash` (2 adapter
+  cases, 9 session cases); a command with `*` given a rule (3 cases); path escaping skipped (3 rule
+  rows); the body limit removed (both limit cases received `refused: The body holds no file.`); a
+  chunked body read whole before refusing (only the strengthened case:
+  `expected 65 to be less than or equal to 24`); the no-file check skipped (the new case:
+  `Cannot read properties of undefined`); history read on first parents only
+  (`a_merged_revision_keeps_the_review_it_answers`: `None`); the review read at the tip (3
+  `answered.rs` cases).
+- Runs: `cargo fmt --check`, `vp check`, clippy (`uraeda-core`, `uraeda-cli`, all targets) pass;
+  nextest `uraeda-core` and `uraeda-cli` 965 passed, 9 skipped; server attach, adapter, sessions,
+  and preview suites 221; binding contracts 5. Each changed case passes alone by name. `vp run fast`
+  selected `uraeda-cli` and the attach suite (209 Rust tests, 16 Vitest) and passed in about 36 s at
+  load 32. Deferred to ready: application journeys, browser phone/desktop, production builds/package
+  smoke, full workspace/editor checks.
+- Coverage (product files of the changed tests, on demand): `attach.ts` from its suite, 70% of lines
+  before the no-file case; its one line no test ran was that refusal, now asserted; lines 50 to 74
+  (`/inbox/note-image`) are run by `inbox.test.ts`. `crates/core/src/actions/install.rs` from
+  `install.rs`: the cleanup line was already counted as run, by the old case, whose staging folder
+  never exists, so line coverage could not show the gap. Not run by `install.rs`: a stale temporary
+  file (170), an update writing a missing file (281 to 283), a manifest naming a missing file (323),
+  and a link that would not reach `.agents` (382 to 385). The capped run writes no profile (R20).
+
+Wave 3 review fixes (2026-10-20):
+
+- The tmp leftover count asserts the isolated `TMPDIR` it relies on; the fixture isolation case now
+  checks hard links on the working files as well as `.git`, and requires no `alternate:` line from
+  `git count-objects -v`. A `cp -al` copy and a `git clone --shared` copy (identity copied, `origin`
+  and its refs removed) each fail the real case; a single hard-linked working file fails the new
+  link check alone (`expected [ '.../specs/PRIORITIES.md' ] to deeply equal []`) once the earlier
+  state assertion is set aside, and the state assertion itself fails first otherwise. The
+  `alternates` file check fails the shared clone before the `count-objects` line is reached. A
+  copy's temporary entry is spliced out when its fill fails.
+- The chunked upload's bound is 30 chunks (23 measured, 64 sent); R21's text says so.
+- `clean.rs`'s locked and outside-worktree cases assert the whole `left`, an empty `did`, and the
+  remaining branch; with clean ignoring a left worktree and deleting the branch, both fail.
 
 ## Task 5: Keep critical UI and browser journeys while removing expensive duplication
 
@@ -478,23 +595,54 @@ Composer variants; retain a real session/send/upload journey and real
 answer/review/conflict/repository/authentication journeys. Browser owns frame isolation/messaging,
 focus, keyboard/touch, scrolling, and the required page matrix.
 
-- [ ] **Step 1: Map old behavior before changing tests.** Identify independently covered variants,
+- [x] **Step 1: Map old behavior before changing tests.** Identify independently covered variants,
       necessary complete journeys, and incidental heading/fixture coupling. Do not treat two
       different boundary refusals as duplicates because one flow reaches both.
-- [ ] **Step 2: Move only proven local cases to focused boundaries.** Retain exact request/draft
+- [x] **Step 2: Move only proven local cases to focused boundaries.** Retain exact request/draft
       assertions; await actual target links, displayed states, persisted outcomes, and completed
       transitions. Replace repeated remounts or fixed sleeps with explicit readiness; independent
       tests establish their own preconditions.
-- [ ] **Step 3: Consolidate required browser page checks and remove redundant setup/work.** Keep
+- [x] **Step 3: Consolidate required browser page checks and remove redundant setup/work.** Keep
       every governed page at both sizes/themes and all unique frame/message/pick protections. Keep
       actual paste/drop/keyboard/focus cases where an emulator cannot establish the behavior. Reduce
       editor checks to its approved main-action smoke only with a guarantee map.
-- [ ] **Step 4: Validate retained protection and independence.** Temporary home-heading rename
+- [x] **Step 4: Validate retained protection and independence.** Temporary home-heading rename
       passes; broken submission, lost draft, untrusted frame message, or duplicate commit fails its
       owner. Run changed cases individually, full affected application suites, phone/desktop browser
       checks, and applicable editor smoke. Collect comparable UI coverage and explain losses; record
       all test expectation changes.
-- [ ] **Step 5: Commit.** `test(fix-testing): focus ui cases and retain browser contracts`.
+- [x] **Step 5: Commit.** `test(fix-testing): focus ui cases and retain browser contracts`.
+
+Task 5 evidence:
+
+- Known failure (R30): the wave 3 `ready` thumbnail-focus failure was a product race, fixed in
+  `ComposerImages.tsx` (the focus waits until the removed key is gone). Before: 2 of 40 copies of
+  the case failed under 12 busy loops (load 40 to 60), with the focus log showing the removed button
+  taking it; after: 0 of 40 under the same load. New case in `composer-images.test.tsx` fails on the
+  old code and passes now.
+- Home rename (R31): "Needs you" renamed to "Waiting on you" in the card, its list, and its count
+  failed 11 cases in 4 files before the changes; with them, `home`, `notify`, `sign-in`, `usage`
+  pass renamed and unrenamed. The whole `uraeda-web` project with the rename: the 6 failures were
+  those cases and `build.test.ts`, which needs `vp run web:build` (a built bundle, absent in this
+  worktree; owned by ready).
+- Faults, each restored after its run: broken submission (the send's `text` emptied): 27 cases
+  failed across `__focused__/composer.test.tsx` and `session.test.tsx`; lost draft (the refusal's
+  `onChange(text)` removed): `composer.test.tsx` "a refused send reaches the endpoint…" and
+  `session.test.tsx` "a refused send keeps the text…"; untrusted frame message (the source check of
+  `StoryFrames.tsx` removed): exactly the two desktop browser cases of R34; duplicate commit (the
+  submit handler adding an empty commit of the same subject): `round.test.tsx` "submitting commits
+  the round…" `expected 4 to be 3` (R32).
+- Runs: `vp check` (format, lint, types, 636 files) passes. Affected jsdom suites (`home`,
+  `session`, `round`, `review`, `settings`, `sidebar`, `composer-images`, `notify`, `sign-in`,
+  `usage`, focused composer): 279 passed in 90 s at load 15 to 25. Full `uraeda-web` project with
+  the rename applied: 1000 passed, 6 failed (above), 6 min 11 s at load 28 to 46. Browser, four
+  named files (`layout`, `story-embed`, `story-comments`, `session-tail`): phone 88 passed, 34
+  skipped (2 min 34 s at load 38 to 22); desktop 117 passed, 5 skipped (3 min 44 s at load 22 to
+  25). Neovim `vp run test:nvim`, every `tests/test_*.lua`: 0 fails, 59 s at load 24 to 16.
+- No test removed, skipped, moved, or loosened (R33), so no UI coverage was lost and none was
+  collected: no product file's executed lines changed except `ComposerImages.tsx`'s new key check,
+  run by the two cases above. Deferred to ready: the whole browser projects, the production build,
+  and the other web suites.
 
 ## Task 6: Align testing guidance, templates, and examples with the proven architecture
 
@@ -508,18 +656,43 @@ owning assertions, selected boundary checks, explicit deferral, and complete rea
 Existing project constitutions remain authoritative, including a stricter installed template; no
 constitution file is amended here.
 
-- [ ] **Step 1: Rewrite the testing rules together.** Remove automatic whole-app/browser tests for
+- [x] **Step 1: Rewrite the testing rules together.** Remove automatic whole-app/browser tests for
       every UI scenario and mandatory fault injection for every low-risk assertion. Keep selective
       proof for security/git/writes, explicit conflict reporting, and exact contract assertions.
-- [ ] **Step 2: Update plan/test-map and final-review wording in templates and example.** Cover
+- [x] **Step 2: Update plan/test-map and final-review wording in templates and example.** Cover
       important guarantees without requiring a separate new test for every sentence.
       Removed/skipped/loosened tests and timeout changes are independently visible with their
       rulings; human intent takes precedence.
-- [ ] **Step 3: Check references and examples against the same rules.** Run `ura check specs`,
+- [x] **Step 3: Check references and examples against the same rules.** Run `ura check specs`,
       `ura check skills/uraeda/assets/example/specs`, formatting/lint/types, and fast's skill/native
       routing. Self-review confirms no remaining requirement to run full ready after each task
       contradicts the active decision.
-- [ ] **Step 4: Commit.** `docs(fix-testing): align behavioral testing and validation loops`.
+- [x] **Step 4: Commit.** `docs(fix-testing): align behavioral testing and validation loops`.
+
+Task 6 evidence (2026-10-20, shared 32-thread machine, load average 39 to 92):
+
+- Rewritten together: `code-quality.md` (writing tests, tests that can fail, UIs verified end to
+  end), `plan.md`, `implementation.md`, `change.md`, the plan template, and the recurring-tasks
+  example's plan. Whole-app browser tests for every UI scenario are now one run of the main
+  scenario; fault injection is required for risky guarantees (security, git, writes, exact
+  contracts, **Risky** tasks), and the reading of a named break covers a low-risk check.
+- Added: the coverage rule (one test may own several rows of the test map), exact contract
+  assertions, the stop for a spec conflict without a human request, a human's request outranking a
+  test, rulings for removed, skipped, or loosened tests and changed timeouts, and their separate
+  listing in the final review and the pull request. A task's validation is the fast check naming
+  what it defers; the complete validation runs before the push and at the final review.
+- Review fixes (Task 6): the human-request rule now carries the stop for an unsafe or irreversible
+  change and what each way out costs; one spec-conflict rule in `code-quality.md` and
+  `implementation.md`; the template's deferral line applies only with a fast check; the complete
+  validation is linked where the comment pass ends and in `change.md`; the example says "focused
+  tests".
+- Constitutions: the guidance says a project's stricter constitution stays in force (R3). No
+  constitution file, including the template, is edited. `README.md` lists `vp run fast`.
+- Checks: `ura check specs` and `ura check skills/uraeda/assets/example/specs` report no problems;
+  `vp check` passes; `vp run fast` selected the skill's Rust consumers and the binding contracts and
+  passed (1041 Rust tests, 5 binding tests), in about 2 minutes under load. No ruling beyond R3.
+- Self-review: no step requires complete ready after each task; the remaining complete-validation
+  points are the pre-change baseline, a merged wave, the catch-up, and the final review.
 
 ## Task 7: Reconcile current main and deliver complete evidence
 

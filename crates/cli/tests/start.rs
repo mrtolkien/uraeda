@@ -42,32 +42,35 @@ fn commits_the_start_on_main() {
     assert!(priorities.contains(
         "- [CLI](/specs/2026-10-10-cli/proposal.md)\n- [Git listener process](/specs/2026-10-11-git-listener/proposal.md)\n\n## Next\n\n- Runner\n"
     ), "{priorities}");
-    assert_eq!(repo.changed_in("main"), ["specs/PRIORITIES.md"]);
+    assert_eq!(
+        repo.changed_in("main"),
+        [PROPOSAL, "specs/PRIORITIES.md", DRAFT]
+    );
 }
 
-/// US4.4: the new branch lives in its worktree, and the checkout stays on main.
+/// The entry's link resolves on main: the draft moves into the dated folder there, in the start
+/// commit, and the branch starts from it.
 #[test]
-fn moves_the_draft_on_the_new_branch_in_its_worktree() {
+fn moves_the_draft_on_main_and_branches_from_there() {
     let repo = repo_with_a_draft();
 
     let output = ura(&repo, &["start", DRAFT]);
 
     assert_eq!(repo.current_branch(), "main");
-    assert_eq!(repo.subjects(BRANCH)[0], "chore(git-listener): proposal");
+    assert_eq!(repo.read(PROPOSAL), written_draft());
+    assert!(!repo.exists(DRAFT));
     assert_eq!(
-        repo.subjects(BRANCH)[1],
+        repo.subjects(BRANCH)[0],
         "chore(git-listener): start Git listener process"
     );
-    assert_eq!(repo.changed_in(BRANCH), [PROPOSAL, DRAFT]);
     assert_eq!(repo.read(&in_worktree(PROPOSAL)), written_draft());
     assert!(!repo.exists(&in_worktree(DRAFT)));
-    assert!(repo.exists(DRAFT));
     assert_eq!(repo.porcelain(), "");
-    assert_eq!(repo.hook_runs(), 2);
+    assert_eq!(repo.hook_runs(), 1);
     assert_eq!(
         output.stdout,
         format!(
-            "on main: committed \"chore(git-listener): start Git listener process\"\ncreated branch {BRANCH} in {WORKTREE}\nmoved   {DRAFT} -> {PROPOSAL}\ncommitted \"chore(git-listener): proposal\"\nNext: discovery. Ask an agent, or run ura next.\n"
+            "moved   {DRAFT} -> {PROPOSAL}\non main: committed \"chore(git-listener): start Git listener process\"\ncreated branch {BRANCH} in {WORKTREE}\nNext: discovery. Ask an agent, or run ura next.\n"
         )
     );
 }
@@ -126,6 +129,14 @@ fn a_postponed_folder() {
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     for name in ["proposal.md", "discovery-01.md", "clarifications-01.md"] {
+        assert!(
+            repo.exists(&format!("specs/2026-10-11-benchmarks/{name}")),
+            "{name}"
+        );
+        assert!(
+            !repo.exists(&format!("specs/backlog/benchmarks/{name}")),
+            "{name}"
+        );
         assert!(
             repo.exists(&format!(
                 ".worktrees/2026-10-11-benchmarks/specs/2026-10-11-benchmarks/{name}"
@@ -213,8 +224,11 @@ fn an_uncommitted_draft_is_committed_as_the_proposal() {
     let output = ura(&repo, &["start", "git-listener-process"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(repo.changed_in("main"), ["specs/PRIORITIES.md"]);
-    assert_eq!(repo.changed_in(BRANCH), [PROPOSAL]);
+    assert_eq!(repo.changed_in("main"), [PROPOSAL, "specs/PRIORITIES.md"]);
+    assert_eq!(
+        repo.git(&["rev-parse", "main"]),
+        repo.git(&["rev-parse", BRANCH])
+    );
     assert!(!repo.exists(DRAFT));
     assert!(
         repo.git(&["log", "--all", "--format=%H", "--", DRAFT])
@@ -242,12 +256,13 @@ fn a_changes_proposal_is_not_a_draft() {
     );
     assert_eq!(
         repo.subjects("change/2026-10-11-git-listener")[0],
-        "chore(git-listener): proposal"
+        "chore(git-listener): start Git listener process"
     );
 }
 
+/// A failed start commit leaves the draft moved, and says what is left.
 #[test]
-fn a_failure_after_the_first_commit() {
+fn a_failed_start_commit() {
     let repo = repo_with_a_draft();
     repo.set_hook(
         "if git diff --cached --name-only | grep -q proposal.md; then echo boom >&2; exit 1; fi",
@@ -256,12 +271,10 @@ fn a_failure_after_the_first_commit() {
     let output = ura(&repo, &["start", DRAFT]);
 
     assert_eq!(output.code, 1);
-    assert_eq!(
-        repo.subjects("main")[0],
-        "chore(git-listener): start Git listener process"
-    );
+    assert_eq!(repo.subjects("main")[0], "draft");
+    assert_eq!(repo.read(PROPOSAL), written_draft());
     assert!(output.stderr.ends_with(&format!(
-        "ura: git commit failed: boom\nDone: the start commit on main, the branch {BRANCH}, the move of the draft.\nLeft: commit {PROPOSAL} as \"chore(git-listener): proposal\".\n"
+        "ura: git commit failed: boom\nDone: the move of the draft.\nLeft: commit specs/PRIORITIES.md, the removal of {DRAFT}, and specs/2026-10-11-git-listener/ on main as \"chore(git-listener): start Git listener process\", then create the branch {BRANCH} in {WORKTREE}.\n"
     )), "{}", output.stderr);
 }
 
@@ -343,12 +356,16 @@ fn a_draft_starts_as_a_change() {
     assert_eq!(output.code, 0, "{}", output.stderr);
     let branch = "change/2026-10-11-git-listener";
     let proposal = "specs/changes/2026-10-11-git-listener/proposal.md";
-    assert_eq!(repo.changed_in(branch), [proposal, DRAFT]);
+    assert_eq!(
+        repo.changed_in(branch),
+        ["specs/PRIORITIES.md", proposal, DRAFT]
+    );
+    assert_eq!(repo.read(proposal), written_draft());
     assert_eq!(repo.read(&in_worktree(proposal)), written_draft());
     assert_eq!(
         output.stdout,
         format!(
-            "on main: committed \"chore(git-listener): start Git listener process\"\ncreated branch {branch} in {WORKTREE}\nmoved   {DRAFT} -> {proposal}\ncommitted \"chore(git-listener): proposal\"\nNext: change. Ask an agent, or run ura next.\n"
+            "moved   {DRAFT} -> {proposal}\non main: committed \"chore(git-listener): start Git listener process\"\ncreated branch {branch} in {WORKTREE}\nNext: change. Ask an agent, or run ura next.\n"
         )
     );
 }

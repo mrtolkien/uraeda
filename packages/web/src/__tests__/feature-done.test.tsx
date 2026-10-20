@@ -411,19 +411,27 @@ test("a merged change without a question shows its four stages and its record", 
   expect(screen.queryByRole("button", { name: /^Questions ·/ })).toBeNull();
 });
 
-/** Edge case: squash merge */
-test("a squash-merged feature says its figures were not found", async () => {
+/** Edge case: squash merge, and a record from before typed commits */
+test.each([
+  ["a squash-merged feature", ["Clarity (#30)"]],
+  ["a feature from before typed commits", ["Add the round", "Finish the round"]],
+])("%s says its figures could not be traced", async (_, messages) => {
   const repo = fixtureRepo();
-  commitsAt(repo, "main", [
-    {
-      files: { [`specs/done/${DONE}.md`]: featureRecord(), "src/round.ts": lines(40) },
-      message: "Clarity (#30)",
-    },
-  ]);
+  commitsAt(
+    repo,
+    "main",
+    messages.map((message, index) => {
+      const files: Record<string, string> = { "src/round.ts": lines(20 * (index + 1)) };
+      if (index === messages.length - 1) {
+        files[`specs/done/${DONE}.md`] = featureRecord();
+      }
+      return { files, message };
+    }),
+  );
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  expect(await screen.findByText("Not found on the default branch")).toBeTruthy();
+  expect(await screen.findByText("No figures: its commits could not be traced")).toBeTruthy();
   expect(screen.queryByRole("link", { name: /^Lines changed/ })).toBeNull();
   expect(screen.queryByRole("group", { name: "Lines changed" })).toBeNull();
   expect(screen.queryByText("0 files")).toBeNull();
@@ -471,4 +479,18 @@ test("a record with its pull request leads Lines changed to its files", async ()
   expect(lineCard.getAttribute("href")).toBe("https://github.com/o/r/pull/30/files");
   // In a new tab, as "Open pull request #30".
   expect(lineCard.getAttribute("target")).toBe("_blank");
+});
+
+/** A done feature's Next leads to the pull request it names */
+test("a record with its pull request opens it from Next", async () => {
+  const repo = fixtureRepo();
+  doneFeature(repo, featureRecord("https://github.com/o/r/pull/30"));
+
+  await renderPage(`/f/${DONE}`, repo, { agent: true });
+
+  const next = within(await screen.findByRole("region", { name: "Next" }));
+  expect(next.getByRole("heading", { name: "Merged" })).toBeTruthy();
+  const link = next.getByRole("link", { name: "Open pull request #30" });
+  expect(link.getAttribute("href")).toBe("https://github.com/o/r/pull/30");
+  expect(link.getAttribute("target")).toBe("_blank");
 });

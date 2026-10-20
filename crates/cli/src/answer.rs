@@ -9,7 +9,7 @@ use uraeda_core::today;
 use crate::output;
 
 /// Whether an argument names a question, `Q2` or `Q2.B`, or the notes: never a target.
-fn is_question(argument: &str) -> bool {
+pub fn is_question(argument: &str) -> bool {
     if argument == "notes" {
         return true;
     }

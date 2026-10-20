@@ -146,8 +146,9 @@ Records are frozen once merged: edit one only to fix a broken link. A later feat
 behaviour says so in its own record.
 
 The branch and its worktree stay until the human cleans them. When you find a merged feature with a
-worktree or a local branch left, tell the human to run `ura clean`. By hand, from the main checkout,
-never forced:
+worktree or a local branch left, tell the human to run `ura clean`. A feature merged with its folder
+and no record shows as merged only once its branch is gone: remove its branch by hand, as below. By
+hand, from the main checkout, never forced:
 
 1. `git worktree remove .worktrees/<folder>`: git refuses a worktree with uncommitted or untracked
    files, and they stay until the human deals with them. `git worktree prune` drops the record of a
@@ -161,9 +162,10 @@ Remote branches are the forge's: GitHub's "Automatically delete head branches" s
 
 ## Finishing a feature merged before this step
 
-A feature merged with its folder stays as it is, listed as done. When a human asks to finish it, do
-it on a new branch, with the same record, links, and commit, through a pull request: the `finished`
-date is the day of that commit.
+A feature merged with its folder stays as it is, listed as done once its branch is gone, locally and
+on `origin`: while the branch is there, the folder is the branch's, as for a feature just started.
+When a human asks to finish it, do it on a new branch, with the same record, links, and commit,
+through a pull request: the `finished` date is the day of that commit.
 
 ## Commit
 

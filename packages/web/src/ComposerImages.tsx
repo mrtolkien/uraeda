@@ -9,21 +9,27 @@ import type { DraftImage } from "./attach/chatImages.ts";
 import { useRepository } from "./routes.tsx";
 import { chatImageSrc } from "./sessions.ts";
 
+/** The image being removed: where it was, and its key. */
+export type RemovedImage = { index: number; key: string } | undefined;
+
 /**
  * The thumbnail whose remove button takes the focus once one is removed: the next, else the last;
- * with none left, the text. Set the index of the one removed.
+ * with none left, the text. Set the place and key of the one removed: the focus waits until the
+ * images no longer hold it, so an effect still owed to an earlier draw (an image just saved)
+ * does not take the focus first, to the button about to go.
  */
 export function useFocusAfterRemove(
   box: RefObject<HTMLDivElement | null>,
   input: RefObject<ChatComposerInputHandle | null>,
   images: ReadonlyArray<DraftImage>,
 ) {
-  const focusAt = useRef<number>(undefined);
+  const focusAt = useRef<RemovedImage>(undefined);
   useEffect(() => {
-    const at = focusAt.current;
-    if (at === undefined) {
+    const removed = focusAt.current;
+    if (removed === undefined || images.some((image) => image.key === removed.key)) {
       return;
     }
+    const at = removed.index;
     focusAt.current = undefined;
     const buttons = [
       ...(box.current?.querySelectorAll<HTMLElement>(
@@ -52,7 +58,7 @@ export function ComposerImages({
   onRemove,
 }: {
   /** Where the focus goes once an image is removed, from `useFocusAfterRemove`. */
-  focusAt: RefObject<number | undefined>;
+  focusAt: RefObject<RemovedImage>;
   images: ReadonlyArray<DraftImage>;
   onRemove: (key: string) => void;
 }) {
@@ -75,7 +81,7 @@ export function ComposerImages({
                 isIconOnly
                 label={`Remove ${image.name}${alt ? ` — ${alt}` : ""}`}
                 onClick={() => {
-                  focusAt.current = index;
+                  focusAt.current = { index, key: image.key };
                   onRemove(image.key);
                 }}
                 size="sm"

@@ -351,6 +351,8 @@ Every question follows this structure:
 ```markdown
 ## Q2: When does the next occurrence appear?
 
+Example: "Water the plants" repeats every Monday. You complete it on Monday 5 October.
+
 The app cannot create tasks while it is closed. Todoist keeps a single task and moves its due date
 on completion. This choice also decides what editing, deleting, and undoing mean for a repeating
 task. More in [discovery](discovery-01.md#generating-occurrences).
@@ -360,15 +362,18 @@ whether the app needs a notion of series.
 
 - **A (recommended). Create the next occurrence as a new task when the current one is completed.
   Editing a task changes that task only.**
+  - Example: a new "Water the plants" due Monday 12 October appears, and the completed one stays.
   - [pro] completed tasks stay in the list as a history; no notion of series to learn.
   - [con] the list grows by one task per completion.
   - Why recommended: it keeps the history with the simplest model.
 - **B. Create the next 4 occurrences in advance, so they are always visible.**
+  - Example: the tasks due 12, 19, and 26 October and 2 November are in the list from the start.
   - [pro] users can plan ahead.
   - [con] four times more repeating tasks in the list, and editing one occurrence needs the
     follow-up question below.
 - **C. Keep a single task, and move its due date to the next occurrence when it is completed, like
   Todoist. Editing the task changes the whole repetition.**
+  - Example: the same "Water the plants" now shows Monday 12 October, and 5 October leaves no trace.
   - [pro] the list never grows.
   - [con] completed occurrences disappear, and one occurrence can never differ from the others.
 
@@ -379,9 +384,10 @@ whether the app needs a notion of series.
 Only if you picked B in Q2. [...]
 ```
 
-The card's parts, its context, "Why it matters", and its options, follow
-[questions](writing.md#questions) and [options](writing.md#options). They ask for as much context as
-deciding needs, self-contained option sentences, and the recommended one first. The asking rules:
+The card's parts, its example when it needs one, its context, "Why it matters", and its options with
+their outcomes, follow [questions](writing.md#questions) and [options](writing.md#options). They ask
+for as much context as deciding needs, self-contained option sentences, and the recommended one
+first. The asking rules:
 
 - **Options exclude each other**, unless the question says which ones combine, before the options:
   "C can come on top of A or B". When the best answer is a combination, the "Why recommended" line

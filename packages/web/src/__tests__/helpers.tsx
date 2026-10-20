@@ -1,6 +1,14 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  configure,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
@@ -498,6 +506,19 @@ export async function click(element: HTMLElement) {
   await act(async () => {
     fireEvent.click(element);
   });
+}
+
+/**
+ * The page's features, loaded: a link to a fixture feature that waits on the human, which home
+ * lists whatever its heading says. What the tests wait on is the repository's data, not a title.
+ */
+export function homeShown() {
+  return screen.findAllByRole("link", { name: /Web UI for the workflow files/ });
+}
+
+/** Whether that link is absent: no page of features shows. */
+export function homeHidden() {
+  return screen.queryAllByRole("link", { name: /Web UI for the workflow files/ }).length === 0;
 }
 
 /** Types a value into a field, at once: a form field, or an editable text like the composer's. */

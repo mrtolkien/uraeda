@@ -48,8 +48,11 @@ home folder (`--user`) or in the repository's top level (`--repo`), in `.agents/
 (`--agents`), `.claude/skills/uraeda` (`--claude`), or both, the second then a link to the first. It
 writes a `.ura-manifest` of the files' hashes, so running it again updates the files nobody edited,
 and it never writes into a folder it did not install, nor through a link. `ura install --update`
-updates every copy it installed. Agents always pass these flags and `--no-input`: an agent's
-terminal can pass the terminal check, yet no one presses its keys.
+updates every copy it installed. `--completions` sets up Tab completion of `ura` in the user's
+shell: in fish, it writes `ura.fish` in fish's completions folder, and in zsh, it names the line to
+add to `~/.zshrc`; alone, it leaves the skill as it is. In a terminal, `ura install` offers it.
+Agents always pass these flags and `--no-input`: an agent's terminal can pass the terminal check,
+yet no one presses its keys.
 
 ## Starting, postponing, and dropping a feature
 
@@ -68,25 +71,25 @@ Do these only when a human asks.
   `ura start <draft> --slug <slug>` runs these steps for a draft file or postponed folder, whatever
   it holds: the proposal is freeform. Without `--slug`, it takes the first two words of the draft's
   name that name something.
-  1. On the default branch, move the feature's `PRIORITIES.md` entry to the top of **Now**, after
-     the other started entries, then a blank line, unless the human says otherwise, as a link to the
-     future `proposal.md` from the repository root,
-     `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`, and commit with
-     `chore(<slug>): start <feature name>`. Entries match branches through that link. Started
+  1. On the default branch, create `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog
+     file into it as `proposal.md`, unchanged: the proposal is the human's words, never rewritten.
+     When the entry is a folder, a feature postponed earlier or a draft with images, move all its
+     files into it, unchanged. An entry with no file is drafted first, as **Draft** says: the human
+     writes the draft, and asks for the start once it is ready.
+  2. In the same commit, move the feature's `PRIORITIES.md` entry to the top of **Now**, after the
+     other started entries, then a blank line, unless the human says otherwise, as a link to the
+     `proposal.md` from the repository root, `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`,
+     and commit with `chore(<slug>): start <feature name>`. The link resolves on the default branch,
+     which holds the proposal from the start. Entries match branches through that link. Started
      entries are those linking a dated folder's `proposal.md`, a feature's or a change's. Entries
      started lower in **Now** stay where they are, and no blank line is left at the end of **Now**.
      `PRIORITIES.md` lives on the default branch: feature branches only remove their own entry, in
-     their last commit.
-  2. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
-     `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it. On
-     it, create `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog file into it as
-     `proposal.md`, unchanged: the proposal is the human's words, never rewritten. When the entry is
-     a folder, a feature postponed earlier or a draft with images, move all its files into it,
-     unchanged. Commit with `chore(<slug>): proposal`. When the entry has no file, write
-     `proposal.md` from the template with only what the human said, and do not commit it: the human
-     writes it out, and commits it once it is ready. Until then, the feature waits at a gate on
-     `proposal.md`, and no step runs.
-  3. Then run the next step in the same session when you can: [Discovery](discovery.md), round 01,
+     their last commit. While the branch is there, the folder is the branch's: the default branch's
+     copy is read as merged only once the branch is gone.
+  3. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
+     `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it.
+     Every later step writes on the branch.
+  4. Then run the next step in the same session when you can: [Discovery](discovery.md), round 01,
      for a proposal alone, or the first matching row of
      [the table](../SKILL.md#finding-the-next-step) for a folder. A round left waiting for answers
      stays at its gate. When the human asks for fresh research, start a new round instead, following
@@ -107,7 +110,8 @@ Do these only when a human asks.
   right section, with the reason when it is blocked, and link it to the folder's `proposal.md`.
   Commit with `chore(<slug>): postpone <feature name>`, merge the branch into the default branch,
   and delete it.
-- **Drop**: delete the branch, and the `PRIORITIES.md` entry, after the human confirms.
+- **Drop**: after the human confirms, delete the branch, and, on the default branch, the
+  `PRIORITIES.md` entry and the dated folder, in one commit, `chore(<slug>): drop <feature name>`.
 
 ## Finishing a feature
 

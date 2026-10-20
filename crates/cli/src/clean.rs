@@ -12,7 +12,7 @@ use crate::output;
 use crate::status;
 
 /// Merged features with a worktree or a branch left, in folder order.
-fn candidates(workspace: &Workspace) -> Vec<&Feature> {
+pub fn candidates(workspace: &Workspace) -> Vec<&Feature> {
     let mut features: Vec<&Feature> = workspace
         .features
         .iter()

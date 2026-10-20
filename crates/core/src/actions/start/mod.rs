@@ -1,7 +1,7 @@
 //! Starting a drafted feature or change, as the skill's start section says: on the default
-//! branch, its `PRIORITIES.md` entry moves to the top of **Now** as a link and is committed; then
-//! its branch is created, and the draft moves into the dated folder, unchanged, in a second commit.
-//! A change typed as a text starts the same way, its proposal written from the text.
+//! branch, its `PRIORITIES.md` entry moves to the top of **Now** as a link, and the draft moves
+//! into the dated folder, unchanged, in one commit; then its branch is created from there. A change
+//! typed as a text starts the same way, its proposal written from the text.
 
 use std::path::Path;
 
@@ -31,7 +31,6 @@ pub struct Started {
     pub worktree: Option<String>,
     /// Each file moved, from and to, from the top level.
     pub moves: Vec<(String, String)>,
-    pub proposal_subject: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,7 +43,7 @@ pub enum StartError {
     Place(#[from] place::PlaceError),
     #[error(transparent)]
     Io(#[from] std::io::Error),
-    /// A failure after the first commit: what was done, and what is left to do by hand.
+    /// A failure after the first write: what was done, and what is left to do by hand.
     #[error("{cause}")]
     Partial {
         done: Vec<String>,
@@ -99,7 +98,7 @@ pub fn run_text(
 }
 
 /// Reaches the default branch, starts there, and switches back when the start is refused before
-/// its first commit.
+/// its first write.
 fn begin(
     git: &Git,
     workspace: &Workspace,
@@ -153,7 +152,7 @@ struct Start<'a> {
     switch: bool,
 }
 
-/// A failure after the first commit.
+/// A failure after the first write.
 fn partial(done: &[String], left: Vec<String>, cause: impl ToString) -> StartError {
     StartError::Partial {
         done: done.to_vec(),
@@ -186,23 +185,19 @@ impl<'a> Start<'a> {
 
     fn run(&self, slug: Option<&str>, today: Date) -> Result<Started, StartError> {
         let plan = self.plan(slug, today)?;
-        self.commit_start(&plan)?;
-        let mut done = vec![format!("the start commit on {}", self.default)];
-        let target_root = self.create_branch(&plan, &done)?;
-        done.push(format!("the branch {}", plan.branch));
-        let moves = match self.source {
+        let (moves, done) = match self.source {
             Source::Draft(draft) => {
-                let moves = self.move_draft(draft, &plan, &target_root)?;
-                done.push("the move of the draft".to_string());
-                moves
+                let moves = self.move_draft(draft, &plan)?;
+                (moves, "the move of the draft".to_string())
             }
             Source::Text { typed, images } => {
-                self.write_text(typed, &plan, images, &target_root, &done)?;
-                done.push(format!("the proposal in {}", plan.destination));
-                Vec::new()
+                self.write_text(typed, &plan, images)?;
+                (Vec::new(), format!("the proposal in {}", plan.destination))
             }
         };
-        self.commit_proposal(&plan, &moves, &target_root, &done)?;
+        self.commit_start(&plan, &done)?;
+        let done = vec![done, format!("the start commit on {}", self.default)];
+        self.create_branch(&plan, &done)?;
         Ok(Started {
             default_branch: self.default.to_string(),
             start_subject: plan.start_subject,
@@ -210,7 +205,6 @@ impl<'a> Start<'a> {
             branch: plan.branch.clone(),
             worktree: (!self.switch).then(|| format!(".worktrees/{}", plan.folder)),
             moves,
-            proposal_subject: plan.proposal_subject,
         })
     }
 }

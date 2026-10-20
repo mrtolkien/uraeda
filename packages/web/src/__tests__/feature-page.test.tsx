@@ -334,6 +334,20 @@ test("a spec whose status cannot be read stops the page", async () => {
   expect(screen.queryByRole("button", { name: /format note/ })).toBeNull();
 });
 
+/** US6.2, the page: a change names itself */
+test("a change whose round cannot be read says the change cannot go on", async () => {
+  const repo = fixtureRepo();
+  addChange(repo, CHANGE, {
+    "clarifications-01.md": "---\nstatus: aproved\n---\n\n# Questions\n",
+    "proposal.md": "# A home logo\n",
+  });
+
+  await renderPage(`/f/${CHANGE}`, repo, { agent: true });
+
+  expect(await screen.findByText("This change cannot go on")).toBeTruthy();
+  expect(screen.queryByText("This feature cannot go on")).toBeNull();
+});
+
 /** US6.1, the page */
 test("format notes are folded at the bottom", async () => {
   const repo = fixtureRepo();

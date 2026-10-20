@@ -294,11 +294,16 @@ fn leaves_a_locked_worktree() {
 
     let cleaned = run(&repo, FOLDER, false).unwrap();
 
+    assert_eq!(cleaned.did, []);
     assert_eq!(
-        cleaned.left[0],
-        left(Leftover::Worktree(WORKTREE.into()), WhyLeft::Locked)
+        cleaned.left,
+        [
+            left(Leftover::Worktree(WORKTREE.into()), WhyLeft::Locked),
+            left(Leftover::Branch(FOLDER.into()), WhyLeft::WorktreeLeft)
+        ]
     );
     assert!(repo.exists(WORKTREE));
+    assert!(has_branch(&repo, FOLDER));
 }
 
 #[test]
@@ -316,14 +321,22 @@ fn leaves_a_worktree_outside_worktrees() {
 
     let cleaned = run(&repo, FOLDER, false).unwrap();
 
+    assert_eq!(cleaned.did, []);
     assert!(matches!(
-        &cleaned.left[0],
-        Left {
-            what: Leftover::Worktree(_),
-            why: WhyLeft::Outside(_)
-        }
+        cleaned.left.as_slice(),
+        [
+            Left {
+                what: Leftover::Worktree(_),
+                why: WhyLeft::Outside(_)
+            },
+            Left {
+                what: Leftover::Branch(branch),
+                why: WhyLeft::WorktreeLeft
+            }
+        ] if branch == FOLDER
     ));
     assert!(elsewhere.exists());
+    assert!(has_branch(&repo, FOLDER));
 }
 
 #[test]
