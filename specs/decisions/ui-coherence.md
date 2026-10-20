@@ -21,12 +21,23 @@ everywhere.
 - A text input MUST behave as its class does everywhere: a single-line input, a multi-line markdown
   input, or a composer. Its keys, its hints, and its buttons are the class's, not the page's.
   Checked by review.
+- Reading text MUST be drawn through `Prose` (`packages/web/src/Prose.tsx`): its size, line,
+  measure, and the markdown that holds prose. A page MUST NOT import Astryx's `Markdown`, or set
+  `--text-reading-*` or `--size-reading-measure`, itself. Checked by lint and a test, which hold the
+  files that still set it by hand to a list that only shrinks.
+- A page's column width MUST be a named property of `Page`, backed by a token, not derived from
+  another flag. Checked by review.
 
 ## Why
 
 Pages built one at a time drift: the decisions page drew a rule as plain text while the spec page
 drew it with its strength and its check. The human dislikes this more than a missing feature. The
 rule is short on purpose: the intent is the decision, and the components are the code.
+
+The agent's messages drew markdown on their own, with a replaced paragraph, Astryx's default 680 px
+cap on lists, and a width set on the page by a padding flag, so the same text looked different from
+the spec's. A rule checked by review caught none of it, so the rule for reading text is checked by a
+tool.
 
 ## Consequences
 
