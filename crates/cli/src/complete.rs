@@ -12,7 +12,6 @@ use clap_complete::env::EnvCompleter;
 use uraeda_core::actions::answer;
 use uraeda_core::files::clarifications;
 use uraeda_core::files::inbox;
-use uraeda_core::steps::StepName;
 use uraeda_core::target::{self, Purpose, Target};
 use uraeda_core::workspace::{Feature, Workspace};
 
@@ -144,35 +143,70 @@ pub fn checked() -> ArgValueCompleter {
 }
 
 /// The rounds waiting for answers, by their feature's slug, then the open questions of the round
-/// `ura answer` would pick: `answer`'s arguments.
+/// `ura answer` would pick. Once a target is typed, its round's open questions alone, and once a
+/// question is, nothing: the next word is the answer. `answer`'s arguments.
 pub fn questions() -> ArgValueCandidates {
     ArgValueCandidates::new(|| {
-        let Some(workspace) = workspace() else {
+        let typed = Typed::read();
+        let Some(workspace) = workspace().filter(|_| !typed.question) else {
             return Vec::new();
         };
-        let waiting = workspace
-            .features
-            .iter()
-            .filter(|feature| answer::round_path(feature).is_ok() && waits_for_answers(feature))
-            .map(feature);
         let cwd = std::env::current_dir().unwrap_or_default();
-        let picked = match target::resolve(&workspace, &cwd, None, Purpose::Answers) {
-            Ok(Target::Feature(index) | Target::File(index, _)) => {
+        let target = typed.target.as_deref();
+        let picked = match target::resolve(&workspace, &cwd, target, Purpose::Answers) {
+            Ok(Target::Feature(index) | Target::File(index, _))
+                if target::waits_for(&workspace.features[index], Purpose::Answers) =>
+            {
                 open_questions(&workspace.features[index])
             }
             _ => Vec::new(),
         };
-        waiting.chain(picked).collect()
+        if target.is_some() {
+            return picked;
+        }
+        workspace
+            .features
+            .iter()
+            .filter(|feature| target::waits_for(feature, Purpose::Answers))
+            .map(feature)
+            .chain(picked)
+            .collect()
     })
 }
 
-fn waits_for_answers(feature: &Feature) -> bool {
-    feature.step.name == StepName::HumanGate
-        && feature
-            .step
-            .file
-            .as_deref()
-            .is_some_and(|file| file.starts_with("clarifications-"))
+/// The words typed after `answer`, before the one being completed. clap gives a completer that
+/// word alone, so they are read from the words the shell passed, `ura -- ura answer <target>
+/// <word>`, the word's index in `_CLAP_COMPLETE_INDEX` from zsh and bash, last from fish.
+#[derive(Default)]
+struct Typed {
+    target: Option<String>,
+    question: bool,
+}
+
+impl Typed {
+    fn read() -> Typed {
+        let words: Vec<String> = std::env::args()
+            .skip_while(|arg| arg != "--")
+            .skip(1)
+            .collect();
+        let current = std::env::var("_CLAP_COMPLETE_INDEX")
+            .ok()
+            .and_then(|index| index.parse().ok())
+            .unwrap_or(words.len().saturating_sub(1));
+        let before = words.get(..current).unwrap_or_default();
+        let Some(answer) = before.iter().position(|word| word == "answer") else {
+            return Typed::default();
+        };
+        let typed = before[answer + 1..]
+            .iter()
+            .filter(|word| !word.starts_with('-'));
+        let (questions, targets): (Vec<&String>, Vec<&String>) =
+            typed.partition(|word| crate::answer::is_question(word));
+        Typed {
+            target: targets.first().map(|target| (*target).clone()),
+            question: !questions.is_empty(),
+        }
+    }
 }
 
 /// The questions of a feature's latest round still without an answer, then its notes.

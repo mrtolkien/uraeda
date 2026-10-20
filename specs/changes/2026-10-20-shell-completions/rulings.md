@@ -26,3 +26,26 @@ The low-impact choices made while building [the change](proposal.md), inside the
 - **Alternatives considered**: names only, which loses Tab on `specs/`.
 - **If wrong**: one line per argument in [`main.rs`](/crates/cli/src/main.rs).
 - **Where**: [`crates/cli/src/complete.rs`](/crates/cli/src/complete.rs)
+
+## R3: `clean` completes the merged features it can clean
+
+- **Decision**: `ura clean` completes the merged features and changes with a worktree or a branch
+  left, the ones it can clean, where the round's settled point said the started ones.
+- **Rationale**: `clean` refuses a feature that is not merged, so a started one is never a valid
+  value. The list is `clean`'s own, `clean::candidates`, so both stay the same.
+- **Alternatives considered**: the started features, as the round said, every one of them refused.
+- **If wrong**: one line in [`main.rs`](/crates/cli/src/main.rs).
+- **Where**: [`crates/cli/src/complete.rs`](/crates/cli/src/complete.rs)
+
+## R4: `answer` reads the words typed before the one completed
+
+- **Decision**: after `ura answer <target>`, Tab completes that target's open questions, and nothing
+  once a question is typed. The completer reads the earlier words from the request,
+  `ura -- <words>`, with zsh's and bash's `_CLAP_COMPLETE_INDEX`.
+- **Rationale**: clap gives a value completer the word being completed alone, while `answer`'s
+  arguments are one list, `[target] <question> <answer>`. Without the earlier words, a named round
+  completed another round's questions, or none.
+- **Alternatives considered**: splitting `answer`'s arguments, which changes a public command.
+- **If wrong**: a `clap_complete` upgrade that changes the request's words breaks it: a test sends a
+  zsh request with its index, and a fish one.
+- **Where**: [`crates/cli/src/complete.rs`](/crates/cli/src/complete.rs)
