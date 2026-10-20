@@ -148,7 +148,7 @@ test("an item coming to need the human notifies at once, and its click opens it"
 /** A chat the agent was refused an action in: it has no folder, and its page is under `/sessions`. */
 const chatRow = (id: string, key = `${id}:blocked:1`): NeedsYouRow => ({
   href: `/r/uraeda/sessions/${id}`,
-  id: `uraeda/chats/${id}`,
+  id: `uraeda/sessions/${id}`,
   key,
   label: "Push it",
   message: "The agent was refused an action",
