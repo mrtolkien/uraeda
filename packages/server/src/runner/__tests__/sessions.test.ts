@@ -1177,6 +1177,29 @@ test("a session only starting works", async () => {
   expect(sessions.working(repo)).toEqual([]);
 });
 
+/** US5.3: a fresh run refused while another session works leaves no empty session behind. */
+test("a fresh run sent to an idle session while another works starts no session", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  const idle = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, idle.id, { text: "Hello" })).turn);
+  const working = await sessions.newSession(repo, AGENT);
+  await sessions.send(repo, working.id, { text: "Build it" });
+
+  await expect(
+    sessions.send(repo, idle.id, {
+      text: "Continue the feature.",
+      workflow: { fresh: true, trigger: "approval" },
+    }),
+  ).rejects.toThrow("refused: Another session of this feature is working");
+
+  expect(cache.folderSessions(idle.repo, AGENT).map((row) => row.id)).toEqual([
+    working.id,
+    idle.id,
+  ]);
+  expect(cache.latestSession(idle.repo, AGENT)?.id).toBe(working.id);
+});
+
 /**
  * Review focus 3: a turn queued in a session while another of the feature works opens only once
  * the other's turn ends.
