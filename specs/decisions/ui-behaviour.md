@@ -24,6 +24,10 @@ Everything works by tap and by keyboard, not by hover.
 - Every action MUST work by tap and by keyboard, never by hover alone. Checked by the UI and browser
   tests.
 - Lists whose rows open a pane SHOULD share one keyboard behaviour. Checked by the UI tests.
+- A view of something that grows, such as a session's log, MUST mount a bounded number of rows, and
+  folded content MUST NOT be mounted, so typing stays smooth in a session of thousands of items. A
+  component that mounts hidden content is wrapped once, in a shared component. Checked by the UI
+  tests, which count what draws and never time it.
 
 ## Why
 
@@ -34,6 +38,10 @@ from notes saved as they were typed
 Saving on a button then needs unsaved text protected, as GitHub does. Commits take seconds while
 hooks run, so the human asked for "EXTREMELY CLEAR feedback" on writes
 ([feedback for git writes](../done/2026-10-16-redesign-interface.md#q9-what-does-a-button-that-writes-to-git-show-while-it-runs)).
+
+A session's 12-hour turn held 1,800 items, 97% of them tool calls, and drew about 500 of them:
+Astryx's tool-call group mounts every row even folded, so typing lagged and old messages never
+folded. Bounding by messages, not by what draws, was the gap.
 
 ## Alternatives considered
 
