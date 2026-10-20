@@ -149,9 +149,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `a_typed_text_starts_over_uncommitted_changes_elsewhere`.
 - **Rationale**: US2 2 starts the change while the session's edit to `src/auth/guard.ts` and the
   human's to `README.md` are uncommitted in the main checkout, and the skill says to leave every
-  other uncommitted file where it is. A typed start writes its proposal in the change's worktree and
-  commits `PRIORITIES.md` alone on the default branch, so the main checkout's edits are neither
-  carried nor touched. Without it, a session that edited a file could never become a change.
+  other uncommitted file where it is. A typed start writes its proposal in its own new folder and
+  commits that folder with `PRIORITIES.md` alone on the default branch, as the default branch's
+  start does since the catch-up, so the main checkout's edits are neither carried nor touched.
+  Without it, a session that edited a file could never become a change.
 - **Alternatives considered**: a flag for the move alone, through the API and the binding: a second
   rule for the same typed start, and the New page would still refuse a start the move allows.
 - **If wrong**: the `Origin::Text` arm of `Start::plan` in `crates/core/src/actions/start/plan.rs`.
