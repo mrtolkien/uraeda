@@ -63,9 +63,9 @@ The sidebar lists every session in progress, with or without a workflow, in one 
 Every row is one card: its icon, name, status, and "…", on one line, its icon telling its kind. Done
 items sit at the bottom. The word "chat" leaves the UI: a chat is a session without a workflow.
 
-[Merged sidebar](/packages/web/src/sidebar/Sessions.stories.tsx#Merged)
+[Merged sidebar](/packages/web/src/sidebar/Sidebar.stories.tsx#Merged)
 
-[Nothing in flight](/packages/web/src/sidebar/Sessions.stories.tsx#Empty)
+[Nothing in flight](/packages/web/src/sidebar/Sidebar.stories.tsx#Empty)
 
 Key scenarios:
 

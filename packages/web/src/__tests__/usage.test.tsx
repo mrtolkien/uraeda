@@ -21,7 +21,7 @@ test("five-hour allowance closes the Features section, updates, and disappears w
   await fake.sessions.settled((await fake.sessions.send(repo, chat.id, { text: "Hello" })).turn);
   await renderPage("/", repo, { agent: fake });
 
-  const group = within(await screen.findByRole("group", { name: "Features" }));
+  const group = within(await screen.findByRole("group", { name: "Sessions" }));
   expect(group.getByText("Claude 5h")).toBeTruthy();
   expect(group.getByText(/57% left · reset/)).toBeTruthy();
   expect(group.getByRole("progressbar", { name: label }).getAttribute("aria-valuenow")).toBe("57");
@@ -40,7 +40,7 @@ test("five-hour allowance closes the Features section, updates, and disappears w
 
 test("a runner without usage data shows no allowance", async () => {
   await renderPage("/", undefined, { agent: true });
-  await screen.findByRole("group", { name: "Features" });
+  await screen.findByRole("group", { name: "Sessions" });
   expect(screen.queryByText("Claude 5h")).toBeNull();
   expect(screen.queryByRole("progressbar", { name: label })).toBeNull();
 });
@@ -61,7 +61,7 @@ test("loading the allowance keeps the page and working features visible", async 
   try {
     await renderPage("/", repo, { agent: fake, fetch });
     await homeShown();
-    const group = within(screen.getByRole("group", { name: "Features" }));
+    const group = within(screen.getByRole("group", { name: "Sessions" }));
     expect(group.getByRole("link", { name: /^cli-tuis,/ })).toBeTruthy();
     expect(waiting).toBe(true);
   } finally {

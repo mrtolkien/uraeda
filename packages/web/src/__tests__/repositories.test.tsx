@@ -60,7 +60,7 @@ test("a missing folder shows where it was, with Remove", async () => {
   expect(await screen.findByRole("heading", { name: "Folder not found" })).toBeTruthy();
   expect(screen.getByText(path)).toBeTruthy();
   // Its fate requests are not sent: the page has no navigation.
-  expect(screen.queryByRole("navigation", { name: "Features" })).toBeNull();
+  expect(screen.queryByRole("group", { name: "Sessions" })).toBeNull();
 
   await click(screen.getByRole("button", { name: "Remove from Uraeda" }));
 

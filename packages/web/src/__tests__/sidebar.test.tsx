@@ -12,7 +12,16 @@ import {
   git,
 } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
-import { fakeAgent, fixtureRepo, refreshUntil, renderPage } from "./helpers.tsx";
+import {
+  atRepo,
+  click,
+  type Fake,
+  fakeAgent,
+  fixtureRepo,
+  refreshUntil,
+  renderPage,
+  type,
+} from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -34,7 +43,7 @@ function card(name: string) {
 /** US2.1, C1 */
 test("the sidebar reads in the flow's order, the inbox's and Now's counts, and no drafts", async () => {
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
-  await (await findNav()).findByRole("group", { name: "Features" });
+  await (await findNav()).findByRole("group", { name: "Sessions" });
 
   const links = nav()
     .getAllByRole("link")
@@ -44,9 +53,8 @@ test("the sidebar reads in the flow's order, the inbox's and Now's counts, and n
   expect(at("Home")).toBeLessThan(at("web-ui, "));
   expect(at("web-ui, ")).toBeLessThan(at("Inbox"));
   expect(at("Inbox")).toBeLessThan(at("Priorities"));
-  expect(at("Priorities")).toBeLessThan(at("＋New change"));
-  expect(at("＋New change")).toBeLessThan(at("cli-tuis, "));
-  expect(at("cli-tuis, ")).toBeLessThan(at("＋New chat"));
+  expect(at("Priorities")).toBeLessThan(at("＋New"));
+  expect(at("＋New")).toBeLessThan(at("cli-tuis, "));
   // The inbox's count, drawn once its own read ends: read again until it is.
   await waitFor(() =>
     expect(nav().getByRole("link", { name: /^Inbox/ }).textContent).toContain("10"),
@@ -65,7 +73,7 @@ test("a feature waiting on its answers is a card under Needs you only, by its st
   const link = await group.findByRole("link", { name: /^web-ui, / });
 
   expect(link.getAttribute("aria-label")).toBe(
-    "web-ui, Web UI for the workflow files, Questions to answer, Needs you",
+    "web-ui, Web UI for the workflow files, feature, Questions to answer, Needs you",
   );
   expect(nav().getAllByRole("link", { name: /^web-ui, / })).toHaveLength(1);
 });
@@ -84,7 +92,7 @@ test("a card counts the lines its branch changed outside its folder", async () =
   expect(nav().getByText("−0")).toBeTruthy();
 });
 
-/** US2.5 */
+/** US2.5, merge chats US1: the wrench, not a badge, shows it is a change. */
 test("a change under Needs you says it is a change", async () => {
   const repo = fixtureRepo();
   const round = readFileSync(
@@ -104,7 +112,7 @@ test("a change under Needs you says it is a change", async () => {
   const group = within(await (await findNav()).findByRole("group", { name: "Needs you" }));
   const link = await group.findByRole("link", { name: /^flaky-tests, / });
   expect(link.getAttribute("aria-label")).toContain(", change, ");
-  expect(group.getByText("Change")).toBeTruthy();
+  expect(group.queryByText("Change")).toBeNull();
 });
 
 /** US1.9 */
@@ -127,7 +135,7 @@ test("a card shows its run's background command", async () => {
 /** C4: the "…" is always there, so a card keeps its size under the pointer. */
 test("every card has its settings button, without a pointer", async () => {
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
-  await (await findNav()).findByRole("group", { name: "Features" });
+  await (await findNav()).findByRole("group", { name: "Sessions" });
 
   for (const slug of ["recurring-tasks", "web-ui", "plan-review", "cli-tuis"]) {
     expect(nav().getByRole("button", { name: `Settings of ${slug}` })).toBeTruthy();
@@ -185,8 +193,130 @@ test("a feature with a format note keeps its step on its card", async () => {
   git(repo, "switch", "--quiet", "2026-10-13-plan-review");
   await renderPage("/", repo, { agent: await fakeAgent() });
 
-  await (await findNav()).findByRole("group", { name: "Features" });
+  await (await findNav()).findByRole("group", { name: "Sessions" });
   const link = card("plan-review");
   expect(link.getAttribute("aria-label")).toContain(", Implementation, ");
   expect(link.getAttribute("aria-label")).not.toContain("Problem");
+});
+
+/** A session started with its first message on `startedAt`, its reply written, its turn ended. */
+async function seedSession(fake: Fake, repo: string, text: string, startedAt?: string) {
+  const session = await fake.sessions.newChat(repo);
+  fake.adapter.script([{ text: "Done.", type: "text" }]);
+  await fake.sessions.settled((await fake.sessions.send(repo, session.id, { text })).turn);
+  if (startedAt) {
+    fake.sessions.cache.db
+      .prepare("UPDATE sessions SET created_at = ? WHERE id = ?")
+      .run(startedAt, session.id);
+  }
+  return session.id;
+}
+
+/** The Sessions section, once drawn. */
+async function sessions() {
+  return within(await (await findNav()).findByRole("group", { name: "Sessions" }));
+}
+
+/** The names of a section's links, in their order. */
+const names = (group: ReturnType<typeof within>) =>
+  group
+    .getAllByRole("link")
+    .map((link: HTMLElement) => link.getAttribute("aria-label") ?? link.textContent ?? "");
+
+/** Merge chats US1 1 */
+test("sessions, changes, and features share one list, oldest first", async () => {
+  const repo = fixtureRepo();
+  addChange(repo, "2026-10-18-flaky-tests", {
+    "proposal.md": "# Flaky tests\n\nThe session tests fail one run in ten.\n",
+  });
+  const fake = await fakeAgent();
+  await seedSession(fake, repo, "Why is CI slow?", "2026-10-19T09:00:00.000Z");
+  await renderPage("/", repo, { agent: fake });
+
+  const group = await sessions();
+  await waitFor(() => group.getByRole("link", { name: /^Why is CI slow\?, / }));
+  const links = names(group);
+  const at = (start: string) => links.findIndex((name: string) => name.startsWith(start));
+  expect(at("＋New")).toBe(0);
+  expect(group.getByRole("link", { name: "New" }).getAttribute("href")).toBe(atRepo("/new"));
+  expect(at("cli-tuis, ")).toBeGreaterThan(0);
+  expect(at("cli-tuis, ")).toBeLessThan(at("flaky-tests, "));
+  expect(at("flaky-tests, ")).toBeLessThan(at("Why is CI slow?, "));
+  expect(links[at("cli-tuis, ")]).toContain(", feature, ");
+  expect(links[at("flaky-tests, ")]).toContain(", change, ");
+  expect(links[at("Why is CI slow?, ")]).toContain(", session, ");
+  for (const name of ["Changes", "Features", "Chats"]) {
+    expect(nav().queryByRole("group", { name })).toBeNull();
+  }
+});
+
+/** Merge chats US1 2: Done's order is `doneRows`' (done.test.ts); here, it leaves Sessions. */
+test("a session read to its end leaves Sessions", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const read = await seedSession(fake, repo, "What does ura clean keep?");
+  await seedSession(fake, repo, "Why is CI slow?");
+  fake.sessions.seen(repo, read);
+  await renderPage("/", repo, { agent: fake });
+
+  const group = await sessions();
+  await waitFor(() => group.getByRole("link", { name: /^Why is CI slow\?, / }));
+  expect(group.queryByRole("link", { name: /What does ura clean keep/ })).toBeNull();
+});
+
+/** Merge chats US1 3 */
+test("a session's … renames it", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedSession(fake, repo, "Why is CI slow?");
+  await renderPage("/", repo, { agent: fake });
+  const group = await sessions();
+
+  await click(await group.findByRole("button", { name: "Actions of Why is CI slow?" }));
+  await click(await screen.findByRole("menuitem", { name: "Rename" }));
+  await type(await screen.findByRole("textbox", { name: "Title" }), "CI speed");
+  await click(screen.getByRole("button", { name: "Save" }));
+
+  await refreshUntil(() => expect(group.getByRole("link", { name: /^CI speed, / })).toBeTruthy());
+  expect(group.queryByRole("link", { name: /Why is CI slow/ })).toBeNull();
+});
+
+/** Merge chats, edge case: a session read while its page is open. */
+test("the open session stays in the list until its page is left", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await seedSession(fake, repo, "Why is CI slow?");
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+  // Its page marks it read to its end: done.
+  await waitFor(() => expect(fake.sessions.cache.session(id)!.seenAt).not.toBeNull());
+
+  await refreshUntil(() =>
+    expect(nav().getByRole("link", { name: /^Why is CI slow\?, / })).toBeTruthy(),
+  );
+  await click(nav().getByRole("link", { name: "Home" }));
+
+  await refreshUntil(() =>
+    expect(nav().queryByRole("link", { name: /^Why is CI slow\?, / })).toBeNull(),
+  );
+});
+
+/** Merge chats SC-005: every card's status and "…" are in its row. */
+test("each card has its status and its … in its row", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedSession(fake, repo, "Why is CI slow?");
+  await renderPage("/", repo, { agent: fake });
+  const group = await sessions();
+  await waitFor(() => group.getByRole("link", { name: /^Why is CI slow\?, / }));
+
+  const cards = group.getAllByRole("link").filter((link) => link.textContent !== "＋New");
+  expect(cards.length).toBeGreaterThan(1);
+  for (const link of cards) {
+    const label = link.getAttribute("aria-label")!.split(", ")[0]!;
+    expect(within(link).getByRole("img")).toBeTruthy();
+    expect(
+      group.queryByRole("button", { name: `Settings of ${label}` }) ??
+        group.queryByRole("button", { name: `Actions of ${label}` }),
+    ).toBeTruthy();
+  }
 });

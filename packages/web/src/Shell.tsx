@@ -12,8 +12,9 @@ import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath, useRepository } from "./routes.tsx";
-import { DoneArea, type DoneRow } from "./sidebar/DoneArea.tsx";
-import { selects } from "./sidebar/Row.tsx";
+import { DoneArea } from "./sidebar/DoneArea.tsx";
+import { doneRows, useKeptSession } from "./sidebar/done.ts";
+import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
 import { SidebarHeading } from "./sidebar/SidebarHeading.tsx";
 import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
 import { SearchField, useSessionQuery } from "./sidebar/Search.tsx";
@@ -121,33 +122,9 @@ function SettingsItem({ path }: { path: string }) {
   );
 }
 
-/** The done items, newest first, as the Done area lists them. */
-function doneRows(
-  features: Array<{
-    folder: string;
-    label?: string | null;
-    slug: string;
-    step: { name: string };
-    title: string;
-  }>,
-  pathname: string,
-  here: (path: string) => string,
-): Array<DoneRow> {
-  return features
-    .filter((feature) => feature.step.name === "done")
-    .sort((a, b) => b.folder.localeCompare(a.folder))
-    .map((feature) => ({
-      folder: feature.folder,
-      href: here(`/f/${feature.folder}`),
-      isSelected: selects(pathname, `/f/${feature.folder}`),
-      label: feature.label ?? feature.slug,
-      title: feature.title,
-    }));
-}
-
 /**
  * The navigation: a search over the sessions, Home, what needs the human, the inbox and the
- * priorities with their ＋, the changes and the features in flight, the chats, and at the bottom the
+ * priorities with their ＋, the sessions, changes, and features in flight, and at the bottom the
  * latest done items that fit, then Settings. Its heading folds it, goes home on the phone, and ends with the page's
  * own controls; on wide screens it folds to its rail and resizes, its width and state kept in the
  * browser, its width easing as it folds.
@@ -163,6 +140,7 @@ function Nav({ slot }: { slot: ReactNode }) {
   const rows = useRef<HTMLDivElement>(null);
   // A task view opened from home shows beside home on wide screens: home stays the page selected.
   const pathname = path.startsWith("/priorities/") && currentEntry().from === "/" ? "/" : path;
+  const kept = useKeptSession(sessionList?.rows ?? [], pathname);
   const fold = () => {
     setFolding(true);
     setTimeout(() => setFolding(false), FOLD_MS);
@@ -177,7 +155,11 @@ function Nav({ slot }: { slot: ReactNode }) {
             allHref={here("/#done")}
             content={rows}
             onOpen={(href) => navigate(href)}
-            rows={doneRows(workspace?.features ?? [], pathname, here)}
+            rows={doneRows(workspace?.features ?? [], sessionList?.rows ?? [], {
+              here,
+              ...(kept ? { kept } : {}),
+              pathname,
+            })}
           />
           <SettingsItem path={path} />
         </>
@@ -200,6 +182,7 @@ function Nav({ slot }: { slot: ReactNode }) {
     >
       <div ref={rows}>
         <Sidebar
+          kept={kept}
           pathname={pathname}
           query={query}
           sessionList={sessionList}
@@ -244,18 +227,20 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <SidebarAddForms>
       <FeatureSettingsHost>
-        <AppShell
-          contentPadding={0}
-          height="auto"
-          sideNav={<Nav slot={slot} />}
-          xstyle={styles.shell}
-        >
-          <Writing />
-          <NotifyBanner />
-          <Notifier />
-          <UndoErrors />
-          <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
-        </AppShell>
+        <RenameSessionHost>
+          <AppShell
+            contentPadding={0}
+            height="auto"
+            sideNav={<Nav slot={slot} />}
+            xstyle={styles.shell}
+          >
+            <Writing />
+            <NotifyBanner />
+            <Notifier />
+            <UndoErrors />
+            <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
+          </AppShell>
+        </RenameSessionHost>
       </FeatureSettingsHost>
     </SidebarAddForms>
   );

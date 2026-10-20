@@ -15,21 +15,27 @@ import { FeatureSettingsForm } from "./FeatureSettings.tsx";
 /** Opens a feature's settings. */
 const OpenContext = createContext<(feature: Feature) => void>(() => {});
 
-/** Opens a feature's settings, once the phone's drawer is closed. */
-export function useOpenSettings() {
-  const open = useContext(OpenContext);
+/** Runs `open`, a dialog's opening from the sidebar, once the phone's drawer is closed. */
+export function useAfterDrawer() {
   const { closeMobileNav, isMobileNavOpen, mobileNavId } = useAppShellMobile();
-  return (feature: Feature) => {
+  return (open: () => void) => {
     const drawer = (
       isMobileNavOpen && mobileNavId ? document.getElementById(mobileNavId) : null
     ) as HTMLDialogElement | null;
     if (drawer?.open) {
-      drawer.addEventListener("close", () => open(feature), { once: true });
+      drawer.addEventListener("close", open, { once: true });
       closeMobileNav();
       return;
     }
-    open(feature);
+    open();
   };
+}
+
+/** Opens a feature's settings, once the phone's drawer is closed. */
+export function useOpenSettings() {
+  const open = useContext(OpenContext);
+  const after = useAfterDrawer();
+  return (feature: Feature) => after(() => open(feature));
 }
 
 function Settings({ feature, onClose }: { feature: Feature; onClose: () => void }) {

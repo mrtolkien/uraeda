@@ -207,3 +207,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   failed run would leave the list while it reads "Needs attention".
 - **If wrong**: `sessionDone` in `runner/status.ts`, one comparison.
 - **Where**: task 6, `packages/server/src/runner/status.ts`, `fate/needs-you.ts`.
+
+## R14: The sidebar's old sections' tests follow one Sessions list, and Done dates a feature by its folder
+
+- **Decision**: one Sessions section replaces Changes, Features, and Chats (US1), and every card's
+  name says its kind, so the tests that pinned the old sections change, each keeping its case:
+  - `web/__tests__/sidebar.test.tsx`: the flow's order ends with "＋New", then the cards, instead of
+    "＋New change" and "＋New chat"; the Needs you card's exact name gains "feature"; "a change
+    under Needs you says it is a change" checks its name and that no "Change" badge shows, the
+    wrench telling it; three tests wait for the "Sessions" group instead of "Features".
+  - `shell.test.tsx`: US4.1 clicks "New" and finds the session under Sessions; US4.3's Archived
+    group is under Sessions; US2.1's exact name gains "feature".
+  - `usage.test.tsx`: the allowance closes the Sessions section, not Features.
+  - `repositories.test.tsx`: a missing folder's page has no Sessions group, instead of no "Features"
+    navigation, a name no element had.
+  - `cards.test.ts`: `byStep` and its cases go with the workflow-ordered sections; `byStart` and
+    `startOf` replace them. The Done area orders a session by its last turn and a merged change or
+    feature by its folder's date, the only date the client has for it, the latest first. A session
+    needing the human sits under Needs you with the features, as the tab's title already counts it.
+- **Rationale**: the spec orders Done latest first, and US1 2's change merged at 09:00 has no date
+  in the workspace's records; its folder's date sorts before any session of that day. Needs you is
+  what needs the human, whatever the kind, which the server's list already counts.
+- **Alternatives considered**: a merge date read from git for every done item: a git read per item
+  on every sidebar draw, for a list of five rows. Listing sessions before features in Done: a
+  month-old read session would hide today's merge.
+- **If wrong**: the `date` of `doneRows` in `sidebar/done.ts`; the Needs you filter in
+  `sidebar/Sidebar.tsx`.
+- **Where**: task 8.

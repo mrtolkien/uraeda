@@ -1,12 +1,13 @@
-// A feature's or a change's card in the sidebar: every line about it inside one border. Its first
-// line is its step's icon, its name, and at the end its background command and status; its "…" opens
-// its settings. Under it, while it has any: its task's progress, its pull request, and the lines its
-// branch changed; then its running sub-agents.
-import { Badge } from "@astryxdesign/core/Badge";
+// A session's, a change's, or a feature's card in the sidebar: every line about it inside one border.
+// Its first line is its kind's icon, its name, and at the end its background command and status,
+// then its "…": a session's actions, or a change's or a feature's settings. Under it, while it has
+// any: its task's progress and the lines its branch changed, with its pull request; then its running
+// sub-agents.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Link } from "@astryxdesign/core/Link";
+import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
@@ -23,15 +24,16 @@ import { StatusMark } from "../StatusMark.tsx";
 import { needsYou } from "./cards.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 
-/** What the sidebar shows of a feature or a change. */
+/** What the sidebar shows of a session, a change, or a feature. */
 export type CardItem = {
   /** Lines its branch added and removed outside its folder, once it changed any. */
   changes?: { added: number; removed: number };
+  /** Its folder, or a session's ID. */
   folder: string;
   /** Whether a background command of its run is still going. */
   hasBackgroundCommand?: boolean;
-  kind: "feature" | "change";
-  /** Its name in the sidebar: its label, or its slug. */
+  kind: "session" | "change" | "feature";
+  /** Its name in the sidebar: its label, or its slug; a session's title. */
   label: string;
   /** What a button just started for it, until the server's status arrives: "Committing…". */
   pending?: string;
@@ -39,7 +41,8 @@ export type CardItem = {
   progress?: { position: number; title: string; total: number };
   pullRequest?: { number: number; url: string };
   status: { label: string; status: SessionStatus };
-  step: { kind: StepKind; label: string };
+  /** A change's or a feature's step; a session has none. */
+  step?: { kind: StepKind; label: string };
   subagents?: Array<{ description: string; id: string }>;
   title: string;
 };
@@ -84,16 +87,15 @@ const styles = stylex.create({
 });
 
 /**
- * The card's accessible name, in full words: its name, its title, its kind for a change, its step,
- * its status or the action in flight, its task, its background command, and the lines its branch
- * changed.
+ * The card's accessible name, in full words: its name, its title, its kind, its step, its status or
+ * the action in flight, its task, its background command, and the lines its branch changed.
  */
 export function cardName(item: CardItem) {
   return [
     item.label,
     item.title,
-    item.kind === "change" ? "change" : undefined,
-    item.step.label,
+    item.kind,
+    item.step?.label,
     item.pending ?? item.status.label,
     item.progress
       ? `Task ${item.progress.position} of ${item.progress.total}, ${item.progress.title}`
@@ -124,17 +126,30 @@ function Status({ item }: { item: CardItem }) {
 }
 
 /**
- * The step's icon; in the folded rail, with a warning under it while the item needs the human, its
+ * The icon telling its kind: a speech bubble for a session, a wrench for a change, and a feature's
+ * step, its steps being its own.
+ */
+function KindIcon({ item }: { item: CardItem }) {
+  if (item.kind === "feature" && item.step) {
+    return <StepIcon step={item.step.kind} />;
+  }
+  return (
+    <Icon color="secondary" icon={item.kind === "change" ? "wrench" : "uraeda:comment"} size="sm" />
+  );
+}
+
+/**
+ * The kind's icon; in the folded rail, with a warning under it while the item needs the human, its
  * status read in the card's name.
  */
 function CardIcon({ item }: { item: CardItem }) {
   const { isCollapsed } = useSideNavCollapse();
   if (!isCollapsed || !needsYou(item.status)) {
-    return <StepIcon step={item.step.kind} />;
+    return <KindIcon item={item} />;
   }
   return (
     <span {...stylex.props(styles.railIcon)}>
-      <StepIcon step={item.step.kind} />
+      <KindIcon item={item} />
       <Icon
         color={item.status.status === "attention" ? "error" : "warning"}
         icon="warning"
@@ -145,18 +160,16 @@ function CardIcon({ item }: { item: CardItem }) {
 }
 
 /**
- * The line under the first one: "Change" where changes and features share a section, the task's
- * progress, the pull request, and the lines changed.
+ * The line under the first one, only while there is a task or lines changed: the task's progress,
+ * the pull request, and the lines changed.
  */
-function Activity({ hasChangeTag, item }: { hasChangeTag: boolean; item: CardItem }) {
+function Activity({ item }: { item: CardItem }) {
   const { changes, progress, pullRequest } = item;
-  const tag = hasChangeTag && item.kind === "change";
-  if (!changes && !progress && !pullRequest && !tag) {
+  if (!changes && !progress) {
     return null;
   }
   return (
     <HStack align="center" gap={2} xstyle={styles.activity}>
-      {tag && <Badge aria-hidden label="Change" variant="neutral" />}
       {progress && <ProgressRing position={progress.position} total={progress.total} />}
       <span {...stylex.props(styles.progressText)}>
         {progress && (
@@ -194,8 +207,45 @@ function Activity({ hasChangeTag, item }: { hasChangeTag: boolean; item: CardIte
   );
 }
 
+/** A session's actions in its "…". */
+export type CardAction = { label: string; onClick: () => void };
+
+/** The "…": a session's actions as a menu, or a change's or a feature's settings. */
+function More({
+  actions,
+  item,
+  onSettings,
+}: {
+  actions: Array<CardAction> | undefined;
+  item: CardItem;
+  onSettings: (() => void) | undefined;
+}) {
+  const icon = <Icon color="secondary" icon="moreHorizontal" />;
+  if (actions) {
+    return (
+      <MoreMenu
+        alignment="end"
+        icon={icon}
+        items={actions}
+        label={`Actions of ${item.label}`}
+        presentation="adaptive"
+        size="sm"
+      />
+    );
+  }
+  return (
+    <IconButton
+      icon={icon}
+      label={`Settings of ${item.label}`}
+      {...(onSettings ? { onClick: onSettings } : {})}
+      size="sm"
+      variant="ghost"
+    />
+  );
+}
+
 export function ItemCard({
-  hasChangeTag = false,
+  actions,
   href,
   isSelected = false,
   item,
@@ -203,14 +253,15 @@ export function ItemCard({
   onSettings,
   onStatus,
 }: {
-  /** Whether a change says so with a tag: where changes and features share a section. */
-  hasChangeTag?: boolean;
+  /** A session's actions, which its "…" lists. */
+  actions?: Array<CardAction>;
   href: string;
   isSelected?: boolean;
   item: CardItem;
   /** Opens the item's page inside the app, instead of loading `href`. */
   onOpen?: () => void;
-  onSettings: () => void;
+  /** Opens a change's or a feature's settings. */
+  onSettings?: () => void;
   /** Opens what its status points to, on a click on the status: its session, or what it asks. */
   onStatus?: () => void;
 }) {
@@ -219,15 +270,7 @@ export function ItemCard({
     <div {...stylex.props(styles.card)}>
       <SideNavItem
         // Always drawn, muted, so the card keeps its size under the pointer (C4).
-        actions={
-          <IconButton
-            icon={<Icon color="secondary" icon="moreHorizontal" />}
-            label={`Settings of ${item.label}`}
-            onClick={onSettings}
-            size="sm"
-            variant="ghost"
-          />
-        }
+        actions={<More actions={actions} item={item} onSettings={onSettings} />}
         aria-label={cardName(item)}
         endContent={<Status item={item} />}
         href={href}
@@ -248,7 +291,7 @@ export function ItemCard({
             }
           : {})}
       />
-      {!isCollapsed && <Activity hasChangeTag={hasChangeTag} item={item} />}
+      {!isCollapsed && <Activity item={item} />}
       {!isCollapsed &&
         item.subagents?.map((subagent) => (
           <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>

@@ -1,6 +1,7 @@
 // The sidebar's rows below its search, in Uraeda's flow: Home; what needs the human; the inbox and
-// the priorities with their counts; the changes and the features in flight, each in the workflow's
-// order; the Claude allowance; then the chats. During a search, only the cards and chats it found.
+// the priorities with their counts; then one Sessions list, where every session, change, and feature
+// in flight is a card, the oldest started first, and the Claude allowance. During a search, only the
+// cards it found.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SideNavItem, SideNavSection, useSideNavCollapse } from "@astryxdesign/core/SideNav";
@@ -8,27 +9,32 @@ import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense } from "react";
+import { useFateClient } from "react-fate";
 import { useBranchChanges, useInbox } from "../data.ts";
 import { type useNavigation, useSessionSearch } from "../sessionData.ts";
 import { waiting } from "../labels.ts";
-import { navigate, useRepoPath } from "../routes.tsx";
+import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
 import { AddNoteButton, AddPriorityButton } from "../SidebarAdd.tsx";
 import { Allowance } from "./Allowance.tsx";
 import {
+  byStart,
   byStatus,
-  byStep,
   type Feature,
   featureStatus,
   inFlight,
   needsYou,
   type Row,
+  sessionCard,
+  startOf,
   type Status,
   toCard,
 } from "./cards.ts";
 import { useOpenSettings } from "./FeatureSettingsDialog.tsx";
 import { type CardItem, ItemCard } from "./ItemCard.tsx";
-import { Chat, Item, NewRow, selects } from "./Row.tsx";
+import { useOpenRename } from "./RenameSession.tsx";
+import { Item, NewRow, selects } from "./Row.tsx";
+import { SessionView } from "../views.ts";
 import { usePendingAction } from "../writes/store.ts";
 
 const styles = stylex.create({
@@ -69,19 +75,16 @@ function FeatureCard({
   feature,
   pathname,
   row,
-  tagged = false,
 }: {
   feature: Feature;
   pathname: string;
   row: Row | undefined;
-  tagged?: boolean;
 }) {
   const here = useRepoPath();
   const settings = useOpenSettings();
   const to = `/f/${feature.folder}`;
   const card = (item: CardItem) => (
     <ItemCard
-      hasChangeTag={tagged}
       href={here(to)}
       isSelected={selects(pathname, to)}
       item={item}
@@ -141,79 +144,89 @@ function matching(
   });
 }
 
-/** A section of cards, drawn only when it has one, or a row to add one. */
-function Cards({
-  add,
-  after,
-  byFolder,
-  features,
-  pathname,
-  tagged,
-  title,
-}: {
-  add?: React.ReactNode;
-  /** What closes the section, like the Claude allowance under the features. */
-  after?: React.ReactNode;
-  byFolder: Map<string, Row>;
-  features: Array<Feature>;
-  pathname: string;
-  tagged?: boolean;
-  title: string;
-}) {
-  if (features.length === 0 && !add && !after) {
-    return null;
-  }
+/** A card of the list: a feature or a change, or a session without a workflow. */
+type Entry =
+  | { feature: Feature; kind: "feature"; row: Row | undefined; start: string; status: Status }
+  | { kind: "session"; row: Row; start: string; status: Status };
+
+/** A session's card: its "…" renames it, and archives it or brings it back. */
+function SessionCard({ pathname, row }: { pathname: string; row: Row }) {
+  const here = useRepoPath();
+  const fate = useFateClient();
+  const rename = useOpenRename();
+  const to = sessionIdPath(row.id);
   return (
-    <SideNavSection title={title}>
-      {add}
-      {features.map((feature) => (
-        <FeatureCard
-          feature={feature}
-          key={feature.folder}
-          pathname={pathname}
-          row={byFolder.get(feature.folder)}
-          {...(tagged ? { tagged } : {})}
-        />
-      ))}
-      {after}
-    </SideNavSection>
+    <ItemCard
+      actions={[
+        { label: "Rename", onClick: () => rename(row) },
+        {
+          label: row.archived ? "Unarchive" : "Archive",
+          onClick: () =>
+            void fate.mutations.session.archive({
+              input: { archived: !row.archived, session: row.id },
+              view: SessionView,
+            }),
+        },
+      ]}
+      href={here(to)}
+      isSelected={selects(pathname, to)}
+      item={sessionCard(row)}
+      onOpen={() => navigate(here(to))}
+    />
   );
 }
 
-/** The chats' section: "New chat" outside a search, the open chats, then the archived ones. */
-function Chats({
-  chats,
-  pathname,
-  searching,
-}: {
-  chats: Array<Row>;
-  pathname: string;
-  searching: boolean;
-}) {
-  if (searching && chats.length === 0) {
-    return null;
-  }
-  const open = chats.filter((row) => !row.archived);
-  const archived = chats.filter((row) => row.archived);
-  return (
-    <SideNavSection title="Chats">
-      {!searching && <NewRow label="New chat" path="/new" pathname={pathname} />}
-      {open.map((row) => (
-        <Chat key={row.id} pathname={pathname} row={row} />
-      ))}
-      {archived.length > 0 && <ArchivedChats pathname={pathname} rows={archived} />}
-    </SideNavSection>
+/** An entry's card, by its kind. */
+function EntryCard({ entry, pathname }: { entry: Entry; pathname: string }) {
+  return entry.kind === "feature" ? (
+    <FeatureCard feature={entry.feature} pathname={pathname} row={entry.row} />
+  ) : (
+    <SessionCard pathname={pathname} row={entry.row} />
   );
 }
 
-/** Archived chats stay hidden until asked for, as archiving hides a chat. */
-function ArchivedChats({ pathname, rows }: { pathname: string; rows: Array<Row> }) {
+/** Archived sessions stay hidden until asked for, as archiving hides a session. */
+function Archived({ pathname, rows }: { pathname: string; rows: Array<Row> }) {
   return (
     <SideNavItem collapsible={{ defaultIsCollapsed: true }} label="Archived">
       {rows.map((row) => (
-        <Chat key={row.id} pathname={pathname} row={row} />
+        <SessionCard key={row.id} pathname={pathname} row={row} />
       ))}
     </SideNavItem>
+  );
+}
+
+/**
+ * The Sessions section: "＋ New" outside a search, every session, change, and feature in flight,
+ * oldest started first, the archived sessions, then the Claude allowance.
+ */
+function Sessions({
+  archived,
+  entries,
+  pathname,
+  searching,
+}: {
+  archived: Array<Row>;
+  entries: Array<Entry>;
+  pathname: string;
+  searching: boolean;
+}) {
+  if (searching && entries.length === 0 && archived.length === 0) {
+    return null;
+  }
+  return (
+    <SideNavSection title="Sessions">
+      {!searching && <NewRow label="New" path="/new" pathname={pathname} />}
+      {entries.map((entry) => (
+        <EntryCard
+          entry={entry}
+          key={entry.kind === "feature" ? entry.feature.folder : entry.row.id}
+          pathname={pathname}
+        />
+      ))}
+      {archived.length > 0 && <Archived pathname={pathname} rows={archived} />}
+      {!searching && <Allowance />}
+    </SideNavSection>
   );
 }
 
@@ -256,73 +269,104 @@ function Flow({ data, pathname }: { data: Data; pathname: string }) {
 }
 
 /**
- * The navigation's rows. `found`, during a search, holds the sessions found, by ID: Home, the
- * flow's rows, and New change are then hidden.
+ * The list's entries: the features and changes in flight, each with its most urgent session's row,
+ * and the sessions without a workflow not archived. Outside a search, a session read to its end is
+ * done, in the Done area, unless it is `kept`, open since before.
  */
-function Rows({
-  data,
-  found,
-  pathname,
-  query,
-}: {
-  data: Data;
-  found?: Map<string, Row>;
-  pathname: string;
-  query: string;
-}) {
+function entriesOf(
+  data: Data,
+  { found, kept, query }: { found: Map<string, Row> | undefined; kept?: string; query: string },
+) {
   const rows = data.sessionList?.rows ?? [];
   const bySession = new Map(rows.map((row) => [row.id, row]));
   // A session found that the list leaves out, past its last row, shows as the search read it.
   const all = [...rows, ...[...(found?.values() ?? [])].filter((row) => !bySession.has(row.id))];
-  const byFolder = new Map(all.flatMap((row) => (row.folder ? [[row.folder, row]] : [])));
+  // The rows come what needs the human first: a folder's first is its most urgent.
+  const byFolder = new Map<string, Row>();
+  for (const row of all) {
+    if (row.folder && !byFolder.has(row.folder)) {
+      byFolder.set(row.folder, row);
+    }
+  }
   const features = matching(
     (data.workspace?.features ?? []).filter(inFlight),
     byFolder,
     found,
     query,
   );
-  const statuses = new Map<string, Status>(
-    features.map((feature) => [
-      feature.folder,
-      featureStatus(feature, byFolder.get(feature.folder)),
-    ]),
-  );
-  const waiting = byStatus(
-    features.filter((feature) => needsYou(statuses.get(feature.folder)!)),
-    statuses,
-  );
-  const rest = features.filter((feature) => !needsYou(statuses.get(feature.folder)!));
-  const chats = all.filter((row) => row.folder === null && (!found || found.has(row.id)));
-  if (found && features.length === 0 && chats.length === 0) {
+  const sessions = all.filter((row) => row.folder === null && (!found || found.has(row.id)));
+  const entries: Array<Entry> = [
+    ...features.map((feature) => {
+      const row = byFolder.get(feature.folder);
+      return {
+        feature,
+        kind: "feature" as const,
+        row,
+        start: startOf(feature, all),
+        status: featureStatus(feature, row),
+      };
+    }),
+    ...sessions
+      .filter((row) => !row.archived && (found || !row.done || row.id === kept))
+      .map((row) => ({
+        kind: "session" as const,
+        row,
+        start: row.startedAt,
+        status: { label: row.statusLabel, status: row.status },
+      })),
+  ];
+  return { archived: sessions.filter((row) => row.archived), entries };
+}
+
+/**
+ * The navigation's rows. `found`, during a search, holds the sessions found, by ID: Home, the
+ * flow's rows, and "＋ New" are then hidden.
+ */
+function Rows({
+  data,
+  found,
+  kept,
+  pathname,
+  query,
+}: {
+  data: Data;
+  found?: Map<string, Row>;
+  kept?: string;
+  pathname: string;
+  query: string;
+}) {
+  const { archived, entries } = entriesOf(data, { found, ...(kept ? { kept } : {}), query });
+  if (found && entries.length === 0 && archived.length === 0) {
     return (
       <Text color="secondary" display="block" xstyle={styles.empty}>
         No session matches “{query}”.
       </Text>
     );
   }
-  const section = { byFolder, pathname };
+  const waiting = byStatus(entries.filter((entry) => needsYou(entry.status)));
   return (
     <>
       {!found && (
         <Item foldedIcon={<Icon icon="uraeda:home" />} label="Home" pathname={pathname} to="/" />
       )}
-      <Cards {...section} features={waiting} tagged title="Needs you" />
+      {waiting.length > 0 && (
+        <SideNavSection title="Needs you">
+          {waiting.map((entry) => (
+            <EntryCard
+              entry={entry}
+              key={entry.kind === "feature" ? entry.feature.folder : entry.row.id}
+              pathname={pathname}
+            />
+          ))}
+        </SideNavSection>
+      )}
       {!found && <Flow data={data} pathname={pathname} />}
-      <Cards
-        {...section}
-        {...(found
-          ? {}
-          : { add: <NewRow label="New change" path="/new?kind=change" pathname={pathname} /> })}
-        features={byStep(rest.filter((feature) => feature.kind === "change"))}
-        title="Changes"
+      <Sessions
+        archived={archived}
+        entries={byStart(entries.filter((entry) => !needsYou(entry.status)))}
+        pathname={pathname}
+        searching={!!found}
       />
-      <Cards
-        {...section}
-        {...(found ? {} : { after: <Allowance /> })}
-        features={byStep(rest.filter((feature) => feature.kind !== "change"))}
-        title="Features"
-      />
-      <Chats chats={chats} pathname={pathname} searching={!!found} />
     </>
   );
 }
@@ -334,18 +378,22 @@ function Found({ data, pathname, query }: { data: Data; pathname: string; query:
   return <Rows data={data} found={found} pathname={pathname} query={query} />;
 }
 
-/** The navigation's rows below its search; the folded navigation has no search to filter them. */
+/**
+ * The navigation's rows below its search; the folded navigation has no search to filter them.
+ * `kept` is the session whose page is open since before it was done, which stays in the list.
+ */
 export function Sidebar({
+  kept,
   pathname,
   query,
   sessionList,
   workspace,
-}: Data & { pathname: string; query: string }) {
+}: Data & { kept?: string | undefined; pathname: string; query: string }) {
   const { isCollapsed } = useSideNavCollapse();
   const data = { sessionList, workspace };
   return query && !isCollapsed ? (
     <Found data={data} pathname={pathname} query={query} />
   ) : (
-    <Rows data={data} pathname={pathname} query="" />
+    <Rows data={data} {...(kept ? { kept } : {})} pathname={pathname} query="" />
   );
 }
