@@ -7,7 +7,6 @@
 > Features for v1.0.0
 
 - [Fix testing -> it's flaky and does not actually help](/specs/2026-10-19-fix-testing/proposal.md)
-- [Session transcript speed and coherence](/specs/changes/2026-10-20-session-transcript/proposal.md)
 - [Inbox screenshots](/specs/changes/2026-10-20-inbox-images/proposal.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
