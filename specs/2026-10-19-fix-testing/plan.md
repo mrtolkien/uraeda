@@ -704,14 +704,14 @@ validation.
 
 **Interfaces:** All task contracts above remain present. Keep complete ready separate from fast.
 
-- [ ] **Step 1: Refresh and integrate main.** Re-read changed decisions/constitution; preserve
+- [x] **Step 1: Refresh and integrate main.** Re-read changed decisions/constitution; preserve
       concurrent product behavior and tests. Reconcile baseline file inventory and individual
       decision-rule map against the actual updated base.
-- [ ] **Step 2: Audit every old test disposition and changed assertion.** Retained tests stay named;
+- [x] **Step 2: Audit every old test disposition and changed assertion.** Retained tests stay named;
       moved/replaced cases identify their owning assertions and faults. Record exact
       timeout/skip/expectation changes, coverage exclusions/denominators, file/function growth, and
       any unresolved evidence.
-- [ ] **Step 3: Run complete local validation and the representative edit matrix.** Run uncached
+- [x] **Step 3: Run complete local validation and the representative edit matrix.** Run uncached
       ready, required editor smoke where available, and comparable coverage investigations. Measure
       Composer, leaf, shared helper, core, skill, fixture, declaration, config, deletion, and docs
       with complete-command timing and explicit selected/deferred checks. Missing evidence remains
@@ -728,3 +728,21 @@ validation.
 - [ ] **Step 6: Deliver the pull request at the workflow's review gate.** Its description includes
       test changes, rulings, verified criteria, relevant timing/coverage evidence, and remaining
       limitations.
+
+Task 7 evidence (steps 1 to 3, 2026-10-20, shared 32-thread machine kept at a load of 80 to 216 by
+other checkouts' stress loops for about an hour; loads are given with each time):
+
+- Step 1: rebased onto `main` at `953e37fc`, history linear; conflicts only in `specs/INBOX.md` and
+  `references/change.md`; no decision or constitution changed ([R70](rulings.md)). The inventory
+  marks main's three new Rust tests and 17 changed test files and the branch's new files; the rule
+  map's CLI and attachment rows name the completions and inbox tests.
+- Step 2: the audit, timeouts, coverage exclusions and file and function growth are in
+  [R71](rulings.md). Nothing is removed or skipped; the one loosening is R31's wording pins.
+- Step 3: [R72](rulings.md) holds the uncached `ready` results, the coverage comparison (TypeScript
+  80.89% lines on 152 files and 2,122 tests against 80.87% on 147 and 2,031; Rust 94.6% against
+  94.8%), the editor smoke (0 fails), and the edit matrix. SC-002 is NOT met for a root
+  configuration edit (82 to 94 s); the other ten edits met it on a quiet machine, the core, skill
+  and `limits.ts` ones only below a load of about 40. Three fixes came out of it: the binding
+  package does not select Rust, the scripts family takes its project's 130 s, and one late empty
+  watch report is skipped. One whole `ready` has not passed here: its phone job failed one case that
+  passes alone and in its own job run; SC-001 and SC-003 await the hosted runs.

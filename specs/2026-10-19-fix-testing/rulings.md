@@ -520,3 +520,88 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   settings and timeouts.
 - **If wrong**: Restore a loosened pin by its ruling, or a moved setting from `main`'s file.
 - **Where**: `test-inventory.md`, this file.
+
+## R72: Task 7's validation, coverage comparison, and edit matrix; SC-002 is not met for a root configuration edit
+
+- **Decision**: Three test-owned or selection-owned fixes, no protection removed:
+  1. `scripts/fast-selection.ts`: a file of `packages/binding/` (its helpers, loader, declarations)
+     selects the binding family and `binding:touch`, but not the Rust crates; only the crates'
+     sources, the skill, `Cargo.*` and `fixtures/` select `uraeda-core` and its reverse dependents.
+     The crates read nothing of `packages/binding`. A new selector case fails on the old rule.
+  2. `vite.fast.config.ts`: the scripts family's `testTimeout` is its project's 130 s, not the 20 s
+     of the other families: a configuration edit's fast run timed out `fast-discovery.test.ts`'s
+     nested Vitest at 20 s under a load of 150 (it passes in the `scripts` project).
+  3. `crates/core/tests/watch.rs`: `a_new_worktree_is_reported_then_watched` takes the first report
+     that lists a file after its write. Under a load of about 200 it received a late report with no
+     files (`left: []`); alone it passed 60 of 60 stress runs at load 95, so the failure was seen
+     once, in a run of 1,078 tests, and its cause (a report of the new worktree's own watch landing
+     after the 500 ms quiet window) is inferred from the assertion, not reproduced. The expected
+     file list is still asserted exactly.
+- **Rationale**: Measured on this 32-thread machine, which other checkouts' stress loops (64 busy
+  loops each) kept at a load of 80 to 216 for about an hour; the quiet-machine samples are those
+  with a load below 35 at their start. Complete uncached `vp run --no-cache ready` (the commands CI
+  runs per job): run 1 at load 65 to 120 failed on timeouts only, none reproduced alone (the 41-case
+  cascade in `session.test.tsx` passes whole in 193 s, one phone case `attach.test.tsx`, one
+  `feature` accessibility case, one `session-tail` case, `review.test.tsx`, `spec-page`, and the
+  desktop job killed with exit 137 after the graph was cancelled, as in R4). Run 2 (after the fixes
+  above, 367 s at load 15 to 26): rust 1,078 tests, `ts:check`, `specs:check`, the storybook,
+  `ui:smoke` and `ts:test` (152 files, 2,122 tests) passed; the phone job failed one case,
+  `session.test.tsx` "idle at the end, send: the reply stays in view and no button shows" (the reply
+  not in view within its `LIVE` bound), which passed in 6 of 6 runs alone, and the desktop job
+  exited 137, cancelled with the graph. The two browser jobs run as CI runs them, each alone:
+  `ready:browser-phone` passed (220 passed, 128 skipped, 495 s at load 18 to 4) and
+  `ready:browser-desktop` passed (292 passed, 56 skipped, 397 s). No test was retried within a run;
+  the phone case's root cause is not found and it stays open as evidence for the hosted runs.
+  `vp run test:nvim` passed (every `tests/test_*.lua`, 0 fails, 44 s). One whole `ready` has not
+  passed on this machine: the combined run's phone case failed once (load 15 to 26), so only the
+  per-job runs are green.
+- **Coverage** (`vp run coverage`, load 4 to 8, 273 s; baseline R6 on `85b4f233`; main's own
+  additions since are in the new figures): TypeScript lines 80.89% (14,077 of 17,402) against 80.87%
+  (13,966 of 17,268); statements 79.62% against 79.60%; branches 75.89% against 75.93%; functions
+  78.49% against 78.36%; 152 files and 2,122 tests against 147 and 2,031. Rust lines 94.6% against
+  94.8%; 1,077 tests passed, 11 skipped, against 1,039 and 11 (main added the completions and inbox
+  tests and their code). `__focused__` is excluded, as `__tests__` is, so the denominators grew only
+  by main's and this branch's product code. No threshold, no check.
+- **Edit matrix** (complete `vp run fast`, warm cache, one file edited and restored; load is the
+  1-minute average at the start and the end of the run). Quiet samples, after fixes 1 and 2:
+
+  | Edit                                                  | Selected                                                                                              | Seconds            | Load                               | SC-002                                         |
+  | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------ | ---------------------------------- | ---------------------------------------------- |
+  | `Composer.tsx` comment                                | `ts:check`; focused Composer suite (5 tests)                                                          | 16.1               | 2.2 to 2.9                         | met                                            |
+  | `NoteImage.tsx` comment (leaf)                        | `ts:check`; no fast test imports it                                                                   | 15.5               | 2.9 to 5.5                         | met                                            |
+  | `__tests__/helpers.tsx` comment                       | `ts:check`; none (legacy helper, deferred to ready)                                                   | 15.9               | 5.9 to 12.5                        | met                                            |
+  | `crates/core/src/settings.rs` comment                 | `ts:check`, `binding:touch`, Rust core, binding (clippy), cli, lsp: 1,078 tests; `contracts.test.ts`  | 49.3 / 52.4 / 62.6 | 30 to 57 / 17 to 36 / 12.5 to 47.6 | met at load below about 40; 62.6 s at 12 to 48 |
+  | `skills/uraeda/SKILL.md` word                         | the core's chain as above, plus `specs:check`                                                         | 50.9               | 8.7 to 35                          | met (67.5 at 47 to 64)                         |
+  | `binding/test-repos.ts` comment                       | `ts:check`, `binding:touch`; binding, server, benchmarks, UI consumers (40 files, 766 tests); no Rust | 47.0               | 13.0 to 9.7                        | met (112.6 with the Rust chain, before fix 1)  |
+  | `binding/index.d.ts` comment                          | `ts:check`, `binding:touch`; `contracts.test.ts`; no Rust                                             | 12.4               | 9.7 to 8.7                         | met (34.6 before fix 1)                        |
+  | `vite.config.ts` comment                              | every family (75 files, 1,115 tests), `binding:touch`, Rust workspace (1,078 tests)                   | 82.4 / 93.6        | 48 to 27 / 52 to 30                | NOT met                                        |
+  | a deleted tracked source (`DecisionCard.stories.tsx`) | `ts:check`; UI family (8 files, 40 tests)                                                             | 15.8               | 27 to 25                           | met                                            |
+  | `README.md` (docs-only)                               | `ts:check`, `specs:check`                                                                             | 16.4               | 23 to 21                           | met                                            |
+  | `packages/server/src/limits.ts` comment               | `ts:check`, `binding:touch`; server and consumers (41 files, 814 tests)                               | 57.4 / 49.6        | 21 to 17 / 30 to 17                | met, 7 s to spare                              |
+
+  Every run deferred: application journeys, browser phone/desktop, production builds/package smoke,
+  full workspace/editor checks. Samples at a load of 80 to 216 (composer 93.8 s, leaf 79.1, helper
+  143, skill 220, declaration 221, limits 78, deletion 29, docs 25) took the type check and Vitest
+  start-up to several times their quiet times and are not SC-002 samples; three failed on timing in
+  their own tests (the `watch.rs` case above, `preview.test.ts` "a restart still updates the
+  stories" and `sessions.test.ts` "a queued turn ended by take back while its process reopens does
+  not start" at load 160, and `preview.test.ts` "a feature's turn that ends done starts its
+  Storybook" at load 150), and none was reproduced alone or fixed: they are unresolved timing
+  sensitivity of baseline server tests under a load above 100, which no check can bound.
+
+- **SC-002**: NOT met for a root configuration edit: it selects every family and the Rust workspace
+  by design (a configuration file can change every test), and costs the type check (about 15 s), a
+  Vitest run of 75 files (about 50 s) and the workspace's Rust chain (about 22 s), in 82 to 94 s.
+  Narrowing it would delete protection, so it is left, as the spec requires, unmet for that case.
+  The core and skill edits meet it only on a machine below a load of about 40, and the server
+  `limits.ts` edit by 7 s on a machine at a load of 17 to 30; each is load-sensitive.
+- **SC-001 and SC-003** need three consecutive and five identical hosted runs: pending the push.
+  **SC-004** to **SC-006**: the rule map and inventory (R70, R71) and Tasks 2, 4, 5 evidence.
+  **SC-007**: each changed case passed alone by name in its task's evidence; the combined run's
+  phone case is open.
+- **Alternatives considered**: Retrying the failed browser case or the timed-out ones (forbidden);
+  narrowing the configuration selection by file kind, which would let an effective change reach no
+  test.
+- **If wrong**: A hosted run of the same commit decides the open browser case and the SC-001 budget.
+- **Where**: `scripts/fast-selection.ts`, `scripts/__tests__/fast-selection.test.ts`,
+  `vite.fast.config.ts`, `crates/core/tests/watch.rs`.

@@ -40,7 +40,8 @@ export function fastConfig(selection: FastSelection) {
                   env: { TZ: "UTC" },
                   environment: "node",
                   setupFiles: family.native ? [resolve("packages/binding/test-setup.ts")] : [],
-                  testTimeout: 20_000,
+                  // The scripts' cases run a nested Vitest, bounded at 120 s: their own project's 130 s.
+                  testTimeout: name === "scripts" ? 130_000 : 20_000,
                 }),
             include: family.tests,
             name: `fast-${name}`,
