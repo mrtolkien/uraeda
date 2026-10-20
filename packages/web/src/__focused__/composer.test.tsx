@@ -13,6 +13,7 @@ import {
 const TEXT = "First line\n\n  indented second line";
 const FIRST = savedImage("11111111-1111-4111-8111-111111111111.webp", "first.png");
 const SECOND = savedImage("22222222-2222-4222-8222-222222222222.webp", "second.png");
+const THIRD = savedImage("33333333-3333-4333-8333-333333333333.webp", "third.png");
 
 const field = () => screen.getByRole("textbox", { name: "Message Claude Code" });
 const thumbnails = () =>
@@ -40,6 +41,7 @@ test("a refused send reaches the endpoint, then restores its exact text, images 
   const { draft, endpoint } = await renderComposer(
     { session: "chat-1" },
     {
+      attach: async () => THIRD.image!,
       images: [FIRST, SECOND],
       mutations: { "session.send": () => answer.promise },
       sessions: [sessionRecord("chat-1")],
@@ -58,14 +60,24 @@ test("a refused send reaches the endpoint, then restores its exact text, images 
   });
   expect(draft()).toEqual({ images: [], value: "" });
 
+  // An image added while the send is pending comes after the refused message's own.
+  await pick([png("third.png")]);
+  await waitFor(() => expect(draft().images.map(({ image }) => image)).toEqual([THIRD.image]));
+
   answer.reject(refused("The session is archived: unarchive it to send."));
   await settle();
 
   expect(draft().value).toBe(TEXT.trim());
-  expect(draft().images).toEqual([FIRST, SECOND]);
+  expect(draft().images.slice(0, 2)).toEqual([FIRST, SECOND]);
+  expect(draft().images.map(({ image }) => image)).toEqual([
+    FIRST.image,
+    SECOND.image,
+    THIRD.image,
+  ]);
   expect(thumbnails()).toEqual([
-    "Remove first.png — image 1 of 2",
-    "Remove second.png — image 2 of 2",
+    "Remove first.png — image 1 of 3",
+    "Remove second.png — image 2 of 3",
+    "Remove third.png — image 3 of 3",
   ]);
   expect(screen.getByText("The session is archived: unarchive it to send.")).toBeTruthy();
 });
