@@ -128,8 +128,8 @@ const PAGES: Array<[path: string, text: string]> = [
   ["/priorities", "Ongoing · 4"],
   ["/priorities/git-listener", "Git listener process"],
   ["/edit/specs/drafts/git-listener.md", "Git listener"],
-  ["/chats/new", "New chat"],
-  ["/changes/new", "Describe the bug or the change."],
+  ["/new", "New chat"],
+  ["/new?kind=change", "Describe the bug or the change."],
   ["/decisions", "Decisions · 5"],
   ["/decisions/git", "Approved by mrtolkien"],
 ];
@@ -158,6 +158,6 @@ test.each(PAGES)("every link of %s starts with its repository's prefix", async (
   const own = [...links, ...sources].filter((href) => href.startsWith("/"));
   expect(own.length).toBeGreaterThan(0);
   expect(own.filter((href) => !href.startsWith(prefix))).toEqual([]);
-  expect(window.location.pathname).toBe(atRepo(path));
+  expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo(path));
   expect(screen.queryByText("Nothing here.")).toBeNull();
 });

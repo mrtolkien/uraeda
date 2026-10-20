@@ -311,7 +311,7 @@ test("US5.1: at 1440 px, a chat is a page of its own, with a level-1 heading", a
   const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the open draft files" });
   await fake.sessions.settled(turn);
 
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
 
   await screen.findByRole("log", { name: "Conversation" });
   expect(
@@ -481,7 +481,7 @@ test("a session already working when opened announces nothing", async () => {
 
 test("a new chat's turn is announced as it starts and ends, and the log stays silent", async () => {
   const fake = await fakeAgent();
-  await renderPage("/chats/new", fixtureRepo(), { agent: fake });
+  await renderPage("/new", fixtureRepo(), { agent: fake });
 
   await send("List the open draft files");
 
@@ -664,7 +664,7 @@ test("US2.3: a removed thumbnail is not sent, and its image is deleted", async (
 
 test('US2.4: an image alone is sent, and its chat is titled "Image"', async () => {
   const fake = await fakeAgent();
-  await renderPage("/chats/new", fixtureRepo(), { agent: fake });
+  await renderPage("/new", fixtureRepo(), { agent: fake });
   await pick([png()]);
   await thumbnails(1);
 
@@ -672,7 +672,7 @@ test('US2.4: an image alone is sent, and its chat is titled "Image"', async () =
 
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   expect(fake.adapter.sent[0].images).toHaveLength(1);
-  await waitFor(() => expect(window.location.pathname).toMatch(/\/chats\/[^/]+$/));
+  await waitFor(() => expect(window.location.pathname).toMatch(/\/sessions\/[^/]+$/));
   expect(await screen.findByRole("heading", { name: "Image" })).toBeTruthy();
 });
 

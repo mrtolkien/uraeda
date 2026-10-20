@@ -144,7 +144,7 @@ test("a taken slug is refused under the slug field, and the text stays", async (
   );
   // Under the slug field, which follows the composer.
   expect(slug().compareDocumentPosition(refused) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-  expect(window.location.pathname).toBe(atRepo("/changes/new"));
+  expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new?kind=change"));
   expect(box.textContent).toBe(`${TITLE}\n\n${BODY}`);
 });
 
@@ -198,7 +198,7 @@ test("a change started with two images, and one refused", async () => {
     .poll(() => screen.queryAllByRole("button", { name: /^Remove / }).length, LIVE)
     .toBe(2);
   // The refusal started nothing.
-  expect(window.location.pathname).toBe(atRepo("/changes/new"));
+  expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new?kind=change"));
   expect(await agent.agentSent()).toEqual([]);
   await typeChange(box);
   await expect.poll(() => slug().value, LIVE).toBe("centre-x");
@@ -241,7 +241,7 @@ const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
 // The UI checks on "New change", holding a change's text, its slug proposed.
 test.each(MODES)("New change, in $mode", async ({ mode }) => {
   await colorScheme(mode);
-  await show("/changes/new", "New change");
+  await show("/new?kind=change", "New change");
   expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
   await typeChange(await screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE));
   await expect.poll(() => slug().value, LIVE).toBe("centre-x");

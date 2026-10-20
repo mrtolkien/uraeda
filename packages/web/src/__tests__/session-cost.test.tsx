@@ -37,7 +37,7 @@ async function openChatWith(count: number) {
     cache.appendItem(turn, { kind: "text", streaming: false, text: `Reply number ${index}.` });
   }
   cache.endTurn(turn, { state: "done" });
-  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
   await screen.findByText(`Reply number ${count}.`);
 }
 

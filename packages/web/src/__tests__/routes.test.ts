@@ -1,9 +1,10 @@
 // The addresses of the task view, a mockup, and a run's view, which the UI layout decision requires for an open
 // detail.
-import { renderHook } from "@testing-library/react";
+import { renderHook, screen, waitFor } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate, parseLocation, parseRoute, repoPath, useRestoreScroll } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
+import { atRepo, click, fakeAgent, fixtureRepo, renderPage, type } from "./helpers.tsx";
 
 test.each([
   ["/priorities/git-listener", { key: "git-listener", page: "task" }],
@@ -12,8 +13,9 @@ test.each([
     { folder: "2026-10-06-recurring-tasks", name: "repeat.html", page: "mockup" },
   ],
   ["/f/2026-10-12-cli-tuis/runs/7", { folder: "2026-10-12-cli-tuis", id: "7", page: "run" }],
-  // "New change", which the sidebar's row opens (the spec's components).
-  ["/changes/new", { page: "new-change" }],
+  // A session, and the New page with the kind it starts with (US3).
+  ["/sessions/abc", { id: "abc", page: "session-id" }],
+  ["/new", { kind: "session", page: "new" }],
   // US5.1: a feature's Storybook page, and the main checkout's; a file of that name stays a file.
   ["/f/x/storybook", { folder: "x", page: "storybook" }],
   ["/storybook", { folder: "main", page: "storybook" }],
@@ -29,6 +31,44 @@ test.each([
     { folder: "2026-10-17-spec-page", name: "task-storage", page: "branch-decision" },
   ],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
+
+/** US3: the New page's kind is in its query, Session when it names none or another. */
+test.each([
+  ["?kind=change", "change"],
+  ["?kind=feature", "feature"],
+  ["?kind=session", "session"],
+  ["?kind=other", "session"],
+  ["", "session"],
+])("parseRoute(/new%s) picks %s", (search, kind) =>
+  expect(parseRoute("/new", search)).toEqual({ kind, page: "new" }),
+);
+
+/** US1 more 2, US3 more 2: links from before sessions open the same page at its new address. */
+test.each([
+  ["/chats/abc", "/sessions/abc", ""],
+  ["/chats/new", "/new", ""],
+  ["/changes/new", "/new", "?kind=change"],
+])("old addresses redirect: %s lands on %s%s", async (old, path, search) => {
+  await renderPage(old);
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(path)));
+  expect(window.location.search).toBe(search);
+});
+
+test("a new session's first message opens /sessions/<id>", async () => {
+  const fake = await fakeAgent();
+  await renderPage("/new", fixtureRepo(), { agent: fake });
+
+  await type(
+    await screen.findByRole("textbox", { name: "Message Claude Code" }),
+    "List the drafts",
+  );
+  await click(screen.getByRole("button", { name: "Send" }));
+
+  await waitFor(() =>
+    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/sessions/")}[^/]+$`)),
+  );
+  expect(fake.adapter.sent[0].text).toBe("List the drafts");
+});
 
 /** US6.3: the repository is in the URL, and a path without it is still a page's. */
 test.each([

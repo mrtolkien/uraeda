@@ -131,7 +131,7 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
 
 async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   // Two chats: one replied to, one whose action auto mode blocked.
-  await show(first, "/chats/new", "New chat");
+  await show(first, "/new", "New chat");
   let id = await send(adapter, first, "Why is CI slow on WebKit?");
   adapter.emit({ id, type: "accepted" });
   adapter.emit({
@@ -139,10 +139,10 @@ async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
     type: "text",
   });
   adapter.emit(result);
-  await first.waitForURL(/\/chats\/(?!new)/);
+  await first.waitForURL(/\/sessions\//);
   const replied = here(first);
   await each("chat", ({ page }) => show(page, replied, "draws without a GPU"));
-  await show(first, "/chats/new", "New chat");
+  await show(first, "/new", "New chat");
   id = await send(adapter, first, "Tag v0.3.0 and push the tag.");
   adapter.emit({ id, type: "accepted" });
   adapter.emit({
@@ -162,10 +162,10 @@ async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
     ...result,
     denials: [{ input: { command: "git push origin v0.3.0" }, tool: "Bash" }],
   });
-  await first.waitForURL(/\/chats\/(?!new)/);
+  await first.waitForURL(/\/sessions\//);
   const chat = here(first);
   await each("chat-blocked", ({ page }) => show(page, chat, "Allow and retry"));
-  await each("chat-new", ({ page }) => show(page, "/chats/new", "New chat"));
+  await each("chat-new", ({ page }) => show(page, "/new", "New chat"));
 }
 
 async function takeWorking(each: Each, first: Page, adapter: FakeAdapter) {

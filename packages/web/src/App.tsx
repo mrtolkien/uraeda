@@ -158,12 +158,13 @@ function RoutePage({ route }: { route: Route }) {
       return <StorybookPage folder={route.folder} />;
     case "run":
       return <RunRedirect folder={route.folder} id={route.id} />;
-    case "chat":
+    case "session-id":
       return <SessionPage id={route.id} key={route.id} />;
-    case "new-chat":
-      return <SessionPage newChat />;
-    case "new-change":
-      return <NewChangePage />;
+    case "new":
+      // TEMPORARY: the New page (task 9 of merge-chats) draws the three kinds in one page.
+      return route.kind === "change" ? <NewChangePage /> : <SessionPage newChat />;
+    case "moved":
+      return <Moved path={route.path} />;
     case "first-run":
       return <FirstRun />;
     case "settings":
@@ -281,6 +282,15 @@ function RunRedirect({ folder, id }: { folder: string; id: string }) {
   useLayoutEffect(() => {
     redirect(here(`/f/${encodeURIComponent(folder)}/session#turn-${encodeURIComponent(id)}`));
   }, [here, folder, id]);
+  return null;
+}
+
+/** An address from before sessions: the same page at its new one, with its hash. */
+function Moved({ path }: { path: string }) {
+  const here = useRepoPath();
+  useLayoutEffect(() => {
+    redirect(`${here(path)}${window.location.hash}`);
+  }, [here, path]);
   return null;
 }
 

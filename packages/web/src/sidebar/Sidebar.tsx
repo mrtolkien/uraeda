@@ -197,7 +197,7 @@ function Chats({
   const archived = chats.filter((row) => row.archived);
   return (
     <SideNavSection title="Chats">
-      {!searching && <NewRow label="New chat" path="/chats/new" pathname={pathname} />}
+      {!searching && <NewRow label="New chat" path="/new" pathname={pathname} />}
       {open.map((row) => (
         <Chat key={row.id} pathname={pathname} row={row} />
       ))}
@@ -312,7 +312,7 @@ function Rows({
         {...section}
         {...(found
           ? {}
-          : { add: <NewRow label="New change" path="/changes/new" pathname={pathname} /> })}
+          : { add: <NewRow label="New change" path="/new?kind=change" pathname={pathname} /> })}
         features={byStep(rest.filter((feature) => feature.kind === "change"))}
         title="Changes"
       />

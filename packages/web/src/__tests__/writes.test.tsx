@@ -130,7 +130,7 @@ test("Start the agent shows on the feature's card at once", async () => {
 test("Start the change waits for another page's write", async () => {
   const done = Promise.withResolvers<boolean>();
   let write: Promise<boolean> | undefined;
-  await renderPage("/changes/new", answeredRepo(), { agent: true });
+  await renderPage("/new?kind=change", answeredRepo(), { agent: true });
   await type(
     await screen.findByRole("textbox", { name: "Message Claude Code" }),
     "Centre the x in failure circles",

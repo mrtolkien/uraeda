@@ -30,12 +30,15 @@ export type Route =
   | { folder: string; page: "session" }
   | { folder: string; page: "storybook" }
   | { folder: string; id: string; page: "run" }
-  | { id: string; page: "chat" }
-  | { page: "new-chat" }
-  | { page: "new-change" }
+  | { id: string; page: "session-id" }
+  | { kind: NewKind; page: "new" }
+  | { page: "moved"; path: string }
   | { page: "first-run" }
   | { category?: string; page: "settings" }
   | { page: "missing"; path: string };
+
+/** What the New page starts: a session, a change, or a feature. */
+export type NewKind = "change" | "feature" | "session";
 
 const CHANGE = "uraeda:navigate";
 
@@ -46,12 +49,15 @@ const PREFIX = /^\/r\/([^/]+)(\/.*)?$/;
  * The repository a location names, and its page: a page path without `/r/<name>`, like links from
  * before repositories had names, parses with `repo: null`.
  */
-export function parseLocation(pathname: string): { repo: string | null; route: Route } {
+export function parseLocation(
+  pathname: string,
+  search = "",
+): { repo: string | null; route: Route } {
   const prefixed = PREFIX.exec(pathname);
   if (!prefixed) {
-    return { repo: null, route: parseRoute(pathname) };
+    return { repo: null, route: parseRoute(pathname, search) };
   }
-  return { repo: decodeURIComponent(prefixed[1]), route: parseRoute(prefixed[2] ?? "/") };
+  return { repo: decodeURIComponent(prefixed[1]), route: parseRoute(prefixed[2] ?? "/", search) };
 }
 
 /** A location's path within its repository: `/r/uraeda/priorities` is `/priorities`. */
@@ -104,8 +110,8 @@ export function navigateHere(path: string, state?: { from?: string }) {
   navigate(repo === null ? path : repoPath(repo, path), state);
 }
 
-/** A page's path within its repository, as `parseRoute` reads it. */
-export function parseRoute(pathname: string): Route {
+/** A page's path within its repository, as `parseRoute` reads it, with its query, `?…`. */
+export function parseRoute(pathname: string, search = ""): Route {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts.length === 0) {
     return { page: "home" };
@@ -131,11 +137,18 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
     return { folder: parts[1], id: parts[3], page: "run" };
   }
+  if (parts[0] === "sessions" && parts.length === 2) {
+    return { id: parts[1], page: "session-id" };
+  }
+  if (parts[0] === "new" && parts.length === 1) {
+    return { kind: newKind(search), page: "new" };
+  }
+  // The addresses from before sessions, kept so links in old transcripts still open.
   if (parts[0] === "chats" && parts.length === 2) {
-    return parts[1] === "new" ? { page: "new-chat" } : { id: parts[1], page: "chat" };
+    return { page: "moved", path: parts[1] === "new" ? "/new" : sessionIdPath(parts[1]) };
   }
   if (parts[0] === "changes" && parts.length === 2 && parts[1] === "new") {
-    return { page: "new-change" };
+    return { page: "moved", path: "/new?kind=change" };
   }
   if (parts[0] === "storybook" && parts.length === 1) {
     return { folder: MAIN_CHECKOUT, page: "storybook" };
@@ -162,6 +175,17 @@ export function parseRoute(pathname: string): Route {
     return { page: "edit", path: parts.slice(1).join("/") };
   }
   return { page: "missing", path: pathname };
+}
+
+/** A session's page, by its id. */
+export function sessionIdPath(id: string): string {
+  return `/sessions/${encodeURIComponent(id)}`;
+}
+
+/** The New page's kind, from its query: Session when it names none, or one it does not know. */
+function newKind(search: string): NewKind {
+  const kind = new URLSearchParams(search).get("kind");
+  return kind === "change" || kind === "feature" ? kind : "session";
 }
 
 /** The page of decision `name` as the branch of the feature in `folder` has it, with its change. */
@@ -450,5 +474,6 @@ export function useSearch(): string {
  */
 export function useRoute(): { pathname: string; repo: string | null; route: Route } {
   const pathname = useDeferredValue(usePathname());
-  return { ...parseLocation(pathname), pathname };
+  const search = useDeferredValue(useSearch());
+  return { ...parseLocation(pathname, search), pathname };
 }
