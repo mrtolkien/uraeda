@@ -884,20 +884,25 @@ git commit -m "feat(ui-sandbox): sample sessions on the sandbox's fake agent"
 - Create: `packages/web/sandbox/seed.ts`, `packages/web/vite.sandbox.config.ts`,
   `packages/web/sandbox/main.ts` (the command)
 - Modify: `packages/server/scripts/dev.ts` (take a Vite config), `packages/server/src/dev.ts`
-  (`devHandler`'s `started`), `package.json` (`"sandbox"`), `.gitignore` (`.sandbox/`),
+  (`devHandler`'s `started`), `packages/web/vite.config.ts` (`themeWatcher` exported,
+  `uraedaServer`'s checkout), `package.json` (`"sandbox"`), `.gitignore` (`.sandbox/`), the root
+  `vite.config.ts` (`.sandbox/` left out of the format and lint), `packages/web/tsconfig.json`,
   `packages/web/src/__tests__/build.test.ts`, `AGENTS.md` (one line under Shell)
 - Test: `packages/web/sandbox/__tests__/seed.test.ts`,
-  `packages/web/sandbox/__tests__/sandbox.test.ts`, `packages/server/scripts/__tests__/dev.test.ts`
+  `packages/web/sandbox/__tests__/sandbox.test.ts`, their `helpers.ts`,
+  `packages/server/scripts/__tests__/dev.test.ts`
 
 **Interfaces:**
 
 - Consumes: Tasks 1, 5, 6, and 7.
 - Produces:
-  `seed(root: string, { reset }: { reset: boolean }): { configDir; dataDir; projects; stale: boolean }`,
-  building `.sandbox/` into a temporary folder renamed into place, stamped with the builders'
-  version; `devHandler`'s `started?: (server: StartedServer) => void`; `dev.ts [--config <file>]`.
+  `seed(root: string, { reset }: { reset: boolean }): Promise<{ configDir; dataDir; projects; stale: boolean }>`,
+  building `.sandbox/` into a temporary folder renamed into place, completed there, and stamped last
+  with the builders' version (R17); `sandboxEnv(sandbox, environment)`;
+  `sandboxConfig({ checkout, port })`; `devHandler`'s `started?: (server: Server) => void`;
+  `dev.ts [--config <file>]`, through `viteArgs(args)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // seed.test.ts
@@ -916,6 +921,9 @@ test("a seed interrupted midway leaves no half-built .sandbox", () => {
 test("the sample's worktrees work at their place after the rename", () => {
   /* git -C .sandbox/projects/sample/.worktrees/<stories feature> status succeeds */
 });
+test("a .sandbox a killed seed left is built again, not trusted", () => {});
+test("two seeds at once build one .sandbox, which both use", () => {}); // review focus 2
+test("a .sandbox deleted by hand is built again at the next start", () => {});
 
 // sandbox.test.ts
 test("the sandbox serves Home with sample, empty, and broken, locked, without sign-in", async () => {
@@ -943,37 +951,46 @@ The break each test catches:
 - Real folders: `.env` read, or a default data folder computed.
 - Interrupted: a half-built folder the next start trusts.
 - Worktrees: links left pointing at the temporary folder the build was renamed from.
+- Killed, two at once, deleted: a stampless folder trusted, a seed's folder moved aside by another,
+  or a missing folder never rebuilt.
 - Serves Home: sign-in left on, or the real list shown.
 - Restart: state in a temporary folder.
 - Build: the sandbox's plugin or bar reaching `dist/`.
 - `dev.ts`: `vp run dev` broken by the new argument.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Expected: FAIL, `Cannot find module '../seed.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The command seeds, prints the warning when `stale`, sets `URAEDA_REPO`, `URAEDA_DATA_DIR`,
 `URAEDA_CONFIG_DIR`, and `URA_TODAY`, puts the fake `gh` first, then runs
 `dev.ts --config packages/web/vite.sandbox.config.ts`. The config adds `sourceLocations()` first,
 then `uiTransforms()` (R7), the pick script and `src/sandbox/main.tsx` to the page, and
 `uraedaServer({ adapter: sandboxAgent(), file: false, lockedList: true, signIn: false, started })`,
-on 127.0.0.1, port 4410 or the next free one, printing `Sandbox: http://127.0.0.1:<port>/`.
-`started` calls `atWork`. Git records a worktree's absolute path, in both the worktree and its
-repository: after renaming the built folder into place, the seed runs `git worktree repair` in each
-project, as `addStoryFeature` and the step features add worktrees. The sample's fake Storybook logs
-nowhere, so it runs after the building process's temporary folders are gone. `--reset` reaches the
-seed as `vp run sandbox --reset`.
+on 127.0.0.1, port 4410 or the next free one, printing `Sandbox: http://127.0.0.1:<port>/` and
+requesting `/fate` once Vite listens, which starts the server (R18). `started` calls `atWork`. The
+pick script is served from the skill's file at `/@uraeda-sandbox/uraeda-pick.js`. The config refuses
+folders outside a `.sandbox/` (R19). Git records a worktree's absolute path, in both the worktree
+and its repository: after renaming the built folder into place, the seed runs `git worktree repair`
+in each project, as `addStoryFeature` and the step features add worktrees. The list and the sessions
+record the final paths, so the seed adds them after the rename, and its stamp last (R17). The
+sample's fake Storybook logs nowhere, so it runs after the building process's temporary folders are
+gone. `--reset` reaches the seed as `vp run sandbox --reset`.
 
-- [ ] **Step 4: Run the project's validation, and take the screenshots**
+- [x] **Step 4: Run the project's validation, and take the screenshots**
 
 - Run: `vp run ready`. Then, in the sandbox, screenshots of the bar's four states, and of Home on
   each project, at both sizes and themes, reviewed and saved in
   `specs/2026-10-20-ui-sandbox/screenshots/`.
 - Expected: PASS. Time the first and a later start for SC-001: under 60 and 15 seconds.
+- Taken: `home-<sample|empty|broken>-*`, `sandbox-*` (the bar at rest), `sandbox-picking-*`,
+  `sandbox-copied-*`, and `sandbox-copy-failed-*`, on the round page of "sample", picking "Next".
+  Timed on 2026-10-20, from the command to the address printed: 11.0 seconds for a first start (its
+  seed, and a binding rebuild), 7.2 for a later one; Home's data answered within a second after.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/sandbox packages/web/vite.sandbox.config.ts packages/server package.json .gitignore packages/web/src/__tests__/build.test.ts AGENTS.md specs/2026-10-20-ui-sandbox/screenshots

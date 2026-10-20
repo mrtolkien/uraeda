@@ -27,15 +27,19 @@ const sources = { file: !process.env.VITEST };
 /**
  * The server's routes, in Vite's own server, on Claude Code unless `adapter` says otherwise. The
  * agents' runs end with Vite's server. It does not start on a binding older than the Rust core,
- * which the import of `fresh-binding` above rebuilt.
+ * which the import of `fresh-binding` above rebuilt. `checkout` is where `.env` is read, unless
+ * `file` is false: this checkout's root by default.
  */
-export function uraedaServer(options: Parameters<typeof devHandler>[1] = {}): Plugin {
+export function uraedaServer(
+  options: Parameters<typeof devHandler>[1] = {},
+  checkout: string | null = root,
+): Plugin {
   return {
     configureServer(server) {
       if (root !== null) {
         checkBinding(root);
       }
-      server.middlewares.use(devHandler(root, { ...sources, ...options }));
+      server.middlewares.use(devHandler(checkout, { ...sources, ...options }));
       // Vite's own HMR socket is left to Vite: only a preview's sockets go to the server.
       server.httpServer?.on("upgrade", devUpgrade());
       server.httpServer?.once("close", () => void stopDevRuns());
@@ -51,7 +55,7 @@ const theme = fileURLToPath(new URL("src/theme/theme.ts", import.meta.url));
  * In `vp dev`, rebuilds the theme when its source changes: the built files change in turn, and Vite
  * reloads them. A failed build keeps the last theme, and logs why.
  */
-function themeWatcher(): Plugin {
+export function themeWatcher(): Plugin {
   return {
     apply: "serve",
     configureServer(server) {

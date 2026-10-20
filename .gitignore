@@ -8,3 +8,6 @@ coverage/
 packages/web/storybook-static/
 storybook-static/
 debug-storybook.log
+# `vp run sandbox`'s sample projects and data, and the folders a seed builds them in.
+/.sandbox/
+/.sandbox-*/

@@ -87,6 +87,9 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
   the first build compiles only the workspace's crates: see
   `packages/server/scripts/worktree-seed.ts`. `du` counts the clone's shared blocks;
   `btrfs filesystem du` does not.
+- To review UI changes in the whole app, run `vp run sandbox`: it serves this checkout's app over
+  sample projects and a fake agent, without sign-in, at the address it prints, and keeps their state
+  in `.sandbox/` until `vp run sandbox --reset` rebuilds them.
 - The Vite+ section at the end of this file has no markers, so `vp install` no longer rewrites it:
   it rewrote the section unwrapped, which fails the format check. Edit it by hand, or copy a newer
   version from `node_modules/vite-plus/AGENTS.md`.

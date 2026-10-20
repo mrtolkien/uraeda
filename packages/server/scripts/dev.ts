@@ -7,6 +7,9 @@
  *
  * A build that fails keeps the running server, on the last binding, and logs why: the next change
  * builds again. Ctrl-C stops both.
+ *
+ * `--config <file>` gives `vp dev` another Vite config, as `vp run sandbox` does: the sandbox
+ * restarts as `vp run dev` does.
  */
 import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import { watch } from "node:fs";
@@ -20,6 +23,28 @@ const ROOT = layout().checkout ?? process.cwd();
 const SERVER = "packages/server/src";
 /** Changes this close together, as an editor's save or a checkout writes them, make one restart. */
 const QUIET_MS = 150;
+
+/**
+ * `vp dev`'s arguments for this script's: `--config <file>` passed on, nothing else taken.
+ */
+export function viteArgs(args: Array<string>): Array<string> {
+  const vite = ["dev"];
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg !== "--config") {
+      throw new Error(`Unknown argument: ${arg}`);
+    }
+    const file = args[++index];
+    if (file === undefined) {
+      throw new Error("--config needs a file");
+    }
+    vite.push("--config", file);
+  }
+  return vite;
+}
+
+/** `vp dev`'s arguments, from this script's when Node runs it: its tests import `viteArgs` alone. */
+const vite = import.meta.main ? viteArgs(process.argv.slice(2)) : ["dev"];
 
 let child: ChildProcess | undefined;
 let building = false;
@@ -50,7 +75,7 @@ function run(command: string, args: Array<string>): Promise<number | null> {
 
 /** Starts `vp dev`, which reads this terminal for its shortcuts. */
 function start() {
-  child = spawn("vp", ["dev"], { cwd: ROOT, stdio: "inherit" });
+  child = spawn("vp", vite, { cwd: ROOT, stdio: "inherit" });
   child.once("exit", (code) => {
     child = undefined;
     // `vp dev` quit on its own, as with its `q` shortcut: this quits with it.
@@ -153,21 +178,25 @@ function watchFolder(folder: string, recursive: boolean) {
   });
 }
 
-watchFolder("crates", true);
-watchFolder("skills/uraeda", true);
-watchFolder(SERVER, true);
-// `Cargo.toml` and `Cargo.lock`: an editor's save replaces a file, which ends a watch of the file.
-watchFolder(".", false);
+// Only when Node runs the script.
+if (import.meta.main) {
+  watchFolder("crates", true);
+  watchFolder("skills/uraeda", true);
+  watchFolder(SERVER, true);
+  // `Cargo.toml` and `Cargo.lock`: an editor's save replaces a file, which ends a watch of the file.
+  watchFolder(".", false);
 
-for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.once(signal, () => {
-    stopping = true;
-    if (child?.pid) {
-      signalTree(child.pid, signal);
-    }
-    process.exit(0);
-  });
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.once(signal, () => {
+      stopping = true;
+      if (child?.pid) {
+        signalTree(child.pid, signal);
+      }
+      process.exit(0);
+    });
+  }
+
+  // The binding may be missing, or older than the Rust, as after a pull: cargo builds only what
+  // changed.
+  void apply("build");
 }
-
-// The binding may be missing, or older than the Rust, as after a pull: cargo builds only what changed.
-void apply("build");

@@ -34,3 +34,33 @@ test("the main bundle holds no pele, which chunks of their own hold", () => {
   );
   expect(chunks.length).toBeGreaterThan(0);
 });
+
+/**
+ * Texts only the sandbox's code holds: the source locations' attribute and code-inspector's names,
+ * the pick script's file, the bar's component and entry, and the pick's first line.
+ */
+const SANDBOX_ONLY = [
+  "data-insp-path",
+  "code-inspector",
+  "uraeda-pick",
+  "SandboxBar",
+  "mountSandboxBar",
+  "Sandbox pick:",
+];
+
+/** Every file of the build, by its path from `dist/`. */
+function built(folder = dist): Array<string> {
+  return readdirSync(folder, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory() ? built(join(folder, entry.name)) : [join(folder, entry.name)],
+  );
+}
+
+test("the build holds no sandbox code, source attribute, or code-inspector client", () => {
+  expect(existsSync(join(dist, "index.html")), "run `vp run web:build` first").toBe(true);
+  for (const file of built()) {
+    const text = readFileSync(file, "utf8");
+    for (const sandbox of SANDBOX_ONLY) {
+      expect(text.includes(sandbox), `${sandbox} in ${file}`).toBe(false);
+    }
+  }
+});

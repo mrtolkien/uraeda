@@ -227,3 +227,57 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `atWork` scripts the turn again, and the race is left, or `SandboxAgent` emits
   `cancelled` and offers the take-back.
 - **Where**: tasks 3 and 7.
+
+## R17: The seed completes `.sandbox/` in place, and its stamp, written last, marks it whole
+
+- **Decision**: `seed` builds the projects, the empty data and config folders, and a `building` file
+  naming its process in `.sandbox-build-<pid>-*`, renames it to `.sandbox/`, then repairs the
+  worktrees, lists the projects with the binding's `addRepository`, seeds the sessions, and writes
+  the stamp last, removing `building`. A `.sandbox/` without a stamp is waited for while its builder
+  runs, and built again once it is gone; a failure removes what the seed built; folders of seeds
+  whose process is gone are removed at the next seed. A seed whose rename finds another seed's
+  `.sandbox/` in place uses that one. `seed` is async: the list and the sessions are.
+- **Rationale**: the list and the sessions record each project's absolute path, which must be the
+  final one: the sessions are keyed by it, and only the session manager writes them (R2). A rename
+  of the whole state therefore cannot be its last step; the stamp's rename is. The builders' version
+  hashes the samples, the sandbox's agent, sessions and seed, the binding's test helpers, and the
+  fixtures and templates they copy.
+- **Alternatives considered**: everything built in the temporary folder: its paths in the list and
+  the sessions would point at a folder gone after the rename. `.sandbox` as a symbolic link to a
+  folder built in place: no rename of the projects, but a second layout to explain. A lock file: the
+  `building` file already names the process to wait for.
+- **If wrong**: `build` in `sandbox/seed.ts` alone changes.
+- **Where**: task 8.
+
+## R18: The sandbox's server starts as Vite listens, and serves the pick script from the skill
+
+- **Decision**: once Vite listens, the sandbox's page plugin prints `Sandbox: <address>` with the
+  port Vite took, and requests `/fate` itself: the server starts then, and `started` starts the turn
+  at work, before the human opens the page. `devHandler`'s `started` takes the `Server`. The pick
+  script is served at `/@uraeda-sandbox/uraeda-pick.js` by a middleware reading the skill's file at
+  each request, and `transformIndexHtml` adds it as a classic script in the head, and the bar's
+  entry as a module after the app's.
+- **Rationale**: US3's "Given the sandbox just started" holds without a page open. A path of the
+  sandbox's own copies nothing, and an edit to the script reaches the next page loaded.
+- **Alternatives considered**: the turn at work starting with the first page opened: acceptable, but
+  the session's state would depend on the human. A copy of the script in `public/`: it would reach
+  the build.
+- **If wrong**: the `listening` handler in `vite.sandbox.config.ts` goes, and the turn starts with
+  the first page.
+- **Where**: task 8.
+
+## R19: The sandbox's config refuses folders outside a `.sandbox/`, and its tests name a checkout
+
+- **Decision**: the sandbox's page plugin refuses to serve unless `URAEDA_REPO`, `URAEDA_DATA_DIR`,
+  and `URAEDA_CONFIG_DIR` are inside a `.sandbox` folder, as `sandboxEnv` sets them; `sandboxEnv`
+  also drops `URAEDA_PORT` and `URAEDA_ALLOWED_HOSTS`. `uraedaServer` takes the checkout whose
+  `.env` it would read, so `sandboxConfig({ checkout, port })` serves a test's checkout, whose
+  `.env`, with the shell's variables and the core's defaults under a fake home, names fake "real"
+  folders. `dev.ts` runs only as Node's main module (`import.meta.main`), so its test imports
+  `viteArgs` alone.
+- **Rationale**: the config run by hand, as `vp dev --config`, would otherwise open the human's own
+  folders. The tests prove SC-003 without touching the machine's real folders.
+- **Alternatives considered**: a test writing a `.env` at the checkout's root: it would overwrite a
+  developer's. `viteArgs` in a module of its own: a file for one function.
+- **If wrong**: the check goes, in `vite.sandbox.config.ts` alone.
+- **Where**: task 8.
