@@ -1145,6 +1145,38 @@ test("a second session of a working feature is refused", async () => {
   expect(adapter.opens).toHaveLength(2);
 });
 
+/** A session whose turn starts works: its folder does not move, and its other sessions wait. */
+test("a session only starting works", async () => {
+  // The worktree read of the turn's start waits until the test lets it go.
+  const { promise: held, resolve: release } = Promise.withResolvers<void>();
+  let reads = 0;
+  const { adapter, cache, repo, sessions } = await testSessions(undefined, {
+    binding: {
+      ...binding,
+      workDir: async (...args: Parameters<typeof binding.workDir>) => {
+        reads++;
+        await held;
+        return binding.workDir(...args);
+      },
+    },
+  });
+  const starting = await sessions.featureSession(repo, AGENT);
+  const other = await sessions.newSession(repo, AGENT);
+  adapter.script([]);
+  const sent = sessions.send(repo, starting.id, { text: "Build it" });
+  await vi.waitFor(() => expect(reads).toBe(1));
+
+  expect(sessions.working(repo)).toEqual([AGENT]);
+  expect(sessions.sessionWorking(starting.id)).toBe(true);
+  await expect(sessions.send(repo, other.id, { text: "And this?" })).rejects.toThrow(
+    "refused: Another session of this feature is working",
+  );
+  release();
+  await sessions.settled((await sent).turn);
+  expect(cache.turns(other.id)).toEqual([]);
+  expect(sessions.working(repo)).toEqual([]);
+});
+
 /**
  * Review focus 3: a turn queued in a session while another of the feature works opens only once
  * the other's turn ends.

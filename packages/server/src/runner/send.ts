@@ -57,7 +57,8 @@ export async function sendTo(
 
 /**
  * Sends the message in this session: steered into its turn, queued after it, or starting one. A
- * session whose change or feature works in another session is refused, or, `behind` it, queued.
+ * session whose change or feature works in another session is refused, or, `behind` it, queued;
+ * one that a move or a drop holds is refused.
  */
 async function deliver(
   context: SessionContext,
@@ -68,6 +69,13 @@ async function deliver(
 ): Promise<{ session: string; turn: number }> {
   const { adapter, binding, cache, changed, processes, turns } = context;
   const workflow = asChat === undefined ? sent : undefined;
+  // A move or a drop of the session, or of its folder, holds it: checked again after each wait.
+  const unmoved = () => {
+    if (context.live.moving(live)) {
+      throw refused(REFUSALS.agentWorking);
+    }
+  };
+  unmoved();
   const busy = () =>
     live.turn !== undefined ||
     live.queue.length > 0 ||
@@ -96,6 +104,7 @@ async function deliver(
   }
 
   const opening = given ?? (workflow ? undefined : await openingOf(context, live, branch));
+  unmoved();
   const item: Message = {
     ...messageItem(id, origin, text),
     ...(opening === undefined ? {} : { opening }),

@@ -1,6 +1,5 @@
 import type { Trigger } from "../runner/events.ts";
 import { editedFiles, movedOpening } from "../runner/moves.ts";
-import { REFUSALS } from "../runner/sessions.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
@@ -27,14 +26,21 @@ async function maskedFeature(ctx: RepoContext, folder: string, select: Array<str
   return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
 }
 
-/** Refuses a move or a drop of a change or a feature while one of its sessions works. */
-async function idleFolder(ctx: RepoContext, folder: string): Promise<void> {
-  await refusedOn(async () => {
-    await ctx.sessions.mainRoot(ctx.repo);
-    if (ctx.sessions.working(ctx.repo).includes(folder)) {
-      throw new Error(`refused: ${REFUSALS.agentWorking}`);
-    }
-  });
+/**
+ * Runs `body` holding the change or the feature, or the session without one: refused while one of
+ * its sessions works, and its sessions take no message until it ends.
+ */
+async function moving<T>(
+  ctx: RepoContext,
+  target: { folder: string } | { session: string },
+  body: () => Promise<T>,
+): Promise<T> {
+  const release = await refusedOn(() => ctx.sessions.hold(ctx.repo, target));
+  try {
+    return await body();
+  } finally {
+    release();
+  }
 }
 
 /**
@@ -105,20 +111,20 @@ async function toChange(
     if (found.folder !== null) {
       throw new Error(`refused: the session already belongs to ${found.folder}`);
     }
-    if (ctx.sessions.sessionWorking(found.id)) {
-      throw new Error(`refused: ${REFUSALS.agentWorking}`);
-    }
     return found;
   });
-  const { branch, folder } = await startChange(ctx, input.text, input.slug);
-  try {
-    await ctx.sessions.attach(ctx.repo, row.id, folder);
-  } catch (error) {
-    const reason = (error as Error).message.replace(/^refused: /, "");
-    throw callSiteError(
-      `refused: The change ${folder} started, but this session could not move to it: ${reason}`,
-    );
-  }
+  const { branch, folder } = await moving(ctx, { session: row.id }, async () => {
+    const started = await startChange(ctx, input.text, input.slug);
+    try {
+      await ctx.sessions.attach(ctx.repo, row.id, started.folder);
+    } catch (error) {
+      const reason = (error as Error).message.replace(/^refused: /, "");
+      throw callSiteError(
+        `refused: The change ${started.folder} started, but this session could not move to it: ${reason}`,
+      );
+    }
+    return started;
+  });
   const opening = movedOpening({
     branch,
     edited: editedFiles(ctx.sessions.cache, row.id),
@@ -136,9 +142,11 @@ async function toChange(
 export const sessionMoves = {
   "feature.drop": {
     resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
-      await idleFolder(ctx, input.folder);
-      const dropped = await refusable(() => ctx.binding.dropItem(ctx.repo, input.folder));
-      await ctx.sessions.archiveFolder(ctx.repo, input.folder);
+      const dropped = await moving(ctx, { folder: input.folder }, async () => {
+        const left = await refusable(() => ctx.binding.dropItem(ctx.repo, input.folder));
+        await ctx.sessions.archiveFolder(ctx.repo, input.folder);
+        return left;
+      });
       const record = {
         branch: dropped.branch,
         committed: dropped.committed,
@@ -151,8 +159,9 @@ export const sessionMoves = {
   },
   "feature.promote": {
     resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
-      await idleFolder(ctx, input.folder);
-      const { folder } = await refusable(() => ctx.binding.promoteChange(ctx.repo, input.folder));
+      const { folder } = await moving(ctx, { folder: input.folder }, () =>
+        refusable(() => ctx.binding.promoteChange(ctx.repo, input.folder)),
+      );
       await sendRun(ctx, folder, { trigger: "manual" });
       return maskedFeature(ctx, folder, select);
     },

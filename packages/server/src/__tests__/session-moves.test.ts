@@ -252,3 +252,94 @@ test("drop archives the sessions", async () => {
   expect(cache.session(created.data.id as string)?.archivedAt).not.toBeNull();
   expect(branches(server, `change/${folder}`).trim()).toBe(`change/${folder}`);
 });
+
+/** A binding whose `call` waits, once `armed`, until the test releases it. */
+function holding(call: "dropItem" | "promoteChange" | "startChange" | "workDir") {
+  const gate = { armed: false, calls: 0, ...Promise.withResolvers<void>() };
+  const real = binding[call] as (...args: Array<unknown>) => Promise<unknown>;
+  const using = {
+    ...binding,
+    [call]: async (...args: Array<unknown>) => {
+      if (gate.armed) {
+        gate.calls++;
+        await gate.promise;
+      }
+      return real(...args);
+    },
+  } as typeof binding;
+  return { gate, using };
+}
+
+/** A change made from a session, and a second session of it, never run. */
+async function changeWithTwoSessions(server: Server) {
+  const chat = await chatThatEdited(server);
+  const folder = (await toChange(server, chat)).data.folder as string;
+  const created = await mutate(server.app, "session.new", { folder }, ["id"]);
+  return { chat, folder, other: created.data.id as string };
+}
+
+/** A session of the change works, or its turn only starts: its process opens. */
+test.each([
+  ["feature.drop", "works"],
+  ["feature.drop", "starts"],
+  ["feature.promote", "works"],
+  ["feature.promote", "starts"],
+])("%s waits while a session of it %s", async (move, state) => {
+  const { gate, using } = holding("workDir");
+  const server = await testServer(undefined, { binding: using });
+  const { folder, other } = await changeWithTwoSessions(server);
+  gate.armed = state === "starts";
+  // Without a script, the turn runs until it is stopped.
+  const sent = mutate(server.app, "session.send", { session: other, text: "Fix it" }, ["id"]);
+  if (state === "starts") {
+    await vi.waitFor(() => expect(gate.calls).toBe(1));
+  } else {
+    await sent;
+  }
+
+  const refused = await mutate(server.app, move, { folder }, ["id"]);
+
+  expect(refused.error?.message).toBe("refused: The agent is working");
+  expect(branches(server, `change/${folder}`).trim()).toBe(`change/${folder}`);
+  gate.armed = false;
+  gate.resolve();
+  expect((await sent).error).toBeUndefined();
+});
+
+/** The sessions of a folder that moves, or of a session becoming a change, take no message. */
+test.each([
+  ["feature.drop", "dropItem"],
+  ["feature.promote", "promoteChange"],
+  ["session.toChange", "startChange"],
+] as const)("%s refuses a message sent during it", async (move, call) => {
+  const { gate, using } = holding(call);
+  const server = await testServer(undefined, { binding: using });
+  const target =
+    move === "session.toChange"
+      ? { folder: undefined, session: await chatThatEdited(server) }
+      : await changeWithTwoSessions(server).then(({ folder, other }) => ({
+          folder,
+          session: other,
+        }));
+  gate.armed = true;
+  const input =
+    move === "session.toChange"
+      ? { session: target.session, slug: "login-redirect", text: PROPOSAL }
+      : { folder: target.folder };
+  server.adapter.script([]);
+  const moving = mutate(server.app, move, input, ["id"]);
+  await vi.waitFor(() => expect(gate.calls).toBe(1));
+
+  const refused = await mutate(
+    server.app,
+    "session.send",
+    { session: target.session, text: "And this?" },
+    ["id"],
+  );
+
+  expect(refused.error?.message).toBe("refused: The agent is working");
+  gate.armed = false;
+  gate.resolve();
+  expect((await moving).error).toBeUndefined();
+  expect(server.adapter.sent.map(({ text }) => text)).not.toContain("And this?");
+});
