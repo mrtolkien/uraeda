@@ -51,14 +51,14 @@ export function NoteImages({ hash, note }: { hash: string; note: InboxNote }) {
     <DropHint hint={drop.hint}>
       <div ref={box} {...stylex.props(drop.isTarget && dropStyles.target)}>
         <VStack gap={2}>
-          {note.images.map((path) => {
-            const src = imagePath(path);
-            return src && <ImageView alt={altOf(path)} key={path} src={repoPath(repo, src)} />;
-          })}
           <HStack align="center" gap={2}>
             <AttachButton multiple onFiles={(files) => void add(files)} />
           </HStack>
           <AttachStatus status={status} />
+          {note.images.map((path) => {
+            const src = imagePath(path);
+            return src && <ImageView alt={altOf(path)} key={path} src={repoPath(repo, src)} />;
+          })}
         </VStack>
       </div>
     </DropHint>
