@@ -8,6 +8,7 @@ import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useContext, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document } from "uraeda-binding";
+import { proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
@@ -60,12 +61,6 @@ const styles = stylex.create({
   calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
   con: { color: colorVars["--color-error"] },
   doc: {
-    // Reading text: its own size, about 120 characters at most, left-aligned, its lines balanced.
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-    maxWidth: "var(--size-reading-measure)",
-    textAlign: "start",
-    textWrap: "pretty",
     // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
     "--container-padding-inline-start": spacingVars["--spacing-4"],
   },
@@ -76,8 +71,6 @@ const styles = stylex.create({
   important: { color: colorVars["--color-warning"] },
   item: {
     // A list item's text, at the reading size, which Astryx's rows set smaller.
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
     whiteSpace: "normal",
   },
   list: {
@@ -208,7 +201,7 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
             key={item.id}
             label={
               <Selectable block={item} selection={context.selection}>
-                <div {...stylex.props(styles.item)}>
+                <div {...stylex.props(proseStyles.reading, styles.item)}>
                   <Spans spans={item.spans} />
                   <Children block={item} context={context} />
                 </div>
@@ -264,7 +257,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
     case "item":
       // Drawn by its list, or alone, as an option's plain bullet: its text, then its blocks.
       return (
-        <div {...stylex.props(styles.item)}>
+        <div {...stylex.props(proseStyles.reading, styles.item)}>
           {spans}
           <Children block={block} context={context} />
         </div>
@@ -388,7 +381,7 @@ export function Blocks({
     fold.ids.forEach((id, index) => folded.set(id, index === 0 ? fold : undefined));
   }
   return (
-    <div {...stylex.props(styles.doc)}>
+    <div {...stylex.props(proseStyles.doc, styles.doc)}>
       {blocks.map((block) => {
         if (!folded.has(block.id)) {
           return <BlockNode block={block} context={context} key={block.id} />;

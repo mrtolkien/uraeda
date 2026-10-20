@@ -3,7 +3,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { ChatMessage, ChatMessageBubble, ChatSystemMessage } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -14,6 +13,7 @@ import type { ChatImage, Item } from "uraeda-server/fate";
 import { agentStories, MessageStories } from "./AgentStories.tsx";
 import { refusal } from "./errors.ts";
 import { statusStyles } from "./Question.tsx";
+import { ProseMarkdown } from "./Prose.tsx";
 import { MessageBody } from "./MessageBody.tsx";
 import { ToolGroup, type ToolGroupSlot } from "./ToolGroups.tsx";
 import type { OpenKeys } from "./useOpenKeys.ts";
@@ -156,14 +156,7 @@ function AgentMessage({ streaming, text }: { streaming: boolean; text: string })
     <ChatMessage sender="assistant">
       <ChatMessageBubble variant="ghost" width={AGENT_WIDTH} xstyle={styles.agent}>
         <MessageStories value={stories}>
-          <Markdown
-            autolink="gfm"
-            components={agentStories}
-            density="compact"
-            headingLevelStart={4}
-          >
-            {text}
-          </Markdown>
+          <ProseMarkdown components={agentStories}>{text}</ProseMarkdown>
         </MessageStories>
       </ChatMessageBubble>
     </ChatMessage>

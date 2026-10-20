@@ -134,6 +134,8 @@ export const uraedaTheme = defineTheme({
     "--size-reading-measure": "90ch",
     // A page's column on wide screens, which holds the reading measure and the rows beside it.
     "--size-page-max": "720px",
+    // A session's column on wide screens: about 115 characters a line.
+    "--size-session-max": "95ch",
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
     // height, scrolling on its own.
     "--size-pane-min": "400px",

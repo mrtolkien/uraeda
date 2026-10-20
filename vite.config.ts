@@ -167,11 +167,32 @@ export default {
             { forbid: [{ message: "style with StyleX's stylex.props", propName: "style" }] },
           ],
           "react/forbid-elements": ["error", { forbid: forbiddenElements }],
+          // The UI coherence decision: prose is drawn by `Prose.tsx`, whatever the page.
+          "no-restricted-imports": [
+            "error",
+            {
+              paths: [
+                {
+                  message: "draw markdown with ProseMarkdown (UI coherence decision)",
+                  name: "@astryxdesign/core/Markdown",
+                },
+              ],
+            },
+          ],
           "stylex/valid-styles": [
             "error",
             { propLimits: Object.fromEntries(tokenProps.map((prop) => [prop, tokenLimit])) },
           ],
         },
+      },
+      {
+        // The one place Astryx's Markdown is drawn, bar a test's mock of it and a story's mockup.
+        files: [
+          "packages/web/src/Prose.tsx",
+          "packages/web/src/__tests__/session-cost.test.tsx",
+          "packages/web/src/SessionMockups.stories.tsx",
+        ],
+        rules: { "no-restricted-imports": "off" },
       },
       {
         // The code quality decision exempts tests from the file length limit.

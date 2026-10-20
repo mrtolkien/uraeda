@@ -18,6 +18,10 @@ const styles = stylex.create({
     paddingInline: "var(--page-inset)",
     width: "100%",
   },
+  session: {
+    // A session's column on wide screens: about 115 characters a line, not the page's full width.
+    maxWidth: "var(--size-session-max)",
+  },
   snug: {
     // On the phone, an 8 px inset, for a page that is read as text from edge to edge: a session.
     "--page-bleed": `calc(-1 * ${spacingVars["--spacing-2"]})`,
@@ -49,10 +53,13 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
  */
 export function Page({
   children,
+  isSession = false,
   isSnug = false,
   isTight = false,
 }: {
   children: ReactNode;
+  /** A session's column on wide screens: a line of text, not the page's full width. */
+  isSession?: boolean;
   isSnug?: boolean;
   isTight?: boolean;
 }) {
@@ -67,6 +74,7 @@ export function Page({
           isTight && styles.tight,
           isSnug && styles.snug,
           wide && styles.wide,
+          wide && isSession && styles.session,
         )}
       >
         {children}

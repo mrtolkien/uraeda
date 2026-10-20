@@ -246,14 +246,14 @@ function SessionPane({
   const [jump, setJump] = useState<() => void>();
   if (session === null) {
     return (
-      <Page isSnug>
+      <Page isSession isSnug>
         <SessionLog controls={controls} draft={draft} id={id!} />
       </Page>
     );
   }
   return (
     <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
-      <Page isSnug>
+      <Page isSession isSnug>
         {crumbs !== undefined && <Crumbs folder={crumbs} session />}
         {id === undefined ? (
           <VStack gap={3}>

@@ -329,6 +329,7 @@
     --text-reading-size: 17px;
     --size-reading-measure: 90ch;
     --size-page-max: 720px;
+    --size-session-max: 95ch;
     --size-pane-min: 400px;
     --size-viewport-height: 100dvh;
     --size-image-max-height: 80dvh;

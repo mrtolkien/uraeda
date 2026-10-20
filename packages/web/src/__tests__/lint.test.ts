@@ -2,7 +2,7 @@
 // SC-001 and SC-002: the UI components decision's rules, as `vp run ready` checks them.
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 
@@ -30,6 +30,8 @@ test.each([
   ["style-prop.tsx", "react(forbid-dom-props)"],
   ["class-name.tsx", "react(forbid-component-props)"],
   ["raw-color.tsx", "valid-styles"],
+  // The UI coherence decision: markdown goes through `Prose.tsx`.
+  ["raw-markdown.tsx", "no-restricted-imports"],
   // US3.6: a `test.only` left behind fails the lint.
   ["only-test.test.tsx", "no-only-tests"],
   // The code quality decision: a marker left on code that no longer breaks its rule fails.
@@ -73,4 +75,31 @@ test("no stylesheet but Astryx's is imported (SC-001)", () => {
   expect(imports.length).toBeGreaterThan(0);
   expect(imports.filter((path) => !allowed.includes(path))).toEqual([]);
   expect(readdirSync(src)).not.toContain("styles.css");
+});
+
+/** Files that still set the reading size by hand: each moves to `Prose.tsx`'s styles, none joins. */
+const LEGACY_READING = [
+  "Folds.tsx",
+  "Question.tsx",
+  "RoundPage.tsx",
+  "spec/BuiltParts.tsx",
+  "spec/DecisionCard.tsx",
+  "spec/SpecOpening.tsx",
+  "spec/StoryCard.tsx",
+];
+
+test("reading text is set in Prose.tsx, bar the files that still move there (UI coherence)", () => {
+  const found: Array<string> = [];
+  for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {
+    const file = relative(src, join(entry.parentPath, entry.name));
+    if (!entry.isFile() || !/\.tsx?$/.test(file) || /^(theme|__)|stories|\.test\./.test(file)) {
+      continue;
+    }
+    if (/text-reading-|size-reading-measure/.test(readFileSync(join(src, file), "utf8"))) {
+      found.push(file);
+    }
+  }
+  expect(found.filter((file) => file !== "Prose.tsx" && !LEGACY_READING.includes(file))).toEqual(
+    [],
+  );
 });
