@@ -9,10 +9,19 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type ReactNode, type RefObject, Suspense, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  type RefObject,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useFateClient } from "react-fate";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { keepsEnd } from "./following.ts";
 import { useSettled } from "./NewChangePage.tsx";
 import { addNote, type OfferKind, proposalTitle, returnFocus, useAsks } from "./offers.ts";
 import { FeatureView } from "./views.ts";
@@ -51,8 +60,14 @@ function Frame({
   heading: RefObject<HTMLHeadingElement | null>;
   title: string;
 }) {
+  // Once, as it first draws: a card drawn at the session's end keeps the end in view.
+  const frame = useCallback((element: HTMLElement | null) => {
+    if (element) {
+      keepsEnd(element);
+    }
+  }, []);
   return (
-    <section aria-label={title}>
+    <section aria-label={title} ref={frame}>
       <Card padding={4}>
         <VStack gap={3}>
           <Heading level={3} ref={heading} tabIndex={-1}>
