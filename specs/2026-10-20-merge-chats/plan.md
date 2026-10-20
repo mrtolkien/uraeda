@@ -904,15 +904,15 @@ git commit -m "feat(merge-chats): one Sessions list, each card's icon telling it
 
 A change from a note starts from the note's text with `change.fromNote`, which takes the note out of
 `INBOX.md`, committed alone, and sends the first run
-([R18](rulings.md#r18-a-change-from-an-inbox-note-starts-from-its-text-and-the-note-leaves-the-inbox-in-its-own-commit)).
+([R20](rulings.md#r20-a-change-from-an-inbox-note-starts-from-its-text-and-the-note-leaves-the-inbox-in-its-own-commit)).
 A change from a line is started from its draft (`draft.create` when it links none, then
 `change.startDraft`, which starts it as `feature.start` with kind change does and sends its first
-run, [R19](rulings.md#r19-a-change-from-a-priority-line-starts-with-its-agent-at-work)). Either
+run, [R21](rulings.md#r21-a-change-from-a-priority-line-starts-with-its-agent-at-work)). Either
 change's session opens where its agent works, or, when no run was sent, with the workflow's message
 to send (`handOver(folder, "start")`), as a typed change's does. A title is inserted with
 `priorities.insert` before Now's first entry not started, then drafted; a refused draft takes the
 line back out with `priorities.remove`, and the title stays typed
-([R21](rulings.md#r21-a-start-refused-or-failed-on-the-new-page-leaves-its-files-and-says-why)). A
+([R23](rulings.md#r23-a-start-refused-or-failed-on-the-new-page-leaves-its-files-and-says-why)). A
 start whose read fails shows its error as a refusal. The notes listed are those not already a draft;
 the lines, those not started that link no file other than a draft. Each line's button is named after
 it, "Start the change: <text>", since the buttons share their visible text.
