@@ -6,22 +6,21 @@ status: awaiting-human
 
 > [!IMPORTANT]
 >
-> 12 questions, about 35 minutes, plus about 15 minutes to try the mockups first.
+> 12 questions and 1 follow-up, about 35 minutes, plus about 15 minutes to try the mockups first.
 >
-> - Verdict: worth building, with changes: the markdown editor is a separate subsystem, and three
->   active decisions bind this redesign.
+> - Verdict: worth building, with changes: it is too big for one spec as proposed, and three active
+>   decisions bind it.
 > - Open the [five mockups](mockups/compare.html) before the questions. They are clickable HTML over
 >   the same data, checked at a desktop, a half screen, and a phone width.
-> - Three answers last beyond this feature. They are the visual direction, the width classes (which
->   amend the layout decision), and prototypes in the workflow (which amend the preview decision).
-> - Four questions work together: the direction, the mixed parts, the session beside a page, and the
->   width classes. The shell and the half-screen behaviour come from all four.
-> - The mockups break the active preview decision, as your request asked. Prototypes are plain HTML,
->   not Storybook stories.
+> - The split comes first, since it decides what this feature's spec holds. Four answers work
+>   together: the direction, the mixed parts, the session beside a page, and the width classes.
+> - Three answers last beyond this feature. They are the direction, the width classes (which amend
+>   the layout decision), and prototypes in the workflow (which amend the preview decision).
+> - The mockups break the active preview decision, as you asked: they are plain HTML, not stories.
+>   To lint them, the repository's lint config now ignores `specs/**/mockups/**`. Q6 can remove it.
 > - Three settled points need your check: keys are drawn but not built, the questions page stays one
->   scroll, and secondary text was corrected for contrast.
-> - Not verified: the mockups were tested in Chromium only, not in Safari and not inside Uraeda's
->   own mockup frame.
+>   scroll, and secondary text was raised for contrast.
+> - Not verified: the mockups ran in Chromium only, and not inside Uraeda's own mockup page.
 
 ## Context
 
@@ -68,30 +67,62 @@ change to what the views do. The markdown proposal editor is Q1.
 - The full investigation is in [discovery](discovery-01.md). Each question links its topic.
 - The mockups are described in [their README](mockups/README.md).
 
-## Q1: Should the markdown proposal editor stay in this feature?
+## Q1: How should this work be split into features?
 
-You asked for a good editor for proposals, because Neovim is still smoother. The proposal itself
-allows keeping a big text input if the editor is too much work. The agent tried the editors that
-could do it, on this repository's own files. WYSIWYG editors (Tiptap, Milkdown, Lexical) rewrite
-your markdown. They turned the frontmatter into a heading, escaped `> [!NOTE]` and `[[wikilinks]]`,
-or flattened nested lists. Only a text-buffer editor keeps the file exactly as written. The
-[stack decision](/specs/decisions/stack.md) also says the web UI MUST draw workflow files from the
-core's document tree, never parsing markdown. More in [discovery](discovery-01.md#the-split).
+The proposal is one design pass over every view. A spec for all of it would pass the workflow's
+split rule. The rule proposes a split past 6 stories, 30 scenarios, or 2 changed decisions. Count
+each group of views as a story. The groups are the shell, home, lists, a feature's page, reading
+pages, session, New page, decisions pages, and identity. The pass would also change the layout,
+preview, and components decisions. A spec that large cannot be approved in one sitting. The
+discovery counts them in [the split](discovery-01.md#the-split).
 
-Why it matters: the editor is a separate subsystem with its own risks. Bundling it makes this
-feature larger than one spec can hold, and may need an exception to the stack decision.
+The markdown editor is a separate matter. You asked for a good editor for proposals, because Neovim
+is still smoother. The proposal allows a big text input instead. WYSIWYG editors (Tiptap, Milkdown,
+Lexical) rewrite your markdown: on this repository's files they turned the frontmatter into a
+heading, escaped `> [!NOTE]` and `[[wikilinks]]`, or flattened nested lists. Only a text-buffer
+editor keeps the file as written. The [stack decision](/specs/decisions/stack.md) also says the web
+UI MUST draw workflow files from the core's document tree, never parsing markdown.
 
-- **A (recommended). Leave the editor out: this feature restyles the proposal's text input, and the
-  editor becomes its own feature later, with this research as its start.**
-  - [pro] this feature stays reviewable in one spec, and nothing here touches the stack decision.
-  - [con] you keep using Neovim for proposals until that later feature.
-  - Why recommended: the editor's hard part is not looks but keeping your markdown byte for byte.
-- **B. Include a plain source editor with Vim keys, built on CodeMirror 6.**
-  - [pro] your markdown is never rewritten, and the Vim keys you use are available.
-  - [con] it adds a dependency and its own styles, and its syntax highlighting parses markdown in
-    the browser, which the stack decision needs a ruling on.
-- **C. Include a live-preview editor that shows headings and bold while you type.**
-  - [pro] closest to a "bit WYSIWYG" editor, with the file kept as written.
+Why it matters: it decides how many specs you review, in which order, and when each part of the UI
+changes. Your answers in this round (direction, tokens, width classes) apply to every part either
+way.
+
+- **A (recommended). Three features in order, and the editor later as its own feature. First, this
+  one: the direction, the identity (tokens, type, icons, logo, harness marks), the shell, the width
+  classes, the home, settings, and the decisions pages. Second, the reading pages: questions, spec,
+  plan, and the session beside them. Third, the lists and starts: inbox, priorities, a feature's
+  page, and New.**
+  - [pro] each spec fits a sitting. You see the shell and the identity live before the rest is
+    built, and each later feature inherits the tokens, so it decides little.
+  - [con] three approvals instead of one, and until the later features land, some pages keep the old
+    look beside the new shell.
+  - Why recommended: it is the split the rule asks for, and the first feature fixes what the others
+    share.
+- **B. One feature for every view, with the editor left out and the proposal's text input
+  restyled.**
+  - [pro] one approval, and no page keeps the old look.
+  - [con] a spec over the split rule, reviewed with its three decision changes in one sitting.
+- **C. One feature for every view, including a markdown editor.**
+  - [pro] everything you listed lands together.
+  - [con] the largest spec, and an editor with its own risks. Its choice is the follow-up below.
+
+**Answer:**
+
+### Q1.C: Which editor should the feature include?
+
+Only if you picked C in Q1. The discovery tried the candidates on this repository's own files. More
+in [discovery](discovery-01.md#the-split).
+
+Why it matters: a live preview parses markdown in the browser, which the stack decision forbids
+unless it is changed. A source editor keeps your file byte for byte.
+
+- **A (recommended). A source editor with Vim keys, built on CodeMirror 6.**
+  - [pro] your markdown is never rewritten, and your Vim keys work.
+  - [con] a dependency with its own styles. Its highlighting parses markdown in the browser, which
+    needs a ruling on the stack decision.
+  - Why recommended: it keeps the file as written, which the WYSIWYG editors could not do.
+- **B. A live-preview editor that shows headings and bold while you type.**
+  - [pro] the closest to a "bit WYSIWYG" editor, with the file kept as written.
   - [con] the most work, and it needs an exception to the stack decision, or decorations that come
     from the core.
 
@@ -279,10 +310,12 @@ that wants to compare looks would face the same conflict.
   - [pro] the agent can explore freely and cheaply. The spec still gets its mockups as stories, for
     UI that ships. Git keeps the deleted files.
   - [con] the preview decision must be narrowed, and the skill's discovery and spec steps edited.
+    The lint ignore for `mockups` folders, added with this round, stays.
   - Why recommended: an investigation compares ideas, and real components make that slow.
 - **B. Keep Storybook only, even for investigations.**
   - [pro] the rule stays as it is, and the mockups are the real components.
-  - [con] a comparison of several looks becomes too costly, so the agent would show one.
+  - [con] a comparison of several looks becomes too costly, so the agent would show one. The lint
+    ignore for `mockups` folders, added with this round, comes out.
 - **C. Allow throwaway prototypes, and keep the picked one in the repository as the spec's mockup.**
   - [pro] the spec's mockup is the investigation's own file, clickable and exact.
   - [con] a prototype is not the real component, so it drifts from what gets built.
@@ -444,6 +477,10 @@ at a glance.
 
 ### Check these
 
+- **The lint ignore for mockups folders** is a change to the repository's checks, outside this
+  feature's folder. It lets throwaway scripts in `specs/**/mockups/**` skip the app's lint, which
+  they cannot pass. The constitution asks a human to approve a loosened check, so this is yours to
+  accept. Q6 decides whether it stays.
 - **Keyboard keys in the terminal look** are drawn and not built. If you pick that direction, its
   keys (`j` and `k`, a leader key, key hints) stay out, since keyboard navigation is its own item in
   the [priorities](/specs/PRIORITIES.md). The layout still takes the look.

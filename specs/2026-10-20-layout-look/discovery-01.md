@@ -11,27 +11,33 @@ direction down as layout behaviour, design tokens, icons, and a logo.
 Three terms recur below. A CF is a change or a feature, the human's shorthand in the proposal.
 Astryx is the open-source React component library, from Meta, that the web UI is built on. StyleX is
 the compile-time styling library Astryx uses. All styling goes through its tokens, and lint enforces
-it.
+it. A harness is an agent program that Uraeda drives, such as Claude Code. Storybook is the tool
+that renders each UI component in each state as a live example.
 
 This round built the prototypes as the investigation's artefacts. Five clickable HTML mockups share
 one set of fake data and draw the same views. A
 [README](/specs/2026-10-20-layout-look/mockups/README.md) presents them.
 [compare.html](/specs/2026-10-20-layout-look/mockups/compare.html) shows them side by side at 1440,
 960, and 390 px wide. [logos.html](/specs/2026-10-20-layout-look/mockups/logos.html) draws five logo
-concepts. They are not shipping code, and they are neither Astryx nor Storybook.
+concepts. A [screenshots](/specs/2026-10-20-layout-look/mockups/screenshots/) folder holds each
+direction's home and questions page at 1440 px. They are not shipping code, and they use neither
+Astryx nor Storybook.
 
 - **[Natural](/specs/2026-10-20-layout-look/mockups/natural.html)**: washi paper (Japanese handmade
   paper), moss and bark colours, and a bonsai home whose branches are features. It has a floating
   bottom dock and a bottom-sheet session, in light and dark.
 - **[Cyber](/specs/2026-10-20-layout-look/mockups/cyber.html)**: the author's own violet-black and
-  neon-green palette, with chamfered (corner-cut) HUD panels. It has a branch-map home, a left rail
-  plus a bottom dock of running work, and a side "comm" panel for the session. Dark only.
-- **[Terminal](/specs/2026-10-20-layout-look/mockups/terminal.html)**: a LazyVim look in Catppuccin
-  Mocha colours, with a tab line on top and a status line at the bottom. It has titled bordered
-  panes, a keyed start menu with a pixel bonsai, a picker overlay, and a split session. Dark only.
-- **[Glass](/specs/2026-10-20-layout-look/mockups/glass.html)**: Apple's Liquid Glass used only for
-  navigation and overlays. It has a floating sidebar, a toolbar, and a session sheet with three
-  detents (rest heights). Reading sheets are opaque, and the home uses Fitness-style rings.
+  neon-green palette, with chamfered (corner-cut) HUD (heads-up display) panels. It has a branch-map
+  home, a left rail plus a bottom dock of running work, and a side "comm" panel for the session.
+  Dark only.
+- **[Terminal](/specs/2026-10-20-layout-look/mockups/terminal.html)**: a LazyVim look (LazyVim is a
+  Neovim setup) in Catppuccin Mocha colours (a dark colour scheme). It has a tab line on top and a
+  status line at the bottom. It has titled bordered panes, a keyed start menu with a pixel bonsai, a
+  picker overlay, and a split session. Dark only.
+- **[Glass](/specs/2026-10-20-layout-look/mockups/glass.html)**: Apple's Liquid Glass, a translucent
+  material from 2025, used only for navigation and overlays. It has a floating sidebar, a toolbar,
+  and a session sheet with three detents (rest heights). Reading sheets are opaque, and the home
+  uses Fitness-style rings.
 - **[Blueprint](/specs/2026-10-20-layout-look/mockups/blueprint.html)**: technical drawing sheets
   with a drawing list and a title-block footer. Questions are numbered callouts, changed decisions
   get revision clouds, and live previews are framed as "Detail A". The home is a process plan.
@@ -245,8 +251,8 @@ picture.
   [Chrome](https://developer.chrome.com/docs/devtools/network/reference),
   [Braintrust](https://www.braintrust.dev/docs/observe/examine-traces),
   [Langfuse](https://langfuse.com/docs/observability/features/agent-graphs)): waterfalls of bars on
-  a time axis, a brushable overview strip, and a "Worked" block that folds many tool calls into one
-  line.
+  a time axis, and a brushable overview strip. Braintrust adds a "Worked" block that folds many tool
+  calls into one line.
 - **Railway** ([smart canvas](https://railway.com/changelog/2025-12-05-smart-canvas)): a tile names
   a failure in words, such as "Build failed." **Grafana**
   ([state timeline](https://grafana.com/docs/grafana/latest/visualizations/panels-visualizations/visualizations/state-timeline/)):
@@ -257,9 +263,9 @@ picture.
 - **Generative trees.** An L-system rewrites an axiom with production rules. Two symbols push and
   pop the drawing position, which makes branches
   ([Wikipedia](https://en.wikipedia.org/wiki/L-system)). cbonsai grows a terminal bonsai from a
-  seed, and growth can be saved and loaded ([manual](https://www.mankier.com/1/cbonsai)). The
-  Obsidian graph view ([help](https://obsidian.md/help/plugins/graph)) is the usual example of a
-  picture that is pretty and hard to use. That judgement is this round's own.
+  seed. Growth can be saved and loaded ([manual](https://www.mankier.com/1/cbonsai)). The Obsidian
+  graph view ([help](https://obsidian.md/help/plugins/graph)) is the usual example of a picture that
+  is pretty and hard to use. That judgement is this round's own.
 
 ### Apple Liquid Glass
 
@@ -297,8 +303,8 @@ and [WWDC25 session 323](https://developer.apple.com/videos/play/wwdc2025/323/).
   trunk. Bonsai glossaries say having one creates depth
   ([Kotobank, read](https://kotobank.jp/word/%E5%BE%8C%E3%82%8D%E6%9E%9D-22216),
   [Kinji Shuppan, read](https://www.bonsai.co.jp/glossary/)). They also list 枝順 (the order of main
-  branches), 枝芯 (a branch's centre line), 芽当たり (buds after pruning), 剪定 (pruning),
-  and 根張り (the surface root spread)
+  branches) and 枝芯 (a branch's centre line). Others are 芽当たり (buds after
+  pruning), 剪定 (pruning), and 根張り (the surface root spread)
   ([read](https://bonsai-bonsai.com/ninki/%E7%9B%86%E6%A0%BD%E3%81%AE%E5%89%AA%E5%AE%9A%E3%82%84%E4%BD%9C%E3%82%8A%E6%96%B9%E3%81%AB%E9%96%A2%E3%81%99%E3%82%8B%E9%87%8D%E8%A6%81%E7%94%A8%E8%AA%9E/)).
   Mapping each term to a UI concept is this round's own idea.
 - Design rules: 間 (ma) is active empty space. Pasting sakura or torii motifs on a Western layout
@@ -528,8 +534,10 @@ core's document tree, never parsing their markdown." The editor today is a plain
 ([DraftEditor.tsx](/packages/web/src/pane/DraftEditor.tsx), `TextField kind="editor"`). No editor
 library is in [package.json](/packages/web/package.json).
 
-Each library's default markdown parse and serialize was run headless on three files. They are this
-proposal (229 lines), the example round
+CodeMirror 6 is a browser text-editor library that edits a plain text buffer. Tiptap, Milkdown, and
+`prosemirror-markdown` build on ProseMirror, a rich-text toolkit. Lexical is Meta's editor
+framework. Each library's default markdown parse and serialize was run headless on three files. They
+are this proposal (229 lines), the example round
 [clarifications-01.md](/skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/clarifications-01.md)
 (263 lines), and a file of edge cases. The edge cases hold frontmatter, `*` bullets, `__bold__`,
 wikilinks, an alert, a setext heading, a table, raw HTML, task items, and a pasted image. The table
@@ -620,7 +628,8 @@ Editor candidates, from the npm registry and GitHub (read):
 
 ### Accessibility, WCAG 2.2
 
-All pages below are W3C "Understanding" pages, and were read.
+WCAG is the W3C's Web Content Accessibility Guidelines. All pages below are its "Understanding"
+pages, and were read.
 
 | Criterion                                                                                                          | Level | What it asks                                                                                                                                                       | Where it bears here                                               |
 | ------------------------------------------------------------------------------------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
@@ -666,8 +675,9 @@ From MDN's browser-compatibility data, read on GitHub:
 | `prefers-reduced-transparency` (experimental) | 118    | 113, behind a pref | Not supported (WebKit bug 175497) |
 | `backdrop-filter`                             | 76     | 103                | 18, prefixed since 9              |
 
-- WebKit cannot see `prefers-reduced-transparency`, so the OS Reduce Transparency setting is
-  invisible to CSS in Safari. Uraeda's tests and screenshots run in WebKit through Playwright
+- WebKit, the browser engine of Safari and of Uraeda's test browser, cannot see
+  `prefers-reduced-transparency`. So the OS Reduce Transparency setting is invisible to CSS in
+  Safari. Uraeda's tests and screenshots run in WebKit through Playwright
   ([screenshots.ts](/packages/web/scripts/screenshots.ts)).
 - Refraction with `backdrop-filter: url(#svgFilter)` and `feDisplacementMap` works in Chromium only.
   Safari and Firefox render nothing for the `url()` part. `@supports` reports success in Safari, so
@@ -687,19 +697,22 @@ From MDN's browser-compatibility data, read on GitHub:
 
 ### Contrast of the mockups' own colours
 
-Measured in this round with the WCAG relative-luminance formula, on the colours the mockups'
-stylesheets declare. Which pairs the mockups actually draw was not traced.
+The ratios below were measured in this round with the WCAG relative-luminance formula, on the
+colours that the mockups' stylesheets declare. The first drafts of several of these colours measured
+3.2 to 4.4:1, so they were raised until the dimmest text token cleared 4.5:1 on every surface it
+sits on. The table shows the final colours. The main text tokens were higher in every mockup. Which
+pairs the mockups actually draw was not traced.
 
-| Mockup               | Text tokens on their surfaces                      | Lowest pair                 |
-| -------------------- | -------------------------------------------------- | --------------------------- |
-| Natural, light       | ink 12.5 to 13.6, ink2 6.8 to 7.4, ink3 4.9 to 5.4 | ink3 on paper, 4.91         |
-| Natural, dark        | ink 12.6 to 14.4, ink3 5.6 to 6.4                  | ink3 on card, 5.63          |
-| Cyber                | ink 15.8 to 17.9, muted 5.9 to 6.7, dim 4.3 to 4.9 | dim on raised surface, 4.34 |
-| Terminal             | text 8.7 to 12.1, sub 5.7 to 7.9, dim 3.5 to 4.9   | dim `o0` on `s0`, 3.54      |
-| Glass, light         | ink 14.3 to 16.8, ink3 4.3 to 5.1                  | ink3 on sheet3, 4.30        |
-| Glass, dark          | ink 11.7 to 15.6, ink3 4.4 to 5.9                  | ink3 on sheet3, 4.44        |
-| Blueprint, cyanotype | ink 9.8 to 12.6, ink3 4.3 to 5.6                   | ink3 on bg3, 4.33           |
-| Blueprint, vellum    | ink 11.5 to 14.2, ink3 4.6 to 5.7                  | ink3 on bg3, 4.57           |
+| Mockup               | Dimmest text token | On its surfaces       | Ratio range  |
+| -------------------- | ------------------ | --------------------- | ------------ |
+| Natural, light       | ink3 `#68634b`     | paper, paper2, card   | 4.76 to 5.69 |
+| Natural, dark        | ink3 `#9a9c85`     | paper, paper2, card   | 5.63 to 6.42 |
+| Cyber                | dim `#897aac`      | bg, surface, surface2 | 4.58 to 5.18 |
+| Terminal             | o0 `#949bb6`       | base, mantle, s0      | 4.56 to 6.37 |
+| Glass, light         | ink3 `#6a6a6f`     | sheet, sheet2, sheet3 | 4.57 to 5.38 |
+| Glass, dark          | ink3 `#9a9aa1`     | sheet, sheet2, sheet3 | 4.55 to 6.09 |
+| Blueprint, cyanotype | ink3 `#85acd5`     | bg, bg2, bg3          | 4.65 to 5.98 |
+| Blueprint, vellum    | ink3 `#4f6786`     | bg, bg2, bg3          | 4.57 to 5.26 |
 
 - Highlight yellow `#f3b800` on vellum `#f1f4f8` measures 1.63:1, so it cannot carry text there.
   Where the blueprint mockup uses it as text was not traced.
@@ -733,9 +746,9 @@ repositories. All were read.
   (fullwidth plus sign), in [SidebarAdd.tsx](/packages/web/src/SidebarAdd.tsx) line 45. Screenshots
   from the dev shell show an empty box there. The dev shell pins browser fonts to DejaVu, which has
   no glyph at U+FF0B. That cause is inferred from `fc-query` and not reproduced.
-- Lucide and Tabler share a 24-pixel grid with a 2 px round-cap stroke, so they mix. Phosphor's
-  weights let one set serve several looks. Pixelarticons includes git branch, commit, merge, and
-  pull request glyphs.
+- Lucide and Tabler share a 24-pixel grid with a 2 px round-cap stroke, so they mix (an assessment
+  from the research, not a source). Phosphor's weights let one set serve several looks.
+  Pixelarticons includes git branch, commit, merge, and pull request glyphs.
 
 ### Fonts
 
@@ -867,8 +880,8 @@ drift by one or two.
 - [server/src/files.ts](/packages/server/src/files.ts): serves mockups, covered under
   [Worth it and feasibility](#worth-it-and-feasibility).
 - [index.html](/packages/web/index.html): the page shell, with no font link and no favicon.
-- Tests and tools: browser tests run only at a phone, 402 by 874, and a desktop, 1440 by 900, in
-  WebKit ([vite.browser.config.ts](/packages/web/vite.browser.config.ts) lines 467 to 476). Other
+- **Tests and tools.** Browser tests run only at a phone (402 by 874) and a desktop (1440 by 900),
+  in WebKit ([vite.browser.config.ts](/packages/web/vite.browser.config.ts) lines 467 to 476). Other
   tests cross 768 px at 700 and 800 px, and run at 1024 and 1200 px. No layout or accessibility
   check runs between 768 and 1023 px. [screenshots.ts](/packages/web/scripts/screenshots.ts) takes
   each view at both sizes in both themes. The [sandbox](/packages/web/sandbox/main.ts) runs the real
@@ -1035,9 +1048,10 @@ concept." Several things need more than UI:
   names only a filter and search on decisions.
 - A usage burn-rate line, and a "reduce effects" setting. Both are new settings or computed data.
 
-A gap about scope is always a question. The capabilities that are only UI are settled inside the
-topics under [Approaches](#approaches). The rest get one line each under
-[Needs no choice](#needs-no-choice), pointing here.
+New data reaches the UI only through the Rust core, the Node binding, and fate, the app's
+data-fetching layer, per the stack decision. A gap about scope is always a question. The
+capabilities that are only UI are settled inside the topics under [Approaches](#approaches). The
+rest get one line each under [Needs no choice](#needs-no-choice), pointing here.
 
 ### The preview decision requires Storybook mockups, and the proposal asks for throwaway prototypes
 
@@ -1081,9 +1095,9 @@ theme's 1024 px step that multiplies sizes. By arithmetic from the code, the tra
 296 px of text at 960 px with both columns open. The list beside a detail pane has about 216 px.
 
 All five mockups were written without that constraint. Each adapts at about 1000 to 1180 px with its
-own media queries: natural at 1000, cyber at 1280 and 1000, terminal at 1100 and 860, glass at 1100,
-and blueprint at 1180 and 1000. That is per-view media queries, which the decision forbids. No
-layout or accessibility check runs between 768 and 1023 px today.
+own media queries. Natural adapts at 1000, cyber at 1280 and 1000, terminal at 1100 and 860, glass
+at 1100, and blueprint at 1180 and 1000. That is per-view media queries, which the decision forbids.
+No layout or accessibility check runs between 768 and 1023 px today.
 
 ### The feature colour is already removed
 
@@ -1098,9 +1112,9 @@ The proposal says "Remove the storybook access though, it does not really work",
 home. The link is in the files list's links ([FileList.tsx](/packages/web/src/feature/FileList.tsx)
 lines 108 to 114). Storybook is also offered in the session's Progress column, in story links in
 documents, and as "Open in Storybook" on each embedded story. The active preview decision relies on
-Storybook embeds in specs and rounds, so removing all access conflicts with it. The wording most
-likely means the feature home only. That is a one-line change under
-[Needs no choice](#needs-no-choice).
+Storybook embeds in specs and rounds, so removing all access conflicts with it. One reading is that
+the wording means the feature home only, a one-line change under
+[Needs no choice](#needs-no-choice). The other reading removes every way in.
 
 ### The chat disappears, and the session takes its place
 
@@ -1148,9 +1162,9 @@ used. The widget's look has to cope with a missing window, per
 
 ## Worth it and feasibility
 
-**Cost against gain.** The gain is what the proposal states: a UI that looks finished and memorable
-before version 1.0.0, and a layout that holds at half a screen. The cost is large for a "visual"
-pass. The app has about 236 source files, and 100 of them import StyleX. A new shell, home, session
+**Cost against gain.** The gain is what the proposal states. The UI looks finished and memorable
+before version 1.0.0, and the layout holds at half a screen. The cost is large for a "visual" pass.
+The app has about 236 source files, and 100 of them import StyleX. A new shell, home, session
 surface, and reading treatment each touch shared components that every page uses.
 [The coherence decision](/specs/decisions/ui-coherence.md) makes that both easier and harder. A
 direction that changes the icon set, the fonts, and the width classes adds dependencies and a
@@ -1161,18 +1175,18 @@ evidence does not show whether cost outweighs gain. The proposal's own smaller f
 
 **Outside behaviour relied on.**
 
-| Behaviour                                                              | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The mockups open inside Uraeda's sandboxed mockup frame                | Not verified end to end. The server serves a file in any `mockups` folder, at any depth. It sends `content-security-policy: sandbox allow-scripts` and `referrer-policy: no-referrer` ([files.ts](/packages/server/src/files.ts) lines 83 to 126). Its type map covers `html`, `js`, and `css`. The UI's mockup page matches exactly one name segment, so `natural/index.html` has no page of its own ([routes.tsx](/packages/web/src/routes.tsx) lines 125 to 127). The core reads a file outside a feature's checkout only when it is tracked ([files.rs](/crates/core/src/api/files.rs) lines 33 to 55). Whether an uncommitted `mockups` folder is served was not tested. Nothing was run inside the frame. |
-| The mockups work in a frame that has scripts but no same-origin access | Partly checked. A grep shows no `localStorage`, `sessionStorage`, or cookie use in the mockups, which would throw in an opaque origin. Relative script paths such as `../shared/data.js` stay inside the `mockups` folder. Whether Google Fonts load in the frame was not tested.                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| The mockups render in WebKit                                           | Not verified. The README says they were checked in Chromium, not in Safari or Firefox. Uraeda's own tests and screenshots run in WebKit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Blur-and-saturate glass in WebKit                                      | Documented: `backdrop-filter` is in Safari 18, and prefixed since Safari 9. The glass mockup uses blur and saturation only. Refraction works only in Chromium, so the mockup has none. Not tested in WebKit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| The OS "Reduce transparency" setting in WebKit                         | Documented as unsupported: WebKit has no `prefers-reduced-transparency`. The glass mockup holds a rule for it that never fires there.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Astryx's `BottomSheet` as a non-modal panel on a desktop               | Its documentation covers the non-modal form and snap points. It calls the sheet a mobile touch sheet and does not describe desktop use. Not tested.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Astryx's `CommandPalette` and `Resizable` for the shapes needed        | The components exist. Not tested against the needs here.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| A self-hosted font under the lint and the stylesheet allowlist         | Not tested. The allowlist test would reject a fourth stylesheet.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| StyleX 0.19.1 container queries and keyframes under the app's lint     | Not checked. The app uses neither today.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| A CodeMirror editor styled with the theme's tokens                     | Not tested.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Behaviour                                                              | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The mockups open inside Uraeda's sandboxed mockup frame                | Not verified end to end. The server serves a file in any `mockups` folder, at any depth. It sends `content-security-policy: sandbox allow-scripts` and `referrer-policy: no-referrer` ([files.ts](/packages/server/src/files.ts) lines 83 to 126). Its type map covers `html`, `js`, and `css`. The UI's mockup page matches exactly one name segment ([routes.tsx](/packages/web/src/routes.tsx) lines 125 to 127). Each direction's entry page is therefore a file such as `natural.html` directly in `mockups/`, which loads `shared/data.js` and its own `natural/app.js`. By the code, `/f/2026-10-20-layout-look/mockups/natural.html` matches the route. Read from the code, not run. The core reads a file of a feature's folder from the feature's checkout when one exists, and other files only when tracked ([files.rs](/crates/core/src/api/files.rs) lines 33 to 55). A separate test served the mockups from a local file server that sends the same sandbox header. Nothing was run inside Uraeda's own server and frame. |
+| The mockups work in a frame that has scripts but no same-origin access | Partly checked. A grep shows no `localStorage`, `sessionStorage`, or cookie use in the mockups, which would throw in an opaque origin. Relative script paths such as `shared/data.js` stay inside the `mockups` folder. Whether Google Fonts load in the frame was not tested.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| The mockups render in WebKit                                           | Not verified. The README says they were checked in Chromium, not in Safari or Firefox. Uraeda's own tests and screenshots run in WebKit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Blur-and-saturate glass in WebKit                                      | Documented: `backdrop-filter` is in Safari 18, and prefixed since Safari 9. The glass mockup uses blur and saturation only. Refraction works only in Chromium, so the mockup has none. Not tested in WebKit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| The OS "Reduce transparency" setting in WebKit                         | Documented as unsupported: WebKit has no `prefers-reduced-transparency`. The glass mockup holds a rule for it that never fires there.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Astryx's `BottomSheet` as a non-modal panel on a desktop               | Its documentation covers the non-modal form and snap points. It calls the sheet a mobile touch sheet and does not describe desktop use. Not tested.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Astryx's `CommandPalette` and `Resizable` for the shapes needed        | The components exist. Not tested against the needs here.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| A self-hosted font under the lint and the stylesheet allowlist         | Not tested. The allowlist test would reject a fourth stylesheet.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| StyleX 0.19.1 container queries and keyframes under the app's lint     | Not checked. The app uses neither today.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| A CodeMirror editor styled with the theme's tokens                     | Not tested.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 **Guards relaxed.** No option as written loosens a security guard. The mockups load fonts from
 Google Fonts, an external request that the app itself does not make. In plain words: Google's
@@ -1182,225 +1196,226 @@ is not sent along. Self-hosted fonts in the app would remove that request.
 
 ## Approaches
 
-Criteria come from the following sources, and every table uses the same ones within its topic.
+Criteria come from these sources. Every table uses the same ones within its topic.
 
 - [The proposal](proposal.md): reading and hierarchy first, the shell yielding on half a screen, a
   look that is distinct and memorable, and "almost only UI".
 - [The constitution](/specs/CONSTITUTION.md): principle II (design changes stored as plain text in
-  git) and principle VI (simple code, checks that do not go up, a justified new abstraction).
+  git) and principle VI (simple code, checks that do not go up, justified abstractions).
 - Active decisions: [layout](/specs/decisions/ui-layout.md),
   [components](/specs/decisions/ui-components.md), [coherence](/specs/decisions/ui-coherence.md),
   [behaviour](/specs/decisions/ui-behaviour.md), [checks](/specs/decisions/ui-checks.md),
   [stack](/specs/decisions/stack.md), [preview](/specs/decisions/preview.md), and
   [toolchain](/specs/decisions/toolchain.md).
-- WCAG 2.2, marked "WCAG" where it is the source of a criterion: see
+- WCAG 2.2, marked "WCAG" where it is the source of a criterion. See
   [Accessibility, WCAG 2.2](#accessibility-wcag-22).
 
 A cell marked "judgement" is this round's own reading, not a sourced fact.
 
 ### The split
 
-This topic is whether one feature carries the whole design pass, or part of it moves to its own
+This topic is whether one feature carries the whole design pass, or part of it becomes its own
 feature. It relies on [Markdown editors](#markdown-editors-and-whether-the-file-survives),
-[The proposal](#the-stack-decision-forbids-parsing-markdown-in-the-ui), and
+[the stack decision's conflict](#the-stack-decision-forbids-parsing-markdown-in-the-ui), and
 [Worth it and feasibility](#worth-it-and-feasibility).
 
-The spec's split rule, from [writing.md](/skills/uraeda/references/writing.md) rule 33, is: "past 6
-stories, 30 scenarios, or 2 changed decisions, the discovery proposes a split". The reason it gives
-is that a larger spec cannot be approved in one sitting. The thresholds count stories and scenarios
-of the spec and the decisions it changes, so counts below are judgement until a spec exists.
+The spec's split rule is in [writing.md](/skills/uraeda/references/writing.md), rule 33. Past 6
+stories, 30 scenarios, or 2 changed decisions, the discovery proposes a split. The reason given is
+that a larger spec cannot be approved in one sitting. The counts below are judgement until a spec
+exists.
 
-| Option                                                                                                                                  | Decisions likely changed (judgement)                                                                                 | Stories (judgement)                                                                                                                       | Fit with "one pass, decided together"                                                                                        | Review in one sitting                                                  |
-| --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| A. One feature for the whole pass, with the editor as a plain text field plus the existing preview toggle (the proposal's own fallback) | Layout (a third class, or none), preview (prototype rule), components (fonts or libraries). Stack unchanged. Up to 3 | One per view group: shell, home, lists, feature home, reading pages, session, New, decisions, settings, identity. Over the threshold of 6 | Full                                                                                                                         | A spec near the limit of a sitting, and a split is proposed by rule 33 |
-| B. One feature for the pass without a new editor, and the proposal editor split out as its own feature                                  | This one: layout, preview, components. The editor feature: stack, and components for a dependency                    | This one: same as A. The editor feature: about 3                                                                                          | Editor taken out, as the proposal allows                                                                                     | This one is as in A, the editor is small and separate                  |
-| C. Several features: identity and shell, then reading pages, then lists and home, then the editor                                       | Each feature changes one or two. The first changes the most (layout, components, preview)                            | 2 to 5 each                                                                                                                               | Visual identity decided before views, as the proposal's "decided together" asks for. Views then follow in separate approvals | Each fits a sitting                                                    |
+| Option                                                                                                                                | Decisions likely changed (judgement)                                                                                     | Stories (judgement)                                                                                                      | Fit with "decided together"                                          | Review in one sitting                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------ |
+| A. One feature for the whole pass, with the editor kept as a text field plus the existing preview toggle, the proposal's own fallback | Layout (a third class, or none), preview (the prototype rule), components (fonts or libraries). Stack unchanged. Up to 3 | One per view group: shell, home, lists, feature home, reading pages, session, New, decisions, settings, identity. Over 6 | Full                                                                 | A spec near the limit of a sitting. Rule 33 proposes a split |
+| B. One feature for the pass without a new editor, and the proposal editor as its own feature                                          | This one: layout, preview, components. The editor feature: stack, and components for a dependency                        | This one: as in A. The editor feature: about 3                                                                           | The editor is taken out, as the proposal allows                      | This one as in A. The editor feature is small and separate   |
+| C. Several features: identity and shell, then reading pages, then lists and home, then the editor                                     | Each changes one or two. The first changes the most: layout, components, preview                                         | 2 to 5 each                                                                                                              | Identity is decided before views. Views follow in separate approvals | Each fits a sitting                                          |
 
-Notes. The mockups decide direction for all views at once, so the direction question is asked once
-whatever option is chosen. In option C, the later features inherit a direction and its tokens and
-have no choice left on look. Under option A, a feature this size has no precedent in the
-repository's history: the `redesign-*` features each redid one view.
+- The mockups decide the direction for all views at once, so the direction question is asked once
+  under any option.
+- Under option C, later features inherit a direction and its tokens, and have no look left to
+  choose.
+- Under option A, a feature of this size has no precedent. The `redesign-*` features each redid one
+  view.
 
 ### The visual direction
 
-This topic is which of the five directions the UI takes as its base look. It relies on
+This topic is which of the five directions gives the UI its base look. It relies on
 [Apple Liquid Glass](#apple-liquid-glass),
 [Japanese design and the author's own sites](#japanese-design-bonsai-vocabulary-and-the-authors-own-sites),
 [Game UIs and terminal UIs](#game-uis-and-terminal-uis),
 [Motion, transparency, contrast, and engine support](#motion-transparency-contrast-and-engine-support),
 [Contrast of the mockups' own colours](#contrast-of-the-mockups-own-colours), and
-[the astryx levers](#astryx-components-and-theme-levers).
+[Astryx's levers](#astryx-components-and-theme-levers).
 
-All five are in `mockups/`, over the same data. Each view is a link inside its shell. Contrast
-ratios are those measured on the mockup's own tokens. Breakpoints are the mockup's own media
-queries.
+All five mockups use the same data. Contrast ratios are measured on each mockup's own tokens.
+Breakpoints are each mockup's own media queries.
 
-| Option                                                               | Traits and risk for long reading                                                                                                                                                                                                                  | Contrast (measured)                                                                                                                              | Light and dark                                                             | Half-width behaviour (960 px)                                                                                                               | Effort in StyleX and Astryx                                                                                                                                                                            |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A. [Natural](/specs/2026-10-20-layout-look/mockups/natural.html)     | Washi paper, moss, bark, serif reading column, leaf-shaped corners, grain. Illustration only on the home, as the Japanese-design sources warn against ornament elsewhere. Lowest risk for reading (judgement)                                     | Text 4.76 to 13.6 in light, 5.63 to 14.4 in dark. A traditional moss `#838A2D` cannot carry text (3.6:1), so the mockup darkened it              | Both, with a day and night switch                                          | No sidebar, so content keeps the full width. Adapts at 1000 and 720 px                                                                      | Three font families, a grain background, a custom bonsai drawing from workspace data, a bottom dock instead of the `SideNav`, leaf radii as tokens                                                     |
-| B. [Cyber](/specs/2026-10-20-layout-look/mockups/cyber.html)         | The author's palette, chamfered panels, scanlines, glitch on titles, parallax layers following the pointer. Highest risk: ZZZ and Cyberpunk critiques of effects and ultra-bold type. Panels stay flat for text                                   | Text 4.58 to 17.9. Neon green is 15.8:1, loud as text                                                                                            | Dark only                                                                  | The right column folds away at 1280 px, then single column at 1000 px. Parallax needs room, and the sources say to flatten it at this width | Chamfers by `clip-path` or `corner-shape` (experimental), keyframes for glitch, a pointer-driven parallax with a motion off-switch (WCAG 2.3.3), `prefers-contrast` removing effects as in the mockup  |
-| C. [Terminal](/specs/2026-10-20-layout-look/mockups/terminal.html)   | Catppuccin Mocha, monospace chrome with proportional prose, titled panes, tab line, status line. Keys are look-only here. Text at 80 characters shows fewer words per line. Box-drawing as text reads badly to screen readers, so borders are CSS | Text 4.56 to 12.1. The first draft's dim `o0` on `s0` was 3.54:1, which fails 4.5:1 for small text, so it was raised                             | Dark only in the mockup. The palette has a light sibling, Latte, not drawn | Side panes fold at 1100 and 860 px, and the picker's preview pane hides                                                                     | A monospace font family, border-with-title panes as a component, a status line and tab line replacing the shell, an overlay picker. Visible controls for every key, as the behaviour decision requires |
-| D. [Glass](/specs/2026-10-20-layout-look/mockups/glass.html)         | Liquid Glass on chrome only, opaque reading sheets, rings on the home. Follows Apple's own rule not to use glass in the content layer. The Nielsen Norman critique applies to chrome over text                                                    | Text 4.57 to 16.8 in light, 4.55 to 15.6 in dark. Glass over a moving wallpaper changes with the backdrop, so the ratio is a range, not a number | Both. Follows the system theme, with a switch                              | The sidebar becomes an icon column at 1100 px, the inspector hides, and the session sheet has three detents                                 | A translucent layer needs a reduced-transparency path, which Astryx's adaptations lack and WebKit cannot detect. Blur costs repaint on a sticky header. No refraction, which only Chromium has         |
-| E. [Blueprint](/specs/2026-10-20-layout-look/mockups/blueprint.html) | Drawing sheets, a title block, numbered callouts for questions, revision clouds on changed decisions. Reading column is a serif. Fit for specs and plans is this round's judgement                                                                | Text 4.65 to 12.6 on cyanotype, 4.57 to 14.2 on vellum. Yellow `#f3b800` on vellum is 1.63:1, so it cannot carry text                            | Both: cyanotype and vellum                                                 | The drawing list folds to labels at 1000 px and the notes column becomes an overlay at 1180 px                                              | A drafting grid from gradients, line weights as tokens, a title block as a shared footer, revision clouds as an SVG overlay on the decision diff, a different shell from today's                       |
-
-Notes.
+| Option                                                               | Traits and risk for long reading                                                                                                                                                                                      | Contrast (measured)                                                                                                                                                | Light and dark                                                             | Half-width behaviour (960 px)                                                                                     | Effort in StyleX and Astryx                                                                                                                                                                     |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. [Natural](/specs/2026-10-20-layout-look/mockups/natural.html)     | Washi paper, moss, bark, a serif reading column, leaf-shaped corners, grain. Illustration only on the home. Lowest risk for reading (judgement)                                                                       | Text 4.8 to 13.6 in light, 5.6 to 14.4 in dark. The mockup darkened moss, which is 3.6:1 as a text colour in the source palette                                    | Both, with a day and night switch                                          | No sidebar, so content keeps the full width. Adapts at 1000 and 720 px                                            | Three font families, a grain background, a bonsai drawn from workspace data, a bottom dock instead of the `SideNav`, leaf radii as tokens                                                       |
+| B. [Cyber](/specs/2026-10-20-layout-look/mockups/cyber.html)         | The author's palette, chamfered panels, scanlines, glitch on titles, parallax layers that follow the pointer. Highest risk (judgement), given the critiques of effects and ultra-bold type. Panels stay flat for text | Text 4.6 to 17.9. Dim text on a raised surface is 4.58:1. Neon green is 15.8:1, loud as text                                                                       | Dark only                                                                  | The right column folds away at 1280 px, then one column at 1000 px. Sources say to flatten parallax at this width | Chamfers by `clip-path` or experimental `corner-shape`, keyframes for glitch, pointer parallax with a motion off-switch (WCAG 2.3.3), `prefers-contrast` removing effects as the mockup does    |
+| C. [Terminal](/specs/2026-10-20-layout-look/mockups/terminal.html)   | Catppuccin Mocha, monospace chrome with proportional prose, titled panes, a tab line, a status line. Keys are look-only here. Box-drawing as text reads badly to screen readers, so borders are CSS                   | Text 4.6 to 12.1. Dim `o0` on `s0` is 4.56:1, close to the 4.5:1 line. The first draft's 3.54:1 was raised. The author's own Mocha overlay0 is 3.36:1              | Dark only in the mockup. Its palette has a light sibling, Latte, not drawn | Side panes fold at 1100 and 860 px, and the picker's preview hides                                                | A monospace family, titled panes as a component, a status line and tab line replacing the shell, an overlay picker. Visible controls for every key, as the behaviour decision requires          |
+| D. [Glass](/specs/2026-10-20-layout-look/mockups/glass.html)         | Liquid Glass on chrome only, opaque reading sheets, rings on the home. It follows Apple's rule against glass in the content layer. The Nielsen Norman critique applies to chrome over text                            | Text 4.6 to 16.8 in light, 4.55 to 15.6 in dark, on the opaque sheets. Text on glass chrome over a moving wallpaper is a range, not a number, and was not measured | Both. Follows the system theme, with a switch                              | The sidebar becomes an icon column at 1100 px, the inspector hides, and the session sheet has three detents       | A translucent layer needs a reduced-transparency path. Astryx's adaptations lack one and WebKit cannot detect it. Blur costs repaint on a sticky header. No refraction, which only Chromium has |
+| E. [Blueprint](/specs/2026-10-20-layout-look/mockups/blueprint.html) | Drawing sheets, a title block, numbered question callouts, revision clouds on changed decisions, a serif reading column. Fit for specs and plans is judgement                                                         | Text 4.65 to 12.6 on cyanotype, 4.6 to 14.2 on vellum. Yellow `#f3b800` on vellum is 1.63:1                                                                        | Both: cyanotype and vellum                                                 | The drawing list folds to labels at 1000 px, and the notes column becomes an overlay at 1180 px                   | A drafting grid from gradients, line weights as tokens, a title block as a shared footer, revision clouds as an SVG overlay on the decision diff, a shell unlike today's                        |
 
 - The author's own sites already separate effects from prose: effects on the splash only, a
   proportional body, mono for chrome. The cyber and terminal mockups follow that.
-- The mockups were made by hand in plain HTML and CSS, with no lint. A StyleX version has to express
-  each effect through tokens and `stylex.create`, with no raw values except through `var(--…)`.
-  Which effects fit that lint was not checked.
-- Every direction handles the five items of the shell differently.
-  [Mixing directions](#mixing-directions) lists them.
+- The mockups are hand-made plain HTML and CSS with no lint. A StyleX version expresses each effect
+  through tokens, `stylex.create`, and `var(--…)` values. Which effects fit that lint was not
+  checked.
+- Each direction handles the shell differently. [Mixing directions](#mixing-directions) lists the
+  parts.
 
 ### Mixing directions
 
 This topic is whether one direction carries everything, or a part comes from another. It relies on
-[The visual direction](#the-visual-direction),
+[the visual direction](#the-visual-direction),
 [the coherence decision](/specs/decisions/ui-coherence.md), and
-[the graphs, traces, and home pages](#graphs-traces-and-home-pages-that-stand-out).
+[graphs and home pages](#graphs-traces-and-home-pages-that-stand-out).
 
-The parts a mix could swap, and what each direction draws for them, from the
+What each direction draws for the parts that a mix could swap, from the
 [mockups' README](/specs/2026-10-20-layout-look/mockups/README.md):
 
-| Part                       | Natural                                                                      | Cyber                                                           | Terminal                                      | Glass                                                           | Blueprint                                                                       |
-| -------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Shell pattern              | Floating bottom dock, no sidebar                                             | Left icon rail, top bar, bottom dock of running work            | Tab line on top, status line at the bottom    | Floating glass sidebar and toolbar, bottom tab bar on the phone | Drawing list on the left, tab bar, title-block footer                           |
-| Home centrepiece           | A bonsai, branches are features, blossoms where you are needed               | A branch map with eight ticks per feature                       | A keyed start menu with a pixel bonsai        | Fitness-style rings and widgets                                 | A process plan with diamonds at each step                                       |
-| Questions and spec reading | One centred serif column, callouts for goal, why it matters, and the example | Alert block, goal panel, sticky headers, chamfered option cards | Outline pane, cards, session as a split below | Opaque sheets, glass bar with question pills                    | Numbered callouts with leader lines, goal in a large italic serif, notes column |
-| Session surface            | Bottom sheet                                                                 | "Comm link" panel from the right                                | Terminal split below                          | Sheet with three detents, opaque at full height                 | Notes column on the right                                                       |
-| New page                   | A seed, a sprout, and a tree                                                 | Three tall cards in cyan, violet, green                         | A picker overlay with a preview               | Three big gradient cards                                        | Three sheet sizes                                                               |
+| Part                       | Natural                                                                          | Cyber                                                           | Terminal                                      | Glass                                                           | Blueprint                                                                |
+| -------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Shell pattern              | Floating bottom dock, no sidebar                                                 | Left icon rail, top bar, bottom dock of running work            | Tab line on top, status line at the bottom    | Floating glass sidebar and toolbar, bottom tab bar on the phone | Drawing list on the left, tab bar, title-block footer                    |
+| Home centrepiece           | A bonsai: branches are features, blossoms where you are needed                   | A branch map with eight ticks per feature                       | A keyed start menu with a pixel bonsai        | Fitness-style rings and widgets                                 | A process plan with a diamond at each step                               |
+| Questions and spec reading | One centred serif column with callouts for goal, why it matters, and the example | Alert block, goal panel, sticky headers, chamfered option cards | Outline pane, cards, session as a split below | Opaque sheets, a glass bar with question pills                  | Numbered callouts with leader lines, a large italic goal, a notes column |
+| Session surface            | Bottom sheet                                                                     | "Comm link" panel from the right                                | Terminal split below                          | Sheet with three detents, opaque at full height                 | Notes column on the right                                                |
+| New page                   | A seed, a sprout, and a tree                                                     | Three tall cards in cyan, violet, and green                     | A picker overlay with a preview               | Three big gradient cards                                        | Three sheet sizes                                                        |
 
-| Option                                                     | Coherence (decision)                                                     | Tokens carry it                                         | Effort                    | Risk (judgement)                                        |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------- | ------------------------------------------------------- |
-| A. One direction throughout                                | One look everywhere                                                      | Yes                                                     | The direction's own       | None from mixing                                        |
-| B. One shell and chrome, another direction's reading pages | The reading pages are the shared components, so they change in one place | Partly: two palettes, or one palette with two type sets | Two directions' work      | A reader who sees chrome and content in different moods |
-| C. One direction's home centrepiece on another's shell     | The home is one page, drawn by shared panels                             | Yes, if colours map                                     | Home's own component only | A home that does not match its shell                    |
-| D. Direction per part, any combination                     | Information kinds still use one component each                           | Only if tokens are shared across parts                  | Highest                   | Most likely to look assembled                           |
+| Option                                                       | Coherence decision                                               | Tokens carry it                                         | Effort                  | Risk (judgement)                      |
+| ------------------------------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------- | ----------------------- | ------------------------------------- |
+| A. One direction throughout                                  | One look everywhere                                              | Yes                                                     | The direction's own     | None from mixing                      |
+| B. One direction's shell and chrome, another's reading pages | Reading pages are shared components, so they change in one place | Partly: two palettes, or one palette with two type sets | Two directions' work    | Chrome and content in different moods |
+| C. One direction's home centrepiece on another's shell       | The home is one page of shared panels                            | Yes, if colours map                                     | The home component only | A home that does not match its shell  |
+| D. A direction per part, in any combination                  | Each kind of information still has one component                 | Only if tokens are shared across parts                  | Highest                 | Most likely to look assembled         |
 
-A home centrepiece must be deterministic to carry meaning. Every source that draws work as a graph
-warns that a random layout is a hairball, such as Obsidian's graph. The mockups' bonsai and branch
-map place a branch by data (a feature's step and priority), and that placement rule was not verified
-against real workspace data.
+A home centrepiece must be deterministic to carry meaning. Sources that draw work as a graph warn
+that a random layout is a hairball, as with Obsidian's graph. The bonsai and branch map place a
+branch by data, a feature's step and priority. That rule was not verified against real workspace
+data.
 
 ### The session beside a document
 
 This topic is where a person asks the session a question from a clarifications, spec, or plan page,
-and reads the answer. It relies on [Astryx components](#astryx-components-and-theme-levers),
-[WCAG 2.4.11](#accessibility-wcag-22),
-[Width classes](#width-classes-window-classes-and-container-queries), and the proposal's wording "a
-modal/overlay, or come from the bottom, or be a floating panel from the right".
+and reads the answer. It relies on [Astryx's components](#astryx-components-and-theme-levers),
+[WCAG 2.4.11](#accessibility-wcag-22), and
+[width classes](#width-classes-window-classes-and-container-queries).
 
-Today, "Ask the agent" leaves the page and opens the session with the quoted text in the composer
-(`web/sessions.ts`, `?ask=`). The proposal says reading the answer must not be "cramped in a small
-side panel". Apple's guidelines say to use a panel when people repeatedly give input and watch
-results, and a sheet for a scoped task. Material 3 calls a coplanar side sheet "not recommended for
-narrow screens". WCAG 2.4.11 names sticky footers and non-modal dialogs as what hides focus, so each
-overlay form needs `scroll-padding` at least its height.
+Today, "Ask the agent" leaves the page. It opens the session with the quoted text in the composer
+(`?ask=`). The proposal says reading the answer must not be "cramped in a small side panel". It
+leaves the form open: "a modal/overlay, or come from the bottom, or be a floating panel from the
+right".
 
-| Option                                                    | Keeps the question visible                                     | Half-width (960 px)                                                                      | Layout and behaviour decisions                                                                                   | WCAG 2.4.11                                                               | Astryx support                                                                         |
-| --------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| A. A right panel, resizable and foldable                  | Yes, beside the page                                           | Takes 30 to 40% of 960 px, or replaces the page below the medium class (Material's rule) | A column that takes room SHOULD be foldable and resizable, which fits. The column already exists as `SideColumn` | Beside, not over: no obscuring                                            | `Resizable`, `Layout`, `SideColumn` exist                                              |
-| B. A bottom sheet with detents, non-modal                 | Yes at half height, hidden at full                             | Works at any width. Wide screens use dialogs and popovers by the decision                | A sheet on wide screens departs from the rule that wide screens use popovers and dialogs                         | A non-modal sheet needs `scroll-padding-bottom` equal to its height       | `BottomSheet` has snap points and a non-modal form, documented as a mobile touch sheet |
-| C. A floating overlay panel from the right (modal or not) | A modal hides it. A floating non-modal panel covers part of it | Covers the page at 960 px                                                                | A popover or dialog on wide screens, as the decision says                                                        | A modal passes by construction. A floating non-modal needs scroll padding | `Dialog`, `Popover`, `Overlay` exist                                                   |
-| D. A separate page (today)                                | No, the page is left                                           | No problem                                                                               | A view the human follows SHOULD be a page of its own                                                             | Not applicable                                                            | Exists                                                                                 |
-| E. A split below, terminal style                          | Yes, above the split                                           | Both halves are small at 960 px                                                          | Neither a sheet nor a dialog                                                                                     | The split's sticky header needs padding                                   | `Layout` could, unverified                                                             |
+Apple says to use a panel when people repeatedly give input and watch results, and a sheet for a
+scoped task. Material 3 calls a coplanar side sheet "not recommended for narrow screens". WCAG
+2.4.11 names sticky footers and non-modal dialogs as what hides focus. So each overlay form needs
+`scroll-padding` at least its height.
 
-The mockups draw A (cyber's comm panel and blueprint's notes column), B (natural's sheet and glass's
-detents), and E (terminal). Whether the session's bounded-mounting rule holds in each was not
-tested. The URL must carry the open state (decision rule), and Back must close it through
-`useBackCloses`.
+| Option                                             | Keeps the question visible                               | Half-width (960 px)                                                                      | Layout and behaviour decisions                                                                | WCAG 2.4.11                                                         | Astryx support                                                                  |
+| -------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| A. A right panel, resizable and foldable           | Yes, beside the page                                     | Takes 30 to 40% of 960 px, or replaces the page below the medium class (Material's rule) | A column that takes room SHOULD be foldable and resizable. `SideColumn` already exists        | Beside, not over: nothing is obscured                               | `Resizable`, `Layout`, and `SideColumn` exist                                   |
+| B. A bottom sheet with detents, non-modal          | Yes at half height, hidden at full                       | Works at any width                                                                       | Wide screens use dialogs and popovers by the decision, so a sheet there departs from the rule | A non-modal sheet needs `scroll-padding-bottom` equal to its height | `BottomSheet` has snap points and a non-modal form, documented for mobile touch |
+| C. A floating overlay from the right, modal or not | A modal hides it. A floating non-modal covers part of it | Covers the page at 960 px                                                                | A popover or dialog on wide screens, as the decision says                                     | A modal passes by construction. A non-modal needs scroll padding    | `Dialog`, `Popover`, and `Overlay` exist                                        |
+| D. A separate page (today)                         | No, the page is left                                     | No problem                                                                               | A view the human follows SHOULD be a page of its own                                          | Not applicable                                                      | Exists                                                                          |
+| E. A split below, terminal style                   | Yes, above the split                                     | Both halves are small at 960 px                                                          | Neither a sheet nor a dialog                                                                  | The split's sticky header needs padding                             | `Layout` could, unverified                                                      |
+
+The mockups draw option A (cyber's comm panel, blueprint's notes column), option B (natural's sheet,
+glass's detents), and option E (terminal). The URL must carry the open state, and Back must close it
+through `useBackCloses`. Whether the session's bounded-mounting rule holds in each was not tested.
 
 ### Width classes
 
-This topic is how the UI treats the range between 768 px and about 1200 px, where half a screen
-sits. It relies on
-[Width classes, window classes, and container queries](#width-classes-window-classes-and-container-queries),
-[the layout decision in the proposal](#the-layout-decision-fixes-two-width-classes-and-half-a-screen-falls-between-them),
+This topic is how the UI treats the range from 768 px to about 1200 px, where half a screen sits. It
+relies on
+[window classes and container queries](#width-classes-window-classes-and-container-queries),
+[the layout conflict](#the-layout-decision-fixes-two-width-classes-and-half-a-screen-falls-between-them),
 and [Rules and their owners](#rules-and-their-owners).
 
-Facts: the theme already has two steps, at `md` 768 and at `lg` 1024, but the decision names two
-width classes, narrow and wide. The mockups each used their own media queries. Tests run at 402 and
-1440 only. Where `useWidthClass()` is the one owner, `SpecContents` (1100) and `Blocks.tsx` already
-copy the rule.
+- The theme already has two steps, at `md` 768 px and at `lg` 1024 px. The decision names two
+  classes, narrow and wide.
+- The mockups each used their own media queries. Tests run at 402 and 1440 px only.
+- `useWidthClass()` is the one owner of the rule. `SpecContents` (1100 px) and `Blocks.tsx` already
+  copy it.
 
-| Option                                                                                                       | Meaning for the layout decision                                                                                                                                              | Half-screen behaviour (960 px, 1280 px)                                                | Existing tests and checks                                                                             | Copies of the rule                                                        |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| A. Keep two classes, and make wide layouts fold themselves: auto-fold of columns by the width the column has | Unchanged. The rule says "two width classes", and a fold is behaviour inside wide                                                                                            | 960 px gets a folded sidebar rail and a closed column by default, then opens on demand | The page matrix at 402 and 1440 stays. A test is needed at a width between 768 and 1023, today absent | One more place that learns a width, unless folded by `useWidthOf`         |
-| B. A third class near 840 to 1199 (Material 3 "expanded"), in the theme                                      | Amended: "three width classes", and the sheets and dialogs mapping must say what medium does                                                                                 | A planned layout for 840 to 1199, with a rail and an overlay pane. 1280 is "large"     | The matrix gains a size. The fix-testing spec keeps the matrix                                        | `SHOWN_FROM` and the 1024 step collapse into the class                    |
-| C. Container queries on each pane, with the two viewport classes kept                                        | The decision forbids "per-view media queries"; a container query is not a media query, but a ruling is needed on "through the theme". The shell would still use the viewport | A pane adapts to the width it has, whatever the columns around it                      | Per-pane widths are tested at several sizes. No container query exists in the code                    | Replaces `useWidthOf`'s three uses. StyleX 0.19.1 support was not checked |
+| Option                                                                                            | Meaning for the layout decision                                                                                                                        | Half-screen behaviour (960 px, 1280 px)                                                  | Existing tests and checks                                                                       | Copies of the rule                                                        |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| A. Keep two classes, and make wide layouts fold themselves, by the width each column actually has | Unchanged. A fold is behaviour inside "wide"                                                                                                           | At 960 px, a folded sidebar rail and a column closed by default, opening on demand       | The matrix at 402 and 1440 stays. A test between 768 and 1023 px is needed, and is absent today | One more place learns a width, unless `useWidthOf` measures the column    |
+| B. A third class near 840 to 1199 px (Material 3 "expanded"), in the theme                        | Amended to three classes, and the sheets and dialogs mapping must say what medium does                                                                 | A planned layout for 840 to 1199 px, with a rail and an overlay pane. 1280 px is "large" | The matrix gains a size. The fix-testing spec keeps the matrix                                  | `SHOWN_FROM` and the 1024 px step fold into the class                     |
+| C. Container queries on each pane, with the two viewport classes kept                             | The decision forbids "per-view media queries". A container query is not one, but "through the theme" needs a ruling. The shell still uses the viewport | A pane adapts to the width it has, whatever surrounds it                                 | Per-pane widths need tests at several sizes. No container query exists today                    | Replaces `useWidthOf`'s three uses. StyleX 0.19.1 support was not checked |
 
 The Android sources say that once panes resize, a viewport query cannot tell a pane its width.
-Chrome's guidance says macro layout by media query and micro layout by container query. Material 3
-is a design for phones and tablets, and Uraeda's wide screens are desktop windows, so how far its
-thresholds carry over is judgement.
+Chrome's guidance puts macro layout in media queries and component layout in container queries.
+Material 3 is designed for phones and tablets, so how far its thresholds carry to desktop windows is
+judgement.
 
 ### Prototypes in the workflow
 
-This topic is whether throwaway HTML or images count as part of an investigation, whether they are
-kept or deleted, and what the skill and the preview decision say. It relies on
-[the proposal's two sections on prototypes](#the-preview-decision-requires-storybook-mockups-and-the-proposal-asks-for-throwaway-prototypes),
+This topic is whether throwaway HTML or images belong to an investigation, whether they stay, and
+what the skill and preview decision say. It relies on
+[the two proposal conflicts about prototypes](#the-preview-decision-requires-storybook-mockups-and-the-proposal-asks-for-throwaway-prototypes),
 [the skill's mockup rules](/skills/uraeda/references/spec.md#mockups), and
 [visual questions](/skills/uraeda/references/discovery.md#visual-questions).
 
-| Option                                                                                                      | Preview decision                                                                                                       | Constitution II (design in git)                                                   | Cost                                                                              | Fidelity to the direction                  | What the skill changes                                                                          |
-| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| A. Throwaway HTML or images are allowed in an investigation, and deleted when the spec writes the direction | Conflicts as written. The decision would say "unless an investigation's visual question asks for throwaway prototypes" | The spec's words and tokens stay. The prototype goes, though git history holds it | Lowest                                                                            | Unconstrained by lint: any effect          | `discovery.md` visual questions, `spec.md` mockups, the two templates and the example, together |
-| B. Throwaway prototypes are allowed and kept in the feature folder as a record                              | Same conflict                                                                                                          | The prototype stays in git as plain text                                          | Low, plus its size in the repository                                              | Same as A                                  | As A, plus a rule on where a kept prototype lives                                               |
-| C. Prototypes are always Storybook stories built from the real components                                   | No conflict. The decision applies                                                                                      | Stories are code in git, and the picked one is the first commit of its view       | Highest: five directions in StyleX and Astryx, through lint, before one is picked | Limited to what the theme and lint allow   | None. The spec's current rules stay                                                             |
-| D. HTML for choosing, Storybook for the picked direction                                                    | Conflicts for the choosing step only                                                                                   | The picked direction becomes stories and stays                                    | Medium: five HTML, one story set                                                  | Choice unconstrained, shipping constrained | A rule on the handoff from HTML to stories                                                      |
+| Option                                                                                                      | Preview decision                                                                                 | Constitution II (design in git)                                             | Cost                                                                              | Fidelity to the direction                       | What the skill changes                                                                                       |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| A. Throwaway HTML or images are allowed in an investigation, and deleted when the spec writes the direction | Conflicts as written. The decision would add an exception for an investigation's visual question | The spec's words and tokens stay. Git history holds the prototype           | Lowest                                                                            | Any effect, since lint does not apply           | The visual questions in `discovery.md`, the mockups in `spec.md`, their templates, and the example, together |
+| B. Throwaway prototypes are allowed and kept in the feature folder as a record                              | The same conflict                                                                                | The prototype stays in git as plain text                                    | Low, plus its size in the repository                                              | As in A                                         | As in A, plus a rule on where a kept prototype lives                                                         |
+| C. Prototypes are always Storybook stories built from the real components                                   | No conflict. The decision applies                                                                | Stories are code in git, and the picked one is the first commit of its view | Highest: five directions in StyleX and Astryx, through lint, before one is picked | Limited to what the theme and lint allow        | Nothing. The spec's current rules stay                                                                       |
+| D. HTML for choosing, Storybook for the picked direction                                                    | Conflicts for the choosing step only                                                             | The picked direction becomes stories and stays                              | Medium: five HTML pages, one story set                                            | Free for the choice, constrained for what ships | A rule for the handoff from HTML to stories                                                                  |
 
-How a person opens a mockup in Uraeda also differs per option: stories embed live in questions and
-specs, while a mockup folder opens in the sandboxed mockup frame, with the checks under
-[Worth it and feasibility](#worth-it-and-feasibility). The sandbox decision's SHOULD says variants
-stay stories.
+Opening differs per option. Stories embed live in questions and specs. A mockup folder opens in the
+sandboxed mockup frame, with the checks under [Worth it and feasibility](#worth-it-and-feasibility).
+The sandbox decision's SHOULD says variants stay stories.
 
 ### Colour modes
 
 This topic is which themes the UI offers. It relies on
-[the checks decision](/specs/decisions/ui-checks.md), the theme code, and
-[the mockups' light and dark](#the-visual-direction).
+[the checks decision](/specs/decisions/ui-checks.md),
+[Theme mode in the code](#rules-and-their-owners), and [the mockups' modes](#the-visual-direction).
 
-| Option                    | Checks decision                                                                           | Settings                                 | Mockup coverage                                                                              | Work                                                      |
-| ------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| A. Light and dark (today) | Met as is                                                                                 | Appearance keeps system, light, and dark | Natural, glass, and blueprint have both. Cyber and terminal would need a light version drawn | Every token has a pair, and every view is checked in both |
-| B. Dark only              | The decision asks for "both themes", so it would change, and the screenshot matrix halves | Appearance loses the mode choice         | Cyber and terminal fit                                                                       | One set of tokens. Light users lose their mode            |
-| C. Light only             | Same change                                                                               | Same                                     | Natural, glass, and blueprint have a light form                                              | One set of tokens. Dark users lose their mode             |
+| Option                    | Checks decision                                                                  | Settings                                 | Mockup coverage                                                                        | Work                                                      |
+| ------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| A. Light and dark (today) | Met as is                                                                        | Appearance keeps system, light, and dark | Natural, glass, and blueprint have both. Cyber and terminal need a light version drawn | Every token has a pair, and every view is checked in both |
+| B. Dark only              | The decision asks for "both themes", so it changes. The screenshot matrix halves | Appearance loses the mode choice         | Cyber and terminal fit                                                                 | One token set. Light users lose their mode                |
+| C. Light only             | The same change                                                                  | The same                                 | Natural, glass, and blueprint have a light form                                        | One token set. Dark users lose their mode                 |
 
-iA advises against pure black on pure white, and Zenless Zone Zero's critique says white on black
-looks heavier, so dark UIs need lighter weights. WCAG does not require two themes.
+iA advises against pure black on pure white. The Zenless Zone Zero critique says white on black
+looks heavier, so dark UIs need lighter weights. No WCAG page read requires two themes (inference).
 
 ### Priorities layout
 
 This topic is how Ongoing, Now, Next, and Later appear on the Priorities page. It relies on
 [Linear, Things, Obsidian](#linear-things-obsidian-and-other-productivity-apps),
-[accessible reordering](#accessible-reordering), and [WorkList](#important-reads).
+[accessible reordering](#accessible-reordering), and `WorkList` under
+[Important reads](#important-reads).
 
-| Option                                                                      | Hierarchy readable at a glance                                 | Half-width                                                                                              | Reordering without dragging                                                  | Existing code                                                          |
-| --------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| A. One vertical grouped list with sticky group headers                      | Group by weight and order; Things' lists map nearly one to one | Reads at any width                                                                                      | Menu actions beside the drag handle, such as "Move to Now" and "Move to top" | `WorkList` is this today. Priorities has a Section control in the pane |
-| B. Four columns that scroll sideways, as the natural and cyber mockups draw | All four groups visible side by side on a wide screen          | Shows one or two columns at 960 px. Trello users report this cost, and Linear uses Shift plus the wheel | Dragging across columns, plus menu actions                                   | A new layout in `WorkList`, with `useDroppable` per column             |
-| C. Hybrid: columns on large widths, a list below                            | Both, by width                                                 | A list at 960 px                                                                                        | Same as A and B                                                              | Both layouts to maintain                                               |
+| Option                                                                      | Hierarchy readable at a glance                                         | Half-width                                                                                        | Reordering without dragging                                                  | Existing code                                             |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| A. One vertical grouped list with sticky group headers                      | Weight and order carry the groups. Things' lists map nearly one to one | Reads at any width                                                                                | Menu actions beside the drag handle, such as "Move to Now" and "Move to top" | `WorkList` is this today. The pane has a Section control  |
+| B. Four columns that scroll sideways, as the natural and cyber mockups draw | All four groups visible side by side on a wide screen                  | One or two columns at 960 px. Trello users report this cost, and Linear uses Shift plus the wheel | Dragging across columns, plus menu actions                                   | A new layout in `WorkList`, with a drop target per column |
+| C. A hybrid: columns on large widths, a list below                          | Both, by width                                                         | A list at 960 px                                                                                  | As in A and B                                                                | Both layouts to maintain                                  |
 
-The proposal says the columns are "Not a requirement, just an idea", and its first goal is "CLEARLY
-SEEING THE HIERARCHY OF TASKS + their status". The terminal mockup draws a buffer-like list with
-relative line numbers, and the blueprint mockup a schedule where line weight carries the order.
-Disabling drag while a sort is active is GitHub Projects' rule and is not in Uraeda's list today,
-which has one fixed order.
+The proposal calls the columns "Not a requirement, just an idea". Its first goal is "CLEARLY SEEING
+THE HIERARCHY OF TASKS + their status". The terminal mockup draws a buffer-like list with line
+numbers. The blueprint mockup draws a schedule where line weight carries the order. GitHub Projects
+disables drag while a sort is active. Uraeda's list has one fixed order, so that rule does not arise
+today.
 
 ### Icon set
 
-This topic is which icon library the UI draws, beyond the 29 and 53 icons it has. It relies on
-[Icon sets](#icon-sets), [Astryx](#astryx-components-and-theme-levers), and
-[the lint limits](#important-reads).
+This topic is which icon library the UI draws from, beyond its 29 and 53 icons. It relies on
+[Icon sets](#icon-sets), [Astryx](#astryx-components-and-theme-levers), and the 500-line limit under
+[Important reads](#important-reads).
 
-| Option                                                        | Licence | Count            | Fit with today                                            | Weights for directions | Notes                                                 |
-| ------------------------------------------------------------- | ------- | ---------------- | --------------------------------------------------------- | ---------------------- | ----------------------------------------------------- |
-| A. Lucide, extended                                           | ISC     | 2,167            | 82 icons already drawn in this style, and Astryx takes it | One stroke style       | `icons.ts` splits first (482 of 500 lines)            |
-| B. Phosphor                                                   | MIT     | 1,512 per weight | A new style beside the 82                                 | Six weights            | Last React release 2025-05-22                         |
-| C. Tabler                                                     | MIT     | 5,184 outline    | Same 24 grid and 2 px stroke, so mixes with Lucide        | Outline and filled     | Frequent releases                                     |
-| D. Pixelarticons for a terminal look, with Lucide as fallback | MIT     | 1,036            | A second style                                            | Pixel look             | Includes git glyphs                                   |
-| E. Custom icons per direction                                 | Own     | As drawn         | Nothing reused                                            | As drawn               | Largest effort, and the mockups' 49 icons are a start |
+| Option                                                   | Licence | Count            | Fit with today                                        | Weights for directions | Notes                                             |
+| -------------------------------------------------------- | ------- | ---------------- | ----------------------------------------------------- | ---------------------- | ------------------------------------------------- |
+| A. Lucide, extended                                      | ISC     | 2,167            | 82 icons already drawn in this style. Astryx takes it | One stroke style       | `icons.ts` splits first (482 of 500 lines)        |
+| B. Phosphor                                              | MIT     | 1,512 per weight | A new style beside the 82                             | Six weights            | Last React release 2025-05-22                     |
+| C. Tabler                                                | MIT     | 5,184 outline    | Same 24 grid and 2 px stroke, so it mixes with Lucide | Outline and filled     | Frequent releases                                 |
+| D. Pixelarticons for a terminal look, Lucide as fallback | MIT     | 1,036            | A second style                                        | A pixel look           | Includes git glyphs                               |
+| E. Custom icons per direction                            | Own     | As drawn         | Nothing reused                                        | As drawn               | Largest effort. The mockups' 49 icons are a start |
 
 Remix Icon's licence forbids use as a logo, which matters only if icons double as the logo. The "＋"
 bug needs a `plus` icon under every option.
@@ -1409,133 +1424,141 @@ bug needs a `plus` icon under every option.
 
 This topic is the mark for the app, its favicon, and the "approved" stamp. It relies on
 [the bonsai vocabulary](#japanese-design-bonsai-vocabulary-and-the-authors-own-sites) and
-[fonts](#fonts).
+[Fonts](#fonts).
 
 [logos.html](/specs/2026-10-20-layout-look/mockups/logos.html) draws all five concepts at 96, 32,
-and 16 px, light and dark. The natural mockup carries its own small bonsai mark beside the name
-and 裏枝. The concepts come from Mon (family crest) conventions, which are "essentially monochrome",
-and the ensō, a circle drawn in one stroke.
+and 16 px, light and dark. The natural mockup also carries its own small bonsai mark beside the name
+and 裏枝. Mon (family crests) are "essentially monochrome" (Wikipedia, read,
+[Mon](<https://en.wikipedia.org/wiki/Mon_(emblem)>)). An ensō is a circle drawn in one stroke
+([Lion's Roar](https://www.lionsroar.com/what-is-an-enso/), read).
 
-| Option                  | Idea                                                               | Monochrome and inverted       | Small size                         | Meaning                               | Needs                                          |
-| ----------------------- | ------------------------------------------------------------------ | ----------------------------- | ---------------------------------- | ------------------------------------- | ---------------------------------------------- |
-| A. Back-branch mon      | A circle with a trunk and one branch behind it, only its tip shown | Yes, by construction of a mon | Circle and trunk                   | The 裏枝 itself                       | A drawn SVG                                    |
-| B. Ensō with a bud      | An open brush circle whose gap is bridged by a bud                 | Yes                           | A thick stroke                     | "Work never quite finished"           | A drawn SVG                                    |
-| C. Git fork as a bonsai | Nodes and lines in the shape of a small tree                       | Yes                           | Reads as a graph at 16 px          | Git-driven, and a branch is a feature | A drawn SVG                                    |
-| D. Vermilion seal       | A hanko stamp with two characters, also the "approved" stamp       | Colour is part of it          | Depends on the characters at 16 px | Approval                              | A Japanese serif font, or the characters drawn |
-| E. Dot-matrix tree      | A pixel bonsai on a grid                                           | Yes                           | Crisp on a grid                    | Terminal look, grows dot by dot       | A pixel grid                                   |
+| Option                  | Idea                                                               | Monochrome and inverted       | Small size                         | Meaning                                     | Needs                                      |
+| ----------------------- | ------------------------------------------------------------------ | ----------------------------- | ---------------------------------- | ------------------------------------------- | ------------------------------------------ |
+| A. Back-branch mon      | A circle with a trunk and one branch behind it, only its tip shown | Yes, by construction of a mon | A circle and a trunk               | The 裏枝 itself                             | A drawn SVG                                |
+| B. Ensō with a bud      | An open brush circle whose gap is bridged by a bud                 | Yes                           | A thick stroke                     | Work never quite finished                   | A drawn SVG                                |
+| C. Git fork as a bonsai | Nodes and lines in the shape of a small tree                       | Yes                           | Reads as a graph at 16 px          | Git-driven, and a branch is a feature       | A drawn SVG                                |
+| D. Vermilion seal       | A hanko stamp with two characters, also the "approved" stamp       | Colour is part of it          | Depends on the characters at 16 px | Approval                                    | A Japanese serif font, or drawn characters |
+| E. Dot-matrix tree      | A pixel bonsai on a grid                                           | Yes                           | Crisp on a grid                    | A terminal look, and it can grow dot by dot | A pixel grid                               |
 
-Favicon rules from the research: one solid shape, no hairlines under 1.5 px at 32 px, tested at 16
-px on light and dark tabs, and an SVG favicon can follow `prefers-color-scheme`. These were not
-checked in a browser tab.
+Favicon rules from the research: one solid shape, and no hairline under 1.5 px at 32 px. Test it at
+16 px on light and dark tabs. An SVG favicon can follow `prefers-color-scheme`. None was checked in
+a browser tab.
 
 ### Harness marks
 
 This topic is how the UI shows which agent program runs a session. It relies on
 [Harness marks and trademarks](#harness-marks-and-trademarks).
 
-| Option                                     | Trademark constraint                                                                                                                                                                                           | Recognisable                  | Theme fit                            | Dependency                                                                                                              |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| A. Own neutral glyphs, as the mockups draw | None                                                                                                                                                                                                           | Low until learned (judgement) | Fully themed                         | None                                                                                                                    |
-| B. Official marks                          | Anthropic: prior approval and no alteration, and recolouring counts as alteration. OpenAI: no alteration, approval for co-branding. Gemini CLI: guidelines PDF unread. Cursor and opencode publish brand pages | High                          | Cannot be recoloured for Claude Code | lobe-icons static SVG (MIT, no dependencies, six harnesses) or simple-icons (CC0, five harnesses, none for Codex or Pi) |
-| C. A text label or initials                | None                                                                                                                                                                                                           | Reads by name                 | Fully themed                         | None                                                                                                                    |
-
-The mockups use stand-ins, so they do not alter an official mark.
+| Option                                     | Trademark constraint                                                                                                                                                                                           | Recognisable                  | Theme fit                            | Dependency                                                                                                                   |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| A. Own neutral glyphs, as the mockups draw | None                                                                                                                                                                                                           | Low until learned (judgement) | Fully themed                         | None                                                                                                                         |
+| B. Official marks                          | Anthropic: prior approval and no alteration, and recolouring counts as alteration. OpenAI: no alteration, approval for co-branding. Gemini CLI: guidelines PDF unread. Cursor and opencode publish brand pages | High                          | Cannot be recoloured for Claude Code | lobe-icons static SVG (MIT, no dependencies, all six harnesses), or simple-icons (CC0, five harnesses, none for Codex or Pi) |
+| C. A text label or initials                | None                                                                                                                                                                                                           | Reads by name                 | Fully themed                         | None                                                                                                                         |
 
 ### Dependencies and fonts
 
-This topic is which fonts and which libraries the UI adds. It relies on [Fonts](#fonts),
-[Panel libraries](#panel-drawer-and-palette-libraries), and
-[StyleX and the lint](#stylex-and-the-lint-that-guards-it).
+This topic is which fonts and libraries the UI adds. It relies on [Fonts](#fonts),
+[the panel libraries](#panel-drawer-and-palette-libraries), and
+[StyleX and its lint](#stylex-and-the-lint-that-guards-it).
 
-| Option                                                | Components decision                                                                                                  | Network and guards                                                      | Licence                           | Test and lint                                                                                     |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
-| A. Self-hosted open-licence font files in the app     | Needs a way to register them through the theme                                                                       | No external request                                                     | OFL                               | The stylesheet allowlist would need a fourth entry, or the theme build a font facility, unchecked |
-| B. Google Fonts or another CDN, as the mockups do     | A stylesheet outside the allowlist                                                                                   | An external request on every load, and the local server needs a network | OFL fonts, service terms not read | Same allowlist change                                                                             |
-| C. System fonts only, as the app does today in effect | No change                                                                                                            | None                                                                    | None                              | None                                                                                              |
-| D. Astryx components only, no panel library           | Met                                                                                                                  | None                                                                    | None                              | None                                                                                              |
-| E. Add react-resizable-panels or cmdk                 | A raw dependency where Astryx has `Resizable`, `Layout`, and `CommandPalette`. It must be pinned to an exact version | None                                                                    | MIT                               | A new check line in `ready`, as the toolchain decision asks                                       |
+| Option                                               | Components decision                                                                                                  | Network and guards                                                            | Licence                                      | Test and lint                                                                                |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| A. Self-hosted open-licence font files in the app    | Needs a way to register them through the theme                                                                       | No external request                                                           | OFL                                          | The stylesheet allowlist needs a fourth entry, or the theme build a font facility. Unchecked |
+| B. Google Fonts or another CDN, as the mockups do    | A stylesheet outside the allowlist                                                                                   | An external request on every load, so the local server's user needs a network | OFL fonts. The service's terms were not read | The same allowlist change                                                                    |
+| C. System fonts only, as the app has today in effect | No change                                                                                                            | None                                                                          | None                                         | None                                                                                         |
+| D. Astryx components only, no panel library          | Met                                                                                                                  | None                                                                          | None                                         | None                                                                                         |
+| E. Add react-resizable-panels or cmdk                | A raw dependency where Astryx has `Resizable`, `Layout`, and `CommandPalette`. It must be pinned to an exact version | None                                                                          | MIT                                          | A new check line in `ready`, as the toolchain decision asks                                  |
 
-Fonts and libraries combine: A, B, or C with D or E. A font family count differs by direction:
-natural uses three, cyber three, terminal one, glass two, blueprint four.
+Fonts (A, B, or C) combine with libraries (D or E). The number of families differs by direction:
+natural uses three, cyber three, terminal one, glass two, and blueprint four.
 
 ### Needs no choice
 
-- **The feature colour option.** It is removed by merge-chats, so no question remains.
+- **The feature colour option.** Merge-chats removes it, so no question remains.
 - **Storybook access on the feature home.** The proposal says to remove it, and the change is one
   line in `FileList`. The wider question of other Storybook entries is raised under
   [the proposal](#the-storybook-link-on-the-feature-home-is-one-of-several-ways-in).
-- **One scroll with a sticky question header, for clarifications.** The one-question-at-a-time
-  evidence is mixed and mostly vendor data. Later questions refer back to earlier ones, and the
+- **One scroll with a sticky question header, for clarifications.** The evidence for one question at
+  a time is mixed and mostly vendor data. Later questions refer back to earlier ones, and the
   skill's reading order assumes one pass. WCAG 2.4.11 needs `scroll-padding` for the sticky header
   in any direction.
 - **The Inbox as a categorised list with reordering.** The proposal specifies it. Menu actions
-  beside dragging follow the accessible-reordering guidance, and the Inbox shares `WorkList` with
+  beside dragging follow the accessible-reordering guidance. The Inbox shares `WorkList` with
   Priorities.
 - **Ownership of the New page.** Merge-chats owns the page, its three kinds, and its picker. This
-  feature only restyles them, so each kind must look distinct as the proposal asks.
+  feature restyles them, so each kind must look distinct, as the proposal asks.
 - **A reduce-effects setting and `prefers-reduced-motion`.** Honouring `prefers-reduced-motion` is
-  required for any motion under WCAG 2.3.3 and is supported in all three engines. An in-app toggle
-  for transparency matters only with a glass look, since WebKit cannot read the OS setting, and its
-  cost is listed under that direction.
-- **Text contrast thresholds.** 4.5:1 for text and 3:1 for non-text parts, from WCAG 1.4.3 and
-  1.4.11. The checks decision already asks for readability and accessibility checks at both sizes
-  and both themes.
-- **Keyboard navigation staying out of scope.** It has its own priorities item, and visible controls
-  stay required by the behaviour decision.
-- **The decisions page content.** The proposal sets it: constitution first, then decisions with
+  required for any motion under WCAG 2.3.3, and all three engines support it. An in-app transparency
+  toggle matters only with a glass look, since WebKit cannot read the OS setting. Its cost is listed
+  under that direction.
+- **Text contrast thresholds.** WCAG 1.4.3 and 1.4.11 give 4.5:1 for text and 3:1 for non-text
+  parts. The checks decision already asks for readability and accessibility checks at both sizes and
+  both themes.
+- **Keyboard navigation staying out of scope.** It has its own priorities item, and the behaviour
+  decision keeps visible controls required.
+- **The decisions page content.** The proposal sets it: the constitution first, then decisions with
   filter and search, then a rendered page with an edit option. Only its look is open, in every
   direction.
 - **A session list grouped by whose move it is, and one status vocabulary.** Merge-chats already
-  groups and orders the list, and the coherence decision requires one component per kind of
-  information, so a direction only restyles them.
-- **Pull request state on a row, collapsed agent activity, and comments anchored to parts.** These
-  exist in the code already: cards show pull request and line counts, tool calls fold, and the spec
-  has anchored comments.
+  groups and orders the list. The coherence decision requires one component per kind of information,
+  so a direction only restyles them.
+- **Pull request state on a row, collapsed agent activity, and anchored comments.** The code has
+  them: cards show pull request and line counts, tool calls fold, and the spec has anchored
+  comments.
 - **A command palette, a diff panel beside the session, a waterfall lens, a weekly usage window, and
-  snooze or pin.** They are behaviour beyond a visual pass. The scope question is raised once under
+  snooze or pin.** These are behaviour beyond a visual pass. The scope question is raised once under
   [the proposal](#the-proposal-says-almost-only-ui-while-the-capabilities-users-expect-add-behaviour).
   A direction's look needs no choice for them.
-- **Item detail in a peek, a side panel, or a full page.** The pane beside a list and the full draft
+- **Item detail as a peek, a side panel, or a full page.** The pane beside a list and the full draft
   page already exist, and the proposal says drafts open on a page of their own.
-- **A sidebar in three states and a bottom bar on the phone.** These are shell patterns, decided in
+- **A sidebar in three states and a bottom bar on the phone.** These are shell patterns, settled in
   [mixing directions](#mixing-directions) and [width classes](#width-classes).
-- **Deterministic layouts.** A criterion of the home centrepiece under
+- **Deterministic layouts.** This is a criterion of the home centrepiece in
   [mixing directions](#mixing-directions), not a topic.
-- **Reordering without dragging.** Covered under [priorities layout](#priorities-layout).
-- **Notifications on two events.** They exist, under an active decision. Only their placement moves
+- **Reordering without dragging.** It is covered under [priorities layout](#priorities-layout).
+- **Notifications on two events.** They exist under an active decision. Only their placement moves
   with the shell.
 - **Isolation per task.** Worktrees exist already, outside this feature.
 
 ## Not checked
 
-- **Not reached**: openai.com/brand and the OpenAI academy page (403), the Typeform help article on
-  its two layouts (403), Superhuman help pages (403 or 404), the Arc help centre (403), Linear's
-  peek docs and Raycast's root search page (404), Notion's side-peek page (404), the Material 3
-  pages on m3.material.io (404 or empty), the HIG pages for sidebars and Liquid Glass adoption
-  (empty body, the JSON versions were read), react-resizable-panels' docs site (empty), arwes.dev
-  (refused), Berkeley Mono's shop page (403), and the Fontworks column on the Neon Genesis
-  Evangelion fonts (redirected).
-- **Snippet only**: the Kotobank-adjacent Shikoku Shimbun glossary, Arc's 2023 release notes,
-  Atlassian's Browser Company deal, the Codex five-hour meter's disappearance, Warp's vertical tabs,
-  GDC talks on Cyberpunk 2077 and Destiny, the Territory Studio interviews, the Wuthering Waves and
-  Honkai: Star Rail articles, the reading-speed studies on monospace (Jarosch 2019, Payne, Morris),
-  Nothing OS's use of Geist, the Typeform and Fillout completion tests, Obsidian's live preview not
-  being reusable, iA Writer Duo's licence, and the Korean 오방색 and 단청 sources.
-- **Not searched in depth**: Yuque, Craft's focus mode, Chinese and Korean UI design galleries
-  (zcool and ui.cn were unreachable), Reddit, Hacker News, and X threads, and Akira's HUDs.
-  WebSearch is limited to the United States, which limits CJK recall.
-- **Not tested**: how the mockups run inside Uraeda's own mockup page (a local file server with the
-  same sandbox header was tested), and whether the frame loads the Google fonts there. Whether an
-  uncommitted `mockups` folder is served. How a link to a nested mockup file opens in Uraeda. The
-  mockups in Safari, WebKit, or Firefox: the README says they were checked in Chromium only. The
-  favicon concepts in a browser tab. Whether any ProseMirror or Lexical editor can be configured to
-  keep the file byte for byte, an editor's bundle size, Atomic Editor's behaviour on the
-  repository's files, and a CodeMirror client for `ura lsp`. Whether Astryx's `BottomSheet`,
-  `CommandPalette`, and `Resizable` meet the needs above, and whether StyleX 0.19.1 supports
-  container queries and keyframes within the app's lint.
-- **Not read**: the Gemini CLI guidelines PDF, the licences of Rajdhani, Figtree, and Barlow
-  Condensed, a bundle-size comparison of any library, and which colour pairs the mockups draw for
-  each measured token.
-- **Not found**: an official description of status icons in the Codex and Claude desktop sidebars,
-  the sessions list and usage display of Devin and Factory, Linear's narrow-window behaviour, and
-  any hanok-inspired or 国风 interface examples first-hand.
+- **Not reached.**
+  - openai.com/brand and the OpenAI academy page (403), and the Typeform help article on its two
+    layouts (403).
+  - Superhuman help pages (403 or 404), the Arc help centre (403), Linear's peek docs (404), and
+    Raycast's root search page (404).
+  - Notion's side-peek page (404), and the Material 3 pages on m3.material.io (404 or empty). The
+    HIG pages for sidebars and Liquid Glass adoption had an empty body, so the JSON versions were
+    read.
+  - The react-resizable-panels docs site (empty), arwes.dev (refused), Berkeley Mono's shop page
+    (403), and the Fontworks column on the Evangelion fonts (redirected).
+- **Snippet only.**
+  - The Shikoku Shimbun bonsai glossary (its URL returned 404), Arc's 2023 release notes, and
+    Atlassian's Browser Company deal.
+  - The Codex five-hour meter's disappearance, Warp's vertical tabs, and the GDC talks on Cyberpunk
+    2077 and Destiny.
+  - The Territory Studio interviews, the Wuthering Waves and Honkai: Star Rail articles, and the
+    Korean 오방색 and 단청 sources.
+  - The reading-speed studies on monospace (Jarosch 2019, Payne, Morris), and Nothing OS's use of
+    Geist.
+  - The Typeform and Fillout completion tests, Obsidian's live preview not being reusable, and iA
+    Writer Duo's licence.
+- **Not searched in depth.** Yuque, Craft's focus mode, Chinese and Korean UI design galleries
+  (zcool and ui.cn were unreachable), Reddit, Hacker News and X threads, and Akira's HUDs. WebSearch
+  is limited to the United States, which limits recall for CJK sources.
+- **Not tested.**
+  - How the mockups run inside Uraeda's own server and sandboxed mockup frame, and whether that
+    frame loads the Google fonts. A local file server with the same sandbox header was tested
+    separately.
+  - How a link to a mockup page opens from a markdown document in Uraeda.
+  - The mockups in Safari, WebKit, or Firefox. The README says they were checked in Chromium only.
+  - The logo concepts in a browser tab.
+  - Whether a ProseMirror or Lexical editor can keep the file byte for byte. Any editor's bundle
+    size, Atomic Editor on the repository's files, and a CodeMirror client for `ura lsp`.
+  - Whether Astryx's `BottomSheet`, `CommandPalette`, and `Resizable` meet the needs above. Whether
+    StyleX 0.19.1 supports container queries and keyframes under the app's lint.
+- **Not read.** The Gemini CLI guidelines PDF, and the licences of Rajdhani, Figtree, and Barlow
+  Condensed. Also a bundle-size comparison of any library, and which colour pairs the mockups draw.
+- **Not found.** An official description of status icons in the Codex and Claude desktop sidebars.
+  The sessions list and usage display of Devin and Factory. Linear's narrow-window behaviour. Any
+  first-hand hanok-inspired or 国风 interface examples.
