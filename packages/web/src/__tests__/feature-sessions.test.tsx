@@ -11,6 +11,7 @@ import {
   refreshUntil,
   renderPage,
   today,
+  type,
 } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
@@ -137,4 +138,32 @@ test("an earlier session of a feature opens with its feature's column and crumbs
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   expect(await log.findByText("Planned.")).toBeTruthy();
   expect(log.queryByText("Build it.")).toBeNull();
+});
+
+/** US5 more 1: a message sent from an earlier session runs in it, and the page stays at its address. */
+test("a message from an earlier session of a feature runs in that session", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const first = await fake.sessions.featureSession(repo, CLI);
+  fake.adapter.script([{ text: "Planned.", type: "text" }]);
+  const planned = await fake.sessions.send(repo, first.id, {
+    text: "Plan the feature.",
+    workflow: { trigger: "manual" },
+  });
+  await fake.sessions.settled(planned.turn);
+  const second = await fake.sessions.newSession(repo, CLI);
+  fake.adapter.script([{ text: "Built.", type: "text" }]);
+  const built = await fake.sessions.send(repo, second.id, { text: "Build it." });
+  await fake.sessions.settled(built.turn);
+  await renderPage(`/sessions/${first.id}`, repo, { agent: fake });
+  const log = within(await screen.findByRole("log", { name: "Conversation" }));
+  expect(await log.findByText("Planned.")).toBeTruthy();
+
+  fake.adapter.script([{ text: "Checked.", type: "text" }]);
+  await type(await screen.findByRole("textbox", { name: "Message Claude Code" }), "Check the plan");
+  await click(screen.getByRole("button", { name: "Send" }));
+
+  await waitFor(() => expect(fake.sessions.cache.turns(first.id)).toHaveLength(2));
+  expect(fake.sessions.cache.turns(second.id)).toHaveLength(1);
+  expect(window.location.pathname).toBe(atRepo(`/sessions/${first.id}`));
 });

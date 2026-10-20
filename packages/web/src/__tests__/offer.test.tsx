@@ -2,8 +2,12 @@
 // drawn as a card with the proposal and its slug, started with one click (SC-001), closed with
 // "Not now", waiting while the agent works; and read as text where it cannot apply: an earlier
 // offer, a session that already has a workflow, a block still streaming.
+import { chmodSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { refreshPullRequests } from "uraeda-binding";
+import { addChange, temporaryFolder } from "uraeda-binding/test-utils";
+import { expect, onTestFinished, test } from "vite-plus/test";
 import {
   click,
   type Fake,
@@ -220,3 +224,89 @@ test("a taken slug shows its message under the card", async () => {
   ).toBeTruthy();
   expect(shown.getByRole("button", { name: "Start the change" })).toBeTruthy();
 });
+
+const CHANGE = "2026-10-20-login-redirect";
+const REASON = "It touches the session store and the router: a spec would settle the edges first.";
+
+/** The change `login-redirect`, its session's agent offering to make it a feature. */
+async function featureOffered(fake: Fake, repo: string) {
+  addChange(repo, CHANGE, { "proposal.md": "# Login redirects twice\n" });
+  const session = await fake.sessions.featureSession(repo, CHANGE);
+  fake.adapter.script([
+    { text: `This grew.\n\n\`\`\`uraeda-offer feature\n${REASON}\n\`\`\``, type: "text" },
+  ]);
+  const { turn } = await fake.sessions.send(repo, session.id, { text: "Is this still small?" });
+  await fake.sessions.settled(turn);
+}
+
+/** The feature's card, once drawn. */
+async function featureCard() {
+  return within(await screen.findByRole("region", { name: "Make this change a feature" }));
+}
+
+/** US4: the agent's offer to make a change a feature. */
+test("Keep it a change closes the feature's card and writes nothing", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await featureOffered(fake, repo);
+  const { calls, fetch } = counting(repo, fake, "feature.promote");
+  await renderPage(`/f/${CHANGE}/session`, repo, { agent: fake, fetch });
+
+  const shown = await featureCard();
+  expect(shown.getByText(REASON)).toBeTruthy();
+  expect(shown.getByRole("button", { name: "Make it a feature" })).toBeTruthy();
+  await click(shown.getByRole("button", { name: "Keep it a change" }));
+
+  await waitFor(() =>
+    expect(screen.queryByRole("region", { name: "Make this change a feature" })).toBeNull(),
+  );
+  expect(log().textContent).toContain(REASON);
+  expect(calls.count).toBe(0);
+  expect(git(repo, "branch", "--list", CHANGE)).toBe("");
+});
+
+/** US4 more 2 */
+test("a change with a pull request says so under the feature's card", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await featureOffered(fake, repo);
+  await fakeGh(repo, [
+    {
+      headRefName: `change/${CHANGE}`,
+      isDraft: false,
+      number: 7,
+      reviewDecision: "",
+      url: "https://github.com/o/r/pull/7",
+    },
+  ]);
+  await renderPage(`/f/${CHANGE}/session`, repo, { agent: fake });
+
+  const shown = await featureCard();
+  await click(shown.getByRole("button", { name: "Make it a feature" }));
+
+  expect(
+    await shown.findByText(
+      "This change has a pull request: close it first, since its branch would be renamed",
+    ),
+  ).toBeTruthy();
+  expect(git(repo, "branch", "--list", "--format=%(refname:short)", `change/${CHANGE}`)).toBe(
+    `change/${CHANGE}\n`,
+  );
+});
+
+/**
+ * A `gh` on the PATH that lists `pulls` as the open pull requests, read once into the binding's
+ * snapshot of `repo`, as `feature-page.test.tsx` fakes it.
+ */
+async function fakeGh(repo: string, pulls: Array<Record<string, unknown>>) {
+  const bin = temporaryFolder("uraeda-gh");
+  const gh = join(bin, "gh");
+  writeFileSync(gh, `#!/bin/sh\necho '${JSON.stringify(pulls)}'\n`);
+  chmodSync(gh, 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path ?? ""}`;
+  onTestFinished(() => {
+    process.env.PATH = path;
+  });
+  await refreshPullRequests(repo);
+}
