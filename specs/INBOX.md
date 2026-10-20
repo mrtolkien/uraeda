@@ -23,7 +23,7 @@
   context. It talks about "Approach" and "What stays unchanged" but ffs start with some good context
   about what was _done_.
 
-- Questions need examples + the questions text has sometiems become too long with the new prompt
+- Questions need examples + the questions text has sometimes become too long with the new prompt
   - The question could present the example and the answers the outcome
 
 ## Deferred fixes
