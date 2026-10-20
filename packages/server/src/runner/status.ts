@@ -72,14 +72,21 @@ export function sessionStatus(input: {
 
 /**
  * Whether a session without a workflow is done: idle once a turn ended, so seen since its last turn
- * ended, as a later end reads "New reply". A new reply brings it back. A change's or a feature's
- * session is done with its change or feature, once merged.
+ * ended, as a later end reads "New reply". A new reply brings it back. An archived session is not,
+ * as it leaves the list. A change's or a feature's session is done with its change or feature, once
+ * merged.
  */
 export function sessionDone(input: {
+  archivedAt: string | null;
   folder: string | null;
   latest?: Pick<TurnRow, "endedAt">;
   status: SessionStatus;
 }): boolean {
-  const { folder, latest, status } = input;
-  return folder === null && status === "idle" && typeof latest?.endedAt === "string";
+  const { archivedAt, folder, latest, status } = input;
+  return (
+    archivedAt === null &&
+    folder === null &&
+    status === "idle" &&
+    typeof latest?.endedAt === "string"
+  );
 }
