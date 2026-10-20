@@ -66,11 +66,11 @@ async function sidebar(page: Page, size: "phone" | "desktop") {
   if (size === "phone") {
     await page.getByRole("button", { name: "Open navigation" }).click();
   }
-  // The session's card is its change's now, by its slug.
-  await page
-    .getByRole("link", { name: /^login-redirects, / })
-    .first()
-    .waitFor();
+  // The session's card is its change's now, by its slug; the Sessions section scrolled into view,
+  // below the fixture's many features that need the human.
+  const card = page.getByRole("link", { name: /^login-redirects, / }).first();
+  await card.waitFor();
+  await card.evaluate((element) => element.scrollIntoView({ block: "center" }));
   await settle(page);
 }
 
