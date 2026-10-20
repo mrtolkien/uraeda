@@ -11,40 +11,66 @@ export type FastSelection = {
   rust: Array<string>;
 };
 
-/** One owner for test membership, filesystem inputs and optional native prerequisites. */
+/** What the native binding is built or tested from: a change rebuilds it and runs the core. */
+const nativeInputs = [
+  ...SOURCES.map((path) => `${path}{,/**}`),
+  "packages/binding/**",
+  "fixtures/**",
+];
+/** The server's sources and the binding's loaders, which other packages' tests import. */
+const server = "packages/server/src/**";
+const loaders = "packages/binding/{index.js,test-utils.ts}";
+
+/**
+ * One owner for test membership, filesystem inputs and optional native prerequisites. A family's
+ * inputs are its own files and every file outside its root that its sources import: a test is
+ * found from any of them, and the selection test checks the imports against this list.
+ */
 export const families = {
   benchmarks: {
-    inputs: ["packages/benchmarks/**", "benchmarks/**"],
+    inputs: ["packages/benchmarks/**", "benchmarks/**", server, loaders],
     native: true,
     root: "packages/benchmarks",
     tests: ["src/**/*.test.ts"],
   },
   binding: {
-    inputs: [...SOURCES.map((path) => `${path}{,/**}`), "packages/binding/**", "fixtures/**"],
+    inputs: [...nativeInputs, "packages/server/src/{binding,fresh-binding,paths}.ts"],
     native: true,
     root: "packages/binding",
     tests: ["contracts.test.ts"],
   },
   package: {
-    inputs: ["packages/uraeda/**"],
+    inputs: ["packages/uraeda/**", "packages/server/src/{free-port,paths}.ts"],
     native: false,
     root: "packages/uraeda",
     tests: ["scripts/**/*.test.ts"],
   },
   scripts: {
-    inputs: ["scripts/**", "vite*.ts"],
+    inputs: [
+      "scripts/**",
+      "vite*.ts",
+      "packages/web/vite.transforms.ts",
+      "packages/server/src/{binding,paths}.ts",
+      loaders,
+    ],
     native: false,
     root: "scripts",
     tests: ["__tests__/**/*.test.ts"],
   },
   server: {
-    inputs: ["packages/server/**", "fixtures/**"],
+    inputs: [
+      "packages/server/**",
+      "fixtures/**",
+      loaders,
+      "scripts/{coverage-summary,test-policy,test-run}.ts",
+      "vite*.ts",
+    ],
     native: true,
     root: "packages/server",
     tests: ["src/**/*.test.ts"],
   },
   ui: {
-    inputs: ["packages/web/**"],
+    inputs: ["packages/web/**", server, loaders, "skills/uraeda/assets/storybook/**"],
     native: false,
     root: "packages/web",
     tests: [
@@ -69,7 +95,7 @@ const deferred = [
 ];
 const config =
   /(?:^|\/)(?:vite[^/]*\.ts|.*config\.[^/]+|package\.json|pnpm-[^/]+|flake\.[^/]+|rust-toolchain\.toml)$/;
-const matches = (path: string, patterns: Array<string>) =>
+export const matches = (path: string, patterns: Array<string>) =>
   patterns.some((pattern) => matchesGlob(path, pattern));
 
 function git(root: string, ...args: Array<string>): string {
@@ -128,7 +154,7 @@ export function selectFast(changed: Array<Change>): FastSelection {
   const rust = new Set<string>();
   const checks = new Set(["ts:check"]);
   for (const { deleted, path } of changed) {
-    const native = matches(path, families.binding.inputs);
+    const native = matches(path, nativeInputs);
     if (path.endsWith(".md")) {
       checks.add("specs:check");
     }

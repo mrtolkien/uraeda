@@ -35,6 +35,24 @@ try {
   expect(result.status, result.stdout + result.stderr).toBe(0);
 });
 
+test.each([
+  ["packages/server/src/limits.ts", "web/src/__focused__/composer.test.tsx"],
+  ["packages/binding/test-utils.ts", "web/src/__tests__/edited.test.ts"],
+  ["scripts/test-run.ts", "server/src/__tests__/test-run.test.ts"],
+])("an edit of %s outside the consumer's package discovers %s", (path, consumer) => {
+  const result = execute(`
+const config=fastConfig(selectFast([{path:${JSON.stringify(path)},deleted:false}]));
+const vitest=await createVitest({config:false,related:config.related,watch:false},{test:config.test});
+try {
+  await vitest.standalone();
+  const specs=await vitest.getRelevantTestSpecifications();
+  process.stdout.write(specs.map(spec=>spec.moduleId.split("/packages/").pop()).join("\\n"));
+} finally { await vitest.close(); }
+`);
+  expect(result.status, result.stderr).toBe(0);
+  expect(result.stdout.split("\n")).toContain(consumer);
+});
+
 test("a discovery transform error exits nonzero and closes the runner", () => {
   const result = execute(`
 const config=fastConfig(selectFast([{path:"packages/web/src/drop.ts",deleted:false}]));
