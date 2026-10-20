@@ -1,14 +1,15 @@
 //! Dropping a started feature or change the human gives up: its **Now** entry leaves the
-//! priorities, on the default branch, and its worktree is removed unless that would lose work. Its
-//! branch always stays, so nothing is lost (see `specs/decisions/git.md`).
+//! priorities, and its folder the start put there leaves the default branch, in one commit, and its
+//! worktree is removed unless that would lose work. Its branch always stays, so nothing is lost
+//! (see `specs/decisions/git.md`).
 
 use std::fs;
 
-use crate::actions::ActionError;
 use crate::actions::clean::{self, Left};
-use crate::actions::commit::add_alone;
+use crate::actions::commit::{commit_only, is_clean};
 use crate::actions::place::{self, Place};
 use crate::actions::priorities::PATH;
+use crate::actions::{ActionError, Change};
 use crate::files::priorities;
 use crate::git::Git;
 use crate::steps::StepName;
@@ -21,14 +22,16 @@ pub struct Dropped {
     pub branch: String,
     /// Its worktree, when it stays, and why.
     pub worktree: Option<Left>,
-    /// Whether the entry's removal was committed: not when no entry linked it, or when it stays
-    /// written, uncommitted, beside the priorities' other changes or after a hook refused it.
+    /// Whether the entry's and the folder's removal was committed: not when neither was on the
+    /// default branch, or when it stays written, uncommitted, beside the priorities' other changes
+    /// or after a hook refused it.
     pub committed: bool,
 }
 
-/// Drops the started feature or change of `folder`: removes the entry linking its proposal, and
-/// commits that alone when the priorities had no other change, then removes its worktree, never
-/// forced. Refused for a folder not started, or done.
+/// Drops the started feature or change of `folder`: removes the entry linking its proposal, and its
+/// folder on the default branch, and commits them alone when the priorities had no other change,
+/// then removes its worktree, never forced. Refused for a folder not started, or done, or whose
+/// folder on the default branch has uncommitted changes.
 pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, ActionError> {
     let feature = workspace
         .feature(folder)
@@ -48,7 +51,7 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, Ac
     let main_root = git.main_root();
     let git = &Git::open(&main_root)?;
     let place = place::reach(git, default).map_err(|e| ActionError::Refused(e.to_string()))?;
-    let removed = remove_entry(&place, feature)?;
+    let removed = remove_from_default(&place, feature, default)?;
     let committed = removed == Some(true);
     let branch = folder_branch(feature.kind, folder);
     let worktree = match clean::worktree(git, &main_root, &here, &branch, false) {
@@ -68,17 +71,74 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, Ac
     })
 }
 
-/// Removes the entry linking the feature's proposal, `chore(<slug>): drop <entry>`: whether the
-/// removal was committed, or `None` when no entry links it.
-fn remove_entry(place: &Place, feature: &Feature) -> Result<Option<bool>, ActionError> {
+/// Removes the entry linking the feature's proposal, and its folder on the default branch, in
+/// `chore(<slug>): drop <entry>`: whether the removal was committed, or `None` when the default
+/// branch has neither.
+fn remove_from_default(
+    place: &Place,
+    feature: &Feature,
+    default: &str,
+) -> Result<Option<bool>, ActionError> {
+    let folder = folder_path(feature.kind, &feature.folder);
+    let on_default = place.root.join(&folder).exists();
+    if on_default {
+        check_folder(place, &folder, default)?;
+    }
     let file = place.root.join(PATH);
     let text = fs::read_to_string(&file).unwrap_or_default();
-    let proposal = format!("{}/proposal.md", folder_path(feature.kind, &feature.folder));
-    let Some((without, name)) = priorities::remove_linked(&text, &proposal) else {
+    let removed = priorities::remove_linked(&text, &format!("{folder}/proposal.md"));
+    if removed.is_none() && !on_default {
         return Ok(None);
-    };
+    }
     let slug = folder_slug(&feature.folder).unwrap_or(&feature.folder);
-    let subject = format!("chore({slug}): drop {name}");
-    let ((), added) = add_alone(place, PATH, subject, || Ok(fs::write(&file, without)?))?;
-    Ok(Some(added.committed))
+    let mut paths = Vec::new();
+    // Other changes to the priorities are someone's work in progress: the removal stays beside
+    // them, uncommitted.
+    let mut clean = true;
+    let name = match removed {
+        Some((without, name)) => {
+            clean = is_clean(place, PATH);
+            fs::write(&file, without)?;
+            paths.push(PATH.to_string());
+            name
+        }
+        None => slug.to_string(),
+    };
+    if on_default {
+        fs::remove_dir_all(place.root.join(&folder))?;
+        paths.push(folder);
+    }
+    if !clean {
+        return Ok(Some(false));
+    }
+    let change = Change {
+        paths,
+        subject: format!("chore({slug}): drop {name}"),
+        body: None,
+    };
+    match commit_only(place, &change) {
+        Ok(_) => Ok(Some(true)),
+        Err(ActionError::Hook { .. }) => Ok(Some(false)),
+        Err(error) => Err(error),
+    }
+}
+
+/// Refuses the drop while the item's folder on the default branch has uncommitted changes: they
+/// would be lost with it.
+fn check_folder(place: &Place, folder: &str, default: &str) -> Result<(), ActionError> {
+    let at = Git::open(&place.root)?;
+    let inside = format!("{folder}/");
+    let mut changed: Vec<String> = at
+        .changed_files()?
+        .into_iter()
+        .filter(|path| path.starts_with(&inside))
+        .collect();
+    changed.extend(at.untracked(&[folder])?);
+    if changed.is_empty() {
+        return Ok(());
+    }
+    Err(ActionError::Refused(format!(
+        "cannot drop: {default} has uncommitted changes in {}",
+        changed.join(", ")
+    )))
 }
