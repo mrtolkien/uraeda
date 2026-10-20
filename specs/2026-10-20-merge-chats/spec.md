@@ -1,5 +1,5 @@
 ---
-status: changes-requested
+status: awaiting-human
 revision: 3
 clarifications: 1
 risk-tier: medium
