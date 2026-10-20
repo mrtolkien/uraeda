@@ -908,6 +908,9 @@ test("the real data and config folders are untouched by a run", async () => {
 test("a seed interrupted midway leaves no half-built .sandbox", () => {
   /* review focus 2 */
 });
+test("the sample's worktrees work at their place after the rename", () => {
+  /* git -C .sandbox/projects/sample/.worktrees/<stories feature> status succeeds */
+});
 
 // sandbox.test.ts
 test("the sandbox serves Home with sample, empty, and broken, locked, without sign-in", async () => {
@@ -934,6 +937,7 @@ The break each test catches:
 - Builders changed: a silent stale seed, or one wiped without asking.
 - Real folders: `.env` read, or a default data folder computed.
 - Interrupted: a half-built folder the next start trusts.
+- Worktrees: links left pointing at the temporary folder the build was renamed from.
 - Serves Home: sign-in left on, or the real list shown.
 - Restart: state in a temporary folder.
 - Build: the sandbox's plugin or bar reaching `dist/`.
@@ -951,7 +955,11 @@ The command seeds, prints the warning when `stale`, sets `URAEDA_REPO`, `URAEDA_
 then `uiTransforms()` (R7), the pick script and `src/sandbox/main.tsx` to the page, and
 `uraedaServer({ adapter: sandboxAgent(), file: false, lockedList: true, signIn: false, started })`,
 on 127.0.0.1, port 4410 or the next free one, printing `Sandbox: http://127.0.0.1:<port>/`.
-`started` calls `atWork`. `--reset` reaches the seed as `vp run sandbox --reset`.
+`started` calls `atWork`. Git records a worktree's absolute path, in both the worktree and its
+repository: after renaming the built folder into place, the seed runs `git worktree repair` in each
+project, as `addStoryFeature` and the step features add worktrees. The sample's fake Storybook logs
+nowhere, so it runs after the building process's temporary folders are gone. `--reset` reaches the
+seed as `vp run sandbox --reset`.
 
 - [ ] **Step 4: Run the project's validation, and take the screenshots**
 

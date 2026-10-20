@@ -268,17 +268,18 @@ export type FakeMode = "ok" | "fail" | "hang" | "hang-later" | "bad-index" | "no
 const PREVIEW_DECISION = "specs/decisions/preview.md";
 
 /**
- * An active preview decision running the fake preview in `folder`, logging its starts to `log`.
- * The command ends in `&& true`, so its shell waits for the fake, as `pnpm exec` waits for
- * Storybook: only a signal to the whole process group stops both.
+ * An active preview decision running the fake preview in `folder`, logging its starts to `log`, or
+ * nowhere when `null`. The command ends in `&& true`, so its shell waits for the fake, as
+ * `pnpm exec` waits for Storybook: only a signal to the whole process group stops both.
  */
 export function previewDecision(
-  log: string,
+  log: string | null,
   folder: string,
   mode: FakeMode,
   delay: number,
 ): string {
-  const command = `node ${fixture("preview/serve.mjs")} --port {port} --mode ${mode} --delay ${delay} --log ${log} && true`;
+  const logged = log === null ? "" : ` --log ${log}`;
+  const command = `node ${fixture("preview/serve.mjs")} --port {port} --mode ${mode} --delay ${delay}${logged} && true`;
   return `---\nstatus: active\napproved-by: Test\npreview-folder: ${folder}\npreview-command: ${command}\n---\n\n# Preview\n\nThe tests' fake Storybook.\n`;
 }
 
@@ -303,18 +304,18 @@ export function addPreview(
   options: { delay?: number; folder?: string; mode?: FakeMode } = {},
 ): string {
   const log = join(temporaryFolder("uraeda-preview"), "starts.log");
-  const text = previewDecision(
-    log,
-    options.folder ?? "packages/web",
-    options.mode ?? "ok",
-    options.delay ?? 0,
-  );
+  const { delay = 0, folder = "packages/web", mode = "ok" } = options;
+  commitPreview(repo, previewDecision(log, folder, mode, delay));
+  return log;
+}
+
+/** Commits a preview decision's `text` as `addPreview` does. */
+export function commitPreview(repo: string, text: string) {
   commitOnMain(repo, { [PREVIEW_DECISION]: text });
   const branches = git(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads").split("\n");
   for (const branch of branches.filter((name) => name !== "" && name !== "main")) {
     commitOnBranch(repo, branch, { [PREVIEW_DECISION]: text });
   }
-  return log;
 }
 
 /** Each start the fake preview logged: its base path, its folder, its process, and its port. */

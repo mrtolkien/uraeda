@@ -5,10 +5,13 @@ import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   addStoryFeature,
+  commitPreview,
   fixture,
   fixtureRepo,
   git,
   initRepository,
+  previewDecision,
+  STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { CHANGE_FOLDERS, addChanges } from "./changes.ts";
 import { addFeaturePages, dated, proposal } from "./features.ts";
@@ -50,8 +53,11 @@ function setUp(repo: string) {
 function buildSample(repo: string) {
   fixtureRepo("repo", repo);
   // The stories feature first, as Storybook's fixture does: the preview decision reaches only the
-  // branches that exist.
-  addStoryFeature(repo);
+  // branches that exist. Its fake Storybook logs nowhere: a log in this process's temporary folder
+  // would be gone when the sandbox, which keeps the projects, starts it later.
+  addStoryFeature(repo, { preview: false, worktree: false });
+  commitPreview(repo, previewDecision(null, "packages/web", "ok", 0));
+  git(repo, "worktree", "add", "--quiet", join(".worktrees", STORY_FEATURE), STORY_FEATURE);
   addFeaturePages(repo);
   addStepFeatures(repo);
   addChanges(repo);

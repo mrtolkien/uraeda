@@ -1,7 +1,7 @@
 // @vitest-environment node
 // The three sample projects: what the core reads from each, through the binding's workspace view.
 import { readInbox, readPriorities, readWorkspace, refreshPullRequests } from "uraeda-binding";
-import { temporaryFolder } from "uraeda-binding/test-utils";
+import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { beforeAll, expect, test } from "vite-plus/test";
 import {
   fakeGh,
@@ -84,4 +84,13 @@ test("broken's features carry the problems ura check reports", async () => {
   const { broken } = projects;
 
   expect(await problemCount(broken)).toBeGreaterThan(0);
+});
+
+test("sample's fake Storybook logs its starts nowhere, so it runs after its builder exits", () => {
+  // A log in the building process's temporary folder is gone once it exits, and the sandbox, which
+  // keeps the projects across processes, would start a fake Storybook that fails to write it.
+  const decision = git(projects.sample, "show", "main:specs/decisions/preview.md");
+
+  expect(decision).toContain("preview-command: node ");
+  expect(decision).not.toContain("--log");
 });
