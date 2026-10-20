@@ -89,7 +89,6 @@ const FEATURES: Array<CardItem> = [
   },
   {
     changes: { added: 1050, removed: 250 },
-    color: "purple",
     folder: "2026-10-16-redesign-interface",
     kind: "feature",
     label: "Sidebar",
@@ -241,7 +240,7 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * The sidebar unfolded: two items need you, a change works with a background command, four features
- * in the flow's order, one renamed "Sidebar" in purple, and the five latest done items at the
+ * in the flow's order, one renamed "Sidebar", and the five latest done items at the
  * bottom. On the phone, the top bar starts with Home.
  */
 export const Unfolded: Story = { args: {} };

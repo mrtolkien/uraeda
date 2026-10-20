@@ -1,4 +1,3 @@
-import type { Color } from "uraeda-binding";
 import { publish } from "../live.ts";
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -126,21 +125,15 @@ const repositoryMutations = {
       ctx,
       input,
       select,
-    }: Resolver<{ color?: Color | null; folder: string; label?: string | null }>) => {
+    }: Resolver<{ folder: string; label?: string | null }>) => {
       const host = ctx.hosts.byPath(ctx.repo);
       if (!host) {
         throw callSiteError("refused: no repository");
       }
       await refusable(() =>
-        ctx.binding.setItemSettings(
-          ctx.dataDir,
-          host.name,
-          input.folder,
-          input.label ?? null,
-          input.color ?? null,
-        ),
+        ctx.binding.setItemSettings(ctx.dataDir, host.name, input.folder, input.label ?? null),
       );
-      // The hosts read the list again, so the records join the new name and colour.
+      // The hosts read the list again, so the records join the new name.
       await ctx.hosts.reload();
       publish(
         {

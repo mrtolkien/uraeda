@@ -441,7 +441,8 @@ git commit -m "feat(merge-chats): drop a change or a feature, keeping its branch
   `crates/core/src/api/repository_list.rs`, `crates/core/src/view.rs` (`ItemSettingsView`),
   `crates/binding/src/lib.rs` (`set_item_settings`), `packages/server/src/fate/mutations.ts`
   (`item.settings`), `packages/server/src/fate/items.ts`, `packages/server/src/fate/views.ts`
-  (`ItemLook`), `packages/web/src/sidebar/FeatureSettings.tsx`,
+  (`ItemLook`), `packages/server/src/fate/sources.ts` (`missingFeature`),
+  `packages/web/src/sidebar/FeatureSettings.tsx`,
   `packages/web/src/sidebar/FeatureSettingsDialog.tsx`, `packages/web/src/sidebar/ItemCard.tsx`
   (`COLORS`, `CardColor`, the stripe), `packages/web/src/sidebar/cards.ts` (`toCard`),
   `packages/web/src/views.ts` (`FeatureView.color`), `packages/web/src/sidebar/Sidebar.stories.tsx`,
@@ -455,31 +456,35 @@ git commit -m "feat(merge-chats): drop a change or a feature, keeping its branch
 - Produces: binding `setItemSettings(dataDir, name, folder, label: string | null)` (no colour);
   `ItemSettingsView { folder, label }`; `item.settings` input `{ folder, label? }`.
 
-- [ ] **Step 1: Change the tests first**
+- [x] **Step 1: Change the tests first**
 
-- `repositories.rs`: "a colour saved before is ignored and dropped": a `repositories.toml` holding
-  `color = "purple"` for an item reads with its label, and the next `set_item` writes no `color`.
+- `repositories.rs`: "a colour saved before is ignored and dropped": a `repositories.json` holding
+  `"color": "purple"` for an item reads with its label, and the next `set_item` writes no `color`;
+  an item that held only a colour leaves the list
+  ([R3](rulings.md#r3-an-item-saved-with-a-colour-and-no-name-leaves-the-list-on-read)).
 - `feature-settings.test.tsx`: the settings dialog has a name field and no "Colour" radio list;
   replace the "Purple" assertions.
-- Remove the colour cases of `repositories.test.ts` (binding and server): a ruling records each
-  deleted test, since the human asked for colours to go (spec, US1 more 3).
+- Change the colour cases of `repositories.test.ts` (binding and server) and of the core's
+  `repositories.rs` into name-only cases:
+  [R4](rulings.md#r4-the-colour-cases-of-the-item-settings-tests-change-into-name-only-cases)
+  records each, since the human asked for colours to go (spec, US1 more 3).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test repositories`
 - Expected: FAIL, the written file still holds `color`.
 
-- [ ] **Step 3: Remove the colour through every layer**
+- [x] **Step 3: Remove the colour through every layer**
 
 Drop the field and the enum; serde ignores an unknown `color` on read. The card has no stripe.
 
-- [ ] **Step 4: Run the validation**
+- [x] **Step 4: Run the validation**
 
 - Run:
   `nix develop -c vp run --filter uraeda-binding build && nix develop -c vp check && nix develop -c vp test packages/web/src/__tests__/feature-settings.test.tsx packages/server/src/__tests__/repositories.test.ts && nix develop -c cargo nextest run -p uraeda-core --test repositories`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages specs/2026-10-20-merge-chats/plan.md specs/2026-10-20-merge-chats/rulings.md

@@ -364,10 +364,10 @@ export declare function setBuildInFreshSession(dir: string, fresh: boolean): Pro
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
 
 /**
- * Sets the name and the colour a feature or a change of a repository shows in the sidebar, by its
- * folder: an empty name removes it.
+ * Sets the name a feature or a change of a repository shows in the sidebar, by its folder: an
+ * empty name removes it.
  */
-export declare function setItemSettings(dataDir: string, name: string, folder: string, label?: string | undefined | null, color?: Color | undefined | null): Promise<Repository>
+export declare function setItemSettings(dataDir: string, name: string, folder: string, label?: string | undefined | null): Promise<Repository>
 
 /** Sets whether a start opens a browser. */
 export declare function setOpenBrowser(dir: string, open: boolean): Promise<Settings>
@@ -618,9 +618,6 @@ export interface Choice {
   /** Its item block. */
   block: number
 }
-
-/** The colours an item can be given, from the theme's palette. */
-export type Color = 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink'
 
 export interface CommentItem {
   number: number
@@ -1038,12 +1035,11 @@ export interface Items {
   rulings?: Array<Ruling>
 }
 
-/** The name and the colour a feature or a change shows in the sidebar. */
+/** The name a feature or a change shows in the sidebar. */
 export interface ItemSettingsView {
   /** The item's folder, `YYYY-MM-DD-<slug>`. */
   folder: string
   label?: string
-  color?: Color
 }
 
 /**
@@ -1289,7 +1285,7 @@ export interface Repository {
   openedAt: string
   /** The folder no longer holds the main checkout of a git repository. */
   missing: boolean
-  /** Its features' and changes' names and colours in the sidebar. */
+  /** Its features' and changes' names in the sidebar. */
   items: Array<ItemSettingsView>
 }
 

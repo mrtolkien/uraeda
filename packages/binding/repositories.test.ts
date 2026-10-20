@@ -77,15 +77,13 @@ test("the data folder is the override when set, else the system's default", () =
   expect(dataDir(null)).toBe(dataDir());
 });
 
-test("an item's name and colour are read back with its repository", async () => {
+test("an item's name is read back with its repository", async () => {
   const data = tempDir();
   const repo = fixtureRepo();
   await addRepository(data, repo);
 
-  await setItemSettings(data, basename(repo), "2026-10-16-redesign-interface", "Sidebar", "purple");
+  await setItemSettings(data, basename(repo), "2026-10-16-redesign-interface", "Sidebar");
 
   const [listed] = await readRepositories(data);
-  expect(listed?.items).toEqual([
-    { color: "purple", folder: "2026-10-16-redesign-interface", label: "Sidebar" },
-  ]);
+  expect(listed?.items).toEqual([{ folder: "2026-10-16-redesign-interface", label: "Sidebar" }]);
 });

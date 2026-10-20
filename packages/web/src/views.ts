@@ -96,7 +96,6 @@ export const WorkspaceView = view<Workspace>()({
 export const FeatureView = view<Feature>()({
   behind: true,
   branch: true,
-  color: true,
   files: true,
   folder: true,
   id: true,
