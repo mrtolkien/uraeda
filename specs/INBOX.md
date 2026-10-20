@@ -19,6 +19,7 @@
 - "Why it matters" should be a question callout
 - "drafting a priority" is ass btw. It should be "Turn a priority into a draft".
 - In clarifications of inbox triage, most notes were cut -> very hard to read
+- Need more space between the last card and "settle without you" in questions
 
 ## Prompts
 

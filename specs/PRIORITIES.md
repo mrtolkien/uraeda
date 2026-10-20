@@ -12,8 +12,8 @@
 - [CLI auto-expand in fish and ?zsh?](/specs/changes/2026-10-20-shell-completions/proposal.md)
 - [Chat's right column](/specs/2026-10-20-chat-right/proposal.md)
 
-- [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 - Empty inbox
+- [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
 - [Look and feel pass](drafts/look-and-feel/proposal.md)
 
