@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Merge chats and changes
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-10-20: 9 comments in spec-review.md.
 >
 > - You approve one kind of thing, the session, which can grow into a change and then a feature, in
 >   place. The agent offers each move, you accept it in one click, and one "＋ New" starts anything.
