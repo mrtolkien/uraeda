@@ -2,6 +2,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Thumbnail } from "@astryxdesign/core/Thumbnail";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
@@ -14,8 +15,8 @@ import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { WorkList, type WorkSection } from "./lists/WorkList.tsx";
-import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
-import { plain, Spans } from "./Spans.tsx";
+import { repoPath, useLocalPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
+import { imagePath, plain, Spans } from "./Spans.tsx";
 import { InboxView } from "./views.ts";
 
 /** "1 note", "10 notes". */
@@ -37,13 +38,17 @@ export function Marks({ note }: { note: InboxNote }) {
   );
 }
 
-/** A note's marks as its row shows them, on its right: the same tags, side by side. */
+/** A note's marks as its row shows them, on its right: its first image, then the tags. */
 function RowMarks({ note }: { note: InboxNote }) {
-  if (!note.agent && !note.about) {
+  const repo = useRepository();
+  const first = imagePath(note.images[0]);
+  if (!note.agent && !note.about && !first) {
     return null;
   }
   return (
     <HStack align="center" gap={1} wrap="wrap">
+      {/* Decorative: the row's text says what the note is. */}
+      {first && <Thumbnail alt="" src={repoPath(repo, first)} />}
       {note.agent && <Badge label="agent" variant="purple" />}
       {note.about && <Badge label={note.about} variant="neutral" />}
     </HStack>

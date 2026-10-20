@@ -2,7 +2,7 @@
 // Inbox group; and the sidebar's ＋ next to Priorities, which replaces the top bar's. Adding with
 // Enter, and the form as a dialog or a sheet, are tested in the browser
 // (__browser__/inbox.test.tsx).
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addChange } from "uraeda-binding/test-utils";
@@ -685,6 +685,70 @@ test("a note's row opens its view", async () => {
   expect(window.location.pathname).toBe(atRepo("/inbox/draft-to-proposal-on-mobile-went-404"));
   expect(await screen.findByText("Note, in UI")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Move to priorities" })).toBeTruthy();
+});
+
+/** The fixture repository with a note linking a draft that holds two images, as an add wrote it. */
+function withImagedNote() {
+  const repo = fixtureRepo();
+  const bytes = readFileSync(fixture("images/phone.png"));
+  mkdirSync(join(repo, "specs/drafts/slow-lists/images"), { recursive: true });
+  for (const name of ["first", "second"]) {
+    writeFileSync(join(repo, `specs/drafts/slow-lists/images/${name}.webp`), bytes);
+  }
+  writeFileSync(
+    join(repo, "specs/drafts/slow-lists/proposal.md"),
+    "# Slow lists\n\n## What\n\nSlow lists\n\n![first](images/first.webp)\n\n![second](images/second.webp)\n\n## Why\n",
+  );
+  writeFileSync(
+    join(repo, PATH),
+    read(repo, PATH).replace(
+      "- We need a home icon\n",
+      "- We need a home icon\n- [Slow lists](drafts/slow-lists/proposal.md)\n",
+    ),
+  );
+  return repo;
+}
+
+/** A note's pane draws the images of its draft, in order, under its text. */
+test("a note's pane shows the images of its draft in order", async () => {
+  await renderPage("/inbox/slow-lists", withImagedNote());
+
+  const images = await screen.findAllByRole("img", { name: /^(first|second)$/ });
+
+  expect(images.map((image) => image.getAttribute("alt"))).toEqual(["first", "second"]);
+});
+
+/** A note's row, in the list, shows its first image. */
+test("a note's row shows a thumbnail of its first image", async () => {
+  await renderPage("/inbox", withImagedNote());
+
+  const row = await noteRow(/Slow lists/);
+
+  expect(row.getByRole("presentation", { hidden: true })).toBeTruthy();
+});
+
+/** Images added from a note's pane make the note a draft, and the pane shows them. */
+test("images added in a note's pane make it a draft, and the pane follows it", async () => {
+  const { repo } = await renderPage("/inbox/we-need-a-home-icon");
+  await screen.findByText("Note, in No category");
+  const bytes = readFileSync(fixture("images/phone.png"));
+
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText("Add images", { selector: "input" }), {
+      target: { files: [new File([bytes], "icon.png", { type: "image/png" })] },
+    });
+  });
+
+  await waitFor(() =>
+    expect(read(repo, PATH)).toContain(
+      "- [We need a home icon](drafts/we-need-a-home-icon/proposal.md)\n",
+    ),
+  );
+  expect(read(repo, "specs/drafts/we-need-a-home-icon/proposal.md")).toContain(
+    "We need a home icon\n\n![icon](images/icon.webp)\n",
+  );
+  expect(await screen.findByRole("img", { name: "icon" })).toBeTruthy();
+  expect(window.location.pathname).toBe(atRepo("/inbox/we-need-a-home-icon"));
 });
 
 /** US2 1 */

@@ -11,6 +11,7 @@ import { useLineSave } from "../useLineSave.ts";
 import { categoryName, type Placed, type Renaming, useNoteActions } from "../useNoteActions.ts";
 import { EntryPane, EntryText, Steps } from "./EntryPane.tsx";
 import { CategoryMenu, draftFile, Organize } from "./NoteParts.tsx";
+import { NoteImages } from "./NoteImages.tsx";
 
 /**
  * The note of a key, with its place; while its text is saved, and so its key changes, the note of
@@ -85,6 +86,7 @@ function NoteBody({
         />
       }
     >
+      <NoteImages hash={inbox.hash} note={note} />
       <Divider />
       <CategoryMenu category={found.category} names={inbox.names} onPick={actions.toCategory} />
       <Organize actions={actions} draft={note.draft} />
