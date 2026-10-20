@@ -1,4 +1,4 @@
-// A feature's tokens, summed over its session's turns: what the model read for the first time,
+// A feature's tokens, summed over its sessions' turns: what the model read for the first time,
 // cache writes included, and what it wrote. Re-reads from the cache are left out.
 import type { TurnRow } from "../runner/cache.ts";
 
@@ -10,7 +10,7 @@ import type { TurnRow } from "../runner/cache.ts";
  */
 export type FeatureTokens = { input: number; output: number; partial: boolean; since: string };
 
-/** The tokens of a session's turns, in order; null when no turn has counts. */
+/** The tokens of a feature's sessions' turns, in order; null when no turn has counts. */
 export function featureTokens(turns: ReadonlyArray<TurnRow>): FeatureTokens | null {
   const first = turns.findIndex((turn) => turn.tokens !== null);
   // A counted turn has ended: it has a time.

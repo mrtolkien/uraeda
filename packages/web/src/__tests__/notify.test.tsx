@@ -145,9 +145,9 @@ test("an item coming to need the human notifies at once, and its click opens it"
   }
 });
 
-/** A chat the agent was refused an action in: it has no folder, and its page is under `/chats`. */
+/** A chat the agent was refused an action in: it has no folder, and its page is under `/sessions`. */
 const chatRow = (id: string, key = `${id}:blocked:1`): NeedsYouRow => ({
-  href: `/r/uraeda/chats/${id}`,
+  href: `/r/uraeda/sessions/${id}`,
   id: `uraeda/chats/${id}`,
   key,
   label: "Push it",
@@ -167,7 +167,7 @@ test("a blocked chat notifies once, its click opens it, and it counts in the tit
   ]);
   expect(document.title).toBe("(2) Uraeda");
   act(() => shown[0]!.onclick!());
-  expect(window.location.pathname).toBe("/r/uraeda/chats/c1");
+  expect(window.location.pathname).toBe("/r/uraeda/sessions/c1");
 
   page.rerender({ now: [row(SETTINGS)] });
   await settle();

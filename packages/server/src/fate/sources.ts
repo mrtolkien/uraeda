@@ -209,6 +209,7 @@ function missingFeature(folder: string): FeatureRecord {
     preview: false,
     problems: [],
     session: null,
+    sessions: [],
     slug: "",
     source: "",
     step: { implemented: false, name: "none", order: 14, progress: null, waitsOn: "nobody" },

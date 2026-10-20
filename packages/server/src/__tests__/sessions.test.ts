@@ -5,7 +5,7 @@ import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
 import { ChatImages } from "../runner/images.ts";
-import { addChange, byId, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
+import { addChange, byId, byIdAt, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -1213,4 +1213,153 @@ test("a change's files are writable until its agent runs", async () => {
 
   expect(refused.error).toEqual(REFUSED);
   await stop(server, session);
+});
+
+/** A session of the folder, written to the cache as another server or a fresh step would. */
+async function folderSession(server: Server, folder: string) {
+  const repo = await server.sessions.mainRoot(server.repo);
+  return server.sessions.cache.createSession({
+    agent: "fake",
+    folder,
+    nativeId: "n",
+    repo,
+    title: null,
+  });
+}
+
+/** Adds a turn to a session that ends done, with its token counts when given. */
+function doneTurn(
+  server: Server,
+  session: string,
+  {
+    denied = false,
+    tokens,
+  }: {
+    denied?: boolean;
+    tokens?: Parameters<Server["sessions"]["cache"]["addTurnTokens"]>[1];
+  } = {},
+) {
+  const { cache } = server.sessions;
+  const turn = cache.addTurn({
+    allowed: null,
+    kind: "chat",
+    sessionId: session,
+    state: "running",
+    step: null,
+    trigger: null,
+  });
+  if (denied) {
+    cache.appendItem(turn, {
+      allowed: false,
+      kind: "denial",
+      rule: "Bash(git push)",
+      target: "git push",
+      tool: "Bash",
+    });
+  }
+  if (tokens) {
+    cache.addTurnTokens(turn, tokens);
+  }
+  cache.endTurn(turn, { state: "done" });
+  return turn;
+}
+
+const rowOf = async (server: Server, id: string) =>
+  (await list(server)).find((row) => row.id === id);
+
+test("US1.2: a session read to its end is done", async () => {
+  const server = await testServer();
+  const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };
+  // A new session, read before its first message, is not done.
+  await mutate(server.app, "session.seen", { session: chat.id }, ["id"]);
+  expect(await rowOf(server, chat.id)).toMatchObject({ done: false });
+  server.adapter.script([{ text: "It keeps merged branches.", type: "text" }]);
+  await settle(server, await send(server, { session: chat.id, text: "What does ura clean keep?" }));
+  const created = server.sessions.cache.session(chat.id)!.createdAt;
+  expect(await rowOf(server, chat.id)).toMatchObject({ done: false, startedAt: created });
+
+  await mutate(server.app, "session.seen", { session: chat.id }, ["id"]);
+
+  expect(await rowOf(server, chat.id)).toMatchObject({ done: true, startedAt: created });
+});
+
+test("US1 more 1: a reply brings a done session back, at its start date", async () => {
+  const server = await testServer();
+  const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };
+  server.adapter.script([{ text: "It keeps merged branches.", type: "text" }]);
+  const first = await send(server, { session: chat.id, text: "What does ura clean keep?" });
+  await settle(server, first);
+  // Read at 10:00 on a past day, after its turn ended at 09:00: a reply ends later.
+  const { cache } = server.sessions;
+  cache.db
+    .prepare("UPDATE turns SET ended_at = ? WHERE id = ?")
+    .run("2000-01-01T09:00:00.000Z", Number(first.turns.at(-1)));
+  cache.updateSession(chat.id, { seenAt: "2000-01-01T10:00:00.000Z" });
+  const created = cache.session(chat.id)!.createdAt;
+  expect(await rowOf(server, chat.id)).toMatchObject({ done: true });
+
+  server.adapter.script([{ text: "And unmerged ones are kept too.", type: "text" }]);
+  await settle(server, await send(server, { session: chat.id, text: "And unmerged ones?" }));
+
+  expect(await rowOf(server, chat.id)).toMatchObject({ done: false, startedAt: created });
+});
+
+test("a feature's session is never done, however read", async () => {
+  const server = await testServer();
+  const session = await folderSession(server, AGENT);
+  doneTurn(server, session.id);
+
+  await mutate(server.app, "session.seen", { session: session.id }, ["id"]);
+
+  expect(await rowOf(server, session.id)).toMatchObject({ done: false });
+});
+
+test("a feature's status is its most urgent session's", async () => {
+  const server = await testServer();
+  const older = await folderSession(server, AGENT);
+  doneTurn(server, older.id, { denied: true });
+  const latest = await folderSession(server, AGENT);
+  doneTurn(server, latest.id);
+  await mutate(server.app, "session.seen", { session: latest.id }, ["id"]);
+
+  const [needsYou] = await byIdAt(server.app, null, "NeedsYouList", ["all"], ["rows"]);
+
+  expect(
+    (needsYou!.rows as Array<Record<string, string>>).find((row) => row.folder === AGENT),
+  ).toMatchObject({ reason: "blocked" });
+});
+
+test("a feature lists its sessions, latest first", async () => {
+  const server = await testServer();
+  const older = await folderSession(server, AGENT);
+  const latest = await folderSession(server, AGENT);
+
+  const [feature] = await byId(server.app, "Feature", [AGENT], ["id", "session", "sessions"]);
+
+  expect(feature).toEqual({ id: AGENT, session: latest.id, sessions: [latest.id, older.id] });
+});
+
+test("a feature's tokens count every session", async () => {
+  const server = await testServer();
+  const counts = { cacheRead: 100, cacheWrite: 20, input: 3, output: 40 };
+  const older = await folderSession(server, AGENT);
+  doneTurn(server, older.id, { tokens: counts });
+  const latest = await folderSession(server, AGENT);
+  doneTurn(server, latest.id, { tokens: counts });
+
+  const [feature] = await byId(server.app, "Feature", [AGENT], ["id", "tokens"]);
+
+  expect(feature.tokens).toMatchObject({ input: 46, output: 80, partial: false });
+});
+
+test("US3.5: a search for a feature finds every session of it", async () => {
+  const server = await testServer();
+  const older = await folderSession(server, HUMAN);
+  const latest = await folderSession(server, HUMAN);
+
+  const [found] = await byId(server.app, "SessionSearch", ["web ui"], ["id", "rows"]);
+
+  expect(found.rows.map((row: { id: string }) => row.id).sort()).toEqual(
+    [older.id, latest.id].sort(),
+  );
 });

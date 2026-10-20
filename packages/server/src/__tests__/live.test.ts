@@ -125,6 +125,42 @@ test("a feature's change through git is published to its session, its branch's c
   expect(sent().filter((each) => each.startsWith("Session "))).toHaveLength(1);
 });
 
+/** Each session of a feature reads its step and title: a change of it reaches every one. */
+test("a feature's change updates every session of it", async () => {
+  const repo = fixtureRepo();
+  let watcher: ((changes: Changes) => void) | undefined;
+  const capturing = {
+    ...binding,
+    watch: (path: string, callback: (changes: Changes) => void) => {
+      watcher = callback;
+      return binding.watch(path, () => {});
+    },
+  };
+  const { hosts, names, sessions } = await testHosts([repo], { binding: capturing });
+  const older = await sessions.featureSession(repo, "2026-10-12-cli-tuis");
+  const latest = sessions.cache.createSession({
+    agent: "fake",
+    folder: "2026-10-12-cli-tuis",
+    nativeId: "n",
+    repo: await sessions.mainRoot(repo),
+    title: null,
+  });
+  const sent = published(hosts.get(names[0])!.live);
+
+  watcher!({
+    branchDecisions: [],
+    decisions: false,
+    features: ["2026-10-12-cli-tuis"],
+    files: [],
+    inbox: false,
+    priorities: false,
+    workspace: false,
+  });
+  await vi.waitFor(() => expect(sent()).toContain(`Session ${latest.id}`));
+
+  expect(sent()).toContain(`Session ${older.id}`);
+});
+
 /** A session with a running turn holding `items` text items, in a cache in memory. */
 function sessionWithItems(items: number) {
   const cache = SessionCache.open(":memory:");

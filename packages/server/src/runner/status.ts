@@ -63,3 +63,17 @@ export function sessionStatus(input: {
   }
   return { label: "Idle", status: "idle" };
 }
+
+/**
+ * Whether a session without a workflow is done: idle once a turn ended, so seen since its last turn
+ * ended, as a later end reads "New reply". A new reply brings it back. A change's or a feature's
+ * session is done with its change or feature, once merged.
+ */
+export function sessionDone(input: {
+  folder: string | null;
+  latest?: Pick<TurnRow, "endedAt">;
+  status: SessionStatus;
+}): boolean {
+  const { folder, latest, status } = input;
+  return folder === null && status === "idle" && typeof latest?.endedAt === "string";
+}
