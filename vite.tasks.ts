@@ -289,7 +289,7 @@ export const tasks = {
         "packages/server/src/**",
         "skills/uraeda/assets/storybook/uraeda-preview.js",
         "skills/uraeda/assets/storybook/uraeda-pick.js",
-        "packages/binding/test-utils.ts",
+        "packages/binding/test-{utils,repos}.ts",
         "fixtures/preview/**",
         "pnpm-lock.yaml",
         ...rootConfig,

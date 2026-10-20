@@ -20,7 +20,7 @@ const nativeInputs = [
 ];
 /** The server's sources and the binding's loaders, which other packages' tests import. */
 const server = "packages/server/src/**";
-const loaders = "packages/binding/{index.js,test-utils.ts}";
+const loaders = "packages/binding/{index.js,test-utils.ts,test-repos.ts}";
 
 /**
  * One owner for test membership, filesystem inputs and optional native prerequisites. A family's

@@ -446,25 +446,57 @@ If a marked helper needs extraction, add a responsibility-specific helper module
 it.
 
 **Interfaces:** Preserve `fixtureRepo(name = "repo"): string` and all existing callers. Build each
-named history once per isolated worker, then return independent mutable copies with valid
-git/worktree metadata. Fixture lifetime remains owned by the existing test-run/file cleanup. Do not
-change production repository behavior.
+named history once per isolated test file (R12), in `packages/binding/test-repos.ts`, then return
+independent mutable copies with valid git/worktree metadata. Fixture lifetime remains owned by the
+existing test-run/file cleanup. Do not change production repository behavior.
 
-- [ ] **Step 1: Add isolation regressions.** Mutate and commit one copy, change refs/index/config,
+- [x] **Step 1: Add isolation regressions.** Mutate and commit one copy, change refs/index/config,
       and verify another copy and a later copy retain original history/content. A repository
       containing linked worktrees must not point at another test's mutable files. Failure cleanup
       releases all owned resources.
-- [ ] **Step 2: Run those cases before optimization and capture fixture setup time.** Existing
+- [x] **Step 2: Run those cases before optimization and capture fixture setup time.** Existing
       preservation assertions should already pass. A deliberately shared mutable directory or
       hard-linked mutable git data must make the isolation case fail.
-- [ ] **Step 3: Implement template reuse and measured lifecycle improvements.** Reuse immutable
+- [x] **Step 3: Implement template reuse and measured lifecycle improvements.** Reuse immutable
       setup, never an evolving repository or server session. Profile server/socket/process cleanup
       before changing waits; release test-owned keepalive connections and child processes explicitly
       where they cause overhead. Do not delete real lifecycle tests or alter product timeouts.
-- [ ] **Step 4: Run fixture tests, affected server/web suites, and independent-by-name probes.**
+- [x] **Step 4: Run fixture tests, affected server/web suites, and independent-by-name probes.**
       Compare setup, execution, cleanup, and overall duration on equal inputs. Run `vp run fast`;
       preserve exact old product assertions unless a separate ruling justifies a change.
-- [ ] **Step 5: Commit.** `test(fix-testing): reuse isolated fixture history`.
+- [x] **Step 5: Commit.** `test(fix-testing): reuse isolated fixture history`.
+
+Task 3 evidence (2026-10-20, 32-thread Linux machine, `/tmp` on btrfs, shared with other checkouts'
+runs; load averages as given):
+
+- Four new cases in `packages/binding/test-utils.test.ts`: a copy changed in every mutable way
+  (commit on `main`, moved and new refs, tag, config, index, working files, `gc`) leaves an earlier
+  and a later copy's refs, config, index, files and objects as built, and no copy holds a
+  hard-linked git file or an alternate object store; a copy's linked worktree points at its own
+  metadata only, and another copy checks out the same branch on its own; a failed `commitsAt`
+  removes its temporary worktree; a failed fixture build leaves no folder and fails again. Each of
+  the five cases passes alone by name (`-t`) and in the suite; the binding project passes 36.
+- Before optimizing, the preserved cases passed and the failed-build case failed
+  (`expected 9 to be 7`: the partial repository was left). Faults, each restored: one shared
+  repository for every call failed the history case (`expected { …(6) } to deeply equal { …(6) }`,
+  also with the path check removed), the worktree, `commitsAt` and failed-build cases; a hard-linked
+  copy (`cp -al`) failed the history case on its state; dropping the failed build's removal failed
+  it (`expected 13 to be 11`); removing `commitsAt`'s `finally` failed the worktree-cleanup case. A
+  `git clone --shared` copy failed three cases, on its missing commit identity rather than on its
+  alternates.
+- Fixture setup, summed over 4 workers: server project 522 calls, 90.5 to 99.8 s before, 22.9 s
+  after (69 template builds of about 260 ms, copies about 10 ms); web project 871 calls, 245.6 s
+  before, 27.7 to 27.9 s after. Teardown was profiled and left as it was (R13).
+- Wall time on equal inputs, alternating the old and new `test-utils.ts`: server project 93.4 and
+  81.4 s before, 53.2 and 50.2 s after (load 24 to 34); web project 306.6 s before (load 23 to 55),
+  218.7 s after (load 55 to 22), and earlier 303.3 s before, 255.9, 248.7 and 245.5 s after (load 21
+  to 42). All 888 server and 1,005 web cases pass in every run.
+- `nix develop -c vp check` passes. `vp run fast` passed in 146 s at load 21 to 38: 75 files, 1,097
+  tests, the Rust workspace (1,040 tests, `vite.tasks.ts` changed); deferred: application journeys,
+  browser phone/desktop, production builds/package smoke, full workspace/editor checks, and the
+  edited `test-utils.test.ts`, run directly above. Removing `test-repos.ts` from fast's loaders
+  fails three selection cases. The browser project, which copies `fixtureRepo`'s result for each
+  case, was not run: deferred to ready.
 
 ## Task 4: Preserve and strengthen core, server, and runner guard assertions
 

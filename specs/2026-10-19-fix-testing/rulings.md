@@ -179,3 +179,48 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Move further shared settings into `uiTestOptions()` rather than copying them.
 - **Where**: `packages/web/vite.{config,transforms}.ts`, `vite.fast.config.ts`,
   `packages/server/src/__tests__/request-fixture.ts`, `packages/web/src/__focused__/helpers.tsx`.
+
+## R12: Fixture history is built once per test file and cloned for each caller
+
+- **Decision**: `fixtureRepo(name)` builds the named history once per test file, in a
+  `uraeda-template-*` folder no caller receives, and returns a recursive copy of it for each call,
+  made with `COPYFILE_FICLONE` (a copy-on-write clone on btrfs, an ordinary copy elsewhere) and
+  verbatim symbolic links. A template whose folder is gone, because the file's `afterAll` removed
+  its temporary folder and the worker went on to another file, is built again. A failed build or
+  copy removes its folder at once. The repository helpers (`isolateGit`, `temporaryFolder`,
+  `fixture`, `git`, `fixtureRepo`) moved to `packages/binding/test-repos.ts`, re-exported unchanged
+  by `test-utils.ts`, which had reached the 500-line limit; fast's binding loaders and
+  `storybook:build`'s inputs name the new module.
+- **Rationale**: The plan said "once per isolated worker"; the isolated unit is the test file, whose
+  temporary folder `test-setup.ts` removes after it. A template kept per process across files would
+  need a folder outside the file's ownership. Per file, the server project's 522 calls took 69
+  builds instead of 522, and the web project's 871 calls 69. Hard links and `git clone --shared`
+  would share mutable git data (config, index, refs, packs) between callers; the isolation case
+  fails on both a shared directory and a hard-linked copy.
+- **Alternatives considered**: A template per process or per run on disk, keyed by the fixture's
+  content (more reuse, but a lifetime outside the file's cleanup and cross-worker locking);
+  `git clone --local` (hard-linked objects); templating `addStoryFeature` (its committed preview
+  decision names each call's own log file, so its history differs per call).
+- **If wrong**: A test that needs commit times or object ids unique per repository builds its own
+  commits; `fixtureRepo`'s copies share the template's ids within a file.
+- **Where**: `packages/binding/test-repos.ts`, `packages/binding/test-utils.ts`,
+  `packages/binding/test-utils.test.ts`, `scripts/fast-selection.ts`,
+  `scripts/__tests__/fast-selection.test.ts`, `vite.tasks.ts`.
+
+## R13: Server and UI fixture teardown stays as it is
+
+- **Decision**: No lifecycle helper changed. Profiled per test: the preview server's teardown
+  (`closeAllConnections`, `close`, `server.stop()`) took 0 to 31 ms across `proxy.test.ts`'s 16
+  cases; the UI helpers' `afterEach` (settle requests, close hosts, settings, sessions, runners) 8
+  to 39 ms and `renderPage` 4 to 176 ms across `review.test.tsx`'s 50 cases, whose time is in their
+  own interactions (about 2 s each). A running preview's setup spends about 560 ms in `ready`, the
+  runner's first index read after `POLL_MS` (500 ms), and about 300 ms in `addStoryFeature`'s
+  commits.
+- **Rationale**: The plan allows lifecycle changes only where profiling shows overhead; neither
+  teardown is material, and the readiness wait is a product interval the plan forbids altering.
+- **Alternatives considered**: An injectable poll interval for tests, a production change to shave
+  about 0.5 s from each running-preview case.
+- **If wrong**: Task 7's matrix names the preview cases as the server's slowest; the poll interval
+  would need its own ruling and the human's agreement.
+- **Where**: `packages/server/src/preview/__tests__/helpers.ts`,
+  `packages/web/src/__tests__/helpers.tsx` (unchanged).

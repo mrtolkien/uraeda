@@ -125,6 +125,7 @@ test.each([
   ["scripts/test-run.ts", "fast-server"],
   ["scripts/coverage-summary.ts", "fast-server"],
   ["packages/binding/test-utils.ts", "fast-ui"],
+  ["packages/binding/test-repos.ts", "fast-ui"],
   ["packages/server/src/limits.ts", "fast-ui"],
   ["packages/server/src/runner/round-messages.ts", "fast-ui"],
   ["packages/server/src/__tests__/request-fixture.ts", "fast-ui"],
