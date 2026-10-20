@@ -26,7 +26,7 @@
 >
 > Goals once I'm happy with the core feature set
 
-- CLI auto-expand in fish and ?zsh?
+- [CLI auto-expand in fish and ?zsh?](drafts/cli-auto-expand-in-fish-and-zsh.md)
 - Neovim plugin: an "open priorities/inbox" shortcut, and review its shortcuts, they are very bad
   atm -> overall a small review as I've used it for a bit now
   - Would be nice to be able to connect to a running server to start steps?
