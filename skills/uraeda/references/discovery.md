@@ -384,10 +384,10 @@ whether the app needs a notion of series.
 Only if you picked B in Q2. [...]
 ```
 
-The card's parts, its example, its context, "Why it matters", and its options with their outcomes,
-follow [questions](writing.md#questions) and [options](writing.md#options). They ask for as much
-context as deciding needs, self-contained option sentences, and the recommended one first. The
-asking rules:
+The card's parts, its example when it needs one, its context, "Why it matters", and its options with
+their outcomes, follow [questions](writing.md#questions) and [options](writing.md#options). They ask
+for as much context as deciding needs, self-contained option sentences, and the recommended one
+first. The asking rules:
 
 - **Options exclude each other**, unless the question says which ones combine, before the options:
   "C can come on top of A or B". When the best answer is a combination, the "Why recommended" line

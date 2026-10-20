@@ -132,12 +132,14 @@ this way, and a human can write them by hand.
 ### Questions
 
 16. **Each question is a card the human decides from alone.** Its heading is the question, as a full
-    sentence ending with a question mark. Then its example, its context, a paragraph starting "Why
-    it matters:", its options, and `**Answer:**`, left empty.
-17. **An example opens the card, and each option gives its outcome.** A line starting "Example:"
-    sets one concrete case, with real names and values: "'Water the plants' repeats every Monday.
-    You complete it on Monday 5 October." Each option then says, in one line, what happens in that
-    case. The human compares outcomes they can picture, instead of abstract rules.
+    sentence ending with a question mark. Then its example when it has one, its context, a paragraph
+    starting "Why it matters:", its options, and `**Answer:**`, left empty.
+17. **An abstract choice opens with an example, and each option gives its outcome.** When the
+    options are rules or behaviours that are hard to picture, a line starting "Example:" sets one
+    concrete case, with real names and values: "'Water the plants' repeats every Monday. You
+    complete it on Monday 5 October." Each option then says, in one line, what happens in that case.
+    The human compares outcomes they can picture, instead of abstract rules. A question whose
+    options are already concrete, such as a library or a name, needs no example.
 18. **"Why it matters" says what the choice decides, and what it costs later.** One or two
     sentences, after the context and before the options. It tells the human how much thought the
     question deserves.

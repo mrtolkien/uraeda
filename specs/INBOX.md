@@ -19,13 +19,6 @@
 
 ## Prompts
 
-- The PR texts suck: I often work on 3+ features in parallel and when a PR drops I'm lacking
-  context. It talks about "Approach" and "What stays unchanged" but ffs start with some good context
-  about what was _done_.
-
-- Questions need examples + the questions text has sometimes become too long with the new prompt
-  - The question could present the example and the answers the outcome
-
 ## Deferred fixes
 
 - [agent] [redesign-feature] Runner: a workflow message queued on a feature merged before it starts
