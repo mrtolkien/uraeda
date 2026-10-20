@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 2
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Fix testing
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Approved on 2026-10-20.
 >
 > - You approve retaining useful focused tests, repairing costly boundaries, and keeping a few
 >   whole-app journeys alongside a deliberately partial fast check.
