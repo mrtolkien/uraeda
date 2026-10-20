@@ -285,11 +285,23 @@ function RunRedirect({ folder, id }: { folder: string; id: string }) {
   return null;
 }
 
-/** An address from before sessions: the same page at its new one, with its hash. */
+/**
+ * An address from before sessions: the same page at its new one, with its query and its hash. The
+ * new address's own query comes first, and wins over a parameter of the same name.
+ */
 function Moved({ path }: { path: string }) {
   const here = useRepoPath();
   useLayoutEffect(() => {
-    redirect(`${here(path)}${window.location.hash}`);
+    const [page, own = ""] = path.split("?");
+    const target = new URLSearchParams(own);
+    const query = new URLSearchParams(own);
+    for (const [name, value] of new URLSearchParams(window.location.search)) {
+      if (!target.has(name)) {
+        query.append(name, value);
+      }
+    }
+    const search = query.size > 0 ? `?${query}` : "";
+    redirect(`${here(page)}${search}${window.location.hash}`);
   }, [here, path]);
   return null;
 }
