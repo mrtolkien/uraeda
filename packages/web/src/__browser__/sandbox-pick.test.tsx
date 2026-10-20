@@ -323,12 +323,10 @@ test("Escape stops pick mode, and the page gets no Escape", async () => {
       </Overlay>
     </Theme>
   );
-  const { rerender } = render(dialog(false));
-  // The dialog is modal and covers the bar: pick mode is on before it opens.
+  render(dialog(true));
+  await expect.element(page.getByRole("dialog", { name: "Rename" })).toBeVisible();
   const toggle = page.getByRole("button", { name: "Pick an element" });
   await userEvent.click(toggle);
-  rerender(dialog(true));
-  await expect.element(page.getByRole("dialog", { name: "Rename" })).toBeVisible();
   await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
 
   await userEvent.keyboard("{Escape}");
@@ -383,4 +381,70 @@ test("a click on the bar's toggle in pick mode turns pick mode off, and picks no
   render(<Button label="Save" onClick={pressed} />);
   await userEvent.click(page.getByRole("button", { name: "Save" }));
   expect(pressed).toHaveBeenCalledOnce();
+});
+
+/** The keyboard shortcut that turns pick mode on and off, from anywhere on the page. */
+const PICK_SHORTCUT = "{Alt>}{Shift>}P{/Shift}{/Alt}";
+
+/** Whether a click at the element's centre reaches it, and it takes focus: neither if inert. */
+function reachable(element: HTMLElement): boolean {
+  const { height, left, top, width } = element.getBoundingClientRect();
+  const hit = document.elementFromPoint(left + width / 2, top + height / 2);
+  element.focus();
+  return element.contains(hit) && document.activeElement === element;
+}
+
+test("in an open modal dialog, the shortcut starts pick mode, and the bar stays usable", async () => {
+  const { copied } = await sandboxPage();
+  render(
+    <Theme mode="light" theme={uraedaTheme}>
+      <Overlay isOpen label="Rename" onClose={() => {}}>
+        <Button label="Save" />
+      </Overlay>
+    </Theme>,
+  );
+  await expect.element(page.getByRole("dialog", { name: "Rename" })).toBeVisible();
+  const toggle = page.getByRole("button", { name: "Pick an element" });
+
+  await userEvent.keyboard(PICK_SHORTCUT);
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
+  await userEvent.click(page.getByRole("button", { name: "Save" }));
+
+  await expect
+    .element(page.getByText("Copied button “Save”. Paste it to your agent."))
+    .toBeVisible();
+  expect(copied[0]).toContain("Element: button “Save”");
+  expect(reachable(toggle.element() as HTMLElement)).toBe(true);
+});
+
+test("the shortcut starts pick mode without closing an open popover menu", async () => {
+  const { copied } = await sandboxPage();
+  render(
+    <Theme mode="light" theme={uraedaTheme}>
+      <DropdownMenu button={{ label: "Move" }} items={[{ label: "Now" }]} presentation="popover" />
+    </Theme>,
+  );
+  await userEvent.click(page.getByRole("button", { name: "Move" }));
+  await expect.element(page.getByRole("menuitem", { name: "Now" })).toBeVisible();
+
+  await userEvent.keyboard(PICK_SHORTCUT);
+  await expect
+    .element(page.getByRole("button", { name: "Pick an element" }))
+    .toHaveAttribute("aria-pressed", "true");
+  await userEvent.click(page.getByRole("menuitem", { name: "Now" }));
+
+  await expect.element(page.getByText(/^Copied menuitem “Now”/)).toBeVisible();
+  expect(copied[0]).toContain("Element: menuitem “Now”");
+});
+
+test("the shortcut turns pick mode off again, and is named on the toggle", async () => {
+  await sandboxPage();
+  const toggle = page.getByRole("button", { name: "Pick an element" });
+  await expect.element(toggle).toHaveAttribute("aria-keyshortcuts", "Alt+Shift+P");
+
+  await userEvent.keyboard(PICK_SHORTCUT);
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "true");
+  await userEvent.keyboard(PICK_SHORTCUT);
+
+  await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
 });

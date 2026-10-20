@@ -64,21 +64,26 @@ export function SandboxBar({
   last,
   onPickingChange,
   picking,
+  shortcut,
 }: {
   last: PickStatus;
   onPickingChange: (picking: boolean) => void;
   picking: boolean;
+  /** The keyboard shortcut that toggles pick mode, as `aria-keyshortcuts` names it. */
+  shortcut?: string;
 }) {
   const line = status(picking, last);
   return (
     <div data-sandbox-bar data-uraeda-pick-ignore {...stylex.props(styles.bar)}>
       <Badge label="Sandbox" variant="orange" />
       <ToggleButton
+        aria-keyshortcuts={shortcut}
         icon={<Icon icon="uraeda:pick" />}
         isPressed={picking}
         label="Pick an element"
         onPressedChange={onPickingChange}
         size="sm"
+        tooltip={shortcut && `Pick an element, ${shortcut}`}
       />
       <div role="status">{line !== undefined && <Text size="sm">{line}</Text>}</div>
       {!picking && last.kind === "failed" && (

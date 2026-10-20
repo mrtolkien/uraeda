@@ -168,3 +168,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the failed and stopped sessions move to features waiting on the agent, in
   `sessions.ts` alone.
 - **Where**: task 7.
+
+## R14: Pick mode also toggles by Alt+Shift+P, and the bar follows modal dialogs
+
+- **Decision**: `Alt+Shift+P`, matched by its physical key (`event.code` `KeyP`, so Option+Shift+P
+  on a Mac and every layout), toggles pick mode from anywhere on the page. The bar's window takes it
+  in the capture phase, before the page's listeners, and the toggle names it in `aria-keyshortcuts`
+  and its tooltip; the hint line stays the spec's. The bar's host is a manual popover that moves
+  into the topmost open modal dialog (`dialog:modal`, the last in the document) while one is open,
+  and back to the body when it closes, shown again after each move.
+- **Rationale**: a modal dialog makes the rest of the page inert and covers it, and a click outside
+  a popover menu closes it, so the corner button alone cannot start a pick inside either: the spec's
+  clarifications settled on "a corner button or a keyboard shortcut", and the edge case "a picked
+  element inside an open dialog or popover" needs one. Alt+Shift with a letter collides with none of
+  the app's shortcuts (`[`, `]`, `n`, `p`, without modifiers) and types nothing outside a Mac's
+  Option characters, which it takes. Inside the dialog, the bar stays focusable, and its fallback
+  text selectable; as a popover in the top layer, the dialog's own box neither clips nor covers it.
+- **Alternatives considered**: a shortcut without a modifier: it would type into text fields. The
+  bar left in the body above the dialog by `z-index`: still inert under a modal dialog. A popover on
+  the body: a modal dialog makes it inert too.
+- **If wrong**: the shortcut is `PICK_SHORTCUT` and `isPickShortcut` in `mountSandboxBar.tsx` alone;
+  the dialog's following is `followModals` there.
+- **Where**: task 6.

@@ -725,7 +725,9 @@ git commit -m "feat(ui-sandbox): the sample, empty, and broken projects"
   inside the text or HTML becomes a space); `mountSandboxBar({ document, window }): () => void` in
   `mountSandboxBar.tsx`, which mounts the bar in a root of its own, runs pick mode through the pick
   script by messages to the page itself, copies each pick, and follows the app's colour mode from
-  `<html data-theme>`; `main.tsx` calls it, and Task 8 imports `main.tsx`.
+  `<html data-theme>`; `main.tsx` calls it, and Task 8 imports `main.tsx`. Pick mode also toggles by
+  `PICK_SHORTCUT`, Alt+Shift+P, and the bar's host moves into the topmost open modal dialog while
+  one is open, so a pick inside a dialog or a popover menu can start (R14).
 
 - [x] **Step 1: Write the failing tests**
 
