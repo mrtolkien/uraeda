@@ -396,3 +396,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   cause); removing its `gc`, hard-link, or alternates checks (protection, kept).
 - **If wrong**: A hung binding test still fails, at 20 s.
 - **Where**: `packages/binding/vite.config.ts`.
+
+## R70: Main is integrated by rebase; its tests and rules are owned, not re-decided
+
+- **Decision**: The branch was rebased onto `main` at `953e37fc` (54 commits after `85b4f233`: shell
+  completions, inbox images and fixes, the chat-right and start fixes, priorities passes). History
+  stays linear. Two textual conflicts: `specs/INBOX.md`, where main's slimmed version is kept and
+  the eight `[fix-testing]` notes this branch added are appended again, and
+  `skills/uraeda/references/change.md`, where main's new "What was done" item leads the pull
+  request's order and this branch's line about removed, skipped, or loosened tests stays in item 4.
+  No decision or constitution file changed on main
+  (`git diff 85b4f233 main -- specs/decisions specs/CONSTITUTION.md` is empty), so no rule changed.
+  The plan's rule map keeps every row; the two CLI rules about non-interactive and stable output
+  also name `install_completions.rs` and `complete.rs`, and the first attachment rule names the
+  inbox images' `inbox_images.rs` and `inbox_clean.rs`. The inventory records the three test files
+  main added, the seventeen it changed, and the helpers its first list omitted.
+- **Rationale**: Every MUST or SHOULD rule of the decisions that names a test as its check has a
+  row, checked by a script over the decision files. Every owner path of the map exists after the
+  rebase. Main's new Rust tests live in `crates/cli/tests/`, which the selector runs through
+  `uraeda-cli` (a path under `crates/` selects its crate and reverse dependents); its `Cargo.toml`,
+  `Cargo.lock` and `flake.nix` edits select the workspace or every family by the configuration-name
+  rule, and the completions' sources are Rust, embedded by nothing under `skills/`. No registry
+  entry is needed: the selector's own tests (imports of each family, `cargo metadata` dependents)
+  pass on the rebased tree.
+- **Alternatives considered**: Merging main, which leaves a non-linear history the workflow forbids;
+  dropping the `[fix-testing]` inbox notes, which would lose agents' findings.
+- **If wrong**: A main change that adds a runtime input outside `crates/`, `packages/`, `skills/`,
+  `fixtures/` or a configuration name falls to the selector's escalation to `ready`, never to no
+  check.
+- **Where**: `test-inventory.md`, the plan's rule map, `specs/INBOX.md`, `change.md`.
