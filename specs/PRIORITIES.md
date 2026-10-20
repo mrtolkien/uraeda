@@ -10,7 +10,6 @@
 - [Inbox screenshots](/specs/changes/2026-10-20-inbox-images/proposal.md)
 - [Merge chats and changes](/specs/2026-10-20-merge-chats/proposal.md)
 - [Stable dev environment for UI review](/specs/2026-10-20-ui-sandbox/proposal.md)
-- [Inbox quick fixes](/specs/changes/2026-10-20-inbox-fixes/proposal.md)
 
 - [Some layout reviews](drafts/some-layout-reviews/proposal.md)
 
