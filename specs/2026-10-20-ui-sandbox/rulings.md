@@ -41,3 +41,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `test-utils.ts`, which fix testing is reshaping as templates.
 - **If wrong**: a move of one folder.
 - **Where**: task 2.
+
+## R5: Built on fix testing's local branch, before it merges
+
+- **Decision**: fix testing's local branch is merged into this one, and the tasks are built on it,
+  instead of waiting for it to merge into `main`.
+- **Rationale**: the human asked for it: "Don't wait for the merge, start working from the branch
+  that's here locally DIRECTLY". The two features are mostly orthogonal.
+- **Alternatives considered**: waiting for the merge, as the spec's block said.
+- **If wrong**: fix testing's later commits conflict with this branch's; its branch is merged in
+  again before the final review, and the conflicts resolved there.
+- **Where**: before task 1.

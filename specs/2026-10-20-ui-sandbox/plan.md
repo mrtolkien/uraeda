@@ -53,11 +53,12 @@ in the task that owns the code.
 
 ## Global constraints
 
-Before any task: fix testing (`2026-10-19-fix-testing`) must be merged into `main`, and this branch
-rebased on it, as the spec's block says. That feature moves the UI's Vite plugins into
-`packages/web/vite.transforms.ts` (`uiTransforms()`), and rebuilds `packages/binding/test-utils.ts`
-as immutable templates, keeping `fixtureRepo(name = "repo"): string`. If its merged shape differs
-from this, follow it, and note the difference in [rulings](rulings.md).
+This branch builds on fix testing (`2026-10-19-fix-testing`), merged in from its local branch before
+merging into `main`, as the human asked (see [rulings](rulings.md)). That feature moves the UI's
+Vite plugins into `packages/web/vite.transforms.ts` (`uiTransforms()`), and rebuilds
+`packages/binding/test-utils.ts` as immutable templates, keeping
+`fixtureRepo(name = "repo"): string`. Before the final review, its branch is merged in again, or
+`main` once it has merged.
 
 From [Sandbox](../decisions/sandbox.md), word for word:
 
