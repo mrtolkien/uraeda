@@ -326,6 +326,25 @@ async function pick(name: string) {
   await click(await screen.findByRole("menuitem", { name }));
 }
 
+/** Edge: the agent's card shows when the human picks the same move in the "…". */
+test("Make it a change while the agent's card shows focuses that card, without a second", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo);
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+  const shown = await card();
+
+  await pick("Make it a change");
+
+  await waitFor(() =>
+    expect(document.activeElement).toBe(shown.getByRole("heading", { name: "Start a change" })),
+  );
+  expect(screen.getAllByRole("region", { name: "Start a change" })).toHaveLength(1);
+  expect((shown.getByRole("textbox", { name: "Proposal" }) as HTMLTextAreaElement).value).toBe(
+    PROPOSAL,
+  );
+});
+
 /** Accessibility: the card the "…" opens takes the focus, and gives it back once closed. */
 test("the card the … opens takes the focus, and Not now gives it back to the …", async () => {
   const repo = fixtureRepo();

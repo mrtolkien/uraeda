@@ -23,6 +23,7 @@ import {
   type Offer,
   offerKind,
   openOffer,
+  showLive,
   useNotes,
   useOfferClosed,
   useOpened,
@@ -88,8 +89,13 @@ export function OffersProvider({
   return <ScopeContext value={scope}>{children}</ScopeContext>;
 }
 
-/** The agent's offer in its message, as a card: "Not now" closes it for the page. */
+/**
+ * The agent's offer in its message, as a card: "Not now" closes it for the page. While it shows,
+ * the "…"'s same move focuses it rather than open a second card.
+ */
 function MessageOffer({ at, offer, scope }: { at: string; offer: Offer; scope: Scope }) {
+  const { id } = scope;
+  useEffect(() => showLive(id, offer.kind), [id, offer.kind]);
   return (
     <OfferCard
       isLatest
