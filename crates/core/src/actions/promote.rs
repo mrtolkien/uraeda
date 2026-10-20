@@ -10,6 +10,7 @@ use std::path::Path;
 use crate::decisions::{BranchSides, branch_changes};
 use crate::files::{frontmatter, priorities};
 use crate::git::Git;
+use crate::steps::StepName;
 use crate::workspace::{Feature, Kind, Workspace, folder_branch, folder_path, resolve};
 
 use super::place;
@@ -34,7 +35,8 @@ pub struct Promoted {
 }
 
 /// Makes the change in `folder` a feature, in place: refused, before anything is written, for a
-/// feature, a change with a pull request, uncommitted changes, or a feature's name already taken.
+/// feature, a change done or with a pull request, uncommitted changes in its worktree, or a
+/// feature's name already taken.
 pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, StartError> {
     let refused = |message: String| StartError::Refused(message);
     let change = workspace
@@ -42,6 +44,9 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
         .iter()
         .find(|item| item.folder == folder && item.kind == Kind::Change && !item.is_finished())
         .ok_or_else(|| refused(format!("{folder} is not a change")))?;
+    if change.step.name == StepName::Done {
+        return Err(refused(format!("{folder} is done: ura clean removes it")));
+    }
     if change.pull_request.is_some() {
         return Err(refused(PULL_REQUEST.into()));
     }
