@@ -16,8 +16,11 @@ export type Offer = { body: string; kind: OfferKind };
 /** The fence's language, before the kind. */
 export const OFFER_LANGUAGE = "uraeda-offer";
 
-/** An offer block, closed: its kind, then its body. */
-const BLOCK = /^```uraeda-offer[ \t]+(change|feature)[ \t]*\n([\s\S]*?)\n```[ \t]*$/gmu;
+/** An offer block, closed: its kind, then its body, its lines ending in LF or CRLF. */
+const BLOCK = /^```uraeda-offer[ \t]+(change|feature)[ \t]*\r?\n([\s\S]*?)\r?\n```[ \t]*\r?$/gmu;
+
+/** A block's body as the card reads it: trimmed, its lines ending in LF. */
+export const offerBody = (code: string) => code.replaceAll("\r\n", "\n").trim();
 
 /** The kind an offer block's info string names after its language, or `undefined`. */
 export function offerKind(meta: string): OfferKind | undefined {
@@ -29,7 +32,7 @@ export function offerKind(meta: string): OfferKind | undefined {
 export function lastOffer(text: string): Offer | undefined {
   let last: Offer | undefined;
   for (const match of text.matchAll(BLOCK)) {
-    last = { body: match[2].trim(), kind: match[1] as OfferKind };
+    last = { body: offerBody(match[2]), kind: match[1] as OfferKind };
   }
   return last;
 }
