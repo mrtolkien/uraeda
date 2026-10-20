@@ -353,7 +353,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: review of task 9, `crates/core/src/actions/inbox.rs`,
   `packages/server/src/fate/change-starts.ts`, `packages/web/src/useStartFrom.ts`.
 
-## R19: A change from a priority line starts with its agent at work
+## R21: A change from a priority line starts with its agent at work
 
 - **Decision**: "Start the change" on a priority line drafts it when it links no draft, then calls
   `change.startDraft({ draft, slug? })`, which starts the draft as `feature.start` with kind change
@@ -371,7 +371,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: review of task 9, `packages/server/src/fate/change-starts.ts`,
   `packages/web/src/useStartFrom.ts`.
 
-## R20: An archived session leaves the sidebar's list, and search still finds it
+## R22: An archived session leaves the sidebar's list, and search still finds it
 
 - **Decision**: the sidebar's Sessions section has no "Archived" group. Outside a search, an
   archived session is in neither the list nor Done; a search lists it among the sessions it finds,
@@ -384,7 +384,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the session filter of `entriesOf` in `packages/web/src/sidebar/Sidebar.tsx`.
 - **Where**: review of task 8, `packages/web/src/sidebar/Sidebar.tsx`.
 
-## R21: A start refused or failed on the New page leaves its files, and says why
+## R23: A start refused or failed on the New page leaves its files, and says why
 
 - **Decision**: "Write the proposal" inserts the title in Now, then drafts it; when the draft is
   refused, the line is removed again (`priorities.remove`, over the hash the insert returned), the
@@ -399,7 +399,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `titleDraft` and `run` in `packages/web/src/useStartFrom.ts`.
 - **Where**: review of task 9, `packages/web/src/useStartFrom.ts`, `packages/web/src/NewPage.tsx`.
 
-## R22: The sidebar's SC-005 and Done tests check each card's row and US1 2's day
+## R24: The sidebar's SC-005 and Done tests check each card's row and US1 2's day
 
 - **Decision**: the sidebar test "each card has its status and its … in its row" names the cards it
   expects, `cli-tuis` and "Why is CI slow?", finds each link by role, its status by its `img` role
