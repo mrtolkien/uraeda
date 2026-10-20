@@ -18,6 +18,8 @@ rust-version = "1.96"
 
 [workspace.dependencies]
 clap = { version = "4.6.7", features = ["derive"] }
+# Exact: its dynamic completion, `unstable-dynamic`, is exempt from semver.
+clap_complete = { version = "=4.6.11", features = ["unstable-dynamic"] }
 crossbeam-channel = "0.5.15"
 gif = "0.14.2"
 gix = { version = "0.89", default-features = false, features = ["sha1", "revision", "status"] }
