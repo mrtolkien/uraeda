@@ -55,7 +55,7 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
         .into_iter()
         .find(|worktree| worktree.branch.as_deref() == Some(from.as_str()))
     {
-        check_worktree(git, &worktree.path)?;
+        check_worktree(git, &worktree.path, folder)?;
     }
     let place = place::reach(git, &default)?;
     let at = Git::open(&place.root)?;
@@ -72,11 +72,14 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
     move_.run(&at, &name, edited.as_deref())
 }
 
-/// Refuses the move while the change's worktree, at `path`, has uncommitted changes: its commit
-/// would carry them, or they would block the folder's move. The main checkout's do not refuse it:
-/// its commit takes `PRIORITIES.md` alone.
-fn check_worktree(git: &Git, path: &Path) -> Result<(), StartError> {
-    let changed = Git::open(path)?.changed_files()?;
+/// Refuses the move while the change's worktree, at `path`, has uncommitted changes, or untracked
+/// files in the change's folder or the decisions: its commit would carry them. The main checkout's
+/// do not refuse it: its commit takes `PRIORITIES.md` alone.
+fn check_worktree(git: &Git, path: &Path, folder: &str) -> Result<(), StartError> {
+    let at = Git::open(path)?;
+    let mut changed = at.changed_files()?;
+    let committed = [folder_path(Kind::Change, folder), "specs/decisions".into()];
+    changed.extend(at.untracked(&committed.each_ref().map(String::as_str))?);
     if changed.is_empty() {
         return Ok(());
     }

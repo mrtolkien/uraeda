@@ -372,3 +372,31 @@ fn a_move_run_again_after_a_failed_rename_completes_with_one_entry() {
         "chore(priorities-sections): upgrade to a feature"
     );
 }
+
+/// Review: an untracked file the move would commit, in the change's folder or a new decision,
+/// refuses it.
+#[test]
+fn untracked_files_the_move_would_commit_are_refused() {
+    for path in [
+        format!("specs/changes/{FOLDER}/notes.md"),
+        "specs/decisions/sections.md".to_string(),
+    ] {
+        let repo = started(Kind::Change);
+        std::fs::write(
+            worktree(&repo).join(&path),
+            "---\nstatus: active\n---\n\n# Notes\n",
+        )
+        .unwrap();
+
+        let refused = promote(&repo);
+
+        assert_eq!(
+            refused.err().map(|error| error.to_string()),
+            Some(format!(
+                "cannot move: the change's worktree .worktrees/{FOLDER} has uncommitted changes in \
+                 {path}"
+            ))
+        );
+        assert_nothing_moved(&repo);
+    }
+}

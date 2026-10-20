@@ -74,6 +74,18 @@ impl Git {
             .any(|entry| !entry.starts_with("AD ")))
     }
 
+    /// The untracked files at or under `paths`, ignored files left out.
+    pub fn untracked(&self, paths: &[&str]) -> Result<Vec<String>, GitError> {
+        let mut args = vec!["ls-files", "--others", "--exclude-standard", "-z", "--"];
+        args.extend(paths);
+        let output = self.output("ls-files", &args)?;
+        Ok(output
+            .split('\0')
+            .filter(|path| !path.is_empty())
+            .map(str::to_string)
+            .collect())
+    }
+
     /// Whether the file at `path` is as `HEAD` has it in both the index and the working tree, a
     /// missing file as `HEAD` has none: a change staged then undone on disk is still a change,
     /// and so is a file git ignores.
