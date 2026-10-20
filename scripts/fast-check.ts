@@ -3,6 +3,7 @@ import { relative } from "node:path";
 import { createVitest } from "vite-plus/test/node";
 import { fastConfig } from "../vite.fast.config.ts";
 import { changedFiles, rustCommands, selectFast } from "./fast-selection.ts";
+import { acquire, lockFolder } from "./test-run.ts";
 
 function report(...values: Array<unknown>) {
   process.stdout.write(
@@ -69,6 +70,17 @@ async function main() {
     run("vp", ["run", "ready"]);
     return;
   }
+  // One of the machine's two heavy slots, as ready's checks take: never held around ready, whose
+  // tasks would wait for it.
+  const release = await acquire(lockFolder(), "heavy", 2);
+  try {
+    await checks(selection, args.includes("--graph"));
+  } finally {
+    release();
+  }
+}
+
+async function checks(selection: ReturnType<typeof selectFast>, graph: boolean) {
   // Types read the committed declarations, so the TypeScript checks need no native build: they run
   // beside the native and Rust chain, which shares one Cargo build directory and stays in order.
   const typescript: Array<[string, Array<string>]> = [["vp", ["check"]]];
@@ -99,7 +111,7 @@ async function main() {
       "Discovered tests:",
       specifications.map((spec) => relative(process.cwd(), spec.moduleId)),
     );
-    if (args.includes("--graph")) {
+    if (graph) {
       for (const project of vitest.projects) {
         report(`Graph ${project.name}:`, [...project.vite.moduleGraph.idToModuleMap.keys()]);
       }

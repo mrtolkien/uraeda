@@ -641,6 +641,12 @@ function tracks(task: string, file: string): boolean {
   );
 }
 
+test("ts:test reruns when a configuration its scripts and toolchain tests read changes", () => {
+  for (const file of ["vite.fast.config.ts", "vite.config.ts", "vite.tasks.ts"]) {
+    expect(tracks("ts:test", file), file).toBe(true);
+  }
+});
+
 test.each(["ts:test", "browser:phone", "browser:desktop"])(
   "%s invalidates on native binding changes",
   (task) => {
@@ -714,7 +720,8 @@ test("fast selects before optional builds and preserves isolation and coordinati
   const fast = allTasks().fast;
   expect(fast.cache).toBe(false);
   expect(fast.dependsOn ?? []).toEqual([]);
-  expect(fast.command).toContain("scripts/test-run.ts --lock heavy --slots 2");
+  // A run escalating to ready holds no slot its heavy tasks wait for: fast-check takes one itself.
+  expect(TEST_RUN.exec(fast.command as string)?.[1]).toBe("");
   expect(fast.command).toContain("node scripts/fast-check.ts");
   const config = readFileSync(join(ROOT, "vite.fast.config.ts"), "utf8");
   expect(config).not.toMatch(/fresh-binding|uraeda-server\/dev|web\/vite.config/);

@@ -99,10 +99,11 @@ const tsTestInputs = [
  * The `ready:*` groups, which run nothing themselves, are the units CI's jobs run, uncached.
  */
 export const tasks = {
-  // Selection has no cached result: HEAD and the working tree are runtime inputs.
+  // Selection has no cached result: HEAD and the working tree are runtime inputs. It takes a heavy
+  // slot itself, after selecting, and none when it escalates to ready, whose tasks take their own.
   fast: {
     cache: false,
-    command: `${heavyRun} ${isolatedGit} node scripts/fast-check.ts`,
+    command: `${testRun()} ${isolatedGit} node scripts/fast-check.ts`,
   },
   // The benchmarks of the specs' success criteria: they measure time, so are never replayed.
   bench: {
@@ -341,8 +342,10 @@ export const tasks = {
         ".github/workflows/ci.yml",
         "crates/*/Cargo.toml",
         "crates/*/src/lib.rs",
-        // `vp run coverage`'s summary, tested with the server's tests.
+        // `vp run coverage`'s summary, tested with the server's tests, and fast's selection and
+        // focused configuration, which the scripts tests run.
         "scripts/**",
+        "vite.fast.config.ts",
       ],
       output: [],
       untrackedEnv: testEnv,
