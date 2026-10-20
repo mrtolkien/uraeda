@@ -22,9 +22,9 @@ everywhere.
   input, or a composer. Its keys, its hints, and its buttons are the class's, not the page's.
   Checked by review.
 - Reading text MUST be drawn through `Prose` (`packages/web/src/Prose.tsx`): its size, line,
-  measure, and the markdown that holds prose. A page MUST NOT import Astryx's `Markdown`, or set
-  `--text-reading-*` or `--size-reading-measure`, itself. Checked by lint and a test, which hold the
-  files that still set it by hand to a list that only shrinks.
+  measure, and the markdown that holds prose. A page MUST NOT import Astryx's `Markdown`, or set the
+  reading size or measure, itself. Checked by lint and a test, which hold the files that still set
+  it by hand to a list that only shrinks.
 - A page's column width MUST be a named property of `Page`, backed by a token, not derived from
   another flag. Checked by review.
 

@@ -47,3 +47,15 @@ None binds future work: those are decisions.
 - **Alternatives considered**: moving them all here.
 - **If wrong**: the list never shrinks, and the rule stays half-enforced: note it in the inbox.
 - **Where**: the second item, [`lint.test.ts`](/packages/web/src/__tests__/lint.test.ts).
+
+## R5: Agent text uses Astryx's default markdown density
+
+- **Decision**: `ProseMarkdown` no longer passes `density="compact"`, so headings, paragraphs and
+  lists keep Astryx's default block spacing.
+- **Rationale**: the proposal says the agent's text was too tight to read. Messages grow taller, and
+  a long session longer, which the folded tool groups more than make up.
+  [`Prose.tsx`](/packages/web/src/Prose.tsx)
+- **Alternatives considered**: a `density` prop on `ProseMarkdown`, with `compact` for sessions: the
+  same text then differs by page, against the UI coherence decision.
+- **If wrong**: add the prop, and name the page that needs it in the plan.
+- **Where**: the second item.

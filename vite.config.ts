@@ -177,6 +177,12 @@ export default {
                   name: "@astryxdesign/core/Markdown",
                 },
               ],
+              patterns: [
+                {
+                  group: ["@astryxdesign/core/Markdown/*"],
+                  message: "draw markdown with ProseMarkdown (UI coherence decision)",
+                },
+              ],
             },
           ],
           "stylex/valid-styles": [
