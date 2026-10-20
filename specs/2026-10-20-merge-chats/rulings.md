@@ -724,3 +724,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `NEW_SESSION` in `packages/server/src/fate/sessions.ts`, `chatTitle` in
   `runner/message.ts`, the `SENT_AS_CHAT` lines in `runner/session-state.ts`.
 - **Where**: the final review's fixes.
+
+## R42: A blocked session's "Needs you" row is `<repository>/sessions/<id>`
+
+- **Decision**: the "Needs you" row of a session without a workflow whose agent was refused an
+  action has the ID `<repository>/sessions/<session id>`, as its page's path, not
+  `<repository>/chats/<session id>`. Nothing keeps the old ID: the web notifies by each row's `key`,
+  in a set held in memory since the page loaded, and the ID is only the notification's tag. A tab
+  left open while the server updates notifies a still-blocked session once more. The tests pinning
+  the ID follow: the server's `needs-you.test.ts` and the web's `notify.test.tsx`.
+- **Rationale**: the final review found "chats" left in the ID after chats merged into sessions.
+- **Alternatives considered**: keeping the old ID: nothing depends on it.
+- **If wrong**: `chatRowsOf` in `packages/server/src/fate/needs-you.ts`.
+- **Where**: the final review's fixes.

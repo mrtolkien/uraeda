@@ -159,7 +159,7 @@ async function twoRepositoriesWithChats() {
   };
   const archive = (archived: boolean) =>
     call({ input: { archived, session: chat.id }, name: "session.archive", select: ["id"] });
-  const listed = async () => (await opened.rows()).filter((row) => row.id.includes("/chats/"));
+  const listed = async () => (await opened.rows()).filter((row) => row.id.includes("/sessions/"));
   return { ...opened, allow, archive, blockChat, chat, listed, name: name!, send };
 }
 
@@ -174,7 +174,7 @@ test("a blocked chat is listed, with its title and address, and a finished reply
   expect(await listed()).toHaveLength(1);
   expect((await listed())[0]).toMatchObject({
     href: `/r/${name}/sessions/${chat.id}`,
-    id: `${name}/chats/${chat.id}`,
+    id: `${name}/sessions/${chat.id}`,
     label: "Push it",
     message: "The agent was refused an action",
     reason: "blocked",

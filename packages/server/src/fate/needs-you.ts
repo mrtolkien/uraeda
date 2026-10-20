@@ -17,7 +17,7 @@ export type NeedsYouRow = {
   folder?: string;
   /** Its page, from the server's root: where the human answers it. */
   href: string;
-  /** `<repository>/<folder>`, or `<repository>/chats/<session id>`. */
+  /** `<repository>/<folder>`, or `<repository>/sessions/<session id>`. */
   id: string;
   /** Changes with the reason and the step or the turn, so a new ask notifies again. */
   key: string;
@@ -102,7 +102,7 @@ async function chatRowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYo
     if (needsYouReason({ status, statusReason, step: "" }) !== "blocked") {
       return [];
     }
-    const id = `${name}/chats/${row.id}`;
+    const id = `${name}/sessions/${row.id}`;
     return [
       {
         href: `/r/${name}/sessions/${row.id}`,
