@@ -9,8 +9,8 @@ icon: bot
 Uraeda drives the coding agent the user already installed and signed in to, never a bundled one, and
 stays out of its credentials and settings. Every agent fits one adapter and one agent-neutral model
 of sessions, turns, and items, so Claude Code is only the first. Every conversation with an agent is
-a session, and a workflow, a change or a feature, may grow around it: the session keeps its
-conversation as it grows, and only the human decides that it grows.
+a session, a sub-agent's one too, and a workflow, a change or a feature, may grow around it, with
+one or more sessions in its worktree. Only the human decides that a session grows.
 
 ## Rules
 
@@ -23,14 +23,11 @@ conversation as it grows, and only the human decides that it grows.
 - An agent MUST run with the least permission that still finishes unattended steps, never skipping
   permissions, and Uraeda MUST NOT touch its credentials or settings. Checked by the runner's tests
   and review.
-- Every conversation with an agent MUST be a session, and a change or a feature MUST have one
-  session, in its worktree and with the server's copy of the skill, where runs and the human's
-  messages follow each other and the agent acts on a message only when asked. Checked by the
-  runner's tests.
+- Every conversation with an agent MUST be a session, and a change or a feature MUST have one or
+  more sessions, all in its worktree and with the server's copy of the skill, where the agent acts
+  on a human's message only when asked. Checked by the runner's tests.
 - An agent MUST offer, and MUST NOT perform alone, turning a session into a change or a change into
   a feature: the human accepts it in the session or in a round. Checked by review.
-- A session MUST keep its conversation when it becomes a change, or its change a feature. Checked by
-  the runner's tests.
 - Sessions MUST be a cache in Uraeda's data folder, never workflow state and never in a repository.
   Checked by review.
 
@@ -42,9 +39,10 @@ allow with a subscription
 A permission-gated mode is the safest that still finishes unattended steps on the user's machine.
 One live process per session lets the human chat with a working agent, and keeps its prompt cache
 ([keeping a conversation going](../done/2026-10-13-chat-in-the-web-ui.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)).
-A session is one concept whatever workflow surrounds it, and it moves up without losing what the
-agent learned
-([the session moves up](../2026-10-20-merge-chats/clarifications-01.md#q3-does-the-chats-conversation-become-the-changes-session)).
+A session is one concept whatever workflow surrounds it, and a feature's work spans several, each
+with its own page
+([the session moves up](../2026-10-20-merge-chats/clarifications-01.md#q3-does-the-chats-conversation-become-the-changes-session),
+[several sessions](../2026-10-20-merge-chats/spec.md#us5-several-sessions-for-a-change-or-a-feature-p2)).
 The agent offers the move, and the human accepts it in one click, so nothing starts without them
 ([who moves a session up](../2026-10-20-merge-chats/clarifications-01.md#q1-who-may-move-a-chat-up-to-a-change-or-a-change-up-to-a-feature)).
 
@@ -55,6 +53,8 @@ The agent offers the move, and the human accepts it in one click, so nothing sta
 - Skipping permissions, as most compared tools do: nothing blocked, but anything allowed on the
   user's machine.
 - One process per run: abandoned for chats, since a message could never reach a working agent.
+- One session per feature, a new agent session replacing the previous one in place: its earlier
+  turns lost a page of their own, and the human could not go back to them.
 - Chats forked from the feature's session: two writers in one worktree.
 - A new session for a change started from a chat, its first message linking the chat: the agent
   rereads what the chat already settled, and the human follows two sessions.
@@ -67,7 +67,8 @@ The agent offers the move, and the human accepts it in one click, so nothing sta
   an accepted cost.
 - Without `claude` installed and signed in, the UI only commits.
 - A session's history follows it into its worktree, so a long conversation weighs on the change's
-  runs, until the human or a step starts a new agent session.
+  runs, until the human starts a new session for it.
+- Several sessions share one worktree, so only one of them works at a time.
 - A branch that changes the skill does not run with its own version: the server's checkout decides.
 
 ## Applies to

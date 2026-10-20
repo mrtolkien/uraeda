@@ -1,7 +1,9 @@
 // Mockups of starting and growing a session once chats and changes merge
-// (`specs/2026-10-20-merge-chats/spec.md`): the New page and its selector, then the agent's offer to
-// make a session a change, or a change a feature, as a card in the session. Built from Astryx's
-// components over fixed text, with no server: the stories show the look.
+// (`specs/2026-10-20-merge-chats/spec.md`): the New page and its selector; a session's actions, in a
+// "…" beside its composer, and the agent's offer to make it a change, or a change a feature; then the
+// sessions a change's or a feature's page lists, with "New session". Built from Astryx's components
+// over fixed text, with no server: the stories show the look.
+import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
@@ -14,9 +16,9 @@ import {
 } from "@astryxdesign/core/Chat";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { SideNavItem } from "@astryxdesign/core/SideNav";
-import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -26,10 +28,12 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { Page } from "./layout/Page.tsx";
+import { StatusMark } from "./StatusMark.tsx";
 
 const styles = stylex.create({
   agent: { paddingInline: 0 },
   list: { paddingBlock: spacingVars["--spacing-1"] },
+  subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
   surface: {
     backgroundColor: colorVars["--color-background-surface"],
     minHeight: "var(--size-viewport-height)",
@@ -163,76 +167,148 @@ function Offer({ kind }: { kind: "change" | "feature" }) {
   );
 }
 
-/** A session, its header's upgrade button, and the agent's offer at its end. */
-function Growing({
-  fresh = false,
-  kind = "change",
-  started = false,
-}: {
-  fresh?: boolean;
-  kind?: "change" | "feature";
-  started?: boolean;
-}) {
+type Stage = "change" | "change-offer" | "feature-offer" | "session";
+
+/**
+ * A session's page. Its actions sit in the "…" beside the composer's Send, where they stay in reach
+ * however long the session: making it a change, or its change a feature, renaming, and archiving.
+ */
+function Growing({ menu = false, stage = "change-offer" }: { menu?: boolean; stage?: Stage }) {
   const [text, setText] = useState("");
+  const isChange = stage === "change" || stage === "feature-offer";
+  const title =
+    stage === "feature-offer" ? "priorities-sections" : "Why does the login redirect twice?";
+  const actions = [
+    isChange
+      ? { label: "Make it a feature", onClick: () => {} }
+      : { label: "Make it a change", onClick: () => {} },
+    { label: "Rename", onClick: () => {} },
+    ...(isChange ? [] : [{ label: "Archive", onClick: () => {} }]),
+  ];
   return (
     <div {...stylex.props(styles.surface)}>
       <Page isSnug>
         <VStack gap={3}>
-          <HStack align="center" gap={2} justify="space-between">
-            <VStack gap={1}>
-              <Heading level={1}>
-                {kind === "change" ? "Why does the login redirect twice?" : "Priorities sections"}
-              </Heading>
+          <VStack gap={1}>
+            <Heading level={1}>{title}</Heading>
+            <HStack align="center" gap={2}>
+              <Badge
+                label={isChange ? "Change" : "Session"}
+                variant={isChange ? "orange" : "neutral"}
+              />
               <Text color="secondary" type="supporting">
-                {kind === "change" ? "Idle · Claude Code · main" : "Idle · Claude Code · change"}
+                {isChange
+                  ? "Idle · Claude Code · change/2026-10-20-login-redirect"
+                  : "Idle · Claude Code · main"}
               </Text>
-            </VStack>
-            <Button
-              label={kind === "change" ? "Make it a change" : "Make it a feature"}
-              size="sm"
-              variant="secondary"
-            />
-          </HStack>
+            </HStack>
+          </VStack>
           <ChatMessageList align="top" aria-label="Conversation" density="compact">
             <ChatMessage sender="user">
               <ChatMessageBubble xstyle={styles.user}>
-                {kind === "change"
-                  ? "Why does the login redirect twice? Fix it."
-                  : "Add a Blocked reason column to the priorities."}
+                {stage === "feature-offer"
+                  ? "Add a Blocked reason column to the priorities."
+                  : "Why does the login redirect twice? Fix it."}
               </ChatMessageBubble>
             </ChatMessage>
             <ChatMessage sender="assistant">
               <ChatMessageBubble variant="ghost" width="100%" xstyle={styles.agent}>
                 <Text>
-                  {kind === "change"
-                    ? "The session guard and the router both redirect. The fix needs a test through the real login: it should not land on main directly."
-                    : "A column changes the format of `PRIORITIES.md` in every project."}
+                  {stage === "feature-offer"
+                    ? "A column changes the format of PRIORITIES.md in every project."
+                    : "The session guard and the router both redirect. The fix needs a test through the real login: it should not land on main directly."}
                 </Text>
               </ChatMessageBubble>
             </ChatMessage>
-            {started ? (
+            {stage === "change-offer" && <Offer kind="change" />}
+            {stage === "feature-offer" && <Offer kind="feature" />}
+            {stage === "change" && (
               <Banner
                 collapsible={false}
                 status="info"
                 title="Started as the change Login redirects twice, on change/2026-10-20-login-redirect"
               />
-            ) : (
-              <Offer kind={kind} />
             )}
           </ChatMessageList>
           <ChatComposer
-            footerActions={
-              kind === "feature" ? (
-                <Switch label="In a new session" onChange={() => {}} value={fresh} />
-              ) : undefined
-            }
             input={<ChatComposerInput label="Message Claude Code" maxRows={9} />}
             onChange={setText}
             onSubmit={() => setText("")}
             placeholder="Message Claude Code"
+            sendActions={
+              <MoreMenu
+                isMenuOpen={menu || undefined}
+                items={actions}
+                label="Session actions"
+                size="sm"
+              />
+            }
             value={text}
           />
         </VStack>
+      </Page>
+    </div>
+  );
+}
+
+/** A session attached to a change or a feature, as its page lists it. */
+type Attached = {
+  started: string;
+  status: "idle" | "working";
+  subagents: Array<string>;
+  title: string;
+};
+
+const ATTACHED: Array<Attached> = [
+  {
+    started: "Started 2026-10-20 09:12",
+    status: "working",
+    subagents: ["Write the card's tests", "Map the theme's tokens"],
+    title: "Build: tasks 4 to 7",
+  },
+  { started: "Started 2026-10-19 16:40", status: "idle", subagents: [], title: "Spec and plan" },
+];
+
+/** The sessions card of a change's or a feature's page, beside "Next", newest first. */
+function Sessions() {
+  return (
+    <div {...stylex.props(styles.surface)}>
+      <Page>
+        <Card>
+          <VStack gap={3}>
+            <HStack align="center" justify="between">
+              <Heading level={3}>Sessions</Heading>
+              <Button label="New session" variant="secondary" />
+            </HStack>
+            {ATTACHED.map((session) => (
+              <VStack gap={1} key={session.title}>
+                <SideNavItem
+                  endContent={
+                    <Text color="secondary" type="supporting">
+                      {session.started}
+                    </Text>
+                  }
+                  href="#"
+                  icon={
+                    <StatusMark
+                      label={session.status === "working" ? "Working" : "Idle"}
+                      status={session.status}
+                    />
+                  }
+                  label={session.title}
+                />
+                {session.subagents.map((subagent) => (
+                  <HStack align="center" gap={2} key={subagent} xstyle={styles.subagent}>
+                    <StatusMark label="Working" small status="working" />
+                    <Text color="secondary" maxLines={1} type="supporting">
+                      {subagent}
+                    </Text>
+                  </HStack>
+                ))}
+              </VStack>
+            ))}
+          </VStack>
+        </Card>
       </Page>
     </div>
   );
@@ -259,14 +335,17 @@ export const NewFeaturePage: Story = { render: () => <NewPage kind="feature" /> 
 /** The agent offers a change: its proposal and slug, editable, then "Start the change". */
 export const ChangeOffer: Story = { render: () => <Growing /> };
 
-/** Once started: the session says so, and goes on in the change's worktree. */
-export const ChangeStarted: Story = { render: () => <Growing started /> };
+/** A session's actions, open beside Send: make it a change, rename, archive. */
+export const SessionActions: Story = { render: () => <Growing menu stage="session" /> };
+
+/** Once started: the session says so, its badge says Change, and its actions offer a feature. */
+export const ChangeStarted: Story = { render: () => <Growing menu stage="change" /> };
+
+/** In a change's session, the agent offers to make it a feature, with its reason. */
+export const FeatureOffer: Story = { render: () => <Growing stage="feature-offer" /> };
 
 /**
- * In a change's session, the agent offers to make it a feature, with its reason. Under the composer,
- * "In a new session" sends the next message to a new agent session, in the same worktree.
+ * A feature's sessions, on its page: the working one first with its sub-agents, then the earlier
+ * one, and "New session", which opens a new session in the feature's worktree, on its own page.
  */
-export const FeatureOffer: Story = { render: () => <Growing kind="feature" /> };
-
-/** "In a new session" on: the next message starts a new agent session, whatever the step. */
-export const NewSessionOn: Story = { render: () => <Growing fresh kind="feature" /> };
+export const FeatureSessions: Story = { render: () => <Sessions /> };
