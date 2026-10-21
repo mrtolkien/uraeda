@@ -61,6 +61,12 @@ const browserRun = `${testRun()} --lock browser --slots 2`;
  */
 const heavyRun = `${testRun()} --lock heavy --slots 2`;
 
+/**
+ * CI's slice of a Vitest run, `URAEDA_TEST_SHARD=<index>/<count>`: CI splits the TypeScript and
+ * browser tests over several jobs, whose slices together are the whole run. Unset, every test runs.
+ */
+const shard = process.env.URAEDA_TEST_SHARD ? ` --shard=${process.env.URAEDA_TEST_SHARD}` : "";
+
 /** What the Rust crates are built from: the skill is compiled into the core. */
 const rustSources = [
   "crates/**",
@@ -163,12 +169,12 @@ export const tasks = {
   },
   "browser:desktop": {
     cache: { input: [...tsTestInputs, "scripts/test-run.ts"], output: [], untrackedEnv: testEnv },
-    command: `${browserRun} ${isolatedGit} vp test --project desktop`,
+    command: `${browserRun} ${isolatedGit} vp test --project desktop${shard}`,
     dependsOn: ["binding:touch"],
   },
   "browser:phone": {
     cache: { input: [...tsTestInputs, "scripts/test-run.ts"], output: [], untrackedEnv: testEnv },
-    command: `${browserRun} ${isolatedGit} vp test --project phone`,
+    command: `${browserRun} ${isolatedGit} vp test --project phone${shard}`,
     dependsOn: ["binding:touch"],
   },
   // A report of the lines the Rust tests and the TypeScript unit tests run, never a check: it is not
@@ -196,7 +202,13 @@ export const tasks = {
   },
   ready: {
     command: "true",
-    dependsOn: ["ready:rust", "ready:typescript", "ready:browser-phone", "ready:browser-desktop"],
+    dependsOn: [
+      "ready:rust",
+      "ready:typescript",
+      "ready:ts-test",
+      "ready:browser-phone",
+      "ready:browser-desktop",
+    ],
   },
   "ready:browser-desktop": { command: "true", dependsOn: ["browser:desktop"] },
   "ready:browser-phone": { command: "true", dependsOn: ["browser:phone"] },
@@ -204,6 +216,8 @@ export const tasks = {
     command: "true",
     dependsOn: ["rust:fmt", "rust:clippy", "rust:test", "rust:features", "specs:check"],
   },
+  // The TypeScript tests, apart from the builds and checks above: CI splits them over several jobs.
+  "ready:ts-test": { command: "true", dependsOn: ["ts:test"] },
   "ready:typescript": {
     command: "true",
     dependsOn: [
@@ -211,7 +225,6 @@ export const tasks = {
       "web:theme",
       "lua:fmt",
       "ts:check",
-      "ts:test",
       "web:build",
       "ui:build",
       "ui:smoke",
@@ -357,7 +370,7 @@ export const tasks = {
     // Every project but the browser's, by exclusion: a package added to `test.projects` runs here.
     // The built web UI is read by server tests; its source and toolchain inputs above determine
     // it. Listing dist here would have no effect: the explicit dist exclusion always wins.
-    command: `${testRun()} ${isolatedGit} vp test --project '!phone' --project '!desktop'`,
+    command: `${testRun()} ${isolatedGit} vp test --project '!phone' --project '!desktop'${shard}`,
     dependsOn: ["binding:touch", "web:build"],
   },
   // `@uraeda/ui`, built from the web UI, the server, the binding's loader, and the skill.
