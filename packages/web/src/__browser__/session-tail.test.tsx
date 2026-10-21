@@ -35,8 +35,29 @@ async function openSessionOf(count: number) {
     { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
   ]);
   await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
-  await drawn();
+  await settled(log);
   return log;
+}
+
+/**
+ * Waits for the page to settle once the turn ends: the session seen, its status Idle with no flag
+ * that it needs attention, and the first line drawn at the same place three frames in a row. A
+ * flag that clears above the transcript moves it, which no press is asked to keep.
+ */
+async function settled(log: HTMLElement) {
+  await screen.findByText("Idle", undefined, LIVE);
+  let last = Number.NaN;
+  let still = 0;
+  await expect
+    .poll(async () => {
+      await drawn();
+      const top = log.getBoundingClientRect().top;
+      const flagged = screen.queryByText("Needs attention") !== null;
+      still = !flagged && top === last ? still + 1 : 0;
+      last = top;
+      return still;
+    }, LIVE)
+    .toBeGreaterThanOrEqual(3);
 }
 
 test("US1.2: Show earlier messages keeps the message read at the same place on the screen", async () => {
@@ -48,6 +69,7 @@ test("US1.2: Show earlier messages keeps the message read at the same place on t
   button.scrollIntoView({ block: "center" });
   await drawn();
   const reading = drawnLines(log)[0]!;
+  await settled(log);
   const before = reading.getBoundingClientRect().top;
   await userEvent.click(button);
   await expect.poll(() => drawnLines(log).length, LIVE).toBe(40);

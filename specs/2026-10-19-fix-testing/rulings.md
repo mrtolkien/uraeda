@@ -1027,3 +1027,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   case waited for the server's state and asserted the page's.
 - **Assertion**: unchanged; only what the case waits for before it.
 - **Where**: `packages/web/src/__tests__/session-actions.test.tsx`.
+
+## R124: The tail cases measure once the page settles after the turn ends
+
+- **Decision**: `openSessionOf` in `packages/web/src/__browser__/session-tail.test.tsx`, and US1.2
+  just before its press, wait for the page to settle: the status shows Idle, no "Needs attention"
+  flag, and the transcript drawn at the same place three frames in a row. The 1 px assertion is
+  unchanged.
+- **Cause**: two of five hosted runs of `a4785692` failed US1.2 with
+  `expected 28 to be less than or equal to 1`. A trace under a two-core pinned load (the hosted
+  runner's) showed the session still flagged as needing attention when the case read the line's
+  place: the page then marked it seen, the header's status line stopped wrapping, and the header
+  lost 28 px above the transcript at the top of the page, after the read and before the press. The
+  press kept the place it found to the pixel in every trace; this branch's following code took no
+  part. The flag that clears is the product's, as on main.
+- **Evidence**: before, 2 of 3 runs of the file failed under `taskset -c 0,1` with one busy loop;
+  waiting for "Idle" alone still failed 2 of 18; with the settled wait, 20 of 20 passed.
+- **Where**: `packages/web/src/__browser__/session-tail.test.tsx`.
