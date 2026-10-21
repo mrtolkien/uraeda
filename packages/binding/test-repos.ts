@@ -21,11 +21,16 @@ const fixtures = join(import.meta.dirname, "../../fixtures");
  * the core's own git commands, run by the binding in the same process, inherit its environment. A
  * global or system `core.hooksPath` or `init.templateDir` would run the developer's hooks on the
  * tests' commits, and the variables a git hook exports would point git at another repository. Each
- * repository's own configuration still applies.
+ * repository's own configuration still applies. Automatic maintenance is off: a commit would
+ * start a detached `git maintenance`, which outlives the command and writes into a repository
+ * while a test copies or removes it.
  */
 function isolateGit() {
   process.env.GIT_CONFIG_GLOBAL = "/dev/null";
   process.env.GIT_CONFIG_NOSYSTEM = "1";
+  process.env.GIT_CONFIG_COUNT = "1";
+  process.env.GIT_CONFIG_KEY_0 = "maintenance.auto";
+  process.env.GIT_CONFIG_VALUE_0 = "false";
   for (const name of ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"]) {
     delete process.env[name];
   }

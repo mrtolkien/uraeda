@@ -996,3 +996,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a write that takes more than 5 s on an idle machine would now pass; the later poll
   and the commit-history cases still bound it.
 - **Where**: `packages/web/src/__browser__/story-variants.test.tsx`.
+
+## R122: Test repositories run no detached git maintenance
+
+- **Decision**: `isolateGit` (`packages/binding/test-repos.ts`) sets `maintenance.auto=false`
+  through `GIT_CONFIG_COUNT`, beside the global and system configuration it already turns off. A
+  case in `packages/binding/test-utils.test.ts` traces a commit and asserts no `maintenance` process
+  starts; it failed on the code before the change.
+- **Cause**: with no global configuration, git 2.55 starts `git maintenance run --auto --detach`
+  after every commit (seen in a `GIT_TRACE2_EVENT` trace). The detached process outlives the
+  synchronous git call and writes into the repository while a test copies or removes it. The fifth
+  hosted run of `a8cccc98` failed `a seed interrupted midway leaves no half-built .sandbox`
+  (`packages/web/sandbox/__tests__/seed.test.ts`) with a `.sandbox-build-*` folder left after the
+  seed removed it: a repository just committed in, removed while such a process could still write.
+  The trace is the proof of the background process; that it caused this failure is the likely
+  reading, not a reproduced one.
+- **For a user**: nothing: tests only. The product's own git calls are unchanged.
+- **If wrong**: the seed case fails again; then its rollback, not the test environment, is the
+  suspect.
+- **Where**: `packages/binding/test-repos.ts`, `packages/binding/test-utils.test.ts`.
