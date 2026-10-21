@@ -769,24 +769,64 @@ stopped, failed, or halted session's banner) leaves blank space, until new conte
 human scrolls up. "Jump to the latest" keeps showing when the human is away from the end, and brings
 them back. Only the human's scroll stops following; the transcript growing never does.
 
-- [ ] **Step 1: Write the case that forces the race, and see it fail on today's code.** In the
+- [x] **Step 1: Write the case that forces the race, and see it fail on today's code.** In the
       browser session file, a case that removes an end banner and draws the reply only after the
       browser has queued the clamp's scroll event (no timer and no sleep: control the draw with the
       case's own gate), then asserts the reply is in view and "Jump to the latest" is not shown. Run
       it against the unchanged hook: it fails every run. Record the failure.
-- [ ] **Step 2: Implement the fix in `useFollowEnd`**, so every page that follows a transcript gets
+- [x] **Step 2: Implement the fix in `useFollowEnd`**, so every page that follows a transcript gets
       it. Read [discovery round 03](discovery-03.md#following-the-end-through-a-layout-clamp) first:
       two fixes were tried and reverted, ignoring scrolls that come with page growth, which also
       swallowed the human's own scroll, and judging a position where a draw first leaves it.
-- [ ] **Step 3: Prove it.** The new case passes, and the whole browser session file passes 40 runs
+- [x] **Step 3: Prove it.** The new case passes, and the whole browser session file passes 40 runs
       in a row under 20 to 24 busy loops, as the thumbnail-focus race was proven. The three sibling
       cases that failed once each under load (the progress line case, "a run that fails while the
       human is at its end", "an ended session scrolled up") are taken as the same race: a remaining
       failure comes back as a ruling and a question, not a loosened case or a longer wait. No retry.
-- [ ] **Step 4: Re-measure SC-002 as amended.** For each edit the criterion lists, the median of 3
+- [x] **Step 4: Re-measure SC-002 as amended.** For each edit the criterion lists, the median of 3
       warm runs of the complete `vp run fast`, while no other checkout runs checks (check the load
       first and say it); a root configuration, lock, or toolchain edit is measured and reported
       without a budget. Write the table in a ruling with the load of each sample.
-- [ ] **Step 5: Run the project's validation and commit.** `vp run fast`, the browser projects, and
+- [x] **Step 5: Run the project's validation and commit.** `vp run fast`, the browser projects, and
       the Rust tests, then commit with the feature's scope; the plan's own text edits are listed in
       the ruling.
+
+Task 8 evidence (2026-10-21, on this 32-thread machine; loads are the 1-minute average unless given
+as three):
+
+- Step 1: two phone cases in `session.test.tsx`, ordered by the case's own gate (it holds the
+  browser's scroll events until the reply or message has drawn, then dispatches them, in the
+  microtask after that draw), no timer: "idle at the end of a failed run, send, the scrolls
+  dispatched after the reply: it stays in view" (the real session page) and "a banner that leaves at
+  the end leaves its space, so the clamp's late scroll does not stop following" (the hook in a
+  column whose banner leaves alone). On the unchanged hook both failed 5 of 5 runs of their final
+  text at load 3 (and 5 of 5 of the draft before): the reply not in view after `LIVE`, and the last
+  line 1114 px down an 874 px window. On today's session page the banner and the message change the
+  page by +8 px together, so the late scroll there is the hook's own; the second case is the clamp.
+  Each passes alone.
+- Step 2: [R100](rulings.md): the column's height is held while the human follows, and the hook's
+  own move to the end is told by its position. Fault injection: without the hold, the column case
+  fails (1114 to 874); without telling its own scroll, the session page's case fails. `vp check`
+  passed; the web unit tests that render transcripts and sessions (`session`, `session-aside`,
+  `shell`, `triage`, `fresh-default`, `session-tail`: 6 files, 142 tests) passed.
+- Step 3: NOT met as 40 in a row. Whole-file phone runs under busy loops: 39 of 40 with 22 loops
+  (load 15 to 31), on the fix's first version; 38 of 40 with 24 loops (load 16 to 33), on the final
+  one. The new cases and the three sibling cases (the progress line case, "a run that fails while
+  the human is at its end", "an ended session scrolled up") passed all 80. The 3 failures are all
+  "US4.2–US4.4" (`expected 346 to be +0`), traced to `Transcript`'s `settled` scrolling the page to
+  its end after the case scrolled up, and reproduced the same on the unchanged hook (1 in 7 runs of
+  the file's first two cases at load 27): not this race, [R102](rulings.md) item 1, a question for
+  the human. No case was loosened, no wait raised, nothing retried. `ready:browser-phone` passed
+  (253 passed, 128 skipped, 293 s, load 15 to 4); `ready:browser-desktop` failed once on "opening
+  the line moves the place read, which the next width keeps" (6.9 px against 2) and then passed
+  twice (323 passed, 58 skipped, load 4 to 6), [R102](rulings.md) item 2. The desktop session file
+  passed 55 whole-file runs with the final fix.
+- Step 4: [R101](rulings.md): the median of 3 quiet warm runs of the complete `vp run fast`, each
+  started below a load of 6 with no other checkout's checks: Composer 14.6 s, leaf 12.3, helper
+  12.4, core 50.5, skill 51.2, fixture 57.6, declaration 12.6, `limits.ts` 54.3, deletion 13.3, docs
+  11.2: SC-002 met for each; the root `vite.config.ts` 76.8 s, reported without a budget.
+- Step 5: `vp run fast` passed (the hook and the browser file: `ts:check`, `specs:check`, browser
+  file deferred to ready, 11 s at load 2.6); the browser projects as in step 3; `vp run rust:test`
+  passed (1,112 tests, 10 skipped, load 7 to 40); committed as
+  `fix(fix-testing): following the end holds the column's height and tells its own scrolls`, then
+  this record.

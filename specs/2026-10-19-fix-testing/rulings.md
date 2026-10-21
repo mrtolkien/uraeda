@@ -614,6 +614,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R80: The load-sensitive `idle at the end, send` case is a product race, found and not yet fixed
 
+- **Resolved**: Round 03 Q2, option A, decided the product fix, and
+  [R100](#r100-following-the-end-holds-its-columns-height-and-tells-the-hooks-own-scrolls-round-03-q2-a)
+  made it (Task 8): while the human follows the end, the column never gets shorter under the view,
+  and the hook's own scroll is told by the position it set. The record below, and its title that
+  round 03 links to, are kept as found, with the two failed attempts.
 - **Decision**: No code changes. The case
   `idle at the end, send: the reply stays in view and no button shows` (phone, `session.test.tsx`)
   is left as it is: its wait is the right condition, and raising `LIVE` cannot help, because the
@@ -710,3 +715,143 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: A fast run passing where `ready` fails names the setting to align.
 - **Where**: `scripts/fast-selection.ts`, `scripts/fast-check.ts`, `scripts/test-policy.ts`,
   `vite.fast.config.ts`, `vite.tasks.ts`, the packages' `vite.config.ts` files.
+
+## R100: Following the end holds its column's height and tells the hook's own scrolls (round 03 Q2, A)
+
+- **Decision**: `useFollowEnd` (`packages/web/src/following.ts`) keeps its interface,
+  `useFollowEnd(ref, enabled)` returning `{ following, jumpToLatest }`, and changes in two ways:
+  1. **Its column's height is held.** The column is the transcript's parent (on the session page:
+     the header, the progress line, the transcript, the attention banner and the error), or the
+     transcript itself when its parent is what scrolls. An inline `min-height` keeps the page's end
+     no higher than the bottom of the view, as the human last left it: while the human follows the
+     end, the column never gets shorter, so what leaves at its end leaves blank space instead of
+     clamping the scroll position. The hold is set from the column's height and how far the page
+     goes on past the view, at each scroll event, after each of the hook's own scrolls, and a frame
+     after the width class changes. It never makes the column taller than it is. New content fills
+     the space. Scrolled up past the end, what lies under the view is let go, so the human's scroll
+     up takes the blank space away, and a hold the content outgrew is removed. It is removed when
+     the width class changes (a height of the other layout) and when the transcript unmounts.
+  2. **The hook's own scrolls are told by the position they set.** When the hook moves the scroller
+     to the end (following as the session works, or "Jump to the latest"), it keeps where that put
+     it; the next scroll event that finds the scroller still there is the hook's own, dispatched
+     late, and does not change whether the human follows. Any other position is judged as before, so
+     a wheel, a touch drag, a key, the scrollbar, Find in page, `scrollTo` from a test, and Back's
+     restored place all behave as they did. A scroll to the end that did not move the scroller
+     records nothing.
+- **What changes for a user**: at the end of a session, when the banner of a failed, stopped, or
+  halted run leaves as the human sends, a blank strip the banner's size stays under the message
+  until the message and the reply fill it, and the reply comes into view. The same holds for
+  anything else that leaves at the column's end while the human reads at the end (a note's banner, a
+  tool group folded there): its space stays blank until new content fills it or the human scrolls
+  up. A message taken back at the end of an idle session leaves its space blank until the human
+  scrolls up or leaves the page (round 03's stated cost). **What does not change**: the human's own
+  scroll still stops following, at once and by any input; "Jump to the latest" still shows when the
+  human is away from the end and brings them back; the transcript growing never stops following;
+  Back, reload, and the width change keep the place as before; a reader scrolled up sees nothing
+  new. No existing test changed.
+- **Cause, and why both parts**: R80's trace showed a scroll the human did not make, queued as the
+  page changed and dispatched only at the next rendering update, after the reply drew, read as the
+  human scrolling up. Two such scrolls exist: the clamp when the page shortens under the view (part
+  1 removes it), and the hook's own move to the end when the human's message draws (part 2
+  recognises it). On today's session page the failed run's banner and the message change the page
+  together by +8 px, so the late scroll there is the hook's own; with a page that shortens, it is
+  the clamp. Each part is required by one of the two new cases.
+- **Evidence**: see Task 8's evidence in the plan: the two forcing cases, their failures on the
+  unchanged hook, the fault injections, the stress batches, and the browser projects.
+- **Rationale**: The human chose option A, which removes the clamp without guessing whose scroll it
+  was. Part 2 is not input detection (option B): it recognises only the hook's own move, by the
+  exact position it set and for one event, and judges every other scroll as before, so R80's attempt
+  (1), ignoring scrolls that come with growth, which swallowed the human's, is not repeated.
+- **Alternatives considered**: The stopped draft's floor (the tallest height since following began,
+  held whole, raised by a `ResizeObserver`): it kept blank space under a reader who scrolled up
+  within it, raised the floor only after layout, one update late, and left the hook's own late
+  scroll stopping following (the session page's case fails with the hold alone). Input events
+  (option B) and a loosened case (option C) were not chosen.
+- **If wrong**: the button showing after a send means a late scroll still read as the human's; a
+  blank strip that never fills is a hold not released, and the column's inline `min-height` names
+  it.
+- **Record edits**: the plan's Task 8 boxes are checked and its evidence list added; no other plan
+  text changed. The inventory's row for `__browser__/session.test.tsx` names the two added cases.
+  R80 says it is resolved, its record kept.
+- **Where**: `packages/web/src/following.ts`, `packages/web/src/__browser__/session.test.tsx`.
+
+## R101: SC-002 re-measured as amended: every budgeted edit meets its minute
+
+- **Decision**: SC-002, as spec revision 3 amends it, is met for every budgeted edit of Task 7's
+  matrix; the root configuration edit is measured and reported without a budget. No code changed for
+  it.
+- **Method**: on 2026-10-21, after the following fix's commit, on a clean tree of this branch. Each
+  sample appends a comment (a sample-numbered line) to one file, or deletes it, runs the complete
+  `nix develop -c vp run fast` (wall time, from the shell), then restores the file; three samples
+  per edit, the median kept. A sample starts only when the 1-minute load is below 6 and no other
+  checkout runs a check (no `vitest`, `cargo`, `nextest`, `playwright`, or `vp run|test|check`
+  process outside this worktree; the main checkout's `vp run start` dev server ran throughout and is
+  not a check). Every sample got its quiet start; none was waived. Warm: the toolchain, the dev
+  shell, and the unchanged tasks' caches were warm from the samples before; the first sample of an
+  edit can still rebuild what the previous edit changed (the fixture's first sample rebuilt the
+  binding after the skill's samples). The load is the 1-, 5-, and 15-minute averages at the start,
+  and the 1-minute one at the end; the 5- and 15-minute averages, and the end loads above 6, are
+  this measurement's own Rust and Vitest runs. The deleted source is `QuickAdd.stories.tsx`: Task
+  7's `DecisionCard.stories.tsx` is gone from main.
+
+  | Edit (budget: under 60 s)                  | Selected (as fast printed it)                                                     | Samples, s         | Median, s | Load at start (1/5/15 min), and at end                        | SC-002     |
+  | ------------------------------------------ | --------------------------------------------------------------------------------- | ------------------ | --------- | ------------------------------------------------------------- | ---------- |
+  | `Composer.tsx` comment                     | `ts:check`; focused Composer suite (1 file, 5 tests)                              | 14.4 / 14.6 / 14.6 | 14.6      | 2.0/2.2/3.5, 2.1; 2.1/2.3/3.5, 2.6; 2.6/2.4/3.5, 3.2          | met        |
+  | `NoteImage.tsx` comment (leaf)             | `ts:check`; no fast test imports it                                               | 11.1 / 12.3 / 12.3 | 12.3      | 3.2/2.5/3.5, 10.2; 5.6/3.7/3.9, 5.8; 5.6/3.8/3.9, 5.3         | met        |
+  | `__tests__/helpers.tsx` comment            | `ts:check`; none (legacy helper, deferred to ready)                               | 12.4 / 12.5 / 12.1 | 12.4      | 5.3/3.8/3.9, 4.8; 4.8/3.7/3.9, 4.3; 4.3/3.7/3.9, 4.5          | met        |
+  | `crates/core/src/settings.rs` comment      | `ts:check`, `binding:touch`, the core and its dependents (1,112 tests); contracts | 50.5 / 49.1 / 51.5 | 50.5      | 4.5/3.7/3.9, 38.1; 5.6/9.3/6.5, 41.2; 5.3/11.8/8.5, 50.3      | met        |
+  | `skills/uraeda/SKILL.md` line              | the core's chain as above, plus `specs:check`                                     | 49.5 / 51.7 / 51.2 | 51.2      | 5.3/14.6/11.0, 30.4; 5.7/14.1/11.8, 44.6; 5.2/14.6/13.0, 46.5 | met        |
+  | `binding/test-repos.ts` comment (fixture)  | `ts:check`, `binding:touch`; binding and consumers (44 files, 832 tests); no Rust | 57.6 / 59.5 / 57.1 | 57.6      | 5.9/16.0/14.5, 5.8; 5.8/14.2/14.0, 5.7; 5.7/12.6/13.4, 6.0    | met, 2.4 s |
+  | `binding/index.d.ts` comment (declaration) | `ts:check`, `binding:touch`; `contracts.test.ts` (5 tests)                        | 12.6 / 11.4 / 12.6 | 12.6      | 4.9/10.9/12.8, 10.6; 5.2/10.1/12.4, 4.8; 4.8/9.9/12.3, 4.7    | met        |
+  | `server/src/limits.ts` comment             | `ts:check`, `binding:touch`; server and consumers (44 files, 876 tests)           | 55.4 / 54.0 / 54.3 | 54.3      | 4.7/9.6/12.2, 5.9; 5.9/9.1/11.8, 6.1; 5.2/8.3/11.4, 5.6       | met        |
+  | deleted `QuickAdd.stories.tsx`             | `ts:check`; UI family (8 files, 41 tests)                                         | 13.3 / 14.4 / 13.0 | 13.3      | 5.6/7.8/11.0, 11.1; 5.3/7.7/10.8, 7.3; 6.0/7.7/10.7, 5.4      | met        |
+  | `README.md` line (docs)                    | `ts:check`, `specs:check`                                                         | 14.5 / 11.2 / 11.1 | 11.2      | 5.4/7.5/10.5, 5.0; 5.0/7.3/10.4, 11.3; 5.5/7.4/10.3, 5.0      | met        |
+  | `vite.config.ts` comment (root config)     | every family (79 files, 1,195 tests), `binding:touch`, the Rust workspace (1,112) | 89.4 / 73.6 / 76.8 | 76.8      | 5.0/7.3/10.2, 22.1; 5.5/11.1/11.6, 10.1; 5.4/10.0/11.3, 10.5  | no budget  |
+
+  Every run passed and deferred to ready: application journeys, browser phone and desktop,
+  production builds and package smoke, full workspace and editor checks.
+
+- **Rationale**: Revision 3 asks for the median of 3 warm runs while no other checkout runs checks;
+  R72's single samples, several under other checkouts' load, are superseded for SC-002 by these. The
+  fixture edit has the least margin (2.4 s): its selection grew from R72's 40 files and 766 tests to
+  44 files and 832, with main's new server and binding tests.
+- **Alternatives considered**: Narrowing a selection to widen a margin: removes protection, which
+  the spec forbids.
+- **If wrong**: a sample over a minute on a quiet machine names its edit; the fixture and
+  `limits.ts` edits will cross first as their families grow.
+- **Where**: `scripts/fast-check.ts`, `scripts/fast-selection.ts` (measured, unchanged).
+
+## R102: Two failures remain after the following fix, neither the race R80 found
+
+- **Decision**: No code changes, and no case loosened; both come back to the human (plan Task 8,
+  step 3).
+  1. **`US4.2–US4.4: scrolled up, Jump to the latest brings the end back, and the page follows it`
+     (phone)** failed 3 times in 80 whole-file runs under 22 to 24 busy loops (load 25 to 31), each
+     with `expected 346 to be +0` at its "keeps its position as lines arrive" assertion. Cause,
+     traced: the session page's end is 346 px down, so the case's "scrolled up 400 px" lands at the
+     top; then the transcript's `settled` callback (`Transcript.tsx`, called by `tail.tsx`'s
+     `useSettled` with the commit that first draws the tail's pieces) runs `openAtEnd` and scrolls
+     the window to the end, after the human scrolled up. Under load the tail's first draw comes
+     after the case's scroll. The same failure, with the same trace, comes on the unchanged hook (1
+     in 7 runs of the file's first two cases at load 27, against 1 in 27 and 1 in 42 with the fix):
+     it is not the following race and not caused by this task. It is a product behaviour: a page
+     that opens at its end scrolls there again once its tail draws, even if the human scrolled
+     meanwhile.
+  2. **`opening the line moves the place read, which the next width keeps` (desktop)** failed twice
+     with `expected 6.90625 to be less than 2`: once in 13 whole-file runs with the first version of
+     the fix, and once in the first full `ready:browser-desktop` run with the final one. It passed
+     55 whole-file runs and 2 more full project runs with the final fix, and 8 whole-file runs on
+     the unchanged hook; a trace of a passing run shows the hold inert there (the column held at its
+     own height, then let go on the scroll up). The cause is not found, and whether the fix changed
+     its rate is not known.
+- **Rationale**: Task 8 fixes the race the human decided; a remaining failure is reported, not
+  hidden by a longer wait or a retry.
+- **Alternatives considered**: For 1, making `settled` skip `openAtEnd` once the human has scrolled
+  since the page opened: a product change to how a page opens, which needs the same telling of the
+  human's scroll from the page's own; or scrolling the case up from a longer page, which hides a
+  real jump. For 2, none without a cause.
+- **If wrong**: 1 needs a human's decision on whether opening at the end may override a scroll made
+  before the tail drew. 2 needs a failing trace (the instrumented case is described in Task 8's
+  evidence) before any change.
+- **Where**: `packages/web/src/Transcript.tsx`, `packages/web/src/tail.tsx`,
+  `packages/web/src/__browser__/session.test.tsx`.
