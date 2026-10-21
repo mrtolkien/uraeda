@@ -38,11 +38,11 @@ Agents check their own work, and one command they cannot forget a part of keeps 
 ([the single command](../done/2026-10-10-stack-decision.md#q9-which-single-command-runs-every-check)).
 Running it after every task cost minutes each time, so a fast check takes that place and the single
 command guards the push
-([the two loops](../2026-10-19-fix-testing/clarifications-01.md#q3-should-an-agent-run-a-fast-command-after-each-task-and-the-full-check-only-before-pushing)).
+([the two loops](../done/2026-10-19-fix-testing.md#q3-should-an-agent-run-a-fast-command-after-each-task-and-the-full-check-only-before-pushing)).
 Relating every test through the whole app kept shared edits slow even after the suite shrank. The
 human chose focused and boundary checks locally, with broad application journeys and browser checks
 explicitly deferred to ready
-([the fast check's scope](../2026-10-19-fix-testing/clarifications-02.md#q2-may-the-fast-check-defer-broad-application-journeys-while-running-affected-focused-tests-and-boundary-checks)).
+([the fast check's scope](../done/2026-10-19-fix-testing.md#q2-may-the-fast-check-defer-broad-application-journeys-while-running-affected-focused-tests-and-boundary-checks)).
 Caching, parallel CI jobs, nextest, and no retries fix slow and failing CI runs at their cause
 ([what fails on CI](../done/2026-10-14-testing-review.md#q2-what-happens-when-a-test-fails-without-a-bug)).
 Worktrees share a machine, so runs must not collide. The
