@@ -18,11 +18,16 @@ function scroller(element: HTMLElement): HTMLElement | undefined {
   return undefined;
 }
 
+/** How far `box`, or the window without one, goes on past what it shows, in pixels. */
+function past(box?: HTMLElement) {
+  return box
+    ? box.scrollHeight - box.scrollTop - box.clientHeight
+    : document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+}
+
 /** Whether `box`, or the window without one, shows its end, within `AT_END`. */
 export function atEnd(box?: HTMLElement) {
-  return box
-    ? box.scrollHeight - box.scrollTop - box.clientHeight <= AT_END
-    : document.documentElement.scrollHeight - window.scrollY - window.innerHeight <= AT_END;
+  return past(box) <= AT_END;
 }
 
 /**
@@ -54,21 +59,99 @@ export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
  */
 export function keepsEnd(element: HTMLElement) {
   const box = scroller(element);
-  const past = box
-    ? box.scrollHeight - box.scrollTop - box.clientHeight
-    : document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
-  if (past - element.getBoundingClientRect().height <= AT_END) {
+  if (past(box) - element.getBoundingClientRect().height <= AT_END) {
     toEnd(box);
   }
 }
 
-/** Scrolls `box`, or the window without one, to its end. */
+/** Scrolls `box`, or the window without one, to its end, and says where that put it. */
 function toEnd(box: HTMLElement | undefined) {
   if (box) {
     box.scrollTo(0, box.scrollHeight);
-  } else {
-    window.scrollTo(0, document.documentElement.scrollHeight);
+    return box.scrollTop;
   }
+  window.scrollTo(0, document.documentElement.scrollHeight);
+  return window.scrollY;
+}
+
+/** Where `box`, or the window without one, is scrolled to. */
+function position(box: HTMLElement | undefined) {
+  return box ? box.scrollTop : window.scrollY;
+}
+
+/**
+ * Scrolls `box`, or the window without one, to its end, and says where that put it when it moved
+ * there: the browser then sends a scroll of its own, dispatched at its next rendering update.
+ */
+function movedToEnd(box: HTMLElement | undefined) {
+  const from = position(box);
+  const to = toEnd(box);
+  return to === from ? undefined : to;
+}
+
+/**
+ * Holds the height of a transcript's column, so that the page never ends above the bottom of the
+ * view: what leaves at the column's end leaves blank space instead of shortening the page under the
+ * view, which would move the position and send a scroll the human did not make. `following` says
+ * whether the human follows the end; `held` is the height held now, in pixels, and the new one is
+ * returned.
+ */
+function holdEnd(
+  column: HTMLElement,
+  box: HTMLElement | undefined,
+  following: boolean,
+  held: number | undefined,
+) {
+  const height = column.getBoundingClientRect().height;
+  // The column's height that keeps the page's end at the bottom of the view.
+  const view = height - Math.max(0, past(box));
+  // A column taller than what it holds: its content fills the space, and the hold does nothing.
+  const filled = held === undefined || height > held + 0.5;
+  // Following, the view's bottom is held; scrolled up, what is under the view goes, so the human's
+  // scroll up takes the blank space away.
+  const next = following ? view : filled ? undefined : Math.min(held, view);
+  const kept = next !== undefined && next > 0 ? next : undefined;
+  if (kept === held || (kept !== undefined && held !== undefined && Math.abs(kept - held) < 0.5)) {
+    return held;
+  }
+  const style = getComputedStyle(column);
+  // `min-height` sizes the content box, unless the column sizes its border box.
+  const frame =
+    style.boxSizing === "border-box"
+      ? 0
+      : ["paddingTop", "paddingBottom", "borderTopWidth", "borderBottomWidth"].reduce(
+          (sum, side) => sum + (Number.parseFloat(style[side as "paddingTop"]) || 0),
+          0,
+        );
+  column.style.minHeight = kept === undefined ? "" : `${kept - frame}px`;
+  return kept;
+}
+
+/**
+ * The column `useFollowEnd` holds the height of: `attach` names it once drawn, or none, letting the
+ * last one go; `hold` holds it as far as the human's place in `box` asks; and `release` lets it go,
+ * as the layout changes for another width.
+ */
+function useHeldEnd(box: RefObject<HTMLElement | undefined>, following: RefObject<boolean>) {
+  const column = useRef<HTMLElement | undefined>(undefined);
+  const held = useRef<number | undefined>(undefined);
+  const hold = useCallback(() => {
+    if (column.current) {
+      held.current = holdEnd(column.current, box.current, following.current, held.current);
+    }
+  }, [box, following]);
+  const release = useCallback(() => {
+    column.current?.style.removeProperty("min-height");
+    held.current = undefined;
+  }, []);
+  const attach = useCallback(
+    (element: HTMLElement | undefined) => {
+      release();
+      column.current = element;
+    },
+    [release],
+  );
+  return { attach, hold, release };
 }
 
 /**
@@ -76,23 +159,38 @@ function toEnd(box: HTMLElement | undefined) {
  * end: scrolled up, nothing moves. It scrolls the nearest element that scrolls on its own, or the
  * window. `following` says whether the human was at the end when they last scrolled, enabled or
  * not, and `jumpToLatest` brings them back there, following again.
+ *
+ * Only the human's scroll stops following. While they follow, the element's column (its parent,
+ * with what is drawn after the transcript, such as a session's banner) never gets shorter: what
+ * leaves at its end leaves blank space, until new content fills it or the human scrolls up. A page
+ * that got shorter under the view would move the position, and the browser dispatches that scroll
+ * only at its next rendering update, after the reply may have drawn: it would read as the human
+ * scrolling up. The hook's own scrolls are told by the position they set.
  */
 export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolean) {
   const [following, setFollowing] = useState(true);
   // Read by the observer between draws: the last position the human scrolled to, at the end or not.
   const followingNow = useRef(true);
   const box = useRef<HTMLElement | undefined>(undefined);
+  // The position the hook last moved the scroller to: the next scroll that finds it there is the
+  // hook's own, read late, and says nothing of where the human is.
+  const own = useRef<number | undefined>(undefined);
+  const { attach, hold, release } = useHeldEnd(box, followingNow);
   const width = useWidthClass();
   const drawn = useRef(width);
   // The positions are the human's again a frame after the layout for the width commits, once
   // `useKeepPlace` has put the place back: until then, the end the new layout's height clamps the
-  // window at is not one the human scrolled to.
+  // window at is not one the human scrolled to. A height held for the other width is not this one's.
   useLayoutEffect(() => {
+    if (drawn.current !== width) {
+      release();
+    }
     const frame = requestAnimationFrame(() => {
       drawn.current = width;
+      hold();
     });
     return () => cancelAnimationFrame(frame);
-  }, [width]);
+  }, [width, hold, release]);
 
   // Only a scroll sets whether the human follows: growing does not, so a message sent from the end
   // of an idle session keeps them following once the session works.
@@ -102,20 +200,31 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
       return;
     }
     box.current = scroller(element);
+    // The transcript itself when its parent is what scrolls: a scroller's own height is not held.
+    const parent = element.parentElement;
+    attach(parent && parent !== box.current ? parent : element);
     const read = () => {
       // A layout drawn for the other width class, as the window crosses the breakpoint: its
       // positions are not the human's, and `useKeepPlace` puts the place back.
       if (widthClassNow() !== drawn.current) {
         return;
       }
-      followingNow.current = atEnd(box.current);
-      setFollowing(followingNow.current);
+      const mine = position(box.current) === own.current;
+      own.current = undefined;
+      if (!mine) {
+        followingNow.current = atEnd(box.current);
+        setFollowing(followingNow.current);
+      }
+      hold();
     };
     read();
     const target = box.current ?? window;
     target.addEventListener("scroll", read, { passive: true });
-    return () => target.removeEventListener("scroll", read);
-  }, [ref]);
+    return () => {
+      target.removeEventListener("scroll", read);
+      attach(undefined);
+    };
+  }, [ref, attach, hold]);
 
   // Only a session at work scrolls: to its end as it starts working, and as it grows, and once more
   // as it stops, for what its end draws with it, as a banner that says why it needs the human.
@@ -124,7 +233,8 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
     const element = ref.current;
     const follow = () => {
       if (followingNow.current) {
-        toEnd(box.current);
+        own.current = movedToEnd(box.current) ?? own.current;
+        hold();
       }
     };
     if (!element || !enabled) {
@@ -139,12 +249,13 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
     const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(follow);
     observer?.observe(element);
     return () => observer?.disconnect();
-  }, [ref, enabled]);
+  }, [ref, enabled, hold]);
 
   const jumpToLatest = useCallback(() => {
     followingNow.current = true;
     setFollowing(true);
-    toEnd(box.current);
-  }, []);
+    own.current = movedToEnd(box.current) ?? own.current;
+    hold();
+  }, [hold]);
   return { following, jumpToLatest };
 }

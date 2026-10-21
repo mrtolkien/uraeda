@@ -5,13 +5,18 @@
 // width changes. US4.1–US4.4: scrolled up, "Jump to the latest" brings back the end, and the page
 // follows it again. The session view passes the layout checks at both sizes, in light and dark
 // (SC-004).
-// A chat whose last message has images opens at its end too, once they load.
-import { act, screen, within } from "@testing-library/react";
+// A chat whose last message has images opens at its end too, once they load. Round 03 Q2: a banner
+// that leaves at the end, and the scroll that comes after the reply, do not stop following.
+import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { createRef, type Ref, useImperativeHandle, useRef, useState } from "react";
 import { createFateClient } from "react-fate/client";
 import type { ChatImage } from "uraeda-server/fate";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
+import { useFollowEnd } from "../following.ts";
 import { sendMessage as sendTo } from "../sessions.ts";
 import {
   atRepo,
@@ -418,6 +423,152 @@ describe("on the phone", () => {
     expect(back.getAttribute("aria-expanded")).toBe("true");
     expect(await screen.findByRole("link", { name: "plan.md" }, LIVE)).toBeTruthy();
     await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
+  });
+});
+
+/**
+ * Holds every scroll event the browser dispatches from now on, until `text` draws in `log`, then
+ * dispatches the last of each target's, as a loaded browser does: a scroll queued as the page
+ * changes, a clamp's or the page's own, is dispatched only at the next rendering update, after the
+ * tasks that ran meanwhile. Released in the microtask after the draw, before any observer or frame.
+ * Returns how to stop holding, should the text never draw.
+ */
+function holdScrollsUntil(log: HTMLElement, text: string) {
+  const held = new Map<EventTarget, Event>();
+  const hold = (event: Event) => {
+    event.stopImmediatePropagation();
+    held.set(event.target!, event);
+  };
+  const stop = () => {
+    observer.disconnect();
+    window.removeEventListener("scroll", hold, { capture: true });
+  };
+  const observer = new MutationObserver(() => {
+    if (log.textContent?.includes(text)) {
+      stop();
+      for (const [target, event] of held) {
+        target.dispatchEvent(event);
+      }
+    }
+  });
+  window.addEventListener("scroll", hold, { capture: true });
+  observer.observe(log, { characterData: true, childList: true, subtree: true });
+  return stop;
+}
+
+/** What the case does to `Column`, each a draw of its own. */
+type ColumnControls = { leave: () => void; send: () => void; work: () => void };
+
+/**
+ * A transcript's column as the session page lays it out: the transcript, then a banner. `ref` takes
+ * the banner away, draws the human's message, and starts the session working.
+ */
+function Column({ ref }: { ref: Ref<ColumnControls> }) {
+  const log = useRef<HTMLDivElement>(null);
+  const [banner, setBanner] = useState(true);
+  const [sent, setSent] = useState(false);
+  const [working, setWorking] = useState(false);
+  const { following, jumpToLatest } = useFollowEnd(log, working);
+  useImperativeHandle(ref, () => ({
+    leave: () => setBanner(false),
+    send: () => setSent(true),
+    work: () => setWorking(true),
+  }));
+  return (
+    <>
+      <div>
+        <div ref={log}>
+          {lines(sent ? 70 : 60, "Line").map(({ text }) => (
+            <p key={text}>{text}</p>
+          ))}
+        </div>
+        {banner && (
+          <Banner
+            collapsible={false}
+            description="Read how it ended, then tell the agent how to go on."
+            status="error"
+            title="The run failed."
+          />
+        )}
+      </div>
+      {!following && <Button clickAction={jumpToLatest} label={JUMP} />}
+    </>
+  );
+}
+
+describe("on the phone, the end followed through a page that shortens", () => {
+  atSize("phone");
+
+  // Round 03 Q2: the failure banner leaves as the human sends, and the scroll that queues then is
+  // dispatched only once the reply has drawn. Only the human's scroll stops following.
+  test("idle at the end of a failed run, send, the scrolls dispatched after the reply: it stays in view", async () => {
+    const log = await openWorkingSession();
+    await agent.agentFinish();
+    await screen.findByText("The agent's run failed.", undefined, LIVE);
+    await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
+    await drawn();
+    const box = scroller();
+    box.scrollTo(0, box.scrollHeight);
+    await drawn();
+
+    const release = holdScrollsUntil(log, "Reply 10.");
+    try {
+      await sendMessage("Now the tests.");
+      await agent.agentAccept();
+      // The banner leaves, and what it queues is held while the reply comes.
+      await expect.poll(() => screen.queryByText("The agent's run failed."), LIVE).toBeNull();
+      await agent.agentEmit(lines(10, "Reply"));
+      const reply = await within(log).findByText("Reply 10.", undefined, LIVE);
+      await expect.poll(() => inView(reply), LIVE).toBe(true);
+      await drawn();
+      expect(inView(reply)).toBe(true);
+      expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+    } finally {
+      release();
+    }
+  });
+
+  // The same race through the layout's clamp: the banner leaves alone, the page shortens under the
+  // human at its end, and the reply draws before the browser dispatches the clamp's scroll. While the
+  // human follows, the page keeps its height: the banner leaves blank space, which the reply fills.
+  test("a banner that leaves at the end leaves its space, so the clamp's late scroll does not stop following", async () => {
+    document.body.innerHTML = "";
+    const column = createRef<ColumnControls>();
+    render(<Column ref={column} />);
+    try {
+      await drawn();
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await drawn();
+      const height = document.documentElement.scrollHeight;
+
+      // The banner leaves and the page is laid out: a shorter page clamps the position, and the
+      // browser queues a scroll, dispatched once the human's message has drawn below.
+      const release = holdScrollsUntil(screen.getByText("Line 60.").parentElement!, "Line 70.");
+      act(() => column.current!.leave());
+      const left = document.documentElement.scrollHeight;
+      act(() => column.current!.send());
+      await drawn();
+      release();
+      act(() => column.current!.work());
+      await drawn();
+
+      expect(screen.getByText("Line 70.").getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        window.innerHeight,
+      );
+      expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+      expect(left).toBe(height);
+      // Scrolled up by the human, it stops following, and Jump to the latest brings the end back.
+      window.scrollTo(0, 0);
+      const jump = await screen.findByRole("button", { name: JUMP }, LIVE);
+      // Pressed where it is: below the column here, a pointer would scroll to it first.
+      act(() => jump.click());
+      await expect.poll(() => screen.queryByRole("button", { name: JUMP }), LIVE).toBeNull();
+      expect(screen.getByText("Line 70.").getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        window.innerHeight,
+      );
+    } finally {
+      cleanup();
+    }
   });
 });
 
