@@ -16,6 +16,8 @@ const rootConfig = [
   "vite.config.ts",
   "vite.tasks.ts",
   "scripts/test-policy.ts",
+  "scripts/test-shard.ts",
+  "scripts/test-weights.json",
   "tsconfig.json",
   "tsconfig.base.json",
   ...toolchainInputs,

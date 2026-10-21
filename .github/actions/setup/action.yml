@@ -8,9 +8,10 @@ runs:
     - uses: cachix/install-nix-action@v31
     - uses: Swatinem/rust-cache@v2
       with:
-        # One cache for every job, saved from `main` only: pull requests reuse it and never evict it.
-        shared-key: ci
-        save-if: ${{ github.ref == 'refs/heads/main' }}
+        # One cache per job, shared by its shards: each job builds other crates (the binding's napi,
+        # clippy's, release's), and one cache for all held only the first job to save's. Saved by
+        # pull requests too, which read their own and `main`'s, so a branch's runs reuse its builds.
+        shared-key: ci-${{ github.job }}
 
     - name: Install dependencies
       # Without scripts: `prepare` runs `vp config`, which sets up git hooks and rewrites the
