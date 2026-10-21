@@ -947,3 +947,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the case fails again after the jump; trace the scrolls after the jump with
   `useFollowEnd`'s `read` and `settled` logged, as here.
 - **Where**: `packages/web/src/Transcript.tsx`, `packages/web/src/following.ts`.
+
+## R120: CI splits its test groups over balanced shards, and caches each job's Rust build
+
+- **Cause, measured**:
+  [run 39575088228](https://github.com/mrtolkien/uraeda/actions/runs/39575088228) took 16 min 48 s.
+  Each job spent about 1.5 minutes on setup (Nix, the dev shell's Rust toolchain built from its
+  tarballs, pnpm) and a minute building the binding, whose napi dependencies were never in the Rust
+  cache: one cache, `ci`, held whichever job saved first, which built none of them. Then one job ran
+  each whole group: the TypeScript tests took 13.4 minutes on 4 workers beside the type check and
+  the Storybook build (`review.test.tsx` alone 350 s under that load, 76 s on a runner of its own),
+  the desktop browser tests 10 minutes and the phone's 6.3, one file at a time.
+- **Fix**: `ts:test` leaves `ready:typescript` for a group of its own, `ready:ts-test`, so `ready`
+  runs the same checks. CI runs the TypeScript tests in 7 jobs, the desktop browser tests in 5 and
+  the phone's in 3, each a Vitest `--shard` set by `URAEDA_TEST_SHARD` (`vite.tasks.ts`); unset,
+  every test runs. `scripts/test-shard.ts` balances the shards by each file's seconds on CI
+  (`scripts/test-weights.json`, the mean of three runs; a file missing there weighs 5 s), so the
+  long `layout` browser files have a shard to themselves, where Vitest's hash put them with others.
+  The toolchain test checks that each sharded job's matrix lists every shard from 1 to its count,
+  and the sequencer's test that the shards together hold every file once. The Rust cache is one per
+  job (`ci-<job>`), shared by its shards, and saved by pull requests too. 19 jobs: a free plan runs
+  20 at once. No check is dropped, nothing is retried, and Vite Task's cache stays off.
+- **Timings**: before, run 39575088228: typescript 16:45, browser-desktop 12:52, browser-phone 9:14,
+  rust 4:03, neovim 3:01, release 3:01. After,
+  [run 39581253686](https://github.com/mrtolkien/uraeda/actions/runs/39581253686), green, 4 min 58 s
+  in all: ts-test 3:12 to 4:55, browser-desktop 3:31 to 4:42, browser-phone 4:10 to 4:50, typescript
+  2:42, rust 3:25, neovim 2:49, release 2:38.
+- **What changes for a user**: none; a pull request's checks finish in 5 minutes instead of 17.
+- **If wrong**: the margin is thin, a few seconds on the slowest shards: a run over 5 minutes needs
+  more shards (the 20-job limit allows one more), weights measured again from a run's report, or a
+  Nix store cache for the setup's minute and a half. A file's weight going stale only unbalances the
+  shards; it never drops a test.
+- **Where**: `.github/workflows/ci.yml`, `.github/actions/setup/action.yml`, `vite.tasks.ts`,
+  `vite.config.ts`, `scripts/test-shard.ts`, `scripts/test-weights.json`,
+  `scripts/fast-selection.ts`, `packages/server/src/__tests__/toolchain.test.ts`.
