@@ -1044,3 +1044,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Evidence**: before, 2 of 3 runs of the file failed under `taskset -c 0,1` with one busy loop;
   waiting for "Idle" alone still failed 2 of 18; with the settled wait, 20 of 20 passed.
 - **Where**: `packages/web/src/__browser__/session-tail.test.tsx`.
+
+## R125: The tail's Back and reload cases count what the press drew, not a fixed 40 and 60
+
+- **Decision**: In `packages/web/src/__browser__/session-tail.test.tsx`, `readFarBack` expects each
+  press of "Show earlier messages" to draw as many lines as were drawn, and 20 more, the rule the
+  tail (`packages/web/src/tail.tsx`) applies, and the Back and reload cases expect that same count
+  drawn again, instead of the fixed 40 and 60. Their position assertions are unchanged.
+- **Cause**: a hosted run of `f2bb07da` failed "Back after two presses draws 60 messages again, at
+  the same position" with `expected 41 to be 40` after the first press: under load the tail held one
+  more piece at the press, and the press drew 20 more than that, as its rule says. The guarantee
+  under test is that Back and a reload draw as many again, at the same place.
+- **Evidence**: 15 of 15 runs of the file passed under the two-core pinned load (R124's method).
+- **Where**: `packages/web/src/__browser__/session-tail.test.tsx`.

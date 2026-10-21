@@ -83,24 +83,27 @@ test("US1.2: Show earlier messages keeps the message read at the same place on t
 /** Presses "Show earlier messages" twice, and reads message 30 of the 60 drawn, saved as the place. */
 async function readFarBack() {
   const log = await openSessionOf(100);
-  for (const count of [40, 60]) {
+  for (let press = 0; press < 2; press++) {
     const button = within(log).getByRole("button", EARLIER);
     button.scrollIntoView({ block: "center" });
     await drawn();
+    // A press draws as many as are drawn, and 20 more.
+    const count = drawnLines(log).length + 20;
     await userEvent.click(button);
     await expect.poll(() => drawnLines(log).length, LIVE).toBe(count);
     await drawn();
   }
+  const shown = drawnLines(log).length;
   const reading = drawnLines(log)[30]!;
   window.scrollTo(0, Math.round(window.scrollY + reading.getBoundingClientRect().top - 200));
   await drawn();
   // The page saves its position as the human scrolls, not at once.
   await new Promise((resolve) => setTimeout(resolve, 700));
-  return Math.round(window.scrollY);
+  return { position: Math.round(window.scrollY), shown };
 }
 
 test("Back after two presses draws 60 messages again, at the same position", async () => {
-  const position = await readFarBack();
+  const { position, shown } = await readFarBack();
 
   // The page opens from where it is read, as a link there would: the click on one scrolls first.
   await act(async () => navigate(atRepo(`/f/${CLI}`)));
@@ -109,18 +112,18 @@ test("Back after two presses draws 60 messages again, at the same position", asy
   await act(async () => window.history.back());
   await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
   const again = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-  await expect.poll(() => drawnLines(again).length, LIVE).toBe(60);
+  await expect.poll(() => drawnLines(again).length, LIVE).toBe(shown);
   await drawn();
 
   await expect.poll(() => Math.round(window.scrollY), LIVE).toBe(position);
 });
 
 test("a reload draws 60 messages again, at the same position", async () => {
-  const position = await readFarBack();
+  const { position, shown } = await readFarBack();
 
   await reload("CLI TUIs");
   const again = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-  await expect.poll(() => drawnLines(again).length, LIVE).toBe(60);
+  await expect.poll(() => drawnLines(again).length, LIVE).toBe(shown);
   await drawn();
 
   await expect.poll(() => Math.round(window.scrollY), LIVE).toBe(position);
