@@ -163,6 +163,35 @@ function notInCi(tasks: Record<string, Task>, ci: string): Array<string> {
     );
 }
 
+/**
+ * The CI jobs whose Vitest slices, `URAEDA_TEST_SHARD: ${{ matrix.shard }}/<count>`, do not add up to
+ * the whole run: the job's matrix MUST list every shard from 1 to the count, once, so the union of
+ * its jobs runs every test of its group.
+ */
+function partialShards(ci: string): Array<string> {
+  const code = uncommented("ci.yml", ci);
+  const jobs = code.split(/^ {2}(?=[\w-]+:\s*$)/m).slice(1);
+  return jobs.flatMap((job) => {
+    const name = /^([\w-]+):/.exec(job)?.[1] ?? "?";
+    if (!/URAEDA_TEST_SHARD/.test(job)) {
+      return [];
+    }
+    const count = /URAEDA_TEST_SHARD:\s*["']?\$\{\{\s*matrix\.shard\s*\}\}\/(\d+)["']?\s*$/m.exec(
+      job,
+    )?.[1];
+    const listed = /^\s*shard:\s*\[([^\]]*)\]\s*$/m
+      .exec(job)?.[1]
+      .split(",")
+      .map((entry) => Number(entry.trim()));
+    const whole = count ? Array.from({ length: Number(count) }, (_, index) => index + 1) : [];
+    return count && listed && listed.join() === whole.join()
+      ? []
+      : [
+          `CI's \`${name}\` job runs a slice of its tests: set \`URAEDA_TEST_SHARD: \${{ matrix.shard }}/<count>\` and list every shard, \`shard: [1, …, <count>]\`, in its matrix.`,
+        ];
+  });
+}
+
 /** nextest's configuration, CI's workflow, the root's Vitest config, and each package's. */
 function runnerConfigs(): Record<string, string> {
   const packages = readdirSync(join(ROOT, "packages"), { withFileTypes: true })
@@ -601,6 +630,31 @@ test("CI runs every group of ready", () => {
   expect(
     notInCi(readyGroups(), readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8")),
   ).toEqual([]);
+});
+
+/** A CI job split over the shards listed, of `count` in all. */
+const shardedJob = (shards: string, count: number) => `jobs:
+  ts-test:
+    strategy:
+      matrix:
+        shard: [${shards}]
+    env:
+      URAEDA_TEST_SHARD: \${{ matrix.shard }}/${count}
+    steps:
+      - run: nix develop --command pnpm exec vp run --no-cache ready:ts-test
+`;
+
+test("a CI job whose shards miss a slice of its tests is reported", () => {
+  expect(partialShards(shardedJob("1, 2, 3", 3))).toEqual([]);
+  expect(partialShards(shardedJob("1, 2", 3))).toHaveLength(1);
+  expect(partialShards(shardedJob("1, 2, 3, 4", 3))).toHaveLength(1);
+  expect(
+    partialShards("jobs:\n  ts-test:\n    env:\n      URAEDA_TEST_SHARD: 1/2\n    steps: []\n"),
+  ).toHaveLength(1);
+});
+
+test("CI's sharded jobs each run every slice of their tests", () => {
+  expect(partialShards(readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8"))).toEqual([]);
 });
 
 test("a job name or echo naming a ready task does not count as running it", () => {
