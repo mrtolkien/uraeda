@@ -108,7 +108,7 @@ test("a comment on a variant joins the question's answer, on a line of its own (
   await userEvent.click(q2Comment());
   await userEvent.keyboard("Keep it visible.");
   await userEvent.keyboard("{Control>}{Enter}{/Control}");
-  await expect.poll(() => commands.readRepo(ROUND_FILE)).toContain("B: Keep it visible.");
+  await expect.poll(() => commands.readRepo(ROUND_FILE), READY).toContain("B: Keep it visible.");
   await userEvent.type(q2Comment(), " Not sent yet.");
 
   const grip = screen.getByRole("figure", { name: "Grip" });
