@@ -981,3 +981,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `.github/workflows/ci.yml`, `.github/actions/setup/action.yml`, `vite.tasks.ts`,
   `vite.config.ts`, `scripts/test-shard.ts`, `scripts/test-weights.json`,
   `scripts/fast-selection.ts`, `packages/server/src/__tests__/toolchain.test.ts`.
+
+## R121: The first answer write in a variant comment case waits as its siblings do
+
+- **Decision**: In `packages/web/src/__browser__/story-variants.test.tsx`, "a comment on a variant
+  joins the question's answer, on a line of its own (US3.2)", the first poll of the round file after
+  sending the comment waits up to the suite's `READY` bound (20 s, every 100 ms) instead of Vitest's
+  default 5 s. The assertion is unchanged.
+- **Rationale**: It failed once on a hosted desktop shard and once in a local `ready` under load,
+  `Matcher did not succeed in time`, and passed alone 3 of 3. It waits for the same git write of the
+  same file as the case's later poll, which already uses `READY`: the 5 s default was the only bound
+  in the file tighter than the write it waits for. The case guards a real write, so it stays.
+- **Timeout change**: 5 s to 20 s, this poll only.
+- **If wrong**: a write that takes more than 5 s on an idle machine would now pass; the later poll
+  and the commit-history cases still bound it.
+- **Where**: `packages/web/src/__browser__/story-variants.test.tsx`.
