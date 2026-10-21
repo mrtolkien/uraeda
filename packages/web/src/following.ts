@@ -1,6 +1,14 @@
 // Following a session's transcript: it opens at its end, and keeps its end in view as it grows
 // while the human is there.
-import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 import { currentEntry } from "./routes.tsx";
 
@@ -41,10 +49,13 @@ export function openAtEnd(element: HTMLElement) {
   toEnd(scroller(element));
 }
 
-/** `openAtEnd`, as the page opens. */
-export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
+/**
+ * `openAtEnd`, as the page opens, unless `away` says the human scrolled away from the end while it
+ * waited for its data (R110).
+ */
+export function useOpenAtEnd(ref: RefObject<HTMLElement | null>, away?: ScrolledAway) {
   useLayoutEffect(() => {
-    if (ref.current) {
+    if (ref.current && !away?.isAway()) {
       openAtEnd(ref.current);
     }
     // Once, as the view opens.
@@ -64,14 +75,79 @@ export function keepsEnd(element: HTMLElement) {
   }
 }
 
+/** Where each scroller, or the window, was last moved to its end, by `toEnd`. */
+const ownEnds = new WeakMap<EventTarget, number>();
+
 /** Scrolls `box`, or the window without one, to its end, and says where that put it. */
 function toEnd(box: HTMLElement | undefined) {
   if (box) {
     box.scrollTo(0, box.scrollHeight);
-    return box.scrollTop;
+  } else {
+    window.scrollTo(0, document.documentElement.scrollHeight);
   }
-  window.scrollTo(0, document.documentElement.scrollHeight);
-  return window.scrollY;
+  const at = position(box);
+  ownEnds.set(box ?? window, at);
+  return at;
+}
+
+/**
+ * Whether the human scrolled away from the end of a session's page before its log drew: `isAway`
+ * says it once the session is watched, and `settle` stops watching, as the log draws.
+ */
+export type ScrolledAway = { isAway: () => boolean; settle: () => void };
+
+/**
+ * Whether the human scrolled away from the end of the page that `ref`'s element is in, for the
+ * `session` it shows, from the moment the page shows it until the session's log draws and settles
+ * it (R110). Kept outside the log, which waits for its data, so that a scroll made meanwhile counts;
+ * once the log draws, its own following says where the human is, and this stops reading scrolls. A
+ * log that draws in the same commit as its session opens, before the session is watched, finds the
+ * human not away. The last scroll says: one that leaves the page short of its end, away; one at the
+ * end, not. The first scroll that finds the page where it opened, as a link's move to the top, and
+ * any that finds it where a move to the end put it, are the page's own, read late, maybe after the
+ * page grew under it, and say nothing.
+ */
+export function useScrolledAway(
+  ref: RefObject<HTMLElement | null>,
+  session: string | undefined,
+): ScrolledAway {
+  const away = useRef(false);
+  const stop = useRef<() => void>(() => {});
+  const settled = useRef<string | undefined>(undefined);
+  const watched = useRef<string | undefined>(undefined);
+  useLayoutEffect(() => {
+    away.current = false;
+    watched.current = undefined;
+    if (!ref.current || session === undefined || settled.current === session) {
+      return;
+    }
+    watched.current = session;
+    const box = scroller(ref.current);
+    const target = box ?? window;
+    let opened: number | undefined = position(box);
+    const read = () => {
+      const at = position(box);
+      const own = at === opened || at === ownEnds.get(target);
+      // Only the first scroll can be the opening's, read late.
+      opened = undefined;
+      if (!own) {
+        away.current = !atEnd(box);
+      }
+    };
+    target.addEventListener("scroll", read, { passive: true });
+    stop.current = () => target.removeEventListener("scroll", read);
+    return () => stop.current();
+  }, [ref, session]);
+  return useMemo(
+    () => ({
+      isAway: () => watched.current === session && away.current,
+      settle: () => {
+        settled.current = session;
+        stop.current();
+      },
+    }),
+    [session],
+  );
 }
 
 /** Where `box`, or the window without one, is scrolled to. */
@@ -158,7 +234,8 @@ function useHeldEnd(box: RefObject<HTMLElement | undefined>, following: RefObjec
  * Keeps the end of an element in view as it grows, while `enabled` and while the human is at the
  * end: scrolled up, nothing moves. It scrolls the nearest element that scrolls on its own, or the
  * window. `following` says whether the human was at the end when they last scrolled, enabled or
- * not, and `jumpToLatest` brings them back there, following again.
+ * not, `isFollowing` says it between draws, and `jumpToLatest` brings them back there, following
+ * again.
  *
  * Only the human's scroll stops following. While they follow, the element's column (its parent,
  * with what is drawn after the transcript, such as a session's banner) never gets shorter: what
@@ -257,5 +334,7 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
     own.current = movedToEnd(box.current) ?? own.current;
     hold();
   }, [hold]);
-  return { following, jumpToLatest };
+  // Read between draws, as the transcript's tail first draws (R110).
+  const isFollowing = useCallback(() => followingNow.current, []);
+  return { following, isFollowing, jumpToLatest };
 }

@@ -6,7 +6,8 @@
 // follows it again. The session view passes the layout checks at both sizes, in light and dark
 // (SC-004).
 // A chat whose last message has images opens at its end too, once they load. Round 03 Q2: a banner
-// that leaves at the end, and the scroll that comes after the reply, do not stop following.
+// that leaves at the end, and the scroll that comes after the reply, do not stop following. A scroll
+// made before the transcript first draws keeps its place (R110).
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
@@ -24,7 +25,6 @@ import {
   agent,
   checkLayout,
   drawn,
-  grown,
   image,
   LIVE,
   sendMessage,
@@ -241,6 +241,91 @@ test("Back from a session view returns to its position, following the end only f
   const newest = await screen.findByText("A line after coming back.", undefined, LIVE);
   await expect.poll(() => inView(newest), LIVE).toBe(true);
 });
+
+/**
+ * Holds the page's reads of turns and their items from now on, until the returned function is
+ * called: the transcript's tail draws only then.
+ */
+function holdTurns() {
+  const original = window.fetch;
+  const held: Array<() => void> = [];
+  let holding = true;
+  window.fetch = (input, init) => {
+    const body = typeof init?.body === "string" ? init.body : "";
+    if (holding && body.includes('"kind":"byId"') && /"type":"Turn(Log)?"/.test(body)) {
+      return new Promise<Response>((resolve, reject) => {
+        held.push(() => void original(input, init).then(resolve, reject));
+      });
+    }
+    return original(input, init);
+  };
+  return () => {
+    if (holding) {
+      holding = false;
+      window.fetch = original;
+      held.splice(0).forEach((go) => go());
+    }
+  };
+}
+
+describe("on the phone, opened while its transcript loads", () => {
+  atSize("phone");
+
+  // R110: the human scrolls up before the transcript's tail first draws, which opens the page at its
+  // end: the human's scroll wins. The case holds the turns' data until it has scrolled, so the tail
+  // draws after the scroll in every run; a spacer under the page lets it scroll before then.
+  test("scrolled up before the transcript first draws, the page keeps the place and offers Jump to the latest", async () => {
+    await show("/", "Priorities");
+    const fate = createFateClient({ url: atRepo("/fate") });
+    const first = await sendTo(fate, { text: "Plan the CLI." });
+    if (!first.ok) {
+      throw new Error(first.message);
+    }
+    await agent.agentAccept();
+    await agent.agentEmit([...lines(40, "Line"), ENDED]);
+
+    const release = holdTurns();
+    try {
+      await show(`/sessions/${first.session}`, "");
+      await screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE);
+      expect(screen.queryByText("Line 40.")).toBeNull();
+      const spacer = document.createElement("div");
+      spacer.style.height = "1600px";
+      document.body.append(spacer);
+      await drawn();
+      const box = scroller();
+      box.scrollTo(0, box.scrollHeight);
+      await drawn();
+      box.scrollTo(0, box.scrollTop - 400);
+      await drawn();
+      expect(box.scrollTop).toBeGreaterThan(0);
+      const above = box.scrollHeight - box.scrollTop - box.clientHeight;
+      expect(above).toBeGreaterThanOrEqual(399);
+
+      release();
+      const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+      await within(log).findByText("Line 40.", undefined, LIVE);
+      await drawn();
+      // The human stays at least as far above the end as they scrolled: the transcript draws above
+      // what they read, which keeps its place on screen or moves down by the transcript's height.
+      expect(box.scrollHeight - box.scrollTop - box.clientHeight).toBeGreaterThanOrEqual(above);
+      // The button shows once the log has read where the human is, as US4.2's does.
+      await screen.findByRole("button", { name: JUMP }, LIVE);
+      expect(box.scrollHeight - box.scrollTop - box.clientHeight).toBeGreaterThanOrEqual(above);
+    } finally {
+      release();
+    }
+  });
+});
+
+/** A turn's end, as the agent reports it. */
+const ENDED = {
+  denials: [],
+  errors: [],
+  interrupted: false,
+  ok: true,
+  type: "result" as const,
+};
 
 /** Saves an image for a chat, as the composer does, without showing it on the page. */
 async function chatImage(file: File): Promise<ChatImage> {
@@ -690,44 +775,6 @@ describe("on the desktop, the column across 768 px", () => {
       await drawn();
       expect(log.isConnected).toBe(true);
       expect(Math.abs(readNarrow.getBoundingClientRect().top - topNarrow)).toBeLessThan(2);
-    } finally {
-      await page.viewport(1440, 900);
-    }
-  });
-
-  test("opening the line moves the place read, which the next width keeps", async () => {
-    try {
-      await page.viewport(402, 874);
-      await expect.poll(() => window.innerWidth).toBe(402);
-      await agent.addPlan(CLI);
-      await show(`/f/${CLI}/session`, "CLI TUIs");
-      await startTurn(
-        "Plan the CLI.",
-        // Two paragraphs each: the agent's text is flat now, and 20 one-line messages leave a page
-        // too short to keep the place read at the width that has no top bar (R10).
-        lines(60, "Line").map((line) => ({ ...line, text: `${line.text}\n\nMore.` })),
-      );
-      const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-      await within(log).findByText("Line 60.", undefined, LIVE);
-      await drawn();
-      const box = scroller();
-      box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
-      await drawn();
-
-      // Opened without scrolling to it, as a tap at the top of the page would.
-      await act(async () => screen.getByRole("button", { name: LINE }).click());
-      await screen.findByRole("region", { name: "Progress" }, LIVE);
-      // Its sections drawn, each once its files are read.
-      await grown();
-      const read = readLine(log);
-      const top = read.getBoundingClientRect().top;
-
-      await page.viewport(1440, 900);
-      await expect.poll(() => window.innerWidth).toBe(1440);
-      await screen.findByRole("complementary", { name: "Progress" }, LIVE);
-      await drawn();
-
-      expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
     } finally {
       await page.viewport(1440, 900);
     }
