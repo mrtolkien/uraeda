@@ -3,7 +3,16 @@ import { Link } from "@astryxdesign/core/Link";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
@@ -22,7 +31,7 @@ import { SessionHeader } from "./SessionHeader.tsx";
 import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
 import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
-import { useFollowEnd, useOpenAtEnd } from "./following.ts";
+import { type ScrolledAway, useFollowEnd, useOpenAtEnd, useScrolledAway } from "./following.ts";
 import { type AsideShown, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Attention } from "./SessionAttention.tsx";
@@ -84,6 +93,7 @@ function Missing({ title }: { title: string }) {
  * reads above its end, it gives the pane the jump back to the latest.
  */
 function SessionLog({
+  away,
   controls: { allow, error, rename },
   crumbs,
   draft,
@@ -91,6 +101,8 @@ function SessionLog({
   item,
   onJump,
 }: {
+  /** Whether the human scrolled away from the end before the transcript drew. */
+  away?: ScrolledAway;
   /** What the pane's controls hold: the composer shares them. */
   controls: Controls;
   crumbs?: string | undefined;
@@ -106,8 +118,15 @@ function SessionLog({
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
   const working = session?.status === "working";
-  useOpenAtEnd(log);
-  const { following, jumpToLatest } = useFollowEnd(log, working);
+  useOpenAtEnd(log, away);
+  // Drawn: the log's following says where the human is from now on.
+  useLayoutEffect(() => away?.settle(), [away]);
+  const { following, isFollowing, jumpToLatest } = useFollowEnd(log, working);
+  // As the tail first draws: away if the human scrolled away before the log drew, or since.
+  const awayAtTail = useCallback(
+    () => (away?.isAway() ?? false) || !isFollowing(),
+    [away, isFollowing],
+  );
   useKeepPlace(log);
   useEffect(() => {
     onJump?.(following ? undefined : jumpToLatest);
@@ -145,6 +164,7 @@ function SessionLog({
         >
           <OffersProvider kind={kind} session={offering} turns={session.turns}>
             <Transcript
+              away={awayAtTail}
               canAllow={!working}
               groups={groups}
               onAllow={allow}
@@ -213,6 +233,8 @@ function SessionPane({
   const session = useSessionRecord(id);
   const controls = useSessionControls(id, session);
   const composer = useRef<HTMLDivElement>(null);
+  // Kept by the pane, which the transcript's data does not wait for.
+  const away = useScrolledAway(composer, id);
   const [jump, setJump] = useState<() => void>();
   if (session === null) {
     return (
@@ -236,6 +258,7 @@ function SessionPane({
           // it is read. The transcript waits for it: a page shows one log.
           <Suspense fallback={title === undefined ? null : <SessionHeader title={title} />}>
             <SessionLog
+              away={away}
               controls={controls}
               crumbs={crumbs}
               draft={draft}

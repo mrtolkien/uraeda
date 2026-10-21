@@ -20,18 +20,24 @@ const styles = stylex.create({
   },
 });
 
+/** For a transcript whose page does not tell the human's scroll: it opens at its end. */
+const neverAway = () => false;
+
 /**
  * The latest messages of a session's turns in order, named "Conversation", kept up to date while
  * it goes on. The address's `#turn-<id>` scrolls to its turn once drawn. `onAllow` allows a blocked action, while
  * `canAllow`.
  */
 export function Transcript({
+  away = neverAway,
   canAllow = true,
   groups,
   onAllow,
   onTakenBack,
   session,
 }: {
+  /** Whether the human scrolled away from the end before the tail first drew. */
+  away?: () => boolean;
   canAllow?: boolean;
   groups?: OpenKeys;
   onAllow?: (turn: string, seq: number) => Promise<void>;
@@ -46,18 +52,19 @@ export function Transcript({
     list.current?.setAttribute("aria-live", "off");
   }, []);
   // The tail drew: scrolls to the turn the address names, else to where Back left the page, else to
-  // the end.
+  // the end, unless the human scrolled away from it meanwhile (R110).
   const settled = useCallback(() => {
+    const scrolledAway = away();
     const { hash } = window.location;
     const { scroll } = currentEntry();
     if (hash.startsWith("#turn-")) {
       document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: "start" });
     } else if (typeof scroll === "number") {
       window.scrollTo(0, scroll);
-    } else if (list.current) {
+    } else if (list.current && !scrolledAway) {
       openAtEnd(list.current);
     }
-  }, []);
+  }, [away]);
   const actions: Actions = {
     canAllow,
     canTakeBack: Boolean(agent?.capabilities.takeBack),

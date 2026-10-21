@@ -823,6 +823,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 ## R102: Two failures remain after the following fix, neither the race R80 found
 
+- **Status (2026-10-21)**: both settled by the human's decisions in the session chat. Item 1 is
+  resolved by
+  [R110](#r110-a-scroll-made-before-the-transcript-first-draws-wins-over-opening-at-the-end): the
+  human's scroll wins over opening at the end. Item 2 is removed by the human's decision ("not
+  important"; "drop flaky tests that don't test important behaviour"): see
+  [R111](#r111-the-desktop-progress-line-width-case-is-removed).
 - **Decision**: No code changes, and no case loosened; both come back to the human (plan Task 8,
   step 3).
   1. **`US4.2–US4.4: scrolled up, Jump to the latest brings the end back, and the page follows it`
@@ -855,3 +861,56 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   evidence) before any change.
 - **Where**: `packages/web/src/Transcript.tsx`, `packages/web/src/tail.tsx`,
   `packages/web/src/__browser__/session.test.tsx`.
+
+## R110: A scroll made before the transcript first draws wins over opening at the end
+
+- **Decision**: By the human's decision in the session chat on 2026-10-21, a page that opens at its
+  end no longer scrolls there once its tail draws when the human scrolled away meanwhile. A new
+  hook, `useScrolledAway` in `SessionPane` (`SessionPage.tsx`), watches the scrolls of each session
+  until its log draws, not counting the page's own moves (to the end, or the first scroll found
+  where the page opened). `useOpenAtEnd` and the transcript's `settled` callback (`Transcript.tsx`)
+  skip opening at the end when the human scrolled away; after the log draws, `settled` reads the
+  log's own following state, which `useFollowEnd` (`following.ts`) now also returns as
+  `isFollowing`. Back, reload, and a `#turn-` link still take precedence. The forcing case,
+  "scrolled up before the transcript first draws, the page keeps the place and offers Jump to the
+  latest" (phone), holds the page's Turn and TurnLog requests with its own gate, scrolls up 400 px
+  from the end, then releases them: on the unchanged code it failed 5 of 5 runs with
+  `expected 0 to be greater than or equal to 400`, and it passes with the fix, including all 40 runs
+  of the batch below.
+- **For a user**: a session opened while its log is still loading keeps the place the human scrolled
+  to, and offers "Jump to the latest", instead of jumping to the end when the log arrives. A session
+  opened without a scroll still opens at its end; Back, reload, and links keep the place as before.
+- **Evidence**: the phone session file passed 39 of 40 whole-file runs under 22 busy loops (load 4.8
+  on the first run, 16 to 34 after); it passed 3 of 3 at normal load, and the desktop session file 8
+  of 8. A first version that kept watching after the log drew made the desktop case "opening the
+  line moves the place read, which the next width keeps" fail 5 to 7 runs in 8; the watch now stops
+  once the log draws, and that case passed 8 of 8, as on today's code.
+- **Open, accepted by the human (2026-10-21, "commit and move on")**: the one failing run (run 25,
+  load 28) was `US4.2–US4.4` timing out after "Jump to the latest": the next line, "A line after the
+  jump.", never came into view. Its cause is not traced; a guess is a following race under load that
+  the late `openAtEnd` used to hide by scrolling to the end afterwards. An earlier version of the
+  fix failed the same way twice in 40 runs. The pull request names it.
+- **Alternatives considered**: keeping opening at the end over the human's scroll and making the
+  case wait for the tail's first draw, which the human declined; tracing the failure after the jump
+  before committing, which the human declined for now.
+- **If wrong**: trace the failure after the jump from `r110-load.txt.25.log`'s run with the
+  instrumented case; a page that must open at its end over an early scroll needs the human's
+  decision again.
+- **Where**: `packages/web/src/following.ts`, `packages/web/src/SessionPage.tsx`,
+  `packages/web/src/Transcript.tsx`, `packages/web/src/__browser__/session.test.tsx`.
+
+## R111: The desktop progress-line width case is removed
+
+- **Decision**: `opening the line moves the place read, which the next width keeps` (desktop) is
+  removed from `packages/web/src/__browser__/session.test.tsx`, by the human's decision in the
+  session chat on 2026-10-21: flaky tests that do not guard important behaviour are dropped, not
+  investigated.
+- **Rationale**: It failed with `expected 6.90625 to be less than 2` with no cause found (R102 item
+  2). Its guarantee, that a width change keeps the line read, is asserted in both directions by the
+  case just before it, which stays; the removed case only adds opening the progress line first and a
+  2 px tolerance.
+- **Retained guarantee**: the [UI layout](../decisions/ui-layout.md) rule that a width change keeps
+  the open detail and the place read, by the preceding case and the `__browser__/layout` cases.
+- **If wrong**: a regression that moves the read line only after the progress line opens goes unseen
+  until a layout case catches it.
+- **Where**: `packages/web/src/__browser__/session.test.tsx`.
