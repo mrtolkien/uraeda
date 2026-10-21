@@ -1,6 +1,6 @@
 import { ChatMessageList } from "@astryxdesign/core/Chat";
 import * as stylex from "@stylexjs/stylex";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatImage } from "uraeda-server/fate";
 import { useAgent } from "./data.ts";
 import { openAtEnd } from "./following.ts";
@@ -51,20 +51,24 @@ export function Transcript({
   useEffect(() => {
     list.current?.setAttribute("aria-live", "off");
   }, []);
+  // Where Back or a reload left the page, read as it opens: the page saves its own position into
+  // the entry as the human scrolls, and a tail that first draws late must not take the human back to
+  // where they were half a second ago, as after "Jump to the latest" (R112).
+  const [opened] = useState(() => ({ scroll: currentEntry().scroll }));
   // The tail drew: scrolls to the turn the address names, else to where Back left the page, else to
   // the end, unless the human scrolled away from it meanwhile (R110).
   const settled = useCallback(() => {
     const scrolledAway = away();
     const { hash } = window.location;
-    const { scroll } = currentEntry();
+    const { scroll } = opened;
     if (hash.startsWith("#turn-")) {
       document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: "start" });
     } else if (typeof scroll === "number") {
       window.scrollTo(0, scroll);
     } else if (list.current && !scrolledAway) {
-      openAtEnd(list.current);
+      openAtEnd(list.current, opened);
     }
-  }, [away]);
+  }, [away, opened]);
   const actions: Actions = {
     canAllow,
     canTakeBack: Boolean(agent?.capabilities.takeBack),

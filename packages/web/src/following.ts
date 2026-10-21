@@ -40,10 +40,11 @@ export function atEnd(box?: HTMLElement) {
 
 /**
  * Shows the end of a session's transcript as it opens, unless Back or a reload brings a saved
- * position, or the address names a turn. `element` is the transcript, or what it is drawn in.
+ * position, in `opened`, the history entry as the page opened (the current one by default), or the
+ * address names a turn. `element` is the transcript, or what it is drawn in.
  */
-export function openAtEnd(element: HTMLElement) {
-  if (currentEntry().scroll !== undefined || window.location.hash.startsWith("#turn-")) {
+export function openAtEnd(element: HTMLElement, opened: { scroll?: number } = currentEntry()) {
+  if (opened.scroll !== undefined || window.location.hash.startsWith("#turn-")) {
     return;
   }
   toEnd(scroller(element));
