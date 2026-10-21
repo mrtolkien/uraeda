@@ -1,5 +1,85 @@
 # Changelog
 
+## 0.9.0 - 2026-10-21
+
+### Features
+
+- **[Benchmarks](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-19-benchmarks.md)**
+  ([#46](https://github.com/mrtolkien/uraeda/pull/46)): The project's owner wanted to check the
+  whole workflow holds up on real software tasks, not only on the project's own work. Five SWE-bench
+  Pro V2 cases run through the flow, with Claude Code as the agent and as the human at each gate,
+  each beside a plain Claude Code run, and every result is saved in the repository with the versions
+  that produced it.
+- **[Decisions pass](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-19-decisions-pass.md)**
+  ([#47](https://github.com/mrtolkien/uraeda/pull/47)): Decisions had drifted from the human's
+  intent into specifications: flags, timeouts, and file names that the code and its checks already
+  hold, so reviewing them took long and little of it was a choice. The feature gives decisions a
+  written bar, rewrites the ledger to it, draws a decision's rules as the spec page does, and adds a
+  "Check decisions" run that finds decisions competing with each other.
+- **[Redesign session](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-19-redesign-session.md)**
+  ([#45](https://github.com/mrtolkien/uraeda/pull/45)): A functional pass on the session page, where
+  the human follows and talks to an agent: it opens fast on a long session, reads well on a phone,
+  tells the human's messages from the agent's, allows blocked actions together, keeps its actions by
+  the composer, and tells the human when a chat is blocked. The chat's right column was split off as
+  its own draft, in the priorities' Next list.
+- **[Merge chats and changes](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-merge-chats.md)**
+  ([#53](https://github.com/mrtolkien/uraeda/pull/53)): Chats and changes become one thing, the
+  session: a conversation with the agent, with a workflow that can grow around it, none, a change,
+  then a feature. A chat was a change that had not grown yet, and a change a feature that had not:
+  the human wanted to move between them smoothly, the agent offering each move, and one place to
+  start any of them. "Chat" leaves the UI: every conversation is a session.
+- **[Stable dev environment for UI review](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-ui-sandbox.md)**
+  ([#52](https://github.com/mrtolkien/uraeda/pull/52)): The human wanted to iterate fast on UI
+  changes, in a "frozen" environment with a stable seed that then "behaves normally". It runs the
+  real code with hot reloading, like `vp run dev`. It holds mock features at each step of the flow,
+  changes, and sessions. An element picker sends what the human points at to the agent, to ask for a
+  change. `vp run sandbox` serves the whole app this way, beside Storybook, which stays the place
+  for mockups and variants.
+
+### Changes
+
+- **[Clarifications during implementation can resume implementation](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-19-late-clarifications.md)**
+  ([#44](https://github.com/mrtolkien/uraeda/pull/44)): A round of questions asked during
+  implementation could only go back to the spec's approval. Every such round so far was small enough
+  to carry on building after the human's review. The human now chooses when they answer: back to the
+  spec, or continue implementing, which is the usual case.
+- **[Right bar resizable](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-19-right-bar.md)**:
+  The session's right column, "Progress", and the spec page's "Contents" were meant to resize from
+  their edge, hide easily, and slide in and out, as the shell's redesign asked
+  ([`2026-10-16-redesign-interface`](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-16-redesign-interface.md)).
+  In the app there was no drag bar, and hiding removed the column at once.
+- **[Ctrl+Enter sends every composer](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-ctrl-enter.md)**:
+  Enter no longer starts a change or sends a chat message: Ctrl+Enter or Cmd+Enter does, as every
+  other multi-line field already saves. Enter adds a line. The rule follows
+  [UI coherence](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/decisions/ui-coherence.md):
+  every text input behaves as its class does.
+- **[Inbox quick fixes](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-inbox-fixes.md)**
+  ([#50](https://github.com/mrtolkien/uraeda/pull/50)): The inbox's **Deferred fixes** held 43 agent
+  notes, most of them not worth the human's time. The human dropped the low-value ones, and asked
+  for the easy ones that need no input from them to be fixed together, to clear the inbox: seven
+  small defects in the skill, the web UI, and the benchmarks.
+- **[Inbox screenshots](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-inbox-images.md)**:
+  The inbox needed to take screenshots like the other pages: attach, paste, or drop them, see them,
+  and have them committed. A note could carry one image, only when added, and nothing in the inbox
+  showed it.
+- **[Fix agent -> inbox flow, it creates way too much noise at the moment](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-inbox-noise.md)**
+  ([#49](https://github.com/mrtolkien/uraeda/pull/49)): Agents noted every problem met outside a
+  task, and every minor review finding under **Deferred fixes**: 43 agent notes waited in the inbox,
+  most of them small issues in the feature's own code. The human wants a note to be exceptional:
+  either a finding matters and is part of the pull request, or it does not and goes nowhere. A note
+  is only for an important issue that needs the human and clearly falls outside the current feature.
+- **[Session transcript speed and coherence](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-session-transcript.md)**:
+  A session's page lagged when typing and never folded old messages, with a 12-hour turn open: the
+  turn held 1,800 items, 97% of them tool calls, and about 500 drew. The agent's text was also
+  tight, and its lists wrapped about 150 px before its paragraphs, since agent markdown was drawn
+  its own way. The change makes the session fast, its column about 115 characters wide, and reading
+  text drawn by one shared component.
+- **[Tab completion for `ura` in fish and zsh](https://github.com/mrtolkien/uraeda/blob/v0.9.0/specs/done/2026-10-20-shell-completions.md)**
+  ([#51](https://github.com/mrtolkien/uraeda/pull/51)): The proposal asked for Tab to complete
+  `ura`'s commands in fish and zsh, a line of **Next** in the priorities. In the chat that started
+  it, the human chose dynamic completion, where the shell asks the `ura` binary at each Tab, so
+  completion never goes stale after an upgrade.
+
 ## 0.8.0 - 2026-10-19
 
 ### Features
