@@ -168,7 +168,11 @@ test("Archive in a session's … archives it, and Unarchive brings it back", asy
   await click(screen.getByRole("menuitem", { name: "Archive" }));
 
   await waitFor(() => expect(fake.sessions.cache.session(id)?.archivedAt).not.toBeNull());
-  expect(await actions()).toContain("Unarchive");
+  // The page hears of it by its live update, which can come after the server's write.
+  await actions();
+  await waitFor(() =>
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toContain("Unarchive"),
+  );
 });
 
 test("Rename in a session's … renames it, and every session's title renames in place", async () => {

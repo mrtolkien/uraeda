@@ -1015,3 +1015,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the seed case fails again; then its rollback, not the test environment, is the
   suspect.
 - **Where**: `packages/binding/test-repos.ts`, `packages/binding/test-utils.test.ts`.
+
+## R123: The archive case waits for the menu it reads, not only the server
+
+- **Decision**: In `packages/web/src/__tests__/session-actions.test.tsx`, "Archive in a session's …
+  archives it, and Unarchive brings it back" opens the menu once the server's cache records the
+  archive, then waits for the open menu to list Unarchive, instead of reading the menu once.
+- **Cause**: the third hosted run of `4ab831db` failed it with
+  `expected [ 'Make it a change', 'Rename', …(1) ] to include 'Unarchive'`: the server had archived
+  the session, but the page hears of it by its live update, which can come later under load. The
+  case waited for the server's state and asserted the page's.
+- **Assertion**: unchanged; only what the case waits for before it.
+- **Where**: `packages/web/src/__tests__/session-actions.test.tsx`.
