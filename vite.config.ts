@@ -1,5 +1,6 @@
 import nkzw from "@nkzw/oxlint-config";
 import { testWorkers } from "./scripts/test-policy.ts";
+import { WeightedSequencer } from "./scripts/test-shard.ts";
 import { tasks } from "./vite.tasks.ts";
 
 /**
@@ -236,6 +237,8 @@ export default {
     // Each isolated UI worker loads a native binding and builds real git repositories. Letting
     // the host's CPU count start dozens of them puts avoidable pressure on memory.
     maxWorkers: testWorkers,
+    // CI's slices (`--shard`), balanced by each file's time on CI (see `scripts/test-shard.ts`).
+    sequence: { sequencer: WeightedSequencer },
     // `vp run coverage`'s report, so no thresholds. Under `--project`, Vitest matches these from
     // each project's folder: every package's `src/` and `scripts/`, without the tests' helpers, the
     // lint fixtures, and generated files, so the binding has none: its loader is napi's.
