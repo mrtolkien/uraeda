@@ -885,11 +885,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   of 8. A first version that kept watching after the log drew made the desktop case "opening the
   line moves the place read, which the next width keeps" fail 5 to 7 runs in 8; the watch now stops
   once the log draws, and that case passed 8 of 8, as on today's code.
-- **Open, accepted by the human (2026-10-21, "commit and move on")**: the one failing run (run 25,
-  load 28) was `US4.2–US4.4` timing out after "Jump to the latest": the next line, "A line after the
-  jump.", never came into view. Its cause is not traced; a guess is a following race under load that
-  the late `openAtEnd` used to hide by scrolling to the end afterwards. An earlier version of the
-  fix failed the same way twice in 40 runs. The pull request names it.
+- **Resolved by
+  [R112](#r112-a-tail-that-first-draws-late-keeps-the-place-it-finds-instead-of-a-stale-saved-one)**
+  (was open, accepted by the human on 2026-10-21, "commit and move on"): the one failing run (run
+  25, load 28) was `US4.2–US4.4` timing out after "Jump to the latest": the next line, "A line after
+  the jump.", never came into view. An earlier version of the fix failed the same way twice in 40
+  runs. The guess, a following race hidden by the late `openAtEnd`, was wrong: R112 traces it to the
+  late tail restoring the page's own saved position.
 - **Alternatives considered**: keeping opening at the end over the human's scroll and making the
   case wait for the tail's first draw, which the human declined; tracing the failure after the jump
   before committing, which the human declined for now.
@@ -914,3 +916,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a regression that moves the read line only after the progress line opens goes unseen
   until a layout case catches it.
 - **Where**: `packages/web/src/__browser__/session.test.tsx`.
+
+## R112: A tail that first draws late keeps the place it finds instead of a stale saved one
+
+- **Cause, traced**: under load, the transcript's tail can first draw well after its lines show, so
+  its `settled` callback (`Transcript.tsx`) runs late: in the failing trace, 170 ms after "Jump to
+  the latest". `settled` read the history entry's `scroll` at that moment, as Back's or a reload's
+  position. But the session page's `useRestoreScroll` saves the page's own position into the entry
+  at most every 500 ms as the human scrolls, so the entry held the human's place before the jump
+  (the top, 0 px; the jump moved from 0 to 346 px). `settled` scrolled back there; `useFollowEnd`
+  read that scroll as the human's, away from the end, and stopped following, so the next line stayed
+  below the view. The trace: `jump` 0 to 346, the jump's own scroll read as its own and at the end,
+  then `settled` (not away), then a scroll to 0, not the hook's own, not at the end. On main the
+  same late `settled` came before the jump and failed the case earlier (R102 item 1); R110's skip of
+  opening at the end let the run reach the jump, where it failed this way instead. Neither
+  `following.ts`'s hold nor its own-scroll telling was involved.
+- **Fix**: the transcript reads the entry's `scroll` once, as it mounts (the page opening, Back, or
+  a reload), and `settled` uses that, not the entry as it is when the tail draws; `openAtEnd`
+  (`following.ts`) takes that opening entry from `settled` instead of reading the current one.
+- **What changes for a user**: on a busy machine, a session whose transcript finishes drawing late
+  no longer jumps back to where the human was half a second earlier, which after "Jump to the
+  latest" stopped the page following. Back and a reload restore the saved place as before, and a
+  `#turn-` link still wins.
+- **Evidence (load)**: before, instrumented, the phone session file failed this case once in 57
+  whole-file runs under 24 busy loops (load 30 to 37), with the trace above. After, 40 whole-file
+  phone runs, two streams of 20 at once, one with 22 busy loops (load 7 to 35): all 40 passed. The
+  desktop session file passed once (9 cases), and `vp check` passes. No forcing case: making the
+  tail's first draw come after a jump needs the tail's data held past a drawn log, which the page
+  cannot do without the test owning its loading; the evidence is the trace and the batches.
+- **If wrong**: the case fails again after the jump; trace the scrolls after the jump with
+  `useFollowEnd`'s `read` and `settled` logged, as here.
+- **Where**: `packages/web/src/Transcript.tsx`, `packages/web/src/following.ts`.
