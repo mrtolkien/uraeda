@@ -146,3 +146,15 @@ test("a fixture that fails to build leaves no repository and fails again when as
     "chore: specs",
   );
 });
+
+test("a commit in a test repository leaves no git process behind", () => {
+  const repo = fixtureRepo();
+  const trace = join(repo, "..", `${repo.split("/").pop()}-trace.json`);
+  // A detached `git maintenance` outlives the command that started it, and writes into the
+  // repository while a test removes or copies it.
+  execFileSync("git", ["commit", "--quiet", "--allow-empty", "--message", "chore: traced"], {
+    cwd: repo,
+    env: { ...process.env, GIT_TRACE2_EVENT: trace },
+  });
+  expect(readFileSync(trace, "utf8")).not.toContain('"maintenance"');
+});
