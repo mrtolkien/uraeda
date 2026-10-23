@@ -13,6 +13,11 @@ import { gitTestTimeout } from "../../scripts/test-policy.ts";
  */
 function stylexPlugin(): Plugin {
   const plugin = stylex.vite({
+    // Astryx ships its styles compiled for production, keyed by property hash alone: our styles
+    // must be keyed alike, in dev too, for `stylex.props` to let ours replace Astryx's. Dev's debug
+    // keys (`height-kZKoxP`) would keep both, and let the stylesheets' order pick, which differs
+    // between dev and the build.
+    debug: false,
     runtimeInjection: Boolean(process.env.VITEST),
     // Browsers with `light-dark()`, which Astryx's tokens use: lowering it breaks dark mode.
     lightningcssOptions: {
