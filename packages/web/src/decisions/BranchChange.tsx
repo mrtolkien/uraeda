@@ -1,10 +1,12 @@
 // A decision's changes on the features' branches, in the decisions page's reader: each feature in
 // flight whose branch changes the decision's file shows its change as a diff, as the spec page's
 // card draws it, naming the feature. Read from each feature's branch changes, which the shell's
-// cards already request, then the branch's decision only for the features that change it (R26).
+// cards already request, then the branch's decision only for the features that change it, or whose
+// changes list is cut short of it (R26).
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense } from "react";
+import type { DecisionChange } from "uraeda-binding";
 import { useBranchChanges, useBranchDecision, useWorkspace } from "../data.ts";
 import { branchDecisionPath } from "../routeTable.ts";
 import { useRepoPath } from "../routes.tsx";
@@ -13,18 +15,39 @@ import { DecisionCard } from "../spec/DecisionCard.tsx";
 /** A feature in flight, as the reader names it. */
 type Proposer = { folder: string; title: string };
 
-/** Whether the branch of the feature in `folder` changes the decision `name`'s file. */
-export function useBranchChange(folder: string, name: string): boolean {
+/**
+ * Whether the branch of the feature in `folder` changes the decision `name`'s file: `true` or
+ * `false` when its changes list says, `"unknown"` when the list is cut short of it. The core lists
+ * the first 50 files by path, and code, `crates/` or `packages/`, sorts before `specs/`.
+ */
+export function useBranchChange(folder: string, name: string): boolean | "unknown" {
   const changes = useBranchChanges(folder)?.changes;
-  return changes?.files.some((file) => file.path === `specs/decisions/${name}.md`) ?? false;
+  if (!changes) {
+    return false;
+  }
+  if (changes.files.some((file) => file.path === `specs/decisions/${name}.md`)) {
+    return true;
+  }
+  return changes.count > changes.files.length ? "unknown" : false;
+}
+
+/** Whether a branch's decision differs from the merge base's: a decision it leaves alone does not. */
+function isChanged(change: DecisionChange): boolean {
+  return (
+    change.kind !== "changed" ||
+    !change.compared ||
+    change.fields.length > 0 ||
+    change.sections.some((section) => section.parts.some((part) => part.kind !== "kept"))
+  );
 }
 
 /** The change of a feature's branch to the decision `name`: its card, under who proposes it. */
 function ChangeCard({ feature, name }: { feature: Proposer; name: string }) {
   const here = useRepoPath();
   const decision = useBranchDecision(feature.folder, name);
-  // A branch that removes the file has no decision to read: the default branch's shows alone.
-  if (!decision || decision.missing) {
+  // A branch that removes the file has no decision to read: the default branch's shows alone. One
+  // read because its changes list was cut short may leave the decision as it is.
+  if (!decision || decision.missing || !isChanged(decision.change)) {
     return null;
   }
   const { change } = decision;
@@ -48,9 +71,10 @@ function ChangeCard({ feature, name }: { feature: Proposer; name: string }) {
 
 /** A feature's change to the decision `name`, when its branch has one. */
 function FeatureChange({ feature, name }: { feature: Proposer; name: string }) {
-  return useBranchChange(feature.folder, name) ? (
+  // Its changes list cut short of the decision: the branch's decision is read to tell.
+  return useBranchChange(feature.folder, name) === false ? null : (
     <ChangeCard feature={feature} name={name} />
-  ) : null;
+  );
 }
 
 /** The changes the features in flight make to the decision `name`, each a diff naming its feature. */

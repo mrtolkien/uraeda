@@ -573,12 +573,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   reader's pane is named by the file it shows, `specs/CONSTITUTION.md` or
   `specs/decisions/<name>.md`, the title being the reader's own heading; its head holds Previous and
   Next, in the list's order, and on the phone the way back, "Constitution and decisions". The list
-  is `--size-ledger-list`, `max(320px, 30vw)`: 30% of the window on wide screens, and 320 px on
-  semi-wide ones, where 30% would cut the titles; `Panes` takes it as `listWidth`, the inbox and the
-  priorities keeping their 40% detail. A principle's row is its numeral, title, first rule, and
-  count of rules; a decision's adds its count of rules before its date, left out at none. The
-  constitution's version line moves from the list to the reader. `PrincipleDetail`, the reader of
-  one principle, is gone.
+  is `--size-ledger-list`, `max(320px, 30vw)`: 30% of the window, and never under 320 px, where less
+  would cut the titles (361 px at 1205, 320 px only under 1067); `Panes` takes it as `listWidth`,
+  the inbox and the priorities keeping their 40% detail. A principle's row is its numeral, title,
+  first rule, and count of rules; a decision's adds its count of rules before its date, left out at
+  none. The constitution's version line moves from the list to the reader. `PrincipleDetail`, the
+  reader of one principle, is gone.
 - **Rationale**: the spec's reader is "open by default", and a principle "opens the whole
   constitution in it"; with nothing to close, Escape's nearest meaning is back to the start.
 - **Alternatives considered**: Escape closing the reader to the list alone, as before: the spec
@@ -597,9 +597,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   whose files hold `specs/decisions/<name>.md`, the branch's decision; each draws the spec page's
   `DecisionCard`, its changed parts only, under "Proposed by <feature>, on its branch", before the
   decision's document. A branch that removes the file shows no card, having no decision to read. The
-  branch changes list their first 50 files: a branch past 50 files outside its folder may miss a
-  decision sorted after them. `decision-rules.test.tsx`'s comparison of the two pages finds the rule
-  twice now, in the diff and in the rules, and takes the first.
+  branch changes list their first 50 files by path, so code (`crates/`, `packages/`) sorts before
+  `specs/decisions/`: when the list is cut short (its count past its files), the branch's decision
+  is read anyway, and a decision the branch leaves as it is (no field changed, every part kept)
+  shows no card. `decision-rules.test.tsx`'s comparison of the two pages finds the rule twice now,
+  in the diff and in the rules, and compares the rules' (`DecisionRules`), after the diff.
 - **Rationale**: no new server data; the requests are cached already, and a decision's read is asked
   only of a branch that changes it.
 - **Alternatives considered**: the checkout's current branch only: the server does not read it. The

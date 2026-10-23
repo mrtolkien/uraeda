@@ -5,7 +5,7 @@
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atRepo, atSize, drawn, show } from "./helpers.tsx";
+import { atRepo, atSize, drawn, reload, show } from "./helpers.tsx";
 
 atSize("desktop");
 
@@ -41,6 +41,34 @@ test("↓ from the last principle selects and shows the first decision (US8 5)",
   await screen.findByRole("heading", { name: "Uraeda Constitution" });
   const reader = within(screen.getByRole("region", { name: "Detail" }));
   expect(reader.getByRole("heading", { name: "Uraeda Constitution" })).toBeTruthy();
+});
+
+/** Where the reader shows principle V, "Tools are optional": its heading's top, from the reader's. */
+function fifthPrinciple() {
+  const reader = screen.getByRole("region", { name: "Detail" });
+  const heading = within(reader).getByRole("heading", { name: /Tools are optional/ });
+  return heading.getBoundingClientRect().top - reader.getBoundingClientRect().top;
+}
+
+// The UI behaviour decision: Back and reload keep the human's place, over the principle the address
+// names.
+test("scrolled to principle V from principle III's address, a reload keeps the reader at V", async () => {
+  await show("/decisions/constitution/iii", "Asynchronous by default");
+  const reader = screen.getByRole("region", { name: "Detail" });
+  await expect.poll(() => reader.scrollTop).toBeGreaterThan(0);
+  reader.scrollTop += fifthPrinciple();
+  await drawn();
+  const place = reader.scrollTop;
+  // Saved in the entry within 500 ms of the scroll, as a reload's `pagehide` would.
+  await expect.poll(() => (window.history.state as { pane?: number } | null)?.pane).toBe(place);
+
+  await reload("Asynchronous by default");
+
+  const again = screen.getByRole("region", { name: "Detail" });
+  await expect.poll(() => again.scrollTop).toBe(place);
+  await drawn();
+  expect(again.scrollTop).toBe(place);
+  expect(Math.abs(fifthPrinciple())).toBeLessThan(2);
 });
 
 /** An element's top border's colour. */
