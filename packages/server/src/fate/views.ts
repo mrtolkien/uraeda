@@ -149,6 +149,8 @@ export type AgentRecord = {
   /** Its name, for people: "Claude Code". */
   name: string;
   version: string | null;
+  /** The week's usage, from the agent's freshest report of it: null without one. */
+  weekLimit: UsageLimit | null;
 };
 
 /** A sub-agent working in a session's running turn. */
@@ -230,6 +232,8 @@ export type TurnLogRecord = {
 
 /** A session's row in the sidebar. */
 export type SessionRowRecord = {
+  /** The kind of the agent it runs on: `claude`, or `fake`. */
+  agent: string;
   archived: boolean;
   /** The background commands of its running turn still running. */
   backgroundCommands: number;
@@ -383,6 +387,7 @@ export const agentDataView = dataView<AgentRecord>("Agent")({
   kind: true,
   name: true,
   version: true,
+  weekLimit: true,
 });
 
 export const sessionDataView = dataView<SessionRecord>("Session")({

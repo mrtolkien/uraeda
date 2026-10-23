@@ -102,8 +102,18 @@ export class Sessions {
   }
 
   /** Whether the agent worked at the last check, and its version. */
-  status(): { available: boolean; fiveHourLimit: UsageLimit | null; version: string | null } {
-    return { ...this.#status, fiveHourLimit: this.#context.processes.fiveHourLimit() };
+  status(): {
+    available: boolean;
+    fiveHourLimit: UsageLimit | null;
+    version: string | null;
+    weekLimit: UsageLimit | null;
+  } {
+    const { processes } = this.#context;
+    return {
+      ...this.#status,
+      fiveHourLimit: processes.limit("fiveHour"),
+      weekLimit: processes.limit("week"),
+    };
   }
 
   /** Asks the agent for its version, and reports a change of availability. */

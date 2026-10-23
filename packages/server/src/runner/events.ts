@@ -3,7 +3,7 @@ import type { ChatImage } from "./images.ts";
 /** An action `auto` mode blocked, from a result's `permission_denials`. */
 export type Denial = { input: Record<string, unknown>; tool: string };
 
-/** Usage of the account's five-hour allowance, with its reset time in ISO 8601. */
+/** Usage of one of the account's allowances, five hours or a week, with its reset time in ISO 8601. */
 export type UsageLimit = { percentUsed: number; resetsAt: string };
 
 /**
@@ -44,8 +44,11 @@ export type AgentEvent =
   /** A message was taken back before the agent read it. */
   | { id: string; type: "cancelled" }
   | { attempt: number; delayMs: number; error: string; type: "retry" }
-  /** A usage report, shared by the account rather than added across sessions. */
-  | { fiveHour: UsageLimit; type: "usage" }
+  /**
+   * A usage report, shared by the account rather than added across sessions: its five-hour window,
+   * its week, or both, never neither.
+   */
+  | { fiveHour?: UsageLimit; type: "usage"; week?: UsageLimit }
   /**
    * The agent's background tasks still running, after one started or ended, by their tool calls:
    * its sub-agents and workflows, and its background commands. The agent goes on by itself when one

@@ -289,6 +289,7 @@ export const AgentView = view<Agent>()({
   kind: true,
   name: true,
   version: true,
+  weekLimit: { percentUsed: true, resetsAt: true },
 });
 
 export const SessionView = view<Session>()({
