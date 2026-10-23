@@ -249,3 +249,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a pane on another background shows the body's colour behind its title: a `Pane` prop
   then picks it.
 - **Where**: task 7, `packages/web/src/theme/lucide.ts`, `theme/icons.ts`, `layout/Pane.tsx`.
+
+## R12: The "Later" edge stands 3:1, and its heading is what dims it
+
+- **Decision**: `--color-border-gray`, the left edge of the priorities' "Later" section, takes
+  Catppuccin's overlay step (Latte's overlay2, Mocha's overlay0), where it took surface2, about
+  1.9:1 in Latte and 2.4:1 in Mocha. The contrast test checks it with every other border. "Later"
+  stays the dimmer section by its heading, in the secondary text where "Next"'s is in the primary.
+- **Rationale**: the UI look decision asks 3:1 of every border in both schemes. Overlay is
+  Catppuccin's lightest step that reaches it, and already "Next"'s edge, so no edge both reaches 3:1
+  and stays dimmer than "Next"'s.
+- **Alternatives considered**: a stronger edge for "Next" (subtext0), changing
+  `--color-border-emphasized` for every control that uses it; a dashed or thinner edge for "Later",
+  a raw cue the tones do not have.
+- **If wrong**: "Later" reads as loud as "Next" at a glance; a stronger edge for "Next" alone is a
+  tone of its own in `lists/WorkList.tsx`.
+- **Where**: `packages/web/src/theme/theme.ts`, `__tests__/theme-tokens.test.ts`.
