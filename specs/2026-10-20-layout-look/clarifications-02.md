@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Layout and look and feel
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 10 minutes.
+> Answered on 2026-10-23.
 >
 > - Verdict: worth building, with changes: the shell, home, settings, and decisions are settled in
 >   the mockups, and two visual choices remain.
@@ -87,7 +87,8 @@ draws from.
   - [pro] the look of an editor, and it carries the Claude and OpenAI marks of the next question.
   - [con] the smallest set, three gaps already, and thin 16 px shapes look faint at 120% text.
 
-**Answer:**
+**Answer:** A: Write down that it's ok to use some icons from other sets though. We can mix and
+match a bit, if another set's icon fitsp particularly better or has a very specific glyph.
 
 ## Q2: How should a session show which harness runs it?
 
@@ -115,7 +116,7 @@ call to make.
   - [pro] the most recognisable.
   - [con] the same trademark question for three marks, and logos that clash with the mono rows.
 
-**Answer:**
+**Answer:** B
 
 ## Settled without the human
 
