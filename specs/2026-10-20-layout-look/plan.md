@@ -379,7 +379,7 @@ behaviour the spec marks unverified.
   Pages that laid out "wide" now test `!isNarrow(...)`; only the shell, the home, and the decisions
   page read `semi` itself.
 
-- [ ] **Step 1: Structural step**: move the history helpers out of `routes.tsx` into
+- [x] **Step 1: Structural step**: move the history helpers out of `routes.tsx` into
       `routeHistory.ts`, re-exported from `routes.tsx`, so no caller changes. Run
       `nix develop -c vp run fast`, commit
       `refactor(layout-look): the route history in its own module`.
