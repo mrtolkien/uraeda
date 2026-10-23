@@ -11,6 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useEffect, useId, useState } from "react";
 import { Overlay } from "./layout/Overlay.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { useStatusHints } from "./statusHints.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 
 /** An applicable question of a round, in the page's order: follow-ups at level 2. */
@@ -268,6 +269,7 @@ export function RoundNav({
     { isDisabled: !wide, keys: "n", onPress: () => next(false) },
     { isDisabled: !wide, keys: "p", onPress: previous },
   ]);
+  useStatusHints(wide ? [{ keys: "n p", label: "unanswered" }] : []);
 
   const action = blank.length ? (
     <Button label="Next" onClick={() => next(true)} variant="primary" xstyle={styles.action} />

@@ -5,6 +5,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import type { ReactNode, RefObject } from "react";
+import { useCoverStatusLine } from "../statusHints.tsx";
 import { useBackCloses } from "./useBackCloses.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
@@ -40,6 +41,8 @@ export function Overlay({
 }) {
   const wide = !isNarrow(useWidthClass());
   const close = useBackCloses(label, isOpen, onClose);
+  // A sheet that is no modal is not in the top layer: the shell's status line would cover its foot.
+  useCoverStatusLine(!wide && !isModal && isOpen);
   const onOpenChange = (open: boolean) => {
     if (!open) {
       close();
