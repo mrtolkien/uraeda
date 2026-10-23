@@ -196,12 +196,17 @@ test("the chat composer is 7 rows, 3 on the phone, grows upward to 20, 9 on the 
   // The phone's composer holds less, to leave the transcript the screen (SC-005).
   const phone = window.innerWidth < 768;
   expect(rows(field, input)).toBeCloseTo(phone ? 3 : 7, 1);
-  // It grows upward: the composer is held at the window's bottom once the transcript fills it.
+  // It grows upward: the composer is held at the window's bottom once the transcript fills it,
+  // above the shell's status line (layout look's R27).
   let docked: HTMLElement | null = field;
   while (docked && getComputedStyle(docked).position !== "sticky") {
     docked = docked.parentElement;
   }
-  expect(docked && getComputedStyle(docked).bottom).toBe("0px");
+  const line = screen.getByRole("contentinfo", { name: "Status line" });
+  expect(docked && Number.parseFloat(getComputedStyle(docked).bottom)).toBeCloseTo(
+    line.getBoundingClientRect().height,
+    1,
+  );
 
   await userEvent.fill(input, lines(12));
   await drawn();
