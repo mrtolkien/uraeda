@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Layout and look and feel
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 12 questions and 1 follow-up, about 35 minutes, plus about 15 minutes to try the mockups first.
+> Answered on 2026-10-23.
 >
 > - Verdict: worth building, with changes: it is too big for one spec as proposed, and three active
 >   decisions bind it.
@@ -106,7 +106,7 @@ way.
   - [pro] everything you listed lands together.
   - [con] the largest spec, and an editor with its own risks. Its choice is the follow-up below.
 
-**Answer:**
+**Answer:** A
 
 ### Q1.C: Which editor should the feature include?
 
@@ -203,7 +203,10 @@ Changing it later means redoing every view.
 
 You can answer with a mix, like "A, with E's revision clouds". Q3 asks which parts to mix.
 
-**Answer:**
+**Answer:** C: It will be Terminal with some inspirations from Cyber.
+
+The mockup is nice but ofc there will be massive changes. First being text size: compared to the
+mockup, a 120% scale felt much more readable.
 
 ## Q3: Should any part come from a direction other than your pick?
 
@@ -234,7 +237,10 @@ These options combine: B, C, and D can go together.
   - [con] these pages share their parts with every other document, so a mixed treatment can make the
     rest of the UI look odd beside them.
 
-**Answer:**
+**Answer:** A: Regarding the home though: remove the shitty pseudo-pixel art. Let's focus only on
+pure content for the moment.
+
+We'll likely re-add a timeline-like view inspired from the blueprint mockup, but I'm not sure.
 
 ## Q4: Where should the session open on the questions page?
 
@@ -266,7 +272,11 @@ screen a right panel leaves little width for the question.
   - [pro] the simplest, and the session gets the whole width.
   - [con] you leave the question to read the answer, which is what you want to avoid.
 
-**Answer:**
+**Answer:** A: I like the idea of that but during questions the right column will be navigation. So
+session would take its place/overlay it?
+
+Or we could have some sort of tabs on the right sidebar. I think that makes more sense, and is how
+it's down in nvim with edgy: https://github.com/folke/edgy.nvim. I need to see mockups.
 
 ## Q5: Should the UI get a third width class for half screens?
 
@@ -291,7 +301,8 @@ active decision, and every view's tests follow the classes you pick.
   - [pro] panes adapt wherever they sit, with no class to test.
   - [con] it needs a ruling on the decision's "never per-view" rule, and each pane is tested alone.
 
-**Answer:**
+**Answer:** A: Might need a bit of a bigger delta though, my half screen (27" 4k with 1.5x scaling)
+is 1205 pixels.
 
 ## Q6: Should prototypes like these be part of the workflow?
 
@@ -320,7 +331,7 @@ that wants to compare looks would face the same conflict.
   - [pro] the spec's mockup is the investigation's own file, clickable and exact.
   - [con] a prototype is not the real component, so it drifts from what gets built.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Which colour modes must the UI support?
 
@@ -341,7 +352,7 @@ screenshot test.
   - [pro] the simplest, and it favours the natural and vellum looks.
   - [con] you lose the dark look at night, and cyber and terminal cannot be picked.
 
-**Answer:**
+**Answer:** A: Use Catpuccin Mocha and Latte. We'll also add more color schemes later.
 
 ## Q8: How should priorities be laid out?
 
@@ -368,7 +379,9 @@ the main tasks.
   - [pro] the best of both at each width.
   - [con] two layouts to build, test, and keep in step.
 
-**Answer:**
+**Answer:** C: Columns on wide screens just looks so much better, kanban style.
+
+Half-wide should also be columns, with a vertical sidebar on the left for navigation.
 
 ## Q9: May the redesign add dependencies and bundled fonts?
 
@@ -393,7 +406,8 @@ machine each time the UI opens.
   - [pro] the least work, and what the mockups do.
   - [con] a request leaves the machine at every load, and the UI looks different offline.
 
-**Answer:**
+**Answer:** A: Regarding the panels, it's up to you. If the dependency makes code much easier, it
+might be worth it.
 
 ## Q10: Which icon set should the UI use?
 
@@ -416,7 +430,8 @@ the colours do.
   - [pro] the most distinctive, and it can carry the direction's shapes.
   - [con] the most work, and a set to maintain as the app grows.
 
-**Answer:**
+**Answer:** A: Without a clear comparison and only 2 options it's hard to really pick. I'd like to
+be shown more options and see them visually.
 
 ## Q11: Which logo concept should the UI use?
 
@@ -446,7 +461,7 @@ people recognise it.
   - [pro] it is crisp, and fits the terminal look.
   - [con] it suits one direction only.
 
-**Answer:**
+**Answer:** E
 
 ## Q12: How should the harnesses be marked?
 
@@ -471,7 +486,7 @@ at a glance.
   - [pro] nothing to draw or license.
   - [con] a list of sessions is slower to scan by text alone.
 
-**Answer:**
+**Answer:** A: I see some already are in nerd fonts: \uec82 for claude code for example
 
 ## Settled without the human
 
@@ -518,4 +533,9 @@ at a glance.
 - **The mockups' fake data** comes from this repository's own files, so they can be checked against
   the real UI.
 
-**Notes:**
+**Notes:** Btw with the terminal look is Astryx still a good fit? Do we need another components
+system?
+
+- **Keyboard keys in the terminal look**: Yes, this is a feature after the text editor. All the
+  features are in "Now", pre 1.0
+- **A "reduce effects" setting**: I think it's pretty pointless
