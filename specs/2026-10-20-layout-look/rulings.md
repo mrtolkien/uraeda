@@ -628,7 +628,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   gone with the results list that used it; its test rows read `shownLabels` across the sections, the
   form's own filter, and the empty search's row, which said the results list showed nothing, is
   dropped: the form tests show every row for an empty search. `--size-settings-index` is
-  `--size-settings-search`.
+  `--size-settings-search`. `__browser__/fields.test.tsx`, which found the composer docked at 0 px
+  from the bottom, finds it at the status line's height.
 - **Rationale**: the review of tasks 9 to 12: nothing under the fixed line, the UI behaviour
   decision's places and errors kept, one component for a done item.
 - **Alternatives considered**: a list whose Escape does nothing hiding its hint by itself: the hook
