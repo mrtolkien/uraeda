@@ -6,7 +6,7 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { atRepo, atSize, carrying, checkLayout, drawn, image, show } from "./helpers.tsx";
+import { atRepo, atSize, carrying, checkLayout, drawn, image, pickUp, show } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -355,12 +355,6 @@ test("Organize with an agent and the answered triage's banner pass the layout ch
   await checkLayout();
 });
 
-/** The middle of an element, in the page's coordinates. */
-function middle(element: Element) {
-  const box = element.getBoundingClientRect();
-  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-}
-
 /** The notes of a category as the page draws them now, in order: a drag draws them as it goes. */
 function drawnNotes(name: string) {
   const list = screen.queryByRole("list", { name: `${name} lines` });
@@ -379,8 +373,9 @@ function category(text: string, name: string) {
 /**
  * Drags a note by its handle, with the mouse, to the point `to` gives once the page is laid out,
  * and drops it there once the page draws it at `place`, its index among the lines of a category.
- * A point measured while fonts load or a page animates may land elsewhere once dragged to, and the
- * drag finds where it is over frames after it starts: a drop before then moves nothing.
+ * A point measured while fonts load or a page animates may land elsewhere once dragged to. The
+ * pointer jumps to it only once the drag follows it (`pickUp`): a jump before is dropped, or
+ * decided from where the line started, and nothing moves after to correct it.
  */
 async function drag(
   note: string,
@@ -388,19 +383,8 @@ async function drag(
   place: { category: string; index: number },
 ) {
   await drawn();
-  const handle = middle(screen.getByRole("button", { name: `Move ${note}` }));
   const target = to();
-  await commands.mouse([
-    { type: "move", x: handle.x, y: handle.y },
-    { type: "down" },
-    { type: "move", x: handle.x, y: handle.y - 10 },
-  ]);
-  // The drag has started, and follows the pointer from the frame after its start (dnd-kit marks
-  // it dragging in an animation frame): until then, it takes the row for where it started, and a
-  // move to another category, decided by whether the row's centre is below the row it is over,
-  // lands before that row, with no move after to correct it. On a busy machine, the pointer's
-  // jump to its target came before that frame; `drawn` waits for the frames after it.
-  await drawn();
+  await pickUp(note);
   await commands.mouse([{ type: "move", x: target.x, y: target.y }]);
   await expect
     .poll(() => drawnNotes(place.category).findIndex((text) => text.includes(note)))
