@@ -17,7 +17,7 @@ terminal with some cyber, in [terminal-2.html](mockups/terminal-2.html). Its pic
 
 ## Summary
 
-Seven free icon sets were drawn over the same 31 concepts, Material Symbols in three styles, in
+Eight free icon sets were drawn over the same 31 concepts, Material Symbols in three styles, in
 [icons.html](mockups/icons.html). They split into three looks: rounded strokes (Lucide, Tabler,
 Phosphor), pixel art (Pixelarticons), and the editor sets that Nerd Fonts merges (Codicons, Material
 Design Icons, Material Symbols). The Claude glyph the human found is Codicons' own `claude` icon,
@@ -32,15 +32,16 @@ Each set's licence and size come from the Iconify collections API, read on 2026-
 (`api.iconify.design/collections`). The bodies drawn in [icons.html](mockups/icons.html) were
 fetched from the same API.
 
-| Set                   | Licence    | Icons  | Look                                              |
-| --------------------- | ---------- | ------ | ------------------------------------------------- |
-| Lucide                | ISC        | 1,903  | Even 2 px strokes, rounded ends. The app's today. |
-| Tabler                | MIT        | 6,238  | Like Lucide, with three times as many icons.      |
-| Phosphor              | MIT        | 9,072  | Softer, wider, in six weights.                    |
-| Pixelarticons         | MIT        | 1,036  | Pixel art on a 24 grid, like the logo.            |
-| Codicons              | CC BY 4.0  | 655    | VS Code's set, on a 16 grid, thin and squared.    |
-| Material Symbols      | Apache 2.0 | 15,728 | Google Fonts' set: outlined, rounded, and sharp.  |
-| Material Design Icons | Apache 2.0 | 7,447  | The largest source of Nerd Fonts glyphs.          |
+| Set                   | Licence    | Icons  | Look                                               |
+| --------------------- | ---------- | ------ | -------------------------------------------------- |
+| Lucide                | ISC        | 1,903  | Even 2 px strokes, rounded ends. The app's today.  |
+| Tabler                | MIT        | 6,238  | Like Lucide, with three times as many icons.       |
+| Heroicons             | MIT        | ~320   | Tailwind\'s set. No git, hourglass, or gauge icon. |
+| Phosphor              | MIT        | 9,072  | Softer, wider, in six weights.                     |
+| Pixelarticons         | MIT        | 1,036  | Pixel art on a 24 grid, like the logo.             |
+| Codicons              | CC BY 4.0  | 655    | VS Code's set, on a 16 grid, thin and squared.     |
+| Material Symbols      | Apache 2.0 | 15,728 | Google Fonts' set: outlined, rounded, and sharp.   |
+| Material Design Icons | Apache 2.0 | 7,447  | The largest source of Nerd Fonts glyphs.           |
 
 - **Coverage**: Pixelarticons has no build, change, or usage icon that reads as such, and its
   "decisions" scale was the closest match, an arrow. Codicons has no scale, waiting, or usage icon.
