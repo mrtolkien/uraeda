@@ -10,7 +10,16 @@ import { readLedger } from "uraeda-binding";
 import type { Ledger } from "uraeda-server/fate";
 import { expect, test } from "vite-plus/test";
 import { jumpEntries, searchEntries } from "../decisions/jump.ts";
-import { atRepo, click, fixture, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import {
+  atRepo,
+  atWidth,
+  click,
+  fixture,
+  fixtureRepo,
+  git,
+  refreshUntil,
+  renderPage,
+} from "./helpers.tsx";
 
 const NOTIFICATIONS = `---
 status: active
@@ -154,6 +163,34 @@ test("`/` typed in a text field or the open sort menu opens nothing (review focu
   const option = await screen.findByRole("option", { name: "A to Z" });
   await press(option, "/");
   expect(screen.queryByRole("combobox", { name: "Jump to a decision or principle" })).toBeNull();
+});
+
+test("`/` opens the palette while the focus is on an expanded disclosure, as the rail's logo", async () => {
+  atWidth(1205);
+  await renderPage("/decisions", fixtureRepo());
+  await screen.findByRole("heading", { name: "Uraeda Constitution" });
+  const logo = screen.getByRole("button", { name: "Open navigation" });
+  await click(logo);
+  await waitFor(() => expect(logo.getAttribute("aria-expanded")).toBe("true"));
+  logo.focus();
+  await press(logo, "/");
+  expect(
+    await screen.findByRole("combobox", { name: "Jump to a decision or principle" }),
+  ).toBeTruthy();
+});
+
+test("a decision committed while the palette is open joins its list", async () => {
+  const repo = fixtureRepo();
+  await openPalette(repo);
+  expect(await screen.findByRole("option", { name: /Agents/ })).toBeTruthy();
+  expect(screen.queryByRole("option", { name: /Notifications/ })).toBeNull();
+
+  writeFileSync(join(repo, "specs/decisions/notifications.md"), NOTIFICATIONS);
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "docs: notifications");
+  await refreshUntil(() =>
+    expect(screen.getByRole("option", { name: /Notifications/ })).toBeTruthy(),
+  );
 });
 
 /** This repository's own ledger, read from its default branch, as the page receives it. */
