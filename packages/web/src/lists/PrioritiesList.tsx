@@ -3,6 +3,7 @@
 // The file keeps the started entries at the top of Now; on screen they show apart.
 import { Badge } from "@astryxdesign/core/Badge";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { useFateClient } from "react-fate";
 import type { PriorityEntry } from "uraeda-server/fate";
@@ -160,8 +161,7 @@ export function PrioritiesList({
         <EditableLine
           display={
             <>
-              <span aria-hidden="true">＋ </span>
-              Add to {title}
+              <Icon icon="uraeda:plus" size="sm" /> Add to {title}
             </>
           }
           field={`priorities#add:${section.section}`}

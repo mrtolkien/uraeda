@@ -58,9 +58,16 @@ async function enter(field: HTMLElement, text: string) {
 
 /** Opens the Add row, and returns its field. */
 async function addRow() {
-  await click(await screen.findByRole("button", { name: "＋ Add a host name" }));
+  await click(await screen.findByRole("button", { name: "Add a host name" }));
   return screen.getByRole("textbox", { name: "New host name" });
 }
+
+/** The UI look's mono font has no "＋": the Add row draws the plus icon, never the character. */
+test("the Add row of the host names draws no ＋ character", async () => {
+  await server(configDir());
+  const add = await screen.findByRole("button", { name: "Add a host name" });
+  expect(add.textContent).not.toContain("＋");
+});
 
 test("a host name added is saved in the file and listed; refusals keep the text (US1 1, 6, 7)", async () => {
   const dir = configDir();
@@ -229,7 +236,7 @@ test("a settings file that cannot be read shows its problem, and no control", as
       "Fix the file to change settings here. Until then, the server uses its defaults.",
     ),
   ).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "＋ Add a host name" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Add a host name" })).toBeNull();
   expect(screen.queryByRole("switch", { name: "Open a browser at start" })).toBeNull();
 });
 

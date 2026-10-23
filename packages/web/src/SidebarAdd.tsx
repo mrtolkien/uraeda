@@ -32,8 +32,8 @@ function Plus({ form, label, text }: { form: Form; label: string; text?: string 
   const open = useOpenAddForm();
   return (
     <Button
-      // With its text, Lucide's plus: the font has no "＋" to draw beside a word.
-      icon={text === undefined ? <span aria-hidden="true">＋</span> : <Icon icon="uraeda:plus" />}
+      // Lucide's plus: the font has no "＋" to draw.
+      icon={<Icon icon="uraeda:plus" />}
       isIconOnly={text === undefined}
       label={label}
       onClick={() => open(form)}

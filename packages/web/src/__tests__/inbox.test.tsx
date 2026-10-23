@@ -513,6 +513,17 @@ test("the sidebar's ＋ next to Priorities opens the priorities form", async () 
   expect(read(repo)).toContain("- [Git listener process](drafts/git-listener.md)\n- An idea\n");
 });
 
+/** The navigation's ＋ buttons, by their names. */
+const ADD = /^Add (a note to the inbox|to the priorities)$/;
+
+/** The UI look's mono font has no "＋": the navigation's ＋ draw the plus icon, never the text. */
+test("the navigation's ＋ buttons draw no ＋ character", async () => {
+  await renderPage("/");
+  const nav = await screen.findByRole("navigation", { name: "Navigation" });
+  await within(nav).findByRole("button", { name: "Add a note to the inbox" });
+  expect(nav.textContent).not.toContain("＋");
+});
+
 /** The spec's sidebar: the top bar's ＋ is gone from Home and the priorities page. */
 test.each(["/", "/priorities"])("every ＋ outside %s's page is the sidebar's", async (path) => {
   await renderPage(path);
@@ -521,8 +532,8 @@ test.each(["/", "/priorities"])("every ＋ outside %s's page is the sidebar's", 
   const page = await screen.findByRole("main");
 
   const plus = screen
-    .getAllByRole("button")
-    .filter((button) => button.textContent?.includes("＋") && !page.contains(button))
+    .getAllByRole("button", { name: ADD })
+    .filter((button) => !page.contains(button))
     .map((button) => button.getAttribute("aria-label"));
   // In the flow's order: the inbox, then the priorities (R15).
   expect(plus).toEqual(["Add a note to the inbox", "Add to the priorities"]);
@@ -534,11 +545,7 @@ test.each(["/", "/priorities"])("no ＋ in the phone's top bar of %s", async (pa
   const bar = await screen.findByRole("banner");
   await within(bar).findByRole("navigation", { name: "Tabs" });
 
-  expect(
-    within(bar)
-      .queryAllByRole("button")
-      .filter((button) => button.textContent?.includes("＋")),
-  ).toEqual([]);
+  expect(within(bar).queryAllByRole("button", { name: ADD })).toEqual([]);
 });
 
 /** Edge case and error handling: an add over a change made elsewhere is refused, text kept. */

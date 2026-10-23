@@ -142,12 +142,7 @@ function FlowRow({ add, count, label }: { add: string; count: number; label: str
   return (
     <SideNavItem
       actions={
-        <IconButton
-          icon={<span aria-hidden="true">＋</span>}
-          label={add}
-          size="sm"
-          variant="ghost"
-        />
+        <IconButton icon={<Icon icon="uraeda:plus" />} label={add} size="sm" variant="ghost" />
       }
       endContent={<Badge label={String(count)} variant="neutral" />}
       href="#"
