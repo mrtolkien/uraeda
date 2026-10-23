@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en" data-theme="mocha">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uraeda · icon sets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap"
+    />
+    <style>
+      :root {
+        --base: #1e1e2e;
+        --mantle: #181825;
+        --crust: #11111b;
+        --s0: #313244;
+        --s1: #45475a;
+        --s2: #585b70;
+        --dim: #949bb6;
+        --text: #cdd6f4;
+        --sub: #a6adc8;
+        --lav: #b4befe;
+        --mauve: #cba6f7;
+        --peach: #fab387;
+        --green: #a6e3a1;
+        --yellow: #f9e2af;
+        --on: #11111b;
+        --icon: 20px;
+      }
+      :root[data-theme="latte"] {
+        --base: #eff1f5;
+        --mantle: #e6e9ef;
+        --crust: #dce0e8;
+        --s0: #ccd0da;
+        --s1: #bcc0cc;
+        --s2: #9ca0b0;
+        --dim: #636679;
+        --text: #4c4f69;
+        --sub: #5c5f77;
+        --lav: #4254c8;
+        --mauve: #7b2fe0;
+        --peach: #a84000;
+        --green: #2c701f;
+        --yellow: #8a5a00;
+        --on: #ffffff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--base);
+        color: var(--text);
+        font:
+          16.8px/1.55 "JetBrains Mono",
+          ui-monospace,
+          monospace;
+      }
+      .wrap {
+        max-width: 120em;
+        margin: 0 auto;
+        padding: 1em 1.4em 4em;
+      }
+      h1 {
+        font-size: 1.4em;
+        margin: 0.4em 0 0.2em;
+      }
+      h2 {
+        font-size: 0.85em;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--lav);
+        margin: 2.2em 0 0.6em;
+        display: flex;
+        gap: 0.7em;
+        align-items: center;
+      }
+      h2::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--s1);
+      }
+      p.lead {
+        color: var(--sub);
+        max-width: 80ch;
+        margin: 0 0 0.8em;
+      }
+      .bar {
+        display: flex;
+        gap: 1.4em;
+        flex-wrap: wrap;
+        align-items: center;
+        color: var(--dim);
+        font-size: 0.85em;
+      }
+      .bar button {
+        font: inherit;
+        background: var(--mantle);
+        color: var(--text);
+        border: 1px solid var(--s1);
+        padding: 0.1em 0.7em;
+        cursor: pointer;
+      }
+      .bar button.on {
+        background: var(--mauve);
+        color: var(--on);
+        border-color: var(--mauve);
+      }
+      svg.i {
+        width: var(--icon);
+        height: var(--icon);
+        flex: none;
+        display: block;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(17em, 1fr));
+        gap: 1.4em 1em;
+      }
+      .pane {
+        position: relative;
+        border: 1px solid var(--s1);
+        background: var(--mantle);
+        padding: 0.9em 0 0.5em;
+      }
+      .pane > .pt {
+        position: absolute;
+        top: -0.8em;
+        left: 0.8em;
+        background: var(--base);
+        padding: 0 0.45em;
+        color: var(--lav);
+        font-size: 0.85em;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .pane > .lic {
+        color: var(--dim);
+        font-size: 0.75em;
+        padding: 0 1em 0.4em;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 0.8em;
+        padding: 0.3em 1em;
+        color: var(--sub);
+      }
+      .row.on {
+        color: var(--text);
+        background: var(--base);
+        box-shadow: inset 3px 0 0 var(--mauve);
+      }
+      .row .n {
+        margin-left: auto;
+        font-size: 0.8em;
+        background: var(--s0);
+        color: var(--text);
+        padding: 0 0.5em;
+      }
+      .row .you {
+        color: var(--peach);
+      }
+      .row .run {
+        color: var(--green);
+      }
+      .row .wait {
+        color: var(--yellow);
+      }
+      .sep {
+        height: 1px;
+        background: var(--s0);
+        margin: 0.35em 0.8em;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        padding: 0.45em 0.6em;
+        border-bottom: 1px solid var(--s0);
+        text-align: left;
+        vertical-align: middle;
+      }
+      th {
+        font-weight: 600;
+        font-size: 0.82em;
+        color: var(--lav);
+        vertical-align: bottom;
+      }
+      th small {
+        display: block;
+        color: var(--dim);
+        font-weight: 400;
+      }
+      td.c {
+        color: var(--sub);
+        white-space: nowrap;
+      }
+      td .cell {
+        display: flex;
+        justify-content: center;
+      }
+      .miss {
+        color: var(--dim);
+        font-size: 0.8em;
+      }
+      .scroll {
+        overflow-x: auto;
+      }
+      .hm {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(22em, 1fr));
+        gap: 1.4em 1em;
+      }
+      .note {
+        color: var(--dim);
+        font-size: 0.82em;
+        padding: 0.2em 1em 0.4em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Seven icon sets, side by side</h1>
+      <p class="lead">
+        The same concepts drawn by each set, first as the sidebar would show them, then one per row.
+        Every set here is free to bundle. The harness marks come last.
+      </p>
+      <div class="bar" id="bar"></div>
+      <h2>In the shell</h2>
+      <div class="cards" id="cards"></div>
+      <h2>Every concept</h2>
+      <div class="scroll"><table id="tbl"></table></div>
+      <h2>Harness marks</h2>
+      <p class="lead">
+        A session row with each kind of mark. The Claude glyph in Nerd Fonts is Codicons' own
+        <code>claude</code> icon, which VS Code ships with an <code>openai</code> one beside it.
+      </p>
+      <div class="hm" id="hm"></div>
+    </div>
+    <script src="shared/icons.js"></script>
+    <script src="icons/data.js"></script>
+    <script>
+      const S = window.ICONSETS;
+      const SETS = Object.keys(S.sets);
+      const st = { size: 20, theme: "mocha" };
+      const svg = (ic) =>
+        ic
+          ? `<svg class="i" viewBox="0 0 ${ic.w} ${ic.h}" fill="none">${ic.b}</svg>`
+          : `<span class="miss">none</span>`;
+      // Codicons draw on a 16 px grid, which the fetched data does not state.
+      const ic = (set, concept) => {
+        const i = S.sets[set][S.concepts.indexOf(concept)];
+        return i && set === "codicon" ? { ...i, w: 16, h: 16 } : i;
+      };
+      const mark = (o, g) => `<svg class="i" viewBox="0 0 ${g || o.w} ${g || o.h}">${o.b}</svg>`;
+      function bar() {
+        document.getElementById("bar").innerHTML =
+          `<span>Size ${[16, 20, 24].map((s) => `<button class="${st.size === s ? "on" : ""}" data-size="${s}">${s} px</button>`).join(" ")}</span>` +
+          `<span>Theme ${["mocha", "latte"].map((t) => `<button class="${st.theme === t ? "on" : ""}" data-theme="${t}">${t}</button>`).join(" ")}</span>`;
+      }
+      function cards() {
+        document.getElementById("cards").innerHTML = SETS.map((p) => {
+          const [name, lic, count, what] = S.meta[p];
+          const r = (c, label, extra = "", cls = "") =>
+            `<div class="row ${cls}">${svg(ic(p, c))}<span>${label}</span>${extra}</div>`;
+          return `<section class="pane"><span class="pt">${name}</span><div class="lic">${lic} · ${count} icons · ${what}</div>
+            ${r("home", "Home", "", "on")}${r("inbox", "Inbox", '<span class="n">8</span>')}${r("priorities", "Priorities")}${r("decisions", "Decisions")}
+            <div class="sep"></div>
+            <div class="row"><span class="you">${svg(ic(p, "questions"))}</span><span>Layout and look</span><span class="n you" style="background:none">${svg(ic(p, "needs you"))}</span></div>
+            <div class="row"><span class="you">${svg(ic(p, "spec"))}</span><span>Fix testing</span></div>
+            <div class="row"><span class="run">${svg(ic(p, "sessions"))}</span><span>Plan task 9</span></div>
+            <div class="row"><span class="wait">${svg(ic(p, "waiting"))}</span><span>Review the diff</span></div>
+            <div class="row">${svg(ic(p, "feature"))}<span>Merge chats</span></div>
+            <div class="row">${svg(ic(p, "change"))}<span>Tasks reappear</span></div>
+            <div class="sep"></div>
+            ${r("usage", "62% · 1 h 48")}${r("settings", "Settings")}</section>`;
+        }).join("");
+      }
+      function table() {
+        document.getElementById("tbl").innerHTML =
+          `<tr><th></th>${SETS.map((p) => `<th>${S.meta[p][0]}<small>${S.meta[p][1]}</small></th>`).join("")}</tr>` +
+          S.concepts
+            .map(
+              (c) =>
+                `<tr><td class="c">${c}</td>${SETS.map((p) => `<td><div class="cell">${svg(ic(p, c))}</div></td>`).join("")}</tr>`,
+            )
+            .join("");
+      }
+      function marks() {
+        const row = (m, t, d) =>
+          `<div class="row">${m}<span>${t}</span><span class="n" style="background:none;color:var(--dim)">${d}</span></div>`;
+        const H = S.harness;
+        document.getElementById("hm").innerHTML = [
+          [
+            "A · Neutral glyphs drawn for Uraeda",
+            "No trademark question. Recoloured freely, one per harness, Pi and others included.",
+            row(window.harness("claude", st.size), "Discovery: layout", "Claude Code") +
+              row(window.harness("codex", st.size), "Review the diff", "Codex") +
+              row(window.harness("pi", st.size), "Fix tasks", "Pi") +
+              row(window.harness("gemini", st.size), "Explore", "Gemini CLI"),
+          ],
+          [
+            "B · Codicons, as in Nerd Fonts",
+            "The real marks as VS Code draws them, monochrome. Claude, OpenAI, and Copilot only: Pi and others keep a neutral glyph.",
+            row(mark(H.codicon.claude, 16), "Discovery: layout", "Claude Code") +
+              row(mark(H.codicon.openai, 16), "Review the diff", "Codex") +
+              row(window.harness("pi", st.size), "Fix tasks", "Pi") +
+              row(mark(H.codicon.copilot, 16), "Explore", "Copilot"),
+          ],
+          [
+            "C · Simple Icons, the official logos",
+            "The brands' own shapes, CC0 drawings; the trademarks still apply. Claude, OpenAI, and Gemini.",
+            row(mark(H.simple.claude), "Discovery: layout", "Claude Code") +
+              row(mark(H.simple.openai), "Review the diff", "Codex") +
+              row(window.harness("pi", st.size), "Fix tasks", "Pi") +
+              row(mark(H.simple.googlegemini), "Explore", "Gemini CLI"),
+          ],
+        ]
+          .map(
+            ([t, d, rows]) =>
+              `<section class="pane"><span class="pt">${t}</span><div class="note">${d}</div>${rows}</section>`,
+          )
+          .join("");
+      }
+      function render() {
+        document.documentElement.dataset.theme = st.theme;
+        document.documentElement.style.setProperty("--icon", st.size + "px");
+        bar();
+        cards();
+        table();
+        marks();
+      }
+      document.addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        if (b.dataset.size) st.size = +b.dataset.size;
+        if (b.dataset.theme) st.theme = b.dataset.theme;
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>
