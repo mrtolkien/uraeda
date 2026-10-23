@@ -702,25 +702,27 @@ behaviour the spec marks unverified.
 
 **Files:**
 
-- Create: `packages/web/src/decisions/JumpPalette.tsx`, `src/__tests__/palette.test.tsx`
+- Create: `packages/web/src/decisions/JumpPalette.tsx`, `decisions/jump.ts` (the entries and their
+  ranking), `src/__tests__/palette.test.tsx`
 - Modify: `packages/web/src/decisions/DecisionsPage.tsx` ("Jump to…", the `/` key),
-  `__browser__/decisions.test.tsx`
+  `decisions/ConstitutionRegion.tsx` (`rulesOf` exported), `src/theme/theme.ts` (the palette's
+  sizes), `__browser__/decisions.test.tsx`
 
 **Interfaces:**
 
 - Consumes: Task 1's ruling on the palette's highlight; `useStatusHints` (Task 9).
 
-- [ ] **Step 1: Write the failing tests**: `/` opens the palette, "noti" lists "Notifications", and
+- [x] **Step 1: Write the failing tests**: `/` opens the palette, "noti" lists "Notifications", and
       its preview shows the decision's summary and first rules; Enter opens it in the reader; "zzz"
       reads "Nothing matches."; `/` typed in the sort menu or a text field opens nothing; ↓ in the
       open palette does not move the list behind it. Break: a palette that steals `/` from text
       fields.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no palette.
-- [ ] **Step 3: Implement** it on `CommandPalette` with the preview beside it, or on Task 1's
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no palette.
+- [x] **Step 3: Implement** it on `CommandPalette` with the preview beside it, or on Task 1's
       fallback.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the palette and
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the palette and
       decisions files. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(layout-look): a palette to jump to any decision"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(layout-look): a palette to jump to any decision"`.
 
 ## Task 14: The stories, the screenshots, and the prototypes' removal
 

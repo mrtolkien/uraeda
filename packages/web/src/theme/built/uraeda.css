@@ -297,6 +297,9 @@
     --size-session-max: 95ch;
     --size-pane-min: 400px;
     --size-ledger-list: max(320px, 30vw);
+    --size-palette: min(1024px, 92vw);
+    --size-palette-height: min(600px, 76dvh);
+    --size-palette-list: 360px;
     --size-viewport-height: 100dvh;
     --size-image-max-height: 80dvh;
     --size-message-image: 120px;
