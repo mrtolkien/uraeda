@@ -268,3 +268,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: "Later" reads as loud as "Next" at a glance; a stronger edge for "Next" alone is a
   tone of its own in `lists/WorkList.tsx`.
 - **Where**: `packages/web/src/theme/theme.ts`, `__tests__/theme-tokens.test.ts`.
+
+## R13: The import cycle between the route history and the routes stays, for now
+
+- **Decision**: `routeHistory.ts` keeps importing `parseLocation` from `routes.tsx`, which
+  re-exports the history's helpers: a cycle of two modules, left as Task 3's Step 1 made it.
+- **Rationale**: the history reads `parseLocation` only inside `navigate`, called after both modules
+  have loaded, so the cycle never reads a binding before it is set. Breaking it moves
+  `parseLocation`, and with it `parseRoute` and the whole route table, out of `routes.tsx`, the file
+  the shell's rebuild (task 8) rewrites at the same time: a move there now is a conflict, for no
+  change in behaviour.
+- **Alternatives considered**: the route table in a module of its own, `routeTable.ts`, imported by
+  both; `routes.tsx` handing the history a page-of-path function at load, so the history imports
+  nothing of the routes.
+- **If wrong**: a top-level read of `parseLocation` in `routeHistory.ts`, or a bundler that orders
+  the two modules otherwise, fails at load; the route table then moves to its own module, once the
+  shell's rebuild has landed.
+- **Where**: `packages/web/src/routeHistory.ts`, `routes.tsx`.
