@@ -149,6 +149,7 @@ function SessionLog({
   return (
     <VStack gap={3}>
       <SessionHeader
+        agent={session.agent}
         place={session.place}
         status={{ label: session.statusLabel, status: session.status }}
         // Its own name once renamed, else its change's or feature's title.

@@ -1175,3 +1175,21 @@ test("a merged feature: the composer is disabled and says why", async () => {
   expect(await screen.findByText("This feature has no branch left: it is merged.")).toBeTruthy();
   expect((await composer()).getAttribute("aria-disabled")).toBe("true");
 });
+
+/** Layout and look US1 3: a session's header marks the harness the session runs on, as its card. */
+test("a session's header names its own harness, not the configured one", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const session = await fake.sessions.newChat(repo);
+  fake.adapter.script([{ text: "Done.", type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, session.id, { text: "Why is CI slow?" });
+  await fake.sessions.settled(turn);
+  fake.sessions.cache.db
+    .prepare("UPDATE sessions SET agent = 'codex' WHERE id = ?")
+    .run(session.id);
+  await renderPage(`/sessions/${session.id}`, repo, { agent: fake });
+
+  await screen.findByRole("heading", { level: 1, name: "Why is CI slow?" });
+  expect(await screen.findByText(/^Codex\b/)).toBeTruthy();
+  expect(screen.queryByText(/^Claude Code\b/)).toBeNull();
+});
