@@ -269,22 +269,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   tone of its own in `lists/WorkList.tsx`.
 - **Where**: `packages/web/src/theme/theme.ts`, `__tests__/theme-tokens.test.ts`.
 
-## R13: The import cycle between the route history and the routes stays, for now
+## R13: The route table moves to its own module, once the shell landed
 
-- **Decision**: `routeHistory.ts` keeps importing `parseLocation` from `routes.tsx`, which
-  re-exports the history's helpers: a cycle of two modules, left as Task 3's Step 1 made it.
-- **Rationale**: the history reads `parseLocation` only inside `navigate`, called after both modules
-  have loaded, so the cycle never reads a binding before it is set. Breaking it moves
-  `parseLocation`, and with it `parseRoute` and the whole route table, out of `routes.tsx`, the file
-  the shell's rebuild (task 8) rewrites at the same time: a move there now is a conflict, for no
-  change in behaviour.
-- **Alternatives considered**: the route table in a module of its own, `routeTable.ts`, imported by
-  both; `routes.tsx` handing the history a page-of-path function at load, so the history imports
-  nothing of the routes.
-- **If wrong**: a top-level read of `parseLocation` in `routeHistory.ts`, or a bundler that orders
-  the two modules otherwise, fails at load; the route table then moves to its own module, once the
-  shell's rebuild has landed.
-- **Where**: `packages/web/src/routeHistory.ts`, `routes.tsx`.
+- **Decision**: the route table, `Route`, `parseRoute`, `parseLocation`, and the paths the pages
+  build, lives in `routeTable.ts`, imported by `routeHistory.ts` and by `routes.tsx`, which
+  re-exports it: the route history no longer imports the routes, so the two modules have no cycle.
+  Task 3 left the cycle while the shell's rebuild (task 8) rewrote `routes.tsx`; with the shell
+  landed, the move is a refactor alone.
+- **Rationale**: the history read `parseLocation` only inside `navigate`, so the cycle was safe, but
+  only by when it was read; a module of its own makes it safe by structure. The re-exports keep
+  every importer of `routes.tsx` unchanged.
+- **Alternatives considered**: keeping the cycle, safe while nothing reads the table at load;
+  `routes.tsx` handing the history a page-of-path function at load, an indirection for one call.
+- **If wrong**: a page or a hook that needs the table imports `routeTable.ts` directly; the
+  re-exports in `routes.tsx` can go once nothing imports the table through them.
+- **Where**: `packages/web/src/routeTable.ts`, `routeHistory.ts`, `routes.tsx`.
 
 ## R14: The shell's panes split the one Sessions list, New leads the column, and its panes are groups
 

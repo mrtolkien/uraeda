@@ -1,5 +1,5 @@
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
-import { parseLocation } from "./routes.tsx";
+import { parseLocation } from "./routeTable.ts";
 
 /** The event `navigate` and `redirect` send as they change the location. */
 export const CHANGE = "uraeda:navigate";
