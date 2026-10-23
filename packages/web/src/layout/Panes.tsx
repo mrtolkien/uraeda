@@ -24,6 +24,12 @@ const styles = stylex.create({
     position: "sticky",
     top: 0,
   },
+  framed: {
+    // Its content draws its own pane, with a border: the edge would double it.
+    borderInlineStartWidth: 0,
+    paddingBlock: spacingVars["--spacing-3"],
+    paddingInline: spacingVars["--spacing-2"],
+  },
   list: {
     minWidth: 0,
   },
@@ -32,6 +38,9 @@ const styles = stylex.create({
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) minmax(var(--size-pane-min), 40%)",
   },
+  sized: (width: string) => ({
+    gridTemplateColumns: `${width} minmax(0, 1fr)`,
+  }),
 });
 
 /**
@@ -39,17 +48,21 @@ const styles = stylex.create({
  * least 400 px, keeping its own scroll position for Back, and shown from its top when it shows
  * another item, `detailKey`, in the same entry; on narrow screens, the detail alone when there is
  * one, else the list. `onCloseDetail` draws a Close above the detail; without it, the detail draws
- * its own.
+ * its own. With `listWidth`, the list takes that width instead and the detail the rest, both drawing
+ * their own panes, so the detail draws no edge.
  */
 export function Panes({
   detail,
   detailKey,
   list,
+  listWidth,
   onCloseDetail,
 }: {
   detail: ReactNode | undefined;
   detailKey?: string;
   list: ReactNode;
+  /** The list's width, a CSS length such as a theme's size: the detail's 40% by default. */
+  listWidth?: string;
   onCloseDetail?: () => void;
 }) {
   const wide = !isNarrow(useWidthClass());
@@ -71,9 +84,13 @@ export function Panes({
     return <>{list}</>;
   }
   return (
-    <div {...stylex.props(styles.panes)}>
+    <div {...stylex.props(styles.panes, listWidth !== undefined && styles.sized(listWidth))}>
       <div {...stylex.props(styles.list)}>{list}</div>
-      <section ref={pane} {...stylex.props(styles.detail)} aria-label="Detail">
+      <section
+        ref={pane}
+        {...stylex.props(styles.detail, listWidth !== undefined && styles.framed)}
+        aria-label="Detail"
+      >
         {onCloseDetail && (
           <div {...stylex.props(styles.close)}>
             <HStack justify="end">

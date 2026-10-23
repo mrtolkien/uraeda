@@ -286,6 +286,9 @@ export const uraedaTheme = defineTheme({
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
     // height, scrolling on its own.
     "--size-pane-min": "400px",
+    // The decisions' list beside their reader: 30% of the window on wide screens, and on semi-wide
+    // ones, where 30% would cut its titles short, a fixed column the reader leaves room for.
+    "--size-ledger-list": "max(320px, 30vw)",
     "--size-viewport-height": "100dvh",
     // An image in a document or a message: a tall screenshot stays shorter than the window.
     "--size-image-max-height": "80dvh",

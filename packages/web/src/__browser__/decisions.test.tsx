@@ -1,6 +1,7 @@
 // US8 5, on the desktop: the decisions page's keys go from the principles to the decisions, the
-// pane following, and Escape closes the pane. The fixture's decisions all changed the same day, so
-// the latest first are A to Z.
+// reader following, and Escape returns the reader to the constitution (R25). US4 of the layout
+// look: the list takes 30% of the window, the active pane. The fixture's decisions all changed the
+// same day, so the latest first are A to Z.
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -17,7 +18,9 @@ function agents() {
 
 test("↓ from the last principle selects and shows the first decision (US8 5)", async () => {
   await show("/decisions/constitution/vi", "Code is checked and stays maintainable");
-  screen.getByRole("link", { name: "VI. Code is checked and stays maintainable" }).focus();
+  within(screen.getByRole("region", { name: "Constitution" }))
+    .getByRole("link", { name: /Code is checked and stays maintainable/ })
+    .focus();
   await drawn();
 
   await userEvent.keyboard("{ArrowDown}");
@@ -31,7 +34,28 @@ test("↓ from the last principle selects and shows the first decision (US8 5)",
   await userEvent.keyboard("{ArrowUp}");
   await expect.poll(() => window.location.pathname).toBe(atRepo("/decisions/constitution/vi"));
 
+  // The reader stays open: Escape returns it to the constitution.
   await userEvent.keyboard("{Escape}");
   await expect.poll(() => window.location.pathname).toBe(atRepo("/decisions"));
-  await expect.poll(() => screen.queryByRole("region", { name: "Detail" })).toBeNull();
+  // The page is drawn anew for the new entry: the reader is found once it is.
+  await screen.findByRole("heading", { name: "Uraeda Constitution" });
+  const reader = within(screen.getByRole("region", { name: "Detail" }));
+  expect(reader.getByRole("heading", { name: "Uraeda Constitution" })).toBeTruthy();
+});
+
+/** An element's top border's colour. */
+const border = (element: HTMLElement) => getComputedStyle(element).borderTopColor;
+
+test("the list is the active pane, 30% of the window, the reader taking the rest (US4)", async () => {
+  await show("/decisions", "Uraeda Constitution");
+
+  const list = screen.getByRole("region", { name: "Constitution and decisions" });
+  const reader = screen.getByRole("region", { name: "specs/CONSTITUTION.md" });
+  const width = list.getBoundingClientRect().width;
+  // The pane's border is inside its column, a few pixels narrower than 30%.
+  expect(width / window.innerWidth).toBeGreaterThan(0.28);
+  expect(width / window.innerWidth).toBeLessThanOrEqual(0.3);
+  expect(reader.getBoundingClientRect().width).toBeGreaterThan(width);
+  // The active pane's border is the accent's, the reader's the neutral one.
+  expect(border(list)).not.toBe(border(reader));
 });

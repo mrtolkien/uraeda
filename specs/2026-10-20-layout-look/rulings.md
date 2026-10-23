@@ -561,3 +561,49 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 11, `packages/web/src/settings/*`, `theme/icons.ts`, `theme/lucide.ts`,
   `scripts/settings-shots.ts`, `__tests__/settings.test.tsx`, `__browser__/layout.test.tsx`,
   `__browser__/story-embed.test.tsx`.
+## R25: The decisions' reader stays open, Escape returns it to the constitution
+
+- **Decision**: on wide and semi-wide screens the reader is always open: `/decisions` shows the
+  whole constitution in it, the list marking principle I, and `/decisions/constitution/<slug>` the
+  same reader scrolled to that principle. The reader has no Close; Escape from a decision or a
+  principle returns to `/decisions`, and does nothing there. The browser test that ended with Escape
+  closing the pane, no `Detail` region left, now ends with the reader on the constitution. The
+  reader's pane is named by the file it shows, `specs/CONSTITUTION.md` or
+  `specs/decisions/<name>.md`, the title being the reader's own heading; its head holds Previous and
+  Next, in the list's order, and on the phone the way back, "Constitution and decisions". The list
+  is `--size-ledger-list`, `max(320px, 30vw)`: 30% of the window on wide screens, and 320 px on
+  semi-wide ones, where 30% would cut the titles; `Panes` takes it as `listWidth`, the inbox and the
+  priorities keeping their 40% detail. A principle's row is its numeral, title, first rule, and
+  count of rules; a decision's adds its count of rules before its date, left out at none. The
+  constitution's version line moves from the list to the reader. `PrincipleDetail`, the reader of
+  one principle, is gone.
+- **Rationale**: the spec's reader is "open by default", and a principle "opens the whole
+  constitution in it"; with nothing to close, Escape's nearest meaning is back to the start.
+- **Alternatives considered**: Escape closing the reader to the list alone, as before: the spec
+  keeps it open. The pane's title repeating the entry's name, as the mockup does: it says twice what
+  the heading under it says.
+- **If wrong**: `onClose` in `DecisionsPage.tsx`'s `LedgerList`, and the browser test's last lines.
+- **Where**: task 12, `packages/web/src/decisions/DecisionsPage.tsx`, `ConstitutionReader.tsx`,
+  `ConstitutionRegion.tsx`, `DecisionList.tsx`, `layout/Panes.tsx`, `App.tsx`, `theme/theme.ts`,
+  `__browser__/decisions.test.tsx`, `__tests__/decisions.test.tsx`.
+
+## R26: A decision changed on a branch: any feature in flight, from its branch changes
+
+- **Decision**: "a decision changed on this branch" is read as on any feature's branch in flight,
+  since the server reads the default branch whatever is checked out. The reader asks each feature
+  with a branch for its branch changes, which the shell's cards already request, and only for those
+  whose files hold `specs/decisions/<name>.md`, the branch's decision; each draws the spec page's
+  `DecisionCard`, its changed parts only, under "Proposed by <feature>, on its branch", before the
+  decision's document. A branch that removes the file shows no card, having no decision to read. The
+  branch changes list their first 50 files: a branch past 50 files outside its folder may miss a
+  decision sorted after them. `decision-rules.test.tsx`'s comparison of the two pages finds the rule
+  twice now, in the diff and in the rules, and takes the first.
+- **Rationale**: no new server data; the requests are cached already, and a decision's read is asked
+  only of a branch that changes it.
+- **Alternatives considered**: the checkout's current branch only: the server does not read it. The
+  branch's decision asked of every feature for every decision opened: a core read each, and an
+  unchanged decision still answers a change to tell apart. A ledger field of the branches changing
+  each decision: new core and server work for the same answer.
+- **If wrong**: a field on the ledger's decisions, read by the core, replaces `useBranchChange`.
+- **Where**: task 12, `packages/web/src/decisions/BranchChange.tsx`, `DecisionDetail.tsx`,
+  `__tests__/decision-rules.test.tsx`.
