@@ -6,14 +6,17 @@ icon: palette
 
 # UI look
 
-Uraeda looks like a terminal tool: one monospace font, Catppuccin colours, square corners, and
-bordered panes with their title in their border, as in Neovim. The look lives in one theme, so the
-whole UI changes together, and more colour schemes can join it later.
+Uraeda looks like a terminal tool: a monospace font, Catppuccin colours, square corners, and
+bordered panes with their title in their border, as in Neovim. Readability comes first, so text that
+reads better in a proportional font gets one. The look lives in one theme, so the whole UI changes
+together, and more colour schemes can join it later.
 
 ## Rules
 
-- The UI MUST look like a terminal tool: one monospace font for all its text, square corners, and
-  content grouped in bordered panes whose title sits in their top border. Checked by review.
+- The UI MUST look like a terminal tool: square corners, and content grouped in bordered panes whose
+  title sits in their top border. Checked by review.
+- Text MUST be set for readability first: a monospace font by default, and a proportional font where
+  it reads better, such as long prose. Checked by review.
 - A new colour scheme MUST be added as a named scheme of the same theme, never as styles in a view.
   Checked by review.
 - Every text colour MUST reach 4.5:1 against its background, and borders and controls 3:1, in every
