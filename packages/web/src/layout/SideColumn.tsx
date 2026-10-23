@@ -14,7 +14,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { easeVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type ReactNode, useState } from "react";
-import { useWidthClass } from "./useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
   bar: {
@@ -189,7 +189,7 @@ export function SideColumn({
   /** Where its width is kept in the browser. */
   storageKey: string;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const resizable = useResizable({
     autoSaveId: storageKey,
     defaultSize: sizes.default,

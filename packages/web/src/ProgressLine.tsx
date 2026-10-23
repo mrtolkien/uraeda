@@ -15,7 +15,7 @@ import * as stylex from "@stylexjs/stylex";
 import { Suspense, useEffect, useState } from "react";
 import { QuestionCount, roundOf } from "./ChangeAside.tsx";
 import { useFeature } from "./data.ts";
-import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 import { ProgressRing } from "./ProgressRing.tsx";
 import { currentEntry, updateEntry } from "./routes.tsx";
 import { SessionAside, stepTitle } from "./SessionAside.tsx";
@@ -52,7 +52,7 @@ function useLineOpen(): [boolean, (open: boolean) => void] {
   useEffect(
     () => () => {
       // Gone because the window turned wide, not because the page was left.
-      if (widthClassNow() === "wide" && currentEntry().id === id) {
+      if (!isNarrow(widthClassNow()) && currentEntry().id === id) {
         updateEntry({ progress: false });
       }
     },
@@ -75,7 +75,7 @@ function useLineOpen(): [boolean, (open: boolean) => void] {
  * column's content shows under it.
  */
 export function ProgressLine({ folder, session }: { folder: string; session?: string }) {
-  const narrow = useWidthClass() === "narrow";
+  const narrow = isNarrow(useWidthClass());
   const feature = useFeature(folder);
   if (!narrow || !feature || feature.missing) {
     return null;

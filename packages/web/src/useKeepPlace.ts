@@ -5,7 +5,7 @@
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import { atEnd } from "./following.ts";
 import { scrollInstantly } from "./keepPlace.ts";
-import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 
 /** How far down the window the place is read: below the top bar, above the sticky composer. */
 const READ_AT = 1 / 3;
@@ -49,12 +49,13 @@ function placeIn(content: HTMLElement): { element: Element; top: number } | unde
 }
 
 /**
- * Keeps the place the human reads in `content` as the window crosses the width breakpoint: the
+ * Keeps the place the human reads in `content` as the window crosses the narrow breakpoint: the
  * element a third down the window stays there, or the end stays in view.
  */
 export function useKeepPlace(content: RefObject<HTMLElement | null>) {
-  const width = useWidthClass();
-  const drawn = useRef(width);
+  // Pages lay out alike at semi-wide and wide: only crossing into or out of narrow moves the place.
+  const narrow = isNarrow(useWidthClass());
+  const drawn = useRef(narrow);
   const place = useRef<{ element: Element; top: number } | "end" | undefined>(undefined);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
       frame = undefined;
       // A layout drawn for the other width class: its positions are not the human's.
       const element = content.current;
-      if (!element || widthClassNow() !== drawn.current) {
+      if (!element || isNarrow(widthClassNow()) !== drawn.current) {
         return;
       }
       place.current = atEnd() ? "end" : placeIn(element);
@@ -90,10 +91,10 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
   }, [content]);
 
   useLayoutEffect(() => {
-    if (drawn.current === width) {
+    if (drawn.current === narrow) {
       return;
     }
-    drawn.current = width;
+    drawn.current = narrow;
     const kept = place.current;
     // Put back before the frame is drawn, once every component drawn for the width has committed:
     // each media query's listener commits on its own, and the shell's navigation may follow this.
@@ -105,5 +106,5 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [width]);
+  }, [narrow]);
 }

@@ -21,7 +21,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Span } from "uraeda-binding";
 import { LineField } from "../EditableLine.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { usePaneEdit } from "../lists/listPane.ts";
 import { Spans } from "../Spans.tsx";
 import type { useLineSave } from "../useLineSave.ts";
@@ -84,7 +84,7 @@ function PaneBar({
   onClose?: () => void;
   onEdit: () => void;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return (
     <div {...stylex.props(styles.bar)}>
       <div {...stylex.props(styles.barContent, wide && styles.barWide)}>
@@ -215,7 +215,7 @@ export function EntryPane({
   steps: ReactNode;
   text: ReactNode;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   // Enter on the list's selected row edits, as Edit does.
   usePaneEdit(onEdit, isEditing);
   return (

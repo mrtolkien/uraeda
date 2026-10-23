@@ -6,7 +6,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import type { ReactNode, RefObject } from "react";
 import { useBackCloses } from "./useBackCloses.ts";
-import { useWidthClass } from "./useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 /**
  * A short form over the page: a dialog on wide screens, a bottom sheet on narrow ones, tall unless
@@ -38,7 +38,7 @@ export function Overlay({
   /** On wide screens, the dialog's width, when Astryx's default is too narrow for its buttons. */
   width?: string;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const close = useBackCloses(label, isOpen, onClose);
   const onOpenChange = (open: boolean) => {
     if (!open) {

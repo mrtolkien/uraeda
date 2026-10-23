@@ -16,7 +16,7 @@ import { Crumbs } from "../Crumbs.tsx";
 import { useFile } from "../data.ts";
 import { type Folds, useHashFold } from "../Folds.tsx";
 import { Page } from "../layout/Page.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import {
   ReviewEnd,
   ReviewHost,
@@ -269,7 +269,7 @@ function SpecLayout({
 
 /** A spec waiting for your review: its parts take comments, and its verdict is at the page's end. */
 function WaitingSpec({ file }: { file: File }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const review = useReview(file, wide);
   return (
     <ReviewHost file={file} review={review}>
@@ -286,7 +286,7 @@ function WaitingSpec({ file }: { file: File }) {
 
 /** A spec not waiting for you, approved or being written: the same page, read-only. */
 function ReadSpec({ file }: { file: File }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const folds = useSpecFolds(file.current.items.spec);
   return (
     <StoriesProvider folder={file.folder} stories={file.current.stories}>

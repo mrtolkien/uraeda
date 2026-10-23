@@ -15,7 +15,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { KeyboardEvent, ReactNode } from "react";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useLineSave } from "./useLineSave.ts";
 
 /** What the restore notice adds when the line changed since its unsaved text was typed. */
@@ -105,7 +105,7 @@ export function LineField({
   label: string;
   line: ReturnType<typeof useLineSave>;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const { field } = line;
   return (
     <VStack gap={1}>

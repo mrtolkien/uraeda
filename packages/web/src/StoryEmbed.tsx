@@ -23,7 +23,7 @@ import type { StoryTarget } from "uraeda-binding";
 import { useStory } from "./data.ts";
 import { useFullScreen, useOutgrow } from "./embedLayout.ts";
 import { refusal } from "./errors.ts";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
 import { PreviewBase, storybookHref } from "./stories.tsx";
 import { StoryFrames, type Width } from "./StoryFrames.tsx";
@@ -183,7 +183,7 @@ function ReadyStory({
   screen: FullScreen;
   storybook: string;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   // The desktop's width on a wide screen, the phone's on a narrow one, until the human picks one.
   const [width, setWidth] = useState<Width>("desktop");
   const { full, toggle } = screen;
@@ -249,7 +249,7 @@ function LiveStory({
   story: StoryTarget;
 }) {
   const record = useStory(folder, story);
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   if (record?.state === "ready" && record.frame && record.storybook) {
     return (
       <ReadyStory
@@ -320,7 +320,7 @@ export function StoryEmbed({
   story: StoryTarget & { label: string };
 }) {
   const labelId = useId();
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const target = { export: story.export, path: story.path };
   // Pick mode and the comment form outlive the story's state: a form holding text stays while
   // its Storybook stops and starts again.

@@ -9,7 +9,7 @@ import { type ReactNode, useRef, useState } from "react";
 import { useNavigation } from "./sessionData.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath, useRepository } from "./routes.tsx";
 import { DoneArea } from "./sidebar/DoneArea.tsx";
@@ -202,7 +202,7 @@ function Writing() {
 /** The errors of refused Undos, each until dismissed. */
 function UndoErrors() {
   const [errors, dismiss] = useUndoErrors();
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   if (errors.length === 0) {
     return null;
   }

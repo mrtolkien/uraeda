@@ -9,7 +9,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import type { Document, SettledGroup, SettledKind } from "uraeda-binding";
 import { type Folds, useHashFold } from "./Folds.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { plain } from "./Spans.tsx";
 import { useOpenKeys } from "./useOpenKeys.ts";
 
@@ -128,7 +128,7 @@ export function SettledGroups({
   hoodForced: boolean;
   points: (group: SettledGroup) => ReactNode;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const folds = useHoodFold(document, groups, hoodForced);
   // One tree at every width, so a comment being typed stays as the window crosses the breakpoint.
   return (

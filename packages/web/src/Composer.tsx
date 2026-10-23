@@ -26,7 +26,7 @@ import { useImageDrop } from "./attach/useImageDrop.ts";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
 import { refusal } from "./errors.ts";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { FreshDefault, useFreshRun } from "./HandOver.tsx";
 import { footerActions, sendButtons } from "./ComposerSend.tsx";
 import { type Inserted, withInserted } from "./RecommendedMessage.tsx";
@@ -45,7 +45,7 @@ const styles = stylex.create({
  * that.
  */
 function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return (
     <ChatComposerInput
       {...props}
@@ -333,7 +333,7 @@ export function Composer(given: ComposerProps) {
   const { edit, insert, props, reader } = useInserted(given, input);
   const { workflow } = props;
   const agent = useAgent();
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const box = useRef<HTMLDivElement>(null);
   const focusAt = useFocusAfterRemove(box, input, images);
   const name = agent?.name ?? "the agent";

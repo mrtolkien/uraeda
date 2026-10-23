@@ -3,7 +3,7 @@
 import { Step, Stepper } from "@astryxdesign/core/Stepper";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useWidthOf } from "../layout/useWidthOf.ts";
 import { clock, duration } from "./times.ts";
 
@@ -132,7 +132,7 @@ function useRowFits(
  * the phone, and on a wide screen too narrow for the row (C3).
  */
 export function Stages({ history }: { history: StagesHistory }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const ref = useRef<HTMLDivElement>(null);
   const lines = history.stages.map((_, index) => stageLine(history, index));
   const row = useRowFits(ref, { room: useWidthOf(ref), texts: lines.join("\n"), wide });

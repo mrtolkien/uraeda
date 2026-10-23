@@ -10,7 +10,7 @@ import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { MouseEvent } from "react";
 import { scrollBelowBar } from "../Folds.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { clock, day, duration } from "./times.ts";
 
 const styles = stylex.create({
@@ -266,7 +266,7 @@ export function Figures({
   pullRequest?: string;
   tokens: Tokens;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   if (done && !history.found) {
     return <Text color="secondary">No figures: its commits could not be traced</Text>;
   }

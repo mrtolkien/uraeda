@@ -12,7 +12,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 
 const styles = stylex.create({
   at: {
@@ -98,7 +98,7 @@ export function SidebarHeading({
   /** The page's own controls. */
   slot?: ReactNode;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const { isCollapsed } = useSideNavCollapse();
   if (!wide) {
     return (

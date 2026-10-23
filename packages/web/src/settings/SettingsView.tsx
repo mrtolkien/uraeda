@@ -13,7 +13,7 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type ReactNode, useState } from "react";
 import { Page } from "../layout/Page.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { type Category, CATEGORIES, type CategoryId, searchSettings } from "./categories.ts";
 import { AppearanceSettings, PlannedSettings, SignInSettings } from "./OtherSettings.tsx";
 import { RunSettings } from "./RunSettings.tsx";
@@ -208,7 +208,7 @@ export function SettingsView({
   server: ServerValues;
   serverActions: ServerActions;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const [text, setText] = useState(initialSearch);
   const category = CATEGORIES.find((each) => each.id === id);
   const open = category ?? CATEGORIES[0];

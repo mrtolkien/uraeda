@@ -33,7 +33,7 @@ import { NewPage } from "./NewPage.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { ListPaneContext, useListPane } from "./lists/listPane.ts";
 import { NotePane } from "./pane/NotePane.tsx";
 import { PriorityPane } from "./pane/PriorityPane.tsx";
@@ -236,7 +236,7 @@ function LedgerRoute({ open }: { open: LedgerOpen }) {
 function useListPosition() {
   // Once, when the view is drawn, at the width it is drawn at: the entry is read once too.
   const width = useWidthClass();
-  const [wide] = useState(width === "wide");
+  const [wide] = useState(!isNarrow(width));
   const [{ opener, scroll }] = useState(currentEntry);
   useLayoutEffect(() => {
     if (wide && scroll === undefined && opener !== undefined) {

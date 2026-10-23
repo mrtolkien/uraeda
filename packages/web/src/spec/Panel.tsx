@@ -8,7 +8,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 
 const styles = stylex.create({
   belowBar: {
@@ -67,7 +67,7 @@ export type PanelProps = {
 
 /** A panel's head: on the phone, its breadcrumbs above it; its title, then its badges. */
 function PanelHead({ badges, crumbs, id, title }: Omit<PanelProps, "children" | "variant">) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return (
     <VStack gap={1}>
       {!wide && crumbs.length > 0 && (
@@ -93,7 +93,7 @@ function PanelHead({ badges, crumbs, id, title }: Omit<PanelProps, "children" | 
  * tint; on the phone, no card, its head sticking under the top bar with its breadcrumbs.
  */
 export function Panel({ badges, children, crumbs, id, title, variant = "default" }: PanelProps) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const head = <PanelHead badges={badges} crumbs={crumbs} id={id} title={title} />;
   const labelled = { "aria-labelledby": `${id}-title`, id };
   if (!wide) {

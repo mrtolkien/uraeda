@@ -4,7 +4,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Grid } from "@astryxdesign/core/Grid";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRepoPath } from "../routes.tsx";
 import { type StepKind, StepIcon } from "../sidebar/StepIcon.tsx";
 import { storybookHref } from "../stories.tsx";
@@ -136,7 +136,7 @@ function Links({ feature }: { feature: FilesFeature }) {
 
 /** The files beside the links on a wide screen, each half the width; stacked on the phone. */
 export function FileList({ feature }: { feature: FilesFeature }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return (
     <Grid columns={wide ? 2 : 1} gap={4}>
       <Files feature={feature} />

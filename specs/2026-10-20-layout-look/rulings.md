@@ -183,3 +183,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   to them in `plan.md`, `spec.md`, `rulings.md`, the two rounds, and the two discoveries the same
   way.
 - **Where**: task 5, `skills/uraeda/references/approval.md`, `plan.md`, `discovery.md`, `spec.md`.
+
+## R9: A semi-wide browser test runs in the desktop instance, narrowed by `atSize("semi")`
+
+- **Decision**: the browser instances stay the phone and the desktop. `atSize` reads a viewport's
+  size as the width classes do, under 768 px the phone, to 1279 px semi-wide, from 1280 px the
+  desktop, and accepts `"semi"`: such a scope runs in the desktop instance, skipped on the phone,
+  and `atSize` itself narrows the window to 1205 × 900 before each of its tests and widens it back
+  after. A test about a crossing, or about a touch screen at 1205 px, sets `page.viewport` itself.
+  The place keepers, `useKeepPlace` and `useFollowEnd`, compare whether the layout is narrow, not
+  the class, and the crossing test of the priorities' pane narrows the window to 500 px high, so its
+  list scrolls at 1440 px too.
+- **Rationale**: a declared size is then the size the test runs at, with no resize to forget or to
+  undo in a `finally`; a third instance would run every file a third time for a few tests. The place
+  keepers act on the page's layout, which only 768 px changes (Review focus 2).
+- **Alternatives considered**: a semi-wide instance in `vite.browser.config.ts`: a third run of all
+  44 files. `"semi"` as an alias of `"desktop"`, each test resizing: the size declared and the size
+  run would differ.
+- **If wrong**: a scope declared `"semi"` that needs its own height sets `page.viewport` in its
+  test; the hooks live in `__browser__/helpers.tsx` alone.
+- **Where**: task 3, `packages/web/src/__browser__/helpers.tsx`, `__browser__/layout.test.tsx`,
+  `useKeepPlace.ts`, `following.ts`.

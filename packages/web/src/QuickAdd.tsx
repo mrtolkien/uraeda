@@ -13,7 +13,7 @@ import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { PrioritiesAddedView } from "./views.ts";
 import { useOwnWrite } from "./writes/useOwnWrite.ts";
 import { WriteButtonView, type WriteState } from "./writes/WriteFeedback.tsx";
@@ -104,7 +104,7 @@ export function AddButtons({
   onCancel: () => void;
   start?: ReactNode;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const committing = onAddAndCommit !== undefined;
   return (
     <HStack gap={2} justify="end" wrap="wrap">

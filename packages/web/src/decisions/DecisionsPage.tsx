@@ -17,7 +17,7 @@ import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsChec
 import { Page } from "../layout/Page.tsx";
 import { Panes } from "../layout/Panes.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { ListPaneContext } from "../lists/listPane.ts";
 import { useListKeys } from "../lists/useListKeys.ts";
 import { useRepoPath, useRestoreScroll } from "../routes.tsx";
@@ -124,7 +124,7 @@ function LedgerDetail({ ledger, open }: { ledger: LedgerData; open: LedgerOpen }
 export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {
   const workspace = useWorkspace();
   const ledger = useLedger();
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(ledger !== null && ledger !== undefined);
   if (!workspace || !ledger) {

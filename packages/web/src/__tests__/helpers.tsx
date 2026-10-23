@@ -83,7 +83,10 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
-afterEach(() => atWidth(1024));
+/** The width every test starts at: a desktop's, wide, past happy-dom's own 1024, semi-wide. */
+const DESKTOP = 1440;
+atWidth(DESKTOP);
+afterEach(() => atWidth(DESKTOP));
 
 /** Sets the day the core takes as today for a file's tests, and puts the machine's back after. */
 export function today(date: string) {
@@ -100,7 +103,7 @@ export function today(date: string) {
   });
 }
 
-/** Gives the window a width, as a phone's (402) or a desktop's: happy-dom starts at 1024, wide. */
+/** Gives the window a width, as a phone's (402), a semi-wide 1205, or a desktop's (1440, the default). */
 export function atWidth(width: number) {
   (
     window as unknown as { happyDOM: { setViewport(size: { width: number }): void } }

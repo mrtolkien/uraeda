@@ -3,7 +3,7 @@ import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { reviewHeadings } from "./ReviewHeadings.tsx";
 import { ReviewEnd, ReviewHost, ReviewIntro, useReview } from "./review/useReview.tsx";
 import { StoriesProvider } from "./stories.tsx";
@@ -18,7 +18,7 @@ type File = NonNullable<ReturnType<typeof useFile>>;
  * renders the field alone; the comment holding unsaved text when the page is drawn opens again.
  */
 export function ReviewPage({ file }: { file: File }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const review = useReview(file, wide);
   const { folds, selection, storyComments, tree, version } = review;
   return (

@@ -5,7 +5,7 @@ import * as stylex from "@stylexjs/stylex";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { useRestorePaneScroll } from "../routes.tsx";
-import { useWidthClass } from "./useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
   close: {
@@ -52,7 +52,7 @@ export function Panes({
   list: ReactNode;
   onCloseDetail?: () => void;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const pane = useRef<HTMLElement>(null);
   // Back returns to where the detail was scrolled, as it does the page.
   useRestorePaneScroll(pane, wide && detail !== undefined);

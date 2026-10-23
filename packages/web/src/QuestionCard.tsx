@@ -3,7 +3,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useContext } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { holdsVariants, Options, QuestionContext, QuestionHead } from "./Question.tsx";
 import { AnswerComment } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
@@ -88,7 +88,7 @@ export function QuestionCard({
   target: RoundTarget;
 }) {
   const answer = useAnswer(question, target, path);
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   // A comment on one of its stories joins its answer, on a line of its own, while it can be
   // answered. Its unsaved text is the question's own: another question of the round may embed the
   // same story.
