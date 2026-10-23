@@ -85,8 +85,8 @@ export function categoryOf(id: string): Category | undefined {
 export type Found = { category: Category; label: string };
 
 /**
- * The settings whose label, one of their terms, or whose category's label holds `text`, trimmed and in any case, the
- * settings to come included, in the page's order; none for an empty text.
+ * The settings whose label, one of their terms, or whose category's label holds `text`, trimmed and
+ * in any case, the settings to come included, in the page's order; none for an empty text.
  */
 export function searchSettings(text: string): Array<Found> {
   const needle = text.trim().toLowerCase();

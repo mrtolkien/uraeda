@@ -59,8 +59,8 @@ function readNew(raw: string): StoredColumn {
 }
 
 /**
- * Astryx's width and fold, `{ size, isCollapsed }` or a bare number, moved to the new key, the width
- * clamped.
+ * Astryx's width and fold, `{ size, isCollapsed }` or a bare number, moved to the new key, the
+ * width clamped.
  */
 function readOld(store: Storage, raw: string): StoredColumn {
   const parsed: unknown = JSON.parse(raw);
