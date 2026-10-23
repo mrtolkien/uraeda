@@ -394,8 +394,14 @@ async function drag(
     { type: "move", x: handle.x, y: handle.y },
     { type: "down" },
     { type: "move", x: handle.x, y: handle.y - 10 },
-    { type: "move", x: target.x, y: target.y },
   ]);
+  // The drag has started, and follows the pointer from the frame after its start (dnd-kit marks
+  // it dragging in an animation frame): until then, it takes the row for where it started, and a
+  // move to another category, decided by whether the row's centre is below the row it is over,
+  // lands before that row, with no move after to correct it. On a busy machine, the pointer's
+  // jump to its target came before that frame; `drawn` waits for the frames after it.
+  await drawn();
+  await commands.mouse([{ type: "move", x: target.x, y: target.y }]);
   await expect
     .poll(() => drawnNotes(place.category).findIndex((text) => text.includes(note)))
     .toBe(place.index);
