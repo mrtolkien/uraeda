@@ -1,6 +1,6 @@
 // The New page's change part: a composer that starts a change from a typed text and its images,
 // then sends its first run, under a slug the core proposes for the text.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { VStack } from "@astryxdesign/core/VStack";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -121,7 +121,7 @@ export function NewChange() {
         value={text.text}
       />
       <SlugField field={slug} restoreNotice={false} />
-      {error && <Banner collapsible={false} status="error" title={error} />}
+      {error && <AnnouncedBanner collapsible={false} status="error" title={error} />}
     </VStack>
   );
 }

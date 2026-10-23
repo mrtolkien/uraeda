@@ -2,6 +2,7 @@
 // core's tree of the file, with `Blocks`.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -147,7 +148,11 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
         </VStack>
         {decision.problem !== null &&
           (decision.unreadable ? (
-            <Banner description={decision.problem} status="error" title="Can't read this file" />
+            <AnnouncedBanner
+              description={decision.problem}
+              status="error"
+              title="Can't read this file"
+            />
           ) : (
             <Banner status="warning" title={decision.problem} />
           ))}

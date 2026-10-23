@@ -2,7 +2,7 @@
 // or a feature, each with its sentence and the steps that wait on the human. A session starts with
 // its first message; a change from a typed text, an inbox note, or a priority line; a feature from
 // a new title, a note, or a line, as a draft opened in the editor.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -186,7 +186,7 @@ function ChangePart() {
   return (
     <>
       <NewChange />
-      {starts.error && <Banner collapsible={false} status="error" title={starts.error} />}
+      {starts.error && <AnnouncedBanner collapsible={false} status="error" title={starts.error} />}
       <Lines action="Start the change" lines={lines} />
     </>
   );
@@ -211,7 +211,7 @@ function FeaturePart() {
         <TextInput label="Title" onChange={title.change} value={title.text} />
         <Button clickAction={write} isDisabled={!title.text.trim()} label="Write the proposal" />
       </HStack>
-      {starts.error && <Banner collapsible={false} status="error" title={starts.error} />}
+      {starts.error && <AnnouncedBanner collapsible={false} status="error" title={starts.error} />}
       <Lines action="Open the draft" lines={lines} />
     </>
   );

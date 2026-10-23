@@ -1,5 +1,5 @@
 import { Badge } from "@astryxdesign/core/Badge";
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Thumbnail } from "@astryxdesign/core/Thumbnail";
@@ -152,8 +152,8 @@ export function InboxPage() {
         </HStack>
         {!agent && inbox.triage === null && <OrganizeMessage />}
         {inbox.triage !== null && <TriageBanner agent={agent} chat={chat} status={inbox.triage} />}
-        {chat.error && <Banner collapsible={false} status="error" title={chat.error} />}
-        {message && <Banner collapsible={false} status="error" title={message} />}
+        {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
+        {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         {inbox.count === 0 && (
           <Paragraph color="secondary">
             The inbox is empty. Notes you add with ＋ next to Inbox land here.

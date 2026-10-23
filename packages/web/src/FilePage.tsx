@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Crumbs } from "./Crumbs.tsx";
@@ -25,7 +25,7 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
       <Page>
         <VStack gap={3}>
           <Crumbs current={name} folder={folder} />
-          <Banner
+          <AnnouncedBanner
             collapsible={false}
             description={
               <Link hasUnderline href={here(`/f/${folder}`)}>

@@ -309,11 +309,12 @@ test("a refused Undo says so", async () => {
   // In the page, not a toast: the UI behaviour decision keeps errors out of toasts alone.
   const main = within(screen.getByRole("main"));
   await main.findByText(message);
+  // Announced to a screen reader as an alert, as every error banner is.
+  const banner = main.getAllByRole("alert").find((alert) => alert.textContent?.includes(message))!;
+  expect(banner).toBeTruthy();
   expect(read(repo)).not.toContain("Nix + Docker");
 
-  // Since Astryx 0.7 a Banner has no role: the page's one Dismiss is its banner's, which the
-  // message's going checks.
-  await click(main.getByRole("button", { name: "Dismiss" }));
+  await click(within(banner).getByRole("button", { name: "Dismiss" }));
   expect(screen.queryByText(message)).toBeNull();
 });
 

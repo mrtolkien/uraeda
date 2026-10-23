@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Link } from "@astryxdesign/core/Link";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -75,7 +75,7 @@ type Handing = {
 function Missing({ title }: { title: string }) {
   const here = useRepoPath();
   return (
-    <Banner
+    <AnnouncedBanner
       collapsible={false}
       description={
         <Link hasUnderline href={here("/")}>

@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { LayerProvider } from "@astryxdesign/core/Layer";
 import { LinkProvider } from "@astryxdesign/core/Link";
@@ -80,7 +80,7 @@ class ServerErrorBoundary extends Component<
     }
     return (
       <PageLayout>
-        <Banner
+        <AnnouncedBanner
           endContent={
             <Button
               label="Try again"

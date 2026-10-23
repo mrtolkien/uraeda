@@ -1,6 +1,6 @@
 // What `ura check` finds in a feature's files: the problems that stop the workflow, in a banner above
 // "Next", and the notes that do not, folded at the bottom of the page.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -61,7 +61,7 @@ export function Blocking({
   }
   const name = fileName(first.file);
   return (
-    <Banner
+    <AnnouncedBanner
       collapsible={false}
       description={<ProblemLines problems={problems} />}
       endContent={

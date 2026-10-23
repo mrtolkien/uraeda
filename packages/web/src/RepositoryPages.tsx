@@ -1,6 +1,6 @@
 // The pages shown in place of a repository's: its name is not in the list, its folder is gone, or
 // the list is empty.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -86,7 +86,7 @@ export function MissingFolder({ name, path }: { name: string; path: string }) {
             {name} was at <Code size="inherit">{path}</Code>, which no longer holds a git
             repository. Move it back, or remove it from Uraeda.
           </Paragraph>
-          {error && <Banner collapsible={false} status="error" title={error} />}
+          {error && <AnnouncedBanner collapsible={false} status="error" title={error} />}
           <HStack>
             <Button isLoading={removing} label="Remove from Uraeda" onClick={() => void remove()} />
           </HStack>

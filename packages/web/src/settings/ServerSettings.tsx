@@ -1,7 +1,7 @@
 // The Server category: the host names the server accepts, its port, and whether it opens a browser
 // when it starts, each as the settings file holds it, with the value in force when a flag or a
 // variable overrides it for this run.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -104,7 +104,7 @@ function Hosts({ actions, values }: { actions: ServerActions; values: ServerValu
           />
         </HStack>
       ))}
-      {refused && <Banner collapsible={false} status="error" title={refused} />}
+      {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
       <AddHost onSave={actions.addHost} />
     </VStack>
   );
@@ -127,7 +127,7 @@ function OpenBrowser({ actions, values }: { actions: ServerActions; values: Serv
         value={openBrowser.saved ?? openBrowser.inForce}
       />
       {note && <Text color="accent">{note}</Text>}
-      {refused && <Banner collapsible={false} status="error" title={refused} />}
+      {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
     </VStack>
   );
 }
@@ -137,7 +137,7 @@ export function FileProblem({ label, problem }: { label: string; problem: string
   return (
     <VStack gap={4}>
       <Heading level={2}>{label}</Heading>
-      <Banner
+      <AnnouncedBanner
         collapsible={false}
         description="Fix the file to change settings here. Until then, the server uses its defaults."
         status="error"

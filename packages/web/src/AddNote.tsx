@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -309,7 +309,7 @@ export function AddNote({
           </Text>
         </VStack>
       )}
-      {message && <Banner status="error" title={message} />}
+      {message && <AnnouncedBanner status="error" title={message} />}
       <CommitBanner notice={notice} />
       <AddButtons
         addLabel={commits ? "Add" : "Add as a draft"}
