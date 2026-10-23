@@ -31,9 +31,11 @@ test("a MUST rule shows a green Must icon and its check on a muted line", async 
   expect(screen.getAllByText(WORDS)).toHaveLength(1);
 });
 
-/** The first icon named "Must not" within `scope`, with its classes. */
-function mustNot(scope: HTMLElement) {
-  const icon = within(scope).getAllByRole("img", { name: "Must not" })[0]!;
+/** The first icon named "Must not" within `scope`, outside `skip`, with its classes. */
+function mustNot(scope: HTMLElement, skip?: HTMLElement) {
+  const icon = within(scope)
+    .getAllByRole("img", { name: "Must not" })
+    .find((found) => !skip?.contains(found))!;
   return { accessibleName: icon.getAttribute("aria-label"), classes: icon.getAttribute("class") };
 }
 
@@ -41,9 +43,11 @@ test("the decisions page and the spec page name a MUST NOT the same way", async 
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage("/decisions/task-storage", repo);
-  // The feature's branch changes it: the rule shows in its diff too, first (layout look's US4).
+  // The feature's branch changes it: the rule shows in its diff too, first (layout look's US4),
+  // which the spec page's card draws. The decision's own rules, after it, are `DecisionRules`'.
+  const diff = await screen.findByRole("region", { name: /^Proposed by/ });
   await screen.findAllByText(/Components MUST NOT call IndexedDB/);
-  const onLedger = mustNot(screen.getByRole("main"));
+  const onLedger = mustNot(screen.getByRole("main"), diff);
   document.body.replaceChildren();
 
   await renderPage(`/f/${SPEC_FEATURE}/spec.md`, repo);

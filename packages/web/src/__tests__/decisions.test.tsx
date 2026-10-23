@@ -5,7 +5,7 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import { addSpecFeature } from "uraeda-binding/test-utils";
+import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
 import { atRepo, atWidth, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
@@ -260,6 +260,27 @@ test("a decision changed on a feature's branch shows its change first, naming th
   const rules = detail.getAllByRole("heading", { name: "Rules" }).at(-1)!;
   expect(change.compareDocumentPosition(rules) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   // A decision no branch changes has none.
+  await click(within(await decisionRow("Git")).getByRole("link"));
+  expect(await (await pane()).findByRole("heading", { level: 2, name: "Git" })).toBeTruthy();
+  expect((await pane()).queryByRole("region", { name: /^Proposed by/ })).toBeNull();
+});
+
+/** R26: the branch changes list their first 50 files, sorted by path: code sorts before `specs/`. */
+test("a branch changing more than 50 files outside its folder still shows its decision's change", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  commitOnBranch(
+    repo,
+    SPEC_FEATURE,
+    Object.fromEntries(
+      Array.from({ length: 60 }, (_, index) => [`crates/app/src/part${index}.rs`, `// ${index}\n`]),
+    ),
+  );
+  await renderPage("/decisions/task-storage", repo);
+
+  const detail = await pane();
+  expect(await detail.findByRole("region", { name: /^Proposed by Recurring tasks/ })).toBeTruthy();
+  // A decision the branch leaves as it is shows no change, though the list cannot say so.
   await click(within(await decisionRow("Git")).getByRole("link"));
   expect(await (await pane()).findByRole("heading", { level: 2, name: "Git" })).toBeTruthy();
   expect((await pane()).queryByRole("region", { name: /^Proposed by/ })).toBeNull();

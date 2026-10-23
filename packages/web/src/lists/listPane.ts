@@ -37,7 +37,9 @@ function listPane(close: () => void): ListPane {
     },
     focusRow: () => focus?.(),
     follow: (href) => {
-      updateEntry({ scroll: window.scrollY });
+      // The pane's place was the row left's: the next row's reader, as the constitution's, starts
+      // where it shows its item, not where the last one was read.
+      updateEntry({ pane: undefined, scroll: window.scrollY });
       redirect(href);
     },
     setEdit: (next) => {
