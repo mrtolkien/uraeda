@@ -180,6 +180,7 @@ Facts from three maps of the code, read in full for this plan: the shell, the th
 | -------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------ |
 | `Pane` (Astryx gap)                          | The UI look's titled border, on every view                    | Astryx's `Card` and `Section` have no title in the border    |
 | `shell/` column, rail, and tabs (Astryx gap) | Three widths, a rail that opens over the page by focus or tap | `SideNav` folds to icons but cannot open over the page       |
+| `sidebar/CardRow.tsx` (Astryx gap)           | A card's whole name, wrapping, with its step under it         | `SideNavItem` takes a one-line label, cut by an ellipsis     |
 | `StatusLine` and `statusHints.tsx`           | Pages declare the keys that work; the shell draws them once   | Each page drawing its own hints breaks UI coherence          |
 | `JumpPalette` preview (Astryx gap)           | The decisions palette previews the entry under the cursor     | `CommandPalette` has no preview slot                         |
 | `HarnessMark`                                | One mark per agent kind, on every session row                 | Names alone were the spec's rejected option                  |
@@ -531,7 +532,9 @@ behaviour the spec marks unverified.
   `shell/ColumnPanes.tsx` (the heading, New and Note, Navigate, the foot), `shell/ShellPanes.tsx`
   (Needs you, Sessions, In progress, Done), `shell/fold.ts` (`useColumnFold`), `shell/Rail.tsx` (the
   52 px rail and its overlay), `shell/Tabs.tsx` (the narrow tabs), `shell/columnWidth.ts` (the
-  stored width), `shell/SessionsPage.tsx` (`/sessions`, the narrow tab's page)
+  stored width), `shell/SessionsPage.tsx` (`/sessions`, the narrow tab's page),
+  `sidebar/CardRow.tsx` (a card's row, its whole name wrapping and its step under it, R17),
+  `routeTable.ts` (the route table, imported by the routes and the history, R13)
 - Modify: `packages/web/src/Shell.tsx` (no `AppShell`, no `SideNav`), `src/sidebar/*` (the rows as
   pane content; `useSideNavCollapse` replaced by the shell's own fold state; `Sidebar.tsx` split
   into `Cards.tsx` and `entries.ts`; `SidebarHeading.tsx` removed), `src/SidebarAdd.tsx` and

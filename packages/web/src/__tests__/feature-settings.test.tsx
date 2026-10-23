@@ -37,7 +37,7 @@ test("a name renames the card, and leaves the feature's slug", async () => {
   await click(screen.getByRole("button", { name: "Save" }));
 
   await refreshUntil(() =>
-    expect(nav().getByRole("link", { name: /^Sidebar, CLI TUIs, / })).toBeTruthy(),
+    expect(nav().getByRole("link", { name: /^Sidebar, Plan, CLI TUIs, / })).toBeTruthy(),
   );
   await click(nav().getByRole("link", { name: /^Sidebar, / }));
   await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${CLI}`)));

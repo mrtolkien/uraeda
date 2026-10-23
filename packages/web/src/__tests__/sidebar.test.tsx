@@ -75,7 +75,7 @@ test("a feature waiting on its answers is a card under Needs you only, by its st
   const link = await group.findByRole("link", { name: /^web-ui, / });
 
   expect(link.getAttribute("aria-label")).toBe(
-    "web-ui, Web UI for the workflow files, feature, Questions to answer, Needs you",
+    "web-ui, Questions to answer, Web UI for the workflow files, feature, Needs you",
   );
   expect(nav().getAllByRole("link", { name: /^web-ui, / })).toHaveLength(1);
 });
@@ -160,7 +160,7 @@ test("a feature that cannot go on is a problem card under Needs you", async () =
 
   const group = within(await (await findNav()).findByRole("group", { name: "Needs you" }));
   const link = await group.findByRole("link", { name: /^cli-tuis, / });
-  expect(link.getAttribute("aria-label")).toContain(", Problem to fix, Needs you");
+  expect(link.getAttribute("aria-label")).toMatch(/^cli-tuis, Problem to fix, .+, Needs you$/);
 });
 
 /** US6: a problem needs the human, even on a feature whose session is idle. */
@@ -172,7 +172,7 @@ test("a feature with a session and an invalid status is a problem card under Nee
 
   const group = within(await (await findNav()).findByRole("group", { name: "Needs you" }));
   const link = await group.findByRole("link", { name: /^cli-tuis, / });
-  expect(link.getAttribute("aria-label")).toContain(", Problem to fix, Needs you");
+  expect(link.getAttribute("aria-label")).toMatch(/^cli-tuis, Problem to fix, .+, Needs you$/);
 });
 
 /** US6: an answered round with a blank answer cannot go on, whatever its step. */
@@ -185,7 +185,7 @@ test("an answered round with a blank answer is a problem card", async () => {
 
   const group = within(await (await findNav()).findByRole("group", { name: "Needs you" }));
   const link = await group.findByRole("link", { name: /^cli-tuis, / });
-  expect(link.getAttribute("aria-label")).toContain(", Problem to fix, Needs you");
+  expect(link.getAttribute("aria-label")).toMatch(/^cli-tuis, Problem to fix, .+, Needs you$/);
 });
 
 /** US6 1: a note, here a plan's missing section, stays off the cards. */

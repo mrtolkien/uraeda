@@ -314,6 +314,8 @@ export const uraedaTheme = defineTheme({
     "--size-rail": "52px",
     // The rail's inset, which centres a button in it: the column's rows keep the same edge.
     "--size-rail-inset": "calc((var(--size-rail) - var(--size-element-md)) / 2)",
+    // One line of a nav row's label: a card's icon and status sit on its name's first line.
+    "--size-label-line": "calc(var(--text-label-size) * var(--text-label-leading))",
     // The repository menu's popover on wide screens, and the add form's field in the first run.
     "--size-form": "560px",
     "--size-menu": "360px",

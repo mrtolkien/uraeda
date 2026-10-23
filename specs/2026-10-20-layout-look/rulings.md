@@ -346,22 +346,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the limits and the key are constants of `shell/columnWidth.ts`.
 - **Where**: task 8, `packages/web/src/shell/columnWidth.ts`, `shell/Column.tsx`.
 
-## R17: In the 256 px column, a card's long name is cut, and the rows are compact
+## R17: In the column, a card's name reads whole, wrapping, with its step under it
 
-- **Decision**: the column's rows are Astryx's `sm` rows, and the cards lose their own border inside
-  their pane. At 256 px a long slug like `recurring-tasks` is still cut by its row's ellipsis: the
-  layout checks exempt a card's name in the navigation, a dialog, or a shell pane, a feature's and a
-  change's as they exempted a session's (`__browser__/helpers.tsx`). Its full name is in the card's
-  accessible name. On the rail, a row's count is a dot over its icon.
-- **Rationale**: the spec's 14% between 256 and 340 px leaves a card's label about 124 px beside its
-  icon, status, and "…"; R5's 290 px is gone with the sidebar. A two-line label, as the mockup
-  draws, needs a row of our own: `SideNavItem` takes its label as a string, and cuts it.
-- **Alternatives considered**: a 290 px least width, against the spec; the "…" shown under the
-  pointer only, against the cards' C4.
-- **If wrong**: a row of our own with a wrapping label, in `sidebar/ItemCard.tsx`, and the exemption
-  goes.
-- **Where**: task 8, `packages/web/src/sidebar/ItemCard.tsx`, `sidebar/Row.tsx`,
-  `__browser__/helpers.tsx`.
+- **Decision**: a card in the shell's panes, in the column and on the phone's `/sessions`, is a row
+  of our own, `sidebar/CardRow.tsx`, drawn from Astryx's shared nav-row styles: its kind's icon, its
+  whole name, which wraps onto a second line when the column is too narrow for it (a slug breaks at
+  its hyphens), a change's or a feature's step on the line under the name, as the mockup draws it,
+  then its status at the end and its "…" beside the link. No line is clamped and nothing is cut: the
+  layout checks' exemption of the cards' names in the navigation, a dialog, or a pane is gone
+  (`__browser__/helpers.tsx`), and a task's progress and a sub-agent's description wrap too. The
+  card's accessible name reads its name, then its step, then its title, kind, and status, so the
+  link's name holds its visible text in order (axe's label-in-name). The other rows stay Astryx's
+  `sm` rows, and on the rail a row's count is a dot over its icon. The tests whose checked names
+  this order changes: `__tests__/sidebar.test.tsx` (the web-ui card, the problem cards),
+  `__tests__/shell.test.tsx` (US2.1), `__tests__/feature-settings.test.tsx` (the renamed card),
+  `__browser__/change.test.tsx` (the change's card, whose step, "Change", is the one "Change" shown
+  in In progress). No age shows on the second line: the cards carry no time to tell it from.
+- **Rationale**: the human's own words for the feature: "Make sure text is readable: full title for
+  features, information of a second line", and readability first. `SideNavItem` takes its label as a
+  string, on one line, cut by an ellipsis; the 256 px column leaves a name about 124 px beside its
+  icon, status, and "…", which cut `recurring-tasks`.
+- **Alternatives considered**: the names cut by an ellipsis, exempted from the layout checks, the
+  first build of this task; a two-line clamp, which still cuts a long session's title, and which the
+  checks forbid; the step line outside the link, which a click on it would not open; a 290 px least
+  width, against the spec.
+- **If wrong**: a name too long for comfort takes three lines or more; a clamp is one style of
+  `CardRow.tsx`, with a precise exemption in `checkPage`. An age on the second line needs the time a
+  card's item started, from `cards.ts`.
+- **Where**: `packages/web/src/sidebar/CardRow.tsx`, `sidebar/ItemCard.tsx`,
+  `__browser__/helpers.tsx`, `__browser__/shell.test.tsx`.
 
 ## R18: How the rail opens and folds
 

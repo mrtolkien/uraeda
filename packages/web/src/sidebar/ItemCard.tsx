@@ -1,14 +1,13 @@
 // A session's, a change's, or a feature's card in the shell: every line about it, a row of its pane.
-// Its first line is its kind's icon, its name, and at the end its background command and status,
-// then its "…": a session's actions, or a change's or a feature's settings. Under it, while it has
-// any: its task's progress and the lines its branch changed, with its pull request; then its running
-// sub-agents.
+// Its first line is its kind's icon, its whole name, wrapping when it must, and at the end its
+// background command and status, then its "…": a session's actions, or a change's or a feature's
+// settings. Under the name, a change's or a feature's step; then, while it has any, its task's
+// progress and the lines its branch changed, with its pull request; then its running sub-agents.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Link } from "@astryxdesign/core/Link";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -19,6 +18,7 @@ import { ProgressRing } from "../ProgressRing.tsx";
 import { useColumnFold } from "../shell/fold.ts";
 import { StatusMark } from "../StatusMark.tsx";
 import { needsYou } from "./cards.ts";
+import { CardRow } from "./CardRow.tsx";
 import { RailLink } from "./Row.tsx";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 
@@ -84,16 +84,17 @@ const styles = stylex.create({
 });
 
 /**
- * The card's accessible name, in full words: its name, its title, its kind, its step, its status or
- * the action in flight, its task, its background command, and the lines its branch changed.
+ * The card's accessible name, in full words: its name and its step, as the card shows them, then its
+ * title, its kind, its status or the action in flight, its task, its background command, and the
+ * lines its branch changed.
  */
 export function cardName(item: CardItem) {
   return [
     item.label,
+    item.step?.label,
     item.title,
     item.kind,
     item.agent === undefined ? undefined : harnessMark(item.agent).name,
-    item.step?.label,
     item.pending ?? item.status.label,
     item.progress
       ? `Task ${item.progress.position} of ${item.progress.total}, ${item.progress.title}`
@@ -174,7 +175,7 @@ function Activity({ item }: { item: CardItem }) {
       {progress && <ProgressRing position={progress.position} total={progress.total} />}
       <span {...stylex.props(styles.progressText)}>
         {progress && (
-          <Text color="secondary" maxLines={1} type="supporting">
+          <Text color="secondary" type="supporting">
             {`${progress.position}/${progress.total} · ${progress.title}`}
           </Text>
         )}
@@ -281,17 +282,16 @@ export function ItemCard({
   }
   return (
     <div {...stylex.props(styles.card)}>
-      <SideNavItem
+      <CardRow
         // Always drawn, muted, so the card keeps its size under the pointer (C4).
         actions={<More actions={actions} item={item} onSettings={onSettings} />}
-        aria-label={cardName(item)}
         endContent={<Status item={item} />}
         href={href}
         icon={<CardIcon item={item} />}
         isSelected={isSelected}
         label={item.label}
-        // A pane's compact row, as the column's other rows.
-        size="sm"
+        name={cardName(item)}
+        sub={item.step?.label}
         {...(onOpen || onStatus
           ? {
               onClick: (event: React.MouseEvent) => {
@@ -310,7 +310,7 @@ export function ItemCard({
       {item.subagents?.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
           <StatusMark label="Working" small status="working" />
-          <Text color="secondary" maxLines={1} type="supporting">
+          <Text color="secondary" type="supporting">
             {subagent.description}
           </Text>
         </HStack>

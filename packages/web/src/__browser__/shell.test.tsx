@@ -147,6 +147,24 @@ describe("on a desktop", () => {
     await expect.poll(() => width()).toBe(340);
   });
 
+  /** Readability first: a card's name reads whole in the 256 px column, its step under it. */
+  test("a card's long name wraps whole in the 256 px column, its step on the line under it", async () => {
+    await show("/", "Needs you");
+    expect(width()).toBe(256);
+    const card = within(nav()).getByRole("link", { name: /^recurring-tasks, / });
+    const name = within(card).getByText("recurring-tasks");
+    // Whole: nothing of it is cut, and it takes a second line rather than an ellipsis.
+    expect(name.scrollWidth).toBeLessThanOrEqual(name.clientWidth);
+    const range = document.createRange();
+    range.selectNodeContents(name);
+    const lines = new Set([...range.getClientRects()].map((rect) => Math.round(rect.top)));
+    expect(lines.size).toBe(2);
+    const step = within(card).getByText("Spec to review");
+    expect(step.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      name.getBoundingClientRect().bottom - 1,
+    );
+  });
+
   /** US2 2 */
   test("a drag of its edge to 320 px stays after a reload", async () => {
     await show("/", "Needs you");

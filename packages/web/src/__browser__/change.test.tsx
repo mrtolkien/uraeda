@@ -184,14 +184,16 @@ describe("on the desktop", () => {
     const nav = within(screen.getByRole("navigation", { name: "Navigation" }));
     const row = await nav.findByRole(
       "link",
-      { name: new RegExp(`^centred-x, ${CENTRED_TITLE}, change, .+, Working`) },
+      { name: new RegExp(`^centred-x, .+, ${CENTRED_TITLE}, change, Working`) },
       LIVE,
     );
     expect(row.getAttribute("href")).toBe(atRepo(`/f/${CENTRED}`));
-    expect(row.textContent).toBe("centred-x");
+    // Its slug, then its step on the line under it.
+    expect(row.textContent).toMatch(/^centred-x \S/);
     const sessions = nav.getByRole("group", { name: "In progress" });
     expect(sessions.contains(row)).toBe(true);
-    expect(within(sessions).queryByText("Change")).toBeNull();
+    // No kind label: the one "Change" is its step, "change", on the line under its name (R17).
+    expect(within(sessions).queryAllByText("Change")).toEqual([within(row).getByText("Change")]);
     // A feature's card, in the same section, names its kind too.
     const feature = nav.getByRole("link", { name: /^cli-tuis, / });
     expect(sessions.contains(feature)).toBe(true);
