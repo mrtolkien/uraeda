@@ -1,6 +1,6 @@
 ---
-status: proposed
-approved-by:
+status: active
+approved-by: mrtolkien
 icon: palette
 ---
 
@@ -14,8 +14,6 @@ whole UI changes together, and more colour schemes can join it later.
 
 - The UI MUST look like a terminal tool: one monospace font for all its text, square corners, and
   content grouped in bordered panes whose title sits in their top border. Checked by review.
-- The UI MUST offer Catppuccin's Mocha and Latte schemes, following the system's light or dark
-  setting until the human picks one. Checked by the browser tests.
 - A new colour scheme MUST be added as a named scheme of the same theme, never as styles in a view.
   Checked by review.
 - Every text colour MUST reach 4.5:1 against its background, and borders and controls 3:1, in every
@@ -24,11 +22,10 @@ whole UI changes together, and more colour schemes can join it later.
   test of the theme's tokens.
 - Fonts MUST be bundled with the app under an open licence, and the UI MUST NOT load a file from
   another host. Checked by a test of the built app.
-- Icons MUST come from Lucide, unless another free set has a glyph that fits a concept clearly
-  better. Checked by review.
 - A harness MUST be marked by Codicons' drawing of its mark where Codicons has one, and by a neutral
   glyph drawn for Uraeda otherwise. Checked by review.
-- The logo and the favicon MUST be the dot-matrix tree, drawn once. Checked by review.
+- Icons SHOULD come from Lucide, and another free set's glyph MAY stand in where it fits a concept
+  clearly better. Checked by review.
 
 ## Why
 
