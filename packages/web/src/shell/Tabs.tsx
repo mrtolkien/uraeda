@@ -16,9 +16,10 @@ import { useShellPath } from "./ShellPanes.tsx";
 
 const styles = stylex.create({
   badge: {
-    // Over the icon's top end corner.
-    insetBlockStart: `calc(-1 * ${spacingVars["--spacing-2"]})`,
-    insetInlineStart: "50%",
+    // At the icon's top end corner, off its glyph: it overlaps the corner by a step at most.
+    display: "flex",
+    insetBlockEnd: `calc(100% - ${spacingVars["--spacing-1"]})`,
+    insetInlineStart: `calc(100% - ${spacingVars["--spacing-1"]})`,
     pointerEvents: "none",
     position: "absolute",
   },
@@ -38,6 +39,11 @@ const styles = stylex.create({
   icon: {
     display: "inline-flex",
     position: "relative",
+  },
+  small: {
+    // A small badge, its count in the type it had: less padding, and a step less tall.
+    height: spacingVars["--spacing-4"],
+    paddingInline: spacingVars["--spacing-1"],
   },
 });
 
@@ -75,7 +81,7 @@ function Tab({
           <Icon icon={icon} />
           {shown && (
             <span {...stylex.props(styles.badge)}>
-              <Badge aria-hidden label={String(count)} variant="info" />
+              <Badge aria-hidden label={String(count)} variant="info" xstyle={styles.small} />
             </span>
           )}
         </span>

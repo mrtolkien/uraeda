@@ -229,3 +229,27 @@ describe("on a touch screen at semi-wide", () => {
     await expect.poll(() => width()).toBe(52);
   });
 });
+
+describe("on the phone", () => {
+  atSize("phone");
+
+  /** US2 3: a tab's count sits at its icon's top end corner, never over its glyph. */
+  test("a tab's count leaves its icon's glyph uncovered", async () => {
+    await show("/", "Needs you");
+    const tab = await screen.findByRole("link", { name: /^Inbox, \d+ notes$/ });
+    const icon = tab.querySelector("svg")!.getBoundingClientRect();
+    // The badge's whole box: its count's outermost element beside the icon.
+    let count = within(tab).getByText(/^\d+$/);
+    while (!count.parentElement!.contains(tab.querySelector("svg"))) {
+      count = count.parentElement!;
+    }
+    const badge = count.getBoundingClientRect();
+    const x = icon.left + icon.width / 2;
+    const y = icon.top + icon.height / 2;
+    const covers = x >= badge.left && x <= badge.right && y >= badge.top && y <= badge.bottom;
+    expect(covers).toBe(false);
+    // At the top end corner: past the glyph's centre, and over it.
+    expect(badge.left).toBeGreaterThan(x);
+    expect(badge.top).toBeLessThan(y);
+  });
+});
