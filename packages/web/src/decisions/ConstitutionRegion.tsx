@@ -53,7 +53,7 @@ export function ruleCount(count: number): string {
 }
 
 /** A principle's rules: the items of the lists under its heading. */
-function rulesOf(constitution: LedgerConstitution, principle: LedgerPrinciple) {
+export function rulesOf(constitution: LedgerConstitution, principle: LedgerPrinciple) {
   const { blocks } = constitution.document;
   const lists = new Set(principle.blocks.filter((id) => blocks[id]?.kind === "list"));
   return blocks.filter((block) => block.parent !== undefined && lists.has(block.parent));

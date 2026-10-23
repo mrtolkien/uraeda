@@ -640,3 +640,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/web/src/CommitBar.tsx`, `SessionPage.tsx`, `shell/StatusLine.tsx`,
   `statusHints.tsx`, `lists/useListKeys.ts`, `lists/listPane.ts`, `decisions/`, `settings/`,
   `sidebar/DoneArea.tsx`, `__tests__/settings.test.tsx`.
+## R28: The palette: Astryx's `CommandPalette` inline in our dialog, the preview beside it
+
+- **Decision**: `JumpPalette` keeps Astryx's `CommandPalette`, `isInline`, inside an Astryx `Dialog`
+  of its own on wide and semi-wide screens, the preview a sibling beside it in a two-column grid. A
+  part in the palette's footer reads the cursor from `useCommandPaletteContext()`, puts it on the
+  first result after each letter (R1), and lifts the entry under it to the preview. The entries are
+  grouped Constitution, then Decisions, before a search, and ranked by the search after: a
+  principle's numeral or a whole title, then a title's start, a word's start, anywhere in the title,
+  then in the first sentence (a principle's first rule), ties in the list's order, so the groups
+  follow the best match. On narrow screens the palette is a bottom sheet, its list alone, with no
+  preview: a phone opens the reader in one more tap, and a sheet has no room for both. The palette
+  adds a history entry, as `Overlay` does, so Back closes it, and Enter opens the entry once that
+  entry is gone. `/` opens it unless the focus is in a text field, a dialog, a menu, a listbox, or
+  an expanded control, or a modal dialog is open; it declares "/ jump" in the status line. SC-005 is
+  measured as the letters typed between `/` and Enter: every entry of this repository's own ledger,
+  31 of them, is the first result of some query of three letters or fewer, checked in
+  `palette.test.tsx` against `readLedger` of the repository. The fixture has no Notifications
+  decision: both tests commit one.
+- **Rationale**: inline, the palette keeps Astryx's combobox, listbox roles, grouping, hover, and
+  announcements, and only the layout around it is ours. Inline, its field does not focus itself, so
+  `JumpPalette` focuses it; its Escape is handled by the field before the dialog's layer stack,
+  which stands down, and the closing is guarded against a second call. Three keys in all, `/`, a
+  letter, and Enter, cannot tell 31 entries apart.
+- **Alternatives considered**: the modal `CommandPalette` with the preview in its footer slot, under
+  the list: not the mockup the human picked. Our own palette on `Dialog`, `TextInput`, and `List`:
+  our own keyboard and roles for the same result. A preview under the list on the phone: the list
+  then shows two or three rows.
+- **If wrong**: `isInline` is documented for previews only; a later Astryx that changes it moves the
+  palette to the fallback, contained in `JumpPalette.tsx`. A narrower list or a preview on the phone
+  is a change of `Search`'s place in `JumpPalette`.
+- **Where**: task 13, `packages/web/src/decisions/JumpPalette.tsx`, `jump.ts`, `DecisionsPage.tsx`,
+  `theme/theme.ts`, `__tests__/palette.test.tsx`, `__browser__/decisions.test.tsx`.

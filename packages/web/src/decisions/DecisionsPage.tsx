@@ -2,15 +2,18 @@
 // active pane, holds the principles, then every decision in the chosen order; the reader beside it
 // is always open on wide and semi-wide screens, on the whole constitution until a decision is
 // picked. On narrow ones, the reader replaces the list once an item is picked, with a way back.
-// The keys move through the principles, then the decisions, the reader following (`useListKeys`).
+// The keys move through the principles, then the decisions, the reader following (`useListKeys`);
+// `/` or "Jump to…" opens a palette that finds any of them (`JumpPalette`).
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
+import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
+import { Kbd } from "@astryxdesign/core/Kbd";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { use } from "react";
+import { use, useState } from "react";
 import type { Ledger } from "uraeda-server/fate";
 import { useAgent, useLedger, useWorkspace } from "../data.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
@@ -23,11 +26,14 @@ import { ListPaneContext } from "../lists/listPane.ts";
 import { useListKeys } from "../lists/useListKeys.ts";
 import { useRepoPath, useRestoreScroll } from "../routes.tsx";
 import { useStartChat } from "../StartChat.tsx";
+import { useStatusHints } from "../statusHints.tsx";
 import { ConstitutionReader } from "./ConstitutionReader.tsx";
 import { ConstitutionRegion } from "./ConstitutionRegion.tsx";
 import { DecisionDetail } from "./DecisionDetail.tsx";
 import { DecisionList } from "./DecisionList.tsx";
 import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
+import { JumpPalette } from "./JumpPalette.tsx";
+import { jumpEntries } from "./jump.ts";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
 
 const styles = stylex.create({
@@ -76,7 +82,43 @@ function markedPrinciple(ledger: LedgerData, open: LedgerOpen | undefined): stri
   return ledger.constitution?.principles[0]?.slug;
 }
 
-/** The list's pane: the check, then the constitution's principles, then the decisions. */
+/**
+ * Whether a key pressed on `target` belongs to a layer: a dialog, a menu, or an open Selector, or
+ * any part of them, owns its keys while it holds the focus, and a modal dialog while open.
+ */
+function inLayer(target: EventTarget | null) {
+  const layer = 'dialog, [role="dialog"], [role="listbox"], [role="menu"], [aria-expanded="true"]';
+  return (
+    ((target as Partial<Element> | null)?.closest?.(layer) ?? null) !== null ||
+    document.querySelector("dialog[open]") !== null
+  );
+}
+
+/**
+ * The palette's state, opened by "Jump to…" or by `/` anywhere on the page but in a text field or
+ * an open layer, as the sort menu, whose keys are their own.
+ */
+function useJump() {
+  const [isJumping, setJumping] = useState(false);
+  useStatusHints([{ keys: "/", label: "jump" }]);
+  useHotkeys([
+    {
+      isDisabled: isJumping,
+      keys: "/",
+      onPress: (event: KeyboardEvent) => {
+        if (!inLayer(event.target)) {
+          setJumping(true);
+        }
+      },
+    },
+  ]);
+  return { close: () => setJumping(false), isJumping, open: () => setJumping(true) };
+}
+
+/**
+ * The list's pane: "Jump to…" and the check, then the constitution's principles, then the
+ * decisions.
+ */
 function LedgerList({
   decisions,
   ledger,
@@ -98,6 +140,7 @@ function LedgerList({
   const chat = useStartChat();
   const check = ledger.decisionsCheck;
   const shown = shownPath(ledger, open);
+  const jump = useJump();
   const { ref } = useListKeys({
     // The reader stays open: Escape takes it back to the constitution, from anything else.
     onClose: () => {
@@ -116,11 +159,17 @@ function LedgerList({
   return (
     <Pane isActive level={1} title="Constitution and decisions">
       <VStack gap={4}>
-        {(agent || check === null) && (
-          <HStack align="center" gap={3} wrap="wrap">
-            {agent ? <CheckButton chat={chat} check={check} /> : <CheckMessage />}
-          </HStack>
-        )}
+        <HStack align="center" gap={3} wrap="wrap">
+          <Button
+            aria-keyshortcuts="/"
+            endContent={<Kbd keys="/" />}
+            icon={<Icon icon="search" />}
+            label="Jump to…"
+            onClick={jump.open}
+            variant="secondary"
+          />
+          {agent ? <CheckButton chat={chat} check={check} /> : check === null && <CheckMessage />}
+        </HStack>
         {check !== null && <DecisionsCheckBanner agent={agent} chat={chat} status={check} />}
         {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
         <div ref={ref}>
@@ -138,6 +187,12 @@ function LedgerList({
           </VStack>
         </div>
       </VStack>
+      <JumpPalette
+        constitution={ledger.constitution}
+        entries={jumpEntries(ledger, decisions)}
+        isOpen={jump.isJumping}
+        onClose={jump.close}
+      />
     </Pane>
   );
 }

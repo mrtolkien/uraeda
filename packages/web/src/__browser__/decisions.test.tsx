@@ -1,10 +1,12 @@
 // US8 5, on the desktop: the decisions page's keys go from the principles to the decisions, the
 // reader following, and Escape returns the reader to the constitution (R25). US4 of the layout
-// look: the list takes 30% of the window, the active pane. The fixture's decisions all changed the
+// look: the list takes 30% of the window, the active pane, and `/` opens the palette, which previews
+// the entry under the cursor beside its list. The fixture's decisions all changed the
 // same day, so the latest first are A to Z.
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { userEvent } from "vite-plus/test/browser";
+import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
+import type { RepoCommands } from "../../vite.browser.config.ts";
 import { atRepo, atSize, drawn, reload, show } from "./helpers.tsx";
 
 atSize("desktop");
@@ -69,6 +71,59 @@ test("scrolled to principle V from principle III's address, a reload keeps the r
   await drawn();
   expect(again.scrollTop).toBe(place);
   expect(Math.abs(fifthPrinciple())).toBeLessThan(2);
+});
+
+const commands = browserCommands as unknown as RepoCommands;
+
+const NOTIFICATIONS = `---
+status: active
+approved-by: mrtolkien
+icon: bell
+---
+
+# Notifications
+
+The server tells the human when a feature waits on them, through the browser's notifications.
+
+## Rules
+
+- The server MUST notify the human when a feature waits on them. Checked by the browser tests.
+- A notification SHOULD name the feature and its step. Checked by review.
+`;
+
+test("`/`, “noti”, and Enter open Notifications, previewed beside the list (US4 3, SC-005)", async () => {
+  await commands.commitOnBranch("main", { "specs/decisions/notifications.md": NOTIFICATIONS });
+  await show("/decisions/agents", "runs coding agents");
+  agents().focus();
+  await drawn();
+
+  await userEvent.keyboard("/");
+  const field = await screen.findByRole("combobox", { name: "Jump to a decision or principle" });
+  await expect.poll(() => document.activeElement).toBe(field);
+  // ↓ moves the palette's cursor, never the list behind it.
+  await userEvent.keyboard("{ArrowDown}");
+  expect(window.location.pathname).toBe(atRepo("/decisions/agents"));
+
+  await userEvent.keyboard("noti");
+  const option = await screen.findByRole("option", { name: "Notifications" });
+  const preview = screen.getByRole("region", { name: "Preview" });
+  await expect
+    .poll(() => within(preview).queryByRole("heading", { name: "Notifications" }))
+    .toBeTruthy();
+  expect(within(preview).getByText(/tells the human when a feature waits on them/)).toBeVisible();
+  expect(within(preview).getByText(/notify the human when a feature waits on them/)).toBeVisible();
+  // The preview sits beside the list, not under it.
+  expect(preview.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+    option.getBoundingClientRect().right,
+  );
+
+  await userEvent.keyboard("{Enter}");
+  await expect.poll(() => window.location.pathname).toBe(atRepo("/decisions/notifications"));
+  // The page is drawn anew for the new entry: the reader is found once it is.
+  await screen.findByRole("heading", { level: 2, name: "Notifications" });
+  const reader = within(screen.getByRole("region", { name: "Detail" }));
+  expect(reader.getByRole("heading", { level: 2, name: "Notifications" })).toBeTruthy();
+  expect(screen.queryByRole("combobox", { name: "Jump to a decision or principle" })).toBeNull();
 });
 
 /** An element's top border's colour. */

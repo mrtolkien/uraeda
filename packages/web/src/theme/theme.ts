@@ -289,6 +289,12 @@ export const uraedaTheme = defineTheme({
     // The decisions' list beside their reader: 30% of the window, never under 320 px, where less
     // would cut its titles short.
     "--size-ledger-list": "max(320px, 30vw)",
+    // The decisions' palette on wide and semi-wide screens: its list, about 30 characters wide,
+    // and the preview of the entry under the cursor beside it, in a dialog that leaves the page's
+    // edges in view.
+    "--size-palette": "min(1024px, 92vw)",
+    "--size-palette-height": "min(600px, 76dvh)",
+    "--size-palette-list": "360px",
     "--size-viewport-height": "100dvh",
     // An image in a document or a message: a tall screenshot stays shorter than the window.
     "--size-image-max-height": "80dvh",
