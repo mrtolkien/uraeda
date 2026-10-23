@@ -4,7 +4,7 @@ import type { QuestionItem } from "uraeda-binding";
 import { CandidatesContext } from "./decisions/Candidates.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Band, followUpsOf, QuestionCards } from "./QuestionCards.tsx";
 import { RoundOpening } from "./RoundOpening.tsx";
 import { type NavQuestion, RoundIndex, RoundNav } from "./RoundNav.tsx";
@@ -57,7 +57,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const hash = useHashes(document.hash);
   const notes = useRoundNotes(file, target, hash);
   const submitting = useRoundSubmit(file, notes, pending, target, hash);
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const end = useRef<HTMLDivElement>(null);
   // Submit's buttons, which the bar's Submit focuses.
   const submitRow = useRef<HTMLDivElement>(null);

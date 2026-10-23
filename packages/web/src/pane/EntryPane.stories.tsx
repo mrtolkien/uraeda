@@ -8,7 +8,7 @@ import { type ReactNode, useEffect } from "react";
 import { userEvent, within } from "storybook/test";
 import { useInbox, usePriorities, useWorkspace } from "../data.ts";
 import { InboxPage } from "../InboxPage.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { dropUnsaved, unsavedKey } from "../fields/unsaved.ts";
 import { RepositoryPathContext, useRepositoryPath } from "../routes.tsx";
@@ -36,7 +36,7 @@ const styles = stylex.create({
 
 /** The pane beside its list on wide screens, as `Panes` lays it out; alone on narrow ones. */
 function Beside({ list, pane }: { list: ReactNode; pane: ReactNode }) {
-  if (useWidthClass() !== "wide") {
+  if (isNarrow(useWidthClass())) {
     return <>{pane}</>;
   }
   return (

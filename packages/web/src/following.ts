@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 import { currentEntry } from "./routes.tsx";
 
 /** How close to its end, in pixels, the transcript still counts as read to the end. */
@@ -254,21 +254,22 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
   // hook's own, read late, and says nothing of where the human is.
   const own = useRef<number | undefined>(undefined);
   const { attach, hold, release } = useHeldEnd(box, followingNow);
-  const width = useWidthClass();
-  const drawn = useRef(width);
+  // Only crossing into or out of narrow changes the layout: pages lay out alike above it.
+  const narrow = isNarrow(useWidthClass());
+  const drawn = useRef(narrow);
   // The positions are the human's again a frame after the layout for the width commits, once
   // `useKeepPlace` has put the place back: until then, the end the new layout's height clamps the
   // window at is not one the human scrolled to. A height held for the other width is not this one's.
   useLayoutEffect(() => {
-    if (drawn.current !== width) {
+    if (drawn.current !== narrow) {
       release();
     }
     const frame = requestAnimationFrame(() => {
-      drawn.current = width;
+      drawn.current = narrow;
       hold();
     });
     return () => cancelAnimationFrame(frame);
-  }, [width, hold, release]);
+  }, [narrow, hold, release]);
 
   // Only a scroll sets whether the human follows: growing does not, so a message sent from the end
   // of an idle session keeps them following once the session works.
@@ -284,7 +285,7 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
     const read = () => {
       // A layout drawn for the other width class, as the window crosses the breakpoint: its
       // positions are not the human's, and `useKeepPlace` puts the place back.
-      if (widthClassNow() !== drawn.current) {
+      if (isNarrow(widthClassNow()) !== drawn.current) {
         return;
       }
       const mine = position(box.current) === own.current;

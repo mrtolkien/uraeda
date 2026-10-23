@@ -11,7 +11,7 @@ import { Crumbs } from "../Crumbs.tsx";
 import { useFeature, useHistory } from "../data.ts";
 import { Page } from "../layout/Page.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
 import { useOpenKeys } from "../useOpenKeys.ts";
@@ -54,7 +54,7 @@ function NextAndSessions({
   history: HistoryData;
   working?: boolean;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const merge = history.stages.find((stage) => stage.name === "merged")?.started;
   const next = nextOf(feature, { merged: merge ?? history.finished ?? undefined, working });
   return (

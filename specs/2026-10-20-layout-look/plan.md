@@ -370,7 +370,8 @@ behaviour the spec marks unverified.
   `useRestorePaneScroll`, moved as they are)
 - Modify: `packages/web/src/layout/useWidthClass.ts` and every consumer
 - Modify: `packages/web/src/__tests__/helpers.tsx` (default width 1440),
-  `src/__browser__/helpers.tsx` (`atSize("semi")`, a 1205×900 viewport for one test)
+  `src/__browser__/helpers.tsx` (`atSize("semi")`: the desktop instance narrowed to 1205×900 for the
+  scope's tests, R9)
 
 **Interfaces:**
 
@@ -383,19 +384,19 @@ behaviour the spec marks unverified.
       `routeHistory.ts`, re-exported from `routes.tsx`, so no caller changes. Run
       `nix develop -c vp run fast`, commit
       `refactor(layout-look): the route history in its own module`.
-- [ ] **Step 2: Write the failing tests**: in `__tests__/width-class.test.tsx`, table-driven: 767 →
+- [x] **Step 2: Write the failing tests**: in `__tests__/width-class.test.tsx`, table-driven: 767 →
       narrow, 768 → semi, 1279 → semi, 1280 → wide. In `__browser__/layout.test.tsx`: at 1205 px
       open a task in the priorities' pane, scroll the list, resize to 1440 px, and assert the pane
       and the scroll stayed. Break: a place keeper that treats the 1280 crossing like 768.
-- [ ] **Step 3: Run them to check they fail**: Expected: FAIL, 768 reads `wide`.
-- [ ] **Step 4: Implement**: the three classes; each consumer's `=== "wide"` becomes
+- [x] **Step 3: Run them to check they fail**: Expected: FAIL, 768 reads `wide`.
+- [x] **Step 4: Implement**: the three classes; each consumer's `=== "wide"` becomes
       `!isNarrow(...)`; the place keepers compare `isNarrow` only. The happy-dom default width
       becomes 1440, so tests keep today's wide shell; the browser helper's `atSize` accepts
       `"semi"`.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, then
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, then
       `nix develop -c vp test --project uraeda-web`. Expected: PASS. Deferred to ready: browser
       files.
-- [ ] **Step 6: Commit**: `git commit -m "feat(layout-look): three width classes"`.
+- [x] **Step 6: Commit**: `git commit -m "feat(layout-look): three width classes"`.
 
 ## Task 4: The server: a session row's agent, and the week's usage
 

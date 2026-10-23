@@ -7,7 +7,7 @@ import * as stylex from "@stylexjs/stylex";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import type { Ledger } from "uraeda-server/fate";
 import { Paragraph } from "../layout/Paragraph.tsx";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 
@@ -65,7 +65,7 @@ export function ConstitutionRegion({
   selected: string | undefined;
 }) {
   const here = useRepoPath();
-  const narrow = useWidthClass() === "narrow";
+  const narrow = isNarrow(useWidthClass());
   const version = constitution ? versionLine(constitution) : "";
   const href = (principle: LedgerPrinciple) => here(`/decisions/constitution/${principle.slug}`);
   return (

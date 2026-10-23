@@ -11,7 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useEffect, useId, useState } from "react";
 import { Overlay } from "./layout/Overlay.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 
 /** An applicable question of a round, in the page's order: follow-ups at level 2. */
 export type NavQuestion = { answered: boolean; id: string; level: 1 | 2; title: string };
@@ -237,7 +237,7 @@ export function RoundNav({
   onSubmit: () => void;
   questions: ReadonlyArray<NavQuestion>;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const [open, setOpen] = useState(false);
   const ids = questions.map((q) => q.id);
   const current = useQuestionAtTop(ids, wide);

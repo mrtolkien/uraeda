@@ -1,7 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { createContext, type ReactNode, type RefObject, useRef } from "react";
-import { useWidthClass } from "./useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
   page: {
@@ -63,7 +63,7 @@ export function Page({
   isSnug?: boolean;
   isTight?: boolean;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const column = useRef<HTMLDivElement>(null);
   return (
     <PageColumn value={column}>

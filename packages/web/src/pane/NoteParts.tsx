@@ -6,7 +6,7 @@ import { Selector } from "@astryxdesign/core/Selector";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
 import { useDraftTitles, useWorkspace } from "../data.ts";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { TITLES } from "../QuickAdd.tsx";
 import type { useNoteActions } from "../useNoteActions.ts";
 
@@ -20,7 +20,7 @@ export function draftFile(path: string) {
 
 /** A menu of the priorities' sections, behind a button: Now, Next, Later, Blocked. */
 function SectionMenu({ label, onPick }: { label: string; onPick: (section: string) => void }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return (
     <DropdownMenu
       button={{ label }}
@@ -41,7 +41,7 @@ function DraftPicker({
   except?: string;
   onPick: (path: string, title: string) => void;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const paths = (useWorkspace()?.drafts ?? []).map(draftFile).filter((path) => path !== except);
   const drafts = useDraftTitles(paths);
   return (
@@ -75,7 +75,7 @@ export function CategoryMenu({
   names: ReadonlyArray<string>;
   onPick: (category: string | undefined) => void;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const value = category === undefined ? NONE : `:${category}`;
   return (
     <Selector
@@ -97,7 +97,7 @@ export function CategoryMenu({
 
 /** The Organize actions, in a row on wide screens, one under the other on narrow ones. */
 function Actions({ children }: { children: ReactNode }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return wide ? (
     <HStack align="end" gap={2} wrap="wrap">
       {children}

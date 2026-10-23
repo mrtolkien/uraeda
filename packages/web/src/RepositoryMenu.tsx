@@ -22,7 +22,7 @@ import type { FateClient as Client } from "./clients.ts";
 import { useRepositories } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
 
@@ -104,7 +104,7 @@ function RepositoryRow({
   onRemove: (name: string) => void;
   row: Row;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return (
     <ListItem
       description={
@@ -270,7 +270,7 @@ const MENU = "Repositories";
 const FORM = "Add a repository";
 
 function MenuTrigger({ current }: { current: string | null }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const label = current === null ? "Uraeda" : `Uraeda ${current}`;

@@ -1,7 +1,8 @@
 // Shared by the browser tests: rendering a page against the test server, and the layout checks of
 // the UI checks decision. The browser tests run at a phone's and a desktop's size (see
-// `vite.browser.config.ts`): a test declares the size its scenario is about with `atSize`, and one
-// at both sizes reads `window.innerWidth` for what differs between them.
+// `vite.browser.config.ts`): a test declares the size its scenario is about with `atSize`, the
+// semi-wide one in the desktop's window narrowed to 1205 px, and one at both sizes reads
+// `window.innerWidth` for what differs between them.
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "@fontsource-variable/inter/index.css";
@@ -11,7 +12,7 @@ import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
 import { configure, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, onTestFinished, TestRunner } from "vite-plus/test";
-import { commands as browserCommands, server, userEvent } from "vite-plus/test/browser";
+import { commands as browserCommands, page, server, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { App } from "../App.tsx";
 import { fateClients } from "../clients.ts";
@@ -42,16 +43,31 @@ export function atRepo(path: string): string {
   return `/r/${encodeURIComponent(name)}${path}`;
 }
 
-/** The instance's size: the phone's under 768 px wide, as the UI's narrow layout. */
-const size = server.config.browser.viewport.width < 768 ? "phone" : "desktop";
+/** The size class of a viewport's width, as the UI's width classes: under 768, 768–1279, 1280 up. */
+function sizeOf(width: number): "phone" | "semi" | "desktop" {
+  if (width < 768) {
+    return "phone";
+  }
+  return width < 1280 ? "semi" : "desktop";
+}
+
+/** The instance's own viewport, and its size: the phone's or the desktop's. */
+const viewport = server.config.browser.viewport;
+const size = sizeOf(viewport.width);
+
+/** The semi-wide size the desktop instance takes for a scope declared `atSize("semi")`. */
+const SEMI = { height: 900, width: 1205 };
 
 /**
  * Declares the size a file's or a `describe` block's tests are about, called at its top: at the other
  * size, every test declared after it in that scope is skipped, as `test.skip` would, so no hook runs
  * for it and it takes no repository. A call after a test of its scope, or inside a test, throws: it
  * could not skip the tests already declared.
+ *
+ * No instance is semi-wide: a `"semi"` scope runs in the desktop instance, its window narrowed to
+ * 1205 × 900 before each test and widened back after it, and is skipped on the phone.
  */
-export function atSize(only: "phone" | "desktop" | "both") {
+export function atSize(only: "phone" | "semi" | "desktop" | "both") {
   const scope = TestRunner.getCurrentSuite();
   // Checked at both sizes: a misplaced call fails at the size it would not skip at too.
   if (TestRunner.getCurrentTest() !== undefined || scope.tasks.length > 0) {
@@ -59,9 +75,21 @@ export function atSize(only: "phone" | "desktop" | "both") {
       "atSize was called after a test was declared, or inside one: call atSize before the tests of its file or describe block",
     );
   }
-  if (only !== "both" && only !== size) {
+  const runsHere = only === "both" || only === size || (only === "semi" && size === "desktop");
+  if (!runsHere) {
     // The options the scope's tests and blocks are declared with: `skip` makes each a `test.skip`.
     scope.options = { ...scope.options, skip: true };
+    return;
+  }
+  if (only === "semi" && size !== "semi") {
+    // Registered in the scope: its tests alone run semi-wide, after the shared setup.
+    beforeEach(async () => {
+      await page.viewport(SEMI.width, SEMI.height);
+      await expect.poll(() => window.innerWidth).toBe(SEMI.width);
+    });
+    afterEach(async () => {
+      await page.viewport(viewport.width, viewport.height);
+    });
   }
 }
 

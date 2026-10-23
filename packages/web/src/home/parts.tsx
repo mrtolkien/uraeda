@@ -11,7 +11,7 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 
 const styles = stylex.create({
   eyebrow: {
@@ -132,7 +132,7 @@ export function Panel({
   label?: string;
   title: string;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   // The card is a region named by its heading.
   const headingId = useId();
   const parts = (

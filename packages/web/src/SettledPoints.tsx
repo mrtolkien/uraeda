@@ -11,7 +11,7 @@ import { topBlock } from "./Folds.tsx";
 import { Blocks } from "./Blocks.tsx";
 import type { useFile } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import {
   AnsweredNotices,
@@ -83,7 +83,7 @@ function inHood(document: Document, groups: ReadonlyArray<SettledGroup>, point: 
  * drawn opens again, "Under the hood" opened for it.
  */
 export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolean }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const points = round?.settledPoints ?? [];

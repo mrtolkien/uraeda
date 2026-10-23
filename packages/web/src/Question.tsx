@@ -19,7 +19,7 @@ import { Blocks } from "./Blocks.tsx";
 import { CandidateCard } from "./decisions/Candidates.tsx";
 import { StaticImages } from "./ImageView.tsx";
 import { plain, Spans } from "./Spans.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import type { useAnswer } from "./useAnswer.ts";
 import { holdsStory, type Stories, StoryContext } from "./stories.tsx";
 
@@ -185,7 +185,7 @@ function OptionCard({
   question: string;
   selected: boolean;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const stories = useContext(StoryContext);
   const isStory = (id: number) => holdsStory(stories, document, id);
   const other = choice.other.filter((id) => !isStory(id));
@@ -238,7 +238,7 @@ export function QuestionHead({
   onAsk?: (question: QuestionItem) => void;
   question: QuestionItem;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const { id, parent, parentLetter } = question;
   return (
     <>
@@ -299,7 +299,7 @@ export function Options({
   question: QuestionItem;
   readOnly: boolean;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   if (question.options.length === 0) {
     return null;
   }

@@ -21,7 +21,7 @@ import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
 import { Fragment, type ReactNode, type Ref, use, useEffect } from "react";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { ListPaneContext } from "./listPane.ts";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
 import { useListKeys } from "./useListKeys.ts";
@@ -150,8 +150,8 @@ function RowItem({
   row: WorkRow;
 }) {
   // On a phone, the marks go under the text, which keeps the width of the screen.
-  const isNarrow = useWidthClass() === "narrow";
-  const hasMarksBelow = isNarrow && row.marks !== undefined;
+  const narrow = isNarrow(useWidthClass());
+  const hasMarksBelow = narrow && row.marks !== undefined;
   return (
     <ListItem
       // What the list's keys move between: see `useListKeys`.
@@ -168,7 +168,7 @@ function RowItem({
           </>
         ) : undefined
       }
-      endContent={isNarrow ? undefined : row.marks}
+      endContent={narrow ? undefined : row.marks}
       href={row.href}
       isSelected={isSelected}
       // A node, not a string, so a long line wraps instead of being cut.
@@ -243,7 +243,7 @@ function SectionBody({
   selected?: string;
 }) {
   // On a phone, the heading alone carries the colour: a side edge makes wrapped lines hard to read.
-  const hasEdge = useWidthClass() !== "narrow";
+  const hasEdge = !isNarrow(useWidthClass());
   return (
     <section
       ref={ref}

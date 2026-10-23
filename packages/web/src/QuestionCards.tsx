@@ -2,7 +2,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useWidthOf } from "./layout/useWidthOf.ts";
 import { QuestionCard } from "./QuestionCard.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
@@ -45,7 +45,7 @@ const styles = stylex.create({
 
 /** The muted band between sibling questions; on the phone, to the screen's edges. */
 export function Band() {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
 }
 
@@ -99,7 +99,7 @@ function QuestionGroup({
   followUps: ReadonlyArray<QuestionItem>;
   question: QuestionItem;
 }) {
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   const group = useRef<HTMLDivElement>(null);
   const roomy = useRoomy(group);
   return (

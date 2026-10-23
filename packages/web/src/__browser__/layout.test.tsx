@@ -46,6 +46,7 @@ import {
   LIVE,
   paste,
   reload,
+  scrollStopped,
   repository,
   sendMessage,
   show,
@@ -240,6 +241,42 @@ describe("on the desktop", () => {
         }
       }
     }
+  });
+});
+
+// Pages lay out alike at semi-wide and wide: crossing 1280 px changes the shell only.
+describe("at semi-wide", () => {
+  atSize("semi");
+
+  test("a task open beside the priorities keeps its pane and the list's place across 1280 px", async () => {
+    // A short window, so the list scrolls at both widths.
+    await page.viewport(1205, 500);
+    await show("/priorities", "Claude Code runner");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
+    });
+    await waitFor(() => detail().getByRole("button", { name: "Edit" }));
+    // The list scrolled down, as a human reading it would.
+    const room = document.documentElement.scrollHeight - window.innerHeight;
+    expect(room).toBeGreaterThan(0);
+    window.scrollTo(0, Math.min(200, room));
+    await scrollStopped();
+    const scrolled = window.scrollY;
+    expect(scrolled).toBeGreaterThan(0);
+
+    await page.viewport(1440, 500);
+    await expect.poll(() => window.innerWidth).toBe(1440);
+    await drawn();
+    // The same pane beside the same list, at the same place.
+    expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(window.location.pathname).toBe(atRepo(TASK));
+    expect(window.scrollY).toBe(scrolled);
+
+    await page.viewport(1205, 500);
+    await expect.poll(() => window.innerWidth).toBe(1205);
+    await drawn();
+    expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(window.scrollY).toBe(scrolled);
   });
 });
 

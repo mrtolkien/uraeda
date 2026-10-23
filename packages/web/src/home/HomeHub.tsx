@@ -15,7 +15,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useInbox, usePriorities, useWorkspace } from "../data.ts";
 import { waiting } from "../labels.ts";
-import { useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { agentState, type Feature, homeFeatures } from "./features.ts";
@@ -262,7 +262,7 @@ function DonePanel({ done }: { done: Array<Feature> }) {
 /** The way to the constitution and the decisions agents follow. */
 function DecisionsCard() {
   const here = useRepoPath();
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   // The card's padding as the others', so its text lines up with their rows.
   return (
     <Card padding={wide ? 4 : 3}>
@@ -286,7 +286,7 @@ export function HomeHub() {
   const inbox = useInbox();
   const priorities = usePriorities();
   const here = useRepoPath();
-  const wide = useWidthClass() === "wide";
+  const wide = !isNarrow(useWidthClass());
   if (!workspace || workspace.noSpecs) {
     return null;
   }
