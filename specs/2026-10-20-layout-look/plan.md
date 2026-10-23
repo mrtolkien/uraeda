@@ -494,28 +494,31 @@ behaviour the spec marks unverified.
   `openai`, with the CC BY 4.0 attribution in a comment; a generic agent glyph from Lucide's `bot`),
   `src/sidebar/ItemCard.tsx` (`KindIcon`: a session's mark), `src/SessionHeader.tsx`,
   `src/sidebar/cards.ts`, `README.md` (credits: Codicons, CC BY 4.0)
+- Create first, in a `refactor` commit: `src/theme/lucide.ts`, Lucide's glyphs moved out of
+  `icons.ts`, which would pass 500 lines (R11)
 - Create: `packages/web/src/__tests__/harness-mark.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `SessionRowRecord.agent` from Task 4.
 - Produces:
-  `Pane({ title, icon?, count?, isActive?, tone?: "attention" | "problem", children, id? })`: a
-  `section` labelled by its title, drawn with the title in the top border; the accent border when
-  `isActive`. `Logo({ size })`: the 8×8 dot tree, `aria-label="Uraeda"`.
-  `HarnessMark({ kind, size? })`: Codicons' mark for `claude` and `codex`, Lucide's `bot` otherwise,
-  with the harness's name as its accessible name.
+  `Pane({ title, icon?, count?, isActive?, tone?: "attention" | "problem", level?, children, id? })`:
+  a `section` labelled by its title, drawn with the title, a heading at `level` (2 by default), in
+  the top border; the accent border when `isActive`. `Logo({ size?: "sm" | "md" | "lg" })`: the 8×8
+  dot tree, `aria-label="Uraeda"`. `HarnessMark({ kind, size?, isDecorative? })` and
+  `harnessMark(kind)`: Codicons' mark for `claude` and `codex`, Lucide's `bot` otherwise, with the
+  harness's name as its accessible name, silent where its name is already said (R10).
 
-- [ ] **Step 1: Write the failing tests**: `harness-mark.test.tsx` table-driven: `claude` → "Claude
+- [x] **Step 1: Write the failing tests**: `harness-mark.test.tsx` table-driven: `claude` → "Claude
       Code" with the Codicons mark, `codex` → "Codex" with the OpenAI mark, `fake` and `pi` → the
       generic glyph with their names. In `sidebar.test.tsx`: a session row names its harness. Break:
       an unknown kind drawing nothing.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no `HarnessMark`.
-- [ ] **Step 3: Implement** the three components; `Pane` is a raw `section` with StyleX on tokens
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no `HarnessMark`.
+- [x] **Step 3: Implement** the three components; `Pane` is a raw `section` with StyleX on tokens
       (an Astryx gap: no titled border), its title a heading at the level the caller gives.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the two test files.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the two test files.
       Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 5: Commit**:
       `git commit -m "feat(layout-look): the pane, the dot-tree logo, and the harness marks"`.
 
 ## Task 8: The shell: a column, a rail, and tabs

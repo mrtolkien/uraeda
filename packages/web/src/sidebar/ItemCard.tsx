@@ -19,6 +19,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { SessionStatus } from "uraeda-server/fate";
+import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
 import { ProgressRing } from "../ProgressRing.tsx";
 import { StatusMark } from "../StatusMark.tsx";
 import { needsYou } from "./cards.ts";
@@ -26,6 +27,8 @@ import { type StepKind, StepIcon } from "./StepIcon.tsx";
 
 /** What the sidebar shows of a session, a change, or a feature. */
 export type CardItem = {
+  /** A session's agent kind, which its mark and its name tell. */
+  agent?: string;
   /** Lines its branch added and removed outside its folder, once it changed any. */
   changes?: { added: number; removed: number };
   /** Its folder, or a session's ID. */
@@ -95,6 +98,7 @@ export function cardName(item: CardItem) {
     item.label,
     item.title,
     item.kind,
+    item.agent === undefined ? undefined : harnessMark(item.agent).name,
     item.step?.label,
     item.pending ?? item.status.label,
     item.progress
@@ -126,12 +130,15 @@ function Status({ item }: { item: CardItem }) {
 }
 
 /**
- * The icon telling its kind: a speech bubble for a session, a wrench for a change, and a feature's
- * step, its steps being its own.
+ * The icon telling its kind: its harness's mark for a session, named in the card's name, else a
+ * speech bubble; a wrench for a change, and a feature's step, its steps being its own.
  */
 function KindIcon({ item }: { item: CardItem }) {
   if (item.kind === "feature" && item.step) {
     return <StepIcon step={item.step.kind} />;
+  }
+  if (item.kind === "session" && item.agent !== undefined) {
+    return <HarnessMark isDecorative kind={item.agent} />;
   }
   return (
     <Icon color="secondary" icon={item.kind === "change" ? "wrench" : "uraeda:comment"} size="sm" />

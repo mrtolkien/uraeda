@@ -204,3 +204,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   test; the hooks live in `__browser__/helpers.tsx` alone.
 - **Where**: task 3, `packages/web/src/__browser__/helpers.tsx`, `__browser__/layout.test.tsx`,
   `useKeepPlace.ts`, `following.ts`.
+## R10: A harness's mark is named once, by its kind, and stays silent beside its name
+
+- **Decision**: `harnessMark(kind)` names `claude` "Claude Code", `codex` "Codex", `pi` "Pi", the
+  fake agent's `fake` "Fake agent", and any other kind by the kind itself, drawn by Lucide's `bot`.
+  `HarnessMark` is an image named by the harness, and takes `isDecorative` where its name is already
+  said: a sidebar card says it in the link's name ("Why is CI slow?, session, Claude Code, …"), and
+  the session header beside the agent's name. Codicons' marks and the generic glyph are registered
+  as `uraeda:harness-claude`, `uraeda:harness-openai`, and `uraeda:harness-agent`.
+- **Rationale**: Astryx's `Icon` warns against a label inside a link that already has a name, which
+  would be read twice; the card's name is how a screen reader and the tests tell its harness. The
+  server reports a session's kind only, so the web names it. The fake agent's adapter calls itself
+  "Claude Code", which would hide that it is not.
+- **Alternatives considered**: the mark labelled inside the card, read twice, or overridden by the
+  link's `aria-label` and so never read; the adapter's own name on each row, a server change for a
+  name the web can map.
+- **If wrong**: a new harness shows its raw kind as its name until it is added to `harnessMark`, in
+  one file.
+- **Where**: task 7, `packages/web/src/HarnessMark.tsx`, `sidebar/ItemCard.tsx`,
+  `SessionHeader.tsx`.
+
+## R11: Lucide's glyphs move out of the icons' registry, and a pane's title takes a level
+
+- **Decision**: `theme/icons.ts`, at 494 lines, is split before Codicons' marks are added: Lucide's
+  glyphs move to `theme/lucide.ts`, and `icons.ts` keeps the registries and the Codicons marks.
+  `Pane` takes `level`, its heading's level, 2 by default, and names its `section` by its title
+  alone, without the count. Its background, and its title's under the border, is the body's; its
+  title is Catppuccin's lavender, the accent while active, peach for `attention`, red for `problem`.
+- **Rationale**: the file limit is 500 lines; the plan's Step 3 asks for "a heading at the level the
+  caller gives", which its interface left out; a name with the count would change as the count does
+  and break every lookup by name. The mockup's titles are lavender.
+- **Alternatives considered**: the marks in a file of their own, imported by `icons.ts`, which the
+  plan names as their home; the title's background left to the caller, which shows the border
+  through the title on any other background.
+- **If wrong**: a pane on another background shows the body's colour behind its title: a `Pane` prop
+  then picks it.
+- **Where**: task 7, `packages/web/src/theme/lucide.ts`, `theme/icons.ts`, `layout/Pane.tsx`.

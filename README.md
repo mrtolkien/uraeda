@@ -356,7 +356,10 @@ integration against the installed `claude`, with a few short sessions.
 The code is under the MIT or Apache-2.0 licenses, at your option. The web UI bundles the
 [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) and
 [Inter](https://github.com/rsms/inter) fonts, under the SIL Open Font License 1.1, and takes its
-colours from [Catppuccin](https://github.com/catppuccin/catppuccin), under the MIT license.
+colours from [Catppuccin](https://github.com/catppuccin/catppuccin), under the MIT license. The
+harnesses' marks are [Codicons](https://github.com/microsoft/vscode-codicons)' drawings, by
+Microsoft, under the Creative Commons Attribution 4.0 license (CC BY 4.0), and the app's other icons
+[Lucide](https://lucide.dev)'s, under the ISC license.
 
 ## Project status
 

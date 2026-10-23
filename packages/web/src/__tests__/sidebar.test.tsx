@@ -312,6 +312,22 @@ test("a session's … renames it", async () => {
   expect(group.queryByRole("link", { name: /Why is CI slow/ })).toBeNull();
 });
 
+/** Layout and look US1 3, Review focus 5: a session's card names its harness, known or not. */
+test("a session's card names the harness it runs on", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedSession(fake, repo, "Why is CI slow?");
+  const claude = await seedSession(fake, repo, "What does ura clean keep?");
+  fake.sessions.cache.db.prepare("UPDATE sessions SET agent = 'claude' WHERE id = ?").run(claude);
+  await renderPage("/", repo, { agent: fake });
+  const group = await sessions();
+
+  const fakeCard = await group.findByRole("link", { name: /^Why is CI slow\?, / });
+  expect(fakeCard.getAttribute("aria-label")).toContain(", session, Fake agent, ");
+  const claudeCard = group.getByRole("link", { name: /^What does ura clean keep\?, / });
+  expect(claudeCard.getAttribute("aria-label")).toContain(", session, Claude Code, ");
+});
+
 /** Merge chats, edge case: a session read while its page is open. */
 test("the open session stays in the list until its page is left", async () => {
   const repo = fixtureRepo();
