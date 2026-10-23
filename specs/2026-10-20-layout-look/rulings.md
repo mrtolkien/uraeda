@@ -764,3 +764,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for the tests.
 - **Where**: task 14, `packages/web/scripts/screenshots.ts`, `layout-look-shots.ts`,
   `settings-shots.ts`.
+
+## R32: StyleX compiles dev's styles with the build's keys, so ours replace Astryx's in dev too
+
+- **Decision**: in Storybook's dev server, `CardRow`'s rows kept Astryx's compact height and the
+  links overflowed them onto the next row. The cause: StyleX's `debug`, on by default in dev, keys a
+  compiled style by its property's name and hash (`height-kZKoxP`), where Astryx ships its styles
+  compiled for production, keyed by the hash alone (`kZKoxP`). `stylex.props` then kept both
+  `navItemStyles.sm`'s height and `CardRow`'s `height: auto`, and the order of the stylesheets
+  picked, which differs between the dev server, where Astryx is pre-bundled, and the build.
+  `vite.transforms.ts` sets `debug: false`: dev keeps its readable class names
+  (`CardRow__styles.row`) but drops the `data-style-src` attribute, which nothing reads. Measured in
+  WebKit on a cold Storybook: the home's and the shell's rows are as tall as their links, as in the
+  build.
+- **Rationale**: one config line makes every override of an Astryx style behave in dev as in the
+  build, where a fix in `CardRow` would leave the others to the stylesheets' order.
+- **Alternatives considered**: a stronger selector or an `!important`-like trick in `CardRow`: out
+  of StyleX's model, and for one component. Pre-bundling Astryx differently: the keys would still
+  differ.
+- **If wrong**: a StyleX debugging tool that needs `data-style-src` turns `debug` back on for a
+  session, and dev's overrides of Astryx's styles again depend on the stylesheets' order.
+- **Where**: `packages/web/vite.transforms.ts`.
