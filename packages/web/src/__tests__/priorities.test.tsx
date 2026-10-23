@@ -42,6 +42,8 @@ test("sections show their counts, and end with an Add row (US4 1)", async () => 
   expect(await screen.findByRole("heading", { name: "Now · 0" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Next · 2" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add to Later" })).toBeTruthy();
+  // The mono font has no "＋": the row draws the plus icon.
+  expect(screen.getByRole("button", { name: "Add to Later" }).textContent).not.toContain("＋");
 });
 
 /** The rows of a section's list, by the section's title. */

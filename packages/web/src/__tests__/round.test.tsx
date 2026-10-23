@@ -625,9 +625,9 @@ test("the bar counts and offers Next, with no ＋ in the top bar (US1 1)", async
   const bar = screen.getByRole("banner");
   expect(within(bar).getByRole("button", { name: "Next" })).toBeTruthy();
   expect(
-    within(bar)
-      .queryAllByRole("button")
-      .filter((button) => button.textContent?.includes("＋")),
+    within(bar).queryAllByRole("button", {
+      name: /^Add (a note to the inbox|to the priorities)$/,
+    }),
   ).toEqual([]);
 });
 

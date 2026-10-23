@@ -63,7 +63,12 @@ function AddHost({ onSave }: { onSave: (name: string) => Promise<string | undefi
   }
   return (
     <HStack>
-      <Button label="＋ Add a host name" onClick={line.openLine} variant="secondary" />
+      <Button
+        icon={<Icon icon="uraeda:plus" />}
+        label="Add a host name"
+        onClick={line.openLine}
+        variant="secondary"
+      />
     </HStack>
   );
 }
