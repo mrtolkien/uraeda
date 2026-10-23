@@ -160,20 +160,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: should rows become records, their view selects `agent`.
 - **Where**: task 4, `packages/web/src/views.ts`.
 
-## R8: Deleting the prototypes rewrites the round's links to them
+## R8: Deleting the prototypes rewrites every link to them
 
 - **Decision**: the approval step deletes every file of `mockups/` that no link of `spec.md` names,
-  with the files those load. It turns each link of the discovery and the questions to a deleted file
-  into its text and the path in code. When the approval step does not run, because the spec
-  activates no decision, the plan step deletes them in its commit, as it records the review.
+  with the files those load. It rewrites each link to a deleted file, in every Markdown file of the
+  feature (proposal, discovery, questions, spec review, rulings, plan), into its text and the path
+  in code. It matches on the path whatever the link's form: an image embed, or a link with a query
+  or a fragment, like `terminal-2.html?w=1440#/home`. The deletion has its own trigger in the plan
+  step: files of `mockups/` the spec does not link, still there, are deleted in the plan's commit,
+  whatever approved the spec. So a spec with no decision to activate, approved by
+  `ura review --approve`, whose review block is already a record, loses its prototypes too.
 - **Rationale**: `ura check` reports `links.file` on a link into `specs/` whose file is gone
   (`crates/core/src/check/links.rs`), so leaving the round's links would fail the check after every
-  approval. The approval step runs only for a spec with a decision to activate, and a feature
-  without one would keep its prototypes forever.
+  approval, and links in the plan or the rulings, or embeds and links with a query, fail it as well.
+  The approval step runs only for a spec with a decision to activate, and the plan step's record of
+  the review only when no tool made it: tied to either, a feature would keep its prototypes forever.
 - **Alternatives considered**: a `ura check` exemption for links into `mockups/`: code for a rule a
   sentence covers, and it hides real broken links in specs. Links to the file at a commit: a hash
   the agent cannot know before committing.
 - **If wrong**: a later round reads only the text of a deleted prototype's link; `git log` on the
-  path finds it. Task 14 of this feature deletes this feature's prototypes, and must rewrite
-  `discovery-02.md`'s links to them the same way.
+  path finds it. Task 14 of this feature deletes this feature's prototypes, and rewrites the links
+  to them in `plan.md`, `spec.md`, `rulings.md`, the two rounds, and the two discoveries the same
+  way.
 - **Where**: task 5, `skills/uraeda/references/approval.md`, `plan.md`, `discovery.md`, `spec.md`.

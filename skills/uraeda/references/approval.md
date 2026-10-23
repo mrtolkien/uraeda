@@ -40,7 +40,7 @@ approves resets the check: its approval commit is the new one.
 Turn the spec's `> [!IMPORTANT]` block into a record, if the human or a tool did not already, as
 `ura review --approve` does: see [Coming back to the human](../SKILL.md#coming-back-to-the-human).
 When an approved spec lists no decision to activate, this step does not run. The plan step then
-records the review and deletes the prototypes instead.
+records the review, and deletes the prototypes still there.
 
 ## Check the review settings
 
@@ -57,9 +57,12 @@ folder: they were throwaway, and git keeps them. Keep the spec's mockups. The sp
 them: keep each file a link of `spec.md` names, and the files it loads. Delete every other file of
 `mockups/`, and the folder when it ends up empty.
 
-A link to a deleted file fails `ura check`. In the discovery and the questions, turn each one into
-its text and the file's path in code: ``Terminal panes (`mockups/terminal-panes.html`, deleted)``.
-Git keeps the file at the commit before.
+A link to a deleted file fails `ura check`. Search every Markdown file of the feature for them: the
+proposal, the discovery, the questions, the spec review, the rulings, and the plan. Match on the
+file's path, whatever the link's form: an image embed like `![Home](mockups/home.png)`, or a link
+with a query or a fragment, like `mockups/terminal-2.html?w=1440#/home`. Turn each one into its text
+and the file's path in code: ``Terminal panes (`mockups/terminal-panes.html`, deleted)``. Git keeps
+the file at the commit before.
 
 ## Commit
 

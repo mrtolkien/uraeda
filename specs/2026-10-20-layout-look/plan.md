@@ -704,6 +704,8 @@ behaviour the spec marks unverified.
   Latte and Mocha, in `specs/2026-10-20-layout-look/screenshots/`
 - Delete: `specs/2026-10-20-layout-look/mockups/` except `README.md`, rewritten to say where the
   stories live
+- Modify: the links to the deleted files, in `specs/2026-10-20-layout-look/`'s `plan.md`, `spec.md`,
+  `rulings.md`, `clarifications-01.md`, `clarifications-02.md`, `discovery-01.md`, `discovery-02.md`
 
 **Interfaces:**
 
@@ -715,7 +717,12 @@ behaviour the spec marks unverified.
 - [ ] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
 - [ ] **Step 3: Take and review the screenshots** of the shell, home, decisions, and settings at
       both sizes and in both schemes against the UI look and layout decisions, and commit them.
-- [ ] **Step 4: Delete the prototypes**, now that the stories replace them.
+- [ ] **Step 4: Delete the prototypes**, now that the stories replace them, and rewrite every link
+      to them (R8), or `ura check` fails: they sit in `plan.md`, `spec.md`, `rulings.md`,
+      `clarifications-01.md`, `clarifications-02.md`, `discovery-01.md`, and `discovery-02.md`. The
+      spec's mockup links become links to the stories that replace them, as the spec says. Every
+      other link, image embeds and links with a query or a fragment included, becomes its text and
+      the file's path in code, as the skill's approval step describes.
 - [ ] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
 - [ ] **Step 6: Commit**:
       `git commit -m "docs(layout-look): the stories and screenshots replace the prototypes"`.
