@@ -15,6 +15,9 @@ const FIRST = savedImage("11111111-1111-4111-8111-111111111111.webp", "first.png
 const SECOND = savedImage("22222222-2222-4222-8222-222222222222.webp", "second.png");
 const THIRD = savedImage("33333333-3333-4333-8333-333333333333.webp", "third.png");
 
+/** A text query's option for the text shown on the page, not in Astryx's announcements. */
+const SHOWN = { ignore: "script, style, [data-astryx-live-region]" };
+
 const field = () => screen.getByRole("textbox", { name: "Message Claude Code" });
 const thumbnails = () =>
   screen
@@ -79,7 +82,7 @@ test("a refused send reaches the endpoint, then restores its exact text, images 
     "Remove second.png — image 2 of 3",
     "Remove third.png — image 3 of 3",
   ]);
-  expect(screen.getByText("The session is archived: unarchive it to send.")).toBeTruthy();
+  expect(screen.getByText("The session is archived: unarchive it to send.", SHOWN)).toBeTruthy();
 });
 
 test("a custom send stays pending once, keeps a refused draft, and clears only images on success", async () => {
@@ -165,6 +168,7 @@ test("a workflow's message is sent without the draft's images, which stay for th
   expect(
     screen.getByText(
       "The workflow's message takes no images: they stay here for your next message.",
+      SHOWN,
     ),
   ).toBeTruthy();
 

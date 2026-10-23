@@ -62,12 +62,16 @@ describe("the message look", () => {
       expect(item.getBoundingClientRect().height).toBeLessThan(36);
     });
 
-    test("US2: a code block wider than the screen scrolls inside the block, not the page", async () => {
-      const log = await converse(`Reply starts here.\n\n\`\`\`\n${"x".repeat(200)}\n\`\`\``);
+    // Since Astryx 0.7 a message's code block wraps its long lines rather than scroll them sideways
+    // (rulings R3): the line stays whole inside the block, and the page never scrolls sideways.
+    test("US2: a code block wider than the screen wraps inside the block, not past the page", async () => {
+      const line = "x".repeat(200);
+      const log = await converse(`Reply starts here.\n\n\`\`\`\n${line}\n\`\`\``);
       const block = within(log).getByRole("group", { name: "Code" });
 
-      expect(block.scrollWidth).toBeGreaterThan(block.clientWidth);
-      expect(["auto", "scroll"]).toContain(getComputedStyle(block).overflowX);
+      expect(block.textContent).toContain(line);
+      expect(block.scrollWidth).toBeLessThanOrEqual(block.clientWidth);
+      expect(block.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
         document.documentElement.clientWidth,
       );

@@ -13,7 +13,9 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.0.0
   vite-plus: 1.0.0
 minimumReleaseAgeExclude:
-  - "@astryxdesign/core@0.6.7"
+  - "@astryxdesign/core@0.7.3"
+  - "@astryxdesign/cli@0.7.3"
+  - "@astryxdesign/theme-neutral@0.7.3"
 overrides:
   vite@*: "catalog:"
 peerDependencyRules:

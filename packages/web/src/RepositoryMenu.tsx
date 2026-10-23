@@ -43,6 +43,11 @@ const styles = stylex.create({
     // A path wraps anywhere rather than be cut: the UI checks decision cuts no text.
     overflowWrap: "anywhere",
   },
+  repository: {
+    // The repository's name under "Uraeda" wraps anywhere too, inside the button's one-line label.
+    overflowWrap: "anywhere",
+    whiteSpace: "normal",
+  },
   trigger: {
     // The heading's trigger: "Uraeda" over the repository's name, two lines, the chevron at its end.
     height: "auto",
@@ -304,7 +309,7 @@ function MenuTrigger({ current }: { current: string | null }) {
         {/* Its accessible name, the label, is the text it shows, words apart. */}
         {current !== null && " "}
         {current !== null && (
-          <Text color="secondary" display="block" type="supporting">
+          <Text color="secondary" display="block" type="supporting" xstyle={styles.repository}>
             {current}
           </Text>
         )}

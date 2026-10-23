@@ -218,7 +218,7 @@ test("US4.4: without the agent, the composer is disabled and says why", async ()
 
   const box = await composer();
   expect(box.getAttribute("aria-disabled")).toBe("true");
-  expect(screen.getByText("Claude Code is not available on this machine.")).toBeTruthy();
+  expect(shownText("Claude Code is not available on this machine.")).toHaveLength(1);
 });
 
 test("a blank message cannot be sent", async () => {
