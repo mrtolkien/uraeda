@@ -27,7 +27,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import type { SearchableItem, SearchSource } from "@astryxdesign/core/Typeahead";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Blocks } from "../Blocks.tsx";
 import { afterOverlayCloses } from "../layout/Overlay.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
@@ -99,10 +99,26 @@ function Mark({ entry }: { entry: JumpEntry }) {
 
 /**
  * The palette's footer, its keys, which also follows the cursor: it puts it on the first result
- * when a search left none, and tells `onCursor` the entry under it.
+ * when a search left none, and tells `onCursor` the entry under it. When the entries change while
+ * it is open, as a decision is committed, it runs the search again, for the palette searches only
+ * as it opens and as a letter is typed.
  */
-function CursorFooter({ onCursor }: { onCursor: (path: string | undefined) => void }) {
+function CursorFooter({
+  onCursor,
+  source,
+}: {
+  onCursor: (path: string | undefined) => void;
+  source: SearchSource<JumpItem>;
+}) {
   const palette = useCommandPaletteContext();
+  const searched = useRef(source);
+  const searchAgain = useEffectEvent(() => palette?.setSearch(palette.search));
+  useEffect(() => {
+    if (searched.current !== source) {
+      searched.current = source;
+      searchAgain();
+    }
+  }, [source]);
   const index = palette?.highlightedIndex ?? -1;
   const items = palette?.selectableItems ?? [];
   const setHighlighted = palette?.setHighlightedIndex;
@@ -196,12 +212,19 @@ function Search({
   onOpenChange: (open: boolean) => void;
 }) {
   const field = useRef<HTMLInputElement>(null);
+  // The page builds the entries again at each render: they are kept until their content changes,
+  // and the source with them.
+  const signature = JSON.stringify(entries);
+  const [kept, setKept] = useState({ entries, signature });
+  if (kept.signature !== signature) {
+    setKept({ entries, signature });
+  }
   const source = useMemo<SearchSource<JumpItem>>(
     () => ({
-      bootstrap: () => entries.map(toItem),
-      search: (query: string) => searchEntries(entries, query).map(toItem),
+      bootstrap: () => kept.entries.map(toItem),
+      search: (query: string) => searchEntries(kept.entries, query).map(toItem),
     }),
-    [entries],
+    [kept],
   );
   // Inline, the palette leaves the focus where it is: the dialog around it is what opened.
   useEffect(() => {
@@ -211,7 +234,7 @@ function Search({
   return (
     <CommandPalette<JumpItem>
       emptySearchText="Nothing matches."
-      footer={<CursorFooter onCursor={onCursor} />}
+      footer={<CursorFooter onCursor={onCursor} source={source} />}
       input={
         <CommandPaletteInput
           label="Jump to a decision or principle"

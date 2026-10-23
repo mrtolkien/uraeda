@@ -84,10 +84,13 @@ function markedPrinciple(ledger: LedgerData, open: LedgerOpen | undefined): stri
 
 /**
  * Whether a key pressed on `target` belongs to a layer: a dialog, a menu, or an open Selector, or
- * any part of them, owns its keys while it holds the focus, and a modal dialog while open.
+ * any part of them, owns its keys while it holds the focus, and a modal dialog while open. An
+ * expanded disclosure, as the rail's logo, owns none: only a popup's owner does.
  */
 function inLayer(target: EventTarget | null) {
-  const layer = 'dialog, [role="dialog"], [role="listbox"], [role="menu"], [aria-expanded="true"]';
+  const layer =
+    'dialog, [role="dialog"], [role="listbox"], [role="menu"], ' +
+    '[aria-haspopup][aria-expanded="true"], [role="combobox"][aria-expanded="true"]';
   return (
     ((target as Partial<Element> | null)?.closest?.(layer) ?? null) !== null ||
     document.querySelector("dialog[open]") !== null
