@@ -1,7 +1,7 @@
 // The UI look decision's bundled fonts (US1 more 2, SC-002): the home draws in its fonts with no
 // request to another host, as on a machine with no network.
 import { expect, test } from "vite-plus/test";
-import { show } from "./helpers.tsx";
+import { LIVE, show } from "./helpers.tsx";
 
 /** The addresses a stylesheet's rules load: its imports, and its fonts' files, nested ones too. */
 function loads(rules: CSSRuleList, base: string): Array<string> {
@@ -22,8 +22,15 @@ function loads(rules: CSSRuleList, base: string): Array<string> {
 test("the home loads its fonts and makes no request to another host", async () => {
   await show("/", "Priorities");
   // Both fonts are bundled and drawn: JetBrains Mono for the UI, Inter for reading text.
-  await document.fonts.load('16px "JetBrains Mono Variable"');
-  await document.fonts.load('16px "Inter Variable"');
+  // `load` resolves with no face while the stylesheet declaring a family has not arrived yet, as
+  // on a busy machine: it is asked again, as long as live data is waited for, until it loads a face
+  // of each family.
+  for (const family of ["JetBrains Mono Variable", "Inter Variable"]) {
+    await expect
+      .poll(async () => (await document.fonts.load(`16px "${family}"`)).length, LIVE)
+      .toBeGreaterThan(0);
+  }
+  await document.fonts.ready;
   // The requests are read once the fonts loaded, so a font's file fetched from another host counts.
   const requested = [
     ...performance.getEntriesByType("resource").map((entry) => entry.name),
