@@ -681,31 +681,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 13, `packages/web/src/decisions/JumpPalette.tsx`, `jump.ts`, `DecisionsPage.tsx`,
   `theme/theme.ts`, `__tests__/palette.test.tsx`, `__browser__/decisions.test.tsx`.
 
-## R29: The tail's place kept after "Show earlier messages" on a busy machine: found, not fixed
+## R29: The tail's place kept after "Show earlier messages" on a busy machine: a press waits for its draw
 
 - **Decision**: `session-tail.test.tsx` "US1.2" failed once on the phone under load, "expected
   761.875 to be ≤ 1": the 20 messages the press adds (761.875 px) drew above the message read, and
-  nothing put it back. The cause is in the app, not the test: `keepPlace` (`keepPlace.ts`) calls the
-  press's change without awaiting the promise it returns, which `tail.tsx` resolves once the count
-  is drawn, and corrects two frames after the press. When the earlier messages draw later than those
-  two frames, as on a busy machine, the correction finds nothing moved and the place is lost.
-  Awaiting the change in `keepPlace` (tried, with a unit test that fails first) keeps US1.2, but the
-  second press of `readFarBack` then never sees its promise resolve: the press waits in `presses`
-  for an `onPieces` that does not come, though its 60 messages draw. The walk hands its pieces to
-  `sink` while it renders (`keep`), so a render React sets aside can draw the new pieces through
-  `Pieces` without the walk's layout effect that resolves the press. Left unfixed in this feature:
-  the test and the code are as they were.
-- **Rationale**: the fix is a rework of how a press learns it is drawn in `tail.tsx`, not a small
-  review fix, and a half fix that awaits the press loses the place for good when its promise never
-  resolves, where today it is lost only on a slow draw.
+  nothing put it back. The cause was in the app: `keepPlace` (`keepPlace.ts`) called the press's
+  change without awaiting the promise it returns, and corrected two frames after the press, so when
+  the earlier messages drew later, as on a busy machine, the correction found nothing moved.
+  Awaiting it alone left the second press of `readFarBack` waiting forever: `tail.tsx` resolved a
+  press from the walk's layout effect, while the walk hands its pieces to `sink` as it renders, so a
+  render React sets aside could draw them through `Pieces` without that effect. Fixed: `Pieces`
+  resolves the presses from its own layout effect, with the pieces that commit draws, once they hold
+  the press's count (`next`) or offer nothing earlier; a press no longer keeps the pieces it left,
+  the count alone says it is drawn. The key of the pieces drawn, which the walk compares with its
+  own to ask for a redraw, is also read from that commit, where `Pieces` wrote it as it rendered.
+  `keepPlace` awaits a change's promise, then counts its two frames, and the test polls the place
+  back within a pixel instead of measuring right after the count draws.
+- **Rationale**: what is on the page is known from the commit that draws it, not from the walk's
+  render, which may never commit. The count says the earlier messages are drawn; the pieces' key
+  also changes when a message arrives at the end, which would end the press too early.
 - **Alternatives considered**: awaiting the press in `keepPlace` alone: the second press's place is
-  never kept. Polling the place in the test: hides nothing, but fails while the app loses it.
-- **If wrong**: the flake comes back under load. The fix: resolve a press from the commit that draws
-  its pieces (a layout effect of `Pieces`, comparing `drawnKey` with the press's `from` and the
-  count drawn with its `next`), then await it in `keepPlace`; the test then polls the place back
-  within a pixel instead of measuring two frames after the draw.
+  never kept. Comparing the drawn key with the key the press left, as first proposed: a new page at
+  the end ends the press before its messages draw. Polling the place in the test alone: fails while
+  the app loses it.
+- **If wrong**: a press that never draws its count, and still offers earlier messages, keeps its
+  place waiting until the page closes, and the next press's correction puts it back; the unit test
+  in `keep-place.test.ts` and US1.2 say which half broke.
 - **Where**: `packages/web/src/keepPlace.ts`, `packages/web/src/tail.tsx`,
-  `__browser__/session-tail.test.tsx`.
+  `__tests__/keep-place.test.ts`, `__browser__/session-tail.test.tsx`.
 
 ## R30: The stories draw the fixture's states, and a width class through the width queries
 

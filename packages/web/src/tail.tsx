@@ -48,11 +48,15 @@ type Piece = {
   turn: string;
 };
 
-/** A press of "Show earlier messages" waiting for its messages to draw, from the pieces it left. */
-type Press = { done: () => void; from: string; next: number };
+/** A press of "Show earlier messages" waiting for its count of messages to draw. */
+type Press = { done: () => void; next: number };
 
 /** Where the tail starts, kept while the page is open: the first item it drew. */
 type Start = { page: number; seq: number | undefined; turn: string };
+
+/** How many messages the pieces draw. */
+const countOf = (pieces: ReadonlyArray<Piece>) =>
+  pieces.reduce((total, piece) => total + piece.count, 0);
 
 /** The pieces' identity: what makes the drawn list change. */
 const keyOf = (pieces: ReadonlyArray<Piece>) =>
@@ -332,20 +336,24 @@ function PageItems({
  */
 function Pieces({
   actions,
-  drawnKey,
   last,
+  onDrawn,
   onMore,
   sink,
 }: {
   actions: Actions;
-  drawnKey: RefObject<string>;
   last: string;
+  /** Called with the pieces each commit draws, once they are on the page. */
+  onDrawn: (pieces: ReadonlyArray<Piece>) => void;
   onMore: (anchor: Element | null) => void;
   sink: RefObject<ReadonlyArray<Piece>>;
   version: number;
 }) {
-  drawnKey.current = keyOf(sink.current);
-  return sink.current.map((piece) => (
+  const pieces = sink.current;
+  // The walk hands its pieces over as it renders, so a render React sets aside may still draw them
+  // here: what is drawn is known from this commit, not from the walk's.
+  useLayoutEffect(() => onDrawn(pieces));
+  return pieces.map((piece) => (
     <TailPage
       actions={actions}
       key={`${piece.turn}:${piece.page}`}
@@ -405,6 +413,8 @@ export function Tail({
   // What the walk settled on, which draws in the same pass; `version` counts the redraws the walk
   // asks for when it settles on others than those drawn.
   const sink = useRef<ReadonlyArray<Piece>>([]);
+  // What the pieces drew, from their commit. The walk's commit runs before theirs, so a walk that
+  // settles on new pieces as they draw asks for one redraw more, which draws the same.
   const drawnKey = useRef("");
   const [version, redraw] = useReducer((count: number) => count + 1, 0);
   // A press is done once its count is drawn, so the place is kept after it, not before.
@@ -420,19 +430,30 @@ export function Tail({
   }
   const more = (anchor: Element | null) => {
     // As many as drawn now, and 20 more: the start is not kept for the walk to go back from it.
-    const next = sink.current.reduce((total, piece) => total + piece.count, 0) + TAIL_MESSAGES;
+    const next = countOf(sink.current) + TAIL_MESSAGES;
     release();
     void keepPlace(
       anchor ? topOf(anchor) : () => Number.NaN,
       () =>
         new Promise<void>((done) => {
-          presses.current.push({ done, from: drawnKey.current, next });
+          presses.current.push({ done, next });
           startTransition(() => {
             setShown(next);
             updateEntry({ shown: next });
           });
         }),
     );
+  };
+  // A press is done once the pieces drawn hold its count, or, asking for more than there is, all
+  // there is: nothing earlier is offered.
+  const drawn = (pieces: ReadonlyArray<Piece>) => {
+    drawnKey.current = keyOf(pieces);
+    const count = countOf(pieces);
+    const all = !pieces[0]?.earlier;
+    const done = (press: Press) => count >= press.next || all;
+    const waiting = presses.current.filter(done);
+    presses.current = presses.current.filter((press) => !done(press));
+    waiting.forEach((press) => press.done());
   };
   const last = turns.at(-1);
   return (
@@ -453,16 +474,10 @@ export function Tail({
           }
           // The count drawn is kept in the entry when messages arrived past `shown` after the
           // start, so Back and a reload draw the same window (R15).
-          const drawn = settled.reduce((total, piece) => total + piece.count, 0);
+          const drawn = countOf(settled);
           if (start.current && drawn > shown && drawn > (currentEntry().shown ?? 0)) {
             updateEntry({ shown: drawn });
           }
-          // Drawn: the presses that left other pieces than these are done, and so are those that
-          // asked for more than there is, which leave these.
-          const done = (press: Press) => press.from !== key || shown >= press.next;
-          const waiting = presses.current.filter(done);
-          presses.current = presses.current.filter((press) => !done(press));
-          waiting.forEach((press) => press.done());
         }}
         page="last"
         root
@@ -471,8 +486,8 @@ export function Tail({
       />
       <Pieces
         actions={actions}
-        drawnKey={drawnKey}
         last={last!}
+        onDrawn={drawn}
         onMore={more}
         sink={sink}
         version={version}

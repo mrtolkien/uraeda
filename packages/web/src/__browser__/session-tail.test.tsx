@@ -73,10 +73,12 @@ test("US1.2: Show earlier messages keeps the message read at the same place on t
   const before = reading.getBoundingClientRect().top;
   await userEvent.click(button);
   await expect.poll(() => drawnLines(log).length, LIVE).toBe(40);
-  await drawn();
 
   expect(drawnLines(log)[20]).toBe(reading);
-  expect(Math.abs(reading.getBoundingClientRect().top - before)).toBeLessThanOrEqual(1);
+  // The place is put back once the earlier messages are drawn, which a busy machine may draw late.
+  await expect
+    .poll(() => Math.abs(reading.getBoundingClientRect().top - before), LIVE)
+    .toBeLessThanOrEqual(1);
   expect(within(log).getAllByRole("button", EARLIER)).toHaveLength(1);
 });
 
