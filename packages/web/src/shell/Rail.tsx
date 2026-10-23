@@ -1,7 +1,7 @@
 // The rail of semi-wide screens: 52 px of icons, which opens over the page at the column's full
 // width once the mouse rests on it, to the keyboard's focus inside it, or on a tap of its logo,
-// never on hover alone (UI behaviour). Escape folds it; so does the mouse leaving, the focus leaving, a tap outside,
-// or, after a tap opened it, the page it opened.
+// never on hover alone (UI behaviour). Escape folds it; so does the mouse leaving, the focus
+// leaving, a tap outside, or, after a tap opened it, the page it opened.
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
   type FocusEvent,
@@ -9,6 +9,7 @@ import {
   type PointerEvent,
   type RefObject,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -47,6 +48,38 @@ function useOutside(isOpen: boolean, ref: RefObject<HTMLElement | null>, close: 
 }
 
 /**
+ * The row of the open rail that stands for `folded`, a row of the folded rail its focus reached:
+ * the link to the same page, or the control of the same name.
+ */
+function matchingRow(nav: HTMLElement, folded: Element): HTMLElement | null {
+  const href = folded.getAttribute("href");
+  const label = folded.getAttribute("aria-label");
+  return (
+    (href === null ? null : nav.querySelector<HTMLElement>(`a[href="${CSS.escape(href)}"]`)) ??
+    (label === null ? null : nav.querySelector<HTMLElement>(`[aria-label="${CSS.escape(label)}"]`))
+  );
+}
+
+/**
+ * Keeps the keyboard's focus on its row as the rail opens: the folded rail's icon is not the open
+ * rail's row, so the element focused goes as the rail opens, and its row takes the focus.
+ */
+function useKeepFocus(isOpen: boolean, ref: RefObject<HTMLElement | null>) {
+  const folded = useRef<Element | null>(null);
+  useLayoutEffect(() => {
+    const row = folded.current;
+    folded.current = null;
+    if (isOpen && row && !row.isConnected && ref.current) {
+      matchingRow(ref.current, row)?.focus();
+    }
+  }, [isOpen, ref]);
+  /** Remembers the folded rail's row the keyboard focused. */
+  return (row: EventTarget) => {
+    folded.current = row as Element;
+  };
+}
+
+/**
  * The rail's state, while `isRail`: whether it is open, the handlers its element, `ref`, takes, and
  * the logo's tap; Escape moves the focus to `logo`. `isHovered` follows the mouse over it at every
  * width, which shows the wide column's fold button.
@@ -71,6 +104,7 @@ export function useRail(
     setTapped(false);
   });
   useOutside(isOpen, ref, close);
+  const remember = useKeepFocus(isOpen, ref);
   // The page a tap opened folds the rail it was opened from.
   const path = useLocalPath();
   const [at, setAt] = useState(path);
@@ -87,6 +121,9 @@ export function useRail(
     },
     onFocus: (event: FocusEvent) => {
       if (!quiet.current && byKeyboard(event.target)) {
+        if (!isOpen) {
+          remember(event.target);
+        }
         setFocused(true);
       }
     },

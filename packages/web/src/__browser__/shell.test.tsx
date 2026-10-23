@@ -54,15 +54,18 @@ describe("at semi-wide", () => {
     await show("/", "Needs you");
     expect(width()).toBe(52);
 
-    // From the page's start, back into the rail: its last row first.
+    // From the page's first control, back into the rail: its last row first.
     const enter = async () => {
-      await userEvent.click(within(screen.getByRole("main")).getAllByRole("heading")[0]!);
       // The mouse away from where the rail opens: the keyboard alone holds it open.
       await commands.mouse([{ type: "move", x: 1100, y: 850 }]);
-      for (let step = 0; step < 40 && !nav().contains(document.activeElement); step++) {
-        await userEvent.tab({ shift: true });
-      }
-      expect(nav().contains(document.activeElement)).toBe(true);
+      screen
+        .getByRole("main")
+        .querySelector<HTMLElement>("a[href], button:not([disabled]), input, textarea")
+        ?.focus();
+      // One Shift+Tab: the rail opens, and the focus stays on the row it reached, drawn anew.
+      await userEvent.tab({ shift: true });
+      await expect.poll(() => width()).toBe(256);
+      expect(document.activeElement).toBe(within(nav()).getByRole("link", { name: "Settings" }));
     };
     await enter();
     await expect.poll(() => width()).toBe(256);
