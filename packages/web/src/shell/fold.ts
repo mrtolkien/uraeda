@@ -4,7 +4,9 @@
 import { createContext, use } from "react";
 
 export type ColumnFold = {
-  /** Whether the column is drawn as its rail: folded on a wide screen, or closed on a semi-wide one. */
+  /**
+   * Whether the column is drawn as its rail: folded on a wide screen, or closed on a semi-wide one.
+   */
   isFolded: boolean;
   /** Folds the wide column to its rail, or unfolds it. */
   toggle: () => void;

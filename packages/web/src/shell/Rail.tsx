@@ -49,8 +49,8 @@ function useOutside(isOpen: boolean, ref: RefObject<HTMLElement | null>, close: 
 }
 
 /**
- * Whether a dialog or a popover is open, which Escape closes before the rail: a manual popover, like
- * the toasts' region, is open on every page, and Escape never closes it.
+ * Whether a dialog or a popover is open, which Escape closes before the rail: a manual popover,
+ * like the toasts' region, is open on every page, and Escape never closes it.
  */
 function isOverlayOpen() {
   try {
