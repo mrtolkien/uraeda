@@ -333,8 +333,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R16: The column's width and fold under `uraeda.nav`, and no fold by dragging
 
 - **Decision**: `uraeda.nav` holds `{ width, folded }`, JSON. Astryx's old key is read when the new
-  one is absent, its `size` (or a bare number) clamped to 220–480 px, written to the new key, and
-  removed. Dragging the edge stops at 220 px and never folds: the fold is the button and `[` only.
+  one is absent, its `size` (or a bare number) clamped to 220–480 px and its `isCollapsed` kept as
+  the fold, written to the new key, and removed (`__browser__/shell.test.tsx`). Dragging the edge
+  stops at 220 px and never folds: the fold is the button and `[` only.
   `__browser__/sidebar.test.tsx`'s resize test checks 220–480 and a drag to the fold button stopping
   at 220, where it checked 200–480 and a fold under 160. The edge's grab zone is centred on it
   (`pillPlacement="center"`): Astryx's default put it inside the column, off the edge a pointer
@@ -367,11 +368,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: on a semi-wide screen the rail opens over the page once the mouse rests on it for
   250 ms, on a keyboard's focus inside it (`:focus-visible`, so a click on a link does not hold it
   open), or on a tap of its logo button, "Open navigation"; it folds as the mouse leaves, as the
-  focus leaves, on Escape, which moves the focus to the logo and keeps the rail folded until the
-  focus leaves, on a tap outside, and on the page a tap opened. Folded, its rows are icon buttons
-  named as their rows, and its panes lines of icons; open, the column's own rows. The wide column
-  folded by `[` is the same rail of icons in the page's flow, which does not open over the page: the
-  fold button unfolds it.
+  focus leaves, on Escape, which, inside it, moves the focus to the logo and keeps the rail folded
+  until the focus leaves, and, outside it, folds it unless a dialog or a popover is open, on a tap
+  outside, and on the page a tap opened. A row the keyboard focuses in the folded rail keeps the
+  focus as the rail opens: the open rail's row to the same page, or of the same name, takes it, the
+  folded icon being a different element. The 250 ms rest is tested with fake timers
+  (`__tests__/rail.test.tsx`). Folded, its rows are icon buttons named as their rows, and its panes
+  lines of icons; open, the column's own rows. The wide column folded by `[` is the same rail of
+  icons in the page's flow, which does not open over the page: the fold button unfolds it.
 - **Rationale**: a click on an icon on the mouse's way in would land on the row the opened rail
   draws there; a rest first keeps the icon under the click. The wide fold's tests (C3, the button at
   the same spot) need the rail to stay folded under the pointer.

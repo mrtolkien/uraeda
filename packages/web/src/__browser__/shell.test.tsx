@@ -99,6 +99,17 @@ describe("at semi-wide", () => {
     await expect.poll(() => width()).toBe(52);
   });
 
+  /** US2 1: Escape folds the rail a hover opened, wherever the focus is. */
+  test("Escape folds the rail the pointer opened, with the focus outside it", async () => {
+    await show("/", "Needs you");
+    await userEvent.hover(nav());
+    await expect.poll(() => width()).toBe(256);
+    expect(nav().contains(document.activeElement)).toBe(false);
+
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => width()).toBe(52);
+  });
+
   /** Edge case: the window crosses 1280 px with the rail open. */
   test("crossing 1280 px with the rail open, the rail becomes the column", async () => {
     await show("/", "Needs you");
@@ -179,6 +190,19 @@ describe("on a desktop", () => {
     );
     await reload("Needs you");
     expect(width()).toBe(480);
+  });
+
+  /** R16: the fold Astryx kept under its old key stays, with its width. */
+  test("a column Astryx kept folded stays folded, and unfolds to its kept width", async () => {
+    window.localStorage.setItem(
+      "astryx-resizable:uraeda.nav",
+      JSON.stringify({ isCollapsed: true, size: 300 }),
+    );
+    await show("/", "Needs you");
+    expect(width()).toBe(52);
+
+    await userEvent.click(screen.getByRole("button", { name: "Expand navigation" }));
+    await expect.poll(() => width()).toBe(300);
   });
 });
 

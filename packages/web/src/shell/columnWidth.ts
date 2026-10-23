@@ -1,7 +1,8 @@
 // The column's width and fold, kept in the browser under `uraeda.nav`: 14% of the window, between
 // 256 and 340 px, until the human drags its edge, then the width they chose, between 220 and 480 px.
-// A width Astryx's old navigation kept, under `astryx-resizable:uraeda.nav`, is read once, clamped,
-// and moved to the new key, so a human's width survives the upgrade (plan, Review focus 4).
+// A width and a fold Astryx's old navigation kept, under `astryx-resizable:uraeda.nav`, are read
+// once, the width clamped, and moved to the new key, so they survive the upgrade (plan, Review
+// focus 4).
 import { useResizable } from "@astryxdesign/core/Resizable";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
@@ -57,20 +58,26 @@ function readNew(raw: string): StoredColumn {
   return { ...(folded === true ? { folded } : {}), ...(kept === undefined ? {} : { width: kept }) };
 }
 
-/** Astryx's width, `{ size }` or a bare number, moved to the new key, clamped. */
+/**
+ * Astryx's width and fold, `{ size, isCollapsed }` or a bare number, moved to the new key, the width
+ * clamped.
+ */
 function readOld(store: Storage, raw: string): StoredColumn {
   const parsed: unknown = JSON.parse(raw);
-  const size =
+  const kept =
     typeof parsed === "object" && parsed !== null
-      ? (parsed as Record<string, unknown>).size
-      : parsed;
-  const width = widthOf(size);
+      ? (parsed as Record<string, unknown>)
+      : { size: parsed };
+  const width = widthOf(kept.size);
+  const column: StoredColumn = {
+    ...(kept.isCollapsed === true ? { folded: true } : {}),
+    ...(width === undefined ? {} : { width }),
+  };
   store.removeItem(OLD_KEY);
-  if (width === undefined) {
-    return {};
+  if (column.folded !== undefined || column.width !== undefined) {
+    store.setItem(NAV_KEY, JSON.stringify(column));
   }
-  store.setItem(NAV_KEY, JSON.stringify({ width }));
-  return { width };
+  return column;
 }
 
 /** The column as the browser keeps it: nothing when it keeps nothing, or nothing readable. */
