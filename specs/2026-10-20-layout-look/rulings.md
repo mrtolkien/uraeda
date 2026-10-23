@@ -527,6 +527,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `home/Recent.tsx`.
 - **Where**: task 10, `packages/web/src/home/`, `__browser__/helpers.tsx` (`nowHoldsNext`), and the
   tests named above.
+
 ## R24: Settings on one form: rows as headings in a list, the search under the heading on a phone
 
 - **Decision**: the settings page is one form of six `Pane` sections, each setting a row of a list:
@@ -561,6 +562,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 11, `packages/web/src/settings/*`, `theme/icons.ts`, `theme/lucide.ts`,
   `scripts/settings-shots.ts`, `__tests__/settings.test.tsx`, `__browser__/layout.test.tsx`,
   `__browser__/story-embed.test.tsx`.
+
 ## R25: The decisions' reader stays open, Escape returns it to the constitution
 
 - **Decision**: on wide and semi-wide screens the reader is always open: `/decisions` shows the
