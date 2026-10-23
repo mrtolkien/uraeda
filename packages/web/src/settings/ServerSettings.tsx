@@ -1,9 +1,8 @@
-// The Server category: the host names the server accepts, its port, and whether it opens a browser
-// when it starts, each as the settings file holds it, with the value in force when a flag or a
-// variable overrides it for this run.
+// The Server section: the host names the server accepts, its port, and whether it opens a browser
+// when it starts, each a row of the form as the settings file holds it, with the value in force
+// when a flag or a variable overrides it for this run.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -14,6 +13,8 @@ import { useState } from "react";
 import type { Settings } from "uraeda-server/fate";
 import { EditableLine, LineField } from "../EditableLine.tsx";
 import { useLineSave } from "../useLineSave.ts";
+import { type Category, settingOf } from "./categories.ts";
+import { SettingRow, SettingRows } from "./SettingRow.tsx";
 
 /** The settings record, as the page reads it: the file, its problem, and the values. */
 export type ServerValues = Pick<Settings, "file" | "problem" | "runs" | "server">;
@@ -22,7 +23,7 @@ export type ServerValues = Pick<Settings, "file" | "problem" | "runs" | "server"
 type Source = ServerValues["server"]["port"]["source"];
 
 /**
- * What the categories of the settings file change, each through the server: each resolves with
+ * What the sections of the settings file change, each through the server: each resolves with
  * the error to show, or with nothing once saved.
  */
 export type ServerActions = {
@@ -74,7 +75,15 @@ function AddHost({ onSave }: { onSave: (name: string) => Promise<string | undefi
 }
 
 /** The host names, one line each, edited in place, then the line that adds one. */
-function Hosts({ actions, values }: { actions: ServerActions; values: ServerValues }) {
+function Hosts({
+  actions,
+  category,
+  values,
+}: {
+  actions: ServerActions;
+  category: Category;
+  values: ServerValues;
+}) {
   const { allowedHosts } = values.server;
   const hosts = allowedHosts.saved ?? [];
   const note = overridden(allowedHosts, (names) => names.join(", ") || "none");
@@ -84,64 +93,112 @@ function Hosts({ actions, values }: { actions: ServerActions; values: ServerValu
     setRefused(await actions.removeHost(host));
   };
   return (
-    <VStack gap={2}>
-      <Heading level={3}>Allowed host names</Heading>
-      <Text color="secondary">
-        Names the server accepts besides 127.0.0.1 and localhost, like the machine’s name on your
-        tailnet. A change applies at once.
-      </Text>
-      {note && <Text color="accent">{note}</Text>}
-      {hosts.map((host) => (
-        <HStack align="center" gap={2} key={host}>
-          <EditableLine
-            empty={EMPTY_HOST}
-            field={`settings.host.${host}`}
-            label={`Host name ${host}`}
-            look="field"
-            onSave={(text) => actions.editHost(host, text)}
-            value={host}
-          />
-          <IconButton
-            icon={<Icon icon="close" />}
-            label={`Remove ${host}`}
-            onClick={() => void remove(host)}
-            variant="ghost"
-          />
-        </HStack>
-      ))}
-      {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
-      <AddHost onSave={actions.addHost} />
-    </VStack>
+    <SettingRow
+      notes={
+        <>
+          {note && <Text color="accent">{note}</Text>}
+          {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
+        </>
+      }
+      setting={settingOf(category, "Allowed host names")}
+    >
+      <VStack gap={2}>
+        {hosts.map((host) => (
+          <HStack align="center" gap={2} key={host}>
+            <EditableLine
+              empty={EMPTY_HOST}
+              field={`settings.host.${host}`}
+              label={`Host name ${host}`}
+              look="field"
+              onSave={(text) => actions.editHost(host, text)}
+              value={host}
+            />
+            <IconButton
+              icon={<Icon icon="close" />}
+              label={`Remove ${host}`}
+              onClick={() => void remove(host)}
+              variant="ghost"
+            />
+          </HStack>
+        ))}
+        <AddHost onSave={actions.addHost} />
+      </VStack>
+    </SettingRow>
+  );
+}
+
+/** The port, edited in place, saved for the next start. */
+function Port({
+  actions,
+  category,
+  values,
+}: {
+  actions: ServerActions;
+  category: Category;
+  values: ServerValues;
+}) {
+  const { port } = values.server;
+  const note = overridden(port, String);
+  return (
+    <SettingRow
+      notes={note && <Text color="accent">{note}</Text>}
+      setting={settingOf(category, "Port")}
+    >
+      <HStack>
+        <EditableLine
+          empty={EMPTY_PORT}
+          field="settings.port"
+          label="Port"
+          look="field"
+          onSave={actions.setPort}
+          value={String(port.saved ?? port.inForce)}
+        />
+      </HStack>
+    </SettingRow>
   );
 }
 
 /** Opening a browser at start, saved at once, with its refusal under it. */
-function OpenBrowser({ actions, values }: { actions: ServerActions; values: ServerValues }) {
+function OpenBrowser({
+  actions,
+  category,
+  values,
+}: {
+  actions: ServerActions;
+  category: Category;
+  values: ServerValues;
+}) {
   const { openBrowser } = values.server;
+  const setting = settingOf(category, "Open a browser at start");
   const note = overridden(openBrowser, (on) => (on ? "on" : "off"));
   const [refused, setRefused] = useState<string>();
   return (
-    <VStack gap={2}>
+    <SettingRow
+      notes={
+        <>
+          {note && <Text color="accent">{note}</Text>}
+          {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
+        </>
+      }
+      setting={setting}
+    >
       <Switch
-        description="When the server starts, it opens Uraeda in your browser. A change applies at the next start."
-        label="Open a browser at start"
+        isLabelHidden
+        label={setting.label}
         onChange={async (open: boolean) => {
           setRefused(undefined);
           setRefused(await actions.setOpenBrowser(open));
         }}
         value={openBrowser.saved ?? openBrowser.inForce}
       />
-      {note && <Text color="accent">{note}</Text>}
-      {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
-    </VStack>
+    </SettingRow>
   );
 }
 
-/** A category of the settings file that cannot be read: its problem, and no control. */
-export function FileProblem({ label, problem }: { label: string; problem: string }) {
+/** A section of the settings file that cannot be read: its problem, and no control. */
+export function FileProblem({ problem }: { problem: string }) {
   return (
-    <VStack gap={4}>
-      <Heading level={2}>{label}</Heading>
+    <VStack padding={3}>
       <AnnouncedBanner
         collapsible={false}
         description="Fix the file to change settings here. Until then, the server uses its defaults."
@@ -152,42 +209,35 @@ export function FileProblem({ label, problem }: { label: string; problem: string
   );
 }
 
-/** The Server category, read-only with its problem when the file cannot be read. */
+/**
+ * The Server section's rows that `shows` keeps, under the file they are kept in; its problem alone
+ * when the file cannot be read.
+ */
 export function ServerSettings({
   actions,
+  category,
+  shows,
   values,
 }: {
   actions: ServerActions;
+  category: Category;
+  shows: (label: string) => boolean;
   values: ServerValues;
 }) {
   if (values.problem) {
-    return <FileProblem label="Server" problem={values.problem} />;
+    return <FileProblem problem={values.problem} />;
   }
-  const { port } = values.server;
-  const portNote = overridden(port, String);
+  const props = { actions, category, values };
   return (
-    <VStack gap={6}>
-      <VStack gap={2}>
-        <Heading level={2}>Server</Heading>
+    <VStack>
+      <VStack paddingBlockStart={2} paddingInline={3}>
         <Text color="secondary">Kept in {values.file}, which you can also edit by hand.</Text>
       </VStack>
-      <Hosts actions={actions} values={values} />
-      <VStack gap={2}>
-        <Heading level={3}>Port</Heading>
-        <Text color="secondary">The port on 127.0.0.1. A change applies at the next start.</Text>
-        {portNote && <Text color="accent">{portNote}</Text>}
-        <HStack>
-          <EditableLine
-            empty={EMPTY_PORT}
-            field="settings.port"
-            label="Port"
-            look="field"
-            onSave={actions.setPort}
-            value={String(port.saved ?? port.inForce)}
-          />
-        </HStack>
-      </VStack>
-      <OpenBrowser actions={actions} values={values} />
+      <SettingRows>
+        {shows("Allowed host names") && <Hosts {...props} />}
+        {shows("Port") && <Port {...props} />}
+        {shows("Open a browser at start") && <OpenBrowser {...props} />}
+      </SettingRows>
     </VStack>
   );
 }

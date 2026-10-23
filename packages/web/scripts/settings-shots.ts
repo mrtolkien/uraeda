@@ -1,9 +1,9 @@
 /**
- * The screenshots' views of the settings page: its categories, the Server category with the
- * settings file's values, a refused host name, and a flag and a variable in force, Appearance,
- * Sign-in and its confirmation, a category of later settings, a search, and the navigation's footer
- * with Settings. The flag and the variable are a second server's, started with them in its
- * environment, since a server reads them once.
+ * The screenshots' views of the settings page: the form with the settings file's values, a refused
+ * host name, and a flag and a variable in force, Sign-in's confirmation, the form opened at its Runs
+ * section, a search with a match and without one, and the navigation's footer with Settings. The
+ * flag and the variable are a second server's, started with them in its environment, since a
+ * server reads them once.
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -27,15 +27,12 @@ export type Serve = (
   env: Record<string, string>,
 ) => Promise<{ close: () => Promise<void>; url: string }>;
 
-/** The Server category, its file's values shown. */
-const server = (page: Page) => show(page, "/settings/server", "mac.tail1234.ts.net");
-
-/** The Sign-in category. */
-const signIn = (page: Page) => show(page, "/settings/sign-in", "Sign out everywhere…");
+/** The form, its file's values shown. */
+const form = (page: Page) => show(page, "/settings", "mac.tail1234.ts.net");
 
 /** The settings page with the navigation open on the phone, its footer's Settings selected. */
 async function footer(page: Page, size: Size) {
-  await show(page, "/settings", "Host names, port, and start");
+  await form(page);
   if (size === "phone") {
     await page.getByRole("button", { name: "Open navigation" }).click();
     // The drawer's footer, under its sessions: scrolled to.
@@ -48,11 +45,10 @@ async function footer(page: Page, size: Size) {
 /** Every view of the settings page, at both sizes and in both themes. */
 export async function takeSettings(each: Each, configDir: string, serve: Serve, prefix: string) {
   writeFileSync(join(configDir, "config.toml"), FILE);
-  await each("settings", ({ page }) => show(page, "/settings", "Host names, port, and start"));
-  await each("settings-server", ({ page }) => server(page));
+  await each("settings", ({ page }) => form(page));
   await each("settings-host-refused", async ({ page }) => {
-    await server(page);
-    await page.getByRole("button", { name: "＋ Add a host name" }).click();
+    await form(page);
+    await page.getByRole("button", { name: "Add a host name" }).click();
     await page.getByRole("textbox", { name: "New host name" }).fill("https://mac.tail1234.ts.net");
     await page.keyboard.press("Enter");
     await page
@@ -61,12 +57,8 @@ export async function takeSettings(each: Each, configDir: string, serve: Serve, 
       .waitFor();
     await settle(page);
   });
-  await each("settings-appearance", ({ page }) =>
-    show(page, "/settings/appearance", "Kept on this browser only"),
-  );
-  await each("settings-sign-in", ({ page }) => signIn(page));
   await each("settings-sign-in-confirm", async ({ page }) => {
-    await signIn(page);
+    await show(page, "/settings/sign-in", "Sign out everywhere…");
     await page.getByRole("button", { name: "Sign out everywhere…" }).click();
     await page.getByRole("dialog", { name: "Sign out every device?" }).waitFor();
     await settle(page);
@@ -75,15 +67,15 @@ export async function takeSettings(each: Each, configDir: string, serve: Serve, 
     show(page, "/settings/runs", "Sub-agents during the implementation"),
   );
   await each("settings-search", async ({ page }) => {
-    await show(page, "/settings", "Host names, port, and start");
-    await page.getByRole("textbox", { name: "Search settings" }).fill("model");
-    await page.getByRole("list", { name: "Settings found" }).waitFor();
+    await form(page);
+    await page.getByRole("textbox", { name: "Search settings" }).fill("port");
+    await page.getByRole("region", { name: "Appearance" }).waitFor({ state: "detached" });
     await settle(page);
   });
   await each("settings-search-none", async ({ page }) => {
-    await show(page, "/settings", "Host names, port, and start");
-    await page.getByRole("textbox", { name: "Search settings" }).fill("xyz");
-    await page.getByText("No setting matches “xyz”.").waitFor();
+    await form(page);
+    await page.getByRole("textbox", { name: "Search settings" }).fill("zzz");
+    await page.getByText("No setting matches “zzz”.").waitFor();
     await settle(page);
   });
   await each("settings-footer", ({ page, size }) => footer(page, size));
@@ -95,7 +87,7 @@ export async function takeSettings(each: Each, configDir: string, serve: Serve, 
   });
   try {
     await each("settings-server-overridden", async ({ page }) => {
-      await page.goto(`${second.url}${prefix}/settings/server`);
+      await page.goto(`${second.url}${prefix}/settings`);
       await page.getByText("Set by URAEDA_ALLOWED_HOSTS for this run").first().waitFor();
       await settle(page);
     });

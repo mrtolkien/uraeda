@@ -1,46 +1,97 @@
-// The settings page's categories, in the order the page lists them: the real ones first, then the
-// ones whose settings come with later features, each named with the feature that brings it; and
-// the search across them, which finds the settings to come too.
+// The settings page's sections, in the order the form shows them, each with its settings: their
+// icon, name, and line of help, then the settings later features bring, each named with the
+// feature that brings it; and the search that filters the form's rows, the settings to come too.
+import type { Icon } from "@astryxdesign/core/Icon";
+import type { ComponentProps } from "react";
 
 export type CategoryId = "server" | "appearance" | "sign-in" | "agents" | "runs" | "reviews";
+
+/** An icon's name, as Astryx's `Icon` takes it. */
+export type IconName = ComponentProps<typeof Icon>["icon"];
+
+/** A setting the section shows today: its icon, its name, and the line of help under it. */
+export type Setting = {
+  help: string;
+  icon: IconName;
+  label: string;
+  /** Words besides its name and help that find it: its other names. */
+  terms?: ReadonlyArray<string>;
+};
 
 /** A setting a later feature brings: what it sets, and that feature. */
 export type PlannedSetting = { feature: string; label: string };
 
 export type Category = {
+  icon: IconName;
   id: CategoryId;
   label: string;
-  /** The settings to come, for a category no feature has built yet. */
+  /** The settings to come, which later features bring. */
   planned?: ReadonlyArray<PlannedSetting>;
-  /** The labels of the settings the category shows today, as the search finds them. */
-  settings: ReadonlyArray<string>;
-  /** The line under the category's name in the list. */
-  summary: string;
-  /** Words besides its label that find a setting, by its label: its choices, its other names. */
-  terms?: Readonly<Record<string, ReadonlyArray<string>>>;
+  /** The settings the section shows today, in its order. */
+  settings: ReadonlyArray<Setting>;
 };
+
+/** The icon of a setting to come: it waits for its feature. */
+export const PLANNED_ICON: IconName = "clock";
+
+/** The help line of a setting to come. */
+export const plannedHelp = (setting: PlannedSetting) => `Comes with ${setting.feature}.`;
 
 export const CATEGORIES: ReadonlyArray<Category> = [
   {
+    icon: "uraeda:server",
     id: "server",
     label: "Server",
-    settings: ["Allowed host names", "Port", "Open a browser at start"],
-    summary: "Host names, port, and start",
+    settings: [
+      {
+        help: "Names the server accepts besides 127.0.0.1 and localhost, like the machine’s name on your tailnet. A change applies at once.",
+        icon: "uraeda:globe",
+        label: "Allowed host names",
+      },
+      {
+        help: "The port on 127.0.0.1. A change applies at the next start.",
+        icon: "uraeda:plug",
+        label: "Port",
+      },
+      {
+        help: "When the server starts, it opens Uraeda in your browser. A change applies at the next start.",
+        icon: "externalLink",
+        label: "Open a browser at start",
+      },
+    ],
   },
   {
+    icon: "uraeda:palette",
     id: "appearance",
     label: "Appearance",
-    settings: ["Colour scheme"],
-    summary: "Colour scheme, on this browser",
-    terms: { "Colour scheme": ["Mocha", "Latte", "theme", "dark", "light"] },
+    settings: [
+      {
+        help: "Catppuccin Mocha is dark, Latte is light, and System follows this device. Kept on this browser only: each device picks its own.",
+        icon: "uraeda:palette",
+        label: "Colour scheme",
+        terms: ["theme"],
+      },
+    ],
   },
   {
+    icon: "uraeda:key-round",
     id: "sign-in",
     label: "Sign-in",
-    settings: ["Sign out", "Sign out everywhere"],
-    summary: "Sign out, here or everywhere",
+    settings: [
+      {
+        help: "This browser will need the access key again.",
+        icon: "uraeda:log-out",
+        label: "Sign out",
+      },
+      {
+        help: "Every browser signed in to Uraeda, this one included, will need the access key again.",
+        icon: "uraeda:log-out",
+        label: "Sign out everywhere",
+      },
+    ],
   },
   {
+    icon: "uraeda:harness-agent",
     id: "agents",
     label: "Agents",
     planned: [
@@ -48,9 +99,9 @@ export const CATEGORIES: ReadonlyArray<Category> = [
       { feature: "the Codex runtime", label: "The model and effort of each step" },
     ],
     settings: [],
-    summary: "Coming later",
   },
   {
+    icon: "uraeda:workflow",
     id: "runs",
     label: "Runs",
     planned: [
@@ -61,10 +112,16 @@ export const CATEGORIES: ReadonlyArray<Category> = [
       { feature: "run options", label: "Sub-agents during the implementation" },
       { feature: "run options", label: "A different choice for one feature" },
     ],
-    settings: ["Build in a fresh session"],
-    summary: "Build in a fresh session, more later",
+    settings: [
+      {
+        help: "When a spec is approved, the plan and the build start in a new agent session instead of continuing the one that wrote the spec. Each approval can change it for its run. A change applies at once.",
+        icon: "uraeda:terminal",
+        label: "Build in a fresh session",
+      },
+    ],
   },
   {
+    icon: "uraeda:step-review",
     id: "reviews",
     label: "Reviews",
     planned: [
@@ -72,7 +129,6 @@ export const CATEGORIES: ReadonlyArray<Category> = [
       { feature: "the adversarial review", label: "A second review by another model" },
     ],
     settings: [],
-    summary: "Coming later",
   },
 ];
 
@@ -81,24 +137,63 @@ export function categoryOf(id: string): Category | undefined {
   return CATEGORIES.find((category) => category.id === id);
 }
 
+/** Whether a setting of `category`, today's or to come, holds `text` in what the search reads. */
+function holds(category: Category, setting: Setting | PlannedSetting, needle: string): boolean {
+  const words =
+    "help" in setting
+      ? [setting.label, setting.help, ...(setting.terms ?? [])]
+      : [setting.label, plannedHelp(setting)];
+  return [category.label, ...words].some((word) => word.toLowerCase().includes(needle));
+}
+
+/**
+ * Whether the search's `text`, trimmed and in any case, shows a setting of `category`: its name,
+ * its help, one of its terms, or its section's name holds it. An empty text shows every setting.
+ */
+export function settingShown(
+  category: Category,
+  setting: Setting | PlannedSetting,
+  text: string,
+): boolean {
+  const needle = text.trim().toLowerCase();
+  return needle === "" || holds(category, setting, needle);
+}
+
 /** A setting the search found: its label, and the category that shows it. */
 export type Found = { category: Category; label: string };
 
 /**
- * The settings whose label, one of their terms, or whose category's label holds `text`, trimmed and
- * in any case, the settings to come included, in the page's order; none for an empty text.
+ * The settings, today's and to come, that `text` shows, in the form's order; none for an empty
+ * text.
  */
 export function searchSettings(text: string): Array<Found> {
-  const needle = text.trim().toLowerCase();
-  if (needle === "") {
+  if (text.trim() === "") {
     return [];
   }
-  return CATEGORIES.flatMap((category) => {
-    const named = category.label.toLowerCase().includes(needle);
-    const labels = [...category.settings, ...(category.planned ?? []).map(({ label }) => label)];
-    const holds = (word: string) => word.toLowerCase().includes(needle);
-    return labels
-      .filter((label) => named || holds(label) || (category.terms?.[label] ?? []).some(holds))
-      .map((label) => ({ category, label }));
-  });
+  return CATEGORIES.flatMap((category) =>
+    [...category.settings, ...(category.planned ?? [])]
+      .filter((setting) => settingShown(category, setting, text))
+      .map(({ label }) => ({ category, label })),
+  );
 }
+
+/** The setting of `category` named `label`, which the section's code draws. */
+export function settingOf(category: Category, label: string): Setting {
+  const found = category.settings.find((setting) => setting.label === label);
+  if (!found) {
+    throw new Error(`No setting ${label} in ${category.label}.`);
+  }
+  return found;
+}
+
+/** The labels of the settings of `category`, today's and to come, that the search's `text` shows. */
+export function shownLabels(category: Category, text: string): Set<string> {
+  return new Set(
+    [...category.settings, ...(category.planned ?? [])]
+      .filter((setting) => settingShown(category, setting, text))
+      .map(({ label }) => label),
+  );
+}
+
+/** The id of a section in the page, which `/settings/<category>` scrolls to. */
+export const sectionId = (id: CategoryId) => `settings-${id}`;

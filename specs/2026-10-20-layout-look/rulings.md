@@ -527,3 +527,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `home/Recent.tsx`.
 - **Where**: task 10, `packages/web/src/home/`, `__browser__/helpers.tsx` (`nowHoldsNext`), and the
   tests named above.
+## R24: Settings on one form: rows as headings in a list, the search under the heading on a phone
+
+- **Decision**: the settings page is one form of six `Pane` sections, each setting a row of a list:
+  its icon, its name as a level-3 heading, its line of help, then what the page says of its value (a
+  flag in force, a refusal), and its control at the end, under the text on narrow screens. Each
+  setting's icon and help live in `categories.ts`, which the rows and the search both read; the
+  search matches a row's name, help, terms, or section, and the settings to come are rows too, with
+  a clock and "Comes with <feature>." and no control. The help lines are today's texts, which
+  already say when a change applies, as the settings decision asks; the switches keep their names
+  for screen readers with the label hidden, the row's heading showing it. `/settings/<category>`
+  draws the same form and scrolls that section into view, unless the entry has a saved position
+  (Back, reload); an unknown category reads as none. A file that cannot be read shows its problem in
+  Server and Runs, the Runs section keeping its rows to come; Appearance and Sign-in, which do not
+  read the file, keep their controls. The search sits at the end of the heading row on wide screens,
+  and under the heading on narrow ones, where it was above it: with one form and no category pages,
+  the heading leads the page at every width. New Lucide glyphs registered for the rows: `server`,
+  `globe`, `plug`, and `log-out`. Tests changed with what they check: the index's, the phone's
+  category pages', the results list's, and the unknown category's tests became the form's (order,
+  rows, deep link, search filtering rows); the two file-problem tests scope their check to a
+  section, since the problem now shows twice; `__browser__/layout.test.tsx` waits for "Allowed host
+  names" and the search's rows, and draws `/settings/runs` in place of the Server and Sign-in pages
+  (Sign-in stays drawn by `sign-in.test.tsx`); `story-embed.test.tsx` picks the scheme on the form,
+  one history entry fewer; the screenshot script shoots the form's views.
+- **Rationale**: the spec's US5, with the review's C4 (the form only), and the plan's review focus
+  8: links to a section keep working. A heading per setting gives a screen reader the form's
+  outline, and the tests a user-facing way to read which rows show.
+- **Alternatives considered**: Astryx's `ListItem` for a row: its end slot stays at the end, so a
+  phone could not put the control under the text. Dropping `/settings/<category>`: links in
+  documents and tests would break. Hiding the planned rows from the search: they were found before.
+- **If wrong**: the row is `settings/SettingRow.tsx`; the search's matching is `settingShown` in
+  `categories.ts`; the scroll is `useScrollToSection` in `SettingsView.tsx`.
+- **Where**: task 11, `packages/web/src/settings/*`, `theme/icons.ts`, `theme/lucide.ts`,
+  `scripts/settings-shots.ts`, `__tests__/settings.test.tsx`, `__browser__/layout.test.tsx`,
+  `__browser__/story-embed.test.tsx`.

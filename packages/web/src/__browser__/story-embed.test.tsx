@@ -236,16 +236,15 @@ describe("on a desktop, as embeds load", () => {
 });
 
 /**
- * Picks a colour scheme in the settings' Appearance, reached from the sidebar, then goes back to the
- * page it left.
+ * Picks a colour scheme in the settings' Appearance section, reached from the sidebar, then goes back
+ * to the page it left.
  */
 async function pickSchemeInSettings(scheme: "Mocha" | "Latte" | "System") {
   const nav = within(screen.getByRole("navigation", { name: "Navigation" }));
   await userEvent.click(nav.getByRole("link", { name: "Settings" }));
-  await userEvent.click(await screen.findByRole("link", { name: /^Appearance/ }));
   const schemes = await screen.findByRole("radiogroup", { name: "Colour scheme" });
   await userEvent.click(within(schemes).getByRole("radio", { name: scheme }));
-  window.history.go(-2);
+  window.history.go(-1);
 }
 
 describe("on a desktop, the frames and their messages", () => {
