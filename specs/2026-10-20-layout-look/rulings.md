@@ -449,3 +449,81 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 9, `packages/web/src/shell/StatusLine.tsx`, `statusHints.tsx`, `Shell.tsx`,
   `QuestionCard.tsx`, `layout/Overlay.tsx`, `__tests__/round.test.tsx`,
   `__browser__/storybook-page.test.tsx`, `__browser__/side-column.test.tsx`.
+
+## R21: Home's rows are the shell's card row, with the whole title and a second line
+
+- **Decision**: every row of home is `HomeRow` (`home/parts.tsx`), drawn by R17's `CardRow`: its
+  icon, the feature's whole title (not its label or slug, as the column shows), wrapping, a second
+  line, and at its end the action a gate asks ("Answer", "Review", "Write", "Fix") or the session's
+  `StatusMark`; its link's name reads that text in order. `CardRow`'s link is now `RouterAnchor`, so
+  a page of the UI opens without reloading, from home and from the column alike, and its "…" is
+  optional: home's rows have none, the settings staying on the column's cards and the feature's
+  page. Problems lists the features whose problems stop the workflow (`FeatureView.problems`, the
+  core's `BLOCKING` rules), each with its first problem's message and "Fix", the "Fix" rows Needs
+  you held. Needs you's second line is the gate's short name, a new `name` of `waiting()`
+  ("Questions", "Spec", "Plan", "Proposal"), then the round's waiting line; the verb stays "Review"
+  for a spec or a plan, the mockup's "Approve" being in no scenario. In progress is the features an
+  agent works on, its second line the step, "task n of m", and the task, its end the status of its
+  session as the column's card shows it (`featureStatus`), with no segmented step bar. Sessions is
+  the sessions without a workflow, not archived or done, what needs the human first, each with its
+  harness's mark and name. No key hints "1", "2", and no "All sessions" link: the column lists them,
+  and the phone's Sessions tab.
+- **Rationale**: the human's words, "full title for features, information on a second line", and one
+  component for a row of an item (UI coherence). US3 1 names "a `spec.md` lacks a required section",
+  which the [problems](../decisions/problems.md) decision makes a note, not a problem: the tests use
+  an unreadable status, which stops the workflow, and a plan missing a section stays In progress
+  with no Problems pane. US3 3 names "Layout and look and feel"; the fixture's feature waiting for
+  answers is "Web UI for the workflow files".
+- **Alternatives considered**: the column's `ItemCard` on home: its label is the slug, and its "…"
+  would repeat every card's settings button on the page. Astryx's `ListItem`, home's old rows: a
+  second look for the same item. A segmented bar of the steps: a drawing for information the step's
+  name already gives.
+- **If wrong**: a row's look is `HomeRow` and `CardRow`; the verb is `gateAction` in `labels.ts`.
+- **Where**: task 10, `packages/web/src/home/parts.tsx`, `home/Core.tsx`, `sidebar/CardRow.tsx`,
+  `labels.ts`.
+
+## R22: The "Overview" line is a heading, and the columns follow the width class
+
+- **Decision**: the dashed line is a level-2 heading, "Overview", between two dashed rules hidden
+  from screen readers; the core's panes are level 2, the widgets' level 3, under it. From semi-wide,
+  In progress and Sessions share a grid of `1.2fr 1fr`, as the mockup draws them, and the widgets a
+  grid of two even columns, by rows: Priorities now beside Usage, Inbox beside Recent; on the phone,
+  one column in the same order. The page is `Page`, centred in the room the shell leaves.
+- **Rationale**: a heading names what follows for a screen reader's list of headings, which a
+  `separator` cannot hold. `useWidthClass` is the one owner of the classes; a grid by rows keeps the
+  panes' order the reading order.
+- **Alternatives considered**: CSS columns, the mockup's masonry: it fills down the first column, so
+  the reading order and the tab order differ from the eye's. Auto-fit columns of a least width: one
+  column at semi-wide beside a pane, against SC-003.
+- **If wrong**: the grids are `Columns` in `home/parts.tsx`.
+- **Where**: task 10, `packages/web/src/home/parts.tsx`, `home/HomeHub.tsx`,
+  `__browser__/home.test.tsx`.
+
+## R23: Home's widgets, and the tests that read home's old cards
+
+- **Decision**: Priorities now lists the first five of Ongoing and Now (`prioritySection("now")`),
+  the second line "Ongoing · " and the running entry's status, else "Draft", "Backlog", or "Not
+  started", then "Open priorities". Usage shows the agent's mark and name, then the 5 h window and
+  the week, each "N% used", its reset time (with its weekday for the week), and its bar; a report
+  without the week shows no week (Review focus 6), and before any report, "No run reported usage
+  yet."; the mockup's "Warning at N%" has no setting behind it and is left out. Inbox lists the
+  three latest notes, each with its category, then a link to the inbox named by the count, "10 notes
+  to organize", or "Open the inbox" when empty. Recent is the column's Done rows (`doneRows`), the
+  latest five then "Show all (n)", all at `#done`, its second line "Merged" or "Session". Home no
+  longer shows Next, its count tiles, or the decisions' card, which the column's Navigate holds.
+  Tests changed with what they read, never what they check: `__tests__/home.test.tsx` rewritten for
+  US3 (its Next and tiles tests gone with them); the link `^Priorities, open the priorities page` is
+  "Open priorities" in `repositories.test.tsx`, `repository-menu.test.tsx`, and
+  `__browser__/task.test.tsx`; the inbox's count link is "10 notes to organize" in `inbox.test.tsx`;
+  `links.test.ts` waits on "Overview" for home; `feature-page`'s working agent is read in In
+  progress; and the task view opened beside home, in `__browser__/task.test.tsx` and
+  `layout.test.tsx`, opens from Priorities now, the fixture's Next entries moved into Now first
+  (`nowHoldsNext`), so the task's section is "Now".
+- **Rationale**: the spec's widgets, and the decision against count tiles; the words the tests wait
+  on, "Needs you" and "Priorities", stay on home.
+- **Alternatives considered**: a Now and Next switch on home: the spec names "the priorities now". A
+  link from the pane's title: `Pane`'s title is a heading in the border, not a link.
+- **If wrong**: each widget is one component, in `home/HomeHub.tsx`, `home/Usage.tsx`, and
+  `home/Recent.tsx`.
+- **Where**: task 10, `packages/web/src/home/`, `__browser__/helpers.tsx` (`nowHoldsNext`), and the
+  tests named above.

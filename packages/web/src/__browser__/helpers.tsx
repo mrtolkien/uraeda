@@ -732,3 +732,17 @@ export async function pickScriptOnPage() {
     taken: () => [...taken],
   };
 }
+
+/**
+ * The fixture's priorities with Next's entries, not started, at the end of Now, where home's
+ * Priorities now lists them, each opening its task view; Plan review is left out, so the five
+ * entries home shows hold them.
+ */
+export function nowHoldsNext(text: string) {
+  const next =
+    "- Claude Code runner (triggered manually)\n- [Git listener process](drafts/git-listener.md)\n";
+  return text
+    .replace(next, "")
+    .replace("- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n", "")
+    .replace("\n## Next", `${next}\n## Next`);
+}

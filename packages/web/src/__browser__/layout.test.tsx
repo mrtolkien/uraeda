@@ -43,6 +43,7 @@ import {
   drop,
   grown,
   image,
+  nowHoldsNext,
   LIVE,
   paste,
   reload,
@@ -176,13 +177,13 @@ describe("on the desktop", () => {
 
   test("a task view keeps its address as the window crosses 768 px", async () => {
     try {
-      // Home's Priorities card on Next, where the fixture's lines not started are.
-      window.localStorage.setItem("uraeda:home:priorities", "next");
+      // Home's Priorities now, with the fixture's lines not started moved there.
+      await commands.writeRepo(nowHoldsNext(await commands.readRepo()));
       await show("/", "Claude Code runner");
       await act(async () => {
         fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
       });
-      await waitFor(() => detail().getByRole("radio", { checked: true, name: "Next" }));
+      await waitFor(() => detail().getByRole("radio", { checked: true, name: "Now" }));
       // A pane beside home, to read, with its one Close.
       expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
       expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
@@ -193,7 +194,7 @@ describe("on the desktop", () => {
       await expect
         .poll(() => screen.queryByRole("link", { name: /Git listener process/ }))
         .toBeNull();
-      expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
+      expect(screen.getByRole("radio", { checked: true, name: "Now" })).toBeTruthy();
       expect(window.location.pathname).toBe(atRepo(TASK));
       // The pane's page, to read: Edit at its top, and no Close, which Back is.
       expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
@@ -203,7 +204,7 @@ describe("on the desktop", () => {
       await expect.poll(() => window.innerWidth).toBe(1440);
       // A pane again.
       expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
-      expect(detail().getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
+      expect(detail().getByRole("radio", { checked: true, name: "Now" })).toBeTruthy();
       expect(window.location.pathname).toBe(atRepo(TASK));
     } finally {
       await page.viewport(1440, 900);

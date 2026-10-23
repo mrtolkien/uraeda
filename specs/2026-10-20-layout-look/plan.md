@@ -608,16 +608,19 @@ behaviour the spec marks unverified.
 
 **Files:**
 
-- Modify: `packages/web/src/home/HomeHub.tsx`, `home/parts.tsx`, `home/summary.ts`, `src/Home.tsx`
-- Create: `packages/web/src/home/Usage.tsx`, `home/Recent.tsx`, `src/__browser__/home.test.tsx`
-- Modify: `packages/web/src/__tests__/home.test.tsx`, `src/sidebar/DoneArea.tsx` (its "…" link keeps
-  `/#done`)
+- Modify: `packages/web/src/home/HomeHub.tsx`, `home/parts.tsx`, `home/summary.ts`,
+  `home/features.ts`, `src/Home.tsx`, `src/labels.ts` (a gate's short name),
+  `src/sidebar/CardRow.tsx` (its link a `RouterAnchor`, its "…" optional)
+- Create: `packages/web/src/home/Core.tsx`, `home/Usage.tsx`, `home/Recent.tsx`,
+  `src/__browser__/home.test.tsx`
+- Modify: `packages/web/src/__tests__/home.test.tsx`, and the tests that read home's old cards
+  (R23). `src/sidebar/DoneArea.tsx` is unchanged: its "…" link keeps `/#done`, now the Recent pane
 
 **Interfaces:**
 
 - Consumes: `Pane` (Task 7), `AgentRecord.weekLimit` (Task 4), `useWidthClass` (Task 3).
 
-- [ ] **Step 1: Write the failing tests** in `home.test.tsx`: with a spec lacking a required
+- [x] **Step 1: Write the failing tests** in `home.test.tsx`: with a spec lacking a required
       section, the first pane is "Problems", naming it, above "Needs you"; without, Needs you is
       first; "Layout and look and feel"'s row shows its full title, "Questions", the round's waiting
       line, and "Answer"; In progress and Sessions follow, then a separator "Overview", then
@@ -625,12 +628,12 @@ behaviour the spec marks unverified.
       `id="done"`); at 402 px the same order in one column. `__browser__/home.test.tsx` at 1205 px:
       In progress and Sessions side by side, the widgets in two columns. Break: Problems drawn as
       Needs you rows, as today.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no "Problems" pane.
-- [ ] **Step 3: Implement** the home from `Pane`, centred on `Page`; the widgets wrap in two columns
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no "Problems" pane.
+- [x] **Step 3: Implement** the home from `Pane`, centred on `Page`; the widgets wrap in two columns
       from semi-wide.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the two home files.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the two home files.
       Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(layout-look): the home, core then overview"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(layout-look): the home, core then overview"`.
 
 ## Task 11: Settings on one page
 

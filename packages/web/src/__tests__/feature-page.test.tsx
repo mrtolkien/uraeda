@@ -640,13 +640,12 @@ test("Home shows a working agent", async () => {
 
   await renderPage("/", repo, { agent: fake });
 
-  const main = within(await screen.findByRole("list", { name: "Agents at work" }));
-  await main.findByRole("link", { name: /Git listener process/ });
-  const row = main
-    .getAllByRole("listitem")
-    .find((item) => within(item).queryByRole("link", { name: /Git listener process/ }))!;
-  expect(within(row).getByText("Working")).toBeTruthy();
-  expect(within(row).getByText("Discovery")).toBeTruthy();
+  const main = within(await screen.findByRole("main"));
+  const progress = within(await main.findByRole("region", { name: "In progress" }));
+  const row = await progress.findByRole("link", { name: /^Git listener process/ });
+  // Its step on its second line, and its session's status at its end, read in its name.
+  expect(within(row).getByText(/^Discovery/)).toBeTruthy();
+  expect(row.getAttribute("aria-label")).toMatch(/, Working$/);
 });
 
 test("a merged feature's session opens from its card, with its last run and no Stop", async () => {

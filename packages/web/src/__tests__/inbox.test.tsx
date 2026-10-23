@@ -404,7 +404,7 @@ test("Home shows how many notes wait, and opens the inbox", async () => {
   await renderPage("/");
   const page = await main();
 
-  const count = await page.findByRole("link", { name: /^Inbox: 10, notes to organize/ });
+  const count = await page.findByRole("link", { name: "10 notes to organize" });
   expect(page.getByRole("heading", { name: /^Inbox/ })).toBeTruthy();
   await click(count);
 
@@ -414,9 +414,7 @@ test("Home shows how many notes wait, and opens the inbox", async () => {
 test("Home says 1 note to organize for one note (US3 2)", async () => {
   await renderPage("/", withInbox("# Inbox\n\n## UI\n\n- One thing\n"));
 
-  expect(
-    await (await main()).findByRole("link", { name: /^Inbox: 1, note to organize/ }),
-  ).toBeTruthy();
+  expect(await (await main()).findByRole("link", { name: "1 note to organize" })).toBeTruthy();
 });
 
 test("Home's Inbox card says the inbox is empty without notes (US3 3)", async () => {

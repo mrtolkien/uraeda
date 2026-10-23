@@ -6,15 +6,15 @@ import { Page } from "./layout/Page.tsx";
 import { useHash, useRestoreScroll } from "./routes.tsx";
 
 /**
- * The home screen, a control hub: what waits on the human, what agents do, the priorities, the
- * inbox, what is done, and the way to the decisions.
+ * The home screen, centred in the page: its core, what stops the workflow, what waits on the human,
+ * and what runs, then its overview, the priorities, the usage, the inbox, and what is done.
  */
 export function Home() {
   const workspace = useWorkspace();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const hash = useHash();
-  // After the position: the sidebar's "…" opens the Recently done card.
+  // After the position: the column's Done "…" opens the Recent pane.
   useLayoutEffect(() => {
     if (hash === "#done") {
       document.getElementById("done")?.scrollIntoView();

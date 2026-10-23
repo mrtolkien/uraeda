@@ -1,5 +1,5 @@
-// What the hub reads from the priorities and the inbox: a running entry's status, the inbox summed
-// up, and a section of the priorities as the hub lists it.
+// What home reads from the priorities and the inbox: a running entry's status, the inbox summed
+// up, and a section of the priorities as home lists it.
 import type { PriorityEntry } from "uraeda-server/fate";
 import type { useInbox } from "../data.ts";
 import { stepTitle } from "../labels.ts";
@@ -21,22 +21,30 @@ export function runningStatus(
     : { label: stepTitle(running.step), variant: "info" };
 }
 
+/** The name of the notes without a category. */
+const NOT_SORTED = "Not sorted";
+
 /**
- * The inbox as the hub sums it up: its count, each category with its number of notes, the notes
- * without one first, and the last `latest` notes written. Notes carry no date: quick add writes at
- * the end of the notes without a category, so the latest are taken from there first.
+ * The inbox as home sums it up: its count, each category with its number of notes, the notes
+ * without one first, and the last `latest` notes written, each with its category's name. Notes
+ * carry no date: quick add writes at the end of the notes without a category, so the latest are
+ * taken from there first.
  */
 export function inboxSummary(inbox: ReturnType<typeof useInbox>, latest = 3) {
   const categories = (inbox?.categories ?? []).filter((category) => category.notes.length);
-  const loose = categories.filter((category) => !category.name).flatMap((c) => c.notes);
-  const sorted = categories.filter((category) => category.name).flatMap((c) => c.notes);
+  const named = (sorted: boolean) =>
+    categories
+      .filter((category) => !!category.name === sorted)
+      .flatMap((category) =>
+        category.notes.map((note) => ({ ...note, category: category.name ?? NOT_SORTED })),
+      );
   return {
     categories: categories.map((category) => ({
       count: category.notes.length,
-      name: category.name ?? "Not sorted",
+      name: category.name ?? NOT_SORTED,
     })),
     count: inbox?.count ?? 0,
-    latest: [...loose.toReversed(), ...sorted.toReversed()].slice(0, latest),
+    latest: [...named(false).toReversed(), ...named(true).toReversed()].slice(0, latest),
   };
 }
 

@@ -1,173 +1,145 @@
-// The hub's parts: its rows, its stat tiles, and its cards, each with its heading.
-import { Badge } from "@astryxdesign/core/Badge";
-import { Card } from "@astryxdesign/core/Card";
-import type { CardVariant } from "@astryxdesign/core/Card";
-import { ClickableCard } from "@astryxdesign/core/ClickableCard";
+// Home's parts: its rows, the shell's two-line card row with a whole title; the "Overview" line
+// between the core and the widgets; two columns from semi-wide; a pane's empty line and its link.
+import { Button } from "@astryxdesign/core/Button";
+import { Grid } from "@astryxdesign/core/Grid";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Link } from "@astryxdesign/core/Link";
-import { ListItem } from "@astryxdesign/core/List";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { VStack } from "@astryxdesign/core/VStack";
+import {
+  borderVars,
+  colorVars,
+  spacingVars,
+  typeScaleVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useId } from "react";
+import type { ReactNode } from "react";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import type { Status } from "../sidebar/cards.ts";
+import { CardRow } from "../sidebar/CardRow.tsx";
+import { StatusMark } from "../StatusMark.tsx";
 
 const styles = stylex.create({
-  eyebrow: {
+  // The core's two panes: the first the wider, as the mockup draws them.
+  core: { alignItems: "start", gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)" },
+  empty: {
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-2"],
+  },
+  foot: {
+    paddingInline: spacingVars["--spacing-1"],
+  },
+  one: { gridTemplateColumns: "minmax(0, 1fr)" },
+  rule: {
+    borderBlockStartColor: colorVars["--color-border"],
+    borderBlockStartStyle: "dashed",
+    borderBlockStartWidth: borderVars["--border-width"],
+    flexGrow: 1,
+  },
+  separator: {
+    alignItems: "center",
+    display: "flex",
+    gap: spacingVars["--spacing-3"],
+    marginBlockStart: spacingVars["--spacing-4"],
+  },
+  separatorTitle: {
+    color: colorVars["--color-text-secondary"],
+    fontSize: typeScaleVars["--text-supporting-size"],
     textTransform: "uppercase",
   },
-  // A heading's link, as tall as a control: tapped on the phone, it is one.
-  headingLink: {
-    alignItems: "center",
-    display: "inline-flex",
-    minBlockSize: "var(--size-element-md)",
-  },
-  // The heading's title, count, and chevron on one line, inside the heading: phrasing content only.
-  heading: {
-    alignItems: "center",
-    columnGap: spacingVars["--spacing-2"],
-    display: "inline-flex",
-    flexWrap: "wrap",
-  },
+  two: { alignItems: "start", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" },
 });
 
-/** A row that leads somewhere, tapped as a whole. */
-export function Row({
-  badge,
+/**
+ * A row of home: its icon, its whole title, wrapping, its information on a second line, and at its
+ * end what it asks of the human, or its session's status. The shell's card row, read whole by
+ * screen readers in the order it shows.
+ */
+export function HomeRow({
+  action,
   href,
-  isSelected,
-  line,
+  icon,
+  status,
+  sub,
   title,
 }: {
-  badge?: ReactNode;
+  /** What it asks, like "Answer". */
+  action?: string;
   href: string;
-  isSelected?: boolean;
-  line?: ReactNode;
+  icon: ReactNode;
+  /** Its session's status, as the shell's cards show it. */
+  status?: Status | undefined;
+  sub?: string | undefined;
   title: string;
 }) {
   return (
-    <ListItem
-      description={line === undefined || line === null ? undefined : <>{line}</>}
+    <CardRow
       endContent={
-        <Text aria-hidden="true" color="secondary">
-          ›
-        </Text>
+        action ? (
+          <HStack align="center" gap={1}>
+            <Text color="accent" type="supporting" weight="semibold">
+              {action}
+            </Text>
+            <Text aria-hidden="true" color="secondary" type="supporting">
+              ›
+            </Text>
+          </HStack>
+        ) : (
+          status && <StatusMark label={status.label} status={status.status} />
+        )
       }
       href={href}
-      isSelected={isSelected}
-      // Nodes, not strings, so long titles and lines wrap instead of being cut.
-      label={<>{title}</>}
-      startContent={badge}
+      icon={icon}
+      isSelected={false}
+      label={title}
+      name={[title, sub, action ?? status?.label].filter(Boolean).join(", ")}
+      sub={sub}
     />
   );
 }
 
-/** A stat tile: its name, its number, and a line saying what it counts; tapped, it opens `href`. */
-export function Tile({
-  caption,
-  href,
-  label,
-  value,
-  variant = "default",
-}: {
-  caption: string;
-  href?: string;
-  label: string;
-  value: number;
-  variant?: CardVariant;
-}) {
-  // A group named by the count, so its number and its line read with their name.
-  const body = (
-    <div aria-label={label} role="group">
-      <VStack gap={1}>
-        <Text color="secondary" type="label" xstyle={styles.eyebrow}>
-          {label}
-        </Text>
-        <Text hasTabularNumbers size="4xl" weight="bold">
-          {value}
-        </Text>
-        <Text color="secondary" type="supporting">
-          {caption}
-        </Text>
-      </VStack>
-    </div>
-  );
-  if (href) {
-    return (
-      <ClickableCard
-        href={href}
-        label={`${label}: ${value}, ${caption}`}
-        padding={4}
-        variant={variant}
-      >
-        {body}
-      </ClickableCard>
-    );
-  }
+/** A pane's line when it has no row. */
+export function Empty({ children }: { children: string }) {
   return (
-    <Card padding={4} variant={variant}>
-      {body}
-    </Card>
+    <Text color="secondary" display="block" type="supporting" xstyle={styles.empty}>
+      {children}
+    </Text>
+  );
+}
+
+/** A pane's link to the page it sums up, at its foot. */
+export function PaneLink({ href, label }: { href: string; label: string }) {
+  return (
+    <div {...stylex.props(styles.foot)}>
+      <Button href={href} label={label} size="sm" variant="ghost" />
+    </div>
   );
 }
 
 /**
- * A card of the hub: its heading, its count, and its rows. With `href`, its heading opens the page
- * the card sums up, tapped as a whole, `label` its accessible name. `id` is its anchor, like the
- * `#done` the sidebar's Done area opens.
+ * The dashed line between the core and the widgets, its title "Overview" in the middle: a heading
+ * of the panes under it, the line itself drawn for the eye alone.
  */
-export function Panel({
-  children,
-  count,
-  href,
-  id,
-  label,
-  title,
-}: {
-  children: ReactNode;
-  count?: number;
-  href?: string;
-  id?: string;
-  label?: string;
-  title: string;
-}) {
-  const wide = !isNarrow(useWidthClass());
-  // The card is a region named by its heading.
-  const headingId = useId();
-  const parts = (
-    <span {...stylex.props(styles.heading)}>
-      {title}
-      {count !== undefined && <Badge label={String(count)} variant="neutral" />}
-      {href && (
-        <Text aria-hidden="true" color="secondary">
-          ›
-        </Text>
-      )}
-    </span>
-  );
+export function Overview() {
   return (
-    <section aria-labelledby={headingId} id={id}>
-      <Card padding={wide ? 4 : 3}>
-        <VStack gap={2}>
-          <Heading id={headingId} level={2}>
-            {href ? (
-              <Link
-                color="primary"
-                href={href}
-                label={label}
-                type="inherit"
-                xstyle={styles.headingLink}
-              >
-                {parts}
-              </Link>
-            ) : (
-              parts
-            )}
-          </Heading>
-          {children}
-        </VStack>
-      </Card>
-    </section>
+    <div {...stylex.props(styles.separator)}>
+      <span aria-hidden="true" {...stylex.props(styles.rule)} />
+      <Heading level={2} xstyle={styles.separatorTitle}>
+        Overview
+      </Heading>
+      <span aria-hidden="true" {...stylex.props(styles.rule)} />
+    </div>
+  );
+}
+
+/**
+ * Two columns from semi-wide, one on the phone: `isCore`, the core's, its first the wider; else the
+ * widgets', even.
+ */
+export function Columns({ children, isCore = false }: { children: ReactNode; isCore?: boolean }) {
+  const narrow = isNarrow(useWidthClass());
+  return (
+    <Grid gap={narrow ? 1 : 4} xstyle={narrow ? styles.one : isCore ? styles.core : styles.two}>
+      {children}
+    </Grid>
   );
 }

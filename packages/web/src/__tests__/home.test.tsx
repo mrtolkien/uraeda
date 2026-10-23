@@ -1,4 +1,6 @@
-// US7: home as a control hub, its counts, then its cards, on the fixture repository.
+// Layout and look US3: home, centred, its core above the "Overview" line, problems when there are
+// any, Needs you, then In progress beside Sessions; below it, the widgets: the priorities now, the
+// usage, the inbox, and what is done. On the fixture repository.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
@@ -7,6 +9,7 @@ import {
   atRepo,
   atWidth,
   click,
+  fakeAgent,
   fixture,
   fixtureRepo,
   git,
@@ -27,48 +30,38 @@ async function main() {
   return within(await screen.findByRole("main"));
 }
 
-/** A count of home's top, by its name or its place: its whole text, its number included. */
-async function count(name: string | number) {
+/** The page's features, loaded: a fixture feature waiting on the human, in Needs you. */
+async function loaded() {
   const page = await main();
-  if (typeof name === "number") {
-    return (await page.findAllByRole("group"))[name]?.textContent;
-  }
-  return (await page.findByRole("group", { name })).textContent;
+  await page.findAllByRole("link", { name: /^Web UI for the workflow files/ });
+  return page;
 }
 
-/**
- * The card of what waits on the human, which comes first: found by its place and its rows' actions,
- * not by its heading's words, which a rename changes.
- */
-async function needsCard() {
-  const page = await main();
-  await page.findAllByRole("link", { name: /Web UI for the workflow files/ });
-  return within((await page.findAllByRole("region"))[0]);
-}
-
-/** A card of home, by its heading, which names it: its heading and its rows. */
-async function card(title: string | RegExp) {
+/** A pane of home, by its title. */
+async function pane(title: string) {
   return within(await (await main()).findByRole("region", { name: title }));
 }
 
-/** The names of the links of a card's list, in order. */
-function links(list: HTMLElement) {
-  return within(list)
-    .getAllByRole("link")
-    .map((link) => link.textContent);
+/** The titles of home's panes and its "Overview" line, in the page's order, without their counts. */
+async function titles() {
+  const page = await loaded();
+  return page
+    .getAllByRole("heading")
+    .map((heading) => heading.textContent?.replace(/\s*· \d+$/, "") ?? "");
 }
 
-/** A list's row holding a link named `name`: its link, and the row with its badge and line. */
-function row(list: HTMLElement, name: RegExp) {
-  const link = within(list).getByRole("link", { name });
-  return { link, row: within(link.closest("li") as HTMLElement) };
+/** The rows of a pane, by the first part of their names, their titles. */
+function rows(region: ReturnType<typeof within>) {
+  return region
+    .queryAllByRole("link")
+    .map(
+      (link: HTMLElement) => link.getAttribute("aria-label")?.split(", ")[0] ?? link.textContent,
+    );
 }
 
-/** The headings of home's cards, in the page's order. */
-async function headings() {
-  const page = await main();
-  await needsCard();
-  return page.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
+/** A pane's row, by its title. */
+function row(region: ReturnType<typeof within>, title: string) {
+  return region.getByRole("link", { name: new RegExp(`^${title}`) });
 }
 
 /** The fixture repository with `count` merged features more, dated before the fixture's. */
@@ -87,179 +80,85 @@ function withDone(count: number) {
   return repo;
 }
 
-/** US7 1 */
-test("shows the four counts, then the cards in their order", async () => {
-  await renderPage();
-
-  // The tests' fixture: three features at a gate and one agent's, where Storybook's, with its
-  // checkouts of the story embeds, has four and four (R15).
-  expect(await count(0)).toMatch(/^\D+3\D/);
-  expect(await count("Agents")).toMatch(/^Agents1/);
-  // The four entries of Now are started, so none waits.
-  expect(await count("Now")).toMatch(/^Now04 ongoing/);
-  expect(await count("Inbox")).toMatch(/^Inbox10/);
-  expect(await headings()).toEqual([
-    expect.any(String),
-    expect.stringMatching(/^Agents at work/),
-    "Recently done",
-    expect.stringMatching(/^Priorities/),
-    expect.stringMatching(/^Inbox/),
-  ]);
-  const decisions = (await main()).getByRole("link", { name: /Constitution and decisions/ });
-  expect(decisions.getAttribute("href")).toBe(atRepo("/decisions"));
-});
-
-/** US7 1: what needs the human, by action, with the block's line. */
-test("Needs you lists what waits on the human, by action", async () => {
-  await renderPage();
-
-  const needs = await needsCard();
-  const list = needs.getByRole("list");
-  const web = row(list, /Web UI for the workflow files/).row;
-  expect(web.getByText("Answer")).toBeTruthy();
-  expect(
-    web.getByText("3 questions and 1 follow-up on the web UI, about 35 minutes."),
-  ).toBeTruthy();
-  expect(row(list, /Recurring tasks/).row.getByText("Review")).toBeTruthy();
-});
-
-/** US7 1: the agents at work, with their step. */
-test("Agents at work lists what agents work on, with their step", async () => {
-  await renderPage();
-
-  const agents = await card(/^Agents at work/);
-  const tuis = row(agents.getByRole("list", { name: "Agents at work" }), /CLI TUIs/);
-  expect(tuis.row.getByText("Plan")).toBeTruthy();
-
-  await click(tuis.link);
-
-  expect(window.location.pathname).toBe(atRepo("/f/2026-10-12-cli-tuis"));
-});
-
-/** US7 2 */
-test("Priorities lists Now, the started entries with their step", async () => {
-  await renderPage();
-
-  const priorities = await card(/^Priorities/);
-  expect(priorities.getByRole("radio", { name: "Now" }).getAttribute("aria-checked")).toBe("true");
-  const now = priorities.getByRole("list", { name: "Now" });
-  expect(links(now)).toHaveLength(4);
-  const web = row(now, /Web UI for the workflow files/);
-  expect(web.row.getByText("Answer questions")).toBeTruthy();
-  expect(web.link.getAttribute("href")).toBe(atRepo("/f/2026-10-11-web-ui"));
-  expect(priorities.queryByText("Claude Code runner (triggered manually)")).toBeNull();
-});
-
-/** R10: a running entry of another section shows in Now, and not in its own section. */
-test("a running entry of Next shows first in Now", async () => {
+/** The fixture with CLI TUIs' spec unreadable: its status, misspelled, stops the workflow. */
+function withProblem() {
   const repo = fixtureRepo();
-  writeFileSync(
-    join(repo, "specs/PRIORITIES.md"),
-    read(repo)
-      .replace("- [CLI TUIs](/specs/2026-10-12-cli-tuis/proposal.md)\n", "")
-      .replace("## Next\n\n", "## Next\n\n- [CLI TUIs](/specs/2026-10-12-cli-tuis/proposal.md)\n"),
-  );
+  const spec = "specs/2026-10-12-cli-tuis/spec.md";
+  const text = readFileSync(fixture(`repo/branches/2026-10-12-cli-tuis/${spec}`), "utf8");
+  commitOnBranch(repo, "2026-10-12-cli-tuis", {
+    [spec]: text.replace("status: approved", "status: aproved"),
+  });
+  return repo;
+}
+
+/** The order of home: the core, the line, then the widgets. */
+const ORDER = [
+  "Needs you",
+  "In progress",
+  "Sessions",
+  "Overview",
+  "Priorities now",
+  "Usage",
+  "Inbox",
+  "Recent",
+];
+
+/** US3, US3 more 1: without a problem, Needs you first, the core, then Overview, then the widgets. */
+test("the core comes first, then the Overview line, then the widgets", async () => {
+  await renderPage();
+
+  expect(await titles()).toEqual(ORDER);
+  expect((await main()).queryByRole("region", { name: "Problems" })).toBeNull();
+  expect((await main()).queryByText(/^Agents|Recently done/)).toBeNull();
+});
+
+/** US3 1: a problem that stops the workflow, in a red Problems pane above Needs you. */
+test("a feature whose spec cannot be read shows first, in Problems, with its problem", async () => {
+  await renderPage("/", withProblem());
+
+  expect((await titles())[0]).toBe("Problems");
+  expect((await titles())[1]).toBe("Needs you");
+  const problems = await pane("Problems");
+  const tuis = row(problems, "CLI TUIs");
+  expect(within(tuis).getByText(/status/)).toBeTruthy();
+  expect(tuis.getAttribute("href")).toBe(atRepo("/f/2026-10-12-cli-tuis"));
+  // Not as a row of what waits on the human, nor of what agents do.
+  expect(rows(await pane("Needs you"))).not.toContain("CLI TUIs");
+  expect(rows(await pane("In progress"))).not.toContain("CLI TUIs");
+});
+
+/** Problems decision: a note, like a plan's missing section, is no problem: the feature works on. */
+test("a feature with a format note stays in progress, with no Problems pane", async () => {
+  // A plan of the tests' utilities has no "## Waves": `ura check` finds the section missing.
+  const repo = fixtureRepo();
+  addPlan(repo, "2026-10-13-plan-review", ELEVEN);
+  git(repo, "switch", "--quiet", "2026-10-13-plan-review");
   await renderPage("/", repo);
 
-  const priorities = await card(/^Priorities/);
-  const now = priorities.getByRole("list", { name: "Now" });
-  expect(links(now)).toContain("CLI TUIs");
-  await click(priorities.getByRole("radio", { name: "Next" }));
-  const next = priorities.getByRole("list", { name: "Next" });
-  expect(links(next).join()).not.toContain("CLI TUIs");
+  await loaded();
+  expect(rows(await pane("In progress"))).toContain("Plan review");
+  expect((await main()).queryByRole("region", { name: "Problems" })).toBeNull();
 });
 
-/** US7 3 */
-test("Next lists Next's entries, drafts marked, and stays chosen after a reload", async () => {
-  const { repo } = await renderPage();
-
-  await click((await card(/^Priorities/)).getByRole("radio", { name: "Next" }));
-
-  const next = (await card(/^Priorities/)).getByRole("list", { name: "Next" });
-  const runner = row(next, /Claude Code runner/).link;
-  expect(runner.getAttribute("href")).toBe(
-    atRepo("/priorities/claude-code-runner-triggered-manually"),
-  );
-  const listener = row(next, /Git listener process/);
-  expect(listener.row.getByText("Draft")).toBeTruthy();
-  expect(listener.link.getAttribute("href")).toBe(atRepo("/priorities/git-listener"));
-  expect(window.localStorage.getItem("uraeda:home:priorities")).toBe("next");
-
-  await renderPage("/", repo, { reload: true });
-
-  const again = await card(/^Priorities/);
-  expect(again.getByRole("radio", { name: "Next" }).getAttribute("aria-checked")).toBe("true");
-  expect(again.getByRole("list", { name: "Next" })).toBeTruthy();
-});
-
-/** US7 4 */
-test("the Priorities title opens the priorities, the Inbox title the inbox", async () => {
+/** US3 3: the whole title, the step and the round's size on a second line, and the action. */
+test("Needs you shows each feature's full title, its step and line, and its action", async () => {
   await renderPage();
-  const page = await main();
+  await loaded();
 
-  const title = await page.findByRole("heading", { level: 2, name: /^Priorities, open/ });
-  const priorities = within(title).getByRole("link", { name: /^Priorities, open/ });
-  expect(priorities.getAttribute("href")).toBe(atRepo("/priorities"));
-  // The inbox's title, with its count, as the link's name.
-  const inbox = within(page.getByRole("heading", { name: /^Inbox/ })).getByRole("link");
-  expect(inbox.textContent).toMatch(/^Inbox10/);
-  expect(inbox.getAttribute("href")).toBe(atRepo("/inbox"));
-
-  await click(priorities);
-
-  expect(window.location.pathname).toBe(atRepo("/priorities"));
+  const needs = await pane("Needs you");
+  const web = row(needs, "Web UI for the workflow files");
+  expect(within(web).getByText("Web UI for the workflow files")).toBeTruthy();
+  expect(
+    within(web).getByText(
+      "Questions · 3 questions and 1 follow-up on the web UI, about 35 minutes.",
+    ),
+  ).toBeTruthy();
+  expect(within(web).getByText("Answer")).toBeTruthy();
+  expect(web.getAttribute("href")).toBe(atRepo("/f/2026-10-11-web-ui/clarifications-01.md"));
+  expect(within(row(needs, "Recurring tasks")).getByText("Review")).toBeTruthy();
 });
 
-/** US7 5 */
-test("the Inbox card shows the categories, the three latest notes, and no Organize link", async () => {
-  await renderPage();
-
-  const inbox = await card(/^Inbox/);
-  expect(inbox.getByText("Not sorted 3")).toBeTruthy();
-  expect(inbox.getByText("UI 5")).toBeTruthy();
-  expect(inbox.getByText("CLI 2")).toBeTruthy();
-  expect(links(inbox.getByRole("list", { name: "Latest notes" }))).toEqual([
-    "We need a home icon",
-    "We'll need a model selector for each step",
-    "Specs are still way too long and hard to read",
-  ]);
-  expect((await main()).queryByRole("link", { name: /Organize/ })).toBeNull();
-  expect((await main()).queryByText(/Organize/)).toBeNull();
-});
-
-/** US7 6 */
-test("Recently done lists the five latest, and Show all (7) lists all seven", async () => {
-  await renderPage("/", withDone(5));
-
-  const done = await card("Recently done");
-  const list = done.getByRole("list", { name: "Recently done" });
-  // Latest first: a folder's name starts with its date.
-  expect(links(list)).toEqual([
-    "Stack decision",
-    "CLI core features",
-    "Done 5",
-    "Done 4",
-    "Done 3",
-  ]);
-
-  await click(done.getByRole("button", { name: "Show all (7)" }));
-
-  expect(links(list)).toHaveLength(7);
-  expect(links(list).at(-1)).toBe("Done 1");
-  expect(done.queryByRole("button", { name: /Show all/ })).toBeNull();
-});
-
-/** R19: the sidebar's "All done features and changes" opens home at #done, every one listed. */
-test("at #done, Recently done lists all seven", async () => {
-  await renderPage("/#done", withDone(5));
-
-  const done = await card("Recently done");
-
-  expect(links(done.getByRole("list", { name: "Recently done" }))).toHaveLength(7);
-  expect(done.queryByRole("button", { name: /Show all/ })).toBeNull();
-});
-
-/** US7 7 */
+/** US3 more 1 */
 test("Needs you says so when nothing waits on the human", async () => {
   const repo = fixtureRepo();
   for (const branch of [
@@ -271,58 +170,188 @@ test("Needs you says so when nothing waits on the human", async () => {
   }
   await renderPage("/", repo);
 
-  const first = within((await (await main()).findAllByRole("region"))[0]);
-  expect(await first.findByText("Nothing waits on you.")).toBeTruthy();
-  expect(await count(0)).toMatch(/^\D+0\D/);
+  expect(await (await pane("Needs you")).findByText("Nothing waits on you.")).toBeTruthy();
 });
 
-/** US7 8 */
-test("on a phone, the counts and the cards come in the same order", async () => {
-  atWidth(402);
-  try {
-    await renderPage();
+/** US3: In progress, what agents work on, with their step, opening the feature. */
+test("In progress lists what agents work on, with their step", async () => {
+  await renderPage();
+  await loaded();
 
-    const counts = (await (await main()).findAllByRole("group")).map((group) =>
-      group.getAttribute("aria-label"),
-    );
-    expect(counts).toEqual([expect.any(String), "Agents", "Now", "Inbox"]);
-    expect(await headings()).toEqual([
-      expect.any(String),
-      expect.stringMatching(/^Agents at work/),
-      "Recently done",
-      expect.stringMatching(/^Priorities/),
-      expect.stringMatching(/^Inbox/),
-    ]);
-  } finally {
-    atWidth(1024);
-  }
+  const progress = await pane("In progress");
+  const tuis = row(progress, "CLI TUIs");
+  expect(within(tuis).getByText(/^Plan/)).toBeTruthy();
+
+  await click(tuis);
+
+  expect(window.location.pathname).toBe(atRepo("/f/2026-10-12-cli-tuis"));
 });
 
-/** Edge case: an empty inbox. */
-test("the Inbox card says when the inbox is empty, its count 0", async () => {
+/** US3: Sessions, beside In progress, the sessions without a workflow. */
+test("Sessions says when no session runs, and lists a chat with its agent", async () => {
   const repo = fixtureRepo();
-  writeFileSync(join(repo, "specs/INBOX.md"), "# Inbox\n\n## UI\n");
-  await renderPage("/", repo);
+  const fake = await fakeAgent();
+  await renderPage("/", repo, { agent: fake });
+  await loaded();
+  expect((await pane("Sessions")).getByText("No session running.")).toBeTruthy();
 
-  expect((await card(/^Inbox/)).getByText("The inbox is empty.")).toBeTruthy();
-  expect(await count("Inbox")).toMatch(/^Inbox0/);
+  await fake.sessions.newChat(repo);
+
+  await refreshUntil(async () => expect(rows(await pane("Sessions"))).toHaveLength(1));
+  const chat = (await pane("Sessions")).getByRole("link");
+  expect(chat.getAttribute("aria-label")).toContain("Fake agent");
 });
 
-/** Edge case: an empty section of the priorities. */
-test("the Priorities card says when Next is empty", async () => {
+/** US3: the priorities now, Ongoing first, each with its status; the link opens the priorities. */
+test("Priorities now lists Now, the started entries with their status", async () => {
+  await renderPage();
+  await loaded();
+
+  const priorities = await pane("Priorities now");
+  expect(rows(priorities).slice(0, 4)).toHaveLength(4);
+  const web = row(priorities, "Web UI for the workflow files");
+  expect(within(web).getByText(/Answer questions/)).toBeTruthy();
+  expect(web.getAttribute("href")).toBe(atRepo("/f/2026-10-11-web-ui"));
+  // Next's entries stay on the priorities page.
+  expect(priorities.queryByText("Claude Code runner (triggered manually)")).toBeNull();
+
+  await click(priorities.getByRole("link", { name: "Open priorities" }));
+
+  expect(window.location.pathname).toBe(atRepo("/priorities"));
+});
+
+/** R10: a running entry of another section shows in Priorities now. */
+test("a running entry of Next shows in Priorities now", async () => {
   const repo = fixtureRepo();
   writeFileSync(
     join(repo, "specs/PRIORITIES.md"),
-    read(repo).replace(
-      "- Claude Code runner (triggered manually)\n- [Git listener process](drafts/git-listener.md)\n\n",
-      "",
-    ),
+    read(repo)
+      .replace("- [CLI TUIs](/specs/2026-10-12-cli-tuis/proposal.md)\n", "")
+      .replace("## Next\n\n", "## Next\n\n- [CLI TUIs](/specs/2026-10-12-cli-tuis/proposal.md)\n"),
   );
   await renderPage("/", repo);
+  await loaded();
 
-  await click((await card(/^Priorities/)).getByRole("radio", { name: "Next" }));
+  expect(rows(await pane("Priorities now"))).toContain("CLI TUIs");
+});
 
-  expect((await card(/^Priorities/)).getByText("Nothing in Next.")).toBeTruthy();
+/** US3: the usage of the 5 h window and of the week, as the agent last reported them. */
+test("Usage shows the 5 h window and the week, and no week when none was reported", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  const resetsAt = new Date(2099, 0, 1, 18, 40).toISOString();
+  fake.adapter.script([
+    {
+      fiveHour: { percentUsed: 43, resetsAt },
+      type: "usage",
+      week: { percentUsed: 20, resetsAt },
+    },
+  ]);
+  await fake.sessions.settled((await fake.sessions.send(repo, chat.id, { text: "Hello" })).turn);
+  await renderPage("/", repo, { agent: fake });
+  await loaded();
+
+  const usage = await pane("Usage");
+  expect(await usage.findByText("5 h window")).toBeTruthy();
+  expect(usage.getByText("43% used")).toBeTruthy();
+  expect(usage.getByText("Week")).toBeTruthy();
+  expect(usage.getByText("20% used")).toBeTruthy();
+});
+
+/** Review focus 6: a report without the weekly window keeps the 5 h one, and shows no week. */
+test("Usage shows no week, never 0%, when the report has no weekly window", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  const resetsAt = new Date(2099, 0, 1, 18, 40).toISOString();
+  fake.adapter.script([{ fiveHour: { percentUsed: 43, resetsAt }, type: "usage" }]);
+  await fake.sessions.settled((await fake.sessions.send(repo, chat.id, { text: "Hello" })).turn);
+  await renderPage("/", repo, { agent: fake });
+  await loaded();
+
+  const usage = await pane("Usage");
+  expect(await usage.findByText("43% used")).toBeTruthy();
+  expect(usage.queryByText("Week")).toBeNull();
+  expect(usage.queryByText(/^0%/)).toBeNull();
+});
+
+test("Usage says when no run reported it", async () => {
+  await renderPage();
+  await loaded();
+
+  expect(await (await pane("Usage")).findByText("No run reported usage yet.")).toBeTruthy();
+});
+
+/** US3: the inbox's three latest notes, each with its category, and the way to the inbox. */
+test("Inbox shows the three latest notes with their category, and opens the inbox", async () => {
+  await renderPage();
+  await loaded();
+
+  const inbox = await pane("Inbox");
+  expect(rows(inbox).slice(0, 3)).toEqual([
+    "We need a home icon",
+    "We'll need a model selector for each step",
+    "Specs are still way too long and hard to read",
+  ]);
+  expect(within(row(inbox, "We need a home icon")).getByText("Not sorted")).toBeTruthy();
+  expect((await main()).queryByText(/Organize/)).toBeNull();
+
+  await click(inbox.getByRole("link", { name: "10 notes to organize" }));
+
+  expect(window.location.pathname).toBe(atRepo("/inbox"));
+});
+
+/** Edge case: an empty inbox. */
+test("Inbox says when the inbox is empty", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/INBOX.md"), "# Inbox\n\n## UI\n");
+  await renderPage("/", repo);
+  await loaded();
+
+  expect((await pane("Inbox")).getByText("The inbox is empty.")).toBeTruthy();
+  expect((await pane("Inbox")).getByRole("link", { name: "Open the inbox" })).toBeTruthy();
+});
+
+/** US3: Recent, the done items, the five latest, then all of them on Show all. */
+test("Recent lists the five latest done items, and Show all (7) lists all seven", async () => {
+  await renderPage("/", withDone(5));
+  await loaded();
+
+  const recent = await pane("Recent");
+  // Latest first: a folder's name starts with its date.
+  expect(rows(recent)).toEqual([
+    "Stack decision",
+    "CLI core features",
+    "Done 5",
+    "Done 4",
+    "Done 3",
+  ]);
+
+  await click(recent.getByRole("button", { name: "Show all (7)" }));
+
+  expect(rows(recent)).toHaveLength(7);
+  expect(rows(recent).at(-1)).toBe("Done 1");
+  expect(recent.queryByRole("button", { name: /Show all/ })).toBeNull();
+});
+
+/** The column's Done "…" opens home at #done, every done item listed. */
+test("at #done, Recent lists all seven", async () => {
+  await renderPage("/#done", withDone(5));
+  await loaded();
+
+  const recent = await pane("Recent");
+  expect(rows(recent)).toHaveLength(7);
+  expect(recent.queryByRole("button", { name: /Show all/ })).toBeNull();
+  expect(document.getElementById("done")?.textContent).toContain("Recent");
+});
+
+/** US3 more 2 */
+test("on a phone, the panes come in the same order", async () => {
+  atWidth(402);
+  await renderPage();
+
+  expect(await titles()).toEqual(ORDER);
 });
 
 test("says how to set Uraeda up in a repository without specs/", async () => {
@@ -360,43 +389,14 @@ test("says when the server cannot be reached, with a way to try again", async ()
 
 test("reads the page again when it comes back to the foreground", async () => {
   const { repo } = await renderPage();
-  const priorities = await card(/^Priorities/);
-  priorities.getByRole("link", { name: /Plan review/ });
+  await loaded();
+  const priorities = await pane("Priorities now");
+  row(priorities, "Plan review");
   writeFileSync(
     join(repo, "specs/PRIORITIES.md"),
     read(repo).replace("[Plan review]", "[Plan reviews]"),
   );
 
   // No live update reaches these tests: the page shows the change only by reading it again.
-  await refreshUntil(() =>
-    expect(priorities.getByRole("link", { name: /Plan reviews/ })).toBeTruthy(),
-  );
-});
-
-/** US6 1 */
-test("a feature with a format note stays under Agents at work", async () => {
-  // A plan of the tests' utilities has no "## Waves": `ura check` finds the section missing.
-  const repo = fixtureRepo();
-  addPlan(repo, "2026-10-13-plan-review", ELEVEN);
-  git(repo, "switch", "--quiet", "2026-10-13-plan-review");
-  await renderPage("/", repo);
-
-  const agents = await card(/^Agents at work/);
-  expect(row(agents.getByRole("list", { name: "Agents at work" }), /Plan review/)).toBeTruthy();
-  expect((await main()).queryByText("Fix")).toBeNull();
-});
-
-/** US6 2 */
-test("a spec whose status cannot be read needs a fix", async () => {
-  const repo = fixtureRepo();
-  const spec = "specs/2026-10-12-cli-tuis/spec.md";
-  const text = readFileSync(fixture(`repo/branches/2026-10-12-cli-tuis/${spec}`), "utf8");
-  commitOnBranch(repo, "2026-10-12-cli-tuis", {
-    [spec]: text.replace("status: approved", "status: aproved"),
-  });
-  await renderPage("/", repo);
-
-  const needs = await needsCard();
-  const tuis = row(needs.getByRole("list"), /CLI TUIs/);
-  expect(tuis.row.getByText("Fix")).toBeTruthy();
+  await refreshUntil(() => expect(row(priorities, "Plan reviews")).toBeTruthy());
 });

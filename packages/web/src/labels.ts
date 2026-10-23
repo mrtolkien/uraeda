@@ -42,16 +42,19 @@ export function agentNext(name: string) {
 
 type Step = Pick<StepView, "fileKind" | "name">;
 
-/** What a human gate asks, from the kind of the file it waits on, as the core names it. */
+/**
+ * What a human gate asks, from the kind of the file it waits on, as the core names it: the step's
+ * short name, like "Questions", what it asks, and its verb.
+ */
 function gateAction(step: Step) {
   const kind = step.fileKind;
   return kind === "clarifications"
-    ? { title: "Answer questions", verb: "Answer" }
+    ? { name: "Questions", title: "Answer questions", verb: "Answer" }
     : kind === "spec" || kind === "plan"
-      ? { title: `Review the ${kind}`, verb: "Review" }
+      ? { name: kind === "spec" ? "Spec" : "Plan", title: `Review the ${kind}`, verb: "Review" }
       : kind === "proposal"
-        ? { title: "Write the proposal", verb: "Write" }
-        : { title: stepLabel(step.name), verb: stepLabel(step.name) };
+        ? { name: "Proposal", title: "Write the proposal", verb: "Write" }
+        : { name: stepLabel(step.name), title: stepLabel(step.name), verb: stepLabel(step.name) };
 }
 
 /** A step as the human reads it: what a gate asks of them, like "Review the spec", or its name. */
