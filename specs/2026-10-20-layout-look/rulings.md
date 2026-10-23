@@ -66,32 +66,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R4: The theme's Catppuccin roles, exact 120% sizes, and what the contrast test measures
 
 - **Decision**: Astryx's neutral token names take Catppuccin roles: body and card the base, surface
-  and popover the mantle, muted Latte's mantle and Mocha's crust, borders surface1, the 3:1 border
-  of controls overlay0 (Mocha) and overlay2 (Latte), accent mauve, Astryx's hues the matching
-  Catppuccin accents (orange peach, cyan sky, purple mauve), and their backgrounds a tint of each
-  over the base, 12% in both schemes. Latte's accents as text are the mockup's darker steps,
-  darkened by up to 5% more, so each reads 4.5:1 on its own tint too (blue `#1957d5`); its pink and
-  sky, missing from the mockup, take darker steps, `#a72592` and `#0a688e`. Latte's grey background
-  is its crust, lighter than surface0, so secondary text reads 4.5:1 on it; muted is Latte's mantle
-  and Mocha's crust, apart from grey, as a story's stage and its phone frame need. The type scale is
-  written as exact `--font-size-*` tokens, Astryx's 14 px scale × 1.2, at the root and again in the
-  coarse-pointer rule, which also undoes the neutral theme's touch text (R2). `--radius-full` stays
-  round, so dots, radios, and avatars stay round; badges and switches set it to 0 inside themselves.
-  Shadows are `none`. `theme-tokens.test.ts` reads the built stylesheet, and checks, beside the
-  plan's pairs, the pairs components draw: primary and secondary text on muted, popover, and a
-  selected row; text on each filled status colour; each hue's text on its own background, and a
-  banner's; syntax colours on the code background. Disabled text is held to 4.5:1 too, as the
-  decision says "every text colour".
+  and popover the mantle, muted Latte's mantle and Mocha's crust, every border, a pane's as a
+  control's, overlay0 (Mocha) and overlay2 (Latte), 3:1 from body, surface, card, and muted, accent
+  mauve, Astryx's hues the matching Catppuccin accents (orange peach, cyan sky, purple mauve), and
+  their backgrounds a tint of each over the base, 12% in both schemes. Latte's accents as text are
+  the mockup's darker steps, darkened by up to 5% more, so each reads 4.5:1 on its own tint too
+  (blue `#1957d5`); its pink and sky, missing from the mockup, take darker steps, `#a72592` and
+  `#0a688e`. Latte's grey background is its crust, lighter than surface0, so secondary text reads
+  4.5:1 on it; muted is Latte's mantle and Mocha's crust, apart from grey, as a story's stage and
+  its phone frame need. The type scale is written as exact `--font-size-*` tokens, Astryx's 14 px
+  scale × 1.2, at the root and again in the coarse-pointer rule, which also undoes the neutral
+  theme's touch text (R2). `--radius-full` stays round, so dots, radios, and avatars stay round;
+  badges and switches set it to 0 inside themselves. Shadows are `none`. `theme-tokens.test.ts`
+  reads the built stylesheet, and checks, beside the plan's pairs, the pairs components draw:
+  primary and secondary text on muted, popover, and a selected row, accent and disabled text on a
+  selected row; text on each filled status colour; on-light on on-dark, the media modes' text on
+  each other; the on-dark icon on the scrim over a white image at 3:1, so Latte's scrim is 70%
+  rather than 50%; each hue's text on its own background, and a banner's; syntax colours on the code
+  background. Disabled text is held to 4.5:1 too, as the decision says "every text colour": the dim
+  text is a step past the mockup's in both schemes, `#5f6276` and `#969db8`, for 4.5:1 on a selected
+  row.
 - **Rationale**: Astryx rounds each size of its type scale to a whole pixel, so a 16.8 px base drew
-  17 px; explicit tokens win over the generated ones. The plain `--color-border` is a pane's or a
-  divider's line, which the plan holds out of the 3:1 rule (only `--color-border-emphasized` and
-  controls), as the mockup's quiet surface lines; at 3:1 every pane would read as a control. The
-  tints are light, since a tinted card holds its hue's text and secondary text (axe found Mocha's
-  20% tints at 4.2:1 under secondary text), and the human's message bubble must still read blue.
+  17 px; explicit tokens win over the generated ones. The decision holds borders to 3:1 with no
+  exception, so a pane's line is as strong as a control's: Catppuccin's lightest overlay step that
+  reaches 3:1 in each scheme. The tints are light, since a tinted card holds its hue's text and
+  secondary text (axe found Mocha's 20% tints at 4.2:1 under secondary text), and the human's
+  message bubble must still read blue.
 - **Alternatives considered**: Astryx's generated `color` palette from one accent: not Catppuccin.
-  `--radius-full: 0px` everywhere: square status dots and radio buttons. Holding `--color-border` to
-  3:1: heavy lines everywhere, unlike the mockup. Exempting disabled text, as WCAG does: the
-  decision names no exemption.
+  `--radius-full: 0px` everywhere: square status dots and radio buttons. Panes' lines in surface1,
+  the mockup's quiet lines, at 1.6:1 to 1.8:1: against the decision's rule for borders. Exempting
+  disabled text, as WCAG does: the decision names no exemption.
 - **If wrong**: each role is one line of `theme.ts`'s `tokens`; the test names the pair that fails.
 - **Where**: task 2, `packages/web/src/theme/theme.ts`, `src/__tests__/theme-tokens.test.ts`.
 

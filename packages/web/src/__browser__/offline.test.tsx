@@ -21,6 +21,10 @@ function loads(rules: CSSRuleList, base: string): Array<string> {
 
 test("the home loads its fonts and makes no request to another host", async () => {
   await show("/", "Priorities");
+  // Both fonts are bundled and drawn: JetBrains Mono for the UI, Inter for reading text.
+  await document.fonts.load('16px "JetBrains Mono Variable"');
+  await document.fonts.load('16px "Inter Variable"');
+  // The requests are read once the fonts loaded, so a font's file fetched from another host counts.
   const requested = [
     ...performance.getEntriesByType("resource").map((entry) => entry.name),
     ...[...document.styleSheets].flatMap((sheet) =>
@@ -29,9 +33,6 @@ test("the home loads its fonts and makes no request to another host", async () =
   ];
   expect(requested.length).toBeGreaterThan(0);
   expect(requested.filter((url) => new URL(url).origin !== window.location.origin)).toEqual([]);
-  // Both fonts are bundled and drawn: JetBrains Mono for the UI, Inter for reading text.
-  await document.fonts.load('16px "JetBrains Mono Variable"');
-  await document.fonts.load('16px "Inter Variable"');
   const loaded = [...document.fonts]
     .filter((face) => face.status === "loaded")
     .map((face) => face.family.replaceAll(/["']/g, ""));

@@ -150,6 +150,12 @@ const TEXT: Array<[string, string]> = [
     ].map((back): [string, string] => [text, back]),
   ),
   ["--color-on-accent", "--color-accent"],
+  // Astryx's media modes: text on light media is on-light, on dark media on-dark, each read on
+  // the other, the light and dark fills the theme names.
+  ["--color-on-light", "--color-on-dark"],
+  // A selected row's accent text, and disabled text in it.
+  ["--color-text-accent", "--color-accent-muted"],
+  ["--color-text-disabled", "--color-accent-muted"],
   ...["accent", "success", "warning", "error"].map((status): [string, string] => [
     `--color-on-${status}`,
     `--astryx-theme-neutral-color-status-fill-${status}`,
@@ -173,6 +179,7 @@ test.each(SLOTS.flatMap((slot) => TEXT.map(([front, back]) => [slot, front, back
 
 /** Borders and controls, which stand 3:1 from the surfaces they sit on. */
 const CONTROLS = [
+  "--color-border",
   "--color-border-emphasized",
   "--color-accent",
   "--color-success",
@@ -193,6 +200,21 @@ test.each(
   ),
 )("in %s, %s stands 3:1 from %s", (slot, front, back) => {
   expect(ratio(front, back, slot)).toBeGreaterThanOrEqual(3);
+});
+
+// The icon on a scrim over media, like the lightbox's Close and a thumbnail's remove button, over
+// the lightest image, white.
+test.each(SLOTS)("in %s, --color-on-dark stands 3:1 from the scrim over white", (slot) => {
+  expect(ratio("--color-on-dark", "--color-overlay", slot)).toBeGreaterThanOrEqual(3);
+});
+
+// A pane's border sits on a card and on the muted background too, like a story's stage.
+test.each(
+  SLOTS.flatMap((slot) =>
+    ["--color-background-card", "--color-background-muted"].map((back) => [slot, back] as const),
+  ),
+)("in %s, --color-border stands 3:1 from %s", (slot, back) => {
+  expect(ratio("--color-border", back, slot)).toBeGreaterThanOrEqual(3);
 });
 
 /** A length token in px, from the rem or px the build writes. */
