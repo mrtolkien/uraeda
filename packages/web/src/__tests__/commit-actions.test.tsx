@@ -217,7 +217,7 @@ test("Commit only commits, and starts nothing", async () => {
 test("C2: every commit button that leads to the agent says it starts the agent", async () => {
   await renderPage(SPEC, fixtureRepo(), { agent: true });
   expect(await screen.findByRole("button", { name: "Approve and start the agent" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Request changes and start the agent" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Request changes, start the agent" })).toBeTruthy();
   expectNoContinue();
 
   window.history.replaceState(null, "", atRepo("/edit/specs/drafts/git-listener.md"));
@@ -256,14 +256,14 @@ test("approving a spec with Approve and start the agent opens the session with t
   expect(agent.sent).toHaveLength(0);
 });
 
-test("requesting changes with Request changes and start the agent opens the session with the message", async () => {
+test("requesting changes with Request changes, start the agent opens the session with the message", async () => {
   const { agent, repo } = await renderPage(SPEC, fixtureRepo(), { agent: true });
   await click(await screen.findByRole("button", { name: "Add a general comment" }));
   await type(await screen.findByLabelText("Comment text"), "Say more about time zones");
   await click(screen.getByRole("button", { name: "Add comment" }));
 
   const button = await screen.findByRole("button", {
-    name: "Request changes and start the agent",
+    name: "Request changes, start the agent",
   });
   await waitFor(() => expect(button.getAttribute("aria-disabled")).not.toBe("true"));
   await click(button);

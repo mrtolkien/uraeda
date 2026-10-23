@@ -1,5 +1,7 @@
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
 import "./theme/built/uraeda.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

@@ -74,7 +74,8 @@ function Kind({
   return (
     <VStack gap={2}>
       <Paragraph color="secondary">No draft yet.</Paragraph>
-      <HStack gap={2}>
+      {/* A long label takes its own line rather than being cut. */}
+      <HStack gap={2} wrap="wrap">
         <Button clickAction={draft} label="Draft" variant="primary" />
         <Button
           clickAction={startChange}

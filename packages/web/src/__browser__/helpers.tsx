@@ -4,6 +4,8 @@
 // at both sizes reads `window.innerWidth` for what differs between them.
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
 import "../theme/built/uraeda.css";
 import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
@@ -274,17 +276,13 @@ function paragraphs(root?: Element) {
   return [...main.querySelectorAll("p")].filter((p) => p.getBoundingClientRect().width > 4);
 }
 
-/**
- * The UI layout decision's text sizes (SC-004, US6 1, 2): paragraphs are 17 px under 1024 px wide,
- * 19 px from 1024 px.
- */
+/** The UI look decision's text sizes (SC-004, US6 1, 2): paragraphs are 19 px at every width. */
 export function checkTextSizes(root?: Element) {
-  const size = window.innerWidth >= 1024 ? 19 : 17;
   for (const paragraph of paragraphs(root)) {
     expect(
       Number.parseFloat(getComputedStyle(paragraph).fontSize),
       paragraph.textContent?.slice(0, 60),
-    ).toBe(size);
+    ).toBe(19);
   }
 }
 

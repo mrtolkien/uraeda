@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { atSize, show } from "./helpers.tsx";
 
-// The phone's 17 px text is the layout checks' `checkTextSizes`, at each size.
+// The phone's text, 19 px as the desktop's, is the layout checks' `checkTextSizes`, at each size.
 atSize("desktop");
 
 test("text and controls follow the width (US6 1, 2)", async () => {

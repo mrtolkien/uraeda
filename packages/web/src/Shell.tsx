@@ -176,7 +176,8 @@ function Nav({ slot }: { slot: ReactNode }) {
       }
       onPointerEnter={() => setPointer(true)}
       onPointerLeave={() => setPointer(false)}
-      resizable={{ autoSaveId: "uraeda.nav", defaultWidth: 280, maxWidth: 480, minWidth: 200 }}
+      // 290 px at first: a feature's name in the monospace font, beside its row's mark and menu (R5).
+      resizable={{ autoSaveId: "uraeda.nav", defaultWidth: 290, maxWidth: 480, minWidth: 200 }}
       topContent={<SearchField onChange={setText} text={text} />}
       xstyle={folding && styles.folding}
     >

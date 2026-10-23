@@ -353,7 +353,10 @@ server keeps the files that only live while it runs, like its host token and its
 records, in `run/`. When Claude Code changes and sessions break, `vp run validate:claude` checks the
 integration against the installed `claude`, with a few short sessions.
 
-The code is under the MIT or Apache-2.0 licenses, at your option.
+The code is under the MIT or Apache-2.0 licenses, at your option. The web UI bundles the
+[JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) and
+[Inter](https://github.com/rsms/inter) fonts, under the SIL Open Font License 1.1, and takes its
+colours from [Catppuccin](https://github.com/catppuccin/catppuccin), under the MIT license.
 
 ## Project status
 

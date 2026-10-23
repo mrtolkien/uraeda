@@ -56,12 +56,15 @@ test("a marked function over the limit passes", () => {
   expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
 });
 
-test("no stylesheet but Astryx's is imported (SC-001)", () => {
+test("no stylesheet but Astryx's and the fonts' is imported (SC-001)", () => {
   const allowed = [
     "@astryxdesign/core/reset.css",
     "@astryxdesign/core/astryx.css",
     "./theme/built/uraeda.css",
     "../theme/built/uraeda.css",
+    // The UI look decision's fonts, bundled with the app.
+    "@fontsource-variable/inter/index.css",
+    "@fontsource-variable/jetbrains-mono/index.css",
   ];
   const imports: Array<string> = [];
   for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {

@@ -44,6 +44,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the touch rule can be cancelled in `theme.ts`'s adaptations; a list's edge is one
   prop in `Blocks.tsx`.
 - **Where**: task 1, `packages/web/src/Blocks.tsx`, `SettledGroups.tsx`, `RepositoryMenu.tsx`.
+- **Superseded by task 2** for the sizes: the theme's own rule for coarse pointers, last of the
+  adaptations, sets the type scale back to 16.8 px on every screen, so the neutral theme's 16 px
+  touch text no longer applies (R4). The wrapping fixes stay.
 
 ## R3: A message's code block wraps its long lines, as Astryx 0.7 draws it
 
@@ -59,3 +62,62 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the renderer above restores the scroll, in one place, and the test's first version
   comes back from git.
 - **Where**: task 1, `packages/web/src/__browser__/session-look.test.tsx`.
+
+## R4: The theme's Catppuccin roles, exact 120% sizes, and what the contrast test measures
+
+- **Decision**: Astryx's neutral token names take Catppuccin roles: body and card the base, surface
+  and popover the mantle, muted Latte's mantle and Mocha's crust, borders surface1, the 3:1 border
+  of controls overlay0 (Mocha) and overlay2 (Latte), accent mauve, Astryx's hues the matching
+  Catppuccin accents (orange peach, cyan sky, purple mauve), and their backgrounds a tint of each
+  over the base, 12% in both schemes. Latte's accents as text are the mockup's darker steps,
+  darkened by up to 5% more, so each reads 4.5:1 on its own tint too (blue `#1957d5`); its pink and
+  sky, missing from the mockup, take darker steps, `#a72592` and `#0a688e`. Latte's grey background
+  is its crust, lighter than surface0, so secondary text reads 4.5:1 on it; muted is Latte's mantle
+  and Mocha's crust, apart from grey, as a story's stage and its phone frame need. The type scale is
+  written as exact `--font-size-*` tokens, Astryx's 14 px scale × 1.2, at the root and again in the
+  coarse-pointer rule, which also undoes the neutral theme's touch text (R2). `--radius-full` stays
+  round, so dots, radios, and avatars stay round; badges and switches set it to 0 inside themselves.
+  Shadows are `none`. `theme-tokens.test.ts` reads the built stylesheet, and checks, beside the
+  plan's pairs, the pairs components draw: primary and secondary text on muted, popover, and a
+  selected row; text on each filled status colour; each hue's text on its own background, and a
+  banner's; syntax colours on the code background. Disabled text is held to 4.5:1 too, as the
+  decision says "every text colour".
+- **Rationale**: Astryx rounds each size of its type scale to a whole pixel, so a 16.8 px base drew
+  17 px; explicit tokens win over the generated ones. The plain `--color-border` is a pane's or a
+  divider's line, which the plan holds out of the 3:1 rule (only `--color-border-emphasized` and
+  controls), as the mockup's quiet surface lines; at 3:1 every pane would read as a control. The
+  tints are light, since a tinted card holds its hue's text and secondary text (axe found Mocha's
+  20% tints at 4.2:1 under secondary text), and the human's message bubble must still read blue.
+- **Alternatives considered**: Astryx's generated `color` palette from one accent: not Catppuccin.
+  `--radius-full: 0px` everywhere: square status dots and radio buttons. Holding `--color-border` to
+  3:1: heavy lines everywhere, unlike the mockup. Exempting disabled text, as WCAG does: the
+  decision names no exemption.
+- **If wrong**: each role is one line of `theme.ts`'s `tokens`; the test names the pair that fails.
+- **Where**: task 2, `packages/web/src/theme/theme.ts`, `src/__tests__/theme-tokens.test.ts`.
+
+## R5: What the wider monospace text moved, and the checks that follow the 120% scale
+
+- **Decision**: JetBrains Mono at 16.8 px runs wider than the old system font, and spacing grows by
+  120% on the phone too. So: the verdict's button "Request changes and start the agent" reads
+  "Request changes, start the agent", which fits the phone's width; a priority's "Draft" and "Start
+  a change based on this line" wrap onto two lines rather than cut their labels; the sidebar opens
+  290 px wide, not 280, so a feature's name fits beside its mark and menu, and the round's index
+  gives the 10 px back, 230 px rather than 240, so the questions keep their 600 px at 1200 px and
+  their options beside their titles at 1440; a change's round row in its session's column wraps its
+  name rather than cut it (a label Astryx is given as a string, it cuts); inline code is 0.9em of
+  the text around it; the reading measure is 86ch, about 110 characters of Inter, where 90ch
+  held 116. The spec page's phone test checks the page's inset at 14.4 px, US5 3's 12 px at 120%,
+  rather than 12.
+- **Rationale**: each was a layout check that failed after the theme changed, for text cut or a line
+  past the measure or the screen. The plan moves every spacing step's growth into the base, and the
+  spec's "Text is 120% at every width, the phone included" makes the inset 14.4 px. WebKit placed
+  `src/components/EditPanel.tsx` at the reading size on one phone line without its code padding, 2
+  px past the column; a smaller code size fits it and matches the usual weight of code in prose.
+- **Alternatives considered**: letting every button's label wrap, in the theme: Astryx's buttons
+  have a fixed height. Keeping a 12 px inset on the phone: a size rule against the plan's one scale.
+  Leaving the sidebar's width to Task 8: the checks fail until then.
+- **If wrong**: each is one line: the label in `ReviewVerdict.tsx`, the width in `Shell.tsx` (Task 8
+  replaces the sidebar, and can give the round's index its 240 px back), the code size, index, and
+  measure in `theme.ts`, the inset in `spec.test.tsx`.
+- **Where**: task 2, `packages/web/src/ReviewVerdict.tsx`, `pane/PriorityPane.tsx`, `Shell.tsx`,
+  `ChangeAside.tsx`, `theme/theme.ts`, `__browser__/spec.test.tsx`.

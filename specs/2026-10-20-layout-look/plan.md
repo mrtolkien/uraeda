@@ -316,6 +316,10 @@ behaviour the spec marks unverified.
   (`@fontsource-variable/jetbrains-mono` `5.3.0`, `@fontsource-variable/inter` `5.3.0`, exact)
 - Create: `packages/web/src/__tests__/theme-tokens.test.ts`, `src/__browser__/offline.test.tsx`
 - Modify: `README.md` (credits: JetBrains Mono and Inter, SIL OFL)
+- Modify (what the wider text moved, R5): `src/ReviewVerdict.tsx`, `src/pane/PriorityPane.tsx`,
+  `src/Shell.tsx`, `src/ChangeAside.tsx`, `src/__tests__/commit-actions.test.tsx`,
+  `src/__browser__/spec.test.tsx`, `src/__browser__/layout.test.tsx`,
+  `src/__browser__/sizes.test.tsx`
 
 **Interfaces:**
 
@@ -325,7 +329,7 @@ behaviour the spec marks unverified.
   dark one; a local `--color-text-lavender`; `--font-family-reading` (Inter) for prose; radii 0; the
   breakpoints `md` 768 and `xl` 1280, named in the theme.
 
-- [ ] **Step 1: Write the failing tests.** `theme-tokens.test.ts`, table-driven over both slots of
+- [x] **Step 1: Write the failing tests.** `theme-tokens.test.ts`, table-driven over both slots of
       `uraedaTheme`'s tokens: each `--color-text-*` against `--color-background-body`, `-surface`,
       and `-card` reaches 4.5:1; `--color-border-emphasized` and each control colour reaches 3:1
       against `--color-background-surface`. A second test: the radii are `0px`, and the body font
@@ -333,10 +337,10 @@ behaviour the spec marks unverified.
       which read 3.0:1 as text. `offline.test.tsx`: load the home, wait for it to draw, and assert
       every request the page made went to the page's own origin. Break: a font loaded from Google
       Fonts.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test --project uraeda-web src/__tests__/theme-tokens.test.ts`. Expected:
       FAIL, the radius is not `0px`.
-- [ ] **Step 3: Implement the theme.** Tokens as `[latte, mocha]` pairs from the mockup's palette,
+- [x] **Step 3: Implement the theme.** Tokens as `[latte, mocha]` pairs from the mockup's palette,
       [`terminal-2/style.css`](mockups/terminal-2/style.css) `:root` and `[data-theme="latte"]`:
       Latte's accents as text use the mockup's darker steps. Mocha's dim text is `#949bb6`.
       Typography: body, heading, and code in "JetBrains Mono Variable"; `--font-family-reading`
@@ -347,13 +351,13 @@ behaviour the spec marks unverified.
       Import both Fontsource `index.css` files in `main.tsx`, the Storybook preview, and the browser
       helpers, and allow their exact specifiers in the lint test. `checkTextSizes` expects 19 px at
       every width.
-- [ ] **Step 4: Rebuild and run**: `nix develop -c vp run --filter uraeda-web theme`, then the two
+- [x] **Step 4: Rebuild and run**: `nix develop -c vp run --filter uraeda-web theme`, then the two
       new tests. Expected: PASS.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, then
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, then
       `nix develop -c vp test --project desktop src/__browser__/layout.test.tsx` and
       `--project phone` on the same file. Expected: PASS. Deferred to ready: the other browser
       files.
-- [ ] **Step 6: Commit**:
+- [x] **Step 6: Commit**:
       `git commit -m "feat(layout-look): the terminal theme, Catppuccin, mono, and square"`.
 
 ## Task 3: Three width classes

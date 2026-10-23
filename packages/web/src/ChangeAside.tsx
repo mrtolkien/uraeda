@@ -57,7 +57,9 @@ function RoundRow({ file, folder, round }: { file: string; folder: string; round
           </Text>
         }
         href={here(`/f/${folder}/${file}`)}
-        label={`Questions, round ${String(round).padStart(2, "0")}`}
+        // Not a string, which Astryx cuts with an ellipsis: the name wraps in the column's narrowest
+        // width, beside its count, in the monospace font.
+        label={<>{`Questions, round ${String(round).padStart(2, "0")}`}</>}
       />
     </List>
   );
