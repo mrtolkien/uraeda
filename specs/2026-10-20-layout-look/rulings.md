@@ -640,6 +640,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/web/src/CommitBar.tsx`, `SessionPage.tsx`, `shell/StatusLine.tsx`,
   `statusHints.tsx`, `lists/useListKeys.ts`, `lists/listPane.ts`, `decisions/`, `settings/`,
   `sidebar/DoneArea.tsx`, `__tests__/settings.test.tsx`.
+
 ## R28: The palette: Astryx's `CommandPalette` inline in our dialog, the preview beside it
 
 - **Decision**: `JumpPalette` keeps Astryx's `CommandPalette`, `isInline`, inside an Astryx `Dialog`
