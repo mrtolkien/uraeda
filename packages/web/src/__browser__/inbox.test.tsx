@@ -6,7 +6,17 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { atRepo, atSize, carrying, checkLayout, drawn, image, pickUp, show } from "./helpers.tsx";
+import {
+  atRepo,
+  atSize,
+  carrying,
+  checkLayout,
+  drawn,
+  image,
+  middle,
+  pickUp,
+  show,
+} from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -374,8 +384,10 @@ function category(text: string, name: string) {
  * Drags a note by its handle, with the mouse, to the point `to` gives once the page is laid out,
  * and drops it there once the page draws it at `place`, its index among the lines of a category.
  * A point measured while fonts load or a page animates may land elsewhere once dragged to. The
- * pointer jumps to it only once the drag follows it (`pickUp`): a jump before is dropped, or
- * decided from where the line started, and nothing moves after to correct it.
+ * pointer moves only once the drag follows it (`pickUp`): a move before is dropped. It then goes
+ * as a hand does, in steps, each once the last is drawn: a single jump across a category is
+ * decided once, from where the line was, and may land it at the category's start, with no move
+ * after to correct it.
  */
 async function drag(
   note: string,
@@ -384,8 +396,20 @@ async function drag(
 ) {
   await drawn();
   const target = to();
+  const start = middle(screen.getByRole("button", { name: `Move ${note}` }));
   await pickUp(note);
-  await commands.mouse([{ type: "move", x: target.x, y: target.y }]);
+  const from = { x: start.x, y: start.y - 10 };
+  const steps = 8;
+  for (let step = 1; step <= steps; step++) {
+    await commands.mouse([
+      {
+        type: "move",
+        x: from.x + ((target.x - from.x) * step) / steps,
+        y: from.y + ((target.y - from.y) * step) / steps,
+      },
+    ]);
+    await drawn();
+  }
   await expect
     .poll(() => drawnNotes(place.category).findIndex((text) => text.includes(note)))
     .toBe(place.index);
