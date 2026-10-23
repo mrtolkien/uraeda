@@ -3,6 +3,7 @@
 // page on narrow ones; the keys move through the principles, then the decisions, the pane
 // following (see `useListKeys`).
 import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -81,7 +82,7 @@ function LedgerList({ ledger, open }: { ledger: LedgerData; open: LedgerOpen | u
         </HStack>
         {!agent && check === null && <CheckMessage />}
         {check !== null && <DecisionsCheckBanner agent={agent} chat={chat} status={check} />}
-        {chat.error && <Banner collapsible={false} status="error" title={chat.error} />}
+        {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
         <div ref={ref}>
           <VStack gap={6}>
             <ConstitutionRegion

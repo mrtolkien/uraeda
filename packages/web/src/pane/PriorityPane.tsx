@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -153,7 +153,9 @@ function PriorityBody({
           </SegmentedControl>
         </>
       )}
-      {actions.message && <Banner collapsible={false} status="error" title={actions.message} />}
+      {actions.message && (
+        <AnnouncedBanner collapsible={false} status="error" title={actions.message} />
+      )}
     </EntryPane>
   );
 }
@@ -175,7 +177,7 @@ export function PriorityPane({ entryKey, onClose }: { entryKey: string; onClose?
   if (!found) {
     return (
       <Page>
-        <Banner
+        <AnnouncedBanner
           collapsible={false}
           description={
             <Link hasUnderline href={here("/priorities")}>

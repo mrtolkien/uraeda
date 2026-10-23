@@ -1,6 +1,6 @@
 // A draft's text, drawn or edited, with its save, its conflict, and its images: the editor page's,
 // and the one an entry's pane opens with Edit (C2), on the same unsaved text.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -31,7 +31,7 @@ export function ConflictBanner({ editor }: { editor: DraftEditorState }) {
     return null;
   }
   return (
-    <Banner
+    <AnnouncedBanner
       collapsible={false}
       description={
         <VStack gap={2}>

@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -67,7 +67,7 @@ export function CommitBar({ changes }: { changes: number }) {
   return (
     <div {...stylex.props(styles.bar)}>
       <VStack gap={2}>
-        {message && <Banner collapsible={false} status="error" title={message} />}
+        {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         <HStack align="center" gap={2} wrap="wrap">
           <Text>
             {changes} {changes === 1 ? "change" : "changes"} to commit

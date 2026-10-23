@@ -121,6 +121,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   measure in `theme.ts`, the inset in `spec.test.tsx`.
 - **Where**: task 2, `packages/web/src/ReviewVerdict.tsx`, `pane/PriorityPane.tsx`, `Shell.tsx`,
   `ChangeAside.tsx`, `theme/theme.ts`, `__browser__/spec.test.tsx`.
+
 ## R6: A weekly window now gives the week, where it gave no report
 
 - **Decision**: `usage.test.ts`'s case `{ rateLimitType: "seven_day", resetsAt, utilization: 0.43 }`
@@ -152,6 +153,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none: there is no per-field selection of a row to add to.
 - **If wrong**: should rows become records, their view selects `agent`.
 - **Where**: task 4, `packages/web/src/views.ts`.
+
 ## R8: Deleting the prototypes rewrites the round's links to them
 
 - **Decision**: the approval step deletes every file of `mockups/` that no link of `spec.md` names,

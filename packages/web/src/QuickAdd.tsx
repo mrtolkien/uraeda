@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -56,7 +56,7 @@ export function uncommitted(
 
 /** What a form says after "Add and commit", in the form, until it closes. */
 export function CommitBanner({ notice }: { notice: CommitNotice | undefined }) {
-  return notice && <Banner status={notice.status} title={notice.title} />;
+  return notice && <AnnouncedBanner status={notice.status} title={notice.title} />;
 }
 
 /** A one-line field's Enter, Shift+Enter aside: it calls `onEnter` instead of a new line. */
@@ -237,7 +237,7 @@ export function AddForm({
           <SegmentedControlItem key={id} label={title} value={id} />
         ))}
       </SegmentedControl>
-      {message && <Banner status="error" title={message} />}
+      {message && <AnnouncedBanner status="error" title={message} />}
       <CommitBanner notice={notice} />
       <AddButtons
         isReady={text.trim() !== ""}

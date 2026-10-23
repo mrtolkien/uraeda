@@ -1,6 +1,6 @@
 // The Runs category: whether the run after a spec's approval starts in a fresh session, the
 // default the approval's own switch starts from, then the run settings later features bring.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Switch } from "@astryxdesign/core/Switch";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -37,7 +37,7 @@ export function RunSettings({
           }}
           value={buildInFreshSession.inForce}
         />
-        {refused && <Banner collapsible={false} status="error" title={refused} />}
+        {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
       </VStack>
       <PlannedList category={category} />
     </VStack>

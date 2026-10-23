@@ -1,5 +1,5 @@
 import { AppShell } from "@astryxdesign/core/AppShell";
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SideNav, SideNavItem } from "@astryxdesign/core/SideNav";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -209,7 +209,7 @@ function UndoErrors() {
   return (
     <VStack gap={2} xstyle={[styles.errors, wide && styles.errorsWide]}>
       {errors.map((error) => (
-        <Banner
+        <AnnouncedBanner
           collapsible={false}
           dismissLabel="Dismiss"
           isDismissable

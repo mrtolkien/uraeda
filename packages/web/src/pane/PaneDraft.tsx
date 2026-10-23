@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -59,7 +59,7 @@ export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: strin
         />
       </HStack>
       {message && (
-        <Banner
+        <AnnouncedBanner
           collapsible={false}
           status={message.ok ? "success" : "error"}
           title={message.text}

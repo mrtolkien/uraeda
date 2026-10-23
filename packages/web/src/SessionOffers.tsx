@@ -2,7 +2,7 @@
 // message ended; the card the session's "…" opened, at the session's end; and the lines a move
 // left there. An offer that does not apply to the session, an earlier one, or one still streaming
 // reads as the agent's text.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
   createContext,
@@ -189,7 +189,12 @@ export function SessionEnd({ id, turns }: { id: string; turns: ReadonlyArray<str
     <VStack gap={3}>
       {scope && <OpenedOffer scope={scope} turns={turns} />}
       {notes.map((note) => (
-        <Banner collapsible={false} key={note.title} status={note.status} title={note.title} />
+        <AnnouncedBanner
+          collapsible={false}
+          key={note.title}
+          status={note.status}
+          title={note.title}
+        />
       ))}
     </VStack>
   );

@@ -1,5 +1,5 @@
 // The categories besides Server: the theme, signing out, and the settings later features bring.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -44,7 +44,7 @@ export function SignInSettings() {
   return (
     <VStack gap={4}>
       <Heading level={2}>Sign-in</Heading>
-      {problem && <Banner collapsible={false} status="error" title={problem} />}
+      {problem && <AnnouncedBanner collapsible={false} status="error" title={problem} />}
       <VStack gap={2}>
         <HStack>
           <Button

@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Link } from "@astryxdesign/core/Link";
 import { useState } from "react";
@@ -90,7 +90,9 @@ function NoteBody({
       <Divider />
       <CategoryMenu category={found.category} names={inbox.names} onPick={actions.toCategory} />
       <Organize actions={actions} draft={note.draft} />
-      {actions.message && <Banner collapsible={false} status="error" title={actions.message} />}
+      {actions.message && (
+        <AnnouncedBanner collapsible={false} status="error" title={actions.message} />
+      )}
     </EntryPane>
   );
 }
@@ -113,7 +115,7 @@ export function NotePane({ noteKey, onClose }: { noteKey: string; onClose?: () =
   if (!found) {
     return (
       <Page>
-        <Banner
+        <AnnouncedBanner
           collapsible={false}
           description={
             <Link hasUnderline href={here("/inbox")}>

@@ -3,7 +3,7 @@
 // Signing out is in the settings' Sign-in category. A popover on wide screens, a bottom sheet on
 // narrow ones. Its reads and the list's mutations go through the global client, which the
 // repository gate reads too.
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -199,7 +199,7 @@ function Menu({
         startIcon="search"
         value={filter}
       />
-      {list?.problem && <Banner collapsible={false} status="error" title={list.problem} />}
+      {list?.problem && <AnnouncedBanner collapsible={false} status="error" title={list.problem} />}
       <List aria-label="Repositories" density="compact">
         {rows.map((row) => (
           <RepositoryRow
@@ -211,7 +211,7 @@ function Menu({
           />
         ))}
       </List>
-      {refused && <Banner collapsible={false} status="error" title={refused} />}
+      {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
       <List aria-label="Add" density="compact">
         <ListItem
           label="Add a repository…"

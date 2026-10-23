@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Heading } from "@astryxdesign/core/Heading";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
@@ -49,7 +49,7 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
     <Page>
       <VStack gap={2}>
         <Heading level={1}>Priorities</Heading>
-        {message && <Banner collapsible={false} status="error" title={message} />}
+        {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         <PrioritiesList
           isFocused={isFocused}
           onMoveRefused={setMessage}

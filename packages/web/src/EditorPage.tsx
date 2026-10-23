@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -134,7 +134,7 @@ function EditorEnd({
       )}
       {isDraft && <StartDraft slug={slug} start={actions.start} />}
       {actions.message && (
-        <Banner
+        <AnnouncedBanner
           collapsible={false}
           status={actions.message.ok ? "success" : "error"}
           title={actions.message.text}

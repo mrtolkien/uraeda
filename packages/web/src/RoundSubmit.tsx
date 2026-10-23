@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -49,7 +49,7 @@ export function HookRefusal({
   what: string;
 }) {
   return (
-    <Banner
+    <AnnouncedBanner
       collapsible={false}
       endContent={<WriteButton label="Try again" onClick={onRetry} />}
       status="error"
@@ -58,7 +58,7 @@ export function HookRefusal({
       <Collapsible trigger="Hook output">
         <pre {...stylex.props(styles.output)}>{error.output ?? error.message}</pre>
       </Collapsible>
-    </Banner>
+    </AnnouncedBanner>
   );
 }
 
@@ -125,7 +125,7 @@ export function useRoundSubmit(
 /** The questions left blank, each a link that jumps to it. */
 function QuestionsLeft({ blank }: { blank: ReadonlyArray<QuestionItem> }) {
   return (
-    <Banner
+    <AnnouncedBanner
       status="error"
       title={
         <>

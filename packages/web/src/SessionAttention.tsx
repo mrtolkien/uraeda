@@ -1,4 +1,4 @@
-import { Banner } from "@astryxdesign/core/Banner";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import type { SessionStatus, StatusReason } from "uraeda-server/fate";
 import { useWorkspace } from "./data.ts";
 
@@ -51,7 +51,7 @@ export function Attention({
   }
   const item = workspace?.features.find((feature) => feature.folder === folder)?.kind ?? "feature";
   return (
-    <Banner
+    <AnnouncedBanner
       collapsible={false}
       description={typeof attention.text === "string" ? attention.text : attention.text(item)}
       status={attention.status}
