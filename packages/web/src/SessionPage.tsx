@@ -49,9 +49,10 @@ import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
   composer: {
-    // The composer stays at the bottom of the window while the transcript scrolls.
+    // The composer stays at the bottom of the window while the transcript scrolls, above the
+    // shell's status line, fixed at the window's bottom.
     backgroundColor: colorVars["--color-background-surface"],
-    bottom: 0,
+    bottom: "var(--size-status-line, 0px)",
     paddingBlock: spacingVars["--spacing-3"],
     position: "sticky",
   },

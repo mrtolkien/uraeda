@@ -38,12 +38,14 @@ function isLayerOpen() {
   }
 }
 
-/** The keys, as the status line names them while the list shows. */
-const HINTS = [
-  { keys: "j k", label: "move" },
-  { keys: "⏎", label: "open" },
-  { keys: "esc", label: "close" },
-];
+/** The keys, as the status line names them while the list shows, then Escape's, `escape`. */
+function hints(escape: string | null) {
+  const moves = [
+    { keys: "j k", label: "move" },
+    { keys: "⏎", label: "open" },
+  ];
+  return escape === null ? moves : [...moves, { keys: "esc", label: escape }];
+}
 
 /** The moves of the keys, by key. */
 const MOVES: Record<string, "next" | "previous" | "first" | "last"> = {
@@ -59,22 +61,25 @@ const MOVES: Record<string, "next" | "previous" | "first" | "last"> = {
  * The keyboard of a list: `selected` is the index of the row open in the pane, -1 for none.
  * `onSelect(index)` is called once the focus moved to a row; `onEdit()` on Enter on the selected
  * row, returning whether it edited, else the row's link opens it; `onClose()` on Escape, returning
- * whether it closed something. Returns the ref of the list's element, and what focuses the
- * selected row.
+ * whether it closed something. `escapeLabel` is what the status line says Escape does, "close" by
+ * default, or `null` where it does nothing. Returns the ref of the list's element, and what focuses
+ * the selected row.
  */
 export function useListKeys({
+  escapeLabel = "close",
   onClose,
   onEdit,
   onSelect,
   selected,
 }: {
+  escapeLabel?: string | null;
   onClose: () => boolean;
   onEdit: () => boolean;
   onSelect: (index: number) => void;
   selected: number;
 }) {
   const { focusItem, getItems, listRef } = useListFocus<HTMLDivElement>({ itemSelector: ROW });
-  useStatusHints(HINTS);
+  useStatusHints(hints(escapeLabel));
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
