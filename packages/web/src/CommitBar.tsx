@@ -15,12 +15,13 @@ import { WriteButton } from "./writes/WriteButton.tsx";
 
 const styles = stylex.create({
   bar: {
-    // The bar stays at the bottom of the screen while there is something to commit.
+    // The bar stays at the bottom of the screen while there is something to commit, above the
+    // shell's status line, fixed at the window's bottom.
     backgroundColor: colorVars["--color-background-body"],
     borderBlockStartColor: colorVars["--color-border"],
     borderBlockStartStyle: "solid",
     borderBlockStartWidth: borderVars["--border-width"],
-    bottom: 0,
+    bottom: "var(--size-status-line, 0px)",
     marginBlockStart: spacingVars["--spacing-4"],
     paddingBlock: spacingVars["--spacing-2"],
     position: "sticky",

@@ -48,8 +48,14 @@ export function StatusHintsProvider({ children }: { children: ReactNode }) {
   }, []);
   const declare = useCallback<Declare>((id, place, hints) => {
     setDeclared((before) => {
-      const others = before.filter((entry) => entry.id !== id);
-      return hints === null ? others : [...others, { hints, id, place }];
+      if (hints === null) {
+        return before.filter((entry) => entry.id !== id);
+      }
+      // A declarer whose hints change keeps its place; a new one comes last.
+      const entry = { hints, id, place };
+      return before.some((declared) => declared.id === id)
+        ? before.map((declared) => (declared.id === id ? entry : declared))
+        : [...before, entry];
     });
   }, []);
   const hints = useMemo(

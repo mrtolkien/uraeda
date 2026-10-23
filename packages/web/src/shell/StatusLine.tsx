@@ -28,12 +28,17 @@ const styles = stylex.create({
     gap: spacingVars["--spacing-1"],
   },
   counts: {
-    // At the line's end, whatever comes before.
+    // At the line's end, whatever comes before. Short of room, as at 320 px beside a round's
+    // controls, the counts wrap onto a second line, each whole, never cut or past the edge.
     alignItems: "center",
+    columnGap: spacingVars["--spacing-4"],
     display: "flex",
-    flexShrink: 0,
-    gap: spacingVars["--spacing-4"],
+    flexShrink: 1,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
     marginInlineStart: "auto",
+    minWidth: 0,
+    rowGap: 0,
   },
   hint: {
     flexShrink: 0,
