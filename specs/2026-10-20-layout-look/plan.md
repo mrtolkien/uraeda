@@ -264,34 +264,43 @@ behaviour the spec marks unverified.
 **Files:**
 
 - Modify: `packages/web/package.json` (`@astryxdesign/core`, `@astryxdesign/theme-neutral`,
-  `@astryxdesign/cli` to `0.7.3`), `pnpm-lock.yaml`, `pnpm-workspace.yaml` (drop the stale
-  `minimumReleaseAgeExclude` entry for 0.6.7)
+  `@astryxdesign/cli` to `0.7.3`), `pnpm-lock.yaml`, `pnpm-workspace.yaml` (the stale
+  `minimumReleaseAgeExclude` entry for 0.6.7 replaced by the three exact 0.7.3 versions, published
+  the day before)
 - Modify: whatever `astryx upgrade --from 0.6.8 --apply --path packages/web` and its codemods
   change; `src/theme/theme.ts` (`--color-selection-edge` gets a fallback for the moved data tokens);
   `src/theme/built/*` rebuilt
 - Create: `packages/web/src/__browser__/palette-check.test.tsx`
+- Modify (what 0.7 broke, R2 and R3): `src/Blocks.tsx` (a document's list `edge="flush"`),
+  `src/SettledGroups.tsx` and `src/RepositoryMenu.tsx` (text the touch type cut on the phone),
+  `__tests__/pane.test.tsx`, `__tests__/session.test.tsx`, `__focused__/composer.test.tsx` (a Banner
+  has no role, and Astryx's announcer repeats a text), `__browser__/session-look.test.tsx` (a
+  message's code block wraps)
 
 **Interfaces:**
 
-- Produces: Astryx 0.7.3 everywhere; the finding of the check, as a ruling: whether
-  `CommandPalette`'s `renderItem(item, isSelected)` reports the highlighted item, so Task 13 draws
-  the preview from it, or Task 13 builds its palette on `Dialog`, `TextInput`, and `List`.
+- Produces: Astryx 0.7.3 everywhere; the finding of the check, as [R1](rulings.md): `renderItem`'s
+  `isSelected` is the picker's value, never the highlight, but the palette's public context,
+  `useCommandPaletteContext()`, reports it to a slot, which can also highlight the first result, so
+  Task 13 keeps `CommandPalette`.
 
-- [ ] **Step 1: Write the check of the palette**: render Astryx's `CommandPalette` with three items
-      and a side area that shows the item `renderItem` last reported as selected. Assert: after ↓,
-      the side area names the second item; after typing "thi", it names the third. Break it catches:
-      a palette that reports no highlight, so no preview can follow the cursor.
-- [ ] **Step 2: Run the whole validation before the upgrade**: `nix develop -c vp run ready`.
+- [x] **Step 1: Write the check of the palette**: render Astryx's `CommandPalette` with three items
+      and a footer that previews the highlighted item, read from `useCommandPaletteContext()`
+      (`renderItem`'s `isSelected` never reported it, R1). Assert: ↓ previews the first item, ↓
+      again the second; with the footer highlighting the first result, typing "thi" previews the
+      third and Enter picks it. Break it catches: a palette that reports no highlight, so no preview
+      can follow the cursor.
+- [x] **Step 2: Run the whole validation before the upgrade**: `nix develop -c vp run ready`.
       Expected: PASS, the baseline.
-- [ ] **Step 3: Upgrade**: set the three packages to `0.7.3`, `nix develop -c vp install`, run
+- [x] **Step 3: Upgrade**: set the three packages to `0.7.3`, `nix develop -c vp install`, run
       `nix develop -c pnpm --filter uraeda-web exec astryx upgrade --from 0.6.8 --apply --path .`,
       then `nix develop -c vp run --filter uraeda-web theme`. Fix what the 0.7.0 changes break:
       Banner roles (tests that find a Banner by role `status` or `alert` read its text instead), the
       theme's data tokens, and inputs' root `xstyle`.
-- [ ] **Step 4: Run the palette check**:
+- [x] **Step 4: Run the palette check**:
       `nix develop -c vp test --project desktop src/__browser__/palette-check.test.tsx`. Expected:
       PASS, or a failure that Task 13's fallback covers; write the ruling either way.
-- [ ] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
+- [x] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
 - [ ] **Step 6: Commit**:
       `git add -A packages/web pnpm-lock.yaml pnpm-workspace.yaml specs/2026-10-20-layout-look` and
       `git commit -m "build(layout-look): Astryx 0.7.3, and its palette's highlight checked"`.

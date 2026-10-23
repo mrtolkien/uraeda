@@ -23,6 +23,10 @@ const styles = stylex.create({
     borderRadius: 0,
     overflow: "visible",
   },
+  fold: {
+    // The fold's button keeps its label whole: the heading beside it wraps instead.
+    flexShrink: 0,
+  },
   settled: {
     marginBlockEnd: spacingVars["--spacing-6"],
   },
@@ -98,6 +102,7 @@ function Group({
             onClick={() => folds.onOpenChange(HOOD, !open)}
             size="sm"
             variant="ghost"
+            xstyle={styles.fold}
           />
         )}
       </HStack>

@@ -188,7 +188,7 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
   return (
     <List
       density="compact"
-      edgeCompensation="inline"
+      edge="flush"
       listStyle={block.ordered ? "decimal" : signed ? "none" : "disc"}
       start={block.ordered ? (block.start ?? 1) : undefined}
       xstyle={styles.list}
