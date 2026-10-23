@@ -69,7 +69,13 @@ describe("the message look", () => {
       const log = await converse(`Reply starts here.\n\n\`\`\`\n${line}\n\`\`\``);
       const block = within(log).getByRole("group", { name: "Code" });
 
-      expect(block.textContent).toContain(line);
+      // The line's own text, wrapped: several lines tall (a line is at most 1.5em), never wider
+      // than the block.
+      const code = within(block).getByText(line);
+      const em = Number.parseFloat(getComputedStyle(code).fontSize);
+      const text = code.getBoundingClientRect();
+      expect(text.height).toBeGreaterThan(3 * em);
+      expect(text.right).toBeLessThanOrEqual(block.getBoundingClientRect().right);
       expect(block.scrollWidth).toBeLessThanOrEqual(block.clientWidth);
       expect(block.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(

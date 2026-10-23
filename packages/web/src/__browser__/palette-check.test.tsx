@@ -20,6 +20,7 @@ const source = createStaticSource([
   { id: "first", label: "First" },
   { id: "second", label: "Second" },
   { id: "third", label: "Third" },
+  { id: "thirty", label: "Thirty" },
 ]);
 
 /** The item under the cursor, read from the palette's context; or, asked to, the first result. */
@@ -68,7 +69,13 @@ test("the palette's context reports the highlighted item, so a preview can follo
 test("a slot can highlight the first result, so typing then Enter picks it", async () => {
   render(<PreviewedPalette firstByDefault />);
   expect(await screen.findByText("Preview: First")).toBeVisible();
+  // "thi" leaves two results, so the highlight is the first of several, not the only one.
   await userEvent.keyboard("thi");
+  await screen.findByRole("option", { name: "Thirty" });
+  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+    "Third",
+    "Thirty",
+  ]);
   expect(await screen.findByText("Preview: Third")).toBeVisible();
   await userEvent.keyboard("{Enter}");
   expect(await screen.findByText("Picked: third")).toBeVisible();
