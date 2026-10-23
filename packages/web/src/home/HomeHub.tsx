@@ -1,348 +1,111 @@
-// Home as a control hub: four counts first, then two balanced columns, as many as the width holds:
-// what needs the human, what agents do, and what is done, then the priorities, the inbox, and the
-// way to the decisions. Narrow, one column in the same order.
-import { Badge } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { Grid } from "@astryxdesign/core/Grid";
-import { HStack } from "@astryxdesign/core/HStack";
-import { List } from "@astryxdesign/core/List";
-import { ProgressBar } from "@astryxdesign/core/ProgressBar";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { Text } from "@astryxdesign/core/Text";
+// Home: the core, then the overview. Above a dashed "Overview" line, the problems that stop the
+// workflow when there are any, what waits on the human, then In progress beside Sessions; under it,
+// the widgets two by two: the priorities now, the usage, the inbox's latest notes, and what is done.
+// From semi-wide, two columns; on the phone, one, in the same order.
+import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
-import * as stylex from "@stylexjs/stylex";
-import { useState } from "react";
-import { useInbox, usePriorities, useWorkspace } from "../data.ts";
-import { waiting } from "../labels.ts";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
-import { useHash, useLocalPath, useRepoPath } from "../routes.tsx";
+import { useInbox, usePriorities } from "../data.ts";
+import { Pane } from "../layout/Pane.tsx";
+import { useRepoPath } from "../routes.tsx";
+import { useNavigation } from "../sessionData.ts";
 import { plain } from "../Spans.tsx";
-import { agentState, type Feature, homeFeatures } from "./features.ts";
-import { Panel, Row, Tile } from "./parts.tsx";
+import { InProgress, NeedsYou, Problems, Sessions } from "./Core.tsx";
+import { homeFeatures } from "./features.ts";
+import { Columns, Empty, HomeRow, Overview, PaneLink } from "./parts.tsx";
+import { Recent } from "./Recent.tsx";
 import { inboxSummary, prioritySection, runningStatus } from "./summary.ts";
+import { Usage } from "./Usage.tsx";
 
-const styles = stylex.create({
-  // As many equal columns as the width holds, each at least 24rem: two on a full screen, one beside
-  // a pane or on the phone, whatever the screen, with no width fixed by breakpoint.
-  columns: {
-    alignItems: "start",
-    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 24rem), 1fr))",
-  },
-  // The counts, as many to a row as fit: four across, two by two, never a lone tile cut narrow.
-  tiles: {
-    gridTemplateColumns: "repeat(auto-fit, minmax(9rem, 1fr))",
-  },
-});
-
-/** What waits on the human, each by its verb and its line, then the files to fix. */
-function NeedsYou({ human, invalid }: { human: Array<Feature>; invalid: Array<Feature> }) {
-  const here = useRepoPath();
-  return (
-    <Panel count={human.length + invalid.length} title="Needs you">
-      {human.length + invalid.length === 0 ? (
-        <Text color="secondary">Nothing waits on you.</Text>
-      ) : (
-        <List aria-label="Needs you" hasDividers>
-          {human.map((feature) => {
-            const { href, line, verb } = waiting(feature);
-            return (
-              <Row
-                badge={<Badge label={verb} variant="warning" />}
-                href={here(href)}
-                key={feature.folder}
-                line={line}
-                title={feature.title}
-              />
-            );
-          })}
-          {invalid.map((feature) => (
-            <Row
-              badge={<Badge label="Fix" variant="error" />}
-              href={here(`/f/${feature.folder}`)}
-              key={feature.folder}
-              line={feature.problems[0].message}
-              title={feature.title}
-            />
-          ))}
-        </List>
-      )}
-    </Panel>
-  );
-}
-
-/** The features agents work on, with their step, their task, and their plan's progress. */
-function AgentsPanel({ agents, running }: { agents: Array<Feature>; running: Array<string> }) {
-  const here = useRepoPath();
-  return (
-    <Panel count={agents.length} title="Agents at work">
-      {agents.length === 0 ? (
-        <Text color="secondary">No agent has work.</Text>
-      ) : (
-        <List aria-label="Agents at work" hasDividers>
-          {agents.map((feature) => {
-            const { line, step, working } = agentState(feature, running);
-            const progress = feature.step.progress;
-            return (
-              <Row
-                badge={
-                  <Badge
-                    label={working ? "Working" : step}
-                    variant={working ? "success" : "info"}
-                  />
-                }
-                href={here(`/f/${feature.folder}`)}
-                key={feature.folder}
-                line={
-                  progress ? (
-                    <VStack gap={1}>
-                      {line && <span>{line}</span>}
-                      <ProgressBar
-                        formatValueLabel={(value: number, max: number) => `Task ${value} of ${max}`}
-                        hasValueLabel
-                        label={`${feature.title}: task ${progress.position} of ${progress.total}`}
-                        max={progress.total}
-                        value={progress.position}
-                      />
-                    </VStack>
-                  ) : (
-                    line || undefined
-                  )
-                }
-                title={feature.title}
-              />
-            );
-          })}
-        </List>
-      )}
-    </Panel>
-  );
-}
-
-/** How many entries the Priorities card shows: the rest are one tap away, on the priorities page. */
+/** How many entries Priorities now shows: the rest are one tap away, on the priorities page. */
 const PRIORITIES_SHOWN = 5;
 
-/** Where the hub keeps the section its Priorities card shows. */
-const SECTION_KEY = "uraeda:home:priorities";
-
-/** The section the Priorities card shows, Now until another is chosen, kept in the browser. */
-function useSection(): ["now" | "next", (value: string) => void] {
-  const [section, setSection] = useState<"now" | "next">(() => {
-    try {
-      return window.localStorage.getItem(SECTION_KEY) === "next" ? "next" : "now";
-    } catch {
-      // No storage, as in a private window: the card opens on Now.
-      return "now";
-    }
-  });
-  const choose = (value: string) => {
-    const next = value === "next" ? "next" : "now";
-    setSection(next);
-    try {
-      window.localStorage.setItem(SECTION_KEY, next);
-    } catch {
-      // No storage: the choice lasts until the page closes.
-    }
-  };
-  return [section, choose];
-}
-
 /**
- * The entries of Now or Next: in Now, the running ones first with their status; a draft's marked
- * so. A running entry opens its feature, another its pane; the heading opens the priorities.
+ * The entries of Now, the running ones first with their status, a draft marked so, the first five:
+ * a running entry opens its feature, another its pane.
  */
-function PrioritiesPanel({ running }: { running: Array<string> }) {
+function PrioritiesNow({ running }: { running: Array<string> }) {
   const here = useRepoPath();
-  // The pane open beside home, on wide screens.
-  const pathname = useLocalPath();
   const priorities = usePriorities();
-  const [section, choose] = useSection();
-  const all = priorities ? prioritySection(priorities, section) : [];
-  const entries = all.slice(0, PRIORITIES_SHOWN);
+  const entries = (priorities ? prioritySection(priorities, "now") : []).slice(0, PRIORITIES_SHOWN);
   return (
-    <Panel
-      href={here("/priorities")}
-      label="Priorities, open the priorities page"
-      title="Priorities"
-    >
-      <SegmentedControl label="Section of the priorities" onChange={choose} value={section}>
-        <SegmentedControlItem label="Now" value="now" />
-        <SegmentedControlItem label="Next" value="next" />
-      </SegmentedControl>
+    <Pane level={3} title="Priorities now">
       {entries.length === 0 ? (
-        <Text color="secondary">{section === "now" ? "Nothing in Now." : "Nothing in Next."}</Text>
+        <Empty>Nothing in Now.</Empty>
       ) : (
-        <List aria-label={section === "now" ? "Now" : "Next"} hasDividers>
-          {entries.map((entry) => (
-            <Row
-              badge={
-                entry.running ? (
-                  <Badge {...runningStatus(entry.running, running)} />
-                ) : entry.draft ? (
-                  <Badge
-                    label={entry.draft.backlog ? "Backlog" : "Draft"}
-                    variant={entry.draft.backlog ? "neutral" : "teal"}
-                  />
-                ) : undefined
-              }
-              href={here(entry.running ? `/f/${entry.running.folder}` : `/priorities/${entry.key}`)}
-              isSelected={pathname === `/priorities/${entry.key}`}
-              key={entry.key}
-              title={plain(entry.spans)}
-            />
-          ))}
-        </List>
+        entries.map((entry) => (
+          <HomeRow
+            href={here(entry.running ? `/f/${entry.running.folder}` : `/priorities/${entry.key}`)}
+            icon={<Icon color="secondary" icon="uraeda:list" size="sm" />}
+            key={entry.key}
+            sub={
+              entry.running
+                ? `Ongoing · ${runningStatus(entry.running, running).label}`
+                : entry.draft
+                  ? entry.draft.backlog
+                    ? "Backlog"
+                    : "Draft"
+                  : "Not started"
+            }
+            title={plain(entry.spans)}
+          />
+        ))
       )}
-      {all.length > entries.length && (
-        <Button href={here("/priorities")} label={`Show all (${all.length})`} variant="ghost" />
-      )}
-    </Panel>
+      <PaneLink href={here("/priorities")} label="Open priorities" />
+    </Pane>
   );
 }
 
-/** The inbox, kept small: its categories with their counts, and the latest notes. */
-function InboxPanel() {
+/** The inbox's three latest notes, each with its category, and the way to the inbox with its count. */
+function Inbox() {
   const here = useRepoPath();
-  const { categories, count, latest } = inboxSummary(useInbox());
+  const { count, latest } = inboxSummary(useInbox());
   return (
-    <Panel count={count} href={here("/inbox")} title="Inbox">
+    <Pane count={count} level={3} title="Inbox">
       {count === 0 ? (
-        <Text color="secondary">The inbox is empty.</Text>
+        <Empty>The inbox is empty.</Empty>
       ) : (
-        <>
-          <HStack gap={1} wrap="wrap">
-            {categories.map((category) => (
-              <Badge
-                key={category.name}
-                label={`${category.name} ${category.count}`}
-                variant="neutral"
-              />
-            ))}
-          </HStack>
-          <List aria-label="Latest notes" hasDividers>
-            {latest.map((note) => (
-              <Row href={here(`/inbox/${note.key}`)} key={note.id} title={note.text} />
-            ))}
-          </List>
-        </>
+        latest.map((note) => (
+          <HomeRow
+            href={here(`/inbox/${note.key}`)}
+            icon={<Icon color="secondary" icon="uraeda:pencil" size="sm" />}
+            key={note.id}
+            sub={note.category}
+            title={note.text}
+          />
+        ))
       )}
-    </Panel>
+      <PaneLink
+        href={here("/inbox")}
+        label={
+          count === 0 ? "Open the inbox" : `${count} ${count === 1 ? "note" : "notes"} to organize`
+        }
+      />
+    </Pane>
   );
 }
 
-/** How many done features the hub shows before "Show all". */
-const DONE_SHOWN = 5;
-
-/**
- * The five features merged last, and all of them once asked, or at `#done`, where the sidebar's
- * "All done features and changes" opens home.
- */
-function DonePanel({ done }: { done: Array<Feature> }) {
-  const here = useRepoPath();
-  const [asked, setAll] = useState(false);
-  const hash = useHash();
-  const all = asked || hash === "#done";
-  if (!done.length) {
-    return null;
-  }
-  return (
-    <Panel id="done" title="Recently done">
-      <List aria-label="Recently done" density="compact" hasDividers>
-        {(all ? done : done.slice(0, DONE_SHOWN)).map((feature) => (
-          <Row href={here(`/f/${feature.folder}`)} key={feature.folder} title={feature.title} />
-        ))}
-      </List>
-      {!all && done.length > DONE_SHOWN && (
-        <Button label={`Show all (${done.length})`} onClick={() => setAll(true)} variant="ghost" />
-      )}
-    </Panel>
-  );
-}
-
-/** The way to the constitution and the decisions agents follow. */
-function DecisionsCard() {
-  const here = useRepoPath();
-  const wide = !isNarrow(useWidthClass());
-  // The card's padding as the others', so its text lines up with their rows.
-  return (
-    <Card padding={wide ? 4 : 3}>
-      <List aria-label="Constitution and decisions">
-        <Row
-          href={here("/decisions")}
-          line="The project's principles and the choices agents follow"
-          title="Constitution and decisions"
-        />
-      </List>
-    </Card>
-  );
-}
-
-/**
- * Home as a control hub of cards: two columns on a wide screen, one on the phone or beside a pane,
- * where the list's column is too narrow for two.
- */
 export function HomeHub() {
-  const workspace = useWorkspace();
-  const inbox = useInbox();
-  const priorities = usePriorities();
-  const here = useRepoPath();
-  const wide = !isNarrow(useWidthClass());
+  const { sessionList, workspace } = useNavigation();
   if (!workspace || workspace.noSpecs) {
     return null;
   }
-  const { agents, done, human, invalid } = homeFeatures(workspace.features);
-  const now = priorities?.sections.find((section) => section.section === "now")?.entries ?? [];
-  const started = now.filter((entry) => entry.running).length;
-  const needs = human.length + invalid.length;
-  const notes = inbox?.count ?? 0;
-  const main = (
-    <>
-      <NeedsYou human={human} invalid={invalid} />
-      <AgentsPanel agents={agents} running={workspace.running} />
-      <DonePanel done={done} />
-    </>
-  );
-  const side = (
-    <>
-      <PrioritiesPanel running={workspace.running} />
-      <InboxPanel />
-      <DecisionsCard />
-    </>
-  );
+  const rows = sessionList?.rows ?? [];
+  const { agents, human, invalid } = homeFeatures(workspace.features);
   return (
-    <VStack gap={wide ? 6 : 4}>
-      <Grid gap={wide ? 4 : 3} xstyle={styles.tiles}>
-        <Tile
-          caption={needs === 1 ? "feature waits on you" : "features wait on you"}
-          label="Needs you"
-          value={needs}
-          variant={needs ? "yellow" : "default"}
-        />
-        <Tile
-          caption={`${workspace.running.length} running now`}
-          label="Agents"
-          value={agents.length}
-          variant="blue"
-        />
-        <Tile
-          caption={`${started} ongoing`}
-          href={here("/priorities")}
-          label="Now"
-          value={now.length - started}
-          variant="green"
-        />
-        <Tile
-          caption={notes === 1 ? "note to organize" : "notes to organize"}
-          href={here("/inbox")}
-          label="Inbox"
-          value={notes}
-          variant="muted"
-        />
-      </Grid>
-      <Grid gap={wide ? 6 : 4} xstyle={styles.columns}>
-        <VStack gap={wide ? 6 : 4}>{main}</VStack>
-        <VStack gap={wide ? 6 : 4}>{side}</VStack>
-      </Grid>
+    <VStack gap={1}>
+      <Problems features={invalid} />
+      <NeedsYou features={human} />
+      <Columns isCore>
+        <InProgress features={agents} rows={rows} />
+        <Sessions rows={rows} />
+      </Columns>
+      <Overview />
+      <Columns>
+        <PrioritiesNow running={workspace.running} />
+        <Usage />
+        <Inbox />
+        <Recent features={workspace.features} rows={rows} />
+      </Columns>
     </VStack>
   );
 }

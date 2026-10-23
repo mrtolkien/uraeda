@@ -10,6 +10,7 @@ import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex
 import { interactionOverlayStyles } from "@astryxdesign/core/utils/interactionOverlay.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { MouseEvent, ReactNode } from "react";
+import { RouterAnchor } from "../links.tsx";
 
 const styles = stylex.create({
   actions: {
@@ -71,8 +72,8 @@ export function CardRow({
   onClick,
   sub,
 }: {
-  /** Its controls beside the link, like its "…". */
-  actions: ReactNode;
+  /** Its controls beside the link, like its "…": none on home's rows. */
+  actions?: ReactNode;
   /** Passive content at the link's end, like its status. */
   endContent: ReactNode;
   href: string;
@@ -97,7 +98,8 @@ export function CardRow({
         focusOutlineStyles.focusWithinFirstChild,
       )}
     >
-      <a
+      {/* A page of the UI opens without reloading, as every Astryx link's does. */}
+      <RouterAnchor
         aria-current={isSelected ? "page" : undefined}
         aria-label={name}
         href={href}
@@ -117,8 +119,8 @@ export function CardRow({
           )}
         </span>
         <span {...stylex.props(styles.end)}>{endContent}</span>
-      </a>
-      <span {...stylex.props(styles.actions)}>{actions}</span>
+      </RouterAnchor>
+      {actions && <span {...stylex.props(styles.actions)}>{actions}</span>}
     </div>
   );
 }

@@ -100,9 +100,7 @@ test("picking a repository opens its home in two clicks", async () => {
   await waitFor(() => expect(window.location.pathname).toBe("/r/todo-app/"));
   expect(clicks).toBe(2);
   expect(await heading("todo-app")).toBeTruthy();
-  expect(
-    (await screen.findAllByRole("link", { name: /^Priorities, open the priorities page/ })).length,
-  ).toBe(1);
+  expect((await screen.findAllByRole("link", { name: "Open priorities" })).length).toBe(1);
   for (const link of screen.getAllByRole("link")) {
     const href = link.getAttribute("href") ?? "";
     if (href.startsWith("/")) {
