@@ -236,15 +236,15 @@ describe("on a desktop, as embeds load", () => {
 });
 
 /**
- * Picks a theme in the settings' Appearance, reached from the sidebar, then goes back to the page
- * it left.
+ * Picks a colour scheme in the settings' Appearance, reached from the sidebar, then goes back to the
+ * page it left.
  */
-async function pickThemeInSettings(mode: "Dark" | "Light" | "System") {
+async function pickSchemeInSettings(scheme: "Mocha" | "Latte" | "System") {
   const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
   await userEvent.click(nav.getByRole("link", { name: "Settings" }));
   await userEvent.click(await screen.findByRole("link", { name: /^Appearance/ }));
-  const theme = await screen.findByRole("radiogroup", { name: "Theme" });
-  await userEvent.click(within(theme).getByRole("radio", { name: mode }));
+  const schemes = await screen.findByRole("radiogroup", { name: "Colour scheme" });
+  await userEvent.click(within(schemes).getByRole("radio", { name: scheme }));
   window.history.go(-2);
 }
 
@@ -258,7 +258,7 @@ describe("on a desktop, the frames and their messages", () => {
     await storyShown(DESKTOP);
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("dark");
 
-    await pickThemeInSettings("Light");
+    await pickSchemeInSettings("Latte");
     await storyShown(DESKTOP);
 
     await expect.poll(() => commands.frameAttribute(DESKTOP, "html", "data-mode")).toBe("light");

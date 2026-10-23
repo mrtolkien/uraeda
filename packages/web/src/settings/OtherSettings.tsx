@@ -1,4 +1,4 @@
-// The categories besides Server: the theme, signing out, and the settings later features bring.
+// The categories besides Server: the colour scheme, signing out, and the settings later features bring.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -9,23 +9,23 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { useSignOut, useSignOutEverywhere } from "../sign-in/useSignOut.ts";
-import { type ThemeMode, useThemeMode } from "../theme.tsx";
+import { type Scheme, useScheme } from "../theme.tsx";
 import type { Category } from "./categories.ts";
 
-/** The theme, kept in this browser, as the sidebar kept it before. */
+/** The colour scheme, kept in this browser: Mocha, Latte, or the system's. */
 export function AppearanceSettings() {
-  const [mode, setMode] = useThemeMode();
+  const [scheme, setScheme] = useScheme();
   return (
     <VStack gap={4}>
       <Heading level={2}>Appearance</Heading>
       <SegmentedControl
-        label="Theme"
-        onChange={(value: string) => setMode(value as ThemeMode)}
-        value={mode}
+        label="Colour scheme"
+        onChange={(value: string) => setScheme(value as Scheme)}
+        value={scheme}
       >
+        <SegmentedControlItem label="Mocha" value="mocha" />
+        <SegmentedControlItem label="Latte" value="latte" />
         <SegmentedControlItem label="System" value="system" />
-        <SegmentedControlItem label="Light" value="light" />
-        <SegmentedControlItem label="Dark" value="dark" />
       </SegmentedControl>
       <Text color="secondary">Kept on this browser only: each device picks its own.</Text>
     </VStack>

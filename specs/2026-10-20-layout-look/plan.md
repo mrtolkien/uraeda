@@ -462,25 +462,27 @@ behaviour the spec marks unverified.
 **Files:**
 
 - Modify: `packages/web/src/theme.tsx`, `src/settings/OtherSettings.tsx` (`AppearanceSettings`)
-- Modify: `packages/web/src/__tests__/theme.test.tsx`, browser tests writing `uraeda.theme`
+- Modify: `packages/web/src/__tests__/theme.test.tsx`, and `src/__browser__/story-embed.test.tsx`,
+  whose helper picks a scheme in the control; browser tests writing `uraeda.theme` as `"dark"` or
+  `"light"` keep working through the legacy reading
 
 **Interfaces:**
 
 - Produces: `type Scheme = "system" | "mocha" | "latte"`;
   `useScheme(): [Scheme, (s: Scheme) => void]`; `ThemeModeProvider` still resolves to Astryx's
-  `"light" | "dark"` (Latte, Mocha).
+  `"light" | "dark"` (Latte, Mocha). `ThemeMode` keeps `"system"` for the Storybook preview.
 
-- [ ] **Step 1: Write the failing tests** in `theme.test.tsx`: the Appearance "Colour scheme"
+- [x] **Step 1: Write the failing tests** in `theme.test.tsx`: the Appearance "Colour scheme"
       control offers Mocha, Latte, and System, System picked by default; picking Latte stores
       `"latte"` and draws the light slot after a reload, whatever the system; a stored `"dark"`
       shows Mocha picked and draws the dark slot; a stored `"light"` shows Latte. Break: a legacy
       value read as System.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no "Colour scheme" control.
-- [ ] **Step 3: Implement** the scheme, the legacy reading, and the rewrite at the next pick, as
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no "Colour scheme" control.
+- [x] **Step 3: Implement** the scheme, the legacy reading, and the rewrite at the next pick, as
       [the data model](data-model.md) says.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and
       `nix develop -c vp test --project uraeda-web src/__tests__/theme.test.tsx`. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(layout-look): Mocha, Latte, or the system's"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(layout-look): Mocha, Latte, or the system's"`.
 
 ## Task 7: The pane, the logo, and the harness marks
 
