@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: eye
 preview-folder: packages/web
 preview-command: pnpm exec storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}
@@ -17,8 +17,8 @@ mockup may be an HTML page instead.
 
 - Uraeda's preview MUST be the Storybook of `packages/web`, run by the command this decision's
   `preview-folder` and `preview-command` fields hold. Checked by `ura check`.
-- Mockups and named states of views MUST be stories written with the real components, next to them.
-  Checked by review and lint.
+- A spec's mockups and named states of views MUST be stories written with the real components, next
+  to them. Checked by review and lint.
 - A layout or freeform mockup MAY be an HTML page in the feature's or the change's `mockups/` folder
   instead, linked from its story: a page's layout, or a sketch no component holds yet. Checked by
   review.
@@ -29,6 +29,8 @@ mockup may be an HTML page instead.
 - `vp run ready` MUST build Storybook, so a story that does not compile fails. Checked by the
   `storybook:build` task.
 - Storybook's packages MUST be pinned to exact versions. Checked by review.
+- An investigation MAY compare throwaway prototypes in any format, in its feature's `mockups`
+  folder, and the approval of its spec deletes them. Checked by review.
 
 ## Why
 
@@ -37,8 +39,11 @@ The human asked for real, interactive mockups inside the spec, and chose Storybo
 [Uraeda's preview environment](../done/2026-10-15-ui-iteration.md#q6-what-preview-environment-does-uraeda-itself-use)).
 A mockup written with the real components removes the drift between mockups and code. Storybook runs
 on this repository's Vite+, React Compiler, StyleX, and WebKit, and Astryx develops its own
-components in it. Running the real server keeps the [stack](stack.md) decision's data only from the
-server, through fate.
+components in it. Comparing several looks with the real components was too slow, so the human
+allowed throwaway prototypes in an investigation
+([prototypes in the workflow](../2026-10-20-layout-look/clarifications-01.md#q6-should-prototypes-like-these-be-part-of-the-workflow)).
+Running the real server keeps the [stack](stack.md) decision's data only from the server, through
+fate.
 
 ## Alternatives considered
 
@@ -50,6 +55,7 @@ server, through fate.
 ## Consequences
 
 - Planned UI starts as real code: the picked variant is the first commit of its view.
+- An investigation can compare several looks cheaply, and git keeps its prototypes once deleted.
 - Storybook adds many development dependencies and frequent releases to follow.
 
 ## Applies to

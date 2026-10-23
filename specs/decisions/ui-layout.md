@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: layout-panel-left
 ---
 
@@ -13,10 +13,10 @@ spec says why.
 
 ## Rules
 
-- A view's spec MUST say why its layout reads best, with mockups at both width classes. Checked by
+- A view's spec MUST say why its layout reads best, with mockups at each width class. Checked by
   review.
-- The UI MUST adapt to two width classes, not to the device, through the theme and never per-view
-  media queries. Checked by review.
+- The UI MUST adapt to three width classes, narrow, semi-wide, and wide, not to the device, through
+  the theme and never per-view media queries. Checked by the browser tests, at each class.
 - On narrow screens, views MUST be pages and menus and forms sheets; on wide screens, popovers and
   dialogs. Checked by the browser tests.
 - Text MUST stay readable at each width without zoom, and controls MUST be easy to hit by touch.
@@ -38,6 +38,9 @@ asked for concepts over hard rules: "Goal #1 is always readability and clarity f
 sidebar's rows of sub-agents and tasks were hard to read, so it became "small and visual more than
 textual"
 ([the sidebar's rows](../done/2026-10-16-redesign-interface.md#q4-how-does-a-features-step-show-on-its-row-before-implementation)).
+Half a screen, where the human often works, got the desktop's layout and broke: the human asked for
+a middle class, wide enough to hold their 1205 px half screen
+([width classes](../2026-10-20-layout-look/clarifications-01.md#q5-should-the-ui-get-a-third-width-class-for-half-screens)).
 
 ## Alternatives considered
 
@@ -45,10 +48,13 @@ textual"
 - CSS `zoom` on desktop: it breaks dragging's position math.
 - Justified paragraphs: rivers on the phone's narrow lines.
 - Every detail in a pane on wide screens: an agent's session became too narrow to follow.
+- Two width classes, switching at 768 px: half a screen got the desktop's layout, and broke.
+- Panes that adapt to their own width, with container queries: no class to test, but each pane
+  tested alone.
 
 ## Consequences
 
-- Each view is designed, mocked up, and checked at two widths.
+- Each view is designed, mocked up, and checked at three widths.
 - A renamed feature reads by its new name in the sidebar only: addresses, branches, and commits keep
   its slug.
 
