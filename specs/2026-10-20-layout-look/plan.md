@@ -668,10 +668,12 @@ behaviour the spec marks unverified.
 
 - Modify: `packages/web/src/decisions/DecisionsPage.tsx`, `DecisionList.tsx`,
   `ConstitutionRegion.tsx`, `DecisionDetail.tsx`, `src/layout/Panes.tsx` (a list share for the
-  decisions, `listWidth`), `src/App.tsx` (`/decisions` opens the reader)
-- Create: `packages/web/src/decisions/ConstitutionReader.tsx`, `decisions/useBranchChange.ts`
-- Modify: `packages/web/src/__tests__/decisions.test.tsx`, `__browser__/decisions.test.tsx`,
-  `__browser__/layout.test.tsx` (its waits)
+  decisions, `listWidth`), `src/App.tsx` (`/decisions` opens the reader), `src/theme/theme.ts`
+  (`--size-ledger-list`)
+- Create: `packages/web/src/decisions/ConstitutionReader.tsx`, `decisions/BranchChange.tsx` (with
+  `useBranchChange`, R26)
+- Modify: `packages/web/src/__tests__/decisions.test.tsx`, `__tests__/decision-rules.test.tsx`,
+  `__browser__/decisions.test.tsx`; `__browser__/layout.test.tsx`'s waits still hold
 
 **Interfaces:**
 
@@ -679,19 +681,20 @@ behaviour the spec marks unverified.
 - Produces: `DecisionsPage` with a reader always open on wide and semi-wide screens; the
   constitution reader at `/decisions` and `/decisions/constitution/<slug>`.
 
-- [ ] **Step 1: Write the failing tests**: at `/decisions` the list pane is the active pane and the
+- [x] **Step 1: Write the failing tests**: at `/decisions` the list pane is the active pane and the
       reader shows the constitution's six principles; `/decisions/constitution/iii` shows the same
-      reader with principle III in view and marked in the list; clicking "UI layout" puts it in the
-      reader at `/decisions/ui-layout`; with a feature's branch changing a decision, its reader
-      shows the change as a diff before its rules; at 402 px the reader replaces the list, with
-      "Constitution and decisions" leading back. The browser test's Escape now returns to
-      `/decisions` and the constitution: write the ruling. Break: the reader showing one principle.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no reader at `/decisions`.
-- [ ] **Step 3: Implement**: the list at 30% of the window on wide screens; the rows keep today's
+      reader with principle III in view and marked in the list; clicking "UI behaviour" (the
+      fixture's) puts it in the reader at `/decisions/ui-behaviour`; with a feature's branch
+      changing a decision, its reader shows the change as a diff before its rules; at 402 px the
+      reader replaces the list, with "Constitution and decisions" leading back. The browser test's
+      Escape now returns to `/decisions` and the constitution: write the ruling. Break: the reader
+      showing one principle.
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no reader at `/decisions`.
+- [x] **Step 3: Implement**: the list at 30% of the window on wide screens; the rows keep today's
       sort and its menu, with icon and summary; the check controls in the list pane's head.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the decisions files.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the decisions files.
       Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(layout-look): decisions in three columns"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(layout-look): decisions in three columns"`.
 
 ## Task 13: The palette
 

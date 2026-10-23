@@ -1,13 +1,11 @@
-import { ClickableCard } from "@astryxdesign/core/ClickableCard";
 import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import type { Ledger } from "uraeda-server/fate";
 import { Paragraph } from "../layout/Paragraph.tsx";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 
@@ -18,11 +16,16 @@ export type LedgerConstitution = NonNullable<Ledger["constitution"]>;
 export type LedgerPrinciple = LedgerConstitution["principles"][number];
 
 const styles = stylex.create({
-  cards: {
-    // Three cards a row, wrapping to a second: all six in view at once, nothing scrolls sideways.
-    display: "grid",
-    gap: spacingVars["--spacing-3"],
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  hint: {
+    color: colorVars["--color-text-secondary"],
+    fontWeight: fontWeightVars["--font-weight-normal"],
+  },
+  numeral: {
+    // The numerals in one column, as the decisions' icons are.
+    color: colorVars["--color-text-secondary"],
+    display: "inline-block",
+    fontWeight: fontWeightVars["--font-weight-semibold"],
+    minWidth: spacingVars["--spacing-6"],
   },
 });
 
@@ -44,81 +47,69 @@ export function versionLine(
     .join(" · ");
 }
 
-/** A principle's first rule, as plain text: the first item of its first list. */
-function firstRule(constitution: LedgerConstitution, principle: LedgerPrinciple): string {
+/** "1 rule", "3 rules". */
+export function ruleCount(count: number): string {
+  return count === 1 ? "1 rule" : `${count} rules`;
+}
+
+/** A principle's rules: the items of the lists under its heading. */
+function rulesOf(constitution: LedgerConstitution, principle: LedgerPrinciple) {
   const { blocks } = constitution.document;
-  const list = principle.blocks.map((id) => blocks[id]).find((block) => block?.kind === "list");
-  const item = list && blocks.find((block) => block.parent === list.id);
-  return item ? plain(item.spans) : "";
+  const lists = new Set(principle.blocks.filter((id) => blocks[id]?.kind === "list"));
+  return blocks.filter((block) => block.parent !== undefined && lists.has(block.parent));
 }
 
 /**
- * The constitution, first: its version line, then its principles as cards, each with its first
- * rule as a gist, each a link to its pane. "No constitution yet." without `CONSTITUTION.md`.
+ * The constitution, first: its principles, highest first, each a row of its numeral, its title,
+ * its first rule, and its count of rules, a link to the whole constitution in the reader, at it.
+ * "No constitution yet." without `CONSTITUTION.md`.
  */
 export function ConstitutionRegion({
   constitution,
   selected,
 }: {
   constitution: LedgerConstitution | null;
-  /** The slug of the principle open beside the list. */
+  /** The slug of the principle the reader is at. */
   selected: string | undefined;
 }) {
   const here = useRepoPath();
-  const narrow = isNarrow(useWidthClass());
-  const version = constitution ? versionLine(constitution) : "";
-  const href = (principle: LedgerPrinciple) => here(`/decisions/constitution/${principle.slug}`);
   return (
     <section aria-label="Constitution">
-      <VStack gap={3}>
-        <VStack gap={1}>
-          <Heading level={2}>Constitution</Heading>
-          {version && (
-            <Text color="secondary" type="supporting">
-              {version}
-            </Text>
+      <VStack gap={2}>
+        <Heading level={2}>
+          Constitution{" "}
+          {constitution && (
+            <span {...stylex.props(styles.hint)}>
+              · {constitution.principles.length} · one file, highest first
+            </span>
           )}
-        </VStack>
-        {constitution && !narrow && (
-          <div {...stylex.props(styles.cards)}>
-            {constitution.principles.map((principle) => (
-              // What the list's keys move between: see `useListKeys`.
-              <div data-row="" key={principle.slug}>
-                <ClickableCard
-                  height="100%"
-                  href={href(principle)}
-                  label={principleName(principle)}
-                  padding={3}
-                  // The open principle has the grey fill of a selected row.
-                  variant={selected === principle.slug ? "gray" : "default"}
-                >
-                  <VStack gap={1}>
-                    <Text weight="semibold">{principleName(principle)}</Text>
-                    <Text color="secondary" type="supporting">
-                      {firstRule(constitution, principle)}
-                    </Text>
-                  </VStack>
-                </ClickableCard>
-              </div>
-            ))}
-          </div>
-        )}
-        {constitution && narrow && (
-          // On a phone, a compact list: six cards would push the decisions down a whole screen.
+        </Heading>
+        {constitution ? (
           <List aria-label="Principles" hasDividers>
-            {constitution.principles.map((principle) => (
-              <ListItem
-                data-row=""
-                description={<Text color="secondary">{firstRule(constitution, principle)}</Text>}
-                href={href(principle)}
-                isSelected={selected === principle.slug}
-                key={principle.slug}
-                label={<Text weight="medium">{principleName(principle)}</Text>}
-              />
-            ))}
+            {constitution.principles.map((principle) => {
+              const rules = rulesOf(constitution, principle);
+              return (
+                <ListItem
+                  // What the list's keys move between: see `useListKeys`.
+                  data-row=""
+                  description={rules[0] && <Text color="secondary">{plain(rules[0].spans)}</Text>}
+                  endContent={
+                    <Text color="secondary" hasTabularNumbers type="supporting">
+                      {ruleCount(rules.length)}
+                    </Text>
+                  }
+                  href={here(`/decisions/constitution/${principle.slug}`)}
+                  isSelected={selected === principle.slug}
+                  key={principle.slug}
+                  label={<Text weight="medium">{principle.title}</Text>}
+                  startContent={<span {...stylex.props(styles.numeral)}>{principle.number}</span>}
+                />
+              );
+            })}
           </List>
+        ) : (
+          <Paragraph>No constitution yet.</Paragraph>
         )}
-        {!constitution && <Paragraph>No constitution yet.</Paragraph>}
       </VStack>
     </section>
   );

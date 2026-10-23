@@ -1,32 +1,44 @@
-// The constitution and decisions page (US8), read-only: the principles first, as cards, then every
-// decision in the chosen order. An item opens in a pane beside them on wide screens, and as its own
-// page on narrow ones; the keys move through the principles, then the decisions, the pane
-// following (see `useListKeys`).
+// The constitution and decisions page (US8, and US4 of the layout look), read-only: the list, the
+// active pane, holds the principles, then every decision in the chosen order; the reader beside it
+// is always open on wide and semi-wide screens, on the whole constitution until a decision is
+// picked. On narrow ones, the reader replaces the list once an item is picked, with a way back.
+// The keys move through the principles, then the decisions, the reader following (`useListKeys`).
 import { Banner } from "@astryxdesign/core/Banner";
-import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { use } from "react";
 import type { Ledger } from "uraeda-server/fate";
 import { useAgent, useLedger, useWorkspace } from "../data.ts";
-import { useStartChat } from "../StartChat.tsx";
-import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { Panes } from "../layout/Panes.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { ListPaneContext } from "../lists/listPane.ts";
 import { useListKeys } from "../lists/useListKeys.ts";
 import { useRepoPath, useRestoreScroll } from "../routes.tsx";
+import { useStartChat } from "../StartChat.tsx";
+import { ConstitutionReader } from "./ConstitutionReader.tsx";
 import { ConstitutionRegion } from "./ConstitutionRegion.tsx";
-import { DecisionDetail, PrincipleDetail } from "./DecisionDetail.tsx";
+import { DecisionDetail } from "./DecisionDetail.tsx";
 import { DecisionList } from "./DecisionList.tsx";
-import { type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
+import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
+import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
 
-/** What is open in the pane: a decision by its file name, or a principle by its slug. */
+const styles = stylex.create({
+  column: {
+    // The list's column on wide screens: the reader's pane beside it has the same inset.
+    paddingBlock: spacingVars["--spacing-3"],
+    paddingInlineStart: spacingVars["--spacing-2"],
+  },
+});
+
+/** What is open in the reader: a decision by its file name, or a principle by its slug. */
 export type LedgerOpen = { kind: "decision"; name: string } | { kind: "principle"; slug: string };
 
 /** The ledger, as the page reads it. */
@@ -42,89 +54,180 @@ function itemPaths(ledger: LedgerData, decisions: ReadonlyArray<LedgerDecision>)
   ];
 }
 
-/** The address of what is open. */
-function openPath(open: LedgerOpen | undefined): string | undefined {
-  if (!open) {
-    return undefined;
+/**
+ * The address of the item the reader is at: what is open, else the first principle, for the
+ * reader starts on the constitution; none without one.
+ */
+function shownPath(ledger: LedgerData, open: LedgerOpen | undefined): string | undefined {
+  if (open) {
+    return open.kind === "decision"
+      ? `/decisions/${open.name}`
+      : `/decisions/constitution/${open.slug}`;
   }
-  return open.kind === "decision"
-    ? `/decisions/${open.name}`
-    : `/decisions/constitution/${open.slug}`;
+  const first = ledger.constitution?.principles[0];
+  return first && `/decisions/constitution/${first.slug}`;
 }
 
-/** The list: the title, the constitution's region, then the decisions, under one keyboard. */
-function LedgerList({ ledger, open }: { ledger: LedgerData; open: LedgerOpen | undefined }) {
+/** The principle the list marks: the one open, else the first while the constitution is read. */
+function markedPrinciple(ledger: LedgerData, open: LedgerOpen | undefined): string | undefined {
+  if (open) {
+    return open.kind === "principle" ? open.slug : undefined;
+  }
+  return ledger.constitution?.principles[0]?.slug;
+}
+
+/** The list's pane: the check, then the constitution's principles, then the decisions. */
+function LedgerList({
+  decisions,
+  ledger,
+  onSort,
+  open,
+  paths,
+  sort,
+}: {
+  decisions: ReadonlyArray<LedgerDecision>;
+  ledger: LedgerData;
+  onSort: (sort: DecisionSort) => void;
+  open: LedgerOpen | undefined;
+  paths: ReadonlyArray<string>;
+  sort: DecisionSort;
+}) {
   const here = useRepoPath();
   const pane = use(ListPaneContext);
-  const [sort, setSort] = useDecisionSort();
   const agent = useAgent()?.available === true;
   const chat = useStartChat();
   const check = ledger.decisionsCheck;
-  const decisions = sortDecisions(ledger.decisions, sort);
-  const paths = itemPaths(ledger, decisions);
+  const shown = shownPath(ledger, open);
   const { ref } = useListKeys({
+    // The reader stays open: Escape takes it back to the constitution, from anything else.
     onClose: () => {
-      pane?.close();
-      return pane !== null;
+      if (!open || !pane) {
+        return false;
+      }
+      pane.close();
+      return true;
     },
     // Nothing here is edited: Enter opens the row.
     onEdit: () => false,
-    // On wide screens the pane follows the selection; without a pane, only the focus moves.
+    // On wide screens the reader follows the selection; without it, only the focus moves.
     onSelect: (index) => pane?.follow(here(paths[index])),
-    selected: paths.indexOf(openPath(open) ?? ""),
+    selected: paths.indexOf(shown ?? ""),
   });
   return (
-    <Page>
-      <VStack gap={6}>
-        <HStack align="center" gap={3} justify="between" wrap="wrap">
-          <Heading level={1}>Constitution and decisions</Heading>
-          {agent && <CheckButton chat={chat} check={check} />}
-        </HStack>
-        {!agent && check === null && <CheckMessage />}
+    <Pane isActive level={1} title="Constitution and decisions">
+      <VStack gap={4}>
+        {(agent || check === null) && (
+          <HStack align="center" gap={3} wrap="wrap">
+            {agent ? <CheckButton chat={chat} check={check} /> : <CheckMessage />}
+          </HStack>
+        )}
         {check !== null && <DecisionsCheckBanner agent={agent} chat={chat} status={check} />}
         {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
         <div ref={ref}>
           <VStack gap={6}>
             <ConstitutionRegion
               constitution={ledger.constitution}
-              selected={open?.kind === "principle" ? open.slug : undefined}
+              selected={markedPrinciple(ledger, open)}
             />
             <DecisionList
               decisions={decisions}
-              onSort={setSort}
+              onSort={onSort}
               selected={open?.kind === "decision" ? open.name : undefined}
               sort={sort}
             />
           </VStack>
         </div>
       </VStack>
-    </Page>
+    </Pane>
   );
 }
 
-/** What the pane draws for what is open: a principle, or a decision. */
-function LedgerDetail({ ledger, open }: { ledger: LedgerData; open: LedgerOpen }) {
+/** What the reader draws: a decision, or the whole constitution, at a principle or its top. */
+function ReaderBody({ ledger, open }: { ledger: LedgerData; open: LedgerOpen | undefined }) {
   const { constitution } = ledger;
-  if (open.kind === "principle") {
-    const principle = constitution?.principles.find((one) => one.slug === open.slug);
-    return constitution && principle ? (
-      <PrincipleDetail constitution={constitution} principle={principle} />
-    ) : (
-      <Paragraph>Nothing here.</Paragraph>
-    );
+  if (open?.kind === "decision") {
+    const decision = ledger.decisions.find((one) => one.name === open.name);
+    return decision ? <DecisionDetail decision={decision} /> : <Paragraph>Nothing here.</Paragraph>;
   }
-  const decision = ledger.decisions.find((one) => one.name === open.name);
-  return decision ? <DecisionDetail decision={decision} /> : <Paragraph>Nothing here.</Paragraph>;
+  return constitution ? (
+    <ConstitutionReader
+      constitution={constitution}
+      slug={open?.kind === "principle" ? open.slug : undefined}
+    />
+  ) : (
+    <Paragraph>There is no constitution to read: specs/CONSTITUTION.md is missing.</Paragraph>
+  );
 }
 
 /**
- * The constitution and the decisions, with `open` beside them on wide screens, or alone on narrow
- * ones with a way back; `onClose` closes it.
+ * The reader's pane, named by the file it shows: on narrow screens, the way back to the list, and
+ * the previous and next items of the list.
+ */
+function Reader({
+  ledger,
+  onClose,
+  open,
+  paths,
+}: {
+  ledger: LedgerData;
+  onClose: (() => void) | undefined;
+  open: LedgerOpen | undefined;
+  paths: ReadonlyArray<string>;
+}) {
+  const here = useRepoPath();
+  const narrow = isNarrow(useWidthClass());
+  const shown = shownPath(ledger, open);
+  const index = shown === undefined ? -1 : paths.indexOf(shown);
+  const previous = index > 0 ? paths[index - 1] : undefined;
+  const next = paths[index + 1];
+  const step = (label: "Next" | "Previous", path: string | undefined) => (
+    <Button
+      href={path && here(path)}
+      icon={<Icon icon={label === "Next" ? "chevronRight" : "chevronLeft"} />}
+      isDisabled={path === undefined}
+      isIconOnly
+      label={label}
+      variant="ghost"
+    />
+  );
+  const file =
+    open?.kind === "decision" ? `specs/decisions/${open.name}.md` : "specs/CONSTITUTION.md";
+  return (
+    <Pane title={file}>
+      <Page>
+        <VStack gap={4}>
+          <HStack align="center" gap={1} justify="between" wrap="wrap">
+            {narrow && onClose ? (
+              <Button
+                icon={<Icon icon="chevronLeft" />}
+                label="Constitution and decisions"
+                onClick={onClose}
+                variant="ghost"
+              />
+            ) : (
+              <span />
+            )}
+            <HStack gap={1}>
+              {step("Previous", previous)}
+              {step("Next", next)}
+            </HStack>
+          </HStack>
+          <ReaderBody ledger={ledger} open={open} />
+        </VStack>
+      </Page>
+    </Pane>
+  );
+}
+
+/**
+ * The constitution and the decisions, the reader beside them on wide and semi-wide screens, on
+ * `open` or the constitution; on narrow ones, the list, or `open` alone with a way back, `onClose`.
  */
 export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {
   const workspace = useWorkspace();
   const ledger = useLedger();
-  const wide = !isNarrow(useWidthClass());
+  const narrow = isNarrow(useWidthClass());
+  const [sort, setSort] = useDecisionSort();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(ledger !== null && ledger !== undefined);
   if (!workspace || !ledger) {
@@ -140,29 +243,28 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
       </Page>
     );
   }
-  const detail = open && (
-    <Page>
-      <VStack gap={4}>
-        {!wide && onClose && (
-          <HStack>
-            <Button
-              icon={<Icon icon="chevronLeft" />}
-              label="Constitution and decisions"
-              onClick={onClose}
-              variant="ghost"
-            />
-          </HStack>
-        )}
-        <LedgerDetail ledger={ledger} open={open} />
-      </VStack>
-    </Page>
+  const decisions = sortDecisions(ledger.decisions, sort);
+  const paths = itemPaths(ledger, decisions);
+  const list = (
+    <LedgerList
+      decisions={decisions}
+      ledger={ledger}
+      onSort={setSort}
+      open={open}
+      paths={paths}
+      sort={sort}
+    />
   );
   return (
     <Panes
-      detail={detail}
-      detailKey={openPath(open)}
-      list={<LedgerList ledger={ledger} open={open} />}
-      onCloseDetail={onClose}
+      detail={
+        narrow && !open ? undefined : (
+          <Reader ledger={ledger} onClose={onClose} open={open} paths={paths} />
+        )
+      }
+      detailKey={shownPath(ledger, open)}
+      list={narrow ? <Page>{list}</Page> : <div {...stylex.props(styles.column)}>{list}</div>}
+      listWidth="var(--size-ledger-list)"
     />
   );
 }

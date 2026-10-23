@@ -105,7 +105,7 @@ class ServerErrorBoundary extends Component<
  * on the decisions page, from a principle to a decision too.
  */
 function pageKey(route: Route, pathname: string, entryId: string | undefined) {
-  if (route.page === "decision" || route.page === "principle") {
+  if (route.page === "decisions" || route.page === "decision" || route.page === "principle") {
     return `ledger:${entryId}`;
   }
   return route.page === "task" || route.page === "note" ? `${route.page}:${entryId}` : pathname;
@@ -142,7 +142,7 @@ function RoutePage({ route }: { route: Route }) {
     case "decisions-check":
       return <CheckPage />;
     case "decisions":
-      return <DecisionsPage />;
+      return <LedgerRoute open={undefined} />;
     case "decision":
       return <LedgerRoute open={{ kind: "decision", name: route.name }} />;
     case "principle":
@@ -218,10 +218,11 @@ function NoteRoute({ noteKey }: { noteKey: string }) {
 }
 
 /**
- * A decision's or a principle's pane: on wide screens, beside the constitution and the decisions,
- * with its Close; on narrow screens, a page of its own. The list's keys show another item in it.
+ * The decisions page with its reader, on what is open or the constitution: on wide screens, beside
+ * the constitution and the decisions; on narrow screens, what is open is a page of its own. The
+ * list's keys show another item in it, and Escape returns it to the constitution.
  */
-function LedgerRoute({ open }: { open: LedgerOpen }) {
+function LedgerRoute({ open }: { open: LedgerOpen | undefined }) {
   const here = useRepoPath();
   const pane = useListPane(() => navigate(here("/decisions")));
   useListPosition();

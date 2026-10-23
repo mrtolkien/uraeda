@@ -1,5 +1,5 @@
-// What the decisions page's pane draws, read-only: a decision's or a principle's document, as the
-// core's tree of the file, with `Blocks`.
+// What the decisions page's reader draws for a decision, read-only: the changes the features'
+// branches make to it, then its document, as the core's tree of the file, with `Blocks`.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
@@ -15,12 +15,7 @@ import type { Block } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { useHash } from "../routes.tsx";
 import { decisionIcon } from "../theme/icons.ts";
-import {
-  type LedgerConstitution,
-  type LedgerPrinciple,
-  principleName,
-  versionLine,
-} from "./ConstitutionRegion.tsx";
+import { BranchChanges } from "./BranchChange.tsx";
 import { DecisionRules } from "./DecisionRules.tsx";
 import type { LedgerDecision } from "./model.ts";
 
@@ -39,40 +34,6 @@ const STATUSES: Record<string, string> = {
 /** A decision's status, as words. */
 export function statusLabel(status: string): string {
   return STATUSES[status] ?? status;
-}
-
-/**
- * A principle: its number and title, its rules and its rationale, the blocks under its heading,
- * then the constitution's version line.
- */
-export function PrincipleDetail({
-  constitution,
-  principle,
-}: {
-  constitution: LedgerConstitution;
-  principle: LedgerPrinciple;
-}) {
-  // Its heading is the pane's.
-  const [, ...ids] = principle.blocks;
-  const version = versionLine(constitution);
-  return (
-    <article aria-label={principleName(principle)}>
-      <VStack gap={4}>
-        <VStack gap={1}>
-          <Text color="secondary" type="supporting">
-            Principle {principle.number}
-          </Text>
-          <Heading level={2}>{principle.title}</Heading>
-        </VStack>
-        <Blocks document={constitution.document} ids={ids} />
-        {version && (
-          <Text color="secondary" type="supporting">
-            {version}
-          </Text>
-        )}
-      </VStack>
-    </article>
-  );
 }
 
 /**
@@ -107,7 +68,8 @@ function aroundRules(
 
 /**
  * A decision: its icon and title, status, and approver, the first problem `ura check` finds in it, as an
- * error when it cannot be parsed and a warning otherwise, then its document past its title.
+ * error when it cannot be parsed and a warning otherwise, the features' changes to it, then its
+ * document past its title.
  */
 export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
   const { document } = decision;
@@ -156,6 +118,7 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
           ) : (
             <Banner status="warning" title={decision.problem} />
           ))}
+        <BranchChanges name={decision.name} />
         <Blocks document={document} ids={before} />
         {after !== null && <DecisionRules parts={decision.rules} />}
         {after !== null && after.length > 0 && <Blocks document={document} ids={after} />}

@@ -41,7 +41,8 @@ test("the decisions page and the spec page name a MUST NOT the same way", async 
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage("/decisions/task-storage", repo);
-  await screen.findByText(/Components MUST NOT call IndexedDB/);
+  // The feature's branch changes it: the rule shows in its diff too, first (layout look's US4).
+  await screen.findAllByText(/Components MUST NOT call IndexedDB/);
   const onLedger = mustNot(screen.getByRole("main"));
   document.body.replaceChildren();
 

@@ -5,8 +5,9 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
+import { addSpecFeature } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
-import { atRepo, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 /** Commits every change of the repository, dated `date`. */
 function commitOn(repo: string, message: string, date: string) {
@@ -62,6 +63,47 @@ async function pane() {
   return within(await screen.findByRole("region", { name: "Detail" }));
 }
 
+/** The constitution's principles, in its order. */
+const PRINCIPLES = [
+  "Humans stay in control",
+  "Git and plain text first",
+  "Asynchronous by default",
+  "Review effort matches impact",
+  "Tools are optional",
+  "Code is checked and stays maintainable",
+];
+
+/** The principles' titles, of their rows' links, named by numeral, title, and first rule. */
+function principleTitles(links: ReadonlyArray<HTMLElement>) {
+  return links.map((link) => PRINCIPLES.find((title) => link.textContent?.includes(title)));
+}
+
+/** The principles' rows, by their link. */
+async function principleRow(title: string) {
+  const constitution = within(await screen.findByRole("region", { name: "Constitution" }));
+  const row = constitution
+    .getAllByRole("listitem")
+    .find((item) => item.textContent?.includes(title));
+  if (!row) {
+    throw new Error(`No principle row ${title}`);
+  }
+  return row;
+}
+
+/** The reader shows the whole constitution: its title, version, and every principle's heading. */
+async function expectWholeConstitution() {
+  const detail = await pane();
+  expect(await detail.findByRole("heading", { name: "Uraeda Constitution" })).toBeTruthy();
+  expect(
+    detail.getByText("Version 1.3.1 · Ratified 2026-10-07 · Last amended 2026-10-14"),
+  ).toBeTruthy();
+  for (const [index, title] of PRINCIPLES.entries()) {
+    const numeral = ["I", "II", "III", "IV", "V", "VI"][index];
+    expect(detail.getByRole("heading", { level: 3, name: `${numeral}. ${title}` })).toBeTruthy();
+  }
+  return detail;
+}
+
 /** Whether a text field has the focus: opening an item never puts it in one (SC-005). */
 function isFieldFocused() {
   const active = document.activeElement;
@@ -79,18 +121,16 @@ test("shows the constitution's version and principles, then the decisions, lates
   const page = await main();
   expect(await page.findByRole("heading", { name: "Constitution and decisions" })).toBeTruthy();
   const constitution = within(page.getByRole("region", { name: "Constitution" }));
-  expect(constitution.getByRole("heading", { name: "Constitution" })).toBeTruthy();
+  expect(constitution.getByRole("heading", { name: /^Constitution/ })).toBeTruthy();
+  expect(constitution.getByText(/one file, highest first/)).toBeTruthy();
+  // Each principle's row: its numeral, its title, its first rule, and its count of rules.
+  expect(principleTitles(constitution.getAllByRole("link"))).toEqual(PRINCIPLES);
   expect(
-    constitution.getByText("Version 1.3.1 · Ratified 2026-10-07 · Last amended 2026-10-14"),
+    within(constitution.getAllByRole("listitem")[0]!).getByText(
+      "Agents MUST stay within the scope and decisions a human approved.",
+    ),
   ).toBeTruthy();
-  expect(constitution.getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual([
-    "I. Humans stay in control",
-    "II. Git and plain text first",
-    "III. Asynchronous by default",
-    "IV. Review effort matches impact",
-    "V. Tools are optional",
-    "VI. Code is checked and stays maintainable",
-  ]);
+  expect(within(constitution.getAllByRole("listitem")[0]!).getByText("3 rules")).toBeTruthy();
   expect(page.getByRole("heading", { name: "Decisions · 5" })).toBeTruthy();
   // Stack changed last; the others, changed the same day, A to Z.
   const latest = ["Stack", "Agents", "Git", "TUI", "UI behaviour"];
@@ -140,23 +180,111 @@ test("a decision opens to read in the pane, with its status, approver, and secti
   expect(isFieldFocused()).toBe(false);
 });
 
-/** US8 4 */
-test("a principle opens to read in the pane, with its rules, rationale, and version", async () => {
+/** US8 4, and US4 of the layout look: a principle opens the whole constitution, at it. */
+test("a principle opens the whole constitution in the reader, with its rules and rationale", async () => {
   await renderPage("/decisions");
 
-  await click(await screen.findByRole("link", { name: "IV. Review effort matches impact" }));
+  await click(within(await principleRow("Review effort matches impact")).getByRole("link"));
 
   expect(window.location.pathname).toBe(atRepo("/decisions/constitution/iv"));
-  const detail = await pane();
-  expect(detail.getByRole("heading", { name: "Review effort matches impact" })).toBeTruthy();
+  const detail = await expectWholeConstitution();
   expect(
     detail.getByText("Every question asked to a human MUST come with a recommended answer."),
   ).toBeTruthy();
   expect(detail.getByText(/human attention is the scarcest resource/)).toBeTruthy();
-  expect(
-    detail.getByText("Version 1.3.1 · Ratified 2026-10-07 · Last amended 2026-10-14"),
-  ).toBeTruthy();
   expect(isFieldFocused()).toBe(false);
+});
+
+/** US4 1 of the layout look: nothing picked, the reader shows the constitution. */
+test("the decisions page opens the constitution in the reader, principle I marked", async () => {
+  await renderPage("/decisions");
+
+  await expectWholeConstitution();
+  const first = await principleRow("Humans stay in control");
+  expect(first.getAttribute("aria-current")).toBe("true");
+  expect((await principleRow("Asynchronous by default")).getAttribute("aria-current")).toBeNull();
+});
+
+/** US4 of the layout look: a principle's address shows the same reader, at the principle. */
+test("a principle's address shows the whole constitution, scrolled to it and marked", async () => {
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
+  await renderPage("/decisions/constitution/iii");
+
+  await expectWholeConstitution();
+  await waitFor(() => expect(scrolled).toHaveBeenCalled());
+  const heading = scrolled.mock.contexts.at(-1) as HTMLElement;
+  expect(heading.textContent).toBe("III. Asynchronous by default");
+  expect((await principleRow("Asynchronous by default")).getAttribute("aria-current")).toBe("true");
+  expect((await principleRow("Humans stay in control")).getAttribute("aria-current")).toBeNull();
+});
+
+/** US4 2 of the layout look */
+test("a decision clicked from the constitution shows in the reader, at its address", async () => {
+  await renderPage("/decisions/constitution/iii");
+  await expectWholeConstitution();
+
+  await click(within(await decisionRow("UI behaviour")).getByRole("link"));
+
+  expect(window.location.pathname).toBe(atRepo("/decisions/ui-behaviour"));
+  const detail = await pane();
+  expect(await detail.findByRole("heading", { level: 2, name: "UI behaviour" })).toBeTruthy();
+  expect(detail.queryByRole("heading", { name: "Uraeda Constitution" })).toBeNull();
+});
+
+/** The reader's previous and next follow the list's order: the principles, then the decisions. */
+test("the reader's Next goes from the last principle to the first decision, Previous back", async () => {
+  await renderPage("/decisions/constitution/vi");
+  await expectWholeConstitution();
+
+  await click((await pane()).getByRole("link", { name: "Next" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/agents")));
+  expect(await (await pane()).findByRole("heading", { level: 2, name: "Agents" })).toBeTruthy();
+
+  await click((await pane()).getByRole("link", { name: "Previous" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/constitution/vi")));
+});
+
+/** US4 more 2 of the layout look */
+test("a decision changed on a feature's branch shows its change first, naming the feature", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage("/decisions/task-storage", repo);
+
+  const detail = await pane();
+  const change = await detail.findByRole("region", { name: /^Proposed by Recurring tasks/ });
+  // The diff: the branch's words marked in place, before the decision's own rules.
+  expect(within(change).getAllByRole("insertion").length).toBeGreaterThan(0);
+  const rules = detail.getAllByRole("heading", { name: "Rules" }).at(-1)!;
+  expect(change.compareDocumentPosition(rules) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  // A decision no branch changes has none.
+  await click(within(await decisionRow("Git")).getByRole("link"));
+  expect(await (await pane()).findByRole("heading", { level: 2, name: "Git" })).toBeTruthy();
+  expect((await pane()).queryByRole("region", { name: /^Proposed by/ })).toBeNull();
+});
+
+/** US4 more 1 of the layout look */
+test("on a phone, the reader replaces the list, with the way back to it", async () => {
+  atWidth(402);
+  await renderPage("/decisions");
+
+  // Nothing picked: the list alone.
+  await decisionList();
+  expect(screen.queryByRole("region", { name: "Detail" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Uraeda Constitution" })).toBeNull();
+
+  await click(within(await decisionRow("Git")).getByRole("link"));
+
+  expect(window.location.pathname).toBe(atRepo("/decisions/git"));
+  expect(await screen.findByRole("heading", { level: 2, name: "Git" })).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "Decisions" })).toBeNull();
+
+  await click(screen.getByRole("button", { name: "Constitution and decisions" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions")));
+  expect(await decisionList()).toBeTruthy();
 });
 
 /** US8 6 */
@@ -214,7 +342,7 @@ test("says when there is no decision yet", async () => {
   await renderPage("/decisions", repo);
 
   expect(await screen.findByText("No decisions yet.")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "I. Humans stay in control" })).toBeTruthy();
+  expect(await principleRow("Humans stay in control")).toBeTruthy();
 });
 
 test("says when there is no constitution yet", async () => {

@@ -11,6 +11,7 @@ import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { decisionIcon } from "../theme/icons.ts";
+import { ruleCount } from "./ConstitutionRegion.tsx";
 import { statusLabel } from "./DecisionDetail.tsx";
 import { type DecisionSort, type LedgerDecision, SORTS, shortDate } from "./model.ts";
 
@@ -27,7 +28,7 @@ const styles = stylex.create({
 
 /**
  * A decision's row: its icon, its title, its first sentence, or "Can't read this file" when it
- * cannot be parsed, its last change, and its status unless active.
+ * cannot be parsed, its count of rules, its last change, and its status unless active.
  */
 function DecisionRow({ decision, isSelected }: { decision: LedgerDecision; isSelected: boolean }) {
   const here = useRepoPath();
@@ -38,9 +39,19 @@ function DecisionRow({ decision, isSelected }: { decision: LedgerDecision; isSel
       data-row=""
       description={subtitle && <Text color="secondary">{subtitle}</Text>}
       endContent={
-        <HStack align="center" gap={2}>
+        <HStack align="center" gap={1}>
           {decision.status !== null && decision.status !== "active" && (
             <Badge label={statusLabel(decision.status)} variant="yellow" />
+          )}
+          {decision.rules.length > 0 && (
+            <Text color="secondary" hasTabularNumbers type="supporting">
+              {ruleCount(decision.rules.length)}
+            </Text>
+          )}
+          {decision.rules.length > 0 && decision.changed && (
+            <Text color="secondary" type="supporting">
+              ·
+            </Text>
           )}
           {decision.changed && (
             <Text color="secondary" hasTabularNumbers type="supporting">
