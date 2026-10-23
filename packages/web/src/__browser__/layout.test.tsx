@@ -17,8 +17,8 @@
 // edge case). So do a spec with a story embedded, ready, a round whose options are stories, and the
 // Storybook page (the UI iteration flow's UI checks). So do the sign-in screen, empty and with its
 // error, and the settings' Sign-in category and its confirmation, in `sign-in.test.tsx`.
-// So do the settings page, its Server and Sign-in categories, and a search with its results
-// (SC-005 of the settings page).
+// So do the settings page, one form, opened at its Runs section, and a search that leaves a row
+// (SC-005 of the settings page, US5 of the layout's look).
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
@@ -90,11 +90,10 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   // A feature's session before its first message, and the New page with Session picked.
   ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
   ["a new session", "/new", "It offers a change when the work grows.", null],
-  // The settings page: its categories, the Server category with the test server's override note,
-  // and Sign-in (SC-005 of the settings page).
-  ["the settings", "/settings", "Host names, port, and start", null],
-  ["the Server settings", "/settings/server", "Allowed host names", null],
-  ["the Sign-in settings", "/settings/sign-in", "Sign out everywhere…", null],
+  // The settings page, one form, with the test server's override note, and opened at its Runs
+  // section (SC-005 of the settings page, US5 of the layout's look).
+  ["the settings", "/settings", "Allowed host names", null],
+  ["the settings at Runs", "/settings/runs", "Build in a fresh session", null],
   // US8: the constitution and the decisions, and a decision open beside them, or alone on a phone.
   ["the decisions", "/decisions", "Decisions · 5", null],
   ["a decision open", "/decisions/ui-behaviour", "Approved by mrtolkien", null],
@@ -915,11 +914,12 @@ test.each(MODES)("the Discard your comment? confirmation, in $mode", async ({ mo
   await checkLayout(dialog);
 });
 
-test.each(MODES)("a search of the settings with its results, in $mode", async ({ mode }) => {
+test.each(MODES)("a search of the settings that leaves its rows, in $mode", async ({ mode }) => {
   window.localStorage.setItem("uraeda.theme", mode);
-  await show("/settings", "Host names, port, and start");
+  await show("/settings", "Allowed host names");
   await userEvent.fill(screen.getByRole("textbox", { name: "Search settings" }), "model");
-  await screen.findByRole("list", { name: "Settings found" });
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Server" })).toBeNull());
+  await screen.findByRole("heading", { name: "A second review by another model" });
   await drawn();
   await checkLayout();
 });

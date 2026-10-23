@@ -434,3 +434,33 @@ export const fileText = outline(
   h("path", { d: "M16 13H8" }),
   h("path", { d: "M16 17H8" }),
 );
+
+/** Lucide's `server`, for the server's settings. */
+export const server = outline(
+  h("rect", { height: 8, rx: 2, width: 20, x: 2, y: 2 }),
+  h("rect", { height: 8, rx: 2, width: 20, x: 2, y: 14 }),
+  h("path", { d: "M6 6h.01" }),
+  h("path", { d: "M6 18h.01" }),
+);
+
+/** Lucide's `globe`, for the host names the server answers to. */
+export const globe = outline(
+  h("circle", { cx: 12, cy: 12, r: 10 }),
+  h("path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" }),
+  h("path", { d: "M2 12h20" }),
+);
+
+/** Lucide's `plug`, for the server's port. */
+export const plug = outline(
+  h("path", { d: "M12 22v-5" }),
+  h("path", { d: "M9 8V2" }),
+  h("path", { d: "M15 8V2" }),
+  h("path", { d: "M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" }),
+);
+
+/** Lucide's `log-out`, for signing out. */
+export const logOut = outline(
+  h("path", { d: "m16 17 5-5-5-5" }),
+  h("path", { d: "M21 12H9" }),
+  h("path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }),
+);

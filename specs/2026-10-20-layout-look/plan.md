@@ -639,26 +639,28 @@ behaviour the spec marks unverified.
 
 **Files:**
 
+- Create: `packages/web/src/settings/SettingRow.tsx` (a row: icon, name, help, control)
 - Modify: `packages/web/src/settings/SettingsView.tsx`, `settings/categories.ts` (each setting's
   icon and help line), `ServerSettings.tsx`, `RunSettings.tsx`, `OtherSettings.tsx`,
-  `SettingsPage.tsx`, `SettingsView.stories.tsx`
+  `SettingsPage.tsx`, `SettingsView.stories.tsx`, `theme/icons.ts` and `theme/lucide.ts` (the rows'
+  glyphs), `scripts/settings-shots.ts`
 - Modify: `packages/web/src/__tests__/settings.test.tsx`, `__browser__/layout.test.tsx` (the
-  settings pages' waits)
+  settings pages' waits), `__browser__/story-embed.test.tsx` (the scheme picked on the form)
 
 **Interfaces:**
 
 - Consumes: `Pane`, the scheme control (Task 6).
 
-- [ ] **Step 1: Write the failing tests**: one form with the sections Server, Appearance, Sign-in,
+- [x] **Step 1: Write the failing tests**: one form with the sections Server, Appearance, Sign-in,
       Agents, Runs, and Reviews in that order; "port" in "Search settings" leaves only the Port row,
       under Server; "zzz" reads "No setting matches “zzz”."; `/settings/runs` shows the form with
       Runs in view; with an invalid `settings.toml`, Server and Runs show the file's problem. The
       server mutation tests keep their controls. Break: a search that filters sections, not rows.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, the categories index is there.
-- [ ] **Step 3: Implement** the form; no file view (the review's C4).
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the settings file.
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, the categories index is there.
+- [x] **Step 3: Implement** the form; no file view (the review's C4).
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the settings file.
       Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(layout-look): settings on one page, with a search"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(layout-look): settings on one page, with a search"`.
 
 ## Task 12: Decisions in three columns
 

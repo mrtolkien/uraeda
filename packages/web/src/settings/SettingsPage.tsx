@@ -6,7 +6,7 @@ import { useSettings } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { OnListClient } from "../RepositoryMenu.tsx";
-import { useRepoPath, useRestoreScroll } from "../routes.tsx";
+import { useRestoreScroll } from "../routes.tsx";
 import { SettingsRecordView } from "../views.ts";
 import { categoryOf } from "./categories.ts";
 import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
@@ -54,7 +54,6 @@ function OnSettings({ category }: { category?: string }) {
   const fate = useFateClient();
   const settings = useSettings();
   const confirm = useConfirm();
-  const here = useRepoPath();
   useRestoreScroll(true);
   const view = SettingsRecordView;
   const { settings: change } = fate.mutations;
@@ -75,15 +74,16 @@ function OnSettings({ category }: { category?: string }) {
   return (
     <SettingsView
       category={category === undefined ? undefined : categoryOf(category)?.id}
-      indexPath={here("/settings")}
-      pathOf={(id) => here(`/settings/${id}`)}
       server={settings}
       serverActions={actions}
     />
   );
 }
 
-/** The settings page, at `/r/<name>/settings` or `/r/<name>/settings/<category>`. */
+/**
+ * The settings page, at `/r/<name>/settings` or `/r/<name>/settings/<category>`, which scrolls to
+ * that category's section.
+ */
 export function SettingsPage({ category }: { category?: string }) {
   return (
     <OnListClient>

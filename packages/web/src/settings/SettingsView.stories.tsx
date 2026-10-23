@@ -1,11 +1,10 @@
-// The settings page's states, as the spec's mockups: each category, the Server category with a
-// value a flag overrides and with a file that cannot be read, the phone's list of categories, and
-// a search.
+// The settings page's states, as the spec's mockups: the form, with values a flag or a variable
+// overrides, with a file that cannot be read, opened at its Runs section, and searched, with a match
+// and without one.
 // The Server values are records as the server's settings source gives them, passed in, as
 // `SettingsPage` passes the one it reads; Sign-in and Appearance are the real ones.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { RepositoryPathContext } from "../routes.tsx";
-import type { CategoryId } from "./categories.ts";
 import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
 
@@ -35,10 +34,8 @@ const serverActions: ServerActions = {
   setPort: async () => undefined,
 };
 
-const pathOf = (id: CategoryId) => `#settings/${id}`;
-
 const meta = {
-  args: { category: "server", indexPath: "#settings", pathOf, server, serverActions },
+  args: { category: undefined, server, serverActions },
   component: SettingsView,
   // The lines edited in place keep their unsaved text under the repository's path.
   decorators: [
@@ -55,8 +52,8 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** The Server category, from the settings file: one host name, the default port, a browser. */
-export const Server: Story = {};
+/** The form, from the settings file: one host name, the default port, a browser. */
+export const Form: Story = {};
 
 /** Started with `--allowed-hosts` and `URAEDA_PORT`: each says what is in force for this run. */
 export const Overridden: Story = {
@@ -76,7 +73,7 @@ export const Overridden: Story = {
   },
 };
 
-/** A settings file broken by a hand edit: the problem, and no change taken. */
+/** A settings file broken by a hand edit: the problem in Server and Runs, and no change taken. */
 export const Unreadable: Story = {
   args: {
     server: {
@@ -87,17 +84,11 @@ export const Unreadable: Story = {
   },
 };
 
-/** The theme, on this browser. */
-export const Appearance: Story = { args: { category: "appearance" } };
-
-/** Sign out this browser, or every device. */
-export const SignIn: Story = { args: { category: "sign-in" } };
-
-/** Building in a fresh session, on by default, and the run settings later features bring. */
+/** Opened at `/settings/runs`: the form, scrolled to its Runs section. */
 export const Runs: Story = { args: { category: "runs" } };
 
-/** No category named: the list on a phone, Server beside it on a desktop. */
-export const Index: Story = { args: { category: undefined } };
+/** A search that leaves one row: "port" keeps the Port row, under Server. */
+export const Search: Story = { args: { initialSearch: "port" } };
 
-/** A search across every category, the settings to come included: each leads to its category. */
-export const Search: Story = { args: { category: undefined, initialSearch: "model" } };
+/** A search that finds nothing, and says so. */
+export const NoMatch: Story = { args: { initialSearch: "zzz" } };

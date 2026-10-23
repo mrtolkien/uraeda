@@ -1,16 +1,16 @@
-// The Runs category: whether the run after a spec's approval starts in a fresh session, the
-// default the approval's own switch starts from, then the run settings later features bring.
+// The Runs section: whether the run after a spec's approval starts in a fresh session, the default
+// the approval's own switch starts from, then the run settings later features bring.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
-import { Heading } from "@astryxdesign/core/Heading";
 import { Switch } from "@astryxdesign/core/Switch";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
-import type { Category } from "./categories.ts";
-import { PlannedList } from "./OtherSettings.tsx";
+import { type Category, settingOf } from "./categories.ts";
+import { PlannedRows } from "./OtherSettings.tsx";
+import { SettingRow, SettingRows } from "./SettingRow.tsx";
 import { FileProblem, type ServerActions, type ServerValues } from "./ServerSettings.tsx";
 
-/** The Runs category, read-only with its problem when the file cannot be read. */
-export function RunSettings({
+/** Building in a fresh session, saved at once, with its refusal under it. */
+function BuildFresh({
   actions,
   category,
   values,
@@ -20,26 +20,49 @@ export function RunSettings({
   values: ServerValues;
 }) {
   const [refused, setRefused] = useState<string>();
-  if (values.problem) {
-    return <FileProblem label={category.label} problem={values.problem} />;
-  }
-  const { buildInFreshSession } = values.runs;
+  const setting = settingOf(category, "Build in a fresh session");
   return (
-    <VStack gap={6}>
-      <Heading level={2}>{category.label}</Heading>
-      <VStack gap={2}>
-        <Switch
-          description="When a spec is approved, the plan and the build start in a new agent session instead of continuing the one that wrote the spec. Each approval can change it for its run. A change applies at once."
-          label="Build in a fresh session"
-          onChange={async (fresh: boolean) => {
-            setRefused(undefined);
-            setRefused(await actions.setBuildInFreshSession(fresh));
-          }}
-          value={buildInFreshSession.inForce}
-        />
-        {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
-      </VStack>
-      <PlannedList category={category} />
+    <SettingRow
+      notes={refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
+      setting={setting}
+    >
+      <Switch
+        isLabelHidden
+        label={setting.label}
+        onChange={async (fresh: boolean) => {
+          setRefused(undefined);
+          setRefused(await actions.setBuildInFreshSession(fresh));
+        }}
+        value={values.runs.buildInFreshSession.inForce}
+      />
+    </SettingRow>
+  );
+}
+
+/**
+ * The Runs section's rows that `shows` keeps, the settings to come included; the file's problem
+ * in place of its switch when the file cannot be read.
+ */
+export function RunSettings({
+  actions,
+  category,
+  shows,
+  values,
+}: {
+  actions: ServerActions;
+  category: Category;
+  shows: (label: string) => boolean;
+  values: ServerValues;
+}) {
+  return (
+    <VStack>
+      {values.problem && <FileProblem problem={values.problem} />}
+      <SettingRows>
+        {!values.problem && shows("Build in a fresh session") && (
+          <BuildFresh actions={actions} category={category} values={values} />
+        )}
+        <PlannedRows category={category} shows={shows} />
+      </SettingRows>
     </VStack>
   );
 }
