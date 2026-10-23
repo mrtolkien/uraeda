@@ -198,11 +198,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: a declared size is then the size the test runs at, with no resize to forget or to
   undo in a `finally`; a third instance would run every file a third time for a few tests. The place
   keepers put a place back when the page's layout changes, which 768 px does; at 1280 px the page
-  keeps its layout and only the shell changes (Review focus 2). That is not proven yet: until the
-  shell's rail (task 8) lands, the shell is the same on both sides of 1280 px, so the crossing tests
-  pass whether the keepers compare `isNarrow` or the whole class, and even with no keeper at all.
-  They fail when a keeper moves the place at 1280 px (checked by a keeper that scrolls to the end
-  there).
+  keeps its layout and only the shell changes (Review focus 2). The shell's rail (task 8) has
+  landed: crossing 1280 px now swaps the 52 px rail for the 256 px column, so the page's column
+  narrows and its text wraps anew, and the session's 1205 → 1440 → 1205 px tests still pass with the
+  keepers comparing `isNarrow`: the browser's scroll anchoring keeps the place read mid-way as the
+  text rewraps, and the end followed stays the end. They fail when a keeper moves the place at 1280
+  px (checked by a keeper that scrolls to the end there).
 - **Alternatives considered**: a semi-wide instance in `vite.browser.config.ts`: a third run of all
   44 files. `"semi"` as an alias of `"desktop"`, each test resizing: the size declared and the size
   run would differ.
