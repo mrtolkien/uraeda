@@ -104,9 +104,10 @@ export function toCard(feature: Feature, row: Row | undefined): CardItem {
   };
 }
 
-/** A session without a workflow's card: a speech bubble, its title, and its status. */
+/** A session without a workflow's card: its harness's mark, its title, and its status. */
 export function sessionCard(row: Row): CardItem {
   return {
+    agent: row.agent,
     folder: row.id,
     ...(row.backgroundCommands > 0 ? { hasBackgroundCommand: true } : {}),
     kind: "session",

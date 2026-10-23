@@ -1,4 +1,4 @@
-// A session's header: its title, its status, its agent, and its place.
+// A session's header: its title, its status, its agent's mark and name, and its place.
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -6,6 +6,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import type { SessionStatus as Status } from "uraeda-server/fate";
 import { useAgent } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
+import { HarnessMark } from "./HarnessMark.tsx";
 import { StatusMark } from "./StatusMark.tsx";
 import type { RenameControls } from "./useSessionControls.ts";
 
@@ -47,6 +48,7 @@ export function SessionHeader({
       </Heading>
       <HStack align="center" gap={2} wrap="wrap">
         {status && <SessionStatus label={status.label} status={status.status} />}
+        {agent && <HarnessMark isDecorative kind={agent.kind} />}
         <Text color="secondary" type="supporting">
           {meta.join(" · ")}
         </Text>
