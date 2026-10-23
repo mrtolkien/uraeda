@@ -5,18 +5,12 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { atSize, drawn, show } from "./helpers.tsx";
+import { atSize, drawn, middle, pickUp, show } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
 const NEXT_SWAPPED =
   "## Next\n\n- [Git listener process](drafts/git-listener.md)\n- Claude Code runner (triggered manually)\n";
-
-/** The middle of an element, in the page's coordinates. */
-function middle(element: Element) {
-  const box = element.getBoundingClientRect();
-  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-}
 
 /** Where a line's text is now on screen: it moves with its row. */
 function top(name: RegExp) {
@@ -106,12 +100,8 @@ describe("on the desktop, with a mouse", () => {
     const before = top(/Claude Code runner/);
     const above = runner.getBoundingClientRect().top + 2;
 
-    await commands.mouse([
-      { type: "move", x: handle.x, y: handle.y },
-      { type: "down" },
-      { type: "move", x: handle.x, y: handle.y - 10 },
-      { type: "move", x: handle.x, y: above },
-    ]);
+    await pickUp("Git listener process");
+    await commands.mouse([{ type: "move", x: handle.x, y: above }]);
     // The line passed over slides down to make room.
     await expect.poll(() => top(/Claude Code runner/)).toBeGreaterThan(before + 10);
     await commands.mouse([{ type: "up" }]);
@@ -126,14 +116,8 @@ describe("on the desktop, with a mouse", () => {
     const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
     const above = screen.getByRole("link", { name: /Claude Code runner/ }).getBoundingClientRect();
 
-    await commands.mouse([
-      { type: "move", x: handle.x, y: handle.y },
-      { type: "down" },
-      { type: "move", x: handle.x, y: handle.y - 10 },
-      { type: "move", x: handle.x, y: above.top + 2 },
-    ]);
-    // The drag has started: the line is announced where it is now.
-    await expect.poll(() => document.body.textContent).toMatch(/(Picked up|Moved:) Git listener/);
+    await pickUp("Git listener process");
+    await commands.mouse([{ type: "move", x: handle.x, y: above.top + 2 }]);
     await userEvent.keyboard("[Escape]");
     await expect.poll(() => document.body.textContent).toContain("Move cancelled: Git listener");
     await commands.mouse([{ type: "up" }]);
@@ -148,13 +132,9 @@ describe("on the desktop, with a mouse", () => {
     const live = watchLiveUpdates();
     await show("/priorities", "Git listener process");
     const original = await commands.readRepo();
-    const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
 
-    await commands.mouse([
-      { type: "move", x: handle.x, y: handle.y },
-      { type: "down" },
-      { type: "move", x: handle.x, y: handle.y - 10 },
-    ]);
+    // The drag is under way, its list held, before the update is written.
+    await pickUp("Git listener process");
     await commands.writeRepo(
       original
         .replace("## Next\n\n", "## Next\n\n- Live line\n")
@@ -242,15 +222,12 @@ describe("on the desktop, started entries", () => {
     await show("/priorities", "Sea line");
     expect(screen.getByRole("heading", { name: "Now · 2" })).toBeTruthy();
     const handle = middle(screen.getByRole("button", { name: "Move Sea line" }));
-    const above = screen.getByRole("link", { name: /Bee line/ }).getBoundingClientRect().top + 2;
+    const before = top(/Bee line/);
 
-    await commands.mouse([
-      { type: "move", x: handle.x, y: handle.y },
-      { type: "down" },
-      { type: "move", x: handle.x, y: handle.y - 10 },
-      { type: "move", x: handle.x, y: above },
-    ]);
-    await expect.poll(() => lifted("Sea line")).toBe(true);
+    await pickUp("Sea line");
+    await commands.mouse([{ type: "move", x: handle.x, y: before + 2 }]);
+    // The line passed over slides down to make room.
+    await expect.poll(() => top(/Bee line/)).toBeGreaterThan(before + 10);
     await commands.mouse([{ type: "up" }]);
 
     await expect

@@ -632,6 +632,31 @@ export function dragEnd() {
   window.dispatchEvent(new DragEvent("dragend", { bubbles: true }));
 }
 
+/** The middle of an element, in the page's coordinates. */
+export function middle(element: Element) {
+  const box = element.getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+
+/**
+ * Picks a list's line up by its handle, the button `Move <text>`, with the mouse, and leaves the
+ * button down: once it returns, the drag follows the pointer. dnd-kit starts a drag once React has
+ * drawn its start, frames after the press on a busy machine, and drops every pointer move before:
+ * the pointer moves on only once the line is announced picked up (or moved, its place where it
+ * started, which replaces it), and the drag is under way once the handle has moved with it.
+ */
+export async function pickUp(text: string) {
+  const handle = screen.getByRole("button", { name: `Move ${text}` });
+  const start = middle(handle);
+  const escaped = text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+  await commands.mouse([{ type: "move", x: start.x, y: start.y }, { type: "down" }]);
+  await expect
+    .poll(() => document.body.textContent)
+    .toMatch(new RegExp(`(Picked up|Moved:) ${escaped}`));
+  await commands.mouse([{ type: "move", x: start.x, y: start.y - 10 }]);
+  await expect.poll(() => Math.round(middle(handle).y - start.y)).toBe(-10);
+}
+
 /** Saves an image next to a markdown file of the repository, as "Add image" does: its link. */
 export async function attached(path: string, file: File) {
   const body = new FormData();
