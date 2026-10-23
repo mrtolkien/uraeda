@@ -127,7 +127,10 @@ export async function runSession(options: {
       const fetches = event.kind === "fetch" || (event.kind === "execute" && FETCHING.test(text));
       result.urls.push(...(fetches ? addressesOf(text) : []));
     } else if (event.type === "usage") {
-      result.usageLimit ||= event.fiveHour.percentUsed >= 100;
+      // A full week stops the agent as a full five-hour window does.
+      result.usageLimit ||= [event.fiveHour, event.week].some(
+        (limit) => limit !== undefined && limit.percentUsed >= 100,
+      );
     } else if (event.type === "result") {
       // A session may answer several turns: nothing an earlier one did is overwritten.
       result.denials.push(...event.denials);

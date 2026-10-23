@@ -194,6 +194,15 @@ test("US3.6: SessionList lists features' and chats' sessions with their status, 
   expect(rows[0]).toMatchObject({ archived: false, subagents: [], updatedAt: expect.any(String) });
 });
 
+test("a session's row carries its agent's kind", async () => {
+  const server = await testServer();
+  const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };
+
+  const rows = await list(server);
+
+  expect(rows.find((row) => row.id === chat.id)).toMatchObject({ agent: "fake" });
+});
+
 test("US3.4: a running sub-agent shows in its session's row and record", async () => {
   const server = await testServer();
   const session = await send(server, { folder: AGENT, text: "Plan it" });

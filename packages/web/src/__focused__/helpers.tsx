@@ -79,6 +79,7 @@ export function agentRecord(overrides: Partial<AgentRecord> = {}): AgentRecord {
     kind: "fake",
     name: "Claude Code",
     version: null,
+    weekLimit: null,
     ...overrides,
   };
 }

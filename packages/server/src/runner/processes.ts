@@ -19,14 +19,21 @@ const NO_TOKENS: TokenCounts = { cacheRead: 0, cacheWrite: 0, input: 0, output: 
 
 type Exit = Extract<AgentEvent, { type: "exit" }>;
 
+/** The usage windows a report may carry, each kept apart. */
+type UsageWindow = "fiveHour" | "week";
+const WINDOWS: ReadonlyArray<UsageWindow> = ["fiveHour", "week"];
+
 /**
  * The sessions' processes: at most one per session, across servers, opened in the session's
  * directory, read to their exit, and closed with a bounded wait.
  */
 export class Processes {
   #context: SessionContext;
-  /** In report order: the newest open process's report wins, even when usage decreased. */
-  #limits = new Map<Proc, UsageLimit>();
+  /**
+   * Each window's reports, in report order: the newest open process's report wins, even when usage
+   * decreased. A report without a window keeps that window's last report.
+   */
+  #limits: Record<UsageWindow, Map<Proc, UsageLimit>> = { fiveHour: new Map(), week: new Map() };
   #expiry: ReturnType<typeof setTimeout> | undefined;
   /** Each process's agent session total so far, which its next report's own work is counted from. */
   #baselines = new WeakMap<Proc, TokenCounts>();
@@ -35,24 +42,50 @@ export class Processes {
     this.#context = context;
   }
 
-  /** The freshest unexpired five-hour report from an open process, across repositories. */
-  fiveHourLimit(): UsageLimit | null {
+  /** The freshest unexpired report of the window from an open process, across repositories. */
+  limit(window: UsageWindow): UsageLimit | null {
     return (
-      [...this.#limits.values()]
+      [...this.#limits[window].values()]
         .filter((limit) => Date.parse(limit.resetsAt) > Date.now())
         .at(-1) ?? null
     );
   }
 
+  /** Drops the process's reports of every window: whether it had any. */
+  #dropLimits(proc: Proc): boolean {
+    return WINDOWS.map((window) => this.#limits[window].delete(proc)).includes(true);
+  }
+
+  /** Keeps a report's windows as the process's newest, each in report order. */
+  #report(proc: Proc, event: Extract<AgentEvent, { type: "usage" }>) {
+    for (const window of WINDOWS) {
+      const limit = event[window];
+      if (limit) {
+        this.#limits[window].delete(proc);
+        this.#limits[window].set(proc, limit);
+      }
+    }
+    this.#usageChanged();
+  }
+
   /** Drops expired reports, and publishes expiry even when no process prints another event. */
   #usageChanged() {
     clearTimeout(this.#expiry);
-    for (const [proc, limit] of this.#limits) {
+    const limits = WINDOWS.flatMap((window) => [...this.#limits[window]]);
+    for (const [proc, limit] of limits) {
       if (Date.parse(limit.resetsAt) <= Date.now()) {
-        this.#limits.delete(proc);
+        WINDOWS.forEach((window) => {
+          if (this.#limits[window].get(proc) === limit) {
+            this.#limits[window].delete(proc);
+          }
+        });
       }
     }
-    const next = Math.min(...[...this.#limits.values()].map((limit) => Date.parse(limit.resetsAt)));
+    const next = Math.min(
+      ...WINDOWS.flatMap((window) =>
+        [...this.#limits[window].values()].map((limit) => Date.parse(limit.resetsAt)),
+      ),
+    );
     this.#expiry = Number.isFinite(next)
       ? setTimeout(() => this.#usageChanged(), Math.min(next - Date.now(), 2_147_483_647))
       : undefined;
@@ -161,7 +194,7 @@ export class Processes {
   close(proc: Proc) {
     if (!proc.closing) {
       proc.closing = true;
-      if (this.#limits.delete(proc)) {
+      if (this.#dropLimits(proc)) {
         this.#usageChanged();
       }
       proc.agent.close();
@@ -182,9 +215,7 @@ export class Processes {
         }
         if (event.type === "usage") {
           if (!proc.closing) {
-            this.#limits.delete(proc);
-            this.#limits.set(proc, event.fiveHour);
-            this.#usageChanged();
+            this.#report(proc, event);
           }
           continue;
         }
@@ -202,7 +233,7 @@ export class Processes {
   /** The process exited: its turn ends, and the queued turns start on a new one. */
   #exited(live: Live, proc: Proc, exit: Exit) {
     const { adapter, cache, turns } = this.#context;
-    if (this.#limits.delete(proc)) {
+    if (this.#dropLimits(proc)) {
       this.#usageChanged();
     }
     proc.terminate.forEach(clearTimeout);

@@ -1,4 +1,4 @@
-import type { Activity, AgentEvent, Denial, TokenCounts, ToolKind } from "./events.ts";
+import type { Activity, AgentEvent, Denial, TokenCounts, ToolKind, UsageLimit } from "./events.ts";
 import { toolTarget } from "./message.ts";
 
 /**
@@ -160,13 +160,25 @@ export function parseLine(
   }
 }
 
-/** Five-hour usage is a fraction in Claude's output; status-only notices give no percentage. */
+/**
+ * The five-hour and seven-day windows' usage, each a fraction in Claude's output; status-only
+ * notices give no percentage. A malformed window is left out, and the other one kept.
+ */
 function usageEvents(info: unknown): Array<AgentEvent> {
   if (!isObject(info)) {
     return [];
   }
-  const window = isObject(info.unifiedWindows) ? info.unifiedWindows.five_hour : undefined;
-  const limit = isObject(window) ? window : info.rateLimitType === "five_hour" ? info : undefined;
+  const fiveHour = usageLimit(info, "five_hour");
+  const week = usageLimit(info, "seven_day");
+  return fiveHour || week
+    ? [{ ...(fiveHour ? { fiveHour } : {}), type: "usage", ...(week ? { week } : {}) }]
+    : [];
+}
+
+/** One window of a report: from its unified windows, or the report itself when it is that window. */
+function usageLimit(info: Json, name: "five_hour" | "seven_day"): UsageLimit | undefined {
+  const window = isObject(info.unifiedWindows) ? info.unifiedWindows[name] : undefined;
+  const limit = isObject(window) ? window : info.rateLimitType === name ? info : undefined;
   if (
     !limit ||
     typeof limit.utilization !== "number" ||
@@ -174,20 +186,15 @@ function usageEvents(info: unknown): Array<AgentEvent> {
     limit.utilization < 0 ||
     typeof limit.resetsAt !== "number"
   ) {
-    return [];
+    return undefined;
   }
   const reset = new Date(limit.resetsAt * 1000);
   return Number.isFinite(reset.getTime())
-    ? [
-        {
-          fiveHour: {
-            percentUsed: Math.min(100, Math.round(limit.utilization * 1000) / 10),
-            resetsAt: reset.toISOString(),
-          },
-          type: "usage",
-        },
-      ]
-    : [];
+    ? {
+        percentUsed: Math.min(100, Math.round(limit.utilization * 1000) / 10),
+        resetsAt: reset.toISOString(),
+      }
+    : undefined;
 }
 
 function toolStart(

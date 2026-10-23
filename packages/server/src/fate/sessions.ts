@@ -264,6 +264,7 @@ async function rows(
       const read = turnsOf(cache, row.id);
       const { status, statusLabel } = statusOf(row, read, feature, isLatest(cache, row));
       return {
+        agent: row.agent,
         archived: row.archivedAt !== null,
         backgroundCommands: ctx.sessions.backgroundCommands(row.id),
         done: sessionDone({ ...row, ...(read.latest ? { latest: read.latest } : {}), status }),

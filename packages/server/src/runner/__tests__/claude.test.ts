@@ -219,6 +219,7 @@ test.each<[string, Array<AgentEvent>]>([
       {
         fiveHour: { percentUsed: 43, resetsAt: new Date(1_791_798_000 * 1000).toISOString() },
         type: "usage",
+        week: { percentUsed: 12, resetsAt: new Date(1_792_300_000 * 1000).toISOString() },
       },
     ],
   ],

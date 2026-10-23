@@ -121,3 +121,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   measure in `theme.ts`, the inset in `spec.test.tsx`.
 - **Where**: task 2, `packages/web/src/ReviewVerdict.tsx`, `pane/PriorityPane.tsx`, `Shell.tsx`,
   `ChangeAside.tsx`, `theme/theme.ts`, `__browser__/spec.test.tsx`.
+## R6: A weekly window now gives the week, where it gave no report
+
+- **Decision**: `usage.test.ts`'s case `{ rateLimitType: "seven_day", resetsAt, utilization: 0.43 }`
+  leaves the "missing, weekly or malformed usage gives no report" list, renamed "missing or
+  malformed usage gives no report". It checked that Uraeda ignored Claude's seven-day window, since
+  it read only the five-hour one. The new tests check the opposite, as US3's Usage pane asks: a
+  seven-day window, unified or direct, gives `week`; one with both windows gives both, each from its
+  own numbers; a malformed seven-day window gives no week and keeps the five-hour one, and alone
+  gives no report. A status-only `seven_day` notice joins the no-report list. A usage event now
+  carries `fiveHour`, `week`, or both, and the processes keep each window's freshest report per
+  process apart, so a report of the five-hour window alone keeps the week.
+- **Rationale**: the old assertion guarded the five-hour-only reading, which the spec ends; the
+  guarantees it held for malformed input stay, for both windows.
+- **Alternatives considered**: a second event type for the week: two paths through the processes for
+  one report. Clearing the week when a report lacks it: Claude sends five-hour-only notices between
+  weekly ones, and the week would flicker away. The benchmarks' runner, which read `fiveHour` of
+  every usage event, now counts a full week as the usage limit too, since a full week stops the
+  agent as well.
+- **If wrong**: the week is one field of the event and one map in `processes.ts`.
+- **Where**: task 4, `packages/server/src/runner/__tests__/usage.test.ts`,
+  `runner/claude-events.ts`, `runner/processes.ts`, `packages/benchmarks/src/session.ts`.
+
+## R7: The session row's agent needs no web selection
+
+- **Decision**: `SessionRowRecord.agent` reaches the web without a change to `src/views.ts`: the
+  session list and search select their rows whole, `rows: true`. Only `AgentView` selects the new
+  `weekLimit`.
+- **Rationale**: the rows are JSON values of `SessionList`, not records of their own.
+- **Alternatives considered**: none: there is no per-field selection of a row to add to.
+- **If wrong**: should rows become records, their view selects `agent`.
+- **Where**: task 4, `packages/web/src/views.ts`.

@@ -726,7 +726,12 @@ test("US4.4: no agent: sends are refused", async () => {
   await sessions.check();
   const chat = await sessions.newChat(repo);
 
-  expect(sessions.status()).toEqual({ available: false, fiveHourLimit: null, version: null });
+  expect(sessions.status()).toEqual({
+    available: false,
+    fiveHourLimit: null,
+    version: null,
+    weekLimit: null,
+  });
   await expect(sessions.send(repo, chat.id, { text: "Hello" })).rejects.toThrow(
     "refused: Claude Code is not available on this machine.",
   );

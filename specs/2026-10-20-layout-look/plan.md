@@ -401,28 +401,35 @@ behaviour the spec marks unverified.
 **Files:**
 
 - Modify: `packages/server/src/runner/events.ts`, `runner/claude-events.ts` (`usageEvents`),
-  `runner/processes.ts`, `fate/views.ts` (`SessionRowRecord.agent`, `AgentRecord.weekLimit`),
-  `packages/web/src/views.ts` (select the two)
-- Modify: `packages/server/src/runner/__tests__/usage.test.ts`, `fixtures/claude/` (a report with a
+  `runner/processes.ts`, `runner/sessions.ts` (`status`), `fate/views.ts` (`SessionRowRecord.agent`,
+  `AgentRecord.weekLimit`), `fate/sessions.ts` (the rows), `packages/web/src/views.ts` (select
+  `weekLimit`; rows are selected whole, so `agent` comes with them:
+  [R7](rulings.md#r7-the-session-rows-agent-needs-no-web-selection)),
+  `packages/benchmarks/src/session.ts` (a full week is a usage limit too:
+  [R6](rulings.md#r6-a-weekly-window-now-gives-the-week-where-it-gave-no-report))
+- Modify: `packages/server/src/runner/__tests__/usage.test.ts`, `claude.test.ts`,
+  `runner/__tests__/sessions.test.ts`, `src/__tests__/sessions.test.ts`,
+  `packages/web/src/__focused__/helpers.tsx`, `fixtures/claude/ignored.jsonl` (its report gains a
   `seven_day` window)
 
 **Interfaces:**
 
 - Produces: `SessionRowRecord.agent: string` (the adapter's kind, `"claude"` or `"fake"`);
-  `AgentRecord.weekLimit: { percentUsed: number; resetsAt: string } | null`, beside `fiveHourLimit`.
+  `AgentRecord.weekLimit: { percentUsed: number; resetsAt: string } | null`, beside `fiveHourLimit`;
+  the usage event `{ fiveHour?: UsageLimit; week?: UsageLimit; type: "usage" }`, never neither.
 
-- [ ] **Step 1: Write the failing tests**: `usage.test.ts`: a report with `five_hour` and
+- [x] **Step 1: Write the failing tests**: `usage.test.ts`: a report with `five_hour` and
       `seven_day` gives both; one with `five_hour` alone gives no week; a malformed `seven_day`
       gives no week and keeps the 5 h window. The existing "weekly gives no report" case changes,
       since the spec asks for the week: write the ruling. A sessions test: a session row carries its
       agent's kind. Break: a week read from the 5 h window's numbers.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test --project uraeda-server src/runner/__tests__/usage.test.ts`. Expected:
       FAIL, no `week` in the event.
-- [ ] **Step 3: Implement** the parsing, the store of the freshest unexpired report per process for
+- [x] **Step 3: Implement** the parsing, the store of the freshest unexpired report per process for
       each window, and the two fields.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 5: Commit**:
       `git commit -m "feat(layout-look): a session row's agent, and the week's usage"`.
 
 ## Task 5: Prototypes in an investigation, in the skill
