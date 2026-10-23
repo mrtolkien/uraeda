@@ -28,8 +28,9 @@ const styles = stylex.create({
     gap: spacingVars["--spacing-1"],
   },
   counts: {
-    // At the line's end, whatever comes before. Short of room, as at 320 px beside a round's
-    // controls, the counts wrap onto a second line, each whole, never cut or past the edge.
+    // At the line's end, whatever comes before. The hints give way to them first; short of room
+    // still, as at 320 px beside a round's controls, where no hint shows, the counts wrap onto a
+    // second line, each whole, never cut or past the edge.
     alignItems: "center",
     columnGap: spacingVars["--spacing-4"],
     display: "flex",
@@ -44,8 +45,10 @@ const styles = stylex.create({
     flexShrink: 0,
   },
   hints: {
-    // The hints take the room the counts leave, and those past its end are cut, never wrapped.
+    // The hints take the room the counts leave, from none, so they give way first, and those past
+    // its end are cut, never wrapped.
     display: "flex",
+    flexBasis: 0,
     flexGrow: 1,
     gap: spacingVars["--spacing-4"],
     minWidth: 0,
