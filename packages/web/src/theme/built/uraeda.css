@@ -437,6 +437,10 @@
     --color-overlay-pressed: var(--astryx-theme-neutral-color-destructive-overlay-pressed);
   }
 
+  .astryx-button {
+    font-family: var(--font-family-body);
+  }
+
   .astryx-badge[data-variant="info"] {
     background-color: var(--astryx-theme-neutral-color-status-fill-accent);
     color: var(--color-on-accent);
@@ -514,6 +518,7 @@
 
   .astryx-badge {
     --radius-full: 0px;
+    font-family: var(--font-family-body);
   }
 
   .astryx-status-dot[data-variant="success"] {

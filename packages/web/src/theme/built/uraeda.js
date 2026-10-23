@@ -396,6 +396,9 @@ export const uraedaTheme = {
         "color": "var(--color-error)",
         "--color-overlay-hover": "var(--astryx-theme-neutral-color-destructive-overlay-hover)",
         "--color-overlay-pressed": "var(--astryx-theme-neutral-color-destructive-overlay-pressed)"
+      },
+      "base": {
+        "fontFamily": "var(--font-family-body)"
       }
     },
     "badge": {
@@ -460,7 +463,8 @@ export const uraedaTheme = {
         "color": "var(--color-text-gray)"
       },
       "base": {
-        "--radius-full": "0px"
+        "--radius-full": "0px",
+        "fontFamily": "var(--font-family-body)"
       }
     },
     "status-dot": {

@@ -225,8 +225,11 @@ export const uraedaTheme = defineTheme({
     // Inline code a step smaller than the text around it, as the monospace font runs wider than the
     // reading font: a path fits the phone's column, where WebKit let a code span's padding pass it.
     code: { base: { fontSize: "0.9em" } },
+    // Buttons and badges in the UI's font, where Astryx has them inherit it: inside reading text,
+    // a control keeps the monospace font (the UI look decision).
+    button: { base: { fontFamily: "var(--font-family-body)" } },
     // Square badges and switches, as the terminal look's corners; status dots stay round.
-    badge: { base: { "--radius-full": "0px" } },
+    badge: { base: { "--radius-full": "0px", fontFamily: "var(--font-family-body)" } },
     switch: { base: { "--radius-full": "0px" } },
     // Astryx gap: the lightbox's Close is a ghost button, its icon the colour of text on dark, with
     // no background of its own: over a light screenshot that fills the window, it vanished. The

@@ -14,11 +14,11 @@ import type { ComponentProps, ReactNode } from "react";
 
 export const proseStyles = stylex.create({
   // Body text at the UI layout decision's size, from the theme, 19 px at every width, in the
-  // reading font, the UI look decision's proportional one: Astryx's markdown sets its text in the
-  // body font, which the reading font replaces inside, while headings and code keep theirs. Astryx's
-  // own body text is the UI's smaller size, in the monospace font, for rows and labels.
+  // reading font, the UI look decision's proportional one. Its text inherits the font, while
+  // headings, code, and controls keep the monospace font: the body font stays the UI's, and the
+  // theme sets buttons and badges in it. Astryx's own body text is the UI's smaller size, for rows
+  // and labels.
   reading: {
-    "--font-family-body": "var(--font-family-reading)",
     fontFamily: "var(--font-family-reading)",
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
@@ -26,9 +26,10 @@ export const proseStyles = stylex.create({
   },
   // About 110 characters of text a line, the theme's reading measure.
   measure: { maxWidth: "var(--size-reading-measure)" },
+  // Astryx's markdown sets its text in the body font: its text takes the reading font instead.
+  markdown: { fontFamily: "var(--font-family-reading)" },
   // A document's text: reading text at the measure, left-aligned.
   doc: {
-    "--font-family-body": "var(--font-family-reading)",
     fontFamily: "var(--font-family-reading)",
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
@@ -111,6 +112,7 @@ export function ProseMarkdown({
         contentWidth="100%"
         headingLevelStart={4}
         plugins={plugins}
+        xstyle={proseStyles.markdown}
       >
         {children}
       </Markdown>
