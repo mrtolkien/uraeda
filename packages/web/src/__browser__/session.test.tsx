@@ -780,3 +780,71 @@ describe("on the desktop, the column across 768 px", () => {
     }
   });
 });
+
+// Review focus 2: crossing 1280 px changes the shell only. The navigation narrows to its rail and
+// widens back, and the session keeps the line the human reads, or keeps following its end.
+describe("at semi-wide, across 1280 px", () => {
+  atSize("semi");
+
+  test("a session scrolled mid-way keeps the line read across 1280 px and back", async () => {
+    try {
+      await show(`/f/${CLI}/session`, "CLI TUIs");
+      await startTurn("Plan the CLI.", lines(80, "Line"));
+      const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+      await within(log).findByText("Line 80.", undefined, LIVE);
+      await drawn();
+      const box = scroller();
+      box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
+      await drawn();
+      expect(box.scrollTop).toBeGreaterThan(0);
+      const read = readLine(log);
+      const top = read.getBoundingClientRect().top;
+
+      await page.viewport(1440, 900);
+      await expect.poll(() => window.innerWidth).toBe(1440);
+      await drawn();
+      await drawn();
+      expect(log.isConnected).toBe(true);
+      expect(readLine(log)).toBe(read);
+      expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
+
+      await page.viewport(1205, 900);
+      await expect.poll(() => window.innerWidth).toBe(1205);
+      await drawn();
+      await drawn();
+      expect(readLine(log)).toBe(read);
+      expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
+    } finally {
+      await page.viewport(1205, 900);
+    }
+  });
+
+  test("a session following its end keeps following across 1280 px and back", async () => {
+    try {
+      const log = await openWorkingSession();
+      const box = scroller();
+      box.scrollTo(0, box.scrollHeight);
+      await drawn();
+      expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+
+      await page.viewport(1440, 900);
+      await expect.poll(() => window.innerWidth).toBe(1440);
+      await drawn();
+      await agent.agentEmit(lines(20, "Wide line"));
+      const wide = await within(log).findByText("Wide line 20.", undefined, LIVE);
+      await expect.poll(() => inView(wide), LIVE).toBe(true);
+
+      await page.viewport(1205, 900);
+      await expect.poll(() => window.innerWidth).toBe(1205);
+      await drawn();
+      await agent.agentEmit(lines(20, "Semi line"));
+      const semi = await within(log).findByText("Semi line 20.", undefined, LIVE);
+      await expect.poll(() => inView(semi), LIVE).toBe(true);
+      await drawn();
+      expect(inView(semi)).toBe(true);
+      expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+    } finally {
+      await page.viewport(1205, 900);
+    }
+  });
+});
