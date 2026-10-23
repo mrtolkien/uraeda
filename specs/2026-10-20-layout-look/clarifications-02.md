@@ -10,7 +10,7 @@ status: awaiting-human
 >
 > - Verdict: worth building, with changes: the shell, home, settings, and decisions are settled in
 >   the mockups, and two visual choices remain.
-> - Open the [icon comparison](mockups/icons.html) first: it draws the same concepts in seven sets,
+> - Open the [icon comparison](mockups/icons.html) first: it draws the same concepts in eight sets,
 >   one in three styles.
 > - The icon set outlasts this feature: every later view and every decision's icon uses it.
 > - The harness marks are a legal choice: the Claude glyph you found is the trademarked mark.
@@ -52,7 +52,7 @@ Only the icon set and the harness marks. Everything else of this feature is sett
 
 ## Q1: Which icon set should the UI use?
 
-[icons.html](mockups/icons.html) draws 31 concepts in seven sets, with Material Symbols in its
+[icons.html](mockups/icons.html) draws 31 concepts in eight sets, with Material Symbols in its
 outlined, rounded, and sharp styles. A sidebar like yours comes first, then one concept per row.
 Switch between 16, 20, and 24 px, and between Mocha and Latte. More in
 [discovery](discovery-02.md#icon-sets).
@@ -61,6 +61,7 @@ Switch between 16, 20, and 24 px, and between Mocha and Latte. More in
 | --------------------- | ----------- | --------------- | ----------------------------------------- |
 | Lucide                | ISC         | 1,903           | None                                      |
 | Tabler                | MIT         | 6,238           | None                                      |
+| Heroicons             | MIT         | ~320            | Git branch, waiting, usage                |
 | Pixelarticons         | MIT         | 1,036           | Build, change, usage, decisions           |
 | Codicons (Nerd Fonts) | CC BY 4.0   | 655             | Decisions, waiting, usage                 |
 | Phosphor, Material    | MIT, Apache | 7,000 to 15,700 | None, but a look apart from the mono text |

@@ -17,7 +17,7 @@ width. [`logos.html`](logos.html) shows five logo concepts.
 | [glass.html](glass.html)         | Liquid Glass chrome around opaque reading sheets                     |
 | [blueprint.html](blueprint.html) | Technical drawing sheets with a title block, callouts, rev clouds    |
 | [logos.html](logos.html)         | Five logo concepts at 96, 32, and 16 px, light and dark              |
-| [icons.html](icons.html)         | Nine icon sets and styles over the same concepts, and harness marks  |
+| [icons.html](icons.html)         | Ten icon sets and styles over the same concepts, and harness marks   |
 | [screenshots/](screenshots/)     | The home and the questions page of each direction, at 1440 px        |
 
 Inside a direction, every view is a link in its shell. The terminal direction also answers keys: `n`
