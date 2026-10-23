@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 2
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Layout and look and feel
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Approved on 2026-10-23.
 >
 > - You approve the terminal look for the whole UI, a shell that fits three widths, and new home,
 >   settings, and decisions pages.
