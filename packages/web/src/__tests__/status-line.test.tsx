@@ -52,3 +52,20 @@ test("the home shows no list hints, after the priorities showed theirs", async (
   expect(text).not.toContain("⏎ open");
   expect(text).not.toContain("esc close");
 });
+
+// Break: the decisions list naming Escape "close", where it takes the reader back to the
+// constitution.
+test("on a decision, Escape is named for the constitution", async () => {
+  await renderPage("/decisions/ui-behaviour");
+  await waitFor(async () => expect(await statusLine()).toContain("esc constitution"));
+  expect(await statusLine()).not.toContain("esc close");
+});
+
+// Break: an Escape hint while the constitution shows, where Escape does nothing.
+test("on the constitution, Escape has no hint", async () => {
+  await renderPage("/decisions");
+  await waitFor(async () => expect(await statusLine()).toContain("j k move"));
+  const text = await statusLine();
+  expect(text).not.toContain("esc constitution");
+  expect(text).not.toContain("esc close");
+});
