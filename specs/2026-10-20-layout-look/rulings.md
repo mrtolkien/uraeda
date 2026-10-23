@@ -611,3 +611,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a field on the ledger's decisions, read by the core, replaces `useBranchChange`.
 - **Where**: task 12, `packages/web/src/decisions/BranchChange.tsx`, `DecisionDetail.tsx`,
   `__tests__/decision-rules.test.tsx`.
+
+## R27: The review's fixes to tasks 9 to 12
+
+- **Decision**: the commit bar and a session's composer stick at `--size-status-line` from the
+  window's bottom, 0 outside the shell, as in a story. The status line's counts wrap onto a second
+  line when short of room, at 320 px beside a round's controls, each count whole. `useListKeys`
+  takes `escapeLabel`, "close" by default, `null` to leave Escape's hint out. The constitution's
+  reader scrolls to the principle unless it is first drawn on an entry with a saved place (the
+  pane's on wide screens, the window's on the phone), and the list pane's `follow` forgets the
+  pane's saved place, which was the row left's. A list of branch changes cut short is read past
+  (R26). The rows' refusals live above the search (`RefusalsProvider`, `useRefusal` in
+  `settings/SettingRow.tsx`), so a row hidden and shown again keeps its error. The column's Done
+  rows are `CardRow`, as home's Recent. The "Overview" line stays our own, Astryx's `Divider` being
+  a `separator`, whose label cannot be a heading (plan, Complexity tracking). `searchSettings` is
+  gone with the results list that used it; its test rows read `shownLabels` across the sections, the
+  form's own filter, and the empty search's row, which said the results list showed nothing, is
+  dropped: the form tests show every row for an empty search. `--size-settings-index` is
+  `--size-settings-search`.
+- **Rationale**: the review of tasks 9 to 12: nothing under the fixed line, the UI behaviour
+  decision's places and errors kept, one component for a done item.
+- **Alternatives considered**: a list whose Escape does nothing hiding its hint by itself: the hook
+  cannot tell, the caller does. A refusal cleared as its row hides: against "an error stays until
+  dealt with".
+- **If wrong**: the offsets are in `CommitBar.tsx` and `SessionPage.tsx`; the guard is
+  `ConstitutionReader.tsx`'s `restores`.
+- **Where**: `packages/web/src/CommitBar.tsx`, `SessionPage.tsx`, `shell/StatusLine.tsx`,
+  `statusHints.tsx`, `lists/useListKeys.ts`, `lists/listPane.ts`, `decisions/`, `settings/`,
+  `sidebar/DoneArea.tsx`, `__tests__/settings.test.tsx`.

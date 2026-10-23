@@ -117,7 +117,8 @@ export function PaneLink({ href, label }: { href: string; label: string }) {
 
 /**
  * The dashed line between the core and the widgets, its title "Overview" in the middle: a heading
- * of the panes under it, the line itself drawn for the eye alone.
+ * of the panes under it, the line itself drawn for the eye alone. Our own (plan, Complexity
+ * tracking): Astryx's `Divider` is a `separator`, whose label cannot be a heading.
  */
 export function Overview() {
   return (

@@ -306,7 +306,7 @@
     --size-round-accent: 4px;
     --size-round-split: 840px;
     --size-round-measure: 75ch;
-    --size-settings-index: 240px;
+    --size-settings-search: 240px;
     --size-session-aside: 320px;
     --size-rail: 52px;
     --size-rail-inset: calc((var(--size-rail) - var(--size-element-md)) / 2);

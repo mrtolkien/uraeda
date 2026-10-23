@@ -32,7 +32,7 @@ const styles = stylex.create({
     flexShrink: 0,
     overflowY: "auto",
     paddingInline: spacingVars["--spacing-1"],
-    width: "var(--size-settings-index)",
+    width: "var(--size-settings-search)",
   },
   folded: {
     width: "var(--size-rail)",

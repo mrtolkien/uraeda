@@ -176,16 +176,18 @@ Facts from three maps of the code, read in full for this plan: the shell, the th
 
 ## Complexity tracking
 
-| Abstraction or exception                     | Why it is needed                                              | Simpler alternative rejected because                         |
-| -------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------ |
-| `Pane` (Astryx gap)                          | The UI look's titled border, on every view                    | Astryx's `Card` and `Section` have no title in the border    |
-| `shell/` column, rail, and tabs (Astryx gap) | Three widths, a rail that opens over the page by focus or tap | `SideNav` folds to icons but cannot open over the page       |
-| `sidebar/CardRow.tsx` (Astryx gap)           | A card's whole name, wrapping, with its step under it         | `SideNavItem` takes a one-line label, cut by an ellipsis     |
-| `StatusLine` and `statusHints.tsx`           | Pages declare the keys that work; the shell draws them once   | Each page drawing its own hints breaks UI coherence          |
-| `JumpPalette` preview (Astryx gap)           | The decisions palette previews the entry under the cursor     | `CommandPalette` has no preview slot                         |
-| `HarnessMark`                                | One mark per agent kind, on every session row                 | Names alone were the spec's rejected option                  |
-| `routes.tsx` split                           | Adding `/sessions` passes the 500-line limit                  | Growing the file needs a new disable marker                  |
-| Three width classes in `useWidthClass`       | The decision's semi-wide class                                | A second hook for the shell would be two homes for the width |
+| Abstraction or exception                     | Why it is needed                                                                              | Simpler alternative rejected because                                                                               |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `Pane` (Astryx gap)                          | The UI look's titled border, on every view                                                    | Astryx's `Card` and `Section` have no title in the border                                                          |
+| `shell/` column, rail, and tabs (Astryx gap) | Three widths, a rail that opens over the page by focus or tap                                 | `SideNav` folds to icons but cannot open over the page                                                             |
+| `sidebar/CardRow.tsx` (Astryx gap)           | A card's whole name, wrapping, with its step under it                                         | `SideNavItem` takes a one-line label, cut by an ellipsis                                                           |
+| `StatusLine` and `statusHints.tsx`           | Pages declare the keys that work; the shell draws them once                                   | Each page drawing its own hints breaks UI coherence                                                                |
+| `JumpPalette` preview (Astryx gap)           | The decisions palette previews the entry under the cursor                                     | `CommandPalette` has no preview slot                                                                               |
+| `HarnessMark`                                | One mark per agent kind, on every session row                                                 | Names alone were the spec's rejected option                                                                        |
+| `routes.tsx` split                           | Adding `/sessions` passes the 500-line limit                                                  | Growing the file needs a new disable marker                                                                        |
+| Three width classes in `useWidthClass`       | The decision's semi-wide class                                                                | A second hook for the shell would be two homes for the width                                                       |
+| `settings/SettingRow.tsx` (Astryx gap)       | A setting's icon, name as a heading, help, and control, the control under the text on a phone | `ListItem`'s end slot stays at the end at every width (R24)                                                        |
+| Home's "Overview" line (Astryx gap)          | A level-2 heading between two dashed rules (R22)                                              | `Divider` is a `separator`, whose children are presentational, so its label cannot be a heading; its rule is solid |
 
 ## Review comments
 

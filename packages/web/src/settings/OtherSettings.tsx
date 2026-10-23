@@ -4,11 +4,10 @@ import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
 import { useSignOut, useSignOutEverywhere } from "../sign-in/useSignOut.ts";
 import { type Scheme, useScheme } from "../theme.tsx";
 import { type Category, PLANNED_ICON, plannedHelp, settingOf } from "./categories.ts";
-import { SettingRow, SettingRows } from "./SettingRow.tsx";
+import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
 /** The colour scheme, kept in this browser: Mocha, Latte, or the system's. */
 export function AppearanceSettings({ category }: { category: Category }) {
@@ -42,7 +41,7 @@ export function SignInSettings({
   shows: (label: string) => boolean;
 }) {
   const { signOut } = useSignOut();
-  const [refused, setRefused] = useState<string>();
+  const [refused, setRefused] = useRefusal("Sign out");
   const everywhere = useSignOutEverywhere();
   const problem = refused ?? everywhere.failed;
   return (

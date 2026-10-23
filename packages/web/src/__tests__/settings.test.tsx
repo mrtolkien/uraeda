@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { searchSettings } from "../settings/categories.ts";
+import { CATEGORIES, shownLabels } from "../settings/categories.ts";
 import { atRepo, atWidth, click, fixtureRepo, refreshUntil, renderPage, type } from "./helpers.tsx";
 
 const MAC = "mac.tail1234.ts.net";
@@ -221,6 +221,27 @@ test("turning off the browser at start writes it in the file at once (US3 3)", a
   await click(screen.getByRole("switch", { name: "Open a browser at start" }));
 
   await waitFor(() => expect(file(dir)).toContain("open_browser = false"));
+});
+
+/** The UI behaviour decision: an error stays until dealt with, though a search hides its row. */
+test("a refused change's error stays once a search has hidden its row and shown it again", async () => {
+  const dir = configDir();
+  await server(dir);
+  // The file turns unreadable after the page read it: the switch's change is refused.
+  writeFileSync(join(dir, "config.toml"), "[server]\nport = 0\n");
+
+  await click(screen.getByRole("switch", { name: "Open a browser at start" }));
+  const refusal = await screen.findByText(/^Cannot read .*config\.toml/);
+  const text = refusal.textContent!;
+
+  await type(await searchField(), "port");
+  await waitFor(() =>
+    expect(screen.queryByRole("switch", { name: "Open a browser at start" })).toBeNull(),
+  );
+  await type(await searchField(), "");
+
+  await screen.findByRole("switch", { name: "Open a browser at start" });
+  expect(screen.getByText(text)).toBeTruthy();
 });
 
 /** A section of the form, once it shows. */
@@ -466,9 +487,12 @@ test.each([
     ],
   ],
   ["xyz", []],
-  ["", []],
 ])("searching %j finds %j (C1)", (text, found) => {
-  expect(searchSettings(text).map(({ category, label }) => [label, category.label])).toEqual(found);
+  // The rows the form keeps, in its order, each with its section.
+  const shown = CATEGORIES.flatMap((category) =>
+    [...shownLabels(category, text)].map((label) => [label, category.label]),
+  );
+  expect(shown).toEqual(found);
 });
 
 /** Whether `a` comes before `b` in the page. */
@@ -476,8 +500,9 @@ const before = (a: HTMLElement, b: HTMLElement) =>
   (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
 /** The search field, once the page shows it. */
-const searchField = () =>
-  screen.findByRole<HTMLInputElement>("textbox", { name: "Search settings" });
+function searchField() {
+  return screen.findByRole<HTMLInputElement>("textbox", { name: "Search settings" });
+}
 
 test.each([1440, 402])(
   "at %i px, the search is in the heading row: after the heading, before the form (US5)",
