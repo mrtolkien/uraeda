@@ -10,7 +10,8 @@ status: awaiting-human
 >
 > - Verdict: worth building, with changes: the shell, home, settings, and decisions are settled in
 >   the mockups, and two visual choices remain.
-> - Open the [icon comparison](mockups/icons.html) first: it draws the same concepts in seven sets.
+> - Open the [icon comparison](mockups/icons.html) first: it draws the same concepts in seven sets,
+>   one in three styles.
 > - The icon set outlasts this feature: every later view and every decision's icon uses it.
 > - The harness marks are a legal choice: the Claude glyph you found is the trademarked mark.
 > - Astryx stays, re-themed, as an answer to your note. Four small parts are our own components.
@@ -45,14 +46,15 @@ Only the icon set and the harness marks. Everything else of this feature is sett
 
 ### Sources
 
-- The seven sets' licences and sizes from the Iconify API, Nerd Fonts' glyph names, and Astryx's own
+- The sets' licences and sizes from the Iconify API, Nerd Fonts' glyph names, and Astryx's own
   source.
 - The full investigation is in [discovery](discovery-02.md).
 
 ## Q1: Which icon set should the UI use?
 
-[icons.html](mockups/icons.html) draws 31 concepts in seven sets. A sidebar like yours comes first,
-then one concept per row. Switch between 16, 20, and 24 px, and between Mocha and Latte. More in
+[icons.html](mockups/icons.html) draws 31 concepts in seven sets, with Material Symbols in its
+outlined, rounded, and sharp styles. A sidebar like yours comes first, then one concept per row.
+Switch between 16, 20, and 24 px, and between Mocha and Latte. More in
 [discovery](discovery-02.md#icon-sets).
 
 | Set                   | Licence     | Icons           | Gaps among the 31 concepts                |
