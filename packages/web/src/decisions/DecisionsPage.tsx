@@ -142,6 +142,8 @@ function LedgerList({
   const shown = shownPath(ledger, open);
   const jump = useJump();
   const { ref } = useListKeys({
+    // What Escape does, on the status line: back to the constitution, or nothing when it shows.
+    escapeLabel: open && pane ? "constitution" : null,
     // The reader stays open: Escape takes it back to the constitution, from anything else.
     onClose: () => {
       if (!open || !pane) {
