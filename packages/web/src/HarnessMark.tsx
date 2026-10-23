@@ -1,17 +1,23 @@
 // A harness's mark, by the kind of agent a session runs on: Codicons' drawing of its mark where
-// Codicons has one, and Lucide's `bot` for any other kind, never an empty space (the UI look).
+// Codicons has one, a neutral glyph drawn for Uraeda for Pi, and Lucide's `bot` for any other kind,
+// never an empty space (the UI look).
 import { Icon, type IconSize } from "@astryxdesign/core/Icon";
 
-/** The harnesses Codicons draws a mark for, by their kind, with their icon and name. */
+/** The harnesses with a mark of their own, by their kind, with their icon and name. */
 const MARKED: Record<string, { icon: HarnessIcon; name: string }> = {
   claude: { icon: "uraeda:harness-claude", name: "Claude Code" },
   codex: { icon: "uraeda:harness-openai", name: "Codex" },
+  pi: { icon: "uraeda:harness-pi", name: "Pi" },
 };
 
 /** The names of the harnesses drawn by the generic glyph, by their kind. */
-const NAMES: Record<string, string> = { fake: "Fake agent", pi: "Pi" };
+const NAMES: Record<string, string> = { fake: "Fake agent" };
 
-type HarnessIcon = "uraeda:harness-agent" | "uraeda:harness-claude" | "uraeda:harness-openai";
+type HarnessIcon =
+  | "uraeda:harness-agent"
+  | "uraeda:harness-claude"
+  | "uraeda:harness-openai"
+  | "uraeda:harness-pi";
 
 /** A harness's icon and name, by its kind: an unknown kind is named by the kind itself. */
 export function harnessMark(kind: string): { icon: HarnessIcon; name: string } {

@@ -79,6 +79,16 @@ const openai = codicon(
 );
 
 /**
+ * Pi's mark, drawn for Uraeda as Pi has none in Codicons: a π on Lucide's 24-unit grid, in its
+ * stroke, neutral like the other glyphs.
+ */
+const pi = outline(
+  h("path", { d: "M4 7h16" }),
+  h("path", { d: "M9 7v12" }),
+  h("path", { d: "M15 7v9a3 3 0 0 0 3 3" }),
+);
+
+/**
  * A decision rule's strength, by the core's name for it (`Strength::as_str`): Lucide's
  * `chevrons-up` for MUST, `chevron-up` for SHOULD, `chevron-down` for SHOULD NOT, `chevrons-down`
  * for MUST NOT, and a dot for MAY.
@@ -150,10 +160,11 @@ export const uraedaIcons = {
   "uraeda:attach": attach,
   "uraeda:comment": comment,
   "uraeda:enter": enter,
-  // A harness Codicons has no mark for, or an unknown one: Lucide's `bot`.
+  // An unknown harness: Lucide's `bot`.
   "uraeda:harness-agent": bot,
   "uraeda:harness-claude": claude,
   "uraeda:harness-openai": openai,
+  "uraeda:harness-pi": pi,
   "uraeda:home": home,
   "uraeda:panel-left": panelLeft,
   "uraeda:panel-right": panelRight,

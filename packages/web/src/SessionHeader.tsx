@@ -6,7 +6,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import type { SessionStatus as Status } from "uraeda-server/fate";
 import { useAgent } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
-import { HarnessMark } from "./HarnessMark.tsx";
+import { HarnessMark, harnessMark } from "./HarnessMark.tsx";
 import { StatusMark } from "./StatusMark.tsx";
 import type { RenameControls } from "./useSessionControls.ts";
 
@@ -22,20 +22,25 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 
 /**
  * A session's header: its title, then its status, agent, and place on one line. Its title
- * is renamed in place, once the session exists.
+ * is renamed in place, once the session exists. The agent is the one the session runs on, by its
+ * kind, as its card in the navigation names it; before the session exists, the one it will start.
  */
 export function SessionHeader({
+  agent: kind,
   place,
   rename,
   status,
   title,
 }: {
+  /** The kind of agent the session runs on. */
+  agent?: string;
   place?: string;
   rename?: RenameControls;
   status?: { label: string; status: Status };
   title: string;
 }) {
-  const agent = useAgent();
+  const configured = useAgent();
+  const agent = kind === undefined ? configured : { kind, name: harnessMark(kind).name };
   const meta = [agent?.name, place].filter((part): part is string => Boolean(part));
   return (
     <VStack gap={1}>

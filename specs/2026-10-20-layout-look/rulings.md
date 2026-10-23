@@ -216,11 +216,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R10: A harness's mark is named once, by its kind, and stays silent beside its name
 
 - **Decision**: `harnessMark(kind)` names `claude` "Claude Code", `codex` "Codex", `pi` "Pi", the
-  fake agent's `fake` "Fake agent", and any other kind by the kind itself, drawn by Lucide's `bot`.
-  `HarnessMark` is an image named by the harness, and takes `isDecorative` where its name is already
-  said: a sidebar card says it in the link's name ("Why is CI slow?, session, Claude Code, …"), and
-  the session header beside the agent's name. Codicons' marks and the generic glyph are registered
-  as `uraeda:harness-claude`, `uraeda:harness-openai`, and `uraeda:harness-agent`.
+  fake agent's `fake` "Fake agent", and any other kind by the kind itself. Pi is drawn by a π made
+  for Uraeda on Lucide's grid and stroke (`uraeda:harness-pi`), the spec's neutral Pi glyph; the
+  fake agent and any unknown kind by Lucide's `bot`. `HarnessMark` is an image named by the harness,
+  and takes `isDecorative` where its name is already said: a sidebar card says it in the link's name
+  ("Why is CI slow?, session, Claude Code, …"), and the session header beside the agent's name.
+  Codicons' marks and the generic glyph are registered as `uraeda:harness-claude`,
+  `uraeda:harness-openai`, and `uraeda:harness-agent`. The session header marks and names the
+  session's own kind, as its card does, and the configured agent only before the session exists.
 - **Rationale**: Astryx's `Icon` warns against a label inside a link that already has a name, which
   would be read twice; the card's name is how a screen reader and the tests tell its harness. The
   server reports a session's kind only, so the web names it. The fake agent's adapter calls itself
@@ -229,9 +232,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   link's `aria-label` and so never read; the adapter's own name on each row, a server change for a
   name the web can map.
 - **If wrong**: a new harness shows its raw kind as its name until it is added to `harnessMark`, in
-  one file.
-- **Where**: task 7, `packages/web/src/HarnessMark.tsx`, `sidebar/ItemCard.tsx`,
-  `SessionHeader.tsx`.
+  one file. Pi's π is ours, not Pi's brand: a mark of Pi's own replaces it in `theme/icons.ts`.
+- **Where**: task 7, `packages/web/src/HarnessMark.tsx`, `theme/icons.ts`, `sidebar/ItemCard.tsx`,
+  `SessionHeader.tsx`, `SessionPage.tsx`.
 
 ## R11: Lucide's glyphs move out of the icons' registry, and a pane's title takes a level
 
