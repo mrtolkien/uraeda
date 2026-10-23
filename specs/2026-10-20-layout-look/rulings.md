@@ -602,13 +602,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   is read anyway, and a decision the branch leaves as it is (no field changed, every part kept)
   shows no card. `decision-rules.test.tsx`'s comparison of the two pages finds the rule twice now,
   in the diff and in the rules, and compares the rules' (`DecisionRules`), after the diff.
-- **Rationale**: no new server data; the requests are cached already, and a decision's read is asked
-  only of a branch that changes it.
+- **Rationale**: no new server data; the branch changes are requested and cached already, and a
+  decision's read is asked of a branch whose changes list holds its file, or is cut short before it.
+  That second case costs the most: a feature whose branch changes more than 50 files (most features
+  with code, whose `crates/` and `packages/` files sort first) gets a branch-decision read, a core
+  read on the server, for every decision opened, whether its branch touches the decision or not;
+  each read is cached, so opening the same decision again costs nothing more.
 - **Alternatives considered**: the checkout's current branch only: the server does not read it. The
   branch's decision asked of every feature for every decision opened: a core read each, and an
   unchanged decision still answers a change to tell apart. A ledger field of the branches changing
   each decision: new core and server work for the same answer.
-- **If wrong**: a field on the ledger's decisions, read by the core, replaces `useBranchChange`.
+- **If wrong**: a field on the ledger's decisions, read by the core, replaces `useBranchChange`; the
+  same field, or a branch changes list filtered to `specs/`, if the reads for long branches slow the
+  reader down.
 - **Where**: task 12, `packages/web/src/decisions/BranchChange.tsx`, `DecisionDetail.tsx`,
   `__tests__/decision-rules.test.tsx`.
 
