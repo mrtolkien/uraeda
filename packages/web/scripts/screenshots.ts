@@ -35,6 +35,7 @@ import { takeChanges } from "./change-shots.ts";
 import { takeFeaturePage } from "./feature-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
+import { takeDecisions, takeLayoutLook } from "./layout-look-shots.ts";
 import { takeMergeChats } from "./merge-chats-shots.ts";
 import { takeRound } from "./round-shots.ts";
 import { type Serve, takeSettings } from "./settings-shots.ts";
@@ -230,20 +231,14 @@ async function repositories(page: Page) {
   await settle(page);
 }
 
-/** What home shows once its data is drawn: its last card. */
-const HOME = "Constitution and decisions";
+/** What home shows once its data is drawn: the line above its widgets. */
+const HOME = "Overview";
 
 /** Forgets, in every shot's page. */
 async function forgetAll(shots: Array<Shot>) {
   for (const { page } of shots) {
     await forget(page);
   }
-}
-
-/** The constitution and decisions, the list, then a decision open. */
-async function takeDecisions(each: Each) {
-  await each("decisions", ({ page }) => show(page, "/decisions", "Version"));
-  await each("decision", ({ page }) => show(page, "/decisions/ui-behaviour", "Approved by"));
 }
 
 /** The PRIORITIES.md of the screenshots' repository. */
@@ -285,6 +280,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   await takeSessions(each, first, adapter);
   await takeSessionLook(each, first, adapter);
 
+  await takeLayoutLook(each, shots);
   await each("sidebar", ({ page, size }) => sidebar(page, size));
   await takeShell(each, sidebar);
 

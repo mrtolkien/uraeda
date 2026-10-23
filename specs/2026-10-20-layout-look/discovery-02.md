@@ -12,25 +12,25 @@ Three things from [round 01](clarifications-01.md) stay open before the spec:
   needed.
 
 Between the rounds, the human also reviewed a second set of mockups over the picked direction,
-terminal with some cyber, in [terminal-2.html](mockups/terminal-2.html). Its picks are recorded in
-[The mockup review](#the-mockup-review), so the spec builds on them.
+terminal with some cyber, in terminal-2.html (`mockups/terminal-2.html`, deleted). Its picks are
+recorded in [The mockup review](#the-mockup-review), so the spec builds on them.
 
 ## Summary
 
 Eight free icon sets were drawn over the same 31 concepts, Material Symbols in three styles, in
-[icons.html](mockups/icons.html). They split into three looks: rounded strokes (Lucide, Tabler,
-Phosphor), pixel art (Pixelarticons), and the editor sets that Nerd Fonts merges (Codicons, Material
-Design Icons, Material Symbols). The Claude glyph the human found is Codicons' own `claude` icon,
-which also has an `openai` one. Astryx covers most of the terminal look through its theme, and four
-small parts need components of our own under any library.
+icons.html (`mockups/icons.html`, deleted). They split into three looks: rounded strokes (Lucide,
+Tabler, Phosphor), pixel art (Pixelarticons), and the editor sets that Nerd Fonts merges (Codicons,
+Material Design Icons, Material Symbols). The Claude glyph the human found is Codicons' own `claude`
+icon, which also has an `openai` one. Astryx covers most of the terminal look through its theme, and
+four small parts need components of our own under any library.
 
 ## How other products do it
 
 ### Icon sets
 
 Each set's licence and size come from the Iconify collections API, read on 2026-10-23
-(`api.iconify.design/collections`). The bodies drawn in [icons.html](mockups/icons.html) were
-fetched from the same API.
+(`api.iconify.design/collections`). The bodies drawn in icons.html (`mockups/icons.html`, deleted)
+were fetched from the same API.
 
 | Set                   | Licence    | Icons  | Look                                               |
 | --------------------- | ---------- | ------ | -------------------------------------------------- |
@@ -137,13 +137,13 @@ Unchanged from [round 01](discovery-01.md#rules-and-their-owners).
 
 ### The mockup review
 
-The human reviewed [terminal-2.html](mockups/terminal-2.html) over several passes, in a session, on
-2026-10-23. Each pick below is theirs:
+The human reviewed terminal-2.html (`mockups/terminal-2.html`, deleted) over several passes, in a
+session, on 2026-10-23. Each pick below is theirs:
 
 - **Direction**: terminal, with Catppuccin Mocha and Latte, JetBrains Mono, square corners, and a
   120% text scale. From cyber, only small touches: a segmented step bar.
-- **Logo**: the dot-matrix tree, concept E of [logos.html](mockups/logos.html), in the shell and as
-  the favicon.
+- **Logo**: the dot-matrix tree, concept E of logos.html (`mockups/logos.html`, deleted), in the
+  shell and as the favicon.
 - **Shell**: a left column of stacked bordered panes, each with its title set into its top border.
   The panes are Navigate, Needs you, Sessions, In progress, and the 5 h window with Settings.
 - **Shell widths**: wide is a full column, about 14% of the window between 256 and 340 px, resizable

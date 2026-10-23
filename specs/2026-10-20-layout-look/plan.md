@@ -304,7 +304,7 @@ behaviour the spec marks unverified.
       `nix develop -c vp test --project desktop src/__browser__/palette-check.test.tsx`. Expected:
       PASS, or a failure that Task 13's fallback covers; write the ruling either way.
 - [x] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
-- [ ] **Step 6: Commit**:
+- [x] **Step 6: Commit**:
       `git add -A packages/web pnpm-lock.yaml pnpm-workspace.yaml specs/2026-10-20-layout-look` and
       `git commit -m "build(layout-look): Astryx 0.7.3, and its palette's highlight checked"`.
 
@@ -345,13 +345,13 @@ behaviour the spec marks unverified.
       `nix develop -c vp test --project uraeda-web src/__tests__/theme-tokens.test.ts`. Expected:
       FAIL, the radius is not `0px`.
 - [x] **Step 3: Implement the theme.** Tokens as `[latte, mocha]` pairs from the mockup's palette,
-      [`terminal-2/style.css`](mockups/terminal-2/style.css) `:root` and `[data-theme="latte"]`:
-      Latte's accents as text use the mockup's darker steps. The dim text is `#5f6276` and `#969db8`
-      (R4). Typography: body, heading, and code in "JetBrains Mono Variable";
-      `--font-family-reading` "Inter Variable", used by `Prose` for its reading text. Sizes: the
-      1.2× growth moves out of the 1024 px rule into the base; the reading size is 19 px at every
-      width. Radii: `--radius-inner/-element/-container/-page` `0px`, and `--radius-full` `0px`
-      where squares read well (switches, badges); dots stay round. Shadows flat. Breakpoints
+      `terminal-2/style.css` (`mockups/terminal-2/style.css`, deleted) `:root` and
+      `[data-theme="latte"]`: Latte's accents as text use the mockup's darker steps. The dim text is
+      `#5f6276` and `#969db8` (R4). Typography: body, heading, and code in "JetBrains Mono
+      Variable"; `--font-family-reading` "Inter Variable", used by `Prose` for its reading text.
+      Sizes: the 1.2× growth moves out of the 1024 px rule into the base; the reading size is 19 px
+      at every width. Radii: `--radius-inner/-element/-container/-page` `0px`, and `--radius-full`
+      `0px` where squares read well (switches, badges); dots stay round. Shadows flat. Breakpoints
       `md: 768`, `xl: 1280`. Import both Fontsource `index.css` files in `main.tsx`, the Storybook
       preview, and the browser helpers, and allow their exact specifiers in the lint test.
       `checkTextSizes` expects 19 px at every width.
@@ -731,7 +731,9 @@ behaviour the spec marks unverified.
 - Modify: `packages/web/src/Home.stories.tsx`, `decisions/DecisionsPage.stories.tsx`,
   `settings/SettingsView.stories.tsx`, `sidebar/Sidebar.stories.tsx` (now `shell/Shell.stories.tsx`)
 - Create: the screenshots `scripts/screenshots.ts` writes for the changed views, phone and desktop,
-  Latte and Mocha, in `specs/2026-10-20-layout-look/screenshots/`
+  Latte and Mocha, in `specs/2026-10-20-layout-look/screenshots/`, their views in
+  `packages/web/scripts/layout-look-shots.ts` (R31); `packages/web/.storybook/widthClass.ts`, which
+  draws a story at a semi-wide or narrow width class in the desktop's frame (R30)
 - Delete: `specs/2026-10-20-layout-look/mockups/` except `README.md`, rewritten to say where the
   stories live
 - Modify: the links to the deleted files, in `specs/2026-10-20-layout-look/`'s `plan.md`, `spec.md`,
@@ -741,18 +743,18 @@ behaviour the spec marks unverified.
 
 - Consumes: every earlier task.
 
-- [ ] **Step 1: Write the stories**: one export per state the spec names: the shell wide, semi-wide
+- [x] **Step 1: Write the stories**: one export per state the spec names: the shell wide, semi-wide
       with the rail open, and narrow; the home with and without problems; decisions with the
       constitution, a changed decision, and the palette; settings and a search.
-- [ ] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
-- [ ] **Step 3: Take and review the screenshots** of the shell, home, decisions, and settings at
+- [x] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
+- [x] **Step 3: Take and review the screenshots** of the shell, home, decisions, and settings at
       both sizes and in both schemes against the UI look and layout decisions, and commit them.
-- [ ] **Step 4: Delete the prototypes**, now that the stories replace them, and rewrite every link
+- [x] **Step 4: Delete the prototypes**, now that the stories replace them, and rewrite every link
       to them (R8), or `ura check` fails: they sit in `plan.md`, `spec.md`, `rulings.md`,
       `clarifications-01.md`, `clarifications-02.md`, `discovery-01.md`, and `discovery-02.md`. The
       spec's mockup links become links to the stories that replace them, as the spec says. Every
       other link, image embeds and links with a query or a fragment included, becomes its text and
       the file's path in code, as the skill's approval step describes.
-- [ ] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
-- [ ] **Step 6: Commit**:
+- [x] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
+- [x] **Step 6: Commit**:
       `git commit -m "docs(layout-look): the stories and screenshots replace the prototypes"`.

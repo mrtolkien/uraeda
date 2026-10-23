@@ -10,8 +10,8 @@ status: answered
 >
 > - Verdict: worth building, with changes: the shell, home, settings, and decisions are settled in
 >   the mockups, and two visual choices remain.
-> - Open the [icon comparison](mockups/icons.html) first: it draws the same concepts in eight sets,
->   one in three styles.
+> - Open the icon comparison (`mockups/icons.html`, deleted) first: it draws the same concepts in
+>   eight sets, one in three styles.
 > - The icon set outlasts this feature: every later view and every decision's icon uses it.
 > - The harness marks are a legal choice: the Claude glyph you found is the trademarked mark.
 > - Astryx stays, re-themed, as an answer to your note. Four small parts are our own components.
@@ -22,9 +22,9 @@ status: answered
 ### Since the last round
 
 You answered [round 01](clarifications-01.md), then reviewed a second set of mockups over the
-terminal direction, [terminal-2.html](mockups/terminal-2.html), and asked to move to the spec. Two
-answers of round 01 asked for more: icon sets "shown visually", and a Claude glyph from Nerd Fonts
-for the harness marks. A note also asked whether Astryx still fits.
+terminal direction, terminal-2.html (`mockups/terminal-2.html`, deleted), and asked to move to the
+spec. Two answers of round 01 asked for more: icon sets "shown visually", and a Claude glyph from
+Nerd Fonts for the harness marks. A note also asked whether Astryx still fits.
 
 ### Goal
 
@@ -52,8 +52,8 @@ Only the icon set and the harness marks. Everything else of this feature is sett
 
 ## Q1: Which icon set should the UI use?
 
-[icons.html](mockups/icons.html) draws 31 concepts in eight sets, with Material Symbols in its
-outlined, rounded, and sharp styles. A sidebar like yours comes first, then one concept per row.
+icons.html (`mockups/icons.html`, deleted) draws 31 concepts in eight sets, with Material Symbols in
+its outlined, rounded, and sharp styles. A sidebar like yours comes first, then one concept per row.
 Switch between 16, 20, and 24 px, and between Mocha and Latte. More in
 [discovery](discovery-02.md#icon-sets).
 
@@ -96,7 +96,7 @@ A harness is the agent program that runs a session, such as Claude Code or Codex
 found in Nerd Fonts, ``, is Codicons' `claude` icon: the real Claude mark, as VS Code draws it.
 Codicons also has OpenAI's mark, and none for Pi, Gemini CLI, or opencode. Anthropic's guidelines
 allow its marks "only as specifically permitted by us", and forbid changing their colour. The bottom
-of [icons.html](mockups/icons.html) shows the three options in session rows. More in
+of icons.html (`mockups/icons.html`, deleted) shows the three options in session rows. More in
 [discovery](discovery-02.md#harness-marks).
 
 Example: four sessions run, on Claude Code, Codex, Pi, and Gemini CLI.
