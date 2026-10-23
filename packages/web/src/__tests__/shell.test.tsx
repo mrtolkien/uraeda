@@ -346,7 +346,7 @@ test("US2.1: a feature's card reads its slug, and its title and step for screen 
   const cli = await findRow("cli-tuis");
   expect(cli.textContent).toContain("cli-tuis");
   expect(cli.textContent).not.toContain("CLI TUIs");
-  expect(cli.getAttribute("aria-label")).toBe("cli-tuis, CLI TUIs, feature, Plan, Idle");
+  expect(cli.getAttribute("aria-label")).toBe("cli-tuis, Plan, CLI TUIs, feature, Idle");
 });
 
 test("US2.2, US2.3: a feature at its implementation shows its task on its card, which opens it", async () => {
