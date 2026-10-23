@@ -204,6 +204,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   test; the hooks live in `__browser__/helpers.tsx` alone.
 - **Where**: task 3, `packages/web/src/__browser__/helpers.tsx`, `__browser__/layout.test.tsx`,
   `useKeepPlace.ts`, `following.ts`.
+
 ## R10: A harness's mark is named once, by its kind, and stays silent beside its name
 
 - **Decision**: `harnessMark(kind)` names `claude` "Claude Code", `codex` "Codex", `pi` "Pi", the
