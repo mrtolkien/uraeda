@@ -75,12 +75,13 @@ const pending = new Map<() => number, Keep>();
 /**
  * Reads a place on screen with `read`, a distance from the window's top in px, makes `change`, and
  * once two frames have drawn it, scrolls the window so the place is back where it was. A change
- * made while the same place is being kept, read with the same `read`, joins it: that place is put
- * back once, two frames after the last change, so no change is corrected twice. A place read with
- * another `read` is kept on its own, from where it is read then: its correction reads the page
+ * that returns a promise is drawn once it resolves, however late: the frames count from then. A
+ * change made while the same place is being kept, read with the same `read`, joins it: that place
+ * is put back once, two frames after the last change, so no change is corrected twice. A place read
+ * with another `read` is kept on its own, from where it is read then: its correction reads the page
  * after the others' scrolls.
  */
-export async function keepPlace(read: () => number, change?: () => void) {
+export async function keepPlace(read: () => number, change?: () => Promise<void> | void) {
   const joined = pending.get(read);
   // A place already gone keeps nothing: a new one is kept instead.
   const keep =
@@ -89,7 +90,7 @@ export async function keepPlace(read: () => number, change?: () => void) {
       : { before: read(), last: 0, scrolled: scrollMark() };
   pending.set(read, keep);
   const mine = ++keep.last;
-  change?.();
+  await change?.();
   await frame();
   await frame();
   if (keep.last !== mine) {

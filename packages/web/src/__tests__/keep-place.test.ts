@@ -127,3 +127,30 @@ test("a scroll the browser makes to anchor the page is put back as the page's ow
   expect(page.block).toBe(before);
   expect(window.scrollBy).not.toHaveBeenCalled();
 });
+
+/** R29: a change drawn later than two frames, as on a busy machine, is put back once it is drawn. */
+test("a change that says when it is drawn is put back after it, however late", async () => {
+  page.block = 300;
+  const before = page.block;
+  let drawIt: (() => void) | undefined;
+  void keepPlace(
+    blockTop,
+    () =>
+      new Promise<void>((done) => {
+        drawIt = () => {
+          page.block += 760;
+          done();
+        };
+      }),
+  );
+
+  await draw();
+  await draw();
+  await draw();
+  drawIt?.();
+  await draw();
+  await draw();
+  await draw();
+
+  expect(page.block).toBe(before);
+});
