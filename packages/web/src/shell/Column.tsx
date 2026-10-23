@@ -19,6 +19,7 @@ import { useColumnWidth } from "./columnWidth.ts";
 import { ColumnFoldContext } from "./fold.ts";
 import { LogoButton, useRail } from "./Rail.tsx";
 import { ShellPanes, useShellPath } from "./ShellPanes.tsx";
+import { useStatusHints } from "../statusHints.tsx";
 
 const styles = stylex.create({
   easing: {
@@ -101,6 +102,7 @@ export function Column({ isWide }: { isWide: boolean }) {
     [isFolded, toggleStored],
   );
   useHotkeys([{ isDisabled: !isWide, keys: "[", onPress: fold.toggle }]);
+  useStatusHints(isWide ? [{ keys: "[", label: "fold" }] : [], "shell");
   return (
     <ColumnFoldContext value={fold}>
       <div

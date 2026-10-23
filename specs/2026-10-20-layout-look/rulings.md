@@ -415,3 +415,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Task 9 moves the slot; the offset is one line of `QuestionCard.tsx`.
 - **Where**: task 8, `packages/web/src/Shell.tsx`, `shell/Tabs.tsx`, `QuestionCard.tsx`,
   `theme/theme.ts`.
+
+## R20: The status line: no mode pill, hints off on the phone, and the page's slot in it
+
+- **Decision**: the status line is one row fixed at the window's bottom at every width,
+  `--spacing-8` tall, and on the phone `--spacing-12`, as tall as the tabs, since it holds the
+  page's slot (the round's count and Next), which moves there from R19's rows: the phone's sticky
+  header is the tabs alone again, and a question's sticky header sits one row under the top. The
+  shell lowers `--size-viewport-height` by the line's height and pads the page's end by it, so the
+  column, the side columns, and the round's index end above the line, and no page's end hides under
+  it. It shows the hints the page declares, then the shell's (`[ fold` on wide), then "N need you"
+  in the attention colour, left out at none, and "N running" with the activity icon. On the phone it
+  shows no hints: a phone has no keys, and every key hint today is off there but the lists', whose
+  room the slot and the counts need. No mode pill: the mockup's pill named the page, which the
+  column or the tabs already mark, so it carried no information. Keys are a raw `kbd` in the line,
+  not Astryx's `Kbd`, which writes them in capitals ("J K", "Esc") where the plan writes "j k" and
+  "esc". The line is a `footer`, the `contentinfo` region "Status line", with no live region: the
+  counts change as sessions run, and the panes and tabs already say them where they are read. `]`,
+  which folds a page's side column, gets no hint yet: the task names the keys to declare, and the
+  keyboard feature adds the rest. A sheet that leaves the page usable, as a comment's on the phone,
+  is no modal, so not in the top layer, and the fixed line covered its foot and its Add comment:
+  while one is open, the line is left out (`useCoverStatusLine` in `Overlay.tsx`). Tests changed
+  with what they check: the round's test that found Next in the `banner` finds it in the status
+  line, and Storybook's page and a session's side column, "as tall as the window", now reach the
+  status line's top.
+- **Rationale**: the spec puts the counts and hints at the bottom at every width; the round's Next
+  in the same line keeps it in reach of the thumb and in view, as R19 wanted.
+- **Alternatives considered**: the line in the page's flow, sticky at its bottom: the column and the
+  side columns, as tall as the window, would still pass under it. Hints cut to fit on the phone:
+  keys a phone cannot press.
+- **If wrong**: the slot goes back to R19's rows in `Shell.tsx`, and the question's offset in
+  `QuestionCard.tsx` to two rows.
+- **Where**: task 9, `packages/web/src/shell/StatusLine.tsx`, `statusHints.tsx`, `Shell.tsx`,
+  `QuestionCard.tsx`, `layout/Overlay.tsx`, `__tests__/round.test.tsx`,
+  `__browser__/storybook-page.test.tsx`, `__browser__/side-column.test.tsx`.

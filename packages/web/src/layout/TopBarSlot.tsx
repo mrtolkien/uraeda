@@ -14,8 +14,8 @@ export function TopBarSlotProvider({
 }
 
 /**
- * A page's own controls at the end of the shell's header: the phone's top bar, or the side
- * navigation's header on wide screens. Empty unless the current page renders one.
+ * A page's own controls in the shell's status line, at the bottom of the window, as the round's
+ * count and Next on the phone. Empty unless the current page renders one.
  */
 export function TopBarSlot({ children }: { children: ReactNode }) {
   const set = use(SetSlot);

@@ -1,5 +1,6 @@
 // The shell around every page of a repository: on semi-wide and wide screens, the column beside the
-// page (`shell/Column.tsx`); on the phone, the bar of tabs above it (`shell/Tabs.tsx`). The page
+// page (`shell/Column.tsx`); on the phone, the bar of tabs above it (`shell/Tabs.tsx`); at every
+// width, the status line at the bottom of the window (`shell/StatusLine.tsx`). The page
 // keeps its place in the tree as the window crosses a width, so its text, focus, and scroll stay.
 // The shell's frame is our own (plan, Complexity tracking): Astryx's `AppShell` draws its own
 // navigation for the phone.
@@ -15,10 +16,12 @@ import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
 import { Column } from "./shell/Column.tsx";
+import { StatusLine } from "./shell/StatusLine.tsx";
 import { Tabs } from "./shell/Tabs.tsx";
 import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
 import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
+import { StatusHintsProvider } from "./statusHints.tsx";
 import { useWrites } from "./writes/store.ts";
 import { WriteProgress } from "./writes/WriteFeedback.tsx";
 
@@ -51,7 +54,7 @@ const styles = stylex.create({
     minHeight: "var(--size-viewport-height)",
   },
   header: {
-    // The phone's tabs, and a page's own controls under them, in view while the page scrolls.
+    // The phone's tabs, in view while the page scrolls.
     backgroundColor: colorVars["--color-background-body"],
     position: "sticky",
     top: 0,
@@ -64,16 +67,16 @@ const styles = stylex.create({
   row: {
     display: "flex",
   },
-  slot: {
-    // A page's own controls, like a round's Next, at the top of the page until the status line:
-    // under the tabs on the phone, a row as tall as theirs.
-    alignItems: "center",
-    boxSizing: "border-box",
-    display: "flex",
-    gap: spacingVars["--spacing-2"],
-    justifyContent: "flex-end",
-    minHeight: spacingVars["--spacing-12"],
-    paddingInline: spacingVars["--spacing-4"],
+  status: {
+    // The status line takes the window's bottom row: what is as tall as the window ends above it,
+    // and the page's end scrolls past it.
+    "--size-status-line": spacingVars["--spacing-8"],
+    "--size-viewport-height": "calc(100dvh - var(--size-status-line))",
+    paddingBlockEnd: "var(--size-status-line)",
+  },
+  statusNarrow: {
+    // On the phone, a row as tall as the tabs', which holds the page's controls, as a round's Next.
+    "--size-status-line": spacingVars["--spacing-12"],
   },
 });
 
@@ -111,16 +114,27 @@ function UndoErrors() {
  * always at the same place in the tree.
  */
 function Frame({
+  bottom,
   children,
+  isNarrow = false,
   start,
   top,
 }: {
+  bottom?: ReactNode;
   children: ReactNode;
+  isNarrow?: boolean;
   start?: ReactNode;
   top?: ReactNode;
 }) {
+  const status = bottom !== undefined;
   return (
-    <div {...stylex.props(styles.frame)}>
+    <div
+      {...stylex.props(
+        styles.frame,
+        status && styles.status,
+        status && isNarrow && styles.statusNarrow,
+      )}
+    >
       {top}
       <div {...stylex.props(styles.row)}>
         {start}
@@ -128,6 +142,7 @@ function Frame({
           {children}
         </LayoutContent>
       </div>
+      {bottom}
     </div>
   );
 }
@@ -136,30 +151,31 @@ export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
   const width = useWidthClass();
   const narrow = isNarrow(width);
-  const slotted = slot !== null && <div {...stylex.props(styles.slot)}>{slot}</div>;
   return (
     <SidebarAddForms>
       <FeatureSettingsHost>
         <RenameSessionHost>
-          <Frame
-            start={narrow ? null : <Column isWide={width === "wide"} />}
-            top={
-              narrow ? (
-                // The page's banner, by its role as the pages look it up, as `AppShell` drew it.
-                <header role="banner" {...stylex.props(styles.header)}>
-                  <Tabs />
-                  {slotted}
-                </header>
-              ) : null
-            }
-          >
-            <Writing />
-            <NotifyBanner />
-            <Notifier />
-            <UndoErrors />
-            {!narrow && slotted}
-            <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
-          </Frame>
+          <StatusHintsProvider>
+            <Frame
+              bottom={<StatusLine isNarrow={narrow} slot={slot} />}
+              isNarrow={narrow}
+              start={narrow ? null : <Column isWide={width === "wide"} />}
+              top={
+                narrow ? (
+                  // The page's banner, by its role as the pages look it up, as `AppShell` drew it.
+                  <header role="banner" {...stylex.props(styles.header)}>
+                    <Tabs />
+                  </header>
+                ) : null
+              }
+            >
+              <Writing />
+              <NotifyBanner />
+              <Notifier />
+              <UndoErrors />
+              <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
+            </Frame>
+          </StatusHintsProvider>
         </RenameSessionHost>
       </FeatureSettingsHost>
     </SidebarAddForms>

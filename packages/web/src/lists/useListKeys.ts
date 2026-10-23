@@ -4,6 +4,7 @@
 // the page itself: never in a text field, a row's handle, an open Selector, a menu, or a dialog.
 import { useListFocus } from "@astryxdesign/core/hooks";
 import { useCallback, useEffect } from "react";
+import { useStatusHints } from "../statusHints.tsx";
 
 /** The rows' links, in the list's order: each row marks its item with `data-row`. */
 const ROW = "[data-row] a[href]";
@@ -37,6 +38,13 @@ function isLayerOpen() {
   }
 }
 
+/** The keys, as the status line names them while the list shows. */
+const HINTS = [
+  { keys: "j k", label: "move" },
+  { keys: "⏎", label: "open" },
+  { keys: "esc", label: "close" },
+];
+
 /** The moves of the keys, by key. */
 const MOVES: Record<string, "next" | "previous" | "first" | "last"> = {
   ArrowDown: "next",
@@ -66,6 +74,7 @@ export function useListKeys({
   selected: number;
 }) {
   const { focusItem, getItems, listRef } = useListFocus<HTMLDivElement>({ itemSelector: ROW });
+  useStatusHints(HINTS);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

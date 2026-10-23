@@ -616,13 +616,14 @@ function focused() {
 }
 
 /** US1 1 */
-// The inbox's spec: the ＋ buttons are the sidebar's, never in the top bar.
-test("the bar counts and offers Next, with no ＋ in the top bar (US1 1)", async () => {
+// The inbox's spec: the ＋ buttons are the sidebar's, never in the bar. The round's bar is the
+// status line, at the bottom of the window (layout-look R20).
+test("the bar counts and offers Next, with no ＋ in the bar (US1 1)", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A" }));
   expect(await screen.findByRole("button", { name: "1/3" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
-  const bar = screen.getByRole("banner");
+  const bar = screen.getByRole("contentinfo", { name: "Status line" });
   expect(within(bar).getByRole("button", { name: "Next" })).toBeTruthy();
   expect(
     within(bar).queryAllByRole("button", {

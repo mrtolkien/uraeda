@@ -90,8 +90,10 @@ describe("on a desktop, folding", () => {
     await session();
     const handle = screen.getByRole("separator", { name: "Resize progress" });
     const box = handle.getBoundingClientRect();
-    expect(Math.round(box.height)).toBe(window.innerHeight);
-    expect(Math.round(column()!.getBoundingClientRect().height)).toBe(window.innerHeight);
+    // As tall as the window above the shell's status line (layout-look R20).
+    const line = screen.getByRole("contentinfo", { name: "Status line" }).getBoundingClientRect();
+    expect(Math.round(box.height)).toBe(Math.round(line.top));
+    expect(Math.round(column()!.getBoundingClientRect().height)).toBe(Math.round(line.top));
     expect(Math.round(box.x)).toBe(Math.round(column()!.getBoundingClientRect().x));
 
     await userEvent.dragAndDrop(handle, document.body, {

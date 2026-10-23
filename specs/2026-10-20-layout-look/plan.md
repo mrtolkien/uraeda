@@ -583,7 +583,11 @@ behaviour the spec marks unverified.
 - Create: `packages/web/src/shell/StatusLine.tsx`, `src/statusHints.tsx`,
   `src/__tests__/status-line.test.tsx`
 - Modify: `packages/web/src/Shell.tsx`, `src/layout/TopBarSlot.tsx` (its slot drawn in the status
-  line), `src/lists/useListKeys.ts` and `src/RoundNav.tsx` (declare their hints)
+  line), `src/lists/useListKeys.ts`, `src/RoundNav.tsx`, and `src/shell/Column.tsx` (declare their
+  hints), `src/QuestionCard.tsx` (its sticky header one row under the top, R20),
+  `src/layout/Overlay.tsx` (a sheet that is no modal covers the line),
+  `src/__tests__/round.test.tsx`, `src/__browser__/storybook-page.test.tsx`, and
+  `src/__browser__/side-column.test.tsx` (the status line at the window's bottom, R20)
 
 **Interfaces:**
 
@@ -591,14 +595,14 @@ behaviour the spec marks unverified.
   declares the keys that work while it shows; `StatusLine`: the hints, the slot, then "N need you"
   and the running count.
 
-- [ ] **Step 1: Write the failing tests**: on the priorities, the status line reads "j k move", "⏎
+- [x] **Step 1: Write the failing tests**: on the priorities, the status line reads "j k move", "⏎
       open", "esc close"; on a round at 1440 px, "n p unanswered"; with one feature waiting, "1 need
       you"; on the home, no list hints. Break: hints left over from the page before.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no status line.
-- [ ] **Step 3: Implement** the registry, the line under the page at every width, and the slot.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the round's browser
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no status line.
+- [x] **Step 3: Implement** the registry, the line under the page at every width, and the slot.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast` and the round's browser
       file. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(layout-look): a status line of the keys that work"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(layout-look): a status line of the keys that work"`.
 
 ## Task 10: The home, core then overview
 

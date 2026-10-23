@@ -1,6 +1,6 @@
 // US5 of the UI iteration flow: Uraeda's Storybook page shows Storybook's own interface for a
 // branch, at the story an embed or an inline link names (US1.3, US5.1, US5.2), as tall as the window
-// and, on the phone, as wide (US5.4). The page's links and the session's column, a change's too,
+// above its status line (layout-look R20) and, on the phone, as wide (US5.4). The page's links and the session's column, a change's too,
 // list it (US4.5, US5.3), only with a preview decision; a story not in the index, and a failed
 // Storybook, say so (edge cases).
 import { screen, within } from "@testing-library/react";
@@ -19,6 +19,11 @@ const BASE = async () =>
 const PREVIEW_FRAME = "storybook-preview-iframe";
 /** How long the fake preview may take to start and its story to load, on a loaded machine. */
 const READY = { interval: 100, timeout: 20_000 };
+
+/** The window's end for a page: the top of the shell's status line, at the window's bottom. */
+function windowEnd() {
+  return screen.getByRole("contentinfo", { name: "Status line" }).getBoundingClientRect().top;
+}
 
 /** Waits until Storybook's interface shows the story `Dragging` in its own frame. */
 async function storyShown() {
@@ -70,7 +75,7 @@ describe("on a desktop", () => {
     expect(within(crumbs.getAllByRole("listitem").at(-1)!).getByText("Storybook")).toBeTruthy();
     expect(frame.getAttribute("src")).toBe((await BASE()) + AT_STORY);
     expect(frame.getAttribute("sandbox")).toBe("allow-scripts allow-popups");
-    expect(frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
+    expect(frame.getBoundingClientRect().bottom).toBeCloseTo(windowEnd(), 1);
     expect(document.documentElement.scrollHeight).toBe(window.innerHeight);
     await storyShown();
   });
@@ -81,11 +86,13 @@ describe("on a desktop", () => {
 
     await show(PAGE, "Storybook");
     const frame = await screen.findByTitle("Storybook", {}, READY);
-    expect(frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
+    expect(frame.getBoundingClientRect().bottom).toBeCloseTo(windowEnd(), 1);
     await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
 
     await expect.poll(() => screen.queryByText(/^Could not undo/)).toBeNull();
-    await expect.poll(() => frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
+    await expect
+      .poll(() => Math.abs(frame.getBoundingClientRect().bottom - windowEnd()))
+      .toBeLessThan(0.05);
   });
 
   test("the feature's page and the session's column list Storybook (US4.5, US5.3)", async () => {
@@ -189,7 +196,7 @@ describe("on the phone", () => {
 
     const frame = await screen.findByTitle("Storybook", {}, READY);
     expect(frame.getBoundingClientRect().width).toBe(window.innerWidth);
-    expect(frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
+    expect(frame.getBoundingClientRect().bottom).toBeCloseTo(windowEnd(), 1);
     await expect
       .poll(() => commands.frameText("Storybook"), READY)
       .toContain("SidebarHandle Dragging");
