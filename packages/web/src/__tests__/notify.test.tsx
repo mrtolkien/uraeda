@@ -240,7 +240,7 @@ test("the tab's title counts what needs the human", async () => {
   permission = "default";
   window.localStorage.setItem("uraeda.notifications", "dismissed");
   await renderPage("/");
-  const nav = within(await screen.findByRole("navigation", { name: "Side navigation" }));
+  const nav = within(await screen.findByRole("navigation", { name: "Navigation" }));
   const needsYou = within(await nav.findByRole("group", { name: "Needs you" }));
   const count = needsYou.getAllByRole("link").length;
 

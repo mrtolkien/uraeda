@@ -27,12 +27,12 @@ const CLI = "2026-10-12-cli-tuis";
 
 /** The side navigation, as drawn on a wide screen. */
 function nav() {
-  return within(screen.getByRole("navigation", { name: "Side navigation" }));
+  return within(screen.getByRole("navigation", { name: "Navigation" }));
 }
 
 /** Waits for the side navigation, and returns it. */
 async function findNav() {
-  return within(await screen.findByRole("navigation", { name: "Side navigation" }));
+  return within(await screen.findByRole("navigation", { name: "Navigation" }));
 }
 
 /** A card's link, by its name's start. */
@@ -40,21 +40,23 @@ function card(name: string) {
   return nav().getByRole("link", { name: new RegExp(`^${name}, `) });
 }
 
-/** US2.1, C1 */
+/** US2.1, C1; layout and look US2: New first, then Navigate, then the panes of work (R14). */
 test("the sidebar reads in the flow's order, the inbox's and Now's counts, and no drafts", async () => {
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
-  await (await findNav()).findByRole("group", { name: "Sessions" });
+  await (await findNav()).findByRole("group", { name: "In progress" });
 
   const links = nav()
     .getAllByRole("link")
     .map((link) => link.getAttribute("aria-label") ?? link.textContent ?? "");
   const at = (start: string) => links.findIndex((name) => name.startsWith(start));
-  expect(at("Home")).toBe(0);
-  expect(at("Home")).toBeLessThan(at("web-ui, "));
-  expect(at("web-ui, ")).toBeLessThan(at("Inbox"));
+  expect(at("New")).toBe(0);
+  expect(at("New")).toBeLessThan(at("Home"));
+  expect(at("Home")).toBeLessThan(at("Inbox"));
   expect(at("Inbox")).toBeLessThan(at("Priorities"));
-  expect(at("Priorities")).toBeLessThan(at("＋New"));
-  expect(at("＋New")).toBeLessThan(at("cli-tuis, "));
+  expect(at("Priorities")).toBeLessThan(at("Decisions"));
+  expect(at("Decisions")).toBeLessThan(at("web-ui, "));
+  expect(at("web-ui, ")).toBeLessThan(at("cli-tuis, "));
+  expect(at("cli-tuis, ")).toBeLessThan(at("Settings"));
   // The inbox's count, drawn once its own read ends: read again until it is.
   await waitFor(() =>
     expect(nav().getByRole("link", { name: /^Inbox/ }).textContent).toContain("10"),
@@ -223,7 +225,10 @@ const names = (group: ReturnType<typeof within>) =>
     .getAllByRole("link")
     .map((link: HTMLElement) => link.getAttribute("aria-label") ?? link.textContent ?? "");
 
-/** Merge chats US1 1 */
+/**
+ * Merge chats US1 1, as layout and look US2 splits it (R14): the sessions in Sessions, the changes
+ * and features with them in In progress, each oldest first; New opens the New page.
+ */
 test("sessions, changes, and features share one list, oldest first", async () => {
   const repo = fixtureRepo();
   addChange(repo, "2026-10-18-flaky-tests", {
@@ -235,16 +240,15 @@ test("sessions, changes, and features share one list, oldest first", async () =>
 
   const group = await sessions();
   await waitFor(() => group.getByRole("link", { name: /^Why is CI slow\?, / }));
-  const links = names(group);
+  expect(names(group)).toEqual([expect.stringMatching(/^Why is CI slow\?, .*\bsession, /)]);
+  const progress = within(nav().getByRole("group", { name: "In progress" }));
+  const links = names(progress);
   const at = (start: string) => links.findIndex((name: string) => name.startsWith(start));
-  expect(at("＋New")).toBe(0);
-  expect(group.getByRole("link", { name: "New" }).getAttribute("href")).toBe(atRepo("/new"));
-  expect(at("cli-tuis, ")).toBeGreaterThan(0);
+  expect(at("cli-tuis, ")).toBeGreaterThan(-1);
   expect(at("cli-tuis, ")).toBeLessThan(at("flaky-tests, "));
-  expect(at("flaky-tests, ")).toBeLessThan(at("Why is CI slow?, "));
   expect(links[at("cli-tuis, ")]).toContain(", feature, ");
   expect(links[at("flaky-tests, ")]).toContain(", change, ");
-  expect(links[at("Why is CI slow?, ")]).toContain(", session, ");
+  expect(nav().getByRole("link", { name: "New" }).getAttribute("href")).toBe(atRepo("/new"));
   for (const name of ["Changes", "Features", "Chats"]) {
     expect(nav().queryByRole("group", { name })).toBeNull();
   }
@@ -361,7 +365,7 @@ test("each card has its status and its … in its row", async () => {
     { more: "Actions of Why is CI slow?", name: /^Why is CI slow\?, /, status: "New reply" },
   ];
   for (const card of cards) {
-    const link = group.getByRole("link", { name: card.name });
+    const link = nav().getByRole("link", { name: card.name });
     expect(within(link).getByRole("img", { name: card.status })).toBeTruthy();
     // The card's row, its link and its "…", holds its own "…" and no other.
     const row = within(link.parentElement!);

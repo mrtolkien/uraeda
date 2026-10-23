@@ -532,7 +532,7 @@ test.each(["/", "/priorities"])("no ＋ in the phone's top bar of %s", async (pa
   atWidth(402);
   await renderPage(path);
   const bar = await screen.findByRole("banner");
-  await screen.findByRole("button", { name: "Open navigation" });
+  await within(bar).findByRole("navigation", { name: "Tabs" });
 
   expect(
     within(bar)

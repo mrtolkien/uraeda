@@ -1,4 +1,4 @@
-// Rename, from a session's "…" in the sidebar or on its page: a dialog on wide screens, a bottom sheet on the phone,
+// Rename, from a session's "…" in the shell or on its page: a dialog on wide screens, a bottom sheet on the phone,
 // drawn beside the shell, as a feature's settings are. The server refuses a blank title.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -11,7 +11,6 @@ import { refusal } from "../errors.ts";
 import { Overlay } from "../layout/Overlay.tsx";
 import { SessionView } from "../views.ts";
 import type { Row } from "./cards.ts";
-import { useAfterDrawer } from "./FeatureSettingsDialog.tsx";
 
 /** The session renamed: its ID and its title. */
 type Renamed = Pick<Row, "id" | "title">;
@@ -21,11 +20,9 @@ type Open = (row: Renamed, onClosed?: () => void) => void;
 
 const OpenContext = createContext<Open>(() => {});
 
-/** Opens a session's Rename, once the phone's drawer is closed. */
-export function useOpenRename() {
-  const open = useContext(OpenContext);
-  const after = useAfterDrawer();
-  return (row: Renamed, onClosed?: () => void) => after(() => open(row, onClosed));
+/** Opens a session's Rename. */
+export function useOpenRename(): Open {
+  return useContext(OpenContext);
 }
 
 function Rename({ onClose, row }: { onClose: () => void; row: Renamed }) {

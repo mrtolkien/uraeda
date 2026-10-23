@@ -28,7 +28,7 @@ function answeredRepo() {
 
 /** The feature's card in the sidebar. */
 const card = (slug: string) =>
-  within(screen.getByRole("navigation", { name: "Side navigation" })).getByRole("link", {
+  within(screen.getByRole("navigation", { name: "Navigation" })).getByRole("link", {
     name: new RegExp(`^${slug}, `),
   });
 

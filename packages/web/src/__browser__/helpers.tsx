@@ -265,9 +265,15 @@ export function checkPage(root?: Element) {
     const style = getComputedStyle(element);
     const name = element.outerHTML.slice(0, 120);
     expect(style.getPropertyValue("-webkit-line-clamp") || "none", name).toBe("none");
-    // A session's title in the navigation, beside it or in the phone's drawer, is cut by an
-    // ellipsis on purpose: its card keeps one line.
-    if (scrolls(element) || element.closest('a[href*="/sessions/"]')?.closest("nav, dialog")) {
+    // A card's name in the shell's panes, a session's title or a feature's or a change's name, is
+    // cut by an ellipsis on purpose: its card keeps one line, in the column's 256 px or on the
+    // phone's sessions page (R17).
+    if (
+      scrolls(element) ||
+      element
+        .closest('a[href*="/sessions/"], a[href*="/f/"]')
+        ?.closest('nav, dialog, section[role="group"]')
+    ) {
       continue;
     }
     // No text is cut where an element clips it, by an ellipsis or not; visually hidden elements,

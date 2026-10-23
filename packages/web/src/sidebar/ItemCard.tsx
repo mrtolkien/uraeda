@@ -1,4 +1,4 @@
-// A session's, a change's, or a feature's card in the sidebar: every line about it inside one border.
+// A session's, a change's, or a feature's card in the shell: every line about it, a row of its pane.
 // Its first line is its kind's icon, its name, and at the end its background command and status,
 // then its "…": a session's actions, or a change's or a feature's settings. Under it, while it has
 // any: its task's progress and the lines its branch changed, with its pull request; then its running
@@ -8,21 +8,18 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Link } from "@astryxdesign/core/Link";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
+import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
-import {
-  borderVars,
-  colorVars,
-  radiusVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { SessionStatus } from "uraeda-server/fate";
 import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
 import { ProgressRing } from "../ProgressRing.tsx";
+import { useColumnFold } from "../shell/fold.ts";
 import { StatusMark } from "../StatusMark.tsx";
 import { needsYou } from "./cards.ts";
+import { RailLink } from "./Row.tsx";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 
 /** What the sidebar shows of a session, a change, or a feature. */
@@ -60,10 +57,7 @@ const styles = stylex.create({
   },
   added: { color: colorVars["--color-success"] },
   card: {
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-element"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
+    // A row of its pane, which draws the border around its cards.
     marginBlockEnd: spacingVars["--spacing-1"],
     overflow: "hidden",
   },
@@ -150,8 +144,8 @@ function KindIcon({ item }: { item: CardItem }) {
  * status read in the card's name.
  */
 function CardIcon({ item }: { item: CardItem }) {
-  const { isCollapsed } = useSideNavCollapse();
-  if (!isCollapsed || !needsYou(item.status)) {
+  const { isFolded } = useColumnFold();
+  if (!isFolded || !needsYou(item.status)) {
     return <KindIcon item={item} />;
   }
   return (
@@ -272,7 +266,19 @@ export function ItemCard({
   /** Opens what its status points to, on a click on the status: its session, or what it asks. */
   onStatus?: () => void;
 }) {
-  const { isCollapsed } = useSideNavCollapse();
+  const { isFolded } = useColumnFold();
+  if (isFolded) {
+    // The rail: its icon alone, its name read in full, its status a warning while it needs you.
+    return (
+      <RailLink
+        href={href}
+        icon={<CardIcon item={item} />}
+        isSelected={isSelected}
+        label={cardName(item)}
+        {...(onOpen ? { onOpen } : {})}
+      />
+    );
+  }
   return (
     <div {...stylex.props(styles.card)}>
       <SideNavItem
@@ -284,6 +290,8 @@ export function ItemCard({
         icon={<CardIcon item={item} />}
         isSelected={isSelected}
         label={item.label}
+        // A pane's compact row, as the column's other rows.
+        size="sm"
         {...(onOpen || onStatus
           ? {
               onClick: (event: React.MouseEvent) => {
@@ -298,16 +306,15 @@ export function ItemCard({
             }
           : {})}
       />
-      {!isCollapsed && <Activity item={item} />}
-      {!isCollapsed &&
-        item.subagents?.map((subagent) => (
-          <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
-            <StatusMark label="Working" small status="working" />
-            <Text color="secondary" maxLines={1} type="supporting">
-              {subagent.description}
-            </Text>
-          </HStack>
-        ))}
+      <Activity item={item} />
+      {item.subagents?.map((subagent) => (
+        <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
+          <StatusMark label="Working" small status="working" />
+          <Text color="secondary" maxLines={1} type="supporting">
+            {subagent.description}
+          </Text>
+        </HStack>
+      ))}
     </div>
   );
 }

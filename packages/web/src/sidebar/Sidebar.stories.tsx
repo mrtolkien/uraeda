@@ -4,29 +4,43 @@
 // icon telling its kind. A second line shows only while there is a task's progress or lines changed.
 // The latest done items sit at the bottom. On the phone, the shell's top bar starts with the way
 // home. Drawn from fixed props, with the real cards.
-import { AppShell } from "@astryxdesign/core/AppShell";
+// TEMPORARY: a plain frame in place of the shell, until Task 14 of the layout and look rewrites
+// these stories as `shell/Shell.stories.tsx`.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import {
-  SideNav,
-  SideNavItem,
-  SideNavSection,
-  useSideNavCollapse,
-} from "@astryxdesign/core/SideNav";
+import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
-import { useRef, useState } from "react";
+import { useRef } from "react";
+import { Pane } from "../layout/Pane.tsx";
+import { ColumnFoldContext, useColumnFold } from "../shell/fold.ts";
 import { DoneArea, type DoneRow } from "./DoneArea.tsx";
 import { type CardItem, ItemCard } from "./ItemCard.tsx";
-import { SidebarHeading } from "./SidebarHeading.tsx";
 
 const styles = stylex.create({
+  column: {
+    backgroundColor: colorVars["--color-background-body"],
+    borderInlineEndColor: colorVars["--color-border"],
+    borderInlineEndStyle: "solid",
+    borderInlineEndWidth: borderVars["--border-width"],
+    flexShrink: 0,
+    overflowY: "auto",
+    paddingInline: spacingVars["--spacing-1"],
+    width: "var(--size-settings-index)",
+  },
+  folded: {
+    width: "var(--size-rail)",
+  },
+  frame: {
+    display: "flex",
+    height: "var(--size-viewport-height)",
+  },
   page: {
     paddingBlock: spacingVars["--spacing-6"],
     paddingInline: spacingVars["--spacing-8"],
@@ -115,8 +129,8 @@ const DONE: Array<DoneRow> = [
 
 /** The repository menu's trigger, as the shell draws it. */
 function Menu() {
-  const { isCollapsed } = useSideNavCollapse();
-  return isCollapsed ? (
+  const { isFolded } = useColumnFold();
+  return isFolded ? (
     <IconButton icon={<Icon icon="chevronDown" />} label="Repositories, uraeda" variant="ghost" />
   ) : (
     <Button label="uraeda" variant="ghost" />
@@ -173,54 +187,35 @@ function SidebarMockup({
   needsYou?: Array<CardItem>;
   sessions?: Array<CardItem>;
 }) {
-  const [pointer, setPointer] = useState(false);
   const rows = useRef<HTMLDivElement>(null);
   return (
-    <AppShell
-      contentPadding={0}
-      height="fill"
-      sideNav={
-        <SideNav
-          collapsible={{ defaultIsCollapsed: isFolded, hasButton: false }}
-          footer={<DoneArea allHref="#done" content={rows} rows={DONE} />}
-          header={
-            <SidebarHeading
-              homeHref="#"
-              isHome
-              isRevealed={isRevealed || pointer}
-              menu={<Menu />}
-            />
-          }
-          resizable={{ defaultWidth: 280, maxWidth: 480, minWidth: 200 }}
-        >
-          <div
-            onPointerEnter={() => setPointer(true)}
-            onPointerLeave={() => setPointer(false)}
-            ref={rows}
-          >
+    <ColumnFoldContext value={{ isFolded, toggle: () => {} }}>
+      <div {...stylex.props(styles.frame)}>
+        <nav aria-label="Navigation" {...stylex.props(styles.column, isFolded && styles.folded)}>
+          <Menu />
+          <div ref={rows}>
             <SideNavItem href="#" icon={<Icon icon="uraeda:home" />} isSelected label="Home" />
-            {needsYou.length > 0 && (
-              <SideNavSection title="Needs you">
-                <Cards items={needsYou} />
-              </SideNavSection>
-            )}
             <FlowRow add="Add a note to the inbox" count={4} label="Inbox" />
             <FlowRow add="Add to the priorities" count={12} label="Priorities" />
-            <SideNavSection title="Sessions">
-              {!isFolded && (
-                <SideNavItem href="#" icon={<span aria-hidden="true">＋</span>} label="New" />
-              )}
+            {needsYou.length > 0 && (
+              <Pane title="Needs you" tone="attention">
+                <Cards items={needsYou} />
+              </Pane>
+            )}
+            <Pane title="Sessions">
               <Cards items={sessions} />
-            </SideNavSection>
+            </Pane>
           </div>
-        </SideNav>
-      }
-    >
-      <VStack gap={3} xstyle={styles.page}>
-        <Heading level={1}>Home</Heading>
-        <Text color="secondary">The page beside the sidebar.</Text>
-      </VStack>
-    </AppShell>
+          <DoneArea allHref="#done" content={rows} rows={DONE} />
+        </nav>
+        <VStack gap={3} xstyle={styles.page}>
+          <Heading level={1}>Home</Heading>
+          <Text color="secondary">
+            The page beside the column{isRevealed ? ", the pointer over it" : ""}.
+          </Text>
+        </VStack>
+      </div>
+    </ColumnFoldContext>
   );
 }
 

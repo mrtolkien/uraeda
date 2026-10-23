@@ -145,6 +145,44 @@ export const panelRight = outline(
   h("path", { d: "M15 3v18" }),
 );
 
+// The shell's rows and tabs.
+
+/** A tray, for the inbox: Lucide's `inbox`. */
+export const inbox = outline(
+  h("polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12" }),
+  h("path", {
+    d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z",
+  }),
+);
+
+/** A list, for the priorities: Lucide's `list`. */
+export const list = outline(
+  h("path", { d: "M3 5h.01" }),
+  h("path", { d: "M3 12h.01" }),
+  h("path", { d: "M3 19h.01" }),
+  h("path", { d: "M8 5h13" }),
+  h("path", { d: "M8 12h13" }),
+  h("path", { d: "M8 19h13" }),
+);
+
+/** A plus, for starting something new: Lucide's `plus`. */
+export const plus = outline(h("path", { d: "M5 12h14" }), h("path", { d: "M12 5v14" }));
+
+/** A pencil, for jotting a note down: Lucide's `pencil`. */
+export const pencil = outline(
+  h("path", {
+    d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+  }),
+  h("path", { d: "m15 5 4 4" }),
+);
+
+/** A pulse, for the sessions at work: Lucide's `activity`. */
+export const activity = outline(
+  h("path", {
+    d: "M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2",
+  }),
+);
+
 /** The Enter key, for the button Enter presses: Lucide's `corner-down-left`. */
 export const enter = outline(
   h("path", { d: "M20 4v7a4 4 0 0 1-4 4H4" }),

@@ -128,7 +128,7 @@ test("four taps from the phone's home (US3 5, SC-002)", async () => {
     await click(element);
   };
 
-  await tap(await screen.findByRole("button", { name: "Open navigation" }));
+  await tap(await screen.findByRole("link", { name: /^Sessions/ }));
   await tap(await screen.findByRole("button", { name: "Add to the priorities" }));
   const form = within(await screen.findByRole("dialog", { name: "New priority" }));
   // The line has the focus as the form opens: typing needs no tap of its own.
@@ -191,7 +191,7 @@ test.each([
   atWidth(width);
   await renderPage("/");
   if (!shown) {
-    await click(await screen.findByRole("button", { name: "Open navigation" }));
+    await click(await screen.findByRole("link", { name: /^Sessions/ }));
   }
   const { form } = await openPriority();
 

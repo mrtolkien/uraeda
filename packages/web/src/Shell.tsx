@@ -1,35 +1,35 @@
-import { AppShell } from "@astryxdesign/core/AppShell";
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Icon } from "@astryxdesign/core/Icon";
-import { SideNav, SideNavItem } from "@astryxdesign/core/SideNav";
+// The shell around every page of a repository: on semi-wide and wide screens, the column beside the
+// page (`shell/Column.tsx`); on the phone, the bar of tabs above it (`shell/Tabs.tsx`). The page
+// keeps its place in the tree as the window crosses a width, so its text, focus, and scroll stay.
+// The shell's frame is our own (plan, Complexity tracking): Astryx's `AppShell` draws its own
+// navigation for the phone.
+import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useRef, useState } from "react";
-import { useNavigation } from "./sessionData.ts";
+import { type ReactNode, useState } from "react";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
-import { currentEntry, navigate, useLocalPath, useRepoPath, useRepository } from "./routes.tsx";
-import { DoneArea } from "./sidebar/DoneArea.tsx";
-import { doneRows, useKeptSession } from "./sidebar/done.ts";
-import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
-import { SidebarHeading } from "./sidebar/SidebarHeading.tsx";
+import { Column } from "./shell/Column.tsx";
+import { Tabs } from "./shell/Tabs.tsx";
 import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
-import { SearchField, useSessionQuery } from "./sidebar/Search.tsx";
-import { Sidebar } from "./sidebar/Sidebar.tsx";
+import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { useWrites } from "./writes/store.ts";
 import { WriteProgress } from "./writes/WriteFeedback.tsx";
-import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 
 const styles = stylex.create({
-  controls: {
-    alignItems: "center",
-    display: "flex",
-    flexShrink: 0,
-    marginInlineStart: "auto",
+  bare: {
+    // A page of no repository: the menu alone, above the page.
+    borderBlockEndColor: colorVars["--color-border"],
+    borderBlockEndStyle: "solid",
+    borderBlockEndWidth: borderVars["--border-width"],
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-2"],
   },
   errors: {
     // The errors of refused Undos, in the page's column, above it.
@@ -45,154 +45,37 @@ const styles = stylex.create({
     paddingBlockStart: spacingVars["--spacing-6"],
     paddingInline: spacingVars["--spacing-8"],
   },
-  folded: {
-    // Folded: the link home, then the page's controls, one under the other.
-    alignItems: "center",
-    display: "flex",
-    flexDirection: "column",
-    gap: spacingVars["--spacing-1"],
-  },
-  folding: {
-    // The width eases as the sidebar folds or unfolds, never while its edge is dragged.
-    transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
-    transitionProperty: "width",
-    transitionTimingFunction: easeVars["--ease-standard"],
-  },
-  heading: {
-    // The navigation's heading: the link home, then the page's controls at its end.
-    alignItems: "center",
-    display: "flex",
-    flexGrow: 1,
-    gap: spacingVars["--spacing-2"],
-    minWidth: 0,
-    paddingInline: spacingVars["--spacing-2"],
-  },
-  menu: {
-    // The menu's trigger takes the room the page's controls leave.
-    flexGrow: 1,
-    minWidth: 0,
-  },
-  shell: {
-    // The page's surface behind a short page too: Astryx paints it on the content only, which on the
-    // phone ends with the page's text, leaving the shell's wash below it.
+  frame: {
+    // The page's surface behind a short page too.
     backgroundColor: colorVars["--color-background-surface"],
+    minHeight: "var(--size-viewport-height)",
+  },
+  header: {
+    // The phone's tabs, and a page's own controls under them, in view while the page scrolls.
+    backgroundColor: colorVars["--color-background-body"],
+    position: "sticky",
+    top: 0,
+    zIndex: 2,
+  },
+  main: {
+    flexGrow: 1,
+    minWidth: 0,
+  },
+  row: {
+    display: "flex",
+  },
+  slot: {
+    // A page's own controls, like a round's Next, at the top of the page until the status line:
+    // under the tabs on the phone, a row as tall as theirs.
+    alignItems: "center",
+    boxSizing: "border-box",
+    display: "flex",
+    gap: spacingVars["--spacing-2"],
+    justifyContent: "flex-end",
+    minHeight: spacingVars["--spacing-12"],
+    paddingInline: spacingVars["--spacing-4"],
   },
 });
-
-/** The milliseconds the sidebar's width eases over as it folds or unfolds. */
-const FOLD_MS = 200;
-
-/**
- * The navigation footer's first row: the constitution and the decisions, above the done items,
- * selected on their pages. Folded, its icon alone, named "Decisions".
- */
-function DecisionsItem({ path }: { path: string }) {
-  const here = useRepoPath();
-  return (
-    <SideNavItem
-      href={here("/decisions")}
-      icon={<Icon icon="uraeda:decision-ruler" />}
-      isSelected={path === "/decisions" || path.startsWith("/decisions/")}
-      label="Decisions"
-      onClick={(event: React.MouseEvent) => {
-        event.preventDefault();
-        navigate(here("/decisions"));
-      }}
-    />
-  );
-}
-
-/**
- * The navigation's footer: Settings, selected on its pages. Folded, its icon alone, named
- * "Settings".
- */
-function SettingsItem({ path }: { path: string }) {
-  const here = useRepoPath();
-  return (
-    <SideNavItem
-      href={here("/settings")}
-      icon={<Icon icon="uraeda:settings" />}
-      isSelected={path === "/settings" || path.startsWith("/settings/")}
-      label="Settings"
-      onClick={(event: React.MouseEvent) => {
-        event.preventDefault();
-        navigate(here("/settings"));
-      }}
-    />
-  );
-}
-
-/**
- * The navigation: a search over the sessions, Home, what needs the human, the inbox and the
- * priorities with their ＋, the sessions, changes, and features in flight, and at the bottom the
- * latest done items that fit, then Settings. Its heading folds it, goes home on the phone, and ends with the page's
- * own controls; on wide screens it folds to its rail and resizes, its width and state kept in the
- * browser, its width easing as it folds.
- */
-function Nav({ slot }: { slot: ReactNode }) {
-  const { sessionList, workspace } = useNavigation();
-  const current = useRepository();
-  const path = useLocalPath();
-  const here = useRepoPath();
-  const { query, setText, text } = useSessionQuery();
-  const [pointer, setPointer] = useState(false);
-  const [folding, setFolding] = useState(false);
-  const rows = useRef<HTMLDivElement>(null);
-  // A task view opened from home shows beside home on wide screens: home stays the page selected.
-  const pathname = path.startsWith("/priorities/") && currentEntry().from === "/" ? "/" : path;
-  const kept = useKeptSession(sessionList?.rows ?? [], pathname);
-  const fold = () => {
-    setFolding(true);
-    setTimeout(() => setFolding(false), FOLD_MS);
-  };
-  return (
-    <SideNav
-      collapsible={{ hasButton: false }}
-      footer={
-        <>
-          <DecisionsItem path={path} />
-          <DoneArea
-            allHref={here("/#done")}
-            content={rows}
-            onOpen={(href) => navigate(href)}
-            rows={doneRows(workspace?.features ?? [], sessionList?.rows ?? [], {
-              here,
-              ...(kept ? { kept } : {}),
-              pathname,
-            })}
-          />
-          <SettingsItem path={path} />
-        </>
-      }
-      header={
-        <SidebarHeading
-          homeHref={here("/")}
-          isHome={pathname === "/"}
-          isRevealed={pointer}
-          menu={<RepositoryMenu current={current} />}
-          onFold={fold}
-          slot={slot}
-        />
-      }
-      onPointerEnter={() => setPointer(true)}
-      onPointerLeave={() => setPointer(false)}
-      // 290 px at first: a feature's name in the monospace font, beside its row's mark and menu (R5).
-      resizable={{ autoSaveId: "uraeda.nav", defaultWidth: 290, maxWidth: 480, minWidth: 200 }}
-      topContent={<SearchField onChange={setText} text={text} />}
-      xstyle={folding && styles.folding}
-    >
-      <div ref={rows}>
-        <Sidebar
-          kept={kept}
-          pathname={pathname}
-          query={query}
-          sessionList={sessionList}
-          workspace={workspace}
-        />
-      </div>
-    </SideNav>
-  );
-}
 
 /** The thin bar at the top of the page, while a git write runs. */
 function Writing() {
@@ -223,24 +106,60 @@ function UndoErrors() {
   );
 }
 
+/**
+ * The frame: `top` above the page and `start` beside it, each where its width puts it, and the page
+ * always at the same place in the tree.
+ */
+function Frame({
+  children,
+  start,
+  top,
+}: {
+  children: ReactNode;
+  start?: ReactNode;
+  top?: ReactNode;
+}) {
+  return (
+    <div {...stylex.props(styles.frame)}>
+      {top}
+      <div {...stylex.props(styles.row)}>
+        {start}
+        <LayoutContent isScrollable={false} padding={0} role="main" xstyle={styles.main}>
+          {children}
+        </LayoutContent>
+      </div>
+    </div>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
+  const width = useWidthClass();
+  const narrow = isNarrow(width);
+  const slotted = slot !== null && <div {...stylex.props(styles.slot)}>{slot}</div>;
   return (
     <SidebarAddForms>
       <FeatureSettingsHost>
         <RenameSessionHost>
-          <AppShell
-            contentPadding={0}
-            height="auto"
-            sideNav={<Nav slot={slot} />}
-            xstyle={styles.shell}
+          <Frame
+            start={narrow ? null : <Column isWide={width === "wide"} />}
+            top={
+              narrow ? (
+                // The page's banner, by its role as the pages look it up, as `AppShell` drew it.
+                <header role="banner" {...stylex.props(styles.header)}>
+                  <Tabs />
+                  {slotted}
+                </header>
+              ) : null
+            }
           >
             <Writing />
             <NotifyBanner />
             <Notifier />
             <UndoErrors />
+            {!narrow && slotted}
             <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
-          </AppShell>
+          </Frame>
         </RenameSessionHost>
       </FeatureSettingsHost>
     </SidebarAddForms>
@@ -249,25 +168,18 @@ export function Shell({ children }: { children: ReactNode }) {
 
 /**
  * The shell of a page that is not a repository's, like a name not in the list or a missing folder:
- * the heading's menu alone, which reads no repository.
+ * the repository menu alone, which reads no repository.
  */
 export function BareShell({ children, current }: { children: ReactNode; current: string | null }) {
   return (
-    <AppShell
-      contentPadding={0}
-      height="auto"
-      sideNav={
-        <SideNav
-          header={
-            <div {...stylex.props(styles.heading)}>
-              <RepositoryMenu current={current} />
-            </div>
-          }
-        />
+    <Frame
+      top={
+        <nav aria-label="Navigation" {...stylex.props(styles.bare)}>
+          <RepositoryMenu current={current} hasLogo />
+        </nav>
       }
-      xstyle={styles.shell}
     >
       {children}
-    </AppShell>
+    </Frame>
   );
 }

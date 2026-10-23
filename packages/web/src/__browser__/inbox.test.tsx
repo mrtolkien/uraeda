@@ -21,12 +21,12 @@ afterEach(() => {
 });
 
 /**
- * Taps ＋ next to Inbox: in the navigation beside the page, or, on the phone, in its drawer, opened
- * from the menu first. Returns the form once drawn.
+ * Taps ＋ next to Inbox: in the navigation beside the page, or, on the phone, on the Sessions tab's
+ * page, opened first. Returns the form once drawn.
  */
 async function openForm() {
   if (narrow()) {
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    await userEvent.click(screen.getByRole("link", { name: /^Sessions/ }));
   }
   await userEvent.click(await screen.findByRole("button", { name: "Add a note to the inbox" }));
   const form = await screen.findByRole("dialog", { name: "Add a note" });
@@ -50,7 +50,11 @@ test("a note is added with ＋, its text, and Enter", async () => {
     .poll(() => commands.readRepo(PATH))
     .toContain("- We need a home icon\n- The plan's task list scrolls under the top bar\n");
   await expect.poll(() => screen.queryByRole("dialog", { name: "Add a note" })).toBeNull();
-  const none = within(screen.getByRole("list", { name: "No category lines" }));
+  // The phone's form was on the Sessions tab's page: back to the inbox.
+  if (narrow()) {
+    await userEvent.click(screen.getByRole("link", { name: /^Inbox/ }));
+  }
+  const none = within(await screen.findByRole("list", { name: "No category lines" }));
   expect(await none.findByText("The plan's task list scrolls under the top bar")).toBeTruthy();
   // C3: the count beside the page's heading, without words; the sidebar shows it too.
   const inbox = within(screen.getByRole("main"));

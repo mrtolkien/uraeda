@@ -104,7 +104,7 @@ async function log() {
 
 /** The status a side navigation row shows, by its slug. */
 function sidebarStatus(slug: string) {
-  const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
+  const nav = within(screen.getByRole("navigation", { name: "Navigation" }));
   const link = nav.getByRole("link", { name: new RegExp(`^${slug}, `) });
   return within(link).getByRole("img").getAttribute("aria-label");
 }

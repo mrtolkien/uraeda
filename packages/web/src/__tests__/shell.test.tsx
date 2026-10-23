@@ -7,6 +7,7 @@ import { addPlan, ELEVEN } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import {
   atRepo,
+  atWidth,
   click,
   type Fake,
   fakeAgent,
@@ -20,7 +21,7 @@ import {
 test("Home goes home (US6 4)", async () => {
   await renderPage("/priorities");
   await click(
-    within(await screen.findByRole("navigation", { name: "Side navigation" })).getByRole("link", {
+    within(await screen.findByRole("navigation", { name: "Navigation" })).getByRole("link", {
       name: "Home",
     }),
   );
@@ -102,7 +103,7 @@ const CLI = "2026-10-12-cli-tuis";
 
 /** The side navigation, as drawn on a wide screen. */
 function nav() {
-  return within(screen.getByRole("navigation", { name: "Side navigation" }));
+  return within(screen.getByRole("navigation", { name: "Navigation" }));
 }
 
 /** The navigation's link to a feature, by its slug, or a chat, by its title. */
@@ -234,7 +235,7 @@ test("US3.6: Needs you sorts what needs the human before what needs their attent
   // cli-tuis waits on the agent, and its run failed; web-ui waits on the human's answers.
   await endedTurn(fake, repo, CLI, "failed");
   await renderPage("/", repo, { agent: fake });
-  await screen.findByRole("navigation", { name: "Side navigation" });
+  await screen.findByRole("navigation", { name: "Navigation" });
 
   const group = within(await nav().findByRole("group", { name: "Needs you" }));
   const links = () => group.getAllByRole("link");
@@ -256,7 +257,7 @@ test("US3.6: Needs you sorts what needs the human before what needs their attent
 test("US4.1: ＋ New opens an empty session, and its first message lists it in Sessions", async () => {
   const fake = await fakeAgent();
   await renderPage("/", fixtureRepo(), { agent: fake });
-  await screen.findByRole("navigation", { name: "Side navigation" });
+  await screen.findByRole("navigation", { name: "Navigation" });
 
   await click(await nav().findByRole("link", { name: "New" }));
 
@@ -453,9 +454,11 @@ test("the folded sidebar hides the cards' tasks and status marks", async () => {
   await renderPage("/", repo, { agent: await fakeAgent() });
   await waitFor(() => expect(nav().getByText("7/11 · Session column")).toBeTruthy());
 
-  await click(nav().getByRole("button", { name: "Collapse sidebar" }));
+  await click(nav().getByRole("button", { name: "Collapse navigation" }));
 
-  await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
+  await waitFor(() =>
+    expect(nav().getByRole("button", { name: "Expand navigation" })).toBeTruthy(),
+  );
   expect(nav().queryByText("7/11 · Session column")).toBeNull();
   // The status is read in the card's name, and drawn only as a warning while it needs the human.
   expect(row("cli-tuis").getAttribute("aria-label")).toContain(", Idle");
@@ -473,4 +476,72 @@ test.each([
   await findRow("cli-tuis");
 
   expect(nav().getByRole("link", { current: "page" })).toBe(row("cli-tuis"));
+});
+
+/** Layout and look US2 3: a running chat, its turn started and not ended. */
+async function runningChat(fake: Fake, repo: string, text: string) {
+  const chat = await fake.sessions.newChat(repo);
+  await fake.sessions.send(repo, chat.id, { text });
+  return chat.id;
+}
+
+/** The phone's bar of tabs. */
+function tabs() {
+  return within(screen.getByRole("navigation", { name: "Tabs" }));
+}
+
+test("on the phone, the tabs hold each page one tap away, by its name (layout and look US2)", async () => {
+  atWidth(390);
+  await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
+  await screen.findByRole("navigation", { name: "Tabs" });
+
+  // Each named by its page, then its count once read.
+  await waitFor(() =>
+    expect(
+      tabs()
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("aria-label")),
+    ).toEqual([
+      "Home",
+      "Inbox, 10 notes",
+      "Priorities",
+      "Sessions",
+      "Decisions",
+      "Settings",
+      "New",
+    ]),
+  );
+  expect(tabs().getByRole("link", { name: /^Inbox/ }).textContent).toBe("10");
+  expect(tabs().getByRole("link", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+  // No column on the phone.
+  expect(screen.queryByRole("navigation", { name: "Navigation" })).toBeNull();
+});
+
+test("on the phone, the Sessions tab counts the running sessions and opens their page (layout and look US2 3)", async () => {
+  atWidth(390);
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  for (const text of ["Why is CI slow?", "List the drafts", "Map the runner"]) {
+    await runningChat(fake, repo, text);
+  }
+  await renderPage("/", repo, { agent: fake });
+
+  const sessions = await waitFor(() => {
+    const tab = tabs().getByRole("link", { name: "Sessions, 3 running" });
+    expect(tab.textContent).toBe("3");
+    return tab;
+  });
+  await click(sessions);
+
+  expect(window.location.pathname).toBe(atRepo("/sessions"));
+  const main = within(await screen.findByRole("main"));
+  const running = within(await main.findByRole("group", { name: "Sessions" }));
+  await waitFor(() =>
+    expect(running.getAllByRole("link", { name: /, session, / })).toHaveLength(3),
+  );
+  expect(
+    tabs()
+      .getByRole("link", { name: /^Sessions/ })
+      .getAttribute("aria-current"),
+  ).toBe("page");
 });

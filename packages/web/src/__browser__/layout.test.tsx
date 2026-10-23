@@ -106,7 +106,7 @@ const CASES = PAGES.flatMap(([name, path, text, insets]) =>
 );
 
 /** The side navigation. Folding draws it anew: it is found again each time. */
-const nav = () => screen.getByRole("navigation", { name: "Side navigation" });
+const nav = () => screen.getByRole("navigation", { name: "Navigation" });
 
 test.each(CASES)("$name, in $mode", async ({ insets, mode, path, text }) => {
   await checkCase(path, text, insets, mode);
@@ -214,9 +214,9 @@ describe("on the desktop", () => {
   test("the folded navigation keeps Home, its repository menu and ＋ unfolded (US6 4; US1)", async () => {
     try {
       await show("/priorities", "Claude Code runner");
-      await userEvent.click(within(nav()).getByRole("button", { name: "Collapse sidebar" }));
+      await userEvent.click(within(nav()).getByRole("button", { name: "Collapse navigation" }));
       await expect
-        .poll(() => within(nav()).queryByRole("button", { name: "Expand sidebar" }))
+        .poll(() => within(nav()).queryByRole("button", { name: "Expand navigation" }))
         .toBeTruthy();
 
       expect(within(nav()).queryByRole("button", { name: "Add to the priorities" })).toBeNull();
@@ -226,7 +226,7 @@ describe("on the desktop", () => {
       await userEvent.click(within(nav()).getByRole("link", { name: "Home" }));
       await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
 
-      await userEvent.click(within(nav()).getByRole("button", { name: "Expand sidebar" }));
+      await userEvent.click(within(nav()).getByRole("button", { name: "Expand navigation" }));
       // Unfolded: the heading again, "Uraeda" over the repository's name, and the ＋ buttons.
       await expect
         .poll(() => within(nav()).queryByRole("button", { name: `Uraeda ${repository()}` }))
@@ -444,14 +444,14 @@ describe("the session on the desktop", () => {
     },
   );
 
-  // The edge case "From 768 to 1024 px with the sidebar open": the sidebar, the transcript, and the
-  // column share the width, and nothing scrolls sideways.
+  // The edge case "From 768 to 1024 px with the sidebar open": the shell, its rail there (layout and
+  // look US2), the transcript, and the column share the width, and nothing scrolls sideways.
   test("a session at 1024 px with the sidebar and the column open", async () => {
     try {
       await page.viewport(1024, 900);
       await expect.poll(() => window.innerWidth).toBe(1024);
       await implementation("light");
-      expect(within(nav()).getByRole("button", { name: "Collapse sidebar" })).toBeTruthy();
+      expect(within(nav()).getByRole("button", { name: "Open navigation" })).toBeTruthy();
       await checkSession();
     } finally {
       await page.viewport(1440, 900);
@@ -537,15 +537,15 @@ test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
   },
 );
 
-/** Opens the navigation, the phone's from its menu, and gives its region. */
+/** Opens the navigation, on the phone its Sessions tab's page, and gives its region. */
 async function navigation() {
   if (window.innerWidth < 768) {
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    await userEvent.click(screen.getByRole("link", { name: /^Sessions/ }));
   }
   const search = await screen.findByRole("searchbox", { name: "Search sessions" });
   await drawn();
-  // The phone's drawer, or the navigation beside the page.
-  return search.closest("dialog") ?? search.closest("nav")!;
+  // The navigation beside the page, or the phone's page of the shell's panes.
+  return search.closest("nav") ?? search.closest('[role="main"]')!;
 }
 
 test.each(

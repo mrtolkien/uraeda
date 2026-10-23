@@ -33,6 +33,7 @@ export type Route =
   | { folder: string; page: "storybook" }
   | { folder: string; id: string; page: "run" }
   | { id: string; page: "session-id" }
+  | { page: "sessions" }
   | { kind: NewKind; page: "new" }
   | { page: "moved"; path: string }
   | { page: "first-run" }
@@ -136,6 +137,9 @@ export function parseRoute(pathname: string, search = ""): Route {
   }
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
     return { folder: parts[1], id: parts[3], page: "run" };
+  }
+  if (parts[0] === "sessions" && parts.length === 1) {
+    return { page: "sessions" };
   }
   if (parts[0] === "sessions" && parts.length === 2) {
     return { id: parts[1], page: "session-id" };

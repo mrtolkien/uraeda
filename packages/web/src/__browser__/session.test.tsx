@@ -689,7 +689,7 @@ describe("on the desktop", () => {
 
     // The card opens the feature's page, and the page its session.
     await userEvent.click(
-      within(screen.getByRole("navigation", { name: "Side navigation" })).getByRole("link", {
+      within(screen.getByRole("navigation", { name: "Navigation" })).getByRole("link", {
         name: /^cli-tuis, /,
       }),
     );

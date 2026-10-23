@@ -1,13 +1,13 @@
 // US3, US4, and US7 of the interface's redesign: the sidebar folds to its rail from one button that
-// keeps its place (C3), and from `[`; it resizes from its edge, its width kept; the phone's top bar
-// starts with Home; and the latest done items fill the room the rows above leave.
+// keeps its place (C3), and from `[`; it resizes from its edge, its width kept; the phone's tabs
+// start with Home; and the latest done items fill the room the rows above leave.
 import { act, screen, within } from "@testing-library/react";
 import { page, userEvent } from "vite-plus/test/browser";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { atRepo, atSize, drawn, reducedMotion, reload, show } from "./helpers.tsx";
 
-/** The side navigation. */
-const nav = () => screen.getByRole("navigation", { name: "Side navigation" });
+/** The shell's navigation. */
+const nav = () => screen.getByRole("navigation", { name: "Navigation" });
 
 /** Where a control is drawn, to the pixel. */
 const at = (element: Element) => {
@@ -16,7 +16,8 @@ const at = (element: Element) => {
 };
 
 /** The fold button, by its name in either state. */
-const foldButton = () => within(nav()).getByRole("button", { name: /^(Collapse|Expand) sidebar$/ });
+const foldButton = () =>
+  within(nav()).getByRole("button", { name: /^(Collapse|Expand) navigation$/ });
 
 /** The sidebar's width, as drawn. */
 const width = () => Math.round(nav().getBoundingClientRect().width);
@@ -32,7 +33,7 @@ describe("on a desktop, folding and resizing", () => {
   /** US3.1 */
   test("the fold button shows under the pointer, and is reached with Tab", async () => {
     await show("/", "Needs you");
-    const button = within(nav()).getByRole("button", { name: "Collapse sidebar" });
+    const button = within(nav()).getByRole("button", { name: "Collapse navigation" });
     expect(getComputedStyle(button).opacity).toBe("0");
 
     await userEvent.hover(within(nav()).getByRole("link", { name: "Home" }));
@@ -51,7 +52,7 @@ describe("on a desktop, folding and resizing", () => {
 
     await userEvent.click(foldButton());
 
-    await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Expand sidebar");
+    await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Expand navigation");
     await expect.poll(() => width()).toBeLessThan(80);
     expect(at(foldButton())).toEqual(before);
     // Each card in the rail: its step's icon, its status read in its name, with no mark while it
@@ -69,29 +70,29 @@ describe("on a desktop, folding and resizing", () => {
     await show("/", "Needs you");
 
     await userEvent.keyboard("[[");
-    await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Expand sidebar");
+    await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Expand navigation");
     await userEvent.keyboard("[[");
-    await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Collapse sidebar");
+    await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Collapse navigation");
 
     const search = screen.getByRole("searchbox", { name: "Search sessions" });
     await userEvent.click(search);
     await userEvent.keyboard("[[");
     expect((search as HTMLInputElement).value).toBe("[");
-    expect(foldButton().getAttribute("aria-label")).toBe("Collapse sidebar");
+    expect(foldButton().getAttribute("aria-label")).toBe("Collapse navigation");
   });
 
-  /** US3.5 */
-  test("the sidebar resizes between 200 and 480 px, kept after a reload, and folds under 160", async () => {
+  /** US3.5; layout and look, the column dragged past its limits stops at 220 px (R16). */
+  test("the sidebar resizes between 220 and 480 px, kept after a reload, and stops at 220", async () => {
     await show("/", "Needs you");
     // Beside the navigation, not inside it.
-    const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+    const handle = screen.getByRole("separator", { name: "Resize navigation" });
 
     handle.focus();
     await userEvent.keyboard("{End}");
     await expect.poll(() => width()).toBe(480);
     await userEvent.keyboard("{Home}");
-    await expect.poll(() => width()).toBe(200);
-    for (let step = 0; step < 20; step++) {
+    await expect.poll(() => width()).toBe(220);
+    for (let step = 0; step < 18; step++) {
       await userEvent.keyboard("{ArrowRight}");
     }
     await expect.poll(() => width()).toBe(400);
@@ -99,12 +100,13 @@ describe("on a desktop, folding and resizing", () => {
     await reload("Needs you");
     await expect.poll(() => width()).toBe(400);
 
-    // Dragged under 160 px, it folds.
+    // Dragged to the fold button, it stops at 220 px, unfolded.
     await userEvent.dragAndDrop(
-      screen.getByRole("separator", { name: "Resize sidebar" }),
+      screen.getByRole("separator", { name: "Resize navigation" }),
       foldButton(),
     );
-    await expect.poll(() => foldButton().getAttribute("aria-label")).toBe("Expand sidebar");
+    await expect.poll(() => width()).toBe(220);
+    expect(foldButton().getAttribute("aria-label")).toBe("Collapse navigation");
   });
 
   /** US3.8 */
@@ -157,15 +159,14 @@ describe("on a desktop, the latest done items", () => {
 describe("on the phone", () => {
   atSize("phone");
 
-  /** US4.1, US4.2 */
+  /** US4.1, US4.2; layout and look US2: the top bar is the tabs. */
   test("the top bar starts with Home, the current page on home", async () => {
     await show("/f/2026-10-12-cli-tuis", "CLI TUIs");
-    const bar = screen.getByRole("navigation", { name: "Mobile navigation" });
+    const bar = screen.getByRole("navigation", { name: "Tabs" });
     const home = within(bar).getByRole("link", { name: "Home" });
     expect(within(bar).getAllByRole("link")[0]).toBe(home);
 
-    // Clicked itself: the closed drawer's heading holds another link named Home, which a locator by
-    // its name would find too.
+    // Clicked itself, as the test always did.
     await act(async () => home.click());
 
     await expect.poll(() => window.location.pathname).toBe(atRepo("/"));

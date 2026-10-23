@@ -131,13 +131,14 @@ describe("on the desktop", () => {
     expect(loading.stop()).toBe(false);
   });
 
-  test("at 1200 px with the navigation open, the questions get at least 600 px (C3)", async () => {
+  // Layout and look US2: at 1200 px the shell is its rail, which opens over the page (R14).
+  test("at 1200 px beside the shell's rail, the questions get at least 600 px (C3)", async () => {
     await page.viewport(1200, 900);
     try {
       await show(PAGE, "How does your iPhone reach the server?");
-      // The side navigation is open, at its default width, with the index beside the questions.
-      const priorities = screen.getByRole("link", { name: "Priorities" }).getBoundingClientRect();
-      expect(priorities.width).toBeGreaterThan(100);
+      // The shell's rail, with the index beside the questions.
+      const nav = screen.getByRole("navigation", { name: "Navigation" }).getBoundingClientRect();
+      expect(Math.round(nav.width)).toBe(52);
       expect(screen.getByRole("navigation", { name: "Questions" })).toBeTruthy();
       // The question's card holds its title inside its padding (R19): its content box, the
       // padding and the borders taken out, keeps the 600 px.

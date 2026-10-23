@@ -30,14 +30,12 @@ atSize("both");
 
 afterEach(() => {});
 
-/** Opens the navigation, from the phone's menu, and clicks one of its links. */
+/** Clicks one of the navigation's links: the column's, or the phone's tabs. */
 async function openFromNavigation(name: string) {
-  if (window.innerWidth < 768) {
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
-  }
-  const search = await screen.findByRole("searchbox", { name: "Search sessions" });
-  const nav = search.closest("dialog") ?? search.closest("nav")!;
-  await userEvent.click(within(nav as HTMLElement).getByRole("link", { name }));
+  const nav = await screen.findByRole("navigation", {
+    name: window.innerWidth < 768 ? "Tabs" : "Navigation",
+  });
+  await userEvent.click(within(nav).getByRole("link", { name }));
 }
 
 /** Opens the New page by the sidebar's "＋ New" row, and picks Change. */

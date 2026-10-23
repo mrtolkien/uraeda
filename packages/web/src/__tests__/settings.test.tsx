@@ -265,11 +265,10 @@ test("the Runs category of a file that cannot be read shows its problem, and no 
 });
 
 /** The side navigation, as drawn on a wide screen. */
-const nav = () => within(screen.getByRole("navigation", { name: "Side navigation" }));
+const nav = () => within(screen.getByRole("navigation", { name: "Navigation" }));
 
 /** The side navigation, once the page shows it. */
-const navShown = async () =>
-  within(await screen.findByRole("navigation", { name: "Side navigation" }));
+const navShown = async () => within(await screen.findByRole("navigation", { name: "Navigation" }));
 
 /** The list of categories, once it shows. */
 const categories = async () => within(await screen.findByRole("list", { name: "Categories" }));
@@ -300,8 +299,10 @@ test("the sidebar's Settings opens the settings, selected there, folded too (US4
   await screen.findByRole("heading", { level: 1, name: "Settings" });
   expect(nav().getByRole("link", { current: "page", name: "Settings" })).toBeTruthy();
 
-  await click(nav().getByRole("button", { name: "Collapse sidebar" }));
-  await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
+  await click(nav().getByRole("button", { name: "Collapse navigation" }));
+  await waitFor(() =>
+    expect(nav().getByRole("button", { name: "Expand navigation" })).toBeTruthy(),
+  );
   expect(nav().getByRole("link", { current: "page", name: "Settings" })).toBeTruthy();
 });
 

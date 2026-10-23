@@ -58,6 +58,7 @@ import { SettingsPage } from "./settings/SettingsPage.tsx";
 import { StorybookPage } from "./StorybookPage.tsx";
 import { TriagePage } from "./TriagePage.tsx";
 import { Shell } from "./Shell.tsx";
+import { SessionsPage } from "./shell/SessionsPage.tsx";
 import { SignInPage } from "./sign-in/SignInPage.tsx";
 import { useSignedOut } from "./sign-in/signedOut.ts";
 import { ThemeModeProvider } from "./theme.tsx";
@@ -160,6 +161,8 @@ function RoutePage({ route }: { route: Route }) {
       return <RunRedirect folder={route.folder} id={route.id} />;
     case "session-id":
       return <SessionPage id={route.id} key={route.id} />;
+    case "sessions":
+      return <SessionsPage />;
     case "new":
       return <NewPage kind={route.kind} />;
     case "moved":

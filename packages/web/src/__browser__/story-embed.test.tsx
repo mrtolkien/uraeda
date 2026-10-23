@@ -240,7 +240,7 @@ describe("on a desktop, as embeds load", () => {
  * page it left.
  */
 async function pickSchemeInSettings(scheme: "Mocha" | "Latte" | "System") {
-  const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
+  const nav = within(screen.getByRole("navigation", { name: "Navigation" }));
   await userEvent.click(nav.getByRole("link", { name: "Settings" }));
   await userEvent.click(await screen.findByRole("link", { name: /^Appearance/ }));
   const schemes = await screen.findByRole("radiogroup", { name: "Colour scheme" });
