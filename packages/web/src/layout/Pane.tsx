@@ -74,7 +74,8 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
 /**
  * A pane: a `section` named by its title, the title a heading at the caller's level, set in the
  * top border with its icon and its count. The accent colours its border and title while it is
- * active, else its tone does.
+ * active, else its tone does. `isGroup` makes it a group rather than a region, as the panes of a
+ * navigation are, which a list of landmarks would repeat.
  */
 export function Pane({
   children,
@@ -82,6 +83,7 @@ export function Pane({
   icon,
   id,
   isActive = false,
+  isGroup = false,
   level = 2,
   title,
   tone,
@@ -91,6 +93,7 @@ export function Pane({
   icon?: ComponentProps<typeof Icon>["icon"];
   id?: string;
   isActive?: boolean;
+  isGroup?: boolean;
   level?: HeadingLevel;
   title: string;
   tone?: PaneTone;
@@ -98,7 +101,12 @@ export function Pane({
   const titleId = useId();
   const [border, ink] = colours(isActive, tone);
   return (
-    <section aria-labelledby={titleId} id={id} {...stylex.props(styles.pane, border)}>
+    <section
+      aria-labelledby={titleId}
+      id={id}
+      role={isGroup ? "group" : undefined}
+      {...stylex.props(styles.pane, border)}
+    >
       <Heading level={level} xstyle={[styles.title, ink]}>
         {icon && <Icon icon={icon} size="sm" />}
         <span id={titleId}>{title}</span>

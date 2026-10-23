@@ -23,6 +23,7 @@ import { useRepositories } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { Logo } from "./Logo.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
 
@@ -225,12 +226,19 @@ function Menu({
 
 /**
  * The navigation's heading as the menu's trigger: "Uraeda" over the current repository's name, or
- * alone on a page of none, with a chevron. It opens the menu, and the menu the add form.
+ * alone on a page of none, with a chevron, after the logo with `hasLogo`. It opens the menu, and
+ * the menu the add form.
  */
-export function RepositoryMenu({ current }: { current: string | null }) {
+export function RepositoryMenu({
+  current,
+  hasLogo = false,
+}: {
+  current: string | null;
+  hasLogo?: boolean;
+}) {
   return (
     <OnListClient>
-      <MenuTrigger current={current} />
+      <MenuTrigger current={current} hasLogo={hasLogo} />
     </OnListClient>
   );
 }
@@ -269,7 +277,7 @@ function Drawn({
 const MENU = "Repositories";
 const FORM = "Add a repository";
 
-function MenuTrigger({ current }: { current: string | null }) {
+function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: boolean }) {
   const wide = !isNarrow(useWidthClass());
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -298,6 +306,7 @@ function MenuTrigger({ current }: { current: string | null }) {
   const trigger = (
     <Button
       endContent={<Icon icon="chevronDown" />}
+      {...(hasLogo ? { icon: <Logo /> } : {})}
       label={label}
       onClick={wide ? undefined : () => setOpen(true)}
       variant="ghost"

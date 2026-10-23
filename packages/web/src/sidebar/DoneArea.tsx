@@ -1,13 +1,14 @@
-// The sidebar's bottom: up to the five latest done items, sessions read to their end and merged
-// features and changes, after a divider, as many as fit in the room the rows above leave, newest
-// first; gone, heading included, when none fits. "…" opens Home's Done group, which lists every
-// done feature and change.
-import { Divider } from "@astryxdesign/core/Divider";
+// The Done pane: up to the five latest done items, sessions read to their end and merged features
+// and changes, newest first; in the column, as many as fit in the room the rows above leave, and
+// gone, title included, when none fits. "…" opens Home's Done group, which lists every done feature
+// and change.
 import { Icon } from "@astryxdesign/core/Icon";
-import { SideNavItem, SideNavSection, useSideNavCollapse } from "@astryxdesign/core/SideNav";
+import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { Pane } from "../layout/Pane.tsx";
+import { useColumnFold } from "../shell/fold.ts";
 import { StepIcon } from "./StepIcon.tsx";
 
 /** The most done rows the sidebar shows. */
@@ -43,13 +44,13 @@ const CHROME = 96;
  * again as the window or the rows above change size.
  */
 function useRowsThatFit(
-  content: RefObject<HTMLElement | null>,
+  content: RefObject<HTMLElement | null> | undefined,
   area: RefObject<HTMLElement | null>,
 ) {
-  const [fit, setFit] = useState(0);
+  const [fit, setFit] = useState(content ? 0 : DONE_ROWS);
   const sizes = useRef({ chrome: CHROME, row: ROW });
   useLayoutEffect(() => {
-    const rows = content.current;
+    const rows = content?.current;
     const list = rows?.parentElement;
     if (!rows || !list) {
       return;
@@ -85,14 +86,14 @@ export function DoneArea({
 }: {
   /** Home's Done group. */
   allHref: string;
-  /** The sidebar's rows above it, in its scrolling list. */
-  content: RefObject<HTMLElement | null>;
+  /** The column's rows above it, in its scrolling list: none on a page, which shows all five. */
+  content?: RefObject<HTMLElement | null>;
   /** Opens a row's page inside the app, instead of loading it. */
   onOpen?: (href: string) => void;
   /** Every done item, newest first. */
   rows: Array<DoneRow>;
 }) {
-  const { isCollapsed } = useSideNavCollapse();
+  const { isFolded } = useColumnFold();
   const area = useRef<HTMLDivElement>(null);
   const measured = useRowsThatFit(content, area);
   const shown = rows.slice(0, Math.min(measured, DONE_ROWS));
@@ -105,13 +106,12 @@ export function DoneArea({
           },
         }
       : {};
-  if (shown.length === 0 || isCollapsed) {
+  if (shown.length === 0 || isFolded) {
     return null;
   }
   return (
     <div ref={area} {...stylex.props(styles.area)}>
-      <Divider />
-      <SideNavSection title="Done">
+      <Pane isGroup title="Done">
         {shown.map((row) => (
           <SideNavItem
             aria-label={`${row.label}, ${row.kind ?? row.title}, done`}
@@ -126,6 +126,7 @@ export function DoneArea({
             isSelected={row.isSelected ?? false}
             key={row.folder}
             label={row.label}
+            size="sm"
             {...opening(row.href)}
           />
         ))}
@@ -133,9 +134,10 @@ export function DoneArea({
           aria-label="All done features and changes"
           href={allHref}
           label="…"
+          size="sm"
           {...opening(allHref)}
         />
-      </SideNavSection>
+      </Pane>
     </div>
   );
 }

@@ -6,8 +6,7 @@ import { afterEach, expect, test } from "vite-plus/test";
 import { renderPage } from "./helpers.tsx";
 
 /** The side navigation, once the page shows it. */
-const navShown = async () =>
-  within(await screen.findByRole("navigation", { name: "Side navigation" }));
+const navShown = async () => within(await screen.findByRole("navigation", { name: "Navigation" }));
 
 /** Whether the app is drawn in its dark slot, Mocha's. */
 const dark = () => document.querySelector('[data-theme="dark"]') !== null;

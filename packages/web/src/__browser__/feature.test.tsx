@@ -71,8 +71,10 @@ describe("on a desktop", () => {
       await expect.poll(() => window.innerWidth).toBe(width);
       await show(`/f/${FEATURE_PAGES.done}`, "What it produced");
       await drawn();
-      const nav = screen.getByRole("navigation", { name: "Side navigation" });
-      expect(within(nav).getByRole("button", { name: "Collapse sidebar" })).toBeTruthy();
+      // The column from 1280 px, its rail under it (layout and look US2).
+      const nav = screen.getByRole("navigation", { name: "Navigation" });
+      const shell = width >= 1280 ? "Collapse navigation" : "Open navigation";
+      expect(within(nav).getByRole("button", { name: shell })).toBeTruthy();
       for (const [label, line] of DONE_LINES) {
         expect(stageLine(label, line), `${width}: ${label}`).toEqual({
           inside: true,

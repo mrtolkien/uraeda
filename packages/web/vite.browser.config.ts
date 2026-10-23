@@ -385,6 +385,14 @@ const commands = {
       }
     }
   },
+  /** A finger's tap at a point of the test's frame, in its CSS pixels: the phone has a touch screen. */
+  async tap(context: Context, x: number, y: number) {
+    const frame = await context.frame();
+    const box = await (await frame.frameElement()).boundingBox();
+    const width = await frame.evaluate(() => window.innerWidth);
+    const scale = box ? box.width / width : 1;
+    await context.page.touchscreen.tap((box?.x ?? 0) + x * scale, (box?.y ?? 0) + y * scale);
+  },
 };
 
 export type RepoCommands = {
@@ -423,6 +431,7 @@ export type RepoCommands = {
   slowChatImages: (ms: number) => Promise<void>;
   stopPreview: () => Promise<void>;
   takeRepo: () => Promise<{ name: string; token: number }>;
+  tap: (x: number, y: number) => Promise<void>;
   writeRepo: (text: string, path?: string) => Promise<void>;
 };
 

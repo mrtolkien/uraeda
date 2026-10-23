@@ -17,7 +17,7 @@ const CLI = "2026-10-12-cli-tuis";
 
 /** The side navigation, as drawn on a wide screen. */
 function nav() {
-  return within(screen.getByRole("navigation", { name: "Side navigation" }));
+  return within(screen.getByRole("navigation", { name: "Navigation" }));
 }
 
 /** Opens cli-tuis's settings, and returns the dialog's name field. */
@@ -80,10 +80,10 @@ test("a name keeps its first 40 characters", async () => {
 });
 
 /** US8.6 */
-test("on the phone, a card's settings open from the drawer, without a pointer", async () => {
+test("on the phone, a card's settings open from the sessions page, without a pointer", async () => {
   atWidth(402);
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
-  await click(await screen.findByRole("button", { name: "Open navigation" }));
+  await click(await screen.findByRole("link", { name: /^Sessions/ }));
 
   await click(await screen.findByRole("button", { name: "Settings of cli-tuis" }));
 

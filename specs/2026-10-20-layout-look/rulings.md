@@ -285,3 +285,116 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the two modules otherwise, fails at load; the route table then moves to its own module, once the
   shell's rebuild has landed.
 - **Where**: `packages/web/src/routeHistory.ts`, `routes.tsx`.
+
+## R14: The shell's panes split the one Sessions list, New leads the column, and its panes are groups
+
+- **Decision**: the column's panes of work are Needs you, then Sessions, the sessions without a
+  workflow with their harness's mark, then In progress, the features and changes in flight, each the
+  oldest started first, then Done. A feature's session stays on its feature's card, in In progress,
+  so no item shows twice. New, a link styled as the primary button, and Note lead the column above
+  the search, as the mockup draws them; "＋ New" leaves Sessions. The panes in the navigation, and
+  on the phone's sessions page, are `Pane`s with `isGroup`, a `group` named by its title, as
+  Astryx's `SideNavSection` was, not a `region`. The tests whose checked order or list the spec
+  changes: `__tests__/sidebar.test.tsx` "the sidebar reads in the flow's order" (New, then
+  Navigate's rows, then the panes) and "sessions, changes, and features share one list" (Sessions
+  holds the session, In progress the feature then the change); `__browser__/change.test.tsx` (the
+  change and the feature in In progress); `__tests__/usage.test.tsx` (the allowance in the "5 h
+  window" pane at the column's foot, the feature's card in In progress);
+  `__browser__/round.test.tsx` C3 at 1200 px (the shell is its 52 px rail there, and the questions
+  keep their 600 px).
+- **Rationale**: the spec lists Sessions and In progress as two panes, and the mockup's Sessions
+  rows are sessions with a harness's mark while In progress holds features. A pane named by a region
+  would put a landmark per pane in the navigation landmark, and collided with the feature page's own
+  "Sessions" region in the happy-dom tests.
+- **Alternatives considered**: Sessions holding every session row, a feature's too, beside In
+  progress: one feature twice in the column. Regions: six landmarks inside one.
+- **If wrong**: the split is two filters in `shell/ShellPanes.tsx`'s `Work`; `isGroup` is one prop.
+- **Where**: task 8, `packages/web/src/shell/ShellPanes.tsx`, `layout/Pane.tsx`,
+  `shell/ColumnPanes.tsx`.
+
+## R15: On the phone, the repository menu and the ＋ forms head the Sessions tab's page
+
+- **Decision**: `/sessions`, the Sessions tab's page, starts with the repository menu, with the
+  logo, then its heading, then "＋ Note" and "＋ Priorities" (named "Add a note to the inbox" and
+  "Add to the priorities", as the column's ＋), the search, the panes, and the 5 h window. Tests
+  that opened the phone's drawer open the Sessions tab instead:
+  `__tests__/repository-menu.test.tsx`, `quick-add.test.tsx` (three taps, under the four the test
+  allows), `feature-settings.test.tsx`, `inbox.test.tsx`; `__browser__/inbox.test.tsx` (back to the
+  inbox by its tab once the note is added), `fields.test.tsx`, `repositories.test.tsx`,
+  `shell-checks.test.tsx`, `usage.test.tsx`, `layout.test.tsx`, `new-change.test.tsx` (New is the
+  tabs' last link).
+- **Rationale**: the tabs hold seven pages at 390 px with no room for the menu; the sessions page
+  holds what the column holds that the tabs do not, so the phone keeps every guarantee of the old
+  drawer in one place.
+- **Alternatives considered**: the menu at the top of Home: Task 10 rebuilds the home. A logo tab
+  opening the menu, as the mockup's style sheet allows: an eighth tab at 390 px.
+- **If wrong**: the menu moves with one line of `shell/SessionsPage.tsx`.
+- **Where**: task 8, `packages/web/src/shell/SessionsPage.tsx`.
+
+## R16: The column's width and fold under `uraeda.nav`, and no fold by dragging
+
+- **Decision**: `uraeda.nav` holds `{ width, folded }`, JSON. Astryx's old key is read when the new
+  one is absent, its `size` (or a bare number) clamped to 220–480 px, written to the new key, and
+  removed. Dragging the edge stops at 220 px and never folds: the fold is the button and `[` only.
+  `__browser__/sidebar.test.tsx`'s resize test checks 220–480 and a drag to the fold button stopping
+  at 220, where it checked 200–480 and a fold under 160. The edge's grab zone is centred on it
+  (`pillPlacement="center"`): Astryx's default put it inside the column, off the edge a pointer
+  grabs. The fold is kept in the browser, as Astryx kept it.
+- **Rationale**: the spec's edge case "it stops at 220 px and at 480 px".
+- **Alternatives considered**: Astryx's `autoSaveId`, which stores under its own prefix and has no
+  width that follows the window until a drag.
+- **If wrong**: the limits and the key are constants of `shell/columnWidth.ts`.
+- **Where**: task 8, `packages/web/src/shell/columnWidth.ts`, `shell/Column.tsx`.
+
+## R17: In the 256 px column, a card's long name is cut, and the rows are compact
+
+- **Decision**: the column's rows are Astryx's `sm` rows, and the cards lose their own border inside
+  their pane. At 256 px a long slug like `recurring-tasks` is still cut by its row's ellipsis: the
+  layout checks exempt a card's name in the navigation, a dialog, or a shell pane, a feature's and a
+  change's as they exempted a session's (`__browser__/helpers.tsx`). Its full name is in the card's
+  accessible name. On the rail, a row's count is a dot over its icon.
+- **Rationale**: the spec's 14% between 256 and 340 px leaves a card's label about 124 px beside its
+  icon, status, and "…"; R5's 290 px is gone with the sidebar. A two-line label, as the mockup
+  draws, needs a row of our own: `SideNavItem` takes its label as a string, and cuts it.
+- **Alternatives considered**: a 290 px least width, against the spec; the "…" shown under the
+  pointer only, against the cards' C4.
+- **If wrong**: a row of our own with a wrapping label, in `sidebar/ItemCard.tsx`, and the exemption
+  goes.
+- **Where**: task 8, `packages/web/src/sidebar/ItemCard.tsx`, `sidebar/Row.tsx`,
+  `__browser__/helpers.tsx`.
+
+## R18: How the rail opens and folds
+
+- **Decision**: on a semi-wide screen the rail opens over the page once the mouse rests on it for
+  250 ms, on a keyboard's focus inside it (`:focus-visible`, so a click on a link does not hold it
+  open), or on a tap of its logo button, "Open navigation"; it folds as the mouse leaves, as the
+  focus leaves, on Escape, which moves the focus to the logo and keeps the rail folded until the
+  focus leaves, on a tap outside, and on the page a tap opened. Folded, its rows are icon buttons
+  named as their rows, and its panes lines of icons; open, the column's own rows. The wide column
+  folded by `[` is the same rail of icons in the page's flow, which does not open over the page: the
+  fold button unfolds it.
+- **Rationale**: a click on an icon on the mouse's way in would land on the row the opened rail
+  draws there; a rest first keeps the icon under the click. The wide fold's tests (C3, the button at
+  the same spot) need the rail to stay folded under the pointer.
+- **Alternatives considered**: the mockup's CSS, opening on `:hover` at once over the same rows,
+  clipped: a row's label shows in part in the 52 px, and `SideNavItem` cannot hide it.
+- **If wrong**: the delay is `HOVER_MS` in `shell/Rail.tsx`.
+- **Where**: task 8, `packages/web/src/shell/Rail.tsx`, `shell/Column.tsx`.
+
+## R19: The page's slot, the tabs' names, and what the shell's panes moved in the theme
+
+- **Decision**: until Task 9's status line, a page's slot (the round's count and Next) is a row at
+  the top of the page on semi-wide and wide screens, and on the phone a second row of `--spacing-12`
+  under the tabs, in the sticky header, which is the page's `banner`; a question's sticky header on
+  the phone stays under both rows, `2 × --spacing-12`. A tab with a count is named by its page then
+  its count, "Inbox, 10 notes", "Sessions, 3 running", as axe asks a name to hold the text it shows.
+  The theme's rule that wraps a tool call's text is `!important`: the panes, drawn on every page,
+  emit Astryx's atomic `white-space: nowrap` outside any layer, which beat the theme's layer. The
+  round's index takes its 240 px back (R5), the shell being a 52 px rail at 1200 px. The page is
+  Astryx's `LayoutContent` with `role="main"`, as `AppShell` drew it.
+- **Rationale**: the phone's old top bar held the slot in its one row, which the seven tabs fill.
+- **Alternatives considered**: the slot at the top of the page on the phone too: the round's Next
+  would scroll away.
+- **If wrong**: Task 9 moves the slot; the offset is one line of `QuestionCard.tsx`.
+- **Where**: task 8, `packages/web/src/Shell.tsx`, `shell/Tabs.tsx`, `QuestionCard.tsx`,
+  `theme/theme.ts`.

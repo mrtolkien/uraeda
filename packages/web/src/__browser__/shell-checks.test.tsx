@@ -9,13 +9,14 @@ import { atSize, checkLayout, colorScheme, drawn, show } from "./helpers.tsx";
 
 const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
 
-/** The side navigation, or the phone's drawer once opened. */
+/** The navigation, or the phone's Sessions tab's page once opened. */
 async function navigation() {
   if (window.innerWidth < 768) {
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
-    return within(await screen.findByRole("dialog"));
+    await userEvent.click(screen.getByRole("link", { name: /^Sessions/ }));
+    await screen.findByRole("searchbox", { name: "Search sessions" });
+    return within(screen.getByRole("main"));
   }
-  return within(screen.getByRole("navigation", { name: "Side navigation" }));
+  return within(screen.getByRole("navigation", { name: "Navigation" }));
 }
 
 describe("on a desktop", () => {
@@ -25,7 +26,7 @@ describe("on a desktop", () => {
     await colorScheme(mode);
     await show("/", "Needs you");
     await userEvent.keyboard("[[");
-    const nav = screen.getByRole("navigation", { name: "Side navigation" });
+    const nav = screen.getByRole("navigation", { name: "Navigation" });
     await expect.poll(() => nav.getBoundingClientRect().width).toBeLessThan(80);
     await drawn();
     await checkLayout();

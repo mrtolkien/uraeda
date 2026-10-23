@@ -13,10 +13,11 @@ test.each(["light", "dark"] as const)("five-hour allowance updates live in %s", 
   const resetsAt = new Date(Date.now() + 3_600_000).toISOString();
   await startTurn("Plan the CLI.", [{ fiveHour: { percentUsed: 43, resetsAt }, type: "usage" }]);
   if (window.innerWidth < 768) {
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    await userEvent.click(screen.getByRole("link", { name: /^Sessions/ }));
   }
   const search = await screen.findByRole("searchbox", { name: "Search sessions" });
-  const nav = search.closest("dialog") ?? search.closest("nav")!;
+  // The column, or the phone's Sessions tab's page.
+  const nav = search.closest("nav") ?? search.closest('[role="main"]')!;
   const section = within(nav as HTMLElement);
   await section.findByText(/57% left · reset/, undefined, LIVE);
   await commands.agentEmit([{ fiveHour: { percentUsed: 82, resetsAt }, type: "usage" }]);

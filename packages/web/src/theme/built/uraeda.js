@@ -237,12 +237,14 @@ export const uraedaTheme = {
     "--size-message-image": "120px",
     "--size-composer-input": "154px",
     "--size-composer-input-narrow": "66px",
-    "--size-round-index": "230px",
+    "--size-round-index": "240px",
     "--size-round-accent": "4px",
     "--size-round-split": "840px",
     "--size-round-measure": "75ch",
     "--size-settings-index": "240px",
     "--size-session-aside": "320px",
+    "--size-rail": "52px",
+    "--size-rail-inset": "calc((var(--size-rail) - var(--size-element-md)) / 2)",
     "--size-form": "560px",
     "--size-menu": "360px",
     "--size-quick-add": "640px",
@@ -283,6 +285,8 @@ export const uraedaTheme = {
     "--size-round-measure": "uraeda",
     "--size-settings-index": "uraeda",
     "--size-session-aside": "uraeda",
+    "--size-rail": "uraeda",
+    "--size-rail-inset": "uraeda",
     "--size-form": "uraeda",
     "--size-menu": "uraeda",
     "--size-quick-add": "uraeda",
@@ -599,7 +603,7 @@ export const uraedaTheme = {
       "base": {
         ":is(*) span": {
           "overflowWrap": "anywhere",
-          "whiteSpace": "normal"
+          "whiteSpace": "normal !important"
         },
         "maxWidth": "100%",
         "minWidth": "0",

@@ -177,9 +177,9 @@ test("the editor is 20 rows, whatever its text (US6 5)", async () => {
 
 test("quick add's field is 3 rows (US6 6)", async () => {
   await show("/priorities", "Git listener process");
-  // The sidebar's ＋, in the phone's drawer, opened from its menu first.
+  // The column's ＋, on the phone the Sessions tab's page's, opened first.
   if (window.innerWidth < 768) {
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    await userEvent.click(screen.getByRole("link", { name: /^Sessions/ }));
   }
   await userEvent.click(await screen.findByRole("button", { name: "Add to the priorities" }));
   const overlay = await screen.findByRole("dialog", { name: "New priority" });

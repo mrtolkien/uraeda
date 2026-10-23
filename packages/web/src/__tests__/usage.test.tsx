@@ -12,7 +12,7 @@ import {
 
 const label = "Claude five-hour allowance remaining";
 
-test("five-hour allowance closes the Features section, updates, and disappears when the runner exits", async () => {
+test("five-hour allowance shows at the column's foot, updates, and disappears when the runner exits", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const chat = await fake.sessions.newChat(repo);
@@ -21,15 +21,16 @@ test("five-hour allowance closes the Features section, updates, and disappears w
   await fake.sessions.settled((await fake.sessions.send(repo, chat.id, { text: "Hello" })).turn);
   await renderPage("/", repo, { agent: fake });
 
-  const group = within(await screen.findByRole("group", { name: "Sessions" }));
+  // Layout and look US2: the 5 h window, its own pane at the column's foot.
+  const group = within(await screen.findByRole("group", { name: "5 h window" }));
   expect(group.getByText("Claude 5h")).toBeTruthy();
   expect(group.getByText(/57% left · reset/)).toBeTruthy();
   expect(group.getByRole("progressbar", { name: label }).getAttribute("aria-valuenow")).toBe("57");
   expect(group.getByText(/57% left · reset/).textContent).toBe("57% left · reset 18:40");
 
-  await click(screen.getByRole("button", { name: "Collapse sidebar" }));
+  await click(screen.getByRole("button", { name: "Collapse navigation" }));
   expect(screen.queryByRole("progressbar", { name: label })).toBeNull();
-  await click(screen.getByRole("button", { name: "Expand sidebar" }));
+  await click(screen.getByRole("button", { name: "Expand navigation" }));
   expect(await screen.findByRole("progressbar", { name: label })).toBeTruthy();
 
   fake.adapter.emit({ fiveHour: { percentUsed: 82, resetsAt }, type: "usage" });
@@ -61,7 +62,7 @@ test("loading the allowance keeps the page and working features visible", async 
   try {
     await renderPage("/", repo, { agent: fake, fetch });
     await homeShown();
-    const group = within(screen.getByRole("group", { name: "Sessions" }));
+    const group = within(screen.getByRole("group", { name: "In progress" }));
     expect(group.getByRole("link", { name: /^cli-tuis,/ })).toBeTruthy();
     expect(waiting).toBe(true);
   } finally {

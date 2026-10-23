@@ -2,6 +2,7 @@
 // them. Written without JSX, which the theme's build does not compile.
 import { createElement as h } from "react";
 import {
+  activity,
   attach,
   bell,
   bot,
@@ -20,17 +21,21 @@ import {
   history,
   home,
   implementation,
+  inbox,
   keyRound,
   layers,
   layoutPanelLeft,
   layoutTemplate,
+  list,
   mousePointerClick,
   packageIcon,
   palette,
   panelLeft,
   panelRight,
+  pencil,
   pick,
   plan,
+  plus,
   proposal,
   pullRequest,
   questions,
@@ -157,6 +162,7 @@ export function decisionIcon(name: string | null | undefined): `uraeda:decision-
 }
 
 export const uraedaIcons = {
+  "uraeda:activity": activity,
   "uraeda:attach": attach,
   "uraeda:comment": comment,
   "uraeda:enter": enter,
@@ -166,9 +172,13 @@ export const uraedaIcons = {
   "uraeda:harness-openai": openai,
   "uraeda:harness-pi": pi,
   "uraeda:home": home,
+  "uraeda:inbox": inbox,
+  "uraeda:list": list,
   "uraeda:panel-left": panelLeft,
   "uraeda:panel-right": panelRight,
+  "uraeda:pencil": pencil,
   "uraeda:pick": pick,
+  "uraeda:plus": plus,
   "uraeda:settings": settings,
   "uraeda:step-discovery": discovery,
   "uraeda:step-given": given,

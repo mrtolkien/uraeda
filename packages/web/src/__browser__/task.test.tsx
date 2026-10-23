@@ -44,6 +44,6 @@ test("on a wide screen, a second line tapped in home's list keeps home beside it
   expect(await screen.findByRole("heading", { name: "What" })).toBeTruthy();
   // Home's list is still there, its own link to the priorities included, and Home is selected.
   expect(screen.getByRole("link", { name: /^Priorities, open the priorities page/ })).toBeTruthy();
-  const nav = screen.getByRole("navigation", { name: "Side navigation" });
+  const nav = screen.getByRole("navigation", { name: "Navigation" });
   expect(within(nav).getByRole("link", { name: "Home" }).getAttribute("aria-current")).toBe("page");
 });

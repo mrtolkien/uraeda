@@ -1,7 +1,6 @@
 // "Feature settings", opened from a card's "…": a dialog on wide screens, a bottom sheet on the
-// phone, drawn beside the shell, so the phone's drawer closes first, as the ＋ forms do. Saving
-// keeps the name in the server's list, for the repository (R2).
-import { useAppShellMobile } from "@astryxdesign/core/AppShell";
+// phone, drawn beside the shell, as the ＋ forms are. Saving keeps the name in the server's list,
+// for the repository (R2).
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { createContext, type ReactNode, useContext, useState } from "react";
@@ -15,27 +14,9 @@ import { FeatureSettingsForm } from "./FeatureSettings.tsx";
 /** Opens a feature's settings. */
 const OpenContext = createContext<(feature: Feature) => void>(() => {});
 
-/** Runs `open`, a dialog's opening from the sidebar, once the phone's drawer is closed. */
-export function useAfterDrawer() {
-  const { closeMobileNav, isMobileNavOpen, mobileNavId } = useAppShellMobile();
-  return (open: () => void) => {
-    const drawer = (
-      isMobileNavOpen && mobileNavId ? document.getElementById(mobileNavId) : null
-    ) as HTMLDialogElement | null;
-    if (drawer?.open) {
-      drawer.addEventListener("close", open, { once: true });
-      closeMobileNav();
-      return;
-    }
-    open();
-  };
-}
-
-/** Opens a feature's settings, once the phone's drawer is closed. */
-export function useOpenSettings() {
-  const open = useContext(OpenContext);
-  const after = useAfterDrawer();
-  return (feature: Feature) => after(() => open(feature));
+/** Opens a feature's settings. */
+export function useOpenSettings(): (feature: Feature) => void {
+  return useContext(OpenContext);
 }
 
 function Settings({ feature, onClose }: { feature: Feature; onClose: () => void }) {

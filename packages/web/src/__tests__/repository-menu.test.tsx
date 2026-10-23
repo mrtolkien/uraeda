@@ -283,6 +283,8 @@ test("on a narrow screen, the menu is a sheet with Close", async () => {
   const { atWidth } = await import("./helpers.tsx");
   atWidth(402);
   await renderPage("/r/uraeda/", undefined, { dataDir: twoRepositories(), raw: true });
+  // On the phone, the menu heads the Sessions tab's page (R15).
+  await click(await screen.findByRole("link", { name: /^Sessions/ }));
 
   const menu = await openMenu();
   expect(rows(menu)).toEqual(["uraeda~/dev/uraeda", "todo-app~/dev/todo-app"]);

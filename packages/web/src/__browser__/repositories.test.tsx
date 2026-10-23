@@ -17,13 +17,18 @@ const MODES = ["light", "dark"] as const;
 const narrow = () => window.innerWidth < 768;
 
 /**
- * Opens the repository menu from its trigger, "Uraeda" over the repository's name: in the phone's
- * top bar, or in the navigation's heading on a wide screen.
+ * Opens the repository menu from its trigger, "Uraeda" over the repository's name: at the top of
+ * the phone's Sessions tab (R15), or in the navigation's heading on a wide screen.
  */
 async function openMenu() {
+  if (narrow()) {
+    await userEvent.click(
+      page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: /^Sessions/ }),
+    );
+  }
   const bar = narrow()
-    ? page.getByRole("banner")
-    : page.getByRole("navigation", { name: "Side navigation" });
+    ? page.getByRole("main")
+    : page.getByRole("navigation", { name: "Navigation" });
   await userEvent.click(bar.getByRole("button", { exact: true, name: `Uraeda ${repository()}` }));
   const menu = await screen.findByRole("dialog", { name: "Repositories" });
   await within(menu).findByRole("list", { name: "Repositories" });

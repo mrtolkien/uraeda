@@ -222,7 +222,7 @@ schemes. The theme's contrast test reads the built theme's tokens.
 | US2 more 2                                                                       | 9        | `__tests__/status-line.test.tsx`: the feature in Needs you, "1 need you" in the status line                                                                                     |
 | Edge: the rail on a touch screen                                                 | 8        | `__browser__/shell.test.tsx` (phone project with a 1205 px viewport): a tap opens, a tap outside folds                                                                          |
 | Edge: the column dragged past its limits                                         | 8        | `__browser__/shell.test.tsx`: it stops at 220 and 480 px                                                                                                                        |
-| Edge: crossing 1280 with the rail open; Review focus: a crossing keeps the place | 3, 8     | `__browser__/layout.test.tsx`: crossing 1280 keeps the page's scroll and pane; the rail becomes the column                                                                      |
+| Edge: crossing 1280 with the rail open; Review focus: a crossing keeps the place | 3, 8     | `__browser__/layout.test.tsx`: crossing 1280 keeps the page's scroll and pane; `__browser__/shell.test.tsx`: the rail becomes the column                                        |
 | US3 1, more 1                                                                    | 10       | `__tests__/home.test.tsx`: Problems first only when a spec lacks a section                                                                                                      |
 | US3 2; SC-003                                                                    | 10       | `__browser__/home.test.tsx`: at 1205 px In progress and Sessions sit side by side, widgets in two columns                                                                       |
 | US3 3                                                                            | 10       | `__tests__/home.test.tsx`: the full title, "Questions" with the round's size, and "Answer"                                                                                      |
@@ -527,25 +527,30 @@ behaviour the spec marks unverified.
 
 **Files:**
 
-- Create: `packages/web/src/shell/Column.tsx` (the panes, the resize, the fold), `shell/Rail.tsx`
-  (the 52 px rail and its overlay), `shell/Tabs.tsx` (the narrow tabs), `shell/columnWidth.ts` (the
+- Create: `packages/web/src/shell/Column.tsx` (the frame, the resize, the fold),
+  `shell/ColumnPanes.tsx` (the heading, New and Note, Navigate, the foot), `shell/ShellPanes.tsx`
+  (Needs you, Sessions, In progress, Done), `shell/fold.ts` (`useColumnFold`), `shell/Rail.tsx` (the
+  52 px rail and its overlay), `shell/Tabs.tsx` (the narrow tabs), `shell/columnWidth.ts` (the
   stored width), `shell/SessionsPage.tsx` (`/sessions`, the narrow tab's page)
 - Modify: `packages/web/src/Shell.tsx` (no `AppShell`, no `SideNav`), `src/sidebar/*` (the rows as
-  pane content; `useSideNavCollapse` replaced by the shell's own fold state), `src/SidebarAdd.tsx`
-  and `sidebar/FeatureSettingsDialog.tsx` (no drawer to close), `src/routes.tsx` (`/sessions`),
-  `src/App.tsx`
+  pane content; `useSideNavCollapse` replaced by the shell's own fold state; `Sidebar.tsx` split
+  into `Cards.tsx` and `entries.ts`; `SidebarHeading.tsx` removed), `src/SidebarAdd.tsx` and
+  `sidebar/FeatureSettingsDialog.tsx` (no drawer to close), `src/routes.tsx` (`/sessions`),
+  `src/App.tsx`, `src/RepositoryMenu.tsx` (the logo in its trigger), `src/layout/Pane.tsx`
+  (`isGroup`), `src/theme/` (the rail's sizes, its icons, R19), `src/QuestionCard.tsx` (R19)
 - Modify: every test naming "Side navigation", "Open navigation", or "Mobile navigation"; create
-  `src/__browser__/shell.test.tsx`
+  `src/__browser__/shell.test.tsx`, and a `tap` command in `vite.browser.config.ts`
 
 **Interfaces:**
 
 - Consumes: `useWidthClass` (Task 3), `Pane`, `Logo`, `HarnessMark` (Task 7).
 - Produces: the landmarks `navigation` "Navigation" (column or rail) and `navigation` "Tabs"
-  (narrow); `useColumnFold(): { isFolded: boolean; toggle(): void }` for the `[` key; the route
-  `sessions`; `ShellPanes` (Needs you, Sessions, In progress, Done) used by the column and by
-  `/sessions`.
+  (narrow), the panes inside them `group`s (R14);
+  `useColumnFold(): { isFolded: boolean; toggle(): void }` for the `[` key; the route `sessions`;
+  `ShellPanes` (Needs you, Sessions, In progress, Done) used by the column and by `/sessions`;
+  `entries.ts`'s `runningSessions` and `nowCount`.
 
-- [ ] **Step 1: Write the failing tests.** `__browser__/shell.test.tsx`: at 1205 px the navigation
+- [x] **Step 1: Write the failing tests.** `__browser__/shell.test.tsx`: at 1205 px the navigation
       is 52 px wide; hover, Tab into it, or a tap on the logo opens it to its full width over the
       page; Escape, focus leaving, or the pointer leaving folds it; at 1900 px it is 266 px; a drag
       to 320 px stays after a reload; a drag past the limits stops at 220 and 480; an old
@@ -554,19 +559,19 @@ behaviour the spec marks unverified.
       Inbox, Priorities, Sessions, Decisions, Settings, and New; with 3 running sessions the
       Sessions tab's badge reads 3, and a tap opens `/sessions`. The existing shell and sidebar
       tests move to the new landmarks. Break: a rail that opens on hover only.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test --project desktop src/__browser__/shell.test.tsx`. Expected: FAIL, no
       landmark "Navigation".
-- [ ] **Step 3: Implement.** The column's panes, top to bottom: the logo with the repository menu,
+- [x] **Step 3: Implement.** The column's panes, top to bottom: the logo with the repository menu,
       New and Note, the session search, Navigate (Home, Inbox with ＋ and its count, Priorities
       with ＋ and its count, Decisions), Needs you, Sessions, In progress, Done, and at its foot the
       5 h window and Settings. Width: 14% of the window between 256 and 340 px until dragged, then
       the stored width, 220–480 px, under `uraeda.nav`. `[` folds the wide column to the rail. Tabs:
       icon buttons with badges (inbox count; running sessions on Sessions), the page's own name as
       each tab's label.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then the shell, sidebar,
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then the shell, sidebar,
       and layout files in both browser projects. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(layout-look): the shell's column, rail, and tabs"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(layout-look): the shell's column, rail, and tabs"`.
 
 ## Task 9: The status line
 

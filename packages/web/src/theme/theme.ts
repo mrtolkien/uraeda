@@ -243,9 +243,11 @@ export const uraedaTheme = defineTheme({
     // prop to wrap them, and StyleX cannot reach them. The theme, which owns component overrides,
     // wraps them, so a run's log shows a long path or command whole on the phone (the UI checks
     // decision's "no text cut"). The `:is(*)` key is how the theme appends a descendant selector.
+    // Important, as the shell's panes emit Astryx's atomic `white-space: nowrap` class outside any
+    // layer, where it would win over the theme's layer, as `flex-shrink` below.
     "chat-tool-calls": {
       base: {
-        ":is(*) span": { overflowWrap: "anywhere", whiteSpace: "normal" },
+        ":is(*) span": { overflowWrap: "anywhere", whiteSpace: "normal !important" },
         maxWidth: "100%",
         minWidth: "0",
         // The tool's name, after its status icon, keeps its width. Important, as the app's own
@@ -294,9 +296,9 @@ export const uraedaTheme = defineTheme({
     "--size-composer-input": "154px",
     // The same field on the phone: 3 rows, since width is what a phone's reading lacks, not height.
     "--size-composer-input-narrow": "66px",
-    // The round's index, a column beside its questions on wide screens, narrow enough that the
-    // questions keep 600 px at 1200 px beside the sidebar (R5).
-    "--size-round-index": "230px",
+    // The round's index, a column beside its questions on wide screens: at 1200 px the shell is its
+    // 52 px rail, which leaves the questions their 600 px.
+    "--size-round-index": "240px",
     // The accent line of a follow-up's card, 4 px: `--spacing-1` is 4.8 px at 120%.
     "--size-round-accent": "4px",
     // A question card at least this wide puts its options beside its title and context.
@@ -308,6 +310,10 @@ export const uraedaTheme = defineTheme({
     "--size-settings-index": "240px",
     // The session's column of progress and changes, beside its transcript on wide screens.
     "--size-session-aside": "320px",
+    // The shell's rail: its icons' column, folded, and on semi-wide screens.
+    "--size-rail": "52px",
+    // The rail's inset, which centres a button in it: the column's rows keep the same edge.
+    "--size-rail-inset": "calc((var(--size-rail) - var(--size-element-md)) / 2)",
     // The repository menu's popover on wide screens, and the add form's field in the first run.
     "--size-form": "560px",
     "--size-menu": "360px",

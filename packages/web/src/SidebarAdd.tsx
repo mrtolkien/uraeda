@@ -1,7 +1,7 @@
-// The sidebar's ＋ buttons, next to Priorities and Inbox, and the forms they open. The forms are
-// drawn beside the page, not in the navigation: on the phone, the drawer closes as a ＋ is tapped.
-import { useAppShellMobile } from "@astryxdesign/core/AppShell";
+// The column's ＋ buttons, next to Priorities and Inbox, and the forms they open, drawn beside the
+// page, not in the column: its Note opens the inbox's form too, as the phone's sessions page does.
 import { Button } from "@astryxdesign/core/Button";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { createContext, type ReactNode, Suspense, useContext, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -22,43 +22,36 @@ type Form = "note" | "priority" | undefined;
 /** Opens a form, from a ＋ in the navigation. */
 const OpenContext = createContext<(form: Form) => void>(() => {});
 
-/**
- * A ＋ of the navigation: it opens its form, once the phone's drawer is closed. The drawer gives
- * the focus back to its menu button as it closes, which the form's field would otherwise lose.
- */
-function Plus({ form, label }: { form: Form; label: string }) {
-  const open = useContext(OpenContext);
-  const { closeMobileNav, isMobileNavOpen, mobileNavId } = useAppShellMobile();
-  const tap = () => {
-    const drawer = (
-      isMobileNavOpen && mobileNavId ? document.getElementById(mobileNavId) : null
-    ) as HTMLDialogElement | null;
-    if (drawer?.open) {
-      drawer.addEventListener("close", () => open(form), { once: true });
-      closeMobileNav();
-      return;
-    }
-    open(form);
-  };
+/** Opens the inbox's form, `"note"`, or the priorities', `"priority"`. */
+export function useOpenAddForm(): (form: Form) => void {
+  return useContext(OpenContext);
+}
+
+/** A ＋ of the shell: an icon alone beside its row, or, with `text`, a button that says it. */
+function Plus({ form, label, text }: { form: Form; label: string; text?: string }) {
+  const open = useOpenAddForm();
   return (
     <Button
-      icon={<span aria-hidden="true">＋</span>}
-      isIconOnly
+      // With its text, Lucide's plus: the font has no "＋" to draw beside a word.
+      icon={text === undefined ? <span aria-hidden="true">＋</span> : <Icon icon="uraeda:plus" />}
+      isIconOnly={text === undefined}
       label={label}
-      onClick={tap}
+      onClick={() => open(form)}
       variant="ghost"
-    />
+    >
+      {text}
+    </Button>
   );
 }
 
-/** ＋ next to Priorities. */
-export function AddPriorityButton() {
-  return <Plus form="priority" label="Add to the priorities" />;
+/** ＋ next to Priorities; "＋ Priority", with `text`. */
+export function AddPriorityButton({ text }: { text?: string }) {
+  return <Plus form="priority" label="Add to the priorities" {...(text ? { text } : {})} />;
 }
 
-/** ＋ next to Inbox. */
-export function AddNoteButton() {
-  return <Plus form="note" label="Add a note to the inbox" />;
+/** ＋ next to Inbox; "＋ Note", with `text`. */
+export function AddNoteButton({ text }: { text?: string }) {
+  return <Plus form="note" label="Add a note to the inbox" {...(text ? { text } : {})} />;
 }
 
 /**

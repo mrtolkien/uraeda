@@ -175,12 +175,13 @@ describe("on the desktop", () => {
 
   // US1 of merge chats: one Sessions section holds changes and features, each card's name saying
   // its kind, which its icon shows.
-  test("the sidebar names a change's kind, in the one Sessions section", async () => {
+  // Layout and look US2 (R14): changes and features share In progress, sessions have their own pane.
+  test("the sidebar names a change's kind, in the one In progress section", async () => {
     await centred();
     await show(`/f/${CENTRED}/session`, CENTRED_TITLE);
     await startTurn("Carry on.", [{ text: "Investigating.", type: "text" }]);
 
-    const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
+    const nav = within(screen.getByRole("navigation", { name: "Navigation" }));
     const row = await nav.findByRole(
       "link",
       { name: new RegExp(`^centred-x, ${CENTRED_TITLE}, change, .+, Working`) },
@@ -188,7 +189,7 @@ describe("on the desktop", () => {
     );
     expect(row.getAttribute("href")).toBe(atRepo(`/f/${CENTRED}`));
     expect(row.textContent).toBe("centred-x");
-    const sessions = nav.getByRole("group", { name: "Sessions" });
+    const sessions = nav.getByRole("group", { name: "In progress" });
     expect(sessions.contains(row)).toBe(true);
     expect(within(sessions).queryByText("Change")).toBeNull();
     // A feature's card, in the same section, names its kind too.

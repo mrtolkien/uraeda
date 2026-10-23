@@ -12,8 +12,9 @@ import { useAnswer } from "./useAnswer.ts";
 
 const styles = stylex.create({
   belowBar: {
-    // A jump puts the question below the phone's top bar, which stays in view.
-    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
+    // A jump puts the question below the phone's tabs and the round's bar under them, which stay
+    // in view, each a row of `--spacing-12`.
+    scrollMarginTop: `calc(2 * ${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
   },
   belowNothing: {
     scrollMarginTop: spacingVars["--spacing-4"],
@@ -40,10 +41,10 @@ const styles = stylex.create({
     gridTemplateColumns: "minmax(0, 5fr) minmax(0, 6fr)",
   },
   stickyHead: {
-    // On the phone, the question's header stays below the top bar, the top bar's own height, over
-    // the page's background, while its question scrolls under it.
+    // On the phone, the question's header stays below the tabs and the round's bar, two rows of
+    // `--spacing-12`, over the page's background, while its question scrolls under it.
     backgroundColor: colorVars["--color-background-surface"],
-    insetBlockStart: spacingVars["--spacing-12"],
+    insetBlockStart: `calc(2 * ${spacingVars["--spacing-12"]})`,
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-4"],

@@ -1,7 +1,7 @@
-// The search over the sidebar's features and chats, at its top.
-import { useSideNavCollapse } from "@astryxdesign/core/SideNav";
+// The search over the column's sessions, changes, and features, at its top.
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { startTransition, useEffect, useState } from "react";
+import { useColumnFold } from "../shell/fold.ts";
 
 /** How long typing must stop before a search is read (R2). */
 const SEARCH_DELAY = 200;
@@ -20,7 +20,7 @@ export function useSessionQuery() {
   return { query, setText, text };
 }
 
-/** The search field at the top of the navigation; the folded navigation has no room for it. */
+/** The search field at the top of the column; the folded rail has no room for it. */
 export function SearchField({
   onChange,
   text,
@@ -28,8 +28,8 @@ export function SearchField({
   onChange: (text: string) => void;
   text: string;
 }) {
-  const { isCollapsed } = useSideNavCollapse();
-  if (isCollapsed) {
+  const { isFolded } = useColumnFold();
+  if (isFolded) {
     return null;
   }
   return (
