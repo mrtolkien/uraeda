@@ -98,7 +98,8 @@ specs/
     rulings.md              # agent: low-impact choices made while planning and building
     data-model.md           # agent, with the spec: the stored data or file formats it changes
     contracts/              # agent, when needed
-    mockups/                # agent: HTML mockups, or the stories of a mockups Storybook
+    mockups/                # agent: HTML mockups, or the stories of a mockups Storybook;
+                            # a discovery's prototypes, until the spec's approval
     images/                 # images a human attached, linked from their files
 ```
 

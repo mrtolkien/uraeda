@@ -55,7 +55,9 @@ context it needs without prescribing choices the implementer can make from the c
 
 If `spec.md` still opens with a `> [!IMPORTANT]` block, the approval step did not run, for example
 because the spec proposes no decision. Turn the block into a record, as described in
-[Coming back to the human](../SKILL.md#coming-back-to-the-human), in the plan's commit.
+[Coming back to the human](../SKILL.md#coming-back-to-the-human), in the plan's commit. Delete the
+investigation's prototypes in the same commit, as [approval](approval.md#delete-the-prototypes)
+describes.
 
 ## Scope check
 

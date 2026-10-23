@@ -439,18 +439,20 @@ behaviour the spec marks unverified.
 - Modify: `skills/uraeda/references/discovery.md` (visual questions: throwaway prototypes in
   `mockups/`, any format), `skills/uraeda/references/spec.md` (Mockups: the spec's mockups stay
   stories; the prototypes are deleted at approval), `skills/uraeda/references/approval.md` (delete
-  the feature's prototypes in the approval commit, keeping the spec's stories)
+  the feature's prototypes in the approval commit, keeping the spec's stories),
+  `skills/uraeda/references/plan.md` (the plan step deletes them when the approval step does not
+  run), `skills/uraeda/SKILL.md` and `assets/templates/specs/README.md` (`mockups/` holds them)
 
 **Interfaces:**
 
 - Produces: nothing later tasks consume.
 
-- [ ] **Step 1: Edit the three references** so a discovery may link HTML or image prototypes in
+- [x] **Step 1: Edit the three references** so a discovery may link HTML or image prototypes in
       `mockups/`, and the approval step deletes them in its commit. Match the preview decision's
       rule word for word where it is quoted.
-- [ ] **Step 2: Run the checks**: `nix develop -c vp run fast` and
+- [x] **Step 2: Run the checks**: `nix develop -c vp run fast` and
       `~/.cargo/bin/ura check skills/uraeda/assets/example/specs`. Expected: PASS, no problem.
-- [ ] **Step 3: Commit**:
+- [x] **Step 3: Commit**:
       `git commit -m "docs(layout-look): prototypes in an investigation, deleted at approval"`.
 
 ## Task 6: Mocha, Latte, or System

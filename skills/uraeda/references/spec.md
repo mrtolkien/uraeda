@@ -304,7 +304,13 @@ Story links need Storybook's Vite builder, which the decision requires. After a
 [visual question](discovery.md#visual-questions), the spec's commit keeps the picked variant's
 export and deletes the others, so the spec embeds the picked one.
 
+A discovery's [prototypes](discovery.md#prototypes) are not mockups. With a preview decision, the
+spec's mockups stay stories, even when the human picked a prototype: rebuild its look as stories.
+
 **Without one**, put the mockups in `mockups/`, next to the spec, and link each one from its story.
+The spec's links name its mockups: a picked prototype it links is a mockup, and the approval deletes
+the other files.
+
 The format is yours: use whatever shows the change best, and is quickest for the human to check. For
 example:
 

@@ -152,3 +152,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none: there is no per-field selection of a row to add to.
 - **If wrong**: should rows become records, their view selects `agent`.
 - **Where**: task 4, `packages/web/src/views.ts`.
+## R8: Deleting the prototypes rewrites the round's links to them
+
+- **Decision**: the approval step deletes every file of `mockups/` that no link of `spec.md` names,
+  with the files those load. It turns each link of the discovery and the questions to a deleted file
+  into its text and the path in code. When the approval step does not run, because the spec
+  activates no decision, the plan step deletes them in its commit, as it records the review.
+- **Rationale**: `ura check` reports `links.file` on a link into `specs/` whose file is gone
+  (`crates/core/src/check/links.rs`), so leaving the round's links would fail the check after every
+  approval. The approval step runs only for a spec with a decision to activate, and a feature
+  without one would keep its prototypes forever.
+- **Alternatives considered**: a `ura check` exemption for links into `mockups/`: code for a rule a
+  sentence covers, and it hides real broken links in specs. Links to the file at a commit: a hash
+  the agent cannot know before committing.
+- **If wrong**: a later round reads only the text of a deleted prototype's link; `git log` on the
+  path finds it. Task 14 of this feature deletes this feature's prototypes, and must rewrite
+  `discovery-02.md`'s links to them the same way.
+- **Where**: task 5, `skills/uraeda/references/approval.md`, `plan.md`, `discovery.md`, `spec.md`.

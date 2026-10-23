@@ -47,7 +47,8 @@ Without it, the file names and their `status` fields still tell where each featu
   - `data-model.md`: the stored data and file formats the spec adds or changes, written with it
   - `contracts/`: the interfaces the plan builds on, when needed
   - `mockups/`: what users will see, for any UI work: HTML mockups, or the stories of a mockups
-    Storybook. With the project's own Storybook, mockups are stories in the code instead.
+    Storybook. With the project's own Storybook, mockups are stories in the code instead. A
+    discovery's throwaway prototypes also sit there, until the spec's approval deletes them.
 
 Discovery and clarifications come in numbered rounds, `01`, `02`, ...: a later round is a new pair
 of files, and earlier rounds stay as they were.
