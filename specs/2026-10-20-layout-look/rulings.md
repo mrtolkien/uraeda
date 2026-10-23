@@ -706,3 +706,58 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   within a pixel instead of measuring two frames after the draw.
 - **Where**: `packages/web/src/keepPlace.ts`, `packages/web/src/tail.tsx`,
   `__browser__/session-tail.test.tsx`.
+
+## R30: The stories draw the fixture's states, and a width class through the width queries
+
+- **Decision**: the shell's stories, `shell/Shell.stories.tsx`, draw the real `Shell` around the
+  real `Home`, over the Storybook fixture, and replace `sidebar/Sidebar.stories.tsx`, whose fixed
+  props drew states the fixture cannot (no work in flight, a card committing, the rail folded by
+  `[`). A semi-wide or narrow story answers the width queries as a 1205 or 402 px window while its
+  frame is wider (`.storybook/widthClass.ts`, a story's `beforeEach`): `useWidthClass` asks
+  `matchMedia`, so the real components lay out for that class in the desktop's frame, while CSS
+  keeps the frame's width (`30vw` is 432 px, not 361). The semi-wide shell's story opens its rail by
+  a DOM click on its logo, once the home is drawn: Testing Library's click focuses the button first,
+  which reads as the keyboard's focus (`:focus-visible`) and opens the rail, so its click folded it
+  again. The home's stories show the Problems pane: the fixture holds "Due dates", whose status the
+  workflow cannot read, and one Storybook server serves one fixture to every story, so no story can
+  draw the home without problems; that state is the same page without the pane, checked by
+  `__tests__/home.test.tsx`. The decisions' `List` story is `Constitution`, nothing open, the reader
+  on the constitution (R25); `Principle` opens principle III, as the spec's mockup did;
+  `ChangedDecision` opens "Task storage", which the spec page's features change on their branches
+  (R26); `Palette` opens the palette by "Jump to…" and types "task". The spec's last settings
+  mockup, "the file and a picker", becomes "Settings, a search", the review's C4 having dropped the
+  file view.
+- **Rationale**: the preview decision: real components, the real server, no faked response. A story
+  frame is a phone's or a desktop's width, so a semi-wide state needs the desktop's frame to answer
+  as one.
+- **Alternatives considered**: a width class passed down by a context of `useWidthClass`: code in
+  the app for stories alone. A second fixture without the blocked feature: a second server in
+  Storybook, or a story-local repository, which the server's locked list (`lockedList`) refuses.
+  Keeping the fixed props of the sidebar's stories: a second drawing of the shell, against the
+  decision.
+- **If wrong**: a story for the home without problems needs a fixture per story; the width answer is
+  one helper, and its stories two lines.
+- **Where**: task 14, `packages/web/src/shell/Shell.stories.tsx`, `Home.stories.tsx`,
+  `decisions/DecisionsPage.stories.tsx`, `.storybook/widthClass.ts`, `spec.md`.
+
+## R31: The screenshots of the redrawn views, and the script's views the shell left behind
+
+- **Decision**: `scripts/screenshots.ts` waits on home's "Overview" line, where it waited on the
+  decisions' card home no longer shows, and `scripts/layout-look-shots.ts` takes the decisions'
+  views (moved from `screenshots.ts`, waiting on principle I's title, which the phone's list shows
+  without the reader's version line), a decision a branch changes, the palette, the home and the
+  shell at 1205 px (`home-1205`, `shell-1205-open`, desktop only), and the phone's Sessions tab.
+  `settings-footer` is gone: it opened the phone's drawer, which the tabs replaced, and the form's
+  shots show Settings selected. The feature's screenshots are `home`, `home-1205`,
+  `shell-1205-open`, `sessions`, `decisions`, `decision`, `decision-changed`, `decisions-palette`,
+  and the settings views, in `screenshots/`. The prototypes' screenshots went with `mockups/`.
+- **Rationale**: the UI checks decision asks for screenshots of every changed view at both sizes and
+  in both themes; the spec names 1205 px for the shell and the home.
+- **Alternatives considered**: a third size in every view: three times the files for pages that lay
+  out alike at semi-wide and wide.
+- **If wrong**: the other views that open the phone's drawer by "Open navigation" (`sidebar`,
+  `sidebar-no-match`, `quick-add`, and the inbox's, sessions', changes', and merge-chats' views)
+  fail on the phone until their feature's next screenshots move them to the Sessions tab, as R15 did
+  for the tests.
+- **Where**: task 14, `packages/web/scripts/screenshots.ts`, `layout-look-shots.ts`,
+  `settings-shots.ts`.

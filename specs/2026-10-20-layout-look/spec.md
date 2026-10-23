@@ -58,7 +58,7 @@ Relied on:
 Every page takes the theme: JetBrains Mono at 120%, Catppuccin colours, square corners, and the
 dot-matrix tree as the logo and favicon. Settings switch between Mocha, Latte, and the system's.
 
-[The look, in Mocha and Latte, and the logo](mockups/terminal-2.html?w=1440&theme=mocha#/home)
+[The look, in Mocha and Latte, and the logo](/packages/web/src/shell/Shell.stories.tsx#Wide)
 
 Key scenarios:
 
@@ -84,11 +84,11 @@ At 1280 px and wider it is a full column. From 768 to 1279 px it folds to a 52 p
 which opens over the page. Below 768 px it is a top bar of icon tabs. A status line at the bottom
 shows the page's key hints and the counts.
 
-[Shell, wide](mockups/terminal-2.html?w=1440#/home)
+[Shell, wide](/packages/web/src/shell/Shell.stories.tsx#Wide)
 
-[Shell, semi-wide](mockups/terminal-2.html?w=1205#/home)
+[Shell, semi-wide](/packages/web/src/shell/Shell.stories.tsx#SemiWide)
 
-[Shell, narrow](mockups/terminal-2.html?w=390#/home)
+[Shell, narrow](/packages/web/src/shell/Shell.stories.tsx#Narrow)
 
 Key scenarios:
 
@@ -113,9 +113,9 @@ are any, then Needs you, then In progress beside Sessions. Below it, widgets in 
 priorities now, the usage of the 5 h window and the week, the inbox's three latest notes, and recent
 activity.
 
-[Home, wide](mockups/terminal-2.html?w=1440#/home)
+[Home, wide](/packages/web/src/Home.stories.tsx#Hub)
 
-[Home, semi-wide](mockups/terminal-2.html?w=1205#/home)
+[Home, semi-wide](/packages/web/src/Home.stories.tsx#SemiWide)
 
 Key scenarios:
 
@@ -141,11 +141,11 @@ decisions, each with its icon and the first sentence of its intent. The reader i
 principle opens the whole constitution in it, at that principle. A palette, opened with `/` or "Jump
 to…", finds any entry and previews the one under the cursor.
 
-[Decisions, the constitution open](mockups/terminal-2.html?w=1900#/decisions/p-III)
+[Decisions, the constitution open](/packages/web/src/decisions/DecisionsPage.stories.tsx#Principle)
 
-[Decisions, a changed decision](mockups/terminal-2.html?w=1440#/decisions/ui-layout)
+[Decisions, a changed decision](/packages/web/src/decisions/DecisionsPage.stories.tsx#ChangedDecision)
 
-[Decisions, the palette](mockups/terminal-2.html?w=1440#/decisions/stack)
+[Decisions, the palette](/packages/web/src/decisions/DecisionsPage.stories.tsx#Palette)
 
 Key scenarios:
 
@@ -170,9 +170,9 @@ each row with an icon, a name, a line of help, and its control. A search at the 
 the rows. A Form and File switch shows `settings.toml` as written, where clicking a value with a
 fixed set of values opens a picker.
 
-[Settings, the form](mockups/terminal-2.html?w=1440#/settings)
+[Settings, the form](/packages/web/src/settings/SettingsView.stories.tsx#Form)
 
-[Settings, the file and a picker](mockups/terminal-2.html?w=1440&sv=file#/settings)
+[Settings, a search](/packages/web/src/settings/SettingsView.stories.tsx#Search)
 
 Key scenarios:
 

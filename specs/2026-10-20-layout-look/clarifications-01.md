@@ -10,8 +10,8 @@ status: answered
 >
 > - Verdict: worth building, with changes: it is too big for one spec as proposed, and three active
 >   decisions bind it.
-> - Open the [five mockups](mockups/compare.html) before the questions. They are clickable HTML over
->   the same data, checked at a desktop, a half screen, and a phone width.
+> - Open the five mockups (`mockups/compare.html`, deleted) before the questions. They are clickable
+>   HTML over the same data, checked at a desktop, a half screen, and a phone width.
 > - The split comes first, since it decides what this feature's spec holds. Four answers work
 >   together: the direction, the mixed parts, the session beside a page, and the width classes.
 > - Three answers last beyond this feature. They are the direction, the width classes (which amend
@@ -130,45 +130,45 @@ unless it is changed. A source editor keeps your file byte for byte.
 
 ## Q2: Which visual direction should the UI take?
 
-Five directions are built over the same views and data. Open the
-[comparison page](mockups/compare.html) and try each one at a half screen: that is where your
-current UI breaks. The contrast of every text colour was measured, and the secondary text was
-corrected where it fell under 4.5:1. More in [discovery](discovery-01.md#the-visual-direction).
+Five directions are built over the same views and data. Open the comparison page
+(`mockups/compare.html`, deleted) and try each one at a half screen: that is where your current UI
+breaks. The contrast of every text colour was measured, and the secondary text was corrected where
+it fell under 4.5:1. More in [discovery](discovery-01.md#the-visual-direction).
 
-| Direction                           | In one line                                                                     | Shell                             | Home                           |
-| ----------------------------------- | ------------------------------------------------------------------------------- | --------------------------------- | ------------------------------ |
-| [Natural](mockups/natural.html)     | Washi paper, moss and bark, serif reading, light and night                      | A floating dock, no sidebar       | A bonsai, one branch a feature |
-| [Cyber](mockups/cyber.html)         | Your own violet-black and neon green, chamfered HUD panels, parallax and glitch | A left rail, and a bottom dock    | A git-style branch map         |
-| [Terminal](mockups/terminal.html)   | LazyVim in the browser: bordered panes, a tab line, a status line               | A tab line on top, a status line  | A keyed start menu, pixel art  |
-| [Glass](mockups/glass.html)         | Liquid Glass chrome around opaque reading sheets, light and dark                | A floating glass sidebar          | Widgets and progress rings     |
-| [Blueprint](mockups/blueprint.html) | Technical drawing sheets: a title block, numbered callouts, revision clouds     | A drawing list, and a title block | A process plan with gates      |
+| Direction                                     | In one line                                                                     | Shell                             | Home                           |
+| --------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------- | ------------------------------ |
+| Natural (`mockups/natural.html`, deleted)     | Washi paper, moss and bark, serif reading, light and night                      | A floating dock, no sidebar       | A bonsai, one branch a feature |
+| Cyber (`mockups/cyber.html`, deleted)         | Your own violet-black and neon green, chamfered HUD panels, parallax and glitch | A left rail, and a bottom dock    | A git-style branch map         |
+| Terminal (`mockups/terminal.html`, deleted)   | LazyVim in the browser: bordered panes, a tab line, a status line               | A tab line on top, a status line  | A keyed start menu, pixel art  |
+| Glass (`mockups/glass.html`, deleted)         | Liquid Glass chrome around opaque reading sheets, light and dark                | A floating glass sidebar          | Widgets and progress rings     |
+| Blueprint (`mockups/blueprint.html`, deleted) | Technical drawing sheets: a title block, numbered callouts, revision clouds     | A drawing list, and a title block | A process plan with gates      |
 
 The home and the questions page of each direction, at 1440 px:
 
 **Natural**
 
-![Natural home](mockups/screenshots/natural-home.jpg)
-![Natural questions](mockups/screenshots/natural-questions.jpg)
+Natural home (`mockups/screenshots/natural-home.jpg`, deleted) Natural questions
+(`mockups/screenshots/natural-questions.jpg`, deleted)
 
 **Cyber**
 
-![Cyber home](mockups/screenshots/cyber-home.jpg)
-![Cyber questions](mockups/screenshots/cyber-questions.jpg)
+Cyber home (`mockups/screenshots/cyber-home.jpg`, deleted) Cyber questions
+(`mockups/screenshots/cyber-questions.jpg`, deleted)
 
 **Terminal**
 
-![Terminal home](mockups/screenshots/terminal-home.jpg)
-![Terminal questions](mockups/screenshots/terminal-questions.jpg)
+Terminal home (`mockups/screenshots/terminal-home.jpg`, deleted) Terminal questions
+(`mockups/screenshots/terminal-questions.jpg`, deleted)
 
 **Glass**
 
-![Glass home](mockups/screenshots/glass-home.jpg)
-![Glass questions](mockups/screenshots/glass-questions.jpg)
+Glass home (`mockups/screenshots/glass-home.jpg`, deleted) Glass questions
+(`mockups/screenshots/glass-questions.jpg`, deleted)
 
 **Blueprint**
 
-![Blueprint home](mockups/screenshots/blueprint-home.jpg)
-![Blueprint questions](mockups/screenshots/blueprint-questions.jpg)
+Blueprint home (`mockups/screenshots/blueprint-home.jpg`, deleted) Blueprint questions
+(`mockups/screenshots/blueprint-questions.jpg`, deleted)
 
 Why it matters: this fixes the look every page takes for v1.0.0, and the layout that comes with it.
 Changing it later means redoing every view.
@@ -436,9 +436,9 @@ be shown more options and see them visually.
 ## Q11: Which logo concept should the UI use?
 
 The UI has no logo and no favicon. The name comes from 裏枝 (ura-eda), the back branch of a bonsai,
-which grows behind the trunk and gives the tree its depth. [Five concepts](mockups/logos.html) are
-drawn, each in one colour and shown at 96, 32, and 16 px. The final mark is refined in the spec.
-More in [discovery](discovery-01.md#logo).
+which grows behind the trunk and gives the tree its depth. Five concepts (`mockups/logos.html`,
+deleted) are drawn, each in one colour and shown at 96, 32, and 16 px. The final mark is refined in
+the spec. More in [discovery](discovery-01.md#logo).
 
 Why it matters: the logo appears in the tab, the sidebar, and the README, and is hard to change once
 people recognise it.

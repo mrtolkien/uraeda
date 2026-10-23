@@ -16,32 +16,32 @@ that renders each UI component in each state as a live example.
 
 This round built the prototypes as the investigation's artefacts. Five clickable HTML mockups share
 one set of fake data and draw the same views. A
-[README](/specs/2026-10-20-layout-look/mockups/README.md) presents them.
-[compare.html](/specs/2026-10-20-layout-look/mockups/compare.html) shows them side by side at 1440,
-960, and 390 px wide. [logos.html](/specs/2026-10-20-layout-look/mockups/logos.html) draws five logo
-concepts. A [screenshots](/specs/2026-10-20-layout-look/mockups/screenshots/) folder holds each
-direction's home and questions page at 1440 px. They are not shipping code, and they use neither
-Astryx nor Storybook.
+[README](/specs/2026-10-20-layout-look/mockups/README.md) presents them. compare.html
+(`/specs/2026-10-20-layout-look/mockups/compare.html`, deleted) shows them side by side at 1440,
+960, and 390 px wide. logos.html (`/specs/2026-10-20-layout-look/mockups/logos.html`, deleted) draws
+five logo concepts. A screenshots (`/specs/2026-10-20-layout-look/mockups/screenshots/`, deleted)
+folder holds each direction's home and questions page at 1440 px. They are not shipping code, and
+they use neither Astryx nor Storybook.
 
-- **[Natural](/specs/2026-10-20-layout-look/mockups/natural.html)**: washi paper (Japanese handmade
-  paper), moss and bark colours, and a bonsai home whose branches are features. It has a floating
-  bottom dock and a bottom-sheet session, in light and dark.
-- **[Cyber](/specs/2026-10-20-layout-look/mockups/cyber.html)**: the author's own violet-black and
-  neon-green palette, with chamfered (corner-cut) HUD (heads-up display) panels. It has a branch-map
-  home, a left rail plus a bottom dock of running work, and a side "comm" panel for the session.
-  Dark only.
-- **[Terminal](/specs/2026-10-20-layout-look/mockups/terminal.html)**: a LazyVim look (LazyVim is a
-  Neovim setup) in Catppuccin Mocha colours (a dark colour scheme). It has a tab line on top and a
-  status line at the bottom. It has titled bordered panes, a keyed start menu with a pixel bonsai, a
-  picker overlay, and a split session. Dark only.
-- **[Glass](/specs/2026-10-20-layout-look/mockups/glass.html)**: Apple's Liquid Glass, a translucent
-  material from 2025, used only for navigation and overlays. It has a floating sidebar, a toolbar,
-  and a session sheet with three detents (rest heights). Reading sheets are opaque, and the home
-  uses Fitness-style rings.
-- **[Blueprint](/specs/2026-10-20-layout-look/mockups/blueprint.html)**: technical drawing sheets
-  with a drawing list and a title-block footer. Questions are numbered callouts, changed decisions
-  get revision clouds, and live previews are framed as "Detail A". The home is a process plan.
-  Cyanotype (dark) and vellum (light).
+- **Natural (`/specs/2026-10-20-layout-look/mockups/natural.html`, deleted)**: washi paper (Japanese
+  handmade paper), moss and bark colours, and a bonsai home whose branches are features. It has a
+  floating bottom dock and a bottom-sheet session, in light and dark.
+- **Cyber (`/specs/2026-10-20-layout-look/mockups/cyber.html`, deleted)**: the author's own
+  violet-black and neon-green palette, with chamfered (corner-cut) HUD (heads-up display) panels. It
+  has a branch-map home, a left rail plus a bottom dock of running work, and a side "comm" panel for
+  the session. Dark only.
+- **Terminal (`/specs/2026-10-20-layout-look/mockups/terminal.html`, deleted)**: a LazyVim look
+  (LazyVim is a Neovim setup) in Catppuccin Mocha colours (a dark colour scheme). It has a tab line
+  on top and a status line at the bottom. It has titled bordered panes, a keyed start menu with a
+  pixel bonsai, a picker overlay, and a split session. Dark only.
+- **Glass (`/specs/2026-10-20-layout-look/mockups/glass.html`, deleted)**: Apple's Liquid Glass, a
+  translucent material from 2025, used only for navigation and overlays. It has a floating sidebar,
+  a toolbar, and a session sheet with three detents (rest heights). Reading sheets are opaque, and
+  the home uses Fitness-style rings.
+- **Blueprint (`/specs/2026-10-20-layout-look/mockups/blueprint.html`, deleted)**: technical drawing
+  sheets with a drawing list and a title-block footer. Questions are numbered callouts, changed
+  decisions get revision clouds, and live previews are framed as "Detail A". The home is a process
+  plan. Cyanotype (dark) and vellum (light).
 
 Established agent tools converge on a few patterns, listed under
 [What they have in common](#what-they-have-in-common). Their sidebars list sessions grouped by whose
@@ -798,8 +798,8 @@ for Claude Code, Codex, and Pi.
 - simple-icons says its CC0 licence "doesn't mean to imply that all icons within the project are
   also CC0". It asks users to "seek the correct permissions" (its `DISCLAIMER.md`, read).
   lobe-icons' MIT licence covers its code, and the marks stay their owners'.
-- The mockups' harness glyphs are stand-ins in
-  [icons.js](/specs/2026-10-20-layout-look/mockups/shared/icons.js): an asterisk of lines for
+- The mockups' harness glyphs are stand-ins in icons.js
+  (`/specs/2026-10-20-layout-look/mockups/shared/icons.js`, deleted): an asterisk of lines for
   Claude, a hexagon for Codex. They are not the official marks, so the mockups alter no Claude Code
   mark.
 
@@ -1250,13 +1250,13 @@ This topic is which of the five directions gives the UI its base look. It relies
 All five mockups use the same data. Contrast ratios are measured on each mockup's own tokens.
 Breakpoints are each mockup's own media queries.
 
-| Option                                                               | Traits and risk for long reading                                                                                                                                                                                      | Contrast (measured)                                                                                                                                                | Light and dark                                                             | Half-width behaviour (960 px)                                                                                     | Effort in StyleX and Astryx                                                                                                                                                                     |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A. [Natural](/specs/2026-10-20-layout-look/mockups/natural.html)     | Washi paper, moss, bark, a serif reading column, leaf-shaped corners, grain. Illustration only on the home. Lowest risk for reading (judgement)                                                                       | Text 4.8 to 13.6 in light, 5.6 to 14.4 in dark. The mockup darkened moss, which is 3.6:1 as a text colour in the source palette                                    | Both, with a day and night switch                                          | No sidebar, so content keeps the full width. Adapts at 1000 and 720 px                                            | Three font families, a grain background, a bonsai drawn from workspace data, a bottom dock instead of the `SideNav`, leaf radii as tokens                                                       |
-| B. [Cyber](/specs/2026-10-20-layout-look/mockups/cyber.html)         | The author's palette, chamfered panels, scanlines, glitch on titles, parallax layers that follow the pointer. Highest risk (judgement), given the critiques of effects and ultra-bold type. Panels stay flat for text | Text 4.6 to 17.9. Dim text on a raised surface is 4.58:1. Neon green is 15.8:1, loud as text                                                                       | Dark only                                                                  | The right column folds away at 1280 px, then one column at 1000 px. Sources say to flatten parallax at this width | Chamfers by `clip-path` or experimental `corner-shape`, keyframes for glitch, pointer parallax with a motion off-switch (WCAG 2.3.3), `prefers-contrast` removing effects as the mockup does    |
-| C. [Terminal](/specs/2026-10-20-layout-look/mockups/terminal.html)   | Catppuccin Mocha, monospace chrome with proportional prose, titled panes, a tab line, a status line. Keys are look-only here. Box-drawing as text reads badly to screen readers, so borders are CSS                   | Text 4.6 to 12.1. Dim `o0` on `s0` is 4.56:1, close to the 4.5:1 line. The first draft's 3.54:1 was raised. The author's own Mocha overlay0 is 3.36:1              | Dark only in the mockup. Its palette has a light sibling, Latte, not drawn | Side panes fold at 1100 and 860 px, and the picker's preview hides                                                | A monospace family, titled panes as a component, a status line and tab line replacing the shell, an overlay picker. Visible controls for every key, as the behaviour decision requires          |
-| D. [Glass](/specs/2026-10-20-layout-look/mockups/glass.html)         | Liquid Glass on chrome only, opaque reading sheets, rings on the home. It follows Apple's rule against glass in the content layer. The Nielsen Norman critique applies to chrome over text                            | Text 4.6 to 16.8 in light, 4.55 to 15.6 in dark, on the opaque sheets. Text on glass chrome over a moving wallpaper is a range, not a number, and was not measured | Both. Follows the system theme, with a switch                              | The sidebar becomes an icon column at 1100 px, the inspector hides, and the session sheet has three detents       | A translucent layer needs a reduced-transparency path. Astryx's adaptations lack one and WebKit cannot detect it. Blur costs repaint on a sticky header. No refraction, which only Chromium has |
-| E. [Blueprint](/specs/2026-10-20-layout-look/mockups/blueprint.html) | Drawing sheets, a title block, numbered question callouts, revision clouds on changed decisions, a serif reading column. Fit for specs and plans is judgement                                                         | Text 4.65 to 12.6 on cyanotype, 4.6 to 14.2 on vellum. Yellow `#f3b800` on vellum is 1.63:1                                                                        | Both: cyanotype and vellum                                                 | The drawing list folds to labels at 1000 px, and the notes column becomes an overlay at 1180 px                   | A drafting grid from gradients, line weights as tokens, a title block as a shared footer, revision clouds as an SVG overlay on the decision diff, a shell unlike today's                        |
+| Option                                                                         | Traits and risk for long reading                                                                                                                                                                                      | Contrast (measured)                                                                                                                                                | Light and dark                                                             | Half-width behaviour (960 px)                                                                                     | Effort in StyleX and Astryx                                                                                                                                                                     |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. Natural (`/specs/2026-10-20-layout-look/mockups/natural.html`, deleted)     | Washi paper, moss, bark, a serif reading column, leaf-shaped corners, grain. Illustration only on the home. Lowest risk for reading (judgement)                                                                       | Text 4.8 to 13.6 in light, 5.6 to 14.4 in dark. The mockup darkened moss, which is 3.6:1 as a text colour in the source palette                                    | Both, with a day and night switch                                          | No sidebar, so content keeps the full width. Adapts at 1000 and 720 px                                            | Three font families, a grain background, a bonsai drawn from workspace data, a bottom dock instead of the `SideNav`, leaf radii as tokens                                                       |
+| B. Cyber (`/specs/2026-10-20-layout-look/mockups/cyber.html`, deleted)         | The author's palette, chamfered panels, scanlines, glitch on titles, parallax layers that follow the pointer. Highest risk (judgement), given the critiques of effects and ultra-bold type. Panels stay flat for text | Text 4.6 to 17.9. Dim text on a raised surface is 4.58:1. Neon green is 15.8:1, loud as text                                                                       | Dark only                                                                  | The right column folds away at 1280 px, then one column at 1000 px. Sources say to flatten parallax at this width | Chamfers by `clip-path` or experimental `corner-shape`, keyframes for glitch, pointer parallax with a motion off-switch (WCAG 2.3.3), `prefers-contrast` removing effects as the mockup does    |
+| C. Terminal (`/specs/2026-10-20-layout-look/mockups/terminal.html`, deleted)   | Catppuccin Mocha, monospace chrome with proportional prose, titled panes, a tab line, a status line. Keys are look-only here. Box-drawing as text reads badly to screen readers, so borders are CSS                   | Text 4.6 to 12.1. Dim `o0` on `s0` is 4.56:1, close to the 4.5:1 line. The first draft's 3.54:1 was raised. The author's own Mocha overlay0 is 3.36:1              | Dark only in the mockup. Its palette has a light sibling, Latte, not drawn | Side panes fold at 1100 and 860 px, and the picker's preview hides                                                | A monospace family, titled panes as a component, a status line and tab line replacing the shell, an overlay picker. Visible controls for every key, as the behaviour decision requires          |
+| D. Glass (`/specs/2026-10-20-layout-look/mockups/glass.html`, deleted)         | Liquid Glass on chrome only, opaque reading sheets, rings on the home. It follows Apple's rule against glass in the content layer. The Nielsen Norman critique applies to chrome over text                            | Text 4.6 to 16.8 in light, 4.55 to 15.6 in dark, on the opaque sheets. Text on glass chrome over a moving wallpaper is a range, not a number, and was not measured | Both. Follows the system theme, with a switch                              | The sidebar becomes an icon column at 1100 px, the inspector hides, and the session sheet has three detents       | A translucent layer needs a reduced-transparency path. Astryx's adaptations lack one and WebKit cannot detect it. Blur costs repaint on a sticky header. No refraction, which only Chromium has |
+| E. Blueprint (`/specs/2026-10-20-layout-look/mockups/blueprint.html`, deleted) | Drawing sheets, a title block, numbered question callouts, revision clouds on changed decisions, a serif reading column. Fit for specs and plans is judgement                                                         | Text 4.65 to 12.6 on cyanotype, 4.6 to 14.2 on vellum. Yellow `#f3b800` on vellum is 1.63:1                                                                        | Both: cyanotype and vellum                                                 | The drawing list folds to labels at 1000 px, and the notes column becomes an overlay at 1180 px                   | A drafting grid from gradients, line weights as tokens, a title block as a shared footer, revision clouds as an SVG overlay on the decision diff, a shell unlike today's                        |
 
 - The author's own sites already separate effects from prose: effects on the splash only, a
   proportional body, mono for chrome. The cyber and terminal mockups follow that.
@@ -1426,9 +1426,9 @@ This topic is the mark for the app, its favicon, and the "approved" stamp. It re
 [the bonsai vocabulary](#japanese-design-bonsai-vocabulary-and-the-authors-own-sites) and
 [Fonts](#fonts).
 
-[logos.html](/specs/2026-10-20-layout-look/mockups/logos.html) draws all five concepts at 96, 32,
-and 16 px, light and dark. The natural mockup also carries its own small bonsai mark beside the name
-and 裏枝. Mon (family crests) are "essentially monochrome" (Wikipedia, read,
+logos.html (`/specs/2026-10-20-layout-look/mockups/logos.html`, deleted) draws all five concepts at
+96, 32, and 16 px, light and dark. The natural mockup also carries its own small bonsai mark beside
+the name and 裏枝. Mon (family crests) are "essentially monochrome" (Wikipedia, read,
 [Mon](<https://en.wikipedia.org/wiki/Mon_(emblem)>)). An ensō is a circle drawn in one stroke
 ([Lion's Roar](https://www.lionsroar.com/what-is-an-enso/), read).
 
