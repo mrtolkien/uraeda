@@ -40,6 +40,15 @@ function found(text: string, patterns: Array<RegExp>) {
   );
 }
 
+/** What to run when the build is missing: `vp test` alone does not build it, `ready` does. */
+const BUILD_FIRST =
+  "packages/web/dist is not built: run `nix develop -c vp run web:build` first, or `vp run ready`";
+
+/** Fails with how to build, unless the build is there. */
+function expectBuilt() {
+  expect(existsSync(join(dist, "index.html")), BUILD_FIRST).toBe(true);
+}
+
 /** Every file of the build, by its path from `dist`. */
 function files(folder = dist, prefix = ""): Array<string> {
   return readdirSync(folder, { withFileTypes: true }).flatMap((entry) =>
@@ -50,13 +59,14 @@ function files(folder = dist, prefix = ""): Array<string> {
 }
 
 test("the built app's page loads only its own files", () => {
-  expect(existsSync(join(dist, "index.html")), "packages/web/dist is built").toBe(true);
+  expectBuilt();
   const page = readFileSync(join(dist, "index.html"), "utf8");
   expect(page).toMatch(/<script[^>]+src="\/assets\//);
   expect(found(page, PAGE_LOADS)).toEqual([]);
 });
 
 test("the built app's stylesheets and scripts load nothing from another host", () => {
+  expectBuilt();
   const assets = files().filter((path) => /\.(?:css|js|mjs)$/.test(path));
   expect(assets.some((path) => path.endsWith(".css"))).toBe(true);
   const loads = assets.flatMap((path) =>
