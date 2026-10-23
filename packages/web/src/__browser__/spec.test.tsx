@@ -63,23 +63,25 @@ describe("on the phone", () => {
     }
   });
 
-  test("on the phone, no part has a card, and text runs to 12 px from the edges (US5 3)", async () => {
+  test("on the phone, no part has a card, and text runs to 14.4 px from the edges (US5 3, at 120%)", async () => {
     await commands.addSpecFeature({ status: "approved" });
     await show(PAGE, "Complete a repeating task");
 
     const width = window.innerWidth;
+    // US5 3's 12 px inset, at the UI look decision's 120% (R5).
+    const inset = 14.4;
     for (const name of ["What you approve", "Task storage", "Complete a repeating task"]) {
       const part = screen.getByRole("region", { name });
       const title = within(part).getByRole("heading", { name });
-      expect(title.getBoundingClientRect().left, name).toBeCloseTo(12, 0);
-      // The part takes the page's width, inside its 12 px inset.
+      expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
+      // The part takes the page's width, inside its inset.
       const box = part.getBoundingClientRect();
-      expect(box.left, name).toBeCloseTo(12, 0);
-      expect(box.right, name).toBeCloseTo(width - 12, 0);
+      expect(box.left, name).toBeCloseTo(inset, 0);
+      expect(box.right, name).toBeCloseTo(width - inset, 0);
     }
     const journey = screen.getByText(/Completing a repeating task moves it to its next due date/);
-    expect(journey.getBoundingClientRect().left).toBeCloseTo(12, 0);
-    expect(journey.getBoundingClientRect().right).toBeCloseTo(width - 12, 0);
+    expect(journey.getBoundingClientRect().left).toBeCloseTo(inset, 0);
+    expect(journey.getBoundingClientRect().right).toBeCloseTo(width - inset, 0);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
   });
 });

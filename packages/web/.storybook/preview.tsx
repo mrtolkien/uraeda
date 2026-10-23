@@ -6,6 +6,8 @@
 // it.
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
 import "../src/theme/built/uraeda.css";
 import "../../../skills/uraeda/assets/storybook/uraeda-pick.js";
 import { LayerProvider } from "@astryxdesign/core/Layer";

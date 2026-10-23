@@ -84,7 +84,7 @@ function Verdicts({
   return (
     <>
       <CommitActions
-        continueLabel="Request changes and start the agent"
+        continueLabel="Request changes, start the agent"
         folder={file.folder}
         isDisabled={comments === 0 || file.committed != null}
         label="Request changes"
