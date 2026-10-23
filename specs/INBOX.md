@@ -1,8 +1,15 @@
 # Inbox
 
+- https://github.com/facebook/astryx/releases#release-v0.7.0
+  - Check their Markdown changes: "keeps Markdown transforms composable"
+
 ## Quickfixes
 
 ## UI
+
+- I want to try monaspace font family for the website, using the different styles
+
+> Below points are likely obsolete
 
 - Home does not use the same icons as the sidebar: this is clearly AGAINST the ui coherence decision
   - Fix home by taking inspiration from the sidebar looks

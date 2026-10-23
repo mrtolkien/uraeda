@@ -10,7 +10,8 @@ preview-command: pnpm exec storybook dev --ci --no-open --exact-port --host 127.
 
 Uraeda's planned UI and the states of its views are Storybook stories. They are written with the
 real components, so a mockup is the code that ships. Uraeda embeds them live in specs, questions,
-and sessions, fed by its real server, so a story shows what the app shows.
+and sessions, fed by its real server, so a story shows what the app shows. A layout or freeform
+mockup may be an HTML page instead.
 
 ## Rules
 
@@ -18,6 +19,9 @@ and sessions, fed by its real server, so a story shows what the app shows.
   `preview-folder` and `preview-command` fields hold. Checked by `ura check`.
 - Mockups and named states of views MUST be stories written with the real components, next to them.
   Checked by review and lint.
+- A layout or freeform mockup MAY be an HTML page in the feature's or the change's `mockups/` folder
+  instead, linked from its story: a page's layout, or a sketch no component holds yet. Checked by
+  review.
 - Storybook MUST run Uraeda's real server over fixture data, and stories MUST NOT fake its
   responses. Checked by review.
 - Stories MUST NOT run as tests: UI tests are Vitest tests, per the [UI checks](ui-checks.md)
