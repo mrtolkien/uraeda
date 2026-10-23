@@ -660,11 +660,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   preview: a phone opens the reader in one more tap, and a sheet has no room for both. The palette
   adds a history entry, as `Overlay` does, so Back closes it, and Enter opens the entry once that
   entry is gone. `/` opens it unless the focus is in a text field, a dialog, a menu, a listbox, or
-  an expanded control, or a modal dialog is open; it declares "/ jump" in the status line. SC-005 is
-  measured as the letters typed between `/` and Enter: every entry of this repository's own ledger,
-  31 of them, is the first result of some query of three letters or fewer, checked in
-  `palette.test.tsx` against `readLedger` of the repository. The fixture has no Notifications
-  decision: both tests commit one.
+  the owner of an open popup (`aria-haspopup`, or a combobox, expanded), or a modal dialog is open;
+  an expanded disclosure, as the rail's logo, holds no key back; it declares "/ jump" in the status
+  line. SC-005 is measured as the letters typed between `/` and Enter: every entry of this
+  repository's own ledger, 31 of them, is the first result of some query of three letters or fewer,
+  checked in `palette.test.tsx` against `readLedger` of the repository. The fixture has no
+  Notifications decision: both tests commit one.
 - **Rationale**: inline, the palette keeps Astryx's combobox, listbox roles, grouping, hover, and
   announcements, and only the layout around it is ours. Inline, its field does not focus itself, so
   `JumpPalette` focuses it; its Escape is handled by the field before the dialog's layer stack,
@@ -679,3 +680,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   is a change of `Search`'s place in `JumpPalette`.
 - **Where**: task 13, `packages/web/src/decisions/JumpPalette.tsx`, `jump.ts`, `DecisionsPage.tsx`,
   `theme/theme.ts`, `__tests__/palette.test.tsx`, `__browser__/decisions.test.tsx`.
+
+## R29: The tail's place kept after "Show earlier messages" on a busy machine: found, not fixed
+
+- **Decision**: `session-tail.test.tsx` "US1.2" failed once on the phone under load, "expected
+  761.875 to be ≤ 1": the 20 messages the press adds (761.875 px) drew above the message read, and
+  nothing put it back. The cause is in the app, not the test: `keepPlace` (`keepPlace.ts`) calls the
+  press's change without awaiting the promise it returns, which `tail.tsx` resolves once the count
+  is drawn, and corrects two frames after the press. When the earlier messages draw later than those
+  two frames, as on a busy machine, the correction finds nothing moved and the place is lost.
+  Awaiting the change in `keepPlace` (tried, with a unit test that fails first) keeps US1.2, but the
+  second press of `readFarBack` then never sees its promise resolve: the press waits in `presses`
+  for an `onPieces` that does not come, though its 60 messages draw. The walk hands its pieces to
+  `sink` while it renders (`keep`), so a render React sets aside can draw the new pieces through
+  `Pieces` without the walk's layout effect that resolves the press. Left unfixed in this feature:
+  the test and the code are as they were.
+- **Rationale**: the fix is a rework of how a press learns it is drawn in `tail.tsx`, not a small
+  review fix, and a half fix that awaits the press loses the place for good when its promise never
+  resolves, where today it is lost only on a slow draw.
+- **Alternatives considered**: awaiting the press in `keepPlace` alone: the second press's place is
+  never kept. Polling the place in the test: hides nothing, but fails while the app loses it.
+- **If wrong**: the flake comes back under load. The fix: resolve a press from the commit that draws
+  its pieces (a layout effect of `Pieces`, comparing `drawnKey` with the press's `from` and the
+  count drawn with its `next`), then await it in `keepPlace`; the test then polls the place back
+  within a pixel instead of measuring two frames after the draw.
+- **Where**: `packages/web/src/keepPlace.ts`, `packages/web/src/tail.tsx`,
+  `__browser__/session-tail.test.tsx`.
