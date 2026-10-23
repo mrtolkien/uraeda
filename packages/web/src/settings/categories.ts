@@ -159,24 +159,6 @@ export function settingShown(
   return needle === "" || holds(category, setting, needle);
 }
 
-/** A setting the search found: its label, and the category that shows it. */
-export type Found = { category: Category; label: string };
-
-/**
- * The settings, today's and to come, that `text` shows, in the form's order; none for an empty
- * text.
- */
-export function searchSettings(text: string): Array<Found> {
-  if (text.trim() === "") {
-    return [];
-  }
-  return CATEGORIES.flatMap((category) =>
-    [...category.settings, ...(category.planned ?? [])]
-      .filter((setting) => settingShown(category, setting, text))
-      .map(({ label }) => ({ category, label })),
-  );
-}
-
 /** The setting of `category` named `label`, which the section's code draws. */
 export function settingOf(category: Category, label: string): Setting {
   const found = category.settings.find((setting) => setting.label === label);

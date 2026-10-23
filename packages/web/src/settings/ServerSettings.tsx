@@ -9,12 +9,11 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
 import type { Settings } from "uraeda-server/fate";
 import { EditableLine, LineField } from "../EditableLine.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { type Category, settingOf } from "./categories.ts";
-import { SettingRow, SettingRows } from "./SettingRow.tsx";
+import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
 /** The settings record, as the page reads it: the file, its problem, and the values. */
 export type ServerValues = Pick<Settings, "file" | "problem" | "runs" | "server">;
@@ -87,7 +86,7 @@ function Hosts({
   const { allowedHosts } = values.server;
   const hosts = allowedHosts.saved ?? [];
   const note = overridden(allowedHosts, (names) => names.join(", ") || "none");
-  const [refused, setRefused] = useState<string>();
+  const [refused, setRefused] = useRefusal("Allowed host names");
   const remove = async (host: string) => {
     setRefused(undefined);
     setRefused(await actions.removeHost(host));
@@ -171,7 +170,7 @@ function OpenBrowser({
   const { openBrowser } = values.server;
   const setting = settingOf(category, "Open a browser at start");
   const note = overridden(openBrowser, (on) => (on ? "on" : "off"));
-  const [refused, setRefused] = useState<string>();
+  const [refused, setRefused] = useRefusal(setting.label);
   return (
     <SettingRow
       notes={

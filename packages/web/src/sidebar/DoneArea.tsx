@@ -6,9 +6,10 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent, type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { useColumnFold } from "../shell/fold.ts";
+import { CardRow } from "./CardRow.tsx";
 import { StepIcon } from "./StepIcon.tsx";
 
 /** The most done rows the sidebar shows. */
@@ -100,7 +101,7 @@ export function DoneArea({
   const opening = (href: string) =>
     onOpen
       ? {
-          onClick: (event: React.MouseEvent) => {
+          onClick: (event: MouseEvent) => {
             event.preventDefault();
             onOpen(href);
           },
@@ -112,9 +113,10 @@ export function DoneArea({
   return (
     <div ref={area} {...stylex.props(styles.area)}>
       <Pane isGroup title="Done">
+        {/* Home's Recent draws the same items with the same row, `CardRow`. */}
         {shown.map((row) => (
-          <SideNavItem
-            aria-label={`${row.label}, ${row.kind ?? row.title}, done`}
+          <CardRow
+            endContent={null}
             href={row.href}
             icon={
               row.kind ? (
@@ -126,7 +128,7 @@ export function DoneArea({
             isSelected={row.isSelected ?? false}
             key={row.folder}
             label={row.label}
-            size="sm"
+            name={`${row.label}, ${row.kind ?? row.title}, done`}
             {...opening(row.href)}
           />
         ))}

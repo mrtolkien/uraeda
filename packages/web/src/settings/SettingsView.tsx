@@ -21,6 +21,7 @@ import {
 } from "./categories.ts";
 import { AppearanceSettings, PlannedSettings, SignInSettings } from "./OtherSettings.tsx";
 import { RunSettings } from "./RunSettings.tsx";
+import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
 
 /** One section's rows, those `shows` keeps. */
@@ -69,7 +70,7 @@ function SearchField({
       startIcon="search"
       value={text}
       // A field's width at the end of the heading row on a desktop; the whole line on a phone.
-      width={wide ? "var(--size-settings-index)" : undefined}
+      width={wide ? "var(--size-settings-search)" : undefined}
     />
   );
 }
@@ -123,24 +124,26 @@ export function SettingsView({
     ));
   return (
     <Page>
-      <VStack gap={6}>
-        {wide ? (
-          <HStack align="center" gap={4} justify="between">
-            <Heading level={1}>Settings</Heading>
-            {search}
-          </HStack>
-        ) : (
-          <VStack gap={4}>
-            <Heading level={1}>Settings</Heading>
-            {search}
-          </VStack>
-        )}
-        {sections.length > 0 ? (
-          <VStack gap={6}>{sections}</VStack>
-        ) : (
-          <Text>No setting matches “{text.trim()}”.</Text>
-        )}
-      </VStack>
+      <RefusalsProvider>
+        <VStack gap={6}>
+          {wide ? (
+            <HStack align="center" gap={4} justify="between">
+              <Heading level={1}>Settings</Heading>
+              {search}
+            </HStack>
+          ) : (
+            <VStack gap={4}>
+              <Heading level={1}>Settings</Heading>
+              {search}
+            </VStack>
+          )}
+          {sections.length > 0 ? (
+            <VStack gap={6}>{sections}</VStack>
+          ) : (
+            <Text>No setting matches “{text.trim()}”.</Text>
+          )}
+        </VStack>
+      </RefusalsProvider>
     </Page>
   );
 }

@@ -3,10 +3,9 @@
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Switch } from "@astryxdesign/core/Switch";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
 import { type Category, settingOf } from "./categories.ts";
 import { PlannedRows } from "./OtherSettings.tsx";
-import { SettingRow, SettingRows } from "./SettingRow.tsx";
+import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 import { FileProblem, type ServerActions, type ServerValues } from "./ServerSettings.tsx";
 
 /** Building in a fresh session, saved at once, with its refusal under it. */
@@ -19,8 +18,8 @@ function BuildFresh({
   category: Category;
   values: ServerValues;
 }) {
-  const [refused, setRefused] = useState<string>();
   const setting = settingOf(category, "Build in a fresh session");
+  const [refused, setRefused] = useRefusal(setting.label);
   return (
     <SettingRow
       notes={refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}

@@ -14,7 +14,7 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { createContext, type ReactNode, use, useCallback, useState } from "react";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Setting } from "./categories.ts";
 
@@ -103,4 +103,40 @@ export function SettingRow({
       {control}
     </HStack>
   );
+}
+
+/** The refusals of the form's rows, by setting, set by `useRefusal`. */
+type Refusals = {
+  refusals: Readonly<Record<string, string | undefined>>;
+  set: (key: string, refusal: string | undefined) => void;
+};
+
+const RefusalsContext = createContext<Refusals | null>(null);
+
+/**
+ * Keeps the rows' refusals above the search's filter: a row it hides and shows again still shows
+ * its error, which stays until dealt with (the UI behaviour decision).
+ */
+export function RefusalsProvider({ children }: { children: ReactNode }) {
+  const [refusals, setRefusals] = useState<Readonly<Record<string, string | undefined>>>({});
+  const set = useCallback((key: string, refusal: string | undefined) => {
+    setRefusals((before) => (before[key] === refusal ? before : { ...before, [key]: refusal }));
+  }, []);
+  return <RefusalsContext value={{ refusals, set }}>{children}</RefusalsContext>;
+}
+
+/**
+ * The refusal of the setting `key` changing, and what sets it: kept by `RefusalsProvider` above,
+ * or by the caller alone outside one, as in a story.
+ */
+export function useRefusal(
+  key: string,
+): [string | undefined, (refusal: string | undefined) => void] {
+  const shared = use(RefusalsContext);
+  const [own, setOwn] = useState<string>();
+  const set = useCallback(
+    (refusal: string | undefined) => (shared ? shared.set(key, refusal) : setOwn(refusal)),
+    [key, shared],
+  );
+  return [shared ? shared.refusals[key] : own, set];
 }
