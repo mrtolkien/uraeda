@@ -362,7 +362,9 @@ export const uraedaTheme = defineTheme({
     // look decision): Mocha's overlay0 and Latte's overlay2, Catppuccin's lightest steps that reach it.
     "--color-border": pair("overlay"),
     "--color-border-emphasized": pair("overlay"),
-    "--color-border-gray": pair("surface2"),
+    // The "Later" edge of a list too: 3:1 like every border, so as strong as "Next"'s; its heading's
+    // secondary text is what makes it the dimmer one.
+    "--color-border-gray": pair("overlay"),
     "--color-error": pair("red"),
     "--color-error-muted": tint("red"),
     "--color-icon-accent": pair("mauve"),

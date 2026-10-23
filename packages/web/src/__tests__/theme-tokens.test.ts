@@ -186,7 +186,7 @@ const CONTROLS = [
   "--color-warning",
   "--color-error",
   ...named(/^--color-icon-/),
-  ...HUES.filter((hue) => hue !== "gray").map((hue) => `--color-border-${hue}`),
+  ...HUES.map((hue) => `--color-border-${hue}`),
   "--color-selection-edge",
 ];
 
