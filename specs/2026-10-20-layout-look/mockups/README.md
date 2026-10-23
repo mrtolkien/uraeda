@@ -152,6 +152,34 @@ wide.
 - **At 960 px**: the drawing list folds to three-letter labels and the notes column becomes an
   overlay. **At 390 px**: a bottom list bar and a three-cell title block.
 
+## Round 2: the picked direction, terminal with a little cyber
+
+After the first round's answers, [terminal-2.html](terminal-2.html) redraws the shell and four
+pages. The bar on top picks the colour scheme (Catppuccin Mocha or Latte), and a frame width (auto,
+1440, 1205, 960, or 390), so a half screen can be tried without resizing the window. The choices
+stay in the address.
+
+- **Picked**: the shell with stacked bordered panes (as in edgy.nvim), the home with two columns,
+  and the form settings with a search at the top right.
+- **Width classes**: wide (1280 px and up) is a full left column. Semi-wide (768 to 1279 px) is an
+  icon column that opens over the page on hover or focus. Narrow (under 768 px) is a top tab bar of
+  icons. Page content is centred, and the home keeps two columns down to the semi-wide class.
+- **Home**: the same bordered panes as the sidebar, split by a dashed "Overview" line. Above it, the
+  core: problems, needs you, in progress, and sessions. Below it, widgets: the priorities now, usage
+  of the 5 h window and the week, an inbox glimpse, recent activity, and shortcuts.
+- **Settings**: a form of bordered sections with an icon on every row, a search, and a Form/File
+  switch. The file view is `settings.toml`, where clicking a value opens a picker.
+- **Decisions**: the real ones. [`terminal-2/real.js`](terminal-2/real.js) is generated from
+  `specs/decisions/*.md`, `specs/CONSTITUTION.md`, and the Lucide icons the decisions name. Three
+  columns in the sidebar's bordered-pane style: the navigation, the list (the active pane, in mauve,
+  wider on wide screens), and the entry, open by default with previous, next, and close. The
+  constitution keeps its six principles in the list, and each opens the one file at its section. A
+  palette (`/` or "Jump to…") searches every entry and previews the one under the cursor. The
+  selection is in the URL. On a phone the entry replaces the list.
+- **Status bar**: key hints for the page (the keys are drawn, not built).
+- **Sidebar width**: 14% of the window between 256 and 340 px, and draggable (double-click resets).
+- **Not redrawn**: the other pages link to the first round's terminal mockup.
+
 ## Contrast
 
 Text colours were measured against WCAG 2.2 AA (4.5:1 for text, 3:1 for large text and controls).
