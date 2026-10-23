@@ -77,15 +77,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   its phone frame need. The type scale is written as exact `--font-size-*` tokens, Astryx's 14 px
   scale × 1.2, at the root and again in the coarse-pointer rule, which also undoes the neutral
   theme's touch text (R2). `--radius-full` stays round, so dots, radios, and avatars stay round;
-  badges and switches set it to 0 inside themselves. Shadows are `none`. `theme-tokens.test.ts`
-  reads the built stylesheet, and checks, beside the plan's pairs, the pairs components draw:
-  primary and secondary text on muted, popover, and a selected row, accent and disabled text on a
-  selected row; text on each filled status colour; on-light on on-dark, the media modes' text on
-  each other; the on-dark icon on the scrim over a white image at 3:1, so Latte's scrim is 70%
-  rather than 50%; each hue's text on its own background, and a banner's; syntax colours on the code
-  background. Disabled text is held to 4.5:1 too, as the decision says "every text colour": the dim
-  text is a step past the mockup's in both schemes, `#5f6276` and `#969db8`, for 4.5:1 on a selected
-  row.
+  badges and switches set it to 0 inside themselves. Shadows are `none`. Reading text takes Inter by
+  inheritance, never by resetting `--font-family-body`: buttons and badges, which Astryx has inherit
+  their font, take the body font in the theme, so a control inside prose stays monospace.
+  `theme-tokens.test.ts` reads the built stylesheet, and checks, beside the plan's pairs, the pairs
+  components draw: primary and secondary text on muted, popover, and a selected row, accent and
+  disabled text on a selected row; text on each filled status colour; on-light on on-dark, the media
+  modes' text on each other; the on-dark icon on the scrim over a white image at 3:1, so Latte's
+  scrim is 70% rather than 50%; each hue's text on its own background, and a banner's; syntax
+  colours on the code background. Disabled text is held to 4.5:1 too, as the decision says "every
+  text colour": the dim text is a step past the mockup's in both schemes, `#5f6276` and `#969db8`,
+  for 4.5:1 on a selected row.
 - **Rationale**: Astryx rounds each size of its type scale to a whole pixel, so a 16.8 px base drew
   17 px; explicit tokens win over the generated ones. The decision holds borders to 3:1 with no
   exception, so a pane's line is as strong as a control's: Catppuccin's lightest overlay step that
