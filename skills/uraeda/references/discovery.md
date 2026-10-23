@@ -444,6 +444,24 @@ that each story you link renders, in Uraeda or with the decision's `preview-comm
 The human may answer with a mix, "A, with B's grip". Commit the variants with the round. The spec
 keeps the picked one, as [mockups](spec.md#mockups) describes.
 
+### Prototypes
+
+A round may also compare looks as throwaway prototypes, in any format: HTML pages, SVGs, or
+generated images. Use them when building each look with the real components costs too much, like a
+whole layout or a colour scheme. They need no preview decision.
+
+- **In the feature's `mockups/` folder**, each prototype with the files it loads.
+- **Linked from the round**: each option links its prototype in a paragraph of its own, as a variant
+  does.
+- **Throwaway**: they are not the spec's mockups. The [approval](approval.md#delete-the-prototypes)
+  of the spec deletes them, and git keeps them.
+
+```markdown
+- **A (recommended). Panes with their titles in the border, like a terminal.**
+
+  [Terminal panes](mockups/terminal-panes.html)
+```
+
 ## Self-review
 
 Before committing, read both files again with fresh eyes, and fix what you find inline:

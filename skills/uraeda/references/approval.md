@@ -4,7 +4,8 @@ Activates the decisions of an approved spec, and records the human's review.
 
 - **Runs when**: `spec.md` is `approved`, and a decision named by an item of its `## Decisions`
   section is `proposed`
-- **Writes**: the frontmatter of those decisions, and the record of the spec's review
+- **Writes**: the frontmatter of those decisions, the record of the spec's review, and the deletion
+  of the investigation's prototypes
 - **Ends at**: the [plan](plan.md) step
 
 The human's approval of the spec is the explicit request to activate its decisions. The spec step
@@ -38,8 +39,8 @@ approves resets the check: its approval commit is the new one.
 
 Turn the spec's `> [!IMPORTANT]` block into a record, if the human or a tool did not already, as
 `ura review --approve` does: see [Coming back to the human](../SKILL.md#coming-back-to-the-human).
-When an approved spec lists no decision to activate, this step does not run, and the plan step
-records the review instead.
+When an approved spec lists no decision to activate, this step does not run. The plan step then
+records the review and deletes the prototypes instead.
 
 ## Check the review settings
 
@@ -49,7 +50,18 @@ risk tier: the plan step uses it as it is now, not as you proposed it. If the hu
 does: the plan waits only when the human turns plan review on, or when it lists a constitution
 exception.
 
+## Delete the prototypes
+
+Delete the investigation's [prototypes](discovery.md#prototypes) from the feature's `mockups/`
+folder: they were throwaway, and git keeps them. Keep the spec's mockups. The spec's links name
+them: keep each file a link of `spec.md` names, and the files it loads. Delete every other file of
+`mockups/`, and the folder when it ends up empty.
+
+A link to a deleted file fails `ura check`. In the discovery and the questions, turn each one into
+its text and the file's path in code: ``Terminal panes (`mockups/terminal-panes.html`, deleted)``.
+Git keeps the file at the commit before.
+
 ## Commit
 
-Commit the decisions and the spec's record together: `decision(<slug>): apply <summary>`. Then run
-the [plan](plan.md) step.
+Commit the decisions, the spec's record, and the deleted prototypes together:
+`decision(<slug>): apply <summary>`. Then run the [plan](plan.md) step.
