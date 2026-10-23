@@ -284,7 +284,7 @@ async function categoryNames() {
 /** The names, each with its summary, as the list shows them. */
 const LISTED = [
   "ServerHost names, port, and start",
-  "AppearanceTheme, on this browser",
+  "AppearanceColour scheme, on this browser",
   "Sign-inSign out, here or everywhere",
   "AgentsComing later",
   "RunsBuild in a fresh session, more later",
@@ -394,7 +394,12 @@ test("an unknown category reads as none: on a desktop, Server beside the list", 
 test.each([
   ["host", [["Allowed host names", "Server"]]],
   ["FRESH", [["Build in a fresh session", "Runs"]]],
-  ["THEME", [["Theme", "Appearance"]]],
+  // Task 6: the control is the colour scheme, found by its name, its choices, and "theme".
+  ["COLOUR", [["Colour scheme", "Appearance"]]],
+  ["scheme", [["Colour scheme", "Appearance"]]],
+  ["mocha", [["Colour scheme", "Appearance"]]],
+  ["Latte", [["Colour scheme", "Appearance"]]],
+  ["THEME", [["Colour scheme", "Appearance"]]],
   [
     "  model ",
     [
@@ -449,7 +454,7 @@ test("on a phone, the search comes first, above the categories and above a categ
 test.each([
   [1440, "port", "Port", "Server", "server"],
   [402, "port", "Port", "Server", "server"],
-  [402, "theme", "Theme", "Appearance", "appearance"],
+  [402, "mocha", "Colour scheme", "Appearance", "appearance"],
 ])(
   "at %i px, searching %s lists %s under %s, which opens it and clears the search (C1)",
   async (width, text, label, category, id) => {

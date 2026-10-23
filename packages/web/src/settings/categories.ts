@@ -16,6 +16,8 @@ export type Category = {
   settings: ReadonlyArray<string>;
   /** The line under the category's name in the list. */
   summary: string;
+  /** Words besides its label that find a setting, by its label: its choices, its other names. */
+  terms?: Readonly<Record<string, ReadonlyArray<string>>>;
 };
 
 export const CATEGORIES: ReadonlyArray<Category> = [
@@ -25,7 +27,13 @@ export const CATEGORIES: ReadonlyArray<Category> = [
     settings: ["Allowed host names", "Port", "Open a browser at start"],
     summary: "Host names, port, and start",
   },
-  { id: "appearance", label: "Appearance", settings: ["Theme"], summary: "Theme, on this browser" },
+  {
+    id: "appearance",
+    label: "Appearance",
+    settings: ["Colour scheme"],
+    summary: "Colour scheme, on this browser",
+    terms: { "Colour scheme": ["Mocha", "Latte", "theme", "dark", "light"] },
+  },
   {
     id: "sign-in",
     label: "Sign-in",
@@ -77,7 +85,7 @@ export function categoryOf(id: string): Category | undefined {
 export type Found = { category: Category; label: string };
 
 /**
- * The settings whose label, or whose category's, holds `text`, trimmed and in any case, the
+ * The settings whose label, one of their terms, or whose category's label holds `text`, trimmed and in any case, the
  * settings to come included, in the page's order; none for an empty text.
  */
 export function searchSettings(text: string): Array<Found> {
@@ -88,8 +96,9 @@ export function searchSettings(text: string): Array<Found> {
   return CATEGORIES.flatMap((category) => {
     const named = category.label.toLowerCase().includes(needle);
     const labels = [...category.settings, ...(category.planned ?? []).map(({ label }) => label)];
+    const holds = (word: string) => word.toLowerCase().includes(needle);
     return labels
-      .filter((label) => named || label.toLowerCase().includes(needle))
+      .filter((label) => named || holds(label) || (category.terms?.[label] ?? []).some(holds))
       .map((label) => ({ category, label }));
   });
 }
