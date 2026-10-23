@@ -64,15 +64,15 @@ const grown = { ...scaled("--spacing-", SPACING), ...scaled("--size-element-", E
 /**
  * Catppuccin, from the mockup's palette (`specs/2026-10-20-layout-look/mockups/terminal-2/style.css`):
  * Latte in the light slot of each pair, Mocha in the dark one. Latte's accents, used as text, are
- * darker steps than Catppuccin's own, which read at about 3:1 on its base; Mocha's dim text is
- * lighter than its overlay, for 4.5:1. `theme-tokens.test.ts` measures every pair.
+ * darker steps than Catppuccin's own, which read at about 3:1 on its base; the dim text is a step
+ * past the mockup's in both, for 4.5:1 on a selected row. `theme-tokens.test.ts` measures every pair.
  */
 const LATTE = {
   base: "#eff1f5",
   blue: "#1957d5",
   crust: "#dce0e8",
   cyan: "#0a688e",
-  dim: "#636679",
+  dim: "#5f6276",
   green: "#2c6f1f",
   lavender: "#4254c8",
   mantle: "#e6e9ef",
@@ -95,7 +95,7 @@ const MOCHA = {
   blue: "#89b4fa",
   crust: "#11111b",
   cyan: "#89dceb",
-  dim: "#949bb6",
+  dim: "#969db8",
   green: "#a6e3a1",
   lavender: "#b4befe",
   mantle: "#181825",
@@ -355,8 +355,9 @@ export const uraedaTheme = defineTheme({
     "--color-background-muted": [LATTE.mantle, MOCHA.crust],
     "--color-background-popover": pair("mantle"),
     "--color-background-surface": pair("mantle"),
-    // Panes' and dividers' lines, and the 3:1 border of a control.
-    "--color-border": pair("surface1"),
+    // Panes' and dividers' lines, and the border of a control, each 3:1 from the backgrounds (the UI
+    // look decision): Mocha's overlay0 and Latte's overlay2, Catppuccin's lightest steps that reach it.
+    "--color-border": pair("overlay"),
     "--color-border-emphasized": pair("overlay"),
     "--color-border-gray": pair("surface2"),
     "--color-error": pair("red"),
@@ -373,7 +374,8 @@ export const uraedaTheme = defineTheme({
     "--color-on-light": MOCHA.crust,
     "--color-on-success": ON,
     "--color-on-warning": ON,
-    "--color-overlay": [`${LATTE.text}80`, `${MOCHA.crust}cc`],
+    // A scrim: dialogs' backdrop, and under the on-dark icon over media, 3:1 over a white image.
+    "--color-overlay": [`${LATTE.text}b3`, `${MOCHA.crust}cc`],
     "--color-overlay-hover": [`${LATTE.text}0d`, `${MOCHA.text}0d`],
     "--color-overlay-pressed": [`${LATTE.text}1a`, `${MOCHA.text}1a`],
     "--color-shadow": [`${LATTE.text}1a`, `${MOCHA.crust}4d`],

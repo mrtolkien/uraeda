@@ -208,37 +208,37 @@ app in WebKit through the test server, at the phone and the desktop size, and at
 test sets `page.viewport(1205, 900)`; `checkLayout` checks text sizes, measure, and axe in both
 schemes. The theme's contrast test reads the built theme's tokens.
 
-| Spec                                                                             | Task     | Test                                                                                                                            |
-| -------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| US1 1, 2; more 1; Review focus: stored dark or light                             | 6        | `__tests__/theme.test.tsx`: System follows the system; Latte stays after a reload; a stored `"dark"` reads as Mocha             |
-| US1 3; Review focus: a kind with no mark                                         | 7        | `__tests__/sidebar.test.tsx`: a Claude Code session has the Claude mark, the fake agent's the generic glyph                     |
-| US1 more 2; SC-002                                                               | 2        | `__browser__/offline.test.tsx`: no request leaves the test server's host while the home loads                                   |
-| SC-001                                                                           | 2        | `__tests__/theme-tokens.test.ts`: every text token 4.5:1, borders 3:1, in both schemes                                          |
-| US1 look (120%, mono, square)                                                    | 2        | `__browser__/layout.test.tsx` `checkTextSizes`, and a token test of the scale and radii                                         |
-| US2 1; SC-003                                                                    | 8        | `__browser__/shell.test.tsx`: at 1205 px the rail is 52 px; focus, hover, and a tap on the logo open it                         |
-| US2 2; Review focus: old stored width                                            | 8        | `__browser__/shell.test.tsx`: at 1900 px the column is 266 px; a drag to 320 px stays after reload; an old Astryx width is kept |
-| US2 3                                                                            | 8        | `__tests__/shell.test.tsx`: at 390 px the Sessions tab's badge reads 3 and opens `/sessions`                                    |
-| US2 more 1; Review focus: focus leaves the rail                                  | 8        | `__browser__/shell.test.tsx`: Escape, or focus or pointer leaving, folds it                                                     |
-| US2 more 2                                                                       | 9        | `__tests__/status-line.test.tsx`: the feature in Needs you, "1 need you" in the status line                                     |
-| Edge: the rail on a touch screen                                                 | 8        | `__browser__/shell.test.tsx` (phone project with a 1205 px viewport): a tap opens, a tap outside folds                          |
-| Edge: the column dragged past its limits                                         | 8        | `__browser__/shell.test.tsx`: it stops at 220 and 480 px                                                                        |
-| Edge: crossing 1280 with the rail open; Review focus: a crossing keeps the place | 3, 8     | `__browser__/layout.test.tsx`: crossing 1280 keeps the page's scroll and pane; the rail becomes the column                      |
-| US3 1, more 1                                                                    | 10       | `__tests__/home.test.tsx`: Problems first only when a spec lacks a section                                                      |
-| US3 2; SC-003                                                                    | 10       | `__browser__/home.test.tsx`: at 1205 px In progress and Sessions sit side by side, widgets in two columns                       |
-| US3 3                                                                            | 10       | `__tests__/home.test.tsx`: the full title, "Questions" with the round's size, and "Answer"                                      |
-| US3 more 2                                                                       | 10       | `__tests__/home.test.tsx`: at 402 px one column in the same order                                                               |
-| US3 usage; Review focus: no weekly window                                        | 4, 10    | `server usage.test.ts`: a weekly window reports; none reports no week. `home.test.tsx`: the Usage pane                          |
-| US4 1, 2                                                                         | 12       | `__tests__/decisions.test.tsx`: the reader shows the constitution at `/decisions`; "UI layout" opens at `/decisions/ui-layout`  |
-| US4 3; SC-005; Review focus: the palette and the list keys                       | 13       | `__browser__/decisions.test.tsx`: `/`, "noti", Notifications with its intent and rules; Enter opens it                          |
-| Edge: the palette matches nothing                                                | 13       | `__tests__/palette.test.tsx`: "Nothing matches."                                                                                |
-| US4 more 1                                                                       | 12       | `__tests__/decisions.test.tsx` at 402 px: the reader replaces the list, with the way back                                       |
-| US4 more 2                                                                       | 12       | `__tests__/decisions.test.tsx`: a decision changed on a feature's branch shows its diff first                                   |
-| US5 1; more 1; Review focus: deep link                                           | 11       | `__tests__/settings.test.tsx`: "port" shows the Port row alone; "zzz" says so; `/settings/runs` scrolls to Runs                 |
-| Edge: `settings.toml` missing or invalid                                         | 11       | `__tests__/settings.test.tsx`: the Server and Runs sections show the file's problem                                             |
-| Edge: unknown harness                                                            | 7        | `__tests__/harness-mark.test.tsx`: an unknown kind draws the generic glyph                                                      |
-| SC-004                                                                           | 5, 10–12 | Review, against the stories: every bordered group is `Pane`                                                                     |
-| US6 1, 2                                                                         | 14       | Review of the skill's text; `ura check` on the example passes                                                                   |
-| Three classes in the browser tests                                               | 3        | `__browser__/helpers.tsx` `atSize("semi")`, used by the shell and home tests                                                    |
+| Spec                                                                             | Task     | Test                                                                                                                                                                            |
+| -------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| US1 1, 2; more 1; Review focus: stored dark or light                             | 6        | `__tests__/theme.test.tsx`: System follows the system; Latte stays after a reload; a stored `"dark"` reads as Mocha                                                             |
+| US1 3; Review focus: a kind with no mark                                         | 7        | `__tests__/sidebar.test.tsx`: a Claude Code session has the Claude mark, the fake agent's the generic glyph                                                                     |
+| US1 more 2; SC-002                                                               | 2        | `__browser__/offline.test.tsx`: no request leaves the test server's host while the home loads; `__tests__/offline-build.test.ts`: the built app loads nothing from another host |
+| SC-001                                                                           | 2        | `__tests__/theme-tokens.test.ts`: every text token 4.5:1, borders 3:1, in both schemes                                                                                          |
+| US1 look (120%, mono, square)                                                    | 2        | `__browser__/layout.test.tsx` `checkTextSizes`, and a token test of the scale and radii                                                                                         |
+| US2 1; SC-003                                                                    | 8        | `__browser__/shell.test.tsx`: at 1205 px the rail is 52 px; focus, hover, and a tap on the logo open it                                                                         |
+| US2 2; Review focus: old stored width                                            | 8        | `__browser__/shell.test.tsx`: at 1900 px the column is 266 px; a drag to 320 px stays after reload; an old Astryx width is kept                                                 |
+| US2 3                                                                            | 8        | `__tests__/shell.test.tsx`: at 390 px the Sessions tab's badge reads 3 and opens `/sessions`                                                                                    |
+| US2 more 1; Review focus: focus leaves the rail                                  | 8        | `__browser__/shell.test.tsx`: Escape, or focus or pointer leaving, folds it                                                                                                     |
+| US2 more 2                                                                       | 9        | `__tests__/status-line.test.tsx`: the feature in Needs you, "1 need you" in the status line                                                                                     |
+| Edge: the rail on a touch screen                                                 | 8        | `__browser__/shell.test.tsx` (phone project with a 1205 px viewport): a tap opens, a tap outside folds                                                                          |
+| Edge: the column dragged past its limits                                         | 8        | `__browser__/shell.test.tsx`: it stops at 220 and 480 px                                                                                                                        |
+| Edge: crossing 1280 with the rail open; Review focus: a crossing keeps the place | 3, 8     | `__browser__/layout.test.tsx`: crossing 1280 keeps the page's scroll and pane; the rail becomes the column                                                                      |
+| US3 1, more 1                                                                    | 10       | `__tests__/home.test.tsx`: Problems first only when a spec lacks a section                                                                                                      |
+| US3 2; SC-003                                                                    | 10       | `__browser__/home.test.tsx`: at 1205 px In progress and Sessions sit side by side, widgets in two columns                                                                       |
+| US3 3                                                                            | 10       | `__tests__/home.test.tsx`: the full title, "Questions" with the round's size, and "Answer"                                                                                      |
+| US3 more 2                                                                       | 10       | `__tests__/home.test.tsx`: at 402 px one column in the same order                                                                                                               |
+| US3 usage; Review focus: no weekly window                                        | 4, 10    | `server usage.test.ts`: a weekly window reports; none reports no week. `home.test.tsx`: the Usage pane                                                                          |
+| US4 1, 2                                                                         | 12       | `__tests__/decisions.test.tsx`: the reader shows the constitution at `/decisions`; "UI layout" opens at `/decisions/ui-layout`                                                  |
+| US4 3; SC-005; Review focus: the palette and the list keys                       | 13       | `__browser__/decisions.test.tsx`: `/`, "noti", Notifications with its intent and rules; Enter opens it                                                                          |
+| Edge: the palette matches nothing                                                | 13       | `__tests__/palette.test.tsx`: "Nothing matches."                                                                                                                                |
+| US4 more 1                                                                       | 12       | `__tests__/decisions.test.tsx` at 402 px: the reader replaces the list, with the way back                                                                                       |
+| US4 more 2                                                                       | 12       | `__tests__/decisions.test.tsx`: a decision changed on a feature's branch shows its diff first                                                                                   |
+| US5 1; more 1; Review focus: deep link                                           | 11       | `__tests__/settings.test.tsx`: "port" shows the Port row alone; "zzz" says so; `/settings/runs` scrolls to Runs                                                                 |
+| Edge: `settings.toml` missing or invalid                                         | 11       | `__tests__/settings.test.tsx`: the Server and Runs sections show the file's problem                                                                                             |
+| Edge: unknown harness                                                            | 7        | `__tests__/harness-mark.test.tsx`: an unknown kind draws the generic glyph                                                                                                      |
+| SC-004                                                                           | 5, 10–12 | Review, against the stories: every bordered group is `Pane`                                                                                                                     |
+| US6 1, 2                                                                         | 14       | Review of the skill's text; `ura check` on the example passes                                                                                                                   |
+| Three classes in the browser tests                                               | 3        | `__browser__/helpers.tsx` `atSize("semi")`, used by the shell and home tests                                                                                                    |
 
 ## Waves
 
@@ -331,26 +331,27 @@ behaviour the spec marks unverified.
 
 - [x] **Step 1: Write the failing tests.** `theme-tokens.test.ts`, table-driven over both slots of
       `uraedaTheme`'s tokens: each `--color-text-*` against `--color-background-body`, `-surface`,
-      and `-card` reaches 4.5:1; `--color-border-emphasized` and each control colour reaches 3:1
-      against `--color-background-surface`. A second test: the radii are `0px`, and the body font
-      size is `16.8px` (14 × 1.2) without any width rule. Break: Catppuccin's stock Latte accents,
-      which read 3.0:1 as text. `offline.test.tsx`: load the home, wait for it to draw, and assert
-      every request the page made went to the page's own origin. Break: a font loaded from Google
-      Fonts.
+      and `-card` reaches 4.5:1; `--color-border`, `--color-border-emphasized`, and each control
+      colour reach 3:1 against `--color-background-surface` and `-body`. A second test: the radii
+      are `0px`, and the body font size is `16.8px` (14 × 1.2) without any width rule. Break:
+      Catppuccin's stock Latte accents, which read 3.0:1 as text. `offline.test.tsx`: load the home,
+      wait for it to draw, and assert every request the page made went to the page's own origin;
+      `offline-build.test.ts` reads the built app, `packages/web/dist`, for a link, import, or font
+      from another host. Break: a font loaded from Google Fonts.
 - [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test --project uraeda-web src/__tests__/theme-tokens.test.ts`. Expected:
       FAIL, the radius is not `0px`.
 - [x] **Step 3: Implement the theme.** Tokens as `[latte, mocha]` pairs from the mockup's palette,
       [`terminal-2/style.css`](mockups/terminal-2/style.css) `:root` and `[data-theme="latte"]`:
-      Latte's accents as text use the mockup's darker steps. Mocha's dim text is `#949bb6`.
-      Typography: body, heading, and code in "JetBrains Mono Variable"; `--font-family-reading`
-      "Inter Variable", used by `Prose` for its reading text. Sizes: the 1.2× growth moves out of
-      the 1024 px rule into the base; the reading size is 19 px at every width. Radii:
-      `--radius-inner/-element/-container/-page` `0px`, and `--radius-full` `0px` where squares read
-      well (switches, badges); dots stay round. Shadows flat. Breakpoints `md: 768`, `xl: 1280`.
-      Import both Fontsource `index.css` files in `main.tsx`, the Storybook preview, and the browser
-      helpers, and allow their exact specifiers in the lint test. `checkTextSizes` expects 19 px at
-      every width.
+      Latte's accents as text use the mockup's darker steps. The dim text is `#5f6276` and `#969db8`
+      (R4). Typography: body, heading, and code in "JetBrains Mono Variable";
+      `--font-family-reading` "Inter Variable", used by `Prose` for its reading text. Sizes: the
+      1.2× growth moves out of the 1024 px rule into the base; the reading size is 19 px at every
+      width. Radii: `--radius-inner/-element/-container/-page` `0px`, and `--radius-full` `0px`
+      where squares read well (switches, badges); dots stay round. Shadows flat. Breakpoints
+      `md: 768`, `xl: 1280`. Import both Fontsource `index.css` files in `main.tsx`, the Storybook
+      preview, and the browser helpers, and allow their exact specifiers in the lint test.
+      `checkTextSizes` expects 19 px at every width.
 - [x] **Step 4: Rebuild and run**: `nix develop -c vp run --filter uraeda-web theme`, then the two
       new tests. Expected: PASS.
 - [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, then
