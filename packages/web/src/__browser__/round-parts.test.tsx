@@ -41,7 +41,7 @@ describe("the round's panes on the phone", () => {
     const words = document.createRange();
     words.selectNodeContents(badge);
     const sentence = screen
-      .getByText(/^a chat cannot become a change today/)
+      .getByText(/^A chat cannot become a change today/)
       .getBoundingClientRect();
     expect(box.width).toBeLessThan(words.getBoundingClientRect().width + 40);
     expect(box.bottom).toBeLessThanOrEqual(sentence.top + 1);

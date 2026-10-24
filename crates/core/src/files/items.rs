@@ -124,7 +124,8 @@ pub struct RoundVerdict {
     pub kind: VerdictKind,
     /// Its list item's block.
     pub item: u32,
-    /// The item's spans after the phrase and its following ":" or ",", trimmed.
+    /// The item's spans after the phrase and its following ":" or ",", trimmed, the first letter
+    /// capitalised.
     pub text: Vec<Span>,
 }
 

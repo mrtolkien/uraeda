@@ -922,7 +922,7 @@ fn check_these_under_settled_makes_no_group() {
 }
 
 /// The block's verdict: its first item starting "Verdict: ", by its phrase, and its text after the
-/// phrase and its ":" or ",".
+/// phrase and its ":" or ",", its first letter capitalised, as it follows the badge.
 #[test]
 fn the_block_has_its_verdict() {
     let (round, doc) = fixture_round("round-merge-chats/clarifications-01.md", "");
@@ -935,7 +935,7 @@ fn the_block_has_its_verdict() {
         .unwrap();
     assert_eq!(verdict.item, first_item.id);
     assert!(
-        plain(&verdict.text).starts_with("a chat cannot become a change today"),
+        plain(&verdict.text).starts_with("A chat cannot become a change today"),
         "{}",
         plain(&verdict.text)
     );
@@ -944,7 +944,7 @@ fn the_block_has_its_verdict() {
     let (round, _) = round_of("clarifications-01.md", &text);
     let verdict = round.verdict.unwrap();
     assert_eq!(verdict.kind, VerdictKind::AsProposed);
-    assert!(plain(&verdict.text).starts_with("every part exists"));
+    assert!(plain(&verdict.text).starts_with("Every part exists"));
 
     let (round, _) = round_of(
         "clarifications-01.md",
@@ -952,7 +952,7 @@ fn the_block_has_its_verdict() {
     );
     let verdict = round.verdict.unwrap();
     assert_eq!(verdict.kind, VerdictKind::NotAsProposed);
-    assert_eq!(plain(&verdict.text), "too big.");
+    assert_eq!(plain(&verdict.text), "Too big.");
 }
 
 /// A question's "Example:" paragraph stands apart from its context, drawn once.
@@ -1098,7 +1098,7 @@ fn the_verdicts_edges() {
     let noted =
         verdict_of("> [!NOTE]\n>\n> - Verdict: worth building, with changes: smaller.\n").unwrap();
     assert_eq!(noted.kind, VerdictKind::WithChanges);
-    assert_eq!(plain(&noted.text), "smaller.");
+    assert_eq!(plain(&noted.text), "Smaller.");
 
     let bare = verdict_of("> [!IMPORTANT]\n>\n> - Verdict: worth building as proposed.\n").unwrap();
     assert_eq!(bare.kind, VerdictKind::AsProposed);
