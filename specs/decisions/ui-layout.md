@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: layout-panel-left
 ---
 
@@ -27,6 +27,8 @@ spec says why.
   browser tests.
 - A detail glanced at from a list SHOULD open in a pane beside it, and a view the human follows
   SHOULD be a page of its own. Checked by review.
+- A feature's session MAY open beside any of the feature's documents, in the right column, at least
+  400 px wide; everywhere else it stays a page of its own. Checked by the browser tests.
 
 ## Why
 
@@ -41,6 +43,9 @@ textual"
 Half a screen, where the human often works, got the desktop's layout and broke: the human asked for
 a middle class, wide enough to hold their 1205 px half screen
 ([width classes](../done/2026-10-20-layout-look.md#q5-should-the-ui-get-a-third-width-class-for-half-screens)).
+Asking the agent about a question meant leaving the round for the session's page. The human asked
+for the session beside the documents they answer and review, in a column wide enough to read
+([the session beside a document](../2026-10-24-questions-page/clarifications-01.md#q2-how-should-the-layout-decision-change-for-a-session-beside-a-document)).
 
 ## Alternatives considered
 
@@ -48,6 +53,7 @@ a middle class, wide enough to hold their 1205 px half screen
 - CSS `zoom` on desktop: it breaks dragging's position math.
 - Justified paragraphs: rivers on the phone's narrow lines.
 - Every detail in a pane on wide screens: an agent's session became too narrow to follow.
+- A session beside a round of questions only: each later document page would have asked again.
 - Two width classes, switching at 768 px: half a screen got the desktop's layout, and broke.
 - Panes that adapt to their own width, with container queries: no class to test, but each pane
   tested alone.
@@ -55,6 +61,7 @@ a middle class, wide enough to hold their 1205 px half screen
 ## Consequences
 
 - Each view is designed, mocked up, and checked at three widths.
+- The questions, spec, and plan pages share one right column, where the session sits as a tab.
 - A renamed feature reads by its new name in the sidebar only: addresses, branches, and commits keep
   its slug.
 
