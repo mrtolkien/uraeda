@@ -16,7 +16,7 @@ export type LedgerConstitution = NonNullable<Ledger["constitution"]>;
 export type LedgerPrinciple = LedgerConstitution["principles"][number];
 
 const styles = stylex.create({
-  hint: {
+  count: {
     color: colorVars["--color-text-secondary"],
     fontWeight: fontWeightVars["--font-weight-normal"],
   },
@@ -76,14 +76,20 @@ export function ConstitutionRegion({
   return (
     <section aria-label="Constitution">
       <VStack gap={2}>
-        <Heading level={2}>
-          Constitution{" "}
+        {/* A list's heading, as small as the decisions': the list is a narrow column. */}
+        <VStack gap={1}>
+          <Heading accessibilityLevel={2} level={4}>
+            Constitution{" "}
+            {constitution && (
+              <span {...stylex.props(styles.count)}>· {constitution.principles.length}</span>
+            )}
+          </Heading>
           {constitution && (
-            <span {...stylex.props(styles.hint)}>
-              · {constitution.principles.length} · one file, highest first
-            </span>
+            <Text color="secondary" type="supporting">
+              In one file, highest first.
+            </Text>
           )}
-        </Heading>
+        </VStack>
         {constitution ? (
           <List aria-label="Principles" hasDividers>
             {constitution.principles.map((principle) => {

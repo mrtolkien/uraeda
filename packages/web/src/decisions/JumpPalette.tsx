@@ -55,6 +55,9 @@ const styles = stylex.create({
   list: {
     // The palette's own surface would read as a card inside the dialog.
     boxShadow: "none",
+    // As wide as the sheet or the dialog's column: Astryx's dialog also keeps a gutter from the
+    // window's edges, which inside the phone's sheet left a strip on its right.
+    maxWidth: "100%",
     minWidth: 0,
   },
   mark: {

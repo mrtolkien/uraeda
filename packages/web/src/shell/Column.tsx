@@ -69,6 +69,12 @@ const styles = stylex.create({
     overflowX: "hidden",
     overflowY: "auto",
   },
+  scrollFolded: {
+    // The rail's icons fade out at its foot, where the list scrolls on, instead of showing an
+    // icon's sliver there: the last icon scrolls up clear of the fade.
+    maskImage: `linear-gradient(to bottom, black calc(100% - ${spacingVars["--spacing-6"]}), transparent)`,
+    paddingBlockEnd: spacingVars["--spacing-6"],
+  },
 });
 
 const widths = stylex.create({
@@ -130,7 +136,7 @@ export function Column({ isWide }: { isWide: boolean }) {
           />
           <ColumnActions />
           <SearchField onChange={setText} text={text} />
-          <div {...stylex.props(styles.scroll)}>
+          <div {...stylex.props(styles.scroll, isFolded && styles.scrollFolded)}>
             <ShellPanes before={<Navigate pathname={pathname} />} isFitted query={query} />
           </div>
           <ColumnFoot pathname={pathname} />

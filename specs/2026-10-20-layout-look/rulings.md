@@ -785,3 +785,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a StyleX debugging tool that needs `data-style-src` turns `debug` back on for a
   session, and dev's overrides of Astryx's styles again depend on the stylesheets' order.
 - **Where**: `packages/web/vite.transforms.ts`.
+
+## R33: The palette's sheet edge to edge, the rail's foot faded, and the lists' headings small
+
+- **Decision**: three visuals checked in WebKit at 402 × 874, 1205 × 900, and 1440 × 900. The
+  phone's palette sheet held Astryx's inline palette at its dialog's widest, the window less a
+  gutter on each side, 37 px short of the sheet's right edge: `JumpPalette`'s list now sets
+  `maxWidth: "100%"`. The folded rail's list, clipped above Settings, showed the top of the next
+  icon as a lone "-": the folded list now fades out over its last `--spacing-6`, padded by as much,
+  so the last icon scrolls clear of the fade. The decisions list's "Constitution · 6 · one file,
+  highest first" was an `h2` at its full size, wrapping onto two lines at 30 %: the constitution's
+  and the decisions' headings are now `h2`s drawn at `h4`'s size, "Constitution · 6" and "Decisions
+  · 5", and "In one file, highest first." is a supporting line under the first. The list keeps the
+  constitution's six principles.
+- **Rationale**: readability first: a list's heading in a 30 % column reads at a glance on one line,
+  and a sliver of an icon reads as a glyph that means nothing.
+- **Alternatives considered**: a line above the rail's Settings: the sliver stays, on the line. The
+  hint after the count, smaller: still two lines at 30 %, and harder to read.
+- **If wrong**: the fade hides a sliver some would rather see as "more below"; the headings' size is
+  one prop each.
+- **Where**: `packages/web/src/decisions/JumpPalette.tsx`, `shell/Column.tsx`,
+  `decisions/ConstitutionRegion.tsx`, `decisions/DecisionList.tsx`.
