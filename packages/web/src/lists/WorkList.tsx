@@ -322,6 +322,8 @@ export function WorkList({
   // The rows in the order they show, which the keys move along.
   const rows = drag.sections.flatMap(rowsOf);
   const { focusSelected, ref } = useListKeys({
+    // Escape closes the pane beside the list: without one, it does nothing, and is not named.
+    escapeLabel: pane ? "close" : null,
     onClose: () => {
       pane?.close();
       return pane !== null;
