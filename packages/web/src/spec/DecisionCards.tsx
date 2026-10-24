@@ -9,7 +9,8 @@ import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { branchDecisionPath, useRepoPath } from "../routes.tsx";
 import { type Selection, Selectable } from "../Selection.tsx";
-import { Spans } from "../Spans.tsx";
+import { SinceWords, wordCount } from "../sinceMarks.tsx";
+import { plain, Spans } from "../Spans.tsx";
 import { DecisionCard } from "./DecisionCard.tsx";
 import { UnreadItems } from "./UnreadItems.tsx";
 import { decisionId, GROUPS, type PartProps, type SpecItems, unreadItems } from "./parts.ts";
@@ -55,10 +56,14 @@ function noteOf(spans: ReadonlyArray<Span>): Array<Span> {
 
 /** An item's sentence, which a review comments on as the spec's line it is. */
 function Note({ block, selection }: { block: Block; selection: Selection | undefined }) {
+  const note = noteOf(block.spans);
   return (
     <Selectable block={block} selection={selection}>
       <Paragraph xstyle={styles.note}>
-        <Spans spans={noteOf(block.spans)} />
+        {/* Changed since your review: its words after the lead, which its pane's title says. */}
+        <SinceWords block={block} lead={wordCount(plain(block.spans)) - wordCount(plain(note))}>
+          <Spans spans={note} />
+        </SinceWords>
       </Paragraph>
     </Selectable>
   );

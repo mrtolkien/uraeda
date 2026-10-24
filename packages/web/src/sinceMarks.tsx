@@ -157,23 +157,50 @@ export function cellRuns(runs: ReadonlyArray<Run>): Array<Array<Run>> | undefine
 }
 
 /**
+ * `runs` without their first `count` words, which a part draws its own way, like a criterion's id:
+ * all of them when one of those words changed, the change then showing whole.
+ */
+export function afterWords(runs: ReadonlyArray<Run>, count: number): ReadonlyArray<Run> {
+  let left = count;
+  let at = 0;
+  for (; left > 0 && at < runs.length; at++) {
+    const run = runs[at]!;
+    if (run.kind !== "kept") {
+      return runs;
+    }
+    const words = run.text.split(" ");
+    if (words.length > left) {
+      return [{ kind: "kept", text: words.slice(left).join(" ") }, ...runs.slice(at + 1)];
+    }
+    left -= words.length;
+  }
+  return runs.slice(at);
+}
+
+/** The number of words of a text, as the core splits them. */
+export const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
+
+/**
  * A block's words: its change's runs when it changed since your review, else `children`; in a
  * paragraph of their own, `isParagraph`, where `children` are not words but a layout of them.
+ * `lead` words of the block, drawn before `children` its own way, are left out.
  */
 export function SinceWords({
   block,
   children,
   isParagraph = false,
+  lead = 0,
 }: {
   block: Block;
   children: ReactNode;
   isParagraph?: boolean;
+  lead?: number;
 }) {
   const mark = useSinceMark(block.id);
   if (mark?.change.kind !== "changed") {
     return children;
   }
-  const runs = <Runs runs={mark.change.runs} />;
+  const runs = <Runs runs={afterWords(mark.change.runs, lead)} />;
   return isParagraph ? <Paragraph xstyle={styles.words}>{runs}</Paragraph> : runs;
 }
 

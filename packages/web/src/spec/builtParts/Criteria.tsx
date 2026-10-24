@@ -6,7 +6,8 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Selectable } from "../../Selection.tsx";
-import { Spans } from "../../Spans.tsx";
+import { SinceWords, wordCount } from "../../sinceMarks.tsx";
+import { plain, Spans } from "../../Spans.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
 import { builtStyles, type DrawingProps, inOrder, Leftover, Nested, parentsOf } from "./shared.tsx";
 
@@ -30,7 +31,13 @@ function Criterion({
               {criterion.measure != null && <Badge label={criterion.measure} variant="info" />}
             </HStack>
             <Text display="block" type="inherit" xstyle={builtStyles.reading}>
-              <Spans spans={criterion.sentence} />
+              {/* Changed since your review: its words after the id and measure, its pills'. */}
+              <SinceWords
+                block={item}
+                lead={wordCount(plain(item.spans)) - wordCount(plain(criterion.sentence))}
+              >
+                <Spans spans={criterion.sentence} />
+              </SinceWords>
             </Text>
             <Nested item={item} props={props} />
           </VStack>

@@ -9,8 +9,10 @@ import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import type { Block } from "uraeda-binding";
 import { Selectable } from "../../Selection.tsx";
+import { cellRuns, useSinceMark } from "../../sinceMarks.tsx";
 import { plain, Spans } from "../../Spans.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
+import { Runs } from "../RuleLine.tsx";
 import { builtStyles, type DrawingProps, inOrder, parentsOf } from "./shared.tsx";
 
 /** Each importance the format knows: its pill, and its rank, the most important first. */
@@ -31,6 +33,12 @@ function EdgeRow({ edge, props }: { edge: Edge; props: PartProps }) {
     (b) => b.parent === row.id,
   );
   const known = IMPORTANCE[edge.importance];
+  // Changed since your review: each cell's words as runs, if the cells match the row's.
+  const mark = useSinceMark(row.id);
+  const runs = mark?.change.kind === "changed" ? cellRuns(mark.change.runs) : undefined;
+  const words = runs?.length === outcome.length + 2 ? runs : undefined;
+  const cell = (index: number, spans: Block["spans"]) =>
+    words ? <Runs runs={words[index]!} /> : <Spans spans={spans} />;
   return (
     <li {...stylex.props(builtStyles.row)}>
       <Selectable block={row} selection={props.selection}>
@@ -43,12 +51,12 @@ function EdgeRow({ edge, props }: { edge: Edge; props: PartProps }) {
               />
             </span>
             <Text type="inherit" weight="semibold">
-              <Spans spans={situation?.spans ?? []} />
+              {cell(1, situation?.spans ?? [])}
             </Text>
           </HStack>
-          {outcome.map((cell) => (
-            <Text display="block" key={cell.id} type="inherit">
-              <Spans spans={cell.spans} />
+          {outcome.map((block, index) => (
+            <Text display="block" key={block.id} type="inherit">
+              {cell(index + 2, block.spans)}
             </Text>
           ))}
         </VStack>

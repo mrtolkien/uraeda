@@ -135,3 +135,57 @@ test("a more scenario changed opens its fold, marked", async () => {
   expect(within(scenario!).getByRole("insertion").textContent).toContain("the day after tomorrow.");
   await jumpsInto(pane, "US2, more scenario 3", story);
 });
+
+/** The one block marked in the region `name`, and its words struck and added. */
+function markedIn(name: string | RegExp) {
+  const [mark, ...others] = within(screen.getByRole("region", { name })).getAllByRole("group", {
+    name: MARK,
+  });
+  expect(others).toHaveLength(0);
+  const words = (role: string) =>
+    within(mark!)
+      .queryAllByRole(role)
+      .map((element) => element.textContent);
+  return { deleted: words("deletion"), inserted: words("insertion"), mark: mark! };
+}
+
+/** The answers of revision 1, with C2's undo at 4 seconds. */
+const ANSWERS_THEN = `## Your review
+
+- **C1** (add weekends): done. "Weekends" sits next to "weekdays" in the repeat menu.
+- **C2** (undo too short): done. The undo now stays 4 seconds, in the task row.
+- **C3** (French phrases): declined. The title parser knows English phrases only: other languages
+  need their own feature, with a list of phrases per language.
+
+## Decisions`;
+
+/** US5: an answer, a criterion, a tradeoff, an edge case, and a decision's note show their runs. */
+test("the words of each kind of part changed show as runs", async () => {
+  await revised((text) =>
+    [
+      swap("## Decisions", ANSWERS_THEN),
+      swap("takes two clicks", "takes three clicks"),
+      swap("No history of completions,", "No completion history,"),
+      swap("restarts from the new date", "restarts from the old date"),
+      swap("due date moves when", "due date changes when"),
+    ].reduce((at, change) => change(at), text),
+  );
+  await sincePane(7);
+
+  const answer = markedIn("Your review, answered");
+  expect([answer.deleted, answer.inserted]).toEqual([["4"], ["5"]]);
+  const criterion = markedIn("Success criteria");
+  expect([criterion.deleted, criterion.inserted]).toEqual([["three"], ["two"]]);
+  expect(criterion.mark.textContent?.match(/SC-001/g)).toHaveLength(1);
+  const tradeoff = markedIn("Architecture");
+  expect([tradeoff.deleted, tradeoff.inserted]).toEqual([
+    ["completion history,"],
+    ["history of completions,"],
+  ]);
+  const edge = markedIn("Edge cases");
+  expect([edge.deleted, edge.inserted]).toEqual([["old"], ["new"]]);
+  expect(edge.mark.textContent).not.toContain("|");
+  const note = markedIn("Repeating tasks");
+  expect([note.deleted, note.inserted]).toEqual([["changes"], ["moves"]]);
+  expect(note.mark.textContent).not.toContain("New:");
+});

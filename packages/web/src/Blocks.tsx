@@ -340,7 +340,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       // Drawn by its list, or alone, as an option's plain bullet: its text, then its blocks.
       return (
         <div {...stylex.props(proseStyles.reading, styles.item)}>
-          {spans}
+          <SinceWords block={block}>{spans}</SinceWords>
           <Children block={block} context={context} />
         </div>
       );
@@ -349,7 +349,11 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       return (
         <div role="note" {...stylex.props(styles.callout, CALLOUT_STYLES[kind])}>
           <span {...stylex.props(styles.calloutTitle)}>
-            {block.spans.length ? spans : CALLOUT_TITLES[kind]}
+            {block.spans.length ? (
+              <SinceWords block={block}>{spans}</SinceWords>
+            ) : (
+              CALLOUT_TITLES[kind]
+            )}
           </span>
           <Children block={block} context={context} />
         </div>

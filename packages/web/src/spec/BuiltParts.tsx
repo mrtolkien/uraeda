@@ -11,6 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Block } from "uraeda-binding";
 import { Selectable } from "../Selection.tsx";
+import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { Criteria } from "./builtParts/Criteria.tsx";
 import { EdgeCases } from "./builtParts/EdgeCases.tsx";
@@ -38,7 +39,9 @@ function Cost({ item, props }: { item: Block; props: PartProps }) {
         </span>
         <Selectable block={item} selection={props.selection}>
           <Text display="block" type="inherit" xstyle={builtStyles.reading}>
-            <Spans spans={item.spans} />
+            <SinceWords block={item}>
+              <Spans spans={item.spans} />
+            </SinceWords>
           </Text>
           <Nested item={item} props={props} />
         </Selectable>

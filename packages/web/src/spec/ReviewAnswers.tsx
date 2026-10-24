@@ -13,6 +13,7 @@ import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { Selectable } from "../Selection.tsx";
+import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { UnreadItems } from "./UnreadItems.tsx";
 import {
@@ -121,7 +122,9 @@ export function ReviewAnswers({
                   </HStack>
                   <Selectable block={item} selection={selection}>
                     <Text display="block" type="inherit">
-                      <Spans spans={item.spans} />
+                      <SinceWords block={item}>
+                        <Spans spans={item.spans} />
+                      </SinceWords>
                     </Text>
                   </Selectable>
                 </VStack>
