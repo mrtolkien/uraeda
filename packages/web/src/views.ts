@@ -49,6 +49,7 @@ const ItemsSelection = {
     settledGroups: true,
     settledPoints: true,
     status: true,
+    verdict: true,
   },
   plan: { tasks: true },
   review: { comments: true, commit: true, summary: true, verdict: true },

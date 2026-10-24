@@ -1,43 +1,22 @@
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
 import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon, type IconColor } from "@astryxdesign/core/Icon";
-import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
-import type { Document, SettledGroup, SettledKind } from "uraeda-binding";
+import type { Document, SettledGroup } from "uraeda-binding";
 import { type Folds, useHashFold } from "./Folds.tsx";
-import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { Pane } from "./layout/Pane.tsx";
+import { CheckPane } from "./RoundParts.tsx";
 import { plain } from "./Spans.tsx";
 import { useOpenKeys } from "./useOpenKeys.ts";
 
 const styles = stylex.create({
-  content: {
-    // The points' list items keep inside the card: Astryx's items reach into its padding.
-    "--container-padding-inline-end": "0px",
-  },
-  flat: {
-    // On the phone, no card: the points are the page's, after its band.
-    borderRadius: 0,
-    overflow: "visible",
-  },
-  fold: {
-    // The fold's button keeps its label whole: the heading beside it wraps instead.
-    flexShrink: 0,
-  },
   settled: {
     marginBlockEnd: spacingVars["--spacing-6"],
   },
 });
 
-/** Each group's icon and its colour, by the group's kind, as the core names it. */
-const LOOKS: Record<SettledKind, { color: IconColor; icon: string }> = {
-  behaviour: { color: "secondary", icon: "info" },
-  check: { color: "warning", icon: "warning" },
-  hood: { color: "secondary", icon: "wrench" },
-};
+/** The parts of a round's settled points: "Check these", before the questions, or the round's end. */
+export type SettledPart = "check" | "end";
 
 /** The key "Under the hood" is open by, among the history entry's open items. */
 const HOOD = "settled-hood";
@@ -72,11 +51,12 @@ const pointCount = (document: Document, group: SettledGroup) =>
     (b) => b.kind === "item" && b.parent !== undefined && group.blocks.includes(b.parent),
   ).length;
 
-/** The label of the fold's button, "Show the point" for one point. */
-const showLabel = (count: number) => (count === 1 ? "Show the point" : `Show the ${count} points`);
+/** The line "Under the hood" folds to, "1 choice in the code only" for one point. */
+const foldedLabel = (count: number) =>
+  `${count} ${count === 1 ? "choice" : "choices"} in the code only`;
 
-/** A group: its icon and heading, then its points, "Under the hood" folded until opened. */
-function Group({
+/** A group of the round's end, a pane by its kind: Behaviour, or Under the hood folded. */
+function GroupPane({
   children,
   document,
   folds,
@@ -88,65 +68,74 @@ function Group({
   group: SettledGroup;
 }) {
   const heading = document.blocks[group.heading];
-  const look = LOOKS[group.kind];
-  const folded = group.kind === "hood";
-  const open = !folded || folds.open.includes(HOOD);
+  const count = pointCount(document, group);
+  const isHood = group.kind === "hood";
   return (
-    <VStack gap={2}>
-      <HStack align="center" gap={2} id={heading?.anchor}>
-        <Icon color={look.color} icon={look.icon} size="md" />
-        <Heading level={3}>{heading ? plain(heading.spans) : ""}</Heading>
-        {folded && (
-          <Button
-            label={open ? "Fold" : showLabel(pointCount(document, group))}
-            onClick={() => folds.onOpenChange(HOOD, !open)}
-            size="sm"
-            variant="ghost"
-            xstyle={styles.fold}
-          />
-        )}
-      </HStack>
-      {open && children}
-    </VStack>
+    <Pane
+      // The folded line says Under the hood's count: its title, a button, is named by its words alone.
+      count={isHood ? undefined : count}
+      fold={
+        isHood
+          ? {
+              folded: foldedLabel(count),
+              isOpen: folds.open.includes(HOOD),
+              onOpenChange: (isOpen) => folds.onOpenChange(HOOD, isOpen),
+            }
+          : undefined
+      }
+      icon={isHood ? "uraeda:wrench" : "uraeda:eye"}
+      id={isHood ? "under-the-hood" : "behaviour"}
+      isOpenOnPhone
+      level={3}
+      title={heading ? plain(heading.spans) : ""}
+    >
+      {children}
+    </Pane>
   );
 }
 
 /**
- * The points a round settled without the human, under "Settled without you", in the groups the
- * round has: a card on a wide screen, and none on the phone, after the page's band there. `points`
- * draws a group's blocks.
+ * The points a round settled without the human, in the groups the round has, by `part`: `check`,
+ * the "Check these" pane, when it has points; `end`, "Settled without you" with Behaviour and Under
+ * the hood folded; both without `part`. `points` draws a group's blocks.
  */
 export function SettledGroups({
   document,
   groups,
   hoodForced,
+  part,
   points,
 }: {
   document: Document;
   groups: ReadonlyArray<SettledGroup>;
   /** Whether "Under the hood" is opened by what it shows, a comment form on its point. */
   hoodForced: boolean;
+  part?: SettledPart;
   points: (group: SettledGroup) => ReactNode;
 }) {
-  const wide = !isNarrow(useWidthClass());
   const folds = useHoodFold(document, groups, hoodForced);
+  const check = groups.find((group) => group.kind === "check");
+  const checked = check === undefined ? 0 : pointCount(document, check);
+  const end = groups.filter((group) => group.kind !== "check");
+  const hasCheck = part !== "end" && check !== undefined && checked > 0;
+  const hasEnd = part !== "check" && end.length > 0;
+  if (!hasCheck && !hasEnd) {
+    return null;
+  }
   // One tree at every width, so a comment being typed stays as the window crosses the breakpoint.
   return (
     <div {...stylex.props(styles.settled)}>
-      <Card
-        padding={wide ? 6 : 0}
-        variant={wide ? "default" : "transparent"}
-        xstyle={!wide && styles.flat}
-      >
-        <VStack gap={5} xstyle={styles.content}>
+      {hasCheck && check && <CheckPane count={checked}>{points(check)}</CheckPane>}
+      {hasEnd && (
+        <>
           <Heading level={2}>Settled without you</Heading>
-          {groups.map((group) => (
-            <Group document={document} folds={folds} group={group} key={group.heading}>
+          {end.map((group) => (
+            <GroupPane document={document} folds={folds} group={group} key={group.heading}>
               {points(group)}
-            </Group>
+            </GroupPane>
           ))}
-        </VStack>
-      </Card>
+        </>
+      )}
     </div>
   );
 }

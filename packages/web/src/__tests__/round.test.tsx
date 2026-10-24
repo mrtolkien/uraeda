@@ -677,7 +677,7 @@ test("on the phone, the round starts with its questions, before its context, and
   const index = await screen.findByRole("navigation", { name: "Questions" });
   const rows = within(index).getAllByRole("button", { name: /^[✓○] Q/ });
   expect(rows.map((row) => row.textContent?.slice(0, 4))).toEqual(["✓ Q1", "○ Q2", "○ Q3"]);
-  expect(before(index, screen.getByRole("heading", { name: "Goal" }))).toBe(true);
+  expect(before(index, screen.getByRole("region", { name: "Goal" }))).toBe(true);
 
   await tap(within(index).getByRole("button", { name: /^○ Q3/ }));
 
@@ -1001,8 +1001,9 @@ const WRITTEN = "An answer is written";
 
 /** Opens "Under the hood", which holds the fixture's settled points, unless it is open. */
 async function openHood() {
-  const toggle = await screen.findByRole("button", { name: /^(Show the \d+ points|Fold)$/ });
-  if (toggle.textContent !== "Fold") {
+  const hood = await screen.findByRole("region", { name: "Under the hood" });
+  const toggle = within(hood).getByRole("button", { name: /^Under the hood/ });
+  if (toggle.getAttribute("aria-expanded") !== "true") {
     await tap(toggle);
   }
 }
@@ -1264,12 +1265,14 @@ function before(first: Node, second: Node) {
 }
 
 /** Redesign US2.1 */
-test("the round opens with its block, then the Context's parts under their headings", async () => {
+test("the round opens with its block, then the Context's parts in their panes", async () => {
   await renderPage(PAGE);
-  const block = await screen.findByText("Verdict: worth building as proposed.", { exact: false });
+  const block = await screen.findByRole("region", {
+    name: "3 questions and 1 follow-up on the web UI, about 35 minutes.",
+  });
 
   const headings = ["Goal", "Today", "Scope", "Sources"].map((name) =>
-    screen.getByRole("heading", { level: 3, name }),
+    screen.getByRole("region", { name }),
   );
   expect(before(block, headings[0] as HTMLElement)).toBe(true);
   for (const [index, heading] of headings.slice(1).entries()) {
@@ -1292,8 +1295,8 @@ test("a later round shows Since the last round above Goal", async () => {
   );
   await renderPage(`/f/${FOLDER}/clarifications-02.md`, repo);
 
-  const since = await screen.findByRole("heading", { level: 3, name: "Since the last round" });
-  expect(before(since, screen.getByRole("heading", { level: 3, name: "Goal" }))).toBe(true);
+  const since = await screen.findByRole("region", { name: "Since the last round" });
+  expect(before(since, screen.getByRole("region", { name: "Goal" }))).toBe(true);
   expect(screen.getByText("Round 01 settled the human steps.")).toBeTruthy();
 });
 
@@ -1341,11 +1344,13 @@ test("a table and a quote in a question's context show in its card", async () =>
 test("on the phone, the in-page index sits after the block, before the context", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({}));
-  const block = await screen.findByText("Verdict: worth building as proposed.", { exact: false });
+  const block = await screen.findByRole("region", {
+    name: "3 questions and 1 follow-up on the web UI, about 35 minutes.",
+  });
   const index = screen.getByRole("navigation", { name: "Questions" });
 
   expect(before(block, index)).toBe(true);
-  expect(before(index, screen.getByRole("heading", { name: "Goal" }))).toBe(true);
+  expect(before(index, screen.getByRole("region", { name: "Goal" }))).toBe(true);
 });
 
 /** The index is announced once: the nav is named by its heading, and its list has no name. */
@@ -1364,7 +1369,9 @@ test("on the phone, an answered round has no in-page index", async () => {
   atWidth(402);
   const repo = rewritten((round) => round.replace("status: awaiting-human", "status: answered"));
   await renderPage(PAGE, repo);
-  await screen.findByText("Verdict: worth building as proposed.", { exact: false });
+  await screen.findByRole("region", {
+    name: "3 questions and 1 follow-up on the web UI, about 35 minutes.",
+  });
 
   expect(screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
 });
