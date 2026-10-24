@@ -84,3 +84,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   template change would miss.
 - **If wrong**: limit the mark to rounds in `check_order`.
 - **Where**: Task 2.
+
+## R8: Task 3's tests in files of their own
+
+- **Decision**: the hanging lists are tested in `__browser__/document-lists.test.tsx` and the
+  folding pane in `__tests__/titled-pane.test.tsx`, new files, rather than in `lists.test.tsx` and
+  `pane.test.tsx` as the plan named them.
+- **Rationale**: those two files already exist and test the priorities' keyboard list and detail
+  pane; `lists.test.tsx` runs on the desktop only, so phone tests in it would mean re-wrapping it.
+- **Alternatives considered**: adding to the existing files, under `describe` blocks.
+- **If wrong**: move the tests into the existing files.
+- **Where**: Task 3.
+
+## R9: On the phone, each row draws its own marker
+
+- **Decision**: on narrow screens, a document's list draws every row's marker itself, a dash for a
+  plain bullet, its sign for a typed one, its number for an ordered one, in a box 14.4 px wide
+  (`--spacing-3`), the list moved left by as much. An ordered list is then a `ul` with its numbers
+  as text, not an `ol`.
+- **Rationale**: Astryx's marker is 19.2 px wide before a 9.6 px gap, which the list cannot restyle;
+  a hang that wide leaves the screen on the spec page, whose inset is 14.4 px. The approved settled
+  point asks for a dash.
+- **Alternatives considered**: Astryx's markers and a 28.8 px hang, cut at the screen's edge on
+  tight pages; Astryx's numbers in an `ol`, the same.
+- **If wrong**: hang Astryx's own markers, once Astryx lets a list size them.
+- **Where**: Task 3.
