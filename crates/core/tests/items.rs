@@ -1202,6 +1202,25 @@ fn plan_lead() {
     let labels: Vec<&str> = lead.iter().map(|l| l.label.as_str()).collect();
     assert_eq!(labels, ["Goal", "Architecture", "Spec"]);
     assert!(plain(&doc.blocks[lead[0].block as usize].spans).starts_with("Goal: users can"));
+    assert!(plain(&lead[0].text).starts_with("users can"));
+}
+
+/// A lead's text is its paragraph's spans after the bold label and the space after it, its marks
+/// kept.
+#[test]
+fn a_plan_lead_text_drops_its_label() {
+    let text = "# Plan: X\n\n**Goal:**  the *round* reads.\n\n**Spec:**\n";
+    let doc = document::parse(text, "specs/x");
+    let lead = items("plan.md", text, &doc).plan.unwrap().lead;
+
+    assert_eq!(plain(&lead[0].text), "the round reads.");
+    assert!(
+        lead[0]
+            .text
+            .iter()
+            .any(|span| span.emphasis && span.text == "round")
+    );
+    assert!(lead[1].text.is_empty());
 }
 
 /// A plan without a lead, or whose bold start has no colon, has none.

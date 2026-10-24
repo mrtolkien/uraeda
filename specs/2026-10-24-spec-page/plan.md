@@ -379,9 +379,10 @@ naming that real commit, then revision 2. Browser tests run the real app in WebK
     `RowChange { row: number; kind: "new" | "changed" | "removed" }`: `intro` the top-level blocks
     before the first `##` but the `#` title; a section per `##` with its blocks; a table's `changes`
     read from its column headed "Change", its cells "New", "Changed", "Removed".
-  - `PlanItems.lead: Array<PlanLead>`, `PlanLead { label: string; block: number }`: each top-level
-    paragraph before the first `##` whose first span is strong text ending in ":", such as
-    "**Goal:**", its label the strong text without the colon ("Goal", "Architecture", "Spec").
+  - `PlanItems.lead: Array<PlanLead>`, `PlanLead { label: string; block: number; text: Span[] }`:
+    each top-level paragraph before the first `##` whose first span is strong text ending in ":",
+    such as "**Goal:**", its label the strong text without the colon ("Goal", "Architecture",
+    "Spec"), its text the paragraph's spans after the label and the space after it.
   - `VersionView.mockups: Array<MockupEmbed>`,
     `MockupEmbed { path: string; anchor?: string; width: number; label: string; block: number }`:
     each paragraph holding one link alone to an `.html` file under a `mockups` folder at any depth,

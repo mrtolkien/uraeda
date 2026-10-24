@@ -1,6 +1,6 @@
 //! The tasks of a plan, and how many of their steps are checked.
 
-use super::document::{BlockKind, Document};
+use super::document::{BlockKind, Document, Span};
 use super::items::{PlanLead, TaskItem};
 
 /// Every task of a plan, `## Task N: title`, in order, with its checkbox steps: the same parse the
@@ -63,7 +63,21 @@ pub(crate) fn lead(doc: &Document) -> Vec<PlanLead> {
             (!label.is_empty()).then(|| PlanLead {
                 label: label.to_string(),
                 block: b.id,
+                text: after_label(&b.spans[1..]),
             })
         })
         .collect()
+}
+
+/// The spans after a lead's label, without the white space starting them.
+fn after_label(spans: &[Span]) -> Vec<Span> {
+    let mut rest = spans.to_vec();
+    while let Some(first) = rest.first_mut() {
+        first.text = first.text.trim_start().to_string();
+        if !first.text.is_empty() {
+            break;
+        }
+        rest.remove(0);
+    }
+    rest
 }

@@ -3,7 +3,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import type { Block, Document, PlanItems, Span } from "uraeda-binding";
+import type { Block, Document, PlanItems } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
@@ -30,12 +30,6 @@ const STATUSES: Record<string, { label: string; variant: "error" | "success" | "
 /** What the plan's parts draw with: its tree, and while it waits, its review's folds and taps. */
 type Drawing = { document: Document; folds?: Folds; selection?: Selection };
 
-/** A lead paragraph's spans without its bold label: "**Goal:** the round…" reads "the round…". */
-function withoutLabel(spans: ReadonlyArray<Span>): Array<Span> {
-  const [first, ...rest] = spans.slice(1);
-  return first ? [{ ...first, text: first.text.trimStart() }, ...rest] : [];
-}
-
 /** A lead pane's id: "lead-" then its label as an anchor, `lead-tech-stack`, apart from sections'. */
 const leadId = (label: string) =>
   `lead-${label
@@ -50,7 +44,7 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
     block.id === run.block ? (
       <Selectable block={block} key={block.id} selection={drawing.selection}>
         <Text as="p" display="block" type="inherit">
-          <Spans spans={withoutLabel(block.spans)} />
+          <Spans spans={run.text} />
         </Text>
       </Selectable>
     ) : undefined;

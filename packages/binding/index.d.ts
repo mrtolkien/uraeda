@@ -1228,6 +1228,11 @@ export interface PlanLead {
   label: string
   /** The paragraph's block. */
   block: number
+  /**
+   * The paragraph's spans without the bold label and the space after it, which its pane's title
+   * says: empty for a label alone.
+   */
+  text: Array<Span>
 }
 
 /** A checkout's preview, from its active preview decision. */

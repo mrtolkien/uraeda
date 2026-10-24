@@ -234,6 +234,9 @@ pub struct PlanLead {
     pub label: String,
     /// The paragraph's block.
     pub block: u32,
+    /// The paragraph's spans without the bold label and the space after it, which its pane's title
+    /// says: empty for a label alone.
+    pub text: Vec<Span>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
