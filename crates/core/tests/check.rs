@@ -1294,6 +1294,47 @@ fn check_these_under_settled_is_unknown() {
     );
 }
 
+/// The points to check are list items with no sub-heading: any heading under `## Check these` is
+/// unknown. A `### Behaviour` there is out of order as well, as any fixed heading out of its place.
+#[test]
+fn a_heading_under_check_these_is_unknown() {
+    let example = Example::new();
+    example.edit(
+        ROUND,
+        "## Q1:",
+        "### Points\n\n- **A point** to check.\n\n#### Details\n\nMore.\n\n## Q1:",
+    );
+    let text = example.read(ROUND);
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![
+            format!(
+                "{ROUND}:{}: unknown section \"### Points\"",
+                line_in(&text, "### Points")
+            ),
+            format!(
+                "{ROUND}:{}: unknown section \"#### Details\"",
+                line_in(&text, "#### Details")
+            ),
+        ]
+    );
+
+    let example = Example::new();
+    example.edit(
+        ROUND,
+        "## Q1:",
+        "### Behaviour\n\n- **A point** to check.\n\n## Q1:",
+    );
+    let text = example.read(ROUND);
+    let unknown = format!(
+        "{ROUND}:{}: unknown section \"### Behaviour\"",
+        line_in(&text, "### Behaviour")
+    );
+    let problems = summary(&example.problems());
+    assert!(problems.contains(&unknown), "{problems:?}");
+}
+
 /// Review focus 2: a round whose only settled points are to check leaves the settled section out.
 #[test]
 fn check_these_alone() {
@@ -1539,7 +1580,7 @@ fn the_blocks_counts_are_the_rounds() {
 fn a_long_sentence_is_reported_on_its_line() {
     // Each row replaces a text of the round, `LONG` standing for the sentence of 31 words, and
     // gives the start of the line the warning is on, or none.
-    let rows: [(&str, &str, &str, Option<&str>); 13] = [
+    let rows: [(&str, &str, &str, Option<&str>); 14] = [
         (
             "an option",
             "**A (recommended). One.**",
@@ -1581,6 +1622,12 @@ fn a_long_sentence_is_reported_on_its_line() {
             "- **A point** settled.",
             "- **A point** settled. LONG",
             Some("- **A point** "),
+        ),
+        (
+            "a question's example",
+            "Why.\n",
+            "Why.\n\nExample: short. LONG\n",
+            Some("Example: short. word1"),
         ),
         ("a quote", "Why.\n", "Why.\n\n> LONG\n", None),
         (

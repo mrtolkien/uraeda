@@ -248,7 +248,7 @@ fn fixed_children<'a>(slots: &'a [TemplateHeading], heading: &Heading) -> Option
 
 /// Unknown level-2 sections, unless the template lets any heading in, and in a round, unknown
 /// level-3 headings under a section whose template has only fixed ones: the Context and the
-/// settled points. A heading in a quote or a callout is the quote's, and left out.
+/// settled points, and any heading under `## Check these`. A heading in a quote or a callout is the quote's, and left out.
 fn check_unknown(
     file: &File<'_>,
     document: &Document,
@@ -271,6 +271,8 @@ fn check_unknown(
                         .iter()
                         .any(|s| s.level == 2 && matches(&s.slot, heading))
             }
+            // The points to check are list items with no sub-heading.
+            3.. if round && parent.is_some_and(|parent| parent.text == "Check these") => false,
             3 if round => parent
                 .and_then(|parent| fixed_children(slots, parent))
                 .is_none_or(|children| children.contains(&heading.text.as_str())),
