@@ -26,3 +26,7 @@ The human spends most of their time here, and the page grew view by view. Answer
   [round 01's session question](../done/2026-10-20-layout-look.md#q4-where-should-the-session-open-on-the-questions-page).
 - The page stays one scroll, with a sticky question heading and an outline:
   [settled in round 01](../done/2026-10-20-layout-look.md).
+
+## Notes
+
+Bullet points are pretty bad on mobile right now as they use a lot of horizontal space
