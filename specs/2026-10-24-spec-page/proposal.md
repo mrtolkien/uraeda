@@ -1,5 +1,5 @@
 ---
-discovery: medium # low, medium, or high: how far the agent researches before asking
+discovery: high # low, medium, or high: how far the agent researches before asking
 ---
 
 # Spec and plan pages in the terminal look
@@ -20,3 +20,8 @@ The spec is the workflow's main review. Answers and sources:
 
 - The information architecture: [the proposal](../done/2026-10-20-layout-look.md).
 - Where the session opens: the [questions page](questions-page.md) settles it first.
+
+## Notes
+
+Look at the approved spec for the clarification page that's ongoing, it already settles a few
+things. Start from their approved decisions.
