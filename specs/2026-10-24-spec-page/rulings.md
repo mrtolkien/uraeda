@@ -77,3 +77,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the link returns to the title once `Pane` takes a node for it; each rewritten test
   names what it guards.
 - **Where**: Task 4.
+
+## R7: A story keeps its two widths on the phone, scaled to fit
+
+- **Decision**: on the phone, a story still opens at the phone's width, now with the Phone and
+  Desktop switch as named icons. Each width shows at its real size, scaled to fit the screen (402 px
+  at about 90%, 1440 px at about 25%). A picked element's comment names the width it was picked at,
+  on every screen. `story-embed.test.tsx`'s phone test checks that the frame fits and the controls
+  are named icons, not that the frame is as wide as the screen with no switch.
+  `story-comments.test.tsx`'s phone comment names "phone". `reading-place.test.tsx` reads the
+  frame's own height (`offsetHeight`), which its scale leaves alone. A frame counts as above the
+  window's top until its bottom is a whole pixel below it.
+- **Rationale**: the clarification "a mockup stays at its real width, scaled to fit", and US3 more
+  2, "a story at 390 px is scaled to the screen's width", which Task 5's test reads as a desktop
+  story on the phone. The phone's width first keeps today's phone reading, and the switch reaches
+  the desktop's.
+- **Alternatives considered**: the desktop's width first on the phone, at about 25%, unreadable
+  until full screen; no switch on the phone, against "a story keeps its Phone/Desktop switch".
+- **If wrong**: the default width is one line in `StoryEmbed.tsx`'s `ReadyStory`; the switch on the
+  phone, one condition.
+- **Where**: Task 5.

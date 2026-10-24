@@ -77,6 +77,7 @@ const ItemsSelection = {
 const VersionSelection = {
   document: DocumentSelection,
   items: ItemsSelection,
+  mockups: true,
   stories: true,
   text: true,
 } as const;

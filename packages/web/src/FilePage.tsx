@@ -51,6 +51,7 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   return (
     <StoriesProvider
       folder={file.folder}
+      mockups={file.current.mockups}
       removed={round && file.status === "answered"}
       stories={file.current.stories}
     >

@@ -275,7 +275,8 @@ describe("on the phone", () => {
 
     const sheet = await screen.findByRole("dialog", { name: "Comment" });
     expect(
-      within(sheet).getByText("Comment on Dragging the handle, button “Hide the sidebar”"),
+      // R7: both widths can show on the phone too, so the comment names the one picked in.
+      within(sheet).getByText("Comment on Dragging the handle, phone, button “Hide the sidebar”"),
     ).toBeTruthy();
   });
 });

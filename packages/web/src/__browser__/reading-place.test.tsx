@@ -139,13 +139,7 @@ async function withFrameAbove(
     const pick = { onPicked() {}, onPickStopped() {}, onReady() {}, picking: false };
     root.render(
       <Theme mode="light" theme={uraedaTheme}>
-        <StoryFrames
-          label="Growing"
-          pick={pick}
-          src="about:blank"
-          wide={window.innerWidth >= 768}
-          width="phone"
-        />
+        <StoryFrames label="Growing" pick={pick} src="about:blank" width="phone" />
         <p>The text read</p>
       </Theme>,
     );
@@ -178,7 +172,7 @@ test("a story frame above you that grows does not move the text (US7 2)", async 
     /** The story reports its height, and the frame has taken it. */
     const report = async (height: number) => {
       await act(async () => send(height));
-      await expect.poll(() => frame.getBoundingClientRect().height).toBe(height);
+      await expect.poll(() => frame.offsetHeight).toBe(height);
       await drawn();
     };
 
@@ -201,7 +195,7 @@ test("a story frame above you that reports sizes in a burst does not move the te
     for (const height of [560, 700, 720]) {
       act(() => dispatch(height));
     }
-    await expect.poll(() => frame.getBoundingClientRect().height).toBe(720);
+    await expect.poll(() => frame.offsetHeight).toBe(720);
     await drawn();
     await drawn();
 

@@ -48,11 +48,15 @@ function room(own: DOMRect, from: Element, page: Element, outer: Element, inset:
 }
 
 /**
- * How many px the embed grows past each side of its box, on a wide screen: up to the desktop's
- * width with its stage's inset, into the empty space beside it within its page's container, more on
+ * How many px the embed grows past each side of its box, on a wide screen: up to `width`, the
+ * desktop's by default, with its stage's inset, into the empty space beside it within its page's container, more on
  * the side with more room. None outside a page, or on a narrow screen.
  */
-export function useOutgrow(embed: RefObject<HTMLElement | null>, wide: boolean): Outgrow {
+export function useOutgrow(
+  embed: RefObject<HTMLElement | null>,
+  wide: boolean,
+  width?: number,
+): Outgrow {
   const column = useContext(PageColumn);
   const [grow, setGrow] = useState<Outgrow>({ end: 0, start: 0 });
   // After the commit, once the page's column has its ref, which a parent gets after its children's
@@ -79,7 +83,7 @@ export function useOutgrow(embed: RefObject<HTMLElement | null>, wide: boolean):
       const want = wide
         ? Math.max(
             0,
-            px(getComputedStyle(own).getPropertyValue("--size-story-desktop")) +
+            (width ?? px(getComputedStyle(own).getPropertyValue("--size-story-desktop"))) +
               2 * GAP +
               2 -
               natural.width,
@@ -100,7 +104,7 @@ export function useOutgrow(embed: RefObject<HTMLElement | null>, wide: boolean):
     observer.observe(outer);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [column, embed, wide]);
+  }, [column, embed, wide, width]);
   return grow;
 }
 

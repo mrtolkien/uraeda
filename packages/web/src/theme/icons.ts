@@ -62,6 +62,7 @@ import {
   wrench,
   outline,
 } from "./lucide.ts";
+import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The README's
@@ -190,6 +191,9 @@ export const uraedaIcons = {
   "uraeda:key-round": keyRound,
   "uraeda:list": list,
   "uraeda:log-out": logOut,
+  "uraeda:maximize": maximize,
+  "uraeda:minimize": minimize,
+  "uraeda:monitor": monitor,
   "uraeda:palette": palette,
   "uraeda:panel-left": panelLeft,
   "uraeda:panel-right": panelRight,
@@ -199,6 +203,7 @@ export const uraedaIcons = {
   "uraeda:plus": plus,
   "uraeda:server": server,
   "uraeda:settings": settings,
+  "uraeda:smartphone": smartphone,
   "uraeda:step-discovery": discovery,
   "uraeda:step-given": given,
   "uraeda:step-implementation": implementation,

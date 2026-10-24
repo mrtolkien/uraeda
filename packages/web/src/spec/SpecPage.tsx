@@ -273,6 +273,7 @@ function WaitingSpec({ file }: { file: File }) {
       <StoriesProvider
         comment={review.storyComments}
         folder={file.folder}
+        mockups={review.version.mockups}
         stories={review.version.stories}
       >
         <SpecLayout file={file} folds={review.folds} review={review} wide={wide} />
@@ -286,7 +287,11 @@ function ReadSpec({ file }: { file: File }) {
   const wide = !isNarrow(useWidthClass());
   const folds = useSpecFolds(file.current.items.spec);
   return (
-    <StoriesProvider folder={file.folder} stories={file.current.stories}>
+    <StoriesProvider
+      folder={file.folder}
+      mockups={file.current.mockups}
+      stories={file.current.stories}
+    >
       <SpecLayout file={file} folds={folds} review={undefined} wide={wide} />
     </StoriesProvider>
   );

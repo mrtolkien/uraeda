@@ -548,12 +548,19 @@ candidates, and the decisions check.
 
 **Files:**
 
-- Create: `packages/web/src/LiveWindow.tsx` (the window's pane, title, stage, scale, and full
-  screen, out of `StoryEmbed.tsx` and `StoryFrames.tsx`, in a `refactor` commit first),
-  `src/MockupEmbed.tsx` (an HTML mockup in the window)
-- Modify: `src/StoryEmbed.tsx`, `src/StoryFrames.tsx`, `src/embedLayout.ts` (`useFullScreen` sets
-  the scale to 1), `src/Blocks.tsx` (`BlockNode` draws `MockupEmbed` for a paragraph in
-  `VersionView.mockups`), `src/stories.tsx` (the version's mockups beside its stories)
+- Create: `packages/web/src/LiveWindow.tsx` (the window's pane, title, and full screen, out of
+  `StoryEmbed.tsx` and `StoryFrames.tsx`, in a `refactor` commit first), `src/LiveFrame.tsx` (the
+  hatched stage, the scaled frame, its lazy loading; full screen at 100%), `src/MockupEmbed.tsx` (an
+  HTML mockup in the window), `src/EmbedNode.tsx` (`Blocks`' story or mockup paragraph, out of
+  `Blocks.tsx`, at 491 lines), `src/theme/windowIcons.ts` (the monitor, phone, and full-screen
+  glyphs; `lucide.ts` is at its 500 lines)
+- Modify: `src/StoryEmbed.tsx`, `src/StoryFrames.tsx`, `src/embedLayout.ts` (`useOutgrow` grows
+  toward a mockup's own width), `src/Blocks.tsx`, `src/stories.tsx` (the version's mockups beside
+  its stories, `useMockupAt`), `src/views.ts`, `FilePage.tsx`, `spec/SpecPage.tsx`, `ReviewPage.tsx`
+  (pass `mockups`), `src/layout/Pane.tsx` (the title wraps before its actions, or under them where
+  they leave it under 160 px), `packages/binding/test-utils.ts`
+  (`addSpecFeature({ stories: true })`, `addSpecStories`); the core's `MockupEmbed.query` (wave 1's
+  review)
 - Test: `src/__browser__/live-window.test.tsx` (create), `src/__browser__/story-embed.test.tsx` (the
   bezel and the bar follow the window, R3), `src/__tests__/spec-stories.test.tsx` ("link an HTML
   one" becomes "draws live")
@@ -569,29 +576,33 @@ candidates, and the decisions check.
   mockup shows at its link's width. `MockupEmbed({ folder: string; mockup: MockupEmbed })`: the
   served path with its anchor, in the same sandbox as `MockupPage`'s frame, lazy; a failed load
   draws "This mockup could not be loaded." and a link "Open the mockup's page" to
-  `/f/<folder>/mockups/<name>`.
+  `/f/<folder>/mockups/<name>`. Built: `MockupEmbed({ folder, id?, mockup })`; the frame loads the
+  served path, then the link's query (`MockupEmbed.query`) and anchor; a `HEAD` request tells a
+  failed load, which the sandboxed frame cannot. A story's window stays one element through its
+  states, its controls drawn into the top border through a portal. On the phone a story opens at the
+  phone's width, with the switch as named icons (R7).
 
 - [x] **Step 1: Move the frame's title, stage, and scale to `LiveWindow.tsx`**, unchanged, in a
       `refactor` commit: `story-embed.test.tsx` passes before and after.
-- [ ] **Step 2: Write the failing tests.** `live-window.test.tsx`, over the spec-page fixture with a
+- [x] **Step 2: Write the failing tests.** `live-window.test.tsx`, over the spec-page fixture with a
       preview: at 1440 px the "Repeat menu, open" window is a region named "live · Repeat menu,
       open", its title reading "1440 px" then a percent below 100; the phone switch reads "402 px ·
-      100%"; at 390 px a desktop story's percent is below 50 and the page passes `checkPage`; "Full
-      screen" shows "100%"; US4's `mockups/title.html` is a window "live · Title with a repeat
-      phrase" whose frame shows "every monday"; a link `?w=390#x` loads at 390 px with its anchor
-      (Review focus 6); a missing mockup shows "This mockup could not be loaded." and the link.
-      Break: the scale kept in full screen.
-- [ ] **Step 3: Run them to check they fail**:
+      100%"; at 390 px, once Desktop is picked (R7), a desktop story's percent is below 50, its
+      title clear of its buttons, and the page passes `checkPage`; "Full screen" shows "100%"; US4's
+      `mockups/title.html` is a window "live · Title with a repeat phrase" whose frame shows "every
+      monday"; a link `?w=390#x` loads at 390 px with its anchor (Review focus 6); a missing mockup
+      shows "This mockup could not be loaded." and the link. Break: the scale kept in full screen.
+- [x] **Step 3: Run them to check they fail**:
       `nix develop -c vp test --project desktop src/__browser__/live-window.test.tsx`. Expected:
       FAIL, no region "live · Repeat menu, open".
-- [ ] **Step 4: Implement.** The hatched stage is the Astryx gap of
+- [x] **Step 4: Implement.** The hatched stage is the Astryx gap of
       [Complexity tracking](#complexity-tracking); the frame's sandbox stays
       `allow-scripts     allow-popups` for stories and `allow-scripts` for HTML mockups.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, then
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, then
       `live-window.test.tsx`, `story-embed.test.tsx`, `story-comments.test.tsx`, and
       `story-variants.test.tsx` in both browser projects, and `spec-stories.test.tsx`. Expected:
       PASS.
-- [ ] **Step 6: Commit**: `git commit -m "feat(spec-page): live mockups in a live window"`.
+- [x] **Step 6: Commit**: `git commit -m "feat(spec-page): live mockups in a live window"`.
 
 ## Task 6: How it is built, in panes
 

@@ -13,7 +13,15 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, type ReactNode, useId } from "react";
+import {
+  type ComponentProps,
+  type ReactNode,
+  type RefObject,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
@@ -144,6 +152,13 @@ const styles = stylex.create({
   },
   problem: { borderColor: colorVars["--color-border-red"] },
   problemTitle: { color: colorVars["--color-text-red"] },
+  // Beside the actions, the title wraps before them: their width, and the gap, kept free.
+  reserve: (room: string) => ({ "--pane-actions-room": room }),
+  // Actions too wide to leave the title room beside them: the title goes under them, inside the
+  // pane, from below the actions' lower half.
+  under: (below: string) => ({
+    marginBlockStart: below,
+  }),
   // What follows the title, such as a live window's size and scale: secondary, in the title's line.
   suffix: {
     color: colorVars["--color-text-secondary"],
@@ -163,7 +178,7 @@ const styles = stylex.create({
     marginBlockEnd: `calc(${spacingVars["--spacing-3"]} + var(--pane-border) / 2 - 0.5lh)`,
     marginBlockStart: "var(--pane-title-top)",
     marginInlineStart: `calc(${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]})`,
-    maxWidth: `calc(100% - 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]}))`,
+    maxWidth: `calc(100% - 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]}) - var(--pane-actions-room, 0px))`,
     paddingInline: spacingVars["--spacing-2"],
     position: "relative",
     width: "fit-content",
@@ -192,6 +207,93 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
   return tone === undefined ? ([null, null] as const) : TONES[tone];
 }
 
+/** The least room, in px, a title keeps beside the actions: less, and it goes under them. */
+const TITLE_ROOM = 160;
+
+/**
+ * Where the title goes with the actions in the top border: beside them, wrapping before them, or,
+ * where they leave it less than `TITLE_ROOM`, under them. Undefined without actions, or until
+ * measured.
+ */
+function useActionsRoom(
+  pane: RefObject<HTMLElement | null>,
+  actions: RefObject<HTMLDivElement | null>,
+  hasActions: boolean,
+) {
+  const [room, setRoom] = useState<{ height: number; under: boolean; width: number }>();
+  useLayoutEffect(() => {
+    const own = pane.current;
+    const box = actions.current;
+    if (!hasActions || !own || !box) {
+      return;
+    }
+    const measure = () => {
+      const width = Math.ceil(box.getBoundingClientRect().width);
+      const height = Math.ceil(box.getBoundingClientRect().height);
+      const under = own.clientWidth - width < TITLE_ROOM;
+      setRoom((known) =>
+        known?.width === width && known.height === height && known.under === under
+          ? known
+          : { height, under, width },
+      );
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(own);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [actions, hasActions, pane]);
+  return hasActions ? room : undefined;
+}
+
+/** The title's room by the actions: the width it keeps free beside them, or its place under them. */
+function besideActions(room: ReturnType<typeof useActionsRoom>) {
+  if (!room) {
+    return null;
+  }
+  return room.under
+    ? styles.under(`calc(${room.height / 2}px + ${spacingVars["--spacing-1"]})`)
+    : styles.reserve(`calc(${room.width}px + ${spacingVars["--spacing-2"]})`);
+}
+
+/** The title's words, its icons, its count, and what follows it. */
+function PaneName({
+  count,
+  fold,
+  icon,
+  title,
+  titleId,
+  titleSuffix,
+}: {
+  count?: number;
+  fold?: PaneFold;
+  icon?: ComponentProps<typeof Icon>["icon"];
+  title: string;
+  titleId: string;
+  titleSuffix?: ReactNode;
+}) {
+  return (
+    <span {...stylex.props(styles.name)}>
+      {fold && (
+        <span {...stylex.props(styles.glyph)}>
+          <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
+        </span>
+      )}
+      {icon && (
+        <span {...stylex.props(styles.glyph)}>
+          <Icon icon={icon} size="sm" />
+        </span>
+      )}
+      <span id={titleId}>{title}</span>
+      {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
+      {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>}
+    </span>
+  );
+}
+
 /**
  * A pane: a `section` named by its title, the title a heading at the caller's level, set in the
  * top border with its icon and its count. The accent colours its border and title while it is
@@ -199,7 +301,8 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
  * navigation are, which a list of landmarks would repeat. `isOpenOnPhone` keeps only its titled top
  * border on narrow screens, as the round's panes do. With `fold`, its title is a button that opens
  * and closes it, named by its title and its count, and folded, its content is not mounted.
- * `actions` sit in the top border at its end, as a live window's buttons do; `titleSuffix` follows
+ * `actions` sit in the top border at its end, as a live window's buttons do, the title wrapping
+ * before them, or under them where they leave it too little room; `titleSuffix` follows
  * the title in secondary text, as a live window's size and scale do, outside the pane's name.
  */
 export function Pane({
@@ -232,6 +335,9 @@ export function Pane({
   tone?: PaneTone;
 }) {
   const titleId = useId();
+  const own = useRef<HTMLElement>(null);
+  const actionsBox = useRef<HTMLDivElement>(null);
+  const beside = besideActions(useActionsRoom(own, actionsBox, actions !== undefined));
   const [border, ink] = colours(isActive, tone);
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
@@ -239,30 +345,27 @@ export function Pane({
   // The fold button's name, as it reads: the title and its count.
   const label = count === undefined ? title : `${title} · ${count}`;
   const name = (
-    <span {...stylex.props(styles.name)}>
-      {fold && (
-        <span {...stylex.props(styles.glyph)}>
-          <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
-        </span>
-      )}
-      {icon && (
-        <span {...stylex.props(styles.glyph)}>
-          <Icon icon={icon} size="sm" />
-        </span>
-      )}
-      <span id={titleId}>{title}</span>
-      {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
-      {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>}
-    </span>
+    <PaneName
+      count={count}
+      fold={fold}
+      icon={icon}
+      title={title}
+      titleId={titleId}
+      titleSuffix={titleSuffix}
+    />
   );
   return (
     <section
       aria-labelledby={titleId}
       id={id}
+      ref={own}
       role={isGroup ? "group" : undefined}
       {...stylex.props(styles.pane, isOpen && styles.openOnPhone, margin, border)}
     >
-      <Heading level={level} xstyle={[styles.title, isOpen && styles.openOnPhoneTitle, ink]}>
+      <Heading
+        level={level}
+        xstyle={[styles.title, isOpen && styles.openOnPhoneTitle, ink, beside]}
+      >
         {fold ? (
           <Button
             aria-expanded={fold.isOpen}
@@ -279,7 +382,12 @@ export function Pane({
         )}
       </Heading>
       {actions !== undefined && (
-        <div {...stylex.props(styles.actions, isOpen && styles.openOnPhoneActions)}>{actions}</div>
+        <div
+          ref={actionsBox}
+          {...stylex.props(styles.actions, isOpen && styles.openOnPhoneActions)}
+        >
+          {actions}
+        </div>
       )}
       {!fold || fold.isOpen
         ? children

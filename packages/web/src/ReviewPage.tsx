@@ -27,7 +27,12 @@ export function ReviewPage({ file }: { file: File }) {
         <Crumbs current={file.name} folder={file.folder} />
         <VStack gap={3}>
           <ReviewIntro file={file} review={review} />
-          <StoriesProvider comment={storyComments} folder={file.folder} stories={version.stories}>
+          <StoriesProvider
+            comment={storyComments}
+            folder={file.folder}
+            mockups={version.mockups}
+            stories={version.stories}
+          >
             <Blocks
               document={tree}
               folds={folds}

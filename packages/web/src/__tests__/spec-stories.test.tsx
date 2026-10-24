@@ -1,5 +1,5 @@
 // The spec page's stories, each a card: its key scenarios as Given, When, and Then rows, the others
-// behind "N more scenarios", and its mockup live in it, an HTML one a link (US3).
+// behind "N more scenarios", and its mockup live in it, an HTML one too, in a live window (US3).
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addPreview, addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
@@ -57,8 +57,8 @@ test("a story shows its key scenarios, and the others behind a button", async ()
   expect(scenariosOf(story)).toHaveLength(2);
 });
 
-/** US3 3 */
-test("stories embed their mockups live, and link an HTML one", async () => {
+/** US3 3; the spec page's US3 2 */
+test("stories embed their mockups live, and an HTML mockup draws live", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   addPreview(repo);
@@ -70,13 +70,16 @@ test("stories embed their mockups live, and link an HTML one", async () => {
     ["Make a task repeat", "Repeat menu, open"],
     ["Complete a repeating task", "Repeating task, completed"],
     ["Repeat on a custom schedule", "Custom repeat screen"],
+    ["Type a repeat in the title", "Title with a repeat phrase"],
   ];
   for (const [title, label] of frames) {
-    expect(await within(await card(title!)).findByRole("figure", { name: label })).toBeTruthy();
+    const story = await card(title!);
+    expect(await within(story).findByRole("region", { name: `live · ${label}` })).toBeTruthy();
   }
-  expect(screen.getAllByRole("figure")).toHaveLength(3);
-  const link = within(html).getByRole("link", { name: "Title with a repeat phrase" });
-  expect(link.getAttribute("href")).toContain("mockups/title.html");
+  expect(screen.getAllByRole("figure")).toHaveLength(4);
+  expect(within(html).queryByRole("link", { name: "Title with a repeat phrase" })).toBeNull();
+  const frame = within(html).getByTitle("Title with a repeat phrase, 1440 px");
+  expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
 });
 
 test("a story without more scenarios has no fold button", async () => {

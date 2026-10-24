@@ -1,96 +1,98 @@
-// The window a live story is drawn in: its box on the page, which grows past its column on a wide
-// screen and goes full screen, its bar with its title and controls, and its stage's room, which
-// scales the frame.
-import { Divider } from "@astryxdesign/core/Divider";
-import { Text } from "@astryxdesign/core/Text";
-import {
-  borderVars,
-  colorVars,
-  radiusVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+// The live window a story or an HTML mockup is drawn in, wherever `Blocks` draws one: a pane with
+// the theme's double sapphire border, titled "live · <name>", then its width and scale, a phone's or
+// a monitor's icon by its width, its controls in its top border. On a wide screen, it grows past
+// its column into the empty space beside it, and it goes full screen, where its page shows at 100%.
+import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useRef } from "react";
 import { useFullScreen, useOutgrow } from "./embedLayout.ts";
+import { Pane } from "./layout/Pane.tsx";
+import { type Fit, PHONE_BELOW } from "./LiveFrame.tsx";
 
 const styles = stylex.create({
-  bar: {
-    alignItems: "center",
-    display: "flex",
-    flexWrap: "wrap",
-    gap: spacingVars["--spacing-2"],
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-3"],
-  },
-  // On narrow screens, the embed takes the page's inset back (see `Page`), 16 px outside a page: the
-  // phone's width is the screen's.
-  bleed: {
-    borderInlineWidth: 0,
-    borderRadius: 0,
-    marginInline: `var(--page-bleed, calc(-1 * ${spacingVars["--spacing-4"]}))`,
-  },
-  embed: {
-    backgroundColor: colorVars["--color-background-surface"],
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-container"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
+  figure: {
     marginBlockEnd: spacingVars["--spacing-3"],
     marginBlockStart: 0,
     marginInline: 0,
-    overflow: "hidden",
   },
-  // Full screen, which the browser sizes to the screen: the bar above, the story filling the rest.
+  // Full screen, which the browser sizes to the screen, on the page's own background.
   full: {
-    borderRadius: 0,
-    borderWidth: 0,
-    display: "flex",
-    flexDirection: "column",
+    backgroundColor: colorVars["--color-background-body"],
     marginBlock: 0,
+    overflow: "auto",
+    paddingInline: spacingVars["--spacing-2"],
   },
   grow: (start: string, end: string) => ({ marginInlineEnd: end, marginInlineStart: start }),
-  label: {
-    marginInlineEnd: "auto",
-  },
 });
 
-/** A length in px from a style's value, 0 when it has none. */
-export const px = (value: string) => Number.parseFloat(value) || 0;
-
-/** The window's box, its full screen, and its growth past its column. */
-export function useLiveWindow(wide: boolean) {
+/**
+ * The window's box, its full screen, and its growth past its column toward `width`, in px, the
+ * desktop's by default.
+ */
+export function useLiveWindow(wide: boolean, width?: number) {
   const figure = useRef<HTMLElement>(null);
   const screen = useFullScreen(figure);
-  const grow = useOutgrow(figure, wide);
+  const grow = useOutgrow(figure, wide, width);
   return { figure, grow, screen };
 }
 
 /** Whether the window is full screen, and what enters or leaves it, where the browser can. */
 export type FullScreen = ReturnType<typeof useFullScreen>;
 
-/** The window: a figure named by its label, grown past its column, or full screen. */
+/** The window's box, its full screen, and its growth, from `useLiveWindow`. */
+export type Live = ReturnType<typeof useLiveWindow>;
+
+/** "Full screen", or "Leave full screen" once in it: none where the browser has no full screen. */
+export function FullScreenButton({ screen }: { screen: FullScreen }) {
+  const { full, toggle } = screen;
+  return (
+    toggle && (
+      <IconButton
+        icon={<Icon icon={full ? "uraeda:minimize" : "uraeda:maximize"} />}
+        label={full ? "Leave full screen" : "Full screen"}
+        onClick={() => void toggle()}
+        size="sm"
+        variant="ghost"
+      />
+    )
+  );
+}
+
+/**
+ * The window: a figure named by its label, holding a pane toned `live`, titled "live · <label>",
+ * then, once its frame is measured, "· <width> px · <scale>%". `actions` sit in its top border;
+ * `after` follows the pane, in the figure, as a story's comment form does.
+ */
 export function LiveWindow({
+  actions,
+  after,
   children,
+  fit,
   id,
-  labelId,
+  label,
   live,
   wide,
 }: {
-  children: ReactNode;
+  actions?: ReactNode;
+  after?: ReactNode;
+  children?: ReactNode;
+  fit?: Fit;
   id?: string;
-  labelId: string;
-  live: ReturnType<typeof useLiveWindow>;
+  label: string;
+  live: Live;
   wide: boolean;
 }) {
   const { figure, grow, screen } = live;
+  const phone = fit !== undefined && fit.width < PHONE_BELOW;
   return (
     <figure
-      aria-labelledby={labelId}
+      aria-label={label}
       id={id}
       ref={figure}
       {...stylex.props(
-        styles.embed,
-        !wide && styles.bleed,
+        styles.figure,
         wide &&
           !screen.full &&
           (grow.start > 0 || grow.end > 0) &&
@@ -98,73 +100,17 @@ export function LiveWindow({
         screen.full && styles.full,
       )}
     >
-      {children}
+      <Pane
+        actions={actions}
+        icon={phone ? "uraeda:smartphone" : "uraeda:monitor"}
+        level={3}
+        title={`live · ${label}`}
+        titleSuffix={fit && `· ${fit.width} px · ${Math.round(fit.scale * 100)}%`}
+        tone="live"
+      >
+        {children}
+      </Pane>
+      {after}
     </figure>
   );
-}
-
-/** The window's bar: its label, then its controls. */
-export function Bar({
-  children,
-  label,
-  labelId,
-}: {
-  children?: ReactNode;
-  label: string;
-  labelId: string;
-}) {
-  return (
-    <>
-      <div {...stylex.props(styles.bar)}>
-        <Text id={labelId} weight="semibold" xstyle={styles.label}>
-          {label}
-        </Text>
-        {children}
-      </div>
-      {/* Astryx's divider: a border of the app's own would write the atomic rule of a list's
-          dividers again, unlayered, and every list's last row would keep its divider. */}
-      <Divider aria-hidden />
-    </>
-  );
-}
-
-/**
- * The size of the stage's content box, kept as it changes, with the theme's sizes of a story's frame,
- * in px, read from its style: undefined until measured.
- */
-export function useStage(stage: RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState<{
-    desktop: number;
-    height: number;
-    max: number;
-    story: number;
-    width: number;
-  }>();
-  useLayoutEffect(() => {
-    const element = stage.current;
-    if (!element) {
-      return;
-    }
-    const measure = () => {
-      const style = getComputedStyle(element);
-      const next = {
-        desktop: px(style.getPropertyValue("--size-story-desktop")) || 1440,
-        height: element.clientHeight - px(style.paddingTop) - px(style.paddingBottom),
-        max: px(style.getPropertyValue("--size-story-max-height")) || 900,
-        story: px(style.getPropertyValue("--size-story-height")) || 560,
-        width: element.clientWidth - px(style.paddingLeft) - px(style.paddingRight),
-      };
-      setSize((known) =>
-        known &&
-        Object.entries(next).every(([key, value]) => known[key as keyof typeof next] === value)
-          ? known
-          : next,
-      );
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [stage]);
-  return size;
 }

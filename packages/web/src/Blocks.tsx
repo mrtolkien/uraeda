@@ -6,7 +6,7 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useContext, useLayoutEffect, useMemo, useRef } from "react";
+import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
@@ -17,8 +17,8 @@ import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
-import { StoryEmbed } from "./StoryEmbed.tsx";
-import { embedComment, StoryContext, storyEmbedId, useStoryAt } from "./stories.tsx";
+import { EmbedNode } from "./EmbedNode.tsx";
+import { useMockupAt, useStoryAt } from "./stories.tsx";
 
 const SIGNS: Record<string, string> = {
   ask: "?",
@@ -387,37 +387,15 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
   }
 }
 
-/**
- * A paragraph that embeds a story: the story, then what follows the block in a review, like its
- * pending comments. The embed is not selected as lines are: its comments come from its own controls.
- */
-function StoryNode({ block, context }: { block: Block; context: BlockContext }) {
-  const stories = useContext(StoryContext)!;
-  const story = useStoryAt(block)!;
-  const after = context.selection?.after?.(block);
-  return (
-    <>
-      <StoryEmbed
-        comment={embedComment(stories, story, block)}
-        folder={stories.folder}
-        id={storyEmbedId(block.id)}
-        key={`${stories.folder}:${story.path}#${story.export}`}
-        removed={stories.removed}
-        story={story}
-      />
-      {after && <After>{after}</After>}
-    </>
-  );
-}
-
 function BlockNode({ block, context }: { block: Block; context: BlockContext }): ReactNode {
   const story = useStoryAt(block);
+  const mockup = useMockupAt(block);
   const own = context.override?.(block);
   if (own !== undefined) {
     return own;
   }
-  if (story) {
-    return <StoryNode block={block} context={context} />;
+  if (story || mockup) {
+    return <EmbedNode block={block} context={context} />;
   }
   const node = blockElement(block, context);
   return UNWRAPPED.has(block.kind) ? (
