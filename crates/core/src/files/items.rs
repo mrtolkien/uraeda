@@ -15,6 +15,7 @@ mod spec;
 
 pub(crate) use round::round;
 pub(crate) use round::settled_points;
+pub(crate) use round::subjectless_items;
 pub use spec::{
     Criterion, EdgeCase, ListedDecision, MockupLink, Principle, ReviewAnswer, Scenario,
     ScenarioStep, SpecItems, SpecPart, Story, TierChoice,

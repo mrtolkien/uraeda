@@ -47,7 +47,6 @@ Why.
 - **Undoing a completion** puts back what completing changed.
 - **Deleting a repeating task** ends the repetition.
 - **Undoing a completion** again, a second point with the same subject.
-- A point without a bold start.
 
 **Notes:** Overall fine.
 

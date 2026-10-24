@@ -425,6 +425,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
         .filter(|_| file.kind == Checked::Workflow(FileKind::Clarifications))
     {
         sections::check_settled_groups(file, tree, &mut problems);
+        sections::check_settled_subjects(file, tree, &mut problems);
     }
     if let Some(front) = &front {
         let waiting = front.text("status") == Some("awaiting-human");

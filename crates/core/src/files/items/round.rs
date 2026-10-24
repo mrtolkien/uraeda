@@ -128,6 +128,19 @@ pub(crate) fn settled_points(doc: &Document, notes_line: usize) -> Vec<SettledPo
     points_of(doc, &settled_groups(doc, notes_line))
 }
 
+/// The top-level items of the settled groups' lists that do not start in bold, before the
+/// `**Notes:**` line: they make no point.
+pub(crate) fn subjectless_items(doc: &Document, notes_line: usize) -> Vec<&Block> {
+    settled_groups(doc, notes_line)
+        .iter()
+        .flat_map(|group| group.blocks.iter())
+        .map(|&id| &doc.blocks[id as usize])
+        .filter(|block| block.kind == BlockKind::List)
+        .flat_map(|list| doc.children(list.id))
+        .filter(|item| leading_strong(item).is_none())
+        .collect()
+}
+
 /// The notes split into the free notes and the comments on the settled points, each pointing at
 /// the first point with its subject.
 fn split(notes: &str, points: &[SettledPoint]) -> (String, Vec<SettledComment>) {

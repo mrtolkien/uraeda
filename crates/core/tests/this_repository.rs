@@ -48,7 +48,7 @@ fn broken_or_unanswered(rule: &str) -> bool {
 
 /// A rule about drift between versions of the workflow's files: never a problem.
 fn drift(rule: &str) -> bool {
-    rule.starts_with("sections.") || rule.starts_with("links.") || rule == "settled.group"
+    rule.starts_with("sections.") || rule.starts_with("links.") || rule.starts_with("settled.")
 }
 
 /// SC-001: over the feature folders the commits of every branch touched from 2026-10-17 16:48 to 2026-10-18
