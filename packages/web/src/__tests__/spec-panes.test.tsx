@@ -122,7 +122,7 @@ test("Decisions · 1 new, 2 changed, 1 removed follows the answers", async () =>
   const answers = await region("Your review, answered");
   const heading = screen.getByRole("heading", {
     level: 2,
-    // Due dates, changed by the branch and not listed, has its pane, and counts (R19).
+    // Due dates, changed by the branch and not listed, has its pane, and counts (R21).
     name: "Decisions · 1 new, 2 changed, 1 removed",
   });
   // Right after: the first heading of level 2 past the answers' pane is the decisions'.

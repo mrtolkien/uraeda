@@ -116,7 +116,7 @@ function Group({
 
 /**
  * What the decisions' heading counts: "1 new, 2 changed, 1 removed", of every decision's pane, the
- * listed ones' and the unlisted changes' (R19).
+ * listed ones' and the unlisted changes' (R21).
  */
 function decisionCounts(items: SpecItems, changes: ReadonlyArray<DecisionChange>) {
   const byName = new Map(changes.map((change) => [change.name, change]));

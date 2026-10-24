@@ -315,7 +315,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one line in `decisionCounts`, `spec/SpecPage.tsx`, and the test's name.
 - **Where**: fix of Task 10's review, `spec/SpecPage.tsx`, `src/__tests__/spec-panes.test.tsx`.
 
-## R20: The spec's and the plan's phone sheets are in the address, the round's not yet
+## R22: The spec's and the plan's phone sheets are in the address, the round's not yet
 
 - **Decision**: on narrow screens, the spec's and the plan's open sheet, Contents or Review, is the
   address's `?tab=`, the parameter of the column's open tab on wide screens (`spec/useSheetTab.ts`):

@@ -758,7 +758,7 @@ candidates, and the decisions check.
   on wide and semi-wide screens, a `DocumentColumn` labelled "The spec's column" or "The plan's
   column" (R16) with "Contents", then "Review" with the comments' count while a review waits, then
   `extra` (Task 11's Session); on narrow screens, a `TopBarSlot` with "Contents" and the count
-  opening sheets of the same panels, kept in the address's `?tab=` (R20), and "Verdict" bringing the
+  opening sheets of the same panels, kept in the address's `?tab=` (R22), and "Verdict" bringing the
   page's end's verdict into view, its first enabled button focused (`toVerdict`, `VERDICT_ID` in
   `ReviewVerdict.tsx`). A panel jumps through `useColumnGo()` (`spec/columnGo.ts`), which closes the
   phone's sheet first. `ReviewTab({ review: Review; file: File })`: "N comments, unsent", each
