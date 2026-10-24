@@ -72,8 +72,7 @@ function GroupPane({
   const isHood = group.kind === "hood";
   return (
     <Pane
-      // The folded line says Under the hood's count: its title, a button, is named by its words alone.
-      count={isHood ? undefined : count}
+      count={count}
       fold={
         isHood
           ? {

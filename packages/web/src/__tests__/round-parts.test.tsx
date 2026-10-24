@@ -160,6 +160,10 @@ test("Under the hood is folded to its count", async () => {
   expect(hood.id).toBe("under-the-hood");
   expect(pane("Behaviour").id).toBe("behaviour");
   expect(within(hood).queryByText(/^The branch/)).toBeNull();
+  // Its title shows its count, and its button is named by both, as it reads.
+  expect(
+    within(hood).getByRole("button", { name: "Under the hood · 3" }).getAttribute("aria-expanded"),
+  ).toBe("false");
 
   await click(within(hood).getByRole("button", { name: "3 choices in the code only" }));
 
