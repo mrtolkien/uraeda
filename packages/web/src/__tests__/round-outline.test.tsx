@@ -11,7 +11,6 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { useState } from "react";
 import { expect, test, vi } from "vite-plus/test";
 import { readFile, readRound } from "uraeda-binding";
-import { followUpsOf } from "../QuestionCards.tsx";
 import type { NavQuestion } from "../roundJump.ts";
 import { OutlineSheet, RoundOutline } from "../RoundOutline.tsx";
 import { atWidth, click, fixture, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
@@ -24,6 +23,11 @@ today("2026-10-11");
 
 /** The merge-chats round 01, in the new format: 2 points to check, 3 of behaviour, 3 under the hood. */
 const MERGE_CHATS = readFileSync(fixture("round-merge-chats/clarifications-01.md"), "utf8");
+
+/**
+ * The round's questions in the page's order, as the fixture has them: Q2.A follows Q2, once asked.
+ */
+const ASKED = ["Q1", "Q2", "Q2.A", "Q3", "Q4", "Q5", "Q6", "Q7"];
 
 /** The round's text without its `## Check these` section. */
 const withoutCheck = (text: string) =>
@@ -50,14 +54,16 @@ async function roundPage(repo: string) {
   await screen.findAllByText(/Who may move a chat up to a change/);
   const file = await readFile(repo, FOLDER, NAME);
   const round = file.current.items.clarifications!;
-  const questions: Array<NavQuestion> = round.questions
-    .flatMap((q) => (q.parent ? [] : [q, ...followUpsOf(round.questions, q.id)]))
-    .map((q) => ({
-      answered: q.answer.trim() !== "",
-      id: q.id,
-      level: q.parent ? 2 : 1,
-      title: q.title,
-    }));
+  const questions: Array<NavQuestion> = ASKED.flatMap((id) =>
+    round.questions
+      .filter((q) => q.id === id && q.asked)
+      .map((q) => ({
+        answered: q.answer.trim() !== "",
+        id: q.id,
+        level: q.parent ? 2 : 1,
+        title: q.title,
+      })),
+  );
   return { document: file.current.document, questions, round };
 }
 

@@ -58,13 +58,19 @@ test("the badge reads the verdict's kind", async () => {
   await renderPage(
     PAGE,
     round((text) =>
-      text.replace("Verdict: worth building, with changes:", "Verdict: not as proposed:"),
+      text.replace(
+        "Verdict: worth building, with changes:",
+        "Verdict: worth building as proposed: no changes, with changes elsewhere, not as proposed there:",
+      ),
     ),
   );
 
+  // The sentence names every kind; only its phrase, which the core reads, gives the badge.
   const block = await screen.findByRole("region", { name: BLOCK });
-  expect(within(block).getByText("Not as proposed")).toBeTruthy();
+  expect(within(block).getByText("As proposed")).toBeTruthy();
   expect(within(block).queryByText("With changes")).toBeNull();
+  expect(within(block).queryByText("Not as proposed")).toBeNull();
+  expect(block.textContent).toContain("no changes, with changes elsewhere");
 });
 
 /** US1 more 1 */
