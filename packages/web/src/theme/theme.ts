@@ -81,6 +81,7 @@ const LATTE = {
   peach: "#a63f00",
   pink: "#a72592",
   red: "#bc0d33",
+  sapphire: "#04699a",
   subtext0: "#6c6f85",
   subtext1: "#5c5f77",
   surface0: "#ccd0da",
@@ -104,6 +105,7 @@ const MOCHA = {
   peach: "#fab387",
   pink: "#f5c2e7",
   red: "#f38ba8",
+  sapphire: "#74c7ec",
   subtext0: "#a6adc8",
   subtext1: "#bac2de",
   surface0: "#313244",
@@ -269,6 +271,9 @@ export const uraedaTheme = defineTheme({
       '"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     // Catppuccin's lavender, a hue Astryx has no name for.
     "--color-text-lavender": pair("lavender"),
+    // Catppuccin's sapphire, a live window's border and title, apart from the panes' lavender.
+    "--color-border-sapphire": pair("sapphire"),
+    "--color-text-sapphire": pair("sapphire"),
     // The fills of the neutral theme's badges, status dots, and progress bars, and an info banner's
     // background.
     "--astryx-theme-neutral-color-status-fill-accent": pair("mauve"),

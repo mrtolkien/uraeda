@@ -17,8 +17,11 @@ import { type ComponentProps, type ReactNode, useId } from "react";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
-/** What a pane's colour tells: it needs the human, it shows an example, or it holds a problem. */
-export type PaneTone = "attention" | "example" | "problem";
+/**
+ * What a pane's colour tells: it needs the human, it shows an example, or it holds a problem; a
+ * decision new, changed, or removed; or a live window, whose border is double.
+ */
+export type PaneTone = "attention" | "changed" | "example" | "live" | "new" | "problem" | "removed";
 
 /**
  * A pane that folds to its title: whether it is open, and what opens or closes it. `folded`, when
@@ -31,10 +34,25 @@ export type PaneFold = {
 };
 
 const styles = stylex.create({
+  // The actions, in the top border at its end, centred on it, hiding the border behind them as the
+  // title does.
+  actions: {
+    alignItems: "center",
+    backgroundColor: colorVars["--color-background-body"],
+    display: "flex",
+    gap: spacingVars["--spacing-1"],
+    insetBlockStart: "var(--pane-border-middle)",
+    insetInlineEnd: `calc(${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]})`,
+    paddingInline: spacingVars["--spacing-1"],
+    position: "absolute",
+    transform: "translateY(-50%)",
+  },
   active: { borderColor: colorVars["--color-accent"] },
   activeTitle: { color: colorVars["--color-text-accent"] },
   attention: { borderColor: colorVars["--color-border-orange"] },
   attentionTitle: { color: colorVars["--color-text-orange"] },
+  changed: { borderColor: colorVars["--color-border-purple"] },
+  changedTitle: { color: colorVars["--color-text-purple"] },
   // The count stays on the title's first line, whole.
   count: {
     flexShrink: 0,
@@ -68,6 +86,14 @@ const styles = stylex.create({
     flexShrink: 0,
     height: "var(--pane-line)",
   },
+  // A live window: the theme's own sapphire, a local token (`theme.ts`), and a double border,
+  // three times the border's width so its two lines and the gap between them show.
+  live: {
+    "--pane-border": `calc(3 * ${borderVars["--border-width"]})`,
+    borderColor: "var(--color-border-sapphire)",
+    borderStyle: "double",
+  },
+  liveTitle: { color: "var(--color-text-sapphire)" },
   // The title's words, its icons, and its count, on lines of the title's width.
   name: {
     alignItems: "start",
@@ -84,8 +110,11 @@ const styles = stylex.create({
     borderInlineWidth: 0,
     paddingInline: 0,
   },
+  openOnPhoneActions: { backgroundColor: colorVars["--color-background-surface"] },
   // Its title hides the border behind it with the page's surface, which a round on the phone is
   // drawn on.
+  new: { borderColor: colorVars["--color-border-green"] },
+  newTitle: { color: colorVars["--color-text-green"] },
   openOnPhoneTitle: {
     backgroundColor: colorVars["--color-background-surface"],
     marginInlineStart: 0,
@@ -93,11 +122,17 @@ const styles = stylex.create({
     paddingInlineStart: 0,
   },
   pane: {
+    // The border's width, which a live window triples: the title and the actions centre on it.
+    "--pane-border": borderVars["--border-width"],
+    // Up from the content's top edge to the border's middle line.
+    "--pane-border-middle": "calc(var(--pane-border) / -2)",
+    // The title's first line centred on it, in the title's own line height, where it is used.
+    "--pane-title-top": "calc(var(--pane-border) / -2 - 0.5lh)",
     // The title's background hides the border behind it: both are the pane's own.
     backgroundColor: colorVars["--color-background-body"],
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
+    borderWidth: "var(--pane-border)",
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
     minWidth: 0,
@@ -109,6 +144,11 @@ const styles = stylex.create({
   },
   problem: { borderColor: colorVars["--color-border-red"] },
   problemTitle: { color: colorVars["--color-text-red"] },
+  // What follows the title, such as a live window's size and scale: secondary, in the title's line.
+  suffix: {
+    color: colorVars["--color-text-secondary"],
+    fontWeight: fontWeightVars["--font-weight-normal"],
+  },
   // The title, in the flow so that its further lines push the content down: its first line
   // centred on the top border, its further lines below it, inside the pane, as wide as it at most.
   title: {
@@ -120,8 +160,8 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     lineHeight: typeScaleVars["--text-supporting-leading"],
     // Up by half the border and half its first line, then down to the content's usual room.
-    marginBlockEnd: `calc(${spacingVars["--spacing-3"]} + ${borderVars["--border-width"]} / 2 - 0.5lh)`,
-    marginBlockStart: `calc(-1 * (${borderVars["--border-width"]} / 2 + 0.5lh))`,
+    marginBlockEnd: `calc(${spacingVars["--spacing-3"]} + var(--pane-border) / 2 - 0.5lh)`,
+    marginBlockStart: "var(--pane-title-top)",
     marginInlineStart: `calc(${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]})`,
     maxWidth: `calc(100% - 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]}))`,
     paddingInline: spacingVars["--spacing-2"],
@@ -130,21 +170,26 @@ const styles = stylex.create({
   },
 });
 
-/** The border's and the title's colours, by the pane's state: active, then its tone. */
+/** Each tone's border and title. A removed decision is red, as a problem is. */
+const TONES = {
+  attention: [styles.attention, styles.attentionTitle],
+  changed: [styles.changed, styles.changedTitle],
+  example: [styles.example, styles.exampleTitle],
+  live: [styles.live, styles.liveTitle],
+  new: [styles.new, styles.newTitle],
+  problem: [styles.problem, styles.problemTitle],
+  removed: [styles.problem, styles.problemTitle],
+} as const;
+
+/**
+ * The border's and the title's styles, by the pane's state: active, then its tone. An active live
+ * window keeps its double border, in the accent.
+ */
 function colours(isActive: boolean, tone: PaneTone | undefined) {
   if (isActive) {
-    return [styles.active, styles.activeTitle] as const;
+    return [[tone === "live" && styles.live, styles.active], styles.activeTitle] as const;
   }
-  if (tone === "attention") {
-    return [styles.attention, styles.attentionTitle] as const;
-  }
-  if (tone === "example") {
-    return [styles.example, styles.exampleTitle] as const;
-  }
-  if (tone === "problem") {
-    return [styles.problem, styles.problemTitle] as const;
-  }
-  return [null, null] as const;
+  return tone === undefined ? ([null, null] as const) : TONES[tone];
 }
 
 /**
@@ -154,8 +199,11 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
  * navigation are, which a list of landmarks would repeat. `isOpenOnPhone` keeps only its titled top
  * border on narrow screens, as the round's panes do. With `fold`, its title is a button that opens
  * and closes it, named by its title and its count, and folded, its content is not mounted.
+ * `actions` sit in the top border at its end, as a live window's buttons do; `titleSuffix` follows
+ * the title in secondary text, as a live window's size and scale do, outside the pane's name.
  */
 export function Pane({
+  actions,
   children,
   count,
   fold,
@@ -166,8 +214,10 @@ export function Pane({
   isOpenOnPhone = false,
   level = 2,
   title,
+  titleSuffix,
   tone,
 }: {
+  actions?: ReactNode;
   children: ReactNode;
   count?: number;
   fold?: PaneFold;
@@ -178,6 +228,7 @@ export function Pane({
   isOpenOnPhone?: boolean;
   level?: HeadingLevel;
   title: string;
+  titleSuffix?: ReactNode;
   tone?: PaneTone;
 }) {
   const titleId = useId();
@@ -201,6 +252,7 @@ export function Pane({
       )}
       <span id={titleId}>{title}</span>
       {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
+      {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>}
     </span>
   );
   return (
@@ -226,6 +278,9 @@ export function Pane({
           name
         )}
       </Heading>
+      {actions !== undefined && (
+        <div {...stylex.props(styles.actions, isOpen && styles.openOnPhoneActions)}>{actions}</div>
+      )}
       {!fold || fold.isOpen
         ? children
         : fold.folded !== undefined && (

@@ -479,16 +479,16 @@ change and the spec's revision; a regression changes every page that draws a dec
   `titleSuffix?: ReactNode`, drawn after the title in the secondary text colour, as "· 1440 × 900 ·
   49%" is; its accessible name stays its `title`.
 
-- [ ] **Step 1: Write the failing tests.** `theme-tokens.test.ts`: sapphire's border reaches 3:1 and
+- [x] **Step 1: Write the failing tests.** `theme-tokens.test.ts`: sapphire's border reaches 3:1 and
       its text 4.5:1 on body and surface, in Latte and Mocha. `titled-pane.test.tsx`: a pane with
       `actions` names its region by its title alone and holds the action's button; a pane with
       `titleSuffix` reads its suffix after its title. Break: the suffix read in the region's name.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/theme-tokens.test.ts`. Expected: FAIL, no
       `--color-border-sapphire`.
-- [ ] **Step 3: Implement**, the colours from the theme's tokens only.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 3: Implement**, the colours from the theme's tokens only.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 5: Commit**:
       `git commit -m "feat(spec-page): the pane's tones for decisions and live windows"`.
 
 ## Task 4: The decision ledger, on every page
