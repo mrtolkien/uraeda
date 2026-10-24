@@ -1212,3 +1212,57 @@ fn a_plan_without_a_lead_has_none() {
 
     assert!(items("plan.md", text, &doc).plan.unwrap().lead.is_empty());
 }
+
+/// A group counts its points, the items starting in bold, as the comments take them: an item
+/// without a bold start is no point, and a group of such items has none.
+#[test]
+fn a_settled_group_counts_its_points() {
+    let text = format!(
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
+## Settled without the human\n\n### Behaviour\n\n- **First** point.\n- Not a point.\n\
+- **Second** point.\n\n### Under the hood\n\n- No point here.\n\n**Notes:**\n"
+    );
+    let (round, _) = round_of("clarifications-01.md", &text);
+    let counts: Vec<(SettledKind, u32)> = round
+        .settled_groups
+        .iter()
+        .map(|g| (g.kind, g.points))
+        .collect();
+    assert_eq!(
+        counts,
+        [(SettledKind::Behaviour, 2), (SettledKind::Hood, 0)]
+    );
+}
+
+/// A question's "Why it matters" and "Example:" paragraphs come without their lead, which their
+/// panes' titles say, nor the ":", "." or "—" after it, their first letter capitalised.
+#[test]
+fn a_question_gives_its_why_and_example_without_their_lead() {
+    let why_and_example = |why: &str, example: &str| {
+        let text = round_text(&format!(
+            "## Q1: A question?\n\n{example}\n\nA context.\n\n{why}\n\n\
+- **A (recommended). Yes.**\n  - [pro] p\n\n- **B. No.**\n  - [con] c\n\n**Answer:**\n\n**Notes:**\n"
+        ));
+        let (round, _) = round_of("clarifications-01.md", &text);
+        let q1 = &round.questions[0];
+        (plain(&q1.why_text), plain(&q1.example_text))
+    };
+    assert_eq!(
+        why_and_example(
+            "Why it matters: it decides the *page*.",
+            "Example: you are on a question."
+        ),
+        (
+            "It decides the page.".to_string(),
+            "You are on a question.".to_string()
+        )
+    );
+    assert_eq!(
+        why_and_example("Why it matters. It decides.", "Example:   **bold** start."),
+        ("It decides.".to_string(), "Bold start.".to_string())
+    );
+    assert_eq!(
+        why_and_example("Why it matters — it decides.", "No example."),
+        ("It decides.".to_string(), String::new())
+    );
+}

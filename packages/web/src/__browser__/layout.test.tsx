@@ -53,6 +53,7 @@ import {
   show,
   startTurn,
   colorScheme,
+  openNotes,
 } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
@@ -874,14 +875,16 @@ test.each(MODES)(
     await colorScheme(mode);
     await show(ROUND, QUESTION);
     await userEvent.fill(
-      screen.getByLabelText("Anything else"),
+      within(await openNotes()).getByLabelText("Anything else"),
       "Overall fine, but say where answers go.",
     );
     await reload(QUESTION);
-    await screen.findByText(/^Unsaved text restored from \d\d:\d\d\./);
-    screen.getByLabelText("Anything else").scrollIntoView({ block: "center" });
+    // The notes open where the human writes them: the column's Notes tab, the phone's sheet.
+    const notes = await openNotes();
+    await within(notes).findByText(/^Unsaved text restored from \d\d:\d\d\./);
+    within(notes).getByLabelText("Anything else").scrollIntoView({ block: "center" });
     await drawn();
-    await checkLayout();
+    await checkLayout(notes);
   },
 );
 

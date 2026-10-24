@@ -17,7 +17,8 @@ import {
 } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
-const PAGE = `/f/${FOLDER}/clarifications-01.md`;
+// With the column's Notes tab open, where the notes' field is.
+const PAGE = `/f/${FOLDER}/clarifications-01.md?tab=notes`;
 const ROUND = `specs/${FOLDER}/clarifications-01.md`;
 const CHECK = "## Check these";
 const SETTLED = "## Settled without the human";
@@ -161,19 +162,21 @@ test("on the phone, a round with no settled points draws no band after its quest
   expect(after.childElementCount === 0 && after.textContent === "").toBe(false);
 });
 
+/** Whether `second` comes after `first` in the page. */
+const follows = (first: Node, second: Node) =>
+  (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
 /** Redesign US4.1: the groups' panes, "Under the hood" folded to the count of its points. */
 test("the settled points show in their groups, Under the hood folded", async () => {
   await renderPage(PAGE, round(groupedPoints));
   await point(UNDO);
 
   expect(screen.getByRole("heading", { level: 2, name: "Settled without you" })).toBeTruthy();
-  const panes = screen
-    .getAllByRole("region")
-    .map((pane) => pane.getAttribute("aria-labelledby"))
-    .map((id) => document.getElementById(id ?? "")?.textContent);
-  expect(
-    panes.filter((title) => ["Check these", "Behaviour", "Under the hood"].includes(title ?? "")),
-  ).toEqual(["Check these", "Behaviour", "Under the hood"]);
+  // The groups' panes, in this order.
+  const [check, behaviour, hood] = ["Check these", "Behaviour", "Under the hood"].map((name) =>
+    screen.getByRole("region", { name }),
+  );
+  expect(follows(check!, behaviour!) && follows(behaviour!, hood!)).toBe(true);
   expect(await point("A task without a due date")).toBeTruthy();
   expect(await point("Repeating tasks show a repeat icon")).toBeTruthy();
   expect(screen.queryByRole("button", { name: new RegExp(`^${HOOD}`) })).toBeNull();
@@ -238,7 +241,7 @@ test("the notes field is labelled Anything else", async () => {
   await point(UNDO);
 
   expect(notesField()).toBeTruthy();
-  expect(screen.queryByLabelText("Notes")).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "Notes" })).toBeNull();
 });
 
 /** Redesign edge case: a round with an empty group shows only the groups present. */
@@ -396,7 +399,9 @@ test("adding a comment leaves the notes being typed unsaved", async () => {
   await waitFor(() => expect(notesOnDisk(repo)).toBe(`- **${UNDO}**: ${COMMENT}`));
   await waitFor(() => expect(commentsOn(UNDO)).toHaveLength(1));
   expect(notesField().value).toBe("Half a thought");
-  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(
+    within(screen.getByRole("tabpanel", { name: "Notes" })).getByText("Unsaved changes"),
+  ).toBeTruthy();
 });
 
 /** US4 8 */

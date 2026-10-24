@@ -15,9 +15,10 @@ import type { Block, ContextPart, Document, RoundItems, VerdictKind } from "urae
 import { Blocks } from "./Blocks.tsx";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { Pane } from "./layout/Pane.tsx";
-import { useWidthOf } from "./layout/useWidthOf.ts";
+import { useAtLeast } from "./layout/useWidthOf.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
+import { PART_IDS } from "./roundPartIds.ts";
 import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
@@ -25,9 +26,6 @@ const styles = stylex.create({
   lead: { marginBlock: spacingVars["--spacing-1"] },
   verdict: { paddingBlock: spacingVars["--spacing-2"] },
 });
-
-/** The round's width from which Scope and Sources sit side by side, in px. */
-const SIDE_BY_SIDE = 820;
 
 /** The verdict's badge, by the kind the core reads: its words and its colour. */
 const VERDICTS: Record<VerdictKind, { label: string; variant: BadgeVariant }> = {
@@ -112,7 +110,7 @@ export function RoundBlock({ document, round }: { document: Document; round: Rou
     .filter((b) => b.kind !== "list" || drawn.blocks.some((item) => item.parent === b.id))
     .map((b) => b.id);
   return (
-    <Pane icon="uraeda:triangle-alert" id="summary" isOpenOnPhone title={title}>
+    <Pane icon="uraeda:triangle-alert" id={PART_IDS.summary} isOpenOnPhone title={title}>
       {round.verdict && <Verdict verdict={round.verdict} />}
       <Blocks document={drawn} ids={ids} />
     </Pane>
@@ -142,7 +140,10 @@ function useTodayFold(document: Document, today: ContextPart | undefined): Folds
   return folds;
 }
 
-/** A context part's pane, by its heading's anchor; a triage's free context is "Context". */
+/**
+ * A context part's pane, by its heading's anchor; a triage's free context, or the blocks before a
+ * round's first `###`, is "Context", `id="context"`.
+ */
 function ContextPane({
   document,
   folds,
@@ -164,7 +165,7 @@ function ContextPane({
           : undefined
       }
       icon={anchor === undefined ? undefined : CONTEXT_ICONS[anchor]}
-      id={anchor}
+      id={anchor ?? PART_IDS.context}
       isOpenOnPhone
       title={part.title || "Context"}
     >
@@ -175,7 +176,7 @@ function ContextPane({
 
 /**
  * The round's context, a pane per part, Today folded, Scope and Sources side by side when the
- * round is at least 820 px wide; then `check`, the "Check these" pane.
+ * round is at least `--size-round-pair` wide; then `check`, the "Check these" pane.
  */
 export function RoundContext({
   check,
@@ -187,7 +188,7 @@ export function RoundContext({
   round: RoundItems;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const isRoomy = useWidthOf(ref) >= SIDE_BY_SIDE;
+  const isRoomy = useAtLeast(ref, "--size-round-pair");
   const parts = round.context;
   const folds = useTodayFold(
     document,
@@ -225,7 +226,7 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
     <Pane
       count={count}
       icon="uraeda:flag"
-      id="check-these"
+      id={PART_IDS.check}
       isOpenOnPhone
       title="Check these"
       tone="attention"
@@ -238,7 +239,10 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
   );
 }
 
-/** A settled point's actions: "Ask", with `onAsk`, and its comment button. */
+/**
+ * A settled point's actions: "Ask", named `Ask about "<subject>"`, with `onAsk`, and its comment
+ * button.
+ */
 export function PointActions({
   onAsk,
   onComment,
@@ -253,11 +257,13 @@ export function PointActions({
       {onAsk && (
         <Button
           icon={<Icon icon="uraeda:comment" />}
-          label="Ask"
+          label={`Ask about "${subject}"`}
           onClick={() => onAsk(subject)}
           size="sm"
           variant="ghost"
-        />
+        >
+          Ask
+        </Button>
       )}
       <Button
         icon={<Icon icon="uraeda:pencil" />}

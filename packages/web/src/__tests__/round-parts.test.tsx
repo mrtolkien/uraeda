@@ -1,8 +1,8 @@
 // US1 key 1 and more scenarios 1 and 2, US4 key 1 and more scenarios 1 to 3: the round's parts in
 // titled panes, on the merge-chats round. Its block is a pane titled by its first line, the
 // verdict's badge before its sentence; Goal, Today, Scope, and Sources are panes, Today folded;
-// "Check these" is a pane after Sources, its points with their comments; Under the hood is folded to
-// its count.
+// "Check these" is a pane after Sources and before Q1, its points with Ask and their comments;
+// Under the hood is folded to its count.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen, waitFor, within } from "@testing-library/react";
@@ -58,13 +58,19 @@ test("the badge reads the verdict's kind", async () => {
   await renderPage(
     PAGE,
     round((text) =>
-      text.replace("Verdict: worth building, with changes:", "Verdict: not as proposed:"),
+      text.replace(
+        "Verdict: worth building, with changes:",
+        "Verdict: worth building as proposed: no changes, with changes elsewhere, not as proposed there:",
+      ),
     ),
   );
 
+  // The sentence names every kind; only its phrase, which the core reads, gives the badge.
   const block = await screen.findByRole("region", { name: BLOCK });
-  expect(within(block).getByText("Not as proposed")).toBeTruthy();
+  expect(within(block).getByText("As proposed")).toBeTruthy();
   expect(within(block).queryByText("With changes")).toBeNull();
+  expect(within(block).queryByText("Not as proposed")).toBeNull();
+  expect(block.textContent).toContain("no changes, with changes elsewhere");
 });
 
 /** US1 more 1 */
@@ -100,11 +106,12 @@ test("a link to #today opens Today", async () => {
 });
 
 /** US4 key 1, more 1, and review focus 3 */
-test("Check these comes after Sources, with Ask and its comments", async () => {
+test("Check these comes after Sources and before Q1, with Ask and its comments", async () => {
   const comment = "Say so in the PR.";
   await renderPage(
     PAGE,
     round((text) => text.replace("**Notes:**", `**Notes:**\n\n- **${LIGHT_FLOW}**: ${comment}`)),
+    { agent: true },
   );
   await screen.findByRole("region", { name: BLOCK });
 
@@ -115,14 +122,14 @@ test("Check these comes after Sources, with Ask and its comments", async () => {
     within(check).getByText("Settled without you. Object here before answering, if one is wrong."),
   ).toBeTruthy();
   expect(before(pane("Sources"), check)).toBe(true);
+  expect(before(check, document.getElementById("Q1")!)).toBe(true);
   for (const subject of [PROPOSAL, LIGHT_FLOW]) {
+    expect(within(check).getByRole("button", { name: `Ask about "${subject}"` })).toBeTruthy();
     expect(within(check).getByRole("button", { name: `Comment on "${subject}"` })).toBeTruthy();
   }
   // The comment on a point to check, whose subject no other point has, shows under it.
   const shown = within(check).getByRole("group", { name: `Your comment on "${LIGHT_FLOW}"` });
   expect(within(shown).getByText(comment)).toBeTruthy();
-  // No Ask without asking: the page passes none until the column's session asks.
-  expect(within(check).queryByRole("button", { name: "Ask" })).toBeNull();
 });
 
 /** US4 key 1: a point's actions, "Ask" when the page asks. */
@@ -131,7 +138,7 @@ test("a point's actions are Ask and its comment button", async () => {
   const onComment = vi.fn();
   render(<PointActions onAsk={onAsk} onComment={onComment} subject={LIGHT_FLOW} />);
 
-  await click(screen.getByRole("button", { name: "Ask" }));
+  await click(screen.getByRole("button", { name: `Ask about "${LIGHT_FLOW}"` }));
   await click(screen.getByRole("button", { name: `Comment on "${LIGHT_FLOW}"` }));
 
   expect(onAsk).toHaveBeenCalledWith(LIGHT_FLOW);

@@ -5,7 +5,7 @@
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atSize, drawn, show } from "./helpers.tsx";
+import { atSize, drawn, openNotes, show } from "./helpers.tsx";
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const QUESTION = "How does your iPhone reach the server?";
@@ -84,7 +84,16 @@ async function settledPoint() {
 test("a round's comments are 7 rows and its notes 12, empty or full (US6 1, 2, 4)", async () => {
   await show(ROUND, QUESTION);
   await checkRows(questionComment(), 7);
+  const notes = await openNotes();
   await checkRows(area("Anything else"), 12);
+  // On the phone, the notes' sheet closes before the page is tapped again.
+  if (window.innerWidth < 768) {
+    await userEvent.click(within(notes).getByRole("button", { name: "Close" }));
+    // Gone, the sheet gives the page its scroll back.
+    await expect.poll(() => screen.queryByRole("dialog", { name: "Notes" })).toBeNull();
+    await expect.poll(() => document.body.style.position).not.toBe("fixed");
+    await drawn();
+  }
 
   const point = await settledPoint();
   await userEvent.click(point, { force: true });
@@ -256,7 +265,8 @@ describe("on the desktop", () => {
 // as a line's does; the phone, with no such key, shows nothing.
 test("Ctrl+Enter saves shows beside a comment's, the notes', and the editor's Save on a wide screen", async () => {
   const shown = window.innerWidth >= 768 ? 1 : 0;
-  await show(ROUND, QUESTION);
+  // The notes' field shows in the column's Notes tab.
+  await show(`${ROUND}?tab=notes`, QUESTION);
   expect(within(document.getElementById("Q1")!).queryAllByText("Ctrl+Enter saves")).toHaveLength(
     shown,
   );

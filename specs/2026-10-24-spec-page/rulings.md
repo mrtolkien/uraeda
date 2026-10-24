@@ -146,3 +146,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   change, which marks Δ on a page nobody reviews.
 - **If wrong**: one condition in `while_waiting`.
 - **Where**: the wave 1 review's fixes of Task 2.
+
+## R12: The built parts' reading styles stay on the legacy list, in one file
+
+- **Decision**: splitting `spec/BuiltParts.tsx` moved its reading-size styles to
+  `spec/builtParts/shared.tsx`; the UI coherence lint test's legacy list names that file in place of
+  `spec/BuiltParts.tsx`, and every reading-size style of the built parts lives there.
+- **Rationale**: the styles moved unchanged in Task 6's split; the list keeps its length, one file
+  for one, and moving them to `Prose` would restyle the parts' text in the reading font, a change of
+  look outside the split.
+- **Alternatives considered**: `proseStyles.reading` for the parts' text now, which changes their
+  font.
+- **If wrong**: the file moves to `Prose` with the rest of the list's files.
+- **Where**: Task 6, `src/__tests__/lint.test.ts`.

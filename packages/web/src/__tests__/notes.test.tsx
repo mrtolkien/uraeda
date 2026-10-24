@@ -15,7 +15,8 @@ import {
 } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
-const PAGE = `/f/${FOLDER}/clarifications-01.md`;
+// The notes' field is in the column's Notes tab.
+const PAGE = `/f/${FOLDER}/clarifications-01.md?tab=notes`;
 const ROUND = `specs/${FOLDER}/clarifications-01.md`;
 const LINK = "![login](images/login.webp)";
 
@@ -66,6 +67,8 @@ function q1A() {
 }
 
 const notesField = () => screen.getByLabelText("Anything else") as HTMLTextAreaElement;
+/** The column's Notes tab, which holds the notes' field and its save status. */
+const notesTab = () => screen.getByRole("tabpanel", { name: "Notes" });
 const saveNotes = () => screen.getByRole("button", { name: "Save notes" });
 
 /** The page shown again, as after a reload: the store reads `localStorage` anew. */
@@ -99,7 +102,7 @@ test("notes typed are kept while the file changes, and not saved", async () => {
   await type(notesField(), "Keep the undo please");
 
   expect(notesField().value).toBe("Keep the undo please");
-  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(within(notesTab()).getByText("Unsaved changes")).toBeTruthy();
   // Another read of the file, the notes still not saved.
   answerQ1(repo);
   await refreshUntil(() => expect(q1A().checked).toBe(true));
@@ -115,7 +118,7 @@ test("Save notes writes the notes, and says saved", async () => {
   await click(saveNotes());
 
   await waitFor(() => expect(text(repo)).toContain("**Notes:** Keep the undo please"));
-  expect(await screen.findByText("saved ✓")).toBeTruthy();
+  expect(await within(notesTab()).findByText("saved ✓")).toBeTruthy();
   expect(notesField().value).toBe("Keep the undo please");
   expect(screen.queryByText("Unsaved changes")).toBeNull();
 });
@@ -133,15 +136,17 @@ test("unsaved notes stay as the round is answered elsewhere", async () => {
 });
 
 /** US1 4 */
-test("saved notes show once, in their field", async () => {
+test("saved notes show in their field, and once at the round's end", async () => {
   await renderPage(PAGE, roundWith("Keep the undo please"));
 
   expect((await screen.findByLabelText<HTMLTextAreaElement>("Anything else")).value).toBe(
     "Keep the undo please",
   );
-  expect(
-    screen.queryAllByText(/Keep the undo please/, { ignore: "textarea, script, style" }),
-  ).toHaveLength(0);
+  const shown = screen.queryAllByText(/Keep the undo please/, {
+    ignore: "textarea, script, style",
+  });
+  expect(shown).toHaveLength(1);
+  expect(screen.getByRole("region", { name: "Notes" }).contains(shown[0]!)).toBe(true);
 });
 
 /** US1 5 */
@@ -177,7 +182,7 @@ test("unsaved notes are restored after a reload, until discarded", async () => {
 
   expect(restored.value).toBe("Bigger icon");
   expect(screen.getByText("Unsaved text restored from 14:32.")).toBeTruthy();
-  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(within(notesTab()).getByText("Unsaved changes")).toBeTruthy();
   await click(screen.getByRole("button", { name: "Discard" }));
   expect(notesField().value).toBe("");
   expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
@@ -197,7 +202,7 @@ test("notes typed after a restored text was discarded show no notice", async () 
 
   await type(notesField(), "Smaller icon");
 
-  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(within(notesTab()).getByText("Unsaved changes")).toBeTruthy();
   expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
 });
 
@@ -214,7 +219,7 @@ test("notes typed after a restored text was saved show no notice", async () => {
 
   await type(notesField(), "Bigger icon, and bolder");
 
-  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(within(notesTab()).getByText("Unsaved changes")).toBeTruthy();
   expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
 });
 
@@ -231,7 +236,7 @@ test("notes typed are kept as the notes change on disk", async () => {
   await refreshUntil(() => expect(q1A().checked).toBe(true));
 
   expect(notesField().value).toBe("Bigger icon");
-  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(within(notesTab()).getByText("Unsaved changes")).toBeTruthy();
 });
 
 /** US5 3 */
@@ -281,7 +286,7 @@ test("notes whose save is refused are restored after a reload", async () => {
 
   await click(saveNotes());
 
-  expect(await screen.findByText(/^Not saved:/)).toBeTruthy();
+  expect(await within(notesTab()).findByText(/^Not saved:/)).toBeTruthy();
   expect(notesOnDisk(repo)).toBe("theirs");
   expect((await reload(repo)).value).toBe("mine");
   expect(screen.getByText(/^Unsaved text restored from/)).toBeTruthy();

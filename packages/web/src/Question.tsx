@@ -11,7 +11,6 @@ import { Blocks } from "./Blocks.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { OptionCard } from "./QuestionOption.tsx";
-import { plain } from "./Spans.tsx";
 import type { useAnswer } from "./useAnswer.ts";
 import { holdsStory, type Stories } from "./stories.tsx";
 
@@ -86,48 +85,28 @@ export function QuestionHead({
 }
 
 /**
- * A paragraph's spans without its lead, as "Example:" or "Why it matters:", which its pane's title
- * says, its first letter then capitalised. The core found the paragraph by its lead.
+ * The document with a question's example and why as their panes draw them: their spans as the core
+ * gives them, without the lead their pane's title says.
  */
-function withoutLead(spans: ReadonlyArray<Span>, lead: RegExp): Array<Span> {
-  let cut = lead.exec(plain(spans))?.[0].length ?? 0;
-  const rest: Array<Span> = [];
-  for (const span of spans) {
-    const text = span.text.slice(Math.min(cut, span.text.length));
-    cut -= span.text.length - text.length;
-    if (text || span.image) {
-      rest.push(rest.length === 0 ? { ...span, text: capitalised(text) } : { ...span, text });
-    }
-  }
-  return rest;
-}
-
-const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
-/** The leads of a question's example and why, which their panes' titles replace. */
-const EXAMPLE_LEAD = /^Example:\s*/;
-const WHY_LEAD = /^Why it matters:?\s*/;
-
-/** The document with a question's example and why without their leads, for their panes. */
 function useWithoutLeads(document: Document, question: QuestionItem) {
-  const { example, why } = question;
+  const { example, exampleText, why, whyText } = question;
   return useMemo(() => {
-    const leads = new Map<number, RegExp>();
+    const texts = new Map<number, Array<Span>>();
     if (example !== undefined) {
-      leads.set(example, EXAMPLE_LEAD);
+      texts.set(example, exampleText);
     }
     if (why !== undefined) {
-      leads.set(why, WHY_LEAD);
+      texts.set(why, whyText);
     }
-    if (leads.size === 0) {
+    if (texts.size === 0) {
       return document;
     }
     const blocks = document.blocks.map((block) => {
-      const lead = leads.get(block.id);
-      return lead ? { ...block, spans: withoutLead(block.spans, lead) } : block;
+      const spans = texts.get(block.id);
+      return spans ? { ...block, spans } : block;
     });
     return { ...document, blocks };
-  }, [document, example, why]);
+  }, [document, example, exampleText, why, whyText]);
 }
 
 /**

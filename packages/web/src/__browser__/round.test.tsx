@@ -1,6 +1,6 @@
-// US1 scenarios 6, 7, and 8, and the review's C3: on a wide screen, the round's index is a sticky
+// US1 scenarios 6, 7, and 8, and the review's C3: on a wide screen, the round's outline is in the
 // column beside the questions, `n` and `p` move between blank questions, Back returns to the same
-// question, and at a 1200 px window with the navigation open, the questions keep 600 px. The
+// question, and at a 1200 px window with the column open, the questions keep 600 px. The
 // clarifications redesign's US3: each question a card of two columns on a wide screen, one column
 // without a card on the phone, its title sticking at the top.
 import { act, screen, within } from "@testing-library/react";
@@ -62,9 +62,9 @@ function offset(id: string) {
 describe("on the desktop", () => {
   atSize("desktop");
 
-  test("the index is a column beside the questions, and n and p jump (US1 6, 7)", async () => {
+  test("the outline is in the column beside the questions, and n and p jump (US1 6, 7)", async () => {
     await show(PAGE, "How does your iPhone reach the server?");
-    const index = screen.getByRole("navigation", { name: "Questions" });
+    const index = screen.getByRole("navigation", { name: "Outline" });
     expect(index.textContent).toContain("0 of 3 answered");
     expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
     const question = document.getElementById("Q1")!.getBoundingClientRect();
@@ -136,10 +136,10 @@ describe("on the desktop", () => {
     await page.viewport(1200, 900);
     try {
       await show(PAGE, "How does your iPhone reach the server?");
-      // The shell's rail, with the index beside the questions.
+      // The shell's rail, with the column's outline beside the questions.
       const nav = screen.getByRole("navigation", { name: "Navigation" }).getBoundingClientRect();
       expect(Math.round(nav.width)).toBe(52);
-      expect(screen.getByRole("navigation", { name: "Questions" })).toBeTruthy();
+      expect(screen.getByRole("navigation", { name: "Outline" })).toBeTruthy();
       // The question's card holds its title inside its padding (R19): its content box, the
       // padding and the borders taken out, keeps the 600 px.
       expect(contentWidth(card("Q2"))).toBeGreaterThanOrEqual(600);
@@ -152,11 +152,14 @@ describe("on the desktop", () => {
 describe("question cards on the desktop", () => {
   atSize("desktop");
 
-  test("each question's options start to the right of its title, beside the sidebar and the index (US3.1, SC-001)", async () => {
+  test("each question's options start to the right of its title, beside the sidebar and the folded column (US3.1, SC-001)", async () => {
     await show(PAGE, "How does your iPhone reach the server?");
     const priorities = screen.getByRole("link", { name: "Priorities" }).getBoundingClientRect();
     expect(priorities.width).toBeGreaterThan(100);
-    expect(screen.getByRole("navigation", { name: "Questions" })).toBeTruthy();
+    // Beside the open column, a card is under 840 px and does not split: `]` folds it.
+    await userEvent.click(screen.getByRole("heading", { level: 1 }));
+    await userEvent.keyboard("]");
+    await expect.poll(() => card("Q1").getBoundingClientRect().width).toBeGreaterThan(840);
     // Q1's follow-up shows once B is picked.
     await userEvent.click(optionsOf("Q1")[1]!);
     await expect.poll(() => document.getElementById("Q1.B")).toBeTruthy();

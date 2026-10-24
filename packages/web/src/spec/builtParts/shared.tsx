@@ -1,6 +1,6 @@
 // What the parts after the stories share: their rows' and pills' styles, and how a part draws its
 // blocks in their order, those it does not draw its own way as the spec's blocks.
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Block } from "uraeda-binding";
@@ -9,6 +9,13 @@ import { Selectable } from "../../Selection.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
 
 export const builtStyles = stylex.create({
+  fold: {
+    // The niche cases' toggle, at the reading size, its row a control's height for a finger.
+    alignItems: "center",
+    display: "flex",
+    fontSize: "var(--text-reading-size)",
+    minHeight: sizeVars["--size-element-md"],
+  },
   list: {
     listStyleType: "none",
     margin: 0,

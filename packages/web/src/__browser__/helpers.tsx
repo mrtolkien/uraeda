@@ -33,6 +33,19 @@ let turn: number | undefined;
 /** The name of the test's repository: its pages are under `/r/<name>/`. */
 let name = "";
 
+/**
+ * Opens a round's notes' field, and returns what holds it: the column's Notes tab on a wide screen,
+ * the sheet the status line's Notes opens on the phone.
+ */
+export async function openNotes() {
+  if (window.innerWidth < 768) {
+    await userEvent.click(screen.getByRole("button", { name: "Notes" }));
+    return screen.findByRole("dialog", { name: "Notes" });
+  }
+  await userEvent.click(screen.getByRole("tab", { name: "Notes" }));
+  return screen.findByRole("tabpanel", { name: "Notes" });
+}
+
 /** The name of the test's repository in the test server's list. */
 export function repository(): string {
   return name;

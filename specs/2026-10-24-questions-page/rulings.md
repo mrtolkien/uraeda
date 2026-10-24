@@ -145,8 +145,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `SideColumn` takes either a `storageKey`, Astryx keeping its width as before, or a
   `width` its caller keeps; the document's column passes one from `useDocumentColumnWidth`, which
   follows the window until dragged and keeps the width and the fold under `uraeda.documentColumn`,
-  as the shell's column does in `shell/columnWidth.ts`. `SideColumn` also takes a `header`, the
-  tabs, in place of its name.
+  as the shell's column does, both through `useFollowedWidth` in `layout/followedWidth.ts`.
+  `SideColumn` also takes a `header`, the tabs, in place of its name.
 - **Rationale**: Astryx's kept width cannot follow the window until dragged, as the spec asks: it
   saves every resize, the window's too. The session's Progress column, the spec's Contents, and the
   round's temporary Session column keep their stored widths and keys unchanged.
@@ -157,19 +157,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   gives it its limits.
 - **Where**: Task 4.
 
-## R13: The Example and Why panes drop their lead in the page
+## R13: The core gives the Example and Why panes their text without the lead
 
 - **Decision**: the core gives the "Example:" and "Why it matters" paragraphs as blocks, found by
-  their lead; the question card draws them without the lead, which their pane's title says, by
-  cutting that many characters off the block's spans and capitalising what follows.
-- **Rationale**: the plan asks for their text "without the 'Example:' or 'Why it matters:' lead";
-  the core already decided which block holds them, so the page reads no markdown, only trims a label
-  it was told is there.
-- **Alternatives considered**: a `lead` length or trimmed spans from the core, a change to
-  `QuestionItem` that Task 2 had already shipped, for one line of the page.
-- **If wrong**: have the core give the paragraph's spans without their lead, and drop `withoutLead`
-  from `Question.tsx`.
-- **Where**: Task 5.
+  their lead, and their spans without it, `exampleText` and `whyText`: the lead, the white space and
+  the one ":", "." or "—" after it dropped, the first letter capitalised. The question card draws
+  those spans in the paragraph's place, under the pane's title that says the lead.
+- **Rationale**: the stack decision keeps parsing workflow text in the core; the page first trimmed
+  the lead itself, by a rule of its own that differed from the core's, so "Why it matters. It
+  decides" drew as ". It decides".
+- **Alternatives considered**: the page trimming the lead, as Task 5 first built, a second reading
+  of the format; a `lead` length from the core, which leaves the page to cut and capitalise.
+- **If wrong**: drop the two fields and draw the paragraphs whole, their lead included.
+- **Where**: Task 5, fixed in its review.
 
 ## R14: On the phone, an option's text sits 10.6 px from the screen's edge
 
@@ -228,3 +228,72 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   second tap after a reload would be taken for the same visit.
 - **If wrong**: give Today an open state the page holds, and let the outline set it.
 - **Where**: Task 7.
+
+## R18: The core counts a settled group's points, and a group without any draws nothing
+
+- **Decision**: `SettledGroup.points` gives how many items of a group's lists start in bold, by the
+  rule that finds `settledPoints`; the outline's rows and the panes' counts read it. A Behaviour or
+  Under the hood group without points draws no pane and has no row, as Check these already had none;
+  "Settled without you" shows only over a group that draws.
+- **Rationale**: the page and the outline each counted every item, while only items starting in bold
+  are points that take comments; a count kept in the core is one rule, not a second reading of the
+  lists. A group drawn by the page and missing from the outline, or the other way, left a part the
+  outline could not reach.
+- **Alternatives considered**: a web helper grouping `settledPoints` by the list each lies in, which
+  rebuilds in the page what the core already knows.
+- **If wrong**: draw empty groups again, and give them their row with a count of 0.
+- **Where**: Tasks 6 and 7, fixed in their review.
+
+## R19: An outline row's name says its state in words
+
+- **Decision**: a question's row shows ✓ or ○ before its id, hidden from its name, which ends with
+  "(answered)" or "(unanswered)", hidden from the eye.
+- **Rationale**: a name starting with a glyph reads as "check mark Q2" or "white circle Q3" and
+  sorts every row under two letters a screen reader's row search cannot type.
+- **Alternatives considered**: the state as the row's description, which Astryx's `ListItem` has no
+  prop for.
+- **If wrong**: drop the hidden words and let the glyph be read.
+- **Where**: Task 7, fixed in its review.
+
+## R20: The phone keeps its list of questions under the block
+
+- **Decision**: on narrow screens, a round waiting for answers still lists its questions under its
+  block, before its context, as the questions-first change asked; `RoundIndex` moves from the
+  deleted `RoundNav.tsx` into `RoundOutline.tsx` and draws the outline's question rows, with their
+  names of R19. The status line's count opens the whole outline in a sheet.
+- **Rationale**: the spec does not remove that list, and the
+  [questions-first change](/specs/done/2026-10-17-questions-first.md) was the human's request: a
+  phone shows every question before the first is answered. Deleting `RoundNav.tsx` would have
+  dropped it silently.
+- **Alternatives considered**: the outline's sheet alone, as the mockup draws the phone, which
+  undoes a merged request no spec revisited.
+- **If wrong**: drop `RoundIndex` and its three tests in `round.test.tsx`.
+- **Where**: Task 8.
+
+## R21: `n` and `p` are the page's, whatever the column's tab
+
+- **Decision**: the round page's column registers `n` and `p` on wide screens (`useBlankKeys` in
+  `RoundOutline.tsx`), not the outline: they work with Notes or Session open. `RoundOutline`'s
+  `isActive` now only makes it follow the page's scroll, and Next or Submit is `NextOrSubmit`,
+  shared by the outline and the phone's status line.
+- **Rationale**: the clarifications' answer A says "the status line and `n` still work" with the
+  session open, and the settled point keeps the keys "as today"; the Outline tab's panel is not
+  mounted while another tab shows.
+- **Alternatives considered**: the keys in the outline, lost whenever another tab opens.
+- **If wrong**: register the keys in `RoundOutline` again, with `isActive`.
+- **Where**: Task 8.
+
+## R22: The notes' field is drawn in the Notes tab or sheet only
+
+- **Decision**: the notes' field, "Anything else", with its Save notes, its images, and its restore
+  notice, is drawn only in the column's Notes tab, or the phone's Notes sheet; the round's end, a
+  region "Notes", shows the notes as typed, read-only, with "Unsaved changes" while unsaved, and
+  "Edit notes" or "Write a note", which opens the tab, or the sheet, its field focused. An image
+  dropped with no field focused still goes to the notes: it opens them, and the field adds it once
+  drawn (`useNotesDrop`). The tests that type in the notes open `?tab=notes`.
+- **Rationale**: the spec's assumption: "The round's end shows the notes read-only, with 'Edit
+  notes'"; the field is one, held by the page above the column (`useRoundNotes`), so its text stays
+  as the tab, the sheet, or the width changes.
+- **Alternatives considered**: a second field at the round's end, two fields over one text.
+- **If wrong**: draw `NotesField` in `RoundEnd` again, beside the tab's.
+- **Where**: Task 8.

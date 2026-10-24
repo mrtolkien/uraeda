@@ -1,19 +1,12 @@
 // Questions page US2: the outline lists the whole round, every part of it in the page's order, and
 // `n` goes to the next blank question, follow-ups included. US4 more 2: a round without points to
 // check has no "Check these" row.
-//
-// Until the round page draws the outline in its column, the test draws it beside the page, over
-// the round the core reads from the same repository: the page draws the parts it jumps to. The page
-// is drawn on the phone, where its own navigation has no `n` and `p` (R16).
-import { readFileSync, writeFileSync } from "node:fs";
+// The outline is the round page's own: in its column's Outline tab on wide screens, in a sheet
+// from the status line on the phone.
+import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { useState } from "react";
-import { expect, test } from "vite-plus/test";
-import { readFile } from "uraeda-binding";
-import { followUpsOf } from "../QuestionCards.tsx";
-import type { NavQuestion } from "../roundJump.ts";
-import { OutlineSheet, RoundOutline } from "../RoundOutline.tsx";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { expect, test, vi } from "vite-plus/test";
 import { atWidth, click, fixture, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
@@ -43,37 +36,11 @@ function round(text: string, answers: Record<string, string> = {}) {
   return repo;
 }
 
-/** The round's page on the phone, and the round as the core reads it, with its questions. */
-async function roundPage(repo: string) {
-  atWidth(402);
+/** The round's page on a wide screen, and its outline in the column. */
+async function outline(repo: string) {
   await renderPage(PAGE, repo);
   await screen.findAllByText(/Who may move a chat up to a change/);
-  const file = await readFile(repo, FOLDER, NAME);
-  const round = file.current.items.clarifications!;
-  const questions: Array<NavQuestion> = round.questions
-    .flatMap((q) => (q.parent ? [] : [q, ...followUpsOf(round.questions, q.id)]))
-    .map((q) => ({
-      answered: q.answer.trim() !== "",
-      id: q.id,
-      level: q.parent ? 2 : 1,
-      title: q.title,
-    }));
-  return { document: file.current.document, questions, round };
-}
-
-/** The round's page on the phone, and its outline drawn beside it. */
-async function outline(repo: string) {
-  const parts = await roundPage(repo);
-  await act(async () => {
-    render(<RoundOutline isActive onSubmit={() => {}} {...parts} />);
-  });
   return screen.getByRole("navigation", { name: "Outline" });
-}
-
-/** The phone's outline sheet over the round's page, open until a row closes it. */
-function Sheet(parts: Omit<Parameters<typeof OutlineSheet>[0], "isOpen" | "onClose">) {
-  const [isOpen, setOpen] = useState(true);
-  return <OutlineSheet isOpen={isOpen} onClose={() => setOpen(false)} {...parts} />;
 }
 
 /** The outline's rows, by their text. */
@@ -107,13 +74,18 @@ test("the outline lists the whole round (US2 key 3)", async () => {
     "Under the hood · 3",
     "Notes and submit",
   ]);
-  expect(rows(nav)[7]).toBe("✓ Q2 Where does a new chat work?");
+  // A question's row shows its state by a glyph, which its name leaves for words.
+  expect(rows(nav)[7]).toMatch(/^✓ Q2 Where does a new chat work\?/);
+  expect(
+    within(nav).getByRole("button", { name: "Q2 Where does a new chat work? (answered)" }),
+  ).toBeTruthy();
+  expect(within(nav).getByRole("button", { name: /^Q1 .*\(unanswered\)$/ })).toBeTruthy();
 });
 
 test("n goes to the next blank question, follow-ups included (US2 more 2)", async () => {
   const nav = await outline(round(MERGE_CHATS, { Q1: "A", Q2: "A" }));
 
-  await click(within(nav).getByRole("button", { name: /^✓ Q1 / }));
+  await click(within(nav).getByRole("button", { name: /^Q1 .*\(answered\)$/ }));
   await act(async () => {
     fireEvent.keyDown(document.body, { key: "n" });
   });
@@ -121,12 +93,21 @@ test("n goes to the next blank question, follow-ups included (US2 more 2)", asyn
   expect(document.activeElement?.textContent).toContain("What may a chat change on your main");
 });
 
-test("a tap on Today asks the page to open it, by the address", async () => {
+test("a tap on Today opens it, by the address, and brings it to the top", async () => {
   const nav = await outline(round(MERGE_CHATS));
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
 
   await click(within(nav).getByRole("button", { name: "Today" }));
 
   expect(window.location.hash).toBe("#today");
+  const today = screen.getByRole("region", { name: "Today" });
+  await waitFor(() =>
+    expect(
+      within(today).getByText(/^A change becomes a feature through a round of questions\./),
+    ).toBeTruthy(),
+  );
+  await waitFor(() => expect(scrolled.mock.contexts.at(-1)).toBe(today));
 });
 
 test("no Check these without points (US4 more 2)", async () => {
@@ -137,17 +118,64 @@ test("no Check these without points (US4 more 2)", async () => {
 });
 
 test("on the phone, the outline's sheet closes on a tap, then goes there (US2 more 3)", async () => {
-  const parts = await roundPage(round(MERGE_CHATS, { Q1: "A" }));
-  await act(async () => {
-    render(<Sheet {...parts} />);
-  });
+  atWidth(402);
+  await renderPage(PAGE, round(MERGE_CHATS, { Q1: "A" }));
+  await click(await screen.findByRole("button", { name: "1/7" }));
   const sheet = await screen.findByRole("dialog", { name: "Outline" });
   expect(sheet.textContent).toContain("1 of 7 answered");
 
-  await click(within(sheet).getByRole("button", { name: /^○ Q3 / }));
+  await click(within(sheet).getByRole("button", { name: /^Q3 .*\(unanswered\)$/ }));
 
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Outline" })).toBeNull());
   await waitFor(() =>
     expect(document.activeElement?.textContent).toContain("Does the chat's conversation become"),
   );
+});
+
+test("a triage's Context row brings its free context to the top", async () => {
+  const repo = fixtureRepo();
+  copyFileSync(fixture("INBOX-TRIAGE.md"), join(repo, "specs/INBOX-TRIAGE.md"));
+  git(repo, "add", "specs/INBOX-TRIAGE.md");
+  git(repo, "commit", "--quiet", "-m", "chore: propose an inbox triage");
+  await renderPage("/inbox/triage", repo, { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
+
+  await click(
+    within(screen.getByRole("navigation", { name: "Outline" })).getByRole("button", {
+      name: "Context",
+    }),
+  );
+
+  expect(scrolled).toHaveBeenCalledOnce();
+  expect(scrolled.mock.contexts[0]).toBe(screen.getByRole("region", { name: "Context" }));
+});
+
+/** A Behaviour item that does not start in bold: no point, so no comment and no count. */
+const THIRD_POINT = "- **The upgraded change's entry** goes";
+const NOT_A_POINT = "- The upgraded change's entry goes";
+
+test("a group counts only its points, in its pane and in the outline", async () => {
+  const nav = await outline(round(MERGE_CHATS.replace(THIRD_POINT, NOT_A_POINT)));
+
+  expect(rows(nav)).toContain("Behaviour · 2");
+  const behaviour = screen.getByRole("region", { name: "Behaviour" });
+  expect(within(behaviour).getByRole("heading").textContent).toContain("· 2");
+});
+
+test("a group without points has no pane and no row", async () => {
+  const behaviour = MERGE_CHATS.slice(
+    MERGE_CHATS.indexOf("### Behaviour"),
+    MERGE_CHATS.indexOf("### Under the hood"),
+  );
+  const nav = await outline(
+    round(
+      MERGE_CHATS.replace(behaviour, behaviour.replaceAll("- **", "- ").replaceAll("** ", " ")),
+    ),
+  );
+
+  expect(rows(nav).some((row) => row.startsWith("Behaviour"))).toBe(false);
+  expect(screen.queryByRole("region", { name: "Behaviour" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Under the hood" })).toBeTruthy();
 });

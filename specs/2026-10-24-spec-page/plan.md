@@ -676,12 +676,12 @@ candidates, and the decisions check.
 
 ## Task 8: Catch up with the questions page
 
-- [ ] **Step 1: Merge the questions page's branch** (`git merge 2026-10-24-questions-page`), keeping
+- [x] **Step 1: Merge the questions page's branch** (`git merge 2026-10-24-questions-page`), keeping
       both sides' code; a conflict in a file this plan's tasks changed keeps both behaviours, and a
       conflict needing a choice the specs do not settle is a reason to stop.
-- [ ] **Step 2: Run the validation**: `nix develop -c vp run ready`. Expected: PASS, or failures the
+- [x] **Step 2: Run the validation**: `nix develop -c vp run ready`. Expected: PASS, or failures the
       questions page's branch already has, written in the merge commit's body.
-- [ ] **Step 3: Check this box and commit** with the merge.
+- [x] **Step 3: Check this box and commit** with the merge.
 
 ## Task 9: The spec's parts in panes
 

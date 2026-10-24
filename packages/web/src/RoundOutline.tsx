@@ -1,17 +1,20 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
+import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import type { Document, RoundItems, SettledGroup, SettledKind } from "uraeda-binding";
 import { Overlay } from "./layout/Overlay.tsx";
 import { openAnchor } from "./routeHistory.ts";
+import { PART_IDS } from "./roundPartIds.ts";
 import {
   afterSheetCloses,
   endJump,
@@ -27,6 +30,9 @@ const styles = stylex.create({
   action: {
     // Next or Submit keeps its width beside the count: its label is never cut.
     flexShrink: 0,
+  },
+  inPage: {
+    marginBlockEnd: spacingVars["--spacing-6"],
   },
   label: {
     // A row's text wraps: no title is cut.
@@ -48,8 +54,10 @@ const styles = stylex.create({
 type Row = {
   id: string;
   label: string;
-  /** Before the label, for a part: what kind of part it is. A question's state is its label's. */
+  /** Before the label, for a part: what kind of part it is. */
   mark?: string;
+  /** A question's state: a glyph before its label, and words at the end of its name. */
+  state?: "answered" | "unanswered";
   /** Under the row before it: a part of the context, a follow-up under its question. */
   sub?: boolean;
   tone?: "warning";
@@ -57,35 +65,38 @@ type Row = {
 
 /** The parts the page draws for each kind of settled group, by their ids, and their rows' names. */
 const GROUPS: Record<SettledKind, { id: string; label: string; mark: string }> = {
-  behaviour: { id: "behaviour", label: "Behaviour", mark: "·" },
-  check: { id: "check-these", label: "Check these", mark: "⚑" },
-  hood: { id: "under-the-hood", label: "Under the hood", mark: "·" },
+  behaviour: { id: PART_IDS.behaviour, label: "Behaviour", mark: "·" },
+  check: { id: PART_IDS.check, label: "Check these", mark: "⚑" },
+  hood: { id: PART_IDS.hood, label: "Under the hood", mark: "·" },
 };
 
 /** The part that opens through the address, as a link to it does: Today, folded to its title. */
 const OPENS_BY_ADDRESS = new Set(["today"]);
 
-/** A group's points: the items of its lists. */
-const pointCount = (document: Document, group: SettledGroup) =>
-  document.blocks.filter(
-    (b) => b.kind === "item" && b.parent !== undefined && group.blocks.includes(b.parent),
-  ).length;
-
-/** A settled group's row, none for a group without points. */
-function groupRow(document: Document, group: SettledGroup | undefined): Array<Row> {
-  const count = group ? pointCount(document, group) : 0;
-  if (!group || count === 0) {
+/** A settled group's row, none for a group without points, as the page draws no pane for it. */
+function groupRow(group: SettledGroup | undefined): Array<Row> {
+  if (!group || group.points === 0) {
     return [];
   }
   const { id, label, mark } = GROUPS[group.kind];
   return [
     {
       id,
-      label: `${label} · ${count}`,
+      label: `${label} · ${group.points}`,
       mark,
       ...(group.kind === "check" ? { tone: "warning" } : {}),
     },
   ];
+}
+
+/** The questions' rows, follow-ups under their parent. */
+function questionRows(questions: ReadonlyArray<NavQuestion>): Array<Row> {
+  return questions.map((q) => ({
+    id: q.id,
+    label: `${q.id} ${q.title}`,
+    state: q.answered ? "answered" : "unanswered",
+    sub: q.level === 2,
+  }));
 }
 
 /**
@@ -97,24 +108,26 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
   const opening: Array<Row> = [
     ...(round.block === undefined
       ? []
-      : [{ id: "summary", label: round.verdict ? "Verdict and summary" : "Summary", mark: "!" }]),
+      : [
+          {
+            id: PART_IDS.summary,
+            label: round.verdict ? "Verdict and summary" : "Summary",
+            mark: "!",
+          },
+        ]),
     ...round.context.map((part) => {
       const anchor = part.heading === undefined ? undefined : document.blocks[part.heading]?.anchor;
       return anchor
         ? { id: anchor, label: part.title, mark: "·", sub: true }
-        : { id: "context", label: "Context", mark: "·", sub: true };
+        : { id: PART_IDS.context, label: "Context", mark: "·", sub: true };
     }),
-    ...groupRow(document, group("check")),
+    ...groupRow(group("check")),
   ];
-  const asked: Array<Row> = questions.map((q) => ({
-    id: q.id,
-    label: `${q.answered ? "✓" : "○"} ${q.id} ${q.title}`,
-    sub: q.level === 2,
-  }));
+  const asked = questionRows(questions);
   const end: Array<Row> = [
-    ...groupRow(document, group("behaviour")),
-    ...groupRow(document, group("hood")),
-    { id: "notes", label: "Notes and submit", mark: "✎" },
+    ...groupRow(group("behaviour")),
+    ...groupRow(group("hood")),
+    { id: PART_IDS.notes, label: "Notes and submit", mark: "✎" },
   ];
   return [opening, asked, end].filter((run) => run.length > 0);
 }
@@ -150,7 +163,13 @@ function Rows({
           <ListItem
             isSelected={row.id === current}
             key={row.id}
-            label={<span {...stylex.props(styles.label)}>{row.label}</span>}
+            label={
+              <span {...stylex.props(styles.label)}>
+                {row.state && <span aria-hidden>{row.state === "answered" ? "✓ " : "○ "}</span>}
+                {row.label}
+                {row.state && <VisuallyHidden> ({row.state})</VisuallyHidden>}
+              </span>
+            }
             onClick={() => onPick(row.id)}
             {...(row.mark
               ? {
@@ -169,40 +188,13 @@ function Rows({
   ));
 }
 
-/** "N of M answered". */
-const countOf = (questions: ReadonlyArray<NavQuestion>) =>
-  `${questions.filter((q) => q.answered).length} of ${questions.length} answered`;
-
 /**
- * The round's outline: how many questions are answered, Next, which goes to the next blank
- * question, or Submit once none is, then every part of the round, its questions with their
- * follow-ups under them, the part at the top marked. A row brings its part to the top. While
- * `isActive`, it follows the page's scroll, and `n` and `p` go to the next and previous blank
- * question. `onSubmit` takes the page to its end.
+ * Jumps to the round's blank questions: `next`, the first blank one after the one at the top, the
+ * first one when `wrap`, and `previous`, the last blank one before it.
  */
-export function RoundOutline({
-  document,
-  isActive,
-  onSubmit,
-  questions,
-  round,
-}: {
-  document: Document;
-  isActive: boolean;
-  onSubmit: () => void;
-  questions: ReadonlyArray<NavQuestion>;
-  round: RoundItems;
-}) {
-  const runs = rowsOf(round, document, questions);
-  const parts = runs.flat().map((row) => row.id);
-  const current = useQuestionAtTop(parts, isActive);
+export function useBlankJumps(questions: ReadonlyArray<NavQuestion>) {
   const ids = questions.map((q) => q.id);
-  const answered = questions.filter((q) => q.answered).length;
   const blank = questions.filter((q) => !q.answered);
-  // A jump under way ends with the outline: the next round's starts from its own top.
-  useEffect(() => endJump, []);
-
-  /** The first blank question after the one at the top, the first one when `wrap`. */
   const next = (wrap: boolean) => {
     const from = ids.indexOf(questionJumpedTo(ids) ?? "");
     const target = questions.find((q, index) => index > from && !q.answered) ?? (wrap && blank[0]);
@@ -220,39 +212,103 @@ export function RoundOutline({
       jumpTo(target.id);
     }
   };
+  return { blank, next, previous };
+}
+
+/**
+ * `n` and `p`, to the next and previous blank question, while `isActive`, whatever the column's
+ * open tab, and the status line's hint for them. A jump under way ends with the page: the next
+ * round's starts from its own top.
+ */
+export function useBlankKeys(questions: ReadonlyArray<NavQuestion>, isActive: boolean) {
+  const { next, previous } = useBlankJumps(questions);
+  useEffect(() => endJump, []);
   useHotkeys([
     { isDisabled: !isActive, keys: "n", onPress: () => next(false) },
     { isDisabled: !isActive, keys: "p", onPress: previous },
   ]);
   useStatusHints(isActive ? [{ keys: "n p", label: "unanswered" }] : []);
+}
+
+/** Next, to the next blank question, or Submit once none is, which `onSubmit` does. */
+export function NextOrSubmit({
+  onSubmit,
+  questions,
+}: {
+  onSubmit: () => void;
+  questions: ReadonlyArray<NavQuestion>;
+}) {
+  const { blank, next } = useBlankJumps(questions);
+  return blank.length ? (
+    <Button label="Next" onClick={() => next(true)} variant="primary" xstyle={styles.action} />
+  ) : (
+    <Button label="Submit" onClick={onSubmit} variant="primary" xstyle={styles.action} />
+  );
+}
+
+/** "N of M answered". */
+const countOf = (questions: ReadonlyArray<NavQuestion>) =>
+  `${questions.filter((q) => q.answered).length} of ${questions.length} answered`;
+
+/**
+ * The round's outline: how many questions are answered, Next, which goes to the next blank
+ * question, or Submit once none is, then every part of the round, its questions with their
+ * follow-ups under them, the part at the top marked. A row brings its part to the top. While
+ * `isActive`, it follows the page's scroll. `onSubmit` takes the page to its end.
+ */
+export function RoundOutline({
+  document,
+  isActive,
+  onSubmit,
+  questions,
+  round,
+}: {
+  document: Document;
+  isActive: boolean;
+  onSubmit: () => void;
+  questions: ReadonlyArray<NavQuestion>;
+  round: RoundItems;
+}) {
+  const runs = rowsOf(round, document, questions);
+  const parts = runs.flat().map((row) => row.id);
+  const current = useQuestionAtTop(parts, isActive);
+  const { blank } = useBlankJumps(questions);
 
   return (
     <nav aria-label="Outline">
       <VStack gap={3}>
         <HStack align="center" gap={2} justify="between">
           <Text weight="semibold">{countOf(questions)}</Text>
-          {blank.length ? (
-            <Button
-              label="Next"
-              onClick={() => next(true)}
-              variant="primary"
-              xstyle={styles.action}
-            />
-          ) : (
-            <Button label="Submit" onClick={onSubmit} variant="primary" xstyle={styles.action} />
-          )}
+          <NextOrSubmit onSubmit={onSubmit} questions={questions} />
         </HStack>
         <ProgressBar
           isLabelHidden
           label="Questions answered"
           max={questions.length}
-          value={answered}
+          value={questions.length - blank.length}
         />
         <Rows current={current ?? parts[0]} onPick={goTo} runs={runs} />
         <Text color="secondary" type="supporting">
           n / p: next / previous unanswered
         </Text>
       </VStack>
+    </nav>
+  );
+}
+
+/**
+ * On narrow screens, the round's questions at its start, under its block: the human sees every
+ * question before answering the first, and a later one's answer does not go into an earlier
+ * comment. A row brings its question to the top.
+ */
+export function RoundIndex({ questions }: { questions: ReadonlyArray<NavQuestion> }) {
+  const title = useId();
+  return (
+    <nav aria-labelledby={title} {...stylex.props(styles.inPage)}>
+      <Heading id={title} level={2}>
+        Questions
+      </Heading>
+      <Rows current={undefined} onPick={(id) => jumpTo(id)} runs={[questionRows(questions)]} />
     </nav>
   );
 }

@@ -1,19 +1,19 @@
 import * as stylex from "@stylexjs/stylex";
-import { type RefObject, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
-import { WithSessionColumn } from "./ColumnSession.tsx";
 import { CandidatesContext } from "./decisions/Candidates.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Band, followUpsOf, QuestionCards } from "./QuestionCards.tsx";
 import { RoundOpening } from "./RoundOpening.tsx";
-import { type NavQuestion, RoundIndex, RoundNav } from "./RoundNav.tsx";
+import { RoundColumn, useRoundActions } from "./RoundColumn.tsx";
+import type { NavQuestion } from "./roundJump.ts";
+import { RoundIndex } from "./RoundOutline.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
 import { isDefaultRound, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
 import { useRepositoryPath } from "./routes.tsx";
-import { askAbout, quoted } from "./sessions.ts";
 import { SettledPoints } from "./SettledPoints.tsx";
 import { PendingSaves } from "./useAnswer.ts";
 import { useDraft } from "./useDraft.ts";
@@ -23,21 +23,9 @@ import { type useFile, useAgent } from "./data.ts";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 const styles = stylex.create({
-  columns: {
-    // On wide screens, the questions and the index beside them, side by side in the middle.
-    alignItems: "flex-start",
-    display: "flex",
-    justifyContent: "center",
-  },
   measure: {
     // The round's reading text, a default-branch round's too, holds to the round's measure.
     "--size-reading-measure": "var(--size-round-measure)",
-  },
-  questions: {
-    flexGrow: 1,
-    flexShrink: 1,
-    maxWidth: "var(--size-page-max)",
-    minWidth: 0,
   },
 });
 
@@ -49,7 +37,6 @@ const styles = stylex.create({
  */
 export function RoundPage({ file, target }: { file: File; target: RoundTarget }) {
   const agent = useAgent();
-  const onDefaultBranch = isDefaultRound(target);
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const readOnly = file.status !== "awaiting-human";
@@ -73,78 +60,119 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const blank = questions.filter((q) => q.asked && !q.answer.trim() && !typed.has(keyOf(q)));
   const nav = navOf(questions);
   useRoundPosition(file.folder, file.name, nav);
-  // The session's draft, kept by the page while its column comes and goes.
+  // The session's draft, kept by the page while its column comes and goes, for a feature whose
+  // agent can be asked.
   const draft = useDraft();
+  const actions = useRoundActions(
+    file,
+    agent?.available && !isDefaultRound(target) ? draft : undefined,
+  );
   if (!round) {
     return null;
   }
 
   const toEnd = () => toSubmit(end, submitRow);
-  // The round's navigation, while it waits on answers: a column on wide screens, else the top bar
-  // and the in-page index after the block.
-  const navigates = !readOnly && nav.length > 0;
-
-  /** Opens the feature's session with a question's title quoted. */
-  const ask = (question: { id: string; title: string }) =>
-    askAbout(file.folder, quoted(`About ${question.id} of ${file.path}:`, [question.title]));
-
   const content = (
-    <div {...stylex.props(styles.measure)}>
-      <RoundOpening
-        document={document}
-        round={round}
-        {...(onDefaultBranch ? {} : { crumbs: { folder: file.folder, name: file.name } })}
-      >
-        {navigates && !wide && <RoundIndex questions={nav} />}
-      </RoundOpening>
-      <QuestionCards
-        document={document}
-        path={file.path}
-        questions={questions}
-        readOnly={readOnly}
-        takes={file.takesImages}
-        target={target}
-        {...(agent?.available && !onDefaultBranch ? { onAsk: ask } : {})}
-      />
-      {/* On the phone, a band before the settled points, which a wide screen draws in a card. */}
-      {!wide && round.settledGroups.length > 0 && <Band />}
-      <SettledPoints file={file} readOnly={readOnly} />
+    <RoundBody
+      file={file}
+      index={!readOnly && !wide && <RoundIndex questions={nav} />}
+      readOnly={readOnly}
+      target={target}
+      {...(actions.asks ? { onAsk: actions.asks } : {})}
+    >
       <RoundEnd
         blank={blank}
         end={end}
         file={file}
         notes={notes}
+        onEditNotes={actions.editNotes}
         readOnly={readOnly}
         submitRow={submitRow}
         submitting={submitting}
         target={target}
       />
-    </div>
+    </RoundBody>
   );
 
   return (
     <RoundHash value={hash}>
       <CandidatesContext value={file.candidates}>
         <PendingSaves value={pending}>
-          <WithSessionColumn
-            draft={draft}
-            folder={file.folder}
-            isAvailable={agent?.available === true && !onDefaultBranch}
-          >
-            {navigates ? (
-              <div {...stylex.props(wide && styles.columns)}>
-                <div {...stylex.props(styles.questions)}>
-                  <Page>{content}</Page>
-                </div>
-                <RoundNav onSubmit={toEnd} questions={nav} />
-              </div>
-            ) : (
-              <Page>{content}</Page>
-            )}
-          </WithSessionColumn>
+          {readOnly ? (
+            <Page>{content}</Page>
+          ) : (
+            // While the round waits on answers, its column beside it.
+            <RoundColumn
+              actions={actions}
+              content={<Page>{content}</Page>}
+              draft={actions.asks && draft}
+              file={file}
+              nav={nav}
+              notes={notes}
+              onSubmit={toEnd}
+            />
+          )}
         </PendingSaves>
       </CandidatesContext>
     </RoundHash>
+  );
+}
+
+/**
+ * The round's page itself: its opening, `index` after its block and its points to check after its
+ * context, its questions, its other settled points, then `children`, its end. `onAsk` asks the
+ * agent about a question or a point.
+ */
+function RoundBody({
+  children,
+  file,
+  index,
+  onAsk,
+  readOnly,
+  target,
+}: {
+  children: ReactNode;
+  file: File;
+  index: ReactNode;
+  onAsk?: {
+    point: (subject: string) => void;
+    question: (question: { id: string; title: string }) => void;
+  };
+  readOnly: boolean;
+  target: RoundTarget;
+}) {
+  const wide = !isNarrow(useWidthClass());
+  const round = file.current.items.clarifications;
+  const document = file.current.document;
+  if (!round) {
+    return null;
+  }
+  const asks = onAsk ? { onAsk: onAsk.point } : {};
+  // On the phone, a band before the settled points of the end, which a wide screen draws in panes.
+  const ends = round.settledGroups.some((group) => group.kind !== "check" && group.points > 0);
+  return (
+    <div {...stylex.props(styles.measure)}>
+      <RoundOpening
+        check={<SettledPoints file={file} part="check" readOnly={readOnly} {...asks} />}
+        document={document}
+        round={round}
+        {...(isDefaultRound(target) ? {} : { crumbs: { folder: file.folder, name: file.name } })}
+      >
+        {index}
+      </RoundOpening>
+      <QuestionCards
+        document={document}
+        path={file.path}
+        questions={round.questions}
+        readOnly={readOnly}
+        takes={file.takesImages}
+        target={target}
+        {...(onAsk ? { onAsk: onAsk.question } : {})}
+      />
+      {!wide && ends && <Band />}
+      <SettledPoints file={file} part="end" readOnly={readOnly} {...asks} />
+      {children}
+    </div>
   );
 }
 

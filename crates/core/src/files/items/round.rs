@@ -88,31 +88,39 @@ fn settled_groups(doc: &Document, notes_line: usize) -> Vec<SettledGroup> {
     check
         .into_iter()
         .chain(settled)
-        .map(|(heading, kind, blocks)| SettledGroup {
-            heading: doc.blocks[heading].id,
-            kind,
-            blocks: blocks
+        .map(|(heading, kind, blocks)| {
+            let blocks: Vec<u32> = blocks
                 .into_iter()
                 .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
-                .collect(),
+                .collect();
+            SettledGroup {
+                heading: doc.blocks[heading].id,
+                kind,
+                points: u32::try_from(points_in(doc, &blocks).count()).unwrap_or(u32::MAX),
+                blocks,
+            }
         })
         .collect()
 }
 
+/// The points among a group's blocks, in order: the items of its lists that start in bold.
+fn points_in<'a>(doc: &'a Document, blocks: &'a [u32]) -> impl Iterator<Item = SettledPoint> + 'a {
+    blocks.iter().flat_map(move |&id| {
+        doc.children(id).filter_map(|item| {
+            leading_strong(item).map(|subject| SettledPoint {
+                block: item.id,
+                subject: subject.trim().to_string(),
+            })
+        })
+    })
+}
+
 /// The settled points that start in bold, in order: the items of the lists of every group.
 fn points_of(doc: &Document, groups: &[SettledGroup]) -> Vec<SettledPoint> {
-    let mut points = Vec::new();
-    for &id in groups.iter().flat_map(|group| &group.blocks) {
-        for item in doc.children(id) {
-            if let Some(subject) = leading_strong(item) {
-                points.push(SettledPoint {
-                    block: item.id,
-                    subject: subject.trim().to_string(),
-                });
-            }
-        }
-    }
-    points
+    groups
+        .iter()
+        .flat_map(|group| points_in(doc, &group.blocks))
+        .collect()
 }
 
 /// The settled points that start in bold, in order, before the `**Notes:**` line.
@@ -278,7 +286,9 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
             end_line,
             heading_block: heading.id,
             context,
+            why_text: lead_free(doc, why, WHY_LEAD),
             why,
+            example_text: lead_free(doc, example, EXAMPLE_LEAD),
             example,
             options,
             answer,
@@ -311,6 +321,34 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
     }
 }
 
+/// The lead of a question's "Why it matters" paragraph.
+const WHY_LEAD: &str = "Why it matters";
+
+/// The lead of a question's example.
+const EXAMPLE_LEAD: &str = "Example:";
+
+/// A paragraph's spans without its lead, `lead`, nor the white space and the one ":", "." or "—"
+/// after it, its first letter capitalised: empty without the paragraph.
+fn lead_free(doc: &Document, block: Option<u32>, lead: &str) -> Vec<Span> {
+    let Some(block) = block.map(|id| &doc.blocks[id as usize]) else {
+        return Vec::new();
+    };
+    let text = plain(&block.spans);
+    let rest = text.get(lead.len()..).unwrap_or_default().trim_start();
+    let rest = rest
+        .strip_prefix([':', '.', '—'])
+        .unwrap_or(rest)
+        .trim_start();
+    let mut spans = trimmed(drop_start(&block.spans, text.len() - rest.len()));
+    if let Some(first) = spans.first_mut() {
+        let mut chars = first.text.chars();
+        if let Some(letter) = chars.next() {
+            first.text = letter.to_uppercase().chain(chars).collect();
+        }
+    }
+    spans
+}
+
 /// A question's top-level blocks before its answer, split into its context, its "Why it matters"
 /// and "Example:" paragraphs, and its options.
 struct QuestionBlocks {
@@ -341,9 +379,9 @@ fn question_blocks(doc: &Document, blocks: &[Block], answer_line: u32) -> Questi
                 .as_ref()
                 .is_some_and(|text| text.starts_with(start))
         };
-        if parts.why.is_none() && starts("Why it matters") {
+        if parts.why.is_none() && starts(WHY_LEAD) {
             parts.why = Some(block.id);
-        } else if parts.example.is_none() && starts("Example:") {
+        } else if parts.example.is_none() && starts(EXAMPLE_LEAD) {
             parts.example = Some(block.id);
         } else if choices.is_empty() {
             parts.context.push(block.id);

@@ -1,9 +1,9 @@
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { useWidthOf } from "./layout/useWidthOf.ts";
+import { useAtLeast } from "./layout/useWidthOf.ts";
 import { QuestionCard } from "./QuestionCard.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
 
@@ -61,23 +61,6 @@ export function followUpsOf(
     .sort((a, b) => (a.parentLetter ?? "").localeCompare(b.parentLetter ?? ""));
 }
 
-/**
- * Whether an element is at least the theme's `--size-round-split` wide, where a card splits. The
- * token is read again whenever the element's width changes, not only once on mount.
- */
-function useRoomy(ref: RefObject<HTMLElement | null>) {
-  const width = useWidthOf(ref);
-  const [split, setSplit] = useState(Number.POSITIVE_INFINITY);
-  useLayoutEffect(() => {
-    const element = ref.current;
-    if (element) {
-      const value = getComputedStyle(element).getPropertyValue("--size-round-split");
-      setSplit(Number.parseFloat(value) || Number.POSITIVE_INFINITY);
-    }
-  }, [ref, width]);
-  return width >= split;
-}
-
 /** What draws a question's card: the round's file and where its answers go. */
 type CardProps = {
   document: Document;
@@ -103,7 +86,7 @@ function QuestionGroup({
 }) {
   const wide = !isNarrow(useWidthClass());
   const group = useRef<HTMLDivElement>(null);
-  const roomy = useRoomy(group);
+  const roomy = useAtLeast(group, "--size-round-split");
   return (
     <div ref={group} {...stylex.props(wide && styles.card)}>
       {!wide && <Band />}

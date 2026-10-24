@@ -494,12 +494,17 @@ test("US4.1: a pasted image goes into the focused answer's comment", async () =>
     .toMatch(/## Q3[\s\S]*\*\*Answer:\*\* !\[pasted image\]\(images\/pasted-\d{8}-\d{6}\.webp\)/);
 });
 
-test("US4.2: a drop with no field focused goes to the end of the notes", async () => {
+test("US4.2: a drop with no field focused goes to the end of the notes, which open", async () => {
   await showRound();
-  const notes = screen.getByRole("textbox", { name: "Anything else" }) as HTMLTextAreaElement;
 
   drop([await image("phone.png", "shot.png")]);
 
+  // The notes' field opens, in the column's Notes tab or the phone's sheet, and takes the image.
+  const notes = (await screen.findByRole(
+    "textbox",
+    { name: "Anything else" },
+    LIVE,
+  )) as HTMLTextAreaElement;
   await expect.poll(() => notes.value).toBe("![shot](images/shot.webp)\n");
   expect(
     await commands.repoFileSize(`.worktrees/${ROUND}/specs/${ROUND}/images/shot.webp`),

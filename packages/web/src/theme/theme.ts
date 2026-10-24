@@ -317,6 +317,8 @@ export const uraedaTheme = defineTheme({
     "--size-round-accent": "4px",
     // A question card at least this wide puts its options beside its title and context.
     "--size-round-split": "840px",
+    // The round's context at least this wide sets Scope and Sources side by side.
+    "--size-round-pair": "820px",
     // About 75 characters of text a line, on the round page and the triage, which hold their
     // reading text to it in place of the reading measure.
     "--size-round-measure": "75ch",

@@ -9,7 +9,8 @@ import { atRepo, click, fixtureRepo, git, holding, renderPage, today, type } fro
 import { runWrite } from "../writes/store.ts";
 
 const WEB_UI = "2026-10-11-web-ui";
-const ROUND = `/f/${WEB_UI}/clarifications-01.md`;
+// With the column's Notes tab open, where the notes' field is.
+const ROUND = `/f/${WEB_UI}/clarifications-01.md?tab=notes`;
 
 today("2026-10-12");
 

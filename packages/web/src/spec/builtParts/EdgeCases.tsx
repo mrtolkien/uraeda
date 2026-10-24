@@ -5,7 +5,6 @@ import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import type { Block } from "uraeda-binding";
@@ -13,16 +12,6 @@ import { Selectable } from "../../Selection.tsx";
 import { plain, Spans } from "../../Spans.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
 import { builtStyles, type DrawingProps, inOrder, parentsOf } from "./shared.tsx";
-
-const styles = stylex.create({
-  fold: {
-    // The niche cases' toggle, at the reading size, its row a control's height for a finger.
-    alignItems: "center",
-    display: "flex",
-    fontSize: "var(--text-reading-size)",
-    minHeight: sizeVars["--size-element-md"],
-  },
-});
 
 /** Each importance the format knows: its pill, and its rank, the most important first. */
 const IMPORTANCE: Record<string, { label: string; rank: number; variant: "neutral" | "warning" }> =
@@ -113,7 +102,7 @@ function EdgeList({ edges, props }: { edges: ReadonlyArray<Edge>; props: PartPro
           isOpen={isOpen}
           onOpenChange={setChosen}
           trigger={
-            <span {...stylex.props(styles.fold)}>
+            <span {...stylex.props(builtStyles.fold)}>
               {niche.length === 1 ? "1 niche case" : `${niche.length} niche cases`}
             </span>
           }

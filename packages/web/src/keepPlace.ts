@@ -1,7 +1,7 @@
-// The reading place, kept as the page changes around it. A browser's scroll anchoring may keep it on
-// its own, but WebKit's, in the tests, held only on the first page drawn, and let go once the page's
-// content was replaced, as each page change does (R25). So the page puts it back itself, once the
-// change is drawn: where the browser already did, nothing is left to move.
+// The reading place, kept as the page changes around it. A browser's scroll anchoring may keep it
+// on its own, but WebKit's, in the tests, held only on the first page drawn, and let go once the
+// page's content was replaced, as each page change does (R25). So the page puts it back itself,
+// once the change is drawn: where the browser already did, nothing is left to move.
 
 /** Resolves on the next animation frame. */
 export const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
@@ -9,7 +9,10 @@ export const frame = () => new Promise((resolve) => requestAnimationFrame(resolv
 /** How long after an input of the reader's, in ms, a scroll of the window is theirs. */
 const INPUT_WINDOW = 300;
 
-/** What the reader scrolled so far in a scroller, in px, where `watch` saw them at it, and its last place. */
+/**
+ * What the reader scrolled so far in a scroller, in px, where `watch` saw them at it, and its last
+ * place.
+ */
 type Scrolled = { last: number; reader: number };
 
 /** What the reader scrolled in each scroller: the window, or a box that scrolls on its own. */
@@ -82,7 +85,10 @@ export function scrollMark(box?: Element) {
   return () => state.reader - was;
 }
 
-/** Scrolls `box`, or the window without one, by `top` px at once, as a correction: the reader did not make it. */
+/**
+ * Scrolls `box`, or the window without one, by `top` px at once, as a correction: the reader did
+ * not make it.
+ */
 export function scrollInstantly(top: number, box?: Element) {
   (box ?? window).scrollBy({ behavior: "instant", top });
   scrolledIn(box).last = positionOf(box);
@@ -94,7 +100,9 @@ export function scrollInstantly(top: number, box?: Element) {
  */
 type Keep = { before: number; box?: Element; last: number; scrolled: () => number };
 
-/** The places kept while a change is drawn, by their reader, which the changes made meanwhile join. */
+/**
+ * The places kept while a change is drawn, by their reader, which the changes made meanwhile join.
+ */
 const pending = new Map<() => number, Keep>();
 
 /**

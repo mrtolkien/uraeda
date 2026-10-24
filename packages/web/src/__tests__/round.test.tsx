@@ -20,6 +20,8 @@ import {
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
 const ROUND = `specs/${FOLDER}/clarifications-01.md`;
+/** The round with its column's Notes tab open, where the notes' field is. */
+const NOTES = `${PAGE}?tab=notes`;
 
 today("2026-10-11");
 
@@ -179,11 +181,11 @@ test("a follow-up shows as a card of its own after its parent's once it applies"
 });
 
 /** Redesign US3.6 */
-test("tapping B again removes the follow-up's card, and the index lists Q1 alone", async () => {
+test("tapping B again removes the follow-up's card, and the outline lists Q1 alone", async () => {
   const repo = answered({ Q1: "B" });
   await renderPage(PAGE, repo);
   await waitFor(() => expect(question("Q1.B")).toBeTruthy());
-  const index = screen.getByRole("navigation", { name: "Questions" });
+  const index = screen.getByRole("navigation", { name: "Outline" });
   expect(within(index).getByRole("button", { name: /Q1\.B/ })).toBeTruthy();
 
   await tap(option("Q1", "B"));
@@ -352,7 +354,7 @@ test("submitting commits the round and shows its record", async () => {
 
 /** US2.10 */
 test("the notes are saved as the last line", async () => {
-  const { repo } = await renderPage(PAGE);
+  const { repo } = await renderPage(NOTES);
   await screen.findByText("Settled without you");
 
   await type(screen.getByLabelText("Anything else"), "LGTM");
@@ -481,7 +483,7 @@ test("an answer changed elsewhere shows when the page reads again", async () => 
 /** Review I2: Submit saves what is still being typed first. */
 test("Submit waits for the notes being typed", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
-  await renderPage(PAGE, repo);
+  await renderPage(NOTES, repo);
   const notes = await screen.findByLabelText("Anything else");
 
   await type(notes, "LGTM");
@@ -537,7 +539,7 @@ test("Submit saves a comment not saved yet", async () => {
 /** Codex review: notes changed elsewhere show, and the next save builds on them. */
 test("notes changed elsewhere show when the page reads again", async () => {
   const repo = answered({});
-  await renderPage(PAGE, repo);
+  await renderPage(NOTES, repo);
   const notes = (await screen.findByLabelText("Anything else")) as HTMLTextAreaElement;
   const path = join(repo, ".worktrees", FOLDER, ROUND);
   writeFileSync(
@@ -655,18 +657,18 @@ test("with nothing blank, Next becomes Submit (US1 4)", async () => {
 });
 
 /** US1 5 */
-test("the index lists the questions with their state, and jumps (US1 5)", async () => {
+test("the outline's sheet lists the questions with their state, and jumps (US1 5)", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A" }));
   await tap(await screen.findByRole("button", { name: "1/3" }));
-  const index = await screen.findByRole("dialog", { name: "Questions" });
-  const rows = within(index).getAllByRole("button", { name: /^[✓○] Q/ });
+  const outline = await screen.findByRole("dialog", { name: "Outline" });
+  const rows = within(outline).getAllByRole("button", { name: /^Q\d.*\((un)?answered\)$/ });
   expect(rows.map((row) => row.textContent?.slice(0, 4))).toEqual(["✓ Q1", "○ Q2", "○ Q3"]);
   expect(rows[0].textContent).toContain("Which human steps does the UI perform?");
 
-  await tap(within(index).getByRole("button", { name: /^○ Q3/ }));
+  await tap(within(outline).getByRole("button", { name: /^Q3 .*\(unanswered\)$/ }));
 
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Questions" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Outline" })).toBeNull());
   await waitFor(() => expect(focused()).toContain("Which repositories does the UI open now?"));
 });
 
@@ -675,20 +677,21 @@ test("on the phone, the round starts with its questions, before its context, and
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A" }));
   const index = await screen.findByRole("navigation", { name: "Questions" });
-  const rows = within(index).getAllByRole("button", { name: /^[✓○] Q/ });
+  const rows = within(index).getAllByRole("button", { name: /^Q\d.*\((un)?answered\)$/ });
   expect(rows.map((row) => row.textContent?.slice(0, 4))).toEqual(["✓ Q1", "○ Q2", "○ Q3"]);
   expect(before(index, screen.getByRole("region", { name: "Goal" }))).toBe(true);
 
-  await tap(within(index).getByRole("button", { name: /^○ Q3/ }));
+  await tap(within(index).getByRole("button", { name: /^Q3 .*\(unanswered\)$/ }));
 
   await waitFor(() => expect(focused()).toContain("Which repositories does the UI open now?"));
 });
 
-/** On wide screens, the column beside the questions is the round's only index. */
-test("on wide screens, the round has one index, beside its questions", async () => {
+/** On wide screens, the column's outline is the round's only index. */
+test("on wide screens, the round has one index, its column's outline", async () => {
   await renderPage(PAGE, answered({ Q1: "A" }));
   await screen.findByText("Which human steps does the UI perform?");
-  expect(screen.getAllByRole("navigation", { name: "Questions" })).toHaveLength(1);
+  expect(screen.getAllByRole("navigation", { name: "Outline" })).toHaveLength(1);
+  expect(screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
 });
 
 /** US1 9 */
@@ -764,6 +767,8 @@ function composer() {
 
 /** US6.2 */
 test("US6.2: a question's Ask the agent quotes its title", async () => {
+  // On the phone: wider, asking opens the column's Session tab (round-column.test.tsx).
+  atWidth(402);
   const repo = fixtureRepo();
   await renderPage(PAGE, repo, { agent: true });
   await screen.findByText("Which repositories does the UI open now?");
@@ -862,7 +867,7 @@ const SUBMITTED = "discovery(web-ui): answer round 01";
 
 /** Review: several "Add image" buttons on one page are told apart by their field. */
 test("each Add image names its field, and shows Add image", async () => {
-  await renderPage(PAGE, answered({}));
+  await renderPage(NOTES, answered({}));
   await screen.findByText("How does your iPhone reach the server?");
 
   const q2 = screen.getByRole("button", { name: "Add image to Q2's comment" });
@@ -889,7 +894,7 @@ test("Add image on an answer links the image in its comment, saved at once", asy
 /** US4.2 with the picker: the notes hold the image's link, saved. */
 test("Add image on the notes links the image at their end, saved", async () => {
   const repo = answered({});
-  await renderPage(PAGE, repo);
+  await renderPage(NOTES, repo);
   const notes = (await screen.findByLabelText("Anything else")) as HTMLTextAreaElement;
   await type(notes, "See:");
 
@@ -1020,7 +1025,7 @@ const settledField = () => screen.getByLabelText("Comment text") as HTMLTextArea
 /** US5 9 */
 test("Submit saves a comment, the notes, and a settled point's comment typed, then submits", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
-  await renderPage(PAGE, repo);
+  await renderPage(NOTES, repo);
   await screen.findByText("Which repositories does the UI open now?");
   await type(comment("Q3"), "keep it simple");
   await type(screen.getByLabelText("Anything else"), "LGTM");

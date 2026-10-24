@@ -1,7 +1,7 @@
 // The folding pane's title on the phone, in WebKit: its button, as tall as a finger needs on a touch
 // screen, keeps the title centred on the pane's top border and clear of what is above the pane.
 import { Theme } from "@astryxdesign/core/theme";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { Pane } from "../layout/Pane.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
@@ -21,7 +21,7 @@ test("on the phone, a folding pane's title sits on its top border, clear of the 
   await drawn();
 
   const button = screen.getByRole("button", { name: "Today" });
-  const section = button.closest("section")!;
+  const section = screen.getByRole("region", { name: "Today" });
   const border =
     section.getBoundingClientRect().top +
     Number.parseFloat(getComputedStyle(section).borderTopWidth) / 2;
@@ -31,7 +31,9 @@ test("on the phone, a folding pane's title sits on its top border, clear of the 
   // The title's middle on the border, within a pixel.
   expect(Math.abs((title.top + title.bottom) / 2 - border)).toBeLessThanOrEqual(1);
   // The title, drawn over the border with its background, covers none of the text above.
-  expect(button.closest("h2")!.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+  expect(
+    within(section).getByRole("heading", { level: 2 }).getBoundingClientRect().top,
+  ).toBeGreaterThanOrEqual(
     screen.getByText("The text above the pane.").getBoundingClientRect().bottom,
   );
   // A finger's target, as tall as the theme's controls on a touch screen: 44 px, centred on it.
@@ -73,7 +75,7 @@ test.each([
     await drawn();
 
     const title = screen.getByText(LONG);
-    const section = title.closest("section")!;
+    const section = screen.getByRole("region", { name: LONG });
     const pane = section.getBoundingClientRect();
     const lines = textRange(title).getBoundingClientRect();
     // Within the screen and the pane, on more than one line.
@@ -85,7 +87,7 @@ test.each([
     const border = pane.top + Number.parseFloat(getComputedStyle(section).borderTopWidth) / 2;
     expect(Math.abs((first.top + first.bottom) / 2 - border)).toBeLessThanOrEqual(1);
     // Its heading, and its count, end above the pane's text.
-    const heading = title.closest("h2")!.getBoundingClientRect();
+    const heading = within(section).getByRole("heading", { level: 2 }).getBoundingClientRect();
     expect(heading.bottom).toBeLessThanOrEqual(
       screen.getByText("The first paragraph of the pane.").getBoundingClientRect().top,
     );
