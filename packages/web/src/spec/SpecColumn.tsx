@@ -7,7 +7,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import { type ColumnTab, DocumentColumn } from "../layout/DocumentColumn.tsx";
 import { Overlay } from "../layout/Overlay.tsx";
 import { TopBarSlot } from "../layout/TopBarSlot.tsx";
@@ -20,9 +20,7 @@ import { toVerdict } from "../ReviewVerdict.tsx";
 import { afterSheetCloses } from "../roundJump.ts";
 import { navigateHere } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
-
-/** The phone's sheet open over the page, if any. */
-type Sheet = "contents" | "review" | undefined;
+import { SHEETS, useSheetTab } from "./useSheetTab.ts";
 
 /** "N comments", the count read out after its number. */
 function Count({ count }: { count: number }) {
@@ -36,7 +34,8 @@ function Count({ count }: { count: number }) {
 
 /**
  * On the phone, the column's panels outside the page: the status line's Contents, the comments'
- * count and Verdict while a review waits, Contents and the count each opening its panel in a sheet;
+ * count and Verdict while a review waits, Contents and the count each opening its panel in a sheet,
+ * kept in the address (`useSheetTab`);
  * with no review, Session, opening the session's page of `session`, the feature's folder, where the
  * page has a Session tab.
  */
@@ -49,8 +48,8 @@ function PhoneParts({
   review: { count: number; panel: ReactNode } | undefined;
   session: string | undefined;
 }) {
-  const [sheet, setSheet] = useState<Sheet>();
-  const close = () => setSheet(undefined);
+  const [sheet, setSheet] = useSheetTab(review !== undefined);
+  const close = () => setSheet();
   const go = (run: () => void) => {
     close();
     afterSheetCloses(run);
@@ -92,14 +91,14 @@ function PhoneParts({
         {/* No field to type in: the sheet needs no room for a keyboard, and the page shows above. */}
         <Overlay
           isOpen={sheet === "contents"}
-          label="Contents"
+          label={SHEETS.contents}
           onClose={close}
           sheetHeight="capped"
         >
           {contents}
         </Overlay>
         {review && (
-          <Overlay isOpen={sheet === "review"} label="Review" onClose={close}>
+          <Overlay isOpen={sheet === "review"} label={SHEETS.review} onClose={close}>
             {review.panel}
           </Overlay>
         )}

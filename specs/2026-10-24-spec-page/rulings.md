@@ -314,3 +314,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   case the unlisted pane exists for.
 - **If wrong**: one line in `decisionCounts`, `spec/SpecPage.tsx`, and the test's name.
 - **Where**: fix of Task 10's review, `spec/SpecPage.tsx`, `src/__tests__/spec-panes.test.tsx`.
+
+## R20: The spec's and the plan's phone sheets are in the address, the round's not yet
+
+- **Decision**: on narrow screens, the spec's and the plan's open sheet, Contents or Review, is the
+  address's `?tab=`, the parameter of the column's open tab on wide screens (`spec/useSheetTab.ts`):
+  a reload keeps it, and crossing to a wide screen opens that tab. The tab is in the sheet's own
+  history entry only, so Back closes the sheet and lands on the address without it. The questions
+  page's `RoundColumn` keeps its sheets in component state, as before.
+- **Rationale**: the layout decision says "An open detail, tab, or sheet MUST be in the URL", which
+  Task 10's sheets broke. The round's sheets have the same gap, from the questions page's Task 8,
+  outside this fix's scope; the same hook applies there when that page is next changed.
+- **Alternatives considered**: a separate `?sheet=` parameter, which the width change would have to
+  translate to `?tab=` and back.
+- **If wrong**: `useSheetTab` goes back to a `useState` in `spec/SpecColumn.tsx`.
+- **Where**: fix of Task 10's review, `spec/useSheetTab.ts`, `spec/SpecColumn.tsx`,
+  `src/__tests__/spec-column-phone.test.tsx`.
