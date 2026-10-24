@@ -19,11 +19,12 @@ import { StoriesProvider } from "./stories.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
-/** The badge of a plan's status. */
-const STATUSES: Record<string, { label: string; variant: "neutral" | "success" | "warning" }> = {
+/** The badge of a plan's status, a request red as in the files' list. */
+const STATUSES: Record<string, { label: string; variant: "error" | "success" | "warning" }> = {
   approved: { label: "Approved", variant: "success" },
   "auto-approved": { label: "Auto-approved", variant: "success" },
   "awaiting-human": { label: "Waiting for your review", variant: "warning" },
+  "changes-requested": { label: "Changes requested", variant: "error" },
 };
 
 /** What the plan's parts draw with: its tree, and while it waits, its review's folds and taps. */

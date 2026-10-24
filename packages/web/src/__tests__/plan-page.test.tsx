@@ -112,3 +112,11 @@ test("a lead pane's id is its label's slug after lead-", async () => {
   expect(document.getElementById("lead-tech-stack")).toBe(lead);
   expect(document.getElementById("tech-stack")).not.toBe(lead);
 });
+
+/** A plan sent back for changes says so, as the files' list colours it. */
+test("a plan with changes requested shows its badge", async () => {
+  await renderPage(PAGE, repoWith(questionsPlan("changes-requested")));
+
+  await region("Goal");
+  expect(screen.getByText("Changes requested")).toBeTruthy();
+});
