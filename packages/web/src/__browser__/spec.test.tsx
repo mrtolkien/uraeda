@@ -72,11 +72,14 @@ describe("on the phone", () => {
     const inset = 14.4;
     for (const name of ["What you approve", "Task storage", "Complete a repeating task"]) {
       const part = screen.getByRole("region", { name });
-      // A decision is a pane, its title in its top border (R6): the parts' titles start at the inset.
-      if (name !== "Task storage") {
-        const title = within(part).getByRole("heading", { name });
-        expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
-      }
+      // The title, the element that names the region, as a decision's heading also holds its
+      // pills: the parts' start at the inset; a decision's, in its pane's top border (R6), at the
+      // pane's title inset past its border, 12 px and the title's 8 px padding, at 120%.
+      const title = document.getElementById(part.getAttribute("aria-labelledby") ?? "");
+      expect(title, name).toBeTruthy();
+      const border = Number.parseFloat(getComputedStyle(part).borderLeftWidth);
+      const titleInset = name === "Task storage" ? border + inset + 9.6 : 0;
+      expect(title!.getBoundingClientRect().left, name).toBeCloseTo(inset + titleInset, 0);
       // The part takes the page's width, inside its inset.
       const box = part.getBoundingClientRect();
       expect(box.left, name).toBeCloseTo(inset, 0);
