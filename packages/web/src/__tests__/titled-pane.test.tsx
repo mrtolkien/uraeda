@@ -54,3 +54,15 @@ test("a folding pane's chevron comes before its title, as the app's other folds 
   const name = within(title).getByText("Today");
   expect(chevron.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
+
+test("a folding pane's button is named by its title and its count, as it shows them", () => {
+  render(
+    <Pane count={3} fold={{ isOpen: false, onOpenChange: () => {} }} title="Under the hood">
+      <p>Inside.</p>
+    </Pane>,
+  );
+
+  expect(screen.getByRole("button", { name: "Under the hood · 3" })).toBeTruthy();
+  // The pane itself is named by its title alone.
+  expect(screen.getByRole("region", { name: "Under the hood" })).toBeTruthy();
+});

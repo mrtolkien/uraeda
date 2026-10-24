@@ -35,34 +35,60 @@ const styles = stylex.create({
   activeTitle: { color: colorVars["--color-text-accent"] },
   attention: { borderColor: colorVars["--color-border-orange"] },
   attentionTitle: { color: colorVars["--color-text-orange"] },
+  // The count stays on the title's first line, whole.
+  count: {
+    flexShrink: 0,
+  },
   example: { borderColor: colorVars["--color-border-teal"] },
   exampleTitle: { color: colorVars["--color-text-teal"] },
-  // A folding pane's title, a button drawn as the title it stands for: as tall as its text, so its
-  // background hides no more than the title's around the border, and a target as tall as a control,
-  // the theme's 44 px on a touch screen, centred on it.
+  // A folding pane's title, a button drawn as the title it stands for, wrapping as the title does:
+  // a target as tall as a control, the theme's 44 px on a touch screen, around its first line, its
+  // padding taking no room from the title, and its background, on a hover, kept to its lines.
   foldTitle: {
-    "::before": {
-      content: '""',
-      insetBlock: `calc(50% - ${sizeVars["--size-element-sm"]} / 2)`,
-      insetInline: 0,
-      position: "absolute",
-    },
+    backgroundClip: "content-box",
     color: "inherit",
     fontSize: "inherit",
     fontWeight: "inherit",
     height: "auto",
-    paddingBlock: 0,
+    justifyContent: "start",
+    lineHeight: "inherit",
+    // A pixel over the control's height, so a line's fractional height cannot round it under.
+    marginBlock: `calc((1lh - 1px - ${sizeVars["--size-element-sm"]}) / 2)`,
+    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + 1px - 1lh) / 2)`,
     paddingInline: 0,
+    textAlign: "start",
+    whiteSpace: "normal",
+  },
+  // An icon in the title, centred on its first line.
+  glyph: {
+    // One line's height, which StyleX's height values do not list.
+    "--pane-line": "1lh",
+    alignItems: "center",
+    display: "inline-flex",
+    flexShrink: 0,
+    height: "var(--pane-line)",
+  },
+  // The title's words, its icons, and its count, on lines of the title's width.
+  name: {
+    alignItems: "start",
+    display: "flex",
+    gap: spacingVars["--spacing-1"],
+    minWidth: 0,
   },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
-  // width: no side or bottom border, no inset.
+  // width: no side or bottom border, no inset, and no background of its own, so it shows no band
+  // over the page.
   openOnPhone: {
+    backgroundColor: "transparent",
     borderBlockEndWidth: 0,
     borderInlineWidth: 0,
     paddingInline: 0,
   },
+  // Its title hides the border behind it with the page's surface, which a round on the phone is
+  // drawn on.
   openOnPhoneTitle: {
-    insetInlineStart: 0,
+    backgroundColor: colorVars["--color-background-surface"],
+    marginInlineStart: 0,
     maxWidth: "100%",
     paddingInlineStart: 0,
   },
@@ -76,29 +102,31 @@ const styles = stylex.create({
     marginBlockStart: spacingVars["--spacing-3"],
     minWidth: 0,
     paddingBlockEnd: spacingVars["--spacing-1"],
-    paddingBlockStart: spacingVars["--spacing-3"],
+    // The title, in the flow, takes the room above the content.
+    paddingBlockStart: 0,
     paddingInline: spacingVars["--spacing-1"],
     position: "relative",
   },
   problem: { borderColor: colorVars["--color-border-red"] },
   problemTitle: { color: colorVars["--color-text-red"] },
+  // The title, in the flow so that its further lines push the content down: its first line
+  // centred on the top border, its further lines below it, inside the pane, as wide as it at most.
   title: {
-    alignItems: "center",
     backgroundColor: colorVars["--color-background-body"],
     // Catppuccin's lavender, a local token of the theme (`theme.ts`).
     color: "var(--color-text-lavender)",
-    display: "inline-flex",
+    display: "flex",
     fontSize: typeScaleVars["--text-supporting-size"],
     fontWeight: fontWeightVars["--font-weight-semibold"],
-    gap: spacingVars["--spacing-1"],
-    insetBlockStart: 0,
-    insetInlineStart: spacingVars["--spacing-3"],
-    maxWidth: `calc(100% - 2 * ${spacingVars["--spacing-3"]})`,
+    lineHeight: typeScaleVars["--text-supporting-leading"],
+    // Up by half the border and half its first line, then down to the content's usual room.
+    marginBlockEnd: `calc(${spacingVars["--spacing-3"]} + ${borderVars["--border-width"]} / 2 - 0.5lh)`,
+    marginBlockStart: `calc(-1 * (${borderVars["--border-width"]} / 2 + 0.5lh))`,
+    marginInlineStart: `calc(${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]})`,
+    maxWidth: `calc(100% - 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]}))`,
     paddingInline: spacingVars["--spacing-2"],
-    position: "absolute",
-    // Centred on the top border.
-    transform: "translateY(-50%)",
-    whiteSpace: "nowrap",
+    position: "relative",
+    width: "fit-content",
   },
 });
 
@@ -125,7 +153,7 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
  * active, else its tone does. `isGroup` makes it a group rather than a region, as the panes of a
  * navigation are, which a list of landmarks would repeat. `isOpenOnPhone` keeps only its titled top
  * border on narrow screens, as the round's panes do. With `fold`, its title is a button that opens
- * and closes it, and folded, its content is not mounted.
+ * and closes it, named by its title and its count, and folded, its content is not mounted.
  */
 export function Pane({
   children,
@@ -157,12 +185,23 @@ export function Pane({
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isOpen = isOpenOnPhone && isNarrow(width);
+  // The fold button's name, as it reads: the title and its count.
+  const label = count === undefined ? title : `${title} · ${count}`;
   const name = (
-    <>
-      {icon && <Icon icon={icon} size="sm" />}
+    <span {...stylex.props(styles.name)}>
+      {fold && (
+        <span {...stylex.props(styles.glyph)}>
+          <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
+        </span>
+      )}
+      {icon && (
+        <span {...stylex.props(styles.glyph)}>
+          <Icon icon={icon} size="sm" />
+        </span>
+      )}
       <span id={titleId}>{title}</span>
-      {count !== undefined && <span>· {count}</span>}
-    </>
+      {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
+    </span>
   );
   return (
     <section
@@ -175,13 +214,12 @@ export function Pane({
         {fold ? (
           <Button
             aria-expanded={fold.isOpen}
-            label={title}
+            label={label}
             onClick={() => fold.onOpenChange(!fold.isOpen)}
             size="sm"
             variant="ghost"
             xstyle={styles.foldTitle}
           >
-            <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
             {name}
           </Button>
         ) : (
