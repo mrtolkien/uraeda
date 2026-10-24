@@ -286,7 +286,9 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
             end_line,
             heading_block: heading.id,
             context,
+            why_text: lead_free(doc, why, WHY_LEAD),
             why,
+            example_text: lead_free(doc, example, EXAMPLE_LEAD),
             example,
             options,
             answer,
@@ -319,6 +321,34 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
     }
 }
 
+/// The lead of a question's "Why it matters" paragraph.
+const WHY_LEAD: &str = "Why it matters";
+
+/// The lead of a question's example.
+const EXAMPLE_LEAD: &str = "Example:";
+
+/// A paragraph's spans without its lead, `lead`, nor the white space and the one ":", "." or "—"
+/// after it, its first letter capitalised: empty without the paragraph.
+fn lead_free(doc: &Document, block: Option<u32>, lead: &str) -> Vec<Span> {
+    let Some(block) = block.map(|id| &doc.blocks[id as usize]) else {
+        return Vec::new();
+    };
+    let text = plain(&block.spans);
+    let rest = text.get(lead.len()..).unwrap_or_default().trim_start();
+    let rest = rest
+        .strip_prefix([':', '.', '—'])
+        .unwrap_or(rest)
+        .trim_start();
+    let mut spans = trimmed(drop_start(&block.spans, text.len() - rest.len()));
+    if let Some(first) = spans.first_mut() {
+        let mut chars = first.text.chars();
+        if let Some(letter) = chars.next() {
+            first.text = letter.to_uppercase().chain(chars).collect();
+        }
+    }
+    spans
+}
+
 /// A question's top-level blocks before its answer, split into its context, its "Why it matters"
 /// and "Example:" paragraphs, and its options.
 struct QuestionBlocks {
@@ -349,9 +379,9 @@ fn question_blocks(doc: &Document, blocks: &[Block], answer_line: u32) -> Questi
                 .as_ref()
                 .is_some_and(|text| text.starts_with(start))
         };
-        if parts.why.is_none() && starts("Why it matters") {
+        if parts.why.is_none() && starts(WHY_LEAD) {
             parts.why = Some(block.id);
-        } else if parts.example.is_none() && starts("Example:") {
+        } else if parts.example.is_none() && starts(EXAMPLE_LEAD) {
             parts.example = Some(block.id);
         } else if choices.is_empty() {
             parts.context.push(block.id);

@@ -1273,8 +1273,15 @@ export interface QuestionItem {
   context: Array<number>
   /** Its paragraph starting "Why it matters". */
   why?: number
+  /**
+   * Its "Why it matters" paragraph's spans without the lead, which its pane's title says, nor the
+   * ":", "." or "—" after it, its first letter capitalised: empty without the paragraph.
+   */
+  whyText: Array<Span>
   /** Its first paragraph starting "Example:", left out of its context. */
   example?: number
+  /** Its example's spans without "Example:", its first letter capitalised: empty without one. */
+  exampleText: Array<Span>
   options: Array<Choice>
   answer: string
   /** The answer split as the UI composes it. */

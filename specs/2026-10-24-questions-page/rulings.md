@@ -157,19 +157,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   gives it its limits.
 - **Where**: Task 4.
 
-## R13: The Example and Why panes drop their lead in the page
+## R13: The core gives the Example and Why panes their text without the lead
 
 - **Decision**: the core gives the "Example:" and "Why it matters" paragraphs as blocks, found by
-  their lead; the question card draws them without the lead, which their pane's title says, by
-  cutting that many characters off the block's spans and capitalising what follows.
-- **Rationale**: the plan asks for their text "without the 'Example:' or 'Why it matters:' lead";
-  the core already decided which block holds them, so the page reads no markdown, only trims a label
-  it was told is there.
-- **Alternatives considered**: a `lead` length or trimmed spans from the core, a change to
-  `QuestionItem` that Task 2 had already shipped, for one line of the page.
-- **If wrong**: have the core give the paragraph's spans without their lead, and drop `withoutLead`
-  from `Question.tsx`.
-- **Where**: Task 5.
+  their lead, and their spans without it, `exampleText` and `whyText`: the lead, the white space and
+  the one ":", "." or "—" after it dropped, the first letter capitalised. The question card draws
+  those spans in the paragraph's place, under the pane's title that says the lead.
+- **Rationale**: the stack decision keeps parsing workflow text in the core; the page first trimmed
+  the lead itself, by a rule of its own that differed from the core's, so "Why it matters. It
+  decides" drew as ". It decides".
+- **Alternatives considered**: the page trimming the lead, as Task 5 first built, a second reading
+  of the format; a `lead` length from the core, which leaves the page to cut and capitalise.
+- **If wrong**: drop the two fields and draw the paragraphs whole, their lead included.
+- **Where**: Task 5, fixed in its review.
 
 ## R14: On the phone, an option's text sits 10.6 px from the screen's edge
 
