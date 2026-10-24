@@ -62,7 +62,7 @@ const typeScale = { base: BASE * SCALE, ratio: 1.2 };
 const grown = { ...scaled("--spacing-", SPACING), ...scaled("--size-element-", ELEMENTS) };
 
 /**
- * Catppuccin, from the mockup's palette (`specs/2026-10-20-layout-look/mockups/terminal-2/style.css`):
+ * Catppuccin, from the terminal-2 prototype's palette (see `specs/done/2026-10-20-layout-look.md`):
  * Latte in the light slot of each pair, Mocha in the dark one. Latte's accents, used as text, are
  * darker steps than Catppuccin's own, which read at about 3:1 on its base; the dim text is a step
  * past the mockup's in both, for 4.5:1 on a selected row. `theme-tokens.test.ts` measures every pair.
