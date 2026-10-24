@@ -124,3 +124,14 @@ test("two sections renamed are two places, their titles marked", async () => {
   expect(within(assumptions).getAllByRole("heading")[0]!.textContent).toMatch(/Δ/);
   await jumpsInto(pane, "Assumptions", assumptions);
 });
+
+/** US5: a more scenario changed opens its fold, so its mark shows. */
+test("a more scenario changed opens its fold, marked", async () => {
+  await revised(swap("due the day after tomorrow.", "due in two days."));
+
+  const pane = await sincePane(4);
+  const story = screen.getByRole("region", { name: "US2 · Complete a repeating task" });
+  const [, scenario] = within(story).getAllByRole("group", { name: MARK });
+  expect(within(scenario!).getByRole("insertion").textContent).toContain("the day after tomorrow.");
+  await jumpsInto(pane, "US2, more scenario 3", story);
+});

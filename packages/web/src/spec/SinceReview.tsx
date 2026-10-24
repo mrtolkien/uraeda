@@ -8,6 +8,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { Block, Document, LineRange, SinceChange, SinceReview } from "uraeda-binding";
+import { type Fold, foldOf } from "../Folds.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { jumpTo } from "../roundJump.ts";
@@ -106,6 +107,21 @@ export function sinceModel(
   }
   const removed = since.parts.filter((change) => change.kind === "removed");
   return { marks: { document, marks, titles }, places, removed, since };
+}
+
+/** The folds holding a block marked, which the page opens so its mark shows. */
+export function sinceFolds(
+  document: Document,
+  model: SinceModel | undefined,
+  folds: ReadonlyArray<Fold> | undefined,
+): Array<string> {
+  if (!model || !folds) {
+    return [];
+  }
+  const holders = new Set(
+    [...model.marks.marks.keys()].map((id) => foldOf(document, folds, document.blocks[id])),
+  );
+  return folds.filter((fold) => holders.has(fold)).map((fold) => fold.key);
 }
 
 /** "1 part" or "3 parts". */

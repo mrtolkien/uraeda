@@ -29,7 +29,7 @@ import {
 import { NO_SINCE, SinceMarks, SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { StoriesProvider } from "../stories.tsx";
-import { useSpecFolds } from "../useOpenKeys.ts";
+import { useForcedFolds, useSpecFolds } from "../useOpenKeys.ts";
 import { BuiltParts } from "./BuiltParts.tsx";
 import { DataPart } from "./DataPart.tsx";
 import { DecisionCards } from "./DecisionCards.tsx";
@@ -49,7 +49,7 @@ import { type PageSession, usePageSession } from "./pageSession.ts";
 import { SpecColumn } from "./SpecColumn.tsx";
 import { Contents, entriesOf } from "./SpecContents.tsx";
 import { SpecHistory } from "./SpecHistory.tsx";
-import { SinceReviewPane, sinceModel } from "./SinceReview.tsx";
+import { SinceReviewPane, sinceFolds, sinceModel } from "./SinceReview.tsx";
 import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
 
@@ -249,7 +249,7 @@ function Groups({
  */
 function SpecLayout({
   file,
-  folds,
+  folds: kept,
   review,
   session,
   wide,
@@ -274,14 +274,16 @@ function SpecLayout({
   const items = version.items.spec;
   // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its
   // part.
-  useHashFold(version.document, folds, true);
+  useHashFold(version.document, kept, true);
+  const document = version.document;
+  const since = items && sinceModel(document, items, file.sinceReview);
+  // The folds holding a part changed since your review open, so its mark shows.
+  const folds = useForcedFolds(kept, sinceFolds(document, since, kept?.list));
   if (!items) {
     return null;
   }
   const changes = file.decisionChanges;
   const comments = review?.comments ?? [];
-  const document = version.document;
-  const since = sinceModel(document, items, file.sinceReview);
   const entries = entriesOf({
     changes,
     comments,
