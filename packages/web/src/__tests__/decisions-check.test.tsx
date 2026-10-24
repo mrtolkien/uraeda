@@ -129,6 +129,19 @@ test("an option shows its candidate as the spec page shows a changed decision", 
   expect(within(question("Q1")).getAllByText("Changed")).toHaveLength(1);
 });
 
+/** Questions page US3 more 6: the check is no feature's, so its column has no session. */
+test("the check's column has Outline and Notes only", async () => {
+  await renderPage("/decisions/check", withCheck(), { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Decisions check" });
+
+  const list = screen.getByRole("tablist", { name: "The round's column" });
+  expect(within(list).getAllByRole("tab")).toEqual([
+    within(list).getByRole("tab", { name: "Outline" }),
+    within(list).getByRole("tab", { name: "Notes" }),
+  ]);
+  expect(screen.queryByRole("button", { name: /^Ask/ })).toBeNull();
+});
+
 /** An option can leave more than one decision: each candidate has its own card. */
 test("an option with two candidates shows both", async () => {
   const repo = withCheck();
