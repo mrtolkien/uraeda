@@ -72,7 +72,10 @@ function withoutItem(document: Document, item: number | undefined): Document {
   };
 }
 
-/** The verdict: its badge, then its sentence, beside it, under it on the phone. */
+/**
+ * The verdict: its badge, then its sentence, beside it, under it on the phone, within the reading
+ * measure.
+ */
 function Verdict({ verdict }: { verdict: NonNullable<RoundItems["verdict"]> }) {
   const isNarrowScreen = isNarrow(useWidthClass());
   const look = VERDICTS[verdict.kind];
@@ -81,7 +84,8 @@ function Verdict({ verdict }: { verdict: NonNullable<RoundItems["verdict"]> }) {
       direction={isNarrowScreen ? "vertical" : "horizontal"}
       gap={isNarrowScreen ? 1 : 3}
       vAlign={isNarrowScreen ? undefined : "baseline"}
-      xstyle={styles.verdict}
+      // Reading text, its badge and its sentence held to the measure as one line.
+      xstyle={[styles.verdict, proseStyles.reading, proseStyles.measure]}
     >
       <Badge label={look.label} variant={look.variant} xstyle={styles.badge} />
       <div {...stylex.props(proseStyles.reading)}>
