@@ -96,3 +96,27 @@ test.each([
     );
   },
 );
+
+const SUFFIX = "Changed approved-by: mrtolkien → none · status: active → proposed";
+
+test("on the phone, a short title keeps its line: a long suffix goes under it", async () => {
+  render(
+    <Theme mode="dark" theme={uraedaTheme}>
+      <Pane title="Task storage" titleSuffix={<span>{SUFFIX}</span>}>
+        <p>The first paragraph of the pane.</p>
+      </Pane>
+    </Theme>,
+  );
+  await drawn();
+
+  const tops = (element: Element) =>
+    new Set([...textRange(element).getClientRects()].map((line) => Math.round(line.top)));
+  // The title's two words on one line, as it would read without the suffix.
+  expect(tops(screen.getByText("Task storage")).size).toBe(1);
+  const pane = screen.getByRole("region", { name: "Task storage" }).getBoundingClientRect();
+  const suffix = textRange(screen.getByText(SUFFIX)).getBoundingClientRect();
+  expect(suffix.right).toBeLessThanOrEqual(Math.min(window.innerWidth, pane.right));
+  expect(suffix.bottom).toBeLessThanOrEqual(
+    screen.getByText("The first paragraph of the pane.").getBoundingClientRect().top,
+  );
+});

@@ -104,10 +104,19 @@ const styles = stylex.create({
   },
   liveTitle: { color: "var(--color-text-sapphire)" },
   // The title's words, its icons, and its count, on lines of the title's width.
-  name: {
+  head: {
     alignItems: "start",
     display: "flex",
     gap: spacingVars["--spacing-1"],
+    minWidth: 0,
+  },
+  // The head, then what follows the title, which goes under it where both leave the title too
+  // little room, never squeezing its words.
+  name: {
+    alignItems: "start",
+    columnGap: spacingVars["--spacing-1"],
+    display: "flex",
+    flexWrap: "wrap",
     minWidth: 0,
   },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
@@ -164,10 +173,17 @@ const styles = stylex.create({
   under: (below: string) => ({
     marginBlockStart: below,
   }),
-  // What follows the title, such as a live window's size and scale: secondary, in the title's line.
+  // What follows the title, such as a live window's size and scale: secondary, in the title's line,
+  // taking the room the title leaves, its words wrapping in it, or under the title when that room
+  // is narrower than a few words.
   suffix: {
+    // A few words of the suffix's own text.
+    "--pane-suffix-room": "12ch",
     color: colorVars["--color-text-secondary"],
+    flexBasis: 0,
+    flexGrow: 1,
     fontWeight: fontWeightVars["--font-weight-normal"],
+    minWidth: "var(--pane-suffix-room)",
   },
   // The title, in the flow so that its further lines push the content down: its first line
   // centred on the top border, its further lines below it, inside the pane, as wide as it at most.
@@ -288,20 +304,22 @@ function PaneName({
   const renamed = useSinceTitle(paneId);
   return (
     <span {...stylex.props(styles.name)}>
-      {fold && (
-        <span {...stylex.props(styles.glyph)}>
-          <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
-        </span>
-      )}
-      {icon && (
-        <span {...stylex.props(styles.glyph)}>
-          <Icon icon={icon} size="sm" />
-        </span>
-      )}
-      <span id={titleId}>{title}</span>
-      {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
+      <span {...stylex.props(styles.head)}>
+        {fold && (
+          <span {...stylex.props(styles.glyph)}>
+            <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
+          </span>
+        )}
+        {icon && (
+          <span {...stylex.props(styles.glyph)}>
+            <Icon icon={icon} size="sm" />
+          </span>
+        )}
+        <span id={titleId}>{title}</span>
+        {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
+        {renamed && <SinceSign />}
+      </span>
       {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>}
-      {renamed && <SinceSign />}
     </span>
   );
 }
