@@ -1,5 +1,5 @@
 import * as stylex from "@stylexjs/stylex";
-import { type RefObject, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
 import { WithSessionColumn } from "./ColumnSession.tsx";
 import { CandidatesContext } from "./decisions/Candidates.tsx";
@@ -89,26 +89,13 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
     askAbout(file.folder, quoted(`About ${question.id} of ${file.path}:`, [question.title]));
 
   const content = (
-    <div {...stylex.props(styles.measure)}>
-      <RoundOpening
-        document={document}
-        round={round}
-        {...(onDefaultBranch ? {} : { crumbs: { folder: file.folder, name: file.name } })}
-      >
-        {navigates && !wide && <RoundIndex questions={nav} />}
-      </RoundOpening>
-      <QuestionCards
-        document={document}
-        path={file.path}
-        questions={questions}
-        readOnly={readOnly}
-        takes={file.takesImages}
-        target={target}
-        {...(agent?.available && !onDefaultBranch ? { onAsk: ask } : {})}
-      />
-      {/* On the phone, a band before the settled points, which a wide screen draws in a card. */}
-      {!wide && round.settledGroups.length > 0 && <Band />}
-      <SettledPoints file={file} readOnly={readOnly} />
+    <RoundBody
+      file={file}
+      index={navigates && !wide && <RoundIndex questions={nav} />}
+      readOnly={readOnly}
+      target={target}
+      {...(agent?.available && !onDefaultBranch ? { onAsk: ask } : {})}
+    >
       <RoundEnd
         blank={blank}
         end={end}
@@ -119,7 +106,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         submitting={submitting}
         target={target}
       />
-    </div>
+    </RoundBody>
   );
 
   return (
@@ -145,6 +132,57 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         </PendingSaves>
       </CandidatesContext>
     </RoundHash>
+  );
+}
+
+/**
+ * The round's page itself: its opening, `index` after its block, its questions, its settled points,
+ * then `children`, its end. `onAsk` asks the agent about a question.
+ */
+function RoundBody({
+  children,
+  file,
+  index,
+  onAsk,
+  readOnly,
+  target,
+}: {
+  children: ReactNode;
+  file: File;
+  index: ReactNode;
+  onAsk?: (question: { id: string; title: string }) => void;
+  readOnly: boolean;
+  target: RoundTarget;
+}) {
+  const wide = !isNarrow(useWidthClass());
+  const round = file.current.items.clarifications;
+  const document = file.current.document;
+  if (!round) {
+    return null;
+  }
+  return (
+    <div {...stylex.props(styles.measure)}>
+      <RoundOpening
+        document={document}
+        round={round}
+        {...(isDefaultRound(target) ? {} : { crumbs: { folder: file.folder, name: file.name } })}
+      >
+        {index}
+      </RoundOpening>
+      <QuestionCards
+        document={document}
+        path={file.path}
+        questions={round.questions}
+        readOnly={readOnly}
+        takes={file.takesImages}
+        target={target}
+        {...(onAsk ? { onAsk } : {})}
+      />
+      {/* On the phone, a band before the settled points, which a wide screen draws in a card. */}
+      {!wide && round.settledGroups.length > 0 && <Band />}
+      <SettledPoints file={file} readOnly={readOnly} />
+      {children}
+    </div>
   );
 }
 
