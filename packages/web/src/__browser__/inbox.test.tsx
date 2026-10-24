@@ -60,9 +60,10 @@ test("a note is added with ＋, its text, and Enter", async () => {
     .poll(() => commands.readRepo(PATH))
     .toContain("- We need a home icon\n- The plan's task list scrolls under the top bar\n");
   await expect.poll(() => screen.queryByRole("dialog", { name: "Add a note" })).toBeNull();
-  // The phone's form was on the Sessions tab's page: back to the inbox.
+  // The phone's form was on the Sessions tab's page: back to the inbox, by its tab once it counts
+  // the new note, since the tab's name changes with its count.
   if (narrow()) {
-    await userEvent.click(screen.getByRole("link", { name: /^Inbox/ }));
+    await userEvent.click(await screen.findByRole("link", { name: /^Inbox, 11 notes/ }));
   }
   const none = within(await screen.findByRole("list", { name: "No category lines" }));
   expect(await none.findByText("The plan's task list scrolls under the top bar")).toBeTruthy();
