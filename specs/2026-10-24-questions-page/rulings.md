@@ -139,3 +139,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: give the page a wider inset on the phone, or let lists of numbers keep Astryx's
   `ol`.
 - **Where**: Task 3, fixed in its review.
+
+## R12: The document's column keeps its own width, beside `SideColumn`'s
+
+- **Decision**: `SideColumn` takes either a `storageKey`, Astryx keeping its width as before, or a
+  `width` its caller keeps; the document's column passes one from `useDocumentColumnWidth`, which
+  follows the window until dragged and keeps the width and the fold under `uraeda.documentColumn`,
+  as the shell's column does in `shell/columnWidth.ts`. `SideColumn` also takes a `header`, the
+  tabs, in place of its name.
+- **Rationale**: Astryx's kept width cannot follow the window until dragged, as the spec asks: it
+  saves every resize, the window's too. The session's Progress column, the spec's Contents, and the
+  round's temporary Session column keep their stored widths and keys unchanged.
+- **Alternatives considered**: every `SideColumn` following the window, which loses the widths kept
+  under the other columns' keys; a column of its own for documents, a copy of the fold, the rail,
+  and the resize bar.
+- **If wrong**: move the following into `SideColumn` behind a prop; the document's column already
+  gives it its limits.
+- **Where**: Task 4.

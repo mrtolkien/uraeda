@@ -114,7 +114,7 @@ function subscribeResize(onChange: () => void) {
 }
 
 /** The window's width, followed as it resizes. */
-function useWindowWidth(): number {
+export function useWindowWidth(): number {
   return useSyncExternalStore(subscribeResize, () => window.innerWidth);
 }
 
