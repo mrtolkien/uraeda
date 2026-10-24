@@ -521,7 +521,7 @@ candidates, and the decisions check.
   opens. `DecisionCards` titles nothing itself; it draws the relied-on table in a pane "Relied on ·
   N" after the cards, alone when there is no change.
 
-- [ ] **Step 1: Move the rows and folds to `spec/ledger/`**, unchanged, in a `refactor` commit:
+- [x] **Step 1: Move the rows and folds to `spec/ledger/`**, unchanged, in a `refactor` commit:
       `spec-decisions.test.tsx` passes before and after.
 - [ ] **Step 2: Write the failing tests.** `ledger.test.tsx`, on the spec-page fixture: in the
       region "Task storage", the row holding "Data MUST be stored in IndexedDB" is named "Changed"
