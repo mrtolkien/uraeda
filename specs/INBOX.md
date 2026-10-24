@@ -69,3 +69,9 @@
   browsers that ignore `focusVisible: false`, Firefox among them
 - [agent] [questions-page] Round's column: Ask and Edit notes keep looking for their field for up to
   two seconds, and may take the focus from a field the human started typing in meanwhile
+- [agent] [questions-page] Session draft: a feature's latest session has one draft at its folder's
+  address and another at its ID's, so text does not follow between them
+- [agent] [questions-page] Session draft: a refused send puts its text back over the shared draft,
+  replacing what was typed meanwhile in the round's column or the session's page
+- [agent] [questions-page] Session draft: kept drafts are never dropped, and previews of images left
+  in one are never released, for the document's life
