@@ -663,9 +663,13 @@ order changes for every round.
   `RoundColumn({ content, draft, file, nav, notes, onSubmit, sheet })` draws the `DocumentColumn`
   labelled "The round's column", its tabs, and the phone's status line and sheets;
   `useRoundActions(file, draft)` gives the asks, the phone's sheet, and "Edit notes", which opens
-  the Notes tab or sheet with its field focused. The round's end is a region "Notes" (R22). `n` and
-  `p` are the page's, whatever the tab (R21); the phone keeps its list of questions under the block
-  (R20).
+  the Notes tab or sheet with its field focused; asking focuses the composer, and both unfold a
+  folded column (R23), whose width and fold the page holds and passes to `DocumentColumn`'s
+  `column`. On narrow screens, `?tab=notes` and `?tab=outline` are the phone's sheets, opened in a
+  history entry of the page's own (`openOverlayAt`), so reload, Back, and a width change keep them.
+  The status line's count is named "N/M answered, outline". The round's end is a region "Notes"
+  (R22). `n` and `p` are the page's, whatever the tab (R21); the phone keeps its list of questions
+  under the block (R20).
 
 - [x] **Step 1: Write the failing tests.** UI tests (`round-column.test.tsx`), on the merge-chats
       fixture with the fake agent: asking about Q2 opens Session with the composer holding the

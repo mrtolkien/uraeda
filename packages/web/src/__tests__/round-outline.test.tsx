@@ -120,7 +120,7 @@ test("no Check these without points (US4 more 2)", async () => {
 test("on the phone, the outline's sheet closes on a tap, then goes there (US2 more 3)", async () => {
   atWidth(402);
   await renderPage(PAGE, round(MERGE_CHATS, { Q1: "A" }));
-  await click(await screen.findByRole("button", { name: "1/7" }));
+  await click(await screen.findByRole("button", { name: "1/7 answered, outline" }));
   const sheet = await screen.findByRole("dialog", { name: "Outline" });
   expect(sheet.textContent).toContain("1 of 7 answered");
 

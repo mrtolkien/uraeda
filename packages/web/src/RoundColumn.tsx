@@ -4,13 +4,20 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, Suspense, useState } from "react";
+import { type ReactNode, Suspense } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
 import { ColumnSession } from "./ColumnSession.tsx";
 import type { useFile } from "./data.ts";
-import { type ColumnTab, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
+import {
+  type ColumnTab,
+  DocumentColumn,
+  tabAddress,
+  useAskedTab,
+  useColumnTab,
+} from "./layout/DocumentColumn.tsx";
 import { useDocumentColumnWidth } from "./layout/documentColumnWidth.ts";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { openOverlayAt, overlayOf } from "./layout/useBackCloses.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import {
   NOTES_FIELD,
@@ -21,6 +28,7 @@ import {
 } from "./RoundNotes.tsx";
 import { NextOrSubmit, OutlineSheet, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
 import type { NavQuestion } from "./roundJump.ts";
+import { redirect } from "./routes.tsx";
 import { askAbout, quoted, withQuote } from "./sessions.ts";
 import type { Draft } from "./useDraft.ts";
 
@@ -28,6 +36,38 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 
 /** The phone's sheet open over the round, if any. */
 export type RoundSheet = "outline" | "notes" | undefined;
+
+/** The phone's sheets' names, by their keys in the address. */
+const SHEETS = { notes: "Notes", outline: "Outline" } as const;
+
+/**
+ * The phone's open sheet, and what opens or closes one: on narrow screens, `?tab=notes` opens the
+ * Notes sheet and `?tab=outline` the Outline sheet, so a reload, Back, or a width change keeps it,
+ * and the column's tab of the same key opens as the window widens. Opening a sheet adds a history
+ * entry of the page's, so Back closes it; closing it goes back over that entry, or, opened by the
+ * address, takes the tab out of it.
+ */
+function useRoundSheet(wide: boolean) {
+  const asked = useAskedTab();
+  const sheet: RoundSheet = !wide && (asked === "notes" || asked === "outline") ? asked : undefined;
+  const setSheet = (key: RoundSheet) => {
+    if (key !== undefined) {
+      openOverlayAt(tabAddress(key), SHEETS[key]);
+      return;
+    }
+    // Read now: called once Back landed, the sheet's entry gone.
+    const open = new URLSearchParams(window.location.search).get("tab");
+    if (open !== "notes" && open !== "outline") {
+      return;
+    }
+    if (overlayOf(window.history.state) === SHEETS[open]) {
+      window.history.back();
+    } else {
+      redirect(tabAddress(undefined));
+    }
+  };
+  return [sheet, setSheet] as const;
+}
 
 /** The column's tabs, by their keys in the address: Session only where the agent can be asked. */
 export function columnKeys(asks: boolean) {
@@ -65,7 +105,7 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
   const wide = !isNarrow(useWidthClass());
   const column = useDocumentColumnWidth();
   const [tab, setTab] = useColumnTab(columnKeys(draft !== undefined));
-  const sheet = useState<RoundSheet>();
+  const sheet = useRoundSheet(wide);
   const openTab = (key: string) => {
     column.setShown(true);
     setTab(key);
@@ -223,10 +263,12 @@ function PhoneParts({
       <TopBarSlot>
         <HStack align="center" gap={1}>
           <Button
-            label={`${answered}/${nav.length}`}
+            label={`${answered}/${nav.length} answered, outline`}
             onClick={() => setSheet("outline")}
             variant="ghost"
-          />
+          >
+            {`${answered}/${nav.length}`}
+          </Button>
           <Button
             icon={<Icon icon="uraeda:pencil" />}
             label="Notes"

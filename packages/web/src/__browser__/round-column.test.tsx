@@ -7,6 +7,7 @@ import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import {
+  atRepo,
   atSize,
   checkAccessibility,
   checkPage,
@@ -84,6 +85,39 @@ function offset(id: string) {
   );
 }
 
+/**
+ * SC-002: the page read at Q2, its Ask in view, asking about it moves no card of the round, in place
+ * or in width, nor does switching tabs.
+ */
+async function askMovesNoCard() {
+  await showRound();
+  // The page read at Q2, its Ask in view: the click scrolls nothing.
+  const ask = within(card("Q2")).getAllByRole("button", { name: "Ask the agent" })[0]!;
+  ask.scrollIntoView({ block: "center" });
+  await scrollStopped();
+  const before = cardBoxes();
+
+  await userEvent.click(ask);
+  const box = await composer();
+  await expect
+    .poll(() => box.textContent, LIVE)
+    .toBe(`About Q2 of ${ROUND}:\n> Where does a new chat work?\n\n`);
+  await drawn();
+  expect(cardBoxes()).toEqual(before);
+
+  for (const name of ["Notes", "Outline", "Session"]) {
+    await userEvent.click(within(column()).getByRole("tab", { name }));
+    await drawn();
+    expect(cardBoxes(), name).toEqual(before);
+  }
+}
+
+/** Whether a question's card has its top in the window. */
+function inView(id: string) {
+  const { top } = card(id).getBoundingClientRect();
+  return top >= 0 && top < window.innerHeight;
+}
+
 describe("on the desktop", () => {
   atSize("desktop");
 
@@ -101,26 +135,7 @@ describe("on the desktop", () => {
   });
 
   test("asking about Q2 moves no card, nor does switching tabs (US3 key 2, SC-002)", async () => {
-    await showRound();
-    // The page read at Q2, its Ask in view: the click scrolls nothing.
-    const ask = within(card("Q2")).getAllByRole("button", { name: "Ask the agent" })[0]!;
-    ask.scrollIntoView({ block: "center" });
-    await scrollStopped();
-    const before = cardBoxes();
-
-    await userEvent.click(ask);
-    const box = await composer();
-    await expect
-      .poll(() => box.textContent, LIVE)
-      .toBe(`About Q2 of ${ROUND}:\n> Where does a new chat work?\n\n`);
-    await drawn();
-    expect(cardBoxes()).toEqual(before);
-
-    for (const name of ["Notes", "Outline", "Session"]) {
-      await userEvent.click(within(column()).getByRole("tab", { name }));
-      await drawn();
-      expect(cardBoxes(), name).toEqual(before);
-    }
+    await askMovesNoCard();
   });
 
   test("the part at the top is marked (US2 more 1)", async () => {
@@ -156,6 +171,52 @@ describe("on the desktop", () => {
   });
 });
 
+describe("semi-wide", () => {
+  atSize("semi");
+
+  test("at 1205 px, asking moves no card, nor does switching tabs (SC-002)", async () => {
+    await askMovesNoCard();
+  });
+});
+
+describe("on the phone", () => {
+  atSize("phone");
+
+  test("Back over the Notes sheet closes it, the round where it was (UI layout)", async () => {
+    await showRound();
+    card("Q4").scrollIntoView({ block: "start" });
+    await scrollStopped();
+    const top = card("Q4").getBoundingClientRect().top;
+
+    await userEvent.click(screen.getByRole("button", { name: "Notes" }));
+    await screen.findByRole("dialog", { name: "Notes" }, LIVE);
+    expect(new URLSearchParams(window.location.search).get("tab")).toBe("notes");
+    window.history.back();
+
+    await expect.poll(() => screen.queryByRole("dialog", { name: "Notes" }), LIVE).toBeNull();
+    await scrollStopped();
+    expect(window.location.search).toBe("");
+    expect(Math.abs(card("Q4").getBoundingClientRect().top - top)).toBeLessThan(2);
+  });
+
+  test("asking opens the session's page, and Back returns to Q2 (US3 key 3)", async () => {
+    await showRound();
+    const ask = within(card("Q2")).getAllByRole("button", { name: "Ask the agent" })[0]!;
+    ask.scrollIntoView({ block: "center" });
+    await scrollStopped();
+
+    await userEvent.click(ask);
+    await expect.poll(() => window.location.pathname, LIVE).toBe(atRepo(`/f/${FOLDER}/session`));
+    await drawn();
+    window.history.back();
+
+    await expect.poll(() => window.location.pathname, LIVE).toBe(atRepo(PAGE));
+    await expect
+      .poll(() => document.getElementById("Q2") !== null && inView("Q2"), LIVE)
+      .toBe(true);
+  });
+});
+
 describe("accessibility", () => {
   atSize("both");
 
@@ -168,4 +229,14 @@ describe("accessibility", () => {
       await checkAccessibility();
     }
   });
+
+  // On the phone, the Notes sheet over the round, and the round alone for the Session tab.
+  for (const tab of ["notes", "session"]) {
+    test(`the round with ?tab=${tab} passes the page's checks and axe (SC-005)`, async () => {
+      await showRound(`?tab=${tab}`);
+      await drawn();
+      checkPage();
+      await checkAccessibility();
+    });
+  }
 });
