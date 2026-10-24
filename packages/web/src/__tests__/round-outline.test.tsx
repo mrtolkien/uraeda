@@ -113,13 +113,18 @@ test("the outline lists the whole round (US2 key 3)", async () => {
     "Under the hood · 3",
     "Notes and submit",
   ]);
-  expect(rows(nav)[7]).toBe("✓ Q2 Where does a new chat work?");
+  // A question's row shows its state by a glyph, which its name leaves for words.
+  expect(rows(nav)[7]).toMatch(/^✓ Q2 Where does a new chat work\?/);
+  expect(
+    within(nav).getByRole("button", { name: "Q2 Where does a new chat work? (answered)" }),
+  ).toBeTruthy();
+  expect(within(nav).getByRole("button", { name: /^Q1 .*\(unanswered\)$/ })).toBeTruthy();
 });
 
 test("n goes to the next blank question, follow-ups included (US2 more 2)", async () => {
   const nav = await outline(round(MERGE_CHATS, { Q1: "A", Q2: "A" }));
 
-  await click(within(nav).getByRole("button", { name: /^✓ Q1 / }));
+  await click(within(nav).getByRole("button", { name: /^Q1 .*\(answered\)$/ }));
   await act(async () => {
     fireEvent.keyDown(document.body, { key: "n" });
   });
@@ -150,7 +155,7 @@ test("on the phone, the outline's sheet closes on a tap, then goes there (US2 mo
   const sheet = await screen.findByRole("dialog", { name: "Outline" });
   expect(sheet.textContent).toContain("1 of 7 answered");
 
-  await click(within(sheet).getByRole("button", { name: /^○ Q3 / }));
+  await click(within(sheet).getByRole("button", { name: /^Q3 .*\(unanswered\)$/ }));
 
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Outline" })).toBeNull());
   await waitFor(() =>
