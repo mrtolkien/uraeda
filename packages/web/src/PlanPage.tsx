@@ -65,7 +65,7 @@ function HeadingLine({ heading, selection }: { heading: Block; selection?: Selec
   }
   return (
     <Selectable block={heading} selection={selection}>
-      <Text as="p" color="secondary" display="block" type="inherit">
+      <Text as="div" color="secondary" display="block" type="inherit">
         {"## "}
         <Spans spans={heading.spans} />
       </Text>
