@@ -436,7 +436,8 @@ order changes for every round.
   `fold?: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void; folded?: string }`: its title
   is a button with `aria-expanded`; folded, its children are not mounted, and `folded`, when given,
   is a button in its body that opens it. On narrow screens each row draws its own marker, a dash,
-  its typed sign, or its number, in a box as wide as the list hangs (R9).
+  its typed sign, or its number then its sign, on its first line, in a box as wide as the list's
+  widest marker, which hangs at most by the page's inset (R9, R11).
 
 - [x] **Step 1: Write the failing tests.** `document-lists.test.tsx`, phone: in a round's block and
       in its context, a first-level item's text starts at the paragraphs' left edge, within 1 px,
