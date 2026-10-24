@@ -128,8 +128,10 @@ export function SinceRowSign({ mark }: { mark: SinceMark }) {
 }
 
 /**
- * The runs of a table row's change, cell by cell: the core joins the cells' words with "|". None
- * when a "|" was added or removed, the cells then not matching the row's.
+ * The runs of a table row's change, cell by cell: the core joins the cells' words with " | "
+ * (`collect`, `crates/core/src/compare/parts.rs`), so a lone "|" word kept is a cell's end; a
+ * change to that join changes this split. None when a "|" was added or removed, the cells then not
+ * matching the row's.
  */
 export function cellRuns(runs: ReadonlyArray<Run>): Array<Array<Run>> | undefined {
   const cells: Array<Array<Run>> = [[]];
@@ -184,7 +186,11 @@ export function afterWords(runs: ReadonlyArray<Run>, count: number): ReadonlyArr
 export const keepsSpans = (spans: ReadonlyArray<Span>) =>
   spans.some((span) => span.link || span.image || span.code);
 
-/** The number of words of a text, as the core splits them. */
+/**
+ * The number of words of a text, as the core splits them: its `joined`, Rust's `split_whitespace`
+ * (`crates/core/src/compare/parts.rs`), whose runs hold the words one space apart. A change to how
+ * the core cuts words changes this count, and `afterWords`' split on " ".
+ */
 export const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
 /**
