@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Questions page in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions and 1 follow-up, about 20 minutes, plus about 10 minutes to try the prototype first.
+> Answered on 2026-10-24.
 >
 > - Verdict: worth building as proposed: every part exists, and the work is the look, the right
 >   column, and the session's scroll moved into it.
@@ -116,7 +116,8 @@ pages will take the same shape.
   - [pro] nothing to build, and the session has the whole screen.
   - [con] you leave the question to read the answer, which the proposal asks to avoid.
 
-**Answer:**
+**Answer:** A: I like the tabs on the right BUT it's very jarring right now how it makes the center
+content jump AND the right size expands. What do you suggest?
 
 ### Q1.A: At half a screen, does the session's column push the round or cover it?
 
@@ -143,7 +144,7 @@ open.
   - [pro] the round keeps its width, and closing the session shows it unchanged.
   - [con] the options' right part sits under the session while it is open.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How should the layout decision change for a session beside a document?
 
@@ -172,7 +173,7 @@ again.
   - [pro] the decision stays as it is.
   - [con] only today's page is possible in Q1.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which visual language should the round take?
 
@@ -214,7 +215,8 @@ follow.
   - [pro] nothing round-only: every document's callout stays the same.
   - [con] the opening stays as flat as today, which the proposal asks to change.
 
-**Answer:**
+**Answer:** A: Btw the "Today" pane should be folded by default. I don't always need a recap of the
+current state of things.
 
 ## Q4: How should the question stay in view while you answer?
 
@@ -249,7 +251,13 @@ narrows the round.
   - [pro] nothing changes.
   - [con] on a desktop the question scrolls away.
 
-**Answer:**
+**Answer:** A: Btw on mobile the answers feel cramped and hard to read because there is:
+
+- Left border before the card
+- Then spacing before the bullet point/ABC letter
+
+I feel like it would be better to have a single border around the text, and the border could convey
+the info, through its color and a top-left glyph (the letter of the answer or a +/-/*)
 
 ## Q5: How much weight should "Check these" get?
 
@@ -280,7 +288,10 @@ Why it matters: an objection there changes the spec, and a missed one is found a
   - [pro] nothing changes.
   - [con] "Check these" weighs no more than "Under the hood".
 
-**Answer:**
+**Answer:** B: Change the file's order in the template and examples to fit the new order we show it
+in.
+
+You are right it makes more sense to be at the top.
 
 ## Q6: What can you ask the agent about from the round?
 
@@ -305,7 +316,7 @@ Why it matters: it sets what the session's quote can hold, and how many buttons 
   - [pro] any sentence of the context can be asked about.
   - [con] selecting on a page of tappable options is fiddly, the phone most of all.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -350,4 +361,13 @@ Why it matters: it sets what the session's quote can hold, and how many buttons 
 - **The prototype** is deleted when the spec is approved, as the
   [preview decision](/specs/decisions/preview.md) says.
 
-**Notes:**
+**Notes:** Btw:
+
+- Outline should show the intro and "settled without you", the whole content, ofc
+- We should be able to comment from anywhere: sometimes looking at a question I want to write a note
+  that's not directly linked to the question, it should be easy.
+- "Tight" for phone lists is better, but we could be even more tight imo
+- The Astryx 0.7.0 release says it "keeps Markdown transforms composable" -> do we use that? What
+  does it mean? Should we change how we render markdown?
+
+- **The session on the phone**: Good
