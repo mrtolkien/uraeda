@@ -76,13 +76,18 @@ const styles = stylex.create({
     minWidth: 0,
   },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
-  // width: no side or bottom border, no inset.
+  // width: no side or bottom border, no inset, and no background of its own, so it shows no band
+  // over the page.
   openOnPhone: {
+    backgroundColor: "transparent",
     borderBlockEndWidth: 0,
     borderInlineWidth: 0,
     paddingInline: 0,
   },
+  // Its title hides the border behind it with the page's surface, which a round on the phone is
+  // drawn on.
   openOnPhoneTitle: {
+    backgroundColor: colorVars["--color-background-surface"],
     marginInlineStart: 0,
     maxWidth: "100%",
     paddingInlineStart: 0,
