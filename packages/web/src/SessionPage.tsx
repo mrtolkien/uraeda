@@ -9,10 +9,7 @@ import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
 import { redirect, sessionIdPath, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
-import { type Handing, Missing, SessionPane } from "./SessionView.tsx";
-
-/** Why a feature's session takes no message before its proposal is committed. */
-const NO_BRANCH = "This feature has no branch left: it is merged.";
+import { type Handing, Missing, NO_BRANCH, SessionPane } from "./SessionView.tsx";
 
 /**
  * A feature's session: created with its first message, which this view sends. Opened to hand the

@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
+import { WithSessionColumn } from "./ColumnSession.tsx";
 import { CandidatesContext } from "./decisions/Candidates.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
@@ -15,6 +16,7 @@ import { useRepositoryPath } from "./routes.tsx";
 import { askAbout, quoted } from "./sessions.ts";
 import { SettledPoints } from "./SettledPoints.tsx";
 import { PendingSaves } from "./useAnswer.ts";
+import { useDraft } from "./useDraft.ts";
 import { useRoundPosition } from "./useRoundPosition.ts";
 import { type useFile, useAgent } from "./data.ts";
 
@@ -71,6 +73,8 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const blank = questions.filter((q) => q.asked && !q.answer.trim() && !typed.has(keyOf(q)));
   const nav = navOf(questions);
   useRoundPosition(file.folder, file.name, nav);
+  // The session's draft, kept by the page while its column comes and goes.
+  const draft = useDraft();
   if (!round) {
     return null;
   }
@@ -122,16 +126,22 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
     <RoundHash value={hash}>
       <CandidatesContext value={file.candidates}>
         <PendingSaves value={pending}>
-          {navigates ? (
-            <div {...stylex.props(wide && styles.columns)}>
-              <div {...stylex.props(styles.questions)}>
-                <Page>{content}</Page>
+          <WithSessionColumn
+            draft={draft}
+            folder={file.folder}
+            isAvailable={agent?.available === true && !onDefaultBranch}
+          >
+            {navigates ? (
+              <div {...stylex.props(wide && styles.columns)}>
+                <div {...stylex.props(styles.questions)}>
+                  <Page>{content}</Page>
+                </div>
+                <RoundNav onSubmit={toEnd} questions={nav} />
               </div>
-              <RoundNav onSubmit={toEnd} questions={nav} />
-            </div>
-          ) : (
-            <Page>{content}</Page>
-          )}
+            ) : (
+              <Page>{content}</Page>
+            )}
+          </WithSessionColumn>
         </PendingSaves>
       </CandidatesContext>
     </RoundHash>
