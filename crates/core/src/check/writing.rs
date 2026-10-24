@@ -122,8 +122,8 @@ fn said_counts(
 }
 
 /// The blocks whose sentences are measured, with what they hold (R2): the block, the Context, the
-/// questions' context, "Why it matters", "Example:", and the options, and the settled points. The headings,
-/// the answers, and the notes are outside them.
+/// questions' context, "Why it matters", "Example:", and the options, and the settled points. The
+/// headings, the answers, and the notes are outside them.
 fn measured_roots(items: &RoundItems) -> HashSet<u32> {
     let mut roots: HashSet<u32> = items.block.into_iter().collect();
     roots.extend(items.context.iter().flat_map(|part| part.blocks.iter()));

@@ -1,8 +1,8 @@
 //! `sections.*`: a file has its template's title, every required section at its level, in the
 //! template's order, and no level-2 section the template does not have, nor, in a round, a level-3
-//! heading under a section whose template has only fixed ones. A template section whose placeholder starts with
-//! `[Optional` may be left out, and one starting `[Optional, required from round 02` only in a
-//! first round. `settled.*`: a round's settled points sit in groups.
+//! heading under a section whose template has only fixed ones. A template section whose
+//! placeholder starts with `[Optional` may be left out, and one starting `[Optional, required from
+//! round 02` only in a first round. `settled.*`: a round's settled points sit in groups.
 
 use crate::embedded;
 use crate::files::document::{self, Block, BlockKind, plain};
@@ -248,7 +248,8 @@ fn fixed_children<'a>(slots: &'a [TemplateHeading], heading: &Heading) -> Option
 
 /// Unknown level-2 sections, unless the template lets any heading in, and in a round, unknown
 /// level-3 headings under a section whose template has only fixed ones: the Context and the
-/// settled points, and any heading under `## Check these`. A heading in a quote or a callout is the quote's, and left out.
+/// settled points, and any heading under `## Check these`. A heading in a quote or a callout is
+/// the quote's, and left out.
 fn check_unknown(
     file: &File<'_>,
     document: &Document,
