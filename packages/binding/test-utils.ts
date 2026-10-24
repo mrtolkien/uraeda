@@ -411,6 +411,52 @@ export function addSpecFeature(
   return folder;
 }
 
+/**
+ * The spec page's spec at revision 1, as its human reviewed it, from its revision 2, `revised`: no
+ * `## Your review` and no `## History`, US1's journey without "weekends" and US2's saying "for 3
+ * seconds".
+ */
+export function reviewedSpec(revised: string): string {
+  const swaps: Array<[string, string]> = [
+    ["weekdays, weekends, weekly", "weekdays, weekly"],
+    ["so for 5 seconds", "so for 3 seconds"],
+  ];
+  return swaps.reduce(
+    (text, [from, to]) => {
+      if (!text.includes(from)) {
+        throw new Error(`The revised spec has no ${JSON.stringify(from)}`);
+      }
+      return text.replace(from, to);
+    },
+    specText(revised, "awaiting-human", 1),
+  );
+}
+
+/**
+ * Builds the spec page's feature as `addSpecFeature` does, then gives its spec a reviewed past:
+ * revision 1 committed on its branch, `reviewed` of the revision 2's text (`reviewedSpec` by
+ * default), without a review file; then `spec-review.md` requesting changes, its `commit:` that
+ * commit's short hash, with the fixture's comments; then the fixture's revision 2. Returns the
+ * folder.
+ */
+export function addRevisedSpec(
+  repo: string,
+  { reviewed = reviewedSpec }: { reviewed?: (revised: string) => string } = {},
+): string {
+  const folder = addSpecFeature(repo);
+  const spec = `specs/${folder}/spec.md`;
+  const review = `specs/${folder}/spec-review.md`;
+  const revised = git(repo, "show", `${folder}:${spec}`);
+  const requested = git(repo, "show", `${folder}:${review}`);
+  commitOnBranch(repo, folder, { [review]: null, [spec]: reviewed(revised) });
+  const commit = git(repo, "rev-parse", "--short=7", folder).trim();
+  commitOnBranch(repo, folder, {
+    [review]: requested.replace(/^commit: .*$/m, `commit: ${commit}`),
+  });
+  commitOnBranch(repo, folder, { [spec]: revised });
+  return folder;
+}
+
 /** The spec page's feature's stories file, which its spec links: `src/tasks/RepeatMenu.stories.tsx`. */
 export const SPEC_STORIES = "src/tasks/RepeatMenu.stories.tsx";
 

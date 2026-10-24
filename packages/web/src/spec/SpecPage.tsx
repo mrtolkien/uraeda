@@ -26,6 +26,7 @@ import {
   type Review,
   useReview,
 } from "../review/useReview.tsx";
+import { type SinceMark, SinceMarks } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { StoriesProvider } from "../stories.tsx";
 import { useSpecFolds } from "../useOpenKeys.ts";
@@ -48,6 +49,7 @@ import { type PageSession, usePageSession } from "./pageSession.ts";
 import { SpecColumn } from "./SpecColumn.tsx";
 import { Contents, entriesOf } from "./SpecContents.tsx";
 import { SpecHistory } from "./SpecHistory.tsx";
+import { SinceReviewPane, sinceModel } from "./SinceReview.tsx";
 import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
 
@@ -64,6 +66,9 @@ const styles = stylex.create({
     outlineStyle: { ":focus:not(:focus-visible)": "none", default: null },
   },
 });
+
+/** No block marked Δ: a spec not revised since a review. */
+const NO_MARKS: ReadonlyMap<number, SinceMark> = new Map();
 
 /** The badge of a spec's status. */
 const STATUSES: Record<string, { label: string; variant: "neutral" | "success" | "warning" }> = {
@@ -262,6 +267,15 @@ function SpecLayout({
   const changes = file.decisionChanges;
   const comments = review?.comments ?? [];
   const document = version.document;
+  const since = sinceModel(document, items, file.sinceReview);
+  const entries = entriesOf({
+    changes,
+    comments,
+    document,
+    hasData: !!data,
+    items,
+    since: new Set(since?.places.flatMap((place) => place.entry ?? [])),
+  });
   const part: PartProps = {
     comments,
     document,
@@ -271,35 +285,36 @@ function SpecLayout({
     wide,
   };
   const page = (
-    <Page isTight>
-      <Crumbs current={file.name} folder={file.folder} />
-      <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
-        <VStack gap={3}>
-          <SpecTitle document={document} file={file} items={items} />
-          {review && <ReviewIntro file={file} review={review} />}
+    <SinceMarks value={since?.marks ?? NO_MARKS}>
+      <Page isTight>
+        <Crumbs current={file.name} folder={file.folder} />
+        <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
+          <VStack gap={3}>
+            <SpecTitle document={document} file={file} items={items} />
+            {review && <ReviewIntro file={file} review={review} />}
+          </VStack>
+          <SpecOpening document={document} items={items} selection={part.selection} />
+          {since && <SinceReviewPane entries={entries} model={since} />}
+          {partOf(items, "Your review") && (
+            <ReviewAnswers
+              comments={answeredComments(file)}
+              document={document}
+              items={items}
+              selection={part.selection}
+              wide={wide}
+            />
+          )}
+          <Groups changes={changes} data={data} items={items} part={part} />
+          <SpecHistory document={document} items={items} />
+          {review && <ReviewEnd file={file} review={review} />}
         </VStack>
-        <SpecOpening document={document} items={items} selection={part.selection} />
-        {partOf(items, "Your review") && (
-          <ReviewAnswers
-            comments={answeredComments(file)}
-            document={document}
-            items={items}
-            selection={part.selection}
-            wide={wide}
-          />
-        )}
-        <Groups changes={changes} data={data} items={items} part={part} />
-        <SpecHistory document={document} items={items} />
-        {review && <ReviewEnd file={file} review={review} />}
-      </VStack>
-    </Page>
+      </Page>
+    </SinceMarks>
   );
   return (
     <SpecColumn
       content={page}
-      contents={
-        <Contents entries={entriesOf({ changes, comments, document, hasData: !!data, items })} />
-      }
+      contents={<Contents entries={entries} />}
       extra={session ? [session.tab] : []}
       file={file}
       review={review}

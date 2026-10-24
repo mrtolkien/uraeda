@@ -1,6 +1,6 @@
 // What the spec page's parts share: the file and its items as the page reads them, the context
 // every part draws with, and the page's groups, in their order.
-import type { CommentItem, Document } from "uraeda-binding";
+import type { Block, CommentItem, Document } from "uraeda-binding";
 import type { useFile } from "../data.ts";
 import type { Folds } from "../Folds.tsx";
 import type { Selection } from "../Selection.tsx";
@@ -104,4 +104,91 @@ export function storyId(document: Document, story: SpecItems["stories"][number])
 /** A section of the spec by its title, if it has one. */
 export function partOf(items: SpecItems, title: string) {
   return items.parts.find((part) => part.title === title);
+}
+
+/**
+ * The entry of "Contents" each drawn block belongs to, by the block's id: a top-level block, or a
+ * decision's item.
+ */
+export function entryOwners(document: Document, items: SpecItems): Map<number, string> {
+  const owners = new Map<number, string>();
+  const own = (ids: ReadonlyArray<number> | undefined, entry: string) => {
+    for (const id of ids ?? []) {
+      owners.set(id, entry);
+    }
+  };
+  const first = items.parts[0]?.heading ?? document.blocks.length;
+  own(
+    document.blocks.filter((b) => b.parent == null && b.id < first).map((b) => b.id),
+    GROUPS.approve.id,
+  );
+  own(partOf(items, "Constitution check")?.blocks, GROUPS.approve.id);
+  own(partOf(items, "Risk tier")?.blocks, GROUPS.approve.id);
+  own(partOf(items, "Your review")?.blocks, groupId(items, GROUPS.answers));
+  own(partOf(items, "Decisions")?.blocks, groupId(items, GROUPS.decisions));
+  for (const decision of items.decisions) {
+    owners.set(decision.block, decisionId(decision.name));
+  }
+  for (const story of items.stories) {
+    own([story.headingBlock, ...story.blocks], storyId(document, story));
+  }
+  own(storiesIntro(items), groupId(items, GROUPS.stories));
+  for (const title of BUILT_PARTS) {
+    const part = partOf(items, title);
+    own(part?.blocks, part?.anchor ?? "");
+  }
+  for (const part of otherParts(items)) {
+    own(part.blocks, part.anchor);
+  }
+  return owners;
+}
+
+/** The entry a block belongs to: its own, else its innermost holder's. */
+export function entryOfBlock(
+  document: Document,
+  owners: Map<number, string>,
+  block: Block | undefined,
+): string | undefined {
+  let at = block;
+  while (at && !owners.has(at.id)) {
+    at = at.parent == null ? undefined : document.blocks[at.parent];
+  }
+  return at && owners.get(at.id);
+}
+
+/** A block and the blocks holding it, innermost first. */
+function holders(document: Document, block: Block): Array<Block> {
+  const chain: Array<Block> = [];
+  for (let at: Block | undefined = block; at;) {
+    chain.push(at);
+    at = at.parent == null ? undefined : document.blocks[at.parent];
+  }
+  return chain;
+}
+
+/**
+ * Where a block sits in its story, if in one: "US2's journey", "US2, key scenario 1", or "US2,
+ * more scenario 2"; none for its heading, which its entry of "Contents" names.
+ */
+export function placeInStory(
+  document: Document,
+  items: SpecItems,
+  block: Block,
+): string | undefined {
+  const chain = holders(document, block).map((b) => b.id);
+  const top = chain.at(-1);
+  const story = items.stories.find(
+    (s) => s.headingBlock === top || (top !== undefined && s.blocks.includes(top)),
+  );
+  if (!story || block.id === story.headingBlock) {
+    return undefined;
+  }
+  const scenario = (list: SpecItems["stories"][number]["key"]) =>
+    list.findIndex((s) => chain.includes(s.block)) + 1;
+  const key = scenario(story.key);
+  if (key > 0) {
+    return `${story.id}, key scenario ${key}`;
+  }
+  const more = scenario(story.more);
+  return more > 0 ? `${story.id}, more scenario ${more}` : `${story.id}'s journey`;
 }

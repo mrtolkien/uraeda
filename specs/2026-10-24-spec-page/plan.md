@@ -844,11 +844,15 @@ candidates, and the decisions check.
 
 **Files:**
 
-- Create: `packages/web/src/spec/SinceReview.tsx` (the pane, the Δ marks, which blocks a change
-  holds); `addRevisedSpec(repo, options?)` in `packages/binding/test-utils.ts`
+- Create: `packages/web/src/spec/SinceReview.tsx` (the pane, which blocks a change holds, its
+  places); `src/sinceMarks.tsx` (the marks' context, a marked block, its words as runs, the Δ sign,
+  R20); `addRevisedSpec(repo, options?)` and `reviewedSpec` in `packages/binding/test-utils.ts`
 - Modify: `src/spec/SpecPage.tsx`, `src/spec/SpecContents.tsx` (Δ on a row), `src/spec/parts.ts` (a
-  change's place, by the Contents entry owning its block, and, in a story, its journey or scenario),
-  `src/Blocks.tsx` only if a block cannot be marked from its parts otherwise
+  change's place, by the Contents entry owning its block, moved here from Contents, and, in a story,
+  its journey or scenario), `src/Selection.tsx` (`Selectable` marks a block, R20), `src/Blocks.tsx`
+  and `src/spec/StoryCard.tsx` (a changed paragraph's, item's, or scenario's words as runs; a story
+  renamed carries Δ in its title), `views.ts` on both sides (`sinceReview`), and the core's
+  `api/since.rs` (`## History` left out, R19)
 - Test: `src/__tests__/since-review.test.tsx` (create)
 
 **Interfaces:**
@@ -865,7 +869,7 @@ candidates, and the decisions check.
   "Changed since your review", its words drawn with the ledger's runs; Contents rows owning one
   carry the mark.
 
-- [ ] **Step 1: Write the failing tests** in `since-review.test.tsx`, on `addRevisedSpec`: "Since
+- [x] **Step 1: Write the failing tests** in `since-review.test.tsx`, on `addRevisedSpec`: "Since
       your review · 3 parts changed" lists "US1's journey", "US2's journey", "Your review, answered"
       (US5 key 1); US2's journey is marked "Changed since your review", its deletion "3", its
       insertion "5" (US5 key 2); every block marked is one of those parts, and no other block is
@@ -876,13 +880,13 @@ candidates, and the decisions check.
       reviewed is not in git anymore." and no mark; only the frontmatter changed: "No part changed
       since your review." (Review focus 2). Break: a mark placed by heading rather than by lines,
       which marks the whole story.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/since-review.test.tsx`. Expected: FAIL, no region "Since
       your review · 3 parts changed".
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the spec page's UI tests.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the spec page's UI tests.
       Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(spec-page): what changed since your review"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(spec-page): what changed since your review"`.
 
 ## Task 13: The sandbox, the stories, the screenshots, and the mockup's README
 

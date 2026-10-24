@@ -145,7 +145,10 @@ test("a section the page does not know is drawn, and listed in the contents", as
   expect(entries.at(-2)).toBe("Assumptions");
 });
 
-/** The answers' pane follows the block's, at every width: no band between them (R13). */
+/**
+ * The answers' pane follows the block's, at every width: no band between them (R13), only "Since
+ * your review" on a revision (R20).
+ */
 test("the answers follow what you approve, on the phone as on a wide screen", async () => {
   for (const width of [402, 1440]) {
     atWidth(width);
@@ -154,7 +157,9 @@ test("the answers follow what you approve, on the phone as on a wide screen", as
     await renderPage(PAGE, repo);
 
     const answers = await region("Your review, answered");
-    expect(answers.previousElementSibling).toBe(await region(BLOCK));
+    const since = await region("Since your review");
+    expect(answers.previousElementSibling).toBe(since);
+    expect(since.previousElementSibling).toBe(await region(BLOCK));
     cleanup();
   }
 });

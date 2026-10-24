@@ -15,6 +15,7 @@ import { useStaticImages } from "./ImageView.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
+import { SinceWords } from "./sinceMarks.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
@@ -286,7 +287,9 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
           label={
             <Selectable block={item} selection={context.selection}>
               <div {...stylex.props(proseStyles.reading, styles.item)}>
-                <Spans spans={item.spans} />
+                <SinceWords block={item}>
+                  <Spans spans={item.spans} />
+                </SinceWords>
                 <Children block={item} context={context} />
               </div>
             </Selectable>
@@ -326,7 +329,9 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
           type="inherit"
           xstyle={styles.paragraph}
         >
-          <Spans isAlone spans={block.spans} />
+          <SinceWords block={block}>
+            <Spans isAlone spans={block.spans} />
+          </SinceWords>
         </Text>
       );
     case "list":

@@ -1,7 +1,8 @@
 //! What changed in a spec since its human reviewed it: the spec at the commit of the review its
 //! revision answers, against the version the page shows, part by part as a decision's change
 //! matches them, a heading of level 3 or deeper a part too. The frontmatter is not a part, nor is
-//! the opening callout, rewritten at every revision, and no rule's strength or check is read. A
+//! the opening callout, rewritten at every revision, nor `## History`, where the revision moves
+//! the reviewed callout (R19), and no rule's strength or check is read. A
 //! section renamed is its heading's change, its parts compared with the ones it had.
 
 use super::answered::revision_of;
@@ -11,6 +12,9 @@ use crate::files::items::ReviewItems;
 use crate::gates::AWAITING_HUMAN;
 use crate::git::Git;
 use crate::view::{SinceChange, SinceReview};
+
+/// The section of a spec's records of its earlier reviews.
+const HISTORY: &str = "History";
 
 /// The change of the spec at `path` since `review`, the review its revision answers, while it waits
 /// for its human: an approved spec is under review no more (R11). While it waits, the page shows
@@ -127,13 +131,15 @@ fn whole(head: &Part, version: &Version) -> Part {
     }
 }
 
-/// The parts of a spec's text, those of its opening callout left out.
+/// The parts of a spec's text, those of its opening callout and its `## History` left out.
 fn spec_version(text: &str) -> Version {
     let doc = document::parse(text, "");
     let callout = crate::files::spec::items(&doc)
         .block
         .map(|id| &doc.blocks[id as usize]);
     let mut version = version_with_headings(text);
+    version.sections.retain(|(title, _)| title != HISTORY);
+    version.heads.retain(|head| head.heading != HISTORY);
     if let Some(callout) = callout {
         let inside = |part: &Part| {
             part.lines.start >= callout.start_line && part.lines.end <= callout.end_line

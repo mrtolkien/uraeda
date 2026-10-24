@@ -331,6 +331,24 @@ fn callout_rewritten() {
     );
 }
 
+/// `## History` holds the reviewed version's opening callout, moved there at the revision: it is not
+/// a part either, added or rewritten (R19).
+#[test]
+fn history_added() {
+    let history = "## History\n\n> [!NOTE]\n>\n> Changes requested on 2026-10-08: a longer undo.\n";
+    let text = format!("{}\n{history}", revision_2(&[]));
+    let repo = reviewed("changes-requested", None, &text);
+
+    assert_eq!(
+        since(&repo),
+        Some(SinceReview {
+            revision: 1,
+            found: true,
+            parts: Vec::new(),
+        })
+    );
+}
+
 /// A story's heading changed is a part, at its heading's lines, under its new heading.
 #[test]
 fn story_heading_changed() {

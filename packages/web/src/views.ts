@@ -197,6 +197,7 @@ export const FileView = view<WorkflowFile>()({
   resumable: true,
   review: ItemsSelection,
   reviewStale: true,
+  sinceReview: { found: true, parts: true, revision: true },
   status: true,
   takesImages: true,
   tip: true,

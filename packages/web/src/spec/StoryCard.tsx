@@ -14,6 +14,7 @@ import { Blocks } from "../Blocks.tsx";
 import type { Folds } from "../Folds.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
+import { SinceSign, SinceWords, useSinceMark } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { type PartProps, type SpecItems, storyId } from "./parts.ts";
 
@@ -85,19 +86,21 @@ function ScenarioNode({
   const nested = document.blocks.filter((b) => b.parent === block.id).map((b) => b.id);
   return (
     <Selectable block={block} selection={selection}>
-      <div {...stylex.props(styles.scenario)}>
-        {steps.map(({ spans, word }, at) => (
-          // The spaces between the cells, which the grid drops, keep the words apart when read.
-          <div key={at} {...stylex.props(styles.contents)}>
-            <span {...stylex.props(styles.step)}>
-              <Icon icon={STEP_ICONS[word] ?? "uraeda:step-then"} />
-            </span>{" "}
-            <span>
-              <strong {...stylex.props(styles.word)}>{word}</strong> <Spans spans={spans} />
-            </span>{" "}
-          </div>
-        ))}
-      </div>
+      <SinceWords block={block} isParagraph>
+        <div {...stylex.props(styles.scenario)}>
+          {steps.map(({ spans, word }, at) => (
+            // The spaces between the cells, which the grid drops, keep the words apart when read.
+            <div key={at} {...stylex.props(styles.contents)}>
+              <span {...stylex.props(styles.step)}>
+                <Icon icon={STEP_ICONS[word] ?? "uraeda:step-then"} />
+              </span>{" "}
+              <span>
+                <strong {...stylex.props(styles.word)}>{word}</strong> <Spans spans={spans} />
+              </span>{" "}
+            </div>
+          ))}
+        </div>
+      </SinceWords>
       {nested.length > 0 && <Blocks document={document} ids={nested} selection={selection} />}
     </Selectable>
   );
@@ -202,6 +205,8 @@ function MoreScenarios({
 export function StoryCard({ document, folds, selection, story }: StoryCardProps) {
   const scenarioIds = new Set([...story.keyBlocks, ...story.moreBlocks]);
   const journey = story.blocks.filter((id) => !scenarioIds.has(id));
+  // Its heading changed since your review: its title carries the mark.
+  const renamed = useSinceMark(story.headingBlock);
   return (
     <Pane
       icon="uraeda:map"
@@ -211,7 +216,10 @@ export function StoryCard({ document, folds, selection, story }: StoryCardProps)
       level={3}
       title={`${story.id} · ${story.title}`}
       titleSuffix={
-        <Badge label={story.priority} variant={story.priority === "P1" ? "info" : "neutral"} />
+        <>
+          <Badge label={story.priority} variant={story.priority === "P1" ? "info" : "neutral"} />
+          {renamed && <SinceSign />}
+        </>
       }
     >
       <VStack gap={3}>

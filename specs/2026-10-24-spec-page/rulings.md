@@ -268,3 +268,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none.
 - **If wrong**: the tests' previous versions are in git history.
 - **Where**: Task 11.
+
+## R19: `## History` is not a part of the change since your review
+
+- **Decision**: the core's `sinceReview` leaves `## History` out, on both sides, as it leaves the
+  opening callout out (`crates/core/src/api/since.rs`, `spec_version`).
+- **Rationale**: a revision moves the reviewed version's opening callout into `## History`, which
+  revision 1 does not have: counted, every revision 2 lists "History" among its parts changed, and
+  US5 key 1 expects exactly three, US1's journey, US2's journey, and "Your review, answered".
+  History is the record of the reviews, not a part the human reviews, and the page folds it.
+- **Alternatives considered**: leaving it out in the web, which the stack decision leaves to the
+  core; listing it, against US5 key 1.
+- **If wrong**: drop the two `retain` lines of `spec_version` and the test `history_added`.
+- **Where**: Task 12, `crates/core/tests/since_review.rs`.
+
+## R20: "Since your review" sits between the block and the answers
+
+- **Decision**: the pane "Since your review" sits right under the block's pane, before "Your review,
+  answered". `spec-page.test.tsx`'s "the answers follow what you approve" now expects it between
+  them: the answers' pane, then the since pane, then the block's, each the previous sibling of the
+  next, with no band. The marks' context lives in `src/sinceMarks.tsx`, read by `Selectable`
+  (`Selection.tsx`), so every block drawn for a review is marked wherever its part draws it, and a
+  changed paragraph's, list item's, or scenario's words are the change's runs.
+- **Rationale**: the plan puts the pane "under the block", and US5 "at the top"; the mockup draws it
+  right after the block. Every part draws its blocks through `Selectable`, but not one shared node
+  of `Blocks`, so the mark is placed there. Only the fixture's fake commit (`4f2a9c1`) makes the
+  pane show on the test's spec: "The version you reviewed is not in git anymore."
+- **Alternatives considered**: the pane after the answers, which splits what you approve from what
+  changed since you approved; marking in each part's own drawing, a dozen places to keep in step.
+- **If wrong**: move `SinceReviewPane` in `SpecPage.tsx` and restore the test's one assertion.
+- **Where**: Task 12.
