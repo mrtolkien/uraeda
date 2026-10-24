@@ -55,11 +55,21 @@ function point(page: Page, subject: string) {
 
 /** Opens "Under the hood", which holds the round's settled points, unless an earlier shot left it open. */
 async function openHood(page: Page) {
-  const show = page.getByRole("button", { name: /^Show the \d+ points$/ });
-  const fold = page.getByRole("button", { name: "Fold" });
-  await show.or(fold).first().waitFor();
-  if ((await show.count()) > 0) {
-    await show.click({ force: true });
+  const folded = page.getByRole("button", { name: /^\d+ choices? in the code only$/ });
+  const open = page.getByRole("button", { expanded: true, name: /^Under the hood/ });
+  await folded.or(open).first().waitFor();
+  if ((await folded.count()) > 0) {
+    await folded.click();
+  }
+}
+
+/** Opens the round's notes: the column's Notes tab, or the phone's Notes sheet (R22). */
+async function openNotes(page: Page, size: string) {
+  if (size === "phone") {
+    await page.getByRole("button", { exact: true, name: "Notes" }).click();
+    await page.getByRole("dialog", { name: "Notes" }).waitFor();
+  } else {
+    await page.getByRole("tab", { name: /^Notes/ }).click();
   }
 }
 
@@ -104,20 +114,22 @@ async function roundShots(each: Each) {
     }
     await settle(page);
   });
-  await each("text-notes", async ({ page }) => {
+  await each("text-notes", async ({ page, size }) => {
     await settledComments(page);
     await page.getByRole("button", { name: "Cancel" }).click();
     await page.getByRole("button", { name: "Discard" }).click();
     // The sheet's and the confirmation's Backs done, which put the page's scroll back.
     await page.getByRole("form", { name: "Comment" }).waitFor({ state: "detached" });
     await settle(page);
+    await openNotes(page, size);
     await page
       .getByRole("textbox", { name: "Anything else" })
       .fill("Overall fine, but say where answers go.");
     await centre(page, page.getByRole("textbox", { name: "Anything else" }));
   });
-  await each("text-restored", async ({ page }) => {
+  await each("text-restored", async ({ page, size }) => {
     await fresh(page, ROUND, QUESTION);
+    await openNotes(page, size);
     await page
       .getByRole("textbox", { name: "Anything else" })
       .fill("Overall fine, but say where answers go.");
