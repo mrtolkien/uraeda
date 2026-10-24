@@ -319,38 +319,6 @@ del {
   text-decoration-thickness: 0.14em;
   text-decoration-color: var(--red);
 }
-.split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  width: 100%;
-}
-.narrow .split {
-  grid-template-columns: 1fr;
-}
-.side {
-  padding: 4px 8px;
-  border: 1px solid var(--s1);
-}
-.side small {
-  display: block;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--dim);
-}
-.side.before {
-  border-color: color-mix(in srgb, var(--red) 50%, var(--s1));
-}
-.side.after {
-  border-color: color-mix(in srgb, var(--green) 50%, var(--s1));
-}
-.card-rule {
-  flex-direction: column;
-  gap: 2px;
-}
-.card-rule .kpill {
-  align-self: flex-start;
-}
 .plainpart {
   font-family: var(--read);
   margin: 4px 0;
@@ -474,107 +442,6 @@ fieldset.live > legend {
   inset: 0 auto auto 0;
   background: var(--base);
 }
-/* B, device bezels. */
-figure.dev {
-  margin: 14px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.dev .bezel {
-  border: 12px solid var(--s1);
-  border-bottom-width: 22px;
-  background: var(--crust);
-  max-width: 100%;
-  position: relative;
-}
-.dev-phone .bezel {
-  border-width: 12px;
-  border-top-width: 26px;
-  border-bottom-width: 26px;
-  border-radius: 30px;
-  overflow: hidden;
-}
-.notch {
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  width: 70px;
-  height: 8px;
-  margin-left: -35px;
-  border-radius: 4px;
-  background: var(--s2);
-  z-index: 2;
-}
-.stand {
-  width: 60px;
-  height: 22px;
-  background: var(--s1);
-}
-.foot {
-  width: 180px;
-  height: 7px;
-  background: var(--s1);
-}
-figure.dev figcaption,
-figure.brw figcaption {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-top: 6px;
-  font-size: var(--fs-small);
-  color: var(--sub);
-}
-.dev .ftools {
-  display: flex;
-}
-/* C, a browser window. */
-figure.brw {
-  margin: 14px 0;
-  border: 1px solid var(--s2);
-  background: var(--mantle);
-}
-figure.brw.is-phone {
-  width: fit-content;
-  margin-inline: auto;
-}
-.brw-bar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 5px 8px;
-  border-bottom: 1px solid var(--s2);
-  font-size: 13px;
-}
-.brw-bar .dots {
-  display: flex;
-  gap: 5px;
-}
-.brw-bar .dots i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--s2);
-}
-.brw-bar .addr {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  background: var(--base);
-  padding: 1px 8px;
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-.brw-bar .ftools {
-  display: flex;
-}
-figure.brw figcaption {
-  padding: 2px 8px 6px;
-}
-
 /* How it is built. */
 .unit {
   display: grid;
@@ -800,4 +667,12 @@ figure.brw figcaption {
 }
 fieldset.task.t-done {
   border-color: var(--green);
+}
+.narrow fieldset.live > legend {
+  flex-wrap: wrap;
+  max-width: calc(100% - 84px);
+  gap: 0 6px;
+}
+.narrow .live .stage {
+  padding: 4px;
 }

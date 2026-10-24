@@ -1,6 +1,6 @@
-// Throwaway prototypes of the spec and plan pages in the terminal look, over two real specs and a
-// real plan, as Uraeda's core reads them. The bar on top picks the document, the scheme, the width,
-// and each question's variants; everything under it is the page.
+// The spec's mockup of the spec and plan pages in the terminal look: the design round 01 picked,
+// over two real specs and a real plan, as Uraeda's core reads them. The bar on top picks the page,
+// the scheme, the width, and the revision; everything under it is the page.
 (function () {
   const ctl = document.getElementById("ctl");
   const frame = document.getElementById("frame");
@@ -9,9 +9,6 @@
     doc: P.get("doc") || "layout-look", // layout-look | questions-page | plan
     scheme: P.get("scheme") || "mocha",
     w: P.get("w") || "auto",
-    dec: P.get("dec") || "ledger", // ledger | split | cards
-    embed: P.get("embed") || "window", // window | device | browser
-    plan: P.get("plan") || "progress", // progress | document
     since: P.get("since") === "1",
     tab: P.get("tab") || "contents", // contents | review | session
     page: false, // the phone's session page
@@ -30,13 +27,10 @@
       doc: S.doc,
       scheme: S.scheme,
       w: S.w,
-      dec: S.dec,
-      embed: S.embed,
-      plan: S.plan,
       tab: S.tab,
     });
     if (S.since) q.set("since", "1");
-    history.replaceState(null, "", "?" + q.toString());
+    history.replaceState(null, "", "?" + q.toString() + location.hash);
   }
 
   // ---------- helpers ----------
@@ -228,30 +222,6 @@
       .filter((r) => r.kind !== "removed")
       .map((r) => r.text)
       .join(" ");
-    if (mode === "split" && p.kind === "changed") {
-      return sel(
-        id,
-        `dec-${d.idx}`,
-        quote,
-        `<div class="split"><div class="side before"><small>before</small>${runs(p.runs, "before")}</div><div class="side after"><small>after</small>${runs(p.runs, "after")}${check}</div></div>`,
-        "div",
-        "rule k-changed",
-      );
-    }
-    if (mode === "cards") {
-      const pill =
-        p.kind === "kept"
-          ? ""
-          : `<span class="kpill ${p.kind}">${p.kind === "added" ? "New" : p.kind === "changed" ? "Changed" : "Removed"}</span>`;
-      return sel(
-        id,
-        `dec-${d.idx}`,
-        quote,
-        `${pill}<div class="rtext">${str ? `<span class="strico">${icon("chevron-right", 14)}</span>` : ""}${runs(p.runs)}</div>${check}`,
-        "div",
-        `rule card-rule k-${p.kind}`,
-      );
-    }
     return sel(
       id,
       `dec-${d.idx}`,
@@ -266,10 +236,7 @@
     const moved = s.parts.filter((p) => p.kind !== "kept");
     const body = (parts) =>
       parts.map((p, i) => rulePart(d, p, `${si}-${s.parts.indexOf(p)}`, mode)).join("");
-    if (mode === "cards") {
-      return `<h4 class="dsec">${esc(s.title || "Intent")}</h4>${body(moved)}${kept.length ? fold(`k-${d.name}-${si}`, `${kept.length} unchanged`, body(kept), "dim") : ""}`;
-    }
-    // Ledger and split: kept parts folded under one row per section.
+    // Kept parts fold under one row per section.
     return `<div class="dsec-row"><span class="dsec-t">${esc(s.title || "Intent")}</span>${moved.length ? `<span class="c-dim">${moved.length} changed</span>` : ""}</div>${body(moved)}${
       kept.length
         ? fold(
@@ -281,7 +248,8 @@
         : ""
     }`;
   }
-  function decision(d, mode) {
+  function decision(d) {
+    const mode = "ledger";
     const listed = SP().decisions.find((x) => x.includes(`${d.name}.md`)) || "";
     const sentence = listed
       .replace(/^\*\*[^*]*\*\*\s*/, "")
@@ -298,13 +266,11 @@
     const counts = (list) =>
       list.reduce((a, s) => a + s.parts.filter((p) => p.kind !== "kept").length, 0);
     let body;
-    if (d.kind === "new" && mode !== "cards") {
+    if (d.kind === "new") {
       body = `${intent ? `<div class="intent">${intent.parts.map((p) => runs(p.runs)).join(" ")}</div>` : ""}
         <div class="dsec-row"><span class="dsec-t">Rules</span><span class="c-dim">${rules.parts.length} new</span></div>
         ${rules.parts.map((p, i) => rulePart(d, p, `r-${i}`, "ledger")).join("")}
         ${fold(`o-${d.name}`, `Why, alternatives, consequences, applies to`, others.map((s, si) => `<h4 class="dsec">${esc(s.title)}</h4>${s.parts.map((p) => `<p class="plainpart">${runs(p.runs)}</p>`).join("")}`).join(""), "dim")}`;
-    } else if (mode === "cards") {
-      body = secs.map((s, si) => section(d, s, si, mode)).join("");
     } else {
       body = `${intent ? section(d, intent, 0, mode) : ""}${rules ? section(d, rules, secs.indexOf(rules), mode) : ""}${fold(
         `o-${d.name}`,
@@ -326,7 +292,7 @@
     const relied = s.relied.slice(1);
     return `<section id="decisions"><h2 class="sec">${icon("scale", 20)} Decisions <span class="c-dim">· ${kinds.map(([k, n]) => `${n} ${k}`).join(", ")}</span></h2>
       <p class="c-dim pane-lead">They bind every later feature. Approving the spec activates them.</p>
-      ${ch.map((d) => decision(d, S.dec)).join("")}
+      ${ch.map((d) => decision(d)).join("")}
       ${pane(`Relied on · ${relied.length}`, `<div class="relied">${relied.map(([a, b], i) => sel(`rel-${i}`, "relied", `${a}: ${b}`, `<span class="rl">${md(a)}</span><span class="rm">${md(b)}</span>`)).join("")}</div>`, "relied-pane", "link", "relied")}</section>`;
   }
 
@@ -354,13 +320,6 @@
     const size = `${e.w} × ${e.h}`;
     const iframe = `<div class="scaler" data-w="${e.w}" data-h="${e.h}"><iframe loading="lazy" title="Mockup: ${esc(m.label)}, at ${e.w} px" src="${e.src}" style="width:${e.w}px;height:${e.h}px"></iframe></div>`;
     const tools = `<span class="ftools"><span class="btn ghost small" title="Comment on this mockup">${icon("message-square-plus", 14)}</span><span class="btn ghost small" title="Full screen, at 100%">${icon("maximize-2", 14)}</span></span>`;
-    if (S.embed === "device") {
-      return `<figure class="dev ${phone ? "dev-phone" : "dev-monitor"}" id="${id}"><div class="bezel">${phone ? `<span class="notch"></span>` : ""}${iframe}</div>${phone ? "" : `<span class="stand"></span><span class="foot"></span>`}
-        <figcaption>${icon(phone ? "smartphone" : "monitor", 14)} ${esc(m.label)} <span class="c-dim">· ${size} · <span class="scale-pct"></span></span>${tools}</figcaption></figure>`;
-    }
-    if (S.embed === "browser") {
-      return `<figure class="brw ${phone ? "is-phone" : ""}" id="${id}"><div class="brw-bar"><span class="dots"><i></i><i></i><i></i></span><span class="addr">${icon("globe", 13)} ${esc(e.route)}</span><span class="c-dim">${size}</span>${tools}</div>${iframe}<figcaption>${esc(m.label)}</figcaption></figure>`;
-    }
     return `<fieldset class="live ${phone ? "is-phone" : ""}" id="${id}"><legend>${icon(phone ? "smartphone" : "monitor", 15)} <b>live</b> · ${esc(m.label)} <span class="c-dim">· ${size} · <span class="scale-pct"></span></span></legend>${tools}<div class="stage">${iframe}</div></fieldset>`;
   }
   function scenario(steps, id, part) {
@@ -505,19 +464,9 @@
       done: t.steps.filter((s) => s.done).length,
     }));
     const allDone = (t) => t.done === t.steps.length;
-    const doneTasks = tasks.filter(allDone).length;
-    const steps = tasks.reduce((a, t) => a + t.steps.length, 0);
-    const doneSteps = tasks.reduce((a, t) => a + t.done, 0);
     const current = tasks.find((t) => !allDone(t));
     const head = `<div class="crumbs">Home › Questions page in the terminal look › <b>plan.md</b></div><h1>Plan: Questions page in the terminal look</h1>
       <div class="status-row"><span class="chip ok">${icon("check", 13)} Auto-approved</span><span class="c-dim">spec revision 1 · implementation running</span></div>`;
-    const progress = pane(
-      `Progress · ${doneTasks} of ${tasks.length} tasks`,
-      `<div class="bar big"><i style="width:${(100 * doneSteps) / steps}%"></i></div><p class="c-dim">${doneSteps} of ${steps} steps checked. Now: <a href="#" data-jump="task-${current.n}">Task ${current.n}</a>, ${esc(current.title.replace(/^Task \d+: /, ""))}.</p>`,
-      "active",
-      "list-checks",
-      "progress",
-    );
     const goal = pane(
       "Goal",
       `<div class="prose">${sel("goal", "goal", p.goal, `<p>${md(p.goal)}</p>`)}</div>`,
@@ -525,23 +474,13 @@
       "target",
       "goal",
     );
-    const wavesOf = () =>
-      p.waves
-        .map((w, i) => {
-          const ns = (w.match(/^Tasks? ([\d, and]+):/) || ["", ""])[1].match(/\d+/g).map(Number);
-          return `<div class="wave"><span class="wn">Wave ${i + 1}</span><span class="wchips">${ns
-            .map((n) => {
-              const t = tasks[n - 1];
-              if (!t) return "";
-              const st = allDone(t) ? "done" : t === current ? "now" : "todo";
-              return `<a href="#" data-jump="task-${n}" class="tchip ${st}">${icon(st === "done" ? "circle-check" : st === "now" ? "circle-dashed" : "circle", 13)} ${n}</a>`;
-            })
-            .join(
-              "",
-            )}</span><span class="wwhy c-dim">${md(w.replace(/^Tasks? [\d, and]+: ?/, "").replace(/^./, (c) => c.toUpperCase()))}</span></div>`;
-        })
-        .join("");
-    const waves = pane(`Waves · ${p.waves.length}`, wavesOf(), "", "milestone", "waves");
+    const waves = pane(
+      `Waves · ${p.waves.length}`,
+      `<ol class="md">${p.waves.map((w, i) => `<li>${sel(`wave-${i}`, "waves", w, md(w), "span")}</li>`).join("")}</ol>`,
+      "",
+      "milestone",
+      "waves",
+    );
     const taskPane = (t, folded) => {
       const label = `Task ${t.n} · ${esc(t.title.replace(/^Task \d+: /, ""))}`;
       const st = allDone(t) ? "done" : t === current ? "now" : "todo";
@@ -553,29 +492,18 @@
         return `<div class="tfold ${st}" id="task-${t.n}"><button class="fold-btn" data-fold="task-${t.n}">${icon("chevron-right", 15)} ${icon(st === "done" ? "circle-check" : "circle", 15)} ${label}</button>${badge}</div>`;
       return `<fieldset class="pane task t-${st} ${st === "now" ? "active" : ""}" id="task-${t.n}"><legend>${icon(st === "done" ? "circle-check" : st === "now" ? "circle-dashed" : "circle", 16)} ${label} ${badge}</legend>${body}${folded ? `<button class="fold-btn dim" data-fold="task-${t.n}">${icon("chevron-down", 15)} fold</button>` : ""}</fieldset>`;
     };
-    const ref = (title, key, lines, body) =>
-      open.has(key)
-        ? pane(title, body, "", "book-open", key)
-        : `<div class="tfold" id="${key}"><button class="fold-btn" data-fold="${key}">${icon("chevron-right", 15)} ${icon("book-open", 15)} ${esc(title)}</button><span class="c-dim">${lines}</span></div>`;
     const focus = `<ol class="md">${p.focus.map((f, i) => `<li>${sel(`focus-${i}`, "focus", f, md(f), "span")}</li>`).join("")}</ol>`;
-    const refs = `<h2 class="sec">${icon("book-open", 20)} For the implementer</h2>
-      ${ref("Architecture", "arch", "1 paragraph", `<div class="prose"><p>${md(p.architecture)}</p></div>`)}
-      ${ref(`Review focus · ${p.focus.length}`, "focus", `${p.focus.length} conditions`, focus)}
-      ${p.others.map((o) => ref(o.title, `ref-${o.title}`, `${o.lines} lines`, `<p class="c-dim">The section as written in plan.md.</p>`)).join("")}`;
-    if (S.plan === "document") {
-      return `${head}${goal}${pane("Architecture", `<div class="prose"><p>${md(p.architecture)}</p></div>`, "", "layers", "arch")}${pane(`Review focus · ${p.focus.length}`, focus, "", "eye", "focus")}${p.others
-        .map((o) =>
-          pane(
-            o.title,
-            `<p class="c-dim">${o.lines} lines, as written in plan.md.</p>`,
-            "",
-            "book-open",
-            `ref-${o.title}`,
-          ),
-        )
-        .join("")}${waves}${tasks.map((t) => taskPane(t, false)).join("")}`;
-    }
-    return `${head}${progress}${goal}${waves}<h2 class="sec">${icon("list-todo", 20)} Tasks</h2>${tasks.map((t) => taskPane(t, t !== current)).join("")}${refs}`;
+    return `${head}${goal}${pane("Architecture", `<div class="prose"><p>${md(p.architecture)}</p></div>`, "", "layers", "arch")}${pane(`Review focus · ${p.focus.length}`, focus, "", "eye", "focus")}${p.others
+      .map((o) =>
+        pane(
+          o.title,
+          `<p class="c-dim">${o.lines} lines, as written in plan.md.</p>`,
+          "",
+          "book-open",
+          `ref-${o.title}`,
+        ),
+      )
+      .join("")}${waves}${tasks.map((t) => taskPane(t, false)).join("")}`;
   }
 
   // ---------- the right column ----------
@@ -584,7 +512,7 @@
       const p = window.PLAN;
       const row = (id, label, st = "") =>
         `<a href="#" data-jump="${id}"><span class="st">${st}</span><span>${label}</span></a>`;
-      return `<div class="ol">${row("progress", "Progress", "▸")}${row("goal", "Goal", "·")}${row("waves", "Waves", "·")}<hr/>${p.tasks
+      return `<div class="ol">${row("goal", "Goal", "·")}${row("arch", "Architecture", "·")}${row("focus", "Review focus", "·")}${p.others.map((o) => row(`ref-${o.title}`, esc(o.title), "·")).join("")}${row("waves", "Waves", "·")}<hr/>${p.tasks
         .map((t, i) =>
           row(
             `task-${i + 1}`,
@@ -592,7 +520,7 @@
             t.steps.every((s) => s.done) ? "✓" : "○",
           ).replace('class="st">✓', 'class="st ok">✓'),
         )
-        .join("")}<hr/>${row("arch", "For the implementer", "·")}</div>`;
+        .join("")}</div>`;
     }
     const s = SP();
     const n = (id) =>
@@ -727,7 +655,7 @@
       cls === "narrow" && S.sheet
         ? `<div class="scrim" data-sheet-close="1"></div><div class="sheet"><div class="sheet-head"><b>${S.sheet === "review" ? "Review" : "Contents"}</b><button class="btn ghost small" data-sheet-close="1">${icon("x", 14)}</button></div>${S.sheet === "review" ? reviewTab() : contents()}</div>`
         : "";
-    frame.innerHTML = `<div class="app ${cls} emb-${S.embed} dec-${S.dec}">${leftShell(cls)}<div class="work-wrap"><div class="work"><main class="page"><div class="page-in ${cls === "narrow" ? "tight" : ""}">${main}</div></main>${right.html}</div></div>${status}${phoneSession}${sheet}</div>`;
+    frame.innerHTML = `<div class="app ${cls} ">${leftShell(cls)}<div class="work-wrap"><div class="work"><main class="page"><div class="page-in ${cls === "narrow" ? "tight" : ""}">${main}</div></main>${right.html}</div></div>${status}${phoneSession}${sheet}</div>`;
     const page = frame.querySelector(".page");
     page.style.scrollBehavior = "auto";
     page.scrollTop = scroll;
@@ -905,7 +833,7 @@
   const select = (key, label, opts) =>
     `<label>${label}<select data-k="${key}">${opts.map(([v, t]) => `<option value="${v}" ${String(S[key]) === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>`;
   function bar() {
-    ctl.innerHTML = `<span class="tag">Prototype</span>
+    ctl.innerHTML = `<span class="tag">Mockup</span>
     ${select("doc", "Page", [
       ["layout-look", "spec: layout-look (3 decisions)"],
       ["questions-page", "spec: questions-page (+ data)"],
@@ -921,20 +849,6 @@
       ["1205", "1205 half"],
       ["960", "960 semi"],
       ["390", "390 phone"],
-    ])}
-    ${select("dec", "Decisions", [
-      ["ledger", "A · ledger"],
-      ["split", "B · before | after"],
-      ["cards", "C · today's cards"],
-    ])}
-    ${select("embed", "Frames", [
-      ["window", "A · live window"],
-      ["device", "B · device bezels"],
-      ["browser", "C · browser window"],
-    ])}
-    ${select("plan", "Plan", [
-      ["progress", "A · progress first"],
-      ["document", "B · file order"],
     ])}
     ${select("since", "Revision", [
       ["false", "revision 1"],
@@ -957,6 +871,8 @@
     }
   });
   bar();
+  // A link's hash opens the page at that part, as the app's anchors do.
+  if (location.hash) setTimeout(() => jump(decodeURIComponent(location.hash.slice(1))), 400);
   window.addEventListener("resize", render);
   render();
 })();
