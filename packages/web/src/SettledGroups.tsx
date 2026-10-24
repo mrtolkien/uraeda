@@ -6,6 +6,7 @@ import type { Document, SettledGroup } from "uraeda-binding";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { CheckPane } from "./RoundParts.tsx";
+import { PART_IDS } from "./roundPartIds.ts";
 import { plain } from "./Spans.tsx";
 import { useOpenKeys } from "./useOpenKeys.ts";
 
@@ -77,7 +78,7 @@ function GroupPane({
           : undefined
       }
       icon={isHood ? "uraeda:wrench" : "uraeda:eye"}
-      id={isHood ? "under-the-hood" : "behaviour"}
+      id={isHood ? PART_IDS.hood : PART_IDS.behaviour}
       isOpenOnPhone
       level={3}
       title={heading ? plain(heading.spans) : ""}

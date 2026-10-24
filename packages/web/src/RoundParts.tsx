@@ -18,6 +18,7 @@ import { Pane } from "./layout/Pane.tsx";
 import { useWidthOf } from "./layout/useWidthOf.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
+import { PART_IDS } from "./roundPartIds.ts";
 import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
@@ -112,7 +113,7 @@ export function RoundBlock({ document, round }: { document: Document; round: Rou
     .filter((b) => b.kind !== "list" || drawn.blocks.some((item) => item.parent === b.id))
     .map((b) => b.id);
   return (
-    <Pane icon="uraeda:triangle-alert" id="summary" isOpenOnPhone title={title}>
+    <Pane icon="uraeda:triangle-alert" id={PART_IDS.summary} isOpenOnPhone title={title}>
       {round.verdict && <Verdict verdict={round.verdict} />}
       <Blocks document={drawn} ids={ids} />
     </Pane>
@@ -167,7 +168,7 @@ function ContextPane({
           : undefined
       }
       icon={anchor === undefined ? undefined : CONTEXT_ICONS[anchor]}
-      id={anchor ?? "context"}
+      id={anchor ?? PART_IDS.context}
       isOpenOnPhone
       title={part.title || "Context"}
     >
@@ -228,7 +229,7 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
     <Pane
       count={count}
       icon="uraeda:flag"
-      id="check-these"
+      id={PART_IDS.check}
       isOpenOnPhone
       title="Check these"
       tone="attention"
