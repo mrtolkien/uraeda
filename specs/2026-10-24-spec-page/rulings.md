@@ -168,9 +168,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   page's width. The browser tests of the sticking heads go; the test of the parts' width checks the
   panes and a story's text at the page's 14.4 px inset; the band test checks that the answers' pane
   follows the block's. The block's record ("Spec to review, revision 2, about 10 minutes.") is the
-  pane's title, no longer a paragraph that takes a comment. The groups read "User stories" and "How
-  it is built", as the mockup names them, in Contents too. History folds through the pane's fold,
-  its records not mounted while folded.
+  pane's title, no longer a paragraph that takes a comment: a pending comment saved on it, or on the
+  block's other lines outside its items, draws at the top of the pane's body, where it is edited and
+  removed. The groups read "User stories" and "How it is built", as the mockup names them, in
+  Contents too. History folds through the pane's fold, its records not mounted while folded.
 - **Rationale**: US1 and the mockup draw every part as a titled pane, with no sticking head nor
   band; the UI behaviour decision forbids folded content mounted. A story's live window, inside two
   bordered panes, fell under the phone's 90% scale R7 states.

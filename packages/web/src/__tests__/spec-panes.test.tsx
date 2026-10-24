@@ -1,10 +1,12 @@
 // The spec in titled panes (US1): the block's pane titled by its first line, "You approve" first and
 // the constitution under a separator at its foot (C1); the decisions right after the answers; the
 // data model's sections as panes, on the spec and alone; an approved spec's same panes.
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test, vi } from "vite-plus/test";
-import { atWidth, fixtureRepo, renderPage } from "./helpers.tsx";
+import { atWidth, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
 const BLOCK = "Spec to review, revision 2, about 10 minutes.";
@@ -117,6 +119,30 @@ test("the data model alone scrolls to the section its hash names", async () => {
   const rule = await region("Repeat rule");
   expect(document.getElementById("repeat-rule")).toBe(rule);
   await waitFor(() => expect(scrolled.mock.contexts.at(-1)).toBe(rule));
+});
+
+/**
+ * R13: the record line is the block pane's title, which takes no comment: a pending comment saved on
+ * it draws at the top of the pane's body, where it is edited and removed.
+ */
+test("a pending comment on the block's record line draws at the top of its pane", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const worktree = join(repo, ".worktrees", SPEC_FEATURE);
+  git(repo, "worktree", "add", "--quiet", worktree, SPEC_FEATURE);
+  const tip = git(repo, "rev-parse", "--short=7", SPEC_FEATURE).trim();
+  writeFileSync(
+    join(worktree, "specs", SPEC_FEATURE, "spec-review.md"),
+    `---\nverdict: pending\ncommit: ${tip}\n---\n\n# Review: Spec, Recurring tasks\n\n## C1: Line 13, under "Spec: Recurring tasks"\n\n> ${BLOCK}\n\nShorter?\n`,
+  );
+  await renderPage(PAGE, repo);
+
+  const pending = await screen.findByRole("group", { name: "C1 · line 13" });
+  const block = await region(BLOCK);
+  expect(block.contains(pending)).toBe(true);
+  expect(before(pending, within(block).getByText(/^You approve tasks that repeat/))).toBe(true);
+  expect(within(pending).getByRole("button", { name: "Edit" })).toBeTruthy();
+  expect(within(pending).getByRole("button", { name: "Remove" })).toBeTruthy();
 });
 
 /** US1: a story is a pane titled by its id and title, its priority beside the title. */

@@ -14,7 +14,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { Block, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
-import { Selectable, type Selection } from "../Selection.tsx";
+import { After, Selectable, type Selection } from "../Selection.tsx";
 import { plain, Spans } from "../Spans.tsx";
 import { GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
@@ -187,7 +187,8 @@ export function SpecOpening({
   items,
   selection,
 }: Pick<PartProps, "document" | "selection"> & { items: SpecItems }) {
-  const inBlock = childrenOf(document, items.block ?? undefined);
+  const block = items.block == null ? undefined : document.blocks[items.block];
+  const inBlock = childrenOf(document, block?.id);
   const record = inBlock.find((b) => b.kind === "paragraph");
   const bullets = inBlock
     .filter((b) => b.kind === "list")
@@ -206,6 +207,9 @@ export function SpecOpening({
       title={title || GROUPS.approve.title}
     >
       <VStack gap={3}>
+        {/* The record is the title, which takes no comment: one saved on it, or elsewhere on the
+            block's lines outside its items, draws here (R13). */}
+        {block && selection?.after && <After>{selection.after(block)}</After>}
         {lead && <Bullet isLead item={lead} selection={selection} />}
         {bullets
           .filter((b) => b !== lead)
