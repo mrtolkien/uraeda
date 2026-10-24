@@ -41,6 +41,32 @@ describe("the round's panes on the phone", () => {
   });
 });
 
+/** The widest line of text in an element, in px: its text's boxes, by the line they sit on. */
+function longestLine(element: Element) {
+  const lines = new Map<number, { left: number; right: number }>();
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    // The pane's title, in its top border, is no line of its text.
+    if (node.parentElement?.closest("h2, h3")) {
+      continue;
+    }
+    range.selectNodeContents(node);
+    for (const rect of range.getClientRects()) {
+      if (rect.width === 0) {
+        continue;
+      }
+      const key = Math.round(rect.bottom);
+      const line = lines.get(key) ?? { left: rect.left, right: rect.right };
+      lines.set(key, {
+        left: Math.min(line.left, rect.left),
+        right: Math.max(line.right, rect.right),
+      });
+    }
+  }
+  return Math.max(0, ...[...lines.values()].map((line) => line.right - line.left));
+}
+
 /** The colour an element shows behind its text: its own background, or what it sits on. */
 function paint(element: Element): string {
   for (let node: Element | null = element; node; node = node.parentElement) {
@@ -78,6 +104,27 @@ describe("the round's open panes on the phone, over the page", () => {
 
 describe("the round's panes on the desktop", () => {
   atSize("desktop");
+
+  test("on an answered round, the block's lines hold to the round's measure", async () => {
+    const round = await commands.fixtureText("round-merge-chats/clarifications-01.md");
+    await commands.commitOnBranch(FEATURE, {
+      [FILE]: round.replace("status: awaiting-human", "status: answered"),
+    });
+    await show(PAGE, "Who may move a chat up to a change, or a change up to a feature?");
+    await drawn();
+    expect(window.innerWidth).toBe(1440);
+
+    const pane = screen.getByRole("region", { name: /^7 questions and 1 follow-up/ });
+    // The round's measure, in the reading font at its size, as the pane's text resolves it.
+    const probe = document.createElement("div");
+    probe.style.cssText =
+      "font-family: var(--font-family-reading); font-size: var(--text-reading-size); width: var(--size-reading-measure)";
+    pane.append(probe);
+    const measure = probe.getBoundingClientRect().width;
+    probe.remove();
+    expect(measure).toBeGreaterThan(400);
+    expect(longestLine(pane)).toBeLessThanOrEqual(measure + 1);
+  });
 
   test("on the desktop, a pane keeps its inset", async () => {
     await mergeChats();
