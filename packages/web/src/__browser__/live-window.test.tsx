@@ -69,6 +69,18 @@ describe("on a desktop", () => {
     expect(frame.getBoundingClientRect().width).toBe(402);
   });
 
+  test("at 1440 px, a story's window stays inside its story's pane, off its border", async () => {
+    await commands.addSpecFeature({ stories: true });
+    await showWindow(STORY, `${STORY}, desktop`, "Open");
+
+    const pane = screen.getByRole("region", { name: "US1 · Make a task repeat" });
+    const border = Number.parseFloat(getComputedStyle(pane).borderLeftWidth);
+    const outer = pane.getBoundingClientRect();
+    const window = live(STORY).getBoundingClientRect();
+    expect(window.left).toBeGreaterThan(outer.left + border);
+    expect(window.right).toBeLessThan(outer.right - border);
+  });
+
   test("an HTML mockup draws live, in the same window (US3 2)", async () => {
     await commands.addSpecFeature({ stories: true });
     await showWindow(HTML, `${HTML}, 1440 px`, "every monday");

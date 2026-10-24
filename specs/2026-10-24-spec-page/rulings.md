@@ -387,3 +387,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: Task 13, `packages/web/src/shell/StatusLine.tsx`, `src/shell/useCountsFit.ts`,
   `src/__browser__/spec-column.test.tsx` "the status line's controls and counts never cover each
   other".
+
+## R26: A live window grows past its column only where the room is wider than the gap
+
+- **Decision**: a live window grows past a side of its column only when that side has at least the
+  16 px gap of room (`useOutgrow`, `src/embedLayout.ts`); with less, it keeps its column's edge. In
+  a spec's or a plan's pane at 1440 px, a window stays inside its pane, off its border. The story
+  embed's test "in a document's column, the embed grows into the empty space beside it" opens the
+  test feature's proposal instead of its spec: the proposal draws the embed in its column, outside
+  any pane, where room to grow exists.
+- **Rationale**: Task 13's screenshots showed every window in a story's pane grown by the pane's 6
+  px of padding, its double border laid over the pane's own. Since the spec draws in panes, the spec
+  page's story test passed only by those 6 px, which guard nothing the story embed's spec asks; the
+  proposal still shows the growth it asks for.
+- **Alternatives considered**: windows stopped at any bordered ancestor's inner edge, which still
+  draws the two borders side by side; leaving the test on the spec, which would need the 6 px
+  overlap to pass.
+- **If wrong**: drop the gap check in `useOutgrow`, and the test "at 1440 px, a story's window stays
+  inside its story's pane, off its border" in `src/__browser__/live-window.test.tsx`.
+- **Where**: Task 13, `packages/web/src/embedLayout.ts`, `src/__browser__/live-window.test.tsx`,
+  `src/__browser__/story-embed.test.tsx`.

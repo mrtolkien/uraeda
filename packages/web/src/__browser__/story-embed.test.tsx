@@ -167,7 +167,9 @@ describe("on a desktop, the embed's sizes", () => {
     await page.viewport(1920, 1080);
     try {
       await commands.addStoryFeature();
-      await showSpec();
+      // The proposal, whose column holds its text and the embed, outside any pane.
+      await show(PROPOSAL, "Long feature names are cut");
+      embed().scrollIntoView({ block: "center" });
       await storyShown(DESKTOP);
       const column = embed().parentElement!.getBoundingClientRect();
 

@@ -91,9 +91,12 @@ export function useOutgrow(
           )
         : 0;
       const free = room(natural, parent, page, outer, px(getComputedStyle(page).paddingLeft));
+      // A side with less room than the gap does not grow: a few px would only lay the embed's
+      // border over its pane's.
+      const [open, close] = [free.start, free.end].map((side) => (side < GAP ? 0 : side));
       const half = want / 2;
-      const start = Math.min(free.start, Math.max(half, want - free.end));
-      const end = Math.min(free.end, want - start);
+      const start = Math.min(open!, Math.max(half, want - close!));
+      const end = Math.min(close!, want - start);
       setGrow((known) =>
         Math.abs(known.start - start) < 0.5 && Math.abs(known.end - end) < 0.5
           ? known
