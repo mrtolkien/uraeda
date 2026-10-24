@@ -16,7 +16,7 @@ export const LIMITS = { max: 720, min: 400 };
 const AUTO = { max: 600, min: 400, share: 1 / 3 };
 
 /** What the browser keeps of the column: the width dragged to, and whether it is folded. */
-export type StoredDocumentColumn = StoredWidth;
+type StoredDocumentColumn = StoredWidth;
 
 /** The column's width before any drag, for a window `windowWidth` px wide. */
 export const autoWidth = (windowWidth: number) => autoWidthOf(AUTO, windowWidth);

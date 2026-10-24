@@ -6,16 +6,16 @@ import { useResizable } from "@astryxdesign/core/Resizable";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 /** The least and the most a width may be, in px. */
-export type WidthLimits = { max: number; min: number };
+type WidthLimits = { max: number; min: number };
 
 /** A width before any drag: `share` of the window, within its own limits, in px. */
-export type AutoWidth = WidthLimits & { share: number };
+type AutoWidth = WidthLimits & { share: number };
 
 /** What the browser keeps of a column: the width dragged to, and whether it is folded. */
 export type StoredWidth = { folded?: boolean; width?: number };
 
 /** A width within `limits`, in whole pixels. */
-export function clampTo(limits: WidthLimits, width: number): number {
+function clampTo(limits: WidthLimits, width: number): number {
   return Math.min(limits.max, Math.max(limits.min, Math.round(width)));
 }
 
@@ -77,7 +77,7 @@ function subscribeResize(onChange: () => void) {
 }
 
 /** The window's width, followed as it resizes. */
-export function useWindowWidth(): number {
+function useWindowWidth(): number {
   return useSyncExternalStore(subscribeResize, () => window.innerWidth);
 }
 
