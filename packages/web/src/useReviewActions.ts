@@ -21,9 +21,8 @@ export type Adding = { range?: Range; text: string };
  * What a review sends: a comment on the selected lines or the whole file, an edit of one, its
  * removal, and starting over; and, with `onAsk`, Ask the agent, which hands it the selected lines
  * quoted, as they read in the reviewed file, or a decision's parts, as they read in its own. A new
- * comment is `adding` from its "Add
- * comment" until the review file holds it, its form hidden: refused, the form shows again, with
- * the error.
+ * comment is `adding` from its "Add comment" until the review file holds it, its form hidden:
+ * refused, the form shows again, with the error.
  */
 export function useReviewActions(
   file: File,
