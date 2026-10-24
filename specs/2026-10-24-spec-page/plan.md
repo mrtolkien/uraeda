@@ -436,7 +436,7 @@ change and the spec's revision; a regression changes every page that draws a dec
   side (`before` for a removed part). Kept parts are left out. `DecisionChange` and `compare` are
   unchanged.
 
-- [ ] **Step 1: Move the parts and the matching to `compare/`**, unchanged, `decisions/change.rs`
+- [x] **Step 1: Move the parts and the matching to `compare/`**, unchanged, `decisions/change.rs`
       keeping the strength and the check: `decision_change.rs` and `branch_changes.rs` pass before
       and after. Commit `refactor(spec-page): the matching of parts in a module of its own`.
 - [ ] **Step 2: Write the failing tests** in `since_review.rs`, on a `TestRepo` whose branch commits

@@ -1,31 +1,31 @@
-//! A decision's text cut into parts: each paragraph, list item at any depth, table row, code block,
-//! or quoted paragraph, with its lines joined, grouped by section.
+//! A markdown file's text cut into parts: each paragraph, list item at any depth, table row, code
+//! block, or quoted paragraph, with its lines joined, grouped by section.
 
 use crate::files::document::{Block, BlockKind, Document, LineRange, parse, plain};
 
 /// A paragraph or list item of one version.
-pub(super) struct Part {
-    pub(super) text: String,
-    pub(super) item: bool,
-    pub(super) lines: LineRange,
+pub(crate) struct Part {
+    pub(crate) text: String,
+    pub(crate) item: bool,
+    pub(crate) lines: LineRange,
 }
 
-/// One version of a decision: its title, and its parts by section, in file order.
+/// One version of a file: its title, and its parts by section, in file order.
 #[derive(Default)]
-pub(super) struct Version {
-    pub(super) title: Option<String>,
-    pub(super) sections: Vec<(String, Vec<Part>)>,
+pub(crate) struct Version {
+    pub(crate) title: Option<String>,
+    pub(crate) sections: Vec<(String, Vec<Part>)>,
 }
 
 impl Version {
-    pub(super) fn parts(&self, title: &str) -> &[Part] {
+    pub(crate) fn parts(&self, title: &str) -> &[Part] {
         self.sections
             .iter()
             .find(|(name, _)| name == title)
             .map_or(&[], |(_, parts)| parts.as_slice())
     }
 
-    pub(super) fn section(&mut self, title: &str) -> &mut Vec<Part> {
+    pub(crate) fn section(&mut self, title: &str) -> &mut Vec<Part> {
         let index = match self.sections.iter().position(|(name, _)| name == title) {
             Some(index) => index,
             None => {
@@ -37,8 +37,8 @@ impl Version {
     }
 }
 
-/// The parts of a decision's text, its frontmatter left out.
-pub(super) fn version(text: &str) -> Version {
+/// The parts of a file's text, its frontmatter left out.
+pub(crate) fn version(text: &str) -> Version {
     let document = parse(text, "");
     let mut version = Version::default();
     let mut section = String::new();

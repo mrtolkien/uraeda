@@ -4,6 +4,7 @@ pub mod actions;
 pub mod api;
 pub mod changes;
 pub mod check;
+mod compare;
 pub mod decisions;
 pub mod embedded;
 pub mod files;
