@@ -312,3 +312,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   which leaves the round the spec keeps beside the answer.
 - **If wrong**: drop `column.setShown(true)` from `useRoundActions`' `openTab`.
 - **Where**: Task 8, fixed in its review.
+
+## R24: On the phone, a selectable block's bar takes no room
+
+- **Decision**: on narrow screens, a block a tap selects, as a settled point or a block of a spec
+  under review, has no border nor inset of its own; once selected, its bar is a shadow in the gap
+  before its text, and its tint behind the text. Its text starts at the paragraphs' edge, as every
+  list's does (R9, R11).
+- **Rationale**: the selectable box's 4.8 px bar and 4.8 px inset set Check these, Behaviour, and
+  Under the hood about 9 px in from the paragraphs on the phone, though they are the documents' own
+  hanging list; the spec's assumption has lists lose no width. A border's width rounds to whole
+  pixels in WebKit, so a margin cannot take it back exactly; a shadow takes no room.
+- **Alternatives considered**: no tap selection on settled points, which their buttons would cover,
+  but which the settled tests and the review's keyboard toggle rely on; the bar hung by a negative
+  margin, 0.8 px off at WebKit's rounding.
+- **If wrong**: drop `selectableNarrow` and `selectedNarrow` in `Selection.tsx`.
+- **Where**: the final fix pass.
