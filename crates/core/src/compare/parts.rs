@@ -8,6 +8,8 @@ pub(crate) struct Part {
     pub(crate) text: String,
     pub(crate) item: bool,
     pub(crate) lines: LineRange,
+    /// The text of the nearest heading above it, at any level; empty before the first.
+    pub(crate) heading: String,
 }
 
 /// One version of a file: its title, and its parts by section, in file order.
@@ -42,11 +44,15 @@ pub(crate) fn version(text: &str) -> Version {
     let document = parse(text, "");
     let mut version = Version::default();
     let mut section = String::new();
+    let mut heading = String::new();
     for block in document
         .blocks
         .iter()
         .filter(|block| block.parent.is_none())
     {
+        if block.kind == BlockKind::Heading {
+            heading = plain(&block.spans);
+        }
         match block.kind {
             BlockKind::Heading if block.level == Some(1) && version.title.is_none() => {
                 version.title = Some(plain(&block.spans));
@@ -55,7 +61,7 @@ pub(crate) fn version(text: &str) -> Version {
             BlockKind::Heading if block.level == Some(2) => section = plain(&block.spans),
             _ => {
                 let mut parts = Vec::new();
-                collect(&document, block, &mut parts);
+                collect(&document, block, &heading, &mut parts);
                 version.section(&section).extend(parts);
             }
         }
@@ -65,18 +71,24 @@ pub(crate) fn version(text: &str) -> Version {
 
 /// The parts of a block, in file order: a paragraph, a list item at any depth, a table row, a
 /// code or HTML block, each with its text; a quote or a callout holds its children's.
-fn collect(document: &Document, block: &Block, parts: &mut Vec<Part>) {
+/// `heading` is the nearest heading above it.
+fn collect(document: &Document, block: &Block, heading: &str, parts: &mut Vec<Part>) {
     let lines = LineRange {
         start: block.start_line,
         end: block.end_line,
     };
-    let part = |text: String, item: bool| Part { text, item, lines };
+    let part = |text: String, item: bool| Part {
+        text,
+        item,
+        lines,
+        heading: heading.to_string(),
+    };
     match block.kind {
         BlockKind::Paragraph => parts.push(part(joined(&plain(&block.spans)), false)),
         BlockKind::Item => {
             parts.push(part(joined(&plain(&block.spans)), true));
             for child in document.children(block.id) {
-                collect(document, child, parts);
+                collect(document, child, heading, parts);
             }
         }
         BlockKind::Row => {
@@ -98,12 +110,12 @@ fn collect(document: &Document, block: &Block, parts: &mut Vec<Part>) {
                 parts.push(part(title, false));
             }
             for child in document.children(block.id) {
-                collect(document, child, parts);
+                collect(document, child, heading, parts);
             }
         }
         BlockKind::List | BlockKind::Quote | BlockKind::Table => {
             for child in document.children(block.id) {
-                collect(document, child, parts);
+                collect(document, child, heading, parts);
             }
         }
         BlockKind::Heading | BlockKind::Cell | BlockKind::Rule => {}

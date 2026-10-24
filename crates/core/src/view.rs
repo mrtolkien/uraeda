@@ -17,8 +17,10 @@ mod feature;
 
 pub use feature::{FeatureView, FileSummary, PromotedView, StartedView, StepView};
 
+mod since;
 mod version;
 
+pub use since::{SinceChange, SinceReview};
 pub use version::VersionView;
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -116,6 +118,10 @@ pub struct FileView {
     /// when the revision was first committed: the one `## Your review` answers, whatever the review
     /// file holds now. `None` when that review did not request changes.
     pub answered: Option<ReviewItems>,
+    /// For `spec.md`, what changed since the version that `answered` reviewed, the spec at its
+    /// commit against the one the page shows: the committed one while it waits for review. `None`
+    /// when `answered` is.
+    pub since_review: Option<SinceReview>,
 }
 
 /// The name of a file's kind, as the web UI reads it: empty for none.

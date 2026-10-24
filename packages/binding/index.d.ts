@@ -967,6 +967,12 @@ export interface FileView {
    * file holds now. `None` when that review did not request changes.
    */
   answered?: ReviewItems
+  /**
+   * For `spec.md`, what changed since the version that `answered` reviewed, the spec at its
+   * commit against the one the page shows: the committed one while it waits for review. `None`
+   * when `answered` is.
+   */
+  sinceReview?: SinceReview
 }
 
 /** A feature's or a change's stages, and what it produced. */
@@ -1531,6 +1537,36 @@ export interface SettledPoint {
   block: number
   /** Its bold start, trimmed. */
   subject: string
+}
+
+/** A part of a spec that changed since its review. */
+export interface SinceChange {
+  /** `changed`, `added`, or `removed`. */
+  kind: string
+  /**
+   * The text of the nearest heading above the part, on its side: the reviewed one's for a
+   * removed part.
+   */
+  heading: string
+  /** Its lines in the reviewed version, from the file's first line. */
+  before?: LineRange
+  /** Its lines in the version shown, from the file's first line. */
+  after?: LineRange
+  /** Its words, as a decision's part gives them. */
+  runs: Array<Run>
+}
+
+/** A spec's change since the version reviewed by the review its revision answers. */
+export interface SinceReview {
+  /** The reviewed revision. */
+  revision: number
+  /** Whether the review's commit resolves and holds the spec; `parts` is empty when not. */
+  found: boolean
+  /**
+   * The parts changed, added, or removed, in the order of the version shown, a removed part
+   * at the place it held. Kept parts are left out.
+   */
+  parts: Array<SinceChange>
 }
 
 /** A run of text with the same marks. An image's span holds its alt text. */

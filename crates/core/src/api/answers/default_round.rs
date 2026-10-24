@@ -72,6 +72,7 @@ fn view(
         decision_changes: Vec::new(),
         candidates,
         answered: None,
+        since_review: None,
     }
 }
 

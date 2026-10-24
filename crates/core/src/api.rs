@@ -34,6 +34,7 @@ mod priority_edits;
 mod pulls;
 mod repository_list;
 mod reviews;
+mod since;
 mod start;
 
 pub use answers::*;
@@ -361,6 +362,14 @@ fn file_view(
         .map(|spec| decision::changes(git, feature, tip, &decision::listed(spec)))
         .unwrap_or_default();
     let answered = answered::answered(git, feature, tip, name, &current.text);
+    // While it waits for review, the page shows the committed spec.
+    let shown = match (&committed, status.as_deref()) {
+        (Some(committed), Some(AWAITING_HUMAN)) => &committed.text,
+        _ => &current.text,
+    };
+    let since_review = answered
+        .as_ref()
+        .map(|review| since::since_review(git, &path, review, &current.text, shown));
     Ok(FileView {
         id: format!("{}/{name}", feature.folder),
         folder: feature.folder.clone(),
@@ -378,6 +387,7 @@ fn file_view(
         decision_changes,
         candidates: Vec::new(),
         answered,
+        since_review,
     })
 }
 

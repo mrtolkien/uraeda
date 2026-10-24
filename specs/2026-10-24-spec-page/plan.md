@@ -439,7 +439,7 @@ change and the spec's revision; a regression changes every page that draws a dec
 - [x] **Step 1: Move the parts and the matching to `compare/`**, unchanged, `decisions/change.rs`
       keeping the strength and the check: `decision_change.rs` and `branch_changes.rs` pass before
       and after. Commit `refactor(spec-page): the matching of parts in a module of its own`.
-- [ ] **Step 2: Write the failing tests** in `since_review.rs`, on a `TestRepo` whose branch commits
+- [x] **Step 2: Write the failing tests** in `since_review.rs`, on a `TestRepo` whose branch commits
       the spec at revision 1, then `spec-review.md` `changes-requested` with `commit:` that commit's
       short hash, then revision 2: `revision_two_changes` (US2's journey "for 3 seconds" to "for 5
       seconds" is one `changed` part under "US2: Complete a repeating task", runs
@@ -451,15 +451,15 @@ change and the spec's revision; a regression changes every page that draws a dec
       2); `approved_with_comments_has_none` (the review at revision 2's first commit is `approved`:
       no `sinceReview`, Review focus 1). Breaks: the frontmatter compared as a part; the review read
       from the tip instead of the revision's first commit.
-- [ ] **Step 3: Run them to check they fail**:
+- [x] **Step 3: Run them to check they fail**:
       `nix develop -c cargo nextest run -p uraeda-core --test since_review`. Expected: FAIL, no
       field `since_review` on `FileView`.
-- [ ] **Step 4: Implement** in `api/since.rs`, reading through `answered`'s walk and `Git::resolve`
+- [x] **Step 4: Implement** in `api/since.rs`, reading through `answered`'s walk and `Git::resolve`
       and `read_file`; regenerate the binding. Once green, make the break of a review read from the
       tip, see `revision_two_changes` fail, revert, and report it in the commit body.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, and the core bench of
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, and the core bench of
       `branch_changes.rs`. Expected: PASS, the bench under its 100 ms.
-- [ ] **Step 6: Commit**:
+- [x] **Step 6: Commit**:
       `git commit -m "feat(spec-page): the spec's change since your review, in the core"`.
 
 ## Task 3: The pane's tones for decisions and live windows
