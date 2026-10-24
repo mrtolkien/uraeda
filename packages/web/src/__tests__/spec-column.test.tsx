@@ -280,13 +280,14 @@ test("a plan waiting for review has Contents and Review", async () => {
   );
 });
 
-/** US4 key 2, on the plan: a comment on a table's row brings the row's toggle the focus. */
-test("Review jumps to a comment on a table's row", async () => {
+/** The plan of `PLAN_TEXT` with pending comments, `comments` their markdown given its lines. */
+function planWithComments(comments: (line: (prefix: string) => number) => Array<string>) {
   const repo = fixtureRepo();
   addSpecFeature(repo);
-  const tip = git(repo, "rev-parse", "--short=7", SPEC_FEATURE).trim();
-  const row = PLAN_TEXT.split("\n").findIndex((line) => line.startsWith("| Port")) + 1;
   commitOnBranch(repo, SPEC_FEATURE, { [PLAN]: PLAN_TEXT });
+  const tip = git(repo, "rev-parse", "--short=7", SPEC_FEATURE).trim();
+  const lines = PLAN_TEXT.split("\n");
+  const text = comments((prefix) => lines.findIndex((line) => line.startsWith(prefix)) + 1);
   commitOnBranch(repo, SPEC_FEATURE, {
     [`specs/${SPEC_FEATURE}/plan-review.md`]: [
       "---",
@@ -296,14 +297,22 @@ test("Review jumps to a comment on a table's row", async () => {
       "",
       "# Review: Plan, Recurring tasks",
       "",
-      `## C1: Line ${row}, under "Global constraints"`,
-      "",
-      "> Quoted.",
-      "",
-      "Another port.",
-      "",
+      ...text,
     ].join("\n"),
   });
+  return repo;
+}
+
+/** US4 key 2, on the plan: a comment on a table's row brings the row's toggle the focus. */
+test("Review jumps to a comment on a table's row", async () => {
+  const repo = planWithComments((line) => [
+    `## C1: Line ${line("| Port")}, under "Global constraints"`,
+    "",
+    "> Quoted.",
+    "",
+    "Another port.",
+    "",
+  ]);
   await renderPage(`/f/${SPEC_FEATURE}/plan.md`, repo);
   await screen.findByRole("region", { name: "Goal" });
 
@@ -312,4 +321,21 @@ test("Review jumps to a comment on a table's row", async () => {
 
   const toggle = await blockOf("8080");
   await waitFor(() => expect(document.activeElement).toBe(toggle));
+});
+
+/** US6: a comment on the plan's title counts on Contents' first row, none counted nowhere. */
+test("the plan's Contents counts a comment on its title on the first row", async () => {
+  const repo = planWithComments((line) => [
+    `## C1: Line ${line("# Plan")}, under "Plan: Recurring tasks"`,
+    "",
+    "> Quoted.",
+    "",
+    "A better title.",
+    "",
+  ]);
+  await renderPage(`/f/${SPEC_FEATURE}/plan.md`, repo);
+  await screen.findByRole("region", { name: "Goal" });
+
+  const goal = within(panel("Contents")).getByRole("link", { name: /^Goal/ });
+  expect(goal.textContent).toBe("Goal 1 comment");
 });

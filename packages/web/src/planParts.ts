@@ -46,3 +46,6 @@ export function planParts(
   }
   return { opening, sections };
 }
+
+/** A section's pane id: its heading's anchor, or, for a heading with none, one of its block's. */
+export const sectionId = (heading: Block) => heading.anchor ?? `section-${heading.id}`;

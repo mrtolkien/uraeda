@@ -11,7 +11,7 @@ import { type Folds, useHashFold } from "./Folds.tsx";
 import { Page } from "./layout/Page.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { type OpeningRun, type PlanSection, planParts } from "./planParts.ts";
+import { type OpeningRun, type PlanSection, planParts, sectionId } from "./planParts.ts";
 import { ReviewEnd, ReviewHost, ReviewIntro, useReview } from "./review/useReview.tsx";
 import { usePageSession } from "./spec/pageSession.ts";
 import { SpecColumn } from "./spec/SpecColumn.tsx";
@@ -90,7 +90,7 @@ function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSect
   );
   if (!task) {
     return (
-      <Pane id={heading.anchor} title={heading.heading ?? ""}>
+      <Pane id={sectionId(heading)} title={heading.heading ?? ""}>
         {blocks}
       </Pane>
     );
@@ -102,7 +102,7 @@ function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSect
     />
   );
   return (
-    <Pane id={heading.anchor} title={`Task ${task.number} · ${task.title}`} titleSuffix={badge}>
+    <Pane id={sectionId(heading)} title={`Task ${task.number} · ${task.title}`} titleSuffix={badge}>
       {blocks}
     </Pane>
   );
@@ -149,7 +149,8 @@ function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; ite
 
 /**
  * The plan's entries in Contents, in its file's order: each lead pane, then each section's, a
- * task's "N <title>", each with the pending comments on its lines.
+ * task's "N <title>", each with the pending comments on its lines; a comment on a block of no pane,
+ * like the title, counts on the first entry.
  */
 function planEntries(
   document: Document,
@@ -157,34 +158,31 @@ function planEntries(
   comments: ReadonlyArray<CommentItem>,
 ): Array<Entry> {
   const { opening, sections } = planParts(document, items);
-  const count = (first: number, last: number) =>
-    comments.filter(
-      (c) => !c.general && c.decision === undefined && c.endLine >= first && c.endLine <= last,
-    ).length;
   const lastLine = (ids: ReadonlyArray<number>, from: Block) =>
     document.blocks[ids.at(-1) ?? from.id]?.endLine ?? from.endLine;
-  const leads = opening.flatMap((run) => {
-    const block = run.kind === "lead" ? document.blocks[run.block] : undefined;
-    return run.kind === "lead" && block
-      ? [
-          {
-            count: count(block.startLine, block.endLine),
-            id: leadId(run.label),
-            label: run.label,
-            nested: false,
-          },
-        ]
-      : [];
-  });
-  return [
-    ...leads,
+  const panes = [
+    ...opening.flatMap((run) => {
+      const block = run.kind === "lead" ? document.blocks[run.block] : undefined;
+      return run.kind === "lead" && block
+        ? [{ first: block.startLine, id: leadId(run.label), label: run.label, last: block.endLine }]
+        : [];
+    }),
     ...sections.map(({ heading, ids, task }) => ({
-      count: count(heading.startLine, lastLine(ids, heading)),
-      id: heading.anchor ?? "",
+      first: heading.startLine,
+      id: sectionId(heading),
       label: task ? `${task.number} ${task.title}` : (heading.heading ?? ""),
-      nested: false,
+      last: lastLine(ids, heading),
     })),
   ];
+  const counts = new Map<string, number>();
+  for (const c of comments.filter((c) => !c.general && c.decision == null)) {
+    const pane = panes.find(({ first, last }) => c.endLine >= first && c.endLine <= last);
+    const id = (pane ?? panes[0])?.id;
+    if (id !== undefined) {
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+  }
+  return panes.map(({ id, label }) => ({ count: counts.get(id) ?? 0, id, label, nested: false }));
 }
 
 /**
