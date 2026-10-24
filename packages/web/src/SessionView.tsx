@@ -98,7 +98,7 @@ export function Missing({ title }: { title: string }) {
  * A session's header, transcript, and errors, or why there is no session `id`. While the human
  * reads above its end, it gives the pane the jump back to the latest.
  */
-export function SessionLog({
+function SessionLog({
   away,
   controls: { allow, error, rename },
   crumbs,
@@ -192,7 +192,7 @@ export function SessionLog({
  * The session `id` names, as read by its view, or `undefined` before it exists, or `null` when
  * there is none.
  */
-export function useSessionRecord(id: string | undefined) {
+function useSessionRecord(id: string | undefined) {
   const fate = useFateClient();
   // The reference's identity is the view's subscription: one per session.
   const ref = useMemo(

@@ -305,9 +305,6 @@ export const uraedaTheme = defineTheme({
     "--size-composer-input": "154px",
     // The same field on the phone: 3 rows, since width is what a phone's reading lacks, not height.
     "--size-composer-input-narrow": "66px",
-    // The round's index, a column beside its questions on wide screens: at 1200 px the shell is its
-    // 52 px rail, which leaves the questions their 600 px.
-    "--size-round-index": "240px",
     // The accent line of a follow-up's card, 4 px: `--spacing-1` is 4.8 px at 120%.
     "--size-round-accent": "4px",
     // A question card at least this wide puts its options beside its title and context.

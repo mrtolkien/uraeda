@@ -59,7 +59,7 @@ export async function takeRound(each: Each) {
     await settle(page);
   });
   await each(
-    "round-index",
+    "round-outline",
     async ({ page }) => {
       await open(page);
       await page.getByRole("button", { name: /^\d+\/\d+ answered, outline$/ }).click();
