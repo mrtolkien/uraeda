@@ -19,9 +19,6 @@ mockup may be an HTML page instead.
   `preview-folder` and `preview-command` fields hold. Checked by `ura check`.
 - A spec's mockups and named states of views MUST be stories written with the real components, next
   to them. Checked by review and lint.
-- A layout or freeform mockup MAY be an HTML page in the feature's or the change's `mockups/` folder
-  instead, linked from its story: a page's layout, or a sketch no component holds yet. Checked by
-  review.
 - Storybook MUST run Uraeda's real server over fixture data, and stories MUST NOT fake its
   responses. Checked by review.
 - Stories MUST NOT run as tests: UI tests are Vitest tests, per the [UI checks](ui-checks.md)
@@ -29,6 +26,9 @@ mockup may be an HTML page instead.
 - `vp run ready` MUST build Storybook, so a story that does not compile fails. Checked by the
   `storybook:build` task.
 - Storybook's packages MUST be pinned to exact versions. Checked by review.
+- A layout or freeform mockup MAY be an HTML page in the feature's or the change's `mockups/` folder
+  instead, linked from its story: a page's layout, or a sketch no component holds yet. Checked by
+  review.
 - An investigation MAY compare throwaway prototypes in any format, in its feature's `mockups`
   folder, and the approval of its spec deletes them. Checked by review.
 
