@@ -358,10 +358,13 @@ naming that real commit, then revision 2. Browser tests run the real app in WebK
 
 **Files:**
 
-- Modify: `crates/core/src/files/items.rs` (`Items.data_model`, `DataModelItems`, `PlanItems.lead`),
-  `crates/core/src/files/plan.rs`, `crates/core/src/files/stories.rs` (`MockupEmbed`,
+- Create: `crates/core/src/files/items/data_model.rs` (`DataModelItems` and its types, beside
+  `items/round.rs` and `items/spec.rs`)
+- Modify: `crates/core/src/files/items.rs` (`Items.data_model`, `PlanItems.lead`),
+  `crates/core/src/files/plan.rs` (`lead`), `crates/core/src/files/stories.rs` (`MockupEmbed`,
   `mockup_embeds`), `crates/core/src/view/version.rs` (`VersionView.mockups`),
-  `crates/core/src/api/drafts.rs` and `api/answers/default_round.rs` if they build a version,
+  `api/answers/default_round.rs`, which builds a version (`api/drafts.rs` does not),
+  `packages/server/src/fate/sources.ts` (its empty version gains `mockups: []`),
   `packages/binding/index.d.ts` and `index.js` (generated)
 - Test: `crates/core/tests/items.rs`, `crates/core/tests/stories.rs`
 
@@ -384,7 +387,7 @@ naming that real commit, then revision 2. Browser tests run the real app in WebK
     `width` from the link's `?w=` query, 1440 without it, `anchor` after its `#`; `path` from the
     repository's top level, without query or anchor.
 
-- [ ] **Step 1: Write the failing tests.** `items.rs`: the spec-page fixture's `data-model.md`
+- [x] **Step 1: Write the failing tests.** `items.rs`: the spec-page fixture's `data-model.md`
       (`fixtures/spec-page/branch/specs/2026-10-17-spec-page/data-model.md`) has sections "Task" and
       "Repeat rule" in order, each table's changes "new" and "changed" on the rows the file gives
       (`data_model_sections`); the example plan's lead is "Goal", "Architecture", "Spec"
@@ -393,13 +396,13 @@ naming that real commit, then revision 2. Browser tests run the real app in WebK
       width 390 and anchor `dec-1`, path without the query (`html_mockup_width_and_anchor`, Review
       focus 6); a link inside a sentence, or to `mockups/x.png`, gives none. Breaks: a query left in
       the path; a "Change" cell read from the wrong column.
-- [ ] **Step 2: Run them to check they fail**: `nix develop -c cargo nextest run -p uraeda-core`.
+- [x] **Step 2: Run them to check they fail**: `nix develop -c cargo nextest run -p uraeda-core`.
       Expected: FAIL, no field `data_model` on `Items`.
-- [ ] **Step 3: Implement**, the readings in `items.rs`, `plan.rs`, and `stories.rs`; regenerate the
+- [x] **Step 3: Implement**, the readings in `items.rs`, `plan.rs`, and `stories.rs`; regenerate the
       binding with `nix develop -c vp run binding:build`. The web's `DataPart` keeps parsing until
       Task 9 replaces it.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 5: Commit**:
       `git commit -m "feat(spec-page): the core reads data models, plan leads, and HTML mockups"`.
 
 ## Task 2: The spec's change since your review, in the core

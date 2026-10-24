@@ -1,7 +1,7 @@
 //! Story links: which links name a story, and which paragraphs embed one.
 
 use uraeda_core::files::document::{BlockKind, parse};
-use uraeda_core::files::stories::{StoryTarget, story_link, story_links};
+use uraeda_core::files::stories::{StoryTarget, mockup_embeds, story_link, story_links};
 
 /// A row of the table: its case, its markdown, and the story embedded, as its path, export, and
 /// label.
@@ -170,4 +170,67 @@ fn an_options_paragraph_embeds() {
 
     assert_eq!(stories.len(), 1);
     assert_eq!(stories[0].block, paragraph.id);
+}
+
+/// The HTML mockups a document's paragraphs embed, as their path, anchor, width, and label.
+fn embeds(markdown: &str) -> Vec<(String, Option<String>, u32, String)> {
+    mockup_embeds(&parse(markdown, "specs/x"))
+        .into_iter()
+        .map(|m| (m.path, m.anchor, m.width, m.label))
+        .collect()
+}
+
+/// US3 key 2: a paragraph holding one link alone to an HTML mockup embeds it, 1440 px wide.
+#[test]
+fn html_mockups() {
+    assert_eq!(
+        embeds("[Title](mockups/title.html)\n"),
+        [(
+            "specs/x/mockups/title.html".into(),
+            None,
+            1440,
+            "Title".into()
+        )]
+    );
+    assert_eq!(
+        embeds("[Deep](/specs/y/mockups/spec/app.html)\n"),
+        [(
+            "specs/y/mockups/spec/app.html".into(),
+            None,
+            1440,
+            "Deep".into()
+        )]
+    );
+    assert!(embeds("See [Title](mockups/title.html) here.\n").is_empty());
+    assert!(embeds("[Shot](mockups/x.png)\n").is_empty());
+    assert!(embeds("[Page](pages/x.html)\n").is_empty());
+    assert!(embeds("- [Title](mockups/title.html)\n").is_empty());
+}
+
+/// Review focus 6: the `?w=` query sets the width and never reaches the path; the anchor is kept.
+#[test]
+fn html_mockup_width_and_anchor() {
+    assert_eq!(
+        embeds("[Phone](mockups/spec.html?doc=x&w=390#dec-1)\n"),
+        [(
+            "specs/x/mockups/spec.html".into(),
+            Some("dec-1".into()),
+            390,
+            "Phone".into()
+        )]
+    );
+    assert_eq!(embeds("[A](mockups/a.html?w=wide)\n")[0].2, 1440);
+}
+
+/// An embed names its paragraph's block.
+#[test]
+fn an_html_embed_names_its_paragraph() {
+    let doc = parse("# T\n\n[A](mockups/a.html)\n", "specs/x");
+    let paragraph = doc
+        .blocks
+        .iter()
+        .find(|block| block.kind == BlockKind::Paragraph)
+        .unwrap();
+
+    assert_eq!(mockup_embeds(&doc)[0].block, paragraph.id);
 }

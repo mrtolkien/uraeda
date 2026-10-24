@@ -79,6 +79,59 @@ pub fn story_links(doc: &Document) -> Vec<StoryLink> {
         .collect()
 }
 
+/// The width an HTML mockup shows at without a `?w=` query, in pixels: a desktop's.
+const MOCKUP_WIDTH: u32 = 1440;
+
+/// A paragraph that embeds an HTML mockup.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MockupEmbed {
+    /// The mockup's page, from the repository's top level, without its query or anchor.
+    pub path: String,
+    /// The link's anchor, after its `#`.
+    pub anchor: Option<String>,
+    /// The width it shows at, in pixels: its `?w=` query's, or 1440.
+    pub width: u32,
+    /// The link's text.
+    pub label: String,
+    /// The paragraph's block.
+    pub block: u32,
+}
+
+/// The paragraphs that embed an HTML mockup, in order: each holds exactly one link, and nothing
+/// but whitespace around it, to an `.html` file in a `mockups` folder at any depth.
+pub fn mockup_embeds(doc: &Document) -> Vec<MockupEmbed> {
+    doc.blocks
+        .iter()
+        .filter(|block| block.kind == BlockKind::Paragraph)
+        .filter_map(|block| {
+            let (link, label) = only_link(&block.spans)?;
+            let path = link.path.as_ref()?;
+            let mut folders = path.rsplit('/');
+            let is_mockup = folders.next()?.ends_with(".html") && folders.any(|f| f == "mockups");
+            is_mockup.then(|| MockupEmbed {
+                path: path.clone(),
+                anchor: link.anchor.clone(),
+                width: query_width(&link.target).unwrap_or(MOCKUP_WIDTH),
+                label,
+                block: block.id,
+            })
+        })
+        .collect()
+}
+
+/// The width a link's `?w=` query names, a whole number of pixels above 0.
+fn query_width(target: &str) -> Option<u32> {
+    let (_, query) = target.split('#').next()?.split_once('?')?;
+    query
+        .split('&')
+        .find_map(|pair| pair.strip_prefix("w="))?
+        .parse()
+        .ok()
+        .filter(|width| *width > 0)
+}
+
 /// The one link of spans, and its text, when nothing but whitespace is around it. A link whose
 /// text has several marks is several spans.
 fn only_link(spans: &[Span]) -> Option<(&SpanLink, String)> {

@@ -686,6 +686,35 @@ export interface Criterion {
   block: number
 }
 
+/** A data model's items. */
+export interface DataModelItems {
+  /** The top-level blocks before the first `##`, its `#` title aside. */
+  intro: Array<number>
+  sections: Array<DataSection>
+}
+
+/** A `##` section of a data model: an entity. */
+export interface DataSection {
+  /** Its heading's text. */
+  title: string
+  /** Its heading's anchor. */
+  anchor: string
+  /** Its heading's block. */
+  heading: number
+  /** Its top-level blocks, deeper headings included, up to the next `##`. */
+  blocks: Array<number>
+  /** The tables among its blocks. */
+  tables: Array<DataTable>
+}
+
+/** A table of a data model, and the rows its "Change" column marks. */
+export interface DataTable {
+  /** The table's block. */
+  block: number
+  /** Its marked rows, in order; none without a column headed "Change". */
+  changes: Array<RowChange>
+}
+
 /** A decision of `specs/decisions/`. */
 export interface Decision {
   /** Its file name without `.md`, like `ui-behaviour`. */
@@ -1042,6 +1071,7 @@ export interface Items {
   clarifications?: RoundItems
   spec?: SpecItems
   plan?: PlanItems
+  dataModel?: DataModelItems
   review?: ReviewItems
   rulings?: Array<Ruling>
 }
@@ -1095,6 +1125,20 @@ export interface ListedDecision {
   /** Its link's text, or a removed decision's bold title. */
   title: string
   /** Its list item. */
+  block: number
+}
+
+/** A paragraph that embeds an HTML mockup. */
+export interface MockupEmbed {
+  /** The mockup's page, from the repository's top level, without its query or anchor. */
+  path: string
+  /** The link's anchor, after its `#`. */
+  anchor?: string
+  /** The width it shows at, in pixels: its `?w=` query's, or 1440. */
+  width: number
+  /** The link's text. */
+  label: string
+  /** The paragraph's block. */
   block: number
 }
 
@@ -1159,7 +1203,20 @@ export interface PartChange {
 }
 
 export interface PlanItems {
+  /** Its lead paragraphs, "**Goal:**" and the like, before its first `##`. */
+  lead: Array<PlanLead>
   tasks: Array<TaskItem>
+}
+
+/**
+ * A plan's lead paragraph: a top-level paragraph before the first `##` whose first span is bold
+ * text ending in ":", such as "**Goal:**".
+ */
+export interface PlanLead {
+  /** The bold text without its colon: `Goal`, `Architecture`, `Spec`. */
+  label: string
+  /** The paragraph's block. */
+  block: number
 }
 
 /** A checkout's preview, from its active preview decision. */
@@ -1355,6 +1412,16 @@ export interface RoundVerdict {
   /** The item's spans after the phrase and its following ":" or ",", trimmed. */
   text: Array<Span>
 }
+
+/** A row of a data model's table, and its change. */
+export interface RowChange {
+  /** The row's block. */
+  row: number
+  kind: RowChangeKind
+}
+
+/** What a data model's row does: its "Change" cell, "New", "Changed", or "Removed". */
+export type RowChangeKind = 'new' | 'changed' | 'removed'
 
 export interface Ruling {
   /** `R1`. */
@@ -1668,6 +1735,8 @@ export interface VersionView {
   items: Items
   /** The stories its paragraphs embed. */
   stories: Array<StoryLink>
+  /** The HTML mockups its paragraphs embed. */
+  mockups: Array<MockupEmbed>
 }
 
 export interface WorkspaceView {
