@@ -5,6 +5,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { useFeature } from "./data.ts";
 import { type ColumnTab, useColumnTab } from "./layout/DocumentColumn.tsx";
+import { showDocumentColumn } from "./layout/documentColumnWidth.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
 import type { SessionItem } from "./SessionActions.tsx";
@@ -77,8 +78,8 @@ export function sessionTab(draft: Draft, folder: string): ColumnTab {
 
 /**
  * Asking the agent from a page with a Session tab: the quote written into `draft`, the page's
- * composer, in place of the one it held, and Session opened; on the phone, the session's page
- * opened with the quote, Back returning to the page.
+ * composer, in place of the one it held, and Session opened, the column unfolded when `]` folded
+ * it; on the phone, the session's page opened with the quote, Back returning to the page.
  */
 export function useColumnAsk(folder: string, draft: Draft | undefined) {
   const wide = !isNarrow(useWidthClass());
@@ -90,5 +91,6 @@ export function useColumnAsk(folder: string, draft: Draft | undefined) {
     }
     draft?.setText((now) => withQuote(now, quote));
     setTab("session");
+    showDocumentColumn();
   };
 }

@@ -3,7 +3,7 @@
 // edge, then the width they chose, between 400 and 720 px. A kept width outside those, from a hand
 // edit or an older build, is clamped as it is read (plan, Review focus 6). The open tab never
 // changes it.
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { autoWidthOf, readStored, type StoredWidth, useFollowedWidth } from "./followedWidth.ts";
 
 /** Where the column's width and fold are kept. */
@@ -24,6 +24,19 @@ export const autoWidth = (windowWidth: number) => autoWidthOf(AUTO, windowWidth)
 /** The column as the browser keeps it, its width clamped: nothing when nothing is readable. */
 export const readDocumentColumn = (): StoredDocumentColumn => readStored(COLUMN_KEY, LIMITS);
 
+/** The drawn columns' ways to unfold, which `showDocumentColumn` calls. */
+const unfolds = new Set<() => void>();
+
+/**
+ * Unfolds the document's column, from outside it, as asking the agent does to open Session: each
+ * column drawn shows, and keeps the fold. Without one drawn, nothing changes.
+ */
+export function showDocumentColumn() {
+  for (const unfold of unfolds) {
+    unfold();
+  }
+}
+
 /**
  * The column's width, its resize, and its fold: the width follows the window until the human drags
  * the edge, which keeps the width they chose, for every document; the fold is kept too.
@@ -38,5 +51,12 @@ export function useDocumentColumnWidth() {
     (shown: boolean) => keep((column) => ({ ...column, folded: !shown })),
     [keep],
   );
+  useEffect(() => {
+    const unfold = () => setShown(true);
+    unfolds.add(unfold);
+    return () => {
+      unfolds.delete(unfold);
+    };
+  }, [setShown]);
   return { isShown: stored.folded !== true, resizable, setShown };
 }

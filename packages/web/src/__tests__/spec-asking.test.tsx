@@ -120,6 +120,19 @@ test("the draft stays when the spec's status changes", async () => {
   expect((await columnComposer()).textContent).toBe(quoted);
 });
 
+/** The edge case "the column folded with ]": asking unfolds it, on Session. */
+test("asking with the column folded unfolds it", async () => {
+  window.localStorage.setItem("uraeda.documentColumn", JSON.stringify({ folded: true }));
+  await openSpec();
+  expect(screen.queryByRole("tablist", { name: "The spec's column" })).toBeNull();
+
+  await askAboutRule(/^Data MUST be stored in IndexedDB/);
+
+  expect(openTab()).toBe("Session");
+  const box = await columnComposer();
+  await waitFor(() => expect(box.textContent).toMatch(/^About specs\/decisions\/task-storage.md/));
+});
+
 /** Review focus 5 */
 test("asking about a removed rule names it removed", async () => {
   await openSpec();
