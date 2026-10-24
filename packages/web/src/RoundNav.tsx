@@ -20,6 +20,7 @@ import {
   type NavQuestion,
   questionAtTop,
   questionJumpedTo,
+  useQuestionAtTop,
 } from "./roundJump.ts";
 
 export type { NavQuestion };
@@ -55,35 +56,6 @@ const styles = stylex.create({
     whiteSpace: "normal",
   },
 });
-
-/** The question at the top, followed while the page scrolls. */
-function useQuestionAtTop(ids: ReadonlyArray<string>, isActive: boolean) {
-  const [at, setAt] = useState<string>();
-  const key = ids.join(" ");
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-    const list = key.split(" ");
-    let frame: number | undefined;
-    const update = () => {
-      frame = undefined;
-      setAt(questionAtTop(list));
-    };
-    const onScroll = () => {
-      frame ??= requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      if (frame !== undefined) {
-        cancelAnimationFrame(frame);
-      }
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, [key, isActive]);
-  return at;
-}
 
 /** Every applicable question with its state, the one at the top marked current. */
 function Index({

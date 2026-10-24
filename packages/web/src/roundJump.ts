@@ -1,4 +1,5 @@
 // How the round's navigation brings a part of the page to the top, and finds the one there.
+import { useEffect, useState } from "react";
 
 /** An applicable question of a round, in the page's order: follow-ups at level 2. */
 export type NavQuestion = { answered: boolean; id: string; level: 1 | 2; title: string };
@@ -100,4 +101,33 @@ export function afterSheetCloses(run: () => void) {
     run();
   };
   requestAnimationFrame(tick);
+}
+
+/** The question, or part, at the top, followed while the page scrolls. */
+export function useQuestionAtTop(ids: ReadonlyArray<string>, isActive: boolean) {
+  const [at, setAt] = useState<string>();
+  const key = ids.join(" ");
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+    const list = key.split(" ");
+    let frame: number | undefined;
+    const update = () => {
+      frame = undefined;
+      setAt(questionAtTop(list));
+    };
+    const onScroll = () => {
+      frame ??= requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      if (frame !== undefined) {
+        cancelAnimationFrame(frame);
+      }
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [key, isActive]);
+  return at;
 }
