@@ -292,6 +292,7 @@ function SpecLayout({
     comments,
     document,
     hasData: !!data,
+    hasSince: !!since,
     items,
     since: new Set(since?.places.flatMap((place) => place.entry ?? [])),
   });

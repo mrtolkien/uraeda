@@ -69,8 +69,9 @@ test("the contents list every part, decision, and story", async () => {
   const column = await contents();
   expect(entriesOf(column)).toEqual([
     "What you approve",
+    "Since your review",
     "Your review, answered",
-    "Decisions · 3",
+    "Decisions · 4",
     "Repeating tasks",
     "Task storage",
     "Task history",

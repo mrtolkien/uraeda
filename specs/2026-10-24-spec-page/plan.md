@@ -768,8 +768,8 @@ candidates, and the decisions check.
   brings its block to the middle of the screen and focuses its toggle (`jumpToComment`, through the
   comment's lines, each selectable element's `data-lines`). The verdict's commit is
   `useVerdict(file, choices, refusals)`, shared by the end and the tab. Contents marks the part at
-  the top with `useQuestionAtTop` over its ids; its groups read "Decisions · N" (the decisions
-  listed) and "User stories · N". The plan page has Contents (its panes) and, waiting, Review.
+  the top with `useQuestionAtTop` over its ids; its groups read "Decisions · N" (every decision's
+  pane, R21) and "User stories · N". The plan page has Contents (its panes) and, waiting, Review.
 
 - [x] **Step 1: Write the failing tests.** UI (`spec-column.test.tsx`): Contents is the selected tab
       with "What you approve", "Decisions · 3", each decision, each story; two comments, on a rule

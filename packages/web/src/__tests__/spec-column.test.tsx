@@ -93,10 +93,11 @@ test("Contents is the open tab, listing the decisions and the stories", async ()
   const rows = within(panel("Contents"))
     .getAllByRole("link")
     .map((link) => link.textContent);
-  expect(rows.slice(0, 7)).toEqual([
+  expect(rows.slice(0, 8)).toEqual([
     "What you approve",
+    "Since your review",
     "Your review, answered",
-    "Decisions · 3",
+    "Decisions · 4",
     "Repeating tasks",
     "Task storage",
     "Task history",

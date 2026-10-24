@@ -86,7 +86,7 @@ test("a relied-on row added since the review is marked in its table", async () =
   const reliedOn = screen.getByRole("region", { name: "Relied on" });
   const sign = within(reliedOn).getByText(MARK);
   expect(sign.closest("tr")?.textContent).toContain("Preview");
-  await jumpsInto(pane, "Decisions · 3", reliedOn);
+  await jumpsInto(pane, "Decisions · 4", reliedOn);
 });
 
 /** US5: a mockup's link reworded marks its live window, and its place jumps to it. */
@@ -215,4 +215,19 @@ test("the places follow the page's order", async () => {
       .getAllByRole("button")
       .map((button) => button.textContent),
   ).toEqual(["What you approve", "Your review, answered", "US1's journey", "US2's journey"]);
+});
+
+/** The mockup's Contents: "Since your review" after what you approve; every decision counted (R21). */
+test("Contents lists the pane after what you approve, and counts every decision", async () => {
+  await revised((text) => text);
+
+  const rows = within(screen.getByRole("list", { name: "Parts" }))
+    .getAllByRole("link")
+    .map((link) => link.textContent?.split("Δ")[0]?.trim());
+  expect(rows.slice(0, 4)).toEqual([
+    "What you approve",
+    "Since your review",
+    "Your review, answered",
+    "Decisions · 4",
+  ]);
 });

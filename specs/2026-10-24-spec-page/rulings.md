@@ -286,8 +286,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: the pane "Since your review" sits right under the block's pane, before "Your review,
   answered". `spec-page.test.tsx`'s "the answers follow what you approve" now expects it between
-  them: the answers' pane, then the since pane, then the block's, each the previous sibling of the
-  next, with no band. The marks' context lives in `src/sinceMarks.tsx`, read by `Selectable`
+  them: the block's pane, then the since pane, then the answers', each the previous sibling of the
+  next, with no band. Contents lists "Since your review" after "What you approve", as the mockup's
+  column does. The marks' context lives in `src/sinceMarks.tsx`, read by `Selectable`
   (`Selection.tsx`), so every block drawn for a review is marked wherever its part draws it, and a
   changed paragraph's, list item's, or scenario's words are the change's runs.
 - **Rationale**: the plan puts the pane "under the block", and US5 "at the top"; the mockup draws it
@@ -306,13 +307,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   fixture, whose branch changes Due dates without the spec listing it as changed, the heading reads
   "Decisions · 1 new, 2 changed, 1 removed", where spec US1 key 2 says "1 new, 1 changed, 1
   removed", the listed ones. `spec-panes.test.tsx`'s US1 key 2 test expects the new count. Contents'
-  "Decisions · N" still counts the decisions listed, as Task 10's interface says.
+  "Decisions · N" counts the same panes, "Decisions · 4" on the fixture, where Task 10's interface
+  counted the listed ones (fix of Task 12's review, `entriesOf` in `spec/SpecContents.tsx`).
 - **Rationale**: the review's finding that the heading counted three panes of four: a reader adding
   up its kinds would miss the unlisted change, the one most likely to surprise them.
 - **Alternatives considered**: the listed decisions only, as the scenario reads, which leaves a
   changed pane out of the heading's count; a fixture without the unlisted change, which drops the
   case the unlisted pane exists for.
-- **If wrong**: one line in `decisionCounts`, `spec/SpecPage.tsx`, and the test's name.
+- **If wrong**: one line in `decisionCounts`, `spec/SpecPage.tsx`, and the test's name; one line in
+  `entriesOf`, and the Contents tests' "Decisions · 4".
 - **Where**: fix of Task 10's review, `spec/SpecPage.tsx`, `src/__tests__/spec-panes.test.tsx`.
 
 ## R22: The spec's and the plan's phone sheets are in the address, the round's not yet

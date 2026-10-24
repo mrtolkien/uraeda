@@ -64,15 +64,17 @@ function countsOf(document: Document, items: SpecItems, comments: ReadonlyArray<
 }
 
 /**
- * The entries of "Contents", in the page's order: what you approve; your review answered, on a
- * revision; the decisions, the listed ones then the others the branch changes; the stories; the
- * data, when the feature has a data model; then the parts after them.
+ * The entries of "Contents", in the page's order: what you approve; "Since your review", while its
+ * pane shows; your review answered, on a revision; the decisions, the listed ones then the others
+ * the branch changes, all counted (R21); the stories; the data, when the feature has a data model;
+ * then the parts after them.
  */
 export function entriesOf({
   changes,
   comments,
   document,
   hasData,
+  hasSince = false,
   items,
   since = new Set(),
 }: {
@@ -80,6 +82,8 @@ export function entriesOf({
   comments: ReadonlyArray<CommentItem>;
   document: Document;
   hasData: boolean;
+  /** Whether the page shows "Since your review", `id="since"`. */
+  hasSince?: boolean;
   items: SpecItems;
   /** The entries holding a part changed since your review. */
   since?: ReadonlySet<string>;
@@ -97,16 +101,12 @@ export function entriesOf({
   const decisions = [...items.decisions, ...unlisted];
   return [
     entry(GROUPS.approve.id, GROUPS.approve.title),
+    ...(hasSince ? [entry("since", "Since your review")] : []),
     ...(partOf(items, "Your review")
       ? [entry(groupId(items, GROUPS.answers), GROUPS.answers.title)]
       : []),
     ...(decisions.length > 0
-      ? [
-          entry(
-            groupId(items, GROUPS.decisions),
-            `${GROUPS.decisions.title} · ${items.decisions.length}`,
-          ),
-        ]
+      ? [entry(groupId(items, GROUPS.decisions), `${GROUPS.decisions.title} · ${decisions.length}`)]
       : []),
     ...decisions.map((d) => entry(decisionId(d.name), d.title, true)),
     ...(items.stories.length > 0
