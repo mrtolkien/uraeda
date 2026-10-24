@@ -1,7 +1,7 @@
 // "Data": the feature's `data-model.md`, as the core cuts it (`Items.dataModel`), drawn after the
 // stories and on the data model's own page. The text before the first entity, then each entity, a
-// level-2 section of the file, in a pane of its own, its tables drawn by Astryx's columns, a row the
-// core marks new, changed, or removed showing its change, in its "Change" column, as a green,
+// level-2 section of the file, in a pane of its own, its tables drawn by Astryx's columns, a row
+// the core marks new, changed, or removed showing its change, in its "Change" column, as a green,
 // yellow, or red badge.
 import { Badge } from "@astryxdesign/core/Badge";
 import { proportional, Table } from "@astryxdesign/core/Table";

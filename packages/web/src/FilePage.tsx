@@ -13,8 +13,9 @@ import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { StoriesProvider } from "./stories.tsx";
 
 /**
- * A workflow file, on the page its kind needs: a spec, waiting for review or not; a round to answer;
- * a plan, waiting for review or not; a data model, in panes; or a document to read, its story links embedded.
+ * A workflow file, on the page its kind needs: a spec, waiting for review or not; a round to
+ * answer; a plan, waiting for review or not; a data model, in panes; or a document to read, its
+ * story links embedded.
  */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);

@@ -53,7 +53,7 @@ export function answeredComments(file: File): ReadonlyArray<CommentItem> {
   return file.answered?.comments ?? [];
 }
 
-/** Your comment: its number and summary, its quote, and your words, when the file still has them. */
+/** Your comment: its number and summary, its quote, and your words, while the file has them. */
 function YourComment({
   comment,
   number,
@@ -81,9 +81,9 @@ function YourComment({
 }
 
 /**
- * Each answer of `## Your review`, in a pane: on the left, your comment with its quote and words, matched by
- * its number; on the right, a "done" or "declined" badge, and the answer as the spec writes it,
- * which takes a comment. The section's other blocks follow.
+ * Each answer of `## Your review`, in a pane: on the left, your comment with its quote and words,
+ * matched by its number; on the right, a "done" or "declined" badge, and the answer as the spec
+ * writes it, which takes a comment. The section's other blocks follow.
  */
 export function ReviewAnswers({
   comments,

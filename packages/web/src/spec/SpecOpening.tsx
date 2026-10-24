@@ -1,8 +1,8 @@
-// "What you approve", the spec page's first part: a pane titled by the block's first line, its record
-// or request, the "You approve" item as the page's lead, the block's other items, the text before
-// the first section, then, at the pane's foot under a separator (C1), the time and the risk tier as
-// pills, the constitution's principles as a strip of pills, and the risk tier's reason. Each item
-// and paragraph takes a comment as the spec's other blocks do.
+// "What you approve", the spec page's first part: a pane titled by the block's first line, its
+// record or request, the "You approve" item as the page's lead, the block's other items, the text
+// before the first section, then, at the pane's foot under a separator (C1), the time and the risk
+// tier as pills, the constitution's principles as a strip of pills, and the risk tier's reason.
+// Each item and paragraph takes a comment as the spec's other blocks do.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -121,7 +121,7 @@ function Pills({ items }: { items: SpecItems }) {
   );
 }
 
-/** The constitution's principles as a strip of pills: a check for each kept, a warning otherwise. */
+/** The constitution's principles as a strip of pills: a check for each kept, else a warning. */
 function Principles({ items }: { items: SpecItems }) {
   if (items.principles.length === 0) {
     return null;
@@ -146,8 +146,8 @@ function Principles({ items }: { items: SpecItems }) {
 }
 
 /**
- * The block's foot, after a separator (C1): the pills, the principles, and the risk's reason; nothing,
- * not even the separator, when it has none of them.
+ * The block's foot, after a separator (C1): the pills, the principles, and the risk's reason;
+ * nothing, not even the separator, when it has none of them.
  */
 function Foot({
   document,

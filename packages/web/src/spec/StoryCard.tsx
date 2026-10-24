@@ -152,7 +152,9 @@ function useMoreOpen(folds: Folds | undefined, story: Story) {
   };
 }
 
-/** A story's more scenarios, behind "N more scenarios", which reads "Fold the other scenarios" open. */
+/**
+ * A story's more scenarios, behind "N more scenarios", which reads "Fold the other scenarios" open.
+ */
 function MoreScenarios({
   document,
   folds,

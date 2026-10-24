@@ -1,5 +1,5 @@
-// A feature's `data-model.md` opened alone: its title, then the same panes as the spec's "Data", one
-// per entity, from the core's sections.
+// A feature's `data-model.md` opened alone: its title, then the same panes as the spec's "Data",
+// one per entity, from the core's sections.
 import { Heading } from "@astryxdesign/core/Heading";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Blocks } from "../Blocks.tsx";
