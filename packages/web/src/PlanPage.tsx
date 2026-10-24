@@ -24,16 +24,9 @@ import { Contents, type Entry } from "./spec/SpecContents.tsx";
 import { Selectable, type Selection } from "./Selection.tsx";
 import { Spans } from "./Spans.tsx";
 import { StoriesProvider } from "./stories.tsx";
+import { fileStatusBadge } from "./labels.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-/** The badge of a plan's status, a request red as in the files' list. */
-const STATUSES: Record<string, { label: string; variant: "error" | "success" | "warning" }> = {
-  approved: { label: "Approved", variant: "success" },
-  "auto-approved": { label: "Auto-approved", variant: "success" },
-  "awaiting-human": { label: "Waiting for your review", variant: "warning" },
-  "changes-requested": { label: "Changes requested", variant: "error" },
-};
 
 /** What the plan's parts draw with: its tree, and while it waits, its review's folds and taps. */
 type Drawing = { document: Document; folds?: Folds; selection?: Selection };
@@ -139,7 +132,7 @@ function PlanParts({
   const { document } = drawing;
   const { opening, sections } = planParts(document, items);
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
-  const status = STATUSES[file.status ?? ""];
+  const status = fileStatusBadge(file.status);
   // Once for the page: a hash names a pane or a block in one, scrolled to once drawn.
   useHashFold(document, drawing.folds, true);
   return (

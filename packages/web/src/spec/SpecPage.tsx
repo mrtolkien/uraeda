@@ -52,6 +52,7 @@ import { SpecHistory } from "./SpecHistory.tsx";
 import { SinceReviewPane, sinceFolds, sinceModel } from "./SinceReview.tsx";
 import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
+import { fileStatusBadge } from "../labels.ts";
 
 const styles = stylex.create({
   // What a group's heading counts, after its title, in the secondary colour.
@@ -66,12 +67,6 @@ const styles = stylex.create({
     outlineStyle: { ":focus:not(:focus-visible)": "none", default: null },
   },
 });
-
-/** The badge of a spec's status. */
-const STATUSES: Record<string, { label: string; variant: "neutral" | "success" | "warning" }> = {
-  approved: { label: "Approved", variant: "success" },
-  "awaiting-human": { label: "Waiting for your review", variant: "warning" },
-};
 
 /**
  * A group of the spec's parts: its heading, its icon, title, and what it counts ("· 4"), then its
@@ -146,7 +141,7 @@ function SpecTitle({
 }) {
   const first = items.parts[0]?.heading ?? document.blocks.length;
   const title = document.blocks.find((b) => b.id < first && b.kind === "heading" && b.level === 1);
-  const status = STATUSES[file.status ?? ""];
+  const status = fileStatusBadge(file.status);
   return (
     <VStack gap={2}>
       {status && (
