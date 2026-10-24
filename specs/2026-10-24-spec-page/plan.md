@@ -263,6 +263,7 @@ The [discovery's map](discovery-01.md#the-code) holds; read in full for this pla
 | `PlanPage.tsx`, replacing `ReviewPage.tsx` and `ReviewHeadings.tsx`     | one page for a plan, waiting or not                                                                      | two pages, one losing the badges                                                    |
 | The verdict's choices in `useReview`                                    | two places commit one verdict (Review focus 4)                                                           | two forms with their own state, which disagree                                      |
 | Astryx gap: the live window's hatched stage                             | no Astryx surface has a pattern; drawn with a `repeating-linear-gradient` of theme tokens, in StyleX     | a plain stage, which the human picked against                                       |
+| Astryx gap: `<ins>`, `<del>`, and the ledger's sign                     | no Astryx component marks inserted or deleted words; raw elements styled on theme tokens                 | Astryx `Text` spans, which lose the insertion and deletion roles                    |
 
 ## Review comments
 
