@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test, vi } from "vite-plus/test";
-import { atWidth, fixture, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { navigate } from "../routes.tsx";
+import { atRepo, atWidth, fixture, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
 const BLOCK = "Spec to review, revision 2, about 10 minutes.";
@@ -218,6 +219,37 @@ test("an approved spec draws its panes, no Review tab, no verdict", async () => 
   expect(await region("Task")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
   expect(screen.queryByRole("tab", { name: "Review" })).toBeNull();
+});
+
+/** History's fold, as the spec's other folds, is kept in the history entry: Back opens it again. */
+test("History opened is open again on Back", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo, { revision: 3 });
+  await renderPage(PAGE, repo);
+  const opened = await screen.findByRole("button", { name: "History" });
+  await act(async () => {
+    fireEvent.click(opened);
+  });
+  expect(screen.getByText(/Changes requested on 2026-10-07/)).toBeTruthy();
+
+  await act(async () => navigate(atRepo(`/f/${SPEC_FEATURE}/proposal.md`)));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "History" })).toBeNull());
+  await act(async () => window.history.back());
+
+  const history = await screen.findByRole("button", { name: "History" });
+  expect(history.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByText(/Changes requested on 2026-10-07/)).toBeTruthy();
+});
+
+/** A link into History opens its fold. */
+test("a hash into History opens it", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo, { revision: 3 });
+  await renderPage(`${PAGE}#history`, repo);
+
+  const history = await screen.findByRole("button", { name: "History" });
+  await waitFor(() => expect(history.getAttribute("aria-expanded")).toBe("true"));
+  expect(await screen.findByText(/Changes requested on 2026-10-07/)).toBeTruthy();
 });
 
 /** A jump from Contents puts the focus in the pane it brings to the top. */
