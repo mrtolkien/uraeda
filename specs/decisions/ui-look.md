@@ -34,19 +34,20 @@ together, and more colour schemes can join it later.
 
 The UI looked vanilla and unfinished before 1.0. The human compared five directions and picked the
 terminal one, with a touch of cyber
-([the visual direction](../2026-10-20-layout-look/clarifications-01.md#q2-which-visual-direction-should-the-ui-take)).
+([the visual direction](../done/2026-10-20-layout-look.md#q2-which-visual-direction-should-the-ui-take)).
 They asked for Catppuccin Mocha and Latte, with more schemes later
-([colour modes](../2026-10-20-layout-look/clarifications-01.md#q7-which-colour-modes-must-the-ui-support)),
-and found 120% text more readable. Fonts are bundled because the server listens on the loopback and
+([colour modes](../done/2026-10-20-layout-look.md#q7-which-colour-modes-must-the-ui-support)), and
+found 120% text more readable. Fonts are bundled because the server listens on the loopback and
 often runs offline
-([dependencies and fonts](../2026-10-20-layout-look/clarifications-01.md#q9-may-the-redesign-add-dependencies-and-bundled-fonts)).
+([dependencies and fonts](../done/2026-10-20-layout-look.md#q9-may-the-redesign-add-dependencies-and-bundled-fonts)).
 The human kept Lucide after comparing ten sets, and allowed another set's glyph where it fits better
-([the icon set](../2026-10-20-layout-look/clarifications-02.md#q1-which-icon-set-should-the-ui-use)).
-They chose Codicons' marks for the harnesses that have one
-([harness marks](../2026-10-20-layout-look/clarifications-02.md#q2-how-should-a-session-show-which-harness-runs-it)),
+([the icon set](../done/2026-10-20-layout-look.md#q1-which-icon-set-should-the-ui-use)). They chose
+Codicons' marks for the harnesses that have one
+([harness marks](../done/2026-10-20-layout-look.md#q2-how-should-a-session-show-which-harness-runs-it)),
 and the dot-matrix tree as the logo
-([logo](../2026-10-20-layout-look/clarifications-01.md#q11-which-logo-concept-should-the-ui-use)).
-The investigation is in [discovery](../2026-10-20-layout-look/discovery-01.md#the-visual-direction).
+([logo](../done/2026-10-20-layout-look.md#q11-which-logo-concept-should-the-ui-use)). The
+investigation is in
+[discovery](../done/2026-10-20-layout-look.md#q2-which-visual-direction-should-the-ui-take).
 
 ## Alternatives considered
 

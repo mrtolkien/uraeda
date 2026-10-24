@@ -40,7 +40,7 @@ textual"
 ([the sidebar's rows](../done/2026-10-16-redesign-interface.md#q4-how-does-a-features-step-show-on-its-row-before-implementation)).
 Half a screen, where the human often works, got the desktop's layout and broke: the human asked for
 a middle class, wide enough to hold their 1205 px half screen
-([width classes](../2026-10-20-layout-look/clarifications-01.md#q5-should-the-ui-get-a-third-width-class-for-half-screens)).
+([width classes](../done/2026-10-20-layout-look.md#q5-should-the-ui-get-a-third-width-class-for-half-screens)).
 
 ## Alternatives considered
 

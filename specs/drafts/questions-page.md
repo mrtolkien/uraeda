@@ -7,7 +7,7 @@ discovery: medium # low, medium, or high: how far the agent researches before as
 ## What
 
 The round of questions, the most important page, redrawn in the look and shell of
-[layout and look](../2026-10-20-layout-look/spec.md), with its tokens and panes.
+[layout and look](../done/2026-10-20-layout-look.md), with its tokens and panes.
 
 - The context before the questions is the agent's first feedback on a feature: a clear, unique look
   and hierarchy, with icons, borders, and type that show what each paragraph holds.
@@ -21,9 +21,8 @@ The round of questions, the most important page, redrawn in the look and shell o
 
 The human spends most of their time here, and the page grew view by view. Answers and sources:
 
-- The information architecture:
-  [the proposal](../2026-10-20-layout-look/proposal.md#clarifications).
+- The information architecture: [the proposal](../done/2026-10-20-layout-look.md).
 - Where the session opens:
-  [round 01's session question](../2026-10-20-layout-look/clarifications-01.md#q4-where-should-the-session-open-on-the-questions-page).
+  [round 01's session question](../done/2026-10-20-layout-look.md#q4-where-should-the-session-open-on-the-questions-page).
 - The page stays one scroll, with a sticky question heading and an outline:
-  [settled in round 01](../2026-10-20-layout-look/clarifications-01.md#settled-without-the-human).
+  [settled in round 01](../done/2026-10-20-layout-look.md).

@@ -7,7 +7,7 @@ discovery: medium # low, medium, or high: how far the agent researches before as
 ## What
 
 The inbox, the priorities, a feature's page, the session page, and the New page, redrawn in the look
-and shell of [layout and look](../2026-10-20-layout-look/spec.md).
+and shell of [layout and look](../done/2026-10-20-layout-look.md).
 
 - **Inbox**: note readability and hierarchy first; notes shown whole, reorderable, in categories
   that can be created and deleted, with a note's actions beside it.
@@ -22,7 +22,6 @@ and shell of [layout and look](../2026-10-20-layout-look/spec.md).
 
 These pages keep the old look beside the new shell until this lands. Answers and sources:
 
-- The information architecture:
-  [the proposal](../2026-10-20-layout-look/proposal.md#information-architecture).
+- The information architecture: [the proposal](../done/2026-10-20-layout-look.md).
 - The priorities in columns:
-  [round 01's priorities question](../2026-10-20-layout-look/clarifications-01.md#q8-how-should-priorities-be-laid-out).
+  [round 01's priorities question](../done/2026-10-20-layout-look.md#q8-how-should-priorities-be-laid-out).

@@ -41,7 +41,7 @@ A mockup written with the real components removes the drift between mockups and 
 on this repository's Vite+, React Compiler, StyleX, and WebKit, and Astryx develops its own
 components in it. Comparing several looks with the real components was too slow, so the human
 allowed throwaway prototypes in an investigation
-([prototypes in the workflow](../2026-10-20-layout-look/clarifications-01.md#q6-should-prototypes-like-these-be-part-of-the-workflow)).
+([prototypes in the workflow](../done/2026-10-20-layout-look.md#q6-should-prototypes-like-these-be-part-of-the-workflow)).
 Running the real server keeps the [stack](stack.md) decision's data only from the server, through
 fate.
 
