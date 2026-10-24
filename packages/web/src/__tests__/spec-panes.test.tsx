@@ -139,7 +139,7 @@ test("a jump from Contents focuses the decision's and the story's pane", async (
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const column = await screen.findByRole("complementary", { name: "Contents" });
+  const column = await screen.findByRole("tabpanel", { name: "Contents" });
   for (const [entry, pane] of [
     ["Task storage", "Task storage"],
     ["US2 Complete a repeating task", "US2 · Complete a repeating task"],

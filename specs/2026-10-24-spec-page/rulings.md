@@ -216,3 +216,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   one number each in `spec/RuleLine.tsx` and `spec/ledger/Rows.tsx`.
 - **Where**: fix of the review, `spec/DecisionCard.tsx`, `layout/Pane.tsx`, `spec/RuleLine.tsx`,
   `spec/ledger/Rows.tsx`, `src/__browser__/spec.test.tsx`.
+
+## R16: The column is named for its document, and the 320 px Contents tests go
+
+- **Decision**: the spec's and the plan's column is labelled "The spec's column" or "The plan's
+  column", as the questions page's is "The round's column", not "Document" as Task 10's interface
+  said. The tests of the old 320 px Contents column, which started folded under 1100 px and kept its
+  fold under `uraeda.specContents`, are removed; the test of a fold kept after a reload checks the
+  document column's fold ("Show the spec's column"), and the other Contents tests find the Contents
+  tab's panel (R2). The approval test sets the tier to medium, the fixture's being already high.
+- **Rationale**: the column's label names its fold and resize controls: "Hide document" would read
+  as hiding the spec itself. Task 10 removes the 320 px column and its storage; the behaviour those
+  two tests guarded is gone, and the document column's own fold and width are tested by
+  `document-column.test.tsx`. A tier equal to the spec's would commit the same with or without the
+  review's choices, a test that cannot fail.
+- **Alternatives considered**: "Document", the plan's word; keeping the 1100 px rule beside the
+  questions page's width, two widths for one column.
+- **If wrong**: one label in `spec/SpecColumn.tsx`; the old tests are in git history.
+- **Where**: Task 10, `spec/SpecColumn.tsx`, `src/__tests__/spec-page.test.tsx`.

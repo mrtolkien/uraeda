@@ -1,7 +1,7 @@
 // The spec page: a spec read as one page you approve in one sitting, waiting for your review or
 // not, each part a titled pane. What you approve, your review answered, the decisions, the stories,
 // the data, then how it is built, and its history, folded; a group's heading counts what it holds.
-// "Contents" beside them on a wide screen. The only file that wires the parts: each takes what it
+// The column of Contents and Review beside them, on the phone in the status line. The only file that wires the parts: each takes what it
 // needs from here.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -44,7 +44,8 @@ import {
   storiesIntro,
 } from "./parts.ts";
 import { answeredComments, ReviewAnswers } from "./ReviewAnswers.tsx";
-import { entriesOf, SpecContents, useContentsShown } from "./SpecContents.tsx";
+import { SpecColumn } from "./SpecColumn.tsx";
+import { Contents, entriesOf } from "./SpecContents.tsx";
 import { SpecHistory } from "./SpecHistory.tsx";
 import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
@@ -238,7 +239,6 @@ function SpecLayout({
   review: Review | undefined;
   wide: boolean;
 }) {
-  const shown = useContentsShown();
   const dataFile = useFile(file.folder, "data-model.md");
   // As the spec, the data model waiting for a review is the committed one, not the disk's.
   const dataVersion =
@@ -267,34 +267,39 @@ function SpecLayout({
     selection: review?.selection,
     wide,
   };
-  return (
-    <SpecContents
-      entries={entriesOf({ changes, comments, document, hasData: !!data, items })}
-      shown={shown}
-    >
-      <Page isTight>
-        <Crumbs current={file.name} folder={file.folder} />
-        <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
-          <VStack gap={3}>
-            <SpecTitle document={document} file={file} items={items} />
-            {review && <ReviewIntro file={file} review={review} />}
-          </VStack>
-          <SpecOpening document={document} items={items} selection={part.selection} />
-          {partOf(items, "Your review") && (
-            <ReviewAnswers
-              comments={answeredComments(file)}
-              document={document}
-              items={items}
-              selection={part.selection}
-              wide={wide}
-            />
-          )}
-          <Groups changes={changes} data={data} items={items} part={part} />
-          <SpecHistory document={document} items={items} />
-          {review && <ReviewEnd file={file} review={review} />}
+  const page = (
+    <Page isTight>
+      <Crumbs current={file.name} folder={file.folder} />
+      <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
+        <VStack gap={3}>
+          <SpecTitle document={document} file={file} items={items} />
+          {review && <ReviewIntro file={file} review={review} />}
         </VStack>
-      </Page>
-    </SpecContents>
+        <SpecOpening document={document} items={items} selection={part.selection} />
+        {partOf(items, "Your review") && (
+          <ReviewAnswers
+            comments={answeredComments(file)}
+            document={document}
+            items={items}
+            selection={part.selection}
+            wide={wide}
+          />
+        )}
+        <Groups changes={changes} data={data} items={items} part={part} />
+        <SpecHistory document={document} items={items} />
+        {review && <ReviewEnd file={file} review={review} />}
+      </VStack>
+    </Page>
+  );
+  return (
+    <SpecColumn
+      content={page}
+      contents={
+        <Contents entries={entriesOf({ changes, comments, document, hasData: !!data, items })} />
+      }
+      file={file}
+      review={review}
+    />
   );
 }
 

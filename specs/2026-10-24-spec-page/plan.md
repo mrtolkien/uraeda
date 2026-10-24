@@ -754,34 +754,41 @@ candidates, and the decisions check.
   `afterSheetCloses` (`roundJump.ts`); `PlanPage` (Task 7); the spec's panes (Task 9).
 - Produces: `Review.choices: [Choices, (choices: Choices) => void]`, kept by `useReview` for the
   page's life; `ReviewVerdict` and `Verdicts` read it, so either commits what the end's form set.
-  `SpecColumn({ content: ReactNode; contents: ReactNode; review: Review | undefined; extra?: ReadonlyArray<ColumnTab> })`:
-  on wide and semi-wide screens, a `DocumentColumn` labelled "Document" with "Contents", then
-  "Review" with the comments' count while a review waits, then `extra` (Task 11's Session); on
-  narrow screens, a `TopBarSlot` with "Contents" and the count opening sheets of the same panels,
-  and "Verdict" jumping to the page's end. `ReviewTab({ review: Review; file: File })`: "N comments,
-  unsent", each comment a button named by its place that jumps to it, "General comment", then
-  `Verdicts`, and "Risk tier, plan review, and your summary are with the verdict at the page's end."
-  with a link there. Contents marks the part at the top with `useQuestionAtTop` over its ids. The
-  plan page has Contents (its panes) and, waiting, Review.
+  `SpecColumn({ content: ReactNode; contents: ReactNode; file: File; review: Review | undefined; extra?: ReadonlyArray<ColumnTab> })`:
+  on wide and semi-wide screens, a `DocumentColumn` labelled "The spec's column" or "The plan's
+  column" (R16) with "Contents", then "Review" with the comments' count while a review waits, then
+  `extra` (Task 11's Session); on narrow screens, a `TopBarSlot` with "Contents" and the count
+  opening sheets of the same panels, and "Verdict" bringing the page's end's verdict into view, its
+  first enabled button focused (`toVerdict`, `VERDICT_ID` in `ReviewVerdict.tsx`). A panel jumps
+  through `useColumnGo()` (`spec/columnGo.ts`), which closes the phone's sheet first.
+  `ReviewTab({ review: Review; file: File })`: "N comments, unsent", each comment a button named by
+  its place that jumps to it, "General comment", then `Verdicts`, and "Risk tier, plan review, and
+  your summary are with the verdict at the page's end." with a link there. A comment's button brings
+  its block to the middle of the screen and focuses its toggle (`jumpToComment`, through each
+  pending note's id `comment-<n>`). The verdict's commit is `useVerdict(file, choices, refusals)`,
+  shared by the end and the tab. Contents marks the part at the top with `useQuestionAtTop` over its
+  ids; its groups read "Decisions · N" (the decisions listed) and "User stories · N". The plan page
+  has Contents (its panes) and, waiting, Review.
 
-- [ ] **Step 1: Write the failing tests.** UI (`spec-column.test.tsx`): Contents is the selected tab
+- [x] **Step 1: Write the failing tests.** UI (`spec-column.test.tsx`): Contents is the selected tab
       with "What you approve", "Decisions · 3", each decision, each story; two comments, on a rule
       and a scenario, are listed in Review with their places, and a tap on the second scrolls to it
-      and focuses its block (US4 key 2); set the tier to high at the end, open Review, Approve: the
-      commit carries `risk-tier: high` (US4 more 3, Review focus 4); type a comment, switch to
-      Review and back, then cross to 402 px and back: the text is there, "Unsaved changes" (US4 more
-      2); 402 px: the status line holds "Contents", "2", and "Verdict", each opening its sheet or
-      jumping (US1 key 3). Browser (`spec-column.test.tsx`): at 1440 px the column is 480 px with
-      Contents open (US4 key 1); switching tabs moves no pane's left, top, or width (SC-005); folded
-      with `]`, a desktop live window's percent grows (Review focus 7); `checkAccessibility` in
-      Mocha and Latte. Break: the choices kept in the end's form only.
-- [ ] **Step 2: Run them to check they fail**:
+      and focuses its block (US4 key 2); set the tier to medium at the end (the fixture's is already
+      high), open Review, Approve: the commit carries `risk-tier: medium` (US4 more 3, Review focus
+      4); type a comment, switch to Review and back, then cross to 402 px and back: the text is
+      there, "Unsaved changes" (US4 more 2); 402 px: the status line holds "Contents", "2" (named "2
+      comments"), and "Verdict", each opening its sheet or jumping (US1 key 3); the plan has
+      Contents and Review (US6). Browser (`spec-column.test.tsx`): at 1440 px the column is 480 px
+      with Contents open (US4 key 1); switching tabs moves no pane's left, top, or width (SC-005);
+      folded with `]`, a desktop live window's percent grows (Review focus 7); `checkAccessibility`
+      in Mocha and Latte. Break: the choices kept in the end's form only.
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/spec-column.test.tsx`. Expected: FAIL, no tab
       "Contents".
-- [ ] **Step 3: Implement.** The 320 px Contents column and its `uraeda.specContents` storage go.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the spec and review UI
+- [x] **Step 3: Implement.** The 320 px Contents column and its `uraeda.specContents` storage go.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the spec and review UI
       tests, `spec-column.test.tsx` and `review.test.tsx` in both browser projects. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 5: Commit**:
       `git commit -m "feat(spec-page): Contents and Review beside the spec and the plan"`.
 
 ## Task 11: Asking the agent from the spec and the plan

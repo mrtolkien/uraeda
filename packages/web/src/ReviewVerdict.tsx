@@ -1,6 +1,6 @@
 import { Text } from "@astryxdesign/core/Text";
 import * as stylex from "@stylexjs/stylex";
-import { useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
@@ -9,12 +9,17 @@ import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { statusStyles } from "./Question.tsx";
-import { approveChoices, initialChoices, ReviewChoices } from "./ReviewChoices.tsx";
+import { approveChoices, type Choices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
+
+const styles = stylex.create({
+  // The verdict's buttons stay the page's rows: their holder draws no box.
+  contents: { display: "contents" },
+});
 
 /**
  * What a review's last write left to show: a hook's refusal, or a message; and, from its comment's
@@ -72,7 +77,7 @@ function SummaryField({ summary }: { summary: ReturnType<typeof useTextField> })
  * The verdict's buttons, Request changes and Approve, each committing, then starting the agent or
  * not; `onVerdict` resolves to whether the verdict was committed.
  */
-function Verdicts({
+export function Verdicts({
   comments,
   file,
   onVerdict,
@@ -105,26 +110,21 @@ function Verdicts({
   );
 }
 
+/** A spec's risk tier and plan review, as the review keeps them for the page's life. */
+export type ChoicesState = [Choices, Dispatch<SetStateAction<Choices>>];
+
 /**
- * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
- * commits and may hand the feature over to the agent.
+ * A review's verdict, wherever its buttons are: `verdict(approve, next)` commits it with the
+ * summary typed at the page's end and the `choices` set there, then hands the feature over to the
+ * agent when `next`; `retry` commits again after a hook's refusal. Resolves to whether it was done.
  */
-export function ReviewVerdict({
-  comments,
-  file,
-  refusals: { error, hides, hold, message, run },
-}: {
-  /** How many comments are pending. */
-  comments: number;
-  file: File;
-  refusals: Refusals;
-}) {
+export function useVerdict(file: File, [choices]: ChoicesState, { run }: Refusals) {
   const fate = useFateClient();
   const spec = (file.committed ?? file.current).items.spec;
   const isSpec = file.kind === "spec";
   const where = { file: file.name, folder: file.folder };
-  const summary = useTextField(`${file.path}#summary`, "");
-  const [choices, setChoices] = useState(() => initialChoices(spec));
+  // Drawn by the page's end, read here: the summary another component draws.
+  const summary = useTextField(`${file.path}#summary`, "", { drawn: false });
   // The verdict last committed to start the agent, for its Try again.
   const continues = useRef<"approval" | "changes">(undefined);
 
@@ -132,7 +132,7 @@ export function ReviewVerdict({
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
-    const sent = summary.text;
+    const sent = summary.unsavedNow()?.text ?? "";
     const input = { ...where, summary: sent || undefined };
     const trigger = approve ? "approval" : "changes";
     continues.current = next ? trigger : undefined;
@@ -153,24 +153,44 @@ export function ReviewVerdict({
     }
     return done;
   };
+  const retry = async () => {
+    const done = await run(() => fate.mutations.commit.retry({ input: where, view: FileView }));
+    if (done && continues.current) {
+      proceed(continues.current);
+    }
+  };
+  return { retry, verdict };
+}
 
+/**
+ * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
+ * commits and may hand the feature over to the agent. `choices` are the review's, which the Review
+ * tab's buttons commit too.
+ */
+export function ReviewVerdict({
+  choices,
+  comments,
+  file,
+  refusals,
+}: {
+  choices: ChoicesState;
+  /** How many comments are pending. */
+  comments: number;
+  file: File;
+  refusals: Refusals;
+}) {
+  const { error, hides, hold, message } = refusals;
+  const spec = (file.committed ?? file.current).items.spec;
+  const summary = useTextField(`${file.path}#summary`, "");
+  const { retry, verdict } = useVerdict(file, choices, refusals);
   return (
     <>
       <SummaryField summary={summary} />
-      {isSpec && <ReviewChoices choices={choices} onChange={setChoices} spec={spec} />}
+      {file.kind === "spec" && (
+        <ReviewChoices choices={choices[0]} onChange={choices[1]} spec={spec} />
+      )}
       {error && (
-        <HookRefusal
-          error={error}
-          onRetry={async () => {
-            const done = await run(() =>
-              fate.mutations.commit.retry({ input: where, view: FileView }),
-            );
-            if (done && continues.current) {
-              proceed(continues.current);
-            }
-          }}
-          what="Your review is saved, not committed."
-        />
+        <HookRefusal error={error} onRetry={retry} what="Your review is saved, not committed." />
       )}
 
       {file.committed && (
@@ -179,11 +199,13 @@ export function ReviewVerdict({
           discard them first.
         </span>
       )}
-      <Verdicts
-        comments={comments}
-        file={file}
-        onVerdict={async (approve, next) => (hold?.() ? false : verdict(approve, next))}
-      />
+      <div id={VERDICT_ID} {...stylex.props(styles.contents)}>
+        <Verdicts
+          comments={comments}
+          file={file}
+          onVerdict={async (approve, next) => (hold?.() ? false : verdict(approve, next))}
+        />
+      </div>
       {message && !hides?.(message) && (
         <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>
           {message.text}
@@ -196,4 +218,19 @@ export function ReviewVerdict({
       )}
     </>
   );
+}
+
+/** The element holding the page's end's verdict buttons, which "Verdict" brings into view. */
+export const VERDICT_ID = "verdict";
+
+/**
+ * Brings the page's end's verdict into view, its first button that can be pressed focused. Its
+ * element has no box of its own: its button is scrolled to.
+ */
+export function toVerdict() {
+  const button = document
+    .getElementById(VERDICT_ID)
+    ?.querySelector<HTMLButtonElement>("button:not([disabled])");
+  button?.scrollIntoView?.({ block: "center" });
+  button?.focus({ preventScroll: true });
 }

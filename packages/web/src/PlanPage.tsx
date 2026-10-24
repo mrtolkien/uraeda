@@ -3,7 +3,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import type { Block, Document, PlanItems } from "uraeda-binding";
+import type { Block, CommentItem, Document, PlanItems } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
@@ -13,6 +13,8 @@ import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type OpeningRun, type PlanSection, planParts } from "./planParts.ts";
 import { ReviewEnd, ReviewHost, ReviewIntro, useReview } from "./review/useReview.tsx";
+import { SpecColumn } from "./spec/SpecColumn.tsx";
+import { Contents, type Entry } from "./spec/SpecContents.tsx";
 import { Selectable, type Selection } from "./Selection.tsx";
 import { Spans } from "./Spans.tsx";
 import { StoriesProvider } from "./stories.tsx";
@@ -145,6 +147,46 @@ function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; ite
 }
 
 /**
+ * The plan's entries in Contents, in its file's order: each lead pane, then each section's, a
+ * task's "N <title>", each with the pending comments on its lines.
+ */
+function planEntries(
+  document: Document,
+  items: PlanItems | undefined,
+  comments: ReadonlyArray<CommentItem>,
+): Array<Entry> {
+  const { opening, sections } = planParts(document, items);
+  const count = (first: number, last: number) =>
+    comments.filter(
+      (c) => !c.general && c.decision === undefined && c.endLine >= first && c.endLine <= last,
+    ).length;
+  const lastLine = (ids: ReadonlyArray<number>, from: Block) =>
+    document.blocks[ids.at(-1) ?? from.id]?.endLine ?? from.endLine;
+  const leads = opening.flatMap((run) => {
+    const block = run.kind === "lead" ? document.blocks[run.block] : undefined;
+    return run.kind === "lead" && block
+      ? [
+          {
+            count: count(block.startLine, block.endLine),
+            id: leadId(run.label),
+            label: run.label,
+            nested: false,
+          },
+        ]
+      : [];
+  });
+  return [
+    ...leads,
+    ...sections.map(({ heading, ids, task }) => ({
+      count: count(heading.startLine, lastLine(ids, heading)),
+      id: heading.anchor ?? "",
+      label: task ? `${task.number} ${task.title}` : (heading.heading ?? ""),
+      nested: false,
+    })),
+  ];
+}
+
+/**
  * A plan waiting for review, as committed at its branch's tip: tapping blocks selects lines to
  * comment on, pending comments show under their blocks, and the end of the page holds the verdict.
  * The comment field is drawn apart from the plan, by `CommentHost`, so typing renders it alone.
@@ -152,34 +194,42 @@ function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; ite
 function ReviewedPlan({ file }: { file: File }) {
   const wide = !isNarrow(useWidthClass());
   const review = useReview(file, wide);
-  const { folds, selection, storyComments, tree, version } = review;
+  const { comments, folds, selection, storyComments, tree, version } = review;
+  const page = (
+    <Page>
+      <Crumbs current={file.name} folder={file.folder} />
+      <VStack gap={3}>
+        <ReviewIntro file={file} review={review} />
+        <StoriesProvider
+          comment={storyComments}
+          folder={file.folder}
+          mockups={version.mockups}
+          stories={version.stories}
+        >
+          <PlanParts
+            drawing={{ document: tree, folds, selection }}
+            file={file}
+            items={version.items.plan}
+          />
+        </StoriesProvider>
+        <ReviewEnd file={file} review={review} />
+      </VStack>
+    </Page>
+  );
   return (
     <ReviewHost file={file} review={review}>
-      <Page>
-        <Crumbs current={file.name} folder={file.folder} />
-        <VStack gap={3}>
-          <ReviewIntro file={file} review={review} />
-          <StoriesProvider
-            comment={storyComments}
-            folder={file.folder}
-            mockups={version.mockups}
-            stories={version.stories}
-          >
-            <PlanParts
-              drawing={{ document: tree, folds, selection }}
-              file={file}
-              items={version.items.plan}
-            />
-          </StoriesProvider>
-          <ReviewEnd file={file} review={review} />
-        </VStack>
-      </Page>
+      <SpecColumn
+        content={page}
+        contents={<Contents entries={planEntries(tree, version.items.plan, comments)} />}
+        file={file}
+        review={review}
+      />
     </ReviewHost>
   );
 }
 
 /**
- * A plan, in panes in its file's order: waiting for review, with the review's selection, comments,
+ * A plan, in panes in its file's order, its column of Contents beside it: waiting for review, with the review's selection, comments,
  * and verdict; otherwise read as it is now.
  */
 export function PlanPage({ file }: { file: File }) {
@@ -192,14 +242,23 @@ export function PlanPage({ file }: { file: File }) {
       mockups={file.current.mockups}
       stories={file.current.stories}
     >
-      <Page>
-        <Crumbs current={file.name} folder={file.folder} />
-        <PlanParts
-          drawing={{ document: file.current.document }}
-          file={file}
-          items={file.current.items.plan}
-        />
-      </Page>
+      <SpecColumn
+        content={
+          <Page>
+            <Crumbs current={file.name} folder={file.folder} />
+            <PlanParts
+              drawing={{ document: file.current.document }}
+              file={file}
+              items={file.current.items.plan}
+            />
+          </Page>
+        }
+        contents={
+          <Contents entries={planEntries(file.current.document, file.current.items.plan, [])} />
+        }
+        file={file}
+        review={undefined}
+      />
     </StoriesProvider>
   );
 }

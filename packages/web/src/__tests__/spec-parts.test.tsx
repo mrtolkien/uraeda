@@ -53,7 +53,7 @@ function lineOf(repo: string, phrase: string) {
 
 /** The entries of "Contents", by the text of their links. */
 async function entries() {
-  const column = await screen.findByRole("complementary", { name: "Contents" });
+  const column = await screen.findByRole("tabpanel", { name: "Contents" });
   return within(column)
     .getAllByRole("link")
     .map((link) => link.textContent);

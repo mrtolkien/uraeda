@@ -33,8 +33,8 @@ function folded(element: Element) {
 /** A part of the page, a region named by its title, once drawn. */
 const region = (name: string) => screen.findByRole("region", { name });
 
-/** "Contents", once drawn. */
-const contents = () => screen.findByRole("complementary", { name: "Contents" });
+/** "Contents", the column's open tab, once drawn (R2). */
+const contents = () => screen.findByRole("tabpanel", { name: "Contents" });
 
 /** The entries of "Contents", by the text of their links. */
 function entriesOf(column: HTMLElement) {
@@ -70,12 +70,12 @@ test("the contents list every part, decision, and story", async () => {
   expect(entriesOf(column)).toEqual([
     "What you approve",
     "Your review, answered",
-    "Decisions",
+    "Decisions · 3",
     "Repeating tasks",
     "Task storage",
     "Task history",
     "Due dates",
-    "User stories",
+    "User stories · 4",
     "US1 Make a task repeat",
     "US2 Complete a repeating task",
     "US3 Repeat on a custom schedule",
@@ -89,29 +89,6 @@ test("the contents list every part, decision, and story", async () => {
   // The verdict is at the page's end, not in the column.
   expect(within(column).queryByRole("button", { name: "Approve" })).toBeNull();
   expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(1);
-});
-
-/** On a tablet, 420 px of "Contents" would leave the page under 350 px: it starts folded. */
-test("on a window under 1100 px wide, the contents start folded, until you show them", async () => {
-  atWidth(800);
-  const repo = fixtureRepo();
-  addSpecFeature(repo);
-  await renderPage(PAGE, repo);
-
-  await region(BLOCK);
-  expect(screen.queryByRole("list", { name: "Parts" })).toBeNull();
-  await click(screen.getByRole("button", { name: "Show contents" }));
-  expect(await screen.findByRole("list", { name: "Parts" })).toBeTruthy();
-});
-
-test("a window of 1100 px shows the contents at first, and keeps your choice", async () => {
-  atWidth(1100);
-  const repo = fixtureRepo();
-  addSpecFeature(repo);
-  await renderPage(PAGE, repo);
-  expect(await contents()).toBeTruthy();
-  await click(screen.getByRole("button", { name: "Hide contents" }));
-  expect(window.localStorage.getItem("uraeda.specContents")).toBe("hidden");
 });
 
 /** US5 more 1 */
@@ -129,7 +106,7 @@ test("a part's pending comments are counted in the contents", async () => {
     within(column).getByRole("link", { name: "US1 Make a task repeat 2 comments" }),
   ).toBeTruthy();
   expect(within(column).getByRole("link", { name: "Success criteria 1 comment" })).toBeTruthy();
-  expect(within(column).getByRole("link", { name: "User stories" })).toBeTruthy();
+  expect(within(column).getByRole("link", { name: "User stories · 4" })).toBeTruthy();
   expect(within(column).getByRole("link", { name: "US2 Complete a repeating task" })).toBeTruthy();
 });
 
@@ -148,7 +125,7 @@ test("a pending comment on the stories' intro is counted on their section", asyn
   await renderPage(PAGE, repo);
 
   const column = await contents();
-  expect(within(column).getByRole("link", { name: "User stories 1 comment" })).toBeTruthy();
+  expect(within(column).getByRole("link", { name: "User stories · 4 1 comment" })).toBeTruthy();
 });
 
 /** A level-2 section the page does not know is drawn as written, with its entry in the contents. */
@@ -210,7 +187,7 @@ test("a decision's pending comment is counted on the decision alone", async () =
 });
 
 /** US5 more 2 */
-test("hidden contents stay hidden after a reload, with the verdict at the page's end", async () => {
+test("a folded column stays folded after a reload, with the verdict at the page's end", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
@@ -225,7 +202,7 @@ test("hidden contents stay hidden after a reload, with the verdict at the page's
 
   await region(BLOCK);
   expect(screen.queryByRole("list", { name: "Parts" })).toBeNull();
-  expect(screen.getByRole("button", { name: "Show contents" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Show the spec's column" })).toBeTruthy();
   const approve = screen.getByRole("button", { name: "Approve" });
   const end = screen.getByRole("heading", { name: "Your review" });
   expect(end.compareDocumentPosition(approve) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -458,7 +435,7 @@ test("each section's and story's anchor names the element drawn for it", async (
   const column = await contents();
   const href = (name: string) => within(column).getByRole("link", { name }).getAttribute("href");
   expect(href("US2 Complete a repeating task")).toBe("#us2-complete-a-repeating-task-p1");
-  expect(href("User stories")).toBe("#user-stories");
+  expect(href("User stories · 4")).toBe("#user-stories");
   expect(href("Your review, answered")).toBe("#your-review");
 });
 

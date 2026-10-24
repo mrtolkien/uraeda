@@ -11,7 +11,7 @@ import type { CommentItem } from "uraeda-binding";
 import type { useFile } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
-import { type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
+import { type ChoicesState, type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 import { ReviewImagesContext } from "./useReviewImages.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -57,10 +57,12 @@ export function StaleBanner({
 
 /** The verdict of a review, which the comment being written, and its images, may hold back. */
 export function YourVerdict({
+  choices,
   comments,
   file,
   refusals,
 }: {
+  choices: ChoicesState;
   /** How many comments are pending. */
   comments: number;
   file: File;
@@ -69,6 +71,7 @@ export function YourVerdict({
   const images = use(ReviewImagesContext);
   return (
     <ReviewVerdict
+      choices={choices}
       comments={comments}
       file={file}
       refusals={{ ...refusals, hides: images?.hides, hold: images?.hold }}
@@ -82,6 +85,7 @@ export function YourVerdict({
  * when the page shows it elsewhere.
  */
 export function YourReview({
+  choices,
   comments,
   file,
   general,
@@ -91,6 +95,7 @@ export function YourReview({
   refusals,
   wide,
 }: {
+  choices: ChoicesState;
   comments: ReadonlyArray<CommentItem>;
   file: File;
   general: ReactNode;
@@ -126,7 +131,9 @@ export function YourReview({
         <Button label="Add a general comment" onClick={onGeneral} />
       </HStack>
       {general}
-      {hasVerdict && <YourVerdict comments={comments.length} file={file} refusals={refusals} />}
+      {hasVerdict && (
+        <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
+      )}
     </>
   );
 }

@@ -48,7 +48,10 @@ export function usePlacedComments(comments: ReadonlyArray<CommentItem>, tree: Do
   }, [comments, tree]);
 }
 
-/** A pending comment, with Edit and Remove. */
+/** The element id of a pending comment's note, by its number: where the Review tab jumps. */
+export const commentId = (number: number) => `comment-${number}`;
+
+/** A pending comment, with Edit and Remove, its note's id `commentId`. */
 export function PendingComment({
   comment,
   onEdit,
@@ -60,6 +63,7 @@ export function PendingComment({
 }) {
   return (
     <CommentNote
+      id={commentId(comment.number)}
       label={where(comment)}
       name={where(comment)}
       onEdit={onEdit}
@@ -76,6 +80,7 @@ export function PendingComment({
  */
 export function CommentNote({
   error,
+  id,
   label,
   name,
   onEdit,
@@ -83,6 +88,7 @@ export function CommentNote({
   text,
 }: {
   error?: string;
+  id?: string;
   label: string;
   name: string;
   onEdit?: () => void;
@@ -90,7 +96,7 @@ export function CommentNote({
   text: string;
 }) {
   return (
-    <div aria-label={name} role="group" {...stylex.props(styles.pending)}>
+    <div aria-label={name} id={id} role="group" {...stylex.props(styles.pending)}>
       <HStack align="center" gap={2} justify="between" wrap="wrap">
         <Text color="secondary" type="supporting">
           {label}

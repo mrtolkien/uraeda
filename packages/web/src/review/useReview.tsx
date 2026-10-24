@@ -1,7 +1,8 @@
-// A review's machinery, shared by the spec page and the plan's review page: its pending comments,
-// the comment being written and its field, the folds its comments open, the selection of blocks,
-// the comments on embedded stories, and what the page draws around the file: its intro, its end
-// with the general comments and the verdict, and on the phone the comment's sheet.
+// A review's machinery, shared by the spec page and the plan page: its pending comments, the
+// verdict's choices, the comment being written and its field, the folds its comments open, the
+// selection of blocks, the comments on embedded stories, and what the page draws around the file:
+// its intro, its end with the general comments and the verdict, and on the phone the comment's
+// sheet.
 import { Code } from "@astryxdesign/core/Code";
 import { Text } from "@astryxdesign/core/Text";
 import { type ReactNode, useMemo, useState } from "react";
@@ -11,7 +12,8 @@ import { type Fold, foldOf } from "../Folds.tsx";
 import { AddingNote, CommentHost, type ReviewField } from "../ReviewCommentForm.tsx";
 import { usePlacedComments } from "../ReviewComments.tsx";
 import { placeOf, reviewEditKey, reviewKey } from "../reviewField.ts";
-import { useRefusals } from "../ReviewVerdict.tsx";
+import { initialChoices } from "../ReviewChoices.tsx";
+import { type ChoicesState, useRefusals } from "../ReviewVerdict.tsx";
 import type { Range, useCommentDraft } from "../useCommentDraft.ts";
 import { useSpecFolds } from "../useOpenKeys.ts";
 import { useReviewActions } from "../useReviewActions.ts";
@@ -80,6 +82,9 @@ export function useReview(file: File, wide: boolean) {
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, commentDraft.selection));
   const field = fieldOf(file, comments, commentDraft);
   const storyComments = useStoryComments(file);
+  // A spec's risk tier and plan review, kept for the page's life: the end's form sets them, and
+  // either verdict, the end's or the Review tab's, commits them.
+  const choices: ChoicesState = useState(() => initialChoices(version.items.spec));
   const blocks = useReviewSelection({
     actions,
     commentDraft,
@@ -92,6 +97,7 @@ export function useReview(file: File, wide: boolean) {
   return {
     ...blocks,
     actions,
+    choices,
     commentDraft,
     comments,
     container,
@@ -168,13 +174,23 @@ export function ReviewEnd({
   hasVerdict?: boolean;
   review: Review;
 }) {
-  const { actions, commentDraft, comments, container, inPage, pendingNote, refusals, wide } =
-    review;
+  const {
+    actions,
+    choices,
+    commentDraft,
+    comments,
+    container,
+    inPage,
+    pendingNote,
+    refusals,
+    wide,
+  } = review;
   const { adding } = actions;
   const { draft, start } = commentDraft;
   return (
     <>
       <YourReview
+        choices={choices}
         comments={comments}
         file={file}
         general={

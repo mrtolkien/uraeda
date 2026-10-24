@@ -1,18 +1,15 @@
-// "Contents", the spec page's column on a wide screen: every part, decision, and story, each with
-// the count of pending comments on it, a tap jumping to it. Hidden with its button or `]`, the
-// choice kept in the browser.
+// "Contents", a tab of the spec's and the plan's column, and the phone's sheet: every part,
+// decision, and story, each with the count of pending comments on it, the part at the top marked,
+// a tap jumping to it.
 import { Badge } from "@astryxdesign/core/Badge";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
-import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
 import type { Block, CommentItem, DecisionChange, Document } from "uraeda-binding";
-import { SideColumn } from "../layout/SideColumn.tsx";
-import { useStoredShown } from "../layout/useStoredShown.ts";
 import { holderOf } from "../reviewField.ts";
-import { jumpTo } from "../roundJump.ts";
+import { jumpTo, useQuestionAtTop } from "../roundJump.ts";
+import { useColumnGo } from "./columnGo.ts";
 import {
   BUILT_PARTS,
   decisionId,
@@ -26,10 +23,6 @@ import {
 } from "./parts.ts";
 
 const styles = stylex.create({
-  column: {
-    paddingBlockEnd: spacingVars["--spacing-6"],
-    paddingInline: spacingVars["--spacing-3"],
-  },
   label: {
     // An entry's text wraps: no title is cut.
     overflowWrap: "anywhere",
@@ -137,11 +130,16 @@ export function entriesOf({
       ? [entry(groupId(items, GROUPS.answers), GROUPS.answers.title)]
       : []),
     ...(decisions.length > 0
-      ? [entry(groupId(items, GROUPS.decisions), GROUPS.decisions.title)]
+      ? [
+          entry(
+            groupId(items, GROUPS.decisions),
+            `${GROUPS.decisions.title} · ${items.decisions.length}`,
+          ),
+        ]
       : []),
     ...decisions.map((d) => entry(decisionId(d.name), d.title, true)),
     ...(items.stories.length > 0
-      ? [entry(groupId(items, GROUPS.stories), GROUPS.stories.title)]
+      ? [entry(groupId(items, GROUPS.stories), `${GROUPS.stories.title} · ${items.stories.length}`)]
       : []),
     ...items.stories.map((s) => entry(storyId(document, s), `${s.id} ${s.title}`, true)),
     ...(hasData ? [entry(GROUPS.data.id, GROUPS.data.title)] : []),
@@ -154,17 +152,24 @@ export function entriesOf({
 }
 
 /**
- * Every entry, a tap jumping to its part and focusing its title. Caught around the list: a list
+ * "Contents": every entry, the part at the top marked, a tap jumping to its part and focusing its
+ * title, through the column, which closes the phone's sheet first. Caught around the list: a list
  * item's link does not call the item's `onClick`.
  */
-function Entries({ entries }: { entries: ReadonlyArray<Entry> }) {
+export function Contents({ entries }: { entries: ReadonlyArray<Entry> }) {
+  const go = useColumnGo();
+  const current = useQuestionAtTop(
+    entries.map((entry) => entry.id),
+    true,
+  );
   return (
     <div
       onClickCapture={(event) => {
         const link = (event.target as Element).closest("a[href^='#']");
         if (link) {
           event.preventDefault();
-          jumpTo(link.getAttribute("href")!.slice(1));
+          const id = link.getAttribute("href")!.slice(1);
+          go(() => jumpTo(id));
         }
       }}
     >
@@ -172,6 +177,7 @@ function Entries({ entries }: { entries: ReadonlyArray<Entry> }) {
         {entries.map(({ count, id, label, nested }) => (
           <ListItem
             href={`#${id}`}
+            isSelected={id === (current ?? entries[0]?.id)}
             key={id}
             label={
               <span {...stylex.props(styles.label)}>
@@ -197,67 +203,5 @@ function Entries({ entries }: { entries: ReadonlyArray<Entry> }) {
         ))}
       </List>
     </div>
-  );
-}
-
-/** What the folded column shows: the comments on the spec, all together, when there are any. */
-function ContentsRail({ entries }: { entries: ReadonlyArray<Entry> }) {
-  const count = entries.reduce((sum, entry) => sum + entry.count, 0);
-  return (
-    count > 0 && (
-      <Badge
-        label={
-          <>
-            {count}
-            <VisuallyHidden> {count === 1 ? "comment" : "comments"}</VisuallyHidden>
-          </>
-        }
-        variant="warning"
-      />
-    )
-  );
-}
-
-/** Where the column's folded state is kept, for every spec. */
-const KEY = "uraeda.specContents";
-
-/**
- * The narrowest window where "Contents" shows at first: 420 px of it leave the page under 350 px
- * in a window of 768 px, so a narrower one starts without it, to show with its button.
- */
-const SHOWN_FROM = 1100;
-
-/** Whether "Contents" shows, kept in the browser for every spec. */
-export function useContentsShown() {
-  return useStoredShown(KEY, () => window.innerWidth >= SHOWN_FROM);
-}
-
-/**
- * The page beside "Contents" on a wide screen: its entries. On the phone, the page alone.
- */
-export function SpecContents({
-  children,
-  entries,
-  shown: [isShown, setShown],
-}: {
-  /** The page. */
-  children: ReactNode;
-  entries: ReadonlyArray<Entry>;
-  shown: ReturnType<typeof useContentsShown>;
-}) {
-  return (
-    <SideColumn
-      content={children}
-      isShown={isShown}
-      label="Contents"
-      onShownChange={setShown}
-      rail={<ContentsRail entries={entries} />}
-      sizes={{ default: 320, min: 280 }}
-      storageKey="uraeda.specContents.width"
-    >
-      <VStack gap={4} xstyle={styles.column}>
-        <Entries entries={entries} />
-      </VStack>
-    </SideColumn>
   );
 }
