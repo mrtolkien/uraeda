@@ -143,6 +143,19 @@ test("asking again replaces the quote and keeps the text", async () => {
   await waitFor(() => expect(box.textContent).toBe(`${Q3_QUOTE}\n\nwhy would that cost more?`));
 });
 
+/** A quote typed by hand is the human's: asking replaces only the quote asking put there. */
+test("asking keeps a quote typed by hand", async () => {
+  const typed = "About the plan:\n> Keep it short.\n\nwhy?";
+  await open(PAGE, round());
+  await click(screen.getByRole("tab", { name: "Session" }));
+  await type(await composer(), typed);
+
+  await askAbout("Q2");
+
+  const box = await composer();
+  await waitFor(() => expect(box.textContent).toBe(`${Q2_QUOTE}\n\n${typed}`));
+});
+
 /** US3 more 1 */
 test("asking about a point to check quotes its subject", async () => {
   await open(PAGE, round());
