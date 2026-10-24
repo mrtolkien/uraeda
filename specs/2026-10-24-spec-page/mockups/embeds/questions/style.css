@@ -1,0 +1,1318 @@
+/* The questions page in the shipped terminal look: Catppuccin Mocha and Latte from the app's
+   theme.ts, JetBrains Mono for chrome and Inter for prose, text at 120%. The width classes come
+   from the frame's width, so the bar's width buttons work without resizing the window. */
+:root {
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
+  --s0: #313244;
+  --s1: #45475a;
+  --s2: #585b70;
+  --dim: #969db8;
+  --text: #cdd6f4;
+  --sub: #bac2de;
+  --blue: #89b4fa;
+  --lav: #b4befe;
+  --teal: #94e2d5;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --peach: #fab387;
+  --red: #f38ba8;
+  --mauve: #cba6f7;
+  --on: #11111b;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --read: Inter, ui-sans-serif, system-ui, sans-serif;
+  --fs: 16.8px;
+  --fs-read: 19px;
+  --fs-small: 14.4px;
+  color-scheme: dark;
+}
+:root[data-scheme="latte"] {
+  --base: #eff1f5;
+  --mantle: #e6e9ef;
+  --crust: #dce0e8;
+  --s0: #ccd0da;
+  --s1: #bcc0cc;
+  --s2: #acb0be;
+  --dim: #5f6276;
+  --text: #4c4f69;
+  --sub: #5c5f77;
+  --blue: #1957d5;
+  --lav: #4254c8;
+  --teal: #0f6c72;
+  --green: #2c6f1f;
+  --yellow: #875800;
+  --peach: #a63f00;
+  --red: #bc0d33;
+  --mauve: #7b2fe0;
+  --on: #ffffff;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--crust);
+  color: var(--text);
+  font: var(--fs) / 1.5 var(--mono);
+}
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+button,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: var(--mauve);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--s0);
+  padding: 0 0.25em;
+}
+b,
+strong {
+  font-weight: 700;
+}
+.ico {
+  flex: none;
+  vertical-align: -0.15em;
+}
+
+/* The prototype's own bar, not part of the design. */
+#ctl {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: center;
+  padding: 6px 10px;
+  background: #000;
+  color: #ddd;
+  font: 12px/1.4 var(--mono);
+  border-bottom: 1px solid #333;
+}
+#ctl label {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+#ctl select,
+#ctl button {
+  background: #1b1b1b;
+  color: #eee;
+  border: 1px solid #444;
+  padding: 1px 4px;
+  font-size: 12px;
+}
+#ctl .tag {
+  color: #fab387;
+}
+#frame-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  background: repeating-linear-gradient(45deg, #0b0b0f 0 8px, #101016 8px 16px);
+}
+#frame {
+  height: 100%;
+  width: 100%;
+  background: var(--base);
+  overflow: hidden;
+  position: relative;
+}
+
+/* The app: the shell, the work area, and the status line. */
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  grid-template-columns: auto 1fr;
+}
+.app.narrow {
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
+}
+.left {
+  grid-row: 1;
+  overflow: auto;
+  background: var(--mantle);
+  border-right: 1px solid var(--s1);
+}
+.wide .left {
+  width: 256px;
+  padding: 10px 10px 14px;
+}
+.semi .left {
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 14px;
+  color: var(--sub);
+}
+.narrow .left {
+  border-right: 0;
+  border-bottom: 1px solid var(--s1);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 4px;
+  color: var(--sub);
+}
+.badge-n {
+  position: relative;
+}
+.badge-n i {
+  position: absolute;
+  top: -10px;
+  right: -14px;
+  font: 600 11px/1 var(--mono);
+  background: var(--mauve);
+  color: var(--on);
+  padding: 2px 4px;
+  font-style: normal;
+}
+.brand {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 700;
+  font-size: 19px;
+  margin-bottom: 10px;
+}
+.brand small {
+  display: block;
+  font: 400 13px var(--mono);
+  color: var(--dim);
+}
+.btnrow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.btn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid var(--s1);
+  background: var(--s0);
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn.primary {
+  background: var(--mauve);
+  border-color: var(--mauve);
+  color: var(--on);
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--sub);
+}
+.btn.ghost:hover {
+  color: var(--text);
+  border-color: var(--s1);
+}
+.btn.small {
+  font-size: var(--fs-small);
+  padding: 1px 8px;
+}
+
+/* A pane: a border with its title in it. */
+fieldset.pane {
+  border: 1px solid var(--s2);
+  margin: 0 0 14px;
+  padding: 8px 12px 10px;
+  min-width: 0;
+}
+fieldset.pane > legend {
+  padding: 0 6px;
+  color: var(--lav);
+  font-weight: 600;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+fieldset.pane.attn {
+  border-color: var(--peach);
+}
+fieldset.pane.attn > legend {
+  color: var(--peach);
+}
+fieldset.pane.active {
+  border-color: var(--mauve);
+}
+fieldset.pane.active > legend {
+  color: var(--mauve);
+}
+.navrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  gap: 8px;
+}
+.navrow span:first-child {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.count {
+  background: var(--s0);
+  font-size: 13px;
+  padding: 0 6px;
+}
+.card {
+  padding: 4px 0;
+}
+.card .t {
+  display: flex;
+  gap: 6px;
+}
+.card .s {
+  color: var(--dim);
+  font-size: 14px;
+  padding-left: 24px;
+}
+.card.on .t {
+  color: var(--mauve);
+}
+
+/* The work area: the page and the right column, and a split at the bottom. */
+.work-wrap {
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.narrow .work-wrap {
+  grid-row: 2;
+}
+.work {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+.page {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  scroll-behavior: smooth;
+}
+.page-in {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 22px 32px 80px;
+  font-size: var(--fs);
+}
+.narrow .page-in {
+  padding: 14px 16px 80px;
+}
+.right {
+  flex: none;
+  border-left: 1px solid var(--s1);
+  background: var(--mantle);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+.right.cover {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 20;
+  box-shadow: -10px 0 0 0 color-mix(in srgb, var(--crust) 60%, transparent);
+}
+.drag {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 3;
+}
+.drag:hover {
+  background: var(--mauve);
+}
+.bottom {
+  flex: none;
+  height: 44%;
+  border-top: 1px solid var(--s1);
+  background: var(--mantle);
+  display: flex;
+  min-height: 0;
+}
+
+/* Right column's tabs, in its top border, edgy-like. */
+.tabs {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--s2);
+  padding: 0 6px;
+  gap: 2px;
+}
+.tab {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 10px 6px;
+  color: var(--dim);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.tab.on {
+  color: var(--mauve);
+  border-bottom-color: var(--mauve);
+  font-weight: 700;
+}
+.tabs .sp {
+  flex: 1;
+}
+.col-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px;
+}
+.stackhead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--s2);
+  color: var(--lav);
+  font-weight: 600;
+  cursor: pointer;
+}
+.stackhead.on {
+  color: var(--mauve);
+}
+.stackhead .sp {
+  flex: 1;
+}
+.stackhead small {
+  color: var(--dim);
+  font-weight: 400;
+}
+
+/* The outline. */
+.progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.bar {
+  height: 6px;
+  background: var(--s0);
+  margin-bottom: 12px;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--green);
+}
+.ol a {
+  display: flex;
+  gap: 8px;
+  padding: 3px 6px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.ol a.fu {
+  padding-left: 26px;
+}
+.ol a.sec {
+  color: var(--dim);
+}
+.ol a.cur {
+  background: var(--s0);
+  box-shadow: inset 2px 0 0 var(--mauve);
+}
+.ol a .st {
+  flex: none;
+  width: 1.2ch;
+}
+.ol a .st.ok {
+  color: var(--green);
+}
+.ol hr {
+  border: 0;
+  border-top: 1px dashed var(--s1);
+  margin: 8px 0;
+}
+.hint {
+  color: var(--dim);
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+/* The page's parts. */
+.crumbs {
+  color: var(--sub);
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.crumbs b {
+  color: var(--text);
+}
+h1 {
+  font-size: 30px;
+  line-height: 1.25;
+  margin: 0 0 18px;
+}
+.narrow h1 {
+  font-size: 24px;
+}
+h2.sec {
+  font-size: 22px;
+  margin: 34px 0 12px;
+}
+.prose,
+.prose p,
+.prose li,
+.prose td {
+  font-family: var(--read);
+  font-size: var(--fs-read);
+  line-height: 1.6;
+}
+.prose p {
+  margin: 0 0 12px;
+}
+.narrow .prose,
+.narrow .prose p,
+.narrow .prose li {
+  font-size: 18px;
+}
+ul.md {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+ul.md > li {
+  position: relative;
+  padding-left: var(--ind, 1.5em);
+  margin-bottom: 6px;
+}
+ul.md > li::before {
+  content: "•";
+  position: absolute;
+  left: var(--mk, 0.5em);
+  color: var(--dim);
+}
+.tight ul.md > li {
+  --ind: 1.1em;
+  --mk: 0;
+}
+.tight ul.md > li::before {
+  content: "-";
+  font-family: var(--mono);
+  color: var(--s2);
+}
+.today-lists ul.md > li {
+  --ind: 28.8px;
+  --mk: 10px;
+}
+table.md {
+  border-collapse: collapse;
+  margin: 0 0 14px;
+  font-size: 15px;
+  width: 100%;
+}
+.tablewrap {
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+table.md th,
+table.md td {
+  border: 1px solid var(--s1);
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+  font-family: var(--read);
+  font-size: 15.5px;
+}
+table.md th {
+  font-family: var(--mono);
+  color: var(--lav);
+  font-size: 14.4px;
+}
+
+/* The round's opening: plain (today), panes, or a sign column. */
+.callout {
+  border-left: 4px solid var(--mauve);
+  padding-left: 14px;
+  margin-bottom: 18px;
+}
+.callout .ct {
+  font-weight: 700;
+  font-family: var(--read);
+}
+h3.part {
+  font-size: 19px;
+  margin: 20px 0 8px;
+}
+.brief {
+  border: 1px solid var(--mauve);
+  padding: 4px 16px 6px;
+}
+.brief > legend {
+  color: var(--mauve);
+}
+.verdict {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0 10px;
+  border-bottom: 1px dashed var(--s1);
+  margin-bottom: 10px;
+}
+.vbadge {
+  flex: none;
+  font: 700 13px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 5px 8px;
+  color: var(--on);
+  background: var(--yellow);
+}
+.vbadge.yes {
+  background: var(--green);
+}
+.vbadge.no {
+  background: var(--red);
+}
+.first {
+  font-weight: 700;
+  font-size: 18px;
+}
+.parts {
+  display: grid;
+  gap: 0 16px;
+  grid-template-columns: 1fr;
+}
+.parts.two {
+  grid-template-columns: 1fr 1fr;
+}
+.parts .span {
+  grid-column: 1 / -1;
+}
+.pane.goal {
+  border-color: var(--lav);
+}
+.pane.goal .prose p {
+  font-size: 20.5px;
+}
+.pane.src {
+  border-style: dashed;
+}
+.pane.src .prose li {
+  font-size: 16px;
+  color: var(--sub);
+}
+.g {
+  display: grid;
+  grid-template-columns: 2.6ch 1fr;
+  gap: 0 10px;
+}
+.sign {
+  font-weight: 700;
+  text-align: center;
+  padding-top: 0.15em;
+}
+.glabel {
+  font-weight: 700;
+  font-size: 16px;
+  margin: 18px 0 4px;
+}
+.c-mauve {
+  color: var(--mauve);
+}
+.c-peach {
+  color: var(--peach);
+}
+.c-teal {
+  color: var(--teal);
+}
+.c-lav {
+  color: var(--lav);
+}
+.c-dim {
+  color: var(--dim);
+}
+.c-green {
+  color: var(--green);
+}
+.c-yellow {
+  color: var(--yellow);
+}
+
+/* A question's card. */
+.qsec {
+  margin-top: 34px;
+  scroll-margin-top: 0;
+}
+.qcard {
+  border: 1px solid var(--s2);
+  background: var(--base);
+}
+.qcard.cur {
+  border-color: var(--mauve);
+}
+.plainlook .qcard {
+  border-color: var(--s1);
+  background: var(--mantle);
+}
+.narrow .qcard {
+  border-left: 0;
+  border-right: 0;
+  margin: 0 -16px;
+}
+.qhead {
+  padding: 12px 20px 10px;
+  background: var(--base);
+  border-bottom: 1px solid transparent;
+}
+.plainlook .qhead {
+  background: var(--mantle);
+}
+.qhead.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.qhead.stuck {
+  border-bottom-color: var(--s1);
+}
+.qmeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--sub);
+  font-size: 14.4px;
+  font-weight: 600;
+}
+.qmeta .id {
+  color: var(--mauve);
+}
+.qtitle {
+  font-size: 23px;
+  line-height: 1.3;
+  margin: 4px 0 0;
+}
+.narrow .qtitle {
+  font-size: 19px;
+}
+.qhead.stuck .qtitle {
+  font-size: 19px;
+}
+.qbody {
+  padding: 4px 20px 20px;
+}
+.narrow .qhead,
+.narrow .qbody {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.qgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 0 28px;
+  align-items: start;
+}
+.qgrid .lcol.sticky {
+  position: sticky;
+  top: 0;
+  max-height: 100cqh;
+}
+.fu-wrap {
+  margin-left: 28px;
+  border-left: 2px solid var(--mauve);
+  padding-left: 0;
+}
+.joint {
+  height: 22px;
+  margin-left: 40px;
+  border-left: 2px solid var(--mauve);
+}
+.narrow .fu-wrap {
+  margin-left: 0;
+  border-left-width: 3px;
+}
+
+.ex {
+  border: 1px solid var(--teal);
+  padding: 2px 14px 4px;
+  margin: 0 0 14px;
+}
+.pane.ex > legend {
+  color: var(--teal);
+}
+.ex .prose p {
+  font-style: italic;
+}
+.why {
+  border: 1px solid var(--peach);
+  padding: 2px 14px 2px;
+  margin: 4px 0 14px;
+  background: color-mix(in srgb, var(--peach) 6%, var(--base));
+}
+.pane.why > legend {
+  color: var(--peach);
+  background: var(--base);
+}
+.why-plain {
+  background: var(--s0);
+  padding: 10px 12px 2px;
+  margin-bottom: 12px;
+}
+.why-plain .lbl {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.opts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0 12px;
+}
+.opt {
+  border: 1px solid var(--s1);
+  background: var(--mantle);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  display: block;
+  width: 100%;
+}
+.opt:hover {
+  border-color: var(--s2);
+}
+.opt.on {
+  border-color: var(--mauve);
+  box-shadow: inset 3px 0 0 var(--mauve);
+}
+.narrow .opt {
+  border-left: 0;
+  border-right: 0;
+}
+.rec {
+  color: var(--yellow);
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.ohead {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.letter {
+  flex: none;
+  width: 1.9em;
+  height: 1.9em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--sub);
+  color: var(--sub);
+  font-weight: 700;
+  font-size: 14px;
+}
+.opt.on .letter {
+  background: var(--mauve);
+  border-color: var(--mauve);
+  color: var(--on);
+}
+.osum {
+  font-family: var(--read);
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.5;
+}
+.pts {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.pts li {
+  position: relative;
+  padding-left: 1.4em;
+  font-family: var(--read);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.pts li b {
+  position: absolute;
+  left: 0;
+  font-family: var(--mono);
+}
+.comment textarea {
+  width: 100%;
+  min-height: 84px;
+  background: var(--mantle);
+  border: 1px solid var(--s1);
+  padding: 8px;
+  resize: vertical;
+}
+.comment label {
+  color: var(--sub);
+  font-size: 14.4px;
+}
+.comment .row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--dim);
+}
+
+/* Settled points. */
+.pt-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--s1);
+}
+.pt-row:last-child {
+  border-bottom: 0;
+}
+.pt-row .prose {
+  flex: 1;
+}
+.pt-row .prose p {
+  margin: 0;
+}
+.checkpane {
+  border-width: 2px !important;
+  background: color-mix(in srgb, var(--peach) 5%, var(--base));
+}
+.checkpane > legend {
+  background: var(--base);
+  font-size: 18px;
+}
+.checkpane .prose p {
+  font-size: 19.5px;
+}
+.hoodpane {
+  border-color: var(--s1) !important;
+}
+.hoodpane > legend {
+  color: var(--dim) !important;
+}
+.hoodpane .prose p {
+  font-size: 16.5px;
+  color: var(--sub);
+}
+details summary {
+  cursor: pointer;
+  color: var(--sub);
+  padding: 4px 0;
+}
+.notes textarea {
+  width: 100%;
+  min-height: 90px;
+  background: var(--mantle);
+  border: 1px solid var(--s1);
+  padding: 8px;
+}
+.submit {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.left-q {
+  color: var(--red);
+  margin-top: 14px;
+  font-size: 15px;
+}
+
+/* The session. */
+.sess {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.sess-head {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--s1);
+  font-size: 15px;
+  color: var(--sub);
+}
+.sess-head b {
+  color: var(--text);
+}
+.sess-head .sp {
+  flex: 1;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  display: inline-block;
+}
+.about {
+  flex: none;
+  margin: 10px 12px 0;
+  border: 1px solid var(--s2);
+  padding: 6px 10px;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--base);
+}
+.about b {
+  color: var(--mauve);
+}
+.msgs {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+.msg {
+  margin-bottom: 12px;
+}
+.msg.user {
+  border-left: 3px solid var(--mauve);
+  background: var(--base);
+  padding: 8px 12px;
+}
+.msg.user .who {
+  color: var(--mauve);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.msg blockquote {
+  margin: 4px 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--s2);
+  color: var(--sub);
+}
+.msg.tool {
+  color: var(--dim);
+  font-size: 14px;
+  display: flex;
+  gap: 6px;
+}
+.msg.agent p {
+  margin: 0 0 8px;
+}
+.composer {
+  flex: none;
+  border-top: 1px solid var(--s1);
+  padding: 10px 12px;
+}
+.composer textarea {
+  width: 100%;
+  min-height: 74px;
+  background: var(--base);
+  border: 1px solid var(--s2);
+  padding: 8px;
+  font-size: 15px;
+}
+.composer .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  color: var(--dim);
+  font-size: 13.5px;
+}
+
+/* The phone's session page and sheet. */
+.phone-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: var(--base);
+  display: flex;
+  flex-direction: column;
+}
+.phone-layer .back {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--s1);
+  color: var(--mauve);
+  font-weight: 700;
+  cursor: pointer;
+}
+.sheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  max-height: 70%;
+  z-index: 40;
+  background: var(--mantle);
+  border-top: 2px solid var(--mauve);
+  overflow: auto;
+  padding: 12px 14px;
+}
+
+/* The status line. */
+.status {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  background: var(--mantle);
+  border-top: 1px solid var(--s1);
+  font-size: 14.4px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.status kbd {
+  color: var(--peach);
+  font-family: var(--mono);
+  font-weight: 700;
+}
+.status .need {
+  color: var(--peach);
+}
+
+/* On the phone, panes keep their titled top border only: no side borders or inset, so text keeps
+   the screen's width. */
+.narrow fieldset.pane {
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+.narrow fieldset.pane > legend {
+  padding-left: 0;
+}
+.narrow .verdict {
+  flex-direction: column;
+  gap: 6px;
+}
+.narrow .parts.two {
+  grid-template-columns: 1fr;
+}
+
+/* ---- The picked design, round 01 ---- */
+
+/* An option: one border, its letter in the border's title; the border's colour tells its state. */
+fieldset.opt {
+  margin: 0;
+  padding: 4px 14px 12px;
+  min-width: 0;
+}
+fieldset.opt > legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 6px;
+}
+fieldset.opt .letter {
+  width: auto;
+  height: auto;
+  border: 0;
+  padding: 0 4px;
+  font-size: 16px;
+  color: var(--text);
+}
+fieldset.opt.on {
+  border: 2px solid var(--mauve);
+  box-shadow: none;
+}
+fieldset.opt.on .letter {
+  background: var(--mauve);
+  color: var(--on);
+}
+fieldset.opt .rec {
+  margin: 0;
+}
+fieldset.opt.recommended:not(.on) {
+  border-color: color-mix(in srgb, var(--yellow) 55%, var(--s1));
+}
+.picked {
+  color: var(--mauve);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.g-pro {
+  color: var(--green);
+}
+.g-con {
+  color: var(--red);
+}
+.g-why {
+  color: var(--yellow);
+}
+/* On the phone, a pro, a con, or the why is its own box, its glyph in its border: no indent. */
+fieldset.ptbox {
+  margin: 8px 0 0;
+  padding: 0 10px 6px;
+  border: 1px solid var(--s1);
+  font-family: var(--read);
+  font-size: 17px;
+  line-height: 1.5;
+  min-width: 0;
+}
+fieldset.ptbox > legend {
+  font: 700 15px var(--mono);
+  padding: 0 4px;
+}
+fieldset.ptbox.pro {
+  border-color: color-mix(in srgb, var(--green) 60%, var(--s1));
+}
+fieldset.ptbox.pro > legend {
+  color: var(--green);
+}
+fieldset.ptbox.con {
+  border-color: color-mix(in srgb, var(--red) 60%, var(--s1));
+}
+fieldset.ptbox.con > legend {
+  color: var(--red);
+}
+fieldset.ptbox.why {
+  border-color: color-mix(in srgb, var(--yellow) 60%, var(--s1));
+}
+fieldset.ptbox.why > legend {
+  color: var(--yellow);
+}
+.narrow fieldset.opt {
+  border-left-width: 1px;
+  border-right-width: 1px;
+  margin: 0 -6px;
+  padding: 2px 10px 10px;
+}
+.narrow fieldset.opt.on {
+  border-width: 2px;
+}
+
+/* A follow-up on the phone: no line on its side, a mauve top border instead. */
+.narrow .fu-wrap {
+  border-left: 0;
+  margin-top: 26px;
+}
+.narrow .qcard.fu {
+  border-top: 2px solid var(--mauve);
+}
+
+/* A folded pane: its title is a button. */
+.fold {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+.folded-hint {
+  font-weight: 400;
+  font-size: 13.5px;
+}
+.pane-lead {
+  margin: 4px 0 2px;
+  font-size: 14.4px;
+}
+.checkpane {
+  margin-top: 6px;
+}
+.pt-actions {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+
+/* Notes, from anywhere. */
+.notes-pane textarea {
+  width: 100%;
+  min-height: 160px;
+  background: var(--base);
+  border: 1px solid var(--s2);
+  padding: 8px;
+  margin-top: 6px;
+}
+.notes-pane .row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--dim);
+}
+.notes-read {
+  border: 1px dashed var(--s1);
+  padding: 4px 12px 10px;
+}
+.ol a.sub {
+  padding-left: 26px;
+  font-size: 14px;
+}
+.ol a.warn {
+  color: var(--peach);
+}
+.sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  background: color-mix(in srgb, var(--crust) 55%, transparent);
+}
+
+/* Lists on the phone: the marker hangs in the page's inset, the text lines up with paragraphs. */
+.tight ul.md > li {
+  --ind: 0;
+  --mk: -0.85em;
+}
+.tight ul.md > li::before {
+  content: "-";
+  font-family: var(--mono);
+  color: var(--dim);
+}

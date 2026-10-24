@@ -19,7 +19,8 @@ The spec, the plan, and the data model, redrawn in the look and shell of
 The spec is the workflow's main review. Answers and sources:
 
 - The information architecture: [the proposal](../done/2026-10-20-layout-look.md).
-- Where the session opens: the [questions page](questions-page.md) settles it first.
+- Where the session opens: the [questions page](../2026-10-24-questions-page/proposal.md) settles it
+  first.
 
 ## Notes
 

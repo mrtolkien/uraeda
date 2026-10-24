@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uraeda · terminal, round 2</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='%23a6e3a1'%3E%3Crect x='16' y='0' width='7' height='7' rx='1'/%3E%3Crect x='24' y='0' width='7' height='7' rx='1'/%3E%3Crect x='32' y='0' width='7' height='7' rx='1'/%3E%3Crect x='40' y='0' width='7' height='7' rx='1'/%3E%3C/g%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,800;1,400&display=swap"
+    />
+    <link rel="stylesheet" href="terminal-2/style.css" />
+    <style>
+      .embedded #ctl {
+        display: none !important;
+      }
+      .embedded #frame-wrap,
+      .embedded #frame {
+        background: none;
+      }
+    </style>
+    <script>
+      if (new URLSearchParams(location.search).has("embed"))
+        document.documentElement.classList.add("embedded");
+    </script>
+  </head>
+  <body>
+    <div id="ctl"></div>
+    <div id="frame"><div id="stage"></div></div>
+    <script src="shared/data.js"></script>
+    <script src="shared/icons.js"></script>
+    <script src="shared/blocks.js"></script>
+    <script src="terminal-2/data.js"></script>
+    <script src="terminal-2/real.js"></script>
+    <script src="terminal-2/app.js"></script>
+  </body>
+</html>
