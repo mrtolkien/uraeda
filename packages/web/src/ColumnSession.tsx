@@ -2,11 +2,9 @@
 // the way to the session's page.
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type ReactNode, Suspense, useState } from "react";
+import { useState } from "react";
 import { useFeature } from "./data.ts";
-import { SideColumn } from "./layout/SideColumn.tsx";
-import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { useRepoPath, useSearch } from "./routes.tsx";
+import { useRepoPath } from "./routes.tsx";
 import type { SessionItem } from "./SessionActions.tsx";
 import { SessionAnnouncer } from "./SessionAnnouncer.tsx";
 import { sessionPath } from "./sessions.ts";
@@ -58,45 +56,5 @@ export function ColumnSession({ draft, folder }: { draft: Draft; folder: string 
         />
       </VStack>
     </>
-  );
-}
-
-/**
- * A page of a feature's documents, `children`, with the feature's session in a column beside it on
- * wide and semi-wide screens, while the address says `?tab=session`: foldable with `]`, resizable,
- * at least 400 px wide.
- */
-// TEMPORARY: the questions page's document column replaces this, as a tab beside Outline and Notes.
-export function WithSessionColumn({
-  children,
-  draft,
-  folder,
-  isAvailable,
-}: {
-  children: ReactNode;
-  draft: Draft;
-  folder: string;
-  /** Whether the feature's agent can be asked here: a feature's round, its agent available. */
-  isAvailable: boolean;
-}) {
-  const wide = !isNarrow(useWidthClass());
-  const tab = new URLSearchParams(useSearch()).get("tab");
-  const [shown, setShown] = useState(true);
-  if (!isAvailable || !wide || tab !== "session") {
-    return <>{children}</>;
-  }
-  return (
-    <SideColumn
-      content={children}
-      isShown={shown}
-      label="Session"
-      onShownChange={setShown}
-      sizes={{ default: 480, min: 400 }}
-      storageKey="uraeda.roundColumn"
-    >
-      <Suspense fallback={null}>
-        <ColumnSession draft={draft} folder={folder} />
-      </Suspense>
-    </SideColumn>
   );
 }

@@ -236,7 +236,7 @@ tests run the CLI's check over files.
 | US2 key 1, 2 (sticky header at every width)           | 5    | `round-cards.test.tsx` "Q4's header stays at the top, then leaves with its card", desktop, semi, phone                 |
 | US2 key 3, more 1 (outline rows, marked row)          | 7, 8 | `__tests__/round-outline.test.tsx` "the outline lists the whole round"; Task 8 browser "the part at the top is marked" |
 | US2 more 2 (`n` to Q2.A)                              | 7    | `round-outline.test.tsx` "n goes to the next blank question, follow-ups included"                                      |
-| US2 more 3 (phone outline sheet)                      | 8    | `__tests__/round-column.test.tsx` "on the phone, 0/8 opens the outline in a sheet"                                     |
+| US2 more 3 (phone outline sheet)                      | 8    | `__tests__/round-column.test.tsx` "on the phone, 1/8 opens the outline in a sheet"                                     |
 | US3 key 1 (column 480 px, three tabs)                 | 8    | `__browser__/round-column.test.tsx` "at 1440 px the column is 480 px, Outline open"                                    |
 | US3 key 2 (Ask opens Session, nothing moves)          | 8    | `round-column.test.tsx` "asking about Q2 moves no card" (SC-002)                                                       |
 | US3 key 3 (phone opens the session's page, Back)      | 8    | `round-column.test.tsx` (UI) "on the phone, asking opens the session's page"                                           |
@@ -632,13 +632,21 @@ order changes for every round.
 
 **Files:**
 
-- Modify: `packages/web/src/RoundPage.tsx`, `src/RoundSubmit.tsx` (`RoundEnd`: the notes read-only,
-  `id="notes"`, with "Edit notes" or "Write a note"), `src/RoundNotes.tsx`, `src/sessions.ts`
-  (`withQuote`), `src/statusHints.tsx` if a hint changes
+- Create: `packages/web/src/RoundColumn.tsx` (`RoundColumn`, `useRoundActions`, `columnKeys`)
+- Modify: `packages/web/src/RoundPage.tsx` (`RoundBody` split out first, in a `refactor` commit),
+  `src/RoundSubmit.tsx` (`RoundEnd`: the notes read-only, `id="notes"`, with "Edit notes" or "Write
+  a note"), `src/RoundNotes.tsx` (`NotesRead`, `NotesSheet`), `src/RoundOutline.tsx`
+  (`useBlankJumps`, `useBlankKeys`, `NextOrSubmit`, `RoundIndex`, R20, R21), `src/sessions.ts`
+  (`withQuote`), `src/ColumnSession.tsx` (`WithSessionColumn` removed)
 - Delete: `src/RoundNav.tsx`
 - Test: `src/__tests__/round-column.test.tsx` (create), `src/__browser__/round-column.test.tsx`
   (create), `src/__tests__/triage.test.tsx`, `src/__tests__/round.test.tsx`,
-  `src/__browser__/round.test.tsx` (the index column's tests move to the outline)
+  `src/__browser__/round.test.tsx` (the index column's tests move to the outline),
+  `src/__tests__/round-outline.test.tsx` (the page's own outline, R16), `round-parts.test.tsx`
+  (Check these before Q1, with Ask); the notes' tests open `?tab=notes` (R22): `notes.test.tsx`,
+  `settled.test.tsx`, `writes.test.tsx`; `__browser__/column-session.test.tsx` finds the column by
+  its name; the browser tests of the notes (`attach`, `fields`, `layout`) open them, and those of a
+  split card (`round.test.tsx`, `round-cards`) fold the column; `blocks.test.tsx` taps Today's pane
 
 **Interfaces:**
 
@@ -651,33 +659,39 @@ order changes for every round.
   whose agent is available, Session; "Ask the agent" and "Ask" write the quote into the page's draft
   with `withQuote` and open Session; on narrow screens they open the session's page with `askAbout`.
   The status line on the phone holds "N/M" (the outline's sheet), "Notes" (the notes' sheet), and
-  Next or Submit. An answered round draws no column.
+  Next or Submit. An answered round draws no column. As built:
+  `RoundColumn({ content, draft, file, nav, notes, onSubmit, sheet })` draws the `DocumentColumn`
+  labelled "The round's column", its tabs, and the phone's status line and sheets;
+  `useRoundActions(file, draft)` gives the asks, the phone's sheet, and "Edit notes", which opens
+  the Notes tab or sheet with its field focused. The round's end is a region "Notes" (R22). `n` and
+  `p` are the page's, whatever the tab (R21); the phone keeps its list of questions under the block
+  (R20).
 
-- [ ] **Step 1: Write the failing tests.** UI tests (`round-column.test.tsx`), on the merge-chats
+- [x] **Step 1: Write the failing tests.** UI tests (`round-column.test.tsx`), on the merge-chats
       fixture with the fake agent: asking about Q2 opens Session with the composer holding the
       spec's quote; typing "why would that cost more?" then asking about Q3 leaves Q3's quote and
       that text; asking about "The light flow stays." quotes it as the spec says; a reload keeps
       Session; Notes: typing "Check the spec page too." shows it at the round's end, marked unsaved,
-      and Submit saves it with the answers; the phone: "0/8" opens the outline in a sheet and a row
-      closes it, "Notes" opens the notes in a sheet, asking opens the session's page with the quote;
-      text typed in the notes, a comment, and the composer stays through a tab switch and a width
-      change across 768 px (Review focus 4); asking while the agent works sends nothing (Review
-      focus 5); no agent: Outline and Notes, no Session, no "Ask"; an answered round: no column; at
-      390 px with `?tab=session` the round shows and the address keeps the tab. In
-      `triage.test.tsx`: the triage's column has Outline and Notes only. Browser tests
+      and Submit saves it with the answers; the phone: "1/8" (Q2 answered A) opens the outline in a
+      sheet and a row closes it, "Notes" opens the notes in a sheet, asking opens the session's page
+      with the quote; text typed in the notes, a comment, and the composer stays through a tab
+      switch and a width change across 768 px (Review focus 4); asking while the agent works sends
+      nothing (Review focus 5); no agent: Outline and Notes, no Session, no "Ask"; an answered
+      round: no column; at 390 px with `?tab=session` the round shows and the address keeps the tab.
+      In `triage.test.tsx`: the triage's column has Outline and Notes only. Browser tests
       (`round-column.test.tsx`): at 1440 px the column is 480 px with Outline open; asking about Q2
       moves no card's left, top, or width, nor does switching tabs (SC-002); folded with `]`, a card
       of 840 px or more splits; `checkAccessibility` and `checkPage` on the round in Mocha and
       Latte, at both sizes (SC-005).
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/round-column.test.tsx`. Expected: FAIL, no tab
       "Session".
-- [ ] **Step 3: Implement.** The notes' field and the draft are held by `RoundPage`, above the
+- [x] **Step 3: Implement.** The notes' field and the draft are held by `RoundPage`, above the
       column, so they survive the column unmounting on the phone. Remove Task 1's Session column and
       `RoundNav.tsx`.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then the round, settled,
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then the round, settled,
       triage, decisions-check, and session tests, UI and both browser projects. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 5: Commit**:
       `git commit -m "feat(questions-page): the round's column of outline, notes, and session"`.
 
 ## Task 9: The stories, the screenshots, the decision's Why, and the mockup's README

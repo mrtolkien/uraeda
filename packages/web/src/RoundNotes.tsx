@@ -1,10 +1,14 @@
 import { Button } from "@astryxdesign/core/Button";
+import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useCallback, useEffect, useRef } from "react";
+import * as stylex from "@stylexjs/stylex";
+import { type ReactNode, useCallback, useEffect, useId, useRef } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
+import { useImageDrop } from "./attach/useImageDrop.ts";
 import { useImageText } from "./attach/useImageText.ts";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -13,10 +17,20 @@ import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
+import { Overlay } from "./layout/Overlay.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Hashes, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
+
+const styles = stylex.create({
+  text: {
+    // The notes as typed, their lines kept.
+    whiteSpace: "pre-wrap",
+  },
+});
 
 /** What the notice says when the notes changed since their unsaved text was typed. */
 export const NOTES_CHANGED = "The notes changed since: saving replaces them.";
@@ -72,10 +86,13 @@ export function useRoundNotes(file: File, target: RoundTarget, hashes: Hashes) {
 export function NotesField({
   notes,
   path,
+  queued,
   takes,
 }: {
   notes: ReturnType<typeof useRoundNotes>;
   path: string;
+  /** Takes the images dropped while the field was not drawn, which it adds once drawn. */
+  queued?: () => Array<globalThis.File> | undefined;
   /** Whether the round's file takes images, as the core says. */
   takes: boolean;
 }) {
@@ -96,6 +113,13 @@ export function NotesField({
   useEffect(() => {
     waitFor(images.settled);
   }, [waitFor, images.settled]);
+  const { addFiles } = images;
+  useEffect(() => {
+    const files = queued?.();
+    if (files?.length) {
+      void addFiles(files);
+    }
+  }, [queued, addFiles]);
   const saveNow = () => {
     if (field.dirty) {
       void commit(field.text);
@@ -112,6 +136,7 @@ export function NotesField({
       )}
       <DropHint hint={images.hint} isLabelled>
         <TextField
+          id={NOTES_FIELD}
           kind="notes"
           label="Anything else"
           onChange={field.change}
@@ -134,4 +159,102 @@ export function NotesField({
       </HStack>
     </VStack>
   );
+}
+
+/** The id of the notes' field, which "Edit notes" focuses once its tab or sheet shows it. */
+export const NOTES_FIELD = "round-notes";
+
+/**
+ * The round's notes at its end, as typed, read-only: marked while unsaved, with "Edit notes", or
+ * "Write a note" while there are none, which `onEdit` opens their field for, in the column's Notes
+ * tab on wide screens and in a sheet on the phone.
+ */
+export function NotesRead({
+  notes,
+  onEdit,
+}: {
+  notes: ReturnType<typeof useRoundNotes>;
+  onEdit: () => void;
+}) {
+  const narrow = isNarrow(useWidthClass());
+  const title = useId();
+  const { field, save } = notes;
+  const written = field.text.trim() !== "";
+  return (
+    <section aria-labelledby={title}>
+      <VStack gap={2}>
+        <Heading id={title} level={2}>
+          Notes
+        </Heading>
+        {written ? (
+          <Paragraph xstyle={styles.text}>{field.text}</Paragraph>
+        ) : (
+          <Paragraph color="secondary">
+            No notes yet. Write one from anywhere: the Notes{" "}
+            {narrow ? "button below" : "tab of the column"}.
+          </Paragraph>
+        )}
+        <HStack align="center" gap={2} wrap="wrap">
+          <Button
+            icon={<Icon icon="uraeda:pencil" />}
+            label={written ? "Edit notes" : "Write a note"}
+            onClick={onEdit}
+            size="sm"
+          />
+          <SaveStatus dirty={field.dirty} state={save.state} />
+        </HStack>
+      </VStack>
+    </section>
+  );
+}
+
+/** On the phone, the notes' field in a sheet over the round, which stays where it was read. */
+export function NotesSheet({
+  children,
+  isOpen,
+  onClose,
+}: {
+  /** The notes' field. */
+  children: ReactNode;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Overlay isOpen={isOpen} label="Notes" onClose={onClose}>
+      {children}
+    </Overlay>
+  );
+}
+
+/**
+ * While the notes' field is not drawn, `shown` false, the images dropped on the round's page with no
+ * field focused still go to the notes: `onOpen` draws the field, which adds them. Kept meanwhile,
+ * they are taken once by the returned function, which `NotesField` takes as `queued`.
+ */
+export function useNotesDrop({
+  onOpen,
+  shown,
+  takes,
+}: {
+  onOpen: () => void;
+  shown: boolean;
+  takes: boolean;
+}) {
+  const queued = useRef<Array<globalThis.File>>(undefined);
+  const none = useRef<HTMLElement>(null);
+  useImageDrop({
+    label: "the notes",
+    onFiles: (files) => {
+      queued.current = files;
+      onOpen();
+    },
+    priority: 1,
+    ref: none,
+    takes: takes && !shown,
+  });
+  return useCallback(() => {
+    const files = queued.current;
+    queued.current = undefined;
+    return files;
+  }, []);
 }

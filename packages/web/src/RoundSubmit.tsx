@@ -14,7 +14,9 @@ import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
 import { jumpTo } from "./roundJump.ts";
-import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx";
+import { NOTES_CHANGED, NotesRead, type useRoundNotes } from "./RoundNotes.tsx";
+import { PART_IDS } from "./roundPartIds.ts";
+import { useScrollMargin } from "./layout/scrollMargin.ts";
 import {
   defaultRoundHome,
   type Hashes,
@@ -152,15 +154,17 @@ function QuestionsLeft({ blank }: { blank: ReadonlyArray<QuestionItem> }) {
 }
 
 /**
- * The end of a round's page: its notes, read-only once submitted; else the notes' field, the
- * questions left, the submit's error, and Submit. `end` holds it all, `submitRow` Submit's buttons,
- * which the bar's Submit scrolls to and focuses.
+ * The end of a round's page: its notes, read-only once submitted; else the notes as typed, with
+ * "Edit notes", which `onEditNotes` opens their field for, the questions left, the submit's error,
+ * and Submit, all under `id="notes"`. `end` holds it all, `submitRow` Submit's buttons, which the
+ * bar's Submit scrolls to and focuses.
  */
 export function RoundEnd({
   blank,
   end,
   file,
   notes,
+  onEditNotes,
   readOnly,
   submitRow,
   submitting,
@@ -170,6 +174,7 @@ export function RoundEnd({
   end: RefObject<HTMLDivElement | null>;
   file: File;
   notes: Notes;
+  onEditNotes: () => void;
   readOnly: boolean;
   submitRow: RefObject<HTMLDivElement | null>;
   /** The page's submit, kept by the page: its refusal stays once the round reads as answered. */
@@ -177,6 +182,7 @@ export function RoundEnd({
   target: RoundTarget;
 }) {
   const { error, retry, submit } = submitting;
+  const margin = useScrollMargin();
   const refused = error?.kind === "hook" && (
     <HookRefusal error={error} onRetry={retry} what="Your answers are saved, not committed." />
   );
@@ -203,8 +209,8 @@ export function RoundEnd({
     );
   }
   return (
-    <VStack gap={3} ref={end}>
-      <NotesField notes={notes} path={file.path} takes={file.takesImages} />
+    <VStack gap={3} id={PART_IDS.notes} ref={end} xstyle={margin}>
+      <NotesRead notes={notes} onEdit={onEditNotes} />
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
       {refused || (error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>)}
       <div ref={submitRow}>

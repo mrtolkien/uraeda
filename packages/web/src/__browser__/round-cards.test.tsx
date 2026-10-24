@@ -101,6 +101,10 @@ describe("question cards on the desktop", () => {
 
   test("a card's title and options are columns of 5 to 6", async () => {
     await show(PAGE, FIRST);
+    // Beside the round's open column, a card is under 840 px and does not split: `]` folds it.
+    await userEvent.click(screen.getByRole("heading", { level: 1 }));
+    await userEvent.keyboard("]");
+    await expect.poll(() => card("Q2").getBoundingClientRect().width).toBeGreaterThan(840);
     await drawn();
 
     const [title, options] = columns(gridOf("Q2")!);
