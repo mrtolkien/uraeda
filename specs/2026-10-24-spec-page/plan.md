@@ -619,7 +619,7 @@ candidates, and the decisions check.
   and Assumptions are `Pane`s with their icons and their part's anchor as id; niche edge cases fold
   under "N niche cases" through the pane's fold; nothing else changes.
 
-- [ ] **Step 1: Split `BuiltParts.tsx`**, unchanged, in a `refactor` commit; `spec-parts.test.tsx`
+- [x] **Step 1: Split `BuiltParts.tsx`**, unchanged, in a `refactor` commit; `spec-parts.test.tsx`
       passes before and after.
 - [ ] **Step 2: Write the failing tests**: regions "Architecture", "Edge cases · N", and "Success
       criteria · N", N the spec-page fixture's counts of rows and criteria, written as numbers in
