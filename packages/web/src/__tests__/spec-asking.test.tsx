@@ -11,11 +11,14 @@ import {
   atRepo,
   atWidth,
   click,
+  type Fake,
+  fakeAgent,
   fixture,
   fixtureRepo,
   git,
   refreshUntil,
   renderPage,
+  type,
 } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
@@ -63,7 +66,7 @@ async function blockOf(phrase: string) {
 }
 
 /** The spec page's feature, its spec waiting for review, drawn with the fake agent or without. */
-async function openSpec(agent = true, repo = specRepo()) {
+async function openSpec(agent: boolean | Fake = true, repo = specRepo()) {
   await renderPage(PAGE, repo, { agent });
   await screen.findByRole("region", { name: BLOCK });
   return repo;
@@ -131,6 +134,73 @@ test("asking with the column folded unfolds it", async () => {
   expect(openTab()).toBe("Session");
   const box = await columnComposer();
   await waitFor(() => expect(box.textContent).toMatch(/^About specs\/decisions\/task-storage.md/));
+});
+
+/** The quote of the stored-in-IndexedDB rule, as the first test reads it. */
+const STORED =
+  "About specs/decisions/task-storage.md, lines 15–16:\n" +
+  "> Data MUST be stored in IndexedDB, only through src/store/: components never reach the" +
+  " database themselves.";
+/** The quote of the removed rule, as the removed rule's test reads it. */
+const REMOVED =
+  "About the removed rule of specs/decisions/task-storage.md, lines 16–17:\n" +
+  "> Components MUST NOT call IndexedDB or the idb library directly.";
+
+/** US4 key 3, and the quote's place in the draft, as the questions page's */
+test("asking again replaces the quote and keeps the text", async () => {
+  await openSpec();
+  await askAboutRule(/^Data MUST be stored in IndexedDB/);
+  const box = await columnComposer();
+  await waitFor(() => expect(box.textContent).toBe(`${STORED}\n\n`));
+  await type(box, `${STORED}\n\nwhy only there?`);
+
+  await askAboutRule(/^Components MUST NOT call IndexedDB/);
+
+  await waitFor(() => expect(box.textContent).toBe(`${REMOVED}\n\nwhy only there?`));
+});
+
+/** The high edge case "the tab switches or the width class changes", for the composer */
+test("the composer's text stays through tabs and widths", async () => {
+  await openSpec();
+  await askAboutRule(/^Data MUST be stored in IndexedDB/);
+  await type(await columnComposer(), `${STORED}\n\nwhy only there?`);
+
+  await click(within(tabList()).getByRole("tab", { name: "Contents" }));
+  await click(within(tabList()).getByRole("tab", { name: "Session" }));
+  expect((await columnComposer()).textContent).toBe(`${STORED}\n\nwhy only there?`);
+
+  // Across 768 px and back: the column goes, and comes back.
+  await act(async () => atWidth(402));
+  expect(screen.queryByRole("tablist", { name: "The spec's column" })).toBeNull();
+  await act(async () => atWidth(1440));
+
+  expect(openTab()).toBe("Session");
+  expect((await columnComposer()).textContent).toBe(`${STORED}\n\nwhy only there?`);
+});
+
+/** Asking writes the composer, and never sends, even while the agent works. */
+test("asking while the agent works sends nothing", async () => {
+  const fake = await fakeAgent();
+  const repo = specRepo();
+  const session = await fake.sessions.featureSession(repo, SPEC_FEATURE);
+  fake.sessions.cache.addTurn({
+    allowed: null,
+    kind: "workflow",
+    sessionId: session.id,
+    state: "running",
+    step: "spec",
+    trigger: "manual",
+  });
+  await openSpec(fake, repo);
+  await click(within(tabList()).getByRole("tab", { name: "Session" }));
+  const panel = screen.getByRole("tabpanel", { name: "Session" });
+  await waitFor(() => expect(within(panel).getByRole("button", { name: "Stop" })).toBeTruthy());
+
+  await askAboutRule(/^Data MUST be stored in IndexedDB/);
+
+  const box = await columnComposer();
+  await waitFor(() => expect(box.textContent).toBe(`${STORED}\n\n`));
+  expect(fake.adapter.sent).toHaveLength(0);
 });
 
 /** Review focus 5 */
@@ -225,8 +295,9 @@ test("the plan page asks about a step the same way", async () => {
 
   expect(openTab()).toBe("Session");
   const box = await columnComposer();
+  const path = PLAN.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
   await waitFor(() =>
-    expect(box.textContent).toMatch(new RegExp(`^About ${PLAN}, lines? ${at + 1}`)),
+    expect(box.textContent).toMatch(new RegExp(`^About ${path}, lines? ${at + 1}\\b`)),
   );
   expect(box.textContent).toContain(`> ${lines[at]}`);
 });
