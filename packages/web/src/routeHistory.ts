@@ -120,6 +120,17 @@ function openPage(path: string, state?: { created?: boolean; from?: string }) {
 }
 
 /**
+ * Goes to an anchor of the page, as a link to it does, in a new history entry: the page opens what
+ * the anchor names, like a fold, as for any link to it. The page stays where it is, its position
+ * saved for Back; the caller brings the anchor into view.
+ */
+export function openAnchor(anchor: string) {
+  saveScroll();
+  window.history.pushState({ id: newId() }, "", `#${anchor}`);
+  window.dispatchEvent(new Event(CHANGE));
+}
+
+/**
  * Shows another page in place of the current one, in the same history entry, like a task view
  * whose line was renamed: Back does not return to the address that no longer exists.
  */

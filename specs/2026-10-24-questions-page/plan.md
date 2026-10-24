@@ -234,7 +234,7 @@ tests run the CLI's check over files.
 | US1 more 4 (follow-up on the phone)                   | 5    | `round-cards.test.tsx` "a follow-up on the phone has a top border, no side line"                                       |
 | US1 more 5 (picked option)                            | 5    | `question-card.test.tsx` "a picked option says so"; browser border width in `round-cards.test.tsx`                     |
 | US2 key 1, 2 (sticky header at every width)           | 5    | `round-cards.test.tsx` "Q4's header stays at the top, then leaves with its card", desktop, semi, phone                 |
-| US2 key 3, more 1 (outline rows, marked row)          | 7    | `__tests__/round-outline.test.tsx` "the outline lists the whole round"; browser "the part at the top is marked"        |
+| US2 key 3, more 1 (outline rows, marked row)          | 7, 8 | `__tests__/round-outline.test.tsx` "the outline lists the whole round"; Task 8 browser "the part at the top is marked" |
 | US2 more 2 (`n` to Q2.A)                              | 7    | `round-outline.test.tsx` "n goes to the next blank question, follow-ups included"                                      |
 | US2 more 3 (phone outline sheet)                      | 8    | `__tests__/round-column.test.tsx` "on the phone, 0/8 opens the outline in a sheet"                                     |
 | US3 key 1 (column 480 px, three tabs)                 | 8    | `__browser__/round-column.test.tsx` "at 1440 px the column is 480 px, Outline open"                                    |
@@ -592,9 +592,11 @@ order changes for every round.
 
 **Files:**
 
-- Create: `packages/web/src/RoundOutline.tsx`, `src/roundJump.ts` (`jumpTo`, `questionAtTop`,
-  `endJump`, moved from `RoundNav.tsx`, which imports them until Task 8 removes it)
-- Modify: `src/RoundNav.tsx`, `src/RoundSubmit.tsx` (imports `jumpTo` from `roundJump.ts`)
+- Create: `packages/web/src/RoundOutline.tsx`, `src/roundJump.ts` (`NavQuestion`, `jumpTo`,
+  `questionAtTop`, `questionJumpedTo`, `useQuestionAtTop`, `endJump`, and `afterSheetCloses`, moved
+  from `RoundNav.tsx`, which imports them until Task 8 removes it)
+- Modify: `src/RoundNav.tsx`, `src/RoundSubmit.tsx`, `src/useRoundPosition.ts`,
+  `src/spec/SpecContents.tsx` (import from `roundJump.ts`), `src/routeHistory.ts` (`openAnchor`)
 - Test: `src/__tests__/round-outline.test.tsx` (create)
 
 **Interfaces:**
@@ -606,20 +608,25 @@ order changes for every round.
   `RoundOutline({ round: RoundItems; document: Document; questions: ReadonlyArray<NavQuestion>; onSubmit: () => void; isActive: boolean })`:
   the count "N of M answered", Next or Submit, a bar, then the rows of the
   [global constraints](#global-constraints), questions with ✓ or ○ and follow-ups under their
-  parent, a row for each part the round has; the part at the top marked; a click jumps there,
-  opening Today when it is the target; `n` and `p` as today while `isActive`. `OutlineSheet` for the
-  phone: the same rows in a sheet, a tap closing it then jumping.
+  parent, a row for each part the round has (a triage's free context: "Context", id `context`); the
+  part at the top marked; a click jumps there, opening Today through the address, `#today`, pushed
+  by `openAnchor(anchor: string)` as a link does (R17); `n` and `p` as today while `isActive`.
+  `OutlineSheet({ round; document; questions; isOpen: boolean; onClose: () => void })` for the
+  phone: the count and the same rows in a sheet, a tap closing it then jumping.
 
-- [ ] **Step 1: Write the failing tests.** `round-outline.test.tsx` on the merge-chats fixture: the
+- [x] **Step 1: Write the failing tests.** `round-outline.test.tsx` on the merge-chats fixture: the
       rows read, in order, "Verdict and summary", "Goal", "Today", "Scope", "Sources", "Check these
       · 2", "Q1" to "Q7" with "Q2.A" after "Q2", "Behaviour · 3", "Under the hood · 3", "Notes and
       submit" (US2 key 3); with Q1 and Q2 answered A, `n` from Q1 goes to Q2.A (US2 more 2); no
-      "Check these" row without points. Break: follow-ups listed after every question.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no module `RoundOutline`.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `round-outline.test.tsx`,
+      "Check these" row without points; a tap on Today sets `#today`; the sheet closes on a tap on
+      Q3, then focuses it. The outline is drawn beside the page on the phone until Task 8 (R16); the
+      browser test "the part at the top is marked" is Task 8's. Break: follow-ups listed after every
+      question.
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no module `RoundOutline`.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `round-outline.test.tsx`,
       `round.test.tsx`. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(questions-page): the round's outline"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(questions-page): the round's outline"`.
 
 ## Task 8: The page together: the column, the notes, the session, and asking
 

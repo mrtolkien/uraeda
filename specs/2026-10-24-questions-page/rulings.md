@@ -199,3 +199,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   tasks.
 - **If wrong**: Task 8 rewrites them again with the page.
 - **Where**: Task 6.
+
+## R16: The outline's tests draw it beside the page until Task 8
+
+- **Decision**: `round-outline.test.tsx` renders `RoundOutline` and `OutlineSheet` next to the round
+  page, on the phone, from the round the core reads in the same repository; the page draws the parts
+  they jump to. The browser test "the part at the top is marked" moves to Task 8, with the outline
+  in the page's column.
+- **Rationale**: Task 7 runs beside Tasks 4 to 6 and must not edit `RoundPage.tsx`, which draws
+  `RoundNav` until Task 8. On the phone the page's own navigation has no `n` and `p`, so only the
+  outline answers them, before and after Task 8.
+- **Alternatives considered**: drawing the outline in `RoundPage.tsx` for now, a file Task 8 owns; a
+  test of the rows from hand-made items, which the core would no longer check.
+- **If wrong**: Task 8 renders the page's own outline in these tests and drops the extra root.
+- **Where**: Task 7.
+
+## R17: Today opens through the address, and the outline is Astryx's List
+
+- **Decision**: the Today row pushes `#today` as a link to it does (`openAnchor` in
+  `routeHistory.ts`, a new history entry with its own id), so the page opens Today as it does for
+  any link to it, then jumps there. The rows are Astryx `List` rows, as the index was, not Astryx's
+  `Outline`. A triage's free context part has the row "Context", jumping to the id `context`.
+- **Rationale**: the round's parts are drawn by Task 6, which unfolds Today from the address; the
+  outline reaches it only through that contract. Astryx's `Outline` takes plain string labels and
+  pushes a history entry without state on every click, which the page's Back and reading place read.
+- **Alternatives considered**: the outline opening Today through a shared state with the page, which
+  Task 6's files would have to export; setting `location.hash`, whose entries share no id, so a
+  second tap after a reload would be taken for the same visit.
+- **If wrong**: give Today an open state the page holds, and let the outline set it.
+- **Where**: Task 7.
