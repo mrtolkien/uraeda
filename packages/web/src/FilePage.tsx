@@ -46,11 +46,8 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   if (file.kind === "plan") {
     return <PlanPage file={file} />;
   }
-  if (file.kind === "data-model") {
-    return <DataModelPage file={file} />;
-  }
-  // A round and a document draw the file as it is now, with the stories it embeds: a story gone
-  // from an answered round is a variant removed after its answer.
+  // A round, a data model, and a document draw the file as it is now, with the stories and HTML
+  // mockups it embeds: a story gone from an answered round is a variant removed after its answer.
   const round = file.kind === "clarifications";
   return (
     <StoriesProvider
@@ -59,7 +56,13 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
       removed={round && file.status === "answered"}
       stories={file.current.stories}
     >
-      {round ? <RoundPage file={file} target={{ folder }} /> : <DocumentPage file={file} />}
+      {round ? (
+        <RoundPage file={file} target={{ folder }} />
+      ) : file.kind === "data-model" ? (
+        <DataModelPage file={file} />
+      ) : (
+        <DocumentPage file={file} />
+      )}
     </StoriesProvider>
   );
 }

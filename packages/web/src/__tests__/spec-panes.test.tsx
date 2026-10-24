@@ -123,6 +123,22 @@ test("a row marked New badges its Change cell only", async () => {
   expect(label.querySelectorAll(".astryx-badge")).toHaveLength(1);
 });
 
+/** A data model alone draws the HTML mockups its paragraphs embed live, as a document does. */
+test("the data model alone draws an HTML mockup live", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [`specs/${SPEC_FEATURE}/data-model.md`]:
+      "# Data model: X\n\n## Label\n\n[Title with a repeat phrase](mockups/title.html)\n",
+  });
+  await renderPage(`/f/${SPEC_FEATURE}/data-model.md`, repo);
+
+  const label = await region("Label");
+  expect(
+    await within(label).findByRole("region", { name: "live · Title with a repeat phrase" }),
+  ).toBeTruthy();
+});
+
 /** A link to an entity of the data model alone, `data-model.md#repeat-rule`, lands on its pane. */
 test("the data model alone scrolls to the section its hash names", async () => {
   const scrolled = vi.fn();
