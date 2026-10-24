@@ -8,6 +8,7 @@ import {
   borderVars,
   colorVars,
   fontWeightVars,
+  sizeVars,
   spacingVars,
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
@@ -36,11 +37,21 @@ const styles = stylex.create({
   attentionTitle: { color: colorVars["--color-text-orange"] },
   example: { borderColor: colorVars["--color-border-teal"] },
   exampleTitle: { color: colorVars["--color-text-teal"] },
-  // A folding pane's title, a button drawn as the title it stands for.
+  // A folding pane's title, a button drawn as the title it stands for: as tall as its text, so its
+  // background hides no more than the title's around the border, and a target as tall as a control,
+  // the theme's 44 px on a touch screen, centred on it.
   foldTitle: {
+    "::before": {
+      content: '""',
+      insetBlock: `calc(50% - ${sizeVars["--size-element-sm"]} / 2)`,
+      insetInline: 0,
+      position: "absolute",
+    },
     color: "inherit",
     fontSize: "inherit",
     fontWeight: "inherit",
+    height: "auto",
+    paddingBlock: 0,
     paddingInline: 0,
   },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
@@ -170,8 +181,8 @@ export function Pane({
             variant="ghost"
             xstyle={styles.foldTitle}
           >
-            {name}
             <Icon icon={fold.isOpen ? "chevronDown" : "chevronRight"} size="sm" />
+            {name}
           </Button>
         ) : (
           name

@@ -45,3 +45,12 @@ test("a folded pane's line opens it", async () => {
   expect(pane.getByText("Every human step happens in a text editor.")).toBeTruthy();
   expect(pane.queryByRole("button", { name: "3 choices in the code only" })).toBeNull();
 });
+
+test("a folding pane's chevron comes before its title, as the app's other folds draw it", () => {
+  render(<Folding />);
+
+  const title = screen.getByRole("button", { name: "Today" });
+  const chevron = title.querySelector("svg")!;
+  const name = within(title).getByText("Today");
+  expect(chevron.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
