@@ -391,3 +391,12 @@ fn approved_revision_has_none() {
 
     assert_eq!(since(&repo), None);
 }
+
+/// The revision reviewed is the one the reviewed spec reads, not the one before the current.
+#[test]
+fn revision_read_from_reviewed_spec() {
+    let text = revision_2(&[]).replace("revision: 2", "revision: 3");
+    let repo = reviewed("changes-requested", None, &text);
+
+    assert_eq!(since(&repo).map(|since| since.revision), Some(1));
+}

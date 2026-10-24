@@ -35,7 +35,8 @@ pub(super) fn while_waiting(
 
 /// The change of the spec at `path` since `review`, the review that requested the revision of
 /// `current`, the spec as read: from the spec at the review's commit to `shown`. Not found when
-/// the commit does not resolve, or holds no spec.
+/// the commit does not resolve, or holds no spec. The revision is the one the reviewed spec reads,
+/// else the one before `current`'s.
 fn since_review(
     git: &Git,
     path: &str,
@@ -47,15 +48,17 @@ fn since_review(
         .resolve(&review.commit)
         .and_then(|commit| git.read_file(commit, path).ok().flatten())
         .and_then(|bytes| String::from_utf8(bytes).ok());
-    // A review that requests changes is answered by the next revision.
-    let revision = revision_of(current).unwrap_or_default().saturating_sub(1);
     let Some(reviewed) = reviewed else {
+        // A review that requests changes is most often answered by the next revision.
         return SinceReview {
-            revision,
+            revision: revision_of(current).unwrap_or_default().saturating_sub(1),
             found: false,
             parts: Vec::new(),
         };
     };
+    let revision = revision_of(&reviewed)
+        .or_else(|| revision_of(current).map(|revision| revision.saturating_sub(1)))
+        .unwrap_or_default();
     let (old, new) = (spec_version(&reviewed), spec_version(shown));
     SinceReview {
         revision,
