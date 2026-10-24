@@ -77,11 +77,13 @@ const styles = stylex.create({
   },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
   // width: no side or bottom border, no inset, and no background of its own, so it shows no band
-  // over the page.
+  // over the page. Its widths are the pane's own properties, which merge in the props: a longhand
+  // over the pane's shorthand would win or lose by the order of the stylesheet's rules.
   openOnPhone: {
     backgroundColor: "transparent",
     borderBlockEndWidth: 0,
-    borderInlineWidth: 0,
+    borderInlineEndWidth: 0,
+    borderInlineStartWidth: 0,
     paddingInline: 0,
   },
   // Its title hides the border behind it with the page's surface, which a round on the phone is
@@ -97,7 +99,11 @@ const styles = stylex.create({
     backgroundColor: colorVars["--color-background-body"],
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
+    // Each side's width, which `openOnPhone` sets to none but the top.
+    borderBlockEndWidth: borderVars["--border-width"],
+    borderBlockStartWidth: borderVars["--border-width"],
+    borderInlineEndWidth: borderVars["--border-width"],
+    borderInlineStartWidth: borderVars["--border-width"],
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
     minWidth: 0,
@@ -124,7 +130,9 @@ const styles = stylex.create({
     marginBlockStart: `calc(-1 * (${borderVars["--border-width"]} / 2 + 0.5lh))`,
     marginInlineStart: `calc(${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]})`,
     maxWidth: `calc(100% - 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]}))`,
-    paddingInline: spacingVars["--spacing-2"],
+    // Each side's, which `openOnPhoneTitle` sets at the start.
+    paddingInlineEnd: spacingVars["--spacing-2"],
+    paddingInlineStart: spacingVars["--spacing-2"],
     position: "relative",
     width: "fit-content",
   },
