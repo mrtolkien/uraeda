@@ -523,7 +523,7 @@ candidates, and the decisions check.
 
 - [x] **Step 1: Move the rows and folds to `spec/ledger/`**, unchanged, in a `refactor` commit:
       `spec-decisions.test.tsx` passes before and after.
-- [ ] **Step 2: Write the failing tests.** `ledger.test.tsx`, on the spec-page fixture: in the
+- [x] **Step 2: Write the failing tests.** `ledger.test.tsx`, on the spec-page fixture: in the
       region "Task storage", the row holding "Data MUST be stored in IndexedDB" is named "Changed"
       and its insertion reads "only"; "An upgrade that cannot read a saved value MUST clear it" is
       "Added"; "Components MUST NOT call IndexedDB" is "Removed", inside a deletion; "Why,
@@ -534,15 +534,15 @@ candidates, and the decisions check.
       and phone: the panes' border colours differ by kind, a removed word is struck
       (`text-decoration-line` computed on the deletion, the one style check SC-001 needs), and
       `checkPage` passes at 390 px (SC-006). Break: the sign drawn only as a colour.
-- [ ] **Step 3: Run them to check they fail**:
+- [x] **Step 3: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/ledger.test.tsx`. Expected: FAIL, no row named
       "Changed".
-- [ ] **Step 4: Implement.** No Astryx `Collapsible` around folded rows: the pane's or the ledger's
+- [x] **Step 4: Implement.** No Astryx `Collapsible` around folded rows: the pane's or the ledger's
       fold mounts nothing folded.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, `ledger.test.tsx` in both
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, `ledger.test.tsx` in both
       browser projects, and the UI tests of the decisions pages
       (`nix develop -c vp test src/__tests__/decision`). Expected: PASS.
-- [ ] **Step 6: Commit**: `git commit -m "feat(spec-page): a decision's change as a ledger"`.
+- [x] **Step 6: Commit**: `git commit -m "feat(spec-page): a decision's change as a ledger"`.
 
 ## Task 5: The live window, for stories and HTML mockups
 

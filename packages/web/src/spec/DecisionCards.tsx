@@ -1,10 +1,11 @@
-// The spec's decisions, after what you approve: a card per decision the spec lists, in its order,
+// The spec's decisions, after what you approve: a pane per decision the spec lists, in its order,
 // then one per decision the branch changes without listing it, marked so, then the section's other
-// blocks, like the "Relied on" table.
+// blocks, the "Relied on" table in a pane of its own, alone when no decision is listed or changed.
 import { fontWeightVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { Block, DecisionChange, Span } from "uraeda-binding";
+import type { Block, DecisionChange, Document, Span } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { branchDecisionPath, useRepoPath } from "../routes.tsx";
 import { type Selection, Selectable } from "../Selection.tsx";
@@ -60,6 +61,35 @@ function Note({ block, selection }: { block: Block; selection: Selection | undef
         <Spans spans={noteOf(block.spans)} />
       </Paragraph>
     </Selectable>
+  );
+}
+
+/**
+ * The section's other blocks: with a table, in a pane "Relied on", counting its rows; as they are
+ * otherwise.
+ */
+function Rest({
+  document,
+  ids,
+  selection,
+}: {
+  document: Document;
+  ids: ReadonlyArray<number>;
+  selection: Selection | undefined;
+}) {
+  if (ids.length === 0) {
+    return null;
+  }
+  const blocks = <Blocks document={document} ids={ids} selection={selection} />;
+  const rows = document.blocks.filter(
+    (block) => block.kind === "row" && !block.header && ids.includes(block.parent ?? -1),
+  ).length;
+  return rows === 0 ? (
+    blocks
+  ) : (
+    <Pane count={rows} level={3} title="Relied on">
+      {blocks}
+    </Pane>
   );
 }
 
@@ -120,7 +150,7 @@ export function DecisionCards({
           />
         ))}
       <UnreadItems document={document} ids={unread} selection={selection} />
-      {rest.length > 0 && <Blocks document={document} ids={rest} selection={selection} />}
+      <Rest document={document} ids={rest} selection={selection} />
     </>
   );
 }

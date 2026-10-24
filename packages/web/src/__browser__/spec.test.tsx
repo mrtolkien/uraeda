@@ -2,7 +2,7 @@
 // card, its title and breadcrumbs sticking under the top bar while it scrolls (US5 2, 3).
 import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
-import { backdrop, contrast, over, rgb, tinted } from "./colours.ts";
+import { backdrop, contrast, over, rgb } from "./colours.ts";
 import { atSize, checkLayout, colorScheme, commands, drawn, show } from "./helpers.tsx";
 
 const FOLDER = "2026-10-17-spec-page";
@@ -72,8 +72,11 @@ describe("on the phone", () => {
     const inset = 14.4;
     for (const name of ["What you approve", "Task storage", "Complete a repeating task"]) {
       const part = screen.getByRole("region", { name });
-      const title = within(part).getByRole("heading", { name });
-      expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
+      // A decision is a pane, its title in its top border (R6): the parts' titles start at the inset.
+      if (name !== "Task storage") {
+        const title = within(part).getByRole("heading", { name });
+        expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
+      }
       // The part takes the page's width, inside its inset.
       const box = part.getBoundingClientRect();
       expect(box.left, name).toBeCloseTo(inset, 0);
@@ -154,7 +157,10 @@ describe("on a wide screen", () => {
     }
   });
 
-  /** Review comment C1 of the spec, and US2 1: colours by strength, no side bar, nothing struck. */
+  /**
+   * Review comment C1 of the spec, and US2 1: colours by strength, no side bar, and only removed
+   * words struck, as the spec page's ledger strikes them (R6).
+   */
   test("the strength icon takes its strength's colour, and the card has no side bar", async () => {
     await commands.addSpecFeature();
     await commands.commitOnBranch(FOLDER, { "specs/decisions/due-dates.md": DUE_DATES });
@@ -191,10 +197,13 @@ describe("on a wide screen", () => {
     // The neutral is grey.
     expect(Math.max(...may!) - Math.min(...may!)).toBeLessThan(0.15);
 
+    const deletions = within(card).queryAllByRole("deletion");
     for (const element of [card, ...card.querySelectorAll("*")]) {
       const style = getComputedStyle(element);
       const name = element.textContent?.slice(0, 60);
-      expect(style.textDecorationLine, name).not.toContain("line-through");
+      if (style.textDecorationLine.includes("line-through")) {
+        expect(deletions.some((deletion) => deletion.contains(element))).toBe(true);
+      }
       // A bar is a border on one side alone: a card's own border goes all around.
       const start = Number.parseFloat(style.borderLeftWidth);
       const visible = start > 0 && rgb(style.borderLeftColor).length === 3;
@@ -208,8 +217,8 @@ describe("on a wide screen", () => {
 
 /**
  * The non-text contrast (WCAG 1.4.11) axe does not check: each strength's icon over what is behind
- * it, and the edge of a removed part's red tint and of the selection over the card around them,
- * each at least 3:1.
+ * it, and the edge of the selection over the card around it, each at least 3:1. A removed part's
+ * tint is no edge of its own: its sign and its strike tell it (R6).
  */
 function checkNonTextContrast() {
   const main = screen.getByRole("main");
@@ -222,22 +231,12 @@ function checkNonTextContrast() {
     const name = icon.getAttribute("aria-label");
     expect(contrast(colour, backdrop(icon)), `${name} icon`).toBeGreaterThanOrEqual(3);
   }
-  // A part removed whole, its words not marked one by one: the box around them that has a tint.
-  const words = within(main)
-    .getAllByRole("deletion")
-    .find((element) => !tinted(element))!;
-  let tint: Element = words;
-  while (!tinted(tint) && tint.parentElement) {
-    tint = tint.parentElement;
-  }
   const selected = within(main).getByRole("button", { pressed: true }).parentElement!;
-  for (const [name, box] of Object.entries({ removed: tint, selection: selected })) {
-    const style = getComputedStyle(box);
-    const around = backdrop(box.parentElement);
-    const edge = Number.parseFloat(style.borderInlineStartWidth) > 0;
-    const colour = over(edge ? style.borderInlineStartColor : style.backgroundColor, around);
-    expect(contrast(colour, around), name).toBeGreaterThanOrEqual(3);
-  }
+  const style = getComputedStyle(selected);
+  const around = backdrop(selected.parentElement);
+  const edge = Number.parseFloat(style.borderInlineStartWidth) > 0;
+  const colour = over(edge ? style.borderInlineStartColor : style.backgroundColor, around);
+  expect(contrast(colour, around), "selection").toBeGreaterThanOrEqual(3);
 }
 
 /** Whether an element shows at the top of the window, below the phone's top bar. */

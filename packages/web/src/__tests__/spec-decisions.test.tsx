@@ -1,7 +1,8 @@
-// US2 of the specs redesign: each decision the branch changes is a card after what you approve,
+// US2 of the specs redesign: each decision the branch changes is a pane after what you approve,
 // its change marked in place from the core's comparison, each rule with its strength's icon, and
-// each part taking a comment of its own. The colours, the measure, and nothing struck are checked
-// in the browser, in `__browser__/spec.test.tsx`.
+// each part taking a comment of its own. The spec page's ledger (R6) draws the rows' signs and
+// folds, checked in `ledger.test.tsx`; the colours and the measure in the browser, in
+// `__browser__/spec.test.tsx` and `__browser__/ledger.test.tsx`.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -26,31 +27,37 @@ async function click(element: HTMLElement) {
   });
 }
 
-/** A decision's card, a region named by its title, once drawn. */
+/** A decision's pane, a region named by its title, once drawn. */
 const card = (name: string) => screen.findByRole("region", { name });
 
 /**
- * The text of the `n`th part of a card's section, `Rules` by default, from 1: the element its
- * toggle, the button that selects it, is named by.
+ * The parts of a card's section, `Rules` by default, in the ledger's order: the elements their
+ * toggles, the buttons that select them, are named by.
  */
-function partOf(scope: HTMLElement, n: number, section = "Rules") {
+function partsOf(scope: HTMLElement, section = "Rules") {
   const group = within(scope).getByRole("group", { name: section });
-  const toggle = within(group).getAllByRole("button", { pressed: false })[n - 1];
-  expect(toggle, `part ${n} of ${section}`).toBeTruthy();
-  return document.getElementById(toggle!.getAttribute("aria-labelledby") ?? "")!;
+  return within(group)
+    .getAllByRole("button", { pressed: false })
+    .map((toggle) => document.getElementById(toggle.getAttribute("aria-labelledby") ?? "")!);
 }
+
+/** The part of a card's `Rules` whose words match `words`. */
+function partOf(scope: HTMLElement, words: RegExp) {
+  const part = partsOf(scope).find((found) => words.test(found.textContent ?? ""));
+  expect(part, String(words)).toBeTruthy();
+  return part!;
+}
+
+/** The rule the branch rewords to be tested on data saved by every earlier version. */
+const UPGRADE = /A change to stored data MUST come with a versioned upgrade/;
+/** The rule the branch adds. */
+const CORRUPTED = /An upgrade that cannot read a saved value MUST/;
 
 const texts = (elements: ReadonlyArray<HTMLElement>) => elements.map((e) => e.textContent);
 
 /** The words a part marks added, then those it marks removed. */
 const added = (part: HTMLElement) => texts(within(part).queryAllByRole("insertion"));
 const removed = (part: HTMLElement) => texts(within(part).queryAllByRole("deletion"));
-
-/** The elements of a part drawn struck through. */
-const struck = (part: HTMLElement) =>
-  [part, ...part.querySelectorAll<HTMLElement>("*")].filter((element) =>
-    getComputedStyle(element).textDecorationLine.includes("line-through"),
-  );
 
 /** The review file, as the comment form writes it, in the worktree it creates for the branch. */
 const review = (repo: string) =>
@@ -65,37 +72,34 @@ function taskStorage(repo: string, text: string) {
 const MAIN_TASK_STORAGE = () => readFileSync(fixture(`spec-page/main/${TASK_STORAGE}`), "utf8");
 
 /** US2 1 */
-test("a reworded rule marks its words in place, unstruck", async () => {
+test("a reworded rule marks its words in place", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
   const storage = await card("Task storage");
-  const rule = partOf(storage, 2);
+  const rule = partOf(storage, UPGRADE);
   expect(rule.textContent).toContain("tested on data saved by");
   expect(added(rule)).toEqual(["every earlier"]);
   // The rule's words, then its check's, on its muted line.
   expect(removed(rule)).toEqual(["the previous", "review, and by"]);
-  expect(struck(rule)).toEqual([]);
   expect(within(storage).getAllByText("Changed").length).toBeGreaterThan(0);
 });
 
-/** US2 2 */
-test("a rule merged away shows whole on a red tint behind 1 removed", async () => {
+/** US2 2 of the spec page: the rule shows among the changed ones, unfolded, removed whole. */
+test("a rule merged away shows whole, among the changed rules", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
   const storage = await card("Task storage");
   const merged = "Components MUST NOT call IndexedDB or the idb library directly.";
-  const fold = within(storage).getByRole("button", { name: "1 removed" });
-  expect(fold.getAttribute("aria-expanded")).toBe("false");
-  await click(fold);
-
-  expect(fold.getAttribute("aria-expanded")).toBe("true");
-  // Removed whole: one run, read as removed, and not struck.
-  expect(removed(storage)).toContain(merged);
-  expect(struck(within(storage).getByText(merged))).toEqual([]);
+  expect(within(storage).queryByRole("button", { name: /removed$/ })).toBeNull();
+  // Removed whole: one run, read as removed.
+  expect(removed(partOf(storage, /^−Components MUST NOT/))).toEqual([
+    merged,
+    "Checked by ESLint's no-restricted-imports and no-restricted-globals in src/components/.",
+  ]);
 });
 
 /** US2 3 */
@@ -104,7 +108,7 @@ test("a comment on a decision's rule is saved with its decision and lines", asyn
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  await click(partOf(await card("Task storage"), 3));
+  await click(partOf(await card("Task storage"), CORRUPTED));
   expect(screen.getByText('Decision task-storage, lines 19–20, under "Rules"')).toBeTruthy();
   const field = await screen.findByLabelText("Comment text");
   await act(async () => {
@@ -131,7 +135,6 @@ test("a comment on a removed rule is saved with the default branch's lines", asy
   await renderPage(PAGE, repo);
 
   const storage = await card("Task storage");
-  await click(within(storage).getByRole("button", { name: "1 removed" }));
   await click(within(storage).getByText(/^Components MUST NOT call IndexedDB/));
   expect(
     screen.getByText('Decision task-storage, lines 16–17 removed, under "Rules"'),
@@ -192,11 +195,12 @@ test("each rule shows its strength's icon, named for screen readers", async () =
   await renderPage(PAGE, repo);
 
   const dates = await card("Due dates");
-  // The core's strengths: the last rule names none, and draws no icon.
+  // The core's strengths: the last rule names none, and draws no icon. The rows' signs aside.
   expect(
     within(within(dates).getByRole("group", { name: "Rules" }))
       .getAllByRole("img")
-      .map((icon) => icon.getAttribute("aria-label")),
+      .map((icon) => icon.getAttribute("aria-label"))
+      .filter((name) => !/^(Added|Changed|Removed)$/.test(name ?? "")),
   ).toEqual(["Must", "Should", "Must not", "May"]);
 });
 
@@ -227,11 +231,11 @@ test("an unlisted change shows, marked Not listed in the spec", async () => {
   const dates = await card("Due dates");
   expect(within(dates).getAllByText("Changed").length).toBeGreaterThan(0);
   expect(within(dates).getByText("Not listed in the spec")).toBeTruthy();
-  expect(added(partOf(dates, 2))).toEqual(["src/lib/dates.ts or date-fns."]);
+  expect(added(partOf(dates, /^~Date arithmetic/))).toEqual(["src/lib/dates.ts or date-fns."]);
 });
 
 /** The edge case "A decision the branch deletes". */
-test("a deleted decision is a Removed card without a link", async () => {
+test("a deleted decision is a Removed pane without a link", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
@@ -239,15 +243,15 @@ test("a deleted decision is a Removed card without a link", async () => {
   const history = await card("Task history");
   expect(within(history).getByText("Removed")).toBeTruthy();
   expect(within(history).queryAllByRole("link")).toEqual([]);
-  // Its old text, whole and readable, not folded away.
-  const rule = within(history).getByText(/^Completing a task MUST keep it/);
-  expect(rule.closest("[aria-expanded='false']")).toBeNull();
-  expect(struck(rule)).toEqual([]);
-  // A changed decision's title opens its page on the branch.
+  // Its old rules, whole, not folded away.
+  expect(within(history).getByText(/^Completing a task MUST keep it/)).toBeTruthy();
+  // A changed decision's pane links to its page on the branch.
   const storage = await card("Task storage");
-  expect(within(storage).getByRole("link", { name: "Task storage" }).getAttribute("href")).toBe(
-    atRepo(`/f/${SPEC_FEATURE}/decisions/task-storage`),
-  );
+  expect(
+    within(storage)
+      .getByRole("link", { name: "The whole decision, on its page" })
+      .getAttribute("href"),
+  ).toBe(atRepo(`/f/${SPEC_FEATURE}/decisions/task-storage`));
 });
 
 /** R88: the item's file name, in parentheses after its bold lead, is the lead's too. */
@@ -303,7 +307,7 @@ test("a decision's part selected leaves the spec's blocks on the same lines unse
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const rule = partOf(await card("Task storage"), 3);
+  const rule = partOf(await card("Task storage"), CORRUPTED);
   await click(rule);
   expect(screen.getByText('Decision task-storage, lines 19–20, under "Rules"')).toBeTruthy();
   expect(texts(pressedInSpec())).toEqual([]);
@@ -323,7 +327,7 @@ test("a decision's part selected opens no fold of the spec on the same lines", a
   );
   await renderPage(PAGE, repo);
 
-  await click(partOf(await card("Task storage"), 3));
+  await click(partOf(await card("Task storage"), CORRUPTED));
   expect(screen.getByText('Decision task-storage, lines 65–66, under "Rules"')).toBeTruthy();
   const story = await screen.findByRole("region", { name: "Make a task repeat" });
   const fold = within(story)
@@ -333,12 +337,15 @@ test("a decision's part selected opens no fold of the spec on the same lines", a
   expect(texts(pressedInSpec())).toEqual([]);
 });
 
+/** Task storage's other sections' fold. */
+const OTHERS = "Why, alternatives, consequences · 1 changed";
+
 /** The ui-behaviour decision: Back restores the items opened, a card's folds as the stories'. */
 test("a decision's folds opened are open again on Back, with the stories' folds", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
-  await click(within(await card("Task storage")).getByRole("button", { name: "1 removed" }));
+  await click(within(await card("Task storage")).getByRole("button", { name: OTHERS }));
   const story = await screen.findByRole("region", { name: "Complete a repeating task" });
   await click(within(story).getByRole("button", { name: "3 more scenarios" }));
 
@@ -346,7 +353,7 @@ test("a decision's folds opened are open again on Back, with the stories' folds"
   await waitFor(() => expect(screen.queryByRole("region", { name: "Task storage" })).toBeNull());
   await act(async () => window.history.back());
 
-  const fold = within(await card("Task storage")).getByRole("button", { name: "1 removed" });
+  const fold = within(await card("Task storage")).getByRole("button", { name: OTHERS });
   expect(fold.getAttribute("aria-expanded")).toBe("true");
   const again = await screen.findByRole("region", { name: "Complete a repeating task" });
   expect(within(again).getByRole("button", { name: "Fold the other scenarios" })).toBeTruthy();
@@ -362,17 +369,21 @@ const folds = (scope: HTMLElement) =>
     .queryAllByRole("button", { expanded: false })
     .map((button) => button.textContent);
 
-/** A part's pill, when it has one. */
-const pill = (part: HTMLElement) =>
-  within(part).queryByText(/^(New|Changed|Removed)$/)?.textContent;
+/** A part's sign, by the name a screen reader reads, when it has one. */
+const sign = (part: HTMLElement) =>
+  within(part)
+    .queryByRole("img", { name: /^(Added|Changed|Removed)$/ })
+    ?.getAttribute("aria-label");
 
-/** The titles of the decision cards, in the order the page draws them. */
+/** The titles of the decision panes, in the order the page draws them. */
 const cardTitles = () =>
   screen
     .getAllByRole("region")
-    .map((region) => region.getAttribute("aria-labelledby") ?? "")
-    .filter((id) => id.startsWith("decision-"))
-    .map((id) => document.getElementById(id)?.textContent);
+    .filter((region) => region.id.startsWith("decision-"))
+    .map(
+      (region) =>
+        document.getElementById(region.getAttribute("aria-labelledby") ?? "")?.textContent,
+    );
 
 /** US2 more 6: the listed decisions in the spec's order, then the unlisted ones, by name. */
 test("the cards follow the spec's items, then the unlisted changes by name", async () => {
@@ -395,31 +406,33 @@ test("the cards follow the spec's items, then the unlisted changes by name", asy
   ]);
 });
 
-/** US2 1: a run of parts the branch leaves alone folds behind its count, as does what it removes. */
-test("unchanged parts fold behind their count, and removed ones behind theirs", async () => {
+/** US2 of the spec page: the kept rules fold behind their count, the other sections behind theirs. */
+test("unchanged rules fold behind their count, and the other sections behind theirs", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  expect(folds(await card("Task storage"))).toEqual(["1 removed", "2 unchanged"]);
-  expect(folds(await card("Due dates"))).toEqual(["1 unchanged"]);
-  expect(folds(await card("Repeating tasks"))).toEqual([]);
+  expect(folds(await card("Task storage"))).toEqual([OTHERS]);
+  expect(folds(await card("Due dates"))).toEqual(["1 rule unchanged"]);
+  expect(folds(await card("Repeating tasks"))).toEqual(["Why, alternatives, consequences"]);
 });
 
-/** US2 1: a reworded rule carries a Changed pill of its own, an added one a New pill. */
-test("a part the branch rewords or adds has its own pill, before its words", async () => {
+/** US2 1 of the spec page: a reworded rule carries the sign `~`, an added one `+`, a kept one none. */
+test("a part the branch rewords or adds has its sign, before its words", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
   const storage = await card("Task storage");
-  expect(pill(partOf(storage, 2))).toBe("Changed");
-  expect(partOf(storage, 2).textContent).toMatch(/^Changed/);
-  // The unchanged rules, behind their fold, carry none.
-  await click(within(storage).getByRole("button", { name: "2 unchanged" }));
-  const kept = within(storage).getAllByRole("button", { pressed: false });
-  const pills = kept.map((toggle) =>
-    pill(document.getElementById(toggle.getAttribute("aria-labelledby") ?? "")!),
-  );
-  expect(pills.filter((p) => p === undefined).length).toBeGreaterThanOrEqual(2);
+  expect(sign(partOf(storage, UPGRADE))).toBe("Changed");
+  expect(partOf(storage, UPGRADE).textContent).toMatch(/^~A change/);
+  expect(sign(partOf(storage, CORRUPTED))).toBe("Added");
+  // The unchanged parts, behind their folds, carry none.
+  await click(within(storage).getByRole("button", { name: OTHERS }));
+  await click(within(storage).getByRole("button", { name: "2 parts unchanged" }));
+  const kept = partsOf(storage, "Consequences").filter((part) => !sign(part));
+  expect(kept.map((part) => part.textContent)).toEqual([
+    "Stored data is tested in one place, and components stay free of storage code.",
+    "Every feature that changes stored data needs an upgrade and its test.",
+  ]);
 });

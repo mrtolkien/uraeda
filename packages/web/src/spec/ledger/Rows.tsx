@@ -1,14 +1,17 @@
-// A decision's parts, as its ledger draws them: a part, tappable for a comment while the spec waits
-// for review, and a fold of parts, open while one holds a pending comment or the selection.
-import { Collapsible } from "@astryxdesign/core/Collapsible";
+// A decision's ledger's rows: a part, its sign first, `+` added, `~` changed, `−` removed, named for
+// screen readers, then its words, tappable for a comment while the spec waits for review; and a
+// fold of rows, which mounts nothing folded, open while it holds a pending comment or the
+// selection, or as the history entry keeps it, for Back and reloads.
+import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
-  borderVars,
   colorVars,
-  radiusVars,
+  fontWeightVars,
   sizeVars,
   spacingVars,
+  typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
@@ -17,48 +20,100 @@ import { Tappable } from "../../Selection.tsx";
 import { useOpenKeys } from "../../useOpenKeys.ts";
 import { PartText } from "../RuleLine.tsx";
 import { type Context, holds, rangeOf } from "./context.ts";
-import { KindBadge } from "./KindBadge.tsx";
 
 const styles = stylex.create({
+  // A row's faint tint, its hue's icon colour over the pane: its sign and its marks say the rest.
+  added: {
+    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-green"]} 8%, transparent)`,
+  },
+  changed: {
+    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-yellow"]} 8%, transparent)`,
+  },
+  // A fold's button, drawn as a muted line of the ledger, a control's height for a finger, its
+  // label wrapping on a narrow screen rather than cut.
+  fold: {
+    color: colorVars["--color-text-secondary"],
+    height: "auto",
+    justifyContent: "start",
+    minHeight: sizeVars["--size-element-md"],
+    paddingInline: 0,
+    textAlign: "start",
+    whiteSpace: "normal",
+  },
   foldLabel: {
-    // A fold's label, its row a control's height for a finger, as a story's "More scenarios" is.
     alignItems: "center",
     display: "flex",
-    minHeight: sizeVars["--size-element-md"],
+    gap: spacingVars["--spacing-1"],
   },
+  // A kept part reads muted: the ledger's news is what changed.
+  kept: { color: colorVars["--color-text-secondary"] },
   removed: {
-    // A part removed whole: a red tint over it, its words readable, never struck, inside a dashed
-    // red edge that stands 3:1 from the card, as a pale tint alone does not (WCAG 1.4.11).
-    backgroundColor: colorVars["--color-background-red"],
-    borderColor: colorVars["--color-icon-red"],
-    borderRadius: radiusVars["--radius-element"],
-    borderStyle: "dashed",
-    borderWidth: borderVars["--border-width"],
-    padding: spacingVars["--spacing-2"],
+    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 8%, transparent)`,
+  },
+  row: {
+    paddingBlock: spacingVars["--spacing-1"],
+    paddingInlineEnd: spacingVars["--spacing-1"],
+  },
+  // The sign's column, as wide for every row, so the words line up whether a row has one or not.
+  sign: {
+    // A character and a half of the code font, which StyleX's width values do not list.
+    "--ledger-sign": "1.5em",
+    flexShrink: 0,
+    fontFamily: typographyVars["--font-family-code"],
+    fontWeight: fontWeightVars["--font-weight-bold"],
+    textAlign: "center",
+    width: "var(--ledger-sign)",
+  },
+  signAdded: { color: colorVars["--color-text-green"] },
+  signChanged: { color: colorVars["--color-text-yellow"] },
+  signRemoved: { color: colorVars["--color-text-red"] },
+  // A row's words take what the sign leaves.
+  words: {
+    flexGrow: 1,
+    minWidth: 0,
   },
 });
 
-/** A part: its pill when changed or added, its text, tappable while the spec waits for review. */
+/** Each kind's sign, the name a screen reader reads for it, and its row's and its own colours. */
+const KINDS: Record<
+  string,
+  { ink: stylex.StyleXStyles; label: string; mark: string; row: stylex.StyleXStyles }
+> = {
+  added: { ink: styles.signAdded, label: "Added", mark: "+", row: styles.added },
+  changed: { ink: styles.signChanged, label: "Changed", mark: "~", row: styles.changed },
+  removed: { ink: styles.signRemoved, label: "Removed", mark: "−", row: styles.removed },
+};
+
+/** A row's sign, by its part's kind: an empty column for a part kept. */
+function Sign({ kind }: { kind: string }) {
+  const sign = KINDS[kind];
+  if (!sign) {
+    return <span aria-hidden {...stylex.props(styles.sign)} />;
+  }
+  return (
+    <span aria-label={sign.label} role="img" {...stylex.props(styles.sign, sign.ink)}>
+      {sign.mark}
+    </span>
+  );
+}
+
+/** A part: its sign, its words, tappable while the spec waits for review. */
 export function Part({ context, part }: { context: Context; part: PartChange }) {
-  const { heading, intent, name, parts, whole } = context;
+  const { heading, intent, name, parts } = context;
   const range = rangeOf(name, heading, part);
-  const removed = part.kind === "removed";
-  const pill = !whole && (part.kind === "changed" || part.kind === "added");
   const text = (
-    <VStack gap={1} xstyle={removed && styles.removed}>
-      {pill && (
-        <HStack>
-          <KindBadge kind={part.kind} />
-        </HStack>
-      )}
-      <PartText
-        check={part.check}
-        intent={intent}
-        runs={part.runs}
-        strength={part.strength}
-        whole={part.kind === "added" || removed}
-      />
-    </VStack>
+    <HStack align="start" gap={1} xstyle={[styles.row, KINDS[part.kind]?.row ?? styles.kept]}>
+      <Sign kind={part.kind} />
+      <div {...stylex.props(styles.words)}>
+        <PartText
+          check={part.check}
+          intent={intent}
+          runs={part.runs}
+          strength={part.strength}
+          whole={part.kind === "added" || part.kind === "removed"}
+        />
+      </div>
+    </HStack>
   );
   if (!parts || !range) {
     return text;
@@ -75,38 +130,51 @@ export function Part({ context, part }: { context: Context; part: PartChange }) 
   );
 }
 
-/**
- * Parts folded behind a label, open while one holds a pending comment or the selection, or as the
- * history entry keeps it by `foldKey`, for Back and reloads.
- */
-export function Fold({
-  context,
-  foldKey,
-  label,
-  parts,
-}: {
-  context: Context;
-  foldKey: string;
-  label: ReactNode;
-  parts: ReadonlyArray<PartChange>;
-}) {
-  const keys = useOpenKeys();
-  const held = parts.some((part) => {
-    const range = rangeOf(context.name, context.heading, part);
+/** Whether a pending comment or the selection is on one of `parts`, under `heading`. */
+export function holdsAny(
+  context: Pick<Context, "comments" | "name" | "parts">,
+  heading: string,
+  parts: ReadonlyArray<PartChange>,
+) {
+  return parts.some((part) => {
+    const range = rangeOf(context.name, heading, part);
     return holds(context.comments, range) || (!!range && !!context.parts?.isSelected(range));
   });
+}
+
+/**
+ * Rows folded behind a label, open while `held`, or as the history entry keeps it by `foldKey`, for
+ * Back and reloads. Folded, its rows are not mounted.
+ */
+export function Fold({
+  children,
+  foldKey,
+  held,
+  label,
+}: {
+  children: ReactNode;
+  foldKey: string;
+  held: boolean;
+  label: string;
+}) {
+  const keys = useOpenKeys();
+  const isOpen = keys.open.includes(foldKey) || held;
   return (
-    <Collapsible
-      chevronPosition="start"
-      isOpen={keys.open.includes(foldKey) || held}
-      onOpenChange={(isOpen: boolean) => keys.onOpenChange(foldKey, isOpen)}
-      trigger={<span {...stylex.props(styles.foldLabel)}>{label}</span>}
-    >
-      <VStack gap={2}>
-        {parts.map((part, index) => (
-          <Part context={context} key={index} part={part} />
-        ))}
-      </VStack>
-    </Collapsible>
+    <VStack gap={2}>
+      <Button
+        aria-expanded={isOpen}
+        label={label}
+        onClick={() => keys.onOpenChange(foldKey, !isOpen)}
+        size="sm"
+        variant="ghost"
+        xstyle={styles.fold}
+      >
+        <span {...stylex.props(styles.foldLabel)}>
+          <Icon icon={isOpen ? "chevronDown" : "chevronRight"} size="sm" />
+          {label}
+        </span>
+      </Button>
+      {isOpen && children}
+    </VStack>
   );
 }

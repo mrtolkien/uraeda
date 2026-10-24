@@ -56,3 +56,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   approved spec.
 - **If wrong**: one constant in `layout/documentColumnWidth.ts`.
 - **Where**: Task 10.
+
+## R6: The decision card's tests follow the ledger
+
+- **Decision**: the tests that checked the old card's look, a removed part "never struck" behind a
+  "N removed" fold, a pill on each changed or added part, a run of kept parts behind "N unchanged",
+  the title a link, and a removed part's dashed edge at 3:1, now check the ledger: removed words
+  struck in a `del` and only those, a sign named "Added", "Changed", or "Removed", "N rules
+  unchanged" and "Why, alternatives, consequences · N changed", and a link "The whole decision, on
+  its page" at the pane's foot. In `spec-decisions.test.tsx`, `decisions-check.test.tsx`,
+  `feature-done.test.tsx`, and `__browser__/spec.test.tsx`, parts are found by their words rather
+  than their place, as the ledger puts the parts not kept first.
+- **Rationale**: US2 and SC-001 replace the look those tests named (struck removed words, signs, the
+  folds' labels); the behaviour they guard, comments on a decision's lines, folds kept on Back, the
+  cards' order, the strength icons, and the selection's contrast, is kept and still tested. The
+  pane's title is a string, so the link to the decision's page moves to its foot, as the mockup
+  draws it.
+- **Alternatives considered**: keeping the old assertions beside the new ones, which contradict the
+  spec; a link in the pane's title, which `Pane` does not take.
+- **If wrong**: the link returns to the title once `Pane` takes a node for it; each rewritten test
+  names what it guards.
+- **Where**: Task 4.

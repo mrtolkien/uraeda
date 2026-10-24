@@ -117,11 +117,11 @@ test("an option shows its candidate as the spec page shows a changed decision", 
   await screen.findByRole("heading", { level: 1, name: "Decisions check" });
 
   const card = document.getElementById("q1-a-ui-components") as HTMLElement;
-  expect(within(question("Q1")).getByRole("heading", { name: "UI components" })).toBeTruthy();
+  expect(within(question("Q1")).getByRole("region", { name: "UI components" })).toBe(card);
   expect(within(card).getByText("Changed")).toBeTruthy();
-  // Under option A's card, inside the question; the added rule carries its own pill.
+  // Under option A's card, inside the question; the added rule carries its sign.
   expect(question("Q1").contains(card)).toBe(true);
-  expect(within(card).getByText("New")).toBeTruthy();
+  expect(within(card).getAllByRole("img", { name: "Added" }).length).toBeGreaterThan(0);
   // Its rules, as the core compared them with the active decision, as the spec page draws them.
   expect(within(card).getAllByRole("img", { name: "Must" }).length).toBeGreaterThan(0);
   // Option B has no candidate folder: no card under it.

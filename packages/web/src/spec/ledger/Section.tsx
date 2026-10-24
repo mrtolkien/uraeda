@@ -1,70 +1,66 @@
-// A decision's sections, as its ledger draws them: each section's parts, unchanged ones folded behind
-// their count and removed ones behind theirs, and which sections a card shows.
-import { Badge } from "@astryxdesign/core/Badge";
+// A decision's change as a ledger: its intent, then "Rules", each part not kept first and the kept
+// ones folded under "N rules unchanged", then the other sections folded under "Why, alternatives,
+// consequences", with their count of changed parts for a decision changed. With `full`, as on the
+// decision's own page, every section shows, nothing folded.
 import { Heading } from "@astryxdesign/core/Heading";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, useId } from "react";
 import type { DecisionChange, PartChange, SectionChange } from "uraeda-binding";
 import { type Context, foldKeyOf } from "./context.ts";
-import { Fold, Part } from "./Rows.tsx";
+import { Fold, holdsAny, Part } from "./Rows.tsx";
 
-/**
- * A section's parts in order: a run of unchanged ones folded behind "N unchanged", but in the
- * intent, which shows whole; the removed ones last, behind "N removed".
- */
-function sectionRows(section: SectionChange, context: Context) {
-  const rows: Array<ReactNode> = [];
-  let kept: Array<PartChange> = [];
-  const flush = () => {
-    if (kept.length > 0) {
-      const label = `${kept.length} unchanged`;
-      const key = `kept-${rows.length}`;
-      rows.push(
-        <Fold
-          context={context}
-          foldKey={foldKeyOf(context, key)}
-          key={key}
-          label={label}
-          parts={kept}
-        />,
-      );
-    }
-    kept = [];
-  };
-  section.parts.forEach((part, index) => {
-    if (context.whole || (part.kind === "kept" && (context.full || context.intent))) {
-      rows.push(<Part context={context} key={index} part={part} />);
-    } else if (part.kind === "kept") {
-      kept.push(part);
-    } else if (part.kind !== "removed") {
-      flush();
-      rows.push(<Part context={context} key={index} part={part} />);
-    }
-  });
-  flush();
-  const removed = context.whole ? [] : section.parts.filter((part) => part.kind === "removed");
-  if (removed.length > 0) {
-    const label = <Badge label={`${removed.length} removed`} variant="error" />;
-    rows.push(
-      <Fold
-        context={context}
-        foldKey={foldKeyOf(context, "removed")}
-        key="removed"
-        label={label}
-        parts={removed}
-      />,
-    );
-  }
-  return rows;
+/** What a ledger draws a decision's sections with: its context, but the section's own. */
+export type LedgerContext = Omit<Context, "heading" | "intent">;
+
+/** The other sections' fold's label, before its count. */
+const OTHERS = "Why, alternatives, consequences";
+
+/** "1 rule unchanged", "3 parts unchanged": the label of a section's kept parts. */
+function keptLabel(count: number, rules: boolean) {
+  const noun = rules ? "rule" : "part";
+  return `${count} ${noun}${count === 1 ? "" : "s"} unchanged`;
 }
 
-/** A section: its heading, but the intent's, then its parts, as a group named by the heading. */
-export function Section({
+/**
+ * A section's rows: in the intent, every part in order; elsewhere the parts not kept first, then
+ * the kept ones, folded under their count unless the card is `full` or the decision `whole`.
+ */
+function sectionRows(section: SectionChange, context: Context): ReactNode {
+  const row = (part: PartChange, index: number) => (
+    <Part context={context} key={index} part={part} />
+  );
+  if (context.intent) {
+    return section.parts.map(row);
+  }
+  const moved = section.parts.filter((part) => part.kind !== "kept");
+  const kept = section.parts.filter((part) => part.kind === "kept");
+  const open = context.full || context.whole;
+  return (
+    <>
+      {moved.map(row)}
+      {kept.length > 0 &&
+        (open ? (
+          kept.map((part, index) => row(part, moved.length + index))
+        ) : (
+          <Fold
+            foldKey={foldKeyOf(context, "kept")}
+            held={holdsAny(context, context.heading, kept)}
+            label={keptLabel(kept.length, section.title === "Rules")}
+          >
+            {kept.map(row)}
+          </Fold>
+        ))}
+    </>
+  );
+}
+
+/** A section: its heading, but the intent's, then its rows, as a group named by the heading. */
+function Section({
   context,
   id,
   section,
 }: {
-  context: Omit<Context, "heading" | "intent">;
+  context: LedgerContext;
   id: string | undefined;
   section: SectionChange;
 }) {
@@ -76,11 +72,11 @@ export function Section({
     intent,
   });
   if (intent) {
-    return <VStack gap={2}>{rows}</VStack>;
+    return <VStack gap={1}>{rows}</VStack>;
   }
   return (
     <div aria-labelledby={headingId} role="group">
-      <VStack gap={2}>
+      <VStack gap={1}>
         <Heading id={id ?? headingId} level={4}>
           <span id={headingId}>{section.title}</span>
         </Heading>
@@ -90,16 +86,44 @@ export function Section({
   );
 }
 
+/** The count of parts not kept in `sections`. */
+const changedIn = (sections: ReadonlyArray<SectionChange>) =>
+  sections.reduce((sum, s) => sum + s.parts.filter((p) => p.kind !== "kept").length, 0);
+
 /**
- * The sections a card shows: every one when `full`; else, for a decision new or removed whole, or
- * not compared, its intent and its rules; for a changed one, its intent and each section with a
- * part not kept.
+ * A decision's change as a ledger: its intent and its rules, then its other sections folded; with
+ * `full`, every section in the file's order. A section's heading takes `sectionId`'s anchor.
  */
-export function shownSections(change: DecisionChange, whole: boolean, full: boolean) {
-  return change.sections.filter(
-    (section) =>
-      full ||
-      section.title === "" ||
-      (whole ? section.title === "Rules" : section.parts.some((p) => p.kind !== "kept")),
+export function Ledger({
+  change,
+  context,
+  sectionId,
+}: {
+  change: DecisionChange;
+  context: LedgerContext;
+  sectionId?: (title: string) => string | undefined;
+}) {
+  const section = (s: SectionChange) => (
+    <Section context={context} id={sectionId?.(s.title)} key={s.title} section={s} />
+  );
+  if (context.full) {
+    return change.sections.map(section);
+  }
+  const first = change.sections.filter((s) => s.title === "" || s.title === "Rules");
+  const others = change.sections.filter((s) => s.title !== "" && s.title !== "Rules");
+  const label = context.whole ? OTHERS : `${OTHERS} · ${changedIn(others)} changed`;
+  return (
+    <>
+      {first.map(section)}
+      {others.length > 0 && (
+        <Fold
+          foldKey={`decision:${context.name}:others`}
+          held={others.some((s) => holdsAny(context, s.title, s.parts))}
+          label={label}
+        >
+          {others.map(section)}
+        </Fold>
+      )}
+    </>
   );
 }
