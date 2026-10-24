@@ -176,8 +176,9 @@ Tradeoffs:
 
 ## Assumptions
 
-The points settled in the [clarifications](clarifications-01.md#settled-without-the-human) hold as
-written there. Settled while writing this spec:
+The points settled in the clarifications, [to check](clarifications-01.md#check-these) and
+[without the human](clarifications-01.md#settled-without-the-human), hold as written there. Settled
+while writing this spec:
 
 - The presets are those of Microsoft To Do, plus weekends: daily, weekdays, weekends, weekly,
   monthly, yearly ([discovery](discovery-01.md#microsoft-to-do)).

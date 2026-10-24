@@ -380,9 +380,10 @@ is an item, its id in bold, then its measure in a few words in parentheses, opti
 ## What the human weighs
 
 - **Assumptions**: a sentence linking the points settled in the clarifications, which hold as
-  written there. It names only those an answer or a note changed. Then "Settled while writing this
-  spec:", and what you settled yourself, so the human can object. An assumption that changes what
-  users get is also an item of the `> [!IMPORTANT]` block.
+  written there: the round's `## Check these` and `## Settled without the human`, each when the
+  round has it, since a link to a section left out breaks. It names only those an answer or a note
+  changed. Then "Settled while writing this spec:", and what you settled yourself, so the human can
+  object. An assumption that changes what users get is also an item of the `> [!IMPORTANT]` block.
 - **Unverified**: a story that relies on outside behaviour nobody has checked yet, as the
   [discovery](discovery.md#investigate-in-depth) found it, is marked unverified in the block. The
   block gives what the plan's first task checks and what happens to the story if the check fails.
