@@ -832,3 +832,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   Keeping `terminal-2.html` as a layout mockup under main's rule: the stories replace it.
 - **If wrong**: the human words the two rules as one, or restores `terminal-2.html` from git.
 - **Where**: `specs/decisions/preview.md`.
+
+## R35: A jump leaves room for the phone's tabs and a pane's title, everywhere it lands
+
+- **Decision**: the final review found `/settings/runs` and `/decisions/constitution/iii` scrolled
+  their target under the phone's 48 px tabs, and a pane's title, drawn half over its border, cut in
+  half at every width. The room a jump leaves above its target, which the questions, the spec's
+  parts, and its groups each set alike, is now shared in `layout/scrollMargin.ts`: below the tabs
+  plus `--spacing-2` on the phone, `--spacing-4` wider. `Pane` adds its title's half, the pane's own
+  `--spacing-3` top margin, and every anchored heading `Blocks` draws takes the shared room, not
+  only the constitution's: a link to a heading in any document lands the same way. A browser test at
+  both sizes opens both addresses and checks the target's top is below the tabs, or the scroller's
+  top, and near it unless the page ends first.
+- **Rationale**: a jump that hides what it jumped to fails its one job; four copies of one rule
+  drift.
+- **Alternatives considered**: a margin on the constitution reader's headings alone: other
+  documents' heading links would still land under the tabs.
+- **If wrong**: a document's heading sits a step lower after a jump; one style in one file.
+- **Where**: `packages/web/src/layout/scrollMargin.ts`, `layout/Pane.tsx`, `Blocks.tsx`,
+  `QuestionCard.tsx`, `spec/Panel.tsx`, `spec/SpecPage.tsx`.

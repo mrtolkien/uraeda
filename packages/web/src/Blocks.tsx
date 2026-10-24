@@ -12,6 +12,7 @@ import { proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
+import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
@@ -127,6 +128,8 @@ export type BlockContext = {
   document: Document;
   /** Draws a block its own way, when it returns something. */
   override?: (block: Block) => ReactNode | undefined;
+  /** The room a jump to a heading leaves above it, as below the phone's tabs. */
+  scrollMargin: stylex.StyleXStyles;
   selection?: Selection;
   /** Whether images are drawn alone, inside a control: no lightbox, so no dialog to hold. */
   staticImages: boolean;
@@ -234,7 +237,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
         <Heading
           id={block.anchor}
           level={Math.min(Math.max(block.level ?? 2, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6}
-          xstyle={styles.heading}
+          xstyle={[styles.heading, context.scrollMargin]}
         >
           {spans}
         </Heading>
@@ -372,7 +375,14 @@ export function Blocks({
 }) {
   const children = useChildren(document);
   useHashFold(document, folds);
-  const context = { children, document, override, selection, staticImages: useStaticImages() };
+  const context = {
+    children,
+    document,
+    override,
+    scrollMargin: useScrollMargin(),
+    selection,
+    staticImages: useStaticImages(),
+  };
   const blocks = ids
     ? ids.map((id) => document.blocks[id]).filter(Boolean)
     : (children.get(undefined) ?? []);

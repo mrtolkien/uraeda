@@ -9,15 +9,9 @@ import { colorVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { scrollMarginStyles } from "../layout/scrollMargin.ts";
 
 const styles = stylex.create({
-  belowBar: {
-    // A jump puts the part below the phone's top bar, which stays in view.
-    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
-  },
-  belowNothing: {
-    scrollMarginTop: spacingVars["--spacing-4"],
-  },
   crumbs: {
     color: colorVars["--color-text-secondary"],
     fontSize: typeScaleVars["--text-supporting-size"],
@@ -98,14 +92,14 @@ export function Panel({ badges, children, crumbs, id, title, variant = "default"
   const labelled = { "aria-labelledby": `${id}-title`, id };
   if (!wide) {
     return (
-      <section {...labelled} {...stylex.props(styles.belowBar)}>
+      <section {...labelled} {...stylex.props(scrollMarginStyles.belowBar)}>
         <div {...stylex.props(styles.stickyHead)}>{head}</div>
         <VStack gap={3}>{children}</VStack>
       </section>
     );
   }
   return (
-    <section {...labelled} {...stylex.props(styles.belowNothing)}>
+    <section {...labelled} {...stylex.props(scrollMarginStyles.belowNothing)}>
       <Card padding={6} variant={variant}>
         <VStack gap={3} xstyle={styles.rows}>
           {head}

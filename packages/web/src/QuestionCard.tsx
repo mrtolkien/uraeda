@@ -4,6 +4,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useContext } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { holdsVariants, Options, QuestionContext, QuestionHead } from "./Question.tsx";
 import { AnswerComment } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
@@ -11,14 +12,6 @@ import { StoryContext } from "./stories.tsx";
 import { useAnswer } from "./useAnswer.ts";
 
 const styles = stylex.create({
-  belowBar: {
-    // A jump puts the question below the phone's tabs, which stay in view, a row of
-    // `--spacing-12`.
-    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
-  },
-  belowNothing: {
-    scrollMarginTop: spacingVars["--spacing-4"],
-  },
   // A box left out of the layout: its children are laid out by its parent.
   contents: {
     display: "contents",
@@ -90,6 +83,7 @@ export function QuestionCard({
 }) {
   const answer = useAnswer(question, target, path);
   const wide = !isNarrow(useWidthClass());
+  const margin = useScrollMargin();
   // A comment on one of its stories joins its answer, on a line of its own, while it can be
   // answered. Its unsaved text is the question's own: another question of the round may embed the
   // same story.
@@ -133,7 +127,7 @@ export function QuestionCard({
   // question.
   return (
     <StoryContext value={comments}>
-      <section id={question.id} {...stylex.props(wide ? styles.belowNothing : styles.belowBar)}>
+      <section id={question.id} {...stylex.props(margin)}>
         <Card
           padding={wide ? 6 : 0}
           variant={wide ? "default" : "transparent"}
