@@ -1,41 +1,26 @@
-// "History", at the spec page's end: the records of the earlier reviews, folded. Not reviewed, so
-// its blocks take no comment.
-import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { Text } from "@astryxdesign/core/Text";
-import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
+// "History", at the spec page's end: the records of the earlier reviews, in a pane folded to its
+// title, not mounted while folded. Not reviewed, so its blocks take no comment.
+import { useState } from "react";
 import type { Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { GROUPS, groupId, partOf, type SpecItems } from "./parts.ts";
 
-const styles = stylex.create({
-  title: {
-    // The fold's title, its row a control's height for a finger.
-    alignItems: "center",
-    display: "flex",
-    minHeight: sizeVars["--size-element-md"],
-  },
-});
-
-/** The spec's `## History`, folded under its title; nothing when the spec has none. */
+/** The spec's `## History`, in a pane folded to its title; nothing when the spec has none. */
 export function SpecHistory({ document, items }: { document: Document; items: SpecItems }) {
+  const [isOpen, setOpen] = useState(false);
   const part = partOf(items, "History");
   if (!part) {
     return null;
   }
   return (
-    <div id={groupId(items, GROUPS.history)}>
-      <Collapsible
-        chevronPosition="start"
-        defaultIsOpen={false}
-        trigger={
-          <Text weight="semibold" xstyle={styles.title}>
-            {GROUPS.history.title}
-          </Text>
-        }
-      >
-        <Blocks document={document} ids={part.blocks} />
-      </Collapsible>
-    </div>
+    <Pane
+      fold={{ isOpen, onOpenChange: setOpen }}
+      icon="uraeda:history"
+      id={groupId(items, GROUPS.history)}
+      title={GROUPS.history.title}
+    >
+      <Blocks document={document} ids={part.blocks} />
+    </Pane>
   );
 }

@@ -6,6 +6,8 @@ import { atWidth, fixtureRepo, git, renderPage } from "./helpers.tsx";
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
 const SPEC = `specs/${SPEC_FEATURE}/spec.md`;
 const REVIEW = `specs/${SPEC_FEATURE}/spec-review.md`;
+/** The block's pane, titled by its first line. */
+const BLOCK = "Spec to review, revision 2, about 10 minutes.";
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -73,7 +75,7 @@ test("the contents list every part, decision, and story", async () => {
     "Task storage",
     "Task history",
     "Due dates",
-    "What changes for users",
+    "User stories",
     "US1 Make a task repeat",
     "US2 Complete a repeating task",
     "US3 Repeat on a custom schedule",
@@ -96,7 +98,7 @@ test("on a window under 1100 px wide, the contents start folded, until you show 
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  await region("What you approve");
+  await region(BLOCK);
   expect(screen.queryByRole("list", { name: "Parts" })).toBeNull();
   await click(screen.getByRole("button", { name: "Show contents" }));
   expect(await screen.findByRole("list", { name: "Parts" })).toBeTruthy();
@@ -127,7 +129,7 @@ test("a part's pending comments are counted in the contents", async () => {
     within(column).getByRole("link", { name: "US1 Make a task repeat 2 comments" }),
   ).toBeTruthy();
   expect(within(column).getByRole("link", { name: "Success criteria 1 comment" })).toBeTruthy();
-  expect(within(column).getByRole("link", { name: "What changes for users" })).toBeTruthy();
+  expect(within(column).getByRole("link", { name: "User stories" })).toBeTruthy();
   expect(within(column).getByRole("link", { name: "US2 Complete a repeating task" })).toBeTruthy();
 });
 
@@ -146,9 +148,7 @@ test("a pending comment on the stories' intro is counted on their section", asyn
   await renderPage(PAGE, repo);
 
   const column = await contents();
-  expect(
-    within(column).getByRole("link", { name: "What changes for users 1 comment" }),
-  ).toBeTruthy();
+  expect(within(column).getByRole("link", { name: "User stories 1 comment" })).toBeTruthy();
 });
 
 /** A level-2 section the page does not know is drawn as written, with its entry in the contents. */
@@ -168,29 +168,18 @@ test("a section the page does not know is drawn, and listed in the contents", as
   expect(entries.at(-2)).toBe("Assumptions");
 });
 
-/** What comes right before "Your review, answered" in the page. */
-const beforeAnswers = async () =>
-  (await region("Your review, answered")).previousElementSibling as HTMLElement;
+/** The answers' pane follows the block's, at every width: no band between them (R13). */
+test("the answers follow what you approve, on the phone as on a wide screen", async () => {
+  for (const width of [402, 1440]) {
+    atWidth(width);
+    const repo = fixtureRepo();
+    addSpecFeature(repo);
+    await renderPage(PAGE, repo);
 
-/** On the phone, a band, empty, sets the answers apart from what you approve, as it does the groups. */
-test("on the phone, a band comes between what you approve and the answers", async () => {
-  atWidth(402);
-  const repo = fixtureRepo();
-  addSpecFeature(repo);
-  await renderPage(PAGE, repo);
-
-  const band = await beforeAnswers();
-  expect(band.childElementCount).toBe(0);
-  expect(band.textContent).toBe("");
-});
-
-test("on a wide screen, the answers follow what you approve without a band", async () => {
-  const repo = fixtureRepo();
-  addSpecFeature(repo);
-  await renderPage(PAGE, repo);
-
-  const before = await beforeAnswers();
-  expect(before.textContent).not.toBe("");
+    const answers = await region("Your review, answered");
+    expect(answers.previousElementSibling).toBe(await region(BLOCK));
+    cleanup();
+  }
 });
 
 /** A decision comment is counted on its decision, never on the spec's block at the same lines. */
@@ -234,7 +223,7 @@ test("hidden contents stay hidden after a reload, with the verdict at the page's
   cleanup();
   await renderPage(PAGE, repo);
 
-  await region("What you approve");
+  await region(BLOCK);
   expect(screen.queryByRole("list", { name: "Parts" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show contents" })).toBeTruthy();
   const approve = screen.getByRole("button", { name: "Approve" });
@@ -323,17 +312,18 @@ test("a revision 3 keeps one record above the first part, the others in History"
   addSpecFeature(repo, { revision: 3 });
   await renderPage(PAGE, repo);
 
-  const approve = await region("What you approve");
-  expect(approve.textContent).toContain("Spec to review, revision 3, about 10 minutes.");
+  expect(await region("Spec to review, revision 3, about 10 minutes.")).toBeTruthy();
   const history = screen.getByRole("button", { name: "History" });
   expect(history.getAttribute("aria-expanded")).toBe("false");
-  const notes = screen.getAllByRole("note", { hidden: true });
-  expect(notes).toHaveLength(2);
-  expect(notes.every(folded)).toBe(true);
+  // Folded, the history's records are not in the page at all: the block's record alone shows.
+  expect(screen.queryByText(/Changes requested on 2026-10-07/)).toBeNull();
+  expect(screen.queryByText(/Changes requested on 2026-10-08/)).toBeNull();
 
   await click(history);
 
   expect(history.getAttribute("aria-expanded")).toBe("true");
+  const notes = within(await region("History")).getAllByRole("note");
+  expect(notes).toHaveLength(2);
   expect(notes.some(folded)).toBe(false);
   expect(screen.getByText(/Changes requested on 2026-10-07/)).toBeTruthy();
 });
@@ -344,7 +334,7 @@ test("a revision 1 has no answers card", async () => {
   addSpecFeature(repo, { revision: 1 });
   await renderPage(PAGE, repo);
 
-  await region("What you approve");
+  await region("Spec to review, revision 1, about 10 minutes.");
   expect(screen.queryByRole("region", { name: "Your review, answered" })).toBeNull();
   expect(entriesOf(await contents())).not.toContain("Your review, answered");
 });
@@ -410,11 +400,11 @@ test("an approved spec is the same page, read-only, with its approval record", a
   addSpecFeature(repo, { status: "approved" });
   await renderPage(PAGE, repo);
 
-  const approve = await region("What you approve");
-  expect(approve.textContent).toContain("Approved on 2026-10-18.");
+  const approve = await region("Approved on 2026-10-18.");
+  expect(approve.textContent).toContain("You approve tasks that repeat");
   expect(screen.getByText("Approved")).toBeTruthy();
   expect(await region("Task storage")).toBeTruthy();
-  expect(await region("Complete a repeating task")).toBeTruthy();
+  expect(await region("US2 · Complete a repeating task")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Add a general comment" })).toBeNull();
   expect(document.querySelector("button[aria-pressed]")).toBeNull();
@@ -427,7 +417,7 @@ test("what you approve shows the time, the risk tier, and the principles", async
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const approve = await region("What you approve");
+  const approve = await region(BLOCK);
   expect(within(approve).getByText("About 10 minutes")).toBeTruthy();
   expect(within(approve).getByText("High risk")).toBeTruthy();
   expect(approve.textContent).toContain(
@@ -455,20 +445,20 @@ test("each section's and story's anchor names the element drawn for it", async (
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const story = await region("Complete a repeating task");
+  const story = await region("US2 · Complete a repeating task");
   expect(byId("us2-complete-a-repeating-task-p1")).toBe(story);
   expect(byId("your-review")).toBe(await region("Your review, answered"));
   expect(
-    within(byId("user-stories")!).getByRole("heading", { name: "What changes for users" }),
+    within(byId("user-stories")!).getByRole("heading", { name: "User stories · 4" }),
   ).toBeTruthy();
   expect(byId("risk-tier")?.textContent).toContain("it converts every saved due date");
   expect(byId("constitution-check")?.textContent).toContain("Principle III holds with a cost");
-  expect(within(await region("What you approve")).getByText(/converts every saved/)).toBeTruthy();
+  expect(within(await region(BLOCK)).getByText(/converts every saved/)).toBeTruthy();
 
   const column = await contents();
   const href = (name: string) => within(column).getByRole("link", { name }).getAttribute("href");
   expect(href("US2 Complete a repeating task")).toBe("#us2-complete-a-repeating-task-p1");
-  expect(href("What changes for users")).toBe("#user-stories");
+  expect(href("User stories")).toBe("#user-stories");
   expect(href("Your review, answered")).toBe("#your-review");
 });
 
@@ -483,12 +473,14 @@ test("a hash into a story's more scenarios opens them", async () => {
   commitOnBranch(repo, SPEC_FEATURE, { [SPEC]: spec });
   await renderPage(`${PAGE}#twice-in-a-row`, repo);
 
-  const story = await region("Complete a repeating task");
+  const story = await region("US2 · Complete a repeating task");
   await waitFor(() =>
     expect(within(story).getByRole("button", { name: "Fold the other scenarios" })).toBeTruthy(),
   );
   expect(document.getElementById("twice-in-a-row")).toBeTruthy();
   expect(
-    within(await region("Make a task repeat")).getByRole("button", { name: "1 more scenario" }),
+    within(await region("US1 · Make a task repeat")).getByRole("button", {
+      name: "1 more scenario",
+    }),
   ).toBeTruthy();
 });

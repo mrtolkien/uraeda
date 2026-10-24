@@ -51,6 +51,7 @@ const ItemsSelection = {
     status: true,
     verdict: true,
   },
+  dataModel: { intro: true, sections: true },
   plan: { lead: true, tasks: true },
   review: { comments: true, commit: true, summary: true, verdict: true },
   rulings: true,

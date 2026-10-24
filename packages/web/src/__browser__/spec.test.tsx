@@ -1,5 +1,5 @@
-// The spec page of the specs redesign: on the phone, each part takes the screen's width, without a
-// card, its title and breadcrumbs sticking under the top bar while it scrolls (US5 2, 3).
+// The spec page in titled panes: on the phone, each pane takes the page's width (US1); a decision's
+// lines keep their measure; a link to a part opens the page at it; the page is accessible.
 import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { backdrop, contrast, over, rgb } from "./colours.ts";
@@ -8,83 +8,27 @@ import { atSize, checkLayout, colorScheme, commands, drawn, show } from "./helpe
 const FOLDER = "2026-10-17-spec-page";
 const PAGE = `/f/${FOLDER}/spec.md`;
 
-/** The top bar's bottom edge, which a sticking title sits right under. */
-const barBottom = () => screen.getByRole("banner").getBoundingClientRect().bottom;
-
 describe("on the phone", () => {
   atSize("phone");
 
-  test("on the phone, the part and story stay at the top while you read (US5 2)", async () => {
-    await commands.addSpecFeature();
-    await show(PAGE, "Complete a repeating task");
-    const story = screen.getByRole("region", { name: "Complete a repeating task" });
-
-    // US2's second key scenario, 300 px down the screen: the story's head is above it.
-    const scenario = within(story).getByText(/taps undo within 5/);
-    window.scrollBy(0, scenario.getBoundingClientRect().top - 300);
-    await drawn();
-
-    // The story's head, its breadcrumbs then its title, sticks right below the top bar, over the
-    // scenarios scrolled under it.
-    const crumbs = within(story).getByText("What changes for users");
-    const title = within(story).getByRole("heading", { name: "Complete a repeating task" });
-    const top = crumbs.getBoundingClientRect().top;
-    expect(top).toBeGreaterThanOrEqual(barBottom() - 0.5);
-    expect(top).toBeLessThan(barBottom() + 16);
-    expect(title.getBoundingClientRect().top).toBeGreaterThan(crumbs.getBoundingClientRect().top);
-    expect(within(story).getByText("US2").getBoundingClientRect().top).toBeLessThan(
-      title.getBoundingClientRect().bottom,
-    );
-    for (const element of [crumbs, title]) {
-      const box = element.getBoundingClientRect();
-      const shown = document.elementFromPoint(box.left + 4, box.top + box.height / 2);
-      expect(element.contains(shown), element.textContent ?? "").toBe(true);
-    }
-    // The story's start scrolled under its head.
-    expect(story.getBoundingClientRect().top).toBeLessThan(barBottom());
-  });
-
-  test("on the phone, a part's head pushed away slides under the top bar", async () => {
-    await commands.addSpecFeature();
-    await show(PAGE, "Complete a repeating task");
-    // US1's end at the bar's bottom: its head, pushed up by it, overlaps the bar.
-    const story = screen.getByRole("region", { name: "Make a task repeat" });
-    window.scrollBy(0, story.getBoundingClientRect().bottom - barBottom());
-    await drawn();
-    const head = within(story).getByRole("heading", { name: "Make a task repeat" });
-    expect(head.getBoundingClientRect().bottom).toBeLessThan(barBottom());
-    expect(head.getBoundingClientRect().bottom).toBeGreaterThan(0);
-
-    const banner = screen.getByRole("banner");
-    const box = banner.getBoundingClientRect();
-    for (const y of [box.top + 8, head.getBoundingClientRect().top + 8]) {
-      const shown = document.elementFromPoint(box.left + box.width / 2, y);
-      expect(banner.contains(shown), `${y}: ${shown?.textContent?.slice(0, 40)}`).toBe(true);
-    }
-  });
-
-  test("on the phone, no part has a card, and text runs to 14.4 px from the edges (US5 3, at 120%)", async () => {
+  test("on the phone, the panes take the page's width, a story's text to 14.4 px from the edges (US1, at 120%)", async () => {
     await commands.addSpecFeature({ status: "approved" });
-    await show(PAGE, "Complete a repeating task");
+    await show(PAGE, "US2 · Complete a repeating task");
 
     const width = window.innerWidth;
-    // US5 3's 12 px inset, at the UI look decision's 120% (R5).
+    // The page's 12 px inset, at the UI look decision's 120% (R5).
     const inset = 14.4;
-    for (const name of ["What you approve", "Task storage", "Complete a repeating task"]) {
-      const part = screen.getByRole("region", { name });
-      // The title, the element that names the region, as a decision's heading also holds its
-      // pills: the parts' start at the inset; a decision's, in its pane's top border (R6), at the
-      // pane's title inset past its border, 12 px and the title's 8 px padding, at 120%.
-      const title = document.getElementById(part.getAttribute("aria-labelledby") ?? "");
-      expect(title, name).toBeTruthy();
-      const border = Number.parseFloat(getComputedStyle(part).borderLeftWidth);
-      const titleInset = name === "Task storage" ? border + inset + 9.6 : 0;
-      expect(title!.getBoundingClientRect().left, name).toBeCloseTo(inset + titleInset, 0);
-      // The part takes the page's width, inside its inset.
-      const box = part.getBoundingClientRect();
+    for (const name of [
+      "Approved on 2026-10-18.",
+      "Task storage",
+      "US2 · Complete a repeating task",
+    ]) {
+      // Each pane takes the page's width, inside its inset.
+      const box = screen.getByRole("region", { name }).getBoundingClientRect();
       expect(box.left, name).toBeCloseTo(inset, 0);
       expect(box.right, name).toBeCloseTo(width - inset, 0);
     }
+    // A story keeps only its titled top border on the phone: its text runs to the page's inset.
     const journey = screen.getByText(/Completing a repeating task moves it to its next due date/);
     expect(journey.getBoundingClientRect().left).toBeCloseTo(inset, 0);
     expect(journey.getBoundingClientRect().right).toBeCloseTo(width - inset, 0);
@@ -256,13 +200,13 @@ describe("at both sizes", () => {
   test("a link to a section or a story of the spec opens the page at it", async () => {
     await commands.addSpecFeature();
     for (const anchor of ["us2-complete-a-repeating-task-p1", "user-stories", "risk-tier"]) {
-      await show(`${PAGE}#${anchor}`, "Complete a repeating task");
+      await show(`${PAGE}#${anchor}`, "US2 · Complete a repeating task");
       await expect
         .poll(() => atTop(document.getElementById(anchor)), { message: anchor })
         .toBe(true);
     }
     expect(document.getElementById("us2-complete-a-repeating-task-p1")).toBe(
-      screen.getByRole("region", { name: "Complete a repeating task" }),
+      screen.getByRole("region", { name: "US2 · Complete a repeating task" }),
     );
   });
 

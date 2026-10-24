@@ -153,41 +153,50 @@ export function entriesOf({
   ];
 }
 
-/** Every entry, a tap jumping to its part. */
+/**
+ * Every entry, a tap jumping to its part and focusing its title. Caught around the list: a list
+ * item's link does not call the item's `onClick`.
+ */
 function Entries({ entries }: { entries: ReadonlyArray<Entry> }) {
   return (
-    <List aria-label="Parts" density="compact">
-      {entries.map(({ count, id, label, nested }) => (
-        <ListItem
-          href={`#${id}`}
-          key={id}
-          label={
-            <span {...stylex.props(styles.label)}>
-              {label}
-              {count > 0 && (
-                <>
-                  {" "}
-                  <Badge
-                    label={
-                      <>
-                        {count}
-                        <VisuallyHidden> {count === 1 ? "comment" : "comments"}</VisuallyHidden>
-                      </>
-                    }
-                    variant="warning"
-                  />
-                </>
-              )}
-            </span>
-          }
-          onClick={(event: React.MouseEvent) => {
-            event.preventDefault();
-            jumpTo(id);
-          }}
-          xstyle={nested ? styles.nested : undefined}
-        />
-      ))}
-    </List>
+    <div
+      onClickCapture={(event) => {
+        const link = (event.target as Element).closest("a[href^='#']");
+        if (link) {
+          event.preventDefault();
+          jumpTo(link.getAttribute("href")!.slice(1));
+        }
+      }}
+    >
+      <List aria-label="Parts" density="compact">
+        {entries.map(({ count, id, label, nested }) => (
+          <ListItem
+            href={`#${id}`}
+            key={id}
+            label={
+              <span {...stylex.props(styles.label)}>
+                {label}
+                {count > 0 && (
+                  <>
+                    {" "}
+                    <Badge
+                      label={
+                        <>
+                          {count}
+                          <VisuallyHidden> {count === 1 ? "comment" : "comments"}</VisuallyHidden>
+                        </>
+                      }
+                      variant="warning"
+                    />
+                  </>
+                )}
+              </span>
+            }
+            xstyle={nested ? styles.nested : undefined}
+          />
+        ))}
+      </List>
+    </div>
   );
 }
 

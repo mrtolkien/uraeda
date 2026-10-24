@@ -54,7 +54,7 @@ export async function takeSpecPage(each: Each) {
   });
   await each("spec-page-story", async ({ page }) => {
     await openAll(page);
-    await toTop(page, "Complete a repeating task");
+    await toTop(page, "US2 · Complete a repeating task");
     await settle(page);
   });
   await each("spec-page-built", async ({ page }) => {

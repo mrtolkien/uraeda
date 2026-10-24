@@ -115,7 +115,8 @@ const styles = stylex.create({
   openOnPhone: {
     backgroundColor: "transparent",
     borderBlockEndWidth: 0,
-    borderInlineWidth: 0,
+    borderInlineEndWidth: 0,
+    borderInlineStartWidth: 0,
     paddingInline: 0,
   },
   openOnPhoneActions: { backgroundColor: colorVars["--color-background-surface"] },
@@ -182,6 +183,8 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-2"],
     position: "relative",
     width: "fit-content",
+    // Focused by a jump (`roundJump.ts`), without a ring: the jump shows where it went.
+    outlineStyle: { ":focus:not(:focus-visible)": "none", default: null },
   },
 });
 
@@ -304,6 +307,7 @@ function PaneName({
  * `actions` sit in the top border at its end, as a live window's buttons do, the title wrapping
  * before them, or under them where they leave it too little room; `titleSuffix` follows
  * the title in secondary text, as a live window's size and scale do, outside the pane's name.
+ * With `id`, its heading is `<id>-title`, focusable by script, which a jump to the pane focuses.
  */
 export function Pane({
   actions,
@@ -363,7 +367,9 @@ export function Pane({
       {...stylex.props(styles.pane, isOpen && styles.openOnPhone, margin, border)}
     >
       <Heading
+        id={id === undefined ? undefined : `${id}-title`}
         level={level}
+        tabIndex={id === undefined ? undefined : -1}
         xstyle={[styles.title, isOpen && styles.openOnPhoneTitle, ink, beside]}
       >
         {fold ? (

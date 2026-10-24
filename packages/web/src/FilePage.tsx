@@ -7,13 +7,14 @@ import { useFile } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { PlanPage } from "./PlanPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
+import { DataModelPage } from "./spec/DataModelPage.tsx";
 import { SpecPage } from "./spec/SpecPage.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { StoriesProvider } from "./stories.tsx";
 
 /**
  * A workflow file, on the page its kind needs: a spec, waiting for review or not; a round to answer;
- * a plan, waiting for review or not; or a document to read, its story links embedded.
+ * a plan, waiting for review or not; a data model, in panes; or a document to read, its story links embedded.
  */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);
@@ -44,6 +45,9 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   }
   if (file.kind === "plan") {
     return <PlanPage file={file} />;
+  }
+  if (file.kind === "data-model") {
+    return <DataModelPage file={file} />;
   }
   // A round and a document draw the file as it is now, with the stories it embeds: a story gone
   // from an answered round is a variant removed after its answer.

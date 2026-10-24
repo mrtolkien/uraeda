@@ -126,10 +126,10 @@ const nested = () => screen.findByRole("button", { name: "Nested item" });
 
 /** A story's title, by its id, in the fixture's spec. */
 const STORIES = {
-  US1: "Make a task repeat",
-  US2: "Complete a repeating task",
-  US3: "Repeat on a custom schedule",
-  US4: "Type a repeat in the title",
+  US1: "US1 · Make a task repeat",
+  US2: "US2 · Complete a repeating task",
+  US3: "US3 · Repeat on a custom schedule",
+  US4: "US4 · Type a repeat in the title",
 };
 
 /**
@@ -201,9 +201,10 @@ test("a spec under review shows each story's more scenarios folded", async () =>
   );
   expect(folded(why)).toBe(false);
   expect(folded(screen.getByText(/completes it on Wednesday the 14th/))).toBe(false);
-  for (const scenario of screen.getAllByText(/completes it on (Monday the 5th|Thursday the 8th)/)) {
-    expect(folded(scenario)).toBe(true);
-  }
+  // Folded content is not mounted (UI behaviour decision).
+  expect(screen.queryAllByText(/completes it on (Monday the 5th|Thursday the 8th)/)).toHaveLength(
+    0,
+  );
 });
 
 /** US1.2 */
@@ -241,7 +242,8 @@ test("closing a fold keeps the draft", async () => {
 
   await click(await fold("US2"));
   expect((await fold("US2")).getAttribute("aria-expanded")).toBe("false");
-  expect(folded(screen.getByLabelText("Comment text"))).toBe(true);
+  // Folded, its scenarios and the field under them are not in the page.
+  expect(screen.queryByLabelText("Comment text")).toBeNull();
   await click(await fold("US2"));
 
   expect((await fold("US2")).getAttribute("aria-expanded")).toBe("true");
@@ -672,6 +674,8 @@ test("Request changes during an upload is refused, and commits nothing", async (
   const r = repo();
   const held = holdUploads(r);
   await renderPage(PAGE, r, { fetch: held.fetch });
+  // Folded, the more scenarios are not in the page: opened first.
+  await openUS2();
   await click(await scenario(FIRST));
   await comment("Say it stays.");
   await saved(/^C1/, "Say it stays.");
@@ -747,6 +751,8 @@ async function addedWithImage() {
   await typeComment(`Look: ${commentText()}`);
   await click(screen.getByRole("button", { name: "Add comment" }));
   await saved(/^C1/, "Look:");
+  // Folded, the more scenarios are not in the page: opened first.
+  await openUS2();
   await click(await scenario(FIRST));
   await waitFor(() => expect(commentText()).toBe(""));
 }
@@ -810,6 +816,8 @@ function unloadCancelled() {
 test("on the phone, a new comment left in its closed sheet does not make leaving ask", async () => {
   atWidth(402);
   await renderPage(PAGE, repo());
+  // Folded, the more scenarios are not in the page: opened first.
+  await openUS2();
   await click(await scenario(FIRST));
   const sheet = await screen.findByRole("dialog", { name: "Comment" });
   await act(async () => {
@@ -877,6 +885,8 @@ test("an image picked for a comment does not go into a comment edited during its
   const r = repo();
   const held = holdUploads(r);
   await renderPage(PAGE, r, { fetch: held.fetch });
+  // Folded, the more scenarios are not in the page: opened first.
+  await openUS2();
   await click(await scenario(FIRST));
   await comment("Say it stays.");
   const pending = await saved(/^C1/, "Say it stays.");

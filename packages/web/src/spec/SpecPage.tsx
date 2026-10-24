@@ -1,16 +1,17 @@
 // The spec page: a spec read as one page you approve in one sitting, waiting for your review or
-// not. What you approve, your review answered, the decisions, the stories, the data, then how it is
-// built and its limits, and its history, folded. On a wide screen, each part is a card, "Contents"
-// beside them; on the phone, bands between the groups, each part's title sticking under the top
-// bar. The only file that wires the parts: each takes what it needs from here.
+// not, each part a titled pane. What you approve, your review answered, the decisions, the stories,
+// the data, then how it is built, and its history, folded; a group's heading counts what it holds.
+// "Contents" beside them on a wide screen. The only file that wires the parts: each takes what it
+// needs from here.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import type { DecisionChange, Document } from "uraeda-binding";
+import type { DataModelItems, DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Crumbs } from "../Crumbs.tsx";
 import { useFile } from "../data.ts";
@@ -49,15 +50,11 @@ import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
 
 const styles = stylex.create({
-  band: {
-    // On the phone, a band between the spec's groups, to the screen's edges.
-    backgroundColor: colorVars["--color-background-muted"],
-    height: spacingVars["--spacing-2"],
-    marginInline: "var(--page-bleed)",
-  },
+  // What a group's heading counts, after its title, in the secondary colour.
+  detail: { color: colorVars["--color-text-secondary"] },
+  heading: { alignItems: "center", display: "flex", gap: spacingVars["--spacing-2"] },
   layer: {
-    // The page's parts in a layer of their own, under the top bar: on the phone, a part's sticking
-    // head, pushed up as its part scrolls away, slides under the bar rather than over it.
+    // The page's parts in a layer of their own, under the top bar.
     isolation: "isolate",
   },
   title: {
@@ -72,37 +69,56 @@ const STATUSES: Record<string, { label: string; variant: "neutral" | "success" |
   "awaiting-human": { label: "Waiting for your review", variant: "warning" },
 };
 
-/** On the phone, a band between the spec's groups, to the screen's edges. */
-function Band() {
-  return <div {...stylex.props(styles.band)} />;
-}
-
-/** A group of the spec's parts: on the phone, after a band; its title, then its parts. */
+/**
+ * A group of the spec's parts: its heading, its icon, title, and what it counts ("· 4"), then its
+ * parts.
+ */
 function Group({
   children,
+  detail,
+  icon,
   id,
   title,
   wide,
 }: {
   children: ReactNode;
+  detail?: string;
+  icon?: `uraeda:${string}`;
   id: string;
   title: string;
   wide: boolean;
 }) {
   return (
     <VStack gap={wide ? 4 : 3}>
-      {!wide && <Band />}
       <div
         id={id}
         {...stylex.props(wide ? scrollMarginStyles.belowNothing : scrollMarginStyles.belowBar)}
       >
-        <Heading id={`${id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
-          {title}
+        <Heading id={`${id}-title`} level={2} tabIndex={-1} xstyle={[styles.title, styles.heading]}>
+          {icon && <Icon icon={icon} />}
+          <span>
+            {title}
+            {detail && <span {...stylex.props(styles.detail)}> · {detail}</span>}
+          </span>
         </Heading>
       </div>
       <VStack gap={wide ? 6 : 4}>{children}</VStack>
     </VStack>
   );
+}
+
+/** What the decisions' heading counts: "1 new, 1 changed, 1 removed", of the decisions listed. */
+function decisionCounts(items: SpecItems, changes: ReadonlyArray<DecisionChange>) {
+  const byName = new Map(changes.map((change) => [change.name, change]));
+  const kinds = items.decisions.map((item) => {
+    const change = byName.get(item.name);
+    return change?.compared ? change.kind : item.kind;
+  });
+  return ["new", "changed", "removed"]
+    .map((kind) => [kind, kinds.filter((k) => k === kind).length] as const)
+    .filter(([, count]) => count > 0)
+    .map(([kind, count]) => `${count} ${kind}`)
+    .join(", ");
 }
 
 /** The spec's title, after its status. */
@@ -140,7 +156,7 @@ function Groups({
   part,
 }: {
   changes: ReadonlyArray<DecisionChange>;
-  data: File["current"] | undefined;
+  data: { document: Document; model: DataModelItems } | undefined;
   items: SpecItems;
   part: PartProps;
 }) {
@@ -152,6 +168,8 @@ function Groups({
     <>
       {(decisions || changes.length > 0) && (
         <Group
+          detail={decisionCounts(items, changes)}
+          icon="uraeda:scale"
           id={groupId(items, GROUPS.decisions)}
           title={GROUPS.decisions.title}
           wide={part.wide}
@@ -160,7 +178,13 @@ function Groups({
         </Group>
       )}
       {stories && (
-        <Group id={groupId(items, GROUPS.stories)} title={GROUPS.stories.title} wide={part.wide}>
+        <Group
+          detail={String(items.stories.length)}
+          icon="uraeda:map"
+          id={groupId(items, GROUPS.stories)}
+          title={GROUPS.stories.title}
+          wide={part.wide}
+        >
           {intro.length > 0 && (
             <Blocks document={part.document} ids={intro} selection={part.selection} />
           )}
@@ -170,12 +194,23 @@ function Groups({
         </Group>
       )}
       {data && (
-        <Group id={GROUPS.data.id} title={GROUPS.data.title} wide={part.wide}>
-          <DataPart document={data.document} folder={part.folder} wide={part.wide} />
+        <Group
+          detail={`data-model.md · ${data.model.sections.length}`}
+          icon="uraeda:database"
+          id={GROUPS.data.id}
+          title={GROUPS.data.title}
+          wide={part.wide}
+        >
+          <DataPart document={data.document} model={data.model} />
         </Group>
       )}
       {hasBuilt && (
-        <Group id={GROUPS.built.id} title={GROUPS.built.title} wide={part.wide}>
+        <Group
+          icon="uraeda:layers"
+          id={GROUPS.built.id}
+          title={GROUPS.built.title}
+          wide={part.wide}
+        >
           <BuiltParts {...part} items={items} />
         </Group>
       )}
@@ -206,12 +241,14 @@ function SpecLayout({
   const shown = useContentsShown();
   const dataFile = useFile(file.folder, "data-model.md");
   // As the spec, the data model waiting for a review is the committed one, not the disk's.
-  const data =
+  const dataVersion =
     dataFile && !dataFile.missing
       ? review
         ? (dataFile.committed ?? dataFile.current)
         : dataFile.current
       : undefined;
+  const dataModel = dataVersion?.items.dataModel;
+  const data = dataVersion && dataModel && { document: dataVersion.document, model: dataModel };
   const version = review?.version ?? file.current;
   const items = version.items.spec;
   // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its part.
@@ -244,16 +281,13 @@ function SpecLayout({
           </VStack>
           <SpecOpening document={document} items={items} selection={part.selection} />
           {partOf(items, "Your review") && (
-            <>
-              {!wide && <Band />}
-              <ReviewAnswers
-                comments={answeredComments(file)}
-                document={document}
-                items={items}
-                selection={part.selection}
-                wide={wide}
-              />
-            </>
+            <ReviewAnswers
+              comments={answeredComments(file)}
+              document={document}
+              items={items}
+              selection={part.selection}
+              wide={wide}
+            />
           )}
           <Groups changes={changes} data={data} items={items} part={part} />
           <SpecHistory document={document} items={items} />

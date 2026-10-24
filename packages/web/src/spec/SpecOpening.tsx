@@ -1,8 +1,10 @@
-// "What you approve", the spec page's first part: the block's record or request, the time and the
-// risk tier as pills, the "You approve" item as the page's lead, the block's other items, the text
-// before the first section, then the constitution's principles as a strip of pills and the risk
-// tier's reason. Each item and paragraph takes a comment as the spec's other blocks do.
+// "What you approve", the spec page's first part: a pane titled by the block's first line, its record
+// or request, the "You approve" item as the page's lead, the block's other items, the text before
+// the first section, then, at the pane's foot under a separator (C1), the time and the risk tier as
+// pills, the constitution's principles as a strip of pills, and the risk tier's reason. Each item
+// and paragraph takes a comment as the spec's other blocks do.
 import { Badge } from "@astryxdesign/core/Badge";
+import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -11,9 +13,9 @@ import { fontWeightVars, spacingVars, typeScaleVars } from "@astryxdesign/core/t
 import * as stylex from "@stylexjs/stylex";
 import type { Block, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { Selectable, type Selection } from "../Selection.tsx";
-import { Spans } from "../Spans.tsx";
-import { Panel } from "./Panel.tsx";
+import { plain, Spans } from "../Spans.tsx";
 import { GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
 const styles = stylex.create({
@@ -143,11 +145,42 @@ function Principles({ items }: { items: SpecItems }) {
   );
 }
 
+/** The block's foot, after a separator (C1): the pills, the principles, and the risk's reason. */
+function Foot({
+  document,
+  items,
+  selection,
+}: Pick<PartProps, "document" | "selection"> & { items: SpecItems }) {
+  const constitution = partOf(items, "Constitution check");
+  const risk = partOf(items, "Risk tier");
+  const constitutionBlocks = constitution?.blocks.filter(
+    (id) => document.blocks[id]?.kind !== "table",
+  );
+  return (
+    <>
+      <Divider />
+      <Pills items={items} />
+      {constitution && (
+        <div id={constitution.anchor} {...stylex.props(styles.section)}>
+          <Principles items={items} />
+          {constitutionBlocks && constitutionBlocks.length > 0 && (
+            <Blocks document={document} ids={constitutionBlocks} selection={selection} />
+          )}
+        </div>
+      )}
+      {risk && risk.blocks.length > 0 && (
+        <div id={risk.anchor} {...stylex.props(styles.section)}>
+          <Blocks document={document} ids={risk.blocks} selection={selection} />
+        </div>
+      )}
+    </>
+  );
+}
+
 /**
- * What you approve: the block's first paragraph, its record or its request; the time and the risk
- * tier; the "You approve" item large, then the block's other items; the text between the block and
- * the first section; the constitution's principles, and the text under their table; the risk
- * tier's reason.
+ * What you approve, a pane in the accent titled by the block's first paragraph, its record or its
+ * request ("Spec to review, revision 2, about 10 minutes."): the "You approve" item large, then the
+ * block's other items; the text between the block and the first section; then its foot.
  */
 export function SpecOpening({
   document,
@@ -164,43 +197,24 @@ export function SpecOpening({
   const intro = childrenOf(document, null)
     .filter((b) => b.id < first && b.id !== items.block && !(b.kind === "heading" && b.level === 1))
     .map((b) => b.id);
-  const constitution = partOf(items, "Constitution check");
-  const risk = partOf(items, "Risk tier");
-  const constitutionBlocks = constitution?.blocks.filter(
-    (id) => document.blocks[id]?.kind !== "table",
-  );
+  const title = record ? plain(record.spans).trim() : "";
   return (
-    <Panel crumbs={[]} id={GROUPS.approve.id} title={GROUPS.approve.title}>
-      {record && (
-        <Selectable block={record} selection={selection}>
-          <Text color="secondary" display="block" type="supporting">
-            <Spans spans={record.spans} />
-          </Text>
-        </Selectable>
-      )}
-      <Pills items={items} />
-      {lead && <Bullet isLead item={lead} selection={selection} />}
-      {bullets
-        .filter((b) => b !== lead)
-        .map((item) => (
-          <Bullet isLead={false} item={item} key={item.id} selection={selection} />
-        ))}
-      {intro.length > 0 && <Blocks document={document} ids={intro} selection={selection} />}
-      {constitution && (
-        <div id={constitution.anchor} {...stylex.props(styles.section)}>
-          <Principles items={items} />
-          {constitutionBlocks && constitutionBlocks.length > 0 && (
-            <Blocks document={document} ids={constitutionBlocks} selection={selection} />
-          )}
-        </div>
-      )}
-      {risk && (
-        <div id={risk.anchor} {...stylex.props(styles.section)}>
-          {risk.blocks.length > 0 && (
-            <Blocks document={document} ids={risk.blocks} selection={selection} />
-          )}
-        </div>
-      )}
-    </Panel>
+    <Pane
+      icon="uraeda:badge-check"
+      id={GROUPS.approve.id}
+      isActive
+      title={title || GROUPS.approve.title}
+    >
+      <VStack gap={3}>
+        {lead && <Bullet isLead item={lead} selection={selection} />}
+        {bullets
+          .filter((b) => b !== lead)
+          .map((item) => (
+            <Bullet isLead={false} item={item} key={item.id} selection={selection} />
+          ))}
+        {intro.length > 0 && <Blocks document={document} ids={intro} selection={selection} />}
+        <Foot document={document} items={items} selection={selection} />
+      </VStack>
+    </Pane>
   );
 }

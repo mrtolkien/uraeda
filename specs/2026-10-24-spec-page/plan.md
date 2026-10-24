@@ -696,11 +696,14 @@ candidates, and the decisions check.
 - Modify: `packages/web/src/spec/SpecPage.tsx`, `src/spec/SpecOpening.tsx`,
   `src/spec/ReviewAnswers.tsx`, `src/spec/StoryCard.tsx`, `src/spec/DataPart.tsx` (from
   `Items.dataModel`), `src/spec/SpecHistory.tsx`, `src/spec/parts.ts`, `src/FilePage.tsx` (a data
-  model alone to `DataModelPage`)
+  model alone to `DataModelPage`), `src/views.ts` (`dataModel`), `src/layout/Pane.tsx` (a pane's
+  heading is `<id>-title`, R14), `src/spec/SpecContents.tsx` and `src/Folds.tsx` (jumps, R14),
+  `src/theme/lucideParts.ts` and `src/theme/icons.ts` (`badge-check`, `map`, `scale`, `database`)
 - Create: `src/spec/DataModelPage.tsx`
 - Delete: `src/spec/Panel.tsx`
 - Test: `src/__tests__/spec-panes.test.tsx` (create); `spec-page.test.tsx`, `spec-parts.test.tsx`,
-  `spec-stories.test.tsx`, and `__browser__/spec.test.tsx` follow the panes (R2)
+  `spec-stories.test.tsx`, `review.test.tsx`, and `__browser__/spec.test.tsx`, `review.test.tsx`,
+  `attach.test.tsx` follow the panes (R2, R13)
 
 **Interfaces:**
 
@@ -711,10 +714,12 @@ candidates, and the decisions check.
   the principles, and the risk's reason (C1); "Your review, answered"; a heading "Decisions · 1 new,
   1 changed, 1 removed" with the ledger's panes; "User stories · N" with a pane per story titled
   "US1 · <title>" and its priority; "Data · data-model.md · N" with a pane per section, its changes
-  as badges; "How it is built"; history folded. The ids of `parts.ts` stay, for Contents.
-  `DataModelPage({ file })` draws a data model alone with the same panes.
+  as badges; "How it is built"; history folded in a pane, not mounted while folded, as a story's
+  more scenarios are. The ids of `parts.ts` stay, for Contents. On the phone, no band and no
+  sticking head; a story's pane keeps only its top border (R13). `DataModelPage({ file })` draws a
+  data model alone with the same panes.
 
-- [ ] **Step 1: Write the failing tests** in `spec-panes.test.tsx`, on the spec-page fixture: the
+- [x] **Step 1: Write the failing tests** in `spec-panes.test.tsx`, on the spec-page fixture: the
       first region is "Spec to review, revision 2, about 10 minutes." holding "You approve" before
       any other item (US1 key 1); the principles come after a separator in that region (C1); a
       heading "Decisions · 1 new, 1 changed, 1 removed" follows the region "Your review, answered"
@@ -722,13 +727,13 @@ candidates, and the decisions check.
       "Changed" badges (US1 more 1); `/f/<folder>/data-model.md` shows the same regions (US1 more
       2); the approved fixture shows the panes and no "Approve" (US1 more 3). Break: a data model
       parsed again in the web, which the core's sections would not match.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/spec-panes.test.tsx`. Expected: FAIL, no region "Spec to
       review, revision 2, about 10 minutes.".
-- [ ] **Step 3: Implement**, deleting `Panel.tsx` and `DataPart`'s parsing.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the spec page's UI tests,
+- [x] **Step 3: Implement**, deleting `Panel.tsx` and `DataPart`'s parsing.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the spec page's UI tests,
       and `spec.test.tsx` and `spec-parts.test.tsx` in both browser projects. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(spec-page): the spec's parts in titled panes"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(spec-page): the spec's parts in titled panes"`.
 
 ## Task 10: Contents and Review beside the spec and the plan
 

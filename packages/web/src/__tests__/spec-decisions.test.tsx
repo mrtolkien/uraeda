@@ -329,7 +329,7 @@ test("a decision's part selected opens no fold of the spec on the same lines", a
 
   await click(partOf(await card("Task storage"), CORRUPTED));
   expect(screen.getByText('Decision task-storage, lines 65–66, under "Rules"')).toBeTruthy();
-  const story = await screen.findByRole("region", { name: "Make a task repeat" });
+  const story = await screen.findByRole("region", { name: "US1 · Make a task repeat" });
   const fold = within(story)
     .getAllByRole("button", { name: /^(1 more scenario|Fold the other scenarios)$/ })
     .find((button) => button.hasAttribute("aria-expanded"));
@@ -346,7 +346,7 @@ test("a decision's folds opened are open again on Back, with the stories' folds"
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
   await click(within(await card("Task storage")).getByRole("button", { name: OTHERS }));
-  const story = await screen.findByRole("region", { name: "Complete a repeating task" });
+  const story = await screen.findByRole("region", { name: "US2 · Complete a repeating task" });
   await click(within(story).getByRole("button", { name: "3 more scenarios" }));
 
   await act(async () => navigate(atRepo(`/f/${SPEC_FEATURE}/proposal.md`)));
@@ -355,7 +355,7 @@ test("a decision's folds opened are open again on Back, with the stories' folds"
 
   const fold = within(await card("Task storage")).getByRole("button", { name: OTHERS });
   expect(fold.getAttribute("aria-expanded")).toBe("true");
-  const again = await screen.findByRole("region", { name: "Complete a repeating task" });
+  const again = await screen.findByRole("region", { name: "US2 · Complete a repeating task" });
   expect(within(again).getByRole("button", { name: "Fold the other scenarios" })).toBeTruthy();
 });
 

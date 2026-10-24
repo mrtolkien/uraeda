@@ -159,3 +159,40 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   font.
 - **If wrong**: the file moves to `Prose` with the rest of the list's files.
 - **Where**: Task 6, `src/__tests__/lint.test.ts`.
+
+## R13: The phone's sticking part heads and bands give way to the panes
+
+- **Decision**: on the phone, the spec's parts are panes like on a wide screen: no band between the
+  groups, and no part's title and breadcrumbs sticking under the top bar. A story's pane keeps only
+  its titled top border on the phone (`isOpenOnPhone`), so its text and its live window take the
+  page's width. The browser tests of the sticking heads go; the test of the parts' width checks the
+  panes and a story's text at the page's 14.4 px inset; the band test checks that the answers' pane
+  follows the block's. The block's record ("Spec to review, revision 2, about 10 minutes.") is the
+  pane's title, no longer a paragraph that takes a comment. The groups read "User stories" and "How
+  it is built", as the mockup names them, in Contents too. History folds through the pane's fold,
+  its records not mounted while folded.
+- **Rationale**: US1 and the mockup draw every part as a titled pane, with no sticking head nor
+  band; the UI behaviour decision forbids folded content mounted. A story's live window, inside two
+  bordered panes, fell under the phone's 90% scale R7 states.
+- **Alternatives considered**: keeping a sticking head inside each pane, a second title the mockup
+  does not draw; every spec pane open on the phone, a look the decisions' and built panes (Tasks
+  4, 6) do not share.
+- **If wrong**: the sticking head comes back from git history (`spec/Panel.tsx`); `isOpenOnPhone` on
+  more panes is one prop each.
+- **Where**: Task 9, `src/__browser__/spec.test.tsx`, `src/__tests__/spec-page.test.tsx`.
+
+## R14: A jump to a pane focuses its title, and lands under the bar once
+
+- **Decision**: `Pane` with an `id` gives its heading `<id>-title`, focusable by script, so `jumpTo`
+  focuses it as it did the old card's. "Contents" catches its links' clicks around its list to call
+  `jumpTo`: an Astryx list item's link never called the item's `onClick`, so a tap followed the hash
+  and focused nothing. `scrollBelowBar` no longer subtracts the top bar for an element with a scroll
+  margin, which already counts it: a link to a story put its pane 74 px lower than the margin, past
+  the browser test's tolerance. `Pane`'s open-on-phone style removes the inline borders by their
+  longhands, which the shorthand `borderWidth` overrode.
+- **Rationale**: the review's finding that a jump from Contents left the focus in the column; the
+  pane's scroll margin owns the room above it.
+- **Alternatives considered**: Contents' entries as buttons, which the tests and screen readers find
+  as links; a wider tolerance in the anchor test, which hides the double offset.
+- **If wrong**: Task 10 rebuilds Contents; `scrollBelowBar` is one condition in `Folds.tsx`.
+- **Where**: Task 9, `layout/Pane.tsx`, `spec/SpecContents.tsx`, `Folds.tsx`.

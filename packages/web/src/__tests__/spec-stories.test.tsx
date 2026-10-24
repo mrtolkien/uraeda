@@ -51,7 +51,7 @@ test("a story shows its key scenarios, and the others behind a button", async ()
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const story = await card("Complete a repeating task");
+  const story = await card("US2 · Complete a repeating task");
   expect(scenariosOf(story)).toHaveLength(2);
   await click(button(story, "3 more scenarios"));
 
@@ -68,13 +68,13 @@ test("stories embed their mockups live, and an HTML mockup draws live", async ()
   addPreview(repo);
   await renderPage(PAGE, repo);
 
-  const html = await card("Type a repeat in the title");
+  const html = await card("US4 · Type a repeat in the title");
   expect(screen.queryByRole("button", { name: /Open the mockup/ })).toBeNull();
   const frames = [
-    ["Make a task repeat", "Repeat menu, open"],
-    ["Complete a repeating task", "Repeating task, completed"],
-    ["Repeat on a custom schedule", "Custom repeat screen"],
-    ["Type a repeat in the title", "Title with a repeat phrase"],
+    ["US1 · Make a task repeat", "Repeat menu, open"],
+    ["US2 · Complete a repeating task", "Repeating task, completed"],
+    ["US3 · Repeat on a custom schedule", "Custom repeat screen"],
+    ["US4 · Type a repeat in the title", "Title with a repeat phrase"],
   ];
   for (const [title, label] of frames) {
     const story = await card(title!);
@@ -91,7 +91,7 @@ test("a story without more scenarios has no fold button", async () => {
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const story = await card("Repeat on a custom schedule");
+  const story = await card("US3 · Repeat on a custom schedule");
   expect(scenariosOf(story)).toHaveLength(2);
   expect(within(story).queryByRole("button", { name: /more scenario/ })).toBeNull();
   expect(within(story).queryByRole("button", { name: "Fold the other scenarios" })).toBeNull();
@@ -102,7 +102,7 @@ test("a tap on a scenario opens the comment form on its lines", async () => {
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const story = await card("Repeat on a custom schedule");
+  const story = await card("US3 · Repeat on a custom schedule");
   await click(scenariosOf(story)[0]!);
 
   await waitFor(() => expect(screen.getByLabelText("Comment text")).toBeTruthy());
@@ -127,7 +127,7 @@ test("a scenario's Given, When, and Then start its rows with their words", async
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const story = await card("Repeat on a custom schedule");
+  const story = await card("US3 · Repeat on a custom schedule");
   const [first, second] = scenariosOf(story);
 
   expect(rows(first!)).toEqual([

@@ -290,15 +290,16 @@ test("the data model shows its committed version while the worktree holds an edi
   expect(screen.queryByRole("region", { name: "Uncommitted entity" })).toBeNull();
 });
 
-/** The text before the first entity sits in a card of its own, as the entities do. */
-test("the data model's intro is drawn in a part of its own", async () => {
+/** The text before the first entity shows under "Data", before the entities' panes, in none. */
+test("the data model's intro is drawn before its entities", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const intro = await region("Data model");
-  expect(intro.textContent).toContain("Entities that the feature adds or changes.");
-  expect(within(intro).queryByRole("table")).toBeNull();
+  const task = await region("Task");
+  const intro = screen.getByText("Entities that the feature adds or changes.");
+  expect(intro.compareDocumentPosition(task) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getAllByRole("region").some((pane) => pane.contains(intro))).toBe(false);
 });
 
 /** Review focus 5 */
@@ -310,7 +311,7 @@ test("a spec without a data model has no Data part", async () => {
 
   await region("Architecture");
   expect(await entries()).not.toContain("Data");
-  expect(screen.queryByRole("heading", { name: "Data" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: /^Data/ })).toBeNull();
   expect(screen.queryByRole("region", { name: "Task" })).toBeNull();
 });
 

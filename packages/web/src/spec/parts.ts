@@ -37,11 +37,11 @@ export type PartProps = {
 export const GROUPS = {
   answers: { id: "your-review", part: "Your review", title: "Your review, answered" },
   approve: { id: "what-you-approve", title: "What you approve" },
-  built: { id: "how-it-is-built", title: "How it is built, and its limits" },
+  built: { id: "how-it-is-built", title: "How it is built" },
   data: { id: "data", title: "Data" },
   decisions: { id: "decisions", part: "Decisions", title: "Decisions" },
   history: { id: "history", part: "History", title: "History" },
-  stories: { id: "user-stories", part: "User stories", title: "What changes for users" },
+  stories: { id: "user-stories", part: "User stories", title: "User stories" },
 } as const;
 
 type Group = (typeof GROUPS)[keyof typeof GROUPS];
