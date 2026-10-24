@@ -80,8 +80,8 @@ const LABELS: Record<Strength, string> = {
 
 /**
  * The words of a part, as the core compared them: added ones in an `ins`, removed ones in a `del`.
- * `whole` for a part added or removed whole: an added one reads plain, its sign saying so, a removed
- * one struck in one `del`.
+ * `whole` for a part added or removed whole: an added one reads plain, its sign saying so, a
+ * removed one struck in one `del`.
  */
 export function Runs({ runs, whole = false }: { runs: ReadonlyArray<Run>; whole?: boolean }) {
   if (whole) {

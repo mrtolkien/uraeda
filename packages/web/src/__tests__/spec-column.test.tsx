@@ -1,8 +1,8 @@
 // Spec page US4 key 2, more 2 and 3, US1 key 3, SC-004, and Review focus 4: beside the spec, the
 // questions page's column holds Contents, open first, and Review while a review waits. Review lists
 // the pending comments by their places, a tap bringing each one's block to the top, then the
-// verdict's buttons, which commit the risk tier set at the page's end. A typed comment stays through
-// tabs and widths. On the phone, no column: the status line holds Contents, the count, and Verdict.
+// verdict's buttons, which commit the risk tier set at the page's end. A typed comment stays
+// through tabs and widths. On the phone, no column: the status line holds Contents, the count, and Verdict.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";

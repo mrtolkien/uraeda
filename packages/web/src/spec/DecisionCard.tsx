@@ -1,9 +1,9 @@
 // A decision's change, on every page that draws one: a pane toned by its kind, green when new,
 // mauve when changed, red when removed, titled by the decision with its kind's pill and its fields'
-// change after it, then what the spec says of it, then the ledger (`ledger/`): its intent, its rules
-// not kept first, each with its sign and its words marked inside, the rest folded with its count. A
-// tap on a part, while the spec waits for review, starts a comment on its lines in the decision's
-// file.
+// change after it, then what the spec says of it, then the ledger (`ledger/`): its intent, its
+// rules not kept first, each with its sign and its words marked inside, the rest folded with its
+// count. A tap on a part, while the spec waits for review, starts a comment on its lines in the
+// decision's file.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
@@ -120,7 +120,9 @@ function ChangeBody({
   );
 }
 
-/** A decision's pane: its title and pills, what the spec says of it, its ledger, its page's link. */
+/**
+ * A decision's pane: its title and pills, what the spec says of it, its ledger, its page's link.
+ */
 export function DecisionCard(props: DecisionCardProps) {
   const { change, crumbs, href, id, kind, note, title, unlisted = false } = props;
   const fields = fieldsOf(change);

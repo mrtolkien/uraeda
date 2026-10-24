@@ -3,7 +3,6 @@
 // a tap jumping to it.
 import { Badge } from "@astryxdesign/core/Badge";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { CommentItem, DecisionChange, Document } from "uraeda-binding";
@@ -11,6 +10,7 @@ import { holderOf } from "../reviewField.ts";
 import { SinceSign } from "../sinceMarks.tsx";
 import { jumpTo, useQuestionAtTop } from "../roundJump.ts";
 import { useColumnGo } from "./columnGo.ts";
+import { CommentCount } from "./CommentCount.tsx";
 import {
   BUILT_PARTS,
   decisionId,
@@ -165,15 +165,7 @@ export function Contents({ entries }: { entries: ReadonlyArray<Entry> }) {
                 {count > 0 && (
                   <>
                     {" "}
-                    <Badge
-                      label={
-                        <>
-                          {count}
-                          <VisuallyHidden> {count === 1 ? "comment" : "comments"}</VisuallyHidden>
-                        </>
-                      }
-                      variant="warning"
-                    />
+                    <Badge label={<CommentCount count={count} />} variant="warning" />
                   </>
                 )}
               </span>

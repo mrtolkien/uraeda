@@ -1,6 +1,6 @@
 // Spec page US4 key 2 and Review focus 4: the Review tab's verdict is the page's one verdict. A
-// hook's refusal of the tab's commit shows in the tab, and Try again, wherever it is pressed, starts
-// the agent the verdict asked for.
+// hook's refusal of the tab's commit shows in the tab, and Try again, wherever it is pressed,
+// starts the agent the verdict asked for.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
@@ -101,7 +101,7 @@ test("General comment in the tab focuses the comment's field", async () => {
   await waitFor(() => expect(document.activeElement).toBe(field));
 });
 
-/** US1 key 3: with no comment, Request changes is inert, and the verdict's focus goes to Approve. */
+/** US1 key 3: with no comment, Request changes is inert: the verdict's focus goes to Approve. */
 test("with no comment, the page's end focuses Approve", async () => {
   await renderPage(SPEC, fixtureRepo());
 

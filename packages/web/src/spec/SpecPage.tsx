@@ -1,8 +1,8 @@
 // The spec page: a spec read as one page you approve in one sitting, waiting for your review or
 // not, each part a titled pane. What you approve, your review answered, the decisions, the stories,
 // the data, then how it is built, and its history, folded; a group's heading counts what it holds.
-// The column of Contents and Review beside them, on the phone in the status line. The only file that wires the parts: each takes what it
-// needs from here.
+// The column of Contents and Review beside them, on the phone in the status line. The only file
+// that wires the parts: each takes what it needs from here.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -266,7 +266,8 @@ function SpecLayout({
   const data = dataVersion && dataModel && { document: dataVersion.document, model: dataModel };
   const version = review?.version ?? file.current;
   const items = version.items.spec;
-  // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its part.
+  // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its
+  // part.
   useHashFold(version.document, folds, true);
   if (!items) {
     return null;
@@ -329,7 +330,9 @@ function SpecLayout({
   );
 }
 
-/** A spec waiting for your review: its parts take comments, and its verdict is at the page's end. */
+/**
+ * A spec waiting for your review: its parts take comments, and its verdict is at the page's end.
+ */
 function WaitingSpec({ file }: { file: File }) {
   const wide = !isNarrow(useWidthClass());
   const session = usePageSession(file);

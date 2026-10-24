@@ -21,6 +21,7 @@ import { toVerdict, useVerdict, VERDICT_ID, VerdictNotices, Verdicts } from "../
 import { ReviewImagesContext } from "../useReviewImages.ts";
 import type { File } from "./parts.ts";
 import { ColumnVerdict, useColumnGo } from "./columnGo.ts";
+import { commentsLabel } from "./CommentCount.tsx";
 
 const styles = stylex.create({
   text: {
@@ -87,11 +88,7 @@ function Summary({ count }: { count: number }) {
       </Text>
     );
   }
-  return (
-    <Text weight="semibold">
-      {count} {count === 1 ? "comment" : "comments"}, unsent
-    </Text>
-  );
+  return <Text weight="semibold">{commentsLabel(count)}, unsent</Text>;
 }
 
 /** The pending comments, each a button named by its place, its text under it. */
@@ -125,6 +122,9 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
   const { retry, verdict } = useVerdict(file, choices, refusals);
   const hold = images?.hold;
   const { error, message } = refusals;
+  // What the end's form holds: a plan's has no risk tier and no plan review.
+  const rest =
+    file.kind === "spec" ? "Risk tier, plan review, and your summary are" : "Your summary is";
   return (
     <VStack gap={3}>
       <Summary count={comments.length} />
@@ -155,8 +155,7 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
         </span>
       )}
       <Text color="secondary" type="supporting">
-        {file.kind === "spec" ? "Risk tier, plan review, and your summary are" : "Your summary is"}{" "}
-        with the verdict at{" "}
+        {rest} with the verdict at{" "}
         <Link
           hasUnderline
           href={`#${VERDICT_ID}`}

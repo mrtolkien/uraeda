@@ -6,7 +6,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import type { ReactNode } from "react";
 import { type ColumnTab, DocumentColumn } from "../layout/DocumentColumn.tsx";
 import { Overlay } from "../layout/Overlay.tsx";
@@ -14,6 +13,7 @@ import { TopBarSlot } from "../layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Review } from "../review/useReview.tsx";
 import { ColumnGo, ColumnVerdict } from "./columnGo.ts";
+import { CommentCount, commentsLabel } from "./CommentCount.tsx";
 import type { File } from "./parts.ts";
 import { ReviewTab } from "./ReviewTab.tsx";
 import { toVerdict } from "../ReviewVerdict.tsx";
@@ -22,16 +22,6 @@ import { afterSheetCloses } from "../roundJump.ts";
 import { navigateHere } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
 import { SHEETS, useSheetTab } from "./useSheetTab.ts";
-
-/** "N comments", the count read out after its number. */
-function Count({ count }: { count: number }) {
-  return (
-    <>
-      {count}
-      <VisuallyHidden> {count === 1 ? "comment" : "comments"}</VisuallyHidden>
-    </>
-  );
-}
 
 /**
  * On the phone, the column's panels outside the page: the status line's Contents, the comments'
@@ -80,7 +70,7 @@ function PhoneParts({
             <>
               <Button
                 icon={<Icon icon="uraeda:comment" />}
-                label={`${review.count} ${review.count === 1 ? "comment" : "comments"}`}
+                label={commentsLabel(review.count)}
                 onClick={() => setSheet("review")}
                 variant="ghost"
               >
@@ -100,7 +90,7 @@ function PhoneParts({
         </HStack>
       </TopBarSlot>
       <ColumnGo value={go}>
-        {/* No field to type in: the sheet needs no room for a keyboard, and the page shows above. */}
+        {/* No field to type in: the sheet needs no room for a keyboard, the page showing above. */}
         <Overlay
           isOpen={sheet === "contents"}
           label={SHEETS.contents}
@@ -146,7 +136,7 @@ export function SpecColumn({
     ...(review
       ? [
           {
-            ...(count > 0 ? { badge: <Count count={count} /> } : {}),
+            ...(count > 0 ? { badge: <CommentCount count={count} /> } : {}),
             icon: "uraeda:comment" as const,
             key: "review",
             label: "Review",

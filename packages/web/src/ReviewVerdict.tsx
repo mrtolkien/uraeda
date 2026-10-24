@@ -32,9 +32,9 @@ export type Refusals = ReturnType<typeof useRefusals> & {
 
 /**
  * Runs a review's writes, one result shown at a time: a hook's refusal, with its output, or any
- * other refusal as a message. Resolves with whether the write was done. `continues` keeps the verdict
- * last committed to start the agent, and `continued` reads it, once for the page, so a Try again
- * anywhere starts it.
+ * other refusal as a message. Resolves with whether the write was done. `continues` keeps the
+ * verdict last committed to start the agent, and `continued` reads it, once for the page, so a Try
+ * again anywhere starts it.
  */
 export function useRefusals() {
   const [error, setError] = useState<Refusal>();
@@ -247,8 +247,11 @@ export function ReviewVerdict({
   );
 }
 
-/** The element holding the page's end's verdict buttons, which "Verdict" brings into view. */
-export const VERDICT_ID = "verdict";
+/**
+ * The element holding the page's end's verdict buttons, which "Verdict" brings into view: its colon,
+ * which no heading's anchor holds, keeps it apart from them.
+ */
+export const VERDICT_ID = "review:verdict";
 
 /**
  * Brings the page's end's verdict into view, its first button that can be pressed focused, not one

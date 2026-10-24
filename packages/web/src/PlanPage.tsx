@@ -110,7 +110,8 @@ function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSect
 
 /**
  * The plan in its file's order: its title and status, the blocks before its first section, each
- * lead paragraph a pane, then each section a pane, a task's with its steps checked out of its total.
+ * lead paragraph a pane, then each section a pane, a task's with its steps checked out of its
+ * total.
  */
 function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; items?: PlanItems }) {
   const { document } = drawing;
