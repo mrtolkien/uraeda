@@ -15,7 +15,7 @@ import { useStaticImages } from "./ImageView.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
-import { SinceScoped, SinceWords } from "./sinceMarks.tsx";
+import { SinceBlock, SinceScoped, SinceWords } from "./sinceMarks.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
@@ -400,7 +400,11 @@ function BlockNode({ block, context }: { block: Block; context: BlockContext }):
     return own;
   }
   if (story || mockup) {
-    return <EmbedNode block={block} context={context} />;
+    return (
+      <SinceBlock block={block}>
+        <EmbedNode block={block} context={context} />
+      </SinceBlock>
+    );
   }
   const node = blockElement(block, context);
   return UNWRAPPED.has(block.kind) ? (

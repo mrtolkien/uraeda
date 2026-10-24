@@ -14,7 +14,7 @@ import { Blocks } from "../Blocks.tsx";
 import type { Folds } from "../Folds.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
-import { SinceSign, SinceWords, useSinceMark } from "../sinceMarks.tsx";
+import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { type PartProps, type SpecItems, storyId } from "./parts.ts";
 
@@ -205,8 +205,6 @@ function MoreScenarios({
 export function StoryCard({ document, folds, selection, story }: StoryCardProps) {
   const scenarioIds = new Set([...story.keyBlocks, ...story.moreBlocks]);
   const journey = story.blocks.filter((id) => !scenarioIds.has(id));
-  // Its heading changed since your review: its title carries the mark.
-  const renamed = useSinceMark(story.headingBlock);
   return (
     <Pane
       icon="uraeda:map"
@@ -216,10 +214,7 @@ export function StoryCard({ document, folds, selection, story }: StoryCardProps)
       level={3}
       title={`${story.id} · ${story.title}`}
       titleSuffix={
-        <>
-          <Badge label={story.priority} variant={story.priority === "P1" ? "info" : "neutral"} />
-          {renamed && <SinceSign />}
-        </>
+        <Badge label={story.priority} variant={story.priority === "P1" ? "info" : "neutral"} />
       }
     >
       <VStack gap={3}>

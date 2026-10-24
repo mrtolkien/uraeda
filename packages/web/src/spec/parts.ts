@@ -108,7 +108,7 @@ export function partOf(items: SpecItems, title: string) {
 
 /**
  * The entry of "Contents" each drawn block belongs to, by the block's id: a top-level block, or a
- * decision's item.
+ * decision's item. A section's heading belongs to the entry drawing the section, whose title it is.
  */
 export function entryOwners(document: Document, items: SpecItems): Map<number, string> {
   const owners = new Map<number, string>();
@@ -117,15 +117,18 @@ export function entryOwners(document: Document, items: SpecItems): Map<number, s
       owners.set(id, entry);
     }
   };
+  const ownPart = (part: SpecItems["parts"][number] | undefined, entry: string) =>
+    own(part && [part.heading, ...part.blocks], entry);
   const first = items.parts[0]?.heading ?? document.blocks.length;
   own(
     document.blocks.filter((b) => b.parent == null && b.id < first).map((b) => b.id),
     GROUPS.approve.id,
   );
-  own(partOf(items, "Constitution check")?.blocks, GROUPS.approve.id);
-  own(partOf(items, "Risk tier")?.blocks, GROUPS.approve.id);
-  own(partOf(items, "Your review")?.blocks, groupId(items, GROUPS.answers));
-  own(partOf(items, "Decisions")?.blocks, groupId(items, GROUPS.decisions));
+  ownPart(partOf(items, "Constitution check"), GROUPS.approve.id);
+  ownPart(partOf(items, "Risk tier"), GROUPS.approve.id);
+  ownPart(partOf(items, "Your review"), groupId(items, GROUPS.answers));
+  ownPart(partOf(items, "Decisions"), groupId(items, GROUPS.decisions));
+  ownPart(partOf(items, "User stories"), groupId(items, GROUPS.stories));
   for (const decision of items.decisions) {
     owners.set(decision.block, decisionId(decision.name));
   }
@@ -135,10 +138,10 @@ export function entryOwners(document: Document, items: SpecItems): Map<number, s
   own(storiesIntro(items), groupId(items, GROUPS.stories));
   for (const title of BUILT_PARTS) {
     const part = partOf(items, title);
-    own(part?.blocks, part?.anchor ?? "");
+    ownPart(part, part?.anchor ?? "");
   }
   for (const part of otherParts(items)) {
-    own(part.blocks, part.anchor);
+    ownPart(part, part.anchor);
   }
   return owners;
 }

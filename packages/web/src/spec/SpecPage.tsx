@@ -26,7 +26,7 @@ import {
   type Review,
   useReview,
 } from "../review/useReview.tsx";
-import { NO_SINCE, SinceMarks } from "../sinceMarks.tsx";
+import { NO_SINCE, SinceMarks, SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { StoriesProvider } from "../stories.tsx";
 import { useSpecFolds } from "../useOpenKeys.ts";
@@ -92,6 +92,7 @@ function Group({
   title: string;
   wide: boolean;
 }) {
+  const renamed = useSinceTitle(id);
   return (
     <VStack gap={wide ? 4 : 3}>
       <div
@@ -103,6 +104,7 @@ function Group({
           <span>
             {title}
             {detail && <span {...stylex.props(styles.detail)}> · {detail}</span>}
+            {renamed && <SinceSign />}
           </span>
         </Heading>
       </div>

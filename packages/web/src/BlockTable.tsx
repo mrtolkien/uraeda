@@ -14,7 +14,9 @@ import { useMemo } from "react";
 import type { Block } from "uraeda-binding";
 import type { BlockContext } from "./Blocks.tsx";
 import { After, useSelect } from "./Selection.tsx";
+import { cellRuns, SinceRowSign, useSinceMark } from "./sinceMarks.tsx";
 import { plain, Spans } from "./Spans.tsx";
+import { Runs } from "./spec/RuleLine.tsx";
 
 const styles = stylex.create({
   center: { textAlign: "center" },
@@ -54,6 +56,10 @@ function RowNode({
   const select = useSelect(row, context.selection);
   const after = select && context.selection?.after?.(row);
   const Cell = row.header ? TableHeaderCell : TableCell;
+  // Changed since your review: its sign first, and each cell's words as runs, if they match.
+  const mark = useSinceMark(row.id);
+  const runs = mark?.change.kind === "changed" ? cellRuns(mark.change.runs) : undefined;
+  const words = runs?.length === cells.length ? runs : undefined;
   return (
     <>
       <TableRow {...select?.block} id={select?.textId} xstyle={select?.row ?? []}>
@@ -69,7 +75,8 @@ function RowNode({
           >
             {index === 0 && select?.toggle}
             <span {...select?.above}>
-              <Spans spans={cell.spans} />
+              {index === 0 && mark && <SinceRowSign mark={mark} />}
+              {words ? <Runs runs={words[index]!} /> : <Spans spans={cell.spans} />}
             </span>
           </Cell>
         ))}

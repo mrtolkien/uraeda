@@ -3,7 +3,7 @@ import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
 import type { Block } from "uraeda-binding";
-import { SinceMarked, useSinceMark } from "./sinceMarks.tsx";
+import { SinceBlock } from "./sinceMarks.tsx";
 import type { Range } from "./useCommentDraft.ts";
 
 /**
@@ -197,8 +197,7 @@ export function Selectable({
   selection: Selection | undefined;
 }) {
   const select = useSelect(block, selection);
-  const mark = useSinceMark(block.id);
-  const children = mark ? <SinceMarked mark={mark}>{drawing}</SinceMarked> : drawing;
+  const children = <SinceBlock block={block}>{drawing}</SinceBlock>;
   if (!select) {
     // A block a tap does not select may still have something after it, like a comment.
     return selection?.after && selectable(block) ? (

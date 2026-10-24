@@ -1,12 +1,18 @@
 // Spec page US5 and SC-003, past the fixture's three places: every part changed since your review
 // is marked Δ wherever the page draws it, its words as runs, and no block of another document
 // drawn under the page is.
-import { screen, within } from "@testing-library/react";
-import { addRevisedSpec, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
+import { screen, waitFor, within } from "@testing-library/react";
+import {
+  addRevisedSpec,
+  commitOnBranch,
+  reviewedSpec,
+  SPEC_FEATURE,
+} from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { atWidth, fixtureRepo, renderPage } from "./helpers.tsx";
+import { atWidth, click, fixtureRepo, renderPage } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
+const BLOCK = "Spec to review, revision 2, about 10 minutes.";
 const MARK = "Changed since your review";
 
 beforeEach(() => {
@@ -44,4 +50,77 @@ test("the data model's blocks are not marked by the spec's changes", async () =>
   expect(screen.getAllByText(/^Line \d+ of the data model\.$/)).toHaveLength(90);
   const ids = [...document.querySelectorAll("[id^='since-']")].map((element) => element.id);
   expect(new Set(ids).size).toBe(ids.length);
+});
+
+/** The page of a revised spec, `reviewed` making its revision 1 from the fixture's, once it draws. */
+async function revised(reviewed: (text: string) => string) {
+  const repo = fixtureRepo();
+  addRevisedSpec(repo, { reviewed: (text) => reviewed(reviewedSpec(text)) });
+  await renderPage(PAGE, repo);
+  await screen.findByRole("region", { name: BLOCK });
+}
+
+/** The text of revision 2, `to`, for `from` in revision 1. */
+const swap = (to: string, from: string) => (text: string) => {
+  expect(text).toContain(to);
+  return text.replace(to, from);
+};
+
+/** The "Since your review" pane, once it counts `count` parts changed. */
+const sincePane = (count: number) =>
+  screen.findByRole("region", { name: `Since your review · ${count} parts changed` });
+
+/** Taps the place `name` of the pane, and waits for the focus to land in `region`. */
+async function jumpsInto(pane: HTMLElement, name: string, region: HTMLElement) {
+  await click(within(pane).getByRole("button", { name }));
+  await waitFor(() => expect(region.contains(document.activeElement)).toBe(true));
+}
+
+/** US5: a row added to the decisions relied on is marked, and its place jumps to it. */
+test("a relied-on row added since the review is marked in its table", async () => {
+  const row =
+    "| [Preview](../decisions/preview.md)               | the mockups are stories of the real components    |\n";
+  await revised(swap(row, ""));
+
+  const pane = await sincePane(4);
+  const reliedOn = screen.getByRole("region", { name: "Relied on" });
+  const sign = within(reliedOn).getByText(MARK);
+  expect(sign.closest("tr")?.textContent).toContain("Preview");
+  await jumpsInto(pane, "Decisions · 3", reliedOn);
+});
+
+/** US5: a mockup's link reworded marks its live window, and its place jumps to it. */
+test("a mockup's link reworded marks its embed", async () => {
+  await revised(swap("[Title with a repeat phrase]", "[Title with a phrase]"));
+
+  const pane = await sincePane(4);
+  const story = screen.getByRole("region", { name: /^US4 · / });
+  expect(within(story).getAllByRole("group", { name: MARK })).toHaveLength(1);
+  await jumpsInto(pane, "US4's journey", story);
+});
+
+/** US5: a story renamed carries the mark in its title, and its place jumps to its pane. */
+test("a story renamed is marked in its title, its place jumping to its pane", async () => {
+  await revised(swap("US3: Repeat on a custom schedule", "US3: Repeat on custom schedules"));
+
+  const pane = await sincePane(4);
+  const story = screen.getByRole("region", { name: "US3 · Repeat on a custom schedule" });
+  expect(within(story).getByRole("heading").textContent).toMatch(/Δ/);
+  await jumpsInto(pane, "US3 Repeat on a custom schedule", story);
+});
+
+/** US5: two sections renamed are two places, each marked in its title, jumping to its pane. */
+test("two sections renamed are two places, their titles marked", async () => {
+  await revised((text) =>
+    swap("## Assumptions", "## Hypotheses")(swap("## Edge cases", "## Edge situations")(text)),
+  );
+
+  const pane = await sincePane(5);
+  const names = within(pane)
+    .getAllByRole("button")
+    .map((button) => button.textContent);
+  expect(names).toEqual(expect.arrayContaining(["Edge cases", "Assumptions"]));
+  const assumptions = screen.getByRole("region", { name: "Assumptions" });
+  expect(within(assumptions).getAllByRole("heading")[0]!.textContent).toMatch(/Δ/);
+  await jumpsInto(pane, "Assumptions", assumptions);
 });

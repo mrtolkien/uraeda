@@ -59,7 +59,20 @@ function blockAt(document: Document, lines: LineRange): Block | undefined {
   );
 }
 
-/** Which blocks hold a change of `since`, and the places they make, in the page's order. */
+/** Whether a block is the title of a pane or a group: a section's heading, or a story's. */
+function isTitle(items: SpecItems, block: Block): boolean {
+  return (
+    block.kind === "heading" &&
+    (items.parts.some((part) => part.heading === block.id) ||
+      items.stories.some((story) => story.headingBlock === block.id))
+  );
+}
+
+/**
+ * Which blocks hold a change of `since`, and the places they make, in the page's order. A title
+ * changed, a section or a story renamed, marks its pane's or group's title, its place jumping
+ * there.
+ */
 export function sinceModel(
   document: Document,
   items: SpecItems,
@@ -70,6 +83,7 @@ export function sinceModel(
   }
   const owners = entryOwners(document, items);
   const marks = new Map<number, SinceMark>();
+  const titles = new Set<string>();
   const places: Array<SincePlace> = [];
   for (const change of since.parts) {
     const block = change.after && blockAt(document, change.after);
@@ -79,14 +93,19 @@ export function sinceModel(
     const entry = entryOfBlock(document, owners, block);
     const within = placeInStory(document, items, block);
     const known = places.find((p) => p.entry === entry && p.within === within);
-    const id = known ? undefined : `since-${places.length + 1}`;
+    const title = entry !== undefined && isTitle(items, block);
+    const id = known ? undefined : title ? entry : `since-${places.length + 1}`;
     if (id) {
       places.push({ entry, heading: change.heading, id, within });
     }
-    marks.set(block.id, { change, id });
+    if (title) {
+      titles.add(entry);
+    } else {
+      marks.set(block.id, { change, id });
+    }
   }
   const removed = since.parts.filter((change) => change.kind === "removed");
-  return { marks: { document, marks }, places, removed, since };
+  return { marks: { document, marks, titles }, places, removed, since };
 }
 
 /** "1 part" or "3 parts". */
@@ -169,7 +188,16 @@ export function SinceReviewPane({
         {model.places.length > 0 && (
           <List aria-label="Places changed" density="compact">
             {model.places.map((place) => (
-              <ListItem key={place.id} label={label(place)} onClick={() => jumpTo(place.id)} />
+              <ListItem
+                key={place.id}
+                label={label(place)}
+                // A place whose block draws no element of its own jumps to its pane.
+                onClick={() =>
+                  jumpTo(
+                    window.document.getElementById(place.id) ? place.id : (place.entry ?? "since"),
+                  )
+                }
+              />
             ))}
           </List>
         )}

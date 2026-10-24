@@ -22,6 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
@@ -265,11 +266,12 @@ function besideActions(room: ReturnType<typeof useActionsRoom>) {
     : styles.reserve(`calc(${room.width}px + ${spacingVars["--spacing-2"]})`);
 }
 
-/** The title's words, its icons, its count, and what follows it. */
+/** The title's words, its icons, its count, what follows it, and its Δ, if it changed. */
 function PaneName({
   count,
   fold,
   icon,
+  paneId,
   title,
   titleId,
   titleSuffix,
@@ -277,10 +279,13 @@ function PaneName({
   count?: number;
   fold?: PaneFold;
   icon?: ComponentProps<typeof Icon>["icon"];
+  paneId: string | undefined;
   title: string;
   titleId: string;
   titleSuffix?: ReactNode;
 }) {
+  // A title changed since your review, like a story renamed, carries the mark.
+  const renamed = useSinceTitle(paneId);
   return (
     <span {...stylex.props(styles.name)}>
       {fold && (
@@ -296,6 +301,7 @@ function PaneName({
       <span id={titleId}>{title}</span>
       {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
       {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>}
+      {renamed && <SinceSign />}
     </span>
   );
 }
@@ -356,6 +362,7 @@ export function Pane({
       count={count}
       fold={fold}
       icon={icon}
+      paneId={id}
       title={title}
       titleId={titleId}
       titleSuffix={titleSuffix}
