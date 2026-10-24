@@ -574,15 +574,17 @@ candidates, and the decisions check.
   "live · <label>", suffixed "· <width> px · <scale>%", a phone or monitor icon by width, its
   actions the comment and pick controls and "Full screen", on a hatched stage. A desktop width is
   scaled to the window's room, a phone width shown at its size, 100%, wherever it fits, scaled down
-  where it does not; full screen shows it at 100%. A story keeps its Phone/Desktop switch; an HTML
-  mockup shows at its link's width. `MockupEmbed({ folder: string; mockup: MockupEmbed })`: the
-  served path with its anchor, in the same sandbox as `MockupPage`'s frame, lazy; a failed load
-  draws "This mockup could not be loaded." and a link "Open the mockup's page" to
-  `/f/<folder>/mockups/<name>`. Built: `MockupEmbed({ folder, id?, mockup })`; the frame loads the
-  served path, then the link's query (`MockupEmbed.query`) and anchor; a `HEAD` request tells a
-  failed load, which the sandboxed frame cannot. A story's window stays one element through its
-  states, its controls drawn into the top border through a portal. On the phone a story opens at the
-  phone's width, with the switch as named icons (R7).
+  where it does not; full screen shows it at 100%, the browser's own, or where it has none for an
+  element, as on an iPhone, the window as an overlay covering the screen, which the button, Escape,
+  and Back leave. A story keeps its Phone/Desktop switch; an HTML mockup shows at its link's width.
+  `MockupEmbed({ folder: string; mockup: MockupEmbed })`: the served path with its anchor, in the
+  same sandbox as `MockupPage`'s frame, lazy; a failed load draws "This mockup could not be loaded."
+  and a link "Open the mockup's page" to `/f/<folder>/mockups/<name>`. Built:
+  `MockupEmbed({ folder, id?, mockup })`; the frame loads the served path, then the link's query
+  (`MockupEmbed.query`) and anchor; a `HEAD` request tells a failed load, which the sandboxed frame
+  cannot. A story's window stays one element through its states, its controls drawn into the top
+  border through a portal. On the phone a story opens at the phone's width, with the switch as named
+  icons (R7).
 
 - [x] **Step 1: Move the frame's title, stage, and scale to `LiveWindow.tsx`**, unchanged, in a
       `refactor` commit: `story-embed.test.tsx` passes before and after.

@@ -1,9 +1,10 @@
 // US3 of the spec page: a story or an HTML mockup draws in a live window, titled "live" with its
-// name, its width, and its scale. A desktop width is scaled to the window's room, a phone's shown at
-// 100% wherever it fits, and full screen shows it at 100% (Review focus 7). An HTML mockup loads
-// live at its link's width, with its query and anchor, which never reach the served path (Review
-// focus 6), and one that fails to load says so, with a link to its page. At 390 px, the windows fit
-// the screen (SC-006), and a window's title wraps under its buttons, never under them.
+// name, its width, and its scale. A desktop width is scaled to the window's room, a phone's shown
+// at 100% wherever it fits, and full screen shows it at 100% (Review focus 7), where the browser
+// has no full screen too, as an overlay. An HTML mockup loads live at its link's width, with its
+// query and anchor, which never reach the served path (Review focus 6), and one that fails to load
+// says so, with a link to its page. At 390 px, the windows fit the screen (SC-006), and a window's
+// title wraps under its buttons, never under them.
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -68,24 +69,6 @@ describe("on a desktop", () => {
     expect(frame.getBoundingClientRect().width).toBe(402);
   });
 
-  test("full screen shows the mockup at 100% (US3 3, Review focus 7)", async () => {
-    await commands.addSpecFeature({ stories: true });
-    await showWindow(STORY, `${STORY}, desktop`, "Open");
-    if (!document.fullscreenEnabled) {
-      expect(within(live(STORY)).queryByRole("button", { name: "Full screen" })).toBeNull();
-      return;
-    }
-    expect(sizeOf(STORY).scale).toBeLessThan(100);
-
-    await userEvent.click(within(live(STORY)).getByRole("button", { name: "Full screen" }));
-
-    await expect.poll(() => sizeOf(STORY).scale).toBe(100);
-    const frame = within(live(STORY)).getByTitle(`${STORY}, desktop`);
-    expect(frame.getBoundingClientRect().width).toBe(1440);
-    await document.exitFullscreen();
-    await expect.poll(() => sizeOf(STORY).scale).toBeLessThan(100);
-  });
-
   test("an HTML mockup draws live, in the same window (US3 2)", async () => {
     await commands.addSpecFeature({ stories: true });
     await showWindow(HTML, `${HTML}, 1440 px`, "every monday");
@@ -124,6 +107,54 @@ describe("on a desktop", () => {
     ).toBeTruthy();
     const link = within(gone).getByRole("link", { name: "Open the mockup's page" });
     expect(link.getAttribute("href")).toBe(atRepo(`/f/${FEATURE}/mockups/gone.html`));
+  });
+});
+
+describe("full screen, on a desktop", () => {
+  atSize("desktop");
+
+  test("full screen shows the mockup at 100% (US3 3, Review focus 7)", async () => {
+    await commands.addSpecFeature({ stories: true });
+    await showWindow(STORY, `${STORY}, desktop`, "Open");
+    expect(sizeOf(STORY).scale).toBeLessThan(100);
+
+    await userEvent.click(within(live(STORY)).getByRole("button", { name: "Full screen" }));
+
+    await expect.poll(() => sizeOf(STORY).scale).toBe(100);
+    const frame = within(live(STORY)).getByTitle(`${STORY}, desktop`);
+    expect(frame.getBoundingClientRect().width).toBe(1440);
+    await userEvent.click(within(live(STORY)).getByRole("button", { name: "Leave full screen" }));
+    await expect.poll(() => sizeOf(STORY).scale).toBeLessThan(100);
+  });
+
+  test("without the browser's full screen, as on an iPhone, the window covers the screen at 100%", async () => {
+    Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: false });
+    try {
+      await commands.addSpecFeature({ stories: true });
+      await showWindow(STORY, `${STORY}, desktop`, "Open");
+
+      await userEvent.click(within(live(STORY)).getByRole("button", { name: "Full screen" }));
+
+      await expect.poll(() => sizeOf(STORY).scale).toBe(100);
+      const frame = within(live(STORY)).getByTitle(`${STORY}, desktop`);
+      expect(frame.getBoundingClientRect().width).toBe(1440);
+      expect(document.fullscreenElement).toBeNull();
+      const figure = screen.getByRole("figure", { name: STORY });
+      const box = figure.getBoundingClientRect();
+      expect([box.top, box.left, box.width]).toEqual([0, 0, window.innerWidth]);
+      expect(figure.contains(document.elementFromPoint(window.innerWidth / 2, 4))).toBe(true);
+
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => sizeOf(STORY).scale).toBeLessThan(100);
+      expect(figure.getBoundingClientRect().width).toBeLessThan(window.innerWidth);
+
+      await userEvent.click(within(live(STORY)).getByRole("button", { name: "Full screen" }));
+      await expect.poll(() => sizeOf(STORY).scale).toBe(100);
+      window.history.back();
+      await expect.poll(() => sizeOf(STORY).scale).toBeLessThan(100);
+    } finally {
+      delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
+    }
   });
 });
 

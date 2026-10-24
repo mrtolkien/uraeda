@@ -25,6 +25,13 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-2"],
   },
   grow: (start: string, end: string) => ({ marginInlineEnd: end, marginInlineStart: start }),
+  // Where the browser has no full screen for an element: the window covers the screen, above the
+  // shell's bars.
+  overlay: {
+    inset: 0,
+    position: "fixed",
+    zIndex: 10,
+  },
 });
 
 /**
@@ -38,25 +45,23 @@ export function useLiveWindow(wide: boolean, width?: number) {
   return { figure, grow, screen };
 }
 
-/** Whether the window is full screen, and what enters or leaves it, where the browser can. */
+/** Whether the window is full screen, its overlay where the browser has none, and its toggle. */
 export type FullScreen = ReturnType<typeof useFullScreen>;
 
 /** The window's box, its full screen, and its growth, from `useLiveWindow`. */
 export type Live = ReturnType<typeof useLiveWindow>;
 
-/** "Full screen", or "Leave full screen" once in it: none where the browser has no full screen. */
+/** "Full screen", or "Leave full screen" once in it. */
 export function FullScreenButton({ screen }: { screen: FullScreen }) {
   const { full, toggle } = screen;
   return (
-    toggle && (
-      <IconButton
-        icon={<Icon icon={full ? "uraeda:minimize" : "uraeda:maximize"} />}
-        label={full ? "Leave full screen" : "Full screen"}
-        onClick={() => void toggle()}
-        size="sm"
-        variant="ghost"
-      />
-    )
+    <IconButton
+      icon={<Icon icon={full ? "uraeda:minimize" : "uraeda:maximize"} />}
+      label={full ? "Leave full screen" : "Full screen"}
+      onClick={() => void toggle()}
+      size="sm"
+      variant="ghost"
+    />
   );
 }
 
@@ -98,6 +103,7 @@ export function LiveWindow({
           (grow.start > 0 || grow.end > 0) &&
           styles.grow(`-${grow.start}px`, `-${grow.end}px`),
         screen.full && styles.full,
+        screen.overlay && styles.overlay,
       )}
     >
       <Pane

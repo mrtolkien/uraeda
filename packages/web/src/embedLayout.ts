@@ -1,7 +1,8 @@
 // A story embed's room on the page: how far it grows past its column into the empty space beside it,
 // on a wide screen, so a desktop story shows nearer its own size; and full screen, the browser's own,
-// entered and left from the embed and followed as Escape leaves it.
+// entered and left from the embed and followed as Escape leaves it, or an overlay where it has none.
 import { type RefObject, useContext, useEffect, useState } from "react";
+import { useBackCloses } from "./layout/useBackCloses.ts";
 import { PageColumn } from "./layout/Page.tsx";
 
 /** A length in px from a style's value, 0 when it has none. */
@@ -109,16 +110,31 @@ export function useOutgrow(
 }
 
 /**
- * Whether the embed is full screen, and what enters or leaves it: undefined where the browser has
- * no full screen for an element, as on an iPhone.
+ * Whether the embed is full screen, and what enters or leaves it: the browser's own full screen, or,
+ * where the browser has none for an element, as on an iPhone, an overlay covering the screen,
+ * `overlay`, which the button, Escape, and Back leave.
  */
 export function useFullScreen(embed: RefObject<HTMLElement | null>) {
-  const [full, setFull] = useState(false);
+  const [native, setNative] = useState(false);
+  const [overlay, setOverlay] = useState(false);
   useEffect(() => {
-    const onChange = () => setFull(document.fullscreenElement === embed.current);
+    const onChange = () => setNative(document.fullscreenElement === embed.current);
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, [embed]);
+  const leave = useBackCloses("Full screen", overlay, () => setOverlay(false));
+  useEffect(() => {
+    if (!overlay) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        leave();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [leave, overlay]);
   const toggle =
     typeof document !== "undefined" && document.fullscreenEnabled
       ? async () => {
@@ -128,6 +144,6 @@ export function useFullScreen(embed: RefObject<HTMLElement | null>) {
             await embed.current?.requestFullscreen();
           }
         }
-      : undefined;
-  return { full, toggle };
+      : async () => (overlay ? leave() : setOverlay(true));
+  return { full: native || overlay, overlay, toggle };
 }
