@@ -297,3 +297,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a second field at the round's end, two fields over one text.
 - **If wrong**: draw `NotesField` in `RoundEnd` again, beside the tab's.
 - **Where**: Task 8.
+
+## R23: Asking, Edit notes, and an image for the notes unfold the column
+
+- **Decision**: with the round's column folded, "Ask the agent", "Ask", "Edit notes", "Write a
+  note", and an image dropped for the notes unfold it, then open their tab: Session with the quote
+  and its composer focused, or Notes with its field focused. The fold stays kept for every round,
+  unfolded from then on. The page holds the column's width and fold (`useRoundActions`' `column`),
+  so the notes' drop target and field know whether their tab shows.
+- **Rationale**: the fold was the human's own, but US3 is "the question still beside" the answer,
+  and SC-002 measures an open column; an ask that only set `?tab=` showed nothing, its quote in a
+  hidden draft, and the focus found nothing.
+- **Alternatives considered**: keeping the fold and opening the session's page, as on the phone,
+  which leaves the round the spec keeps beside the answer.
+- **If wrong**: drop `column.setShown(true)` from `useRoundActions`' `openTab`.
+- **Where**: Task 8, fixed in its review.

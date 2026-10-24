@@ -9,6 +9,7 @@ import type { Document, RoundItems } from "uraeda-binding";
 import { ColumnSession } from "./ColumnSession.tsx";
 import type { useFile } from "./data.ts";
 import { type ColumnTab, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
+import { useDocumentColumnWidth } from "./layout/documentColumnWidth.ts";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import {
@@ -33,39 +34,75 @@ export function columnKeys(asks: boolean) {
   return asks ? ["outline", "notes", "session"] : ["outline", "notes"];
 }
 
+/** The id of the Session tab's panel, whose composer asking focuses once it is drawn. */
+const SESSION_PANEL = "round-session";
+
+/** Focuses what `find` finds once it is drawn, within two seconds, without scrolling the page. */
+function focusOnceDrawn(find: () => HTMLElement | null | undefined) {
+  const start = performance.now();
+  const tick = () => {
+    const found = find();
+    if (found) {
+      found.focus({ preventScroll: true });
+    } else if (performance.now() - start < 2000) {
+      requestAnimationFrame(tick);
+    }
+  };
+  requestAnimationFrame(tick);
+}
+
 /**
  * What the round's page does from its parts: the phone's open sheet, `sheet`; asking the agent
  * about a question or a point, with `draft`, the session's composer kept by the page, when the
  * agent can be asked; and opening the notes' field. Asking writes the quote into the composer,
- * in place of the one it held, and opens the Session tab; on the phone, it opens the session's
- * page. "Edit notes" opens the Notes tab, or the phone's sheet, its field focused.
+ * in place of the one it held, and opens the Session tab, its composer focused; on the phone, it
+ * opens the session's page. "Edit notes" opens the Notes tab, or the phone's sheet, its field
+ * focused. Both unfold the column the human folded (R23): `column` is its width and fold, which
+ * the page holds. `notesShown` says whether the notes' field is drawn, and `sessionShown` the
+ * session's composer.
  */
 export function useRoundActions(file: File, draft: Draft | undefined) {
   const wide = !isNarrow(useWidthClass());
-  const [, setTab] = useColumnTab(columnKeys(draft !== undefined));
+  const column = useDocumentColumnWidth();
+  const [tab, setTab] = useColumnTab(columnKeys(draft !== undefined));
   const sheet = useState<RoundSheet>();
+  const openTab = (key: string) => {
+    column.setShown(true);
+    setTab(key);
+  };
   const ask = (quote: string) => {
     if (!wide) {
       askAbout(file.folder, quote);
       return;
     }
     draft?.setText((now) => withQuote(now, quote));
-    setTab("session");
+    openTab("session");
+    focusOnceDrawn(() =>
+      document.getElementById(SESSION_PANEL)?.querySelector<HTMLElement>('[role="textbox"]'),
+    );
   };
   const editNotes = () => {
     if (wide) {
-      setTab("notes");
+      openTab("notes");
     } else {
       sheet[1]("notes");
     }
-    requestAnimationFrame(() => document.getElementById(NOTES_FIELD)?.focus());
+    focusOnceDrawn(() => document.getElementById(NOTES_FIELD));
   };
   const asks = draft && {
     point: (subject: string) => ask(quoted(`About the settled point of ${file.path}:`, [subject])),
     question: (question: { id: string; title: string }) =>
       ask(quoted(`About ${question.id} of ${file.path}:`, [question.title])),
   };
-  return { asks, editNotes, sheet };
+  const open = (key: string) => (wide ? column.isShown && tab === key : sheet[0] === key);
+  return {
+    asks,
+    column,
+    editNotes,
+    notesShown: open("notes"),
+    sessionShown: wide && open("session"),
+    sheet,
+  };
 }
 
 /**
@@ -95,11 +132,9 @@ export function RoundColumn({
 }) {
   const wide = !isNarrow(useWidthClass());
   useBlankKeys(nav, wide);
-  const [sheet] = actions.sheet;
-  const [tab] = useColumnTab(columnKeys(draft !== undefined));
   const queued = useNotesDrop({
     onOpen: actions.editNotes,
-    shown: wide ? tab === "notes" : sheet === "notes",
+    shown: actions.notesShown,
     takes: file.takesImages,
   });
   const round = file.current.items.clarifications;
@@ -133,15 +168,22 @@ export function RoundColumn({
       key: "session",
       label: "Session",
       panel: (
-        <Suspense fallback={null}>
-          <ColumnSession draft={draft} folder={file.folder} />
-        </Suspense>
+        <div id={SESSION_PANEL}>
+          <Suspense fallback={null}>
+            <ColumnSession draft={draft} folder={file.folder} />
+          </Suspense>
+        </div>
       ),
     });
   }
   return (
     <>
-      <DocumentColumn content={content} label="The round's column" tabs={tabs} />
+      <DocumentColumn
+        column={actions.column}
+        content={content}
+        label="The round's column"
+        tabs={tabs}
+      />
       {!wide && (
         <PhoneParts
           nav={nav}

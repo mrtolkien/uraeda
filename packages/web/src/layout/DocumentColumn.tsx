@@ -52,20 +52,36 @@ function Rail({ tabs }: { tabs: ReadonlyArray<ColumnTab> }) {
   );
 }
 
+/** The column's width and fold, kept for every document: `useDocumentColumnWidth`'s. */
+export type DocumentColumnState = ReturnType<typeof useDocumentColumnWidth>;
+
+/** What `DocumentColumn` draws. */
+type ColumnProps = { content: ReactNode; label: string; tabs: ReadonlyArray<ColumnTab> };
+
 /**
  * `content`, the document, with its column of `tabs` beside it on wide and semi-wide screens, named
- * `label`; on narrow screens, the document alone.
+ * `label`; on narrow screens, the document alone. `column` is its width and fold, when the page
+ * holds them to unfold the column itself, as asking the agent does; else the column holds its own.
  */
 export function DocumentColumn({
+  column,
+  ...props
+}: ColumnProps & { column?: DocumentColumnState }) {
+  return column ? <Drawn {...props} column={column} /> : <OwnWidth {...props} />;
+}
+
+/** The column, holding its own width and fold. */
+function OwnWidth(props: ColumnProps) {
+  return <Drawn {...props} column={useDocumentColumnWidth()} />;
+}
+
+/** The column at `column`'s width and fold. */
+function Drawn({
+  column: { isShown, resizable, setShown },
   content,
   label,
   tabs,
-}: {
-  content: ReactNode;
-  label: string;
-  tabs: ReadonlyArray<ColumnTab>;
-}) {
-  const { isShown, resizable, setShown } = useDocumentColumnWidth();
+}: ColumnProps & { column: DocumentColumnState }) {
   const [open, setOpen] = useColumnTab(tabs.map((tab) => tab.key));
   const ids = useId();
   const tabId = (key: string) => `${ids}-tab-${key}`;
