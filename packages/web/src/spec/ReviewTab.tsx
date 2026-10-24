@@ -11,10 +11,12 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { use } from "react";
-import type { CommentItem } from "uraeda-binding";
+import type { CommentItem, Document } from "uraeda-binding";
 import { statusStyles } from "../Question.tsx";
 import type { Review } from "../review/useReview.tsx";
 import { commentId, where } from "../ReviewComments.tsx";
+import { holderOf } from "../reviewField.ts";
+import { linesMark, sideMark } from "../Selection.tsx";
 import { toVerdict, useVerdict, VERDICT_ID, VerdictNotices, Verdicts } from "../ReviewVerdict.tsx";
 import { ReviewImagesContext } from "../useReviewImages.ts";
 import type { File } from "./parts.ts";
@@ -29,14 +31,40 @@ const styles = stylex.create({
 });
 
 /**
- * Brings a pending comment's block to the middle of the screen, its comment under it, and focuses
- * the block's toggle; a comment under no block, a general one, is brought into view alone.
+ * The selectable element a comment is under, found by its lines: a block's, the innermost holding
+ * its last line, or a decision's part's on its side; none for a general comment.
  */
-export function jumpToComment(number: number) {
-  const note = document.getElementById(commentId(number));
-  const block = note?.closest("[data-after]")?.previousElementSibling;
-  const toggle = block?.querySelector<HTMLElement>(":scope > button[aria-pressed]");
-  (toggle ? block : note)?.scrollIntoView?.({ block: "center" });
+function holderElement(tree: Document, comment: CommentItem) {
+  if (comment.general) {
+    return undefined;
+  }
+  if (comment.decision === undefined) {
+    const block = holderOf(tree, comment.endLine);
+    return block
+      ? document.querySelector<HTMLElement>(
+          `[data-lines="${linesMark(block.startLine, block.endLine)}"]`,
+        )
+      : undefined;
+  }
+  const side = sideMark({ name: comment.decision, removed: comment.removed });
+  return [...document.querySelectorAll<HTMLElement>("[data-lines]")].find((element) => {
+    const mark = element.dataset["lines"] ?? "";
+    const [start = 0, end = 0] = mark.slice(side.length).split("-").map(Number);
+    return mark.startsWith(side) && start <= comment.endLine && comment.endLine <= end;
+  });
+}
+
+/**
+ * Brings a pending comment's block to the middle of the screen, its comment under it, and focuses
+ * the block's toggle, its first: a table row's is in its first cell. A comment under no block, a
+ * general one, is brought into view alone.
+ */
+export function jumpToComment(tree: Document, comment: CommentItem) {
+  const holder = holderElement(tree, comment);
+  const toggle = holder?.querySelector<HTMLElement>("button[aria-pressed]");
+  (toggle ? holder : document.getElementById(commentId(comment.number)))?.scrollIntoView?.({
+    block: "center",
+  });
   toggle?.focus({ preventScroll: true });
 }
 
@@ -67,7 +95,7 @@ function Summary({ count }: { count: number }) {
 }
 
 /** The pending comments, each a button named by its place, its text under it. */
-function Comments({ comments }: { comments: ReadonlyArray<CommentItem> }) {
+function Comments({ comments, tree }: { comments: ReadonlyArray<CommentItem>; tree: Document }) {
   const go = useColumnGo();
   return (
     comments.length > 0 && (
@@ -77,7 +105,7 @@ function Comments({ comments }: { comments: ReadonlyArray<CommentItem> }) {
             description={<span {...stylex.props(styles.text)}>{comment.text}</span>}
             key={comment.number}
             label={where(comment)}
-            onClick={() => go(() => jumpToComment(comment.number))}
+            onClick={() => go(() => jumpToComment(tree, comment))}
           />
         ))}
       </List>
@@ -99,7 +127,7 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
   return (
     <VStack gap={3}>
       <Summary count={comments.length} />
-      <Comments comments={comments} />
+      <Comments comments={comments} tree={review.tree} />
       <Divider />
       <HStack>
         <Button

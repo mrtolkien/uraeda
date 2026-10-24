@@ -90,6 +90,19 @@ export function selectable(block: Block) {
 }
 
 /**
+ * The mark of a selectable element, `data-lines`: a block's lines in the file, or a decision's
+ * part's, its decision and side named, so a comment finds its element by its lines.
+ */
+export function linesMark(start: number, end: number, decision?: Range["decision"]) {
+  return `${decision ? sideMark(decision) : ""}${start}-${end}`;
+}
+
+/** What starts the mark of each part of a decision's side, `linesMark`. */
+export function sideMark(decision: NonNullable<Range["decision"]>) {
+  return `${decision.name}${decision.removed ? " removed" : ""}:`;
+}
+
+/**
  * What a tap on a selectable element does: it selects it, `onTap`, but on a link or a button of its
  * text, or on what follows a nested element, like its comment field. `lines` marks the element.
  */
@@ -143,7 +156,7 @@ export function useSelect(block: Block, selection: Selection | undefined) {
   const pressed = selection.isSelected(block);
   return {
     above: stylex.props(styles.above),
-    block: tapProps(`${block.startLine}-${block.endLine}`, (element) =>
+    block: tapProps(linesMark(block.startLine, block.endLine), (element) =>
       selection.onTap(block, element),
     ),
     cell: styles.cell,

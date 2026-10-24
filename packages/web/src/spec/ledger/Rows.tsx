@@ -16,7 +16,7 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import type { PartChange } from "uraeda-binding";
-import { Tappable } from "../../Selection.tsx";
+import { linesMark, Tappable } from "../../Selection.tsx";
 import { useOpenKeys } from "../../useOpenKeys.ts";
 import { PartText } from "../RuleLine.tsx";
 import { type Context, holds, rangeOf } from "./context.ts";
@@ -124,7 +124,7 @@ export function Part({ context, part }: { context: Context; part: PartChange }) 
   return (
     <Tappable
       after={parts.after(range)}
-      lines={`${range.start}-${range.end}`}
+      lines={linesMark(range.start, range.end, range.decision)}
       onTap={(element) => parts.onTap(range, element)}
       pressed={parts.isSelected(range)}
     >
