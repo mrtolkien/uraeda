@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { currentEntry, useRepository } from "./routes.tsx";
-import { jumpTo, type NavQuestion, questionAtTop } from "./RoundNav.tsx";
+import { jumpTo, type NavQuestion, questionAtTop } from "./roundJump.ts";
 
 function read(key: string): string | undefined {
   try {

@@ -12,7 +12,7 @@ import type { Block, CommentItem, DecisionChange, Document } from "uraeda-bindin
 import { SideColumn } from "../layout/SideColumn.tsx";
 import { useStoredShown } from "../layout/useStoredShown.ts";
 import { holderOf } from "../reviewField.ts";
-import { jumpTo } from "../RoundNav.tsx";
+import { jumpTo } from "../roundJump.ts";
 import {
   BUILT_PARTS,
   decisionId,
