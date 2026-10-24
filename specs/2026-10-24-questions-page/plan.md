@@ -518,9 +518,9 @@ order changes for every round.
   a box with `+`, `−`, or `★` in its border; wider screens keep the signs beside the text. A
   follow-up on the phone has a mauve top border and no side line.
 
-- [ ] **Step 1: Move the option to `QuestionOption.tsx`**, unchanged, in a `refactor` commit;
+- [x] **Step 1: Move the option to `QuestionOption.tsx`**, unchanged, in a `refactor` commit;
       `round.test.tsx` and `round-cards.test.tsx` pass before and after.
-- [ ] **Step 2: Write the failing tests.** `question-card.test.tsx`, on the layout-look fixture:
+- [x] **Step 2: Write the failing tests.** `question-card.test.tsx`, on the layout-look fixture:
       Q4's "Example" region holds "you are on a question", and its context does not; "Why it
       matters" is a region of its own; picking B shows "picked" in its option.
       `round-cards.test.tsx` at desktop, semi, and phone: scroll to Q4's option C, Q4's title is
@@ -529,15 +529,15 @@ order changes for every round.
       edge (SC-004), Q2.A has a border on top and none on its left; a picked option's border is
       twice its neighbour's. Breaks: a header sticky to the page instead of its card; the phone's
       points indented.
-- [ ] **Step 3: Run them to check they fail**:
+- [x] **Step 3: Run them to check they fail**:
       `nix develop -c vp test --project desktop src/__browser__/round-cards.test.tsx`. Expected:
       FAIL, Q4's title above the window.
-- [ ] **Step 4: Implement.** The split from 840 px stays, and a question with stories still never
+- [x] **Step 4: Implement.** The split from 840 px stays, and a question with stories still never
       splits.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, `round.test.tsx`,
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, `round.test.tsx`,
       `question-card.test.tsx`, and `round-cards.test.tsx`, `round.test.tsx` in both browser
       projects. Expected: PASS.
-- [ ] **Step 6: Commit**: `git commit -m "feat(questions-page): the question card in panes"`.
+- [x] **Step 6: Commit**: `git commit -m "feat(questions-page): the question card in panes"`.
 
 ## Task 6: The round's parts: the block, the context, Check these, and the settled panes
 

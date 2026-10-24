@@ -254,7 +254,7 @@ test("the triage's questions are cards, its Context free, and it shows no settle
     const card = question(id);
     expect(card.tagName, id).toBe("SECTION");
     expect(within(card).getByRole("heading", { level: 2 }), id).toBeTruthy();
-    expect(within(card).getByRole("note").textContent, id).toMatch(/^Why it matters/);
+    expect(within(card).getByRole("region", { name: "Why it matters" }), id).toBeTruthy();
     expect(card.querySelectorAll(".astryx-selectable-card").length, id).toBe(2);
     expect(option(id, "A").getAttribute("aria-label"), id).toMatch(/^Option A \(recommended\): /);
   }

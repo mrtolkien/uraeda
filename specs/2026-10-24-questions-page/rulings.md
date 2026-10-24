@@ -156,3 +156,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: move the following into `SideColumn` behind a prop; the document's column already
   gives it its limits.
 - **Where**: Task 4.
+
+## R13: The Example and Why panes drop their lead in the page
+
+- **Decision**: the core gives the "Example:" and "Why it matters" paragraphs as blocks, found by
+  their lead; the question card draws them without the lead, which their pane's title says, by
+  cutting that many characters off the block's spans and capitalising what follows.
+- **Rationale**: the plan asks for their text "without the 'Example:' or 'Why it matters:' lead";
+  the core already decided which block holds them, so the page reads no markdown, only trims a label
+  it was told is there.
+- **Alternatives considered**: a `lead` length or trimmed spans from the core, a change to
+  `QuestionItem` that Task 2 had already shipped, for one line of the page.
+- **If wrong**: have the core give the paragraph's spans without their lead, and drop `withoutLead`
+  from `Question.tsx`.
+- **Where**: Task 5.
+
+## R14: On the phone, an option's text sits 10.6 px from the screen's edge
+
+- **Decision**: on narrow screens, an option's border runs at the screen's edges and its text is
+  inset by `--spacing-2` (9.6 px) plus its 1 px border; a picked option's 2 px border takes 1 px of
+  that inset, so its text does not move. Each pro, con, and why box starts at that same edge.
+- **Rationale**: SC-004, kept by approval comment C2, asks for at most 11 px; the mockup's 21 px
+  does not meet it, and the existing test keeps the options as wide as the screen.
+- **Alternatives considered**: the mockup's border 10 px in from the edge, which leaves the text 21
+  px in.
+- **If wrong**: change `optionPhone`'s `--option-inset` in `QuestionOption.tsx`.
+- **Where**: Task 5.

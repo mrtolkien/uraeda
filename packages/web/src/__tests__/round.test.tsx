@@ -1297,13 +1297,13 @@ test("a later round shows Since the last round above Goal", async () => {
   expect(screen.getByText("Round 01 settled the human steps.")).toBeTruthy();
 });
 
-/** Redesign US2.3 */
-test("Why it matters shows in a muted box after the context, not within it", async () => {
+/** Redesign US2.3, and the questions page's US1 key 2: a pane titled by its lead. */
+test("Why it matters shows in a pane after the context, not within it", async () => {
   await renderPage(PAGE);
   const context = await screen.findByText("Today, every human step happens in a text editor.");
 
-  const box = within(question("Q1")).getByRole("note", { name: "Why it matters" });
-  expect(box.textContent).toBe("Why it matters: it sets the size of the feature.");
+  const box = within(question("Q1")).getByRole("region", { name: "Why it matters" });
+  expect(box.textContent).toBe("Why it mattersIt sets the size of the feature.");
   expect(box.contains(context)).toBe(false);
   expect(before(context, box)).toBe(true);
   expect(before(box, option("Q1", "A"))).toBe(true);

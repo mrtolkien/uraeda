@@ -3,32 +3,24 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import {
-  borderVars,
-  colorVars,
-  radiusVars,
-  spacingVars,
-  typeScaleVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { Document, QuestionItem } from "uraeda-binding";
+import { useMemo } from "react";
+import type { Document, QuestionItem, Span } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
+import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { OptionCard } from "./QuestionOption.tsx";
+import { plain } from "./Spans.tsx";
 import type { useAnswer } from "./useAnswer.ts";
 import { holdsStory, type Stories } from "./stories.tsx";
 
 const styles = stylex.create({
+  // On the phone, the options' borders run at the screen's edges.
   optionsPhone: {
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
-  // A follow-up's options on the phone reach its accent line, not past it.
-  optionsPhoneFollowUp: {
-    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})`,
-  },
+  // Room above the first option for the half of its letter over its border.
   optionsSpaced: {
     marginBlockStart: spacingVars["--spacing-3"],
   },
@@ -43,13 +35,6 @@ const styles = stylex.create({
     fontSize: typeScaleVars["--text-heading-3-size"],
     lineHeight: typeScaleVars["--text-heading-3-leading"],
     marginBlock: 0,
-  },
-  whyBox: {
-    // Its paragraph's own margin below makes the inset at its foot.
-    backgroundColor: colorVars["--color-background-muted"],
-    borderRadius: radiusVars["--radius-element"],
-    paddingBlockStart: spacingVars["--spacing-3"],
-    paddingInline: spacingVars["--spacing-3"],
   },
 });
 
@@ -100,7 +85,55 @@ export function QuestionHead({
   );
 }
 
-/** A question's context, then its "Why it matters" in a muted box, set apart from it. */
+/**
+ * A paragraph's spans without its lead, as "Example:" or "Why it matters:", which its pane's title
+ * says, its first letter then capitalised. The core found the paragraph by its lead.
+ */
+function withoutLead(spans: ReadonlyArray<Span>, lead: RegExp): Array<Span> {
+  let cut = lead.exec(plain(spans))?.[0].length ?? 0;
+  const rest: Array<Span> = [];
+  for (const span of spans) {
+    const text = span.text.slice(Math.min(cut, span.text.length));
+    cut -= span.text.length - text.length;
+    if (text || span.image) {
+      rest.push(rest.length === 0 ? { ...span, text: capitalised(text) } : { ...span, text });
+    }
+  }
+  return rest;
+}
+
+const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** The leads of a question's example and why, which their panes' titles replace. */
+const EXAMPLE_LEAD = /^Example:\s*/;
+const WHY_LEAD = /^Why it matters:?\s*/;
+
+/** The document with a question's example and why without their leads, for their panes. */
+function useWithoutLeads(document: Document, question: QuestionItem) {
+  const { example, why } = question;
+  return useMemo(() => {
+    const leads = new Map<number, RegExp>();
+    if (example !== undefined) {
+      leads.set(example, EXAMPLE_LEAD);
+    }
+    if (why !== undefined) {
+      leads.set(why, WHY_LEAD);
+    }
+    if (leads.size === 0) {
+      return document;
+    }
+    const blocks = document.blocks.map((block) => {
+      const lead = leads.get(block.id);
+      return lead ? { ...block, spans: withoutLead(block.spans, lead) } : block;
+    });
+    return { ...document, blocks };
+  }, [document, example, why]);
+}
+
+/**
+ * A question's example in a teal pane, its context, then its "Why it matters" in a peach pane,
+ * each set apart from the context. On the phone, the panes keep only their titled top border.
+ */
 export function QuestionContext({
   document,
   question,
@@ -108,13 +141,19 @@ export function QuestionContext({
   document: Document;
   question: QuestionItem;
 }) {
+  const panes = useWithoutLeads(document, question);
   return (
     <>
+      {question.example !== undefined && (
+        <Pane isOpenOnPhone level={3} title="Example" tone="example">
+          <Blocks document={panes} ids={[question.example]} />
+        </Pane>
+      )}
       <Blocks document={document} ids={question.context} />
       {question.why !== undefined && (
-        <div aria-label="Why it matters" role="note" {...stylex.props(styles.whyBox)}>
-          <Blocks document={document} ids={[question.why]} />
-        </div>
+        <Pane isOpenOnPhone level={3} title="Why it matters" tone="attention">
+          <Blocks document={panes} ids={[question.why]} />
+        </Pane>
       )}
     </>
   );
@@ -122,17 +161,15 @@ export function QuestionContext({
 
 /**
  * A question's options, each a card toggling its letter: beside the title in a card of two
- * columns, `beside`, else after the context, and on the phone to the screen's edges.
+ * columns, else after the context, and on the phone to the screen's edges.
  */
 export function Options({
   answer,
-  beside,
   document,
   question,
   readOnly,
 }: {
   answer: ReturnType<typeof useAnswer>;
-  beside: boolean;
   document: Document;
   question: QuestionItem;
   readOnly: boolean;
@@ -142,14 +179,7 @@ export function Options({
     return null;
   }
   return (
-    <VStack
-      gap={wide ? 3 : 0}
-      xstyle={[
-        !beside && styles.optionsSpaced,
-        !wide && styles.optionsPhone,
-        !wide && question.parent !== undefined && styles.optionsPhoneFollowUp,
-      ]}
-    >
+    <VStack gap={3} xstyle={[styles.optionsSpaced, !wide && styles.optionsPhone]}>
       {question.options.map((choice) => (
         <OptionCard
           choice={choice}
