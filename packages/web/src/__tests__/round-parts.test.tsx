@@ -15,7 +15,7 @@ const PAGE = `/f/${FOLDER}/clarifications-01.md`;
 const ROUND = `specs/${FOLDER}/clarifications-01.md`;
 const MERGE_CHATS = readFileSync(fixture("round-merge-chats/clarifications-01.md"), "utf8");
 const BLOCK = "7 questions and 1 follow-up, about 20 minutes.";
-const VERDICT = "a chat cannot become a change today";
+const VERDICT = /^A chat cannot become a change today/;
 const TODAY = /^A change becomes a feature through a round of questions\./;
 const LIGHT_FLOW = "The light flow stays.";
 const PROPOSAL = "The change's proposal";
@@ -44,7 +44,7 @@ test("the block is a pane titled by its count, with its badge", async () => {
 
   const block = await screen.findByRole("region", { name: BLOCK });
   const badge = within(block).getByText("With changes");
-  const sentence = within(block).getByText(VERDICT, { exact: false });
+  const sentence = within(block).getByText(VERDICT);
   expect(before(badge, sentence)).toBe(true);
   // The badge says the verdict: its sentence starts after the phrase, which the page never shows.
   expect(block.textContent).not.toContain("worth building");
@@ -70,7 +70,7 @@ test("the badge reads the verdict's kind", async () => {
   expect(within(block).getByText("As proposed")).toBeTruthy();
   expect(within(block).queryByText("With changes")).toBeNull();
   expect(within(block).queryByText("Not as proposed")).toBeNull();
-  expect(block.textContent).toContain("no changes, with changes elsewhere");
+  expect(block.textContent).toContain("No changes, with changes elsewhere");
 });
 
 /** US1 more 1 */

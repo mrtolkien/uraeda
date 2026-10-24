@@ -127,13 +127,7 @@ export function NotesField({
   };
   return (
     <VStack gap={2}>
-      {field.restored && (
-        <RestoreNotice
-          changed={NOTES_CHANGED}
-          onDiscard={field.discard}
-          restored={field.restored}
-        />
-      )}
+      <NotesRestored notes={notes} />
       <DropHint hint={images.hint} isLabelled>
         <TextField
           id={NOTES_FIELD}
@@ -161,18 +155,33 @@ export function NotesField({
   );
 }
 
+/**
+ * The notice over the notes whose unsaved text was restored, with Discard, and whether they changed
+ * since: in their field, and at the round's end while the field is not drawn.
+ */
+function NotesRestored({ notes: { field } }: { notes: ReturnType<typeof useRoundNotes> }) {
+  return (
+    field.restored && (
+      <RestoreNotice changed={NOTES_CHANGED} onDiscard={field.discard} restored={field.restored} />
+    )
+  );
+}
+
 /** The id of the notes' field, which "Edit notes" focuses once its tab or sheet shows it. */
 export const NOTES_FIELD = "round-notes";
 
 /**
  * The round's notes at its end, as typed, read-only: marked while unsaved, with "Edit notes", or
  * "Write a note" while there are none, which `onEdit` opens their field for, in the column's Notes
- * tab on wide screens and in a sheet on the phone.
+ * tab on wide screens and in a sheet on the phone. While their field is not drawn, `fieldShown`
+ * false, the notice of their restored text shows here, with Discard.
  */
 export function NotesRead({
+  fieldShown,
   notes,
   onEdit,
 }: {
+  fieldShown: boolean;
   notes: ReturnType<typeof useRoundNotes>;
   onEdit: () => void;
 }) {
@@ -186,6 +195,7 @@ export function NotesRead({
         <Heading id={title} level={2}>
           Notes
         </Heading>
+        {!fieldShown && <NotesRestored notes={notes} />}
         {written ? (
           <Paragraph xstyle={styles.text}>{field.text}</Paragraph>
         ) : (

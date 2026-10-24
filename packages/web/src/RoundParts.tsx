@@ -23,6 +23,8 @@ import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
   badge: { flexShrink: 0 },
+  // On the phone, above its sentence, as wide as its words.
+  badgeNarrow: { alignSelf: "flex-start" },
   lead: { marginBlock: spacingVars["--spacing-1"] },
   verdict: { paddingBlock: spacingVars["--spacing-2"] },
 });
@@ -41,9 +43,6 @@ const CONTEXT_ICONS: Record<string, string> = {
   sources: "uraeda:book-open",
   today: "uraeda:history",
 };
-
-/** Today's anchor, and the key it is open by among the context's folds. */
-const TODAY = "today";
 
 /**
  * The block's title and what it holds under it: its callout's own title if it has one, else its
@@ -72,7 +71,10 @@ function withoutItem(document: Document, item: number | undefined): Document {
   };
 }
 
-/** The verdict: its badge, then its sentence, beside it, under it on the phone. */
+/**
+ * The verdict: its badge, then its sentence, beside it, under it on the phone, within the reading
+ * measure.
+ */
 function Verdict({ verdict }: { verdict: NonNullable<RoundItems["verdict"]> }) {
   const isNarrowScreen = isNarrow(useWidthClass());
   const look = VERDICTS[verdict.kind];
@@ -81,9 +83,14 @@ function Verdict({ verdict }: { verdict: NonNullable<RoundItems["verdict"]> }) {
       direction={isNarrowScreen ? "vertical" : "horizontal"}
       gap={isNarrowScreen ? 1 : 3}
       vAlign={isNarrowScreen ? undefined : "baseline"}
-      xstyle={styles.verdict}
+      // Reading text, its badge and its sentence held to the measure as one line.
+      xstyle={[styles.verdict, proseStyles.reading, proseStyles.measure]}
     >
-      <Badge label={look.label} variant={look.variant} xstyle={styles.badge} />
+      <Badge
+        label={look.label}
+        variant={look.variant}
+        xstyle={[styles.badge, isNarrowScreen && styles.badgeNarrow]}
+      />
       <div {...stylex.props(proseStyles.reading)}>
         <Spans spans={verdict.text} />
       </div>
@@ -128,13 +135,13 @@ function useTodayFold(document: Document, today: ContextPart | undefined): Folds
     () =>
       today?.heading === undefined
         ? []
-        : [{ ids: [today.heading, ...today.blocks], key: TODAY, label: today.title }],
+        : [{ ids: [today.heading, ...today.blocks], key: PART_IDS.today, label: today.title }],
     [today],
   );
   const folds: Folds = {
     list,
     onOpenChange: (_, open) => setOpen(open),
-    open: isOpen ? [TODAY] : [],
+    open: isOpen ? [PART_IDS.today] : [],
   };
   useHashFold(document, folds);
   return folds;
@@ -157,10 +164,10 @@ function ContextPane({
   return (
     <Pane
       fold={
-        anchor === TODAY
+        anchor === PART_IDS.today
           ? {
-              isOpen: folds.open.includes(TODAY),
-              onOpenChange: (isOpen) => folds.onOpenChange(TODAY, isOpen),
+              isOpen: folds.open.includes(PART_IDS.today),
+              onOpenChange: (isOpen) => folds.onOpenChange(PART_IDS.today, isOpen),
             }
           : undefined
       }
@@ -192,7 +199,7 @@ export function RoundContext({
   const parts = round.context;
   const folds = useTodayFold(
     document,
-    parts.find((part) => anchorOf(document, part) === TODAY),
+    parts.find((part) => anchorOf(document, part) === PART_IDS.today),
   );
   const scope = parts.findIndex((part) => anchorOf(document, part) === "scope");
   const sources = parts[scope + 1];

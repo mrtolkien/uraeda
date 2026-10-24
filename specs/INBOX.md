@@ -59,3 +59,19 @@
 - [agent] [ui-sandbox] Sandbox seed: two seeds started within the same 100 ms after a killed seed
   can both remove its stale `.sandbox.lock`, so both rebuild `.sandbox/` at once; the stale-lock
   recovery itself needs a lock
+- [agent] [questions-page] `ura check`: a fixed section repeated in place, like two `## Check these`
+  before Q1, passes, and the page draws only the first one's points
+- [agent] [questions-page] Round's verdict: a phrase closed by "." or "—", "Verdict: worth building
+  as proposed. Because…", leaves that mark before the sentence, after its badge
+- [agent] [questions-page] Round page: an image dragged over the round with Outline or Session open
+  goes to the notes, but no hint shows where it will land before the drop
+- [agent] [questions-page] Round page: a round reopened at its question still rings the title in
+  browsers that ignore `focusVisible: false`, Firefox among them
+- [agent] [questions-page] Round's column: Ask and Edit notes keep looking for their field for up to
+  two seconds, and may take the focus from a field the human started typing in meanwhile
+- [agent] [questions-page] Session draft: a feature's latest session has one draft at its folder's
+  address and another at its ID's, so text does not follow between them
+- [agent] [questions-page] Session draft: a refused send puts its text back over the shared draft,
+  replacing what was typed meanwhile in the round's column or the session's page
+- [agent] [questions-page] Session draft: kept drafts are never dropped, and previews of images left
+  in one are never released, for the document's life

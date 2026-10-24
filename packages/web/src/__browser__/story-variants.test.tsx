@@ -64,8 +64,13 @@ async function commentOnSeparator(label: string, text: string) {
   // A click on the element itself: userEvent finds the button again by its label, which matches
   // both variants' Pick buttons.
   (await within(embed).findByRole("button", { name: "Pick an element" }, READY)).click();
+  // The embeds above it grow as their stories load, after the scroll, and may push its frame under
+  // the status line, where the pointer cannot reach it: each try brings it back to the middle.
   await expect
-    .poll(() => commands.frameOutlined(`${label}, desktop`, "separator"), READY)
+    .poll(() => {
+      embed.scrollIntoView({ block: "center" });
+      return commands.frameOutlined(`${label}, desktop`, "separator");
+    }, READY)
     .toBe(true);
   await commands.frameClick(`${label}, desktop`, "separator");
   expect(await within(embed).findByText(`Comment on ${label}, desktop, separator`)).toBeTruthy();

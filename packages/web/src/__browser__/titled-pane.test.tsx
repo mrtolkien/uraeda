@@ -94,6 +94,8 @@ test.each([
     expect(textRange(screen.getByText("· 3")).getBoundingClientRect().right).toBeLessThanOrEqual(
       window.innerWidth,
     );
+    // A run of the top border shows after the title, whose background hides the border behind it.
+    expect(pane.right - heading.right).toBeGreaterThanOrEqual(8);
   },
 );
 

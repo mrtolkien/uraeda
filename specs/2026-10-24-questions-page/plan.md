@@ -653,19 +653,24 @@ order changes for every round.
 - Consumes: `ColumnSession` (Task 1); `DocumentColumn`, `useColumnTab` (Task 4); `QuestionCard`
   (Task 5); `RoundOpening`'s `check`, `SettledPoints`' `part` and `onAsk` (Task 6); `RoundOutline`,
   `OutlineSheet` (Task 7).
-- Produces: `withQuote(text: string, quote: string): string` in `sessions.ts`: the quote, an empty
-  line, then `text` without the quote it started with, if any. On wide and semi-wide screens, a
-  round waiting for answers draws in a `DocumentColumn` with Outline, Notes, and, for a feature
-  whose agent is available, Session; "Ask the agent" and "Ask" write the quote into the page's draft
-  with `withQuote` and open Session; on narrow screens they open the session's page with `askAbout`.
-  The status line on the phone holds "N/M" (the outline's sheet), "Notes" (the notes' sheet), and
-  Next or Submit. An answered round draws no column. As built:
+- Produces: `withQuote(text: string, quote: string, inserted?: string): string` in `sessions.ts`:
+  the quote, an empty line, then `text` without `inserted`, the quote asking wrote last, if it
+  starts with it; a quote typed by hand stays. The session's page's `?ask=` uses it too. On wide and
+  semi-wide screens, a round waiting for answers draws in a `DocumentColumn` with Outline, Notes,
+  and, for a feature whose agent is available, Session; "Ask the agent" and "Ask" write the quote
+  into the page's draft with `withQuote` and open Session; on narrow screens they open the session's
+  page with `askAbout`. The status line on the phone holds "N/M" (the outline's sheet), "Notes" (the
+  notes' sheet), and Next or Submit. An answered round draws no column. As built:
   `RoundColumn({ content, draft, file, nav, notes, onSubmit, sheet })` draws the `DocumentColumn`
   labelled "The round's column", its tabs, and the phone's status line and sheets;
   `useRoundActions(file, draft)` gives the asks, the phone's sheet, and "Edit notes", which opens
-  the Notes tab or sheet with its field focused. The round's end is a region "Notes" (R22). `n` and
-  `p` are the page's, whatever the tab (R21); the phone keeps its list of questions under the block
-  (R20).
+  the Notes tab or sheet with its field focused; asking focuses the composer, and both unfold a
+  folded column (R23), whose width and fold the page holds and passes to `DocumentColumn`'s
+  `column`. On narrow screens, `?tab=notes` and `?tab=outline` are the phone's sheets, opened in a
+  history entry of the page's own (`openOverlayAt`), so reload, Back, and a width change keep them.
+  The status line's count is named "N/M answered, outline". The round's end is a region "Notes"
+  (R22). `n` and `p` are the page's, whatever the tab (R21); the phone keeps its list of questions
+  under the block (R20).
 
 - [x] **Step 1: Write the failing tests.** UI tests (`round-column.test.tsx`), on the merge-chats
       fixture with the fake agent: asking about Q2 opens Session with the composer holding the
@@ -705,14 +710,20 @@ order changes for every round.
   `packages/web/scripts/questions-page-shots.ts`
 - Modify: `specs/decisions/ui-layout.md` (**Why**, review comment C1),
   `specs/2026-10-24-questions-page/mockups/README.md` (where the stories live)
+- As built: the stories' and screenshots' features come from `addQuestionsPages` in
+  `packages/web/samples/features.ts` (`QUESTIONS_PAGES` in `samples/folders.ts`), which
+  `.storybook/fixture.ts` and `scripts/screenshots.ts` call; Storybook's fixture commits the inbox's
+  triage on `main`. The screenshots' review found the phone's open panes keeping their side borders
+  in the screenshots' server, a longhand losing to the pane's shorthand by the stylesheet's order:
+  `layout/Pane.tsx` now sets each side's border width and padding, so the props merge them.
 
-- [ ] **Step 1: Write the stories**, over the merge-chats and layout-look fixtures.
-- [ ] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
-- [ ] **Step 3: Take and review the screenshots** of the round, waiting, with Session and Notes
+- [x] **Step 1: Write the stories**, over the merge-chats and layout-look fixtures.
+- [x] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
+- [x] **Step 3: Take and review the screenshots** of the round, waiting, with Session and Notes
       open, and answered, and of the triage, at both sizes and in both schemes, against the UI look,
       layout, and coherence decisions, and commit them.
-- [ ] **Step 4: Rewrite the layout decision's Why** as the current reasons for its rules, without
+- [x] **Step 4: Rewrite the layout decision's Why** as the current reasons for its rules, without
       the history of past features, and keep its rules, alternatives, and consequences as they are.
-- [ ] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
-- [ ] **Step 6: Commit**:
+- [x] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
+- [x] **Step 6: Commit**:
       `git commit -m "docs(questions-page): the stories, the screenshots, and the layout decision's Why"`.

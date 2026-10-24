@@ -16,7 +16,7 @@ import { isDefaultRound, RoundHash, type RoundTarget, useHashes } from "./roundT
 import { useRepositoryPath } from "./routes.tsx";
 import { SettledPoints } from "./SettledPoints.tsx";
 import { PendingSaves } from "./useAnswer.ts";
-import { useDraft } from "./useDraft.ts";
+import { featureDraftKey, useDraft } from "./useDraft.ts";
 import { useRoundPosition } from "./useRoundPosition.ts";
 import { type useFile, useAgent } from "./data.ts";
 
@@ -60,9 +60,9 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const blank = questions.filter((q) => q.asked && !q.answer.trim() && !typed.has(keyOf(q)));
   const nav = navOf(questions);
   useRoundPosition(file.folder, file.name, nav);
-  // The session's draft, kept by the page while its column comes and goes, for a feature whose
-  // agent can be asked.
-  const draft = useDraft();
+  // The feature's session draft, kept while its column comes and goes and shared with the
+  // session's page, for a feature whose agent can be asked.
+  const draft = useDraft(featureDraftKey(repo, file.folder));
   const actions = useRoundActions(
     file,
     agent?.available && !isDefaultRound(target) ? draft : undefined,
@@ -85,6 +85,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         end={end}
         file={file}
         notes={notes}
+        notesShown={actions.notesShown}
         onEditNotes={actions.editNotes}
         readOnly={readOnly}
         submitRow={submitRow}

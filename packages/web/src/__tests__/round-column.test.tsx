@@ -9,8 +9,9 @@
 // that file's path, where the spec names the merge-chats feature's.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
+import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
 import {
   atRepo,
   atWidth,
@@ -142,6 +143,19 @@ test("asking again replaces the quote and keeps the text", async () => {
   await waitFor(() => expect(box.textContent).toBe(`${Q3_QUOTE}\n\nwhy would that cost more?`));
 });
 
+/** A quote typed by hand is the human's: asking replaces only the quote asking put there. */
+test("asking keeps a quote typed by hand", async () => {
+  const typed = "About the plan:\n> Keep it short.\n\nwhy?";
+  await open(PAGE, round());
+  await click(screen.getByRole("tab", { name: "Session" }));
+  await type(await composer(), typed);
+
+  await askAbout("Q2");
+
+  const box = await composer();
+  await waitFor(() => expect(box.textContent).toBe(`${Q2_QUOTE}\n\n${typed}`));
+});
+
 /** US3 more 1 */
 test("asking about a point to check quotes its subject", async () => {
   await open(PAGE, round());
@@ -190,6 +204,100 @@ test("a note from the Notes tab shows at the end, and Submit saves it", async ()
   expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Notes:** Check the spec page too.");
 });
 
+/** With Session open, an image dropped with no field focused joins the message, not the notes. */
+test("an image dropped with Session open goes to the composer", async () => {
+  await open(PAGE, round(), await fakeAgent());
+  await click(screen.getByRole("tab", { name: "Session" }));
+  await composer();
+  const image = new File([readFileSync(fixture("images/phone.png"))], "login.png", {
+    type: "image/png",
+  });
+
+  await act(async () => {
+    fireEvent.drop(document.body, { dataTransfer: { files: [image], types: ["Files"] } });
+  });
+
+  const panel = screen.getByRole("tabpanel", { name: "Session" });
+  await waitFor(() =>
+    expect(within(panel).getAllByRole("button", { name: /^Remove / })).toHaveLength(1),
+  );
+  expect(openTab()).toBe("Session");
+});
+
+/** Unsaved notes restored with Outline open: the round's end says so, and Discard drops them. */
+test("restored notes show their notice at the round's end, with Discard", async () => {
+  const repo = round();
+  await open(`${PAGE}?tab=notes`, repo);
+  await type(notesField(), "Check the spec page too.");
+
+  window.history.replaceState(null, "", atRepo(PAGE));
+  await renderPage(PAGE, repo, { agent: true, reload: true });
+  await screen.findAllByText(/Who may move a chat up to a change/);
+
+  expect(openTab()).toBe("Outline");
+  expect(within(end()).getByText(/^Unsaved text restored from/)).toBeTruthy();
+  await click(within(end()).getByRole("button", { name: "Discard" }));
+  expect(within(end()).queryByText("Check the spec page too.")).toBeNull();
+  expect(within(end()).getByRole("button", { name: "Write a note" })).toBeTruthy();
+});
+
+/** The edge case "the column folded", R23: asking, or Edit notes, unfolds it. */
+test("asking with the column folded unfolds it on Session, its composer focused", async () => {
+  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));
+  await open(PAGE, round());
+  expect(screen.queryByRole("tablist", { name: "The round's column" })).toBeNull();
+
+  await askAbout("Q2");
+
+  expect(openTab()).toBe("Session");
+  const box = await composer();
+  await waitFor(() => expect(box.textContent).toBe(`${Q2_QUOTE}\n\n`));
+  await waitFor(() => expect(box.contains(document.activeElement)).toBe(true));
+});
+
+test("Edit notes with the column folded unfolds it on Notes, its field focused", async () => {
+  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));
+  await open(PAGE, round());
+
+  await click(within(end()).getByRole("button", { name: "Write a note" }));
+
+  expect(openTab()).toBe("Notes");
+  await waitFor(() => expect(document.activeElement).toBe(notesField()));
+});
+
+/** US5 key 2: notes typed earlier are saved by Submit, their tab closed. */
+test("Submit with the Notes tab closed saves the notes typed earlier", async () => {
+  const repo = round(Object.fromEntries(ALL.map((id) => [id, "A"])));
+  await open(`${PAGE}?tab=notes`, repo, false);
+  await type(notesField(), "Check the spec page too.");
+  await click(screen.getByRole("tab", { name: "Outline" }));
+  expect(screen.queryByRole("textbox", { name: "Anything else" })).toBeNull();
+
+  await click(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() =>
+    expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain(
+      "**Notes:** Check the spec page too.",
+    ),
+  );
+});
+
+/**
+ * R21: `n` is the page's, whatever the column's tab: it jumps to the same blank question with Notes
+ * or Session open as with Outline, Q3 from where the page reads without a layout.
+ */
+test.each(["outline", "notes", "session"])("n jumps with ?tab=%s", async (tab) => {
+  await open(`${PAGE}?tab=${tab}`, round({ Q1: "A", Q2: "A" }));
+
+  await act(async () => {
+    fireEvent.keyDown(document.body, { key: "n" });
+  });
+
+  await waitFor(() =>
+    expect(document.activeElement?.textContent).toContain("Does the chat's conversation become"),
+  );
+});
+
 test("Edit notes opens the Notes tab, its field focused", async () => {
   await open(PAGE, round());
 
@@ -205,7 +313,8 @@ test("on the phone, 1/8 opens the outline in a sheet, and a row closes it", asyn
   await open(PAGE, round({ Q2: "A" }));
   expect(screen.queryByRole("tablist", { name: "The round's column" })).toBeNull();
 
-  await click(screen.getByRole("button", { name: "1/8" }));
+  await click(screen.getByRole("button", { name: "1/8 answered, outline" }));
+  expect(screen.getByText("1/8")).toBeTruthy();
   const sheet = await screen.findByRole("dialog", { name: "Outline" });
   await click(within(sheet).getByRole("button", { name: /^Q3 .*\(unanswered\)$/ }));
 
@@ -228,6 +337,60 @@ test("on the phone, Notes opens a sheet over the same note", async () => {
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notes" })).toBeNull());
   expect(within(end()).getByText("From the phone.")).toBeTruthy();
   expect(within(end()).getByText("Unsaved changes")).toBeTruthy();
+});
+
+/** The UI layout decision: an open sheet is in the address, so reload and Back keep it. */
+test("on the phone, the Notes sheet is in the address: a reload keeps it, Back closes it", async () => {
+  atWidth(390);
+  const repo = round();
+  await open(PAGE, repo);
+
+  await click(screen.getByRole("button", { name: "Notes" }));
+  await screen.findByRole("dialog", { name: "Notes" });
+  expect(new URLSearchParams(window.location.search).get("tab")).toBe("notes");
+  await type(notesField(), "From the phone.");
+
+  await renderPage(`${PAGE}?tab=notes`, repo, { agent: true, reload: true });
+  const sheet = await screen.findByRole("dialog", { name: "Notes" });
+  expect(within(sheet).getByRole("textbox", { name: "Anything else" })).toBeTruthy();
+
+  await act(async () => window.history.back());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notes" })).toBeNull());
+  expect(window.location.pathname).toBe(atRepo(PAGE));
+  expect(new URLSearchParams(window.location.search).get("tab")).toBeNull();
+  expect(screen.getByRole("region", { name: "Check these" })).toBeTruthy();
+});
+
+test("on the phone, Back over the Outline sheet closes it", async () => {
+  atWidth(390);
+  await open(`${PAGE}#Q3`, round());
+
+  await click(screen.getByRole("button", { name: /^0\/\d+ answered, outline$/ }));
+  await screen.findByRole("dialog", { name: "Outline" });
+  expect(new URLSearchParams(window.location.search).get("tab")).toBe("outline");
+
+  await act(async () => window.history.back());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Outline" })).toBeNull());
+  expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe(
+    `${atRepo(PAGE)}#Q3`,
+  );
+});
+
+/** The UI layout decision: a width change keeps the open tab, as a sheet, and the reverse. */
+test("the Notes tab narrowed is the Notes sheet, and widened the tab again", async () => {
+  await open(`${PAGE}?tab=notes`, round());
+  await type(notesField(), "Check the spec page too.");
+
+  await act(async () => atWidth(390));
+  const sheet = await screen.findByRole("dialog", { name: "Notes" });
+  expect(
+    (within(sheet).getByRole("textbox", { name: "Anything else" }) as HTMLTextAreaElement).value,
+  ).toBe("Check the spec page too.");
+
+  await act(async () => atWidth(1440));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notes" })).toBeNull());
+  expect(openTab()).toBe("Notes");
+  expect(notesField().value).toBe("Check the spec page too.");
 });
 
 /** US3 key 3 */
@@ -266,6 +429,42 @@ test("typed notes, comments, and the composer stay through tabs and widths", asy
   expect(within(end()).getByText("Unsaved changes")).toBeTruthy();
   await click(screen.getByRole("tab", { name: "Outline" }));
   expect(within(end()).getByText("Check the spec page too.")).toBeTruthy();
+});
+
+/**
+ * Unsaved text is never dropped (ui-behaviour.md): the column's composer and the session's page's
+ * hold one draft, so the quote and the text typed follow the human to the page and back, and a
+ * message sent from either empties it in both.
+ */
+test("the composer's text follows the human to the session's page and back", async () => {
+  const fake = await fakeAgent();
+  await open(PAGE, round(), fake);
+  await askAbout("Q2");
+  const typed = `${Q2_QUOTE}\n\nwhy would that cost more?`;
+  await type(await composer(), typed);
+
+  await click(screen.getByRole("link", { name: "Open the session's page" }));
+
+  expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/session`));
+  await screen.findByRole("log", { name: "Conversation" });
+  const page = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  expect(page.textContent).toBe(typed);
+
+  await act(async () => window.history.back());
+
+  expect(openTab()).toBe("Session");
+  expect((await composer()).textContent).toBe(typed);
+
+  await click(screen.getByRole("link", { name: "Open the session's page" }));
+  await screen.findByRole("log", { name: "Conversation" });
+  await click(await screen.findByRole("button", { name: "Send" }));
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(""),
+  );
+  await act(async () => window.history.back());
+
+  expect((await composer()).textContent).toBe("");
 });
 
 /** Review focus 5: the composer is the session's page's while the agent works. */

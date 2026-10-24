@@ -124,9 +124,13 @@ const styles = stylex.create({
     flexWrap: "wrap",
     minWidth: 0,
   },
+  new: { borderColor: colorVars["--color-border-green"] },
+  newTitle: { color: colorVars["--color-text-green"] },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
   // width: no side or bottom border, no inset, and no background of its own, so it shows no band
-  // over the page, whose surface its content then sits on.
+  // over the page, whose surface its content then sits on. Its widths are the pane's own
+  // properties, which merge in the props: a longhand over the pane's shorthand would win or lose by
+  // the order of the stylesheet's rules.
   openOnPhone: {
     "--pane-surface": colorVars["--color-background-surface"],
     backgroundColor: "transparent",
@@ -137,13 +141,12 @@ const styles = stylex.create({
   },
   openOnPhoneActions: { backgroundColor: colorVars["--color-background-surface"] },
   // Its title hides the border behind it with the page's surface, which a round on the phone is
-  // drawn on.
-  new: { borderColor: colorVars["--color-border-green"] },
-  newTitle: { color: colorVars["--color-text-green"] },
+  // drawn on, and leaves a run of the border after it, so a title of several lines still shows
+  // the pane's top border.
   openOnPhoneTitle: {
     backgroundColor: colorVars["--color-background-surface"],
     marginInlineStart: 0,
-    maxWidth: "100%",
+    maxWidth: `calc(100% - ${spacingVars["--spacing-3"]} - var(--pane-actions-room, 0px))`,
     paddingInlineStart: 0,
   },
   pane: {
@@ -159,7 +162,11 @@ const styles = stylex.create({
     backgroundColor: colorVars["--color-background-body"],
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
-    borderWidth: "var(--pane-border)",
+    // Each side's width, which `openOnPhone` sets to none but the top.
+    borderBlockEndWidth: "var(--pane-border)",
+    borderBlockStartWidth: "var(--pane-border)",
+    borderInlineEndWidth: "var(--pane-border)",
+    borderInlineStartWidth: "var(--pane-border)",
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
     minWidth: 0,
@@ -205,7 +212,9 @@ const styles = stylex.create({
     marginBlockStart: "var(--pane-title-top)",
     marginInlineStart: `calc(${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]})`,
     maxWidth: `calc(100% - 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]}) - var(--pane-actions-room, 0px))`,
-    paddingInline: spacingVars["--spacing-2"],
+    // Each side's, which `openOnPhoneTitle` sets at the start.
+    paddingInlineEnd: spacingVars["--spacing-2"],
+    paddingInlineStart: spacingVars["--spacing-2"],
     position: "relative",
     width: "fit-content",
     // Focused by a jump (`roundJump.ts`), without a ring: the jump shows where it went.

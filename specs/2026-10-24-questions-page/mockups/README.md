@@ -29,7 +29,27 @@ screen), 960, or 390 (the phone). Everything under it is the page.
 - On the phone, the status line opens the outline and the notes as sheets.
 - `n` and `p` jump between unanswered questions.
 
-## What it is not
+## The stories
+
+The built page has its stories in Uraeda's own Storybook, drawn by the real components over the
+spec's rounds, as the [preview decision](/specs/decisions/preview.md) asks. The feature's Storybook
+page lists them:
+
+- **Mockups/Round page**, in [`RoundPage.stories.tsx`](/packages/web/src/RoundPage.stories.tsx):
+  `QuestionsWaiting`, the merge-chats round with its column; `QuestionsSessionAsked`, the Session
+  tab after "Ask the agent" on Q2; `QuestionsNotes`, the Notes tab; `QuestionsAnswered`, the round
+  answered, with no column; and `Triage`, the inbox's triage, with no Session.
+- **Mockups/Question cards**, in
+  [`QuestionCard.stories.tsx`](/packages/web/src/QuestionCard.stories.tsx): `ExampleAndWhy`, the
+  layout-look round's Q4 and Q5; and `Picked`, the merge-chats round with Q2's option A picked.
+
+Their rounds are the fixtures [`round-merge-chats`](/fixtures/round-merge-chats/) and
+[`round-layout-look`](/fixtures/round-layout-look/), which
+[`.storybook/fixture.ts`](/packages/web/.storybook/fixture.ts) commits as features of its
+repository. The [screenshots](../screenshots/) show the same views, at a phone's and a desktop's
+size, in Latte and Mocha.
+
+## What the HTML mockup is not
 
 - Not built with Astryx, and not shipping code.
 - It loads JetBrains Mono and Inter from Google Fonts; the app bundles them.

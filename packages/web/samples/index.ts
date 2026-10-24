@@ -2,6 +2,7 @@
 // three build the same features at the same steps.
 export {
   addFeaturePages,
+  addQuestionsPages,
   addRoundMockup,
   addSpecPages,
   DATE,
@@ -9,7 +10,7 @@ export {
   listPullRequest,
   recordFeatureRuns,
 } from "./features.ts";
-export { FEATURE_PAGES, ROUND_MOCKUPS, SPEC_PAGES } from "./folders.ts";
+export { FEATURE_PAGES, QUESTIONS_PAGES, ROUND_MOCKUPS, SPEC_PAGES } from "./folders.ts";
 export { buildProjects, SAMPLE_FOLDERS } from "./projects.ts";
 export { CHANGE_FOLDERS } from "./changes.ts";
 export { fakeGh, type FakePullRequest } from "./features.ts";

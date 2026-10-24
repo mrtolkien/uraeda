@@ -17,6 +17,7 @@ mod spec;
 pub use data_model::{DataModelItems, DataSection, DataTable, RowChange, RowChangeKind};
 pub(crate) use round::round;
 pub(crate) use round::settled_points;
+pub(crate) use round::subjectless_items;
 pub use spec::{
     Criterion, EdgeCase, ListedDecision, MockupLink, Principle, ReviewAnswer, Scenario,
     ScenarioStep, SpecItems, SpecPart, Story, TierChoice,
@@ -125,7 +126,8 @@ pub struct RoundVerdict {
     pub kind: VerdictKind,
     /// Its list item's block.
     pub item: u32,
-    /// The item's spans after the phrase and its following ":" or ",", trimmed.
+    /// The item's spans after the phrase and its following ":" or ",", trimmed, the first letter
+    /// capitalised.
     pub text: Vec<Span>,
 }
 

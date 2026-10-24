@@ -166,7 +166,9 @@ describe("on the desktop", () => {
       await userEvent.keyboard("Only from home");
       await page.viewport(700, 900);
       // The narrow layout is drawn: the round's count moves to the bar, and its index into the page.
-      await expect.poll(() => screen.queryByRole("button", { name: /^\d+\/\d+$/ })).not.toBeNull();
+      await expect
+        .poll(() => screen.queryByRole("button", { name: /^\d+\/\d+ answered, outline$/ }))
+        .not.toBeNull();
       expect(field.isConnected).toBe(true);
       expect(field.value).toBe("Only from home");
       expect(document.activeElement).toBe(field);
@@ -879,8 +881,11 @@ test.each(MODES)(
       "Overall fine, but say where answers go.",
     );
     await reload(QUESTION);
-    // The notes open where the human writes them: the column's Notes tab, the phone's sheet.
-    const notes = await openNotes();
+    // The notes stay open where the human writes them, as the address says: the column's Notes
+    // tab, the phone's sheet.
+    const notes = await (window.innerWidth < 768
+      ? screen.findByRole("dialog", { name: "Notes" })
+      : screen.findByRole("tabpanel", { name: "Notes" }));
     await within(notes).findByText(/^Unsaved text restored from \d\d:\d\d\./);
     within(notes).getByLabelText("Anything else").scrollIntoView({ block: "center" });
     await drawn();

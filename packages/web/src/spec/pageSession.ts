@@ -1,9 +1,10 @@
-// The session of a spec's or a plan's page: the composer's draft, kept by the page while its
-// column comes and goes, its Session tab, and how "Ask the agent" reaches it.
+// The session of a spec's or a plan's page: the composer's draft, the feature's, kept while its
+// column comes and goes and on the session's page, its Session tab, and how "Ask the agent" reaches it.
 import { sessionTab, useColumnAsk } from "../ColumnSession.tsx";
 import { useAgent, useFeature } from "../data.ts";
+import { useRepositoryPath } from "../routes.tsx";
 import type { ColumnTab } from "../layout/DocumentColumn.tsx";
-import { useDraft } from "../useDraft.ts";
+import { featureDraftKey, useDraft } from "../useDraft.ts";
 import type { File } from "./parts.ts";
 
 /** A page's session: its column's Session tab, and asking the agent with a quote. */
@@ -17,7 +18,8 @@ export type PageSession = { ask: (quote: string) => void; tab: ColumnTab };
 export function usePageSession(file: File): PageSession | undefined {
   const agent = useAgent();
   const feature = useFeature(file.folder);
-  const draft = useDraft();
+  // The feature's session draft, which the round's column and the session's page hold too.
+  const draft = useDraft(featureDraftKey(useRepositoryPath(), file.folder));
   const ask = useColumnAsk(file.folder, draft);
   if (!agent?.available || !feature || feature.missing || !feature.branch) {
     return undefined;

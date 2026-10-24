@@ -65,7 +65,7 @@ async function takeForm(each: Each) {
 }
 
 /** Writes a file of the repository, runs `act`, and puts the file back as it was. */
-async function withFile(repo: string, path: string, text: string, act: () => Promise<void>) {
+export async function withFile(repo: string, path: string, text: string, act: () => Promise<void>) {
   const file = join(repo, path);
   let before: string | undefined;
   try {

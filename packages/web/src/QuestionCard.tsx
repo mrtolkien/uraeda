@@ -60,9 +60,9 @@ const styles = stylex.create({
  * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy` and none of
  * its options holds stories: its title and context on the left, its options and comment on the
  * right. On the phone, no card. At every width, its header sticks at the top while its card is on
- * screen, below the top bar on the phone, and a question taller than the screen scrolls under it. A tap on an
- * option toggles its letter and saves the answer, with the comment as saved; the comment saves
- * with its button, or with Submit. With `onAsk`, it offers "Ask the agent".
+ * screen, below the top bar on the phone, and a question taller than the screen scrolls under it.
+ * A tap on an option toggles its letter and saves the answer, with the comment as saved; the
+ * comment saves with its button, or with Submit. With `onAsk`, it offers "Ask the agent".
  */
 export function QuestionCard({
   document,

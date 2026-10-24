@@ -7,6 +7,7 @@
 // on the spec's tighter one (R11).
 import { screen } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 import { atSize, commands, drawn, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-11-web-ui";
@@ -33,7 +34,7 @@ async function nestedRound() {
 }
 
 /** Where a text starts on the screen: its first line's left edge, not its box's. */
-function textLeft(text: string) {
+function textLeft(text: string | RegExp) {
   const element = screen.getByText(text);
   const range = document.createRange();
   range.selectNodeContents(element);
@@ -94,6 +95,33 @@ describe("lists on the phone", () => {
       expect(markerOf(nested).right).toBeLessThanOrEqual(textLeft(nested));
     },
   );
+});
+
+// The settled points, which a tap and their buttons comment on, hang as every document's list does.
+describe("settled points on the phone", () => {
+  atSize("phone");
+
+  test("a point's text starts at the paragraphs' edge, in Check these, Behaviour, and Under the hood", async () => {
+    await commands.commitOnBranch(FEATURE, {
+      [FILE]: await commands.fixtureText("round-merge-chats/clarifications-01.md"),
+    });
+    await show(PAGE, "Who may move a chat up to a change, or a change up to a feature?");
+    await userEvent.click(screen.getByRole("button", { name: /Under the hood/ }));
+    await drawn();
+
+    const edge = textLeft(/^Starting and listing chats and changes/);
+    for (const point of [
+      "The change's proposal",
+      "Inbox triage and the decisions check",
+      "The session's link to its change",
+    ]) {
+      expect(Math.abs(textLeft(point) - edge), point).toBeLessThanOrEqual(1);
+      // Its marker still hangs before it, on the screen, and its buttons stay.
+      expect(markerOf(point).right).toBeLessThanOrEqual(textLeft(point));
+      expect(markerOf(point).left).toBeGreaterThanOrEqual(0);
+      expect(screen.getByRole("button", { name: `Comment on "${point}"` })).toBeTruthy();
+    }
+  });
 });
 
 /** A wrapping item, a task, and an ordered list past 9, with a typed sign and a task in it. */

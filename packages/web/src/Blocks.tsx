@@ -321,13 +321,14 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       );
     case "paragraph":
       // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`. A
-      // link alone in it, like a story's mockup, is a control's height.
+      // link alone in it, like a story's mockup, is a control's height. Reading text, as its list
+      // items are: the theme's base styles set a `<p>` in the UI's monospace font.
       return (
         <Text
           as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
           display="block"
           type="inherit"
-          xstyle={styles.paragraph}
+          xstyle={[proseStyles.reading, styles.paragraph]}
         >
           <SinceWords block={block}>
             <Spans isAlone spans={block.spans} />

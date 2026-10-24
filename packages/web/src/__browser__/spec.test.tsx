@@ -201,7 +201,9 @@ function checkNonTextContrast() {
   const style = getComputedStyle(selected);
   const around = backdrop(selected.parentElement);
   const edge = Number.parseFloat(style.borderInlineStartWidth) > 0;
-  const colour = over(edge ? style.borderInlineStartColor : style.backgroundColor, around);
+  // On the phone, a selected block's bar is a shadow before its text (R24 of the questions page).
+  const bar = style.boxShadow === "none" ? undefined : /rgba?\([^)]*\)/.exec(style.boxShadow)?.[0];
+  const colour = over(edge ? style.borderInlineStartColor : (bar ?? style.backgroundColor), around);
   expect(contrast(colour, around), "selection").toBeGreaterThanOrEqual(3);
 }
 

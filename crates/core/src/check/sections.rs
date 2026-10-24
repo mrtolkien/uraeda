@@ -2,12 +2,12 @@
 //! template's order, and no level-2 section the template does not have, nor, in a round, a level-3
 //! heading under a section whose template has only fixed ones. A template section whose
 //! placeholder starts with `[Optional` may be left out, and one starting `[Optional, required from
-//! round 02` only in a first round. `settled.*`: a round's settled points sit in groups.
+//! round 02` only in a first round. `settled.*`: a round's settled points sit in groups, each starting with its bold subject.
 
 use crate::embedded;
 use crate::files::document::{self, Block, BlockKind, plain};
 use crate::files::markdown::{Document, Heading};
-use crate::files::{clarifications, inbox};
+use crate::files::{clarifications, inbox, items};
 use crate::workspace::{FileKind, Problem};
 
 use super::{Checked, File};
@@ -374,6 +374,24 @@ pub(super) fn check_settled_groups(
             Some(item.start_line as usize),
             "settled.group",
             "a settled point outside a group: put it under \"### Behaviour\" or \"### Under the hood\"",
+        ));
+    }
+}
+
+/// `settled.subject`: in a round, every point of `## Check these`, `### Behaviour`, and `### Under
+/// the hood` starts with its bold subject: a top-level list item that does not makes no point, and
+/// the page draws none for it.
+pub(super) fn check_settled_subjects(
+    file: &File<'_>,
+    tree: &document::Document,
+    problems: &mut Vec<Problem>,
+) {
+    let notes_line = clarifications::notes(file.text).map_or(usize::MAX, |(line, _)| line);
+    for item in items::subjectless_items(tree, notes_line) {
+        problems.push(file.problem(
+            Some(item.start_line as usize),
+            "settled.subject",
+            "a settled point without its bold subject: start it with one, \"- **Subject** what was chosen and why\"",
         ));
     }
 }

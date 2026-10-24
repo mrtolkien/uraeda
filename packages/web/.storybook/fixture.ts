@@ -1,13 +1,15 @@
 // The repository Uraeda's Storybook serves its stories from: a fresh copy of `fixtures/repo`, its
 // commits dated 2026-10-16, a note given children, with the test feature of the story embeds and
-// one checkout for each state `StoryEmbed.stories.tsx` shows, the spec page's features, and the
-// feature page's, with their past runs. Its previews run the tests' fake Storybook,
-// `fixtures/preview/serve.mjs`, as the browser tests' do.
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
+// one checkout for each state `StoryEmbed.stories.tsx` shows, the round page's, the questions
+// page's, the spec page's, and the feature page's features, with their past runs, and the inbox's
+// triage. Its previews run the tests' fake Storybook, `fixtures/preview/serve.mjs`, as the browser
+// tests' do.
+import { copyFileSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   addStoryFeature,
   commitOnBranch,
+  fixture,
   fixtureRepo,
   git,
   previewDecision,
@@ -18,6 +20,7 @@ import type { Plugin } from "vite-plus";
 import { uraedaServer } from "../vite.config.ts";
 import {
   addFeaturePages,
+  addQuestionsPages,
   addRoundMockup,
   addSpecPages,
   DATE,
@@ -64,6 +67,13 @@ function addNoteChildren(repo: string) {
   git(repo, "commit", "--quiet", "--no-verify", "--all", "--message", "chore: a note's children");
 }
 
+/** The inbox's triage, `fixtures/INBOX-TRIAGE.md`, committed on `main`, waiting for answers. */
+function addTriage(repo: string) {
+  copyFileSync(fixture("INBOX-TRIAGE.md"), join(repo, "specs/INBOX-TRIAGE.md"));
+  git(repo, "add", "specs/INBOX-TRIAGE.md");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "chore: propose an inbox triage");
+}
+
 /**
  * Builds the fixture at `<temporary folder>/fixture`, which the server lists as `fixture`, and its
  * data and config folders, the config folder empty, all removed when Storybook exits.
@@ -89,6 +99,9 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
       ROUND_MOCKUPS.commentOnly,
       "Neither: keep a single task, but keep the last 10 completions.",
     );
+    // The questions page's features, from the spec's rounds, and the inbox's triage.
+    addQuestionsPages(repo);
+    addTriage(repo);
     // The feature page's features, one per state, and their runs' tokens.
     addFeaturePages(repo);
     const dataDir = temporaryFolder("uraeda-storybook-data");

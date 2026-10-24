@@ -1,13 +1,20 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useFeature } from "./data.ts";
 import { useSession } from "./sessionData.ts";
-import { type Draft, useDraft } from "./useDraft.ts";
+import { type Draft, featureDraftKey, useDraft } from "./useDraft.ts";
 import type { SessionItem } from "./SessionActions.tsx";
 import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { useAsideShown } from "./SessionAside.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
-import { redirect, sessionIdPath, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
+import {
+  redirect,
+  sessionIdPath,
+  useRepoPath,
+  useRepositoryPath,
+  useRestoreScroll,
+  useSearch,
+} from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { type Handing, Missing, NO_BRANCH, SessionPane } from "./SessionView.tsx";
 
@@ -27,8 +34,11 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   const aside = useAsideShown();
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
-  const draft = useDraft();
-  const { setText } = draft;
+  // The feature's latest session's draft, which the round's column holds too: moving between them
+  // keeps it. An earlier session's goes with its page.
+  const repo = useRepositoryPath();
+  const draft = useDraft(given === undefined ? featureDraftKey(repo, folder) : undefined);
+  const { ask: askInto, setText } = draft;
   const search = useSearch();
   const workflow = useHandOver(search);
   const ask = new URLSearchParams(search).get("ask") ?? undefined;
@@ -47,9 +57,9 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   useEffect(() => {
     if (workflow === undefined && ask !== undefined && filled.current !== search) {
       filled.current = search;
-      setText((now) => `${ask}\n\n${now.trim() ? now : ""}`);
+      askInto(ask);
     }
-  }, [workflow, ask, search, setText]);
+  }, [workflow, ask, search, askInto]);
   if (!feature || feature.missing) {
     return given === undefined ? (
       <Page>

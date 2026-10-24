@@ -128,6 +128,19 @@ pub(crate) fn settled_points(doc: &Document, notes_line: usize) -> Vec<SettledPo
     points_of(doc, &settled_groups(doc, notes_line))
 }
 
+/// The top-level items of the settled groups' lists that do not start in bold, before the
+/// `**Notes:**` line: they make no point.
+pub(crate) fn subjectless_items(doc: &Document, notes_line: usize) -> Vec<&Block> {
+    settled_groups(doc, notes_line)
+        .iter()
+        .flat_map(|group| group.blocks.iter())
+        .map(|&id| &doc.blocks[id as usize])
+        .filter(|block| block.kind == BlockKind::List)
+        .flat_map(|list| doc.children(list.id))
+        .filter(|item| leading_strong(item).is_none())
+        .collect()
+}
+
 /// The notes split into the free notes and the comments on the settled points, each pointing at
 /// the first point with its subject.
 fn split(notes: &str, points: &[SettledPoint]) -> (String, Vec<SettledComment>) {
@@ -150,8 +163,8 @@ fn split(notes: &str, points: &[SettledPoint]) -> (String, Vec<SettledComment>) 
 }
 
 /// The verdict of the round's block: its first list item starting "Verdict: ", by the phrase after
-/// it, with the item's spans after the phrase and its ":" or ",", trimmed: none when only a full
-/// stop follows the phrase.
+/// it, with the item's spans after the phrase and its ":" or ",", trimmed and capitalised, as they
+/// follow the badge: none when only a full stop follows the phrase.
 fn verdict(doc: &Document, block: u32) -> Option<RoundVerdict> {
     const PHRASES: [(&str, VerdictKind); 3] = [
         ("worth building as proposed", VerdictKind::AsProposed),
@@ -170,7 +183,7 @@ fn verdict(doc: &Document, block: u32) -> Option<RoundVerdict> {
         .find(|(phrase, _)| rest.starts_with(phrase))?;
     let mark = usize::from(rest[phrase.len()..].starts_with([':', ',']));
     let skip = "Verdict: ".len() + phrase.len() + mark;
-    let mut text = trimmed(drop_start(&item.spans, skip));
+    let mut text = capitalised(trimmed(drop_start(&item.spans, skip)));
     // The phrase alone, closed by its full stop, has no text after it.
     if plain(&text) == "." {
         text.clear();
@@ -339,7 +352,12 @@ fn lead_free(doc: &Document, block: Option<u32>, lead: &str) -> Vec<Span> {
         .strip_prefix([':', '.', '—'])
         .unwrap_or(rest)
         .trim_start();
-    let mut spans = trimmed(drop_start(&block.spans, text.len() - rest.len()));
+    capitalised(trimmed(drop_start(&block.spans, text.len() - rest.len())))
+}
+
+/// Spans with the first letter of their text capitalised: the text of a pane or a badge, whose
+/// lead the page draws apart, starts a sentence.
+fn capitalised(mut spans: Vec<Span>) -> Vec<Span> {
     if let Some(first) = spans.first_mut() {
         let mut chars = first.text.chars();
         if let Some(letter) = chars.next() {

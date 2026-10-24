@@ -4,12 +4,21 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
-import { sessionTab, useColumnAsk } from "./ColumnSession.tsx";
+import { focusOnceDrawn, sessionTab, useColumnAsk } from "./ColumnSession.tsx";
 import { type useFile, useAgent } from "./data.ts";
-import { type ColumnTab, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
+import {
+  askedTabNow,
+  type ColumnTab,
+  DocumentColumn,
+  tabAddress,
+  useAskedTab,
+  useColumnTab,
+} from "./layout/DocumentColumn.tsx";
+import { useDocumentColumnWidth } from "./layout/documentColumnWidth.ts";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { openOverlayAt, overlayOf } from "./layout/useBackCloses.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import {
   NOTES_FIELD,
@@ -20,54 +29,104 @@ import {
 } from "./RoundNotes.tsx";
 import { NextOrSubmit, OutlineSheet, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
 import type { NavQuestion } from "./roundJump.ts";
+import { redirect } from "./routes.tsx";
 import { quoted } from "./sessions.ts";
 import type { Draft } from "./useDraft.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 /** The phone's sheet open over the round, if any. */
-export type RoundSheet = "outline" | "notes" | undefined;
+type RoundSheet = "outline" | "notes" | undefined;
+
+/** The phone's sheets' names, by their keys in the address. */
+const SHEETS = { notes: "Notes", outline: "Outline" } as const;
+
+/**
+ * The phone's open sheet, and what opens or closes one: on narrow screens, `?tab=notes` opens the
+ * Notes sheet and `?tab=outline` the Outline sheet, so a reload, Back, or a width change keeps it,
+ * and the column's tab of the same key opens as the window widens. Opening a sheet adds a history
+ * entry of the page's, so Back closes it; closing it goes back over that entry, or, opened by the
+ * address, takes the tab out of it.
+ */
+function useRoundSheet(wide: boolean) {
+  const asked = useAskedTab();
+  const sheet: RoundSheet = !wide && (asked === "notes" || asked === "outline") ? asked : undefined;
+  const setSheet = (key: RoundSheet) => {
+    if (key !== undefined) {
+      openOverlayAt(tabAddress(key), SHEETS[key]);
+      return;
+    }
+    // Read now: called once Back landed, the sheet's entry gone.
+    const open = askedTabNow();
+    if (open !== "notes" && open !== "outline") {
+      return;
+    }
+    if (overlayOf(window.history.state) === SHEETS[open]) {
+      window.history.back();
+    } else {
+      redirect(tabAddress(undefined));
+    }
+  };
+  return [sheet, setSheet] as const;
+}
 
 /** The column's tabs, by their keys in the address: Session only where the agent can be asked. */
-export function columnKeys(asks: boolean) {
+function columnKeys(asks: boolean) {
   return asks ? ["outline", "notes", "session"] : ["outline", "notes"];
 }
 
 /**
  * What the round's page does from its parts: the phone's open sheet, `sheet`; asking the agent
- * about a question or a point, with `draft`, the session's composer kept by the page, when the
+ * about a question or a point, with `draft`, the feature's session draft, when the
  * agent can be asked; and opening the notes' field. Asking writes the quote into the composer,
- * in place of the one it held, and opens the Session tab; on the phone, it opens the session's
- * page. "Edit notes" opens the Notes tab, or the phone's sheet, its field focused.
+ * in place of the one it held, and opens the Session tab, its composer focused; on the phone, it
+ * opens the session's page. "Edit notes" opens the Notes tab, or the phone's sheet, its field
+ * focused. Both unfold the column the human folded (R23): `column` is its width and fold, which
+ * the page holds. `notesShown` says whether the notes' field is drawn, and `sessionShown` the
+ * session's composer.
  */
 export function useRoundActions(file: File, draft: Draft | undefined) {
   const wide = !isNarrow(useWidthClass());
-  const [, setTab] = useColumnTab(columnKeys(draft !== undefined));
-  const sheet = useState<RoundSheet>();
+  const column = useDocumentColumnWidth();
+  const [tab, setTab] = useColumnTab(columnKeys(draft !== undefined));
+  const sheet = useRoundSheet(wide);
+  const openTab = (key: string) => {
+    column.setShown(true);
+    setTab(key);
+  };
   const ask = useColumnAsk(file.folder, draft);
   const editNotes = () => {
     if (wide) {
-      setTab("notes");
+      openTab("notes");
     } else {
       sheet[1]("notes");
     }
-    requestAnimationFrame(() => document.getElementById(NOTES_FIELD)?.focus());
+    focusOnceDrawn(() => document.getElementById(NOTES_FIELD));
   };
   const asks = draft && {
     point: (subject: string) => ask(quoted(`About the settled point of ${file.path}:`, [subject])),
     question: (question: { id: string; title: string }) =>
       ask(quoted(`About ${question.id} of ${file.path}:`, [question.title])),
   };
-  return { asks, editNotes, sheet };
+  const open = (key: string) => (wide ? column.isShown && tab === key : sheet[0] === key);
+  return {
+    asks,
+    column,
+    editNotes,
+    notesShown: open("notes"),
+    sessionShown: wide && open("session"),
+    sheet,
+  };
 }
 
 /**
  * The round, `content`, with its column, named "The round's column". `nav` is its questions in the
  * page's order, `notes` its notes, which the Notes tab and the phone's sheet both write, and
- * `draft` the session's composer, kept by the page, with which the column has a Session tab.
+ * `draft` the feature's session draft, with which the column has a Session tab.
  * `onSubmit` takes the page to its end. `actions` are the page's, `useRoundActions`': the phone's
  * open sheet, and how the notes open. `n` and `p` jump between blank questions on wide screens,
- * whatever the open tab. An image dropped with no field focused goes to the notes, opening them.
+ * whatever the open tab. An image dropped with no field focused goes to the notes, opening them,
+ * unless the Session tab shows its composer, which takes it.
  */
 export function RoundColumn({
   actions,
@@ -89,12 +148,11 @@ export function RoundColumn({
   const wide = !isNarrow(useWidthClass());
   const agent = useAgent();
   useBlankKeys(nav, wide);
-  const [sheet] = actions.sheet;
-  const [tab] = useColumnTab(columnKeys(draft !== undefined));
+  // With Session shown, an image dropped goes to its composer, never to the notes.
   const queued = useNotesDrop({
     onOpen: actions.editNotes,
-    shown: wide ? tab === "notes" : sheet === "notes",
-    takes: file.takesImages,
+    shown: actions.notesShown,
+    takes: file.takesImages && !actions.sessionShown,
   });
   const round = file.current.items.clarifications;
   const document = file.current.document;
@@ -126,7 +184,12 @@ export function RoundColumn({
   }
   return (
     <>
-      <DocumentColumn content={content} label="The round's column" tabs={tabs} />
+      <DocumentColumn
+        column={actions.column}
+        content={content}
+        label="The round's column"
+        tabs={tabs}
+      />
       {!wide && (
         <PhoneParts
           nav={nav}
@@ -164,10 +227,12 @@ function PhoneParts({
       <TopBarSlot>
         <HStack align="center" gap={1}>
           <Button
-            label={`${answered}/${nav.length}`}
+            label={`${answered}/${nav.length} answered, outline`}
             onClick={() => setSheet("outline")}
             variant="ghost"
-          />
+          >
+            {`${answered}/${nav.length}`}
+          </Button>
           <Button
             icon={<Icon icon="uraeda:pencil" />}
             label="Notes"

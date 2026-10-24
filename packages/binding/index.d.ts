@@ -1437,7 +1437,10 @@ export interface RoundVerdict {
   kind: VerdictKind
   /** Its list item's block. */
   item: number
-  /** The item's spans after the phrase and its following ":" or ",", trimmed. */
+  /**
+   * The item's spans after the phrase and its following ":" or ",", trimmed, the first letter
+   * capitalised.
+   */
   text: Array<Span>
 }
 

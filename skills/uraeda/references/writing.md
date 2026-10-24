@@ -19,7 +19,8 @@ Warnings do not fail the check, but a waiting file should have none. The parts a
 
 - `sections.missing` for a missing Context part, `sections.unknown` for a heading the template does
   not have, and `sections.order` for one out of order;
-- `settled.group` for a settled point outside a group;
+- `settled.group` for a settled point outside a group, and `settled.subject` for one that does not
+  start with its bold subject;
 - `edges.importance` for an edge case's importance other than high, normal, or niche;
 - `review.answer` for an item of `## Your review` that is not a bold `**C<n>**`, its comment in
   parentheses, and `done` or `declined`;
@@ -182,7 +183,8 @@ The web UI writes comments on settled points this way, and a human can write the
 25. **A settled point starts with its bold subject**, continued by what was chosen and why, then a
     link to its source: `- **Undoing a completion** puts back what completing changed. See ...`.
     Subjects are unique in the round, the points to check included: the human comments on a point by
-    its subject.
+    its subject. A point without its bold subject fails `ura check` (`settled.subject`): the web UI
+    would draw nothing for it.
 
 ## A spec
 

@@ -297,3 +297,64 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a second field at the round's end, two fields over one text.
 - **If wrong**: draw `NotesField` in `RoundEnd` again, beside the tab's.
 - **Where**: Task 8.
+
+## R23: Asking, Edit notes, and an image for the notes unfold the column
+
+- **Decision**: with the round's column folded, "Ask the agent", "Ask", "Edit notes", "Write a
+  note", and an image dropped for the notes unfold it, then open their tab: Session with the quote
+  and its composer focused, or Notes with its field focused. The fold stays kept for every round,
+  unfolded from then on. The page holds the column's width and fold (`useRoundActions`' `column`),
+  so the notes' drop target and field know whether their tab shows.
+- **Rationale**: the fold was the human's own, but US3 is "the question still beside" the answer,
+  and SC-002 measures an open column; an ask that only set `?tab=` showed nothing, its quote in a
+  hidden draft, and the focus found nothing.
+- **Alternatives considered**: keeping the fold and opening the session's page, as on the phone,
+  which leaves the round the spec keeps beside the answer.
+- **If wrong**: drop `column.setShown(true)` from `useRoundActions`' `openTab`.
+- **Where**: Task 8, fixed in its review.
+
+## R24: On the phone, a selectable block's bar takes no room
+
+- **Decision**: on narrow screens, a block a tap selects, as a settled point or a block of a spec
+  under review, has no border nor inset of its own; once selected, its bar is a shadow in the gap
+  before its text, and its tint behind the text. Its text starts at the paragraphs' edge, as every
+  list's does (R9, R11).
+- **Rationale**: the selectable box's 4.8 px bar and 4.8 px inset set Check these, Behaviour, and
+  Under the hood about 9 px in from the paragraphs on the phone, though they are the documents' own
+  hanging list; the spec's assumption has lists lose no width. A border's width rounds to whole
+  pixels in WebKit, so a margin cannot take it back exactly; a shadow takes no room.
+- **Alternatives considered**: no tap selection on settled points, which their buttons would cover,
+  but which the settled tests and the review's keyboard toggle rely on; the bar hung by a negative
+  margin, 0.8 px off at WebKit's rounding.
+- **If wrong**: drop `selectableNarrow` and `selectedNarrow` in `Selection.tsx`.
+- **Where**: the final fix pass.
+
+## R25: Every document's paragraphs are reading text
+
+- **Decision**: `Blocks` draws a paragraph through `Prose`'s reading styles, as it already drew a
+  list item: the reading font, size, and line. Every page that draws a document's blocks follows,
+  beyond the round: a spec, a plan, a decision and the constitution, a proposal, a record, and a
+  session's quoted blocks. Headings, code, badges, and controls keep the monospace font.
+- **Rationale**: the UI coherence decision has reading text drawn through `Prose`, and the UI look
+  decision a proportional font for long prose; the theme's base styles set every `<p>` in the UI's
+  monospace font, so a pane's paragraphs read in the monospace font beside its lists in the reading
+  font.
+- **Alternatives considered**: the reading font on the round's paragraphs only, which leaves every
+  other document mixed, against the coherence decision's one component per kind of information.
+- **If wrong**: drop `proseStyles.reading` from the paragraph in `Blocks.tsx`: every document's
+  paragraphs go back to the monospace font at the reading size. The spec page's own rows, a story's
+  scenarios, a tradeoff's or an edge case's text, and its opening's items, which do not draw through
+  `Blocks`, still read in the monospace font beside them.
+- **Where**: the final fix pass, commit 49f48958; its screenshots, `documents-*`.
+
+## R26: A repeated fixed section in place stays a deferred fix
+
+- **Decision**: two `## Check these` written one after the other before Q1 pass `ura check`, and the
+  page draws only the first one's points; the branch leaves it, noted in the inbox's deferred fixes.
+- **Rationale**: a second `## Check these` after a question is reported, as `sections.order`; only a
+  repeat in place slips through, and it does for every fixed section of every template, as it did
+  before this feature. A check of repeated sections belongs to all templates, not to this round.
+- **Alternatives considered**: a `sections.repeated` rule now, a change to every file kind's check
+  outside the feature's scope.
+- **If wrong**: add `sections.repeated`, reported on a fixed heading's second occurrence.
+- **Where**: the final review.
