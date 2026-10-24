@@ -1140,6 +1140,11 @@ export interface MockupEmbed {
   path: string
   /** The link's anchor, after its `#`. */
   anchor?: string
+  /**
+   * The link's query, after its `?` and before its `#`, as written, `w` included: the state the
+   * page shows, as `doc=plan&w=1440`.
+   */
+  query?: string
   /** The width it shows at, in pixels: its `?w=` query's, or 1440. */
   width: number
   /** The link's text. */

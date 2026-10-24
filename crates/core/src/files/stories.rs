@@ -91,6 +91,9 @@ pub struct MockupEmbed {
     pub path: String,
     /// The link's anchor, after its `#`.
     pub anchor: Option<String>,
+    /// The link's query, after its `?` and before its `#`, as written, `w` included: the state the
+    /// page shows, as `doc=plan&w=1440`.
+    pub query: Option<String>,
     /// The width it shows at, in pixels: its `?w=` query's, or 1440.
     pub width: u32,
     /// The link's text.
@@ -113,6 +116,7 @@ pub fn mockup_embeds(doc: &Document) -> Vec<MockupEmbed> {
             is_mockup.then(|| MockupEmbed {
                 path: path.clone(),
                 anchor: link.anchor.clone(),
+                query: query_of(&link.target).map(str::to_owned),
                 width: query_width(&link.target).unwrap_or(MOCKUP_WIDTH),
                 label,
                 block: block.id,
@@ -121,10 +125,15 @@ pub fn mockup_embeds(doc: &Document) -> Vec<MockupEmbed> {
         .collect()
 }
 
+/// A link's query, after its `?` and before its `#`, when not empty.
+fn query_of(target: &str) -> Option<&str> {
+    let (_, query) = target.split('#').next()?.split_once('?')?;
+    (!query.is_empty()).then_some(query)
+}
+
 /// The width a link's `?w=` query names, a whole number of pixels above 0.
 fn query_width(target: &str) -> Option<u32> {
-    let (_, query) = target.split('#').next()?.split_once('?')?;
-    query
+    query_of(target)?
         .split('&')
         .find_map(|pair| pair.strip_prefix("w="))?
         .parse()

@@ -207,7 +207,8 @@ fn html_mockups() {
     assert!(embeds("- [Title](mockups/title.html)\n").is_empty());
 }
 
-/// Review focus 6: the `?w=` query sets the width and never reaches the path; the anchor is kept.
+/// Review focus 6: the `?w=` query sets the width and never reaches the path; the anchor and the
+/// query, as written, are kept apart from it.
 #[test]
 fn html_mockup_width_and_anchor() {
     assert_eq!(
@@ -220,6 +221,13 @@ fn html_mockup_width_and_anchor() {
         )]
     );
     assert_eq!(embeds("[A](mockups/a.html?w=wide)\n")[0].2, 1440);
+    let doc = parse(
+        "# T\n\n[Phone](mockups/spec.html?doc=x&w=390#dec-1)\n",
+        "specs/x",
+    );
+    assert_eq!(mockup_embeds(&doc)[0].query.as_deref(), Some("doc=x&w=390"));
+    let doc = parse("# T\n\n[A](mockups/a.html#top)\n", "specs/x");
+    assert_eq!(mockup_embeds(&doc)[0].query, None);
 }
 
 /// An embed names its paragraph's block.
