@@ -67,20 +67,28 @@ const styles = stylex.create({
     // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
     "--container-padding-inline-start": spacingVars["--spacing-4"],
   },
-  // On narrow screens, a list hangs its marker in the page's margin: its rows' text on the
-  // paragraphs' edge, and a nested list's one character in from its parent's.
-  hanging: { marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})` },
-  hangingNested: { marginInlineStart: `calc(1ch - ${spacingVars["--spacing-3"]})` },
+  // On narrow screens, a list hangs its markers in the page's margin, as far as their room
+  // (`--list-marker`) and the page's inset allow: the text of a list of dashes on the paragraphs'
+  // edge, wider markers' text in by what the inset lacks; a nested list's text one character in from
+  // its parent's.
+  hanging: {
+    marginInlineStart: `calc(-1 * min(var(--list-marker), var(--page-inset, ${spacingVars["--spacing-3"]})))`,
+  },
+  hangingNested: {
+    marginInlineStart: `calc(1ch - min(var(--list-marker), var(--page-inset, ${spacingVars["--spacing-3"]}) + 1ch))`,
+  },
   hangingRow: { gap: 0 },
   hangingSign: {
-    // The marker's room, as wide as the list hangs, its sign at its end, before the text.
+    // The marker's room, as wide as the list's widest marker, its sign at its end, before the text,
+    // on one line.
     boxSizing: "border-box",
     display: "flex",
     flexShrink: 0,
     justifyContent: "flex-end",
     minWidth: 0,
     paddingInlineEnd: spacingVars["--spacing-1"],
-    width: spacingVars["--spacing-3"],
+    whiteSpace: "nowrap",
+    width: "var(--list-marker)",
   },
   heading: {
     marginBlockEnd: spacingVars["--spacing-2"],
@@ -95,6 +103,8 @@ const styles = stylex.create({
     // A list's margin, but last in its item or callout, which end with it.
     marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
   },
+  // The room of a hanging list's markers, its gap before the text included.
+  markerRoom: (width: string) => ({ "--list-marker": width }),
   paragraph: {
     marginBlockEnd: spacingVars["--spacing-3"],
     marginBlockStart: 0,
@@ -202,29 +212,51 @@ function signOf(block: Block) {
 }
 
 /**
+ * The room a hanging list gives its markers, gap included: a dash's, a sign's, or its longest
+ * number's and its dot, in the font the list is drawn in.
+ */
+function markerRoom(list: Block, items: Array<Block>) {
+  if (list.ordered) {
+    const digits = String((list.start ?? 1) + Math.max(items.length - 1, 0)).length;
+    return `calc(${digits}ch + 0.5ch + ${spacingVars["--spacing-1"]})`;
+  }
+  return items.some((item) => signOf(item) !== undefined)
+    ? `calc(1em + ${spacingVars["--spacing-1"]})`
+    : spacingVars["--spacing-3"];
+}
+
+/**
  * The marker a row shows before its text, if not the list's own: its typed sign, or, where the list
- * hangs its markers, its number or a dash.
+ * hangs its markers, its number or a dash, an ordered row's sign after its number.
  */
 function rowMarker(list: Block, item: Block, index: number, isHanging: boolean) {
   const marker = item.marker ?? "plain";
-  if (isHanging && list.ordered) {
-    return <span {...stylex.props(styles.hangingSign)}>{(list.start ?? 1) + index}.</span>;
-  }
-  const sign = signOf(item) ?? (isHanging ? "-" : undefined);
-  return (
+  const sign = signOf(item);
+  const signed = (isHanging: boolean) =>
     sign && (
       <span
         aria-hidden="true"
-        {...stylex.props(
-          styles.sign,
-          isHanging && styles.hangingSign,
-          SIGN_STYLES[marker] ?? (marker === "plain" && styles.dash),
-        )}
+        {...stylex.props(styles.sign, isHanging && styles.hangingSign, SIGN_STYLES[marker])}
       >
         {sign}
       </span>
-    )
-  );
+    );
+  if (isHanging && list.ordered) {
+    return (
+      <>
+        <span {...stylex.props(styles.hangingSign)}>{(list.start ?? 1) + index}.</span>
+        {signed(false)}
+      </>
+    );
+  }
+  if (isHanging && !sign) {
+    return (
+      <span aria-hidden="true" {...stylex.props(styles.hangingSign, styles.dash)}>
+        -
+      </span>
+    );
+  }
+  return signed(isHanging);
 }
 
 function ListNode({ block, context }: { block: Block; context: BlockContext }) {
@@ -242,11 +274,14 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
       start={block.ordered ? (block.start ?? 1) : undefined}
       xstyle={[
         styles.list,
+        isHanging && styles.markerRoom(markerRoom(block, items)),
         isHanging && (parent?.kind === "item" ? styles.hangingNested : styles.hanging),
       ]}
     >
       {items.map((item, index) => (
         <ListItem
+          // A marker beside a wrapping item stays on its first line.
+          align="first-line"
           key={item.id}
           label={
             <Selectable block={item} selection={context.selection}>

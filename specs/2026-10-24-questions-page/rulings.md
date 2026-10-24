@@ -122,3 +122,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a column about to leave.
 - **If wrong**: keep the place in the box, once the column draws on narrow screens.
 - **Where**: Task 1.
+
+## R11: A hanging marker's room is its list's widest marker
+
+- **Decision**: on narrow screens, each list sizes its markers' room to its widest marker, its gap
+  included: 14.4 px for dashes (`--spacing-3`), one em for typed signs and task boxes, and its
+  longest number and dot for an ordered list. It hangs by that room, at most by the page's inset
+  (`--page-inset`): a list of dashes keeps its text on the paragraphs' edge, and a wider marker's
+  list sets its text in by what the inset lacks. An ordered row's typed sign or task box follows its
+  number, as on wider screens. Each marker sits on its row's first line, on one line.
+- **Rationale**: R9's 14.4 px room cut "8." and "☐" at the screen's edge, about 17 px wide at 19 px
+  text, and wrapped "10."; no inset holds them, as the spec page's is 14.4 px. Text set in a few
+  pixels keeps every marker whole on the screen.
+- **Alternatives considered**: smaller markers, unlike the text's; one room for every list, wide
+  enough for "10.", which would set every list of dashes in too.
+- **If wrong**: give the page a wider inset on the phone, or let lists of numbers keep Astryx's
+  `ol`.
+- **Where**: Task 3, fixed in its review.
