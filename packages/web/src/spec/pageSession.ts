@@ -22,5 +22,5 @@ export function usePageSession(file: File): PageSession | undefined {
   if (!agent?.available || !feature || feature.missing || !feature.branch) {
     return undefined;
   }
-  return { ask, tab: sessionTab(draft, file.folder) };
+  return { ask, tab: sessionTab(draft, file.folder, agent.kind) };
 }

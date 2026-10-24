@@ -27,8 +27,8 @@ import { SHEETS, useSheetTab } from "./useSheetTab.ts";
  * On the phone, the column's panels outside the page: the status line's Contents, the comments'
  * count and Verdict while a review waits, Contents and the count each opening its panel in a sheet,
  * kept in the address (`useSheetTab`);
- * with no review, Session, opening the session's page of `session`, the feature's folder, where the
- * page has a Session tab.
+ * with no review, Session, with the Session tab's icon, opening the session's page of `session`'s
+ * folder, the feature's, where the page has a Session tab.
  */
 function PhoneParts({
   contents,
@@ -37,7 +37,7 @@ function PhoneParts({
 }: {
   contents: ReactNode;
   review: { count: number; panel: ReactNode } | undefined;
-  session: string | undefined;
+  session: { folder: string; icon: ColumnTab["icon"] } | undefined;
 }) {
   const [sheet, setSheet] = useSheetTab(review !== undefined);
   const close = () => setSheet();
@@ -81,9 +81,9 @@ function PhoneParts({
           )}
           {!review && session !== undefined && (
             <Button
-              icon={<Icon icon="uraeda:comment" />}
+              icon={<Icon icon={session.icon} />}
               label="Session"
-              onClick={() => navigateHere(sessionPath(session))}
+              onClick={() => navigateHere(sessionPath(session.folder))}
               variant="ghost"
             />
           )}
@@ -131,6 +131,7 @@ export function SpecColumn({
   const wide = !isNarrow(useWidthClass());
   const reviewPanel = review && <ReviewTab file={file} review={review} />;
   const count = review?.comments.length ?? 0;
+  const session = extra.find((tab) => tab.key === "session");
   const tabs: Array<ColumnTab> = [
     { icon: "uraeda:list", key: "contents", label: "Contents", panel: contents },
     ...(review
@@ -153,7 +154,7 @@ export function SpecColumn({
         <PhoneParts
           contents={contents}
           review={review && { count, panel: reviewPanel }}
-          session={extra.some((tab) => tab.key === "session") ? file.folder : undefined}
+          session={session && { folder: file.folder, icon: session.icon }}
         />
       )}
     </>

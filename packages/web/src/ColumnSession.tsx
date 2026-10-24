@@ -4,6 +4,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { useFeature } from "./data.ts";
+import { harnessMark } from "./HarnessMark.tsx";
 import { type ColumnTab, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { showDocumentColumn } from "./layout/documentColumnWidth.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -62,10 +63,13 @@ export function ColumnSession({ draft, folder }: { draft: Draft; folder: string 
   );
 }
 
-/** The column's Session tab, on the feature's session in `folder`, its composer holding `draft`. */
-export function sessionTab(draft: Draft, folder: string): ColumnTab {
+/**
+ * The column's Session tab, on the feature's session in `folder`, its composer holding `draft`, its
+ * icon the mark of `agent`, the kind of agent asked, as the session's page draws it.
+ */
+export function sessionTab(draft: Draft, folder: string, agent: string | undefined): ColumnTab {
   return {
-    icon: "uraeda:comment",
+    icon: harnessMark(agent ?? "").icon,
     key: "session",
     label: "Session",
     panel: (

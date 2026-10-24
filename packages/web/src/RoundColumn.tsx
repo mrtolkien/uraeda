@@ -7,7 +7,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { type ReactNode, useState } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
 import { sessionTab, useColumnAsk } from "./ColumnSession.tsx";
-import type { useFile } from "./data.ts";
+import { type useFile, useAgent } from "./data.ts";
 import { type ColumnTab, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -87,6 +87,7 @@ export function RoundColumn({
   onSubmit: () => void;
 }) {
   const wide = !isNarrow(useWidthClass());
+  const agent = useAgent();
   useBlankKeys(nav, wide);
   const [sheet] = actions.sheet;
   const [tab] = useColumnTab(columnKeys(draft !== undefined));
@@ -121,7 +122,7 @@ export function RoundColumn({
     { icon: "uraeda:pencil", key: "notes", label: "Notes", panel: notesField },
   ];
   if (draft) {
-    tabs.push(sessionTab(draft, file.folder));
+    tabs.push(sessionTab(draft, file.folder, agent?.kind));
   }
   return (
     <>
