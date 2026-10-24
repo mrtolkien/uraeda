@@ -1,7 +1,7 @@
 // The question cards as the round page draws them: two columns on a wide screen, a follow-up its own
 // card after its parent's. Over the clarifications redesign's mockup feature
 // (`specs/done/2026-10-17-redesign-clarifications.md`), its Q1 answered B so that its follow-up
-// shows, and the questions page's (`specs/2026-10-24-questions-page/`) rounds: the layout-look
+// shows, and the questions page's (`specs/done/2026-10-24-questions-page.md`) rounds: the layout-look
 // round's Q4 and Q5, and the merge-chats round, its Q2 picked A. Their data comes from Uraeda's
 // server in Storybook, through fate.
 import type { Meta, StoryObj } from "@storybook/react-vite";

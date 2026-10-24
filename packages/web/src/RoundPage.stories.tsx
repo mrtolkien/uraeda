@@ -1,6 +1,6 @@
 // The round page, as the app draws it: the clarifications redesign's mockup features' rounds
 // (`specs/done/2026-10-17-redesign-clarifications.md`, `fixtures/round-mockup/`), and the questions
-// page's (`specs/2026-10-24-questions-page/`), over its spec's rounds, `fixtures/round-merge-chats/`
+// page's (`specs/done/2026-10-24-questions-page.md`), over its spec's rounds, `fixtures/round-merge-chats/`
 // and `fixtures/round-layout-look/`, with its column of Outline, Notes, and Session, and the inbox's
 // triage. Built by `.storybook/fixture.ts`: their data comes from Uraeda's server in Storybook,
 // through fate, on the fake agent.
