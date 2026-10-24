@@ -20,7 +20,7 @@ import { linesMark, sideMark } from "../Selection.tsx";
 import { toVerdict, useVerdict, VERDICT_ID, VerdictNotices, Verdicts } from "../ReviewVerdict.tsx";
 import { ReviewImagesContext } from "../useReviewImages.ts";
 import type { File } from "./parts.ts";
-import { useColumnGo } from "./columnGo.ts";
+import { ColumnVerdict, useColumnGo } from "./columnGo.ts";
 
 const styles = stylex.create({
   text: {
@@ -119,6 +119,7 @@ function Comments({ comments, tree }: { comments: ReadonlyArray<CommentItem>; tr
  */
 export function ReviewTab({ file, review }: { file: File; review: Review }) {
   const go = useColumnGo();
+  const commit = use(ColumnVerdict);
   const images = use(ReviewImagesContext);
   const { choices, commentDraft, comments, container, refusals } = review;
   const { retry, verdict } = useVerdict(file, choices, refusals);
@@ -144,7 +145,9 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
       <Verdicts
         comments={comments.length}
         file={file}
-        onVerdict={async (approve, next) => (hold?.() ? false : verdict(approve, next))}
+        onVerdict={async (approve, next) =>
+          hold?.() ? false : commit(() => verdict(approve, next))
+        }
       />
       {message && !images?.hides?.(message) && (
         <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>

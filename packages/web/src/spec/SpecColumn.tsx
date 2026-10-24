@@ -13,10 +13,11 @@ import { Overlay } from "../layout/Overlay.tsx";
 import { TopBarSlot } from "../layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Review } from "../review/useReview.tsx";
-import { ColumnGo } from "./columnGo.ts";
+import { ColumnGo, ColumnVerdict } from "./columnGo.ts";
 import type { File } from "./parts.ts";
 import { ReviewTab } from "./ReviewTab.tsx";
 import { toVerdict } from "../ReviewVerdict.tsx";
+import { afterOverlayCloses } from "../layout/useBackCloses.ts";
 import { afterSheetCloses } from "../roundJump.ts";
 import { navigateHere } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
@@ -54,6 +55,17 @@ function PhoneParts({
     close();
     afterSheetCloses(run);
   };
+  const commit = (verdict: () => Promise<boolean>) =>
+    new Promise<boolean>((resolve) => {
+      close();
+      afterOverlayCloses(SHEETS.review, async () => {
+        const done = await verdict();
+        if (!done) {
+          setSheet("review");
+        }
+        resolve(done);
+      });
+    });
   return (
     <>
       <TopBarSlot>
@@ -99,7 +111,7 @@ function PhoneParts({
         </Overlay>
         {review && (
           <Overlay isOpen={sheet === "review"} label={SHEETS.review} onClose={close}>
-            {review.panel}
+            <ColumnVerdict value={commit}>{review.panel}</ColumnVerdict>
           </Overlay>
         )}
       </ColumnGo>

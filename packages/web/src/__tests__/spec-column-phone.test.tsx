@@ -6,7 +6,7 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { overlayOf } from "../layout/useBackCloses.ts";
-import { atWidth, click, fixtureRepo, renderPage } from "./helpers.tsx";
+import { atWidth, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
 /** The block's pane, titled by its first line. */
@@ -80,4 +80,19 @@ test("after a reload, a jump from the sheet closes it for good", async () => {
   // Still closed once the Back over its entry landed.
   await new Promise((resolve) => setTimeout(resolve, 100));
   expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+/** US4 more 3, on the phone: Back after approving from the sheet does not land on the sheet. */
+test("approving from the Review sheet leaves no entry of it", async () => {
+  const repo = await specAt();
+  await click(statusLine().getByRole("button", { name: "0 comments" }));
+  const sheet = await screen.findByRole("dialog", { name: "Review" });
+
+  await click(within(sheet).getByRole("button", { name: "Approve" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s", SPEC_FEATURE).trim()).toMatch(/approve/),
+  );
+  await waitFor(() => expect(overlayOf(window.history.state)).toBeUndefined());
+  expect(tab()).toBeNull();
 });
