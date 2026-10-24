@@ -50,7 +50,7 @@ export function useRoundPosition(
     const saved = read(key);
     const target = saved && ids.current.includes(saved) ? saved : firstBlank.current;
     if (target) {
-      jumpTo(target, true);
+      jumpTo(target, true, true);
     }
   }, [key]);
 
