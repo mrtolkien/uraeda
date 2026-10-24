@@ -32,20 +32,25 @@ spec says why.
 
 ## Why
 
-The desktop showed the phone's layout, and the human zoomed it to 120% to read it
-([text size](../done/2026-10-12-ui-improvements.md#q5-how-large-should-text-be-on-desktop)). An
-agent's session, squeezed into a pane beside its list, was too narrow to follow. The human then
-asked for concepts over hard rules: "Goal #1 is always readability and clarity for the user"
-([the session view's review](../done/2026-10-14-session-view.md#changes-after-approval)). The
-sidebar's rows of sub-agents and tasks were hard to read, so it became "small and visual more than
-textual"
-([the sidebar's rows](../done/2026-10-16-redesign-interface.md#q4-how-does-a-features-step-show-on-its-row-before-implementation)).
-Half a screen, where the human often works, got the desktop's layout and broke: the human asked for
-a middle class, wide enough to hold their 1205 px half screen
-([width classes](../done/2026-10-20-layout-look.md#q5-should-the-ui-get-a-third-width-class-for-half-screens)).
-Asking the agent about a question meant leaving the round for the session's page. The human asked
-for the session beside the documents they answer and review, in a column wide enough to read
-([the session beside a document](../2026-10-24-questions-page/clarifications-01.md#q2-how-should-the-layout-decision-change-for-a-session-beside-a-document)).
+Readability comes first, and what reads best depends on the room a view has, not on the device: a
+desktop window at half a screen and a tablet can have the same width. Three width classes cover the
+shapes that read differently: the phone's one column, a half screen of about 1200 px, where the
+sidebar folds to a rail to leave the content its room, and a full desktop. A theme that sets them
+once keeps every view on the same classes, where per-view media queries would drift apart.
+
+Text sized for the desktop and touch-sized controls let the human read and act without zooming. On a
+phone, a popover or a dialog covers most of the screen and is hard to dismiss, so a page or a sheet
+reads better; on a wide screen, the same detail fits beside what it came from. What is open lives in
+the address, so the human finds it again after a reload, Back, or turning the screen.
+
+A detail glanced at keeps its list in view beside it. A view followed for a while, like an agent's
+session, needs a page's width to read. The one exception is a feature's session beside its own
+documents: asking the agent about a question or a point should not take the human away from the
+document they answer or review. At 400 px and wider, the session is still easy to follow. A column
+that takes room from the main content can be folded and resized, so the human decides how much room
+it takes.
+
+Each spec shows its layout at each width class, because a layout is judged by seeing it.
 
 ## Alternatives considered
 

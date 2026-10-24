@@ -25,6 +25,7 @@ import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
 import {
   addFeaturePages,
+  addQuestionsPages,
   addRoundMockup,
   addSpecPages,
   listPullRequest,
@@ -37,6 +38,7 @@ import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
 import { takeDecisions, takeLayoutLook } from "./layout-look-shots.ts";
 import { takeMergeChats } from "./merge-chats-shots.ts";
+import { takeQuestionsPage } from "./questions-page-shots.ts";
 import { takeRound } from "./round-shots.ts";
 import { type Serve, takeSettings } from "./settings-shots.ts";
 import { takeSpecPage } from "./spec-shots.ts";
@@ -89,6 +91,8 @@ function repository() {
   git(repo, "switch", "--quiet", "main");
   // The round page's mockup feature, whose round holds a diagram, a follow-up, and every group.
   addRoundMockup(repo, ROUND_MOCKUPS.waiting, "B");
+  // The questions page's features, from its spec's rounds.
+  addQuestionsPages(repo);
   // The spec page's features, waiting for review and approved, and their decisions' changes.
   addSpecPages(repo);
   // The feature page's features, one per state.
@@ -275,6 +279,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
 
   const first = shots[0]!.page;
   await takeReviews(each, first);
+  await takeQuestionsPage(each, repo);
   await takeSessions(each, first, adapter);
   await takeSessionLook(each, first, adapter);
 

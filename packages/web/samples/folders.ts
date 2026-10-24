@@ -31,6 +31,17 @@ export const ROUND_MOCKUPS = {
 } as const;
 
 /**
+ * The questions page's features, which `addQuestionsPages` builds without a worktree, from the
+ * spec's rounds in `fixtures/`: the merge-chats round waiting, its Q2 answered A so that its
+ * follow-up shows, and answered; and the layout-look round waiting, with Q4's example.
+ */
+export const QUESTIONS_PAGES = {
+  answered: "2026-10-20-merge-chats-answered",
+  layoutLook: "2026-10-20-layout-look",
+  waiting: "2026-10-20-merge-chats",
+} as const;
+
+/**
  * The spec page's features, `SpecPage.stories.tsx`'s and the screenshots', built by
  * `addSpecFeature` without a worktree: its spec waiting for review, and the same spec approved.
  */
