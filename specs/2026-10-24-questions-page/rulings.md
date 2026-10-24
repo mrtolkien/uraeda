@@ -109,3 +109,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   tight pages; Astryx's numbers in an `ol`, the same.
 - **If wrong**: hang Astryx's own markers, once Astryx lets a list size them.
 - **Where**: Task 3.
+
+## R10: The column keeps no reading place across the narrow breakpoint
+
+- **Decision**: `useKeepPlace` keeps the window's reading place only; content in a box that scrolls
+  on its own, as the round's Session column, keeps none.
+- **Rationale**: the place is kept only as the window crosses the narrow breakpoint, and the column
+  is drawn only above it, so it leaves as the window crosses: a place kept in its box is never put
+  back where anyone reads it. Each media query's listener commits on its own, so the column may
+  still draw for a moment at narrow: its place, read against the window, would then move the round.
+- **Alternatives considered**: keeping the place in the box, as Task 1 first built, which only moves
+  a column about to leave.
+- **If wrong**: keep the place in the box, once the column draws on narrow screens.
+- **Where**: Task 1.
