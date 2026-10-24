@@ -13,7 +13,7 @@ import { type Refusal, refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
-import { jumpTo } from "./RoundNav.tsx";
+import { jumpTo } from "./roundJump.ts";
 import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx";
 import {
   defaultRoundHome,
