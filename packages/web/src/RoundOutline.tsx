@@ -65,23 +65,16 @@ const GROUPS: Record<SettledKind, { id: string; label: string; mark: string }> =
 /** The part that opens through the address, as a link to it does: Today, folded to its title. */
 const OPENS_BY_ADDRESS = new Set(["today"]);
 
-/** A group's points: the items of its lists. */
-const pointCount = (document: Document, group: SettledGroup) =>
-  document.blocks.filter(
-    (b) => b.kind === "item" && b.parent !== undefined && group.blocks.includes(b.parent),
-  ).length;
-
-/** A settled group's row, none for a group without points. */
-function groupRow(document: Document, group: SettledGroup | undefined): Array<Row> {
-  const count = group ? pointCount(document, group) : 0;
-  if (!group || count === 0) {
+/** A settled group's row, none for a group without points, as the page draws no pane for it. */
+function groupRow(group: SettledGroup | undefined): Array<Row> {
+  if (!group || group.points === 0) {
     return [];
   }
   const { id, label, mark } = GROUPS[group.kind];
   return [
     {
       id,
-      label: `${label} · ${count}`,
+      label: `${label} · ${group.points}`,
       mark,
       ...(group.kind === "check" ? { tone: "warning" } : {}),
     },
@@ -104,7 +97,7 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
         ? { id: anchor, label: part.title, mark: "·", sub: true }
         : { id: "context", label: "Context", mark: "·", sub: true };
     }),
-    ...groupRow(document, group("check")),
+    ...groupRow(group("check")),
   ];
   const asked: Array<Row> = questions.map((q) => ({
     id: q.id,
@@ -112,8 +105,8 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
     sub: q.level === 2,
   }));
   const end: Array<Row> = [
-    ...groupRow(document, group("behaviour")),
-    ...groupRow(document, group("hood")),
+    ...groupRow(group("behaviour")),
+    ...groupRow(group("hood")),
     { id: "notes", label: "Notes and submit", mark: "✎" },
   ];
   return [opening, asked, end].filter((run) => run.length > 0);

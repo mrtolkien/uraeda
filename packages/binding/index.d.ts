@@ -1450,6 +1450,11 @@ export interface SettledGroup {
   kind: SettledKind
   /** Its top-level blocks, before the `**Notes:**` line. */
   blocks: Array<number>
+  /**
+   * How many points it holds: the items of its lists that start in bold, as `settled_points`
+   * gives them.
+   */
+  points: number
 }
 
 /**

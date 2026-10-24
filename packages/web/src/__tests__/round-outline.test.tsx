@@ -191,3 +191,31 @@ test("a triage's Context row brings its free context to the top", async () => {
   expect(scrolled).toHaveBeenCalledOnce();
   expect(scrolled.mock.contexts[0]).toBe(screen.getByRole("region", { name: "Context" }));
 });
+
+/** A Behaviour item that does not start in bold: no point, so no comment and no count. */
+const THIRD_POINT = "- **The upgraded change's entry** goes";
+const NOT_A_POINT = "- The upgraded change's entry goes";
+
+test("a group counts only its points, in its pane and in the outline", async () => {
+  const nav = await outline(round(MERGE_CHATS.replace(THIRD_POINT, NOT_A_POINT)));
+
+  expect(rows(nav)).toContain("Behaviour · 2");
+  const behaviour = screen.getByRole("region", { name: "Behaviour" });
+  expect(within(behaviour).getByRole("heading").textContent).toContain("· 2");
+});
+
+test("a group without points has no pane and no row", async () => {
+  const behaviour = MERGE_CHATS.slice(
+    MERGE_CHATS.indexOf("### Behaviour"),
+    MERGE_CHATS.indexOf("### Under the hood"),
+  );
+  const nav = await outline(
+    round(
+      MERGE_CHATS.replace(behaviour, behaviour.replaceAll("- **", "- ").replaceAll("** ", " ")),
+    ),
+  );
+
+  expect(rows(nav).some((row) => row.startsWith("Behaviour"))).toBe(false);
+  expect(screen.queryByRole("region", { name: "Behaviour" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Under the hood" })).toBeTruthy();
+});
