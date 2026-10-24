@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import type { Document, RoundItems, SettledGroup, SettledKind } from "uraeda-binding";
 import { Overlay } from "./layout/Overlay.tsx";
 import { openAnchor } from "./routeHistory.ts";
+import { PART_IDS } from "./roundPartIds.ts";
 import {
   afterSheetCloses,
   endJump,
@@ -57,9 +58,9 @@ type Row = {
 
 /** The parts the page draws for each kind of settled group, by their ids, and their rows' names. */
 const GROUPS: Record<SettledKind, { id: string; label: string; mark: string }> = {
-  behaviour: { id: "behaviour", label: "Behaviour", mark: "·" },
-  check: { id: "check-these", label: "Check these", mark: "⚑" },
-  hood: { id: "under-the-hood", label: "Under the hood", mark: "·" },
+  behaviour: { id: PART_IDS.behaviour, label: "Behaviour", mark: "·" },
+  check: { id: PART_IDS.check, label: "Check these", mark: "⚑" },
+  hood: { id: PART_IDS.hood, label: "Under the hood", mark: "·" },
 };
 
 /** The part that opens through the address, as a link to it does: Today, folded to its title. */
@@ -90,12 +91,18 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
   const opening: Array<Row> = [
     ...(round.block === undefined
       ? []
-      : [{ id: "summary", label: round.verdict ? "Verdict and summary" : "Summary", mark: "!" }]),
+      : [
+          {
+            id: PART_IDS.summary,
+            label: round.verdict ? "Verdict and summary" : "Summary",
+            mark: "!",
+          },
+        ]),
     ...round.context.map((part) => {
       const anchor = part.heading === undefined ? undefined : document.blocks[part.heading]?.anchor;
       return anchor
         ? { id: anchor, label: part.title, mark: "·", sub: true }
-        : { id: "context", label: "Context", mark: "·", sub: true };
+        : { id: PART_IDS.context, label: "Context", mark: "·", sub: true };
     }),
     ...groupRow(group("check")),
   ];
@@ -107,7 +114,7 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
   const end: Array<Row> = [
     ...groupRow(group("behaviour")),
     ...groupRow(group("hood")),
-    { id: "notes", label: "Notes and submit", mark: "✎" },
+    { id: PART_IDS.notes, label: "Notes and submit", mark: "✎" },
   ];
   return [opening, asked, end].filter((run) => run.length > 0);
 }
