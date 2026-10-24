@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import {
   atRepo,
   click,
@@ -128,6 +129,50 @@ test("US2.2: Start the agent hands over, with the note", async () => {
   // The address no longer holds the message: Send is back.
   expect(window.location.search).toBe("");
   expect((await composer()).textContent).toBe("");
+});
+
+/** The address hands the message over once: the draft, kept between visits, holds it once. */
+test("Back and Forward to the hand-over keep its message once", async () => {
+  const { agent } = await renderPage(ROUND, answeredRepo(), { agent: true });
+  await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
+  await opensWith(WEB_UI, ANSWERED);
+
+  await act(async () => window.history.back());
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(ROUND)));
+  await act(async () => window.history.forward());
+
+  const box = await opensWith(WEB_UI, /Write the spec from the answers/);
+  await waitFor(() => expect(box.textContent).toBe(ANSWERED));
+  await click(startInComposer());
+  await waitFor(() => expect(agent.sent).toHaveLength(1));
+  expect(agent.sent[0].text).not.toContain("A human is chatting with you about the feature");
+});
+
+/** The hand-over's message follows the human to the round's column with its run: never a chat. */
+test("the hand-over's message, in the round's column, still starts the agent", async () => {
+  const repo = answeredRepo();
+  const folder = join(repo, ".worktrees", WEB_UI, "specs", WEB_UI);
+  const { agent } = await renderPage(ROUND, repo, { agent: true });
+  await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
+  await opensWith(WEB_UI, ANSWERED);
+
+  // The feature's next round, waiting on answers: its column holds the feature's session draft.
+  writeFileSync(
+    join(folder, "clarifications-02.md"),
+    readFileSync(join(folder, "clarifications-01.md"), "utf8")
+      .replace(/^status: .*$/m, "status: awaiting-human")
+      .replaceAll(/^\*\*Answer:\*\* A$/gm, "**Answer:**"),
+  );
+  await act(async () => navigate(atRepo(UNDERWAY)));
+  await click(await screen.findByRole("tab", { name: "Session" }));
+
+  const panel = screen.getByRole("tabpanel", { name: "Session" });
+  const box = await within(panel).findByRole("textbox", { name: "Message Claude Code" });
+  expect(box.textContent).toBe(ANSWERED);
+  await click(within(panel).getByRole("button", { name: "Start the agent" }));
+  await waitFor(() => expect(agent.sent).toHaveLength(1));
+  expect(agent.sent[0].text).not.toContain("A human is chatting with you about the feature");
+  expect(agent.sent[0].text).toContain("Write the spec from the answers");
 });
 
 /** US4 more 1: a message that no longer applies is sent as a chat, no longer refused. */

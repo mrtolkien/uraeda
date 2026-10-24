@@ -358,3 +358,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   outside the feature's scope.
 - **If wrong**: add `sections.repeated`, reported on a fixed heading's second occurrence.
 - **Where**: the final review.
+
+## R27: The session's draft keeps its workflow run, and takes an address's message once
+
+- **Decision**: the feature's kept session draft holds, with its text, the workflow run that text
+  starts with, a recommended message inserted or the message a `?continue=` address hands over:
+  every composer drawing the draft, on the session's page or in the round's column, reads "Start the
+  agent" and sends it as that run, until it is sent or emptied. The draft also keeps the address
+  whose message it took last, so coming back to a `?continue=` or `?ask=` address by Back or Forward
+  keeps what it holds instead of putting the message in again; sending or emptying it forgets the
+  address. A hand-over refused once read drops the run and keeps the text, sent as a chat.
+- **Rationale**: since the draft is kept for the document's life, a run kept by one composer's state
+  was lost on a new mount, and the workflow's message went as a plain chat; a per-mount "put in
+  once" prepended the message again on each revisit.
+- **Alternatives considered**: the hand-over's message not following into the column, which drops
+  text the human may have typed after it; clearing an inserted message when its composer unmounts,
+  which loses it.
+- **If wrong**: keep the run in `useInserted`'s state and clear the run's text from the kept draft
+  when its composer unmounts.
+- **Where**: the final fix pass, findings on the shared session draft.

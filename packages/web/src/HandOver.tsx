@@ -74,11 +74,15 @@ export function useHandOver(search: string): { file?: string; trigger: Trigger }
   return trigger ? { trigger: trigger as Trigger, ...(file ? { file } : {}) } : undefined;
 }
 
-/** The workflow's message as read: its text, its refusal, and its run's fresh session default. */
+/**
+ * The workflow's message as read: its text, its refusal, the step it was read at, and its run's
+ * fresh session default.
+ */
 export type ReadMessage = {
   /** Whether the run builds in a fresh session by default, at the step that offers it alone. */
   fresh?: boolean;
   refusal: string | null;
+  step?: string;
   text: string;
 };
 
@@ -98,13 +102,19 @@ export function WorkflowMessage({
   const message = useWorkflowMessage(folder, workflow.trigger, workflow.file);
   const text = message?.text;
   const refusal = message?.refusal;
-  const fresh = useFreshDefault(message?.step);
+  const step = message?.step ?? undefined;
+  const fresh = useFreshDefault(step);
   useEffect(() => {
     if (text !== undefined && refusal !== undefined) {
-      onRead({ refusal, text, ...(fresh === undefined ? {} : { fresh }) });
+      onRead({
+        refusal,
+        text,
+        ...(fresh === undefined ? {} : { fresh }),
+        ...(step === undefined ? {} : { step }),
+      });
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once per message read: `onRead` is a new function at each draw
-  }, [text, refusal, fresh]);
+  }, [text, refusal, fresh, step]);
   return null;
 }
 
