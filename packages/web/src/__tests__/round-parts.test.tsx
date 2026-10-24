@@ -128,7 +128,7 @@ test("Check these comes after Sources, with Ask and its comments", async () => {
   const shown = within(check).getByRole("group", { name: `Your comment on "${LIGHT_FLOW}"` });
   expect(within(shown).getByText(comment)).toBeTruthy();
   // No Ask without asking: the page passes none until the column's session asks.
-  expect(within(check).queryByRole("button", { name: "Ask" })).toBeNull();
+  expect(within(check).queryByRole("button", { name: /^Ask about/ })).toBeNull();
 });
 
 /** US4 key 1: a point's actions, "Ask" when the page asks. */
@@ -137,7 +137,7 @@ test("a point's actions are Ask and its comment button", async () => {
   const onComment = vi.fn();
   render(<PointActions onAsk={onAsk} onComment={onComment} subject={LIGHT_FLOW} />);
 
-  await click(screen.getByRole("button", { name: "Ask" }));
+  await click(screen.getByRole("button", { name: `Ask about "${LIGHT_FLOW}"` }));
   await click(screen.getByRole("button", { name: `Comment on "${LIGHT_FLOW}"` }));
 
   expect(onAsk).toHaveBeenCalledWith(LIGHT_FLOW);
