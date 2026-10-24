@@ -61,7 +61,11 @@ function Note({ block, selection }: { block: Block; selection: Selection | undef
     <Selectable block={block} selection={selection}>
       <Paragraph xstyle={styles.note}>
         {/* Changed since your review: its words after the lead, which its pane's title says. */}
-        <SinceWords block={block} lead={wordCount(plain(block.spans)) - wordCount(plain(note))}>
+        <SinceWords
+          block={block}
+          lead={wordCount(plain(block.spans)) - wordCount(plain(note))}
+          spans={note}
+        >
           <Spans spans={note} />
         </SinceWords>
       </Paragraph>

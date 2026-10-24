@@ -9,7 +9,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import type { Block } from "uraeda-binding";
 import { Selectable } from "../../Selection.tsx";
-import { cellRuns, useSinceMark } from "../../sinceMarks.tsx";
+import { cellRuns, keepsSpans, useSinceMark } from "../../sinceMarks.tsx";
 import { plain, Spans } from "../../Spans.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
 import { Runs } from "../RuleLine.tsx";
@@ -38,7 +38,7 @@ function EdgeRow({ edge, props }: { edge: Edge; props: PartProps }) {
   const runs = mark?.change.kind === "changed" ? cellRuns(mark.change.runs) : undefined;
   const words = runs?.length === outcome.length + 2 ? runs : undefined;
   const cell = (index: number, spans: Block["spans"]) =>
-    words ? <Runs runs={words[index]!} /> : <Spans spans={spans} />;
+    words && !keepsSpans(spans) ? <Runs runs={words[index]!} /> : <Spans spans={spans} />;
   return (
     <li {...stylex.props(builtStyles.row)}>
       <Selectable block={row} selection={props.selection}>

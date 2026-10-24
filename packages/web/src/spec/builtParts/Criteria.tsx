@@ -35,6 +35,7 @@ function Criterion({
               <SinceWords
                 block={item}
                 lead={wordCount(plain(item.spans)) - wordCount(plain(criterion.sentence))}
+                spans={criterion.sentence}
               >
                 <Spans spans={criterion.sentence} />
               </SinceWords>

@@ -6,7 +6,7 @@ import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme
 import * as stylex from "@stylexjs/stylex";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { createContext, type ReactNode, use, useId } from "react";
-import type { Block, Document, Run, SinceChange } from "uraeda-binding";
+import type { Block, Document, Run, SinceChange, Span } from "uraeda-binding";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { Runs } from "./spec/RuleLine.tsx";
@@ -177,27 +177,37 @@ export function afterWords(runs: ReadonlyArray<Run>, count: number): ReadonlyArr
   return runs.slice(at);
 }
 
+/**
+ * Whether words keep their drawing rather than the runs of their change: a link, an image, or code
+ * would be lost as plain words (R23). Their block is still marked.
+ */
+export const keepsSpans = (spans: ReadonlyArray<Span>) =>
+  spans.some((span) => span.link || span.image || span.code);
+
 /** The number of words of a text, as the core splits them. */
 export const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
 /**
  * A block's words: its change's runs when it changed since your review, else `children`; in a
  * paragraph of their own, `isParagraph`, where `children` are not words but a layout of them.
- * `lead` words of the block, drawn before `children` its own way, are left out.
+ * `lead` words of the block, drawn before `children` its own way, are left out. Words holding a
+ * link, an image, or code, `spans` (the block's by default), stay `children` (R23).
  */
 export function SinceWords({
   block,
   children,
   isParagraph = false,
   lead = 0,
+  spans = block.spans,
 }: {
   block: Block;
   children: ReactNode;
   isParagraph?: boolean;
   lead?: number;
+  spans?: ReadonlyArray<Span>;
 }) {
   const mark = useSinceMark(block.id);
-  if (mark?.change.kind !== "changed") {
+  if (mark?.change.kind !== "changed" || keepsSpans(spans)) {
     return children;
   }
   const runs = <Runs runs={afterWords(mark.change.runs, lead)} />;

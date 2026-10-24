@@ -14,7 +14,7 @@ import { useMemo } from "react";
 import type { Block } from "uraeda-binding";
 import type { BlockContext } from "./Blocks.tsx";
 import { After, useSelect } from "./Selection.tsx";
-import { cellRuns, SinceRowSign, useSinceMark } from "./sinceMarks.tsx";
+import { cellRuns, keepsSpans, SinceRowSign, useSinceMark } from "./sinceMarks.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import { Runs } from "./spec/RuleLine.tsx";
 
@@ -76,7 +76,11 @@ function RowNode({
             {index === 0 && select?.toggle}
             <span {...select?.above}>
               {index === 0 && mark && <SinceRowSign mark={mark} />}
-              {words ? <Runs runs={words[index]!} /> : <Spans spans={cell.spans} />}
+              {words && !keepsSpans(cell.spans) ? (
+                <Runs runs={words[index]!} />
+              ) : (
+                <Spans spans={cell.spans} />
+              )}
             </span>
           </Cell>
         ))}

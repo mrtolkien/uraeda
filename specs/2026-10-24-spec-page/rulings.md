@@ -346,3 +346,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `usePageSession` does.
 - **Where**: fix of Task 11's review, `packages/web/src/spec/pageSession.ts`,
   `packages/web/src/RoundPage.tsx`.
+
+## R24: A changed part holding a link, an image, or code keeps its drawing, marked
+
+- **Decision**: a part changed since your review whose drawn words hold a link, an image, or code is
+  drawn as written, marked Δ, without its change's runs (`keepsSpans`, `src/sinceMarks.tsx`); a
+  table's or an edge case's row decides cell by cell. Any other changed part draws the runs, which
+  drop bold and italics.
+- **Rationale**: the core's runs are plain words: drawn as runs, a changed paragraph lost its links,
+  its code, and its images, which the reader needs to follow or read the part. The mark still says
+  the part changed, and "Since your review" lists it; bold and italics carry no target, and keeping
+  them would drop the runs from most answers and criteria, which lead with a bold id.
+- **Alternatives considered**: runs that keep the spans' marks, which needs the core to carry each
+  word's span, or the web to align the runs with the spans word by word: more code for words the
+  mark already flags.
+- **If wrong**: drop `keepsSpans` from `SinceWords`, `BlockTable.tsx`, and `EdgeCases.tsx`, and the
+  test "a changed paragraph holding a link keeps it".
+- **Where**: fix of Task 12's review, `src/sinceMarks.tsx`, `src/__tests__/since-marks.test.tsx`.
