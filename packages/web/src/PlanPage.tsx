@@ -30,7 +30,7 @@ const STATUSES: Record<string, { label: string; variant: "error" | "success" | "
 /** What the plan's parts draw with: its tree, and while it waits, its review's folds and taps. */
 type Drawing = { document: Document; folds?: Folds; selection?: Selection };
 
-/** A lead pane's id: "lead-" then its label as an anchor, `lead-tech-stack`, apart from sections'. */
+/** A lead pane's id: "lead-" then its label as an anchor, `lead-tech-stack`, unlike a section's. */
 const leadId = (label: string) =>
   `lead-${label
     .toLowerCase()

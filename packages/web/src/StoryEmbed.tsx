@@ -1,9 +1,10 @@
 // A story embedded where a workflow file links it, in a live window: the story running in the
-// checkout's Storybook, through Uraeda's own address, at the desktop's width on wide screens and the
-// phone's on narrow ones until the human picks the other, in Uraeda's colour mode. On a wide screen,
-// it grows past its page's column into the space beside it; it goes full screen, at 100%. Its frames are sandboxed without
-// `allow-same-origin`: the embed takes messages from their windows only, and sends them nothing
-// but the colour mode and pick mode. Where a comment can go, it offers pick mode and a comment.
+// checkout's Storybook, through Uraeda's own address, at the desktop's width on wide screens and
+// the phone's on narrow ones until the human picks the other, in Uraeda's colour mode. On a wide
+// screen, it grows past its page's column into the space beside it; it goes full screen, at 100%.
+// Its frames are sandboxed without `allow-same-origin`: the embed takes messages from their windows
+// only, and sends them nothing but the colour mode and pick mode. Where a comment can go, it offers
+// pick mode and a comment.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";

@@ -49,8 +49,8 @@ function room(own: DOMRect, from: Element, page: Element, outer: Element, inset:
 
 /**
  * How many px the embed grows past each side of its box, on a wide screen: up to `width`, the
- * desktop's by default, with its stage's inset, into the empty space beside it within its page's container, more on
- * the side with more room. None outside a page, or on a narrow screen.
+ * desktop's by default, with its stage's inset, into the empty space beside it within its page's
+ * container, more on the side with more room. None outside a page, or on a narrow screen.
  */
 export function useOutgrow(
   embed: RefObject<HTMLElement | null>,
