@@ -9,14 +9,21 @@ async function statusLine() {
   return (await screen.findByRole("contentinfo", { name: "Status line" })).textContent ?? "";
 }
 
-test("on the priorities, the status line names the list's keys", async () => {
+test("on the priorities, the status line names the list's keys, but Escape with no pane open", async () => {
   await renderPage("/priorities");
   await waitFor(async () => {
     const text = await statusLine();
     expect(text).toContain("j k move");
     expect(text).toContain("⏎ open");
-    expect(text).toContain("esc close");
   });
+  // R36: Escape closes nothing without a pane open.
+  expect(await statusLine()).not.toContain("esc");
+});
+
+test("with a priority's pane open at 1440 px, the status line names Escape to close it", async () => {
+  atWidth(1440);
+  await renderPage("/priorities/claude-code-runner-triggered-manually");
+  await waitFor(async () => expect(await statusLine()).toContain("esc close"));
 });
 
 test("on a round at 1440 px, the status line names n and p", async () => {

@@ -851,3 +851,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a document's heading sits a step lower after a jump; one style in one file.
 - **Where**: `packages/web/src/layout/scrollMargin.ts`, `layout/Pane.tsx`, `Blocks.tsx`,
   `QuestionCard.tsx`, `spec/Panel.tsx`, `spec/SpecPage.tsx`.
+
+## R36: The lists name Escape only while a pane is open to close
+
+- **Decision**: the final review found the priorities' and the inbox's status line showing "esc
+  close" with no pane open, where Escape closes nothing. `WorkList` now names Escape only inside a
+  pane's route, as the decisions page already does. The status line test that expected "esc close"
+  on `/priorities` now expects no Escape hint there, and a new one expects "esc close" at
+  `/priorities/<key>` at 1440 px, the pane open beside the list.
+- **Rationale**: the spec's assumption: the key hints show only the keys that work today.
+- **Alternatives considered**: keeping the hint as a promise of what Escape does once a pane opens:
+  a hint that does nothing when tried teaches the human to ignore the line.
+- **If wrong**: one prop in `WorkList` and the test's two expectations.
+- **Where**: `packages/web/src/lists/WorkList.tsx`, `__tests__/status-line.test.tsx`.
