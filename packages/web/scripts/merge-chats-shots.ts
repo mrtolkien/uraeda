@@ -7,7 +7,7 @@
  */
 import type { Page } from "playwright";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, settle, show, wait } from "./shots.ts";
+import { type Each, here, openSessionsTab, settle, show, wait } from "./shots.ts";
 
 const result = { denials: [], errors: [], interrupted: false, ok: true, type: "result" as const };
 
@@ -60,11 +60,11 @@ async function actions(page: Page, path: string, text: string) {
   await settle(page);
 }
 
-/** The sidebar, open on the phone, once its Sessions list is drawn. */
+/** The column, or the phone's Sessions tab, once its Sessions list is drawn. */
 async function sidebar(page: Page, size: "phone" | "desktop") {
-  await show(page, "/", "Constitution and decisions");
+  await show(page, "/", "Overview");
   if (size === "phone") {
-    await page.getByRole("button", { name: "Open navigation" }).click();
+    await openSessionsTab(page);
   }
   // The session's card is its change's now, by its slug; the Sessions section scrolled into view,
   // below the fixture's many features that need the human.

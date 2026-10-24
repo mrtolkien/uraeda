@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
 import { git } from "uraeda-binding/test-utils";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, settle, show, wait } from "./shots.ts";
+import { type Each, here, openSessionsTab, settle, show, wait } from "./shots.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 
@@ -259,13 +259,13 @@ async function finished(adapter: FakeAdapter, repo: string, folder: string) {
   await wait(500);
 }
 
-/** The phone's views: the navigation, with the changes' tags, and the round's line open. */
+/** The phone's views: the Sessions tab, with the changes' tags, and the round's line open. */
 async function phoneShots(each: Each, centred: string, logo: string) {
   await each(
     "change-sidebar",
     async ({ page }) => {
       await changePage(page, centred, CENTRED_TITLE, "Change", false);
-      await page.getByRole("button", { name: "Open navigation" }).click();
+      await openSessionsTab(page);
       await page.getByRole("link", { name: /^centred-x, / }).waitFor();
       await settle(page);
     },

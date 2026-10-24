@@ -50,6 +50,8 @@ import {
   settle,
   shooter,
   show,
+  openRepositories,
+  openSessionsTab,
   type Each,
   type Shot,
   type Size,
@@ -210,24 +212,20 @@ async function serve(adapter: FakeAdapter, port: number) {
   return server;
 }
 
-/** Home, with the navigation open on the phone. */
+/** Home with the column beside it, or the phone's Sessions tab, which holds the column's panes. */
 async function sidebar(page: Page, size: Size) {
   await show(page, "/", HOME);
   if (size === "phone") {
-    await page.getByRole("button", { name: "Open navigation" }).click();
+    await openSessionsTab(page);
   }
   await page.getByText("Map the runner code").first().waitFor();
   await settle(page);
 }
 
-/** The repository menu, from its trigger in the navigation's heading or the phone's top bar. */
+/** The repository menu, from its trigger in the column's heading or the phone's Sessions tab. */
 async function repositories(page: Page) {
   await show(page, "/", HOME);
-  await page
-    .getByRole("button", { name: /^Uraeda / })
-    .first()
-    .click();
-  await page.getByRole("dialog", { name: "Repositories" }).waitFor();
+  await openRepositories(page);
   await settle(page);
 }
 
@@ -383,9 +381,9 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
   await each("quick-add", async ({ page, size }) => {
     await forget(page);
     await show(page, "/", HOME);
-    // The sidebar's ＋, in the phone's drawer.
+    // The column's ＋, on the phone's Sessions tab.
     if (size === "phone") {
-      await page.getByRole("button", { name: "Open navigation" }).click();
+      await openSessionsTab(page);
     }
     await page.getByRole("button", { name: "Add to the priorities" }).click();
     await page
@@ -438,17 +436,11 @@ async function takeReviews(each: Each, first: Page) {
   const editor = here(first);
   await each("editor-hints", ({ page }) => show(page, editor, "To write in the empty sections:"));
 
-  // The workflow's message in the composer of a feature waiting on the agent, unsent.
-  await each("session-handover", async ({ page }) => {
-    await show(page, AGENT, "Start the agent");
-    await page.getByRole("button", { name: "Start the agent" }).first().click();
-    await page.waitForURL(/\/session\?continue=/);
-    await page
-      .getByText(/Continue the feature/)
-      .first()
-      .waitFor();
-    await settle(page);
-  });
+  // The workflow's message in the composer of a feature waiting on the agent, unsent: the session
+  // a commit hands the feature over to, as the feature page no longer offers to start it.
+  await each("session-handover", ({ page }) =>
+    show(page, `${AGENT}/session?continue=manual`, /Continue the feature/),
+  );
 
   // The commit buttons of a review, which start the agent.
   await each("review-commit", async ({ page }) => {
