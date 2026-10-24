@@ -330,3 +330,52 @@ fn callout_rewritten() {
         })
     );
 }
+
+/// A story's heading changed is a part, at its heading's lines, under its new heading.
+#[test]
+fn story_heading_changed() {
+    let heading = "US2: Complete a repeating task (P2)";
+    let text = revision_2(&[(US2, heading)]);
+    let repo = reviewed("changes-requested", None, &text);
+
+    assert_eq!(
+        since(&repo),
+        Some(SinceReview {
+            revision: 1,
+            found: true,
+            parts: vec![SinceChange {
+                kind: "changed".to_string(),
+                heading: heading.to_string(),
+                before: Some(lines(REVISION_1, US2, US2)),
+                after: Some(lines(&text, heading, heading)),
+                runs: vec![
+                    run("kept", "US2: Complete a repeating task"),
+                    run("removed", "(P1)"),
+                    run("added", "(P2)"),
+                ],
+            }],
+        })
+    );
+}
+
+/// A section renamed, its parts kept, is its heading's change alone.
+#[test]
+fn section_renamed() {
+    let text = revision_2(&[("## Architecture", "## Design")]);
+    let repo = reviewed("changes-requested", None, &text);
+
+    assert_eq!(
+        since(&repo),
+        Some(SinceReview {
+            revision: 1,
+            found: true,
+            parts: vec![SinceChange {
+                kind: "changed".to_string(),
+                heading: "Design".to_string(),
+                before: Some(lines(REVISION_1, "## Architecture", "## Architecture")),
+                after: Some(lines(&text, "## Design", "## Design")),
+                runs: vec![run("removed", "Architecture"), run("added", "Design")],
+            }],
+        })
+    );
+}

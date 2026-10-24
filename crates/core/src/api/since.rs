@@ -1,10 +1,11 @@
 //! What changed in a spec since its human reviewed it: the spec at the commit of the review its
 //! revision answers, against the version the page shows, part by part as a decision's change
-//! matches them. The frontmatter is not a part, nor is the opening callout, rewritten at every
-//! revision, and no rule's strength or check is read.
+//! matches them, a heading of level 3 or deeper a part too. The frontmatter is not a part, nor is
+//! the opening callout, rewritten at every revision, and no rule's strength or check is read. A
+//! section renamed is its heading's change, its parts compared with the ones it had.
 
 use super::answered::revision_of;
-use crate::compare::{Part, Version, diff, matched, section_titles, version};
+use crate::compare::{Part, Version, diff, matched, section_titles, version_with_headings};
 use crate::files::document;
 use crate::files::items::ReviewItems;
 use crate::git::Git;
@@ -34,15 +35,70 @@ pub(super) fn since_review(
         };
     };
     let (old, new) = (spec_version(&reviewed), spec_version(shown));
-    let parts = section_titles(&old, &new)
-        .iter()
-        .flat_map(|title| matched(old.parts(title), new.parts(title)))
-        .filter_map(change)
-        .collect();
     SinceReview {
         revision,
         found: true,
-        parts,
+        parts: compared(&old, &new),
+    }
+}
+
+/// The changes of two versions, section by section, a section renamed at the newer's place.
+fn compared(old: &Version, new: &Version) -> Vec<SinceChange> {
+    let renamed = renamed(old, new);
+    let mut changes = Vec::new();
+    for title in section_titles(old, new) {
+        let before = match renamed.iter().find(|(_, head)| head.heading == title) {
+            Some(&(was, now)) => {
+                changes.extend(change((Some(was), Some(now))));
+                was.heading.as_str()
+            }
+            None if renamed.iter().any(|(was, _)| was.heading == title) => continue,
+            None => title.as_str(),
+        };
+        let pairs = matched(old.parts(before), new.parts(&title));
+        changes.extend(pairs.into_iter().filter_map(change));
+    }
+    changes
+}
+
+/// The `##` headings of the sections only one version has, paired when they are the same section
+/// renamed: its heading and parts, read as one part, are the same part.
+fn renamed<'a>(old: &'a Version, new: &'a Version) -> Vec<(&'a Part, &'a Part)> {
+    let (was, now) = (only(old, new), only(new, old));
+    let wholes = |heads: &[&Part], version: &Version| -> Vec<Part> {
+        heads.iter().map(|head| whole(head, version)).collect()
+    };
+    let (was_whole, now_whole) = (wholes(&was, old), wholes(&now, new));
+    let index = |list: &[Part], part: &Part| list.iter().position(|p| std::ptr::eq(p, part));
+    matched(&was_whole, &now_whole)
+        .into_iter()
+        .filter_map(|pair| match pair {
+            (Some(o), Some(n)) => Some((was[index(&was_whole, o)?], now[index(&now_whole, n)?])),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The `##` headings of `version` that `other` has no section of.
+fn only<'a>(version: &'a Version, other: &Version) -> Vec<&'a Part> {
+    let heads = version.heads.iter();
+    heads
+        .filter(|head| other.heads.iter().all(|h| h.heading != head.heading))
+        .collect()
+}
+
+/// A section as one part: its heading's text, then its parts'.
+fn whole(head: &Part, version: &Version) -> Part {
+    let parts = version.parts(&head.heading).iter();
+    Part {
+        text: [head.text.as_str()]
+            .into_iter()
+            .chain(parts.map(|part| part.text.as_str()))
+            .collect::<Vec<_>>()
+            .join(" "),
+        item: false,
+        lines: head.lines,
+        heading: head.heading.clone(),
     }
 }
 
@@ -52,7 +108,7 @@ fn spec_version(text: &str) -> Version {
     let callout = crate::files::spec::items(&doc)
         .block
         .map(|id| &doc.blocks[id as usize]);
-    let mut version = version(text);
+    let mut version = version_with_headings(text);
     if let Some(callout) = callout {
         let inside = |part: &Part| {
             part.lines.start >= callout.start_line && part.lines.end <= callout.end_line

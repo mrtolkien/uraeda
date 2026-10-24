@@ -10,4 +10,4 @@ mod parts;
 
 pub use matching::Run;
 pub(crate) use matching::{diff, matched, section_titles};
-pub(crate) use parts::{Part, Version, version};
+pub(crate) use parts::{Part, Version, version, version_with_headings};
