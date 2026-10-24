@@ -145,8 +145,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `SideColumn` takes either a `storageKey`, Astryx keeping its width as before, or a
   `width` its caller keeps; the document's column passes one from `useDocumentColumnWidth`, which
   follows the window until dragged and keeps the width and the fold under `uraeda.documentColumn`,
-  as the shell's column does in `shell/columnWidth.ts`. `SideColumn` also takes a `header`, the
-  tabs, in place of its name.
+  as the shell's column does, both through `useFollowedWidth` in `layout/followedWidth.ts`.
+  `SideColumn` also takes a `header`, the tabs, in place of its name.
 - **Rationale**: Astryx's kept width cannot follow the window until dragged, as the spec asks: it
   saves every resize, the window's too. The session's Progress column, the spec's Contents, and the
   round's temporary Session column keep their stored widths and keys unchanged.
@@ -228,3 +228,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   second tap after a reload would be taken for the same visit.
 - **If wrong**: give Today an open state the page holds, and let the outline set it.
 - **Where**: Task 7.
+
+## R18: The core counts a settled group's points, and a group without any draws nothing
+
+- **Decision**: `SettledGroup.points` gives how many items of a group's lists start in bold, by the
+  rule that finds `settledPoints`; the outline's rows and the panes' counts read it. A Behaviour or
+  Under the hood group without points draws no pane and has no row, as Check these already had none;
+  "Settled without you" shows only over a group that draws.
+- **Rationale**: the page and the outline each counted every item, while only items starting in bold
+  are points that take comments; a count kept in the core is one rule, not a second reading of the
+  lists. A group drawn by the page and missing from the outline, or the other way, left a part the
+  outline could not reach.
+- **Alternatives considered**: a web helper grouping `settledPoints` by the list each lies in, which
+  rebuilds in the page what the core already knows.
+- **If wrong**: draw empty groups again, and give them their row with a count of 0.
+- **Where**: Tasks 6 and 7, fixed in their review.
+
+## R19: An outline row's name says its state in words
+
+- **Decision**: a question's row shows ✓ or ○ before its id, hidden from its name, which ends with
+  "(answered)" or "(unanswered)", hidden from the eye.
+- **Rationale**: a name starting with a glyph reads as "check mark Q2" or "white circle Q3" and
+  sorts every row under two letters a screen reader's row search cannot type.
+- **Alternatives considered**: the state as the row's description, which Astryx's `ListItem` has no
+  prop for.
+- **If wrong**: drop the hidden words and let the glyph be read.
+- **Where**: Task 7, fixed in its review.
