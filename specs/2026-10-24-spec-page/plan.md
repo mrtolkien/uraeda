@@ -799,9 +799,10 @@ candidates, and the decisions check.
 - Modify: `packages/web/src/ReviewCommentForm.tsx` (Ask on a decision's lines, shown where the
   review's `ask` is), `src/useReviewActions.ts` and `src/review/useReview.tsx` (`onAsk`, the page's
   asking, takes the quote), `src/spec/SpecPage.tsx`, `src/PlanPage.tsx` (the Session tab and the
-  page's draft), `src/ColumnSession.tsx` (`sessionTab(draft, folder)`,
-  `useColumnAsk(folder, draft)`, shared with `RoundColumn.tsx`), `src/spec/SpecColumn.tsx` (the
-  phone's Session button with no review, as the mockup's plan)
+  page's draft, one per page whatever the file's status), `src/ColumnSession.tsx`
+  (`sessionTab(draft, folder, agent)`, its icon the agent's harness mark,
+  `useColumnAsk(folder, draft)`, unfolding a column folded with `]`, shared with `RoundColumn.tsx`),
+  `src/spec/SpecColumn.tsx` (the phone's Session button with no review, as the mockup's plan)
 - Create: `src/reviewQuote.ts` (`quoteOfRange`: the file's lines, or a decision's parts' words,
   R17), `src/spec/pageSession.ts` (`usePageSession(file)`: the draft, the tab, and `ask`, where the
   agent is available and the feature has its branch)
