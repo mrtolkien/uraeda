@@ -379,3 +379,15 @@ fn section_renamed() {
         })
     );
 }
+
+/// R6: an approved spec is not under review anymore, so it marks nothing.
+#[test]
+fn approved_revision_has_none() {
+    let text = revision_2(&[
+        ("status: awaiting-human", "status: approved"),
+        ("so for 3 seconds", "so for 5 seconds"),
+    ]);
+    let repo = reviewed("changes-requested", None, &text);
+
+    assert_eq!(since(&repo), None);
+}

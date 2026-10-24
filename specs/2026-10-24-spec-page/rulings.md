@@ -134,3 +134,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   questions page's plan.
 - **If wrong**: one number in `plan-page.test.tsx`.
 - **Where**: Task 7.
+
+## R11: "Since your review" only while the spec waits for review
+
+- **Decision**: a spec's `sinceReview` is computed only while its status is `awaiting-human`; an
+  approved revision, or one being revised, has none.
+- **Rationale**: US5 helps the reviews after the first one ("a first review reads the whole spec;
+  this helps the reviews after it"); an approved spec is not under review, and the spec does not say
+  what it shows then. See `crates/core/src/api/since.rs`, `while_waiting`.
+- **Alternatives considered**: keeping it on an approved spec, as a record of the last revision's
+  change, which marks Δ on a page nobody reviews.
+- **If wrong**: one condition in `while_waiting`.
+- **Where**: the wave 1 review's fixes of Task 2.

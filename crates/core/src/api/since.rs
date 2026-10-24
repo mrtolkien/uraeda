@@ -8,13 +8,35 @@ use super::answered::revision_of;
 use crate::compare::{Part, Version, diff, matched, section_titles, version_with_headings};
 use crate::files::document;
 use crate::files::items::ReviewItems;
+use crate::gates::AWAITING_HUMAN;
 use crate::git::Git;
 use crate::view::{SinceChange, SinceReview};
+
+/// The change of the spec at `path` since `review`, the review its revision answers, while it waits
+/// for its human: an approved spec is under review no more (R6). While it waits, the page shows
+/// the committed spec, `committed` when it differs from `current`, the spec as read.
+pub(super) fn while_waiting(
+    git: &Git,
+    path: &str,
+    review: Option<&ReviewItems>,
+    status: Option<&str>,
+    current: &str,
+    committed: Option<&str>,
+) -> Option<SinceReview> {
+    let review = review.filter(|_| status == Some(AWAITING_HUMAN))?;
+    Some(since_review(
+        git,
+        path,
+        review,
+        current,
+        committed.unwrap_or(current),
+    ))
+}
 
 /// The change of the spec at `path` since `review`, the review that requested the revision of
 /// `current`, the spec as read: from the spec at the review's commit to `shown`. Not found when
 /// the commit does not resolve, or holds no spec.
-pub(super) fn since_review(
+fn since_review(
     git: &Git,
     path: &str,
     review: &ReviewItems,
