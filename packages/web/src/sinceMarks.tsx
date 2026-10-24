@@ -179,7 +179,7 @@ export function afterWords(runs: ReadonlyArray<Run>, count: number): ReadonlyArr
 
 /**
  * Whether words keep their drawing rather than the runs of their change: a link, an image, or code
- * would be lost as plain words (R23). Their block is still marked.
+ * would be lost as plain words (R24). Their block is still marked.
  */
 export const keepsSpans = (spans: ReadonlyArray<Span>) =>
   spans.some((span) => span.link || span.image || span.code);
@@ -191,7 +191,7 @@ export const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).len
  * A block's words: its change's runs when it changed since your review, else `children`; in a
  * paragraph of their own, `isParagraph`, where `children` are not words but a layout of them.
  * `lead` words of the block, drawn before `children` its own way, are left out. Words holding a
- * link, an image, or code, `spans` (the block's by default), stay `children` (R23).
+ * link, an image, or code, `spans` (the block's by default), stay `children` (R24).
  */
 export function SinceWords({
   block,

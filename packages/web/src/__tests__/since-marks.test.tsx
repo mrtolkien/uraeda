@@ -190,7 +190,7 @@ test("the words of each kind of part changed show as runs", async () => {
   expect(note.mark.textContent).not.toContain("New:");
 });
 
-/** R23: a changed paragraph holding a link keeps its link, marked, rather than plain runs. */
+/** R24: a changed paragraph holding a link keeps its link, marked, rather than plain runs. */
 test("a changed paragraph holding a link keeps it", async () => {
   await revised(swap("hold as\nwritten there", "hold as\nthey are written there"));
   await sincePane(4);
