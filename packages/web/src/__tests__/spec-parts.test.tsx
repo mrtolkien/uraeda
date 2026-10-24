@@ -59,6 +59,25 @@ async function entries() {
     .map((link) => link.textContent);
 }
 
+/** US1: how it is built, each part a pane titled by its name, the edge cases and criteria counted. */
+test("how it is built draws in panes, the edge cases and the criteria with their counts", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  // The fixture's spec has 5 edge cases and 2 success criteria.
+  const titles = [
+    ["Architecture", "Architecture"],
+    ["Edge cases", "Edge cases · 5"],
+    ["Success criteria", "Success criteria · 2"],
+    ["Assumptions", "Assumptions"],
+  ];
+  for (const [name, title] of titles) {
+    const part = await region(name!);
+    expect(within(part).getByRole("heading", { level: 3, name: title })).toBeTruthy();
+  }
+});
+
 /** US8 1 */
 test("edge cases show high, then normal, then the niche ones folded", async () => {
   const repo = fixtureRepo();
@@ -80,13 +99,13 @@ test("edge cases show high, then normal, then the niche ones folded", async () =
   expect(rowsOf(part)[0]!.textContent).toContain("the schedule restarts from the new date");
   const fold = within(part).getByRole("button", { name: "2 niche cases" });
   expect(fold.getAttribute("aria-expanded")).toBe("false");
-  const nicheRow = within(part).getByText(/A title made only of "every monday"/);
-  expect(folded(nicheRow)).toBe(true);
+  // Folded, the niche cases are not in the page at all, not merely hidden.
+  expect(within(part).queryByText(/A title made only of "every monday"/)).toBeNull();
 
   await click(fold);
 
   expect(fold.getAttribute("aria-expanded")).toBe("true");
-  expect(folded(nicheRow)).toBe(false);
+  expect(folded(within(part).getByText(/A title made only of "every monday"/))).toBe(false);
   expect(rowsOf(part, 1).map(importance)).toEqual(["Niche", "Niche"]);
 });
 

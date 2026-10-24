@@ -608,30 +608,34 @@ candidates, and the decisions check.
 
 **Files:**
 
-- Create: `packages/web/src/spec/builtParts/` (the edge cases and the criteria, out of
-  `BuiltParts.tsx`, in a `refactor` commit first)
+- Create: `packages/web/src/spec/builtParts/` (the edge cases and the criteria, and what the parts
+  share, out of `BuiltParts.tsx`, in a `refactor` commit first); `src/theme/lucideParts.ts`
+  (Lucide's `shield` and `lightbulb`, beside `lucide.ts`, near its size limit)
+- Modify: `src/theme/icons.ts` (`uraeda:layers`, `uraeda:shield`, `uraeda:ruler`,
+  `uraeda:lightbulb`)
 - Modify: `src/spec/BuiltParts.tsx`
 - Test: `src/__tests__/spec-parts.test.tsx`
 
 **Interfaces:**
 
 - Produces: `BuiltParts`' props unchanged. Architecture, "Edge cases · N", "Success criteria · N",
-  and Assumptions are `Pane`s with their icons and their part's anchor as id; niche edge cases fold
-  under "N niche cases" through the pane's fold; nothing else changes.
+  and Assumptions are `Pane`s with their icons and their part's anchor as id; the counts are
+  `Pane`'s `count`, so the regions keep the part's name (R8); niche edge cases fold under "N niche
+  cases" inside the edge cases' pane, not mounted while folded (R9); nothing else changes.
 
 - [x] **Step 1: Split `BuiltParts.tsx`**, unchanged, in a `refactor` commit; `spec-parts.test.tsx`
       passes before and after.
-- [ ] **Step 2: Write the failing tests**: regions "Architecture", "Edge cases · N", and "Success
-      criteria · N", N the spec-page fixture's counts of rows and criteria, written as numbers in
-      the test; the niche fold a collapsed button whose cases are not in the page. Break: niche
-      cases hidden but mounted.
-- [ ] **Step 3: Run them to check they fail**:
-      `nix develop -c vp test src/__tests__/spec-parts.test.tsx`. Expected: FAIL, no region named
-      "Edge cases" with its count.
-- [ ] **Step 4: Implement.**
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, and `spec-parts.test.tsx`
+- [x] **Step 2: Write the failing tests**: regions "Architecture", "Edge cases", "Success criteria",
+      and "Assumptions", the headings "Edge cases · N" and "Success criteria · N", N the spec-page
+      fixture's counts of rows and criteria, written as numbers in the test; the niche fold a
+      collapsed button whose cases are not in the page. Break: niche cases hidden but mounted.
+- [x] **Step 3: Run them to check they fail**:
+      `nix develop -c vp test src/__tests__/spec-parts.test.tsx`. Expected: FAIL, no heading named
+      "Edge cases · 5".
+- [x] **Step 4: Implement.**
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, and `spec-parts.test.tsx`
       in both browser projects. Expected: PASS.
-- [ ] **Step 6: Commit**: `git commit -m "feat(spec-page): how it is built, in panes"`.
+- [x] **Step 6: Commit**: `git commit -m "feat(spec-page): how it is built, in panes"`.
 
 ## Task 7: The plan page
 

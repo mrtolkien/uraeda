@@ -97,3 +97,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the default width is one line in `StoryEmbed.tsx`'s `ReadyStory`; the switch on the
   phone, one condition.
 - **Where**: Task 5.
+
+## R8: A pane's count is in its title, not in its region's name
+
+- **Decision**: "Edge cases · 5" and "Success criteria · 2" are the panes' headings, through
+  `Pane`'s `count`; their regions keep the part's name, "Edge cases" and "Success criteria". Task
+  6's test reads the count from the heading, not from the region's name as the plan wrote.
+- **Rationale**: `Pane` names its region by its title alone, as "Check these" and "Inbox" are, so a
+  landmark keeps its name when the count changes; one shared pane, as coherence asks.
+- **Alternatives considered**: the count written into the title string, which names the region by a
+  number that changes, and draws the count unlike every other pane's.
+- **If wrong**: the region's name changes in `layout/Pane.tsx`, for every pane at once.
+- **Where**: Task 6.
+
+## R9: The niche cases fold inside their pane
+
+- **Decision**: the niche edge cases fold under "N niche cases" in the edge cases' pane, a toggle in
+  the pane's body as in the mockup's `built()`, not mounted while folded; the pane itself does not
+  fold.
+- **Rationale**: the plan's "through the pane's fold" would fold the whole pane, hiding the high and
+  normal cases the spec shows; the mockup folds the niche rows alone.
+- **Alternatives considered**: a nested pane titled "Niche cases" folding through `Pane`'s `fold`, a
+  border inside a border for two rows.
+- **If wrong**: `EdgeList` in `spec/builtParts/EdgeCases.tsx`.
+- **Where**: Task 6.

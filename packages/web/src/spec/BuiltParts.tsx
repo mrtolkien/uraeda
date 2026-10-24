@@ -1,8 +1,8 @@
-// "How it is built, and its limits": the parts after the stories, each drawn for what it holds. The
-// architecture's units as bullets, then each tradeoff with a "Cost" pill; the edge cases by
-// importance, the niche ones folded; each criterion's id and measure as pills before its sentence;
-// the assumptions as their blocks. The core finds each part's items: the page draws them, and every
-// item, row, and other block takes a comment as the spec's other blocks do.
+// "How it is built, and its limits": the parts after the stories, each a titled pane drawn for
+// what it holds. The architecture's units as bullets, then each tradeoff with a "Cost" pill; the
+// edge cases by importance, the niche ones folded; each criterion's id and measure as pills before
+// its sentence; the assumptions as their blocks. The core finds each part's items: the page draws
+// them, and every item, row, and other block takes a comment as the spec's other blocks do.
 import { Badge } from "@astryxdesign/core/Badge";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -22,8 +22,8 @@ import {
   Nested,
   parentsOf,
 } from "./builtParts/shared.tsx";
-import { Panel } from "./Panel.tsx";
-import { BUILT_PARTS, GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
+import { Pane } from "../layout/Pane.tsx";
+import { BUILT_PARTS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
 /** What the parts after the stories draw: the page's context, and the spec's items. */
 export type BuiltPartsProps = PartProps & { items: SpecItems };
@@ -69,29 +69,55 @@ function Architecture({ items, part, props }: DrawingProps) {
   });
 }
 
-/** Each part after the stories, by its section's title, drawn its own way. */
-const DRAWINGS: Record<string, (args: DrawingProps) => ReactNode> = {
-  Architecture,
-  Assumptions: ({ part, props }) => inOrder(part, props, () => undefined),
-  "Edge cases": EdgeCases,
-  "Success criteria": Criteria,
+/**
+ * Each part after the stories, by its section's title: its drawing, its pane's icon, and the count
+ * its title shows, if one.
+ */
+const DRAWINGS: Record<
+  string,
+  {
+    count?: (items: SpecItems) => number;
+    draw: (args: DrawingProps) => ReactNode;
+    icon: `uraeda:${string}`;
+  }
+> = {
+  Architecture: { draw: Architecture, icon: "uraeda:layers" },
+  Assumptions: {
+    draw: ({ part, props }) => inOrder(part, props, () => undefined),
+    icon: "uraeda:lightbulb",
+  },
+  "Edge cases": { count: (items) => items.edges.length, draw: EdgeCases, icon: "uraeda:shield" },
+  "Success criteria": {
+    count: (items) => items.criteria.length,
+    draw: Criteria,
+    icon: "uraeda:ruler",
+  },
 };
 
 /**
  * The architecture, the edge cases, the success criteria, and the assumptions, in this order, each
- * a card whose id is its section's anchor; a section the spec lacks has none.
+ * a pane with its icon, whose id is its section's anchor, the edge cases and the criteria counted
+ * in their title; a section the spec lacks has none.
  */
 export function BuiltParts({ items, ...props }: BuiltPartsProps) {
   return BUILT_PARTS.map((title) => {
     const part = partOf(items, title);
-    const Drawing = DRAWINGS[title];
+    const drawing = DRAWINGS[title];
+    if (!part || !drawing) {
+      return null;
+    }
+    const Drawing = drawing.draw;
     return (
-      part &&
-      Drawing && (
-        <Panel crumbs={[GROUPS.built.title]} id={part.anchor} key={part.anchor} title={part.title}>
-          <Drawing items={items} part={part} props={props} />
-        </Panel>
-      )
+      <Pane
+        count={drawing.count?.(items)}
+        icon={drawing.icon}
+        id={part.anchor}
+        key={part.anchor}
+        level={3}
+        title={part.title}
+      >
+        <Drawing items={items} part={part} props={props} />
+      </Pane>
     );
   });
 }

@@ -1,5 +1,5 @@
 // The edge cases: their table drawn as rows by importance, the niche ones folded behind their
-// count, the part's other blocks as written.
+// count, not mounted while folded, the part's other blocks as written.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -89,7 +89,7 @@ function isShown(props: PartProps, row: Block | undefined) {
 /**
  * The edge cases, high first, then normal, then any other, in the file's order within each; the
  * niche ones folded behind their count, open by hand or while the review shows something on one
- * of them.
+ * of them, and not mounted while folded.
  */
 function EdgeList({ edges, props }: { edges: ReadonlyArray<Edge>; props: PartProps }) {
   const [chosen, setChosen] = useState(false);
@@ -118,11 +118,13 @@ function EdgeList({ edges, props }: { edges: ReadonlyArray<Edge>; props: PartPro
             </span>
           }
         >
-          <VStack as="ul" gap={3} xstyle={builtStyles.list}>
-            {niche.map((edge) => (
-              <EdgeRow edge={edge} key={edge.row} props={props} />
-            ))}
-          </VStack>
+          {isOpen && (
+            <VStack as="ul" gap={3} xstyle={builtStyles.list}>
+              {niche.map((edge) => (
+                <EdgeRow edge={edge} key={edge.row} props={props} />
+              ))}
+            </VStack>
+          )}
         </Collapsible>
       )}
     </VStack>
