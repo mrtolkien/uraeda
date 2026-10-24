@@ -40,3 +40,57 @@ test("on the phone, a folding pane's title sits on its top border, clear of the 
     expect(button.contains(document.elementFromPoint(x, y)), `at ${y - border} px`).toBe(true);
   }
 });
+
+/** The range of an element's text, whose boxes are the lines it is drawn on. */
+function textRange(element: Element) {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  return range;
+}
+
+const LONG = "3 questions and 1 follow-up on the web UI, about 35 minutes.";
+
+test.each([
+  { isOpenOnPhone: false, name: "a pane" },
+  { isOpenOnPhone: true, name: "a pane open on the phone" },
+  { fold: true, isOpenOnPhone: true, name: "a folding pane" },
+])(
+  "on the phone, $name's long title wraps within the screen, over none of its text",
+  async ({ fold, isOpenOnPhone }) => {
+    render(
+      <Theme mode="dark" theme={uraedaTheme}>
+        <Pane
+          count={3}
+          fold={fold ? { isOpen: true, onOpenChange: () => {} } : undefined}
+          icon="uraeda:triangle-alert"
+          isOpenOnPhone={isOpenOnPhone}
+          title={LONG}
+        >
+          <p>The first paragraph of the pane.</p>
+        </Pane>
+      </Theme>,
+    );
+    await drawn();
+
+    const title = screen.getByText(LONG);
+    const section = title.closest("section")!;
+    const pane = section.getBoundingClientRect();
+    const lines = textRange(title).getBoundingClientRect();
+    // Within the screen and the pane, on more than one line.
+    expect(lines.right).toBeLessThanOrEqual(Math.min(window.innerWidth, pane.right));
+    expect(lines.left).toBeGreaterThanOrEqual(pane.left);
+    const first = textRange(title).getClientRects()[0]!;
+    expect(lines.height).toBeGreaterThan(1.5 * first.height);
+    // Its first line on the top border, within a pixel.
+    const border = pane.top + Number.parseFloat(getComputedStyle(section).borderTopWidth) / 2;
+    expect(Math.abs((first.top + first.bottom) / 2 - border)).toBeLessThanOrEqual(1);
+    // Its heading, and its count, end above the pane's text.
+    const heading = title.closest("h2")!.getBoundingClientRect();
+    expect(heading.bottom).toBeLessThanOrEqual(
+      screen.getByText("The first paragraph of the pane.").getBoundingClientRect().top,
+    );
+    expect(textRange(screen.getByText("· 3")).getBoundingClientRect().right).toBeLessThanOrEqual(
+      window.innerWidth,
+    );
+  },
+);
