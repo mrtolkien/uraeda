@@ -148,7 +148,7 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
  * active, else its tone does. `isGroup` makes it a group rather than a region, as the panes of a
  * navigation are, which a list of landmarks would repeat. `isOpenOnPhone` keeps only its titled top
  * border on narrow screens, as the round's panes do. With `fold`, its title is a button that opens
- * and closes it, and folded, its content is not mounted.
+ * and closes it, named by its title and its count, and folded, its content is not mounted.
  */
 export function Pane({
   children,
@@ -180,6 +180,8 @@ export function Pane({
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isOpen = isOpenOnPhone && isNarrow(width);
+  // The fold button's name, as it reads: the title and its count.
+  const label = count === undefined ? title : `${title} · ${count}`;
   const name = (
     <span {...stylex.props(styles.name)}>
       {fold && (
@@ -207,7 +209,7 @@ export function Pane({
         {fold ? (
           <Button
             aria-expanded={fold.isOpen}
-            label={title}
+            label={label}
             onClick={() => fold.onOpenChange(!fold.isOpen)}
             size="sm"
             variant="ghost"
