@@ -1,12 +1,12 @@
 // The spec in titled panes (US1): the block's pane titled by its first line, "You approve" first and
 // the constitution under a separator at its foot (C1); the decisions right after the answers; the
 // data model's sections as panes, on the spec and alone; an approved spec's same panes.
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test, vi } from "vite-plus/test";
-import { atWidth, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { atWidth, fixture, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
 const BLOCK = "Spec to review, revision 2, about 10 minutes.";
@@ -55,6 +55,23 @@ test("the principles and the risk's reason follow a separator at the block's foo
   expect(before(lastItem, separator)).toBe(true);
   expect(before(separator, principle)).toBe(true);
   expect(before(separator, reason)).toBe(true);
+});
+
+/** C1: a block with no time, no risk tier, no principles, and no risk's reason has no foot. */
+test("a block with nothing for its foot draws no separator", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const spec = `specs/${SPEC_FEATURE}/spec.md`;
+  const text = readFileSync(fixture(`spec-page/branch/${spec}`), "utf8")
+    .replace("risk-tier: high\n", "")
+    .replace(", about 10 minutes.", ".")
+    .replace(/## Constitution check\n[\s\S]*?(?=## History)/, "");
+  commitOnBranch(repo, SPEC_FEATURE, { [spec]: text });
+  await renderPage(PAGE, repo);
+
+  const block = await region("Spec to review, revision 2.");
+  expect(within(block).getByText(/^You approve tasks that repeat/)).toBeTruthy();
+  expect(within(block).queryByRole("separator")).toBeNull();
 });
 
 /** US1 key 2 */

@@ -145,7 +145,10 @@ function Principles({ items }: { items: SpecItems }) {
   );
 }
 
-/** The block's foot, after a separator (C1): the pills, the principles, and the risk's reason. */
+/**
+ * The block's foot, after a separator (C1): the pills, the principles, and the risk's reason; nothing,
+ * not even the separator, when it has none of them.
+ */
 function Foot({
   document,
   items,
@@ -153,22 +156,28 @@ function Foot({
 }: Pick<PartProps, "document" | "selection"> & { items: SpecItems }) {
   const constitution = partOf(items, "Constitution check");
   const risk = partOf(items, "Risk tier");
-  const constitutionBlocks = constitution?.blocks.filter(
-    (id) => document.blocks[id]?.kind !== "table",
-  );
+  const constitutionBlocks =
+    constitution?.blocks.filter((id) => document.blocks[id]?.kind !== "table") ?? [];
+  const hasPills = items.minutes != null || Boolean(items.riskTier);
+  const hasReason = (risk?.blocks.length ?? 0) > 0;
+  if (!hasPills && !constitution && !hasReason) {
+    // Nothing to draw: no separator under the block's items. A constitution's part, even empty,
+    // keeps its anchor.
+    return null;
+  }
   return (
     <>
       <Divider />
-      <Pills items={items} />
+      {hasPills && <Pills items={items} />}
       {constitution && (
         <div id={constitution.anchor} {...stylex.props(styles.section)}>
           <Principles items={items} />
-          {constitutionBlocks && constitutionBlocks.length > 0 && (
+          {constitutionBlocks.length > 0 && (
             <Blocks document={document} ids={constitutionBlocks} selection={selection} />
           )}
         </div>
       )}
-      {risk && risk.blocks.length > 0 && (
+      {risk && hasReason && (
         <div id={risk.anchor} {...stylex.props(styles.section)}>
           <Blocks document={document} ids={risk.blocks} selection={selection} />
         </div>
