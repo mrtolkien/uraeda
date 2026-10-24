@@ -545,8 +545,11 @@ order changes for every round.
 
 - Create: `packages/web/src/RoundParts.tsx` (the block's pane and its badge, the context's panes,
   the Check these pane)
-- Modify: `src/RoundOpening.tsx`, `src/SettledPoints.tsx`, `src/SettledGroups.tsx`
-- Test: `src/__tests__/round-parts.test.tsx` (create), `src/__tests__/settled.test.tsx`
+- Modify: `src/RoundOpening.tsx`, `src/SettledPoints.tsx`, `src/SettledGroups.tsx`, `src/views.ts`
+  (selects `verdict`), `src/theme/lucide.ts` and `src/theme/icons.ts` (the panes' icons)
+- Test: `src/__tests__/round-parts.test.tsx` (create), `src/__browser__/round-parts.test.tsx`
+  (create: on the phone, a pane opened with `isOpenOnPhone` gives its text the screen's width),
+  `src/__tests__/settled.test.tsx`; the tests of the old look follow the panes (R15)
 
 **Interfaces:**
 
@@ -561,27 +564,28 @@ order changes for every round.
   "Check these · N" pane, `id="check-these"`, with the lead "Settled without you. Object here before
   answering, if one is wrong."; `end` draws "Settled without you" with Behaviour as a pane and Under
   the hood folded to "N choices in the code only", ids `behaviour` and `under-the-hood`; without
-  `part`, both, as today. Each point has its comment button and, with
-  `onAsk?: (subject: string) => void`, an "Ask" button. `RoundOpening` gains `check?: ReactNode`,
-  drawn after Sources.
+  `part`, both, as today. Each point has its comment button, named `Comment on "<subject>"`, and,
+  with `onAsk?: (subject: string) => void`, an "Ask" button: `PointActions`, in `RoundParts.tsx`.
+  `RoundOpening` gains `check?: ReactNode`, drawn after Sources.
 
-- [ ] **Step 1: Write the failing tests.** `round-parts.test.tsx` on the merge-chats fixture: a
+- [x] **Step 1: Write the failing tests.** `round-parts.test.tsx` on the merge-chats fixture: a
       region "7 questions and 1 follow-up, about 20 minutes." holds "With changes" before "a chat
       cannot become a change today"; Goal, Scope, and Sources are regions; Today is a button,
       collapsed, with no paragraph; clicking it shows its text; a link to `#today` opens it; "Check
       these · 2" holds "The change's proposal" and "The light flow stays.", each with "Ask" (when
-      `onAsk` is given) and a comment button; a comment in the notes on "The light flow stays."
-      shows under it (Review focus 3); "Under the hood" shows "3 choices in the code only" and no
-      point until opened; a round without points to check has no "Check these". Breaks: the
-      verdict's badge from a guess on the text; Today hidden but mounted.
-- [ ] **Step 2: Run them to check they fail**:
+      `onAsk` is given, tested on `PointActions`, as the page passes none until Task 8) and a
+      comment button; a comment in the notes on "The light flow stays." shows under it (Review focus
+      3); "Under the hood" shows "3 choices in the code only" and no point until opened; a round
+      without points to check has no "Check these". Breaks: the verdict's badge from a guess on the
+      text; Today hidden but mounted.
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/round-parts.test.tsx`. Expected: FAIL, no region "7
       questions and 1 follow-up, about 20 minutes.".
-- [ ] **Step 3: Implement.** One comment form per `SettledPoints`, restored under its own point; the
+- [x] **Step 3: Implement.** One comment form per `SettledPoints`, restored under its own point; the
       triage and the decisions check keep their look's parts without a session.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `round-parts.test.tsx`,
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `round-parts.test.tsx`,
       `settled.test.tsx`, `triage.test.tsx`, `decisions-check.test.tsx`. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 5: Commit**:
       `git commit -m "feat(questions-page): the round's block, context, and settled points in panes"`.
 
 ## Task 7: The outline

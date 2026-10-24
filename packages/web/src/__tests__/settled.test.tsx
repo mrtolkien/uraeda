@@ -91,6 +91,12 @@ function round({
 /** A settled point's toggle, named by its text, which starts with its bold subject. */
 const point = (subject: string) => screen.findByRole("button", { name: new RegExp(`^${subject}`) });
 
+/** The title of "Under the hood", the button that folds it. */
+const hoodTitle = () =>
+  within(screen.getByRole("region", { name: "Under the hood" })).getByRole("button", {
+    name: /^Under the hood/,
+  });
+
 /** The comments shown under a settled point. */
 const commentsOn = (subject: string) =>
   screen.queryAllByRole("group", { name: `Your comment on "${subject}"` });
@@ -155,52 +161,55 @@ test("on the phone, a round with no settled points draws no band after its quest
   expect(after.childElementCount === 0 && after.textContent === "").toBe(false);
 });
 
-/** Redesign US4.1: the groups, "Under the hood" folded with the count of its points. */
+/** Redesign US4.1: the groups' panes, "Under the hood" folded to the count of its points. */
 test("the settled points show in their groups, Under the hood folded", async () => {
   await renderPage(PAGE, round(groupedPoints));
   await point(UNDO);
 
   expect(screen.getByRole("heading", { level: 2, name: "Settled without you" })).toBeTruthy();
-  const headings = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+  const panes = screen
+    .getAllByRole("region")
+    .map((pane) => pane.getAttribute("aria-labelledby"))
+    .map((id) => document.getElementById(id ?? "")?.textContent);
   expect(
-    headings.filter((h) => ["Check these", "Behaviour", "Under the hood"].includes(h ?? "")),
+    panes.filter((title) => ["Check these", "Behaviour", "Under the hood"].includes(title ?? "")),
   ).toEqual(["Check these", "Behaviour", "Under the hood"]);
   expect(await point("A task without a due date")).toBeTruthy();
   expect(await point("Repeating tasks show a repeat icon")).toBeTruthy();
   expect(screen.queryByRole("button", { name: new RegExp(`^${HOOD}`) })).toBeNull();
-  expect(screen.getByRole("button", { name: "Show the 2 points" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "2 choices in the code only" })).toBeTruthy();
 });
 
-/** One point under the hood reads "Show the point", not "Show the 1 points". */
+/** One point under the hood reads "1 choice", not "1 choices". */
 test("a single point under the hood is folded as one point", async () => {
   const settled = `${SETTLED}\n\n### Under the hood\n\n- **${HOOD}**, in the date helpers.\n\n`;
   await renderPage(PAGE, round({ check: "", settled }));
 
-  expect(await screen.findByRole("button", { name: "Show the point" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: /^Show the 1 points$/ })).toBeNull();
+  expect(await screen.findByRole("button", { name: "1 choice in the code only" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^1 choices/ })).toBeNull();
 });
 
 /** Redesign US4.2: "Under the hood" open stays open after a reload, Fold closing it. */
 test("Under the hood opened stays open after a reload", async () => {
   const repo = round(groupedPoints);
   await renderPage(PAGE, repo);
-  await click(await screen.findByRole("button", { name: "Show the 2 points" }));
+  await click(await screen.findByRole("button", { name: "2 choices in the code only" }));
   expect(await point(HOOD)).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Fold" })).toBeTruthy();
+  expect(hoodTitle().getAttribute("aria-expanded")).toBe("true");
 
   await renderPage(PAGE, repo, { reload: true });
 
   expect(await point(HOOD)).toBeTruthy();
-  await click(screen.getByRole("button", { name: "Fold" }));
+  await click(hoodTitle());
   expect(screen.queryByRole("button", { name: new RegExp(`^${HOOD}`) })).toBeNull();
-  expect(screen.getByRole("button", { name: "Show the 2 points" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "2 choices in the code only" })).toBeTruthy();
 });
 
 /** Redesign review focus 6: an answer saved reads the round again, the fold kept open. */
 test("Under the hood stays open when an answer is saved", async () => {
   const repo = round(groupedPoints);
   await renderPage(PAGE, repo);
-  await click(await screen.findByRole("button", { name: "Show the 2 points" }));
+  await click(await screen.findByRole("button", { name: "2 choices in the code only" }));
   await point(HOOD);
 
   const q2 = document.getElementById("Q2") as HTMLElement;
@@ -209,14 +218,14 @@ test("Under the hood stays open when an answer is saved", async () => {
   await waitFor(() => expect(within(q2).getByText("saved ✓")).toBeTruthy());
 
   expect(await point(HOOD)).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Fold" })).toBeTruthy();
+  expect(hoodTitle().getAttribute("aria-expanded")).toBe("true");
 });
 
 /** Redesign US4.3: a point under the hood takes a comment, as every point does. */
 test("a comment on a point under the hood is written at the end of the notes", async () => {
   const repo = round(groupedPoints);
   await renderPage(PAGE, repo);
-  await click(await screen.findByRole("button", { name: "Show the 2 points" }));
+  await click(await screen.findByRole("button", { name: "2 choices in the code only" }));
 
   await addComment(HOOD, "Use Temporal instead");
 
@@ -237,10 +246,10 @@ test("a group the round leaves out is not drawn", async () => {
   await renderPage(PAGE, round({}));
   await point(UNDO);
 
-  expect(screen.getByRole("heading", { level: 3, name: "Check these" })).toBeTruthy();
-  expect(screen.getByRole("heading", { level: 3, name: "Behaviour" })).toBeTruthy();
-  expect(screen.queryByRole("heading", { name: "Under the hood" })).toBeNull();
-  expect(screen.queryByRole("button", { name: /^Show the/ })).toBeNull();
+  expect(screen.getByRole("region", { name: "Check these" })).toBeTruthy();
+  expect(screen.getByRole("region", { name: "Behaviour" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Under the hood" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /in the code only$/ })).toBeNull();
 });
 
 /** US4 1 */

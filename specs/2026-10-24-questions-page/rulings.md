@@ -182,3 +182,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   px in.
 - **If wrong**: change `optionPhone`'s `--option-inset` in `QuestionOption.tsx`.
 - **Where**: Task 5.
+
+## R15: The tests of the old look follow the round's panes
+
+- **Decision**: Task 6 rewrites the assertions that read the old look, in `round.test.tsx` (UI and
+  browser), `fields.test.tsx`, `layout.test.tsx`, and `blocks.test.tsx`: the context's parts as
+  regions, not `###` headings, the block found by its pane, and Under the hood opened by its title
+  or its line "N choices in the code only", not "Show the N points" and "Fold". `blocks.test.tsx`
+  opens Today, which holds its tables, and its wide table has 12 columns, as 8 now fit a desktop's
+  pane. `document-lists.test.tsx` measures the block's second item and the Sources' list against the
+  Scope's paragraph, as the block's first paragraph is now its pane's title, its verdict a badge,
+  and Today folded.
+- **Rationale**: the page draws through the parts Task 6 changes, so these tests failed on the look
+  the spec replaces, not on a behaviour; each keeps what it checked.
+- **Alternatives considered**: leaving them to Task 8, which leaves the branch failing between the
+  tasks.
+- **If wrong**: Task 8 rewrites them again with the page.
+- **Where**: Task 6.

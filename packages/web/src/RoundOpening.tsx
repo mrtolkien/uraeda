@@ -2,9 +2,9 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import type { ContextPart, Document, RoundItems } from "uraeda-binding";
-import { Blocks } from "./Blocks.tsx";
+import type { Document, RoundItems } from "uraeda-binding";
 import { Crumbs } from "./Crumbs.tsx";
+import { RoundBlock, RoundContext } from "./RoundParts.tsx";
 import { plain } from "./Spans.tsx";
 
 const styles = stylex.create({
@@ -13,23 +13,19 @@ const styles = stylex.create({
   },
 });
 
-/** The context's blocks: each part's heading, when it has one, then its blocks. */
-function contextBlocks(parts: ReadonlyArray<ContextPart>): Array<number> {
-  return parts.flatMap((part) =>
-    part.heading === undefined ? part.blocks : [part.heading, ...part.blocks],
-  );
-}
-
 /**
- * A round's opening: the feature's crumbs, unless it is a default-branch round's, the round's title, its block,
- * `children`, then its context.
+ * A round's opening: the feature's crumbs, unless it is a default-branch round's, the round's
+ * title, its block's pane, `children`, then its context's panes, and `check` after them.
  */
 export function RoundOpening({
+  check,
   children,
   crumbs,
   document,
   round,
 }: {
+  /** The "Check these" pane, after the context's last part. */
+  check?: ReactNode;
   /** What comes between the block and the context: the round's index, on narrow screens. */
   children?: ReactNode;
   /** The feature's folder and the round's name, for its crumbs; none for a default-branch round. */
@@ -46,9 +42,9 @@ export function RoundOpening({
           {plain(title.spans)}
         </Heading>
       )}
-      {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
+      <RoundBlock document={document} round={round} />
       {children}
-      <Blocks document={document} ids={contextBlocks(round.context)} />
+      <RoundContext check={check} document={document} round={round} />
     </>
   );
 }

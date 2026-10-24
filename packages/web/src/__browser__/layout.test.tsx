@@ -812,8 +812,9 @@ const ANSWER = "An answer is written";
 /** A settled point of the round, by the bold subject its toggle's name starts with. */
 async function settledPoint(subject: string) {
   // The fixture's settled points are under "Under the hood", folded until opened.
-  const toggle = await screen.findByRole("button", { name: /^(Show the \d+ points|Fold)$/ });
-  if (toggle.textContent !== "Fold") {
+  const hood = await screen.findByRole("region", { name: "Under the hood" });
+  const toggle = within(hood).getByRole("button", { name: /^Under the hood/ });
+  if (toggle.getAttribute("aria-expanded") !== "true") {
     await userEvent.click(toggle, { force: true });
   }
   return screen.findByRole("button", { name: new RegExp(`^${subject}`) });

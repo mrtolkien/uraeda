@@ -72,9 +72,12 @@ async function commentOn(phrase: string) {
 
 /** The fixture's settled point, under "Under the hood", opened first. */
 async function settledPoint() {
-  await userEvent.click(await screen.findByRole("button", { name: /^Show the \d+ points$/ }), {
-    force: true,
-  });
+  await userEvent.click(
+    await screen.findByRole("button", { name: /^\d+ choices? in the code only$/ }),
+    {
+      force: true,
+    },
+  );
   return screen.findByRole("button", { name: new RegExp(`^${SETTLED}`) });
 }
 

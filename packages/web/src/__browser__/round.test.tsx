@@ -276,10 +276,10 @@ describe("accessibility", () => {
     await show(`/f/${MOCKUP_FOLDER}/clarifications-01.md`, "When does the next occurrence appear?");
     await expect.poll(() => screen.queryByLabelText(/ diagram/), { timeout: 15_000 }).toBeTruthy();
     expect(card("Q1.B")).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Show the 2 points" }));
+    await userEvent.click(screen.getByRole("button", { name: "2 choices in the code only" }));
     expect(await screen.findByText(/Next dates are computed by date-fns/)).toBeTruthy();
     for (const group of ["Check these", "Behaviour", "Under the hood"]) {
-      expect(screen.getByRole("heading", { level: 3, name: group })).toBeTruthy();
+      expect(screen.getByRole("region", { name: group })).toBeTruthy();
     }
   }
 

@@ -464,3 +464,30 @@ export const logOut = outline(
   h("path", { d: "M21 12H9" }),
   h("path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }),
 );
+
+/** A target, for a round's goal: Lucide's `target`. */
+export const target = outline(
+  h("circle", { cx: 12, cy: 12, r: 10 }),
+  h("circle", { cx: 12, cy: 12, r: 6 }),
+  h("circle", { cx: 12, cy: 12, r: 2 }),
+);
+
+/** A crop, for a round's scope: Lucide's `crop`. */
+export const crop = outline(
+  h("path", { d: "M6 2v14a2 2 0 0 0 2 2h14" }),
+  h("path", { d: "M18 22V8a2 2 0 0 0-2-2H2" }),
+);
+
+/** An open book, for a round's sources: Lucide's `book-open`. */
+export const bookOpen = outline(
+  h("path", { d: "M12 7v14" }),
+  h("path", {
+    d: "M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z",
+  }),
+);
+
+/** A flag, for the points a round asks to check: Lucide's `flag`. */
+export const flag = outline(
+  h("path", { d: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" }),
+  h("path", { d: "M4 22v-7" }),
+);

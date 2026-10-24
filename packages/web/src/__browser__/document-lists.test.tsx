@@ -1,9 +1,10 @@
 // US1 more scenario 3 and SC-004, in WebKit: on the phone, a document's list hangs its marker in the
 // page's margin, its first-level text on the paragraphs' left edge, and a nested list one character
 // in; on the desktop, the marker stays in the text's column. Shown in a round, in its block and in
-// its context, the lists every document draws through the same component. On the phone, too, every
-// marker, a number past 9 or a task's box, stays whole on the screen and on its item's first line,
-// on the round's page and on the spec's tighter one (R10).
+// its context, the lists every document draws through the same component, beside the paragraph of
+// its Scope: the round's panes keep one text edge. On the phone, too, every marker, a number past 9
+// or a task's box, stays whole on the screen and on its item's first line, on the round's page and
+// on the spec's tighter one (R11).
 import { screen } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { atSize, commands, drawn, show } from "./helpers.tsx";
@@ -19,8 +20,8 @@ async function nestedRound() {
   await commands.commitOnBranch(FEATURE, {
     [FILE]: round
       .replace(
-        "> - Verdict: worth building as proposed.\n",
-        "> - Verdict: worth building as proposed.\n>   - Nested under the verdict.\n",
+        "> - Two choices last beyond this feature.\n",
+        "> - Two choices last beyond this feature.\n>   - Nested under the block's item.\n",
       )
       .replace(
         "- The proposal, and the stack decision.\n",
@@ -60,15 +61,15 @@ function markerOf(text: string) {
 /** The lists the test reads: the block's and the context's, each beside a paragraph. */
 const LISTS = [
   {
-    item: "Verdict: worth building as proposed.",
-    nested: "Nested under the verdict.",
-    paragraph: "3 questions and 1 follow-up on the web UI, about 35 minutes.",
+    item: "Two choices last beyond this feature.",
+    nested: "Nested under the block's item.",
+    paragraph: "The human steps, and how the phone reaches the server.",
     where: "block",
   },
   {
     item: "The proposal, and the stack decision.",
     nested: "Nested under the sources.",
-    paragraph: "Every human step happens in a text editor.",
+    paragraph: "The human steps, and how the phone reaches the server.",
     where: "context",
   },
 ];
