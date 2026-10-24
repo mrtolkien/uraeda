@@ -1,7 +1,8 @@
 /**
  * The ids of a round's parts on its page, which the outline's rows jump to: the block, a free
- * context, the points to check, the settled groups, and the notes. The context's parts with a
- * heading keep their heading's anchor, and a question its id.
+ * context, Today, the points to check, the settled groups, and the notes. The context's other parts
+ * with a heading keep their heading's anchor, and a question its id. Today's is its heading's
+ * anchor, which also opens it, folded to its title.
  */
 export const PART_IDS = {
   behaviour: "behaviour",
@@ -10,4 +11,5 @@ export const PART_IDS = {
   hood: "under-the-hood",
   notes: "notes",
   summary: "summary",
+  today: "today",
 } as const;

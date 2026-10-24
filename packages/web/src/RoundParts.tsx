@@ -44,9 +44,6 @@ const CONTEXT_ICONS: Record<string, string> = {
   today: "uraeda:history",
 };
 
-/** Today's anchor, and the key it is open by among the context's folds. */
-const TODAY = "today";
-
 /**
  * The block's title and what it holds under it: its callout's own title if it has one, else its
  * first paragraph, which the rest follows.
@@ -138,13 +135,13 @@ function useTodayFold(document: Document, today: ContextPart | undefined): Folds
     () =>
       today?.heading === undefined
         ? []
-        : [{ ids: [today.heading, ...today.blocks], key: TODAY, label: today.title }],
+        : [{ ids: [today.heading, ...today.blocks], key: PART_IDS.today, label: today.title }],
     [today],
   );
   const folds: Folds = {
     list,
     onOpenChange: (_, open) => setOpen(open),
-    open: isOpen ? [TODAY] : [],
+    open: isOpen ? [PART_IDS.today] : [],
   };
   useHashFold(document, folds);
   return folds;
@@ -167,10 +164,10 @@ function ContextPane({
   return (
     <Pane
       fold={
-        anchor === TODAY
+        anchor === PART_IDS.today
           ? {
-              isOpen: folds.open.includes(TODAY),
-              onOpenChange: (isOpen) => folds.onOpenChange(TODAY, isOpen),
+              isOpen: folds.open.includes(PART_IDS.today),
+              onOpenChange: (isOpen) => folds.onOpenChange(PART_IDS.today, isOpen),
             }
           : undefined
       }
@@ -202,7 +199,7 @@ export function RoundContext({
   const parts = round.context;
   const folds = useTodayFold(
     document,
-    parts.find((part) => anchorOf(document, part) === TODAY),
+    parts.find((part) => anchorOf(document, part) === PART_IDS.today),
   );
   const scope = parts.findIndex((part) => anchorOf(document, part) === "scope");
   const sources = parts[scope + 1];

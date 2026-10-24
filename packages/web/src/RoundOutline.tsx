@@ -71,7 +71,7 @@ const GROUPS: Record<SettledKind, { id: string; label: string; mark: string }> =
 };
 
 /** The part that opens through the address, as a link to it does: Today, folded to its title. */
-const OPENS_BY_ADDRESS = new Set(["today"]);
+const OPENS_BY_ADDRESS = new Set<string>([PART_IDS.today]);
 
 /** A settled group's row, none for a group without points, as the page draws no pane for it. */
 function groupRow(group: SettledGroup | undefined): Array<Row> {
@@ -192,7 +192,7 @@ function Rows({
  * Jumps to the round's blank questions: `next`, the first blank one after the one at the top, the
  * first one when `wrap`, and `previous`, the last blank one before it.
  */
-export function useBlankJumps(questions: ReadonlyArray<NavQuestion>) {
+function useBlankJumps(questions: ReadonlyArray<NavQuestion>) {
   const ids = questions.map((q) => q.id);
   const blank = questions.filter((q) => !q.answered);
   const next = (wrap: boolean) => {

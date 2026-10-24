@@ -46,6 +46,11 @@ export function useAskedTab(): string | null {
   return new URLSearchParams(useSearch()).get(PARAMETER);
 }
 
+/** The tab the window's address asks for now, as `useAskedTab` reads it, outside a render. */
+export function askedTabNow(): string | null {
+  return new URLSearchParams(window.location.search).get(PARAMETER);
+}
+
 /** The current address with the tab `key` asked for, or none when `key` is `undefined`. */
 export function tabAddress(key: string | undefined): string {
   const search = new URLSearchParams(window.location.search);
@@ -70,7 +75,7 @@ function Rail({ tabs }: { tabs: ReadonlyArray<ColumnTab> }) {
 }
 
 /** The column's width and fold, kept for every document: `useDocumentColumnWidth`'s. */
-export type DocumentColumnState = ReturnType<typeof useDocumentColumnWidth>;
+type DocumentColumnState = ReturnType<typeof useDocumentColumnWidth>;
 
 /** What `DocumentColumn` draws. */
 type ColumnProps = { content: ReactNode; label: string; tabs: ReadonlyArray<ColumnTab> };
