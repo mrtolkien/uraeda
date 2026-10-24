@@ -67,6 +67,23 @@ they are. Keyboard navigation and a git view of changes are their own items in t
 - The [prototype](mockups/spec.html), described in [its README](mockups/README.md).
 - The full investigation is in [discovery](discovery-01.md). Each question links its topic.
 
+## Check these
+
+- **HTML mockups drawn live**: a spec's link to an HTML mockup, alone in its paragraph, draws in a
+  frame like a story. Today it is a link to its own page. The questions page's spec had to be opened
+  mockup by mockup. Its page stays, for full screen. See
+  [discovery](discovery-01.md#important-reads).
+- **Built after the questions page merges**: this feature reuses that branch's column, tabs, session
+  in a box, and quoting. Its spec can be written now; its plan starts once that branch merges, on
+  top of it. See [discovery](discovery-01.md#the-questions-pages-column).
+- **Asking about a decision**: "Ask the agent" is offered on every selection, a decision's lines
+  included, which today it is not. The quote names the decision's file and lines. See
+  [discovery](discovery-01.md#important-reads).
+- **The decisions' look everywhere**: one card draws every decision's change, as the
+  [UI coherence](/specs/decisions/ui-coherence.md) decision asks. The decision's own page on a
+  branch, the decisions page's branch change, and the decisions check take the new look too. See
+  [discovery](discovery-01.md#rules-and-their-owners).
+
 ## Q1: How should a decision's change read?
 
 Example: the layout-look spec changes the UI layout decision. One rule goes from "mockups at both
@@ -253,23 +270,6 @@ Why it matters: it is what you see each time you check on a build.
 So let’s do what’s the least work
 
 ## Settled without the human
-
-### Check these
-
-- **HTML mockups drawn live**: a spec's link to an HTML mockup, alone in its paragraph, draws in a
-  frame like a story. Today it is a link to its own page. The questions page's spec had to be opened
-  mockup by mockup. Its page stays, for full screen. See
-  [discovery](discovery-01.md#important-reads).
-- **Built after the questions page merges**: this feature reuses that branch's column, tabs, session
-  in a box, and quoting. Its spec can be written now; its plan starts once that branch merges, on
-  top of it. See [discovery](discovery-01.md#the-questions-pages-column).
-- **Asking about a decision**: "Ask the agent" is offered on every selection, a decision's lines
-  included, which today it is not. The quote names the decision's file and lines. See
-  [discovery](discovery-01.md#important-reads).
-- **The decisions' look everywhere**: one card draws every decision's change, as the
-  [UI coherence](/specs/decisions/ui-coherence.md) decision asks. The decision's own page on a
-  branch, the decisions page's branch change, and the decisions check take the new look too. See
-  [discovery](discovery-01.md#rules-and-their-owners).
 
 ### Behaviour
 
