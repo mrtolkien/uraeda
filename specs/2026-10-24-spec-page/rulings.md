@@ -171,7 +171,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   pane's title, no longer a paragraph that takes a comment: a pending comment saved on it, or on the
   block's other lines outside its items, draws at the top of the pane's body, where it is edited and
   removed. The groups read "User stories" and "How it is built", as the mockup names them, in
-  Contents too. History folds through the pane's fold, its records not mounted while folded.
+  Contents too. History folds through the pane's fold, its records not mounted while folded. The
+  data model's intro, the text before its first entity, draws before the entities' panes in no pane
+  of its own, on the spec page and on the data model's own page.
 - **Rationale**: US1 and the mockup draw every part as a titled pane, with no sticking head nor
   band; the UI behaviour decision forbids folded content mounted. A story's live window, inside two
   bordered panes, fell under the phone's 90% scale R7 states.
@@ -196,7 +198,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: Contents' entries as buttons, which the tests and screen readers find
   as links; a wider tolerance in the anchor test, which hides the double offset.
 - **If wrong**: Task 10 rebuilds Contents; `scrollBelowBar` is one condition in `Folds.tsx`.
-- **Where**: Task 9, `layout/Pane.tsx`, `spec/SpecContents.tsx`, `Folds.tsx`.
+- **Where**: Task 9, `layout/Pane.tsx`, `spec/SpecContents.tsx`, `Folds.tsx`. The change to
+  `scrollBelowBar` in `Folds.tsx` affects every element with a scroll margin, not the spec's panes
+  alone: a document's headings, a round's questions, and every pane land right under the bar, their
+  margin's room above them.
 
 ## R15: Decision panes open on the phone, their soft colours mixed over their surface
 
