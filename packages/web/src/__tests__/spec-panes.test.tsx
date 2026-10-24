@@ -20,6 +20,9 @@ beforeEach(() => {
 /** A pane of the page, a region named by its title, once drawn. */
 const region = (name: string) => screen.findByRole("region", { name });
 
+/** The page's main region. */
+const main = () => screen.getByRole("main");
+
 /** Whether `a` comes before `b` in the page. */
 const before = (a: Node, b: Node) =>
   (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
@@ -73,6 +76,41 @@ test("a block with nothing for its foot draws no separator", async () => {
   const block = await region("Spec to review, revision 2.");
   expect(within(block).getByText(/^You approve tasks that repeat/)).toBeTruthy();
   expect(within(block).queryByRole("separator")).toBeNull();
+});
+
+/** The spec as committed on its branch, rewritten by `edit`, committed again. */
+function editSpec(repo: string, edit: (text: string) => string) {
+  const spec = `specs/${SPEC_FEATURE}/spec.md`;
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [spec]: edit(git(repo, "show", `${SPEC_FEATURE}:${spec}`)),
+  });
+}
+
+/** A first revision's record names no revision: the pane's title is the line as written. */
+test("a revision 1's block is titled Spec to review, about N minutes.", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo, { revision: 1 });
+  editSpec(repo, (text) =>
+    text.replace("Spec to review, revision 1, about", "Spec to review, about"),
+  );
+  await renderPage(PAGE, repo);
+
+  const block = await region("Spec to review, about 10 minutes.");
+  expect(within(block).getByText(/^You approve tasks that repeat/)).toBeTruthy();
+  expect(within(block).getByText("About 10 minutes")).toBeTruthy();
+});
+
+/** A spec without its block still draws the first pane, under the part's own name. */
+test("a spec with no block is titled What you approve", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  editSpec(repo, (text) => text.replace(/> \[!IMPORTANT\][\s\S]*?\n\n(?=## )/, ""));
+  await renderPage(PAGE, repo);
+
+  const block = await region("What you approve");
+  expect(within(main()).getAllByRole("region")[0]).toBe(block);
+  expect(screen.queryByText(/^You approve tasks that repeat/)).toBeNull();
+  expect(screen.queryByRole("region", { name: BLOCK })).toBeNull();
 });
 
 /** US1 key 2 */
