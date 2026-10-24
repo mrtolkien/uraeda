@@ -12,6 +12,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, useId } from "react";
+import { useScrollMargin } from "./scrollMargin.ts";
 
 /** What a pane's colour tells: it needs the human, or it holds a problem. */
 export type PaneTone = "attention" | "problem";
@@ -100,12 +101,13 @@ export function Pane({
 }) {
   const titleId = useId();
   const [border, ink] = colours(isActive, tone);
+  const margin = useScrollMargin("pane");
   return (
     <section
       aria-labelledby={titleId}
       id={id}
       role={isGroup ? "group" : undefined}
-      {...stylex.props(styles.pane, border)}
+      {...stylex.props(styles.pane, margin, border)}
     >
       <Heading level={level} xstyle={[styles.title, ink]}>
         {icon && <Icon icon={icon} size="sm" />}

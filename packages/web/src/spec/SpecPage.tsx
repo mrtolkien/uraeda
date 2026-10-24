@@ -17,6 +17,7 @@ import { useFile } from "../data.ts";
 import { type Folds, useHashFold } from "../Folds.tsx";
 import { Page } from "../layout/Page.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { scrollMarginStyles } from "../layout/scrollMargin.ts";
 import {
   ReviewEnd,
   ReviewHost,
@@ -53,13 +54,6 @@ const styles = stylex.create({
     backgroundColor: colorVars["--color-background-muted"],
     height: spacingVars["--spacing-2"],
     marginInline: "var(--page-bleed)",
-  },
-  group: {
-    scrollMarginTop: spacingVars["--spacing-4"],
-  },
-  groupPhone: {
-    // A jump puts the group below the phone's top bar, which stays in view.
-    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
   },
   layer: {
     // The page's parts in a layer of their own, under the top bar: on the phone, a part's sticking
@@ -98,7 +92,10 @@ function Group({
   return (
     <VStack gap={wide ? 4 : 3}>
       {!wide && <Band />}
-      <div id={id} {...stylex.props(wide ? styles.group : styles.groupPhone)}>
+      <div
+        id={id}
+        {...stylex.props(wide ? scrollMarginStyles.belowNothing : scrollMarginStyles.belowBar)}
+      >
         <Heading id={`${id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
           {title}
         </Heading>
