@@ -14,7 +14,7 @@ status: answered
 >   which every later feature with dates follows.
 > - When the next occurrence appears decides what editing, deleting, and undoing a repeating task
 >   mean. One of its answers comes with a follow-up.
-> - Five points are settled without you, at the end: check the two under "Check these".
+> - Five points are settled without you: check the two under "Check these", before the questions.
 
 ## Context
 
@@ -46,6 +46,15 @@ next in the [priorities](../PRIORITIES.md).
 - The help pages of Microsoft To Do, Todoist, and Google Calendar, linked in the discovery.
 - date-fns' `addMonths`, and MDN on Temporal.
 - The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
+
+## Check these
+
+- **Skipping one occurrence** gets no dedicated action: users move its due date, or complete it, as
+  in Todoist. A skip action can come later without changing stored tasks. See
+  [Todoist](discovery-01.md#todoist).
+- **Deleting a repeating task** ends the repetition with A or C in Q2, since it is the only pending
+  occurrence. With B, the follow-up Q2.B decides. See
+  [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 
 ## Q1: How should users pick when a task repeats?
 
@@ -241,15 +250,6 @@ Why it matters: it decides whether the quick path from Q6 works on every task.
 **Answer:** A
 
 ## Settled without the human
-
-### Check these
-
-- **Skipping one occurrence** gets no dedicated action: users move its due date, or complete it, as
-  in Todoist. A skip action can come later without changing stored tasks. See
-  [Todoist](discovery-01.md#todoist).
-- **Deleting a repeating task** ends the repetition with A or C in Q2, since it is the only pending
-  occurrence. With B, the follow-up Q2.B decides. See
-  [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
 
 ### Behaviour
 

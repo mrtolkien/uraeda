@@ -294,7 +294,8 @@ fn check_unknown(
     }
 }
 
-/// The order of the fixed sections.
+/// The order of the fixed sections, and of a fixed section after the first of a level-2 item, like
+/// `## Check these` after `## Q1`. Items repeat, so an item itself is never out of order.
 fn check_order(
     file: &File<'_>,
     document: &Document,
@@ -303,6 +304,18 @@ fn check_order(
 ) {
     let mut last: Option<(usize, &Heading)> = None;
     for heading in &document.headings {
+        let item = slots.iter().position(|s| {
+            s.level == 2
+                && heading.level == 2
+                && matches!(&s.slot, Slot::Item(_))
+                && matches(&s.slot, heading)
+        });
+        if let Some(index) = item {
+            if last.is_none_or(|(last_index, _)| index > last_index) {
+                last = Some((index, heading));
+            }
+            continue;
+        }
         let Some(index) = slots.iter().position(|s| {
             s.level == heading.level
                 && matches!(&s.slot, Slot::Fixed(text) if *text == heading.text)
@@ -329,9 +342,10 @@ fn check_order(
     }
 }
 
-/// `settled.group`: in a round, every settled point sits under a group, `### Check these`,
-/// `### Behaviour`, or `### Under the hood`: a top-level list item between `## Settled without the
-/// human` and its first top-level sub-heading, or its notes, is in none.
+/// `settled.group`: in a round, every point of the settled section sits under a group,
+/// `### Behaviour` or `### Under the hood`: a top-level list item between `## Settled without the
+/// human` and its first top-level sub-heading, or its notes, is in none. The points to check have a
+/// section of their own, `## Check these`, before the questions.
 pub(super) fn check_settled_groups(
     file: &File<'_>,
     tree: &document::Document,
@@ -356,7 +370,7 @@ pub(super) fn check_settled_groups(
         problems.push(file.problem(
             Some(item.start_line as usize),
             "settled.group",
-            "a settled point outside a group: put it under \"### Check these\", \"### Behaviour\", or \"### Under the hood\"",
+            "a settled point outside a group: put it under \"### Behaviour\" or \"### Under the hood\"",
         ));
     }
 }

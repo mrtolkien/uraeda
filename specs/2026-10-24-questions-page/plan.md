@@ -366,8 +366,8 @@ order changes for every round.
   feature's `clarifications-01.md`, its words kept
 - Create: `fixtures/round-merge-chats/clarifications-01.md`,
   `fixtures/round-layout-look/clarifications-01.md`
-- Modify: the round texts of `packages/web/src/__tests__/settled.test.tsx`, `triage.test.tsx`, and
-  `__browser__/round.test.tsx`
+- Modify: the round texts of `packages/web/src/__tests__/settled.test.tsx`; `triage.test.tsx` and
+  `__browser__/round.test.tsx` read the rewritten fixtures, their texts unchanged
 - Test: `crates/core/tests/items.rs`, `crates/core/tests/check.rs`
 
 **Interfaces:**
@@ -383,7 +383,7 @@ order changes for every round.
   `### Behaviour` and `### Under the hood`; a `### Check these` makes no group. `settledPoints` and
   `settledComments` include the points of `## Check these`.
 
-- [ ] **Step 1: Write the failing tests.** `items.rs`: the merge-chats fixture has a `check` group
+- [x] **Step 1: Write the failing tests.** `items.rs`: the merge-chats fixture has a `check` group
       of 2 points first, "The change's proposal" and "The light flow stays.", then 3 and 3; its
       verdict is `with-changes`, its text starting "a chat cannot become a change today";
       clarifications-01.md of this feature reads `as-proposed`; the layout-look fixture's Q4 has an
@@ -393,23 +393,29 @@ order changes for every round.
       `check_these_before_the_questions` (after `## Q1`: `sections.order`),
       `check_these_under_settled_is_unknown` (`sections.unknown` on `### Check these`),
       `check_these_alone` (no settled section: no problem, Review focus 2), the `settled.group`
-      message naming Behaviour and Under the hood only, and `template_and_examples_pass`. Breaks: a
-      verdict read from the second item; an Example paragraph left in the context, drawn twice.
-- [ ] **Step 2: Run them to check they fail**: `nix develop -c cargo nextest run -p uraeda-core`.
+      message naming Behaviour and Under the hood only, and the template, the example, and the
+      fixtures passing: `the_rounds_template_has_no_problems`, `the_example_has_no_problems`, and
+      `every_fixture_round_passes` with the merge-chats fixture added; the layout-look fixture,
+      trimmed to Q4 and Q5, reports only its count and numbering
+      (`the_trimmed_round_fails_only_its_numbering`, ruling R6). Breaks: a verdict read from the
+      second item; an Example paragraph left in the context, drawn twice.
+- [x] **Step 2: Run them to check they fail**: `nix develop -c cargo nextest run -p uraeda-core`.
       Expected: FAIL, no field `verdict` on `RoundItems`.
-- [ ] **Step 3: Implement the core.** `sections.order` reports `## Check these` anywhere but between
-      `## Context` and the first question; no file of the repository gains a report it did not have.
-      Keep the rules in `round.rs` and `sections.rs`; no fallback for the old format.
-- [ ] **Step 4: Rewrite the template, the references, the examples, the fixtures, the test round
+- [x] **Step 3: Implement the core.** `sections.order` reports `## Check these` anywhere but between
+      `## Context` and the first question, a level-2 item like `## Q1` ordering the fixed sections
+      after it (ruling R7); the template's settled section is optional, so a round with only points
+      to check leaves it out; no file of the repository gains a report it did not have. Keep the
+      rules in `round.rs` and `sections.rs`; no fallback for the old format.
+- [x] **Step 4: Rewrite the template, the references, the examples, the fixtures, the test round
       texts, and this feature's round**, "Check these" before Q1, as the [data model](data-model.md)
       says. The two new fixtures copy their rounds from git history
       (`git show ce2147d3:specs/2026-10-20-merge-chats/clarifications-01.md`;
       `git show 6ed4502b:specs/2026-10-20-layout-look/clarifications-01.md`, trimmed to its block,
       context, Q4, Q5, and settled points), `status: awaiting-human`, no answers.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, `ura check` built from
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, `ura check` built from
       the branch (`cargo run -q -p uraeda-cli -- check specs`), and the three web test files.
       Expected: PASS, no problem.
-- [ ] **Step 6: Commit**:
+- [x] **Step 6: Commit**:
       `git commit -m "feat(questions-page): Check these before the questions, in the format and every round"`.
 
 ## Task 3: Lists hang their marker, and the pane folds

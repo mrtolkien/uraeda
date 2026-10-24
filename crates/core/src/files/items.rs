@@ -58,6 +58,8 @@ pub struct QuestionItem {
     pub context: Vec<u32>,
     /// Its paragraph starting "Why it matters".
     pub why: Option<u32>,
+    /// Its first paragraph starting "Example:", left out of its context.
+    pub example: Option<u32>,
     pub options: Vec<Choice>,
     pub answer: String,
     /// The answer split as the UI composes it.
@@ -78,19 +80,46 @@ pub struct RoundItems {
     pub status: Option<String>,
     /// The `> [!IMPORTANT]` block, or its `> [!NOTE]` record.
     pub block: Option<u32>,
+    /// The block's verdict, from its item starting "Verdict: ".
+    pub verdict: Option<RoundVerdict>,
     /// The parts of the round's context section, in file order.
     pub context: Vec<ContextPart>,
     pub questions: Vec<QuestionItem>,
-    /// The groups of the points settled without the human, in file order, up to the `**Notes:**`
-    /// line.
+    /// The groups of the points settled without the human: the `## Check these` section, then the
+    /// `###` groups of `## Settled without the human`, up to the `**Notes:**` line.
     pub settled_groups: Vec<SettledGroup>,
-    /// The settled points that start in bold, which take comments.
+    /// The settled points that start in bold, which take comments, the points to check included.
     pub settled_points: Vec<SettledPoint>,
     /// The free notes, trimmed, without the comments on settled points.
     pub notes: Option<String>,
     pub notes_line: Option<u32>,
     /// The comments on settled points, written at the end of the notes.
     pub settled_comments: Vec<SettledComment>,
+}
+
+/// The verdict of a round's block, by its phrase.
+#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum VerdictKind {
+    /// "worth building as proposed".
+    AsProposed,
+    /// "worth building, with changes".
+    WithChanges,
+    /// "not as proposed".
+    NotAsProposed,
+}
+
+/// The block's item starting "Verdict: ", then one of the three phrases.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoundVerdict {
+    pub kind: VerdictKind,
+    /// Its list item's block.
+    pub item: u32,
+    /// The item's spans after the phrase and its following ":" or ",", trimmed.
+    pub text: Vec<Span>,
 }
 
 /// A part of a round's context: a `###` sub-heading and its blocks.
@@ -106,8 +135,8 @@ pub struct ContextPart {
     pub blocks: Vec<u32>,
 }
 
-/// The kind of a settled group, from its sub-heading: "Check these", "Behaviour", or "Under the
-/// hood".
+/// The kind of a settled group: `## Check these`, or the settled section's `### Behaviour` or
+/// `### Under the hood`.
 #[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -117,14 +146,15 @@ pub enum SettledKind {
     Hood,
 }
 
-/// A group of the points settled without the human: a `###` sub-heading and its blocks.
+/// A group of the points settled without the human: the `## Check these` section, or a `###`
+/// sub-heading of the settled section, and its blocks.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettledGroup {
-    /// Its heading's block.
+    /// Its heading's block: the `##` heading of the points to check, a `###` heading otherwise.
     pub heading: u32,
-    /// Its kind, from its sub-heading.
+    /// Its kind, from its heading.
     pub kind: SettledKind,
     /// Its top-level blocks, before the `**Notes:**` line.
     pub blocks: Vec<u32>,

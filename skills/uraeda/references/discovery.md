@@ -33,7 +33,8 @@ Two files come out of this step, for two different readers:
   more.
 - **`clarifications-NN.md` is the questions, for the human.** Only what only they can decide, each
   question self-contained, with options, pros and cons, and a recommendation, read once, top to
-  bottom. Then the points you settled without them, so they can object.
+  bottom. The points you settled without them come with it, so they can object: those to check
+  before the questions, the others after.
 
 The goal is an understanding the human can recognize and correct, grounded in what they want to
 accomplish. Find the intent behind the proposal: the outcome, who it is for, and what success looks
@@ -280,7 +281,8 @@ Rules for the whole file:
 - Every fact links to its source: a file, a documentation page, a URL. Mark your own judgements as
   judgements.
 - Do not recommend, and do not choose, in the discovery file. Recommendations go with the questions,
-  and choices you settle go under **Settled without the human** in the questions file.
+  and choices you settle go under **Check these** or **Settled without the human** in the questions
+  file.
 
 ## What to ask, and what to settle
 
@@ -300,9 +302,10 @@ Ask only what only the human can decide:
 
 Settle everything else yourself, within the constitution and active decisions. Examples: reusing
 what exists, writing a small module rather than adding a dependency, the behaviour of an edge case
-the proposal's intent already decides. List each settled point under **Settled without the human**,
-at the end of the questions file: what you chose, and why. The human sees it when answering, and can
-object. The spec copies it into its assumptions.
+the proposal's intent already decides. List each settled point in the questions file: what you
+chose, and why. A point the human would want to object to goes under **Check these**, before the
+questions; the others under **Settled without the human**, at the end. The human sees it when
+answering, and can object. The spec copies it into its assumptions.
 
 **A project without code-quality checks.** When the project has no
 `specs/decisions/code-quality.md`, the round asks whether to adopt one. The recommended option names
@@ -339,10 +342,12 @@ groups and the time estimate. In order:
    written. Its time follows [the time estimate](writing.md#the-time-estimate).
 2. **The Context section**, its four parts as [the Context](writing.md#the-context) describes. In a
    later round, `### Since the last round` first.
-3. **The questions**, sorted by impact, most important first, each followed by its follow-ups.
-4. **Settled without the human**, its points in the three groups of
-   [settled without the human](writing.md#settled-without-the-human), then the line `**Notes:**`,
-   left empty for the human's notes on the settled points.
+3. **Check these**, the settled points the human would want to object to, as
+   [settled without the human](writing.md#settled-without-the-human) describes, left out when empty.
+4. **The questions**, sorted by impact, most important first, each followed by its follow-ups.
+5. **Settled without the human**, its points in the groups Behaviour and Under the hood, left out
+   when both are empty, then the line `**Notes:**`, left empty for the human's notes on the settled
+   points.
 
 ## Question structure
 

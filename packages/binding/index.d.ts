@@ -1273,6 +1273,8 @@ export interface QuestionItem {
   context: Array<number>
   /** Its paragraph starting "Why it matters". */
   why?: number
+  /** Its first paragraph starting "Example:", left out of its context. */
+  example?: number
   options: Array<Choice>
   answer: string
   /** The answer split as the UI composes it. */
@@ -1326,21 +1328,32 @@ export interface RoundItems {
   status?: string
   /** The `> [!IMPORTANT]` block, or its `> [!NOTE]` record. */
   block?: number
+  /** The block's verdict, from its item starting "Verdict: ". */
+  verdict?: RoundVerdict
   /** The parts of the round's context section, in file order. */
   context: Array<ContextPart>
   questions: Array<QuestionItem>
   /**
-   * The groups of the points settled without the human, in file order, up to the `**Notes:**`
-   * line.
+   * The groups of the points settled without the human: the `## Check these` section, then the
+   * `###` groups of `## Settled without the human`, up to the `**Notes:**` line.
    */
   settledGroups: Array<SettledGroup>
-  /** The settled points that start in bold, which take comments. */
+  /** The settled points that start in bold, which take comments, the points to check included. */
   settledPoints: Array<SettledPoint>
   /** The free notes, trimmed, without the comments on settled points. */
   notes?: string
   notesLine?: number
   /** The comments on settled points, written at the end of the notes. */
   settledComments: Array<SettledComment>
+}
+
+/** The block's item starting "Verdict: ", then one of the three phrases. */
+export interface RoundVerdict {
+  kind: VerdictKind
+  /** Its list item's block. */
+  item: number
+  /** The item's spans after the phrase and its following ":" or ",", trimmed. */
+  text: Array<Span>
 }
 
 export interface Ruling {
@@ -1426,19 +1439,22 @@ export interface SettledComment {
   text: string
 }
 
-/** A group of the points settled without the human: a `###` sub-heading and its blocks. */
+/**
+ * A group of the points settled without the human: the `## Check these` section, or a `###`
+ * sub-heading of the settled section, and its blocks.
+ */
 export interface SettledGroup {
-  /** Its heading's block. */
+  /** Its heading's block: the `##` heading of the points to check, a `###` heading otherwise. */
   heading: number
-  /** Its kind, from its sub-heading. */
+  /** Its kind, from its heading. */
   kind: SettledKind
   /** Its top-level blocks, before the `**Notes:**` line. */
   blocks: Array<number>
 }
 
 /**
- * The kind of a settled group, from its sub-heading: "Check these", "Behaviour", or "Under the
- * hood".
+ * The kind of a settled group: `## Check these`, or the settled section's `### Behaviour` or
+ * `### Under the hood`.
  */
 export type SettledKind = 'check' | 'behaviour' | 'hood'
 
@@ -1641,6 +1657,9 @@ export interface TierChoice {
   value: string
   planReview: boolean
 }
+
+/** The verdict of a round's block, by its phrase. */
+export type VerdictKind = 'as-proposed' | 'with-changes' | 'not-as-proposed'
 
 /** A file's document and items, at one version. */
 export interface VersionView {

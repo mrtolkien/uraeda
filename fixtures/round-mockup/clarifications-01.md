@@ -42,6 +42,12 @@ next in the priorities.
 - The help pages of Microsoft To Do, Todoist, and Google Calendar.
 - date-fns' `addMonths`, and MDN on Temporal.
 
+## Check these
+
+- **A task without a due date** gets today as its due date when set to repeat, so the quick path
+  works on every task.
+- **Skipping one occurrence** gets no action of its own: users move its due date, as in Todoist.
+
 ## Q1: When does the next occurrence appear?
 
 The app cannot create tasks while it is closed. Todoist keeps a single task and moves its due date
@@ -131,12 +137,6 @@ Why it matters: an end date adds two fields to the repeat setting.
 **Answer:**
 
 ## Settled without the human
-
-### Check these
-
-- **A task without a due date** gets today as its due date when set to repeat, so the quick path
-  works on every task.
-- **Skipping one occurrence** gets no action of its own: users move its due date, as in Todoist.
 
 ### Behaviour
 

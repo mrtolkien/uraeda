@@ -1196,7 +1196,7 @@ fn the_rounds_parts() {
             },
             |text| {
                 vec![format!(
-                    "{ROUND}:{}: a settled point outside a group: put it under \"### Check these\", \"### Behaviour\", or \"### Under the hood\"",
+                    "{ROUND}:{}: a settled point outside a group: put it under \"### Behaviour\" or \"### Under the hood\"",
                     line_in(text, "- **A loose point** settled.")
                 )]
             },
@@ -1251,6 +1251,64 @@ fn the_rounds_parts() {
 
         assert_eq!(summary(&example.problems()), expected(&text), "{name}");
     }
+}
+
+/// US4.2: `## Check these` comes between the Context and the first question.
+#[test]
+fn check_these_before_the_questions() {
+    let example = Example::new();
+    example.move_section(
+        ROUND,
+        "## Check these",
+        "## Q2: When does the next occurrence appear?",
+    );
+    let text = example.read(ROUND);
+    let q1 = text.lines().find(|l| l.starts_with("## Q1:")).unwrap();
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!(
+            "{ROUND}:{}: \"## Check these\" must come before \"{q1}\", as in the template",
+            line_in(&text, "## Check these")
+        )]
+    );
+}
+
+/// US4.3: `### Check these` under the settled section is the old format, an unknown heading.
+#[test]
+fn check_these_under_settled_is_unknown() {
+    let example = Example::new();
+    example.edit(
+        ROUND,
+        "### Behaviour\n",
+        "### Check these\n\n- **An old point** to check.\n\n### Behaviour\n",
+    );
+    let text = example.read(ROUND);
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!(
+            "{ROUND}:{}: unknown section \"### Check these\"",
+            line_in(&text, "### Check these")
+        )]
+    );
+}
+
+/// Review focus 2: a round whose only settled points are to check leaves the settled section out.
+#[test]
+fn check_these_alone() {
+    let example = Example::new();
+    let text = example.read(ROUND);
+    let start = text.find("## Settled without the human").unwrap();
+    let notes = text.find("**Notes:**").unwrap();
+    example.write(ROUND, &format!("{}{}", &text[..start], &text[notes..]));
+    let problems: Vec<Problem> = example
+        .problems()
+        .into_iter()
+        .filter(|p| p.file == ROUND)
+        .collect();
+
+    assert_eq!(summary(&problems), Vec::<String>::new());
 }
 
 /// `settled.group` reads the settled section's top-level list items before its first group, up to
@@ -1686,11 +1744,15 @@ fn the_decisions_check_template_passes_as_a_check() {
 /// The fixture rounds checked by `every_fixture_round_passes`, from the repository's top level.
 /// The repository-branch copies of the example, under `fixtures/repo/branches/`, are checked in
 /// place, where their fixture repository lacks the discovery, the priorities, and the
-/// constitution they link to: for them only, `links.file` problems are left out. The rounds of
+/// constitution they link to: for them only, `links.file` problems are left out. So are those of
+/// the merge-chats round, copied from this repository's history, whose folder lacks the discovery
+/// and the files it links to. The layout-look round, trimmed to Q4 and Q5 for the tests that name
+/// them, is checked by `the_trimmed_round_fails_only_its_numbering`. The rounds of
 /// `fixtures/specs/` are stubs for the workspace's tests, and `fixtures/broken/` is broken on
 /// purpose: neither is listed.
-const FIXTURE_ROUNDS: [&str; 7] = [
+const FIXTURE_ROUNDS: [&str; 8] = [
     "fixtures/round-mockup/clarifications-01.md",
+    "fixtures/round-merge-chats/clarifications-01.md",
     "fixtures/settled-comments/clarifications-01.md",
     "fixtures/preview/feature/specs/2026-10-20-sidebar-resize/clarifications-01.md",
     "fixtures/repo/branches/2026-10-06-recurring-tasks/specs/2026-10-06-recurring-tasks/clarifications-01.md",
@@ -1699,6 +1761,28 @@ const FIXTURE_ROUNDS: [&str; 7] = [
     "fixtures/repo/branches/2026-10-13-plan-review/specs/2026-10-13-plan-review/clarifications-01.md",
 ];
 
+/// The layout-look round keeps its block, Context, Q4, Q5, and settled points: its count and its
+/// numbering are the only problems, but for its links, as the merge-chats round's.
+#[test]
+fn the_trimmed_round_fails_only_its_numbering() {
+    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let path = "fixtures/round-layout-look/clarifications-01.md";
+    let problems: Vec<Problem> = check::check(&repository, &repository.join(path))
+        .unwrap()
+        .into_iter()
+        .filter(|p| p.rule != "links.file")
+        .collect();
+
+    assert_eq!(
+        summary(&problems),
+        [
+            format!("warning: {path}:9: the block says 12 questions, the round has 2"),
+            format!("{path}:84: Q4 should be Q1"),
+            format!("{path}:116: Q5 should be Q2"),
+        ]
+    );
+}
+
 /// US1.8 and SC-002: the example round, the templates, and every fixture round report neither a
 /// problem nor a warning. The template and the triages are checked in the example, as the
 /// template's own test does; the fixture rounds in place, as `FIXTURE_ROUNDS` says.
@@ -1706,7 +1790,8 @@ const FIXTURE_ROUNDS: [&str; 7] = [
 fn every_fixture_round_passes() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     for path in FIXTURE_ROUNDS {
-        let in_branch = path.starts_with("fixtures/repo/branches/");
+        let in_branch = path.starts_with("fixtures/repo/branches/")
+            || path.starts_with("fixtures/round-merge-chats/");
         let problems: Vec<Problem> = check::check(&repository, &repository.join(path))
             .unwrap()
             .into_iter()

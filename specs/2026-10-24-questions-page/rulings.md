@@ -58,3 +58,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   their exact values.
 - **If wrong**: the fixtures are test data only; replace them.
 - **Where**: Task 2.
+
+## R6: The trimmed layout-look round fails only its numbering
+
+- **Decision**: `fixtures/round-layout-look/clarifications-01.md` keeps Q4 and Q5 under their own
+  numbers, so `ura check` reports its count and its numbering; a test pins those as its only
+  problems, and `every_fixture_round_passes` leaves it out.
+- **Rationale**: the spec's scenarios and the later tasks' tests name "Q4" and its example; the
+  round is trimmed to the parts they read, as R5 says.
+- **Alternatives considered**: renumbering to Q1 and Q2, which loses the names the scenarios use;
+  copying the whole round, ten questions no test reads.
+- **If wrong**: copy the whole round from `6ed4502b` in the new format and add it to the passing
+  fixtures.
+- **Where**: Task 2.
+
+## R7: A level-2 item orders the fixed sections after it
+
+- **Decision**: `sections.order` takes a level-2 item, like `## Q1` or `## Task 1`, as a mark: a
+  fixed section the template puts before it, found after it, is reported. Items themselves are never
+  out of order, and deeper items, like `### Q1.B`, are no mark.
+- **Rationale**: `## Check these` after `## Q1` must fail, and the rule stays the template's,
+  without a round-only case. Checked over `specs/`, `fixtures/`, and the example: no file gained a
+  report.
+- **Alternatives considered**: a check for rounds only, naming `## Check these`, which a later
+  template change would miss.
+- **If wrong**: limit the mark to rounds in `check_order`.
+- **Where**: Task 2.
