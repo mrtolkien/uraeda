@@ -161,19 +161,21 @@ test("on the phone, a round with no settled points draws no band after its quest
   expect(after.childElementCount === 0 && after.textContent === "").toBe(false);
 });
 
+/** Whether `second` comes after `first` in the page. */
+const follows = (first: Node, second: Node) =>
+  (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
 /** Redesign US4.1: the groups' panes, "Under the hood" folded to the count of its points. */
 test("the settled points show in their groups, Under the hood folded", async () => {
   await renderPage(PAGE, round(groupedPoints));
   await point(UNDO);
 
   expect(screen.getByRole("heading", { level: 2, name: "Settled without you" })).toBeTruthy();
-  const panes = screen
-    .getAllByRole("region")
-    .map((pane) => pane.getAttribute("aria-labelledby"))
-    .map((id) => document.getElementById(id ?? "")?.textContent);
-  expect(
-    panes.filter((title) => ["Check these", "Behaviour", "Under the hood"].includes(title ?? "")),
-  ).toEqual(["Check these", "Behaviour", "Under the hood"]);
+  // The groups' panes, in this order.
+  const [check, behaviour, hood] = ["Check these", "Behaviour", "Under the hood"].map((name) =>
+    screen.getByRole("region", { name }),
+  );
+  expect(follows(check!, behaviour!) && follows(behaviour!, hood!)).toBe(true);
   expect(await point("A task without a due date")).toBeTruthy();
   expect(await point("Repeating tasks show a repeat icon")).toBeTruthy();
   expect(screen.queryByRole("button", { name: new RegExp(`^${HOOD}`) })).toBeNull();
