@@ -3,6 +3,7 @@ import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
 import type { Block } from "uraeda-binding";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import type { Range } from "./useCommentDraft.ts";
 
 /**
@@ -53,9 +54,19 @@ const styles = stylex.create({
     paddingInlineStart: spacingVars["--spacing-1"],
     position: "relative",
   },
+  // On narrow screens, the block takes no room for its bar, which a selected block draws in the gap
+  // before its text, as a list's marker hangs in the page's margin: the text keeps the paragraphs'
+  // edge and its whole width.
+  selectableNarrow: {
+    borderInlineStartWidth: 0,
+    paddingInlineStart: 0,
+  },
   selected: {
     backgroundColor: "var(--color-selection)",
     borderInlineStartColor: "var(--color-selection-edge)",
+  },
+  selectedNarrow: {
+    boxShadow: `calc(-1 * ${spacingVars["--spacing-1"]}) 0 0 0 var(--color-selection-edge)`,
   },
   selectedRow: {
     backgroundColor: "var(--color-selection)",
@@ -180,6 +191,7 @@ export function Selectable({
   selection: Selection | undefined;
 }) {
   const select = useSelect(block, selection);
+  const isNarrowScreen = isNarrow(useWidthClass());
   if (!select) {
     // A block a tap does not select may still have something after it, like a comment.
     return selection?.after && selectable(block) ? (
@@ -195,7 +207,12 @@ export function Selectable({
     <>
       <div
         {...select.block}
-        {...stylex.props(styles.selectable, select.pressed && styles.selected)}
+        {...stylex.props(
+          styles.selectable,
+          isNarrowScreen && styles.selectableNarrow,
+          select.pressed && styles.selected,
+          select.pressed && isNarrowScreen && styles.selectedNarrow,
+        )}
       >
         {select.toggle}
         <div id={select.textId} {...select.above}>
