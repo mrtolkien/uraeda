@@ -58,6 +58,18 @@ test("each decision's pane takes its kind's colour, and removed words are struck
   }
 });
 
+/** "Marked in place": the decision's own page mutes no kept part, its whole text read. */
+test("the decision's page draws its kept parts as its changed ones", async () => {
+  await commands.addSpecFeature();
+  await show("/f/2026-10-17-spec-page/decisions/task-storage", "Task storage");
+
+  const consequences = within(pane("Task storage")).getByRole("group", { name: "Consequences" });
+  const colour = (words: RegExp) => getComputedStyle(within(consequences).getByText(words)).color;
+  expect(colour(/^Stored data is tested in one place/)).toBe(
+    colour(/^A corrupted value costs the user that value/),
+  );
+});
+
 test("the ledger fits the screen, every fold open", async () => {
   await commands.addSpecFeature();
   await show(PAGE, "Task storage");

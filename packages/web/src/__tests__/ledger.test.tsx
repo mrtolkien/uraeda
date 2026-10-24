@@ -210,6 +210,25 @@ test("the decisions page shows the same ledger", async () => {
   expectTaskStorageLedger(await pane("Task storage", change));
 });
 
+/** "Marked in place": on the decision's own page, each section's parts keep the file's order. */
+test("the decision's page keeps each section's parts in the file's order", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(`/f/${SPEC_FEATURE}/decisions/task-storage`, repo);
+
+  const storage = await pane("Task storage");
+  const consequences = within(storage).getByRole("group", { name: "Consequences" });
+  const text = consequences.textContent ?? "";
+  const order = [
+    "Stored data is tested in one place",
+    "Every feature that changes stored data",
+    "A corrupted value costs the user that value",
+  ].map((words) => text.indexOf(words));
+  expect(order.every((at) => at >= 0)).toBe(true);
+  expect(order).toEqual([...order].sort((a, b) => a - b));
+  expect(within(storage).queryAllByRole("button", { name: /unchanged$/ })).toEqual([]);
+});
+
 /** The edge case "A spec with no decision listed or changed" */
 test("without a change, Decisions holds the relied-on table only", async () => {
   const repo = fixtureRepo();

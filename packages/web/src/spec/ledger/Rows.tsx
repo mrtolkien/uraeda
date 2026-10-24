@@ -45,7 +45,7 @@ const styles = stylex.create({
     display: "flex",
     gap: spacingVars["--spacing-1"],
   },
-  // A kept part reads muted: the ledger's news is what changed.
+  // A kept part reads muted on a summary card: the ledger's news is what changed.
   kept: { color: colorVars["--color-text-secondary"] },
   removed: {
     backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 8%, transparent)`,
@@ -99,10 +99,12 @@ function Sign({ kind }: { kind: string }) {
 
 /** A part: its sign, its words, tappable while the spec waits for review. */
 export function Part({ context, part }: { context: Context; part: PartChange }) {
-  const { heading, intent, name, parts } = context;
+  const { full, heading, intent, name, parts } = context;
+  // Muted only where the ledger's news comes first: in the file's order, a kept part reads plain.
+  const tint = KINDS[part.kind]?.row ?? (full ? undefined : styles.kept);
   const range = rangeOf(name, heading, part);
   const text = (
-    <HStack align="start" gap={1} xstyle={[styles.row, KINDS[part.kind]?.row ?? styles.kept]}>
+    <HStack align="start" gap={1} xstyle={[styles.row, tint]}>
       <Sign kind={part.kind} />
       <div {...stylex.props(styles.words)}>
         <PartText

@@ -1,7 +1,8 @@
 // A decision's change as a ledger: its intent, then "Rules", each part not kept first and the kept
 // ones folded under "N rules unchanged", then the other sections folded under "Why, alternatives,
 // consequences", with their count of changed parts for a decision changed. With `full`, as on the
-// decision's own page, every section shows, nothing folded.
+// decision's own page, every section shows, nothing folded, each part in the file's order, marked
+// in place.
 import { Heading } from "@astryxdesign/core/Heading";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, useId } from "react";
@@ -22,24 +23,25 @@ function keptLabel(count: number, rules: boolean) {
 }
 
 /**
- * A section's rows: in the intent, every part in order; elsewhere the parts not kept first, then
- * the kept ones, folded under their count unless the card is `full` or the decision `whole`.
+ * A section's rows: in the intent, or with `full`, every part in the file's order; elsewhere the
+ * parts not kept first, then the kept ones, folded under their count unless the decision is
+ * `whole`.
  */
 function sectionRows(section: SectionChange, context: Context): ReactNode {
   const row = (part: PartChange, index: number) => (
     <Part context={context} key={index} part={part} />
   );
-  if (context.intent) {
+  // The intent, and every section on the decision's own page, keep the file's order.
+  if (context.intent || context.full) {
     return section.parts.map(row);
   }
   const moved = section.parts.filter((part) => part.kind !== "kept");
   const kept = section.parts.filter((part) => part.kind === "kept");
-  const open = context.full || context.whole;
   return (
     <>
       {moved.map(row)}
       {kept.length > 0 &&
-        (open ? (
+        (context.whole ? (
           kept.map((part, index) => row(part, moved.length + index))
         ) : (
           <Fold
