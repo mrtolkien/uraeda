@@ -32,11 +32,18 @@ export type Refusals = ReturnType<typeof useRefusals> & {
 
 /**
  * Runs a review's writes, one result shown at a time: a hook's refusal, with its output, or any
- * other refusal as a message. Resolves with whether the write was done.
+ * other refusal as a message. Resolves with whether the write was done. `continues` keeps the verdict
+ * last committed to start the agent, and `continued` reads it, once for the page, so a Try again
+ * anywhere starts it.
  */
 export function useRefusals() {
   const [error, setError] = useState<Refusal>();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  const last = useRef<"approval" | "changes">(undefined);
+  const continues = (trigger: "approval" | "changes" | undefined) => {
+    last.current = trigger;
+  };
+  const continued = () => last.current;
   const run = async (call: () => Promise<{ error?: unknown }>) => {
     setError(undefined);
     setMessage(undefined);
@@ -52,7 +59,7 @@ export function useRefusals() {
     }
     return true;
   };
-  return { error, message, run, setMessage };
+  return { continued, continues, error, message, run, setMessage };
 }
 
 /** A review's summary, kept in the unsaved store until the verdict sends it. */
@@ -118,15 +125,13 @@ export type ChoicesState = [Choices, Dispatch<SetStateAction<Choices>>];
  * summary typed at the page's end and the `choices` set there, then hands the feature over to the
  * agent when `next`; `retry` commits again after a hook's refusal. Resolves to whether it was done.
  */
-export function useVerdict(file: File, [choices]: ChoicesState, { run }: Refusals) {
+export function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
   const fate = useFateClient();
   const spec = (file.committed ?? file.current).items.spec;
   const isSpec = file.kind === "spec";
   const where = { file: file.name, folder: file.folder };
   // Drawn by the page's end, read here: the summary another component draws.
   const summary = useTextField(`${file.path}#summary`, "", { drawn: false });
-  // The verdict last committed to start the agent, for its Try again.
-  const continues = useRef<"approval" | "changes">(undefined);
 
   /** Hands the feature over to the agent, once the verdict is committed. */
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
@@ -135,8 +140,8 @@ export function useVerdict(file: File, [choices]: ChoicesState, { run }: Refusal
     const sent = summary.unsavedNow()?.text ?? "";
     const input = { ...where, summary: sent || undefined };
     const trigger = approve ? "approval" : "changes";
-    continues.current = next ? trigger : undefined;
-    const done = await run(() =>
+    refusals.continues(next ? trigger : undefined);
+    const done = await refusals.run(() =>
       approve
         ? fate.mutations.review.approve({
             input: { ...input, ...(isSpec ? approveChoices(spec, choices) : {}) },
@@ -154,9 +159,12 @@ export function useVerdict(file: File, [choices]: ChoicesState, { run }: Refusal
     return done;
   };
   const retry = async () => {
-    const done = await run(() => fate.mutations.commit.retry({ input: where, view: FileView }));
-    if (done && continues.current) {
-      proceed(continues.current);
+    const done = await refusals.run(() =>
+      fate.mutations.commit.retry({ input: where, view: FileView }),
+    );
+    const trigger = refusals.continued();
+    if (done && trigger) {
+      proceed(trigger);
     }
   };
   return { retry, verdict };
