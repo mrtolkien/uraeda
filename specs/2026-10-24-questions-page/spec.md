@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Questions page in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-24.
 >
 > - You approve the round redrawn in titled panes with the question always in view. A right column
 >   holds Outline, Notes, and Session tabs. "Check these" moves before the questions, in the page
