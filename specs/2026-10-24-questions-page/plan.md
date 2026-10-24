@@ -309,12 +309,13 @@ instead, as the spec's edge case says, with a ruling.
   to `sessionPath(folder)`, the transcript scrolling in the nearest scrolling box, and the composer
   at that box's foot. `SessionPane` gains `isBoxed?: boolean`: no `Page`, no crumbs, no aside, and
   the transcript, the reading place, and the jump to the latest act on the box. `Transcript` and
-  `useKeepPlace` act on the box their element is in, the window when there is none; in a box, the
-  entry's saved window scroll and a `#turn-` hash are not applied. `RoundPage` draws the session in
-  a `SideColumn` labelled "Session" while the address says `?tab=session`, wide and semi-wide only,
-  through `WithSessionColumn` in `ColumnSession.tsx`, marked `TEMPORARY:` (`RoundPage` stays under
-  100 lines): Task 8 replaces it with the column's tab. `SessionView.tsx` also exports `NO_BRANCH`,
-  which the page and the column share.
+  `keepPlace` act on the box their element is in, the window when there is none; in a box, the
+  entry's saved window scroll and a `#turn-` hash are not applied (`windowPlace` in `following.ts`).
+  `useKeepPlace` keeps the window's place only, and none for content in a box (R10). `RoundPage`
+  draws the session in a `SideColumn` labelled "Session" while the address says `?tab=session`, wide
+  and semi-wide only, through `WithSessionColumn` in `ColumnSession.tsx`, marked `TEMPORARY:`
+  (`RoundPage` stays under 100 lines): Task 8 replaces it with the column's tab. `SessionView.tsx`
+  also exports `NO_BRANCH`, which the page and the column share.
 
 - [x] **Step 1: Move `SessionLog`, `SessionPane`, `useSessionRecord`, and `Missing` to
       `SessionView.tsx`**, unchanged, in a `refactor` commit: the session tests pass before and
