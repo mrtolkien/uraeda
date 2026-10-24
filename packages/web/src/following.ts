@@ -39,17 +39,34 @@ export function atEnd(box?: HTMLElement) {
 }
 
 /**
- * Shows the end of a session's transcript as it opens, unless Back or a reload brings a saved
- * position, in `opened`, the history entry as the page opened (the current one by default), or the
- * address names a turn. `element` is the transcript, or what it is drawn in. In a box that scrolls
- * on its own, it always opens at its end: the entry's position and the turn named are the window's.
+ * The window's place a session's transcript in `element` opens at, instead of its end: the turn the
+ * address's `#turn-<id>` names, else the position Back or a reload brings, in `opened`, the history
+ * entry as the page opened. Both are the window's: in a box that scrolls on its own, as a round's
+ * column, there is none, and the transcript opens at its end.
+ */
+export function windowPlace(
+  element: Element | null,
+  opened: { scroll?: number },
+): { turn: string } | { scroll: number } | undefined {
+  if (element && scroller(element)) {
+    return undefined;
+  }
+  const { hash } = window.location;
+  if (hash.startsWith("#turn-")) {
+    return { turn: hash.slice(1) };
+  }
+  return opened.scroll === undefined ? undefined : { scroll: opened.scroll };
+}
+
+/**
+ * Shows the end of a session's transcript as it opens, unless the window has a place for it, by
+ * `windowPlace`, from `opened`, the history entry as the page opened (the current one by default).
+ * `element` is the transcript, or what it is drawn in.
  */
 export function openAtEnd(element: HTMLElement, opened: { scroll?: number } = currentEntry()) {
-  const box = scroller(element);
-  if (!box && (opened.scroll !== undefined || window.location.hash.startsWith("#turn-"))) {
-    return;
+  if (!windowPlace(element, opened)) {
+    toEnd(scroller(element));
   }
-  toEnd(box);
 }
 
 /**
