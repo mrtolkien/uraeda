@@ -5,6 +5,7 @@ import { useHotkeys } from "@astryxdesign/core/hooks";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -49,8 +50,10 @@ const styles = stylex.create({
 type Row = {
   id: string;
   label: string;
-  /** Before the label, for a part: what kind of part it is. A question's state is its label's. */
+  /** Before the label, for a part: what kind of part it is. */
   mark?: string;
+  /** A question's state: a glyph before its label, and words at the end of its name. */
+  state?: "answered" | "unanswered";
   /** Under the row before it: a part of the context, a follow-up under its question. */
   sub?: boolean;
   tone?: "warning";
@@ -108,7 +111,8 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
   ];
   const asked: Array<Row> = questions.map((q) => ({
     id: q.id,
-    label: `${q.answered ? "✓" : "○"} ${q.id} ${q.title}`,
+    label: `${q.id} ${q.title}`,
+    state: q.answered ? "answered" : "unanswered",
     sub: q.level === 2,
   }));
   const end: Array<Row> = [
@@ -150,7 +154,13 @@ function Rows({
           <ListItem
             isSelected={row.id === current}
             key={row.id}
-            label={<span {...stylex.props(styles.label)}>{row.label}</span>}
+            label={
+              <span {...stylex.props(styles.label)}>
+                {row.state && <span aria-hidden>{row.state === "answered" ? "✓ " : "○ "}</span>}
+                {row.label}
+                {row.state && <VisuallyHidden> ({row.state})</VisuallyHidden>}
+              </span>
+            }
             onClick={() => onPick(row.id)}
             {...(row.mark
               ? {
