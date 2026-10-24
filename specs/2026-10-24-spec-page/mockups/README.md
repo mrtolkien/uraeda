@@ -24,7 +24,31 @@ which parts changed is made up, to show the marks.
 
 Tap any block to select it, then "Comment" or "Ask the agent". Comments gather in the Review tab.
 
-## What it is not
+## The stories
+
+The built pages have their stories in Uraeda's own Storybook, drawn by the real components over
+Uraeda's real server and the fixture's features, as the
+[preview decision](/specs/decisions/preview.md) asks. The feature's Storybook page lists them:
+
+- **Spec page**, in [`SpecPage.stories.tsx`](/packages/web/src/SpecPage.stories.tsx): `Waiting`, the
+  spec at revision 2 with "Since your review" and its column; `Approved`, the same spec approved,
+  without Review; `ReviewTab`, the column's Review tab; `SessionAsked`, the Session tab after "Ask
+  the agent" on a rule of Task storage, its quote in the composer; and `DataModel`, the data model
+  on its own page.
+- **Plan page**, in [`PlanPage.stories.tsx`](/packages/web/src/PlanPage.stories.tsx): `AutoApproved`
+  and `Waiting`, the questions page's plan in panes.
+- **Decision card**, in
+  [`DecisionCard.stories.tsx`](/packages/web/src/spec/DecisionCard.stories.tsx): `Change`, Task
+  storage's ledger, and `New`, Repeating tasks.
+
+Their files are the fixtures [`spec-page`](/fixtures/spec-page/) and
+[`plan-page`](/fixtures/plan-page/), which the sample builders' `addSpecPages`
+([`samples/features.ts`](/packages/web/samples/features.ts)) commits as features of Storybook's
+repository, the screenshots', and the sandbox's sample project (`vp run sandbox`). The
+[screenshots](../screenshots/) show the same views, at a phone's and a desktop's size, in Latte and
+Mocha.
+
+## What the HTML mockup is not
 
 - Not built with Astryx, and not shipping code.
 - It loads JetBrains Mono and Inter from Google Fonts; the app bundles them.

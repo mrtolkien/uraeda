@@ -23,6 +23,9 @@ const STORYBOOK_STEPS = {
   "2026-10-13-plan-review": "human-gate",
   "2026-10-17-due-dates": "none",
   "2026-10-17-keyboard-shortcuts": "pull-request",
+  // The plan page's features, added since: approved specs without a round, read as discovery.
+  "2026-10-17-plan-page": "discovery",
+  "2026-10-17-plan-page-waiting": "human-gate",
   "2026-10-17-recurring-reminders": "human-gate",
   "2026-10-17-redesign-clarifications": "implementation",
   "2026-10-17-redesign-rounds": "done",

@@ -31,11 +31,17 @@ export const ROUND_MOCKUPS = {
 } as const;
 
 /**
- * The spec page's features, `SpecPage.stories.tsx`'s and the screenshots', built by
- * `addSpecFeature` without a worktree: its spec waiting for review, and the same spec approved.
+ * The spec page's features, `SpecPage.stories.tsx`'s, `PlanPage.stories.tsx`'s, the screenshots',
+ * and the sandbox's, built by `addSpecFeature` without a worktree: its spec at its second revision,
+ * waiting for review, with what changed since the first; the same spec approved; and the questions
+ * page's plan over the approved spec, auto-approved and waiting for review.
  */
 export const SPEC_PAGES = {
   approved: "2026-10-17-spec-page-approved",
+  /** `fixtures/plan-page/plan.md`, auto-approved. */
+  plan: "2026-10-17-plan-page",
+  /** `fixtures/plan-page/plan.md`, waiting for review. */
+  planWaiting: "2026-10-17-plan-page-waiting",
   /** `SPEC_FEATURE` of `uraeda-binding/test-utils`, which only Node loads: a test checks they match. */
   waiting: "2026-10-17-spec-page",
 } as const;

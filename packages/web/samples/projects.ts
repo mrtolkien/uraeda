@@ -1,6 +1,7 @@
 // The three sample projects of the sandbox, each a repository in a folder of its own: "sample", a
-// feature at every step and a change at each of its states; "empty", a project just set up; and
-// "broken", whose features carry the problems `ura check` reports.
+// feature at every step, the spec and plan pages' features, and a change at each of its states;
+// "empty", a project just set up; and "broken", whose features carry the problems `ura check`
+// reports.
 import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -14,7 +15,7 @@ import {
   STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { CHANGE_FOLDERS, addChanges } from "./changes.ts";
-import { addFeaturePages, dated, proposal } from "./features.ts";
+import { addFeaturePages, addSpecPages, dated, proposal } from "./features.ts";
 import { addStepFeatures, FEATURE_FOLDERS, FEATURE_STEPS } from "./steps.ts";
 
 export { CHANGE_FOLDERS, FEATURE_FOLDERS, FEATURE_STEPS };
@@ -61,6 +62,9 @@ function buildSample(repo: string) {
   addFeaturePages(repo);
   addStepFeatures(repo);
   addChanges(repo);
+  // The spec page's and the plan page's features, as Storybook's fixture and the screenshots have
+  // them: a spec revised since its review, approved, and a plan, auto-approved and waiting.
+  addSpecPages(repo);
 }
 
 /**

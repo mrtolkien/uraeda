@@ -894,21 +894,26 @@ candidates, and the decisions check.
 
 **Files:**
 
-- Modify: `packages/web/samples/projects.ts` (the sample project adds the spec-page features,
-  waiting, approved, and revised, with a preview), `src/SpecPage.stories.tsx` (Waiting, Revised,
-  Approved, Review tab, Session tab with a quote), `src/PlanPage.stories.tsx` (create: auto-approved
-  and waiting), `src/spec/DecisionCard.stories.tsx`, `packages/web/scripts/spec-shots.ts` (the plan,
-  the revision, the column's tabs, the data model alone)
+- Modify: `packages/web/samples/features.ts` `addSpecPages` (the spec waiting for review is the
+  revised one, `addRevisedSpec`, its revision 1 reviewed at a commit of its branch; the approved
+  one; and two plan features, `SPEC_PAGES.plan` and `SPEC_PAGES.planWaiting`, the approved spec with
+  `fixtures/plan-page/plan.md` auto-approved and waiting), `samples/folders.ts`,
+  `samples/projects.ts` (the sample project adds them, beside its preview decision),
+  `src/SpecPage.stories.tsx` (Waiting, the revised spec; Approved; ReviewTab; SessionAsked, the
+  Session tab with a quote; DataModel), `src/PlanPage.stories.tsx` (create: AutoApproved and
+  Waiting), `src/spec/DecisionCard.stories.tsx` (Change and New: a removed decision has no branch
+  decision to draw alone), `packages/web/scripts/spec-shots.ts` (the plan, the revision, the
+  column's tabs, a live window in full screen, the data model alone)
 - Create: the screenshots in `specs/2026-10-24-spec-page/screenshots/`
 - Modify: `specs/2026-10-24-spec-page/mockups/README.md` (where the stories live)
 
-- [ ] **Step 1: Write the stories and the sandbox's features**, over the fixtures.
-- [ ] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
-- [ ] **Step 3: Take and review the screenshots** of the spec waiting, revised, and approved, its
+- [x] **Step 1: Write the stories and the sandbox's features**, over the fixtures.
+- [x] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
+- [x] **Step 3: Take and review the screenshots** of the spec waiting, revised, and approved, its
       Review and Session tabs, the ledger on the decisions page, a live window in full screen, the
       plan, and the data model alone, at both sizes and in both schemes, against the UI look,
       layout, and coherence decisions, and commit them. `checkAccessibility` on the spec and plan
       pages in both schemes runs in `vp run ready` (SC-002).
-- [ ] **Step 4: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 4: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
+- [x] **Step 5: Commit**:
       `git commit -m "docs(spec-page): the stories, the sandbox, and the screenshots"`.
