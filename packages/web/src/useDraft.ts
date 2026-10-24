@@ -9,27 +9,56 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { ChatImage } from "uraeda-server/fate";
+import type { ChatImage, Trigger } from "uraeda-server/fate";
 import { type DraftImage, draftImage, forgetPreviews } from "./attach/chatImages.ts";
+import { withInserted } from "./RecommendedMessage.tsx";
 import { withQuote } from "./sessions.ts";
 import type { StoryComments } from "./stories.tsx";
+
+/**
+ * A workflow's run the draft's text starts with, a recommended message inserted or the message an
+ * address hands over: its text, and the trigger, file, and step its run carries.
+ */
+export type DraftRun = { file?: string; step?: string; text: string; trigger: Trigger };
 
 /**
  * The composer's text and images, kept by the view while its session is created under it: a new
  * chat's or a feature's first message draws a new composer once sent.
  */
 export type Draft = {
-  /** Writes `quote` at the start of the text, in place of the one it wrote last, as `withQuote`. */
-  ask: (quote: string) => void;
+  /**
+   * Writes `quote` at the start of the text, in place of the one it wrote last, as `withQuote`.
+   * Given the `address` asking for it, once: the draft took it already when the address comes back.
+   */
+  ask: (quote: string, address?: string) => void;
+  /**
+   * Puts the message the address hands over before the text, in place of the run's it holds, with
+   * its run, once: the draft took it already when the address comes back, until it is sent or
+   * emptied.
+   */
+  handOver: (address: string, run: DraftRun) => void;
   images: ReadonlyArray<DraftImage>;
+  /** The hand-over of `address` refused: the message it put in stays, without its run, as a chat. */
+  refused: (address: string) => void;
+  /** The workflow's run the text holds, until it is sent or emptied. */
+  run?: DraftRun;
   setImages: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
+  /** Sets the run the text holds; none forgets the address whose message it took too. */
+  setRun: (run: DraftRun | undefined) => void;
   setText: Dispatch<SetStateAction<string>>;
   text: string;
 };
 
-/** The composer's text and images, held by the draft. */
-export function composerDraft({ images, setImages, setText, text }: Draft) {
-  return { images, onChange: setText, onImagesChange: setImages, value: text };
+/** The composer's text, images, and run, held by the draft. */
+export function composerDraft({ images, run, setImages, setRun, setText, text }: Draft) {
+  return {
+    images,
+    onChange: setText,
+    onImagesChange: setImages,
+    onRun: setRun,
+    value: text,
+    ...(run === undefined ? {} : { run }),
+  };
 }
 
 /** Puts a taken-back message's text and images back in the draft, before what it holds. */
@@ -58,8 +87,17 @@ export function storyCommentsInto({ setText }: Draft, path: string): StoryCommen
   };
 }
 
-/** What a draft holds: its text, its images, and the quote asking wrote last. */
-type Held = { images: ReadonlyArray<DraftImage>; inserted?: string; text: string };
+/**
+ * What a draft holds: its text, its images, the quote asking wrote last, the run its text holds,
+ * and the address whose message it took last.
+ */
+type Held = {
+  address?: string;
+  images: ReadonlyArray<DraftImage>;
+  quote?: string;
+  run?: DraftRun;
+  text: string;
+};
 
 /** A draft's store, which the composers drawing it read and write. */
 type Store = {
@@ -113,7 +151,7 @@ function apply<T>(update: SetStateAction<T>, now: T): T {
 export function useDraft(key?: string): Draft {
   const [local] = useState(store);
   const held = key === undefined ? local : keptStore(key);
-  const { images, text } = useSyncExternalStore(held.subscribe, held.get);
+  const { images, run, text } = useSyncExternalStore(held.subscribe, held.get);
   // The previews of images still being saved go with the view, unless the draft is kept.
   const shown = useRef(images);
   useLayoutEffect(() => {
@@ -129,21 +167,47 @@ export function useDraft(key?: string): Draft {
     [isKept],
   );
   const writes = useMemo(() => writesOf(held), [held]);
-  return { ...writes, images, text };
+  return { ...writes, images, text, ...(run === undefined ? {} : { run }) };
 }
 
 /** A store's writes, the same for as long as the store is. */
-function writesOf(held: Store): Pick<Draft, "ask" | "setImages" | "setText"> {
+function writesOf(held: Store): Omit<Draft, "images" | "run" | "text"> {
   return {
-    ask: (quote) =>
-      held.set((now) => ({
-        ...now,
-        inserted: quote,
-        text: withQuote(now.text, quote, now.inserted),
-      })),
+    ask: (quote, address) =>
+      held.set((now) =>
+        address !== undefined && now.address === address
+          ? now
+          : {
+              ...now,
+              ...(address === undefined ? {} : { address }),
+              quote,
+              text: withQuote(now.text, quote, now.quote),
+            },
+      ),
+    handOver: (address, run) =>
+      held.set((now) =>
+        now.address === address
+          ? now
+          : { ...now, address, run, text: withInserted(run.text, withoutRun(now)) },
+      ),
+    refused: (address) =>
+      held.set(({ run, ...now }) =>
+        now.address === address ? now : { ...now, ...(run === undefined ? {} : { run }) },
+      ),
     setImages: (update) => held.set((now) => ({ ...now, images: apply(update, now.images) })),
+    setRun: (run) =>
+      held.set(({ address, run: _, ...now }) =>
+        run === undefined ? now : { ...now, run, ...(address === undefined ? {} : { address }) },
+      ),
     setText: (update) => held.set((now) => ({ ...now, text: apply(update, now.text) })),
   };
+}
+
+/** The draft's text without its run's message at its start, and the empty lines after it. */
+function withoutRun({ run, text }: Held): string {
+  return run !== undefined && text.startsWith(run.text)
+    ? text.slice(run.text.length).replace(/^\n+/, "")
+    : text;
 }
 
 /** The key of a feature's session draft, kept for the life of the document. */

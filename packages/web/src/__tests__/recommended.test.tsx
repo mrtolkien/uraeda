@@ -2,9 +2,10 @@
 // typed can always be sent.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { addPlan, temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import {
   atRepo,
   click,
@@ -103,6 +104,28 @@ test("a sent message clears the inserted message's run: Send is back", async () 
   await waitFor(async () => expect((await composer()).textContent).toBe(""));
   expect(await screen.findByRole("button", { name: "Send" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
+});
+
+/** The inserted message's run follows its text, kept by the draft while the page goes and comes back. */
+test("the inserted message still starts the agent once the page comes back", async () => {
+  const fake = await fakeAgent();
+  fake.adapter.script([]);
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
+  await click(await insertPlan());
+  await waitFor(async () => expect((await composer()).textContent).toBe(PLAN));
+
+  await act(async () => navigate(atRepo("/")));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/")));
+  await waitFor(() =>
+    expect(screen.queryByRole("textbox", { name: "Message Claude Code" })).toBeNull(),
+  );
+  await act(async () => window.history.back());
+
+  await waitFor(async () => expect((await composer()).textContent).toBe(PLAN));
+  await click(await screen.findByRole("button", { name: "Start the agent" }));
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  expect(fake.adapter.sent[0].text).not.toContain("A human is chatting with you about the feature");
+  expect(fake.adapter.sent[0].text).toContain("Write the plan");
 });
 
 /** US4.2 */

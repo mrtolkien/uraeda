@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useFeature } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { type Draft, featureDraftKey, useDraft } from "./useDraft.ts";
@@ -38,7 +38,7 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   // keeps it. An earlier session's goes with its page.
   const repo = useRepositoryPath();
   const draft = useDraft(given === undefined ? featureDraftKey(repo, folder) : undefined);
-  const { ask: askInto, setText } = draft;
+  const { ask: askInto, handOver, refused: refuse } = draft;
   const search = useSearch();
   const workflow = useHandOver(search);
   const ask = new URLSearchParams(search).get("ask") ?? undefined;
@@ -46,18 +46,10 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   const [refusal, setRefusal] = useState<{ search: string; text: string }>();
   const refused = refusal?.search === search ? refusal.text : undefined;
   const fresh = useFreshRun(search);
-  // The address whose message the composer took: each is put in once.
-  const filled = useRef<string>(undefined);
-  const handingOver = workflow !== undefined || ask !== undefined;
+  // The draft takes the address's message once: coming back to the address keeps what it holds.
   useEffect(() => {
-    if (!handingOver) {
-      filled.current = undefined;
-    }
-  }, [handingOver]);
-  useEffect(() => {
-    if (workflow === undefined && ask !== undefined && filled.current !== search) {
-      filled.current = search;
-      askInto(ask);
+    if (workflow === undefined && ask !== undefined) {
+      askInto(ask, search);
     }
   }, [workflow, ask, search, askInto]);
   if (!feature || feature.missing) {
@@ -82,10 +74,14 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   const read = (message: ReadMessage) => {
     setRefusal(message.refusal === null ? undefined : { search, text: message.refusal });
     fresh.read(message);
-    if (message.refusal === null && filled.current !== search) {
-      filled.current = search;
-      const text = message.text.trimEnd();
-      setText((now) => (now.trim() ? `${text}\n${now}` : text));
+    if (message.refusal !== null) {
+      refuse(search);
+    } else if (workflow) {
+      handOver(search, {
+        ...workflow,
+        text: message.text.trimEnd(),
+        ...(message.step === undefined ? {} : { step: message.step }),
+      });
     }
   };
   // Sent: the address no longer asks for the message, or the quote.

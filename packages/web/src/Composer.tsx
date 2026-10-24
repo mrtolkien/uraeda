@@ -31,6 +31,7 @@ import { FreshDefault, useFreshRun } from "./HandOver.tsx";
 import { footerActions, sendButtons } from "./ComposerSend.tsx";
 import { type Inserted, withInserted } from "./RecommendedMessage.tsx";
 import { sendMessage } from "./sessions.ts";
+import type { DraftRun } from "./useDraft.ts";
 import { SessionView } from "./views.ts";
 import { clearPending, markPending } from "./writes/store.ts";
 
@@ -84,6 +85,11 @@ export type ComposerProps = {
   onChange: (value: string) => void;
   onImagesChange: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
   /**
+   * Keeps the run of the recommended message inserted, `run`, with the text, kept by the page: a
+   * composer drawn again holds it. Without it, the composer keeps the run itself.
+   */
+  onRun?: (run: DraftRun | undefined) => void;
+  /**
    * Sends the text and its images elsewhere than a session, like "New change" to the change it
    * starts, with or without the agent: whether it was sent. A refusal is the caller's to show, and
    * the composer keeps the text and the images. A sent text is the caller's to clear: it may answer
@@ -95,6 +101,8 @@ export type ComposerProps = {
   options?: ReactNode;
   /** Whether it offers the recommended message of the feature in `folder`. */
   recommended?: boolean;
+  /** The workflow's run the text holds, kept by the page with `onRun`. */
+  run?: DraftRun;
   /** The send button's label, a primary button's, instead of Send. */
   sendLabel?: string;
   /** Why the page's own send button waits, as for another page's git write: its tooltip. */
@@ -250,19 +258,22 @@ function composerStatus(
 }
 
 /**
- * The recommended message inserted (R30): its run, the composer's workflow unless the page gives
- * one, until it is sent or the human empties the field. `props` are the composer's, with that
- * workflow; `edit` is the field's change, and `insert` puts the message before what was typed,
- * giving `input` the focus.
+ * The recommended message inserted (R30), or the hand-over's the page's draft holds: its run, the
+ * composer's workflow unless the page gives one, until it is sent or the human empties the field.
+ * Kept by the page's draft with its text, it holds in every composer drawing that draft. `props`
+ * are the composer's, with that workflow; `edit` is the field's change, and `insert` puts the
+ * message before what was typed, giving `input` the focus.
  * After a spec's approval, the run builds in a fresh session as the setting says, with the
  * hand-over's switch: `reader` reads the setting once a message is inserted.
  */
 function useInserted(given: ComposerProps, input: RefObject<ChatComposerInputHandle | null>) {
-  const [inserted, setInserted] = useState<Workflow>();
+  const [own, setOwn] = useState<DraftRun>();
+  const inserted = given.onRun ? given.run : own;
+  const setInserted = given.onRun ?? setOwn;
   // Each insert keys its fresh session switch, which starts from the setting (the agents decision).
   const [inserts, setInserts] = useState(0);
   const fresh = useFreshRun(`inserted:${inserts}`);
-  const run = inserted === undefined ? undefined : fresh.handing(inserted);
+  const run = inserted === undefined ? undefined : fresh.handing(workflowOf(inserted));
   const workflow = given.workflow ?? run?.workflow;
   const options = given.workflow ? given.options : run?.options;
   // The button goes once inserted: the field takes the focus.
@@ -288,19 +299,29 @@ function useInserted(given: ComposerProps, input: RefObject<ChatComposerInputHan
       }
       given.onChange(next);
     },
-    insert: ({ text, ...message }: Inserted) => {
-      setInserted(message);
-      setInserts(inserts + 1);
+    insert: (message: Inserted) => {
+      const text = message.text.trimEnd();
       given.onChange(withInserted(text, given.value));
+      setInserted({ ...message, text });
+      setInserts(inserts + 1);
     },
     props,
     // Read once inserted: the session page draws without waiting for the settings.
-    reader: inserted && (
+    reader: inserted && !given.workflow && (
       <FreshDefault
         onRead={(byDefault) => fresh.read(byDefault === undefined ? {} : { fresh: byDefault })}
         step={inserted.step ?? ""}
       />
     ),
+  };
+}
+
+/** The workflow's input of a run the draft holds: its trigger, file, and step, without its text. */
+function workflowOf({ file, step, trigger }: DraftRun): Workflow {
+  return {
+    trigger,
+    ...(file === undefined ? {} : { file }),
+    ...(step === undefined ? {} : { step }),
   };
 }
 
