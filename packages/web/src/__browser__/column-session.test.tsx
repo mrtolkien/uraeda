@@ -218,6 +218,21 @@ function tailTests() {
     expect(Math.abs(place() - before)).toBeLessThanOrEqual(1);
     expect(window.scrollY).toBe(0);
   });
+
+  test("a turn the address names leaves the column at its end and the round at its top", async () => {
+    const log = await openWorkingColumn(80);
+    await endTurn();
+    const turn = log.querySelector('[id^="turn-"]')!.id;
+
+    // The turn named is the session's page's: the round's window and its column keep their own.
+    await show(`${PAGE}?tab=session#${turn}`, OPENING);
+    const again = await within(column()).findByRole("log", { name: "Conversation" }, LIVE);
+    const last = await within(again).findByText("Line 80.", undefined, LIVE);
+    await expect.poll(() => inView(last), LIVE).toBe(true);
+    await drawn();
+    expect(inView(last)).toBe(true);
+    expect(window.scrollY).toBe(0);
+  });
 }
 
 /** How far down the window a question's top is, from where a jump puts it. */
