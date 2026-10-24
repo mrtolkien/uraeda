@@ -22,12 +22,13 @@ import { PartText } from "../RuleLine.tsx";
 import { type Context, holds, rangeOf } from "./context.ts";
 
 const styles = stylex.create({
-  // A row's faint tint, its hue's icon colour over the pane: its sign and its marks say the rest.
+  // A row's faint tint, its hue's icon colour over the pane, light enough that muted words keep
+  // 4.5:1 on it over the page's darker surface on the phone: its sign and its marks say the rest.
   added: {
-    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-green"]} 8%, transparent)`,
+    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-green"]} 6%, transparent)`,
   },
   changed: {
-    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-yellow"]} 8%, transparent)`,
+    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-yellow"]} 6%, transparent)`,
   },
   // A fold's button, drawn as a muted line of the ledger, a control's height for a finger, its
   // label wrapping on a narrow screen rather than cut.
@@ -48,7 +49,7 @@ const styles = stylex.create({
   // A kept part reads muted on a summary card: the ledger's news is what changed.
   kept: { color: colorVars["--color-text-secondary"] },
   removed: {
-    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 8%, transparent)`,
+    backgroundColor: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 6%, transparent)`,
   },
   row: {
     paddingBlock: spacingVars["--spacing-1"],

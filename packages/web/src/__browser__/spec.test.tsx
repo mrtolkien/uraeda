@@ -11,7 +11,7 @@ const PAGE = `/f/${FOLDER}/spec.md`;
 describe("on the phone", () => {
   atSize("phone");
 
-  test("on the phone, the panes take the page's width, a story's text to 14.4 px from the edges (US1, at 120%)", async () => {
+  test("on the phone, the panes take the page's width, a story's and a decision's text to 14.4 px from the edges (US1, at 120%)", async () => {
     await commands.addSpecFeature({ status: "approved" });
     await show(PAGE, "US2 · Complete a repeating task");
 
@@ -28,9 +28,28 @@ describe("on the phone", () => {
       expect(box.left, name).toBeCloseTo(inset, 0);
       expect(box.right, name).toBeCloseTo(width - inset, 0);
     }
-    // A story keeps only its titled top border on the phone: its text runs to the page's inset.
+    // Every pane keeps only its titled top border on the phone, a story's and a decision's alike:
+    // its title starts at the page's inset, and its text runs to it.
+    for (const name of ["Task storage", "US2 · Complete a repeating task"]) {
+      const pane = screen.getByRole("region", { name });
+      const title = within(pane).getByRole("heading", { name: new RegExp(`^${name}`) });
+      expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
+      expect(getComputedStyle(pane).borderLeftWidth, name).toBe("0px");
+      expect(getComputedStyle(pane).borderRightWidth, name).toBe("0px");
+    }
+    // A decision's note, and its ledger's rows, their signs first, start at the page's inset.
+    const storage = screen.getByRole("region", { name: "Task storage" });
+    for (const text of [
+      /Completing a repeating task moves it to its next due date/,
+      /^An upgrade that cannot read a saved\s+value clears it/,
+    ]) {
+      const box = screen.getByText(text).getBoundingClientRect();
+      expect(box.left, String(text)).toBeCloseTo(inset, 0);
+      expect(box.right, String(text)).toBeLessThanOrEqual(width - inset + 0.5);
+    }
+    const sign = within(storage).getAllByRole("img", { name: "Changed" })[0]!;
+    expect(sign.getBoundingClientRect().left, "a row's sign").toBeCloseTo(inset, 0);
     const journey = screen.getByText(/Completing a repeating task moves it to its next due date/);
-    expect(journey.getBoundingClientRect().left).toBeCloseTo(inset, 0);
     expect(journey.getBoundingClientRect().right).toBeCloseTo(width - inset, 0);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
   });
@@ -129,7 +148,7 @@ describe("on a wide screen", () => {
     for (const [name, [r, g, b]] of Object.entries({ mustNot, shouldNot })) {
       expect(r, name).toBeGreaterThan(Math.max(g, b));
     }
-    // A soft colour is its hard one three quarters over the card's background: apart from it, but
+    // A soft colour is its hard one four fifths over the pane's surface: apart from it, but
     // near it, and never past it.
     for (const [soft, hard] of [
       [should!, must!],
@@ -208,6 +227,28 @@ describe("at both sizes", () => {
     expect(document.getElementById("us2-complete-a-repeating-task-p1")).toBe(
       screen.getByRole("region", { name: "US2 · Complete a repeating task" }),
     );
+  });
+
+  /**
+   * WCAG 1.4.11: each strength's icon, a graphic that tells the rule's strength, at 3:1 over the
+   * surface it sits on: the pane's body on a wide screen, the page's on the phone, where the pane
+   * has no background of its own.
+   */
+  test("the five strength icons read at 3:1 over their surface, in both schemes", async () => {
+    await commands.addSpecFeature();
+    await commands.commitOnBranch(FOLDER, { "specs/decisions/due-dates.md": DUE_DATES });
+    await show(PAGE, "Due dates");
+    const card = screen.getByRole("region", { name: "Due dates" });
+    for (const mode of ["light", "dark"] as const) {
+      await colorScheme(mode);
+      await drawn();
+      for (const name of ["Must", "Should", "Should not", "Must not", "May"]) {
+        const icon = within(card).getByRole("img", { name });
+        const behind = backdrop(icon);
+        const ratio = contrast(over(getComputedStyle(icon).color, behind), behind);
+        expect(ratio, `${mode}: ${name}`).toBeGreaterThanOrEqual(3);
+      }
+    }
   });
 
   /** SC-004 */

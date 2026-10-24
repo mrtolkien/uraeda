@@ -13,6 +13,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { CommentItem, DecisionChange } from "uraeda-binding";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { PartSelection } from "../Selection.tsx";
 import { KindBadge } from "./ledger/KindBadge.tsx";
 import { Ledger } from "./ledger/Section.tsx";
@@ -32,6 +33,8 @@ const styles = stylex.create({
     paddingBlockEnd: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-2"],
   },
+  // On the phone, the pane keeps only its titled top border: its text takes the page's width.
+  open: { paddingInline: 0 },
   suffix: {
     // The pills and the fields' change after the title, wrapping as the title does.
     alignItems: "center",
@@ -121,9 +124,12 @@ function ChangeBody({
 export function DecisionCard(props: DecisionCardProps) {
   const { change, crumbs, href, id, kind, note, title, unlisted = false } = props;
   const fields = fieldsOf(change);
+  const isOpen = isNarrow(useWidthClass());
   return (
     <Pane
       id={id}
+      // On the phone, its titled top border alone, as every pane's (R13).
+      isOpenOnPhone
       level={crumbs.length === 0 ? 2 : 3}
       title={title}
       titleSuffix={
@@ -135,7 +141,7 @@ export function DecisionCard(props: DecisionCardProps) {
       }
       tone={TONES[kind]}
     >
-      <VStack gap={3} xstyle={styles.measure}>
+      <VStack gap={3} xstyle={[styles.measure, isOpen && styles.open]}>
         {note}
         {change && <ChangeBody {...props} change={change} />}
         {href && (

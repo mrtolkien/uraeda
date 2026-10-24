@@ -111,8 +111,9 @@ const styles = stylex.create({
   },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
   // width: no side or bottom border, no inset, and no background of its own, so it shows no band
-  // over the page.
+  // over the page, whose surface its content then sits on.
   openOnPhone: {
+    "--pane-surface": colorVars["--color-background-surface"],
     backgroundColor: "transparent",
     borderBlockEndWidth: 0,
     borderInlineEndWidth: 0,
@@ -137,6 +138,8 @@ const styles = stylex.create({
     "--pane-border-middle": "calc(var(--pane-border) / -2)",
     // The title's first line centred on it, in the title's own line height, where it is used.
     "--pane-title-top": "calc(var(--pane-border) / -2 - 0.5lh)",
+    // The surface its content sits on, which a soft colour is mixed over (`spec/RuleLine.tsx`).
+    "--pane-surface": colorVars["--color-background-body"],
     // The title's background hides the border behind it: both are the pane's own.
     backgroundColor: colorVars["--color-background-body"],
     borderColor: colorVars["--color-border"],

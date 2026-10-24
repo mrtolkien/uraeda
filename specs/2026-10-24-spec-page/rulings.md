@@ -196,3 +196,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   as links; a wider tolerance in the anchor test, which hides the double offset.
 - **If wrong**: Task 10 rebuilds Contents; `scrollBelowBar` is one condition in `Folds.tsx`.
 - **Where**: Task 9, `layout/Pane.tsx`, `spec/SpecContents.tsx`, `Folds.tsx`.
+
+## R15: Decision panes open on the phone, their soft colours mixed over their surface
+
+- **Decision**: `DecisionCard` passes `isOpenOnPhone`, on every page that draws it, and drops its
+  text's inset on the phone, so its note and its ledger's rows start at the page's 14.4 px inset, as
+  a story's text does. This reverses R13's choice to keep decision panes bordered. `Pane` sets
+  `--pane-surface`, its body's colour, or the page's surface when open on the phone, and SHOULD's
+  and SHOULD NOT's icons mix their hard colour 80% over it, not 75% over the card's colour. The
+  ledger rows' tints go from 8% to 6%.
+- **Rationale**: the layout mockup (`.narrow fieldset.pane`) draws every pane with only its titled
+  top border on the phone. Over the page's darker surface, Latte's Should icon fell to 2.87:1 on a
+  changed row, and a removed row's muted check to 4.49:1. At 80% the soft icons keep at least 3:1,
+  and at 6% the muted words keep at least 4.5:1, on every tint in both schemes.
+- **Alternatives considered**: a background on the decision pane on the phone, the band R13 removed;
+  the soft colour as the hard one at 75% opacity, which the tests' colour checks read as the hard
+  one.
+- **If wrong**: `isOpenOnPhone` is one prop in `spec/DecisionCard.tsx`; the mix and the tints are
+  one number each in `spec/RuleLine.tsx` and `spec/ledger/Rows.tsx`.
+- **Where**: fix of the review, `spec/DecisionCard.tsx`, `layout/Pane.tsx`, `spec/RuleLine.tsx`,
+  `spec/ledger/Rows.tsx`, `src/__browser__/spec.test.tsx`.
