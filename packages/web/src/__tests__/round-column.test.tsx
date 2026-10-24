@@ -267,7 +267,8 @@ test("on the phone, 1/8 opens the outline in a sheet, and a row closes it", asyn
   await open(PAGE, round({ Q2: "A" }));
   expect(screen.queryByRole("tablist", { name: "The round's column" })).toBeNull();
 
-  await click(screen.getByRole("button", { name: "1/8" }));
+  await click(screen.getByRole("button", { name: "1/8 answered, outline" }));
+  expect(screen.getByText("1/8")).toBeTruthy();
   const sheet = await screen.findByRole("dialog", { name: "Outline" });
   await click(within(sheet).getByRole("button", { name: /^Q3 .*\(unanswered\)$/ }));
 
@@ -290,6 +291,60 @@ test("on the phone, Notes opens a sheet over the same note", async () => {
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notes" })).toBeNull());
   expect(within(end()).getByText("From the phone.")).toBeTruthy();
   expect(within(end()).getByText("Unsaved changes")).toBeTruthy();
+});
+
+/** The UI layout decision: an open sheet is in the address, so reload and Back keep it. */
+test("on the phone, the Notes sheet is in the address: a reload keeps it, Back closes it", async () => {
+  atWidth(390);
+  const repo = round();
+  await open(PAGE, repo);
+
+  await click(screen.getByRole("button", { name: "Notes" }));
+  await screen.findByRole("dialog", { name: "Notes" });
+  expect(new URLSearchParams(window.location.search).get("tab")).toBe("notes");
+  await type(notesField(), "From the phone.");
+
+  await renderPage(`${PAGE}?tab=notes`, repo, { agent: true, reload: true });
+  const sheet = await screen.findByRole("dialog", { name: "Notes" });
+  expect(within(sheet).getByRole("textbox", { name: "Anything else" })).toBeTruthy();
+
+  await act(async () => window.history.back());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notes" })).toBeNull());
+  expect(window.location.pathname).toBe(atRepo(PAGE));
+  expect(new URLSearchParams(window.location.search).get("tab")).toBeNull();
+  expect(screen.getByRole("region", { name: "Check these" })).toBeTruthy();
+});
+
+test("on the phone, Back over the Outline sheet closes it", async () => {
+  atWidth(390);
+  await open(`${PAGE}#Q3`, round());
+
+  await click(screen.getByRole("button", { name: /^0\/\d+ answered, outline$/ }));
+  await screen.findByRole("dialog", { name: "Outline" });
+  expect(new URLSearchParams(window.location.search).get("tab")).toBe("outline");
+
+  await act(async () => window.history.back());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Outline" })).toBeNull());
+  expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe(
+    `${atRepo(PAGE)}#Q3`,
+  );
+});
+
+/** The UI layout decision: a width change keeps the open tab, as a sheet, and the reverse. */
+test("the Notes tab narrowed is the Notes sheet, and widened the tab again", async () => {
+  await open(`${PAGE}?tab=notes`, round());
+  await type(notesField(), "Check the spec page too.");
+
+  await act(async () => atWidth(390));
+  const sheet = await screen.findByRole("dialog", { name: "Notes" });
+  expect(
+    (within(sheet).getByRole("textbox", { name: "Anything else" }) as HTMLTextAreaElement).value,
+  ).toBe("Check the spec page too.");
+
+  await act(async () => atWidth(1440));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notes" })).toBeNull());
+  expect(openTab()).toBe("Notes");
+  expect(notesField().value).toBe("Check the spec page too.");
 });
 
 /** US3 key 3 */

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { currentEntry, setLeaveGuard, subscribeLocation } from "../routes.tsx";
 import { type ConfirmOptions, useConfirm } from "./Confirm.tsx";
+import { overlayOf } from "../layout/useBackCloses.ts";
 import { hasDrawnUnsaved, useHasDrawnUnsaved } from "./unsaved.ts";
 
 /** What leaving a page that holds unsaved text asks, by a link, `navigate`, or Back. */
@@ -27,8 +28,10 @@ let leaving = false;
  */
 function guardBack(event: PopStateEvent) {
   const left = new URL(shown.url);
+  // An overlay's entry the app was loaded on, like a sheet the address names, is closed by Back.
   const samePage =
-    left.pathname === window.location.pathname && left.search === window.location.search;
+    left.pathname === window.location.pathname &&
+    (left.search === window.location.search || overlayOf(shown.state) !== undefined);
   const asking = leaving || samePage ? undefined : check?.();
   leaving = false;
   if (!asking) {

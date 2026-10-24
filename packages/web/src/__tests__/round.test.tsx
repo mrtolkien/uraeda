@@ -623,7 +623,7 @@ function focused() {
 test("the bar counts and offers Next, with no ＋ in the bar (US1 1)", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A" }));
-  expect(await screen.findByRole("button", { name: "1/3" })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "1/3 answered, outline" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
   const bar = screen.getByRole("contentinfo", { name: "Status line" });
   expect(within(bar).getByRole("button", { name: "Next" })).toBeTruthy();
@@ -651,7 +651,7 @@ test("Next goes to the first blank question after the one at the top, and focuse
 test("with nothing blank, Next becomes Submit (US1 4)", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A", Q2: "A", Q3: "A" }));
-  expect(await screen.findByRole("button", { name: "3/3" })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "3/3 answered, outline" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Submit" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
 });
@@ -660,7 +660,7 @@ test("with nothing blank, Next becomes Submit (US1 4)", async () => {
 test("the outline's sheet lists the questions with their state, and jumps (US1 5)", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A" }));
-  await tap(await screen.findByRole("button", { name: "1/3" }));
+  await tap(await screen.findByRole("button", { name: "1/3 answered, outline" }));
   const outline = await screen.findByRole("dialog", { name: "Outline" });
   const rows = within(outline).getAllByRole("button", { name: /^Q\d.*\((un)?answered\)$/ });
   expect(rows.map((row) => row.textContent?.slice(0, 4))).toEqual(["✓ Q1", "○ Q2", "○ Q3"]);
@@ -974,7 +974,7 @@ test("Submit does not save again an answer saved for its image", async () => {
 test("the bar's Submit focuses Submit answers", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A", Q2: "A", Q3: "A" }));
-  await screen.findByRole("button", { name: "3/3" });
+  await screen.findByRole("button", { name: "3/3 answered, outline" });
 
   await tap(screen.getByRole("button", { name: "Submit" }));
 

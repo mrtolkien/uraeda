@@ -33,12 +33,29 @@ const PARAMETER = "tab";
 export function useColumnTab(keys: ReadonlyArray<string>): [string, (key: string) => void] {
   const asked = new URLSearchParams(useSearch()).get(PARAMETER);
   const open = asked !== null && keys.includes(asked) ? asked : (keys[0] ?? "");
-  const set = (key: string) => {
-    const search = new URLSearchParams(window.location.search);
+  return [open, openTab];
+}
+
+/** Opens the tab `key`, in place of the address's. */
+function openTab(key: string) {
+  redirect(tabAddress(key));
+}
+
+/** The tab the address asks for, `?tab=`, whatever the tabs drawn, or `null` without one. */
+export function useAskedTab(): string | null {
+  return new URLSearchParams(useSearch()).get(PARAMETER);
+}
+
+/** The current address with the tab `key` asked for, or none when `key` is `undefined`. */
+export function tabAddress(key: string | undefined): string {
+  const search = new URLSearchParams(window.location.search);
+  if (key === undefined) {
+    search.delete(PARAMETER);
+  } else {
     search.set(PARAMETER, key);
-    redirect(`${window.location.pathname}?${search.toString()}${window.location.hash}`);
-  };
-  return [open, set];
+  }
+  const query = search.toString();
+  return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
 }
 
 /** The folded column's rail: each tab's icon, named by its tab. */
