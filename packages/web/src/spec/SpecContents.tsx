@@ -14,6 +14,7 @@ import { CommentCount } from "./CommentCount.tsx";
 import {
   BUILT_PARTS,
   decisionId,
+  decisionPanes,
   entryOfBlock,
   entryOwners,
   GROUPS,
@@ -96,9 +97,7 @@ export function entriesOf({
     nested,
     since: since.has(id),
   });
-  const listed = new Set(items.decisions.map((d) => d.name));
-  const unlisted = changes.filter((change) => !listed.has(change.name));
-  const decisions = [...items.decisions, ...unlisted];
+  const decisions = decisionPanes(items.decisions, changes);
   return [
     entry(GROUPS.approve.id, GROUPS.approve.title),
     ...(hasSince ? [entry("since", "Since your review")] : []),

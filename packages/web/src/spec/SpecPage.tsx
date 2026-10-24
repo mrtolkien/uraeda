@@ -35,6 +35,7 @@ import { DataPart } from "./DataPart.tsx";
 import { DecisionCards } from "./DecisionCards.tsx";
 import {
   BUILT_PARTS,
+  decisionPanes,
   type File,
   GROUPS,
   groupId,
@@ -113,15 +114,7 @@ function Group({
  * listed ones' and the unlisted changes' (R21).
  */
 function decisionCounts(items: SpecItems, changes: ReadonlyArray<DecisionChange>) {
-  const byName = new Map(changes.map((change) => [change.name, change]));
-  const listed = new Set(items.decisions.map((item) => item.name));
-  const kinds = [
-    ...items.decisions.map((item) => {
-      const change = byName.get(item.name);
-      return change?.compared ? change.kind : item.kind;
-    }),
-    ...changes.filter((change) => !listed.has(change.name)).map((change) => change.kind),
-  ];
+  const kinds = decisionPanes(items.decisions, changes).map((pane) => pane.kind);
   return ["new", "changed", "removed"]
     .map((kind) => [kind, kinds.filter((k) => k === kind).length] as const)
     .filter(([, count]) => count > 0)

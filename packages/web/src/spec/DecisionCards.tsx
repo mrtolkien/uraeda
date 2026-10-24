@@ -13,7 +13,14 @@ import { SinceWords, wordCount } from "../sinceMarks.tsx";
 import { plain, Spans } from "../Spans.tsx";
 import { DecisionCard } from "./DecisionCard.tsx";
 import { UnreadItems } from "./UnreadItems.tsx";
-import { decisionId, GROUPS, type PartProps, type SpecItems, unreadItems } from "./parts.ts";
+import {
+  decisionId,
+  decisionPanes,
+  GROUPS,
+  type PartProps,
+  type SpecItems,
+  unreadItems,
+} from "./parts.ts";
 
 const styles = stylex.create({
   note: {
@@ -113,51 +120,33 @@ export function DecisionCards({
   selection,
 }: DecisionCardsProps) {
   const here = useRepoPath();
-  const byName = new Map(changes.map((change) => [change.name, change]));
-  const listed = new Set(items.map((item) => item.name));
   const lists = new Set(items.map((item) => document.blocks[item.block]?.parent));
   const unread = unreadItems(
     document,
     items.map((item) => item.block),
   );
   const rest = part?.blocks.filter((id) => !lists.has(id)) ?? [];
-  const card = (name: string, kind: string) => ({
-    comments,
-    crumbs: [GROUPS.decisions.title],
-    href: kind === "removed" ? undefined : here(branchDecisionPath(folder, name)),
-    id: decisionId(name),
-    kind,
-    name,
-    parts: selection?.parts,
-  });
   return (
     <>
-      {items.map((item) => {
-        const change = byName.get(item.name);
-        const block = document.blocks[item.block];
-        // The change's kind once compared: a decision listed as changed may be new to the branch.
-        const kind = change?.compared ? change.kind : item.kind;
+      {decisionPanes(items, changes).map(({ change, item, kind, name, title }) => {
+        const block = item && document.blocks[item.block];
         return (
           <DecisionCard
-            {...card(item.name, kind)}
             change={change}
-            key={item.name}
+            comments={comments}
+            crumbs={[GROUPS.decisions.title]}
+            href={kind === "removed" ? undefined : here(branchDecisionPath(folder, name))}
+            id={decisionId(name)}
+            key={name}
+            kind={kind}
+            name={name}
             note={block && <Note block={block} selection={selection} />}
-            title={item.title}
+            parts={selection?.parts}
+            title={title}
+            unlisted={!item}
           />
         );
       })}
-      {changes
-        .filter((change) => !listed.has(change.name))
-        .map((change) => (
-          <DecisionCard
-            {...card(change.name, change.kind)}
-            change={change}
-            key={change.name}
-            title={change.title}
-            unlisted
-          />
-        ))}
       <UnreadItems document={document} ids={unread} selection={selection} />
       <Rest document={document} ids={rest} selection={selection} />
     </>

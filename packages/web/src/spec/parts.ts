@@ -1,6 +1,6 @@
 // What the spec page's parts share: the file and its items as the page reads them, the context
 // every part draws with, and the page's groups, in their order.
-import type { Block, CommentItem, Document } from "uraeda-binding";
+import type { Block, CommentItem, DecisionChange, Document } from "uraeda-binding";
 import type { useFile } from "../data.ts";
 import type { Folds } from "../Folds.tsx";
 import type { Selection } from "../Selection.tsx";
@@ -89,6 +89,48 @@ export function otherParts(items: SpecItems): SpecItems["parts"] {
 export function storiesIntro(items: SpecItems): ReadonlyArray<number> {
   const inStories = new Set(items.stories.flatMap((s) => [s.headingBlock, ...s.blocks]));
   return partOf(items, "User stories")?.blocks.filter((id) => !inStories.has(id)) ?? [];
+}
+
+/**
+ * A pane of the Decisions group: the decision's name, title, and kind, its change on the branch if
+ * any, and the spec's item listing it, none for a change the spec does not list.
+ */
+export type DecisionPane = {
+  change: DecisionChange | undefined;
+  item: SpecItems["decisions"][number] | undefined;
+  kind: string;
+  name: string;
+  title: string;
+};
+
+/**
+ * The panes the Decisions group draws, in its order: one per decision the spec lists, its kind the
+ * change's once compared, as a decision listed as changed may be new to the branch; then one per
+ * decision the branch changes without the spec listing it (R21). The group's panes, its heading's
+ * counts, and its entries in "Contents" all read them.
+ */
+export function decisionPanes(
+  items: SpecItems["decisions"],
+  changes: ReadonlyArray<DecisionChange>,
+): Array<DecisionPane> {
+  const byName = new Map(changes.map((change) => [change.name, change]));
+  const listed = new Set(items.map((item) => item.name));
+  return [
+    ...items.map((item) => {
+      const change = byName.get(item.name);
+      const kind = change?.compared ? change.kind : item.kind;
+      return { change, item, kind, name: item.name, title: item.title };
+    }),
+    ...changes
+      .filter((change) => !listed.has(change.name))
+      .map((change) => ({
+        change,
+        item: undefined,
+        kind: change.kind,
+        name: change.name,
+        title: change.title,
+      })),
+  ];
 }
 
 /** The element id of a decision's card. */
