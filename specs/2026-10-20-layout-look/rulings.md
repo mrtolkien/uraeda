@@ -815,3 +815,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   one prop each.
 - **Where**: `packages/web/src/decisions/JumpPalette.tsx`, `shell/Column.tsx`,
   `decisions/ConstitutionRegion.tsx`, `decisions/DecisionList.tsx`.
+
+## R34: Caught up with main: the preview decision keeps both its new rules
+
+- **Decision**: main changed the [preview decision](../decisions/preview.md) while this branch was
+  built (`cbdff7c1`): a layout or freeform mockup may be an HTML page in `mockups/`, linked from its
+  story. This branch changed the rule above it ("A spec's mockups") and added the investigation's
+  throwaway prototypes, deleted at approval. The rebase conflicted on those lines, and kept both:
+  the rules do not contradict each other, an investigation's prototypes being deleted, and a spec's
+  layout mockup staying when its story links it. The deleted `terminal-2.html` was the
+  investigation's prototype, so it stays deleted; git keeps it at `bb5c553b`.
+- **Rationale**: the workflow stops on a conflict in a decision, but these are two edits to
+  neighbouring lines, each by the human, and the human asked for the pull request without stopping
+  on anything short of a failure.
+- **Alternatives considered**: stopping for a round of questions: a day's wait for a text merge.
+  Keeping `terminal-2.html` as a layout mockup under main's rule: the stories replace it.
+- **If wrong**: the human words the two rules as one, or restores `terminal-2.html` from git.
+- **Where**: `specs/decisions/preview.md`.
