@@ -1417,6 +1417,82 @@ fn settled_points_outside_a_group() {
     }
 }
 
+/// `settled.subject`: every top-level list item of `## Check these`, `### Behaviour`, and `### Under
+/// the hood` starts with its bold subject, or the page draws no point for it. Items nested in a
+/// point, a quote's items, and the notes' are not points.
+#[test]
+fn a_settled_point_without_its_bold_subject() {
+    type Edit = fn(&str) -> String;
+    fn line_starting(text: &str, start: &str) -> usize {
+        text.lines()
+            .position(|line| line.starts_with(start))
+            .unwrap()
+            + 1
+    }
+    type Expected = fn(&str) -> Vec<usize>;
+    let rows: Vec<(&str, Edit, Expected)> = vec![
+        (
+            "the example as written",
+            |text| text.to_string(),
+            |_| vec![],
+        ),
+        (
+            "a point to check in plain text",
+            |text| {
+                text.replacen(
+                    "- **Skipping one occurrence** gets",
+                    "- Skipping one occurrence gets",
+                    1,
+                )
+            },
+            |text| vec![line_starting(text, "- Skipping one occurrence gets")],
+        ),
+        (
+            "a behaviour point bold only after its start",
+            |text| {
+                text.replacen(
+                    "- **Monthly repeats on the 29th to 31st** fall",
+                    "- Then **monthly repeats on the 29th to 31st** fall",
+                    1,
+                )
+            },
+            |text| vec![line_starting(text, "- Then **monthly repeats")],
+        ),
+        (
+            "an under-the-hood point in plain text, a nested item, and a quote's item",
+            |text| {
+                text.replacen(
+                    "\n**Notes:**",
+                    "### Under the hood\n\n- **Dates** are stored as ISO strings.\n  - a nested line\n\n> - a quoted item\n\n- plain point.\n\n**Notes:**",
+                    1,
+                )
+            },
+            |text| vec![line_starting(text, "- plain point.")],
+        ),
+    ];
+    for (name, edit, expected) in rows {
+        let example = Example::new();
+        let text = edit(&example.read(ROUND));
+        example.write(ROUND, &text);
+
+        let problems = example.problems();
+        let lines: Vec<usize> = problems
+            .iter()
+            .filter(|p| p.rule == "settled.subject")
+            .filter_map(|p| p.line)
+            .collect();
+
+        assert_eq!(lines, expected(&text), "{name}");
+        assert!(
+            problems
+                .iter()
+                .filter(|p| p.rule == "settled.subject")
+                .all(|p| p.message.contains("**")),
+            "{name}: the message says how to fix it"
+        );
+    }
+}
+
 /// A round after the first opens its Context with what happened since the last round.
 #[test]
 fn a_later_round_says_what_happened_since_the_last() {

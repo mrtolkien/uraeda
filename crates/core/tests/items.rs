@@ -641,8 +641,13 @@ fn a_quoted_heading_does_not_end_the_settled_section() {
 
 #[test]
 fn the_settled_section_ends_at_the_notes_and_takes_comments() {
-    let text =
-        std::fs::read_to_string(common::fixture("settled-comments/clarifications-01.md")).unwrap();
+    // An item without a bold start, which `ura check` reports, makes no point.
+    let text = std::fs::read_to_string(common::fixture("settled-comments/clarifications-01.md"))
+        .unwrap()
+        .replace(
+            "a second point with the same subject.\n",
+            "a second point with the same subject.\n- A point without a bold start.\n",
+        );
     let doc = document::parse(&text, "specs/2026-10-06-recurring-tasks");
     let round = items("clarifications-01.md", &text, &doc)
         .clarifications

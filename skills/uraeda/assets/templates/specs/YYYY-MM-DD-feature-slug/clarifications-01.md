@@ -39,8 +39,9 @@ up.]
 
 ## Check these
 
-- [Optional: the points to check, like a scope cut or a choice beyond the proposal.] **[The point]**
-  [what you chose, as a sentence that continues the point, and why]. See
+[Optional: the points to check, like a scope cut or a choice beyond the proposal.]
+
+- **[The point]** [what you chose, as a sentence that continues the point, and why]. See
   [discovery](discovery-01.md#topic).
 
 ## Q1: [Question]
@@ -85,10 +86,14 @@ Why it matters: [...].
 
 ### Behaviour
 
-- [Optional: the points users will notice.] **[The point]** [...].
+[Optional: the points users will notice.]
+
+- **[The point]** [...].
 
 ### Under the hood
 
-- [Optional: the points of the code only.] **[The point]** [...].
+[Optional: the points of the code only.]
+
+- **[The point]** [...].
 
 **Notes:**

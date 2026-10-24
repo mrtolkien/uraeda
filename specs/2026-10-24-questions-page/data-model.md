@@ -27,11 +27,12 @@ Unchanged in form: a bullet at the end of the notes, starting with the point's b
 
 ## What `ura check` reports
 
-| Check              | Reports                                                                                      | Change  |
-| ------------------ | -------------------------------------------------------------------------------------------- | ------- |
-| `sections.order`   | `## Check these` anywhere but between `## Context` and the first question                    | Changed |
-| `sections.unknown` | A `### Check these` under `## Settled without the human`, as any unknown sub-heading         | Changed |
-| `settled.group`    | A point under `## Settled without the human` outside `### Behaviour` or `### Under the hood` | Changed |
+| Check              | Reports                                                                                        | Change  |
+| ------------------ | ---------------------------------------------------------------------------------------------- | ------- |
+| `sections.order`   | `## Check these` anywhere but between `## Context` and the first question                      | Changed |
+| `sections.unknown` | A `### Check these` under `## Settled without the human`, as any unknown sub-heading           | Changed |
+| `settled.group`    | A point under `## Settled without the human` outside `### Behaviour` or `### Under the hood`   | Changed |
+| `settled.subject`  | A point of `## Check these`, `### Behaviour`, or `### Under the hood` without its bold subject | New     |
 
 Before version 1.0, the [compatibility](/specs/decisions/compatibility.md) decision keeps no reader
 for the old order: rounds in the old format fail `ura check` until they are rewritten.
