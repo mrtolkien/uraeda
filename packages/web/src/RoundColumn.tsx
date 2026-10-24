@@ -9,6 +9,7 @@ import type { Document, RoundItems } from "uraeda-binding";
 import { ColumnSession } from "./ColumnSession.tsx";
 import type { useFile } from "./data.ts";
 import {
+  askedTabNow,
   type ColumnTab,
   DocumentColumn,
   tabAddress,
@@ -35,7 +36,7 @@ import type { Draft } from "./useDraft.ts";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 /** The phone's sheet open over the round, if any. */
-export type RoundSheet = "outline" | "notes" | undefined;
+type RoundSheet = "outline" | "notes" | undefined;
 
 /** The phone's sheets' names, by their keys in the address. */
 const SHEETS = { notes: "Notes", outline: "Outline" } as const;
@@ -56,7 +57,7 @@ function useRoundSheet(wide: boolean) {
       return;
     }
     // Read now: called once Back landed, the sheet's entry gone.
-    const open = new URLSearchParams(window.location.search).get("tab");
+    const open = askedTabNow();
     if (open !== "notes" && open !== "outline") {
       return;
     }
@@ -70,7 +71,7 @@ function useRoundSheet(wide: boolean) {
 }
 
 /** The column's tabs, by their keys in the address: Session only where the agent can be asked. */
-export function columnKeys(asks: boolean) {
+function columnKeys(asks: boolean) {
   return asks ? ["outline", "notes", "session"] : ["outline", "notes"];
 }
 
