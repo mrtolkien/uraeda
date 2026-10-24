@@ -171,6 +171,34 @@ export function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusa
 }
 
 /**
+ * What holds a verdict back, wherever its buttons are: a hook's refusal of its commit, with Try
+ * again, `retry`, and changes to the file not committed.
+ */
+export function VerdictNotices({
+  error,
+  file,
+  retry,
+}: {
+  error: Refusal | undefined;
+  file: File;
+  retry: () => Promise<void>;
+}) {
+  return (
+    <>
+      {error && (
+        <HookRefusal error={error} onRetry={retry} what="Your review is saved, not committed." />
+      )}
+      {file.committed && (
+        <span {...stylex.props(statusStyles.error)}>
+          {file.name} has changes not committed: the review is of the committed version. Commit or
+          discard them first.
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
  * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
  * commits and may hand the feature over to the agent. `choices` are the review's, which the Review
  * tab's buttons commit too.
@@ -197,16 +225,7 @@ export function ReviewVerdict({
       {file.kind === "spec" && (
         <ReviewChoices choices={choices[0]} onChange={choices[1]} spec={spec} />
       )}
-      {error && (
-        <HookRefusal error={error} onRetry={retry} what="Your review is saved, not committed." />
-      )}
-
-      {file.committed && (
-        <span {...stylex.props(statusStyles.error)}>
-          {file.name} has changes not committed: the review is of the committed version. Commit or
-          discard them first.
-        </span>
-      )}
+      <VerdictNotices error={error} file={file} retry={retry} />
       <div id={VERDICT_ID} {...stylex.props(styles.contents)}>
         <Verdicts
           comments={comments}

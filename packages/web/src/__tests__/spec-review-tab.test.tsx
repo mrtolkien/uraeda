@@ -1,7 +1,7 @@
 // Spec page US4 key 2 and Review focus 4: the Review tab's verdict is the page's one verdict. A
 // hook's refusal of the tab's commit shows in the tab, and Try again, wherever it is pressed, starts
 // the agent the verdict asked for.
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
@@ -51,4 +51,41 @@ test("Try again at the end after the tab's refused approval starts the agent", a
     "spec(recurring-tasks): approve",
   );
   expect(agent.sent).toHaveLength(0);
+});
+
+/** Review focus 4: the tab's refused verdict shows in the tab, its Try again starting the agent. */
+test("the tab shows its refused verdict, and its Try again starts the agent", async () => {
+  const repo = fixtureRepo();
+  const hook = refusingHook(repo);
+  await renderPage(SPEC, repo, { agent: true });
+
+  const tab = await reviewTab();
+  await click(within(tab).getByRole("button", { name: "Approve and start the agent" }));
+  expect(
+    await within(tab).findByText(
+      "The pre-commit hook refused the commit. Your review is saved, not committed.",
+    ),
+  ).toBeTruthy();
+  hook.pass();
+  await click(within(tab).getByRole("button", { name: "Try again" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${RECURRING}/session`)));
+  expect(window.location.search).toBe("?continue=approval&file=spec.md");
+});
+
+/** Review C2, in the tab: no verdict on a spec whose file differs from what the page shows. */
+test("the tab says the spec has changes not committed", async () => {
+  const repo = fixtureRepo();
+  const worktree = join(repo, ".worktrees", RECURRING);
+  git(repo, "worktree", "add", "--quiet", worktree, RECURRING);
+  const path = join(worktree, "specs", RECURRING, "spec.md");
+  writeFileSync(path, `${readFileSync(path, "utf8")}\nUnfinished edit.\n`);
+  await renderPage(SPEC, repo);
+
+  const tab = await reviewTab();
+  expect(
+    await within(tab).findByText(
+      "spec.md has changes not committed: the review is of the committed version. Commit or discard them first.",
+    ),
+  ).toBeTruthy();
 });

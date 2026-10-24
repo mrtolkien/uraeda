@@ -15,7 +15,7 @@ import type { CommentItem } from "uraeda-binding";
 import { statusStyles } from "../Question.tsx";
 import type { Review } from "../review/useReview.tsx";
 import { commentId, where } from "../ReviewComments.tsx";
-import { toVerdict, useVerdict, VERDICT_ID, Verdicts } from "../ReviewVerdict.tsx";
+import { toVerdict, useVerdict, VERDICT_ID, VerdictNotices, Verdicts } from "../ReviewVerdict.tsx";
 import { ReviewImagesContext } from "../useReviewImages.ts";
 import type { File } from "./parts.ts";
 import { useColumnGo } from "./columnGo.ts";
@@ -76,16 +76,16 @@ function Comments({ comments }: { comments: ReadonlyArray<CommentItem> }) {
 }
 
 /**
- * The Review tab: the comments, "General comment", the verdict's buttons, the review's message,
- * and where the rest of the verdict is.
+ * The Review tab: the comments, "General comment", what holds the verdict back, its buttons, the
+ * review's message, and where the rest of the verdict is.
  */
 export function ReviewTab({ file, review }: { file: File; review: Review }) {
   const go = useColumnGo();
   const images = use(ReviewImagesContext);
   const { choices, commentDraft, comments, refusals } = review;
-  const { verdict } = useVerdict(file, choices, refusals);
+  const { retry, verdict } = useVerdict(file, choices, refusals);
   const hold = images?.hold;
-  const { message } = refusals;
+  const { error, message } = refusals;
   return (
     <VStack gap={3}>
       <Summary count={comments.length} />
@@ -97,6 +97,7 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
           onClick={() => go(() => commentDraft.start({ kind: "general" }))}
         />
       </HStack>
+      <VerdictNotices error={error} file={file} retry={retry} />
       <Verdicts
         comments={comments.length}
         file={file}
