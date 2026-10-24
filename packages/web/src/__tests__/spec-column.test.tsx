@@ -258,7 +258,11 @@ test("a plan waiting for review has Contents and Review", async () => {
     .getAllByRole("link")
     .map((link) => link.textContent);
   expect(rows).toEqual(["Goal", "Global constraints", "1 The repeat menu"]);
-  expect(within(tabList()).getByRole("tab", { name: /^Review/ })).toBeTruthy();
+  await click(within(tabList()).getByRole("tab", { name: /^Review/ }));
+  // A plan has no risk tier and no plan review: its summary alone is at the end.
+  expect(panel("Review").textContent).toContain(
+    "Your summary is with the verdict at the page's end.",
+  );
 });
 
 /** US4 key 2, on the plan: a comment on a table's row brings the row's toggle the focus. */

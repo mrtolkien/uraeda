@@ -152,7 +152,8 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
         </span>
       )}
       <Text color="secondary" type="supporting">
-        Risk tier, plan review, and your summary are with the verdict at{" "}
+        {file.kind === "spec" ? "Risk tier, plan review, and your summary are" : "Your summary is"}{" "}
+        with the verdict at{" "}
         <Link
           hasUnderline
           href={`#${VERDICT_ID}`}
