@@ -191,6 +191,23 @@ test("a note from the Notes tab shows at the end, and Submit saves it", async ()
   expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Notes:** Check the spec page too.");
 });
 
+/** Unsaved notes restored with Outline open: the round's end says so, and Discard drops them. */
+test("restored notes show their notice at the round's end, with Discard", async () => {
+  const repo = round();
+  await open(`${PAGE}?tab=notes`, repo);
+  await type(notesField(), "Check the spec page too.");
+
+  window.history.replaceState(null, "", atRepo(PAGE));
+  await renderPage(PAGE, repo, { agent: true, reload: true });
+  await screen.findAllByText(/Who may move a chat up to a change/);
+
+  expect(openTab()).toBe("Outline");
+  expect(within(end()).getByText(/^Unsaved text restored from/)).toBeTruthy();
+  await click(within(end()).getByRole("button", { name: "Discard" }));
+  expect(within(end()).queryByText("Check the spec page too.")).toBeNull();
+  expect(within(end()).getByRole("button", { name: "Write a note" })).toBeTruthy();
+});
+
 /** The edge case "the column folded", R23: asking, or Edit notes, unfolds it. */
 test("asking with the column folded unfolds it on Session, its composer focused", async () => {
   window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));

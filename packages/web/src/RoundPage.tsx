@@ -85,6 +85,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         end={end}
         file={file}
         notes={notes}
+        notesShown={actions.notesShown}
         onEditNotes={actions.editNotes}
         readOnly={readOnly}
         submitRow={submitRow}

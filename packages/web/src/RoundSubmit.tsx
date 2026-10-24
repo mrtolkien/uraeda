@@ -164,6 +164,7 @@ export function RoundEnd({
   end,
   file,
   notes,
+  notesShown,
   onEditNotes,
   readOnly,
   submitRow,
@@ -174,6 +175,8 @@ export function RoundEnd({
   end: RefObject<HTMLDivElement | null>;
   file: File;
   notes: Notes;
+  /** Whether the notes' field is drawn, in the column's Notes tab or the phone's sheet. */
+  notesShown: boolean;
   onEditNotes: () => void;
   readOnly: boolean;
   submitRow: RefObject<HTMLDivElement | null>;
@@ -210,7 +213,7 @@ export function RoundEnd({
   }
   return (
     <VStack gap={3} id={PART_IDS.notes} ref={end} xstyle={margin}>
-      <NotesRead notes={notes} onEdit={onEditNotes} />
+      <NotesRead fieldShown={notesShown} notes={notes} onEdit={onEditNotes} />
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
       {refused || (error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>)}
       <div ref={submitRow}>
