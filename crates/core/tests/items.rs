@@ -1007,3 +1007,110 @@ fn comment_on_a_point_to_check() {
     );
     assert_eq!(notes.free, "");
 }
+
+/// A round with `body` after the parts of its Context.
+fn round_text(body: &str) -> String {
+    format!(
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n{body}"
+    )
+}
+
+/// A point under an unknown sub-heading of the settled section, like the old `### Check these`,
+/// is in no group, so it takes no comment: the comment stays a free note.
+#[test]
+fn a_point_under_an_unknown_sub_heading_takes_no_comment() {
+    let text = round_text(
+        "## Settled without the human\n\n### Check these\n\n- **Old** point.\n\n\
+### Behaviour\n\n- **Kept** point.\n\n**Notes:**\n\n- **Old**: A note.\n",
+    );
+    let (round, _) = round_of("clarifications-01.md", &text);
+    let subjects: Vec<&str> = round
+        .settled_points
+        .iter()
+        .map(|p| p.subject.as_str())
+        .collect();
+    assert_eq!(subjects, ["Kept"]);
+    assert!(round.settled_comments.is_empty());
+    assert_eq!(round.notes.as_deref(), Some("- **Old**: A note."));
+    assert_eq!(round_notes(&text).unwrap().subjects, strings(&["Kept"]));
+}
+
+/// A sub-heading under `## Check these`, which `ura check` reports, ends its points: the blocks
+/// after it are in no group, as under an unknown sub-heading of the settled section.
+#[test]
+fn a_sub_heading_under_check_these_ends_its_points() {
+    let text = round_text(
+        "## Check these\n\n- **First** point.\n\n### Behaviour\n\n- **Second** point.\n\n\
+## Q1: A question?\n\n**Answer:**\n\n**Notes:**\n",
+    );
+    let (round, doc) = round_of("clarifications-01.md", &text);
+    assert_eq!(round.settled_groups.len(), 1);
+    assert_eq!(round.settled_groups[0].kind, SettledKind::Check);
+    assert_eq!(
+        group_subjects(&round, &doc, &round.settled_groups[0]),
+        strings(&["First"])
+    );
+    let subjects: Vec<&str> = round
+        .settled_points
+        .iter()
+        .map(|p| p.subject.as_str())
+        .collect();
+    assert_eq!(subjects, ["First"]);
+}
+
+/// A comment on a point to check, in a round without the settled section, is that point's.
+#[test]
+fn comment_on_a_point_to_check_without_the_settled_section() {
+    let text = round_text(
+        "## Check these\n\n- **The light flow stays.** as it is.\n\n\
+## Q1: A question?\n\n**Answer:**\n\n**Notes:**\n\n- **The light flow stays.**: Say so.\n",
+    );
+    let (round, _) = round_of("clarifications-01.md", &text);
+    let comments: Vec<(&str, &str)> = round
+        .settled_comments
+        .iter()
+        .map(|c| (c.subject.as_str(), c.text.as_str()))
+        .collect();
+    assert_eq!(comments, [("The light flow stays.", "Say so.")]);
+    assert_eq!(round.notes.as_deref(), Some(""));
+}
+
+/// The verdict of a block, by its first item: none for an unknown phrase or without a verdict, the
+/// same in a record's `[!NOTE]` block, and an empty text for the phrase and a full stop alone.
+#[test]
+fn the_verdicts_edges() {
+    let verdict_of = |block: &str| {
+        let text = format!("# Clarifications, round 01: X\n\n{block}\n## Context\n");
+        round_of("clarifications-01.md", &text).0.verdict
+    };
+    assert_eq!(
+        verdict_of("> [!IMPORTANT]\n>\n> - Verdict: maybe later, too soon.\n"),
+        None
+    );
+    let triage = std::fs::read_to_string(common::fixture("INBOX-TRIAGE.md")).unwrap();
+    assert_eq!(round_of("clarifications-01.md", &triage).0.verdict, None);
+
+    let noted =
+        verdict_of("> [!NOTE]\n>\n> - Verdict: worth building, with changes: smaller.\n").unwrap();
+    assert_eq!(noted.kind, VerdictKind::WithChanges);
+    assert_eq!(plain(&noted.text), "smaller.");
+
+    let bare = verdict_of("> [!IMPORTANT]\n>\n> - Verdict: worth building as proposed.\n").unwrap();
+    assert_eq!(bare.kind, VerdictKind::AsProposed);
+    assert!(bare.text.is_empty(), "{:?}", bare.text);
+}
+
+/// "Example:" in an option or after the answer is not the question's example.
+#[test]
+fn an_example_only_before_the_options_and_the_answer() {
+    let text = round_text(
+        "## Q1: A question?\n\nA context.\n\n\
+- **A (recommended). Yes.**\n  - [pro] p\n\n  Example: in the option.\n\n- **B. No.**\n  - [con] c\n\n\
+**Answer:** A\n\nExample: after the answer.\n\n**Notes:**\n",
+    );
+    let (round, doc) = round_of("clarifications-01.md", &text);
+    let q1 = &round.questions[0];
+    assert_eq!(q1.example, None);
+    let context: Vec<String> = q1.context.iter().map(|&b| doc.text(b)).collect();
+    assert_eq!(context, ["A context."]);
+}

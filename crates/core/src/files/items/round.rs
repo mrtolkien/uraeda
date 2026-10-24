@@ -3,7 +3,7 @@
 
 use super::{
     Choice, ContextPart, QuestionItem, RoundItems, RoundVerdict, SettledComment, SettledGroup,
-    SettledKind, SettledPoint, VerdictKind, headings, section,
+    SettledKind, SettledPoint, VerdictKind, headings,
 };
 use crate::files::clarifications::{self, Applicability};
 use crate::files::document::{Block, BlockKind, Document, ItemMarker, Span, plain};
@@ -60,54 +60,49 @@ fn context_parts(doc: &Document) -> Vec<ContextPart> {
         .collect()
 }
 
-/// The parts of the settled points, read once: the `## Check these` section, then the settled
-/// section's blocks before its first `###` sub-heading when there are some, then each sub-heading.
-/// Each is its heading's index in blocks and its top-level blocks, all before the `**Notes:**`
-/// line.
-type SettledParts = Vec<(Option<usize>, Vec<u32>)>;
-
-fn settled_parts(doc: &Document, notes_line: usize) -> SettledParts {
-    let check = top_section(doc, "Check these").map(|index| (Some(index), section(doc, index, 2)));
-    check
+/// The settled groups, all before the `**Notes:**` line: `## Check these`, with its blocks before
+/// any sub-heading, then the settled section's `### Behaviour` and `### Under the hood`. Each is its
+/// heading and its top-level blocks. An unknown sub-heading, which `ura check` reports, like the old
+/// format's `### Check these` or any heading under `## Check these`, makes no group: the blocks
+/// under it are in none.
+fn settled_groups(doc: &Document, notes_line: usize) -> Vec<SettledGroup> {
+    let check = top_section(doc, "Check these").map(|index| {
+        let blocks = parts(doc, "Check these")
+            .into_iter()
+            .find(|(heading, _)| heading.is_none())
+            .map(|(_, blocks)| blocks)
+            .unwrap_or_default();
+        (index, SettledKind::Check, blocks)
+    });
+    let settled = parts(doc, "Settled without the human")
         .into_iter()
-        .chain(parts(doc, "Settled without the human"))
-        .map(|(heading, blocks)| {
-            let blocks = blocks
-                .into_iter()
-                .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
-                .collect();
-            (heading, blocks)
-        })
-        .collect()
-}
-
-/// The settled groups by their heading: `## Check these`, then the settled section's
-/// `### Behaviour` and `### Under the hood`. An unknown sub-heading, which `ura check` reports, like
-/// the old format's `### Check these`, makes no group.
-fn settled_groups(doc: &Document, parts: &SettledParts) -> Vec<SettledGroup> {
-    parts
-        .iter()
         .filter_map(|(heading, blocks)| {
-            let heading = &doc.blocks[(*heading)?];
-            let kind = match (heading.level, plain(&heading.spans).as_str()) {
-                (Some(2), "Check these") => SettledKind::Check,
-                (Some(3), "Behaviour") => SettledKind::Behaviour,
-                (Some(3), "Under the hood") => SettledKind::Hood,
+            let heading = heading?;
+            let kind = match plain(&doc.blocks[heading].spans).as_str() {
+                "Behaviour" => SettledKind::Behaviour,
+                "Under the hood" => SettledKind::Hood,
                 _ => return None,
             };
-            Some(SettledGroup {
-                heading: heading.id,
-                kind,
-                blocks: blocks.clone(),
-            })
+            Some((heading, kind, blocks))
+        });
+    check
+        .into_iter()
+        .chain(settled)
+        .map(|(heading, kind, blocks)| SettledGroup {
+            heading: doc.blocks[heading].id,
+            kind,
+            blocks: blocks
+                .into_iter()
+                .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
+                .collect(),
         })
         .collect()
 }
 
-/// The settled points that start in bold, in order: the items of the lists of every part.
-fn points_of(doc: &Document, parts: &SettledParts) -> Vec<SettledPoint> {
+/// The settled points that start in bold, in order: the items of the lists of every group.
+fn points_of(doc: &Document, groups: &[SettledGroup]) -> Vec<SettledPoint> {
     let mut points = Vec::new();
-    for &id in parts.iter().flat_map(|(_, blocks)| blocks) {
+    for &id in groups.iter().flat_map(|group| &group.blocks) {
         for item in doc.children(id) {
             if let Some(subject) = leading_strong(item) {
                 points.push(SettledPoint {
@@ -122,7 +117,7 @@ fn points_of(doc: &Document, parts: &SettledParts) -> Vec<SettledPoint> {
 
 /// The settled points that start in bold, in order, before the `**Notes:**` line.
 pub(crate) fn settled_points(doc: &Document, notes_line: usize) -> Vec<SettledPoint> {
-    points_of(doc, &settled_parts(doc, notes_line))
+    points_of(doc, &settled_groups(doc, notes_line))
 }
 
 /// The notes split into the free notes and the comments on the settled points, each pointing at
@@ -147,7 +142,8 @@ fn split(notes: &str, points: &[SettledPoint]) -> (String, Vec<SettledComment>) 
 }
 
 /// The verdict of the round's block: its first list item starting "Verdict: ", by the phrase after
-/// it, with the item's spans after the phrase and its ":" or ",", trimmed.
+/// it, with the item's spans after the phrase and its ":" or ",", trimmed: none when only a full
+/// stop follows the phrase.
 fn verdict(doc: &Document, block: u32) -> Option<RoundVerdict> {
     const PHRASES: [(&str, VerdictKind); 3] = [
         ("worth building as proposed", VerdictKind::AsProposed),
@@ -166,10 +162,15 @@ fn verdict(doc: &Document, block: u32) -> Option<RoundVerdict> {
         .find(|(phrase, _)| rest.starts_with(phrase))?;
     let mark = usize::from(rest[phrase.len()..].starts_with([':', ',']));
     let skip = "Verdict: ".len() + phrase.len() + mark;
+    let mut text = trimmed(drop_start(&item.spans, skip));
+    // The phrase alone, closed by its full stop, has no text after it.
+    if plain(&text) == "." {
+        text.clear();
+    }
     Some(RoundVerdict {
         kind: *kind,
         item: item.id,
-        text: trimmed(drop_start(&item.spans, skip)),
+        text,
     })
 }
 
@@ -290,8 +291,8 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
     }
     let notes = clarifications::notes(text);
     let notes_line = notes.as_ref().map_or(usize::MAX, |(line, _)| *line);
-    let settled = settled_parts(doc, notes_line);
-    let settled_points = points_of(doc, &settled);
+    let settled_groups = settled_groups(doc, notes_line);
+    let settled_points = points_of(doc, &settled_groups);
     let (free, settled_comments) = notes
         .as_ref()
         .map(|(_, notes)| split(notes, &settled_points))
@@ -302,7 +303,7 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
         block,
         context: context_parts(doc),
         questions,
-        settled_groups: settled_groups(doc, &settled),
+        settled_groups,
         settled_points,
         notes: free,
         notes_line: notes.map(|(line, _)| line as u32),

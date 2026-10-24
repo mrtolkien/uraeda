@@ -343,17 +343,17 @@ mod tests {
 
     #[test]
     fn blank_notes_keep_their_comments_as_a_list() {
-        let text = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:** Old.\n\n- **A point**: Keep it.\n";
+        let text = "## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:** Old.\n\n- **A point**: Keep it.\n";
 
         assert_eq!(
             set_answer(text, "notes", "").unwrap(),
-            "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n\n- **A point**: Keep it.\n"
+            "## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n\n- **A point**: Keep it.\n"
         );
     }
 
     #[test]
     fn a_heading_in_a_closed_code_block_ends_nothing() {
-        let text = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n";
+        let text = "## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n";
         let rows: [(&str, bool); 4] = [
             ("```sh\n# a shell comment\n```", true),
             ("~~~\n**Answer:** quoted\n~~~", true),
