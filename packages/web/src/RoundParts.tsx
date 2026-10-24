@@ -23,6 +23,8 @@ import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
   badge: { flexShrink: 0 },
+  // On the phone, above its sentence, as wide as its words.
+  badgeNarrow: { alignSelf: "flex-start" },
   lead: { marginBlock: spacingVars["--spacing-1"] },
   verdict: { paddingBlock: spacingVars["--spacing-2"] },
 });
@@ -87,7 +89,11 @@ function Verdict({ verdict }: { verdict: NonNullable<RoundItems["verdict"]> }) {
       // Reading text, its badge and its sentence held to the measure as one line.
       xstyle={[styles.verdict, proseStyles.reading, proseStyles.measure]}
     >
-      <Badge label={look.label} variant={look.variant} xstyle={styles.badge} />
+      <Badge
+        label={look.label}
+        variant={look.variant}
+        xstyle={[styles.badge, isNarrowScreen && styles.badgeNarrow]}
+      />
       <div {...stylex.props(proseStyles.reading)}>
         <Spans spans={verdict.text} />
       </div>
