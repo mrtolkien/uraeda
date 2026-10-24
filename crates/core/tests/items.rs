@@ -1114,3 +1114,24 @@ fn an_example_only_before_the_options_and_the_answer() {
     let context: Vec<String> = q1.context.iter().map(|&b| doc.text(b)).collect();
     assert_eq!(context, ["A context."]);
 }
+
+/// A group counts its points, the items starting in bold, as the comments take them: an item
+/// without a bold start is no point, and a group of such items has none.
+#[test]
+fn a_settled_group_counts_its_points() {
+    let text = format!(
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
+## Settled without the human\n\n### Behaviour\n\n- **First** point.\n- Not a point.\n\
+- **Second** point.\n\n### Under the hood\n\n- No point here.\n\n**Notes:**\n"
+    );
+    let (round, _) = round_of("clarifications-01.md", &text);
+    let counts: Vec<(SettledKind, u32)> = round
+        .settled_groups
+        .iter()
+        .map(|g| (g.kind, g.points))
+        .collect();
+    assert_eq!(
+        counts,
+        [(SettledKind::Behaviour, 2), (SettledKind::Hood, 0)]
+    );
+}

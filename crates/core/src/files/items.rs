@@ -158,6 +158,9 @@ pub struct SettledGroup {
     pub kind: SettledKind,
     /// Its top-level blocks, before the `**Notes:**` line.
     pub blocks: Vec<u32>,
+    /// How many points it holds: the items of its lists that start in bold, as `settled_points`
+    /// gives them.
+    pub points: u32,
 }
 
 /// A point settled without the human, by its bold start.

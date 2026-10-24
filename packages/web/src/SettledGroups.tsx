@@ -45,12 +45,6 @@ function useHoodFold(
   return folds;
 }
 
-/** A group's points: the items of its lists. */
-const pointCount = (document: Document, group: SettledGroup) =>
-  document.blocks.filter(
-    (b) => b.kind === "item" && b.parent !== undefined && group.blocks.includes(b.parent),
-  ).length;
-
 /** The line "Under the hood" folds to, "1 choice in the code only" for one point. */
 const foldedLabel = (count: number) =>
   `${count} ${count === 1 ? "choice" : "choices"} in the code only`;
@@ -68,7 +62,7 @@ function GroupPane({
   group: SettledGroup;
 }) {
   const heading = document.blocks[group.heading];
-  const count = pointCount(document, group);
+  const count = group.points;
   const isHood = group.kind === "hood";
   return (
     <Pane
@@ -114,9 +108,9 @@ export function SettledGroups({
 }) {
   const folds = useHoodFold(document, groups, hoodForced);
   const check = groups.find((group) => group.kind === "check");
-  const checked = check === undefined ? 0 : pointCount(document, check);
-  const end = groups.filter((group) => group.kind !== "check");
-  const hasCheck = part !== "end" && check !== undefined && checked > 0;
+  // A group without points draws no pane, as the outline has no row for it.
+  const end = groups.filter((group) => group.kind !== "check" && group.points > 0);
+  const hasCheck = part !== "end" && check !== undefined && check.points > 0;
   const hasEnd = part !== "check" && end.length > 0;
   if (!hasCheck && !hasEnd) {
     return null;
@@ -124,7 +118,7 @@ export function SettledGroups({
   // One tree at every width, so a comment being typed stays as the window crosses the breakpoint.
   return (
     <div {...stylex.props(styles.settled)}>
-      {hasCheck && check && <CheckPane count={checked}>{points(check)}</CheckPane>}
+      {hasCheck && check && <CheckPane count={check.points}>{points(check)}</CheckPane>}
       {hasEnd && (
         <>
           <Heading level={2}>Settled without you</Heading>

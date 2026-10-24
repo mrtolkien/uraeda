@@ -88,31 +88,39 @@ fn settled_groups(doc: &Document, notes_line: usize) -> Vec<SettledGroup> {
     check
         .into_iter()
         .chain(settled)
-        .map(|(heading, kind, blocks)| SettledGroup {
-            heading: doc.blocks[heading].id,
-            kind,
-            blocks: blocks
+        .map(|(heading, kind, blocks)| {
+            let blocks: Vec<u32> = blocks
                 .into_iter()
                 .filter(|&id| (doc.blocks[id as usize].start_line as usize) < notes_line)
-                .collect(),
+                .collect();
+            SettledGroup {
+                heading: doc.blocks[heading].id,
+                kind,
+                points: u32::try_from(points_in(doc, &blocks).count()).unwrap_or(u32::MAX),
+                blocks,
+            }
         })
         .collect()
 }
 
+/// The points among a group's blocks, in order: the items of its lists that start in bold.
+fn points_in<'a>(doc: &'a Document, blocks: &'a [u32]) -> impl Iterator<Item = SettledPoint> + 'a {
+    blocks.iter().flat_map(move |&id| {
+        doc.children(id).filter_map(|item| {
+            leading_strong(item).map(|subject| SettledPoint {
+                block: item.id,
+                subject: subject.trim().to_string(),
+            })
+        })
+    })
+}
+
 /// The settled points that start in bold, in order: the items of the lists of every group.
 fn points_of(doc: &Document, groups: &[SettledGroup]) -> Vec<SettledPoint> {
-    let mut points = Vec::new();
-    for &id in groups.iter().flat_map(|group| &group.blocks) {
-        for item in doc.children(id) {
-            if let Some(subject) = leading_strong(item) {
-                points.push(SettledPoint {
-                    block: item.id,
-                    subject: subject.trim().to_string(),
-                });
-            }
-        }
-    }
-    points
+    groups
+        .iter()
+        .flat_map(|group| points_in(doc, &group.blocks))
+        .collect()
 }
 
 /// The settled points that start in bold, in order, before the `**Notes:**` line.
