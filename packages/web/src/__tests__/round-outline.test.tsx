@@ -132,12 +132,21 @@ test("n goes to the next blank question, follow-ups included (US2 more 2)", asyn
   expect(document.activeElement?.textContent).toContain("What may a chat change on your main");
 });
 
-test("a tap on Today asks the page to open it, by the address", async () => {
+test("a tap on Today opens it, by the address, and brings it to the top", async () => {
   const nav = await outline(round(MERGE_CHATS));
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
 
   await click(within(nav).getByRole("button", { name: "Today" }));
 
   expect(window.location.hash).toBe("#today");
+  const today = screen.getByRole("region", { name: "Today" });
+  await waitFor(() =>
+    expect(
+      within(today).getByText(/^A change becomes a feature through a round of questions\./),
+    ).toBeTruthy(),
+  );
+  await waitFor(() => expect(scrolled.mock.contexts.at(-1)).toBe(today));
 });
 
 test("no Check these without points (US4 more 2)", async () => {
