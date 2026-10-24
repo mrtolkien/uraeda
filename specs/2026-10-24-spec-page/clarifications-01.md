@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Spec and plan pages in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 5 questions, about 15 minutes.
+> Answered on 2026-10-24.
 >
 > - Verdict: worth building as proposed: the page already reads every part of the spec. The work is
 >   the look, the frames, the questions page's column, and a plan page.
@@ -108,7 +108,7 @@ with a decision's change takes the same look.
   - [pro] the least work, and nothing new to learn.
   - [con] pills, not signs, and removed words are not struck: colour stays the main cue.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How should a live mockup show that it is an embed?
 
@@ -146,7 +146,7 @@ Why it matters: it is how every mockup of every spec reads from now on.
   - [pro] familiar, and the address names what is shown.
   - [con] a browser's chrome inside a terminal tool reads as out of place.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What should the right column hold beside the session?
 
@@ -184,7 +184,7 @@ same column.
   - [con] the status line holds keys and counts today, and "Approve" sits under every part you have
     not read yet.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What should a revision show of the changes since your last review?
 
@@ -217,7 +217,7 @@ re-read.
   - [pro] no new work.
   - [con] a revision means reading the whole spec again to find the changes.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What should the plan page put first?
 
@@ -248,7 +248,9 @@ Why it matters: it is what you see each time you check on a build.
   - [pro] reads as written, the least work.
   - [con] the current task sits below about 400 lines of plan.
 
-**Answer:**
+**Answer:** B: The plan is either read before tasks start or never
+
+So let’s do what’s the least work
 
 ## Settled without the human
 
@@ -311,3 +313,6 @@ Why it matters: it is what you see each time you check on a build.
   [preview decision](/specs/decisions/preview.md) says.
 
 **Notes:**
+
+- **Built after the questions page merges**: We can start rebasing now, it’s already almost done but
+  the last bugfixing steps always take some time
