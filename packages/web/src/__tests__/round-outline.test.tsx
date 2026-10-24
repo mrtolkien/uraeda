@@ -5,12 +5,12 @@
 // Until the round page draws the outline in its column, the test draws it beside the page, over
 // the round the core reads from the same repository: the page draws the parts it jumps to. The page
 // is drawn on the phone, where its own navigation has no `n` and `p` (R16).
-import { readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
-import { expect, test } from "vite-plus/test";
-import { readFile } from "uraeda-binding";
+import { expect, test, vi } from "vite-plus/test";
+import { readFile, readRound } from "uraeda-binding";
 import { followUpsOf } from "../QuestionCards.tsx";
 import type { NavQuestion } from "../roundJump.ts";
 import { OutlineSheet, RoundOutline } from "../RoundOutline.tsx";
@@ -150,4 +150,44 @@ test("on the phone, the outline's sheet closes on a tap, then goes there (US2 mo
   await waitFor(() =>
     expect(document.activeElement?.textContent).toContain("Does the chat's conversation become"),
   );
+});
+
+test("a triage's Context row brings its free context to the top", async () => {
+  const repo = fixtureRepo();
+  copyFileSync(fixture("INBOX-TRIAGE.md"), join(repo, "specs/INBOX-TRIAGE.md"));
+  git(repo, "add", "specs/INBOX-TRIAGE.md");
+  git(repo, "commit", "--quiet", "-m", "chore: propose an inbox triage");
+  atWidth(402);
+  await renderPage("/inbox/triage", repo, { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
+  const file = (await readRound(repo, "inbox-triage"))!;
+  const round = file.current.items.clarifications!;
+  const questions: Array<NavQuestion> = round.questions.map((q) => ({
+    answered: false,
+    id: q.id,
+    level: 1,
+    title: q.title,
+  }));
+  await act(async () => {
+    render(
+      <RoundOutline
+        document={file.current.document}
+        isActive
+        onSubmit={() => {}}
+        questions={questions}
+        round={round}
+      />,
+    );
+  });
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
+
+  await click(
+    within(screen.getByRole("navigation", { name: "Outline" })).getByRole("button", {
+      name: "Context",
+    }),
+  );
+
+  expect(scrolled).toHaveBeenCalledOnce();
+  expect(scrolled.mock.contexts[0]).toBe(screen.getByRole("region", { name: "Context" }));
 });
