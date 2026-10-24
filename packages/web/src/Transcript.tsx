@@ -3,7 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatImage } from "uraeda-server/fate";
 import { useAgent } from "./data.ts";
-import { openAtEnd } from "./following.ts";
+import { openAtEnd, scroller } from "./following.ts";
 import { currentEntry } from "./routes.tsx";
 import { Tail } from "./tail.tsx";
 import type { Actions } from "./TranscriptMessages.tsx";
@@ -56,14 +56,16 @@ export function Transcript({
   // where they were half a second ago, as after "Jump to the latest" (R112).
   const [opened] = useState(() => ({ scroll: currentEntry().scroll }));
   // The tail drew: scrolls to the turn the address names, else to where Back left the page, else to
-  // the end, unless the human scrolled away from it meanwhile (R110).
+  // the end, unless the human scrolled away from it meanwhile (R110). In a box that scrolls on its
+  // own, as a page's column, the turn named and the position are the window's: it goes to its end.
   const settled = useCallback(() => {
     const scrolledAway = away();
     const { hash } = window.location;
     const { scroll } = opened;
-    if (hash.startsWith("#turn-")) {
+    const inBox = list.current !== null && scroller(list.current) !== undefined;
+    if (!inBox && hash.startsWith("#turn-")) {
       document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: "start" });
-    } else if (typeof scroll === "number") {
+    } else if (!inBox && typeof scroll === "number") {
       window.scrollTo(0, scroll);
     } else if (list.current && !scrolledAway) {
       openAtEnd(list.current, opened);

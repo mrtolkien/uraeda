@@ -16,7 +16,7 @@ import { currentEntry } from "./routes.tsx";
 const AT_END = 24;
 
 /** The element that scrolls an element: the nearest that scrolls on its own, or the window. */
-function scroller(element: HTMLElement): HTMLElement | undefined {
+export function scroller(element: HTMLElement): HTMLElement | undefined {
   for (let node = element.parentElement; node; node = node.parentElement) {
     const overflow = getComputedStyle(node).overflowY;
     if (overflow === "auto" || overflow === "scroll") {
@@ -41,13 +41,15 @@ export function atEnd(box?: HTMLElement) {
 /**
  * Shows the end of a session's transcript as it opens, unless Back or a reload brings a saved
  * position, in `opened`, the history entry as the page opened (the current one by default), or the
- * address names a turn. `element` is the transcript, or what it is drawn in.
+ * address names a turn. `element` is the transcript, or what it is drawn in. In a box that scrolls
+ * on its own, it always opens at its end: the entry's position and the turn named are the window's.
  */
 export function openAtEnd(element: HTMLElement, opened: { scroll?: number } = currentEntry()) {
-  if (opened.scroll !== undefined || window.location.hash.startsWith("#turn-")) {
+  const box = scroller(element);
+  if (!box && (opened.scroll !== undefined || window.location.hash.startsWith("#turn-"))) {
     return;
   }
-  toEnd(scroller(element));
+  toEnd(box);
 }
 
 /**

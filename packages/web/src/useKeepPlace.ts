@@ -1,13 +1,13 @@
-// The window's reading place, kept as the width class changes: for a moment, the browser lays the
-// layout drawn for the old width out at the new one, a column beside the content squeezing it, which
-// moves the scroll position or clamps it at the end. The place is put back once the new layout is
-// drawn.
+// The reading place, kept as the width class changes, in the window or in the box that scrolls the
+// content on its own: for a moment, the browser lays the layout drawn for the old width out at the
+// new one, a column beside the content squeezing it, which moves the scroll position or clamps it at
+// the end. The place is put back once the new layout is drawn.
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
-import { atEnd } from "./following.ts";
+import { atEnd, scroller } from "./following.ts";
 import { scrollInstantly } from "./keepPlace.ts";
 import { isNarrow, useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 
-/** How far down the window the place is read: below the top bar, above the sticky composer. */
+/** How far down the view the place is read: below the top bar, above the sticky composer. */
 const READ_AT = 1 / 3;
 
 /** Whether an element holds text of its own, besides its children's. */
@@ -42,24 +42,50 @@ function firstFrom(parent: Element, line: number): Element | undefined {
   return undefined;
 }
 
-/** The text of `content` read a third down the window, and how far from the window's top it is. */
-function placeIn(content: HTMLElement): { element: Element; top: number } | undefined {
-  const element = firstFrom(content, window.innerHeight * READ_AT);
+/**
+ * The text of `content` read a third down its view, `box` or the window without one, and how far
+ * from the window's top it is.
+ */
+function placeIn(
+  content: HTMLElement,
+  box: HTMLElement | undefined,
+): { element: Element; top: number } | undefined {
+  const line = box
+    ? box.getBoundingClientRect().top + box.clientHeight * READ_AT
+    : window.innerHeight * READ_AT;
+  const element = firstFrom(content, line);
   return element && { element, top: element.getBoundingClientRect().top };
+}
+
+/** Moves `box`, or the window without one, by `by` pixels, or to its end. */
+function moveBy(box: HTMLElement | undefined, by: number | "end") {
+  if (!box) {
+    if (by === "end") {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    } else {
+      scrollInstantly(by);
+    }
+  } else {
+    box.scrollTop = by === "end" ? box.scrollHeight : box.scrollTop + by;
+  }
 }
 
 /**
  * Keeps the place the human reads in `content` as the window crosses the narrow breakpoint: the
- * element a third down the window stays there, or the end stays in view.
+ * element a third down its view, the box that scrolls it or the window, stays there, or the end
+ * stays in view.
  */
 export function useKeepPlace(content: RefObject<HTMLElement | null>) {
   // Pages lay out alike at semi-wide and wide: only crossing into or out of narrow moves the place.
   const narrow = isNarrow(useWidthClass());
   const drawn = useRef(narrow);
   const place = useRef<{ element: Element; top: number } | "end" | undefined>(undefined);
+  const box = useRef<HTMLElement | undefined>(undefined);
 
   useEffect(() => {
     let frame: number | undefined;
+    box.current = content.current ? scroller(content.current) : undefined;
+    const target = box.current ?? window;
     const read = () => {
       frame = undefined;
       // A layout drawn for the other width class: its positions are not the human's.
@@ -67,7 +93,7 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
       if (!element || isNarrow(widthClassNow()) !== drawn.current) {
         return;
       }
-      place.current = atEnd() ? "end" : placeIn(element);
+      place.current = atEnd(box.current) ? "end" : placeIn(element, box.current);
     };
     const later = () => {
       frame ??= requestAnimationFrame(read);
@@ -75,7 +101,7 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
     read();
     // Read again as the human scrolls, and as what is drawn moves without a scroll: the line
     // opening above the transcript, or a group of tool calls in it.
-    window.addEventListener("scroll", later, { passive: true });
+    target.addEventListener("scroll", later, { passive: true });
     const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(later);
     observer?.observe(document.documentElement);
     if (content.current) {
@@ -86,7 +112,7 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
         cancelAnimationFrame(frame);
       }
       observer?.disconnect();
-      window.removeEventListener("scroll", later);
+      target.removeEventListener("scroll", later);
     };
   }, [content]);
 
@@ -100,9 +126,9 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
     // each media query's listener commits on its own, and the shell's navigation may follow this.
     const frame = requestAnimationFrame(() => {
       if (kept === "end") {
-        window.scrollTo(0, document.documentElement.scrollHeight);
+        moveBy(box.current, "end");
       } else if (kept?.element.isConnected) {
-        scrollInstantly(kept.element.getBoundingClientRect().top - kept.top);
+        moveBy(box.current, kept.element.getBoundingClientRect().top - kept.top);
       }
     });
     return () => cancelAnimationFrame(frame);

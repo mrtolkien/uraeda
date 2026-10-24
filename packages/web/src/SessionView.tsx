@@ -40,6 +40,15 @@ import { useOpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
+  box: {
+    // The box's inset, which the transcript takes back to reach its edges, as on a page.
+    "--page-bleed": `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
+  boxedComposer: {
+    // In a box, at its foot: over its padding there, which the transcript's end scrolls into.
+    bottom: 0,
+    marginBlockEnd: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
   composer: {
     // The composer stays at the bottom of the window while the transcript scrolls, above the
     // shell's status line, fixed at the window's bottom.
@@ -63,6 +72,9 @@ export type Handing = {
   recommended?: boolean;
   workflow?: { file?: string; fresh?: boolean; trigger: Trigger };
 };
+
+/** Why a feature's session takes no message before its proposal is committed. */
+export const NO_BRANCH = "This feature has no branch left: it is merged.";
 
 /** What a page cannot find, with the way home. */
 export function Missing({ title }: { title: string }) {
@@ -190,10 +202,42 @@ export function useSessionRecord(id: string | undefined) {
 }
 
 /**
+ * What a session's pane is drawn in: a page, with its crumbs and a feature's column, or, `isBoxed`,
+ * the box it is in alone.
+ */
+function Framed({
+  aside,
+  children,
+  crumbs,
+  isBoxed,
+  session,
+}: {
+  aside?: AsideShown | undefined;
+  children: ReactNode;
+  crumbs?: string | undefined;
+  isBoxed: boolean;
+  session?: string | undefined;
+}) {
+  if (isBoxed) {
+    return <div {...stylex.props(styles.box)}>{children}</div>;
+  }
+  return (
+    <WithAside aside={aside} folder={crumbs} {...(session === undefined ? {} : { session })}>
+      <Page isSession isSnug>
+        {crumbs !== undefined && <Crumbs folder={crumbs} session />}
+        {children}
+      </Page>
+    </WithAside>
+  );
+}
+
+/**
  * A session's pane: its header, transcript, and composer, and a feature's column, or, before its
  * first message creates it, the title and the composer alone. A feature's or a new chat's first
  * message creates the session under the same composer, which keeps the field typed in, its focus,
- * and its text.
+ * and its text. `isBoxed`, it is drawn in the box that scrolls it, as a page's column, without its
+ * crumbs and column: its transcript follows its end in that box, and its composer stays at the
+ * box's foot.
  */
 export function SessionPane({
   aside,
@@ -203,6 +247,7 @@ export function SessionPane({
   folder,
   handing = {},
   id,
+  isBoxed = false,
   item,
   onSent,
   title,
@@ -217,6 +262,8 @@ export function SessionPane({
   handing?: Handing;
   /** The session, once it exists. */
   id?: string;
+  /** Drawn in the box that scrolls it, not as a page. */
+  isBoxed?: boolean;
   /** The change or the feature the session belongs to, once read. */
   item?: SessionItem;
   /** Called with the session a message created, before it exists. */
@@ -232,64 +279,61 @@ export function SessionPane({
   const [jump, setJump] = useState<() => void>();
   if (session === null) {
     return (
-      <Page isSession isSnug>
+      <Framed isBoxed={isBoxed}>
         <SessionLog controls={controls} draft={draft} id={id!} />
-      </Page>
+      </Framed>
     );
   }
   return (
-    <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
-      <Page isSession isSnug>
-        {crumbs !== undefined && <Crumbs folder={crumbs} session />}
-        {id === undefined ? (
-          <VStack gap={3}>
-            <SessionHeader title={title ?? ""} />
-            {crumbs !== undefined && <ProgressLine folder={crumbs} />}
-            <Transcript session={{ id: "", turns: [] }} />
-          </VStack>
-        ) : (
-          // Read once the first message created the session: its title stays, and the composer, as
-          // it is read. The transcript waits for it: a page shows one log.
-          <Suspense fallback={title === undefined ? null : <SessionHeader title={title} />}>
-            <SessionLog
-              away={away}
-              controls={controls}
-              crumbs={crumbs}
-              draft={draft}
-              id={id}
-              item={item}
-              onJump={(next) => setJump(() => next)}
-            />
-          </Suspense>
-        )}
-        <div ref={composer} {...stylex.props(styles.composer)}>
-          {jump && <JumpToLatest composer={composer} onJump={jump} />}
-          <Composer
-            {...(folder === undefined ? {} : { folder })}
-            {...composerDraft(draft)}
-            {...(id === undefined ? {} : { session: id })}
-            working={session?.status === "working"}
-            {...(session && id !== undefined
-              ? {
-                  actions: (
-                    <SessionActions
-                      controls={controls}
-                      item={item}
-                      session={{ ...session, title: session.name ?? session.title }}
-                    />
-                  ),
-                  allow: { count: session.allowable, onAllowAll: controls.allowAll },
-                }
-              : {})}
-            {...handing}
-            {...(blocked === undefined ? {} : { blocked })}
-            onSent={(created) => {
-              onSent?.(created);
-              handing.onSent?.(created);
-            }}
+    <Framed aside={aside} crumbs={crumbs} isBoxed={isBoxed} session={id}>
+      {id === undefined ? (
+        <VStack gap={3}>
+          <SessionHeader title={title ?? ""} />
+          {crumbs !== undefined && <ProgressLine folder={crumbs} />}
+          <Transcript session={{ id: "", turns: [] }} />
+        </VStack>
+      ) : (
+        // Read once the first message created the session: its title stays, and the composer, as
+        // it is read. The transcript waits for it: a page shows one log.
+        <Suspense fallback={title === undefined ? null : <SessionHeader title={title} />}>
+          <SessionLog
+            away={away}
+            controls={controls}
+            crumbs={crumbs}
+            draft={draft}
+            id={id}
+            item={item}
+            onJump={(next) => setJump(() => next)}
           />
-        </div>
-      </Page>
-    </WithAside>
+        </Suspense>
+      )}
+      <div ref={composer} {...stylex.props(styles.composer, isBoxed && styles.boxedComposer)}>
+        {jump && <JumpToLatest composer={composer} onJump={jump} />}
+        <Composer
+          {...(folder === undefined ? {} : { folder })}
+          {...composerDraft(draft)}
+          {...(id === undefined ? {} : { session: id })}
+          working={session?.status === "working"}
+          {...(session && id !== undefined
+            ? {
+                actions: (
+                  <SessionActions
+                    controls={controls}
+                    item={item}
+                    session={{ ...session, title: session.name ?? session.title }}
+                  />
+                ),
+                allow: { count: session.allowable, onAllowAll: controls.allowAll },
+              }
+            : {})}
+          {...handing}
+          {...(blocked === undefined ? {} : { blocked })}
+          onSent={(created) => {
+            onSent?.(created);
+            handing.onSent?.(created);
+          }}
+        />
+      </div>
+    </Framed>
   );
 }

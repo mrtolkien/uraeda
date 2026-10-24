@@ -311,19 +311,22 @@ instead, as the spec's edge case says, with a ruling.
   the transcript, the reading place, and the jump to the latest act on the box. `Transcript` and
   `useKeepPlace` act on the box their element is in, the window when there is none; in a box, the
   entry's saved window scroll and a `#turn-` hash are not applied. `RoundPage` draws the session in
-  a `SideColumn` labelled "Session" while the address says `?tab=session`, wide and semi-wide only:
-  Task 8 replaces it with the column's tab.
+  a `SideColumn` labelled "Session" while the address says `?tab=session`, wide and semi-wide only,
+  through `WithSessionColumn` in `ColumnSession.tsx`, marked `TEMPORARY:` (`RoundPage` stays under
+  100 lines): Task 8 replaces it with the column's tab. `SessionView.tsx` also exports `NO_BRANCH`,
+  which the page and the column share.
 
-- [ ] **Step 1: Move `SessionLog`, `SessionPane`, `useSessionRecord`, and `Missing` to
+- [x] **Step 1: Move `SessionLog`, `SessionPane`, `useSessionRecord`, and `Missing` to
       `SessionView.tsx`**, unchanged, in a `refactor` commit: the session tests pass before and
       after (`session.test.tsx`, `session-tail.test.tsx`, `reading-place.test.tsx`, both projects).
-- [ ] **Step 2: Write the failing tests** in `column-session.test.tsx`, desktop and semi:
+- [x] **Step 2: Write the failing tests** in `column-session.test.tsx`, desktop and semi:
   - "the column's transcript follows its end, the round stays": on the web-ui round with
     `?tab=session`, start a turn of 80 lines; the last line is in view in the column, and
     `window.scrollY` is still 0; scroll the column up, emit more lines: the column does not move,
     and "Jump to the latest" shows; click it: the last line is in view.
-  - "the composer stays at the column's foot": its bottom is the column's bottom, within 1 px, at
-    the top and the end of the transcript.
+  - "the composer stays at the column's foot": the column's last pixel row is the composer's, never
+    the transcript's, and its last row keeps its place within 1 px, at the top and the end of the
+    transcript.
   - "Back to the round keeps its place and the transcript's end" (Review focus 1): scroll the round
     to Q3, open the session's page from the column's link, go Back: Q3 is at the top, and the
     column's last line is in view.
@@ -331,16 +334,16 @@ instead, as the spec's edge case says, with a ruling.
   Breaks: following the window instead of the box (the round scrolls); the entry's saved scroll
   applied to the box (the transcript opens mid-way).
 
-- [ ] **Step 3: Run them to check they fail**:
+- [x] **Step 3: Run them to check they fail**:
       `nix develop -c vp test --project desktop src/__browser__/column-session.test.tsx`. Expected:
-      FAIL, no complementary region "Session".
-- [ ] **Step 4: Implement** `isBoxed`, `ColumnSession`, and the round page's Session column. The
+      FAIL, no composer in the round's page, so no column "Session".
+- [x] **Step 4: Implement** `isBoxed`, `ColumnSession`, and the round page's Session column. The
       session's page keeps the window: its tests do not change. If the box cannot follow its end in
       WebKit, draw the link to the session's page in the column instead, change the tests to it, and
       write the ruling.
-- [ ] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, and the four session
+- [x] **Step 5: Run the task's validation**: `nix develop -c vp run fast`, and the four session
       browser test files in both projects. Expected: PASS.
-- [ ] **Step 6: Commit**:
+- [x] **Step 6: Commit**:
       `git commit -m "feat(questions-page): the session's view scrolls in the round's column"`.
 
 ## Task 2: "Check these" before the questions, in the core, the skill, and every round
