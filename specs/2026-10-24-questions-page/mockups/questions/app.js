@@ -1,5 +1,5 @@
-// The questions page, drawn from one state object kept in the address. The bar on top picks the
-// round, the scheme, the frame's width, and one variant per question of round 01.
+// The spec's mockup of the questions page: the design round 01 picked, over two real rounds. The bar
+// on top picks the round, the scheme, and the frame's width; everything else is the page itself.
 (function () {
   const ctl = document.getElementById("ctl");
   const frame = document.getElementById("frame");
@@ -8,45 +8,22 @@
     round: P.get("round") || "merge-chats",
     scheme: P.get("scheme") || "mocha",
     w: P.get("w") || "auto",
-    session: P.get("session") || "tabs", // tabs | stack | split
-    semi: P.get("semi") || "push", // push | cover
-    look: P.get("look") || "panes", // panes | gutter | plain
-    sticky: P.get("sticky") || "bar", // bar | split | none
-    check: P.get("check") || "pane", // pane | first | plain
-    lists: P.get("lists") || "tight", // tight | today
-    open: P.get("open") === "1",
-    tab: P.get("tab") || "outline",
-    about: P.get("about") || "",
-    ask: P.get("ask") || "question", // question | selection
+    tab: P.get("tab") || "outline", // outline | notes | session
+    about: null, // { id, title }: what the session was last asked about
+    page: P.get("page") === "session", // the phone's session page
+    sheet: null, // the phone's sheet: "outline" | "notes"
   };
   const answers = {};
   const comments = {};
-  let sent = [];
+  let notes = "";
   let draft = "";
-  let sheet = false;
+  let sent = [];
   let colWidth = null;
-  let outlineOpen = false;
+  let todayOpen = false;
 
-  const KEYS = [
-    "round",
-    "scheme",
-    "w",
-    "session",
-    "semi",
-    "look",
-    "sticky",
-    "check",
-    "lists",
-    "ask",
-  ];
   function save() {
-    const q = new URLSearchParams();
-    for (const k of KEYS) q.set(k, S[k]);
-    if (S.open) {
-      q.set("open", "1");
-      q.set("tab", S.tab);
-      if (S.about) q.set("about", S.about);
-    }
+    const q = new URLSearchParams({ round: S.round, scheme: S.scheme, w: S.w, tab: S.tab });
+    if (S.page) q.set("page", "session");
     history.replaceState(null, "", "?" + q.toString());
   }
 
@@ -64,9 +41,7 @@
       .join("");
     return `<svg class="ico ${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
   }
-  function esc(s) {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   function md(s) {
     let h = esc(s);
     h = h.replace(/`([^`]+)`/g, "<code>$1</code>");
@@ -77,6 +52,7 @@
     );
     return h;
   }
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   function blocks(list) {
     return list
       .map((b) => {
@@ -92,48 +68,30 @@
       })
       .join("");
   }
-  function pane(title, body, cls = "", icn = "") {
-    return `<fieldset class="pane ${cls}"><legend>${icn ? icon(icn, 16) : ""}${title}</legend>${body}</fieldset>`;
+  function pane(title, body, cls = "", icn = "", id = "") {
+    return `<fieldset class="pane ${cls}" ${id ? `id="${id}"` : ""}><legend>${icn ? icon(icn, 16) : ""}${title}</legend>${body}</fieldset>`;
   }
-
-  // ---------- the width classes ----------
-  function frameWidth() {
-    return S.w === "auto" ? frame.parentElement.clientWidth : Number(S.w);
-  }
-  function widthClass(w) {
-    return w < 768 ? "narrow" : w < 1280 ? "semi" : "wide";
-  }
-
-  // ---------- the round ----------
+  const frameWidth = () => (S.w === "auto" ? frame.parentElement.clientWidth : Number(S.w));
+  const widthClass = (w) => (w < 768 ? "narrow" : w < 1280 ? "semi" : "wide");
   const R = () => window.ROUNDS[S.round];
   const nav = () => R().questions;
   const isAnswered = (q) => (answers[q.id] && answers[q.id].size) || (comments[q.id] || "").trim();
+  const nextBlank = () => nav().find((q) => !isAnswered(q));
+  // The column's one width, whatever its tab: a third of the window, 400 to 600 px, or as dragged.
+  const columnWidth = (fw) => colWidth || Math.round(Math.max(400, Math.min(600, fw / 3)));
 
   // ---------- the shell ----------
   function leftShell(cls) {
     if (cls === "narrow") {
       return `<nav class="left">
-        ${icon("house", 20)}
-        <span class="badge-n">${icon("inbox", 20)}<i>10</i></span>
-        ${icon("list", 20)}
-        <span class="badge-n">${icon("activity", 20)}<i>1</i></span>
-        ${icon("scale", 20)}
-        ${icon("settings", 20)}
-        <span class="btn primary" style="padding:4px 8px">${icon("plus", 18)}</span>
-      </nav>`;
+        ${icon("house", 20)}<span class="badge-n">${icon("inbox", 20)}<i>10</i></span>${icon("list", 20)}
+        <span class="badge-n">${icon("activity", 20)}<i>1</i></span>${icon("scale", 20)}${icon("settings", 20)}
+        <span class="btn primary" style="padding:4px 8px">${icon("plus", 18)}</span></nav>`;
     }
     if (cls === "semi") {
-      return `<nav class="left">
-        <span class="c-green">${icon("git-branch", 22)}</span>
-        <span class="c-mauve">${icon("plus", 20)}</span>
-        ${icon("pencil", 18)}
-        ${icon("house", 20)}
-        ${icon("inbox", 20)}
-        ${icon("list", 20)}
-        ${icon("scale", 20)}
-        <span class="c-peach">${icon("message-square", 20)}</span>
-        ${icon("activity", 20)}
-      </nav>`;
+      return `<nav class="left"><span class="c-green">${icon("git-branch", 22)}</span><span class="c-mauve">${icon("plus", 20)}</span>
+        ${icon("pencil", 18)}${icon("house", 20)}${icon("inbox", 20)}${icon("list", 20)}${icon("scale", 20)}
+        <span class="c-peach">${icon("message-square", 20)}</span>${icon("activity", 20)}</nav>`;
     }
     return `<nav class="left">
       <div class="brand"><span class="c-green">${icon("git-branch", 24)}</span><div>Uraeda<small>uraeda</small></div></div>
@@ -151,25 +109,13 @@
          <div class="card"><div class="t">${icon("file-text", 16)} Spec and plan pages</div><div class="s">Spec to review</div></div>`,
         "attn",
       )}
-      ${pane(
-        "In progress · 1",
-        `<div class="card"><div class="t">${icon("activity", 16)} Lists and starts</div><div class="s">Implementation · 4/11</div></div>`,
-      )}
+      ${pane("In progress · 1", `<div class="card"><div class="t">${icon("activity", 16)} Lists and starts</div><div class="s">Implementation · 4/11</div></div>`)}
     </nav>`;
   }
 
   // ---------- the opening ----------
-  function verdictBadge() {
-    const v = R().block.verdict[0];
-    const cls = v === "as proposed" ? "yes" : v === "not" ? "no" : "";
-    return `<span class="vbadge ${cls}">${v === "with changes" ? "With changes" : v}</span>`;
-  }
-  function opening(cls) {
+  function opening(cls, pageW) {
     const r = R();
-    const head = `<div class="crumbs">Home › ${esc(r.feature)} › <b>clarifications-01.md</b></div><h1>${esc(r.title)}</h1>`;
-    const excerpt = r.excerpt
-      ? `<p class="c-dim" style="font-size:14.4px;margin:-8px 0 14px">${esc(r.excerpt)}</p>`
-      : "";
     const c = r.context;
     const verdictText = md(
       r.block.verdict[1].replace(
@@ -177,189 +123,145 @@
         "",
       ),
     );
-    if (S.look === "plain") {
-      return `${head}${excerpt}
-        <div class="callout prose"><div class="ct">Important</div><p>${md(r.block.first)}</p>
-          <ul class="md"><li>Verdict: ${md(r.block.verdict[1])}</li>${r.block.items.map((i) => `<li>${md(i)}</li>`).join("")}</ul></div>
-        <section id="ctx"><h3 class="part">Goal</h3><div class="prose">${blocks(c.goal)}</div>
-        <h3 class="part">Today</h3><div class="prose">${blocks(c.today)}</div>
-        <h3 class="part">Scope</h3><div class="prose">${blocks(c.scope)}</div>
-        <h3 class="part">Sources</h3><div class="prose">${blocks(c.sources)}</div></section>`;
-    }
-    if (S.look === "gutter") {
-      const row = (sign, color, label, body) =>
-        `<div class="g"><div class="sign ${color}">${sign}</div><div>${label ? `<div class="glabel ${color}">${label}</div>` : ""}<div class="prose">${body}</div></div></div>`;
-      return `${head}${excerpt}
-        <div class="g"><div class="sign c-mauve">!</div><div><div class="first">${md(r.block.first)}</div></div></div>
-        <div class="g" style="margin:6px 0 4px"><div class="sign c-yellow">◆</div><div class="verdict" style="border:0;padding:0;margin:0">${verdictBadge()}<span class="prose" style="font-size:18px">${verdictText}</span></div></div>
-        ${r.block.items.map((i) => row("›", "c-mauve", "", `<p>${md(i)}</p>`)).join("")}
-        <section id="ctx" style="margin-top:10px">
-        ${row(icon("target", 16), "c-lav", "Goal", blocks(c.goal))}
-        ${row(icon("history", 16), "c-lav", "Today", blocks(c.today))}
-        ${row(icon("crop", 16), "c-lav", "Scope", blocks(c.scope))}
-        ${row(icon("book-open", 16), "c-dim", "Sources", blocks(c.sources))}</section>`;
-    }
-    // panes
-    const two = cls === "wide" && !S.open;
-    return `${head}${excerpt}
-      <fieldset class="pane brief"><legend>${icon("triangle-alert", 16)} ${md(r.block.first)}</legend>
-        <div class="verdict">${verdictBadge()}<div class="prose" style="font-size:18.5px">${verdictText}</div></div>
+    const badge = {
+      "with changes": ["", "With changes"],
+      "as proposed": ["yes", "As proposed"],
+      not: ["no", "Not as proposed"],
+    }[r.block.verdict[0]];
+    const two = pageW >= 820;
+    const today = `<fieldset class="pane" id="ctx-today"><legend><button class="fold" data-fold="today">${icon(todayOpen ? "chevron-down" : "chevron-right", 15)} ${icon("history", 16)} Today</button>${
+      todayOpen ? "" : `<span class="c-dim folded-hint">folded</span>`
+    }</legend>${todayOpen ? `<div class="prose">${blocks(c.today)}</div>` : ""}</fieldset>`;
+    return `<div class="crumbs">Home › ${esc(r.feature)} › <b>clarifications-01.md</b></div><h1>${esc(r.title)}</h1>
+      ${r.excerpt ? `<p class="c-dim" style="font-size:14.4px;margin:-8px 0 14px">${esc(r.excerpt)}</p>` : ""}
+      <fieldset class="pane brief" id="intro"><legend>${icon("triangle-alert", 16)} ${md(r.block.first)}</legend>
+        <div class="verdict"><span class="vbadge ${badge[0]}">${badge[1]}</span><div class="prose" style="font-size:18.5px">${verdictText}</div></div>
         <div class="prose"><ul class="md">${r.block.items.map((i) => `<li>${md(i)}</li>`).join("")}</ul></div>
       </fieldset>
-      <section id="ctx" class="parts ${two ? "two" : ""}" style="margin-top:6px">
-        ${pane("Goal", `<div class="prose">${blocks(c.goal)}</div>`, "goal span", "target")}
-        ${pane("Today", `<div class="prose">${blocks(c.today)}</div>`, "span", "history")}
-        ${pane("Scope", `<div class="prose">${blocks(c.scope)}</div>`, "", "crop")}
-        ${pane("Sources", `<div class="prose">${blocks(c.sources)}</div>`, "src", "book-open")}
-      </section>`;
+      ${pane("Goal", `<div class="prose">${blocks(c.goal)}</div>`, "goal", "target", "ctx-goal")}
+      ${today}
+      <div class="parts ${two ? "two" : ""}">
+        ${pane("Scope", `<div class="prose">${blocks(c.scope)}</div>`, "", "crop", "ctx-scope")}
+        ${pane("Sources", `<div class="prose">${blocks(c.sources)}</div>`, "src", "book-open", "ctx-sources")}
+      </div>
+      ${checkPane()}`;
+  }
+  function points(list, prefix) {
+    return list
+      .map(
+        ([subj, text], i) =>
+          `<div class="pt-row"><div class="prose"><p><strong>${md(subj)}</strong> ${md(text)}</p></div>
+          <span class="pt-actions"><button class="btn ghost small" data-ask-point="${prefix}${i}" title="Ask the agent about this point">${icon("message-square", 14)} Ask</button><button class="btn ghost small" title="Comment on this point">${icon("pencil", 14)}</button></span></div>`,
+      )
+      .join("");
+  }
+  function checkPane() {
+    const s = R().settled;
+    if (!s.check.length) return "";
+    return `<fieldset class="pane attn checkpane" id="check"><legend>${icon("flag", 17)} Check these · ${s.check.length}</legend>
+      <p class="c-dim pane-lead">Settled without you. Object here before answering, if one is wrong.</p>${points(s.check, "c")}</fieldset>`;
   }
 
   // ---------- a question ----------
-  function exampleBlock(q) {
-    if (!q.example) return "";
-    if (S.look === "panes")
-      return `<fieldset class="pane ex"><legend>${icon("flask-conical", 15)} Example</legend><div class="prose"><p>${md(cap(q.example))}</p></div></fieldset>`;
-    if (S.look === "gutter")
-      return `<div class="g"><div class="sign c-teal">${icon("flask-conical", 15)}</div><div class="prose"><p><b class="c-teal">Example:</b> ${md(q.example)}</p></div></div>`;
-    return `<div class="prose"><p>Example: ${md(q.example)}</p></div>`;
-  }
-  function cap(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-  function whyBlock(q) {
-    if (S.look === "panes")
-      return `<fieldset class="pane why"><legend>${icon("lightbulb", 15)} Why it matters</legend><div class="prose"><p>${md(cap(q.why))}</p></div></fieldset>`;
-    if (S.look === "gutter")
-      return `<div class="g"><div class="sign c-peach">${icon("lightbulb", 15)}</div><div class="prose"><p><b class="c-peach">Why it matters:</b> ${md(q.why)}</p></div></div>`;
-    return `<div class="why-plain prose"><p><span class="lbl">Why it matters:</span> ${md(q.why)}</p></div>`;
-  }
-  function contextBlocks(q) {
-    if (S.look === "gutter")
-      return q.context
-        .map(
-          (p) =>
-            `<div class="g"><div class="sign c-dim">·</div><div class="prose"><p>${md(p)}</p></div></div>`,
-        )
-        .join("");
-    return `<div class="prose">${q.context.map((p) => `<p>${md(p)}</p>`).join("")}</div>`;
-  }
-  function option(q, o) {
+  function option(q, o, cls) {
     const on = answers[q.id] && answers[q.id].has(o.l);
-    return `<button class="opt ${on ? "on" : ""}" data-q="${q.id}" data-l="${o.l}">
-      ${o.rec ? `<div class="rec">★ Recommended</div>` : ""}
-      <div class="ohead"><span class="letter">${o.l}</span><span class="osum">${md(o.s)}</span></div>
-      <ul class="pts">
-        ${(o.pro || []).map((p) => `<li><b class="c-green">+</b>${md(p)}</li>`).join("")}
-        ${(o.con || []).map((p) => `<li><b style="color:var(--red)">−</b>${md(p)}</li>`).join("")}
-        ${o.why ? `<li><b class="c-yellow">★</b>Why recommended: ${md(o.why)}</li>` : ""}
-      </ul></button>`;
+    const pts = [
+      ...(o.pro || []).map((p) => ["+", "pro", p]),
+      ...(o.con || []).map((p) => ["−", "con", p]),
+      ...(o.why ? [["★", "why", "Why recommended: " + o.why]] : []),
+    ];
+    const ptsHtml =
+      cls === "narrow"
+        ? pts
+            .map(
+              ([g, k, t]) =>
+                `<fieldset class="ptbox ${k}"><legend>${g}</legend><span>${md(t)}</span></fieldset>`,
+            )
+            .join("")
+        : `<ul class="pts">${pts.map(([g, k, t]) => `<li><b class="g-${k}">${g}</b>${md(t)}</li>`).join("")}</ul>`;
+    return `<fieldset class="opt ${on ? "on" : ""} ${o.rec ? "recommended" : ""}" data-q="${q.id}" data-l="${o.l}" role="button" tabindex="0">
+      <legend><span class="letter">${o.l}</span>${o.rec ? `<span class="rec">★ Recommended</span>` : ""}${on ? `<span class="picked">picked</span>` : ""}</legend>
+      <div class="osum">${md(o.s)}</div>${ptsHtml}</fieldset>`;
   }
-  function card(q, cls, cardWidth) {
+  function card(q, cls) {
     const meta = q.parent ? `${q.id} · follows ${q.parent}, because you picked ${q.letter}` : q.id;
-    const askBtn =
-      S.ask === "question" || S.ask === "both"
-        ? `<button class="btn ghost small" data-ask="${q.id}">${icon("message-square", 14)} Ask the agent</button>`
-        : `<button class="btn ghost small" data-ask="${q.id}">${icon("message-square", 14)} Ask</button>`;
-    const stickyHead =
-      S.sticky === "bar" ||
-      (S.sticky === "split" && (cls !== "wide" || cardWidth < 760)) ||
-      cls === "narrow";
-    const head = `<div class="qhead ${stickyHead ? "sticky" : ""}" data-head="${q.id}">
-        <div class="qmeta"><span class="id">${meta}</span>${askBtn}</div>
-        <h2 class="qtitle" id="${q.id}-title">${md(q.title)}</h2></div>`;
-    const ctx = `${exampleBlock(q)}${contextBlocks(q)}${whyBlock(q)}`;
-    const answering = `<div class="opts">${q.options.map((o) => option(q, o)).join("")}</div>
-      <div class="comment"><label>Comment, or your own answer instead of a letter</label>
-      <textarea data-c="${q.id}">${esc(comments[q.id] || "")}</textarea>
-      <div class="row"><span class="btn small">${icon("paperclip", 13)} Add image</span><span class="btn small">Save comment</span><span>Ctrl+Enter saves</span></div></div>`;
-    const split = cls === "wide" && cardWidth >= 760 && S.sticky !== "bar";
-    const body = split
-      ? `<div class="qgrid"><div class="lcol ${S.sticky === "split" ? "sticky" : ""}" style="${S.sticky === "split" ? "position:sticky;top:0" : ""}">${head}<div class="qbody">${ctx}</div></div><div class="qbody" style="padding-top:18px">${answering}</div></div>`
-      : `${head}<div class="qbody">${ctx}${answering}</div>`;
-    return `<div class="qcard" data-card="${q.id}">${body}</div>`;
+    return `<div class="qcard ${q.parent ? "fu" : ""}" data-card="${q.id}">
+      <div class="qhead sticky" data-head="${q.id}">
+        <div class="qmeta"><span class="id">${meta}</span><button class="btn ghost small" data-ask="${q.id}">${icon("message-square", 14)} Ask the agent</button></div>
+        <h2 class="qtitle">${md(q.title)}</h2></div>
+      <div class="qbody">
+        ${q.example ? `<fieldset class="pane ex"><legend>${icon("flask-conical", 15)} Example</legend><div class="prose"><p>${md(cap(q.example))}</p></div></fieldset>` : ""}
+        <div class="prose">${q.context.map((p) => `<p>${md(p)}</p>`).join("")}</div>
+        <fieldset class="pane why"><legend>${icon("lightbulb", 15)} Why it matters</legend><div class="prose"><p>${md(cap(q.why))}</p></div></fieldset>
+        <div class="opts">${q.options.map((o) => option(q, o, cls)).join("")}</div>
+        <div class="comment"><label>Comment, or your own answer instead of a letter</label>
+          <textarea data-c="${q.id}">${esc(comments[q.id] || "")}</textarea>
+          <div class="row"><span class="btn small">${icon("paperclip", 13)} Add image</span><span class="btn small">Save comment</span><span>Ctrl+Enter saves</span></div></div>
+      </div></div>`;
   }
-  function questions(cls, pageWidth) {
-    const cardWidth = Math.min(pageWidth - 64, 75 * 10.1 + 64);
+  function questions(cls) {
     let out = "";
     for (const q of nav()) {
       if (q.parent) continue;
-      out += `<section class="qsec" id="${q.id}">${card(q, cls, cardWidth)}`;
+      out += `<section class="qsec" id="${q.id}">${card(q, cls)}`;
       for (const f of nav().filter((x) => x.parent === q.id)) {
-        out += `<div class="joint"></div><section class="fu-wrap" id="${f.id}">${card(f, cls, cardWidth - 28)}</section>`;
+        out += `${cls === "narrow" ? "" : `<div class="joint"></div>`}<section class="fu-wrap" id="${f.id}">${card(f, cls)}</section>`;
       }
       out += `</section>`;
     }
     return out;
   }
-
-  // ---------- settled points ----------
-  function points(list, cls = "") {
-    return list
-      .map(
-        ([subj, text]) =>
-          `<div class="pt-row ${cls}"><div class="prose"><p><strong>${md(subj)}</strong> ${md(text)}</p></div><button class="btn ghost small" title="Comment on this point">${icon("message-square", 14)}</button></div>`,
-      )
-      .join("");
-  }
-  function checkPane(first) {
-    const s = R().settled;
-    return `<fieldset class="pane attn checkpane" ${first ? 'id="check"' : ""}><legend>${icon("flag", 17)} ${first ? "Check these before the questions" : "Check these"} · ${s.check.length}</legend>${points(s.check)}</fieldset>`;
-  }
   function settled() {
     const s = R().settled;
-    if (S.check === "plain") {
-      const grp = (t, l, ic) =>
-        `<h3 class="part">${icon(ic, 17)} ${t}</h3><div class="prose"><ul class="md">${l.map(([a, b]) => `<li><strong>${md(a)}</strong> ${md(b)}</li>`).join("")}</ul></div>`;
-      return `<section id="settled"><h2 class="sec">Settled without you</h2>${grp("Check these", s.check, "flag")}${grp("Behaviour", s.behaviour, "eye")}${grp("Under the hood", s.hood, "wrench")}</section>`;
-    }
     return `<section id="settled"><h2 class="sec">Settled without you</h2>
-      ${S.check === "pane" ? checkPane(false) : ""}
-      ${pane(`Behaviour · ${s.behaviour.length}`, points(s.behaviour), "", "eye")}
-      <fieldset class="pane hoodpane"><legend>${icon("wrench", 16)} Under the hood · ${s.hood.length}</legend>
-        <details><summary>${s.hood.length} choices in the code only</summary>${points(s.hood)}</details></fieldset>
-    </section>`;
+      ${pane(`Behaviour · ${s.behaviour.length}`, points(s.behaviour, "b"), "", "eye", "settled-behaviour")}
+      <fieldset class="pane hoodpane" id="settled-hood"><legend>${icon("wrench", 16)} Under the hood · ${s.hood.length}</legend>
+        <details><summary>${s.hood.length} choices in the code only</summary>${points(s.hood, "h")}</details></fieldset></section>`;
   }
-  function ending() {
+  function ending(cls) {
     const left = nav().filter((q) => !isAnswered(q));
-    return `<section id="end" class="notes"><h2 class="sec">Notes</h2>
-      <label class="c-dim" style="font-size:14.4px">Anything else</label><textarea></textarea>
+    return `<section id="end"><h2 class="sec">Notes</h2>
+      <div class="notes-read">${notes.trim() ? `<div class="prose"><p>${md(notes)}</p></div>` : `<p class="c-dim">No notes yet. Write one from anywhere: the Notes ${cls === "narrow" ? "button below" : "tab of the column"}.</p>`}
+        <button class="btn small" data-notes="1">${icon("pencil", 13)} ${notes.trim() ? "Edit notes" : "Write a note"}</button></div>
       ${left.length ? `<div class="left-q">✗ ${left.length} questions left: ${left.map((q) => q.id).join(", ")}</div>` : ""}
       <div class="submit"><span class="btn primary">Commit and start the agent</span><span class="btn">Commit only</span></div></section>`;
   }
 
-  // ---------- the outline and the session ----------
+  // ---------- the column's three tabs ----------
   function outline() {
     const qs = nav();
     const done = qs.filter(isAnswered).length;
-    const next = qs.find((q) => !isAnswered(q));
+    const nb = nextBlank();
+    const s = R().settled;
+    const row = (id, label, cls = "", st = "") =>
+      `<a href="#" data-jump="${id}" class="${cls}"><span class="st">${st}</span><span>${label}</span></a>`;
     return `<div class="progress"><span>${done} of ${qs.length} answered</span>${
-      next
-        ? `<span class="btn primary small" data-jump="${next.id}">Next</span>`
+      nb
+        ? `<span class="btn primary small" data-jump="${nb.id}">Next</span>`
         : `<span class="btn primary small" data-jump="end">Submit</span>`
-    }</div>
-      <div class="bar"><i style="width:${(100 * done) / qs.length}%"></i></div>
+    }</div><div class="bar"><i style="width:${(100 * done) / qs.length}%"></i></div>
       <div class="ol">
-        <a href="#" class="sec" data-jump="ctx"><span class="st">§</span>Context</a>
-        ${S.check === "first" ? `<a href="#" class="sec c-peach" data-jump="check"><span class="st">⚑</span>Check these · ${R().settled.check.length}</a>` : ""}
+        ${row("intro", "Verdict and summary", "sec", "!")}
+        ${row("ctx-goal", "Goal", "sec sub", "·")}${row("ctx-today", "Today", "sec sub", "·")}${row("ctx-scope", "Scope", "sec sub", "·")}${row("ctx-sources", "Sources", "sec sub", "·")}
+        ${s.check.length ? row("check", `Check these · ${s.check.length}`, "sec warn", "⚑") : ""}
         <hr/>
-        ${qs
-          .map(
-            (q) =>
-              `<a href="#" data-jump="${q.id}" class="${q.parent ? "fu" : ""}"><span class="st ${isAnswered(q) ? "ok" : ""}">${isAnswered(q) ? "✓" : "○"}</span><span><b>${q.id}</b> ${md(q.title)}</span></a>`,
-          )
-          .join("")}
+        ${qs.map((q) => row(q.id, `<b>${q.id}</b> ${md(q.title)}`, q.parent ? "fu" : "", isAnswered(q) ? "✓" : "○").replace('class="st">✓', 'class="st ok">✓')).join("")}
         <hr/>
-        <a href="#" class="sec" data-jump="settled"><span class="st">⚑</span>Settled · ${S.check === "first" ? "" : R().settled.check.length + " to check"}</a>
-        <a href="#" class="sec" data-jump="end"><span class="st">✎</span>Notes and submit</a>
+        ${row("settled-behaviour", `Behaviour · ${s.behaviour.length}`, "sec", "·")}
+        ${row("settled-hood", `Under the hood · ${s.hood.length}`, "sec", "·")}
+        ${row("end", "Notes and submit", "sec", "✎")}
       </div>
-      <div class="hint"><kbd class="c-peach">n</kbd> <kbd class="c-peach">p</kbd> next / previous unanswered · <kbd class="c-peach">s</kbd> ask about the question at the top</div>`;
+      <div class="hint"><kbd class="c-peach">n</kbd> <kbd class="c-peach">p</kbd> next / previous unanswered</div>`;
   }
-  function aboutQ() {
-    return nav().find((q) => q.id === S.about) || nav().find((q) => q.id === "Q2") || nav()[0];
+  function notesPane() {
+    return `<div class="notes-pane"><label class="c-dim">Anything else: notes for the agent, on any part of the round</label>
+      <textarea id="notes">${esc(notes)}</textarea>
+      <div class="row"><span class="btn small">${icon("paperclip", 13)} Add image</span><span class="btn small" id="save-notes">Save notes</span><span>Ctrl+Enter saves</span></div>
+      <p class="c-dim" style="font-size:14px">The same notes as at the round's end. They stay while you scroll, and save with their button or Submit.</p></div>`;
   }
-  function session(withHead = true) {
-    const q = aboutQ();
+  function session() {
     const first = nav().find((x) => x.id === "Q2") || nav()[0];
+    const about = S.about || { id: first.id, title: first.title };
     const history = [
       {
         who: "user",
@@ -380,59 +282,31 @@
       })
       .join("");
     return `<div class="sess">
-      ${withHead ? `<div class="sess-head"><span class="dot"></span><b>${esc(R().folder.slice(11))}</b><span>${icon("bot", 14)} ${window.SESSION.harness} · waits on you</span><span class="sp"></span><span class="btn ghost small" title="Open the session's page">${icon("panel-left", 14)} Page</span></div>` : ""}
-      <div class="about" data-jump="${q.id}" title="Back to the question">${icon("message-square", 15)}<span>Asking about <b>${q.id}</b> · ${md(q.title)}</span></div>
+      <div class="sess-head"><span class="dot"></span><b>${esc(R().folder.slice(11))}</b><span>${icon("bot", 14)} ${window.SESSION.harness} · waits on you</span><span class="sp"></span><span class="btn ghost small" title="Open the session's page">${icon("panel-left", 14)} Page</span></div>
+      <div class="about" data-jump="${about.id}" title="Back to it in the round">${icon("message-square", 15)}<span>Asking about <b>${md(about.id)}</b> · ${md(about.title)}</span></div>
       <div class="msgs" id="msgs">${msgs}</div>
       <div class="composer"><textarea id="draft" placeholder="Ask the agent…">${esc(draft)}</textarea>
-        <div class="row"><span>Ctrl+Enter sends · the agent answers here, the round stays as it is</span><span class="btn primary small" id="send">${icon("send", 13)} Send</span></div></div>
-    </div>`;
-  }
-
-  // ---------- the right column ----------
-  function sessionWidth(fw) {
-    if (colWidth) return colWidth;
-    return Math.round(Math.max(400, Math.min(640, fw * 0.38)));
+        <div class="row"><span>Ctrl+Enter sends · the agent answers here; the round stays as it is</span><span class="btn primary small" id="send">${icon("send", 13)} Send</span></div></div></div>`;
   }
   function rightColumn(cls, fw) {
     if (cls === "narrow") return { html: "", width: 0 };
-    const outlineW = cls === "wide" ? 290 : 250;
-    const sw = sessionWidth(fw);
-    const drag = `<div class="drag" title="Drag to resize"></div>`;
-    if (S.session === "split" || !S.open) {
-      const tabs = S.open
-        ? ""
-        : `<div class="tabs"><button class="tab on">${icon("list-tree", 15)} Outline</button><button class="tab" data-tab="session">${icon("message-square", 15)} Session</button><span class="sp"></span></div>`;
-      if (S.session === "stack" && !S.open) {
-        return {
-          width: outlineW,
-          html: `<aside class="right" style="width:${outlineW}px"><div class="stackhead on">${icon("list-tree", 15)} Outline<span class="sp"></span></div><div class="col-body">${outline()}</div><div class="stackhead" data-tab="session">${icon("chevron-right", 15)} ${icon("message-square", 15)} Session <small>waits on you</small></div></aside>`,
-        };
-      }
-      return {
-        width: outlineW,
-        html: `<aside class="right" style="width:${outlineW}px">${S.session === "tabs" ? tabs : `<div class="stackhead on">${icon("list-tree", 15)} Outline</div>`}<div class="col-body">${outline()}</div></aside>`,
-      };
-    }
-    const cover = cls === "semi" && S.semi === "cover";
-    if (S.session === "tabs") {
-      const w = S.tab === "session" ? sw : outlineW;
-      return {
-        width: cover && S.tab === "session" ? outlineW : w,
-        cover: cover && S.tab === "session",
-        html: `<aside class="right ${cover && S.tab === "session" ? "cover" : ""}" style="width:${w}px">${drag}
-          <div class="tabs"><button class="tab ${S.tab === "outline" ? "on" : ""}" data-tab="outline">${icon("list-tree", 15)} Outline <small class="c-dim">${nav().filter(isAnswered).length}/${nav().length}</small></button><button class="tab ${S.tab === "session" ? "on" : ""}" data-tab="session">${icon("message-square", 15)} Session <span class="dot"></span></button><span class="sp"></span><button class="tab" data-close="1" title="Close the session">${icon("x", 15)}</button></div>
-          ${S.tab === "session" ? session() : `<div class="col-body">${outline()}</div>`}</aside>`,
-      };
-    }
-    // stack
+    const w = columnWidth(fw);
+    const tab = (k, ic, label, extra = "") =>
+      `<button class="tab ${S.tab === k ? "on" : ""}" data-tab="${k}" role="tab" aria-selected="${S.tab === k}">${icon(ic, 15)} ${label}${extra}</button>`;
+    const body =
+      S.tab === "session"
+        ? session()
+        : S.tab === "notes"
+          ? `<div class="col-body">${notesPane()}</div>`
+          : `<div class="col-body">${outline()}</div>`;
     return {
-      width: cover ? outlineW : sw,
-      cover,
-      html: `<aside class="right ${cover ? "cover" : ""}" style="width:${sw}px">${drag}
-        <div class="stackhead ${outlineOpen ? "on" : ""}" data-toggle-outline="1">${icon(outlineOpen ? "chevron-down" : "chevron-right", 15)} ${icon("list-tree", 15)} Outline <small>${nav().filter(isAnswered).length}/${nav().length} answered</small><span class="sp"></span><span class="btn primary small" data-jump="${(nav().find((q) => !isAnswered(q)) || { id: "end" }).id}">Next</span></div>
-        ${outlineOpen ? `<div class="col-body" style="flex:none;max-height:42%;border-bottom:1px solid var(--s2)">${outline()}</div>` : ""}
-        <div class="stackhead on">${icon("chevron-down", 15)} ${icon("message-square", 15)} Session <span class="dot"></span><span class="sp"></span><button class="btn ghost small" data-close="1">${icon("x", 14)}</button></div>
-        ${session(false)}</aside>`,
+      width: w,
+      html: `<aside class="right" style="width:${w}px"><div class="drag" title="Drag to resize"></div>
+        <div class="tabs" role="tablist" aria-label="The round's column">
+          ${tab("outline", "list-tree", "Outline", ` <small class="c-dim">${nav().filter(isAnswered).length}/${nav().length}</small>`)}
+          ${tab("notes", "pencil", "Notes", notes.trim() ? ` <span class="dot" style="background:var(--peach)"></span>` : "")}
+          ${tab("session", "message-square", "Session", ` <span class="dot"></span>`)}
+        </div>${body}</aside>`,
     };
   }
 
@@ -445,36 +319,27 @@
     const cls = widthClass(fw);
     const oldPage = frame.querySelector(".page");
     const scroll = oldPage ? oldPage.scrollTop : 0;
-    const leftW = cls === "wide" ? 256 : cls === "semi" ? 52 : 0;
     const right = rightColumn(cls, fw);
-    const pageW = fw - leftW - (right.cover ? 250 : right.width);
-    const lookCls =
-      (S.look === "plain" ? "plainlook " : "") +
-      (cls === "narrow" ? (S.lists === "tight" ? "tight" : "today-lists") : "");
-    const bottom =
-      S.open && S.session === "split" && cls !== "narrow"
-        ? `<div class="bottom"><fieldset class="pane active" style="flex:1;margin:6px;display:flex;flex-direction:column;min-height:0;padding:0"><legend>${icon("message-square", 15)} Session <span class="dot"></span> <button class="btn ghost small" data-close="1">${icon("x", 14)}</button></legend>${session()}</fieldset></div>`
-        : "";
-    const qnow = nav().filter(isAnswered).length;
+    const pageW = fw - (cls === "wide" ? 256 : cls === "semi" ? 52 : 0) - right.width;
+    const nb = nextBlank();
     const status =
       cls === "narrow"
-        ? `<div class="status"><span class="btn ghost small" id="sheetbtn">${qnow}/${nav().length}</span><span class="btn primary small" data-jump="${(nav().find((q) => !isAnswered(q)) || { id: "end" }).id}">Next</span></div>`
-        : `<div class="status"><span><kbd>n p</kbd> unanswered · <kbd>s</kbd> ask the agent · ${cls === "wide" ? "<kbd>[</kbd> fold · " : ""}<kbd>]</kbd> column</span><span><span class="need">2 need you</span> · ${icon("activity", 14)} 1 running</span></div>`;
-    const phone =
-      cls === "narrow" && S.open
-        ? `<div class="phone-layer"><div class="back" data-close="1">‹ Back to ${aboutQ().id}</div>${session()}</div>`
+        ? `<div class="status"><span class="btn ghost small" data-sheet="outline">${icon("list-tree", 14)} ${nav().filter(isAnswered).length}/${nav().length}</span><span class="btn ghost small" data-sheet="notes">${icon("pencil", 14)} Notes</span><span class="btn primary small" data-jump="${nb ? nb.id : "end"}">${nb ? "Next" : "Submit"}</span></div>`
+        : `<div class="status"><span><kbd>n p</kbd> unanswered · ${cls === "wide" ? "<kbd>[</kbd> fold · " : ""}<kbd>]</kbd> column</span><span><span class="need">2 need you</span> · ${icon("activity", 14)} 1 running</span></div>`;
+    const phoneSession =
+      cls === "narrow" && S.page
+        ? `<div class="phone-layer"><div class="back" data-back="1">‹ Back to the round</div>${session()}</div>`
         : "";
-    const sheetHtml = cls === "narrow" && sheet ? `<div class="sheet">${outline()}</div>` : "";
+    const sheet =
+      cls === "narrow" && S.sheet
+        ? `<div class="scrim" data-sheet-close="1"></div><div class="sheet"><div class="sheet-head"><b>${S.sheet === "notes" ? "Notes" : "Outline"}</b><button class="btn ghost small" data-sheet-close="1">${icon("x", 14)}</button></div>${S.sheet === "notes" ? notesPane() : outline()}</div>`
+        : "";
     frame.innerHTML = `<div class="app ${cls}">
       ${leftShell(cls)}
-      <div class="work-wrap"><div class="work"><main class="page"><div class="page-in ${lookCls}">
-        ${opening(cls)}
-        ${S.check === "first" && S.look !== "plain" ? `<div style="margin-top:22px">${checkPane(true)}</div>` : ""}
-        ${questions(cls, pageW)}
-        ${settled()}
-        ${ending()}
-      </div></main>${right.html}</div>${bottom}</div>
-      ${status}${phone}${sheetHtml}</div>`;
+      <div class="work-wrap"><div class="work"><main class="page"><div class="page-in ${cls === "narrow" ? "tight" : ""}">
+        ${opening(cls, pageW)}${questions(cls)}${settled()}${ending(cls)}
+      </div></main>${right.html}</div></div>
+      ${status}${phoneSession}${sheet}</div>`;
     const page = frame.querySelector(".page");
     page.style.scrollBehavior = "auto";
     page.scrollTop = scroll;
@@ -486,16 +351,19 @@
     wire();
   }
 
-  // The question at the top: its card and its outline row marked, its sticky header marked stuck.
+  // The part at the top: its card and its outline row marked, its sticky header marked stuck.
   function spy() {
     const page = frame.querySelector(".page");
     if (!page) return;
     const top = page.getBoundingClientRect().top;
     let cur = null;
-    for (const q of nav()) {
-      const el = frame.querySelector(`[data-card="${q.id}"]`);
-      if (el && el.getBoundingClientRect().top <= top + 40) cur = q.id;
-    }
+    page.querySelectorAll("[id]").forEach((el) => {
+      if (
+        frame.querySelector(`.ol a[data-jump="${el.id}"]`) &&
+        el.getBoundingClientRect().top <= top + 40
+      )
+        cur = el.id;
+    });
     frame
       .querySelectorAll(".qcard")
       .forEach((c) => c.classList.toggle("cur", c.dataset.card === cur));
@@ -506,20 +374,26 @@
       const card = h.closest(".qcard").getBoundingClientRect();
       h.classList.toggle("stuck", card.top < top - 2 && card.bottom > top + 60);
     });
-    window.__cur = cur;
+    window.__cur = nav().some((q) => q.id === cur) ? cur : window.__cur;
   }
   function jump(id) {
     const el = frame.querySelector("#" + CSS.escape(id));
     const page = frame.querySelector(".page");
     if (!el || !page) return;
+    if (id === "ctx-today" && !todayOpen) {
+      todayOpen = true;
+      render();
+      return jump(id);
+    }
     page.scrollTop += el.getBoundingClientRect().top - page.getBoundingClientRect().top - 4;
   }
-  function openSession(qid) {
-    S.open = true;
-    S.tab = "session";
-    S.about = qid;
-    const q = nav().find((x) => x.id === qid);
-    draft = `About ${q.id} of clarifications-01.md:\n> ${q.title}\n\n`;
+  function ask(about) {
+    S.about = about;
+    draft =
+      `About ${about.id} of clarifications-01.md:\n> ${about.title}\n\n` +
+      (draft.includes("\n\n") ? draft.split("\n\n").slice(1).join("\n\n") : draft);
+    if (widthClass(frameWidth()) === "narrow") S.page = true;
+    else S.tab = "session";
     render();
     const d = frame.querySelector("#draft");
     if (d) {
@@ -529,117 +403,113 @@
   }
   function send() {
     const d = frame.querySelector("#draft");
-    const text = (d ? d.value : draft)
-      .split("\n")
+    const lines = (d ? d.value : draft).split("\n");
+    const text = lines
       .filter((l) => !l.startsWith("About ") && !l.startsWith("> "))
       .join(" ")
       .trim();
-    const q = aboutQ();
+    const about = S.about || { id: "Q2", title: "" };
     sent.push({
       who: "user",
-      quote: `About ${q.id} of clarifications-01.md:`,
-      line: q.title,
+      quote: `About ${about.id} of clarifications-01.md:`,
+      line: about.title,
       text: text || "What would you pick if you were me?",
     });
     sent.push({
       who: "agent",
-      text: `I would keep the recommended option for ${q.id}: ${md(q.options[0].why || "it is the simplest that meets the proposal.")}`,
+      text: `I would keep it as written: nothing in the discovery argues against it, and changing it now would move ${esc(about.id)} out of the proposal's scope.`,
     });
     draft = "";
     render();
   }
   function wire() {
-    frame.querySelectorAll(".opt").forEach((b) =>
-      b.addEventListener("click", () => {
-        const set = (answers[b.dataset.q] ||= new Set());
-        set.has(b.dataset.l) ? set.delete(b.dataset.l) : set.add(b.dataset.l);
+    const on = (sel, ev, fn) =>
+      frame.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, (e) => fn(el, e)));
+    on(".opt", "click", (b) => {
+      const set = (answers[b.dataset.q] ||= new Set());
+      set.has(b.dataset.l) ? set.delete(b.dataset.l) : set.add(b.dataset.l);
+      render();
+    });
+    on("textarea[data-c]", "input", (t) => (comments[t.dataset.c] = t.value));
+    on("[data-ask]", "click", (b) => {
+      const q = nav().find((x) => x.id === b.dataset.ask);
+      ask({ id: q.id, title: q.title });
+    });
+    on("[data-ask-point]", "click", (b) => {
+      const k = b.dataset.askPoint;
+      const s = R().settled;
+      const list = { c: s.check, b: s.behaviour, h: s.hood }[k[0]];
+      const [subj] = list[Number(k.slice(1))];
+      ask({ id: "a settled point", title: subj.replace(/[.,]$/, "") });
+    });
+    on("[data-jump]", "click", (a, e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const go = a.dataset.jump;
+      if (S.page || S.sheet) {
+        S.page = false;
+        S.sheet = null;
         render();
-      }),
-    );
-    frame.querySelectorAll("textarea[data-c]").forEach((t) =>
-      t.addEventListener("input", () => {
-        comments[t.dataset.c] = t.value;
-      }),
-    );
-    frame
-      .querySelectorAll("[data-ask]")
-      .forEach((b) => b.addEventListener("click", () => openSession(b.dataset.ask)));
-    frame.querySelectorAll("[data-jump]").forEach((a) =>
-      a.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (frame.querySelector(".phone-layer")) {
-          S.open = false;
-          render();
-        }
-        sheet = false;
-        if (frame.querySelector(".sheet")) render();
-        jump(a.dataset.jump);
-      }),
-    );
-    frame.querySelectorAll("[data-tab]").forEach((b) =>
-      b.addEventListener("click", () => {
-        S.open = true;
-        S.tab = b.dataset.tab;
+      }
+      jump(go);
+    });
+    on("[data-tab]", "click", (b) => {
+      S.tab = b.dataset.tab;
+      render();
+    });
+    on("[data-fold]", "click", () => {
+      todayOpen = !todayOpen;
+      render();
+    });
+    on("[data-notes]", "click", () => {
+      if (widthClass(frameWidth()) === "narrow") S.sheet = "notes";
+      else S.tab = "notes";
+      render();
+      const n = frame.querySelector("#notes");
+      if (n) n.focus();
+    });
+    on("[data-sheet]", "click", (b) => {
+      S.sheet = b.dataset.sheet;
+      render();
+    });
+    on("[data-sheet-close]", "click", () => {
+      S.sheet = null;
+      render();
+    });
+    on("[data-back]", "click", () => {
+      S.page = false;
+      render();
+    });
+    on("#notes", "input", (t) => (notes = t.value));
+    on("#save-notes", "click", () => render());
+    on("#draft", "input", (d) => (draft = d.value));
+    on("#draft", "keydown", (d, e) => e.key === "Enter" && e.ctrlKey && send());
+    on("#send", "click", send);
+    on(".drag", "pointerdown", (drag, e) => {
+      const aside = drag.parentElement;
+      const startX = e.clientX;
+      const startW = aside.getBoundingClientRect().width;
+      const move = (ev) => {
+        colWidth = Math.max(360, Math.min(720, startW + (startX - ev.clientX)));
+        aside.style.width = colWidth + "px";
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
         render();
-      }),
-    );
-    frame.querySelectorAll("[data-close]").forEach((b) =>
-      b.addEventListener("click", (e) => {
-        e.stopPropagation();
-        S.open = false;
-        S.tab = "outline";
-        render();
-      }),
-    );
-    frame.querySelectorAll("[data-toggle-outline]").forEach((b) =>
-      b.addEventListener("click", () => {
-        outlineOpen = !outlineOpen;
-        render();
-      }),
-    );
-    const sb = frame.querySelector("#sheetbtn");
-    if (sb)
-      sb.addEventListener("click", () => {
-        sheet = !sheet;
-        render();
-      });
-    const d = frame.querySelector("#draft");
-    if (d) {
-      d.addEventListener("input", () => (draft = d.value));
-      d.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && e.ctrlKey) send();
-      });
-    }
-    const sendBtn = frame.querySelector("#send");
-    if (sendBtn) sendBtn.addEventListener("click", send);
-    const drag = frame.querySelector(".drag");
-    if (drag)
-      drag.addEventListener("pointerdown", (e) => {
-        const aside = drag.parentElement;
-        const startX = e.clientX;
-        const startW = aside.getBoundingClientRect().width;
-        const move = (ev) => {
-          colWidth = Math.max(360, Math.min(720, startW + (startX - ev.clientX)));
-          aside.style.width = colWidth + "px";
-        };
-        const up = () => {
-          window.removeEventListener("pointermove", move);
-          window.removeEventListener("pointerup", up);
-          render();
-        };
-        window.addEventListener("pointermove", move);
-        window.addEventListener("pointerup", up);
-      });
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
   }
 
-  // Keys, drawn in the status line: n and p, s, Escape.
+  // n and p, as today.
   document.addEventListener("keydown", (e) => {
     if (e.target.closest && e.target.closest("textarea, select, input")) return;
     const qs = nav();
     const at = qs.findIndex((q) => q.id === window.__cur);
     if (e.key === "n") {
-      const t = qs.find((q, i) => i > at && !isAnswered(q)) || qs.find((q) => !isAnswered(q));
+      const t = qs.find((q, i) => i > at && !isAnswered(q)) || nextBlank();
       if (t) jump(t.id);
     } else if (e.key === "p") {
       const t = qs
@@ -647,22 +517,13 @@
         .reverse()
         .find((q) => !isAnswered(q));
       if (t) jump(t.id);
-    } else if (e.key === "s") {
-      e.preventDefault();
-      openSession(window.__cur || qs[0].id);
-    } else if (e.key === "Escape" && S.open) {
-      S.open = false;
-      render();
     }
   });
 
-  // ---------- the prototype's bar ----------
-  function select(key, label, opts) {
-    return `<label>${label}<select data-k="${key}">${opts
-      .map(([v, t]) => `<option value="${v}" ${S[key] === v ? "selected" : ""}>${t}</option>`)
-      .join("")}</select></label>`;
-  }
-  ctl.innerHTML = `<span class="tag">Prototype</span>
+  // ---------- the mockup's bar ----------
+  const select = (key, label, opts) =>
+    `<label>${label}<select data-k="${key}">${opts.map(([v, t]) => `<option value="${v}" ${S[key] === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>`;
+  ctl.innerHTML = `<span class="tag">Mockup</span>
     ${select("round", "Round", [
       ["merge-chats", "merge-chats 01"],
       ["layout-look", "layout-look 01 (Q4, Q5)"],
@@ -677,36 +538,7 @@
       ["1205", "1205 half"],
       ["960", "960 semi"],
       ["390", "390 phone"],
-    ])}
-    ${select("session", "Session", [
-      ["tabs", "A tabs"],
-      ["stack", "B stacked"],
-      ["split", "C bottom split"],
-    ])}
-    ${select("semi", "Half screen", [
-      ["push", "push the page"],
-      ["cover", "cover the page"],
-    ])}
-    ${select("look", "Look", [
-      ["panes", "A panes"],
-      ["gutter", "B sign column"],
-      ["plain", "C today"],
-    ])}
-    ${select("sticky", "Question", [
-      ["bar", "A sticky header"],
-      ["split", "B sticky left column"],
-      ["none", "C today"],
-    ])}
-    ${select("check", "Check these", [
-      ["pane", "A strong pane"],
-      ["first", "B before the questions"],
-      ["plain", "C today"],
-    ])}
-    ${select("lists", "Phone lists", [
-      ["tight", "tight"],
-      ["today", "today"],
-    ])}
-    <button id="toggle">Open / close the session</button>`;
+    ])}`;
   ctl.querySelectorAll("select").forEach((s) =>
     s.addEventListener("change", () => {
       S[s.dataset.k] = s.value;
@@ -714,16 +546,6 @@
       render();
     }),
   );
-  document.getElementById("toggle").addEventListener("click", () => {
-    if (S.open) {
-      S.open = false;
-      render();
-    } else openSession((window.__cur || "Q2").toString());
-  });
   window.addEventListener("resize", render);
   render();
-  if (S.open) {
-    S.tab = P.get("tab") || "session";
-    render();
-  }
 })();
