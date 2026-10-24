@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Spec and plan pages in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Approved on 2026-10-24.
 >
 > - You approve the spec and plan pages in titled panes, with decision changes as a ledger, live
 >   mockups in a "live" window, and a right column of Contents, Review, and Session.
