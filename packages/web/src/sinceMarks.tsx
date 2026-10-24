@@ -33,23 +33,23 @@ export const NO_SINCE: SinceScope = { document: undefined, marks: new Map(), tit
 export const SinceMarks = createContext<SinceScope>(NO_SINCE);
 
 const styles = stylex.create({
+  // In the theme's orange, as the "Since your review" pane, apart from the selection's yellow edge.
   label: {
-    color: colorVars["--color-text-yellow"],
+    color: colorVars["--color-text-orange"],
     display: "block",
     fontWeight: fontWeightVars["--font-weight-bold"],
-    // Focused by a jump from "Since your review", without a ring: the jump shows where it went.
-    outlineStyle: { ":focus:not(:focus-visible)": "none", default: null },
   },
-  // A row's sign, focused by a jump, without a ring.
+  // The label or a row's sign, focused by a jump from "Since your review", without a ring: the
+  // jump shows where it went.
   focus: { outlineStyle: { ":focus:not(:focus-visible)": "none", default: null } },
   marked: {
-    borderInlineStartColor: colorVars["--color-border-yellow"],
+    borderInlineStartColor: colorVars["--color-border-orange"],
     borderInlineStartStyle: "solid",
     borderInlineStartWidth: spacingVars["--spacing-0-5"],
     paddingInlineStart: spacingVars["--spacing-2"],
   },
   sign: {
-    color: colorVars["--color-text-yellow"],
+    color: colorVars["--color-text-orange"],
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
   words: { margin: 0 },
@@ -93,7 +93,7 @@ export function SinceMarked({ children, mark }: { children: ReactNode; mark: Sin
     >
       <span {...stylex.props(styles.label)}>
         <span aria-hidden="true">Δ </span>
-        <span id={labelId} tabIndex={mark.id ? -1 : undefined}>
+        <span id={labelId} tabIndex={mark.id ? -1 : undefined} {...stylex.props(styles.focus)}>
           Changed since your review
         </span>
       </span>

@@ -10,7 +10,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 import type { DataModelItems, DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Crumbs } from "../Crumbs.tsx";
@@ -276,7 +276,10 @@ function SpecLayout({
   // part.
   useHashFold(version.document, kept, true);
   const document = version.document;
-  const since = items && sinceModel(document, items, file.sinceReview);
+  const since = useMemo(
+    () => items && sinceModel(document, items, file.sinceReview),
+    [document, items, file.sinceReview],
+  );
   // The folds holding a part changed since your review open, so its mark shows.
   const folds = useForcedFolds(kept, sinceFolds(document, since, kept?.list));
   if (!items) {

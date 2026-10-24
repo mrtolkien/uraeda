@@ -32,6 +32,8 @@ const styles = stylex.create({
  * entry, if any ("US2's journey"), and the id of its first marked block, a jump's target.
  */
 export type SincePlace = {
+  /** Its first marked block's id, its order within its entry. */
+  block: number;
   entry: string | undefined;
   /** Its change's heading, its name when no entry owns it. */
   heading: string;
@@ -43,7 +45,7 @@ export type SincePlace = {
 export type SinceModel = {
   /** The marks of the blocks holding a change's lines, by block id, in the spec's tree. */
   marks: SinceScope;
-  /** The places changed or added, in the page's order. */
+  /** The places changed or added, in the core's order: the pane sorts them in the page's. */
   places: ReadonlyArray<SincePlace>;
   /** The parts removed, drawn in the pane only. */
   removed: ReadonlyArray<SinceChange>;
@@ -97,7 +99,7 @@ export function sinceModel(
     const title = entry !== undefined && isTitle(items, block);
     const id = known ? undefined : title ? entry : `since-${places.length + 1}`;
     if (id) {
-      places.push({ entry, heading: change.heading, id, within });
+      places.push({ block: block.id, entry, heading: change.heading, id, within });
     }
     if (title) {
       titles.add(entry);
@@ -197,13 +199,19 @@ export function SinceReviewPane({
 }) {
   const label = (place: SincePlace) =>
     place.within ?? entries.find((entry) => entry.id === place.entry)?.label ?? place.heading;
+  // In the page's order: by their entries' in "Contents", then by their blocks'.
+  const rank = (place: SincePlace) => {
+    const at = entries.findIndex((entry) => entry.id === place.entry);
+    return at < 0 ? entries.length : at;
+  };
+  const places = model.places.toSorted((a, b) => rank(a) - rank(b) || a.block - b.block);
   return (
     <Pane icon="uraeda:history" id="since" title={titleOf(model)} tone="attention">
       <VStack gap={3}>
         <Lead model={model} />
-        {model.places.length > 0 && (
+        {places.length > 0 && (
           <List aria-label="Places changed" density="compact">
-            {model.places.map((place) => (
+            {places.map((place) => (
               <ListItem
                 key={place.id}
                 label={label(place)}

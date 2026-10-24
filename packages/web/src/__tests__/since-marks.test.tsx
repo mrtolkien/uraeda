@@ -199,3 +199,20 @@ test("a changed paragraph holding a link keeps it", async () => {
   expect(within(mark).getByRole("link", { name: "clarifications" })).toBeTruthy();
   expect([deleted, inserted]).toEqual([[], []]);
 });
+
+/** US5: the places are in the page's order, what you approve first, not the file's. */
+test("the places follow the page's order", async () => {
+  await revised(
+    swap(
+      "| ✅        | ✅              | ⚠️        |",
+      "| ✅        | ✅              | ✅        |",
+    ),
+  );
+
+  const pane = await sincePane(4);
+  expect(
+    within(pane)
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["What you approve", "Your review, answered", "US1's journey", "US2's journey"]);
+});
