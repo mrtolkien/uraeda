@@ -74,6 +74,16 @@ async function openWorkingColumn(count: number) {
   return log;
 }
 
+/** Ends the turn, and waits for the column's composer to stop working. */
+async function endTurn() {
+  await agent.agentEmit([
+    { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
+  ]);
+  await expect
+    .poll(() => within(column()).queryByRole("button", { name: "Stop" }), LIVE)
+    .toBeNull();
+}
+
 /** The bottom of the composer's last row, its buttons and its field, in the column. */
 function composerFoot() {
   const send = within(column()).getByRole("button", { name: /^(Send|Stop)$/ });
@@ -136,12 +146,7 @@ function columnTests() {
 
   test("Back to the round keeps its place and the transcript's end", async () => {
     const log = await openWorkingColumn(80);
-    await agent.agentEmit([
-      { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
-    ]);
-    await expect
-      .poll(() => within(column()).queryByRole("button", { name: "Stop" }), LIVE)
-      .toBeNull();
+    await endTurn();
     await expect.poll(() => inView(within(log).getByText("Line 80.")), LIVE).toBe(true);
 
     // The round read at Q3.
@@ -167,6 +172,54 @@ function columnTests() {
   });
 }
 
+/**
+ * Scrolls the column to its top, and waits until it stays there three frames in a row: the end of
+ * the turn moves it to its end once more as it draws.
+ */
+async function toTop(box: HTMLElement) {
+  let still = 0;
+  await expect
+    .poll(async () => {
+      if (box.scrollTop === 0) {
+        still += 1;
+      } else {
+        box.scrollTo(0, 0);
+        still = 0;
+      }
+      await drawn();
+      return still;
+    }, LIVE)
+    .toBeGreaterThanOrEqual(3);
+}
+
+/** Tests of the column's transcript drawn in parts, from its end. */
+function tailTests() {
+  test("Show earlier messages keeps the message read in the column, the round stays", async () => {
+    const log = await openWorkingColumn(60);
+    await endTurn();
+    const box = column();
+    const drawnLines = () => within(log).queryAllByText(/^Line \d+\.$/);
+    expect(drawnLines()).toHaveLength(20);
+
+    // Read at the top of the column, at the press: the window is not scrolled.
+    await toTop(box);
+    expect(window.scrollY).toBe(0);
+    const reading = drawnLines()[0]!;
+    const place = () => reading.getBoundingClientRect().top - box.getBoundingClientRect().top;
+    const before = place();
+    await userEvent.click(within(log).getByRole("button", { name: "Show earlier messages" }));
+    await expect.poll(() => drawnLines().length, LIVE).toBe(40);
+
+    expect(drawnLines()[20]).toBe(reading);
+    // The place is put back once the earlier messages are drawn, which a busy machine may draw late.
+    await expect.poll(() => Math.abs(place() - before), LIVE).toBeLessThanOrEqual(1);
+    await drawn();
+    await drawn();
+    expect(Math.abs(place() - before)).toBeLessThanOrEqual(1);
+    expect(window.scrollY).toBe(0);
+  });
+}
+
 /** How far down the window a question's top is, from where a jump puts it. */
 function offsetTop(section: HTMLElement) {
   return (
@@ -178,9 +231,11 @@ function offsetTop(section: HTMLElement) {
 describe("on the desktop", () => {
   atSize("desktop");
   columnTests();
+  tailTests();
 });
 
 describe("semi-wide", () => {
   atSize("semi");
   columnTests();
+  tailTests();
 });
