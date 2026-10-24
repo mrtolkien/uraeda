@@ -705,14 +705,20 @@ order changes for every round.
   `packages/web/scripts/questions-page-shots.ts`
 - Modify: `specs/decisions/ui-layout.md` (**Why**, review comment C1),
   `specs/2026-10-24-questions-page/mockups/README.md` (where the stories live)
+- As built: the stories' and screenshots' features come from `addQuestionsPages` in
+  `packages/web/samples/features.ts` (`QUESTIONS_PAGES` in `samples/folders.ts`), which
+  `.storybook/fixture.ts` and `scripts/screenshots.ts` call; Storybook's fixture commits the inbox's
+  triage on `main`. The screenshots' review found the phone's open panes keeping their side borders
+  in the screenshots' server, a longhand losing to the pane's shorthand by the stylesheet's order:
+  `layout/Pane.tsx` now sets each side's border width and padding, so the props merge them.
 
-- [ ] **Step 1: Write the stories**, over the merge-chats and layout-look fixtures.
-- [ ] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
-- [ ] **Step 3: Take and review the screenshots** of the round, waiting, with Session and Notes
+- [x] **Step 1: Write the stories**, over the merge-chats and layout-look fixtures.
+- [x] **Step 2: Build them**: `nix develop -c vp run storybook:build`. Expected: PASS.
+- [x] **Step 3: Take and review the screenshots** of the round, waiting, with Session and Notes
       open, and answered, and of the triage, at both sizes and in both schemes, against the UI look,
       layout, and coherence decisions, and commit them.
-- [ ] **Step 4: Rewrite the layout decision's Why** as the current reasons for its rules, without
+- [x] **Step 4: Rewrite the layout decision's Why** as the current reasons for its rules, without
       the history of past features, and keep its rules, alternatives, and consequences as they are.
-- [ ] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
-- [ ] **Step 6: Commit**:
+- [x] **Step 5: Run the whole validation**: `nix develop -c vp run ready`. Expected: PASS.
+- [x] **Step 6: Commit**:
       `git commit -m "docs(questions-page): the stories, the screenshots, and the layout decision's Why"`.

@@ -17,7 +17,7 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { recordRun } from "uraeda-server/testing";
-import { FEATURE_PAGES, SPEC_PAGES } from "./folders.ts";
+import { FEATURE_PAGES, QUESTIONS_PAGES, SPEC_PAGES } from "./folders.ts";
 
 /** The date of every commit a dated build makes, but the feature page's own. */
 export const DATE = "2026-10-16T09:00:00Z";
@@ -67,6 +67,46 @@ export function addRoundMockup(repo: string, folder: string, answer: string) {
     [`specs/${folder}/clarifications-01.md`]: round,
     [`specs/${folder}/proposal.md`]: roundMockupFile("proposal.md"),
   });
+}
+
+/** A blank answer's line. */
+const ANSWER = "**Answer:**\n";
+
+/** A round of the questions page's spec, from `fixtures/<name>/clarifications-01.md`. */
+function questionsRound(name: string): string {
+  return readFileSync(fixture(`${name}/clarifications-01.md`), "utf8");
+}
+
+/** Adds a feature on its own branch, from `main`, without a worktree, with its round `round`. */
+function addRound(repo: string, folder: string, title: string, round: string) {
+  git(repo, "branch", folder, "main");
+  commitOnBranch(repo, folder, {
+    [`specs/${folder}/clarifications-01.md`]: round,
+    [`specs/${folder}/proposal.md`]: proposal(title),
+  });
+}
+
+/**
+ * Adds the questions page's features to `repo`: the merge-chats round waiting, its Q2 answered A,
+ * and answered, every question A with a note; and the layout-look round waiting.
+ */
+export function addQuestionsPages(repo: string) {
+  const mergeChats = questionsRound("round-merge-chats");
+  // Q2's answer line is the round's second.
+  const [q1, q2, ...rest] = mergeChats.split(ANSWER);
+  const waiting = `${q1}${ANSWER}${q2}**Answer:** A\n${rest.join(ANSWER)}`;
+  addRound(repo, QUESTIONS_PAGES.waiting, "Merge chats and changes", waiting);
+  const answered = mergeChats
+    .replace("status: awaiting-human", "status: answered")
+    .replaceAll(ANSWER, "**Answer:** A\n")
+    .replace("**Notes:**", "**Notes:** Check the spec page too.");
+  addRound(repo, QUESTIONS_PAGES.answered, "Merge chats and changes", answered);
+  addRound(
+    repo,
+    QUESTIONS_PAGES.layoutLook,
+    "Layout and look and feel",
+    questionsRound("round-layout-look"),
+  );
 }
 
 /** Adds the spec page's features to `repo`: its spec waiting for review, and approved. */

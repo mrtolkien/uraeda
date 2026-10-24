@@ -31,6 +31,10 @@ const STORYBOOK_STEPS = {
   "2026-10-17-spec-page": "human-gate",
   "2026-10-17-spec-page-approved": "discovery",
   "2026-10-17-symlinks": "done",
+  // The questions page's features, added since.
+  "2026-10-20-layout-look": "human-gate",
+  "2026-10-20-merge-chats": "human-gate",
+  "2026-10-20-merge-chats-answered": "spec",
   "2026-10-20-sidebar-resize": "human-gate",
   "2026-10-21-slow-preview": "discovery",
   "2026-10-22-broken-preview": "discovery",
