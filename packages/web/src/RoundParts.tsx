@@ -142,7 +142,10 @@ function useTodayFold(document: Document, today: ContextPart | undefined): Folds
   return folds;
 }
 
-/** A context part's pane, by its heading's anchor; a triage's free context is "Context". */
+/**
+ * A context part's pane, by its heading's anchor; a triage's free context, or the blocks before a
+ * round's first `###`, is "Context", `id="context"`.
+ */
 function ContextPane({
   document,
   folds,
@@ -164,7 +167,7 @@ function ContextPane({
           : undefined
       }
       icon={anchor === undefined ? undefined : CONTEXT_ICONS[anchor]}
-      id={anchor}
+      id={anchor ?? "context"}
       isOpenOnPhone
       title={part.title || "Context"}
     >
