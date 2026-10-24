@@ -56,6 +56,12 @@ as they are.
 - MDN on [IndexedDB transactions](https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction),
   for what a reload does to a save.
 
+## Check these
+
+- **The slow save on completion** is left out: completing a task rewrites all 5,000 tasks in about
+  300 ms. It slows every completion, and fixing it changes how tasks are stored, beyond your report,
+  so it is noted in the inbox.
+
 ## Q1: Should the change also save a new task at once?
 
 The one-second wait has a second effect. A task created less than a second before a reload is never
@@ -102,12 +108,6 @@ message in the list.
 **Answer:**
 
 ## Settled without the human
-
-### Check these
-
-- **The slow save on completion** is left out: completing a task rewrites all 5,000 tasks in about
-  300 ms. It slows every completion, and fixing it changes how tasks are stored, beyond your report,
-  so it is noted in the inbox.
 
 ### Behaviour
 

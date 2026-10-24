@@ -19,6 +19,7 @@ import {
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
 const ROUND = `specs/${FOLDER}/clarifications-01.md`;
+const CHECK = "## Check these";
 const SETTLED = "## Settled without the human";
 const UNDO = "Undoing a completion";
 const DELETE = "Deleting a repeating task";
@@ -26,22 +27,22 @@ const COMMENT = "Keep the undo, but say what it restored.";
 
 today("2026-10-11");
 
+/** A fixture round's points: its `## Check these` section, before Q1, and its settled section. */
+function pointsOf(path: string) {
+  const round = readFileSync(fixture(path), "utf8");
+  return {
+    check: round.slice(round.indexOf(CHECK), round.indexOf("## Q1:")),
+    settled: round.slice(round.indexOf(SETTLED), round.indexOf("**Notes:**")),
+  };
+}
+
 /** The recurring-tasks example's settled points, as its answered round holds them. */
-const recurringSettled = (() => {
-  const round = readFileSync(
-    fixture(
-      "repo/branches/2026-10-06-recurring-tasks/specs/2026-10-06-recurring-tasks/clarifications-01.md",
-    ),
-    "utf8",
-  );
-  return round.slice(round.indexOf(SETTLED), round.indexOf("**Notes:**"));
-})();
+const recurringPoints = pointsOf(
+  "repo/branches/2026-10-06-recurring-tasks/specs/2026-10-06-recurring-tasks/clarifications-01.md",
+);
 
 /** The round mockup's settled points: 2 to check, 3 of behaviour, and 2 under the hood. */
-const groupedSettled = (() => {
-  const round = readFileSync(fixture("round-mockup/clarifications-01.md"), "utf8");
-  return round.slice(round.indexOf(SETTLED), round.indexOf("**Notes:**"));
-})();
+const groupedPoints = pointsOf("round-mockup/clarifications-01.md");
 const HOOD = "Next dates are computed by date-fns";
 
 /** The round's file in the feature's worktree. */
@@ -58,21 +59,24 @@ function notesOnDisk(repo: string) {
 
 /**
  * A repository whose round, in the feature's worktree, settles the recurring-tasks example's
- * points, with these notes and these answers.
+ * points, its points to check before Q1, with these notes and these answers.
  */
 function round({
   answers = {},
+  check = recurringPoints.check,
   notes = "",
-  settled = recurringSettled,
+  settled = recurringPoints.settled,
 }: {
   answers?: Record<string, string>;
+  check?: string;
   notes?: string;
   settled?: string;
 }) {
   const repo = fixtureRepo();
   git(repo, "worktree", "add", "--quiet", join(".worktrees", FOLDER), FOLDER);
   let all = text(repo);
-  all = `${all.slice(0, all.indexOf(SETTLED))}${settled}**Notes:**${notes ? ` ${notes}` : ""}\n`;
+  const q1 = all.indexOf("## Q1:");
+  all = `${all.slice(0, q1)}${check}${all.slice(q1, all.indexOf(SETTLED))}${settled}**Notes:**${notes ? ` ${notes}` : ""}\n`;
   for (const [id, answer] of Object.entries(answers)) {
     const lines = all.split("\n");
     const heading = lines.findIndex((line) => line.startsWith(`## ${id}:`));
@@ -119,7 +123,7 @@ function beforeSettled() {
 /** The spec's SettledGroups: a card on a wide screen, after the questions with no band. */
 test("on a wide screen, the settled card follows the questions without a band", async () => {
   atWidth(1440);
-  await renderPage(PAGE, round({ settled: groupedSettled }));
+  await renderPage(PAGE, round(groupedPoints));
   await point(UNDO);
 
   expect(beforeSettled().querySelector("#Q3")).toBeTruthy();
@@ -128,7 +132,7 @@ test("on a wide screen, the settled card follows the questions without a band", 
 /** The spec's SettledGroups: on the phone, a band, then the points with no card. */
 test("on the phone, a band comes before the settled points", async () => {
   atWidth(402);
-  await renderPage(PAGE, round({ settled: groupedSettled }));
+  await renderPage(PAGE, round(groupedPoints));
   await point(UNDO);
 
   const band = beforeSettled();
@@ -140,7 +144,7 @@ test("on the phone, a band comes before the settled points", async () => {
 /** A round that settled nothing has no settled section, so no band before it either. */
 test("on the phone, a round with no settled points draws no band after its questions", async () => {
   atWidth(402);
-  await renderPage(PAGE, round({ settled: "" }));
+  await renderPage(PAGE, round({ check: "", settled: "" }));
   await screen.findByText("Which repositories does the UI open now?");
 
   let last: HTMLElement = document.getElementById("Q3") as HTMLElement;
@@ -153,7 +157,7 @@ test("on the phone, a round with no settled points draws no band after its quest
 
 /** Redesign US4.1: the groups, "Under the hood" folded with the count of its points. */
 test("the settled points show in their groups, Under the hood folded", async () => {
-  await renderPage(PAGE, round({ settled: groupedSettled }));
+  await renderPage(PAGE, round(groupedPoints));
   await point(UNDO);
 
   expect(screen.getByRole("heading", { level: 2, name: "Settled without you" })).toBeTruthy();
@@ -170,7 +174,7 @@ test("the settled points show in their groups, Under the hood folded", async () 
 /** One point under the hood reads "Show the point", not "Show the 1 points". */
 test("a single point under the hood is folded as one point", async () => {
   const settled = `${SETTLED}\n\n### Under the hood\n\n- **${HOOD}**, in the date helpers.\n\n`;
-  await renderPage(PAGE, round({ settled }));
+  await renderPage(PAGE, round({ check: "", settled }));
 
   expect(await screen.findByRole("button", { name: "Show the point" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /^Show the 1 points$/ })).toBeNull();
@@ -178,7 +182,7 @@ test("a single point under the hood is folded as one point", async () => {
 
 /** Redesign US4.2: "Under the hood" open stays open after a reload, Fold closing it. */
 test("Under the hood opened stays open after a reload", async () => {
-  const repo = round({ settled: groupedSettled });
+  const repo = round(groupedPoints);
   await renderPage(PAGE, repo);
   await click(await screen.findByRole("button", { name: "Show the 2 points" }));
   expect(await point(HOOD)).toBeTruthy();
@@ -194,7 +198,7 @@ test("Under the hood opened stays open after a reload", async () => {
 
 /** Redesign review focus 6: an answer saved reads the round again, the fold kept open. */
 test("Under the hood stays open when an answer is saved", async () => {
-  const repo = round({ settled: groupedSettled });
+  const repo = round(groupedPoints);
   await renderPage(PAGE, repo);
   await click(await screen.findByRole("button", { name: "Show the 2 points" }));
   await point(HOOD);
@@ -210,7 +214,7 @@ test("Under the hood stays open when an answer is saved", async () => {
 
 /** Redesign US4.3: a point under the hood takes a comment, as every point does. */
 test("a comment on a point under the hood is written at the end of the notes", async () => {
-  const repo = round({ settled: groupedSettled });
+  const repo = round(groupedPoints);
   await renderPage(PAGE, repo);
   await click(await screen.findByRole("button", { name: "Show the 2 points" }));
 

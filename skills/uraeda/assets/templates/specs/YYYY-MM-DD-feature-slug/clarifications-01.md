@@ -37,6 +37,12 @@ up.]
 - [The code, the products, and the documentation read.] The full investigation is in
   [discovery](discovery-01.md).
 
+## Check these
+
+- [Optional: the points to check, like a scope cut or a choice beyond the proposal.] **[The point]**
+  [what you chose, as a sentence that continues the point, and why]. See
+  [discovery](discovery-01.md#topic).
+
 ## Q1: [Question]
 
 [As much context as deciding needs: what exists today and how others do it, with links or quotes of
@@ -75,11 +81,7 @@ Why it matters: [...].
 
 ## Settled without the human
 
-### Check these
-
-- [Optional: the points to check, like a scope cut or a choice beyond the proposal.] **[The point]**
-  [what you chose, as a sentence that continues the point, and why]. See
-  [discovery](discovery-01.md#topic).
+[Optional: left out when both groups below are empty.]
 
 ### Behaviour
 

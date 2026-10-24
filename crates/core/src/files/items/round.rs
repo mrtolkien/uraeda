@@ -2,11 +2,11 @@
 //! settled without the human, and the notes.
 
 use super::{
-    Choice, ContextPart, QuestionItem, RoundItems, SettledComment, SettledGroup, SettledKind,
-    SettledPoint, headings,
+    Choice, ContextPart, QuestionItem, RoundItems, RoundVerdict, SettledComment, SettledGroup,
+    SettledKind, SettledPoint, VerdictKind, headings, section,
 };
 use crate::files::clarifications::{self, Applicability};
-use crate::files::document::{Block, BlockKind, Document, ItemMarker, plain};
+use crate::files::document::{Block, BlockKind, Document, ItemMarker, Span, plain};
 use crate::files::frontmatter;
 
 /// The parts of the level-2 section titled `title`, in order: the blocks before its first `###`
@@ -14,9 +14,7 @@ use crate::files::frontmatter;
 /// blocks. Deeper headings are left out, as `section` leaves them. Only top-level headings delimit
 /// the section and its parts: one in a quote or a callout, like a source's, is the quote's.
 fn parts(doc: &Document, title: &str) -> Vec<(Option<usize>, Vec<u32>)> {
-    let Some((start, _, _)) = headings(doc).into_iter().find(|(index, level, text)| {
-        *level == 2 && text == title && doc.blocks[*index].parent.is_none()
-    }) else {
+    let Some(start) = top_section(doc, title) else {
         return Vec::new();
     };
     let mut parts: Vec<(Option<usize>, Vec<u32>)> = vec![(None, Vec::new())];
@@ -40,6 +38,16 @@ fn parts(doc: &Document, title: &str) -> Vec<(Option<usize>, Vec<u32>)> {
     parts
 }
 
+/// The index in blocks of the top-level `##` heading titled `title`, outside quotes and callouts.
+fn top_section(doc: &Document, title: &str) -> Option<usize> {
+    headings(doc)
+        .into_iter()
+        .find(|(index, level, text)| {
+            *level == 2 && text == title && doc.blocks[*index].parent.is_none()
+        })
+        .map(|(index, _, _)| index)
+}
+
 /// The round's context parts: its `###` sub-headings, or the triage's one free part.
 fn context_parts(doc: &Document) -> Vec<ContextPart> {
     parts(doc, "Context")
@@ -52,14 +60,17 @@ fn context_parts(doc: &Document) -> Vec<ContextPart> {
         .collect()
 }
 
-/// The parts of the settled section, read once: the blocks before its first `###` sub-heading when
-/// there are some, then each sub-heading's index in blocks and its blocks, all before the
-/// `**Notes:**` line.
+/// The parts of the settled points, read once: the `## Check these` section, then the settled
+/// section's blocks before its first `###` sub-heading when there are some, then each sub-heading.
+/// Each is its heading's index in blocks and its top-level blocks, all before the `**Notes:**`
+/// line.
 type SettledParts = Vec<(Option<usize>, Vec<u32>)>;
 
 fn settled_parts(doc: &Document, notes_line: usize) -> SettledParts {
-    parts(doc, "Settled without the human")
+    let check = top_section(doc, "Check these").map(|index| (Some(index), section(doc, index, 2)));
+    check
         .into_iter()
+        .chain(parts(doc, "Settled without the human"))
         .map(|(heading, blocks)| {
             let blocks = blocks
                 .into_iter()
@@ -70,17 +81,18 @@ fn settled_parts(doc: &Document, notes_line: usize) -> SettledParts {
         .collect()
 }
 
-/// The settled groups by their sub-heading. An unknown sub-heading, which `ura check` reports,
-/// makes no group.
+/// The settled groups by their heading: `## Check these`, then the settled section's
+/// `### Behaviour` and `### Under the hood`. An unknown sub-heading, which `ura check` reports, like
+/// the old format's `### Check these`, makes no group.
 fn settled_groups(doc: &Document, parts: &SettledParts) -> Vec<SettledGroup> {
     parts
         .iter()
         .filter_map(|(heading, blocks)| {
             let heading = &doc.blocks[(*heading)?];
-            let kind = match plain(&heading.spans).as_str() {
-                "Check these" => SettledKind::Check,
-                "Behaviour" => SettledKind::Behaviour,
-                "Under the hood" => SettledKind::Hood,
+            let kind = match (heading.level, plain(&heading.spans).as_str()) {
+                (Some(2), "Check these") => SettledKind::Check,
+                (Some(3), "Behaviour") => SettledKind::Behaviour,
+                (Some(3), "Under the hood") => SettledKind::Hood,
                 _ => return None,
             };
             Some(SettledGroup {
@@ -132,6 +144,68 @@ fn split(notes: &str, points: &[SettledPoint]) -> (String, Vec<SettledComment>) 
         })
         .collect();
     (free, comments)
+}
+
+/// The verdict of the round's block: its first list item starting "Verdict: ", by the phrase after
+/// it, with the item's spans after the phrase and its ":" or ",", trimmed.
+fn verdict(doc: &Document, block: u32) -> Option<RoundVerdict> {
+    const PHRASES: [(&str, VerdictKind); 3] = [
+        ("worth building as proposed", VerdictKind::AsProposed),
+        ("worth building, with changes", VerdictKind::WithChanges),
+        ("not as proposed", VerdictKind::NotAsProposed),
+    ];
+    let item = doc
+        .children(block)
+        .filter(|b| b.kind == BlockKind::List)
+        .flat_map(|list| doc.children(list.id))
+        .find(|item| plain(&item.spans).starts_with("Verdict: "))?;
+    let text = plain(&item.spans);
+    let rest = &text["Verdict: ".len()..];
+    let (phrase, kind) = PHRASES
+        .iter()
+        .find(|(phrase, _)| rest.starts_with(phrase))?;
+    let mark = usize::from(rest[phrase.len()..].starts_with([':', ',']));
+    let skip = "Verdict: ".len() + phrase.len() + mark;
+    Some(RoundVerdict {
+        kind: *kind,
+        item: item.id,
+        text: trimmed(drop_start(&item.spans, skip)),
+    })
+}
+
+/// Spans without their first `count` bytes of text, which end on a character boundary.
+fn drop_start(spans: &[Span], mut count: usize) -> Vec<Span> {
+    let mut rest = Vec::new();
+    for span in spans {
+        if count >= span.text.len() {
+            count -= span.text.len();
+            continue;
+        }
+        let mut span = span.clone();
+        span.text = span.text[count..].to_string();
+        count = 0;
+        rest.push(span);
+    }
+    rest
+}
+
+/// Spans without the white space at their start and end, and without the spans left empty.
+fn trimmed(mut spans: Vec<Span>) -> Vec<Span> {
+    while let Some(first) = spans.first_mut() {
+        first.text = first.text.trim_start().to_string();
+        if !first.text.is_empty() {
+            break;
+        }
+        spans.remove(0);
+    }
+    while let Some(last) = spans.last_mut() {
+        last.text = last.text.trim_end().to_string();
+        if !last.text.is_empty() {
+            break;
+        }
+        spans.pop();
+    }
+    spans
 }
 
 /// The first strong span of an item, when the item's text starts with it.
@@ -187,8 +261,12 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
             Some(Applicability::No) => "no",
             _ => "yes",
         };
-        let (context, why, options) =
-            question_blocks(doc, &doc.blocks[*index + 1..end_index], answer_line);
+        let QuestionBlocks {
+            context,
+            why,
+            example,
+            options,
+        } = question_blocks(doc, &doc.blocks[*index + 1..end_index], answer_line);
         let parent_id = parent.as_ref().map(|(p, _)| p.clone());
         questions.push(QuestionItem {
             id,
@@ -200,6 +278,7 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
             heading_block: heading.id,
             context,
             why,
+            example,
             options,
             answer,
             letters: picked,
@@ -219,6 +298,7 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
         .unzip();
     RoundItems {
         status,
+        verdict: block.and_then(|block| verdict(doc, block)),
         block,
         context: context_parts(doc),
         questions,
@@ -231,15 +311,21 @@ pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
 }
 
 /// A question's top-level blocks before its answer, split into its context, its "Why it matters"
-/// paragraph, and its options.
-fn question_blocks(
-    doc: &Document,
-    blocks: &[Block],
-    answer_line: u32,
-) -> (Vec<u32>, Option<u32>, Vec<Choice>) {
-    let mut context = Vec::new();
-    let mut why = None;
-    let mut options = Vec::new();
+/// and "Example:" paragraphs, and its options.
+struct QuestionBlocks {
+    context: Vec<u32>,
+    why: Option<u32>,
+    example: Option<u32>,
+    options: Vec<Choice>,
+}
+
+fn question_blocks(doc: &Document, blocks: &[Block], answer_line: u32) -> QuestionBlocks {
+    let mut parts = QuestionBlocks {
+        context: Vec::new(),
+        why: None,
+        example: None,
+        options: Vec::new(),
+    };
     for block in blocks {
         if block.parent.is_some() || block.kind == BlockKind::Heading {
             continue;
@@ -248,18 +334,23 @@ fn question_blocks(
             continue;
         }
         let choices = choices(doc, block);
-        if why.is_none()
-            && block.kind == BlockKind::Paragraph
-            && plain(&block.spans).starts_with("Why it matters")
-        {
-            why = Some(block.id);
+        let paragraph = (block.kind == BlockKind::Paragraph).then(|| plain(&block.spans));
+        let starts = |start: &str| {
+            paragraph
+                .as_ref()
+                .is_some_and(|text| text.starts_with(start))
+        };
+        if parts.why.is_none() && starts("Why it matters") {
+            parts.why = Some(block.id);
+        } else if parts.example.is_none() && starts("Example:") {
+            parts.example = Some(block.id);
         } else if choices.is_empty() {
-            context.push(block.id);
+            parts.context.push(block.id);
         } else {
-            options.extend(choices);
+            parts.options.extend(choices);
         }
     }
-    (context, why, options)
+    parts
 }
 
 /// The options of a list whose items are `- **A. ...**`, or nothing for any other block.

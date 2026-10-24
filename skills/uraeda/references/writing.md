@@ -68,8 +68,9 @@ shows a change's round waiting for the human. In order, a round holds:
 
 - the `> [!IMPORTANT]` block, right after the title;
 - `## Context`, with its parts under `###` sub-headings;
+- `## Check these`, the settled points to check, without sub-headings, left out when empty;
 - the questions, `## Q1: ...`, each followed by its follow-ups, `### Q1.B: ...`;
-- `## Settled without the human`, with its points under `###` groups;
+- `## Settled without the human`, with its points under `###` groups, left out when empty;
 - the line `**Notes:**`, left empty for the human.
 
 The inbox triage and [the decisions check](decisions-check.md) follow the same rules, with two
@@ -77,9 +78,9 @@ exceptions. Their Context is free text without parts. They have no settled point
 
 ### The notes
 
-A comment on one settled point is a bullet at the end of the notes, starting with that point's bold
-subject. Its further lines are indented by two spaces. The web UI writes comments on settled points
-this way, and a human can write them by hand.
+A comment on one settled point, of Check these or of the settled section, is a bullet at the end of
+the notes, starting with that point's bold subject. Its further lines are indented by two spaces.
+The web UI writes comments on settled points this way, and a human can write them by hand.
 
 ### The block
 
@@ -169,16 +170,19 @@ this way, and a human can write them by hand.
 
 ### Settled without the human
 
-24. **Settled points sit in three groups, in this order, each left out when empty.** The human
-    checks the first group closely, reads the second, and skims the third. Every point sits in one
-    group: a point outside a group fails `ura check`.
-    - `### Check these`: what the human would want to object to. A scope cut, a choice beyond the
-      proposal, an assumption that could be wrong.
-    - `### Behaviour`: what users will notice, settled within the constitution and the decisions.
-    - `### Under the hood`: choices in the code only, which users never see.
+24. **Settled points sit in three groups, each left out when empty.** The human checks the first
+    group closely, before the questions, reads the second, and skims the third, at the end. Every
+    point sits in one group: a point outside a group fails `ura check`.
+    - `## Check these`, its own section between the Context and Q1: what the human would want to
+      object to. A scope cut, a choice beyond the proposal, an assumption that could be wrong.
+    - `### Behaviour`, under `## Settled without the human`: what users will notice, settled within
+      the constitution and the decisions.
+    - `### Under the hood`, under `## Settled without the human`: choices in the code only, which
+      users never see. The section is left out when both groups are empty.
 25. **A settled point starts with its bold subject**, continued by what was chosen and why, then a
     link to its source: `- **Undoing a completion** puts back what completing changed. See ...`.
-    Subjects are unique in the round: the human comments on a point by its subject.
+    Subjects are unique in the round, the points to check included: the human comments on a point by
+    its subject.
 
 ## A spec
 
@@ -244,7 +248,7 @@ Before committing a document for the human, read it again as its reader, and fix
    no answer cited by its number alone.
 4. **Padding.** Every sentence changes how the reader decides or what they check.
 5. **The parts.** The Context has its four parts, "Since the last round" first from round 02, and
-   every settled point sits in its group.
+   every settled point sits in its group, the points to check before the questions.
 
 With `ura`, run `ura check` last: it reports the parts that are missing as errors, and what drifts
 from the limits as warnings.

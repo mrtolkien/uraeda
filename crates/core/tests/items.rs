@@ -1,8 +1,9 @@
 mod common;
 
+use uraeda_core::files::clarifications::round_notes;
 use uraeda_core::files::clarifications::{compose_answer, letters, split_answer};
 use uraeda_core::files::document::{self, plain};
-use uraeda_core::files::items::{Items, SettledKind, SpecItems, items};
+use uraeda_core::files::items::{Items, SettledKind, SpecItems, VerdictKind, items};
 use uraeda_core::files::review::{edit_comment, remove_comment};
 
 const EXAMPLE: &str = "skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks";
@@ -766,8 +767,8 @@ fn the_triage_context_is_one_free_part() {
 fn a_subject_repeated_across_groups_takes_its_comment_on_the_first() {
     let text = format!(
         "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
-## Settled without the human\n\n### Check these\n\n- **Same subject** first.\n\n\
-### Under the hood\n\n- **Same subject** second.\n- **Other** point.\n\n\
+## Check these\n\n- **Same subject** first.\n\n\
+## Settled without the human\n\n### Under the hood\n\n- **Same subject** second.\n- **Other** point.\n\n\
 **Notes:**\n\n- **Same subject**: A comment.\n"
     );
     let (round, doc) = round_of("clarifications-01.md", &text);
@@ -843,4 +844,166 @@ fn a_scenario_has_its_steps() {
             ("When".into(), "b".into()),
         ]
     );
+}
+
+fn fixture_round(
+    path: &str,
+    notes: &str,
+) -> (uraeda_core::files::items::RoundItems, document::Document) {
+    let text = std::fs::read_to_string(common::fixture(path)).unwrap() + notes;
+    round_of("clarifications-01.md", &text)
+}
+
+/// The points of a settled group, by their subject.
+fn group_subjects(
+    round: &uraeda_core::files::items::RoundItems,
+    doc: &document::Document,
+    group: &uraeda_core::files::items::SettledGroup,
+) -> Vec<String> {
+    round
+        .settled_points
+        .iter()
+        .filter(|p| {
+            group
+                .blocks
+                .iter()
+                .any(|&b| doc.children(b).any(|i| i.id == p.block))
+        })
+        .map(|p| p.subject.clone())
+        .collect()
+}
+
+/// `## Check these`, before the questions, is the first settled group, its heading the section's;
+/// Behaviour and Under the hood follow from the settled section.
+#[test]
+fn the_points_to_check_come_first() {
+    let (round, doc) = fixture_round("round-merge-chats/clarifications-01.md", "");
+
+    let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
+    assert_eq!(
+        kinds,
+        [
+            SettledKind::Check,
+            SettledKind::Behaviour,
+            SettledKind::Hood
+        ]
+    );
+    let check = &round.settled_groups[0];
+    assert_eq!(doc.blocks[check.heading as usize].level, Some(2));
+    assert_eq!(doc.text(check.heading), "Check these");
+    assert_eq!(
+        group_subjects(&round, &doc, check),
+        strings(&["The change's proposal", "The light flow stays."])
+    );
+    let counts: Vec<usize> = round
+        .settled_groups
+        .iter()
+        .map(|g| group_subjects(&round, &doc, g).len())
+        .collect();
+    assert_eq!(counts, [2, 3, 3]);
+}
+
+/// A `### Check these` under the settled section, the old format, makes no group.
+#[test]
+fn check_these_under_settled_makes_no_group() {
+    let text = format!(
+        "---\nstatus: awaiting-human\n---\n\n# Clarifications, round 01: Title\n\n{PARTS}\n\
+## Settled without the human\n\n### Check these\n\n- **Old** point.\n\n\
+### Behaviour\n\n- **Kept** point.\n\n**Notes:**\n"
+    );
+    let (round, _) = round_of("clarifications-01.md", &text);
+    let kinds: Vec<SettledKind> = round.settled_groups.iter().map(|g| g.kind).collect();
+    assert_eq!(kinds, [SettledKind::Behaviour]);
+}
+
+/// The block's verdict: its first item starting "Verdict: ", by its phrase, and its text after the
+/// phrase and its ":" or ",".
+#[test]
+fn the_block_has_its_verdict() {
+    let (round, doc) = fixture_round("round-merge-chats/clarifications-01.md", "");
+    let verdict = round.verdict.unwrap();
+    assert_eq!(verdict.kind, VerdictKind::WithChanges);
+    let first_item = doc
+        .blocks
+        .iter()
+        .find(|b| b.kind == document::BlockKind::Item)
+        .unwrap();
+    assert_eq!(verdict.item, first_item.id);
+    assert!(
+        plain(&verdict.text).starts_with("a chat cannot become a change today"),
+        "{}",
+        plain(&verdict.text)
+    );
+
+    let text = common::repository_file("specs/2026-10-24-questions-page/clarifications-01.md");
+    let (round, _) = round_of("clarifications-01.md", &text);
+    let verdict = round.verdict.unwrap();
+    assert_eq!(verdict.kind, VerdictKind::AsProposed);
+    assert!(plain(&verdict.text).starts_with("every part exists"));
+
+    let (round, _) = round_of(
+        "clarifications-01.md",
+        "# Clarifications, round 01: X\n\n> [!IMPORTANT]\n>\n> - Verdict: not as proposed, too big.\n",
+    );
+    let verdict = round.verdict.unwrap();
+    assert_eq!(verdict.kind, VerdictKind::NotAsProposed);
+    assert_eq!(plain(&verdict.text), "too big.");
+}
+
+/// A question's "Example:" paragraph stands apart from its context, drawn once.
+#[test]
+fn a_question_has_its_example() {
+    let (round, doc) = fixture_round("round-layout-look/clarifications-01.md", "");
+    let q4 = round.questions.iter().find(|q| q.id == "Q4").unwrap();
+    let example = q4.example.unwrap();
+    assert!(
+        doc.text(example)
+            .starts_with("Example: you are on a question")
+    );
+    assert!(!q4.context.contains(&example));
+    let q5 = round.questions.iter().find(|q| q.id == "Q5").unwrap();
+    assert_eq!(q5.example, None);
+}
+
+/// Review focus 3: a comment on a point of `## Check these` that shares its subject with no other
+/// point is that point's comment, not a free note.
+#[test]
+fn comment_on_a_point_to_check() {
+    let (round, doc) = fixture_round(
+        "round-merge-chats/clarifications-01.md",
+        "\n- **The light flow stays.**: Say so in the PR.\n",
+    );
+    let check = &round.settled_groups[0];
+    let point = round
+        .settled_points
+        .iter()
+        .find(|p| p.subject == "The light flow stays.")
+        .unwrap();
+    assert!(
+        check
+            .blocks
+            .iter()
+            .any(|&b| doc.children(b).any(|i| i.id == point.block))
+    );
+    let comments: Vec<(&str, u32, &str)> = round
+        .settled_comments
+        .iter()
+        .map(|c| (c.subject.as_str(), c.point, c.text.as_str()))
+        .collect();
+    assert_eq!(
+        comments,
+        [("The light flow stays.", point.block, "Say so in the PR.")]
+    );
+    assert_eq!(round.notes.as_deref(), Some(""));
+
+    let text = std::fs::read_to_string(common::fixture("round-merge-chats/clarifications-01.md"))
+        .unwrap()
+        + "\n- **The light flow stays.**: Say so in the PR.\n";
+    let notes = round_notes(&text).unwrap();
+    assert!(
+        notes
+            .subjects
+            .contains(&"The light flow stays.".to_string())
+    );
+    assert_eq!(notes.free, "");
 }

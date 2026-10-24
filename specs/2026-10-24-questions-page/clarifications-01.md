@@ -69,6 +69,15 @@ reuses the session's place. What a round asks, and how answers save, stay as the
   layout-look round, described in [its README](mockups/README.md).
 - The full investigation is in [discovery](discovery-01.md). Each question links its topic.
 
+## Check these
+
+- **Lists on the phone** take a hanging indent of about one character, with a dash, instead of 29
+  px. A line gains about 3 characters, and 5 inside the block. The prototype's "Phone lists" switch
+  compares both. See [discovery](discovery-01.md#lists-on-the-phone).
+- **The session on the phone** stays its own page, as the layout decision asks of views on narrow
+  screens. It opens with the question quoted, and Back returns to the round at its place. See
+  [discovery](discovery-01.md#needs-no-choice).
+
 ## Q1: Where should the session open beside the round?
 
 Example: you are on "Where does a new chat work?" in the merge-chats round, at 1440 px. You ask the
@@ -319,15 +328,6 @@ Why it matters: it sets what the session's quote can hold, and how many buttons 
 **Answer:** A
 
 ## Settled without the human
-
-### Check these
-
-- **Lists on the phone** take a hanging indent of about one character, with a dash, instead of 29
-  px. A line gains about 3 characters, and 5 inside the block. The prototype's "Phone lists" switch
-  compares both. See [discovery](discovery-01.md#lists-on-the-phone).
-- **The session on the phone** stays its own page, as the layout decision asks of views on narrow
-  screens. It opens with the question quoted, and Back returns to the round at its place. See
-  [discovery](discovery-01.md#needs-no-choice).
 
 ### Behaviour
 

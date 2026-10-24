@@ -69,10 +69,10 @@ the plan, the rulings, and the review files.
   answer in a sentence: the letters and what they chose, or the human's words, shortened, quoted
   where they are the decision. A follow-up, `#### Q2.B: ...`, only when it applied. The human's
   notes on the settled points, under `#### Notes`. When the record quotes a round's Context or its
-  settled points, they go under `#### Context` or `#### Settled without the human`, their
-  sub-headings at level 5: `##### Goal`, `##### Check these`. A level-3 or level-4 sub-heading there
-  would read as a round or a question. A change's record keeps its rounds' questions the same way,
-  and has none when it asked nothing.
+  settled points, they go under `#### Context`, `#### Check these`, or
+  `#### Settled without the human`, their sub-headings at level 5: `##### Goal`, `##### Behaviour`.
+  A level-3 or level-4 sub-heading there would read as a round or a question. A change's record
+  keeps its rounds' questions the same way, and has none when it asked nothing.
 - **Decisions**: each decision the feature made or changed, linked, in a line.
 - **Changes after approval**: the rulings that change behaviour, the spec's revisions after its
   approval, and the changes asked on the pull request. Say each change in words, never by its
