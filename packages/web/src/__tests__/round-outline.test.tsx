@@ -1,18 +1,12 @@
 // Questions page US2: the outline lists the whole round, every part of it in the page's order, and
 // `n` goes to the next blank question, follow-ups included. US4 more 2: a round without points to
 // check has no "Check these" row.
-//
-// Until the round page draws the outline in its column, the test draws it beside the page, over
-// the round the core reads from the same repository: the page draws the parts it jumps to. The page
-// is drawn on the phone, where its own navigation has no `n` and `p` (R16).
+// The outline is the round page's own: in its column's Outline tab on wide screens, in a sheet
+// from the status line on the phone.
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { useState } from "react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
-import { readFile, readRound } from "uraeda-binding";
-import type { NavQuestion } from "../roundJump.ts";
-import { OutlineSheet, RoundOutline } from "../RoundOutline.tsx";
 import { atWidth, click, fixture, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
@@ -23,11 +17,6 @@ today("2026-10-11");
 
 /** The merge-chats round 01, in the new format: 2 points to check, 3 of behaviour, 3 under the hood. */
 const MERGE_CHATS = readFileSync(fixture("round-merge-chats/clarifications-01.md"), "utf8");
-
-/**
- * The round's questions in the page's order, as the fixture has them: Q2.A follows Q2, once asked.
- */
-const ASKED = ["Q1", "Q2", "Q2.A", "Q3", "Q4", "Q5", "Q6", "Q7"];
 
 /** The round's text without its `## Check these` section. */
 const withoutCheck = (text: string) =>
@@ -47,39 +36,11 @@ function round(text: string, answers: Record<string, string> = {}) {
   return repo;
 }
 
-/** The round's page on the phone, and the round as the core reads it, with its questions. */
-async function roundPage(repo: string) {
-  atWidth(402);
+/** The round's page on a wide screen, and its outline in the column. */
+async function outline(repo: string) {
   await renderPage(PAGE, repo);
   await screen.findAllByText(/Who may move a chat up to a change/);
-  const file = await readFile(repo, FOLDER, NAME);
-  const round = file.current.items.clarifications!;
-  const questions: Array<NavQuestion> = ASKED.flatMap((id) =>
-    round.questions
-      .filter((q) => q.id === id && q.asked)
-      .map((q) => ({
-        answered: q.answer.trim() !== "",
-        id: q.id,
-        level: q.parent ? 2 : 1,
-        title: q.title,
-      })),
-  );
-  return { document: file.current.document, questions, round };
-}
-
-/** The round's page on the phone, and its outline drawn beside it. */
-async function outline(repo: string) {
-  const parts = await roundPage(repo);
-  await act(async () => {
-    render(<RoundOutline isActive onSubmit={() => {}} {...parts} />);
-  });
   return screen.getByRole("navigation", { name: "Outline" });
-}
-
-/** The phone's outline sheet over the round's page, open until a row closes it. */
-function Sheet(parts: Omit<Parameters<typeof OutlineSheet>[0], "isOpen" | "onClose">) {
-  const [isOpen, setOpen] = useState(true);
-  return <OutlineSheet isOpen={isOpen} onClose={() => setOpen(false)} {...parts} />;
 }
 
 /** The outline's rows, by their text. */
@@ -157,10 +118,9 @@ test("no Check these without points (US4 more 2)", async () => {
 });
 
 test("on the phone, the outline's sheet closes on a tap, then goes there (US2 more 3)", async () => {
-  const parts = await roundPage(round(MERGE_CHATS, { Q1: "A" }));
-  await act(async () => {
-    render(<Sheet {...parts} />);
-  });
+  atWidth(402);
+  await renderPage(PAGE, round(MERGE_CHATS, { Q1: "A" }));
+  await click(await screen.findByRole("button", { name: "1/7" }));
   const sheet = await screen.findByRole("dialog", { name: "Outline" });
   expect(sheet.textContent).toContain("1 of 7 answered");
 
@@ -177,28 +137,8 @@ test("a triage's Context row brings its free context to the top", async () => {
   copyFileSync(fixture("INBOX-TRIAGE.md"), join(repo, "specs/INBOX-TRIAGE.md"));
   git(repo, "add", "specs/INBOX-TRIAGE.md");
   git(repo, "commit", "--quiet", "-m", "chore: propose an inbox triage");
-  atWidth(402);
   await renderPage("/inbox/triage", repo, { agent: true });
   await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
-  const file = (await readRound(repo, "inbox-triage"))!;
-  const round = file.current.items.clarifications!;
-  const questions: Array<NavQuestion> = round.questions.map((q) => ({
-    answered: false,
-    id: q.id,
-    level: 1,
-    title: q.title,
-  }));
-  await act(async () => {
-    render(
-      <RoundOutline
-        document={file.current.document}
-        isActive
-        onSubmit={() => {}}
-        questions={questions}
-        round={round}
-      />,
-    );
-  });
   const scrolled = vi.fn();
   Element.prototype.scrollIntoView = scrolled;
 

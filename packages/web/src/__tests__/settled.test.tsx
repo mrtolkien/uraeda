@@ -17,7 +17,8 @@ import {
 } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
-const PAGE = `/f/${FOLDER}/clarifications-01.md`;
+// With the column's Notes tab open, where the notes' field is.
+const PAGE = `/f/${FOLDER}/clarifications-01.md?tab=notes`;
 const ROUND = `specs/${FOLDER}/clarifications-01.md`;
 const CHECK = "## Check these";
 const SETTLED = "## Settled without the human";
@@ -240,7 +241,7 @@ test("the notes field is labelled Anything else", async () => {
   await point(UNDO);
 
   expect(notesField()).toBeTruthy();
-  expect(screen.queryByLabelText("Notes")).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "Notes" })).toBeNull();
 });
 
 /** Redesign edge case: a round with an empty group shows only the groups present. */
@@ -398,7 +399,9 @@ test("adding a comment leaves the notes being typed unsaved", async () => {
   await waitFor(() => expect(notesOnDisk(repo)).toBe(`- **${UNDO}**: ${COMMENT}`));
   await waitFor(() => expect(commentsOn(UNDO)).toHaveLength(1));
   expect(notesField().value).toBe("Half a thought");
-  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(
+    within(screen.getByRole("tabpanel", { name: "Notes" })).getByText("Unsaved changes"),
+  ).toBeTruthy();
 });
 
 /** US4 8 */

@@ -88,3 +88,14 @@ export function askAbout(folder: string, quote: string): void {
 export function quoted(header: string, lines: ReadonlyArray<string>): string {
   return [header, ...lines.map((line) => `> ${line}`)].join("\n");
 }
+
+/** A quote `quoted` made at the start of a text, a header line then `> ` lines, and the gap after. */
+const LEADING_QUOTE = /^About [^\n]*:\n(?:>[^\n]*(?:\n|$))+\n*/;
+
+/**
+ * A composer's text with `quote` at its start, then an empty line, then `text`, without the quote it
+ * started with, if any: asking about another block replaces the quote, and keeps what was typed.
+ */
+export function withQuote(text: string, quote: string): string {
+  return `${quote}\n\n${text.replace(LEADING_QUOTE, "")}`;
+}

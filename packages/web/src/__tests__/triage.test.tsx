@@ -116,7 +116,7 @@ test("a triage waiting is linked from the inbox, and answered in the round's vie
 /** US4 2: the triage's answers and notes, submitted over the triage the page read and wrote. */
 test("the triage's answers are submitted in one commit, and the inbox offers to apply them", async () => {
   const repo = withTriage();
-  await renderPage("/inbox/triage", repo, { agent: true });
+  await renderPage("/inbox/triage?tab=notes", repo, { agent: true });
   await answerAll(repo);
   // Notes typed and not saved: Submit saves them first, over the triage as the page wrote it.
   await type(screen.getByLabelText("Anything else"), "Start with the bug.");
@@ -152,7 +152,7 @@ test("an answered triage is applied in a new chat", async () => {
  */
 test("a triage answered on another page since is not submitted unseen", async () => {
   const repo = withTriage();
-  await renderPage("/inbox/triage", repo, { agent: true });
+  await renderPage("/inbox/triage?tab=notes", repo, { agent: true });
   await answerAll(repo);
   // The other page changes Q2's answer.
   writeFileSync(
@@ -239,7 +239,7 @@ test("without an agent, an answered triage gives its apply message to copy", asy
 
 /** The redesign's edge case: the triage takes the round's page, with its Context free and no groups. */
 test("the triage's questions are cards, its Context free, and it shows no settled groups", async () => {
-  await renderPage("/inbox/triage", withTriage(), { agent: true });
+  await renderPage("/inbox/triage?tab=notes", withTriage(), { agent: true });
   await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
 
   // The Context, a paragraph under no part's heading.
@@ -258,10 +258,24 @@ test("the triage's questions are cards, its Context free, and it shows no settle
     expect(card.querySelectorAll(".astryx-selectable-card").length, id).toBe(2);
     expect(option(id, "A").getAttribute("aria-label"), id).toMatch(/^Option A \(recommended\): /);
   }
-  // No settled points, so no "Settled without you", and the notes are "Anything else".
+  // No settled points, so no "Settled without you", and the notes are "Anything else", in the
+  // column's Notes tab.
   expect(screen.queryByRole("heading", { name: "Settled without you" })).toBeNull();
   for (const group of ["Check these", "Behaviour", "Under the hood"]) {
     expect(screen.queryByRole("heading", { name: group })).toBeNull();
   }
   expect(screen.getByRole("textbox", { name: "Anything else" })).toBeTruthy();
+});
+
+/** Questions page US3 more 6: the triage is no feature's, so its column has no session. */
+test("the triage's column has Outline and Notes only", async () => {
+  await renderPage("/inbox/triage", withTriage(), { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
+
+  const list = screen.getByRole("tablist", { name: "The round's column" });
+  expect(within(list).getAllByRole("tab")).toEqual([
+    within(list).getByRole("tab", { name: "Outline" }),
+    within(list).getByRole("tab", { name: "Notes" }),
+  ]);
+  expect(screen.queryByRole("button", { name: /^Ask/ })).toBeNull();
 });

@@ -2,7 +2,7 @@
 // size and a desktop's: a table is as wide as its columns, into the margin to the screen's edge, past which the table scrolls
 // sideways in its own region, never the page, and its cells keep their links. Shown in the round's
 // Today, opened.
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
@@ -46,7 +46,10 @@ test("a table reaches into the margin and scrolls in its own region past it (US2
   await writeRound();
   // The tables are in Today, folded until its title is tapped.
   await show(`/f/${FOLDER}/clarifications-01.md`, "When does the next occurrence appear?");
-  await userEvent.click(screen.getByRole("button", { name: "Today" }));
+  // The pane's own title, not the column's outline row that jumps to it.
+  await userEvent.click(
+    within(screen.getByRole("region", { name: "Today" })).getByRole("button", { name: "Today" }),
+  );
   await expect
     .poll(() => document.body.textContent?.includes("How users pick a repeat"))
     .toBe(true);

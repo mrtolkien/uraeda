@@ -254,3 +254,46 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   prop for.
 - **If wrong**: drop the hidden words and let the glyph be read.
 - **Where**: Task 7, fixed in its review.
+
+## R20: The phone keeps its list of questions under the block
+
+- **Decision**: on narrow screens, a round waiting for answers still lists its questions under its
+  block, before its context, as the questions-first change asked; `RoundIndex` moves from the
+  deleted `RoundNav.tsx` into `RoundOutline.tsx` and draws the outline's question rows, with their
+  names of R19. The status line's count opens the whole outline in a sheet.
+- **Rationale**: the spec does not remove that list, and the
+  [questions-first change](/specs/done/2026-10-17-questions-first.md) was the human's request: a
+  phone shows every question before the first is answered. Deleting `RoundNav.tsx` would have
+  dropped it silently.
+- **Alternatives considered**: the outline's sheet alone, as the mockup draws the phone, which
+  undoes a merged request no spec revisited.
+- **If wrong**: drop `RoundIndex` and its three tests in `round.test.tsx`.
+- **Where**: Task 8.
+
+## R21: `n` and `p` are the page's, whatever the column's tab
+
+- **Decision**: the round page's column registers `n` and `p` on wide screens (`useBlankKeys` in
+  `RoundOutline.tsx`), not the outline: they work with Notes or Session open. `RoundOutline`'s
+  `isActive` now only makes it follow the page's scroll, and Next or Submit is `NextOrSubmit`,
+  shared by the outline and the phone's status line.
+- **Rationale**: the clarifications' answer A says "the status line and `n` still work" with the
+  session open, and the settled point keeps the keys "as today"; the Outline tab's panel is not
+  mounted while another tab shows.
+- **Alternatives considered**: the keys in the outline, lost whenever another tab opens.
+- **If wrong**: register the keys in `RoundOutline` again, with `isActive`.
+- **Where**: Task 8.
+
+## R22: The notes' field is drawn in the Notes tab or sheet only
+
+- **Decision**: the notes' field, "Anything else", with its Save notes, its images, and its restore
+  notice, is drawn only in the column's Notes tab, or the phone's Notes sheet; the round's end, a
+  region "Notes", shows the notes as typed, read-only, with "Unsaved changes" while unsaved, and
+  "Edit notes" or "Write a note", which opens the tab, or the sheet, its field focused. An image
+  dropped with no field focused still goes to the notes: it opens them, and the field adds it once
+  drawn (`useNotesDrop`). The tests that type in the notes open `?tab=notes`.
+- **Rationale**: the spec's assumption: "The round's end shows the notes read-only, with 'Edit
+  notes'"; the field is one, held by the page above the column (`useRoundNotes`), so its text stays
+  as the tab, the sheet, or the width changes.
+- **Alternatives considered**: a second field at the round's end, two fields over one text.
+- **If wrong**: draw `NotesField` in `RoundEnd` again, beside the tab's.
+- **Where**: Task 8.

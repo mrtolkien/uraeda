@@ -36,9 +36,9 @@ function lines(count: number, prefix: string) {
   }));
 }
 
-/** The round's Session column, which scrolls on its own. */
+/** The round's column, Session open, which scrolls on its own. */
 function column() {
-  return screen.getByRole("complementary", { name: "Session" });
+  return screen.getByRole("complementary", { name: "The round's column" });
 }
 
 /** The composer's text field, in the column. */
