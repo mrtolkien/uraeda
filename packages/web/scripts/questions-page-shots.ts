@@ -5,7 +5,9 @@
  * header held at the top mid-card, and Q4's Example and Why it matters, in the layout-look round;
  * the column's Session after "Ask the agent" on Q2, the session's page on the phone; the Notes tab,
  * a sheet on the phone; the round answered; and the inbox's triage. On the phone only: the outline's
- * sheet, and an option's points in boxes.
+ * sheet, and an option's points in boxes. Beyond the round, the documents whose paragraphs, lists,
+ * selection, and pane titles changed with it: a spec, at its top and at its lists, a block of its
+ * review selected on the phone, a plan's numbered list, home, and the decisions.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -13,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import type { Locator, Page } from "playwright";
 import { QUESTIONS_PAGES } from "../samples/index.ts";
 import { withFile } from "./inbox-shots.ts";
-import { type Each, forget, settle, show, wait } from "./shots.ts";
+import { type Each, forget, settle, show, SPEC, wait } from "./shots.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const round = (folder: string) => `/f/${folder}/clarifications-01.md`;
@@ -133,10 +135,70 @@ async function takeOthers(each: Each, repo: string) {
   );
 }
 
+/** The plan under review, whose Review focus is a numbered list. */
+const PLAN = "/f/2026-10-13-plan-review/plan.md";
+
+/** Opens a document at its top, as new, once `text` shows. */
+async function openDocument(page: Page, path: string, text: string) {
+  await forget(page);
+  await show(page, path, text);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await settle(page);
+}
+
+/** The pane of a document titled `name`, the region its title names. */
+const region = (page: Page, name: string) =>
+  page.getByRole("region", { exact: true, name }).first();
+
+/**
+ * The other documents, in the reading font, their lists hung on the phone: a spec at its top and at
+ * its Architecture's list and a story's numbered scenarios, one of its blocks selected for a comment
+ * on the phone, a plan's numbered list, home, and the decisions.
+ */
+async function takeDocuments(each: Each) {
+  await each("documents-spec", ({ page }) => openDocument(page, SPEC, "Complete a repeating task"));
+  await each("documents-spec-lists", async ({ page }) => {
+    await openDocument(page, SPEC, "Complete a repeating task");
+    await toTop(page, region(page, "Architecture"));
+  });
+  await each("documents-spec-story", async ({ page }) => {
+    await openDocument(page, SPEC, "Complete a repeating task");
+    await toTop(page, region(page, "Make a task repeat"));
+  });
+  await each(
+    "documents-spec-selected",
+    async ({ page }) => {
+      await openDocument(page, SPEC, "Complete a repeating task");
+      const block = page
+        .getByRole("button", { name: /Date helpers/ })
+        .and(page.locator("[aria-pressed]"));
+      await block.evaluate((element) => element.scrollIntoView({ block: "center" }));
+      await settle(page);
+      await block.click({ force: true });
+      await page.getByRole("form", { name: "Comment" }).waitFor();
+      await wait(300);
+      await settle(page);
+    },
+    "phone",
+  );
+  await each("documents-plan", async ({ page }) => {
+    await openDocument(page, PLAN, "Task 5");
+    await toTop(page, page.getByRole("heading", { exact: true, name: "Review focus" }).first());
+  });
+  await each("documents-home", ({ page }) => openDocument(page, "/", "Overview"));
+  await each("documents-decisions", ({ page }) =>
+    openDocument(page, "/decisions", "Humans stay in control"),
+  );
+  await each("documents-decision", ({ page }) =>
+    openDocument(page, "/decisions/ui-behaviour", "Approved by"),
+  );
+}
+
 /** Every view of the questions page, each at both sizes and in both themes, or on the phone. */
 export async function takeQuestionsPage(each: Each, repo: string) {
   await takeParts(each);
   await takeCards(each);
   await takeColumn(each);
   await takeOthers(each, repo);
+  await takeDocuments(each);
 }

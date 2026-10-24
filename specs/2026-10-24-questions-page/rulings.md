@@ -328,3 +328,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   margin, 0.8 px off at WebKit's rounding.
 - **If wrong**: drop `selectableNarrow` and `selectedNarrow` in `Selection.tsx`.
 - **Where**: the final fix pass.
+
+## R25: Every document's paragraphs are reading text
+
+- **Decision**: `Blocks` draws a paragraph through `Prose`'s reading styles, as it already drew a
+  list item: the reading font, size, and line. Every page that draws a document's blocks follows,
+  beyond the round: a spec, a plan, a decision and the constitution, a proposal, a record, and a
+  session's quoted blocks. Headings, code, badges, and controls keep the monospace font.
+- **Rationale**: the UI coherence decision has reading text drawn through `Prose`, and the UI look
+  decision a proportional font for long prose; the theme's base styles set every `<p>` in the UI's
+  monospace font, so a pane's paragraphs read in the monospace font beside its lists in the reading
+  font.
+- **Alternatives considered**: the reading font on the round's paragraphs only, which leaves every
+  other document mixed, against the coherence decision's one component per kind of information.
+- **If wrong**: drop `proseStyles.reading` from the paragraph in `Blocks.tsx`: every document's
+  paragraphs go back to the monospace font at the reading size. The spec page's own rows, a story's
+  scenarios, a tradeoff's or an edge case's text, and its opening's items, which do not draw through
+  `Blocks`, still read in the monospace font beside them.
+- **Where**: the final fix pass, commit 49f48958; its screenshots, `documents-*`.
