@@ -346,3 +346,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   scenarios, a tradeoff's or an edge case's text, and its opening's items, which do not draw through
   `Blocks`, still read in the monospace font beside them.
 - **Where**: the final fix pass, commit 49f48958; its screenshots, `documents-*`.
+
+## R26: A repeated fixed section in place stays a deferred fix
+
+- **Decision**: two `## Check these` written one after the other before Q1 pass `ura check`, and the
+  page draws only the first one's points; the branch leaves it, noted in the inbox's deferred fixes.
+- **Rationale**: a second `## Check these` after a question is reported, as `sections.order`; only a
+  repeat in place slips through, and it does for every fixed section of every template, as it did
+  before this feature. A check of repeated sections belongs to all templates, not to this round.
+- **Alternatives considered**: a `sections.repeated` rule now, a change to every file kind's check
+  outside the feature's scope.
+- **If wrong**: add `sections.repeated`, reported on a fixed heading's second occurrence.
+- **Where**: the final review.
