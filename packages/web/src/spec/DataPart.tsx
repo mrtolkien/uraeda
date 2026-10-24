@@ -1,7 +1,8 @@
 // "Data": the feature's `data-model.md`, as the core cuts it (`Items.dataModel`), drawn after the
 // stories and on the data model's own page. The text before the first entity, then each entity, a
 // level-2 section of the file, in a pane of its own, its tables drawn by Astryx's columns, a row the
-// core marks new, changed, or removed showing its change as a green, yellow, or red badge.
+// core marks new, changed, or removed showing its change, in its "Change" column, as a green,
+// yellow, or red badge.
 import { Badge } from "@astryxdesign/core/Badge";
 import { proportional, Table } from "@astryxdesign/core/Table";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -9,7 +10,7 @@ import type { ReactNode } from "react";
 import type { Block, DataModelItems, DataTable as Marked, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
-import { plain, Spans } from "../Spans.tsx";
+import { Spans } from "../Spans.tsx";
 
 /** What the data panes draw: `data-model.md`'s tree, and its sections as the core reads them. */
 export type DataPartProps = {
@@ -39,14 +40,13 @@ function childrenOf(document: Document, id: number) {
   return document.blocks.filter((b) => b.parent === id);
 }
 
-/** A cell of a data table: the marked row's change cell, the one reading its change, as a badge. */
-function cellOf(cell: Block | undefined, change: DataRow["change"]): ReactNode {
-  const spans = cell?.spans ?? [];
-  const badge = change && CHANGES[change];
-  return badge && plain(spans).trim() === badge.label ? (
+/** A cell of a data table: in the "Change" column, a marked row's change as a badge. */
+function cellOf(cell: Block | undefined, change: DataRow["change"], isChange: boolean): ReactNode {
+  const badge = isChange && change && CHANGES[change];
+  return badge ? (
     <Badge label={badge.label} variant={badge.variant} />
   ) : (
-    <Spans spans={spans} />
+    <Spans spans={cell?.spans ?? []} />
   );
 }
 
@@ -66,7 +66,7 @@ function DataTable({ document, table }: { document: Document; table: Marked }) {
       columns={Array.from({ length: count }, (_, index) => ({
         header: <Spans spans={header[index]?.spans ?? []} />,
         key: `c${index}`,
-        renderCell: (row: DataRow) => cellOf(row.cells[index], row.change),
+        renderCell: (row: DataRow) => cellOf(row.cells[index], row.change, index === table.column),
         // Equal columns, wide enough for their words: on the phone, the table scrolls in its own
         // region, as the documents' tables do.
         width: proportional(1),

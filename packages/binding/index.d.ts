@@ -711,6 +711,11 @@ export interface DataSection {
 export interface DataTable {
   /** The table's block. */
   block: number
+  /**
+   * The index of its column headed "Change", from 0, the one whose cells show a row's change;
+   * none without one.
+   */
+  column?: number
   /** Its marked rows, in order; none without a column headed "Change". */
   changes: Array<RowChange>
 }

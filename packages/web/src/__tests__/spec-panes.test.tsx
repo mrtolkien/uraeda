@@ -4,7 +4,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
+import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test, vi } from "vite-plus/test";
 import { atWidth, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
@@ -106,6 +106,21 @@ test("the data model alone draws the same panes", async () => {
   expect(within(task).getByText("Changed")).toBeTruthy();
   expect(within(rule).getAllByText("New")).toHaveLength(4);
   expect(screen.getByText("Entities that the feature adds or changes.")).toBeTruthy();
+});
+
+/** A row's change is a badge in its "Change" column alone, not in a cell that reads the same. */
+test("a row marked New badges its Change cell only", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [`specs/${SPEC_FEATURE}/data-model.md`]:
+      "# Data model: X\n\n## Label\n\n| Field | Meaning | Change |\n| ----- | ------- | ------ |\n| `tag` | New     | New    |\n",
+  });
+  await renderPage(`/f/${SPEC_FEATURE}/data-model.md`, repo);
+
+  const label = await region("Label");
+  expect(within(label).getAllByText("New")).toHaveLength(2);
+  expect(label.querySelectorAll(".astryx-badge")).toHaveLength(1);
 });
 
 /** A link to an entity of the data model alone, `data-model.md#repeat-rule`, lands on its pane. */

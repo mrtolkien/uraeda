@@ -1162,6 +1162,7 @@ fn data_model_sections() {
     let task = &model.sections[0];
     assert_eq!(task.tables.len(), 1);
     assert_eq!(task.blocks, [task.tables[0].block]);
+    assert_eq!(task.tables[0].column, Some(3));
     assert_eq!(
         row_changes(&doc, &task.tables[0]),
         [
@@ -1187,6 +1188,7 @@ fn data_model_reads_the_change_column() {
     assert!(model.intro.is_empty());
     let old = &model.sections[0];
     assert_eq!(old.blocks.len(), 3);
+    assert_eq!(old.tables[0].column, Some(1));
     assert_eq!(
         row_changes(&doc, &old.tables[0]),
         [("a".to_string(), "removed".to_string())]

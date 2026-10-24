@@ -54,6 +54,9 @@ pub struct RowChange {
 pub struct DataTable {
     /// The table's block.
     pub block: u32,
+    /// The index of its column headed "Change", from 0, the one whose cells show a row's change;
+    /// none without one.
+    pub column: Option<u32>,
     /// Its marked rows, in order; none without a column headed "Change".
     pub changes: Vec<RowChange>,
 }
@@ -136,6 +139,7 @@ fn table(doc: &Document, table: &Block) -> DataTable {
     });
     DataTable {
         block: table.id,
+        column: column.map(|column| column as u32),
         changes,
     }
 }
