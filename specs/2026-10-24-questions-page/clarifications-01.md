@@ -159,8 +159,8 @@ open.
 
 The [layout decision](/specs/decisions/ui-layout.md) says "a view the human follows SHOULD be a page
 of its own". It was written after a session in a 320 px aside was too narrow to follow; the column
-in Q1 is 400 to 640 px. The [spec page draft](/specs/drafts/spec-page.md) wants "the session beside
-the page as on the questions page", and the
+in Q1 is 400 to 640 px. The [spec page draft](/specs/2026-10-24-spec-page/proposal.md) wants "the
+session beside the page as on the questions page", and the
 [chat's right column draft](/specs/drafts/chat-right-column.md) wants it on every step. More in
 [discovery](discovery-01.md#the-layout-decision).
 

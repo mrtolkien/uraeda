@@ -238,9 +238,9 @@ both.
 
 ### What the spec page reuses
 
-The [spec page draft](/specs/drafts/spec-page.md) wants "the session beside the page as on the
-questions page", and the [chat's right column draft](/specs/drafts/chat-right-column.md) wants the
-session in a side column on every step. The shape chosen here becomes theirs.
+The [spec page draft](/specs/2026-10-24-spec-page/proposal.md) wants "the session beside the page as
+on the questions page", and the [chat's right column draft](/specs/drafts/chat-right-column.md)
+wants the session in a side column on every step. The shape chosen here becomes theirs.
 
 ## Worth it and feasibility
 
