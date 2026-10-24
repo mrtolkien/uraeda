@@ -265,6 +265,39 @@ test("Edit notes with the column folded unfolds it on Notes, its field focused",
   await waitFor(() => expect(document.activeElement).toBe(notesField()));
 });
 
+/** US5 key 2: notes typed earlier are saved by Submit, their tab closed. */
+test("Submit with the Notes tab closed saves the notes typed earlier", async () => {
+  const repo = round(Object.fromEntries(ALL.map((id) => [id, "A"])));
+  await open(`${PAGE}?tab=notes`, repo, false);
+  await type(notesField(), "Check the spec page too.");
+  await click(screen.getByRole("tab", { name: "Outline" }));
+  expect(screen.queryByRole("textbox", { name: "Anything else" })).toBeNull();
+
+  await click(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() =>
+    expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain(
+      "**Notes:** Check the spec page too.",
+    ),
+  );
+});
+
+/**
+ * R21: `n` is the page's, whatever the column's tab: it jumps to the same blank question with Notes
+ * or Session open as with Outline, Q3 from where the page reads without a layout.
+ */
+test.each(["outline", "notes", "session"])("n jumps with ?tab=%s", async (tab) => {
+  await open(`${PAGE}?tab=${tab}`, round({ Q1: "A", Q2: "A" }));
+
+  await act(async () => {
+    fireEvent.keyDown(document.body, { key: "n" });
+  });
+
+  await waitFor(() =>
+    expect(document.activeElement?.textContent).toContain("Does the chat's conversation become"),
+  );
+});
+
 test("Edit notes opens the Notes tab, its field focused", async () => {
   await open(PAGE, round());
 
