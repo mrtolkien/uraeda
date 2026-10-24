@@ -940,8 +940,10 @@ fn the_block_has_its_verdict() {
         plain(&verdict.text)
     );
 
-    let text = common::repository_file("specs/2026-10-24-questions-page/clarifications-01.md");
-    let (round, _) = round_of("clarifications-01.md", &text);
+    let (round, _) = round_of(
+        "clarifications-01.md",
+        "# Clarifications, round 01: X\n\n> [!NOTE]\n>\n> Answered on 2026-10-24.\n>\n> - Verdict: worth building as proposed: every part exists, and the work is the look.\n",
+    );
     let verdict = round.verdict.unwrap();
     assert_eq!(verdict.kind, VerdictKind::AsProposed);
     assert!(plain(&verdict.text).starts_with("Every part exists"));
