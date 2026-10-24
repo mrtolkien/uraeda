@@ -87,11 +87,12 @@ const styles = stylex.create({
     paddingInline: 0,
   },
   // Its title hides the border behind it with the page's surface, which a round on the phone is
-  // drawn on.
+  // drawn on, and leaves a run of the border after it, so a title of several lines still shows
+  // the pane's top border.
   openOnPhoneTitle: {
     backgroundColor: colorVars["--color-background-surface"],
     marginInlineStart: 0,
-    maxWidth: "100%",
+    maxWidth: `calc(100% - ${spacingVars["--spacing-3"]})`,
     paddingInlineStart: 0,
   },
   pane: {
