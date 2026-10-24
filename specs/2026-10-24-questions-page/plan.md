@@ -461,36 +461,40 @@ order changes for every round.
 **Files:**
 
 - Create: `packages/web/src/layout/DocumentColumn.tsx`, `src/layout/documentColumnWidth.ts`
-- Modify: `src/layout/SideColumn.tsx` (`sizes.max`, and a width that follows the window until
-  dragged)
+- Modify: `src/layout/SideColumn.tsx` (`sizes.max`, a `header` in place of its name, and a `width`
+  its caller keeps, which follows the window until dragged in `documentColumnWidth.ts`, R12),
+  `src/shell/columnWidth.ts` (exports `useWindowWidth`)
 - Test: `src/__browser__/document-column.test.tsx`, `src/__tests__/document-column.test.ts`
 
 **Interfaces:**
 
 - Produces: `DocumentColumn({ content: ReactNode; label: string; tabs: ReadonlyArray<ColumnTab> })`
   with
-  `ColumnTab = { key: string; label: string; icon: string; badge?: ReactNode; panel: ReactNode }`:
-  on wide and semi-wide screens, a column at the window's right edge, a labelled `tablist` of its
-  tabs and the open one's `tabpanel`, its width the same whatever the tab; `]` folds it; nothing on
-  narrow screens. The open tab is `?tab=<key>` in the address, the first tab without it; switching
-  replaces the entry. `useColumnTab(keys): [string, (key: string) => void]` reads and sets it, for
-  the page's "Ask" and "Edit notes". Width, in `documentColumnWidth.ts`:
+  `ColumnTab = { key: string; label: string; icon: IconName; badge?: ReactNode; panel: ReactNode }`,
+  `IconName` Astryx's `Icon`'s name: on wide and semi-wide screens, a column at the window's right
+  edge, a labelled `tablist` of its tabs and the open one's `tabpanel`, its width the same whatever
+  the tab; `]` folds it; nothing on narrow screens. The open tab is `?tab=<key>` in the address, the
+  first tab without it; switching replaces the entry.
+  `useColumnTab(keys): [string, (key: string) => void]` reads and sets it, for the page's "Ask" and
+  "Edit notes". Width, in `documentColumnWidth.ts`:
   `autoWidth(window) = clamp(round(window / 3), 400, 600)`, a dragged width clamped to 400–720 px,
-  kept under `uraeda.documentColumn` for every document page. `SideColumn`'s other callers keep 560
-  as their most.
+  kept with the fold under `uraeda.documentColumn` for every document page, read by
+  `readDocumentColumn()` and kept by `useDocumentColumnWidth()`. `SideColumn`'s other callers keep
+  560 as their most.
 
-- [ ] **Step 1: Write the failing tests.** `document-column.test.ts`: `autoWidth(1440)` is 480,
+- [x] **Step 1: Write the failing tests.** `document-column.test.ts`: `autoWidth(1440)` is 480,
       `autoWidth(1205)` 402, `autoWidth(900)` 400, `autoWidth(2400)` 600; a stored 900 reads as 720
       and a stored 200 as 400 (Review focus 6). `document-column.test.tsx`, over a test page drawing
-      three tabs: at 1440 px the column is 480 px; switching tabs keeps its width and the content's
-      left and width; at semi 1205 px it is 402 px; dragged to 560 px it stays 560 after a reload;
-      the arrows move between tabs. Break: a width read from the open tab.
-- [ ] **Step 2: Run them to check they fail**. Expected: FAIL, no module `documentColumnWidth`.
-- [ ] **Step 3: Implement** on `SideColumn`, its tabs Astryx's `Tabs` if they fit the column's
-      header, else listed as an Astryx gap with a ruling.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the two tests, and
+      three tabs, rendered by the test itself: at 1440 px the column is 480 px; switching tabs keeps
+      its width and the content's left and width; at semi 1205 px it is 402 px; dragged to 560 px it
+      stays 560 after a reload; the arrows move between tabs; on the phone, no column. Break: a
+      width read from the open tab.
+- [x] **Step 2: Run them to check they fail**. Expected: FAIL, no module `documentColumnWidth`.
+- [x] **Step 3: Implement** on `SideColumn`, its tabs Astryx's `TabList` with `role="tablist"`,
+      which fits the column's header: no Astryx gap.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, the two tests, and
       `side-column.test.tsx` in both projects. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(questions-page): the document's column of tabs"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(questions-page): the document's column of tabs"`.
 
 ## Task 5: The question card
 
