@@ -333,9 +333,8 @@ function SpecLayout({
 /**
  * A spec waiting for your review: its parts take comments, and its verdict is at the page's end.
  */
-function WaitingSpec({ file }: { file: File }) {
+function WaitingSpec({ file, session }: { file: File; session: PageSession | undefined }) {
   const wide = !isNarrow(useWidthClass());
-  const session = usePageSession(file);
   const review = useReview(file, wide, session?.ask);
   return (
     <ReviewHost file={file} review={review}>
@@ -358,10 +357,9 @@ function WaitingSpec({ file }: { file: File }) {
 }
 
 /** A spec not waiting for you, approved or being written: the same page, read-only. */
-function ReadSpec({ file }: { file: File }) {
+function ReadSpec({ file, session }: { file: File; session: PageSession | undefined }) {
   const wide = !isNarrow(useWidthClass());
   const folds = useSpecFolds(file.current.items.spec);
-  const session = usePageSession(file);
   return (
     <StoriesProvider
       folder={file.folder}
@@ -373,7 +371,15 @@ function ReadSpec({ file }: { file: File }) {
   );
 }
 
-/** A feature's `spec.md`, waiting for your review or not. */
+/**
+ * A feature's `spec.md`, waiting for your review or not, its session's draft kept whatever its
+ * status: a verdict or a live update leaves what is typed in Session.
+ */
 export function SpecPage({ file }: { file: File }) {
-  return file.status === "awaiting-human" ? <WaitingSpec file={file} /> : <ReadSpec file={file} />;
+  const session = usePageSession(file);
+  return file.status === "awaiting-human" ? (
+    <WaitingSpec file={file} session={session} />
+  ) : (
+    <ReadSpec file={file} session={session} />
+  );
 }

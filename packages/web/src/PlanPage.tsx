@@ -13,7 +13,7 @@ import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type OpeningRun, type PlanSection, planParts, sectionId } from "./planParts.ts";
 import { ReviewEnd, ReviewHost, ReviewIntro, useReview } from "./review/useReview.tsx";
-import { usePageSession } from "./spec/pageSession.ts";
+import { type PageSession, usePageSession } from "./spec/pageSession.ts";
 import { SpecColumn } from "./spec/SpecColumn.tsx";
 import { Contents, type Entry } from "./spec/SpecContents.tsx";
 import { Selectable, type Selection } from "./Selection.tsx";
@@ -191,9 +191,8 @@ function planEntries(
  * comment on, pending comments show under their blocks, and the end of the page holds the verdict.
  * The comment field is drawn apart from the plan, by `CommentHost`, so typing renders it alone.
  */
-function ReviewedPlan({ file }: { file: File }) {
+function ReviewedPlan({ file, session }: { file: File; session: PageSession | undefined }) {
   const wide = !isNarrow(useWidthClass());
-  const session = usePageSession(file);
   const review = useReview(file, wide, session?.ask);
   const { comments, folds, selection, storyComments, tree, version } = review;
   const page = (
@@ -233,15 +232,19 @@ function ReviewedPlan({ file }: { file: File }) {
 /**
  * A plan, in panes in its file's order, its column of Contents, and Session where the agent can be
  * asked, beside it: waiting for review, with the review's selection, comments, and verdict;
- * otherwise read as it is now.
+ * otherwise read as it is now. Its session's draft is kept whatever its status.
  */
 export function PlanPage({ file }: { file: File }) {
-  return file.status === "awaiting-human" ? <ReviewedPlan file={file} /> : <ReadPlan file={file} />;
+  const session = usePageSession(file);
+  return file.status === "awaiting-human" ? (
+    <ReviewedPlan file={file} session={session} />
+  ) : (
+    <ReadPlan file={file} session={session} />
+  );
 }
 
 /** A plan not waiting for review: read as it is now, its session beside it. */
-function ReadPlan({ file }: { file: File }) {
-  const session = usePageSession(file);
+function ReadPlan({ file, session }: { file: File; session: PageSession | undefined }) {
   return (
     <StoriesProvider
       folder={file.folder}

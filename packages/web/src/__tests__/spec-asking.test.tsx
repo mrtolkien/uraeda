@@ -7,7 +7,16 @@ import { readFileSync } from "node:fs";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { atRepo, atWidth, click, fixture, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import {
+  atRepo,
+  atWidth,
+  click,
+  fixture,
+  fixtureRepo,
+  git,
+  refreshUntil,
+  renderPage,
+} from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
 const SPEC = `specs/${SPEC_FEATURE}/spec.md`;
@@ -92,6 +101,25 @@ test("asking about a rule quotes the decision's file and lines", async () => {
   );
 });
 
+/** The page's draft is the page's, whatever the spec's status. */
+test("the draft stays when the spec's status changes", async () => {
+  const repo = await openSpec();
+  await askAboutRule(/^Data MUST be stored in IndexedDB/);
+  const quoted = (await columnComposer()).textContent;
+  expect(quoted).toMatch(/^About specs\/decisions\/task-storage.md/);
+
+  const spec = git(repo, "show", `${SPEC_FEATURE}:${SPEC}`);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [SPEC]: spec.replace(/^status: .*$/m, "status: approved"),
+  });
+  await refreshUntil(() =>
+    expect(within(tabList()).queryByRole("tab", { name: /^Review/ })).toBeNull(),
+  );
+
+  expect(openTab()).toBe("Session");
+  expect((await columnComposer()).textContent).toBe(quoted);
+});
+
 /** Review focus 5 */
 test("asking about a removed rule names it removed", async () => {
   await openSpec();
@@ -159,9 +187,11 @@ test("on the default branch, no Session tab and no Ask", async () => {
   expect(within(tabList()).getByRole("tab", { name: /^Review/ })).toBeTruthy();
 });
 
-/** The plan-review feature, its plan the questions page's at `status`, drawn with the fake agent. */
-async function openPlan(status: string) {
-  const repo = fixtureRepo();
+/**
+ * The plan-review feature, in `repo`, its plan the questions page's at `status`, drawn with the
+ * fake agent.
+ */
+async function openPlan(status: string, repo = fixtureRepo()) {
   const plan = readFileSync(fixture("plan-page/plan.md"), "utf8").replace(
     /^status: .*$/m,
     `status: ${status}`,
@@ -186,6 +216,25 @@ test("the plan page asks about a step the same way", async () => {
     expect(box.textContent).toMatch(new RegExp(`^About ${PLAN}, lines? ${at + 1}`)),
   );
   expect(box.textContent).toContain(`> ${lines[at]}`);
+});
+
+/** The plan page's draft is the page's, whatever the plan's status. */
+test("the plan's draft stays when its status changes", async () => {
+  const repo = fixtureRepo();
+  const plan = await openPlan("awaiting-human", repo);
+  await click(await blockOf("Step 3: Run them to check they fail"));
+  await click(await screen.findByRole("button", { name: "Ask the agent" }));
+  const box = await columnComposer();
+  await waitFor(() => expect(box.textContent).toMatch(/^About /));
+  const quoted = box.textContent;
+
+  commitOnBranch(repo, PLAN_FOLDER, { [PLAN]: plan.replace(/^status: .*$/m, "status: approved") });
+  await refreshUntil(() =>
+    expect(within(tabList()).queryByRole("tab", { name: /^Review/ })).toBeNull(),
+  );
+
+  expect(openTab()).toBe("Session");
+  expect((await columnComposer()).textContent).toBe(quoted);
 });
 
 /** The settled "The plan's session" */
