@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
+import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
 import {
   atRepo,
   atWidth,
@@ -188,6 +189,30 @@ test("a note from the Notes tab shows at the end, and Submit saves it", async ()
     ),
   );
   expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Notes:** Check the spec page too.");
+});
+
+/** The edge case "the column folded", R23: asking, or Edit notes, unfolds it. */
+test("asking with the column folded unfolds it on Session, its composer focused", async () => {
+  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));
+  await open(PAGE, round());
+  expect(screen.queryByRole("tablist", { name: "The round's column" })).toBeNull();
+
+  await askAbout("Q2");
+
+  expect(openTab()).toBe("Session");
+  const box = await composer();
+  await waitFor(() => expect(box.textContent).toBe(`${Q2_QUOTE}\n\n`));
+  await waitFor(() => expect(box.contains(document.activeElement)).toBe(true));
+});
+
+test("Edit notes with the column folded unfolds it on Notes, its field focused", async () => {
+  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));
+  await open(PAGE, round());
+
+  await click(within(end()).getByRole("button", { name: "Write a note" }));
+
+  expect(openTab()).toBe("Notes");
+  await waitFor(() => expect(document.activeElement).toBe(notesField()));
 });
 
 test("Edit notes opens the Notes tab, its field focused", async () => {
