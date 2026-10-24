@@ -121,3 +121,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   border inside a border for two rows.
 - **If wrong**: `EdgeList` in `spec/builtParts/EdgeCases.tsx`.
 - **Where**: Task 6.
+
+## R10: The questions page's plan's Task 1 holds 6/6
+
+- **Decision**: the plan page's test expects "Task 1 · The session's view, scrolling in the round's
+  column" to hold "6/6", not the "5/5" US6's first scenario and Task 7 name.
+- **Rationale**: the fixture is the questions page's plan as committed
+  (`fixtures/plan-page/plan.md`), whose Task 1 has six checked steps; the core counts them, and the
+  scenario's count was written from the mockup's data. The behaviour the scenario names, the task's
+  pane with its `done/total` badge, is the same.
+- **Alternatives considered**: a fixture edited to five steps, which would no longer be the
+  questions page's plan.
+- **If wrong**: one number in `plan-page.test.tsx`.
+- **Where**: Task 7.

@@ -642,7 +642,9 @@ candidates, and the decisions check.
 **Files:**
 
 - Create: `packages/web/src/PlanPage.tsx`
-- Modify: `src/FilePage.tsx` (every plan to `PlanPage`)
+- Create: `packages/web/src/planParts.ts` (the plan's opening runs and sections, from the tree)
+- Modify: `src/FilePage.tsx` (every plan to `PlanPage`); `src/views.ts` (selects `PlanItems.lead`);
+  `src/YourReview.tsx` (takes `Band` from `ReviewHeadings.tsx`)
 - Delete: `src/ReviewPage.tsx`, `src/ReviewHeadings.tsx`
 - Test: `src/__tests__/plan-page.test.tsx` (create); `src/__tests__/review.test.tsx`'s plan test
   moves there (R4)
@@ -657,20 +659,20 @@ candidates, and the decisions check.
   review's selection, comments, and `ReviewEnd`, as `ReviewPage` had; otherwise read-only. Task 10
   adds its column.
 
-- [ ] **Step 1: Write the failing tests** in `plan-page.test.tsx`: the questions page's plan as a
+- [x] **Step 1: Write the failing tests** in `plan-page.test.tsx`: the questions page's plan as a
       fixture plan (`fixtures/plan-page/plan.md`, a copy of
       `specs/2026-10-24-questions-page/plan.md` at this plan's commit), auto-approved: regions
       "Goal", "Architecture", "Review focus", "Global constraints", "Waves", then "Task 1 · The
-      session's view, scrolling in the round's column" holding "5/5"; waiting for review, the same
-      regions and "Approve"; a plan with no tasks has its sections and no task region; the
+      session's view, scrolling in the round's column" holding "6/6" (R10); waiting for review, the
+      same regions and "Approve"; a plan with no tasks has its sections and no task region; the
       plan-review fixture's "Task 5 · Repeats typed in the title" holds "2/5". Break: an approved
       plan drawn by the generic page.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/plan-page.test.tsx`. Expected: FAIL, no region "Goal".
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `plan-page.test.tsx`,
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `plan-page.test.tsx`,
       `review.test.tsx`. Expected: PASS.
-- [ ] **Step 5: Commit**: `git commit -m "feat(spec-page): the plan page in panes"`.
+- [x] **Step 5: Commit**: `git commit -m "feat(spec-page): the plan page in panes"`.
 
 ## Task 8: Catch up with the questions page
 

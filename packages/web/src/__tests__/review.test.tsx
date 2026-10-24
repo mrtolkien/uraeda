@@ -343,16 +343,6 @@ test("Request changes waits for a comment", async () => {
   expect(screen.getAllByText("Add a comment first", { exact: false }).length).toBeGreaterThan(0);
 });
 
-/** US3.6 */
-test("a plan shows each task's steps checked out of its total", async () => {
-  await renderPage("/f/2026-10-13-plan-review/plan.md");
-
-  expect(
-    await screen.findByRole("heading", { name: "Task 5: Repeats typed in the title 2/5" }),
-  ).toBeTruthy();
-  expect(screen.queryByRole("radio", { name: "high" })).toBeNull();
-});
-
 /** US3.7 */
 test("a new version under pending comments is said", async () => {
   const r = repo();

@@ -4,16 +4,35 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, use } from "react";
 import type { CommentItem } from "uraeda-binding";
 import type { useFile } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
-import { Band } from "./ReviewHeadings.tsx";
 import { type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 import { ReviewImagesContext } from "./useReviewImages.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
+
+const styles = stylex.create({
+  band: {
+    // A band before the review's end, to the screen's edges on the phone.
+    backgroundColor: colorVars["--color-background-muted"],
+    height: spacingVars["--spacing-2"],
+    marginBlock: spacingVars["--spacing-5"],
+  },
+  bandBleed: {
+    // The page's inset, taken back (see `Page`).
+    marginInline: "var(--page-bleed)",
+  },
+});
+
+/** The band before a review's end, to the screen's edges on the phone. */
+function Band({ wide }: { wide: boolean }) {
+  return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
+}
 
 /** Says that the file changed under the pending comments, with Start over. */
 export function StaleBanner({

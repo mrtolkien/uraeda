@@ -51,7 +51,7 @@ const ItemsSelection = {
     status: true,
     verdict: true,
   },
-  plan: { tasks: true },
+  plan: { lead: true, tasks: true },
   review: { comments: true, commit: true, summary: true, verdict: true },
   rulings: true,
   spec: {
