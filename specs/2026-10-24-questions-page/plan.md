@@ -653,13 +653,14 @@ order changes for every round.
 - Consumes: `ColumnSession` (Task 1); `DocumentColumn`, `useColumnTab` (Task 4); `QuestionCard`
   (Task 5); `RoundOpening`'s `check`, `SettledPoints`' `part` and `onAsk` (Task 6); `RoundOutline`,
   `OutlineSheet` (Task 7).
-- Produces: `withQuote(text: string, quote: string): string` in `sessions.ts`: the quote, an empty
-  line, then `text` without the quote it started with, if any. On wide and semi-wide screens, a
-  round waiting for answers draws in a `DocumentColumn` with Outline, Notes, and, for a feature
-  whose agent is available, Session; "Ask the agent" and "Ask" write the quote into the page's draft
-  with `withQuote` and open Session; on narrow screens they open the session's page with `askAbout`.
-  The status line on the phone holds "N/M" (the outline's sheet), "Notes" (the notes' sheet), and
-  Next or Submit. An answered round draws no column. As built:
+- Produces: `withQuote(text: string, quote: string, inserted?: string): string` in `sessions.ts`:
+  the quote, an empty line, then `text` without `inserted`, the quote asking wrote last, if it
+  starts with it; a quote typed by hand stays. The session's page's `?ask=` uses it too. On wide and
+  semi-wide screens, a round waiting for answers draws in a `DocumentColumn` with Outline, Notes,
+  and, for a feature whose agent is available, Session; "Ask the agent" and "Ask" write the quote
+  into the page's draft with `withQuote` and open Session; on narrow screens they open the session's
+  page with `askAbout`. The status line on the phone holds "N/M" (the outline's sheet), "Notes" (the
+  notes' sheet), and Next or Submit. An answered round draws no column. As built:
   `RoundColumn({ content, draft, file, nav, notes, onSubmit, sheet })` draws the `DocumentColumn`
   labelled "The round's column", its tabs, and the phone's status line and sheets;
   `useRoundActions(file, draft)` gives the asks, the phone's sheet, and "Edit notes", which opens

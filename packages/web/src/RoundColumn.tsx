@@ -4,7 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, Suspense } from "react";
+import { type ReactNode, Suspense, useRef } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
 import { ColumnSession } from "./ColumnSession.tsx";
 import type { useFile } from "./data.ts";
@@ -106,6 +106,8 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
   const column = useDocumentColumnWidth();
   const [tab, setTab] = useColumnTab(columnKeys(draft !== undefined));
   const sheet = useRoundSheet(wide);
+  // The quote asking last wrote into the composer.
+  const inserted = useRef<string>(undefined);
   const openTab = (key: string) => {
     column.setShown(true);
     setTab(key);
@@ -115,7 +117,10 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
       askAbout(file.folder, quote);
       return;
     }
-    draft?.setText((now) => withQuote(now, quote));
+    // Read before the update runs: the quote asking put there last, which this one replaces.
+    const last = inserted.current;
+    inserted.current = quote;
+    draft?.setText((now) => withQuote(now, quote, last));
     openTab("session");
     focusOnceDrawn(() =>
       document.getElementById(SESSION_PANEL)?.querySelector<HTMLElement>('[role="textbox"]'),

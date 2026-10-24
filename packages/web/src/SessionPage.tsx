@@ -8,7 +8,7 @@ import { useAsideShown } from "./SessionAside.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
 import { redirect, sessionIdPath, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
-import { sessionPath } from "./sessions.ts";
+import { sessionPath, withQuote } from "./sessions.ts";
 import { type Handing, Missing, NO_BRANCH, SessionPane } from "./SessionView.tsx";
 
 /**
@@ -38,6 +38,8 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   const fresh = useFreshRun(search);
   // The address whose message the composer took: each is put in once.
   const filled = useRef<string>(undefined);
+  // The quote an address asked about last, which the next one replaces.
+  const inserted = useRef<string>(undefined);
   const handingOver = workflow !== undefined || ask !== undefined;
   useEffect(() => {
     if (!handingOver) {
@@ -47,7 +49,9 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   useEffect(() => {
     if (workflow === undefined && ask !== undefined && filled.current !== search) {
       filled.current = search;
-      setText((now) => `${ask}\n\n${now.trim() ? now : ""}`);
+      const last = inserted.current;
+      inserted.current = ask;
+      setText((now) => withQuote(now, ask, last));
     }
   }, [workflow, ask, search, setText]);
   if (!feature || feature.missing) {
