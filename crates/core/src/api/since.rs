@@ -13,7 +13,7 @@ use crate::git::Git;
 use crate::view::{SinceChange, SinceReview};
 
 /// The change of the spec at `path` since `review`, the review its revision answers, while it waits
-/// for its human: an approved spec is under review no more (R6). While it waits, the page shows
+/// for its human: an approved spec is under review no more (R11). While it waits, the page shows
 /// the committed spec, `committed` when it differs from `current`, the spec as read.
 pub(super) fn while_waiting(
     git: &Git,

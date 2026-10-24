@@ -380,7 +380,7 @@ fn section_renamed() {
     );
 }
 
-/// R6: an approved spec is not under review anymore, so it marks nothing.
+/// R11: an approved spec is not under review anymore, so it marks nothing.
 #[test]
 fn approved_revision_has_none() {
     let text = revision_2(&[
