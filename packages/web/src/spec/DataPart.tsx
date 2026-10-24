@@ -17,6 +17,11 @@ export type DataPartProps = {
   /** The panes' heading level: 3 under the spec's "Data", 2 on the data model's own page. */
   level?: 2 | 3;
   model: DataModelItems;
+  /**
+   * Before each section's anchor, its pane's id: "data-" on the spec page, where the spec's own
+   * headings take the bare anchors; none on the data model's own page, where its links land.
+   */
+  prefix?: string;
 };
 
 /** The badge of each change, by the core's kind. */
@@ -106,16 +111,16 @@ function SectionBlocks({
 
 /**
  * The data model: the text before its entities, then each entity in a pane titled by its heading,
- * `data-<anchor>` as id.
+ * `<prefix><anchor>` as id.
  */
-export function DataPart({ document, level = 3, model }: DataPartProps) {
+export function DataPart({ document, level = 3, model, prefix = "data-" }: DataPartProps) {
   return (
     <>
       {model.intro.length > 0 && <Blocks document={document} ids={model.intro} />}
       {model.sections.map((section) => (
         <Pane
           icon="uraeda:database"
-          id={`data-${section.anchor}`}
+          id={`${prefix}${section.anchor}`}
           key={section.heading}
           level={level}
           title={section.title}

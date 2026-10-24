@@ -3,7 +3,7 @@
 // data model's sections as panes, on the spec and alone; an approved spec's same panes.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
-import { beforeEach, expect, test } from "vite-plus/test";
+import { beforeEach, expect, test, vi } from "vite-plus/test";
 import { atWidth, fixtureRepo, renderPage } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
@@ -104,6 +104,19 @@ test("the data model alone draws the same panes", async () => {
   expect(within(task).getByText("Changed")).toBeTruthy();
   expect(within(rule).getAllByText("New")).toHaveLength(4);
   expect(screen.getByText("Entities that the feature adds or changes.")).toBeTruthy();
+});
+
+/** A link to an entity of the data model alone, `data-model.md#repeat-rule`, lands on its pane. */
+test("the data model alone scrolls to the section its hash names", async () => {
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(`/f/${SPEC_FEATURE}/data-model.md#repeat-rule`, repo);
+
+  const rule = await region("Repeat rule");
+  expect(document.getElementById("repeat-rule")).toBe(rule);
+  await waitFor(() => expect(scrolled.mock.contexts.at(-1)).toBe(rule));
 });
 
 /** US1: a story is a pane titled by its id and title, its priority beside the title. */

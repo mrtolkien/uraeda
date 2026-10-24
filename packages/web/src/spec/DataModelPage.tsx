@@ -4,6 +4,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Blocks } from "../Blocks.tsx";
 import { Crumbs } from "../Crumbs.tsx";
+import { useHashFold } from "../Folds.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Spans } from "../Spans.tsx";
 import { DataPart } from "./DataPart.tsx";
@@ -14,6 +15,8 @@ export function DataModelPage({ file }: { file: File }) {
   const { document, items } = file.current;
   const model = items.dataModel;
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
+  // A link to an entity, `data-model.md#task`, lands on its pane, the section's anchor its id.
+  useHashFold(document, undefined, true);
   return (
     <Page>
       <Crumbs current={file.name} folder={file.folder} />
@@ -24,7 +27,7 @@ export function DataModelPage({ file }: { file: File }) {
               <Spans spans={title.spans} />
             </Heading>
           )}
-          <DataPart document={document} level={2} model={model} />
+          <DataPart document={document} level={2} model={model} prefix="" />
         </VStack>
       ) : (
         <Blocks document={document} />
