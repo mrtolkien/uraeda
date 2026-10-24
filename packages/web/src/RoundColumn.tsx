@@ -111,7 +111,8 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
  * `draft` the session's composer, kept by the page, with which the column has a Session tab.
  * `onSubmit` takes the page to its end. `actions` are the page's, `useRoundActions`': the phone's
  * open sheet, and how the notes open. `n` and `p` jump between blank questions on wide screens,
- * whatever the open tab. An image dropped with no field focused goes to the notes, opening them.
+ * whatever the open tab. An image dropped with no field focused goes to the notes, opening them,
+ * unless the Session tab shows its composer, which takes it.
  */
 export function RoundColumn({
   actions,
@@ -132,10 +133,11 @@ export function RoundColumn({
 }) {
   const wide = !isNarrow(useWidthClass());
   useBlankKeys(nav, wide);
+  // With Session shown, an image dropped goes to its composer, never to the notes.
   const queued = useNotesDrop({
     onOpen: actions.editNotes,
     shown: actions.notesShown,
-    takes: file.takesImages,
+    takes: file.takesImages && !actions.sessionShown,
   });
   const round = file.current.items.clarifications;
   const document = file.current.document;

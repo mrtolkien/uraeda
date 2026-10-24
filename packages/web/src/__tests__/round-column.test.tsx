@@ -9,7 +9,7 @@
 // that file's path, where the spec names the merge-chats feature's.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
 import {
@@ -189,6 +189,26 @@ test("a note from the Notes tab shows at the end, and Submit saves it", async ()
     ),
   );
   expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Notes:** Check the spec page too.");
+});
+
+/** With Session open, an image dropped with no field focused joins the message, not the notes. */
+test("an image dropped with Session open goes to the composer", async () => {
+  await open(PAGE, round(), await fakeAgent());
+  await click(screen.getByRole("tab", { name: "Session" }));
+  await composer();
+  const image = new File([readFileSync(fixture("images/phone.png"))], "login.png", {
+    type: "image/png",
+  });
+
+  await act(async () => {
+    fireEvent.drop(document.body, { dataTransfer: { files: [image], types: ["Files"] } });
+  });
+
+  const panel = screen.getByRole("tabpanel", { name: "Session" });
+  await waitFor(() =>
+    expect(within(panel).getAllByRole("button", { name: /^Remove / })).toHaveLength(1),
+  );
+  expect(openTab()).toBe("Session");
 });
 
 /** Unsaved notes restored with Outline open: the round's end says so, and Discard drops them. */
