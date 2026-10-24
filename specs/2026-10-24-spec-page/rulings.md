@@ -330,3 +330,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `useSheetTab` goes back to a `useState` in `spec/SpecColumn.tsx`.
 - **Where**: fix of Task 10's review, `spec/useSheetTab.ts`, `spec/SpecColumn.tsx`,
   `src/__tests__/spec-column-phone.test.tsx`.
+
+## R23: A spec's feature without a branch has no Session tab, a round's shows it blocked
+
+- **Decision**: the spec's and the plan's pages leave the Session tab and "Ask the agent" out when
+  the feature has no branch (`spec/pageSession.ts`), as the spec's edge case "the spec is on the
+  default branch" says. The questions page keeps its Session tab for a feature's round whose feature
+  has no branch, its composer blocked with "This feature has no branch left: it is merged."
+  (`RoundPage.tsx`, `ColumnSession.tsx`), as the questions page's Task 8 built it.
+- **Rationale**: this spec dictates the spec's side only; the questions page's behaviour belongs to
+  its own feature, and changing it is outside this fix.
+- **Alternatives considered**: hiding the round's tab too, which changes another feature's settled
+  behaviour; showing the spec's tab blocked, against this spec's edge case.
+- **If wrong**: `RoundPage.tsx` passes no draft when `useFeature(folder).branch` is unset, as
+  `usePageSession` does.
+- **Where**: fix of Task 11's review, `packages/web/src/spec/pageSession.ts`,
+  `packages/web/src/RoundPage.tsx`.
