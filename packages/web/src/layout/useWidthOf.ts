@@ -23,3 +23,20 @@ export function useWidthOf(ref: RefObject<HTMLElement | null>): number {
   }, [ref]);
   return width;
 }
+
+/**
+ * Whether an element is at least as wide as the theme's size `token`, as `--size-round-split`. The
+ * token is read again whenever the element's width changes, not only once on mount.
+ */
+export function useAtLeast(ref: RefObject<HTMLElement | null>, token: `--size-${string}`) {
+  const width = useWidthOf(ref);
+  const [least, setLeast] = useState(Number.POSITIVE_INFINITY);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element) {
+      const value = getComputedStyle(element).getPropertyValue(token);
+      setLeast(Number.parseFloat(value) || Number.POSITIVE_INFINITY);
+    }
+  }, [ref, token, width]);
+  return width >= least;
+}
