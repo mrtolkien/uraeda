@@ -53,7 +53,7 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
       </Selectable>
     ) : undefined;
   return (
-    <Pane id={leadId(run.label)} title={run.label}>
+    <Pane id={leadId(run.label)} isOpenOnPhone title={run.label}>
       <Blocks {...drawing} ids={[run.block]} override={override} />
     </Pane>
   );
@@ -78,7 +78,8 @@ function HeadingLine({ heading, selection }: { heading: Block; selection?: Selec
 }
 
 /**
- * A section in a pane titled by its heading, its anchor as id; a task's titled "Task N · <title>",
+ * A section in a pane titled by its heading, its anchor as id, open on the phone as the spec's parts
+ * are; a task's titled "Task N · <title>",
  * with its steps checked out of its total, so a link to the heading lands on its pane.
  */
 function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSection }) {
@@ -91,7 +92,7 @@ function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSect
   );
   if (!task) {
     return (
-      <Pane id={sectionId(heading)} title={heading.heading ?? ""}>
+      <Pane id={sectionId(heading)} isOpenOnPhone title={heading.heading ?? ""}>
         {blocks}
       </Pane>
     );
@@ -103,7 +104,12 @@ function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSect
     />
   );
   return (
-    <Pane id={sectionId(heading)} title={`Task ${task.number} · ${task.title}`} titleSuffix={badge}>
+    <Pane
+      id={sectionId(heading)}
+      isOpenOnPhone
+      title={`Task ${task.number} · ${task.title}`}
+      titleSuffix={badge}
+    >
       {blocks}
     </Pane>
   );
