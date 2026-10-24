@@ -653,12 +653,13 @@ candidates, and the decisions check.
 **Interfaces:**
 
 - Consumes: `PlanItems.lead` (Task 1); `Pane` (Task 3).
-- Produces: `PlanPage({ file: File })`: crumbs, the title, its status badge, then a `Pane` per lead
-  paragraph titled by its label (Goal, Architecture, Spec), its text without the label; a `Pane` per
-  `##` section titled by its heading, its anchor as id; a `Pane` per task titled "Task N · <title>"
-  with its `done/total` badge, id `task-N`, its steps drawn as today. Waiting for review, the
-  review's selection, comments, and `ReviewEnd`, as `ReviewPage` had; otherwise read-only. Task 10
-  adds its column.
+- Produces: `PlanPage({ file: File })`: crumbs, the title (its anchor as id), its status badge, then
+  a `Pane` per lead paragraph titled by its label (Goal, Architecture, Spec), its text without the
+  label; a `Pane` per `##` section titled by its heading, its anchor as id; a `Pane` per task titled
+  "Task N · <title>" with its `done/total` badge, its heading's anchor as id (a link
+  `plan.md#task-5-…` lands on it), its steps drawn as today. Waiting for review, the review's
+  selection, comments, and `ReviewEnd`, as `ReviewPage` had; otherwise read-only. Task 10 adds its
+  column.
 
 - [x] **Step 1: Write the failing tests** in `plan-page.test.tsx`: the questions page's plan as a
       fixture plan (`fixtures/plan-page/plan.md`, a copy of

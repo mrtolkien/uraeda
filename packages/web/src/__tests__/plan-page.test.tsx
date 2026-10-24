@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { commitOnBranch } from "uraeda-binding/test-utils";
-import { beforeEach, expect, test } from "vite-plus/test";
+import { beforeEach, expect, test, vi } from "vite-plus/test";
 import { atWidth, fixture, fixtureRepo, renderPage } from "./helpers.tsx";
 
 const FOLDER = "2026-10-13-plan-review";
@@ -86,4 +86,17 @@ test("a plan shows each task's steps checked out of its total", async () => {
   const task = await region("Task 5 · Repeats typed in the title");
   expect(within(task).getByText("2/5")).toBeTruthy();
   expect(screen.queryByRole("radio", { name: "high" })).toBeNull();
+});
+
+/** A link to a task's heading, `plan.md#task-1-…`, lands on its pane; the title keeps its anchor. */
+test("a task's anchor names its pane and the page scrolls to it", async () => {
+  const scrolled = vi.fn();
+  Element.prototype.scrollIntoView = scrolled;
+  const anchor = "task-1-the-sessions-view-scrolling-in-the-rounds-column";
+  await renderPage(`${PAGE}#${anchor}`, repoWith(questionsPlan("auto-approved")));
+
+  const task = await region(FIRST_TASK);
+  expect(document.getElementById(anchor)).toBe(task);
+  await waitFor(() => expect(scrolled.mock.contexts.at(-1)).toBe(task));
+  expect(document.getElementById("plan-questions-page-in-the-terminal-look")?.tagName).toBe("H1");
 });

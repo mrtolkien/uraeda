@@ -7,7 +7,7 @@ import type { Block, Document, PlanItems, Span } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
-import type { Folds } from "./Folds.tsx";
+import { type Folds, useHashFold } from "./Folds.tsx";
 import { Page } from "./layout/Page.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -57,7 +57,7 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
 
 /**
  * A section in a pane titled by its heading, its anchor as id; a task's titled "Task N · <title>",
- * with its steps checked out of its total, `task-N` as id.
+ * with its steps checked out of its total, so a link to the heading lands on its pane.
  */
 function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSection }) {
   const { heading, ids, task } = section;
@@ -76,11 +76,7 @@ function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSect
     />
   );
   return (
-    <Pane
-      id={`task-${task.number}`}
-      title={`Task ${task.number} · ${task.title}`}
-      titleSuffix={badge}
-    >
+    <Pane id={heading.anchor} title={`Task ${task.number} · ${task.title}`} titleSuffix={badge}>
       {blocks}
     </Pane>
   );
@@ -95,6 +91,8 @@ function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; ite
   const { opening, sections } = planParts(document, items);
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
   const status = STATUSES[file.status ?? ""];
+  // Once for the page: a hash names a pane or a block in one, scrolled to once drawn.
+  useHashFold(document, drawing.folds, true);
   return (
     <VStack gap={3}>
       {status && (
@@ -103,7 +101,7 @@ function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; ite
         </HStack>
       )}
       {title && (
-        <Heading level={1}>
+        <Heading id={title.anchor} level={1}>
           <Spans spans={title.spans} />
         </Heading>
       )}
