@@ -538,7 +538,7 @@ function composer() {
   return screen.findByRole("textbox", { name: "Message Claude Code" });
 }
 
-/** US6.1 */
+/** US6.1, in the column's Session tab on wide screens (spec page US4 key 3, R2) */
 test("US6.1: Ask the agent opens the session with the selected lines quoted", async () => {
   const r = repo();
   await renderPage(PAGE, r, { agent: true });
@@ -548,7 +548,8 @@ test("US6.1: Ask the agent opens the session with the selected lines quoted", as
 
   await click(await screen.findByRole("button", { name: "Ask the agent" }));
 
-  expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/session`));
+  expect(window.location.pathname).toBe(atRepo(PAGE));
+  expect(screen.getByRole("tab", { name: "Session", selected: true })).toBeTruthy();
   const lines = git(r, "show", `${FOLDER}:${SPEC}`).split("\n").slice(91, 95);
   const box = await composer();
   await waitFor(() =>

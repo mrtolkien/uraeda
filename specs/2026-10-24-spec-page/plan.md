@@ -795,12 +795,17 @@ candidates, and the decisions check.
 
 **Files:**
 
-- Modify: `packages/web/src/ReviewCommentForm.tsx` (Ask on a decision's lines),
-  `src/useReviewActions.ts` (`ask` writes to the page's draft and opens Session on wide screens; the
-  decision's file and lines), `src/spec/SpecPage.tsx`, `src/PlanPage.tsx` (the Session tab and the
-  page's `useDraft`), `src/sessions.ts` (`withQuote`, if the questions page's branch has not added
-  it, with its signature)
-- Test: `src/__tests__/spec-asking.test.tsx` (create); `review.test.tsx`'s asking tests follow (R2)
+- Modify: `packages/web/src/ReviewCommentForm.tsx` (Ask on a decision's lines, shown where the
+  review's `ask` is), `src/useReviewActions.ts` and `src/review/useReview.tsx` (`onAsk`, the page's
+  asking, takes the quote), `src/spec/SpecPage.tsx`, `src/PlanPage.tsx` (the Session tab and the
+  page's draft), `src/ColumnSession.tsx` (`sessionTab(draft, folder)`,
+  `useColumnAsk(folder, draft)`, shared with `RoundColumn.tsx`), `src/spec/SpecColumn.tsx` (the
+  phone's Session button with no review, as the mockup's plan)
+- Create: `src/reviewQuote.ts` (`quoteOfRange`: the file's lines, or a decision's parts' words,
+  R17), `src/spec/pageSession.ts` (`usePageSession(file)`: the draft, the tab, and `ask`, where the
+  agent is available and the feature has its branch)
+- Test: `src/__tests__/spec-asking.test.tsx` (create); `review.test.tsx`'s and `session.test.tsx`'s
+  asking tests follow (R2, R18)
 
 **Interfaces:**
 
@@ -815,23 +820,24 @@ candidates, and the decisions check.
   `specs/decisions/<name>.md`, the lines the part's (`after`, or `before` for a removed part, then
   "About the removed rule of <path>, lines A–B:"), and the quoted line the part's words on its side.
 
-- [ ] **Step 1: Write the failing tests** in `spec-asking.test.tsx`, with the fake agent: select
+- [x] **Step 1: Write the failing tests** in `spec-asking.test.tsx`, with the fake agent: select
       "Data MUST be stored in IndexedDB", click "Ask the agent": the tab "Session" is selected and
       the composer holds "About specs/decisions/task-storage.md, lines 15–16:" then "> Data MUST be
-      stored in IndexedDB, only through `src/store/`: components never reach the database
-      themselves." (US4 key 3); the removed rule "Components MUST NOT call IndexedDB" quotes "About
-      the removed rule of specs/decisions/task-storage.md, lines 16–17:" (Review focus 5); at 402
-      px, asking about a paragraph opens the session's page with the quote, and Back shows the spec
-      with the block (US4 more 1); without an agent, and on the default branch, no "Session" tab and
-      no "Ask the agent"; the plan page asks about a step the same way. Break: a decision quoted
-      with the spec's path.
-- [ ] **Step 2: Run them to check they fail**:
+      stored in IndexedDB, only through src/store/: components never reach the database themselves."
+      (US4 key 3; the part's words, without markdown, R17); the removed rule "Components MUST NOT
+      call IndexedDB" quotes "About the removed rule of specs/decisions/task-storage.md, lines
+      16–17:" (Review focus 5); at 402 px, asking about a paragraph opens the session's page with
+      the quote, and Back shows the spec at the place it was left (US4 more 1); without an agent,
+      and on the default branch, no "Session" tab and no "Ask the agent"; the plan page asks about a
+      step the same way; an approved plan has the Session tab, and at 402 px a "Session" button in
+      its status line. Break: a decision quoted with the spec's path.
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test src/__tests__/spec-asking.test.tsx`. Expected: FAIL, no "Ask the
       agent" on the rule.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `spec-asking.test.tsx`,
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `spec-asking.test.tsx`,
       `review.test.tsx`, and `column-session.test.tsx` in the desktop project. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 5: Commit**:
       `git commit -m "feat(spec-page): ask the agent about any block, in the column"`.
 
 ## Task 12: What changed since your review

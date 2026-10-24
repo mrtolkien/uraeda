@@ -44,6 +44,7 @@ import {
   storiesIntro,
 } from "./parts.ts";
 import { answeredComments, ReviewAnswers } from "./ReviewAnswers.tsx";
+import { type PageSession, usePageSession } from "./pageSession.ts";
 import { SpecColumn } from "./SpecColumn.tsx";
 import { Contents, entriesOf } from "./SpecContents.tsx";
 import { SpecHistory } from "./SpecHistory.tsx";
@@ -232,11 +233,13 @@ function SpecLayout({
   file,
   folds,
   review,
+  session,
   wide,
 }: {
   file: File;
   folds: Folds | undefined;
   review: Review | undefined;
+  session: PageSession | undefined;
   wide: boolean;
 }) {
   const dataFile = useFile(file.folder, "data-model.md");
@@ -297,6 +300,7 @@ function SpecLayout({
       contents={
         <Contents entries={entriesOf({ changes, comments, document, hasData: !!data, items })} />
       }
+      extra={session ? [session.tab] : []}
       file={file}
       review={review}
     />
@@ -306,7 +310,8 @@ function SpecLayout({
 /** A spec waiting for your review: its parts take comments, and its verdict is at the page's end. */
 function WaitingSpec({ file }: { file: File }) {
   const wide = !isNarrow(useWidthClass());
-  const review = useReview(file, wide);
+  const session = usePageSession(file);
+  const review = useReview(file, wide, session?.ask);
   return (
     <ReviewHost file={file} review={review}>
       <StoriesProvider
@@ -315,7 +320,13 @@ function WaitingSpec({ file }: { file: File }) {
         mockups={review.version.mockups}
         stories={review.version.stories}
       >
-        <SpecLayout file={file} folds={review.folds} review={review} wide={wide} />
+        <SpecLayout
+          file={file}
+          folds={review.folds}
+          review={review}
+          session={session}
+          wide={wide}
+        />
       </StoriesProvider>
     </ReviewHost>
   );
@@ -325,13 +336,14 @@ function WaitingSpec({ file }: { file: File }) {
 function ReadSpec({ file }: { file: File }) {
   const wide = !isNarrow(useWidthClass());
   const folds = useSpecFolds(file.current.items.spec);
+  const session = usePageSession(file);
   return (
     <StoriesProvider
       folder={file.folder}
       mockups={file.current.mockups}
       stories={file.current.stories}
     >
-      <SpecLayout file={file} folds={folds} review={undefined} wide={wide} />
+      <SpecLayout file={file} folds={folds} review={undefined} session={session} wide={wide} />
     </StoriesProvider>
   );
 }

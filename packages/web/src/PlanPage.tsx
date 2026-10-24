@@ -13,6 +13,7 @@ import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type OpeningRun, type PlanSection, planParts } from "./planParts.ts";
 import { ReviewEnd, ReviewHost, ReviewIntro, useReview } from "./review/useReview.tsx";
+import { usePageSession } from "./spec/pageSession.ts";
 import { SpecColumn } from "./spec/SpecColumn.tsx";
 import { Contents, type Entry } from "./spec/SpecContents.tsx";
 import { Selectable, type Selection } from "./Selection.tsx";
@@ -193,7 +194,8 @@ function planEntries(
  */
 function ReviewedPlan({ file }: { file: File }) {
   const wide = !isNarrow(useWidthClass());
-  const review = useReview(file, wide);
+  const session = usePageSession(file);
+  const review = useReview(file, wide, session?.ask);
   const { comments, folds, selection, storyComments, tree, version } = review;
   const page = (
     <Page>
@@ -221,6 +223,7 @@ function ReviewedPlan({ file }: { file: File }) {
       <SpecColumn
         content={page}
         contents={<Contents entries={planEntries(tree, version.items.plan, comments)} />}
+        extra={session ? [session.tab] : []}
         file={file}
         review={review}
       />
@@ -229,13 +232,17 @@ function ReviewedPlan({ file }: { file: File }) {
 }
 
 /**
- * A plan, in panes in its file's order, its column of Contents beside it: waiting for review, with the review's selection, comments,
- * and verdict; otherwise read as it is now.
+ * A plan, in panes in its file's order, its column of Contents, and Session where the agent can be
+ * asked, beside it: waiting for review, with the review's selection, comments, and verdict;
+ * otherwise read as it is now.
  */
 export function PlanPage({ file }: { file: File }) {
-  if (file.status === "awaiting-human") {
-    return <ReviewedPlan file={file} />;
-  }
+  return file.status === "awaiting-human" ? <ReviewedPlan file={file} /> : <ReadPlan file={file} />;
+}
+
+/** A plan not waiting for review: read as it is now, its session beside it. */
+function ReadPlan({ file }: { file: File }) {
+  const session = usePageSession(file);
   return (
     <StoriesProvider
       folder={file.folder}
@@ -256,6 +263,7 @@ export function PlanPage({ file }: { file: File }) {
         contents={
           <Contents entries={planEntries(file.current.document, file.current.items.plan, [])} />
         }
+        extra={session ? [session.tab] : []}
         file={file}
         review={undefined}
       />

@@ -337,6 +337,8 @@ test("US1.8: a session's link replaces the feature page, and Back returns to it"
 });
 
 test("US1.9: Ask the agent opens the session with the quote, and Back returns to the review", async () => {
+  // On the phone: on wide screens, asking opens the column's Session tab (spec page US4, R2).
+  atWidth(402);
   const folder = "2026-10-06-recurring-tasks";
   await renderPage(`/f/${folder}/spec.md`, fixtureRepo(), { agent: await fakeAgent() });
   await click(await screen.findByRole("button", { name: /^Users can make a task repeat/ }));

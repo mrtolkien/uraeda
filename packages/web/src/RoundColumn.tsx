@@ -4,9 +4,9 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, Suspense, useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
-import { ColumnSession } from "./ColumnSession.tsx";
+import { sessionTab, useColumnAsk } from "./ColumnSession.tsx";
 import type { useFile } from "./data.ts";
 import { type ColumnTab, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
@@ -20,7 +20,7 @@ import {
 } from "./RoundNotes.tsx";
 import { NextOrSubmit, OutlineSheet, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
 import type { NavQuestion } from "./roundJump.ts";
-import { askAbout, quoted, withQuote } from "./sessions.ts";
+import { quoted } from "./sessions.ts";
 import type { Draft } from "./useDraft.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -44,14 +44,7 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
   const wide = !isNarrow(useWidthClass());
   const [, setTab] = useColumnTab(columnKeys(draft !== undefined));
   const sheet = useState<RoundSheet>();
-  const ask = (quote: string) => {
-    if (!wide) {
-      askAbout(file.folder, quote);
-      return;
-    }
-    draft?.setText((now) => withQuote(now, quote));
-    setTab("session");
-  };
+  const ask = useColumnAsk(file.folder, draft);
   const editNotes = () => {
     if (wide) {
       setTab("notes");
@@ -128,16 +121,7 @@ export function RoundColumn({
     { icon: "uraeda:pencil", key: "notes", label: "Notes", panel: notesField },
   ];
   if (draft) {
-    tabs.push({
-      icon: "uraeda:comment",
-      key: "session",
-      label: "Session",
-      panel: (
-        <Suspense fallback={null}>
-          <ColumnSession draft={draft} folder={file.folder} />
-        </Suspense>
-      ),
-    });
+    tabs.push(sessionTab(draft, file.folder));
   }
   return (
     <>

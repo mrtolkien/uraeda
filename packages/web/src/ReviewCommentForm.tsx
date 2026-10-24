@@ -10,7 +10,7 @@ import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Document } from "uraeda-binding";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
-import { type useFile, useAgent } from "./data.ts";
+import type { useFile } from "./data.ts";
 import type { Unsaved } from "./fields/unsaved.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { CommentNote } from "./ReviewComments.tsx";
@@ -149,7 +149,6 @@ function ReviewForm({
   images: Images;
   tree: Document;
 }) {
-  const agent = useAgent();
   if (!draft) {
     return undefined;
   }
@@ -164,10 +163,9 @@ function ReviewForm({
   return (
     <CommentForm
       action={
-        agent?.available &&
+        ask &&
         draft.kind === "lines" &&
-        selection &&
-        !selection.decision && <Button label="Ask the agent" onClick={() => ask(selection)} />
+        selection && <Button label="Ask the agent" onClick={() => ask(selection)} />
       }
       anchor={
         draft.kind === "lines" && selection

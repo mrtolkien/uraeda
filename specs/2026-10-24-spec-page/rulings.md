@@ -240,3 +240,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   questions page's width, two widths for one column.
 - **If wrong**: one label in `spec/SpecColumn.tsx`; the old tests are in git history.
 - **Where**: Task 10, `spec/SpecColumn.tsx`, `src/__tests__/spec-page.test.tsx`.
+
+## R17: A decision's part is quoted in its words, without its markdown
+
+- **Decision**: "Ask the agent" on a decision's part quotes the part's words as the core compared
+  them, the runs on its side, which hold no markdown: "> Data MUST be stored in IndexedDB, only
+  through src/store/: components never reach the database themselves.", without the backticks around
+  `src/store/`. The header names the decision's file and the part's lines, so the agent reads the
+  markdown there. Task 11's test expects the words, not the plan's backticked line.
+- **Rationale**: the plan's own interface says "the quoted line the part's words on its side"; the
+  web holds a decision's words, not its file's text, and the core's parts are plain text by design,
+  for the word comparison. Quoting the file's lines would need the core to send each decision's text
+  on both sides, for a quote whose header already points to them.
+- **Alternatives considered**: a new core field with each part's markdown source; cutting the
+  decision's file at both commits in the web, which the stack decision leaves to the core.
+- **If wrong**: the core adds the part's source text to `PartChange`, and `reviewQuote.ts` quotes it
+  in place of the runs.
+- **Where**: Task 11, `packages/web/src/reviewQuote.ts`, `src/__tests__/spec-asking.test.tsx`.
+
+## R18: The review's asking tests at 1440 px follow the Session tab
+
+- **Decision**: `review.test.tsx`'s "US6.1" now expects the Session tab open on the spec's page, not
+  the session's page; `session.test.tsx`'s "US1.9" (the session's page opened with the quote, Back
+  returning to the review) runs at 402 px, where asking still opens the session's page.
+- **Rationale**: spec page US4 key 3 moves asking on wide screens into the column (R2); both tests
+  keep guarding what they named, each at the width where it still happens.
+- **Alternatives considered**: none.
+- **If wrong**: the tests' previous versions are in git history.
+- **Where**: Task 11.

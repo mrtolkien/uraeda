@@ -66,9 +66,10 @@ function fieldOf(
 /**
  * A spec or a plan's review, as committed at its branch's tip: its pending comments, the comment
  * being written, which opens again with its unsaved text, the folds holding a comment or the
- * selection, and the blocks' selection, `selection`, which a tap starts a comment with.
+ * selection, and the blocks' selection, `selection`, which a tap starts a comment with. `onAsk`,
+ * where the agent can be asked, takes the quote "Ask the agent" makes of the selection.
  */
-export function useReview(file: File, wide: boolean) {
+export function useReview(file: File, wide: boolean, onAsk?: (quote: string) => void) {
   const version = file.committed ?? file.current;
   const tree = version.document;
   const review = file.review?.review;
@@ -77,7 +78,7 @@ export function useReview(file: File, wide: boolean) {
   const commentDraft = useReviewDraft(file, comments, wide, refusals);
   // The comment form's element, which each place it shows takes in turn.
   const [container] = useState(() => document.createElement("div"));
-  const actions = useReviewActions(file, commentDraft, refusals);
+  const actions = useReviewActions(file, commentDraft, refusals, onAsk);
   const placed = usePlacedComments(comments, tree);
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, commentDraft.selection));
   const field = fieldOf(file, comments, commentDraft);

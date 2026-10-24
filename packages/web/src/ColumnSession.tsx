@@ -2,12 +2,14 @@
 // the way to the session's page.
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useFeature } from "./data.ts";
+import { type ColumnTab, useColumnTab } from "./layout/DocumentColumn.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
 import type { SessionItem } from "./SessionActions.tsx";
 import { SessionAnnouncer } from "./SessionAnnouncer.tsx";
-import { sessionPath } from "./sessions.ts";
+import { askAbout, sessionPath, withQuote } from "./sessions.ts";
 import { NO_BRANCH, SessionPane } from "./SessionView.tsx";
 import type { Draft } from "./useDraft.ts";
 
@@ -57,4 +59,36 @@ export function ColumnSession({ draft, folder }: { draft: Draft; folder: string 
       </VStack>
     </>
   );
+}
+
+/** The column's Session tab, on the feature's session in `folder`, its composer holding `draft`. */
+export function sessionTab(draft: Draft, folder: string): ColumnTab {
+  return {
+    icon: "uraeda:comment",
+    key: "session",
+    label: "Session",
+    panel: (
+      <Suspense fallback={null}>
+        <ColumnSession draft={draft} folder={folder} />
+      </Suspense>
+    ),
+  };
+}
+
+/**
+ * Asking the agent from a page with a Session tab: the quote written into `draft`, the page's
+ * composer, in place of the one it held, and Session opened; on the phone, the session's page
+ * opened with the quote, Back returning to the page.
+ */
+export function useColumnAsk(folder: string, draft: Draft | undefined) {
+  const wide = !isNarrow(useWidthClass());
+  const [, setTab] = useColumnTab(["session"]);
+  return (quote: string) => {
+    if (!wide) {
+      askAbout(folder, quote);
+      return;
+    }
+    draft?.setText((now) => withQuote(now, quote));
+    setTab("session");
+  };
 }
