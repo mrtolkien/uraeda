@@ -1,4 +1,4 @@
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
@@ -26,12 +26,14 @@ const styles = stylex.create({
     marginInlineStart: spacingVars["--spacing-6"],
   },
   followUpPhone: {
-    // On the phone, a follow-up keeps its accent line on its side, and little inset.
-    borderInlineStartColor: colorVars["--color-accent"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: "var(--size-round-accent)",
-    marginBlockStart: spacingVars["--spacing-4"],
-    paddingInlineStart: spacingVars["--spacing-3"],
+    // On the phone, a follow-up has no line on its side, so its text keeps the screen's width: an
+    // accent border on top, from edge to edge, above its header.
+    borderBlockStartColor: colorVars["--color-accent"],
+    borderBlockStartStyle: "solid",
+    borderBlockStartWidth: `calc(2 * ${borderVars["--border-width"]})`,
+    marginBlockStart: spacingVars["--spacing-6"],
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    paddingInline: spacingVars["--spacing-4"],
   },
   joint: {
     // The accent line from a card to the follow-up's after it.
@@ -120,8 +122,8 @@ function QuestionGroup({
 
 /**
  * The round's questions, each a card; on the phone, each after a band. A follow-up the round asks
- * is a card of its own after its parent's, joined to it by a line on a wide screen, with an accent
- * line on its side on the phone.
+ * is a card of its own after its parent's, joined to it by a line on a wide screen, under an accent
+ * border on top on the phone.
  */
 export function QuestionCards({
   questions,

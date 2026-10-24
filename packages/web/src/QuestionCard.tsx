@@ -33,28 +33,34 @@ const styles = stylex.create({
     display: "grid",
     gridTemplateColumns: "minmax(0, 5fr) minmax(0, 6fr)",
   },
+  // The left column of a split card, as tall as the card: its header sticks for the whole card.
   stickyHead: {
-    // On the phone, the question's header stays below the tabs, a row of `--spacing-12`, over the
-    // page's background, while its question scrolls under it.
-    backgroundColor: colorVars["--color-background-surface"],
-    insetBlockStart: spacingVars["--spacing-12"],
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    // The question's header stays at the top of the window, over its card's background, while its
+    // card is on screen, and leaves with it: its card holds it.
+    backgroundColor: colorVars["--color-background-card"],
+    insetBlockStart: 0,
     paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-4"],
     position: "sticky",
     zIndex: 1,
   },
-  stickyHeadFollowUp: {
-    // A follow-up's header reaches its accent line, not past it.
-    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})`,
-    paddingInlineStart: spacingVars["--spacing-3"],
+  stickyHeadPhone: {
+    // On the phone, below the tabs, a row of `--spacing-12`, over the page's background, from
+    // edge to edge.
+    backgroundColor: colorVars["--color-background-surface"],
+    insetBlockStart: spacingVars["--spacing-12"],
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    paddingInline: spacingVars["--spacing-4"],
+  },
+  stretch: {
+    alignSelf: "stretch",
   },
 });
 
 /**
  * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy` and none of
  * its options holds stories: its title and context on the left, its options and comment on the
- * right. On the phone, no card: its header sticks below the top bar while it scrolls. A tap on an
+ * right. On the phone, no card. At every width, its header sticks at the top while its card is on
+ * screen, below the top bar on the phone, and a question taller than the screen scrolls under it. A tap on an
  * option toggles its letter and saves the answer, with the comment as saved; the comment saves
  * with its button, or with Submit. With `onAsk`, it offers "Ask the agent".
  */
@@ -103,13 +109,7 @@ export function QuestionCard({
   const context = <QuestionContext document={document} question={question} />;
   const answering = (
     <div>
-      <Options
-        answer={answer}
-        beside={split}
-        document={document}
-        question={question}
-        readOnly={readOnly}
-      />
+      <Options answer={answer} document={document} question={question} readOnly={readOnly} />
       <AnswerComment
         answer={answer}
         id={question.id}
@@ -123,8 +123,8 @@ export function QuestionCard({
   );
 
   // One tree at every width, so a field being typed in stays as the window crosses the breakpoint.
-  // On the phone, the card draws nothing, and its columns no box: the header sticks for the whole
-  // question.
+  // On the phone and in one column, the card's columns draw no box: the header sticks for the whole
+  // card; split, the left column is as tall as the card.
   return (
     <StoryContext value={comments}>
       <section id={question.id} {...stylex.props(margin)}>
@@ -134,13 +134,8 @@ export function QuestionCard({
           xstyle={!wide && styles.flat}
         >
           <div {...stylex.props(styles.rows, split ? styles.split : styles.contents)}>
-            <div {...stylex.props(!split && styles.contents)}>
-              <div
-                {...stylex.props(
-                  !wide && styles.stickyHead,
-                  !wide && question.parent !== undefined && styles.stickyHeadFollowUp,
-                )}
-              >
+            <div {...stylex.props(split ? styles.stretch : styles.contents)}>
+              <div {...stylex.props(styles.stickyHead, !wide && styles.stickyHeadPhone)}>
                 {head}
               </div>
               {context}
