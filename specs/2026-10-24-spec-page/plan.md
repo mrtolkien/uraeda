@@ -758,17 +758,18 @@ candidates, and the decisions check.
   on wide and semi-wide screens, a `DocumentColumn` labelled "The spec's column" or "The plan's
   column" (R16) with "Contents", then "Review" with the comments' count while a review waits, then
   `extra` (Task 11's Session); on narrow screens, a `TopBarSlot` with "Contents" and the count
-  opening sheets of the same panels, and "Verdict" bringing the page's end's verdict into view, its
-  first enabled button focused (`toVerdict`, `VERDICT_ID` in `ReviewVerdict.tsx`). A panel jumps
-  through `useColumnGo()` (`spec/columnGo.ts`), which closes the phone's sheet first.
-  `ReviewTab({ review: Review; file: File })`: "N comments, unsent", each comment a button named by
-  its place that jumps to it, "General comment", then `Verdicts`, and "Risk tier, plan review, and
-  your summary are with the verdict at the page's end." with a link there. A comment's button brings
-  its block to the middle of the screen and focuses its toggle (`jumpToComment`, through each
-  pending note's id `comment-<n>`). The verdict's commit is `useVerdict(file, choices, refusals)`,
-  shared by the end and the tab. Contents marks the part at the top with `useQuestionAtTop` over its
-  ids; its groups read "Decisions · N" (the decisions listed) and "User stories · N". The plan page
-  has Contents (its panes) and, waiting, Review.
+  opening sheets of the same panels, kept in the address's `?tab=` (R20), and "Verdict" bringing the
+  page's end's verdict into view, its first enabled button focused (`toVerdict`, `VERDICT_ID` in
+  `ReviewVerdict.tsx`). A panel jumps through `useColumnGo()` (`spec/columnGo.ts`), which closes the
+  phone's sheet first. `ReviewTab({ review: Review; file: File })`: "N comments, unsent", each
+  comment a button named by its place that jumps to it, "General comment", then `Verdicts`, and
+  "Risk tier, plan review, and your summary are with the verdict at the page's end." (a plan's:
+  "Your summary is with the verdict at the page's end.") with a link there. A comment's button
+  brings its block to the middle of the screen and focuses its toggle (`jumpToComment`, through the
+  comment's lines, each selectable element's `data-lines`). The verdict's commit is
+  `useVerdict(file, choices, refusals)`, shared by the end and the tab. Contents marks the part at
+  the top with `useQuestionAtTop` over its ids; its groups read "Decisions · N" (the decisions
+  listed) and "User stories · N". The plan page has Contents (its panes) and, waiting, Review.
 
 - [x] **Step 1: Write the failing tests.** UI (`spec-column.test.tsx`): Contents is the selected tab
       with "What you approve", "Decisions · 3", each decision, each story; two comments, on a rule
