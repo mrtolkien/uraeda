@@ -125,7 +125,8 @@ export function entriesOf({
 /**
  * "Contents": every entry, the part at the top marked, a tap jumping to its part and focusing its
  * title, through the column, which closes the phone's sheet first. Caught around the list: a list
- * item's link does not call the item's `onClick`.
+ * item's link does not call the item's `onClick`. A click with a modifier or another button than
+ * the first is left to the browser.
  */
 export function Contents({ entries }: { entries: ReadonlyArray<Entry> }) {
   const go = useColumnGo();
@@ -137,7 +138,14 @@ export function Contents({ entries }: { entries: ReadonlyArray<Entry> }) {
     <div
       onClickCapture={(event) => {
         const link = (event.target as Element).closest("a[href^='#']");
-        if (link) {
+        // A link opened in a new tab or window, or with another button, is the browser's.
+        const plain =
+          event.button === 0 &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          !event.altKey;
+        if (link && plain) {
           event.preventDefault();
           const id = link.getAttribute("href")!.slice(1);
           go(() => jumpTo(id));

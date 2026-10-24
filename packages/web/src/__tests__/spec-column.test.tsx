@@ -3,7 +3,7 @@
 // the pending comments by their places, a tap bringing each one's block to the top, then the
 // verdict's buttons, which commit the risk tier set at the page's end. A typed comment stays through
 // tabs and widths. On the phone, no column: the status line holds Contents, the count, and Verdict.
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { atWidth, click, fixtureRepo, git, renderPage, type } from "./helpers.tsx";
@@ -104,6 +104,21 @@ test("Contents is the open tab, listing the decisions and the stories", async ()
   ]);
   expect(rows).toContain("User stories · 4");
   expect(rows).toContain("US2 Complete a repeating task");
+});
+
+/** A link opened in a new tab or window is the browser's: Contents jumps on a plain click only. */
+test("Contents leaves a click with a modifier or another button to the browser", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+  await screen.findByRole("region", { name: BLOCK });
+  const link = within(panel("Contents")).getByRole("link", { name: /^Task storage/ });
+
+  for (const init of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }]) {
+    expect(fireEvent.click(link, init)).toBe(true);
+  }
+  expect(fireEvent.click(link, { button: 1 })).toBe(true);
+  expect(fireEvent.click(link)).toBe(false);
 });
 
 /** US4 key 2, SC-004 */
