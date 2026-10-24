@@ -251,13 +251,14 @@ export function ReviewVerdict({
 export const VERDICT_ID = "verdict";
 
 /**
- * Brings the page's end's verdict into view, its first button that can be pressed focused. Its
- * element has no box of its own: its button is scrolled to.
+ * Brings the page's end's verdict into view, its first button that can be pressed focused, not one
+ * disabled, or inert behind its tooltip. Its element has no box of its own: its button is scrolled
+ * to.
  */
 export function toVerdict() {
   const button = document
     .getElementById(VERDICT_ID)
-    ?.querySelector<HTMLButtonElement>("button:not([disabled])");
+    ?.querySelector<HTMLButtonElement>("button:not([disabled], [aria-disabled='true'])");
   button?.scrollIntoView?.({ block: "center" });
   button?.focus({ preventScroll: true });
 }

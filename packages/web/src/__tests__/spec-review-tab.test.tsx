@@ -100,3 +100,16 @@ test("General comment in the tab focuses the comment's field", async () => {
   const field = await screen.findByRole("textbox", { name: "Comment text" });
   await waitFor(() => expect(document.activeElement).toBe(field));
 });
+
+/** US1 key 3: with no comment, Request changes is inert, and the verdict's focus goes to Approve. */
+test("with no comment, the page's end focuses Approve", async () => {
+  await renderPage(SPEC, fixtureRepo());
+
+  const tab = await reviewTab();
+  await click(within(tab).getByRole("link", { name: "the page's end" }));
+
+  const approve = screen
+    .getAllByRole("button", { name: "Approve" })
+    .find((button) => !tab.contains(button));
+  await waitFor(() => expect(document.activeElement).toBe(approve));
+});
