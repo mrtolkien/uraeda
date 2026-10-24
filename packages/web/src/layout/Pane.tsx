@@ -17,6 +17,8 @@ import {
   type ComponentProps,
   type ReactNode,
   type RefObject,
+  createContext,
+  use,
   useId,
   useLayoutEffect,
   useRef,
@@ -25,6 +27,9 @@ import {
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
+
+/** Whether a pane is inside another: there, it keeps its borders on the phone too. */
+const InPane = createContext(false);
 
 /**
  * What a pane's colour tells: it needs the human, it shows an example, or it holds a problem; a
@@ -329,7 +334,8 @@ function PaneName({
  * top border with its icon and its count. The accent colours its border and title while it is
  * active, else its tone does. `isGroup` makes it a group rather than a region, as the panes of a
  * navigation are, which a list of landmarks would repeat. `isOpenOnPhone` keeps only its titled top
- * border on narrow screens, as the round's panes do. With `fold`, its title is a button that opens
+ * border on narrow screens, as the round's panes do, unless it is inside another pane, whose
+ * background its own would show as a band. With `fold`, its title is a button that opens
  * and closes it, named by its title and its count, and folded, its content is not mounted.
  * `actions` sit in the top border at its end, as a live window's buttons do, the title wrapping
  * before them, or under them where they leave it too little room; `titleSuffix` follows
@@ -372,7 +378,7 @@ export function Pane({
   const [border, ink] = colours(isActive, tone);
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
-  const isOpen = isOpenOnPhone && isNarrow(width);
+  const isOpen = isOpenOnPhone && isNarrow(width) && !use(InPane);
   // The fold button's name, as it reads: the title and its count.
   const label = count === undefined ? title : `${title} · ${count}`;
   const name = (
@@ -423,16 +429,24 @@ export function Pane({
           {actions}
         </div>
       )}
-      {!fold || fold.isOpen
-        ? children
-        : fold.folded !== undefined && (
-            <Button
-              label={fold.folded}
-              onClick={() => fold.onOpenChange(true)}
-              size="sm"
-              variant="ghost"
-            />
-          )}
+      <PaneBody fold={fold}>{children}</PaneBody>
     </section>
+  );
+}
+
+/** A pane's content, open, as inside a pane; folded, not mounted, but its line that opens it. */
+function PaneBody({ children, fold }: { children: ReactNode; fold?: PaneFold }) {
+  if (!fold || fold.isOpen) {
+    return <InPane value>{children}</InPane>;
+  }
+  return (
+    fold.folded !== undefined && (
+      <Button
+        label={fold.folded}
+        onClick={() => fold.onOpenChange(true)}
+        size="sm"
+        variant="ghost"
+      />
+    )
   );
 }

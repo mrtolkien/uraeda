@@ -120,3 +120,23 @@ test("on the phone, a short title keeps its line: a long suffix goes under it", 
     screen.getByText("The first paragraph of the pane.").getBoundingClientRect().top,
   );
 });
+
+test("on the phone, a pane inside a pane keeps its own: its title shows no band", async () => {
+  render(
+    <Theme mode="light" theme={uraedaTheme}>
+      <Pane title="specs/decisions/task-storage.md">
+        <Pane isOpenOnPhone level={3} title="Task storage">
+          <p>The rules.</p>
+        </Pane>
+      </Pane>
+    </Theme>,
+  );
+  await drawn();
+
+  const outer = screen.getByRole("region", { name: "specs/decisions/task-storage.md" });
+  const inner = screen.getByRole("region", { name: "Task storage" });
+  const title = within(inner).getByRole("heading", { level: 3 });
+  // The title hides the border with what is behind it: the outer pane's background.
+  expect(getComputedStyle(title).backgroundColor).toBe(getComputedStyle(outer).backgroundColor);
+  expect(getComputedStyle(inner).backgroundColor).toBe(getComputedStyle(outer).backgroundColor);
+});
