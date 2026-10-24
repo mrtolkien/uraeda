@@ -26,7 +26,7 @@ import {
   type Review,
   useReview,
 } from "../review/useReview.tsx";
-import { type SinceMark, SinceMarks } from "../sinceMarks.tsx";
+import { NO_SINCE, SinceMarks } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { StoriesProvider } from "../stories.tsx";
 import { useSpecFolds } from "../useOpenKeys.ts";
@@ -66,9 +66,6 @@ const styles = stylex.create({
     outlineStyle: { ":focus:not(:focus-visible)": "none", default: null },
   },
 });
-
-/** No block marked Δ: a spec not revised since a review. */
-const NO_MARKS: ReadonlyMap<number, SinceMark> = new Map();
 
 /** The badge of a spec's status. */
 const STATUSES: Record<string, { label: string; variant: "neutral" | "success" | "warning" }> = {
@@ -170,7 +167,7 @@ function Groups({
   part,
 }: {
   changes: ReadonlyArray<DecisionChange>;
-  data: { document: Document; model: DataModelItems } | undefined;
+  data: { model: DataModelItems; version: File["current"] } | undefined;
   items: SpecItems;
   part: PartProps;
 }) {
@@ -215,7 +212,14 @@ function Groups({
           title={GROUPS.data.title}
           wide={part.wide}
         >
-          <DataPart document={data.document} model={data.model} />
+          {/* Its own embeds: a block id is an index in its own document, not in the spec's. */}
+          <StoriesProvider
+            folder={part.folder}
+            mockups={data.version.mockups}
+            stories={data.version.stories}
+          >
+            <DataPart document={data.version.document} model={data.model} />
+          </StoriesProvider>
         </Group>
       )}
       {hasBuilt && (
@@ -263,7 +267,7 @@ function SpecLayout({
         : dataFile.current
       : undefined;
   const dataModel = dataVersion?.items.dataModel;
-  const data = dataVersion && dataModel && { document: dataVersion.document, model: dataModel };
+  const data = dataVersion && dataModel && { model: dataModel, version: dataVersion };
   const version = review?.version ?? file.current;
   const items = version.items.spec;
   // Once for the page: a hash into a story's more scenarios opens them, any other scrolls to its
@@ -293,7 +297,7 @@ function SpecLayout({
     wide,
   };
   const page = (
-    <SinceMarks value={since?.marks ?? NO_MARKS}>
+    <SinceMarks value={since?.marks ?? NO_SINCE}>
       <Page isTight>
         <Crumbs current={file.name} folder={file.folder} />
         <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>

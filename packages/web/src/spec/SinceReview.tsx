@@ -11,7 +11,7 @@ import type { Block, Document, LineRange, SinceChange, SinceReview } from "uraed
 import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { jumpTo } from "../roundJump.ts";
-import type { SinceMark } from "../sinceMarks.tsx";
+import type { SinceMark, SinceScope } from "../sinceMarks.tsx";
 import { useOpenKeys } from "../useOpenKeys.ts";
 import { entryOfBlock, entryOwners, placeInStory, type SpecItems } from "./parts.ts";
 import { Runs } from "./RuleLine.tsx";
@@ -40,8 +40,8 @@ export type SincePlace = {
 
 /** What changed since your review, as the page draws it. */
 export type SinceModel = {
-  /** The marks of the blocks holding a change's lines, by block id. */
-  marks: ReadonlyMap<number, SinceMark>;
+  /** The marks of the blocks holding a change's lines, by block id, in the spec's tree. */
+  marks: SinceScope;
   /** The places changed or added, in the page's order. */
   places: ReadonlyArray<SincePlace>;
   /** The parts removed, drawn in the pane only. */
@@ -86,7 +86,7 @@ export function sinceModel(
     marks.set(block.id, { change, id });
   }
   const removed = since.parts.filter((change) => change.kind === "removed");
-  return { marks, places, removed, since };
+  return { marks: { document, marks }, places, removed, since };
 }
 
 /** "1 part" or "3 parts". */

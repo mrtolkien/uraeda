@@ -15,7 +15,7 @@ import { useStaticImages } from "./ImageView.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
-import { SinceWords } from "./sinceMarks.tsx";
+import { SinceScoped, SinceWords } from "./sinceMarks.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
@@ -448,27 +448,29 @@ export function Blocks({
     fold.ids.forEach((id, index) => folded.set(id, index === 0 ? fold : undefined));
   }
   return (
-    <div {...stylex.props(proseStyles.doc, styles.doc)}>
-      {blocks.map((block) => {
-        if (!folded.has(block.id)) {
-          return <BlockNode block={block} context={context} key={block.id} />;
-        }
-        const fold = folded.get(block.id);
-        if (!fold || !folds) {
-          return null;
-        }
-        // The fold's title is its toggle; what follows the title in a review, like a pending
-        // comment on it, comes first inside.
-        const [title, ...rest] = fold.ids.map((id) => document.blocks[id]);
-        return (
-          <FoldNode fold={fold} folds={folds} key={`fold-${fold.key}`} title={title}>
-            {title && selection?.after && <After>{selection.after(title)}</After>}
-            {rest.map(
-              (inner) => inner && <BlockNode block={inner} context={context} key={inner.id} />,
-            )}
-          </FoldNode>
-        );
-      })}
-    </div>
+    <SinceScoped document={document}>
+      <div {...stylex.props(proseStyles.doc, styles.doc)}>
+        {blocks.map((block) => {
+          if (!folded.has(block.id)) {
+            return <BlockNode block={block} context={context} key={block.id} />;
+          }
+          const fold = folded.get(block.id);
+          if (!fold || !folds) {
+            return null;
+          }
+          // The fold's title is its toggle; what follows the title in a review, like a pending
+          // comment on it, comes first inside.
+          const [title, ...rest] = fold.ids.map((id) => document.blocks[id]);
+          return (
+            <FoldNode fold={fold} folds={folds} key={`fold-${fold.key}`} title={title}>
+              {title && selection?.after && <After>{selection.after(title)}</After>}
+              {rest.map(
+                (inner) => inner && <BlockNode block={inner} context={context} key={inner.id} />,
+              )}
+            </FoldNode>
+          );
+        })}
+      </div>
+    </SinceScoped>
   );
 }

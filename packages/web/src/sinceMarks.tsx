@@ -6,7 +6,7 @@ import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme
 import * as stylex from "@stylexjs/stylex";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { createContext, type ReactNode, use, useId } from "react";
-import type { Block, SinceChange } from "uraeda-binding";
+import type { Block, Document, SinceChange } from "uraeda-binding";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { Runs } from "./spec/RuleLine.tsx";
@@ -14,8 +14,21 @@ import { Runs } from "./spec/RuleLine.tsx";
 /** A block's mark: its change, and its element's id when a place's jump lands on it. */
 export type SinceMark = { change: SinceChange; id?: string };
 
-/** The marks of the page's blocks, by block id: none outside a revised spec. */
-export const SinceMarks = createContext<ReadonlyMap<number, SinceMark>>(new Map());
+/**
+ * The marks of a document's blocks, by block id: a block id is an index in its own document, so
+ * only the blocks of `document` are marked, not those of another drawn under the same page, like
+ * the spec's data model.
+ */
+export type SinceScope = {
+  document: Document | undefined;
+  marks: ReadonlyMap<number, SinceMark>;
+};
+
+/** No block marked: outside a revised spec, or under another document than its. */
+export const NO_SINCE: SinceScope = { document: undefined, marks: new Map() };
+
+/** The marks of the page's document, the revised spec's. */
+export const SinceMarks = createContext<SinceScope>(NO_SINCE);
 
 const styles = stylex.create({
   label: {
@@ -40,7 +53,17 @@ const styles = stylex.create({
 
 /** The mark of a block, by its id, if it changed since your review. */
 export function useSinceMark(block: number): SinceMark | undefined {
-  return use(SinceMarks).get(block);
+  return use(SinceMarks).marks.get(block);
+}
+
+/** `children`, drawing `document`'s blocks: without marks, when the marks are another's. */
+export function SinceScoped({ children, document }: { children: ReactNode; document: Document }) {
+  const scope = use(SinceMarks);
+  return scope.document === undefined || scope.document === document ? (
+    children
+  ) : (
+    <SinceMarks value={NO_SINCE}>{children}</SinceMarks>
+  );
 }
 
 /**
