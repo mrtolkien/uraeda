@@ -29,6 +29,33 @@ export function setPrefix(value: string) {
 /** A page's path within the repository, from the page's URL. */
 export const here = (page: Page) => new URL(page.url()).pathname.slice(prefix.length);
 
+/**
+ * The phone's Sessions tab, opened by its tab: its page holds what the column holds on a wider
+ * screen, the ＋ buttons, the search, and the panes of sessions.
+ */
+export async function openSessionsTab(page: Page) {
+  await page
+    .getByRole("navigation", { name: "Tabs" })
+    .getByRole("link", { name: /^Sessions/ })
+    .click();
+  await page.getByRole("heading", { level: 1, name: "Sessions" }).waitFor();
+}
+
+/**
+ * The repository menu, from its trigger, "Uraeda" over the repository's name: in the column's
+ * heading, or at the top of the phone's Sessions tab.
+ */
+export async function openRepositories(page: Page) {
+  if (page.viewportSize()!.width < 768) {
+    await openSessionsTab(page);
+  }
+  await page
+    .getByRole("button", { name: /^Uraeda / })
+    .first()
+    .click();
+  await page.getByRole("dialog", { name: "Repositories" }).waitFor();
+}
+
 /** Opens a page of the repository, and waits for a text and for the page to settle. */
 export async function show(page: Page, path: string, text: string | RegExp) {
   await page.goto(`${prefix}${path}`);

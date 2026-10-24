@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import type { Page } from "playwright";
 import { ELEVEN, git, planText } from "uraeda-binding/test-utils";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, settle, show, wait } from "./shots.ts";
+import { type Each, here, openSessionsTab, settle, show, wait } from "./shots.ts";
 
 /** A feature waiting on the agent: the fixture's CLI TUIs. */
 export const AGENT = "/f/2026-10-12-cli-tuis";
@@ -122,8 +122,8 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
   await each("sidebar-progress", async ({ page, size }) => {
     await implementation(page);
     if (size === "phone") {
-      await page.getByRole("button", { name: "Open navigation" }).click();
-      await page.getByRole("link", { name: /Task 7 of 11, Session column/ }).waitFor();
+      await openSessionsTab(page);
+      await page.getByRole("link", { name: /^cli-tuis, .*Task 7 of 11, Session column/ }).waitFor();
     }
     await settle(page);
   });

@@ -753,17 +753,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `settings-footer` is gone: it opened the phone's drawer, which the tabs replaced, and the form's
   shots show Settings selected. The feature's screenshots are `home`, `home-1205`,
   `shell-1205-open`, `sessions`, `decisions`, `decision`, `decision-changed`, `decisions-palette`,
-  and the settings views, in `screenshots/`. The prototypes' screenshots went with `mockups/`.
+  and the settings views, in `screenshots/`. The prototypes' screenshots went with `mockups/`. The
+  other views that opened the phone's drawer by "Open navigation" (`sidebar`, `sidebar-no-match`,
+  `quick-add`, and the inbox's, sessions', changes', and merge-chats' views) open the Sessions tab
+  instead (`openSessionsTab` in `shots.ts`), as R15 did for the tests; the shell's views wait on
+  "Overview" and fold by "Expand navigation"; `session-handover` opens the session at
+  `?continue=manual`, the feature page having no "Start the agent" left. Their screenshots stay in
+  their own features' folders, untaken here.
 - **Rationale**: the UI checks decision asks for screenshots of every changed view at both sizes and
   in both themes; the spec names 1205 px for the shell and the home.
 - **Alternatives considered**: a third size in every view: three times the files for pages that lay
   out alike at semi-wide and wide.
-- **If wrong**: the other views that open the phone's drawer by "Open navigation" (`sidebar`,
-  `sidebar-no-match`, `quick-add`, and the inbox's, sessions', changes', and merge-chats' views)
-  fail on the phone until their feature's next screenshots move them to the Sessions tab, as R15 did
-  for the tests.
+- **If wrong**: a view of another feature drawn on the phone now shows the Sessions tab's page where
+  its feature showed a drawer; its next screenshots say whether that still shows its point. The
+  whole script, run once after these fixes, got past every view the shell broke, then stopped at
+  `text-discard` on the desktop, a view left in another state by the shots before it, which passes
+  alone; and `change-pull-request` on the phone waits for a "Pull request state unknown" button.
+  Both are another feature's views, left for its next screenshots.
 - **Where**: task 14, `packages/web/scripts/screenshots.ts`, `layout-look-shots.ts`,
-  `settings-shots.ts`.
+  `settings-shots.ts`, `shots.ts`, `shell-shots.ts`, `inbox-shots.ts`, `change-shots.ts`,
+  `sessionShots.ts`, `merge-chats-shots.ts`.
 
 ## R32: StyleX compiles dev's styles with the build's keys, so ours replace Astryx's in dev too
 

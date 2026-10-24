@@ -53,9 +53,15 @@ function point(page: Page, subject: string) {
   return page.getByRole("button", { name: new RegExp(`^${subject}`) }).first();
 }
 
-/** Opens "Under the hood", which holds the round's settled points. */
-const openHood = (page: Page) =>
-  page.getByRole("button", { name: /^Show the \d+ points$/ }).click({ force: true });
+/** Opens "Under the hood", which holds the round's settled points, unless an earlier shot left it open. */
+async function openHood(page: Page) {
+  const show = page.getByRole("button", { name: /^Show the \d+ points$/ });
+  const fold = page.getByRole("button", { name: "Fold" });
+  await show.or(fold).first().waitFor();
+  if ((await show.count()) > 0) {
+    await show.click({ force: true });
+  }
+}
 
 /** The first question's comment field, not its follow-ups'. */
 const comment = (page: Page, question = "Q1") =>
