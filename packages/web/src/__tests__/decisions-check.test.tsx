@@ -145,6 +145,31 @@ test("an option with two candidates shows both", async () => {
   expect(document.getElementById("q1-a-ui-coherence")).toBeTruthy();
 });
 
+/** The fold of a candidate's other sections, in its card `id`. */
+const fold = (id: string) =>
+  within(document.getElementById(id) as HTMLElement).getByRole("button", {
+    name: /^Why, alternatives, consequences/,
+  });
+
+/** One decision drawn under two options: each card's folds open on their own, after a reload. */
+test("a decision under two options folds each card apart", async () => {
+  const repo = withCheck();
+  cpSync(join(repo, "specs/decisions-check/q1-a"), join(repo, "specs/decisions-check/q1-b"), {
+    recursive: true,
+  });
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "-m", "chore: the same candidate under option B");
+  await renderPage("/decisions/check", repo, { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Decisions check" });
+
+  await click(fold("q1-a-ui-components"));
+  // Reloaded, each card's folds open as the history entry kept them.
+  await renderPage("/decisions/check", repo, { agent: true, reload: true });
+  await screen.findByRole("heading", { level: 1, name: "Decisions check" });
+  expect(fold("q1-a-ui-components").getAttribute("aria-expanded")).toBe("true");
+  expect(fold("q1-b-ui-components").getAttribute("aria-expanded")).toBe("false");
+});
+
 /** The check's answers go to its own file, never the triage's. */
 test("answering the check writes specs/DECISIONS-CHECK.md and Submit commits it alone", async () => {
   const repo = withCheck();

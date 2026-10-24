@@ -83,11 +83,15 @@ function ChangeBody({
   change,
   comments,
   full = false,
+  id,
   name,
   parts,
   sectionId,
   title,
-}: Pick<DecisionCardProps, "comments" | "full" | "name" | "parts" | "sectionId" | "title"> & {
+}: Pick<
+  DecisionCardProps,
+  "comments" | "full" | "id" | "name" | "parts" | "sectionId" | "title"
+> & {
   change: DecisionChange;
 }) {
   const kept = change.sections.every((s) => s.parts.every((p) => p.kind === "kept"));
@@ -106,7 +110,7 @@ function ChangeBody({
       )}
       <Ledger
         change={change}
-        context={{ comments, full, name, parts, title, whole }}
+        context={{ comments, full, id, name, parts, title, whole }}
         sectionId={sectionId}
       />
     </>

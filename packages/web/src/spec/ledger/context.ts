@@ -10,6 +10,8 @@ export type Context = {
   full: boolean;
   /** The heading a comment's lines are under: the section's, or the decision's title. */
   heading: string;
+  /** The card's element id: one decision may be drawn twice on a page, each card folding apart. */
+  id: string;
   /** Whether the section is the intent, before the first `##`. */
   intent: boolean;
   name: string;
@@ -42,7 +44,7 @@ export function holds(comments: ReadonlyArray<CommentItem>, range: DecisionRange
   );
 }
 
-/** A fold's key in the history entry: its decision, its section, and its kind. */
-export function foldKeyOf(context: Context, kind: string) {
-  return `decision:${context.name}:${context.heading}:${kind}`;
+/** A fold's key in the history entry: its card, its section, and its kind. */
+export function foldKeyOf(context: Pick<Context, "heading" | "id">, kind: string) {
+  return `decision:${context.id}:${context.heading}:${kind}`;
 }

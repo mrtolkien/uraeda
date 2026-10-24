@@ -119,7 +119,7 @@ export function Ledger({
       {first.map(section)}
       {others.length > 0 && (
         <Fold
-          foldKey={`decision:${context.name}:others`}
+          foldKey={foldKeyOf({ heading: "", id: context.id }, "others")}
           held={others.some((s) => holdsAny(context, s.title, s.parts))}
           label={label}
         >
