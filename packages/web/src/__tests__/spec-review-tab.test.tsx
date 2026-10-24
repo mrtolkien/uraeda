@@ -89,3 +89,14 @@ test("the tab says the spec has changes not committed", async () => {
     ),
   ).toBeTruthy();
 });
+
+/** US4 key 2: a general comment from the tab is written where the focus goes. */
+test("General comment in the tab focuses the comment's field", async () => {
+  await renderPage(SPEC, fixtureRepo());
+
+  const tab = await reviewTab();
+  await click(within(tab).getByRole("button", { name: "General comment" }));
+
+  const field = await screen.findByRole("textbox", { name: "Comment text" });
+  await waitFor(() => expect(document.activeElement).toBe(field));
+});

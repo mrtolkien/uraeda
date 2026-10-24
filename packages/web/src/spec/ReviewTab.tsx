@@ -40,6 +40,16 @@ export function jumpToComment(number: number) {
   toggle?.focus({ preventScroll: true });
 }
 
+/**
+ * Brings the comment's form, `container`, once drawn, into view, its field focused: a general
+ * comment's form is at the page's end, far from the column.
+ */
+function toField(container: HTMLElement) {
+  const field = container.querySelector<HTMLElement>("textarea");
+  field?.scrollIntoView?.({ block: "center" });
+  field?.focus({ preventScroll: true });
+}
+
 /** "N comments, unsent", or what a comment is, before the first. */
 function Summary({ count }: { count: number }) {
   if (count === 0) {
@@ -82,7 +92,7 @@ function Comments({ comments }: { comments: ReadonlyArray<CommentItem> }) {
 export function ReviewTab({ file, review }: { file: File; review: Review }) {
   const go = useColumnGo();
   const images = use(ReviewImagesContext);
-  const { choices, commentDraft, comments, refusals } = review;
+  const { choices, commentDraft, comments, container, refusals } = review;
   const { retry, verdict } = useVerdict(file, choices, refusals);
   const hold = images?.hold;
   const { error, message } = refusals;
@@ -94,7 +104,12 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
       <HStack>
         <Button
           label="General comment"
-          onClick={() => go(() => commentDraft.start({ kind: "general" }))}
+          onClick={() =>
+            go(() => {
+              commentDraft.start({ kind: "general" });
+              requestAnimationFrame(() => toField(container));
+            })
+          }
         />
       </HStack>
       <VerdictNotices error={error} file={file} retry={retry} />
