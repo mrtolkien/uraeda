@@ -13,6 +13,7 @@ import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
@@ -61,9 +62,25 @@ const styles = stylex.create({
   },
   calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
   con: { color: colorVars["--color-error"] },
+  dash: { color: colorVars["--color-text-secondary"] },
   doc: {
     // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
     "--container-padding-inline-start": spacingVars["--spacing-4"],
+  },
+  // On narrow screens, a list hangs its marker in the page's margin: its rows' text on the
+  // paragraphs' edge, and a nested list's one character in from its parent's.
+  hanging: { marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})` },
+  hangingNested: { marginInlineStart: `calc(1ch - ${spacingVars["--spacing-3"]})` },
+  hangingRow: { gap: 0 },
+  hangingSign: {
+    // The marker's room, as wide as the list hangs, its sign at its end, before the text.
+    boxSizing: "border-box",
+    display: "flex",
+    flexShrink: 0,
+    justifyContent: "flex-end",
+    minWidth: 0,
+    paddingInlineEnd: spacingVars["--spacing-1"],
+    width: spacingVars["--spacing-3"],
   },
   heading: {
     marginBlockEnd: spacingVars["--spacing-2"],
@@ -184,43 +201,65 @@ function signOf(block: Block) {
   return marker in SIGNS ? SIGNS[marker] : undefined;
 }
 
+/**
+ * The marker a row shows before its text, if not the list's own: its typed sign, or, where the list
+ * hangs its markers, its number or a dash.
+ */
+function rowMarker(list: Block, item: Block, index: number, isHanging: boolean) {
+  const marker = item.marker ?? "plain";
+  if (isHanging && list.ordered) {
+    return <span {...stylex.props(styles.hangingSign)}>{(list.start ?? 1) + index}.</span>;
+  }
+  const sign = signOf(item) ?? (isHanging ? "-" : undefined);
+  return (
+    sign && (
+      <span
+        aria-hidden="true"
+        {...stylex.props(
+          styles.sign,
+          isHanging && styles.hangingSign,
+          SIGN_STYLES[marker] ?? (marker === "plain" && styles.dash),
+        )}
+      >
+        {sign}
+      </span>
+    )
+  );
+}
+
 function ListNode({ block, context }: { block: Block; context: BlockContext }) {
   const items = context.children.get(block.id) ?? [];
+  // On narrow screens, every row draws its own marker, hanging in the page's margin.
+  const isHanging = isNarrow(useWidthClass());
+  const parent = block.parent === undefined ? undefined : context.document.blocks[block.parent];
   // A list of typed bullets shows their signs only.
   const signed = items.length > 0 && items.every((item) => signOf(item) !== undefined);
   return (
     <List
       density="compact"
       edge="flush"
-      listStyle={block.ordered ? "decimal" : signed ? "none" : "disc"}
+      listStyle={isHanging ? "none" : block.ordered ? "decimal" : signed ? "none" : "disc"}
       start={block.ordered ? (block.start ?? 1) : undefined}
-      xstyle={styles.list}
+      xstyle={[
+        styles.list,
+        isHanging && (parent?.kind === "item" ? styles.hangingNested : styles.hanging),
+      ]}
     >
-      {items.map((item) => {
-        const sign = signOf(item);
-        const marker = item.marker ?? "plain";
-        return (
-          <ListItem
-            key={item.id}
-            label={
-              <Selectable block={item} selection={context.selection}>
-                <div {...stylex.props(proseStyles.reading, styles.item)}>
-                  <Spans spans={item.spans} />
-                  <Children block={item} context={context} />
-                </div>
-              </Selectable>
-            }
-            startContent={
-              sign && (
-                <span aria-hidden="true" {...stylex.props(styles.sign, SIGN_STYLES[marker])}>
-                  {sign}
-                </span>
-              )
-            }
-            xstyle={styles.row}
-          />
-        );
-      })}
+      {items.map((item, index) => (
+        <ListItem
+          key={item.id}
+          label={
+            <Selectable block={item} selection={context.selection}>
+              <div {...stylex.props(proseStyles.reading, styles.item)}>
+                <Spans spans={item.spans} />
+                <Children block={item} context={context} />
+              </div>
+            </Selectable>
+          }
+          startContent={rowMarker(block, item, index, isHanging)}
+          xstyle={[styles.row, isHanging && styles.hangingRow]}
+        />
+      ))}
     </List>
   );
 }

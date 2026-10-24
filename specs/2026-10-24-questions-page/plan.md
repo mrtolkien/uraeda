@@ -230,7 +230,7 @@ tests run the CLI's check over files.
 | US1 key 2 (Example, Why it matters)                   | 5    | `__tests__/question-card.test.tsx` "Q4's example and why are panes of their own"                                       |
 | US1 key 3 (option letter, boxed points on phone)      | 5    | `__browser__/round-cards.test.tsx` "on the phone, option A's points are boxes at its edge"                             |
 | US1 more 1, 2 (context panes, Today folded, `#today`) | 6    | `round-parts.test.tsx` "Today is folded, and a link to it unfolds it"                                                  |
-| US1 more 3 (lists' hanging marker)                    | 3    | `__browser__/lists.test.tsx` "on the phone, a list's text starts at the paragraphs' edge"                              |
+| US1 more 3 (lists' hanging marker)                    | 3    | `__browser__/document-lists.test.tsx` "on the phone, a list's text starts at the paragraphs' edge"                     |
 | US1 more 4 (follow-up on the phone)                   | 5    | `round-cards.test.tsx` "a follow-up on the phone has a top border, no side line"                                       |
 | US1 more 5 (picked option)                            | 5    | `question-card.test.tsx` "a picked option says so"; browser border width in `round-cards.test.tsx`                     |
 | US2 key 1, 2 (sticky header at every width)           | 5    | `round-cards.test.tsx` "Q4's header stays at the top, then leaves with its card", desktop, semi, phone                 |
@@ -264,7 +264,7 @@ tests run the CLI's check over files.
 | SC-001                                                | 5    | as US2 key 1, at 1440, 1205, and 390 px                                                                                |
 | SC-002                                                | 8    | as US3 key 2, with tab switches                                                                                        |
 | SC-003                                                | 8    | as US3 key 2, US3 more 1, US3 key 3                                                                                    |
-| SC-004                                                | 3, 5 | `lists.test.tsx`; `round-cards.test.tsx` "an option's text is at most 11 px from the edge"                             |
+| SC-004                                                | 3, 5 | `document-lists.test.tsx`; `round-cards.test.tsx` "an option's text is at most 11 px from the edge"                    |
 | SC-005                                                | 3, 6 | `theme-tokens.test.ts` for the teal pane; `checkAccessibility` on the round in both schemes in `round-column.test.tsx` |
 | SC-006                                                | 2    | `crates/core/tests/check.rs` `template_and_examples_pass`, and `specs:check`                                           |
 | Review focus 1                                        | 1    | `column-session.test.tsx` "Back to the round keeps its place and the transcript's end"                                 |
@@ -423,7 +423,8 @@ order changes for every round.
 **Files:**
 
 - Modify: `packages/web/src/Blocks.tsx` (`ListNode`), `src/layout/Pane.tsx`
-- Test: `src/__browser__/lists.test.tsx`, `src/__tests__/pane.test.tsx` (create)
+- Test: `src/__browser__/document-lists.test.tsx` (create), `src/__tests__/titled-pane.test.tsx`
+  (create): `lists.test.tsx` and `pane.test.tsx` already hold the priorities' list and pane (R8).
 
 **Interfaces:**
 
@@ -433,22 +434,24 @@ order changes for every round.
   titled top border, no side or bottom border nor inset), and
   `fold?: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void; folded?: string }`: its title
   is a button with `aria-expanded`; folded, its children are not mounted, and `folded`, when given,
-  is a button in its body that opens it.
+  is a button in its body that opens it. On narrow screens each row draws its own marker, a dash,
+  its typed sign, or its number, in a box as wide as the list hangs (R9).
 
-- [ ] **Step 1: Write the failing tests.** `lists.test.tsx`, phone: in a round's block and in its
-      context, a first-level item's text starts at the paragraphs' left edge, within 1 px, and its
-      marker before it; a nested item's text starts one character right of its parent's. Desktop:
-      unchanged. `pane.test.tsx`: a folded pane names its button by its title, `aria-expanded`
-      false, and has no content; a click opens it; the `folded` button opens it too. Break: hiding
-      the folded content with CSS, which still mounts it.
-- [ ] **Step 2: Run them to check they fail**:
-      `nix develop -c vp test --project phone src/__browser__/lists.test.tsx`. Expected: FAIL, the
-      text 28.8 px right of the paragraph.
-- [ ] **Step 3: Implement**, through `useWidthClass`, never a media query in the view. The teal tone
+- [x] **Step 1: Write the failing tests.** `document-lists.test.tsx`, phone: in a round's block and
+      in its context, a first-level item's text starts at the paragraphs' left edge, within 1 px,
+      and its marker before it; a nested item's text starts one character right of its parent's.
+      Desktop: unchanged. `titled-pane.test.tsx`: a folded pane names its button by its title,
+      `aria-expanded` false, and has no content; a click opens it; the `folded` button opens it too.
+      Break: hiding the folded content with CSS, which still mounts it.
+- [x] **Step 2: Run them to check they fail**:
+      `nix develop -c vp test --project phone src/__browser__/document-lists.test.tsx`. Expected:
+      FAIL, the text 28.8 px right of the paragraph.
+- [x] **Step 3: Implement**, through `useWidthClass`, never a media query in the view. The teal tone
       uses the theme's teal border and text tokens, which `theme-tokens.test.ts` checks.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, `lists.test.tsx` and
-      `blocks.test.tsx` in both projects. Expected: PASS.
-- [ ] **Step 5: Commit**:
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`,
+      `document-lists.test.tsx`, `lists.test.tsx`, and `blocks.test.tsx` in both projects. Expected:
+      PASS.
+- [x] **Step 5: Commit**:
       `git commit -m "feat(questions-page): lists hang their marker on the phone, and panes fold"`.
 
 ## Task 4: The document's column: tabs at one width
