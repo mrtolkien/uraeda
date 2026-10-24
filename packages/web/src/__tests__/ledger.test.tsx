@@ -149,6 +149,57 @@ test("unchanged rules fold under their count, and unfold", async () => {
   expect(signs(within(dates).getByRole("group", { name: "Rules" }))).toEqual(["Changed"]);
 });
 
+/** A review of the spec, pending, holding `comments`, committed on the feature's branch. */
+function pendingReview(repo: string, comments: ReadonlyArray<string>) {
+  const tip = git(repo, "rev-parse", "--short=7", SPEC_FEATURE).trim();
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [`specs/${SPEC_FEATURE}/spec-review.md`]: `---\nverdict: pending\ncommit: ${tip}\n---\n\n# Review: Spec, Recurring tasks\n\n${comments.join("\n")}`,
+  });
+}
+
+/** Plan Task 4: "a fold holding a pending comment or the selection opens". */
+test("a fold holding a pending comment opens, the comment shown", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  pendingReview(repo, [
+    '## C1: Decision task-storage, line 30, under "Consequences"',
+    "",
+    "> - Stored data is tested in one place, and components stay free of storage code.",
+    "",
+    "Name the place.",
+    "",
+    '## C2: Decision due-dates, line 13, under "Rules"',
+    "",
+    "> - Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type.",
+    "",
+    "And the time zone?",
+    "",
+  ]);
+  await renderPage(PAGE, repo);
+
+  const storage = await pane("Task storage");
+  const others = within(storage).getByRole("button", {
+    name: "Why, alternatives, consequences · 1 changed",
+  });
+  expect(others.getAttribute("aria-expanded")).toBe("true");
+  const consequences = within(storage).getByRole("group", { name: "Consequences" });
+  const kept = within(consequences).getByRole("button", { name: "2 parts unchanged" });
+  expect(kept.getAttribute("aria-expanded")).toBe("true");
+  const first = await within(storage).findByRole("group", {
+    name: "C1 · decision task-storage, line 30",
+  });
+  expect(first.textContent).toContain("Name the place.");
+
+  const dates = await pane("Due dates");
+  const rule = within(dates).getByRole("button", { name: "1 rule unchanged" });
+  expect(rule.getAttribute("aria-expanded")).toBe("true");
+  expect(within(dates).getByText(/^Due dates MUST be stored as/)).toBeTruthy();
+  const second = await within(dates).findByRole("group", {
+    name: "C2 · decision due-dates, line 13",
+  });
+  expect(second.textContent).toContain("And the time zone?");
+});
+
 /** US2 more 2 */
 test("the decisions page shows the same ledger", async () => {
   const repo = fixtureRepo();
