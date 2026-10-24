@@ -400,3 +400,75 @@ fn revision_read_from_reviewed_spec() {
 
     assert_eq!(since(&repo).map(|since| since.revision), Some(1));
 }
+
+/// While it waits, a working tree whose spec differs from the committed one: the page shows the
+/// committed spec, so the parts and their lines are the committed version's.
+#[test]
+fn working_tree_differs_while_waiting() {
+    let text = revision_2(&[("so for 3 seconds", "so for 5 seconds")]);
+    let repo = reviewed("changes-requested", None, &text);
+    repo.switch(FOLDER);
+    let working = text
+        .replace("so for 5 seconds", "so for 7 seconds")
+        .replace(
+            "A repeating task shows",
+            "Not committed yet.\n\nA repeating task shows",
+        );
+    repo.write(SPEC, &working);
+
+    let journey = SinceChange {
+        kind: "changed".to_string(),
+        heading: US2.to_string(),
+        before: Some(lines(
+            REVISION_1,
+            "Completing a repeating",
+            "so for 3 seconds",
+        )),
+        after: Some(lines(&text, "Completing a repeating", "so for 5 seconds")),
+        runs: vec![
+            run("kept", JOURNEY),
+            run("removed", "3"),
+            run("added", "5"),
+            run("kept", "seconds, with an undo button."),
+        ],
+    };
+    assert_ne!(
+        lines(&text, "Completing a repeating", "so for 5 seconds"),
+        lines(&working, "Completing a repeating", "so for 7 seconds"),
+    );
+    assert_eq!(
+        since(&repo),
+        Some(SinceReview {
+            revision: 1,
+            found: true,
+            parts: vec![journey],
+        })
+    );
+}
+
+/// The edge case: the review's commit resolves, but holds no spec.
+#[test]
+fn commit_without_spec() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.commit("chore: specs");
+    let before_spec = short_tip(&repo);
+    repo.switch_new(FOLDER);
+    repo.write(SPEC, REVISION_1);
+    repo.commit("docs(recurring-tasks): spec");
+    repo.write(REVIEW, &review("changes-requested", &before_spec));
+    repo.commit("docs(recurring-tasks): request changes");
+    let text = revision_2(&[("so for 3 seconds", "so for 5 seconds")]);
+    repo.write(SPEC, &text);
+    repo.commit("docs(recurring-tasks): revise the spec");
+    repo.switch("main");
+
+    assert_eq!(
+        since(&repo),
+        Some(SinceReview {
+            revision: 1,
+            found: false,
+            parts: Vec::new(),
+        })
+    );
+}
