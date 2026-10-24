@@ -571,7 +571,7 @@ candidates, and the decisions check.
   draws "This mockup could not be loaded." and a link "Open the mockup's page" to
   `/f/<folder>/mockups/<name>`.
 
-- [ ] **Step 1: Move the frame's title, stage, and scale to `LiveWindow.tsx`**, unchanged, in a
+- [x] **Step 1: Move the frame's title, stage, and scale to `LiveWindow.tsx`**, unchanged, in a
       `refactor` commit: `story-embed.test.tsx` passes before and after.
 - [ ] **Step 2: Write the failing tests.** `live-window.test.tsx`, over the spec-page fixture with a
       preview: at 1440 px the "Repeat menu, open" window is a region named "live · Repeat menu,

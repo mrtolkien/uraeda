@@ -4,26 +4,20 @@
 // its page's column into the space beside it, and goes full screen. Its frames are sandboxed without
 // `allow-same-origin`: the embed takes messages from their windows only, and sends them nothing
 // but the colour mode and pick mode. Where a comment can go, it offers pick mode and a comment.
-import { Divider } from "@astryxdesign/core/Divider";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
-import {
-  borderVars,
-  colorVars,
-  radiusVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, Suspense, useContext, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, Suspense, useContext, useEffect, useId, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { StoryTarget } from "uraeda-binding";
 import { useStory } from "./data.ts";
-import { useFullScreen, useOutgrow } from "./embedLayout.ts";
 import { refusal } from "./errors.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { Bar, type FullScreen, LiveWindow, useLiveWindow } from "./LiveWindow.tsx";
 import { useRepoPath } from "./routes.tsx";
 import { PreviewBase, storybookHref } from "./stories.tsx";
 import { StoryFrames, type Width } from "./StoryFrames.tsx";
@@ -38,55 +32,14 @@ import {
 import { PreviewView } from "./views.ts";
 
 const styles = stylex.create({
-  bar: {
-    alignItems: "center",
-    display: "flex",
-    flexWrap: "wrap",
-    gap: spacingVars["--spacing-2"],
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-3"],
-  },
-  // On narrow screens, the embed takes the page's inset back (see `Page`), 16 px outside a page: the
-  // phone's width is the screen's.
-  bleed: {
-    borderInlineWidth: 0,
-    borderRadius: 0,
-    marginInline: `var(--page-bleed, calc(-1 * ${spacingVars["--spacing-4"]}))`,
-  },
-  embed: {
-    backgroundColor: colorVars["--color-background-surface"],
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-container"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    marginBlockEnd: spacingVars["--spacing-3"],
-    marginBlockStart: 0,
-    marginInline: 0,
-    overflow: "hidden",
-  },
   error: {
     backgroundColor: colorVars["--color-background-red"],
-  },
-  // Full screen, which the browser sizes to the screen: the bar above, the story filling the rest.
-  full: {
-    borderRadius: 0,
-    borderWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    marginBlock: 0,
-  },
-  grow: (start: string, end: string) => ({ marginInlineEnd: end, marginInlineStart: start }),
-  label: {
-    marginInlineEnd: "auto",
   },
   state: {
     paddingBlock: spacingVars["--spacing-6"],
     paddingInline: spacingVars["--spacing-4"],
   },
 });
-
-/** Whether the embed is full screen, and what enters or leaves it, where the browser can. */
-type FullScreen = ReturnType<typeof useFullScreen>;
 
 /** "Open in Storybook", at a page of Uraeda's: a named icon on narrow screens. */
 function OpenInStorybook({ href, wide }: { href: string; wide: boolean }) {
@@ -100,31 +53,6 @@ function OpenInStorybook({ href, wide }: { href: string; wide: boolean }) {
       label="Open in Storybook"
       size="sm"
     />
-  );
-}
-
-/** The embed's bar: its label, then its controls. */
-function Bar({
-  children,
-  label,
-  labelId,
-}: {
-  children?: ReactNode;
-  label: string;
-  labelId: string;
-}) {
-  return (
-    <>
-      <div {...stylex.props(styles.bar)}>
-        <Text id={labelId} weight="semibold" xstyle={styles.label}>
-          {label}
-        </Text>
-        {children}
-      </div>
-      {/* Astryx's divider: a border of the app's own would write the atomic rule of a list's
-          dividers again, unlayered, and every list's last row would keep its divider. */}
-      <Divider aria-hidden />
-    </>
   );
 }
 
@@ -325,24 +253,9 @@ export function StoryEmbed({
   // Pick mode and the comment form outlive the story's state: a form holding text stays while
   // its Storybook stops and starts again.
   const pick = useStoryPick(comment?.field);
-  const figure = useRef<HTMLElement>(null);
-  const screen = useFullScreen(figure);
-  const grow = useOutgrow(figure, wide);
+  const live = useLiveWindow(wide);
   return (
-    <figure
-      aria-labelledby={labelId}
-      id={id}
-      ref={figure}
-      {...stylex.props(
-        styles.embed,
-        !wide && styles.bleed,
-        wide &&
-          !screen.full &&
-          (grow.start > 0 || grow.end > 0) &&
-          styles.grow(`-${grow.start}px`, `-${grow.end}px`),
-        screen.full && styles.full,
-      )}
-    >
+    <LiveWindow id={id} labelId={labelId} live={live} wide={wide}>
       <Suspense fallback={<Bar label={story.label} labelId={labelId} />}>
         <LiveStory
           comment={comment}
@@ -351,7 +264,7 @@ export function StoryEmbed({
           labelId={labelId}
           pick={pick}
           removed={removed}
-          screen={screen}
+          screen={live.screen}
           story={target}
         />
       </Suspense>
@@ -364,6 +277,6 @@ export function StoryEmbed({
           wide={wide}
         />
       )}
-    </figure>
+    </LiveWindow>
   );
 }

@@ -14,15 +14,9 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import {
-  type RefObject,
-  useEffect,
-  useEffectEvent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
 import { bottomOf, keepPlace } from "./keepPlace.ts";
+import { useStage } from "./LiveWindow.tsx";
 import type { Picked } from "./storyComment.ts";
 
 const styles = stylex.create({
@@ -101,9 +95,6 @@ const SANDBOX = "allow-scripts allow-popups";
 
 /** How much taller the phone's frame is than the theme's heights, which the desktop's keep. */
 const PHONE_TALLER = 1.5;
-
-/** A length in px from a style's value, 0 when it has none. */
-const px = (value: string) => Number.parseFloat(value) || 0;
 
 /** Whether a message is the pick script's: an object with a `uraeda` field. */
 function isFrameMessage(data: unknown): data is FrameMessage {
@@ -227,47 +218,6 @@ function useSeen(box: RefObject<HTMLDivElement | null>) {
     return () => observer.disconnect();
   }, [box, seen]);
   return seen;
-}
-
-/**
- * The size of the stage's content box, kept as it changes, with the theme's sizes of a story's frame,
- * in px, read from its style: undefined until measured.
- */
-function useStage(stage: RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState<{
-    desktop: number;
-    height: number;
-    max: number;
-    story: number;
-    width: number;
-  }>();
-  useLayoutEffect(() => {
-    const element = stage.current;
-    if (!element) {
-      return;
-    }
-    const measure = () => {
-      const style = getComputedStyle(element);
-      const next = {
-        desktop: px(style.getPropertyValue("--size-story-desktop")) || 1440,
-        height: element.clientHeight - px(style.paddingTop) - px(style.paddingBottom),
-        max: px(style.getPropertyValue("--size-story-max-height")) || 900,
-        story: px(style.getPropertyValue("--size-story-height")) || 560,
-        width: element.clientWidth - px(style.paddingLeft) - px(style.paddingRight),
-      };
-      setSize((known) =>
-        known &&
-        Object.entries(next).every(([key, value]) => known[key as keyof typeof next] === value)
-          ? known
-          : next,
-      );
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [stage]);
-  return size;
 }
 
 /**
