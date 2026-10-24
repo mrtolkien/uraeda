@@ -86,3 +86,36 @@ describe("the round's panes on the desktop", () => {
     expect(text.left - pane.left).toBeGreaterThan(1);
   });
 });
+
+/** The first family of an element's computed font. */
+const family = (element: Element) =>
+  getComputedStyle(element).fontFamily.split(",")[0]!.replaceAll(/["']/g, "").trim();
+
+/** The reading font, as the theme resolves it on the page. */
+function readingFamily() {
+  const probe = document.createElement("span");
+  probe.style.fontFamily = "var(--font-family-reading)";
+  document.body.append(probe);
+  const name = family(probe);
+  probe.remove();
+  return name;
+}
+
+// The UI look decision's proportional font for long prose: a pane's paragraphs read as its lists do.
+describe("the round's paragraphs", () => {
+  atSize("both");
+
+  test("the context's, a question's context's, and its Why's paragraphs are in the reading font", async () => {
+    await mergeChats();
+
+    const reading = readingFamily();
+    expect(reading).toBe("Inter Variable");
+    expect(family(screen.getByText(SCOPE))).toBe(reading);
+    expect(family(screen.getByText(/^Starting a change or a feature is a human action/))).toBe(
+      reading,
+    );
+    expect(family(screen.getByText(/^During an unattended run/))).toBe(reading);
+    // "Why it matters", in its pane.
+    expect(family(screen.getByText(/^This becomes a rule of the/))).toBe(reading);
+  });
+});
