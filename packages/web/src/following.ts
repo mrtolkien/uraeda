@@ -16,7 +16,7 @@ import { currentEntry } from "./routes.tsx";
 const AT_END = 24;
 
 /** The element that scrolls an element: the nearest that scrolls on its own, or the window. */
-export function scroller(element: HTMLElement): HTMLElement | undefined {
+export function scroller(element: Element): HTMLElement | undefined {
   for (let node = element.parentElement; node; node = node.parentElement) {
     const overflow = getComputedStyle(node).overflowY;
     if (overflow === "auto" || overflow === "scroll") {

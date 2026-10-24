@@ -15,6 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { scroller } from "./following.ts";
 import { stepLabel } from "./labels.ts";
 import { keepPlace, topOf } from "./keepPlace.ts";
 import { currentEntry, updateEntry } from "./routes.tsx";
@@ -442,6 +443,8 @@ export function Tail({
             updateEntry({ shown: next });
           });
         }),
+      // In the box it scrolls in, as a round's column: the window there is the round's.
+      anchor ? scroller(anchor) : undefined,
     );
   };
   // A press is done once the pieces drawn hold its count, or, asking for more than there is, all
