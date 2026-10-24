@@ -114,7 +114,7 @@ test("a spec with no block is titled What you approve", async () => {
 });
 
 /** US1 key 2 */
-test("Decisions · 1 new, 1 changed, 1 removed follows the answers", async () => {
+test("Decisions · 1 new, 2 changed, 1 removed follows the answers", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
@@ -122,7 +122,8 @@ test("Decisions · 1 new, 1 changed, 1 removed follows the answers", async () =>
   const answers = await region("Your review, answered");
   const heading = screen.getByRole("heading", {
     level: 2,
-    name: "Decisions · 1 new, 1 changed, 1 removed",
+    // Due dates, changed by the branch and not listed, has its pane, and counts (R19).
+    name: "Decisions · 1 new, 2 changed, 1 removed",
   });
   // Right after: the first heading of level 2 past the answers' pane is the decisions'.
   const after = screen

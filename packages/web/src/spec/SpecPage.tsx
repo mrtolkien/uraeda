@@ -114,13 +114,20 @@ function Group({
   );
 }
 
-/** What the decisions' heading counts: "1 new, 1 changed, 1 removed", of the decisions listed. */
+/**
+ * What the decisions' heading counts: "1 new, 2 changed, 1 removed", of every decision's pane, the
+ * listed ones' and the unlisted changes' (R19).
+ */
 function decisionCounts(items: SpecItems, changes: ReadonlyArray<DecisionChange>) {
   const byName = new Map(changes.map((change) => [change.name, change]));
-  const kinds = items.decisions.map((item) => {
-    const change = byName.get(item.name);
-    return change?.compared ? change.kind : item.kind;
-  });
+  const listed = new Set(items.decisions.map((item) => item.name));
+  const kinds = [
+    ...items.decisions.map((item) => {
+      const change = byName.get(item.name);
+      return change?.compared ? change.kind : item.kind;
+    }),
+    ...changes.filter((change) => !listed.has(change.name)).map((change) => change.kind),
+  ];
   return ["new", "changed", "removed"]
     .map((kind) => [kind, kinds.filter((k) => k === kind).length] as const)
     .filter(([, count]) => count > 0)

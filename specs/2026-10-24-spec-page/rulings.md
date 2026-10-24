@@ -298,3 +298,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   changed since you approved; marking in each part's own drawing, a dozen places to keep in step.
 - **If wrong**: move `SinceReviewPane` in `SpecPage.tsx` and restore the test's one assertion.
 - **Where**: Task 12.
+
+## R21: The decisions' heading counts every decision's pane, unlisted changes included
+
+- **Decision**: "Decisions · …" counts each decision pane the group draws: the decisions the spec
+  lists, and the decisions the branch changes without listing them, which draw panes too. On the
+  fixture, whose branch changes Due dates without the spec listing it as changed, the heading reads
+  "Decisions · 1 new, 2 changed, 1 removed", where spec US1 key 2 says "1 new, 1 changed, 1
+  removed", the listed ones. `spec-panes.test.tsx`'s US1 key 2 test expects the new count. Contents'
+  "Decisions · N" still counts the decisions listed, as Task 10's interface says.
+- **Rationale**: the review's finding that the heading counted three panes of four: a reader adding
+  up its kinds would miss the unlisted change, the one most likely to surprise them.
+- **Alternatives considered**: the listed decisions only, as the scenario reads, which leaves a
+  changed pane out of the heading's count; a fixture without the unlisted change, which drops the
+  case the unlisted pane exists for.
+- **If wrong**: one line in `decisionCounts`, `spec/SpecPage.tsx`, and the test's name.
+- **Where**: fix of Task 10's review, `spec/SpecPage.tsx`, `src/__tests__/spec-panes.test.tsx`.
