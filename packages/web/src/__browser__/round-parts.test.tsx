@@ -29,6 +29,24 @@ function edges() {
 describe("the round's panes on the phone", () => {
   atSize("phone");
 
+  test("on the phone, the verdict's badge is as wide as its words, above its sentence", async () => {
+    await mergeChats();
+
+    // The badge's box: the first box around its words with a colour of its own.
+    let badge: Element = screen.getByText("With changes");
+    while (/transparent|rgba\(.*, 0\)$/.test(getComputedStyle(badge).backgroundColor)) {
+      badge = badge.parentElement!;
+    }
+    const box = badge.getBoundingClientRect();
+    const words = document.createRange();
+    words.selectNodeContents(badge);
+    const sentence = screen
+      .getByText(/^a chat cannot become a change today/)
+      .getBoundingClientRect();
+    expect(box.width).toBeLessThan(words.getBoundingClientRect().width + 40);
+    expect(box.bottom).toBeLessThanOrEqual(sentence.top + 1);
+  });
+
   test("on the phone, a pane's text takes the screen's width, with no side inset", async () => {
     await mergeChats();
 
