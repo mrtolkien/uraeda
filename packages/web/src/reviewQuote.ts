@@ -17,7 +17,7 @@ function wordsOf(runs: ReadonlyArray<Run>, removed: boolean) {
 /**
  * The quote of a decision's parts in `range`: `About specs/decisions/<name>.md, lines A–B:`, then
  * each part's words, a part removed by the branch read from the default branch's file, "About the
- * removed rule of …", or "removed part" outside the rules.
+ * removed rule of …", or "removed part" outside the rules, "rules" or "parts" when several are.
  */
 function decisionQuote(
   changes: ReadonlyArray<DecisionChange>,
@@ -34,7 +34,8 @@ function decisionQuote(
         return inside ? [wordsOf(part.runs, removed)] : [];
       }),
   );
-  const what = removed ? `the removed ${range.heading === "Rules" ? "rule" : "part"} of ` : "";
+  const part = `${range.heading === "Rules" ? "rule" : "part"}${lines.length > 1 ? "s" : ""}`;
+  const what = removed ? `the removed ${part} of ` : "";
   return quoted(`About ${what}${path}, ${linesOf(range)}:`, lines);
 }
 
