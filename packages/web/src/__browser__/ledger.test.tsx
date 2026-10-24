@@ -4,7 +4,7 @@
 // (SC-006). The rows, their signs, and their folds are checked in `__tests__/ledger.test.tsx`.
 import { fireEvent, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { rgb } from "./colours.ts";
+import { backdrop, contrast, over, rgb } from "./colours.ts";
 import { atSize, checkPage, colorScheme, commands, drawn, show } from "./helpers.tsx";
 
 const PAGE = "/f/2026-10-17-spec-page/spec.md";
@@ -55,6 +55,33 @@ test("each decision's pane takes its kind's colour, and removed words are struck
         "line-through",
       );
     }
+  }
+});
+
+/** The contrast of `element`'s text over what is behind it. */
+function textContrast(element: Element) {
+  const behind = backdrop(element);
+  return contrast(over(getComputedStyle(element).color, behind), behind);
+}
+
+/** WCAG 1.4.3: each sign over its row's tint, and a kept part's muted words, at 4.5:1. */
+test("the signs and the kept parts read at 4.5:1, in both schemes", async () => {
+  await commands.addSpecFeature();
+  await show(PAGE, "Task storage");
+  await unfoldAll();
+
+  for (const mode of ["light", "dark"] as const) {
+    await colorScheme(mode);
+    await drawn();
+    const main = screen.getByRole("main");
+    const signs = within(main).getAllByRole("img", { name: /^(Added|Changed|Removed)$/ });
+    expect(new Set(signs.map((sign) => sign.getAttribute("aria-label"))).size).toBe(3);
+    for (const sign of signs) {
+      const name = `${mode}: ${sign.getAttribute("aria-label")}`;
+      expect(textContrast(sign), name).toBeGreaterThanOrEqual(4.5);
+    }
+    const kept = within(pane("Due dates")).getByText(/^Due dates MUST be stored as/);
+    expect(textContrast(kept), `${mode}: kept`).toBeGreaterThanOrEqual(4.5);
   }
 });
 
