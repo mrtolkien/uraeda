@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn code_blocks_in_the_notes_are_kept_as_written() {
-        let round = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n";
+        let round = "## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n";
         let code = "See:\n\n```\n## Not a heading\n- **A point**: not a comment\n```\n\nAfter.";
         let fenced = "```sh\n# a shell comment\n```\n\nAfter.";
         let rows: [Written; 8] = [
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn a_fence_left_open_in_the_notes_is_closed_before_what_follows() {
-        let round = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n\n## Later\n\nKept.\n";
+        let round = "## Settled without the human\n\n### Behaviour\n\n- **A point** settled.\n\n**Notes:**\n\n## Later\n\nKept.\n";
         let rows: [Written; 4] = [
             ("See:\n\n```\ncode", &[], "See:\n\n```\ncode\n```", &[]),
             (
