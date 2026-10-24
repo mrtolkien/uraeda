@@ -35,10 +35,15 @@ function withoutLabel(spans: ReadonlyArray<Span>): Array<Span> {
   return first ? [{ ...first, text: first.text.trimStart() }, ...rest] : [];
 }
 
-/**
- * A lead paragraph, in a pane titled by its label, its text without the label, its label in lower
- * case as id: `goal`.
- */
+/** A lead pane's id: "lead-" then its label as an anchor, `lead-tech-stack`, apart from sections'. */
+const leadId = (label: string) =>
+  `lead-${label
+    .toLowerCase()
+    .replaceAll(/[^\p{L}\p{N}\s-]/gu, "")
+    .trim()
+    .replaceAll(/\s+/g, "-")}`;
+
+/** A lead paragraph, in a pane titled by its label, its text without the label. */
 function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind: "lead" } }) {
   const override = (block: Block) =>
     block.id === run.block ? (
@@ -49,7 +54,7 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
       </Selectable>
     ) : undefined;
   return (
-    <Pane id={run.label.toLowerCase()} title={run.label}>
+    <Pane id={leadId(run.label)} title={run.label}>
       <Blocks {...drawing} ids={[run.block]} override={override} />
     </Pane>
   );

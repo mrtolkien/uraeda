@@ -100,3 +100,15 @@ test("a task's anchor names its pane and the page scrolls to it", async () => {
   await waitFor(() => expect(scrolled.mock.contexts.at(-1)).toBe(task));
   expect(document.getElementById("plan-questions-page-in-the-terminal-look")?.tagName).toBe("H1");
 });
+
+/** A lead pane's id cannot be a section's anchor: "lead-" then its label, as an anchor. */
+test("a lead pane's id is its label's slug after lead-", async () => {
+  const plan = questionsPlan("auto-approved", (text) =>
+    text.replace("**Architecture:**", "**Tech stack:**").replace(/^## Waves$/m, "## Tech stack"),
+  );
+  await renderPage(PAGE, repoWith(plan));
+
+  const lead = (await screen.findAllByRole("region", { name: "Tech stack" }))[0]!;
+  expect(document.getElementById("lead-tech-stack")).toBe(lead);
+  expect(document.getElementById("tech-stack")).not.toBe(lead);
+});
