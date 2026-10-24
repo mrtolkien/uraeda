@@ -7,7 +7,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { useEffect, useRef, useState } from "react";
 import type { MockupEmbed as Mockup } from "uraeda-binding";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { type Fit, LiveFrame } from "./LiveFrame.tsx";
+import { type Fit, LiveFrame, useSeen } from "./LiveFrame.tsx";
 import { FullScreenButton, LiveWindow, useLiveWindow } from "./LiveWindow.tsx";
 import { useServerFetch } from "./attach/ServerFetch.tsx";
 import { useRepoPath } from "./routes.tsx";
@@ -36,24 +36,33 @@ function pageOf(here: (path: string) => string, folder: string, mockup: Mockup) 
 }
 
 /**
- * Whether the served mockup answers: undefined while asked, then whether it was found. Its frame
- * cannot tell, sandboxed from Uraeda's origin.
+ * Whether the served mockup answers, asked once its window is seen: undefined until then and while
+ * asked, then whether it was found. Its frame cannot tell, sandboxed from Uraeda's origin. A network
+ * error tells nothing: the mockup stays drawn, asked again once the browser is back online.
  */
-function useFound(source: string) {
+function useFound(source: string, seen: boolean) {
   const fetch = useServerFetch();
   const [found, setFound] = useState<{ found: boolean; source: string }>();
+  const [tries, setTries] = useState(0);
+  const known = found?.source === source;
   useEffect(() => {
+    if (!seen || known) {
+      return;
+    }
     let live = true;
-    fetch(source.split("#")[0]!, { method: "HEAD" })
-      // An error answers 400 or more; a redirect not followed, as to the secret path, is no error.
-      .then((answer) => answer.status < 400)
-      .catch(() => false)
-      .then((ok) => live && setFound({ found: ok, source }));
+    const retry = () => setTries((count) => count + 1);
+    // fetch follows a redirect, as the 303 to the secret path: the status is the page's own, and
+    // 400 or more, it is missing.
+    fetch(source.split("#")[0]!, { method: "HEAD" }).then(
+      (answer) => live && setFound({ found: answer.status < 400, source }),
+      () => live && window.addEventListener("online", retry, { once: true }),
+    );
     return () => {
       live = false;
+      window.removeEventListener("online", retry);
     };
-  }, [fetch, source]);
-  return found?.source === source ? found.found : undefined;
+  }, [fetch, known, seen, source, tries]);
+  return known ? found.found : undefined;
 }
 
 /**
@@ -76,7 +85,7 @@ export function MockupEmbed({
   const [fit, setFit] = useState<Fit>();
   const source = sourceOf(here, mockup);
   const page = pageOf(here, folder, mockup);
-  const found = useFound(source);
+  const found = useFound(source, useSeen(stage));
   const actions = (
     <>
       {found && <FullScreenButton screen={live.screen} />}

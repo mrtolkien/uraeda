@@ -117,6 +117,8 @@ describe("on a desktop", () => {
     await show(PAGE, "Recurring tasks");
 
     const gone = live("Gone");
+    // Checked once its window is on screen.
+    gone.scrollIntoView({ block: "center" });
     expect(
       await within(gone).findByText("This mockup could not be loaded.", {}, READY),
     ).toBeTruthy();

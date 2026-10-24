@@ -2,14 +2,18 @@
 // behind "N more scenarios", and its mockup live in it, an HTML one too, in a live window (US3).
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addPreview, addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
-import { beforeEach, expect, test } from "vite-plus/test";
-import { atWidth, fixtureRepo, renderPage } from "./helpers.tsx";
+import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
+import { atWidth, fixtureRepo, renderPage, serverFetch } from "./helpers.tsx";
 
 const PAGE = `/f/${SPEC_FEATURE}/spec.md`;
 
 beforeEach(() => {
   window.localStorage.clear();
   atWidth(1440);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 async function click(element: HTMLElement) {
@@ -134,4 +138,88 @@ test("a scenario's Given, When, and Then start its rows with their words", async
   expect(rows(second!)[0]).toEqual(
     "Given a task due Monday the 5th, repeating on Mondays and Thursdays, ",
   );
+});
+
+/** The fixture's HTML mockup's window. */
+const HTML_WINDOW = "live · Title with a repeat phrase";
+
+/**
+ * The server in process, recording the `HEAD` checks of the mockups it is sent; `fail` makes the
+ * first ones fail as a network error does.
+ */
+function checkedMockups(repo: string, fail = 0) {
+  const fetch = serverFetch(repo);
+  const checks: Array<string> = [];
+  let failing = fail;
+  return {
+    checks,
+    fetch: (async (input, init) => {
+      const url = typeof input === "object" && "url" in input ? input.url : input.toString();
+      if (init?.method === "HEAD" && url.includes("/mockups/")) {
+        checks.push(url);
+        if (failing > 0) {
+          failing -= 1;
+          throw new TypeError("Failed to fetch");
+        }
+      }
+      return fetch(input, init);
+    }) as typeof globalThis.fetch,
+  };
+}
+
+/** An `IntersectionObserver` that sees nothing until `seeAll` says everything it watches is seen. */
+function watchSeen() {
+  const observers: Array<() => void> = [];
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: IntersectionObserverCallback) {
+        observers.push(() => callback([{ isIntersecting: true } as never], this as never));
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  return () =>
+    act(async () => {
+      for (const seen of observers) {
+        seen();
+      }
+    });
+}
+
+/** Review: a mockup's check is sent once its window is on screen, not as the page opens. */
+test("an HTML mockup is checked once its window is seen", async () => {
+  const seeAll = watchSeen();
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const server = checkedMockups(repo);
+  await renderPage(PAGE, repo, { fetch: server.fetch });
+
+  expect(await screen.findByRole("region", { name: HTML_WINDOW })).toBeTruthy();
+  expect(server.checks).toEqual([]);
+  await seeAll();
+  await waitFor(() => expect(server.checks).toHaveLength(1));
+});
+
+/** Review: a network error is no missing mockup; it is checked again once back online. */
+test("a mockup whose check fails on the network stays drawn, and is checked again", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  const seeAll = watchSeen();
+  const server = checkedMockups(repo, 1);
+  await renderPage(PAGE, repo, { fetch: server.fetch });
+
+  const window_ = await screen.findByRole("region", { name: HTML_WINDOW });
+  await seeAll();
+  await waitFor(() => expect(server.checks).toHaveLength(1));
+  await act(async () => {});
+  expect(within(window_).queryByText("This mockup could not be loaded.")).toBeNull();
+  expect(within(window_).getByTitle("Title with a repeat phrase, 1440 px")).toBeTruthy();
+
+  await act(async () => {
+    window.dispatchEvent(new Event("online"));
+  });
+  await waitFor(() => expect(server.checks).toHaveLength(2));
+  expect(within(window_).queryByText("This mockup could not be loaded.")).toBeNull();
 });
