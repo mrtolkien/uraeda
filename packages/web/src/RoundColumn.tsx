@@ -4,7 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, Suspense, useRef } from "react";
+import { type ReactNode, Suspense } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
 import { ColumnSession } from "./ColumnSession.tsx";
 import type { useFile } from "./data.ts";
@@ -30,7 +30,7 @@ import {
 import { NextOrSubmit, OutlineSheet, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
 import type { NavQuestion } from "./roundJump.ts";
 import { redirect } from "./routes.tsx";
-import { askAbout, quoted, withQuote } from "./sessions.ts";
+import { askAbout, quoted } from "./sessions.ts";
 import type { Draft } from "./useDraft.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -94,7 +94,7 @@ function focusOnceDrawn(find: () => HTMLElement | null | undefined) {
 
 /**
  * What the round's page does from its parts: the phone's open sheet, `sheet`; asking the agent
- * about a question or a point, with `draft`, the session's composer kept by the page, when the
+ * about a question or a point, with `draft`, the feature's session draft, when the
  * agent can be asked; and opening the notes' field. Asking writes the quote into the composer,
  * in place of the one it held, and opens the Session tab, its composer focused; on the phone, it
  * opens the session's page. "Edit notes" opens the Notes tab, or the phone's sheet, its field
@@ -107,8 +107,6 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
   const column = useDocumentColumnWidth();
   const [tab, setTab] = useColumnTab(columnKeys(draft !== undefined));
   const sheet = useRoundSheet(wide);
-  // The quote asking last wrote into the composer.
-  const inserted = useRef<string>(undefined);
   const openTab = (key: string) => {
     column.setShown(true);
     setTab(key);
@@ -118,10 +116,7 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
       askAbout(file.folder, quote);
       return;
     }
-    // Read before the update runs: the quote asking put there last, which this one replaces.
-    const last = inserted.current;
-    inserted.current = quote;
-    draft?.setText((now) => withQuote(now, quote, last));
+    draft?.ask(quote);
     openTab("session");
     focusOnceDrawn(() =>
       document.getElementById(SESSION_PANEL)?.querySelector<HTMLElement>('[role="textbox"]'),
@@ -154,7 +149,7 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
 /**
  * The round, `content`, with its column, named "The round's column". `nav` is its questions in the
  * page's order, `notes` its notes, which the Notes tab and the phone's sheet both write, and
- * `draft` the session's composer, kept by the page, with which the column has a Session tab.
+ * `draft` the feature's session draft, with which the column has a Session tab.
  * `onSubmit` takes the page to its end. `actions` are the page's, `useRoundActions`': the phone's
  * open sheet, and how the notes open. `n` and `p` jump between blank questions on wide screens,
  * whatever the open tab. An image dropped with no field focused goes to the notes, opening them,
