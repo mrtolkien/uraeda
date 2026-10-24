@@ -366,3 +366,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: drop `keepsSpans` from `SinceWords`, `BlockTable.tsx`, and `EdgeCases.tsx`, and the
   test "a changed paragraph holding a link keeps it".
 - **Where**: fix of Task 12's review, `src/sinceMarks.tsx`, `src/__tests__/since-marks.test.tsx`.
+
+## R25: The status line's counts give way to the page's controls on the phone
+
+- **Decision**: where the widest of the status line's counts ("N need you", "N running") has no room
+  beside the page's controls, the counts are left out of the line (`shell/useCountsFit.ts`,
+  `shell/StatusLine.tsx`): hidden, still laid out to be measured again, and shown once room comes
+  back. At 390 and 402 px, the spec's and the plan's Contents, comment count, and Verdict take the
+  line alone, as the spec's phone mockup draws it.
+- **Rationale**: Task 13's screenshots showed "Verdict" drawn over "11 need you" and "0 running" at
+  402 px: the controls take 308 px of the line's 378, the counts at least 99, and the counts were
+  pushed under the controls. The layout look's status line keeps its counts "wrapping rather than
+  cut", which still holds wherever they fit; the phone's tabs show the same counts as badges.
+- **Alternatives considered**: an icon-only Contents button, which fits today's counts but drops the
+  word the spec's scenario and mockup show, and fails again with a longer count or a narrower phone;
+  leaving the counts out of every phone line with controls, which drops them from a round where they
+  fit.
+- **If wrong**: drop `useCountsFit` and the `countsLeftOut` style; the counts overlap the controls
+  again on the phone.
+- **Where**: Task 13, `packages/web/src/shell/StatusLine.tsx`, `src/shell/useCountsFit.ts`,
+  `src/__browser__/spec-column.test.tsx` "the status line's controls and counts never cover each
+  other".

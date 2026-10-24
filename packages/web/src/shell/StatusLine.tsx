@@ -1,6 +1,8 @@
 // The status line, one line at the bottom of the window at every width: the hints of the keys that
 // work on the page (`statusHints.tsx`), the page's own controls (`TopBarSlot`, as the round's count
-// and Next on the phone), then how many cards need the human and how many sessions run. An Astryx
+// and Next on the phone), then how many cards need the human and how many sessions run, left out
+// where the page's controls leave them no room (R25 of the spec page), as the spec's Contents,
+// count, and Verdict at 390 px: the phone's tabs show them too. An Astryx
 // gap (plan, Complexity tracking): no component draws a status line. Astryx's `Kbd` writes keys in
 // capitals, "J K", where the line writes them as typed. Its counts are not announced as they change:
 // the column's panes and the tabs say them where they are read.
@@ -14,11 +16,12 @@ import {
   typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, type RefObject, useRef } from "react";
 import { useNavigation } from "../sessionData.ts";
 import { needsYou } from "../sidebar/cards.ts";
 import { type Data, entriesOf, runningSessions } from "../sidebar/entries.ts";
 import { useDeclaredHints, useStatusLineCovered } from "../statusHints.tsx";
+import { useCountsFit } from "./useCountsFit.ts";
 
 const styles = stylex.create({
   count: {
@@ -29,8 +32,9 @@ const styles = stylex.create({
   },
   counts: {
     // At the line's end, whatever comes before. The hints give way to them first; short of room
-    // still, as at 320 px beside a round's controls, where no hint shows, the counts wrap onto a
-    // second line, each whole, never cut or past the edge.
+    // still, where no hint shows, the counts wrap onto a second line, each whole, never cut or past
+    // the edge; and where even the widest count has no room beside the page's controls, they are
+    // left out (`useCountsFit`).
     alignItems: "center",
     columnGap: spacingVars["--spacing-4"],
     display: "flex",
@@ -40,6 +44,13 @@ const styles = stylex.create({
     marginInlineStart: "auto",
     minWidth: 0,
     rowGap: 0,
+  },
+  countsLeftOut: {
+    // Still laid out at its own width, where nothing sees it, to be measured again as room grows.
+    insetInlineEnd: 0,
+    pointerEvents: "none",
+    position: "absolute",
+    visibility: "hidden",
   },
   hint: {
     flexShrink: 0,
@@ -113,12 +124,19 @@ function Hints() {
   );
 }
 
-/** The counts: what needs the human, left out at none, and the running sessions. */
-function Counts() {
+/**
+ * The counts: what needs the human, left out at none, and the running sessions; hidden, still
+ * measured, when `fits` is false.
+ */
+function Counts({ fits, measured }: { fits: boolean; measured: RefObject<HTMLDivElement | null> }) {
   const data = useNavigation();
   const waiting = needsYouCount(data);
   return (
-    <div {...stylex.props(styles.counts)}>
+    <div
+      aria-hidden={fits ? undefined : true}
+      ref={measured}
+      {...stylex.props(styles.counts, !fits && styles.countsLeftOut)}
+    >
       {waiting > 0 && (
         <Text type="supporting" xstyle={[styles.count, styles.needs]}>
           {waiting} need you
@@ -136,14 +154,22 @@ function Counts() {
 export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactNode }) {
   // Left out under a sheet that leaves the page usable, which rises from the same edge.
   const isCovered = useStatusLineCovered();
+  const line = useRef<HTMLElement>(null);
+  const controls = useRef<HTMLDivElement>(null);
+  const counts = useRef<HTMLDivElement>(null);
+  const fits = useCountsFit(line, controls, counts, slot !== null && !isCovered);
   if (isCovered) {
     return null;
   }
   return (
-    <footer aria-label="Status line" {...stylex.props(styles.line)}>
+    <footer aria-label="Status line" ref={line} {...stylex.props(styles.line)}>
       {!isNarrow && <Hints />}
-      {slot !== null && <div {...stylex.props(styles.slot)}>{slot}</div>}
-      <Counts />
+      {slot !== null && (
+        <div ref={controls} {...stylex.props(styles.slot)}>
+          {slot}
+        </div>
+      )}
+      <Counts fits={fits} measured={counts} />
     </footer>
   );
 }

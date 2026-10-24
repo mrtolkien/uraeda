@@ -100,6 +100,50 @@ describe("on the desktop", () => {
   });
 });
 
+/** The boxes the status line shows: each control of the page's, and each count it shows. */
+function lineParts() {
+  const line = screen.getByRole("contentinfo", { name: "Status line" });
+  const parts = [
+    ...within(line).getAllByRole("button"),
+    within(line).getByText(/need you/),
+    within(line).getByText(/running/),
+  ];
+  return parts
+    .filter((part) => getComputedStyle(part).visibility !== "hidden")
+    .map((part) => ({ box: part.getBoundingClientRect(), text: part.textContent }));
+}
+
+/** Whether two boxes share any pixel. */
+const overlap = (a: DOMRect, b: DOMRect) =>
+  a.left < b.right - 0.5 &&
+  b.left < a.right - 0.5 &&
+  a.top < b.bottom - 0.5 &&
+  b.top < a.bottom - 0.5;
+
+describe("on the phone", () => {
+  atSize("phone");
+
+  test("the status line's controls and counts never cover each other (US1 key 3)", async () => {
+    await commands.addSpecFeature();
+    await show(PAGE, "Task storage");
+    const line = screen.getByRole("contentinfo", { name: "Status line" });
+    await within(line).findByRole("button", { name: "Verdict" });
+    await expect.poll(() => line.textContent, LIVE).toMatch(/need you/);
+    await drawn();
+
+    const parts = lineParts();
+    const covered = parts.flatMap((part, index) =>
+      parts
+        .slice(index + 1)
+        .filter((other) => overlap(part.box, other.box))
+        .map((other) => `${part.text} / ${other.text}`),
+    );
+    expect(covered).toEqual([]);
+    const past = parts.filter(({ box }) => box.left < -0.5 || box.right > window.innerWidth + 0.5);
+    expect(past.map(({ text }) => text)).toEqual([]);
+  });
+});
+
 describe("accessibility", () => {
   atSize("both");
 
