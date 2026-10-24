@@ -235,7 +235,13 @@ function checkNonTextContrast() {
     const style = getComputedStyle(box);
     const around = backdrop(box.parentElement);
     const edge = Number.parseFloat(style.borderInlineStartWidth) > 0;
-    const colour = over(edge ? style.borderInlineStartColor : style.backgroundColor, around);
+    // On the phone, a selected block's bar is a shadow before its text (R24).
+    const bar =
+      style.boxShadow === "none" ? undefined : /rgba?\([^)]*\)/.exec(style.boxShadow)?.[0];
+    const colour = over(
+      edge ? style.borderInlineStartColor : (bar ?? style.backgroundColor),
+      around,
+    );
     expect(contrast(colour, around), name).toBeGreaterThanOrEqual(3);
   }
 }
