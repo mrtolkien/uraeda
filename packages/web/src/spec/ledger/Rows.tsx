@@ -14,7 +14,7 @@ import {
   typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import type { PartChange } from "uraeda-binding";
 import { Tappable } from "../../Selection.tsx";
 import { useOpenKeys } from "../../useOpenKeys.ts";
@@ -145,8 +145,8 @@ export function holdsAny(
 }
 
 /**
- * Rows folded behind a label, open while `held`, or as the history entry keeps it by `foldKey`, for
- * Back and reloads. Folded, its rows are not mounted.
+ * Rows folded behind a label, open while `held`, unless the human closed it since, or as the
+ * history entry keeps it by `foldKey`, for Back and reloads. Folded, its rows are not mounted.
  */
 export function Fold({
   children,
@@ -160,13 +160,18 @@ export function Fold({
   label: string;
 }) {
   const keys = useOpenKeys();
-  const isOpen = keys.open.includes(foldKey) || held;
+  // Closed by the human while `held`, it stays closed until opened again, as a spec's fold does.
+  const [shut, setShut] = useState(false);
+  const isOpen = keys.open.includes(foldKey) || (held && !shut);
   return (
     <VStack gap={2}>
       <Button
         aria-expanded={isOpen}
         label={label}
-        onClick={() => keys.onOpenChange(foldKey, !isOpen)}
+        onClick={() => {
+          setShut(isOpen);
+          keys.onOpenChange(foldKey, !isOpen);
+        }}
         size="sm"
         variant="ghost"
         xstyle={styles.fold}

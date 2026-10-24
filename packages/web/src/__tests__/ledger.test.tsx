@@ -210,6 +210,32 @@ test("the decisions page shows the same ledger", async () => {
   expectTaskStorageLedger(await pane("Task storage", change));
 });
 
+/** As a spec's folds: a fold a comment holds open closes on a tap, and opens again on the next. */
+test("a fold held open by a pending comment closes on a tap", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  pendingReview(repo, [
+    '## C1: Decision due-dates, line 13, under "Rules"',
+    "",
+    "> - Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type.",
+    "",
+    "And the time zone?",
+    "",
+  ]);
+  await renderPage(PAGE, repo);
+
+  const dates = await pane("Due dates");
+  const kept = /^Due dates MUST be stored as/;
+  const fold = within(dates).getByRole("button", { name: "1 rule unchanged" });
+  expect(fold.getAttribute("aria-expanded")).toBe("true");
+  await click(fold);
+  expect(fold.getAttribute("aria-expanded")).toBe("false");
+  expect(within(dates).queryByText(kept)).toBeNull();
+  await click(fold);
+  expect(fold.getAttribute("aria-expanded")).toBe("true");
+  expect(within(dates).getByText(kept)).toBeTruthy();
+});
+
 /** "Marked in place": on the decision's own page, each section's parts keep the file's order. */
 test("the decision's page keeps each section's parts in the file's order", async () => {
   const repo = fixtureRepo();
