@@ -16,9 +16,12 @@ import { State } from "./StoryEmbed.tsx";
 /** The mockup page's sandbox: scripts, and nothing of Uraeda's origin. */
 const SANDBOX = "allow-scripts";
 
+/** A path's segments, each encoded for an address, its slashes kept. */
+const encodedPath = (path: string) => path.split("/").map(encodeURIComponent).join("/");
+
 /** The served mockup's address, then the link's query and anchor, which the path never holds. */
 function sourceOf(here: (path: string) => string, mockup: Mockup) {
-  const path = mockup.path.split("/").map(encodeURIComponent).join("/");
+  const path = encodedPath(mockup.path);
   const query = mockup.query ? `?${mockup.query}` : "";
   const anchor = mockup.anchor ? `#${mockup.anchor}` : "";
   return `${here(`/mockups/${path}`)}${query}${anchor}`;
@@ -28,11 +31,11 @@ function sourceOf(here: (path: string) => string, mockup: Mockup) {
  * The mockup's page in the UI, `/f/<folder>/mockups/<name>`, for a mockup of the folder's own
  * `mockups/`; else the served page itself.
  */
-function pageOf(here: (path: string) => string, folder: string, mockup: Mockup) {
+export function pageOf(here: (path: string) => string, folder: string, mockup: Mockup) {
   const own = `specs/${folder}/mockups/`;
   return mockup.path.startsWith(own)
-    ? here(`/f/${encodeURIComponent(folder)}/mockups/${mockup.path.slice(own.length)}`)
-    : here(`/mockups/${mockup.path}`);
+    ? here(`/f/${encodeURIComponent(folder)}/mockups/${encodedPath(mockup.path.slice(own.length))}`)
+    : here(`/mockups/${encodedPath(mockup.path)}`);
 }
 
 /**

@@ -1,3 +1,7 @@
+// The plan page: a plan read in its file's order, waiting for your review or not, its status and
+// title, each lead paragraph (Goal, Architecture, Spec) a titled pane, then each section a pane, a
+// task's with its steps checked out of its total. The spec's column beside it, of Contents, Review
+// while it waits, and Session; on the phone, in the status line.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
