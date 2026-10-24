@@ -58,8 +58,13 @@ pub struct QuestionItem {
     pub context: Vec<u32>,
     /// Its paragraph starting "Why it matters".
     pub why: Option<u32>,
+    /// Its "Why it matters" paragraph's spans without the lead, which its pane's title says, nor the
+    /// ":", "." or "—" after it, its first letter capitalised: empty without the paragraph.
+    pub why_text: Vec<Span>,
     /// Its first paragraph starting "Example:", left out of its context.
     pub example: Option<u32>,
+    /// Its example's spans without "Example:", its first letter capitalised: empty without one.
+    pub example_text: Vec<Span>,
     pub options: Vec<Choice>,
     pub answer: String,
     /// The answer split as the UI composes it.

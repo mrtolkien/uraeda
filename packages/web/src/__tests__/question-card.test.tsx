@@ -14,11 +14,11 @@ const Q4 = "Where should the session open on the questions page?";
 today("2026-10-11");
 
 /** A repository whose round, in the feature's worktree, is the layout-look round's Q4 and Q5. */
-function layoutLook() {
+function layoutLook(edit: (text: string) => string = (text) => text) {
   const repo = fixtureRepo();
   git(repo, "worktree", "add", "--quiet", join(".worktrees", FOLDER), FOLDER);
   const round = readFileSync(fixture("round-layout-look/clarifications-01.md"), "utf8");
-  writeFileSync(join(repo, ".worktrees", FOLDER, ROUND), round);
+  writeFileSync(join(repo, ".worktrees", FOLDER, ROUND), edit(round));
   return repo;
 }
 
@@ -50,6 +50,20 @@ test("Q4's example and why are panes of their own", async () => {
   expect(example.contains(why) || why.contains(example)).toBe(false);
   // Q5 has no example: no pane for it.
   expect(within(question("Q5")).queryByRole("region", { name: "Example" })).toBeNull();
+});
+
+test("a why closed by a full stop reads from its first word", async () => {
+  atWidth(1440);
+  await renderPage(
+    PAGE,
+    layoutLook((text) =>
+      text.replace("Why it matters: it decides how much", "Why it matters. It decides how much"),
+    ),
+  );
+  await screen.findByRole("heading", { name: Q4 });
+
+  const why = within(question("Q4")).getByRole("region", { name: "Why it matters" });
+  expect(within(why).getByText(/^It decides how much of the question stays visible/)).toBeTruthy();
 });
 
 test("a picked option says so", async () => {
