@@ -25,13 +25,14 @@ export function endJump() {
 
 /**
  * Brings a question to the top of the screen, below the bar (its `scroll-margin-top`), and gives
- * its title the focus. Instant under reduced motion, or when `instant`.
+ * its title the focus. Instant under reduced motion, or when `instant`. `isQuiet`, for a jump no
+ * one asked for, as a round reopening at its question: the focus moves without a ring.
  *
  * The jump ends when the browser says the scroll ended (`scrollend`), or, where it does not say,
  * 150 ms after the scroll's last move. A jump that does not scroll, or a browser that never says,
  * ends a second after its last move: a busy machine may start the scroll late.
  */
-export function jumpTo(id: string, instant = false) {
+export function jumpTo(id: string, instant = false, isQuiet = false) {
   const section = document.getElementById(id);
   if (!section) {
     return;
@@ -59,7 +60,12 @@ export function jumpTo(id: string, instant = false) {
     behavior: instant || reducedMotion() ? "auto" : "smooth",
     block: "start",
   });
-  document.getElementById(`${id}-title`)?.focus({ preventScroll: true });
+  // `focusVisible` is newer than TypeScript's DOM types.
+  const options: FocusOptions & { focusVisible?: boolean } = {
+    preventScroll: true,
+    ...(isQuiet ? { focusVisible: false } : {}),
+  };
+  document.getElementById(`${id}-title`)?.focus(options);
 }
 
 /** The question at the top, or the one a jump is bringing there. */

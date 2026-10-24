@@ -3,7 +3,7 @@
 // keeps the pane's borders and its inset. Measured on the merge-chats round's Scope.
 import { screen } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
-import { atSize, colorScheme, commands, drawn, show } from "./helpers.tsx";
+import { atSize, colorScheme, commands, drawn, repository, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-11-web-ui";
 const PAGE = `/f/${FEATURE}/clarifications-01.md`;
@@ -164,5 +164,33 @@ describe("the round's paragraphs", () => {
     expect(family(screen.getByText(/^During an unattended run/))).toBe(reading);
     // "Why it matters", in its pane.
     expect(family(screen.getByText(/^This becomes a rule of the/))).toBe(reading);
+  });
+});
+
+/** Whether an element draws a focus ring a person would see: an outline, or Astryx's ring shadow. */
+function ringed(element: Element) {
+  const style = getComputedStyle(element);
+  const outline = style.outlineStyle !== "none" && Number.parseFloat(style.outlineWidth) > 0;
+  return outline || style.boxShadow !== "none";
+}
+
+// A round reopened at the question it was left at gives that question's title the focus, for a
+// screen reader, but no ring nobody asked for: no key was pressed.
+describe("the round reopened at its question", () => {
+  atSize("both");
+
+  test("its title has the focus, without a ring", async () => {
+    const round = await commands.fixtureText("round-merge-chats/clarifications-01.md");
+    await commands.commitOnBranch(FEATURE, { [FILE]: round });
+    window.localStorage.setItem(
+      `uraeda.round.${repository()}/${FEATURE}/clarifications-01.md`,
+      "Q3",
+    );
+    await show(PAGE, "Who may move a chat up to a change, or a change up to a feature?");
+    await drawn();
+
+    const title = document.activeElement!;
+    expect(title.textContent).toBe("Does the chat's conversation become the change's session?");
+    expect(ringed(title)).toBe(false);
   });
 });
