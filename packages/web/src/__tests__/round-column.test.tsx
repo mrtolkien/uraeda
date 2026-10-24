@@ -431,6 +431,42 @@ test("typed notes, comments, and the composer stay through tabs and widths", asy
   expect(within(end()).getByText("Check the spec page too.")).toBeTruthy();
 });
 
+/**
+ * Unsaved text is never dropped (ui-behaviour.md): the column's composer and the session's page's
+ * hold one draft, so the quote and the text typed follow the human to the page and back, and a
+ * message sent from either empties it in both.
+ */
+test("the composer's text follows the human to the session's page and back", async () => {
+  const fake = await fakeAgent();
+  await open(PAGE, round(), fake);
+  await askAbout("Q2");
+  const typed = `${Q2_QUOTE}\n\nwhy would that cost more?`;
+  await type(await composer(), typed);
+
+  await click(screen.getByRole("link", { name: "Open the session's page" }));
+
+  expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/session`));
+  await screen.findByRole("log", { name: "Conversation" });
+  const page = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  expect(page.textContent).toBe(typed);
+
+  await act(async () => window.history.back());
+
+  expect(openTab()).toBe("Session");
+  expect((await composer()).textContent).toBe(typed);
+
+  await click(screen.getByRole("link", { name: "Open the session's page" }));
+  await screen.findByRole("log", { name: "Conversation" });
+  await click(await screen.findByRole("button", { name: "Send" }));
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(""),
+  );
+  await act(async () => window.history.back());
+
+  expect((await composer()).textContent).toBe("");
+});
+
 /** Review focus 5: the composer is the session's page's while the agent works. */
 test("asking while the agent works sends nothing", async () => {
   const fake = await fakeAgent();

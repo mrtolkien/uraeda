@@ -15,7 +15,8 @@ import type { Draft } from "./useDraft.ts";
  * The feature's latest session, in the column that scrolls it: its header, a link to the session's
  * page, its transcript following its end in the column, and its composer at the column's foot. Before
  * its first message creates the session, the composer alone. `draft` is the composer's text and
- * images, kept by the page, so that the column can go and come back without losing them.
+ * images, the feature's, which the session's page holds too, so that the column can go and come
+ * back, and the human go to the session's page and back, without losing them.
  */
 export function ColumnSession({ draft, folder }: { draft: Draft; folder: string }) {
   const feature = useFeature(folder);
