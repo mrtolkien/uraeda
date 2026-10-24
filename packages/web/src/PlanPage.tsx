@@ -3,6 +3,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import type { ReactNode } from "react";
 import type { Block, CommentItem, Document, PlanItems } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
@@ -109,11 +110,22 @@ function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSect
 }
 
 /**
- * The plan in its file's order: its title and status, the blocks before its first section, each
+ * The plan in its file's order: its status and title, `intro` after them as the spec's page has
+ * how to review it, the blocks before its first section, each
  * lead paragraph a pane, then each section a pane, a task's with its steps checked out of its
  * total.
  */
-function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; items?: PlanItems }) {
+function PlanParts({
+  drawing,
+  file,
+  intro,
+  items,
+}: {
+  drawing: Drawing;
+  file: File;
+  intro?: ReactNode;
+  items?: PlanItems;
+}) {
   const { document } = drawing;
   const { opening, sections } = planParts(document, items);
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
@@ -134,6 +146,7 @@ function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; ite
           </Heading>
         </Selectable>
       )}
+      {intro}
       {opening.map((run) =>
         run.kind === "lead" ? (
           <LeadPane drawing={drawing} key={run.block} run={run} />
@@ -199,7 +212,6 @@ function ReviewedPlan({ file, session }: { file: File; session: PageSession | un
     <Page>
       <Crumbs current={file.name} folder={file.folder} />
       <VStack gap={3}>
-        <ReviewIntro file={file} review={review} />
         <StoriesProvider
           comment={storyComments}
           folder={file.folder}
@@ -209,6 +221,7 @@ function ReviewedPlan({ file, session }: { file: File; session: PageSession | un
           <PlanParts
             drawing={{ document: tree, folds, selection }}
             file={file}
+            intro={<ReviewIntro file={file} review={review} />}
             items={version.items.plan}
           />
         </StoriesProvider>

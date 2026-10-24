@@ -68,6 +68,16 @@ test("a plan waiting for review draws the same panes, and the verdict", async ()
   expect(await screen.findByRole("button", { name: "Approve" })).toBeTruthy();
 });
 
+/** As the spec's page: its status and its title, then how to review it. */
+test("a plan waiting for review reads its status and title before how to review it", async () => {
+  await renderPage(PAGE, repoWith(questionsPlan("awaiting-human")));
+
+  const intro = await screen.findByText(/^Tap a block to comment on it\./);
+  const status = screen.getByText("Waiting for your review");
+  const title = screen.getByRole("heading", { level: 1 });
+  expect(inOrder([status, title, intro])).toBe(true);
+});
+
 /** Edge case: a plan with no tasks yet. */
 test("a plan with no tasks draws its sections", async () => {
   const plan = questionsPlan("auto-approved", (text) => text.replace(/\n## Task 1:[\s\S]*$/, "\n"));
