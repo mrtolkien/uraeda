@@ -90,7 +90,7 @@ export function DecisionList({
     <section aria-label="Decisions">
       <VStack gap={2}>
         <HStack align="center" gap={3} justify="between" wrap="wrap">
-          <Heading level={2}>
+          <Heading accessibilityLevel={2} level={4}>
             Decisions <span {...stylex.props(styles.count)}>· {decisions.length}</span>
           </Heading>
           <Selector
