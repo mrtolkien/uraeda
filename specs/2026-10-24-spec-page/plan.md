@@ -659,7 +659,8 @@ candidates, and the decisions check.
   label, `lead-<label as an anchor>` as id (`lead-goal`); a `Pane` per `##` section titled by its
   heading, its anchor as id; a `Pane` per task titled "Task N · <title>" with its `done/total`
   badge, its heading's anchor as id (a link `plan.md#task-5-…` lands on it), its steps drawn as
-  today. Waiting for review, the review's selection, comments, and `ReviewEnd`, as `ReviewPage` had;
+  today. Waiting for review, the review's selection, comments, and `ReviewEnd`, as `ReviewPage` had,
+  the title and each section's heading line (drawn as written at its pane's top) selectable too;
   otherwise read-only. Task 10 adds its column.
 
 - [x] **Step 1: Write the failing tests** in `plan-page.test.tsx`: the questions page's plan as a

@@ -56,12 +56,35 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
 }
 
 /**
+ * While the plan waits for review, its section's heading line, as written, which its pane's title
+ * says: tapped, it takes a comment, shown under it. Read-only, nothing.
+ */
+function HeadingLine({ heading, selection }: { heading: Block; selection?: Selection }) {
+  if (!selection) {
+    return null;
+  }
+  return (
+    <Selectable block={heading} selection={selection}>
+      <Text as="p" color="secondary" display="block" type="inherit">
+        {"## "}
+        <Spans spans={heading.spans} />
+      </Text>
+    </Selectable>
+  );
+}
+
+/**
  * A section in a pane titled by its heading, its anchor as id; a task's titled "Task N · <title>",
  * with its steps checked out of its total, so a link to the heading lands on its pane.
  */
 function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSection }) {
   const { heading, ids, task } = section;
-  const blocks = ids.length > 0 && <Blocks {...drawing} ids={ids} />;
+  const blocks = (
+    <>
+      <HeadingLine heading={heading} selection={drawing.selection} />
+      {ids.length > 0 && <Blocks {...drawing} ids={ids} />}
+    </>
+  );
   if (!task) {
     return (
       <Pane id={heading.anchor} title={heading.heading ?? ""}>
@@ -101,9 +124,11 @@ function PlanParts({ drawing, file, items }: { drawing: Drawing; file: File; ite
         </HStack>
       )}
       {title && (
-        <Heading id={title.anchor} level={1}>
-          <Spans spans={title.spans} />
-        </Heading>
+        <Selectable block={title} selection={drawing.selection}>
+          <Heading id={title.anchor} level={1}>
+            <Spans spans={title.spans} />
+          </Heading>
+        </Selectable>
       )}
       {opening.map((run) =>
         run.kind === "lead" ? (

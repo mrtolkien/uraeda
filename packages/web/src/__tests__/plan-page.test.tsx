@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { commitOnBranch } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test, vi } from "vite-plus/test";
 import { atWidth, fixture, fixtureRepo, renderPage } from "./helpers.tsx";
@@ -119,4 +119,70 @@ test("a plan with changes requested shows its badge", async () => {
 
   await region("Goal");
   expect(screen.getByText("Changes requested")).toBeTruthy();
+});
+
+/** Clicks an element, and lets what it starts settle. */
+async function click(element: HTMLElement) {
+  await act(async () => {
+    fireEvent.click(element);
+  });
+}
+
+/** Types a comment on the selected lines, saves it, and returns its pending note once shown. */
+async function commentOn(toggle: HTMLElement, text: string) {
+  await click(toggle);
+  const field = await screen.findByLabelText("Comment text");
+  await act(async () => {
+    fireEvent.change(field, { target: { value: text } });
+  });
+  await click(screen.getByRole("button", { name: /^(Add|Save) comment$/ }));
+  return waitFor(() => {
+    expect(screen.queryByLabelText("Comment text")).toBeNull();
+    const note = screen.getByRole("group", { name: /^C1 · / });
+    expect(note.textContent).toContain(text);
+    return note;
+  });
+}
+
+/** Whether `later` comes right after `element`'s selectable block, nothing selectable between. */
+function rightAfter(element: HTMLElement, later: HTMLElement) {
+  const block = element.closest("[data-lines]")!;
+  const between = [...document.querySelectorAll("[data-lines]")].filter(
+    (other) =>
+      !!(block.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+      !!(other.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+      !block.contains(other),
+  );
+  return (
+    !!(block.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+    between.length === 0
+  );
+}
+
+/** US6 2: a step of a plan waiting for review takes a comment, shown under it in its task. */
+test("a step takes a comment, shown under it in its task's pane", async () => {
+  await renderPage(PAGE, repoWith(questionsPlan("awaiting-human")));
+
+  const task = await region(FIRST_TASK);
+  const step = within(task).getByRole("button", { name: /^Step 1: Move SessionLog/ });
+  const note = await commentOn(step, "Name the hook");
+
+  expect(task.contains(note)).toBe(true);
+  expect(rightAfter(step, note)).toBe(true);
+});
+
+/** A section's heading line takes a comment, shown under it at the top of its pane. */
+test("a section's heading line takes a comment, shown under it", async () => {
+  await renderPage(PAGE, repoWith(questionsPlan("awaiting-human")));
+
+  const focus = await region("Review focus");
+  const heading = within(focus).getByRole("button", { name: "## Review focus" });
+  const note = await commentOn(heading, "Order these");
+
+  expect(focus.contains(note)).toBe(true);
+  expect(rightAfter(heading, note)).toBe(true);
+  expect(note.textContent).toContain("line 27");
+  expect(
+    screen.getByRole("button", { name: "Plan: Questions page in the terminal look" }),
+  ).toBeTruthy();
 });
