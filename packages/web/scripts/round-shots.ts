@@ -2,7 +2,7 @@
  * The screenshots' views of a round of questions, over the round page's mockup feature
  * (`fixtures/round-mockup/`) that the sample builders' `addRoundMockup` adds, its Q1 answered B:
  * the round's opening, its verdict and its context; Q1 with its diagram; the follow-up Q1.B after
- * it; the settled points, every group open; and, on the phone, the index of the questions.
+ * it; the settled points, every group open; and, on the phone, the outline's sheet.
  */
 import type { Page } from "playwright";
 import { ROUND_MOCKUPS } from "../samples/index.ts";
@@ -53,7 +53,7 @@ export async function takeRound(each: Each) {
   });
   await each("round-settled", async ({ page }) => {
     await open(page);
-    await page.getByRole("button", { name: /^Show the \d+ points$/ }).click({ force: true });
+    await page.getByRole("button", { name: /^\d+ choices? in the code only$/ }).click();
     await page.getByText("Next dates are computed by date-fns").waitFor();
     await toTop(page, page.getByRole("heading", { name: "Settled without you" }));
     await settle(page);
@@ -62,8 +62,8 @@ export async function takeRound(each: Each) {
     "round-index",
     async ({ page }) => {
       await open(page);
-      await page.getByRole("button", { name: /^\d+\/\d+$/ }).click();
-      await page.getByRole("dialog", { name: "Questions" }).waitFor();
+      await page.getByRole("button", { name: /^\d+\/\d+ answered, outline$/ }).click();
+      await page.getByRole("dialog", { name: "Outline" }).waitFor();
       await settle(page);
     },
     "phone",

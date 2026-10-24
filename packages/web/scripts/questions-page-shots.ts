@@ -113,7 +113,7 @@ async function takeColumn(each: Each) {
     "questions-outline-sheet",
     async ({ page }) => {
       await waiting(page);
-      await page.getByRole("button", { name: "1/8" }).click();
+      await page.getByRole("button", { name: "1/8 answered, outline" }).click();
       await page.getByRole("dialog", { name: "Outline" }).waitFor();
       await settle(page);
     },
