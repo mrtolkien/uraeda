@@ -15,7 +15,7 @@ import type { Block, ContextPart, Document, RoundItems, VerdictKind } from "urae
 import { Blocks } from "./Blocks.tsx";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { Pane } from "./layout/Pane.tsx";
-import { useWidthOf } from "./layout/useWidthOf.ts";
+import { useAtLeast } from "./layout/useWidthOf.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
@@ -26,9 +26,6 @@ const styles = stylex.create({
   lead: { marginBlock: spacingVars["--spacing-1"] },
   verdict: { paddingBlock: spacingVars["--spacing-2"] },
 });
-
-/** The round's width from which Scope and Sources sit side by side, in px. */
-const SIDE_BY_SIDE = 820;
 
 /** The verdict's badge, by the kind the core reads: its words and its colour. */
 const VERDICTS: Record<VerdictKind, { label: string; variant: BadgeVariant }> = {
@@ -179,7 +176,7 @@ function ContextPane({
 
 /**
  * The round's context, a pane per part, Today folded, Scope and Sources side by side when the
- * round is at least 820 px wide; then `check`, the "Check these" pane.
+ * round is at least `--size-round-pair` wide; then `check`, the "Check these" pane.
  */
 export function RoundContext({
   check,
@@ -191,7 +188,7 @@ export function RoundContext({
   round: RoundItems;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const isRoomy = useWidthOf(ref) >= SIDE_BY_SIDE;
+  const isRoomy = useAtLeast(ref, "--size-round-pair");
   const parts = round.context;
   const folds = useTodayFold(
     document,
