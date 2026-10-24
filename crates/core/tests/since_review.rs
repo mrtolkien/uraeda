@@ -305,3 +305,28 @@ fn approved_with_comments_has_none() {
 
     assert_eq!(since(&repo), None);
 }
+
+/// The opening callout is rewritten at every revision: it is not a part, on either side.
+#[test]
+fn callout_rewritten() {
+    let text = revision_2(&[
+        (
+            "Spec to review, about 10 minutes.",
+            "Spec to review, revision 2, about 10 minutes.",
+        ),
+        (
+            "You approve tasks that repeat from a menu.",
+            "You approve tasks that repeat from a menu, and complete to their next date.",
+        ),
+    ]);
+    let repo = reviewed("changes-requested", None, &text);
+
+    assert_eq!(
+        since(&repo),
+        Some(SinceReview {
+            revision: 1,
+            found: true,
+            parts: Vec::new(),
+        })
+    );
+}

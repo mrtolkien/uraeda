@@ -1,9 +1,11 @@
 //! What changed in a spec since its human reviewed it: the spec at the commit of the review its
 //! revision answers, against the version the page shows, part by part as a decision's change
-//! matches them. The frontmatter is not a part, and no rule's strength or check is read.
+//! matches them. The frontmatter is not a part, nor is the opening callout, rewritten at every
+//! revision, and no rule's strength or check is read.
 
 use super::answered::revision_of;
-use crate::compare::{Part, diff, matched, section_titles, version};
+use crate::compare::{Part, Version, diff, matched, section_titles, version};
+use crate::files::document;
 use crate::files::items::ReviewItems;
 use crate::git::Git;
 use crate::view::{SinceChange, SinceReview};
@@ -31,7 +33,7 @@ pub(super) fn since_review(
             parts: Vec::new(),
         };
     };
-    let (old, new) = (version(&reviewed), version(shown));
+    let (old, new) = (spec_version(&reviewed), spec_version(shown));
     let parts = section_titles(&old, &new)
         .iter()
         .flat_map(|title| matched(old.parts(title), new.parts(title)))
@@ -42,6 +44,24 @@ pub(super) fn since_review(
         found: true,
         parts,
     }
+}
+
+/// The parts of a spec's text, those of its opening callout left out.
+fn spec_version(text: &str) -> Version {
+    let doc = document::parse(text, "");
+    let callout = crate::files::spec::items(&doc)
+        .block
+        .map(|id| &doc.blocks[id as usize]);
+    let mut version = version(text);
+    if let Some(callout) = callout {
+        let inside = |part: &Part| {
+            part.lines.start >= callout.start_line && part.lines.end <= callout.end_line
+        };
+        for (_, parts) in &mut version.sections {
+            parts.retain(|part| !inside(part));
+        }
+    }
+    version
 }
 
 /// A part's change, `None` when it is kept.
