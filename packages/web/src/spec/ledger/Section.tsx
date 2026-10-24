@@ -79,7 +79,7 @@ function Section({
   return (
     <div aria-labelledby={headingId} role="group">
       <VStack gap={1}>
-        <Heading id={id ?? headingId} level={4}>
+        <Heading id={id} level={4}>
           <span id={headingId}>{section.title}</span>
         </Heading>
         {rows}

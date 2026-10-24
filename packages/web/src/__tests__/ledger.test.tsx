@@ -94,6 +94,17 @@ test("task storage reads as a ledger", async () => {
   expect(signOf(rowOf(storage, /^A corrupted value costs the user that value/))).toBe("Added");
 });
 
+/** A section's heading takes an id only from its anchor: none repeats another element's. */
+test("a ledger's ids are each the page's only one", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  const storage = await pane("Task storage");
+  const ids = [...storage.querySelectorAll("[id]")].map((element) => element.id);
+  expect(ids.filter((id, index) => ids.indexOf(id) !== index)).toEqual([]);
+});
+
 /** US2 key 3 */
 test("a new decision's rules read plain", async () => {
   const repo = fixtureRepo();
