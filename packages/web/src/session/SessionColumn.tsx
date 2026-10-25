@@ -12,7 +12,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useEffect, useId, useMemo } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useRef } from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session } from "uraeda-server/fate";
 import { ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
@@ -29,14 +29,15 @@ import { useSessionColumnWidth } from "../layout/documentColumnWidth.ts";
 import { Overlay } from "../layout/Overlay.tsx";
 import { splitPanel } from "../layout/SplitPanel.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { openOverlayAt } from "../layout/useBackCloses.ts";
 import { useSheetTab } from "../layout/useSheetTab.ts";
-import { useSearch } from "../routes.tsx";
+import { redirect, useSearch } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
 import { ActivityPanel, NoCall } from "./ActivityPanel.tsx";
 import { ChangesPanel, fileCount } from "./ChangesPanel.tsx";
 import { PlanProgress, ProgressChip } from "./PlanProgress.tsx";
 import { Section } from "./Section.tsx";
-import { STRETCH_PARAMETER } from "./stretches.ts";
+import { STRETCH_PARAMETER, stretchAddress } from "./stretches.ts";
 import { SubagentsPanel, topLevel } from "./SubagentsPanel.tsx";
 import { SessionView } from "../views.ts";
 
@@ -104,18 +105,37 @@ export function sessionPanels({
 }
 
 /**
- * How many sub-agents the main agent of the session `session` runs, from its record as the page
- * read it, which this read shares: none before it exists.
+ * The record of the session `session` as the page read it, which this read shares: none before it
+ * exists.
  */
-function useRunningSubagents(session: string | undefined): number {
+function useSessionRecord(session: string | undefined) {
   const fate = useFateClient();
   // The reference's identity is the view's subscription: one per session.
   const ref = useMemo(
     () => (session === undefined ? undefined : fate.ref<Session>("Session", session, SessionView)),
     [fate, session],
   );
-  const record = useView(SessionView, ref);
-  return topLevel(record?.subagents ?? []).length;
+  return useView(SessionView, ref);
+}
+
+/**
+ * Takes the stretch out of the address, in place, once the session's `latest` turn changes, as a
+ * message the human sends starts one: the Activity follows the latest calls again, rather than
+ * keeping to a stretch of a run before.
+ */
+function useStretchEndsWithTurn(latest: string | undefined) {
+  const seen = useRef(latest);
+  useEffect(() => {
+    const before = seen.current;
+    seen.current = latest;
+    const search = new URLSearchParams(window.location.search);
+    if (before === undefined || before === latest || !search.has(STRETCH_PARAMETER)) {
+      return;
+    }
+    search.delete(STRETCH_PARAMETER);
+    const query = search.toString();
+    redirect(`${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  }, [latest]);
 }
 
 /**
@@ -189,6 +209,14 @@ function ColumnSheet({
 }
 
 /**
+ * Opens the phone's sheet at the Activity's latest calls: a stretch the page's address kept, from a
+ * recap line's sheet closed since, is not where the status line opens it.
+ */
+function openActivity() {
+  openOverlayAt(stretchAddress(window.location.pathname), SHEET);
+}
+
+/**
  * On the phone, the column outside the page: the status line's Activity and Changes, each opening
  * the column's sheet at the Activity, and the plan's progress, opening the plan at its task. The
  * sheet may open at each of `panels`, as the address asks, as a reload or a width change does.
@@ -198,21 +226,20 @@ function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<Co
   const sheets = Object.fromEntries(panels.map((panel) => [panel.key, SHEET]));
   const sheet = useSheetTab(sheets, true);
   const [open, setSheet] = sheet;
-  const activity = () => setSheet("activity");
   const buttons = (
     <>
       <Button
         icon={<Icon icon="uraeda:activity" />}
         label="Activity"
-        onClick={activity}
+        onClick={openActivity}
         variant="ghost"
       />
       {/* Before its first message, the session does not exist: it changed nothing. */}
       {session === undefined ? (
-        <ChangesButton count={0} onOpen={activity} />
+        <ChangesButton count={0} onOpen={openActivity} />
       ) : (
         <Section>
-          <SessionChanges onOpen={activity} session={session} />
+          <SessionChanges onOpen={openActivity} session={session} />
         </Section>
       )}
       {folder !== undefined && (
@@ -253,10 +280,12 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
   const column = useSessionColumnWidth();
   const wide = !isNarrow(useWidthClass());
   useStretchUnfolds(column.setShown, wide);
+  const record = useSessionRecord(session);
+  useStretchEndsWithTurn(record?.turns.at(-1));
   const panels = sessionPanels({
     asked: useAskedTab(),
     folder,
-    running: useRunningSubagents(session),
+    running: topLevel(record?.subagents ?? []).length,
     session,
   });
   return (
