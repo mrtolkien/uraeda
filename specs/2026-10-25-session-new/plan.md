@@ -854,15 +854,17 @@ git commit -m "feat(session-new): stretches of calls, and their words"
 
 - Modify: `packages/web/src/TranscriptMessages.tsx` (`TranscriptItems`, `Actions`)
 - Create: `packages/web/src/session/RecapLine.tsx`
-- Modify: `packages/web/src/tail.tsx` (`TailPage`'s live line)
+- Modify: `packages/web/src/tail.tsx`, moved to `tailPieces.tsx` by Step 0 (`TailPage`'s live line)
 - Modify: `packages/web/src/TurnLines.tsx` (remove `Activity`), `packages/web/src/Transcript.tsx`
 - Delete: `packages/web/src/ToolGroups.tsx`
-- Modify: `packages/web/src/SessionView.tsx` (`SessionLog`'s `Transcript` props only)
+- Modify: `packages/web/src/SessionView.tsx` (`SessionLog`'s `Transcript` props, and
+  `useStretchHref` beside `SessionPane`, which the function-length limit keeps out of it)
 - Test: `packages/web/src/__tests__/session-recap.test.tsx` (new); rewrite `session-turns.test.tsx`
   "a tool call shows its target, then its duration" and "250 items of a turn show in order",
-  `session.test.tsx` "a running turn ends with what the agent does now…" and "an activity's time
-  reads in seconds, then minutes", and the `session-tail.test.tsx` tests that read tool groups
-  (focus 5), against recap lines.
+  `session.test.tsx` "a running turn ends with what the agent does now…", and the
+  `session-tail.test.tsx` tests that read tool groups (focus 5), against recap lines. "An activity's
+  time reads in seconds, then minutes" stays as it is: `elapsed` keeps its words, now a recap line's
+  time.
 
 **Interfaces:**
 
@@ -870,12 +872,17 @@ git commit -m "feat(session-new): stretches of calls, and their words"
   `stretchAddress`; task 2's `session.subagents` for the live line's count; `addRun` from task 7 is
   not available in this wave: seed with `fake.sessions.cache` as `session-tail.test.tsx` does.
 - Produces:
-  - `Actions.stretchHref?: (key: string) => string`, set by `SessionPane`: on the session's page,
+  - `Actions.stretchHref?: (key?: string) => string`, set by `SessionPane`: on the session's page,
     `stretchAddress(location.pathname, key)`; boxed in a document's column,
-    `stretchAddress(here(sessionPath(folder)), key)`. Without it, a recap line is text.
-  - `RecapLine({ href, live, text }: { href?: string; live?: boolean; text: string })`: a link whose
-    accessible name is `text` alone. On the session's page it replaces the history entry, as a tab
-    does; from a document's column it opens the session's page in a new entry.
+    `stretchAddress(here(sessionPath(folder)), key)`. Without it, a recap line is text. Without a
+    key, the Activity at no stretch, which the live line opens before a stretch starts:
+    `stretchAddress`'s `key` is optional for it (ruling R19). `Actions.subagents`, the main agent's
+    running sub-agents, replaces `Actions.groups`, the tool groups' open state.
+  - `RecapLine({ activity, href, live, text }: { activity?: string; href?: string; live?: boolean; text: string })`:
+    a link whose accessible name is `text` alone; live, its text changes each second and is hidden,
+    and the working dot named `activity`, the turn's activity, names the link. On the session's page
+    it replaces the history entry, as a tab does; from a document's column it opens the session's
+    page in a new entry.
 
 - [x] **Step 0: `tail.tsx` is at the 500-line limit**
 
@@ -885,7 +892,7 @@ moving it alone would make the two files import each other; `useKeptStart` and `
 run `nix develop -c vp test run packages/web/src/__tests__/session-tail.test.tsx` before and after
 (PASS both), and commit `refactor(session-new): the tail's pieces in a file of their own`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/session-recap.test.tsx
@@ -921,12 +928,12 @@ The break each test catches:
 - Focus 5: recap clicks pushing history entries.
 - US4: the column drawn in the column, or the link opening the document's tab.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/session-recap.test.tsx`
 - Expected: FAIL, `Unable to find role="link" and name "2 min · read 3 files · …"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `TranscriptItems` draws `slotsOf`'s slots: an item as today (a `thought` is never drawn alone), a
   stretch as a `RecapLine` with `recapText`. The `else` branch that drew any other kind as a denial
@@ -941,16 +948,18 @@ The break each test catches:
   `liveText(now - activity.since, doing, running sub-agents)`, `doing` the latest in-progress main
   call's `doingText`, else the activity's label in lower case. It ticks each second, and is
   `aria-hidden` text inside the link, as the activity line's time is today; the link names the open
-  stretch, or the Activity with no stretch.
+  stretch, or the Activity with no stretch. It is the open stretch's line while the turn runs: the
+  last page's open stretch draws no line of its own then (ruling R19).
 - Remove `ToolGroups.tsx` and `TurnLines.tsx`'s `Activity`; keep `elapsed`, `ending`, `Ending`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`, then
-  `nix develop -c vp test run --config packages/web/vite.browser.config.ts packages/web/src/__browser__/session.test.tsx packages/web/src/__browser__/session-tail.test.tsx packages/web/src/__browser__/session-look.test.tsx packages/web/src/__browser__/column-session.test.tsx`
+- Run: `nix develop -c vp run fast`, then `nix develop -c vp test run --project phone` and
+  `--project desktop` on `packages/web/src/__browser__/session.test.tsx`, `session-tail.test.tsx`,
+  `session-look.test.tsx`, `column-session.test.tsx`, and `layout.test.tsx`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-25-session-new/plan.md specs/2026-10-25-session-new/rulings.md

@@ -216,3 +216,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   which two tasks would write twice and could write apart.
 - **If wrong**: `continued` and `open` are set in `slotsOf` alone.
 - **Where**: task 5; tasks 6 and 8.
+
+## R19: The live line is the running stretch's recap line
+
+- **Decision**: while a turn runs, the open stretch at its last page's end draws no recap line of
+  its own: the live line stands for it, and links its key. With no open stretch, as while the agent
+  writes, the live line opens the Activity at no stretch, `?tab=activity`; `stretchAddress` takes
+  its key as optional, and `Actions.stretchHref` with it. The live link is named by its working dot,
+  the turn's activity, "Working", as its text changes each second and is hidden. The chat's tool
+  groups go with their open state: `Actions.groups` gives way to `Actions.subagents`, the main
+  agent's running sub-agents the live line counts.
+- **Rationale**: the spec's recap line is "live while it runs", and the approved mockup ends a
+  running turn with the live line alone; a static line above it would count the same calls twice.
+- **Alternatives considered**: both lines, the static one growing above the live one; a live link
+  named by its text, which a screen reader would hear change each second.
+- **If wrong**: `endsOpen` in `tailPieces.tsx`, and the live link's name in `session/RecapLine.tsx`.
+- **Where**: task 6, `packages/web/src/session/RecapLine.tsx` and `packages/web/src/tailPieces.tsx`.

@@ -7,7 +7,6 @@ import { openAtEnd, windowPlace } from "./following.ts";
 import { currentEntry } from "./routes.tsx";
 import { Tail } from "./tail.tsx";
 import type { Actions } from "./TranscriptMessages.tsx";
-import type { OpenKeys } from "./useOpenKeys.ts";
 
 export { elapsed } from "./TurnLines.tsx";
 export { type Actions, sentAt } from "./TranscriptMessages.tsx";
@@ -31,18 +30,24 @@ const neverAway = () => false;
 export function Transcript({
   away = neverAway,
   canAllow = true,
-  groups,
   onAllow,
   onTakenBack,
   session,
+  stretchHref,
 }: {
   /** Whether the human scrolled away from the end before the tail first drew. */
   away?: () => boolean;
   canAllow?: boolean;
-  groups?: OpenKeys;
   onAllow?: (turn: string, seq: number) => Promise<void>;
   onTakenBack?: (text: string, images: ReadonlyArray<ChatImage>) => void;
-  session: { id: string; turns: ReadonlyArray<string> };
+  /** The session, and the sub-agents it runs now, each with the sub-agent that started it. */
+  session: {
+    id: string;
+    subagents?: ReadonlyArray<{ parent: string | null }>;
+    turns: ReadonlyArray<string>;
+  };
+  /** The address of its Activity at a stretch, which a recap line opens. */
+  stretchHref?: (key?: string) => string;
 }) {
   const agent = useAgent();
   const list = useRef<HTMLDivElement>(null);
@@ -71,10 +76,12 @@ export function Transcript({
   const actions: Actions = {
     canAllow,
     canTakeBack: Boolean(agent?.capabilities.takeBack),
-    groups,
     onAllow,
     onTakenBack,
     session: session.id,
+    stretchHref,
+    // The main agent's: a sub-agent's own are its rows in the Activity.
+    subagents: session.subagents?.filter((subagent) => subagent.parent === null).length ?? 0,
   };
   return (
     <ChatMessageList

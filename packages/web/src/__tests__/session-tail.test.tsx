@@ -223,7 +223,7 @@ test("US1 more 4: a feature's session of 50 messages draws the latest 20", async
   expect(log.getAllByRole("button", EARLIER)).toHaveLength(1);
 });
 
-test("focus 5: a cut inside a turn's last page leaves a sub-agent's later tools a group of their own", async () => {
+test("focus 5: a sub-agent's calls after the cut, past the agent's text, draw nothing in the chat", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const chat = await fake.sessions.newChat(repo);
@@ -240,7 +240,7 @@ test("focus 5: a cut inside a turn's last page leaves a sub-agent's later tools 
       ...extra,
     });
   // 250 items, three pages of 100: the messages are in the last, after the sub-agent that started
-  // on the second, whose tools go on to the last.
+  // on the third, whose calls go on after the messages.
   for (let index = 0; index < 205; index += 1) {
     tool(`early-${index}`);
   }
@@ -262,16 +262,12 @@ test("focus 5: a cut inside a turn's last page leaves a sub-agent's later tools 
   expect(messagesIn(log)).toHaveLength(20);
   expect(log.getByText("Reply 11")).toBeTruthy();
   expect(log.queryByText("Reply 10")).toBeNull();
-  // The 14 children, whose sub-agent was cut, are a group of their own, without a label of the
-  // sub-agent. Folded, it draws its latest call, in its header and one row, and no other row; open,
-  // all 14 draw.
-  expect(log.queryByText("Explore the tests")).toBeNull();
   expect(log.getAllByRole("button", EARLIER)).toHaveLength(1);
-  const children = () =>
-    new Set(log.getAllByText(/^child-\d+$/).map((element) => element.textContent));
-  expect(children().size).toBe(1);
-  await click(log.getAllByText("child-13")[0]!);
-  expect(children().size).toBe(14);
+  // The 14 calls of the sub-agent are its own, in the Activity: no line of the chat, and no recap
+  // line after the text they follow. The stretch before the replies is cut with them.
+  expect(log.queryByText(/^child-\d+$/)).toBeNull();
+  expect(log.queryByText("Explore the tests")).toBeNull();
+  expect(log.queryByRole("link", { name: / · / })).toBeNull();
 });
 
 test("focus 6: a turn with no item yet at the end draws nothing, and the walk goes on", async () => {

@@ -33,11 +33,12 @@ import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
 import { useRepoPath } from "./routes.tsx";
+import { stretchAddress } from "./session/stretches.ts";
+import { sessionPath } from "./sessions.ts";
 import { type Controls, useSessionControls } from "./useSessionControls.ts";
 import { StoriesProvider } from "./stories.tsx";
 import { Transcript } from "./Transcript.tsx";
 import { useKeepPlace } from "./useKeepPlace.ts";
-import { useOpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
@@ -106,6 +107,7 @@ function SessionLog({
   id,
   item,
   onJump,
+  stretchHref,
 }: {
   /** Whether the human scrolled away from the end before the transcript drew. */
   away?: ScrolledAway;
@@ -118,10 +120,11 @@ function SessionLog({
   item?: SessionItem | undefined;
   /** Called with the jump to the latest while the page does not follow the end, or `undefined`. */
   onJump?: (jump: (() => void) | undefined) => void;
+  /** The address of the session's Activity at a stretch, which a recap line opens. */
+  stretchHref?: (key?: string) => string;
 }) {
   const fate = useFateClient();
   const session = useSession(id);
-  const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
   const working = session?.status === "working";
   useOpenAtEnd(log, away);
@@ -173,10 +176,10 @@ function SessionLog({
             <Transcript
               away={awayAtTail}
               canAllow={!working}
-              groups={groups}
               onAllow={allow}
               onTakenBack={takeBackInto(draft)}
               session={session}
+              stretchHref={stretchHref}
             />
             <SessionEnd id={id} turns={session.turns} />
           </OffersProvider>
@@ -200,6 +203,20 @@ function useSessionRecord(id: string | undefined) {
     [fate, id],
   );
   return useView(SessionView, ref);
+}
+
+/**
+ * The address of the session's Activity at a stretch, which a recap line opens: on the session's
+ * page, its own address; boxed in a document's column, the page of the session of `boxedIn`, the
+ * feature's folder.
+ */
+function useStretchHref(boxedIn: string | undefined) {
+  const here = useRepoPath();
+  return (key?: string) =>
+    stretchAddress(
+      boxedIn === undefined ? window.location.pathname : here(sessionPath(boxedIn)),
+      key,
+    );
 }
 
 /**
@@ -278,6 +295,7 @@ export function SessionPane({
   // Kept by the pane, which the transcript's data does not wait for.
   const away = useScrolledAway(composer, id);
   const [jump, setJump] = useState<() => void>();
+  const stretchHref = useStretchHref(isBoxed ? folder : undefined);
   if (session === null) {
     return (
       <Framed isBoxed={isBoxed}>
@@ -305,6 +323,7 @@ export function SessionPane({
             id={id}
             item={item}
             onJump={(next) => setJump(() => next)}
+            stretchHref={stretchHref}
           />
         </Suspense>
       )}

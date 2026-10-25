@@ -506,20 +506,28 @@ test("the transcript does not announce what streams", async () => {
   expect(transcript.getAttribute("aria-live")).toBe("off");
 });
 
-test("a running turn ends with what the agent does now, gone once it ends", async () => {
+/** The live line, as it reads now: its time, from the first second (R11), then what it does. */
+function liveLine(doing: string) {
+  const line = new RegExp(`^\\d+ s · ${doing.replaceAll(/[.*/]/g, String.raw`\$&`)}$`);
+  return (_: string, element: Element | null) =>
+    line.test(element?.textContent ?? "") &&
+    ![...(element?.children ?? [])].some((child) => line.test(child.textContent ?? ""));
+}
+
+test("a running turn ends with its live recap line, gone once it ends", async () => {
   const fake = await fakeAgent();
   await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
   await openTurn(fake, "Write the spec.");
 
-  await refreshUntil(() => expect(log().getByText("Working…")).toBeTruthy());
+  await refreshUntil(() => expect(log().getByText(liveLine("working"))).toBeTruthy());
   fake.adapter.emit({ activity: { kind: "thinking" }, type: "activity" });
-  await refreshUntil(() => expect(log().getByText("Thinking…")).toBeTruthy());
+  await refreshUntil(() => expect(log().getByText(liveLine("thinking"))).toBeTruthy());
   fake.adapter.emit({
     activity: { kind: "tool", name: "Write", target: "specs/2026-10-12-cli-tuis/spec.md" },
     type: "activity",
   });
   await refreshUntil(() =>
-    expect(log().getByText("Writing specs/2026-10-12-cli-tuis/spec.md…")).toBeTruthy(),
+    expect(log().getByText(liveLine("writing specs/2026-10-12-cli-tuis/spec.md"))).toBeTruthy(),
   );
   // The dot names the activity, without the time that changes every second.
   expect(
@@ -529,7 +537,10 @@ test("a running turn ends with what the agent does now, gone once it ends", asyn
   fake.adapter.emit({ text: "Written.", type: "text" });
   fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
   await refreshUntil(() => expect(log().getByText("Written.")).toBeTruthy());
-  await refreshUntil(() => expect(log().queryByText(/…$/)).toBeNull());
+  await refreshUntil(() =>
+    expect(log().queryByText(liveLine("writing specs/2026-10-12-cli-tuis/spec.md"))).toBeNull(),
+  );
+  expect(log().queryByRole("img", { name: /^Writing/ })).toBeNull();
 });
 
 test("an activity's time reads in seconds, then minutes", () => {

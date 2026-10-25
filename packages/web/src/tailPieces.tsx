@@ -6,10 +6,11 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useLayoutEffect, useRef } from "react";
 import { stepLabel } from "./labels.ts";
+import { LiveRecap } from "./session/RecapLine.tsx";
 import { useTurn, useTurnLog } from "./sessionData.ts";
 import type { Piece } from "./tail.tsx";
 import { type Actions, TranscriptItems } from "./TranscriptMessages.tsx";
-import { Activity, Ending, ending } from "./TurnLines.tsx";
+import { Ending, ending } from "./TurnLines.tsx";
 
 const styles = stylex.create({
   turn: {
@@ -22,7 +23,7 @@ const styles = stylex.create({
 
 /**
  * A piece of a turn: its workflow divider with its first page, its items from where the tail
- * starts, and its activity and ending with its last page, in a box the address's anchor scrolls to,
+ * starts, and its live line and ending with its last page, in a box the address's anchor scrolls to,
  * with the button above that offers the messages before it. The press keeps the place of the box's
  * first element, which the earlier messages are drawn before. `latest` for the session's latest turn.
  */
@@ -43,7 +44,8 @@ function TailPage({
     return null;
   }
   const last = turn.pages === 0 || piece.page === turn.pages - 1;
-  const ended = turn.state !== "running" && turn.state !== "queued";
+  // A running turn ends with its live line, which stands for its open stretch.
+  const live = last && turn.state === "running" ? turn.activity : null;
   const end = ending(turn.state, turn.reason);
   return (
     <>
@@ -65,15 +67,13 @@ function TailPage({
         {turn.pages > 0 && (
           <PageItems
             actions={actions}
-            ended={ended}
+            endsOpen={last && !live}
             latest={latest && last}
             piece={piece}
             queued={turn.state === "queued"}
           />
         )}
-        {last && turn.state === "running" && turn.activity && (
-          <Activity label={turn.activity.label} since={turn.activity.since} />
-        )}
+        {live && <LiveRecap actions={actions} activity={live} pages={turn.pages} turn={turn.id} />}
         {last && end && <Ending state={turn.state} text={end} />}
       </div>
     </>
@@ -83,13 +83,14 @@ function TailPage({
 /** The items of a piece's page, from where the tail starts. */
 function PageItems({
   actions,
-  ended,
+  endsOpen,
   latest,
   piece,
   queued,
 }: {
   actions: Actions;
-  ended: boolean;
+  /** Whether a stretch open at the page's end draws its line here. */
+  endsOpen: boolean;
   latest: boolean;
   piece: Piece;
   queued: boolean;
@@ -104,7 +105,9 @@ function PageItems({
   return (
     <TranscriptItems
       actions={actions}
-      ended={ended}
+      // Cut by the tail at a message, the items go on from no stretch of the page before.
+      after={piece.page > 0 && piece.from === 0 ? piece.page - 1 : undefined}
+      endsOpen={endsOpen}
       firstMessage={first?.kind === "message" ? first.id : undefined}
       items={page.items.slice(piece.from)}
       queued={queued}

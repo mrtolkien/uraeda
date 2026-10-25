@@ -8,7 +8,7 @@ export const CHANGE = "uraeda:navigate";
  * What a history entry holds: its own id, the page's scroll position once left, the detail pane's
  * scroll position on wide screens (see `layout/Panes.tsx`), the path of the page it was opened
  * from and that page's scroll position then, an open overlay's label (see `layout/Overlay.tsx`),
- * the groups of tool calls opened in a session's transcript, by their turn and first call, and
+ * the folds opened in a view (see `useOpenKeys.ts`), and
  * whether the phone's progress line of a session is open (see `ProgressLine.tsx`).
  */
 type Entry = {

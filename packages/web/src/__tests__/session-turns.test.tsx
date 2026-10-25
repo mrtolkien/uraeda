@@ -243,7 +243,13 @@ test("a blocked action no allow rule can match alone offers no Allow and retry, 
   expect((await log()).queryByRole("button", { name: "Allow and retry" })).toBeNull();
 });
 
-test("a tool call shows its target, then its duration", async () => {
+/** The element that shows `matcher`'s text whole, its time drawn apart from its words. */
+const whole = (matcher: RegExp) => (_: string, element: Element | null) =>
+  matcher.test(element?.textContent ?? "") &&
+  ![...(element?.children ?? [])].some((child) => matcher.test(child.textContent ?? ""));
+
+/** R6: a call is no row of the chat; its target reads in the live line, then in its recap line. */
+test("a tool call reads its target live, then in its recap line with its time", async () => {
   // The session's page alone, with its own transcript.
   atWidth(402);
   const repo = fixtureRepo();
@@ -268,8 +274,8 @@ test("a tool call shows its target, then its duration", async () => {
 
   await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
 
-  expect(await (await log()).findByText("vp run ready")).toBeTruthy();
-  expect((await log()).queryByText("2.5 s")).toBeNull();
+  expect(await (await log()).findByText(whole(/^\d+ s · running vp run ready$/))).toBeTruthy();
+  expect((await log()).queryByText("vp run ready")).toBeNull();
 
   const end = vi.spyOn(Date, "now").mockReturnValue(start + 2500);
   try {
@@ -280,35 +286,69 @@ test("a tool call shows its target, then its duration", async () => {
   } finally {
     end.mockRestore();
   }
+  fake.adapter.emit({ text: "Checked.", type: "text" });
 
   await refreshUntil(() =>
     expect(
-      within(screen.getByRole("log", { name: "Conversation" })).getByText("2.5 s"),
+      within(screen.getByRole("log", { name: "Conversation" })).getByRole("link", {
+        name: "2 s · ran vp run ready",
+      }),
     ).toBeTruthy(),
   );
 });
 
 /**
- * Review focus 3: a turn's items come in pages of 100. The link to the turn draws it whole: the
- * session's tail draws only its latest 20 messages (R7).
+ * Review focus 3: a turn's items come in pages of 100. The link to the turn draws it whole, each
+ * text after its call's recap line: the session's tail draws only its latest 20 messages (R7).
  */
-test("250 items of a turn show in order", async () => {
+test("250 items of a turn show in order, each call a recap line", async () => {
   atWidth(402);
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  const turn = await seedRun(
-    fake,
-    repo,
-    CLI,
-    Array.from({ length: 250 }, (_, index) => ({
-      text: `Event ${index + 1}.`,
-      type: "text" as const,
-    })),
-  );
+  const session = await fake.sessions.featureSession(repo, CLI);
+  const { cache } = fake.sessions;
+  const turn = cache.addTurn({
+    allowed: null,
+    kind: "workflow",
+    sessionId: session.id,
+    state: "running",
+    step: "plan",
+    trigger: "manual",
+  });
+  for (let index = 1; index <= 125; index += 1) {
+    cache.appendItem(turn, {
+      durationMs: 1000,
+      id: `toolu_${index}`,
+      kind: "tool",
+      name: "Bash",
+      status: "completed",
+      target: `step ${index}`,
+      toolKind: "execute",
+    });
+    cache.appendItem(turn, { kind: "text", streaming: false, text: `Event ${index}.` });
+  }
+  cache.endTurn(turn, { state: "done" });
 
   await renderPage(`/f/${CLI}/session#turn-${turn}`, repo, { agent: fake });
 
-  await (await log()).findByText("Event 250.");
-  const texts = (await log()).getAllByText(/^Event \d+\.$/).map((element) => element.textContent);
-  expect(texts).toEqual(Array.from({ length: 250 }, (_, index) => `Event ${index + 1}.`));
+  const events = await log();
+  await events.findByText("Event 125.");
+  const texts = events.getAllByText(/^Event \d+\.$/);
+  expect(texts.map((element) => element.textContent)).toEqual(
+    Array.from({ length: 125 }, (_, index) => `Event ${index + 1}.`),
+  );
+  // Each call's recap line, item 2n of the turn, between the text before it and its own.
+  const recaps = events.getAllByRole("link", { name: /^1 s · ran step \d+$/ });
+  expect(recaps).toHaveLength(125);
+  recaps.forEach((recap, index) => {
+    expect(recap.getAttribute("href")).toMatch(new RegExp(`stretch=${turn}%3A${2 * index}$`));
+    expect(recap.compareDocumentPosition(texts[index]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    if (index > 0) {
+      expect(
+        texts[index - 1]!.compareDocumentPosition(recap) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+  });
 });

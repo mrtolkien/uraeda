@@ -7,7 +7,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
 import { agentStories, MessageStories } from "./AgentStories.tsx";
@@ -15,9 +15,9 @@ import { refusal } from "./errors.ts";
 import { statusStyles } from "./Question.tsx";
 import { ProseMarkdown } from "./Prose.tsx";
 import { MessageBody } from "./MessageBody.tsx";
+import { StretchRecap } from "./session/RecapLine.tsx";
+import { slotsOf } from "./session/stretches.ts";
 import { useOfferPlugins } from "./SessionOffers.tsx";
-import { ToolGroup, type ToolGroupSlot } from "./ToolGroups.tsx";
-import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 /** The page's width: the list's 12 px at the sides, less the page's inset, given back. */
@@ -55,12 +55,18 @@ export type Actions = {
   canAllow: boolean;
   /** Whether a message not read yet can be taken back. */
   canTakeBack: boolean;
-  groups?: OpenKeys;
   /** Allows a blocked action. */
   onAllow?: (turn: string, seq: number) => Promise<void>;
   /** Called with a message's text and images once it is taken back. */
   onTakenBack?: (text: string, images: ReadonlyArray<ChatImage>) => void;
   session: string;
+  /**
+   * The address of the session's Activity at the stretch `key`, or at none without one: what a
+   * recap line opens. Without it, a recap line is text.
+   */
+  stretchHref?: (key?: string) => string;
+  /** The sub-agents the main agent runs now, which the live line counts. */
+  subagents?: number;
 };
 
 /** When a message was sent: its time today, else its date too, as `Oct 12, 14:05`. */
@@ -206,101 +212,76 @@ function Denial({ actions, item, turn }: { actions: Actions; item: DenialItem; t
 }
 
 /**
- * A page of a turn's items in order: messages on the right, the agent's texts as markdown, each run
- * of tool calls in one group, a sub-agent and its tools in a group of their own, and the system
- * lines and blocked actions as notices.
+ * A page of a turn's items in order: messages on the right, the agent's texts as markdown, each
+ * stretch of the main agent's calls and thoughts one recap line after its last call, and the system
+ * lines and blocked actions as notices. A sub-agent's calls and thoughts are not the chat's: the
+ * Activity shows them.
  */
 export function TranscriptItems({
   actions,
-  ended,
+  after,
+  endsOpen,
   firstMessage,
   items,
   queued,
   turn,
 }: {
   actions: Actions;
-  ended: boolean;
+  /**
+   * The page before these items, whose open stretch their first one goes on: undefined on the
+   * turn's first page, or when the items do not start their page.
+   */
+  after: number | undefined;
+  /**
+   * Whether a stretch open at the items' end draws its line here: on the turn's last page, unless
+   * the live line stands for it. On a page before, the page after draws it, whole.
+   */
+  endsOpen: boolean;
   /** The turn's own first message, which started it: taken back only while queued. */
   firstMessage: string | undefined;
   items: ReadonlyArray<TranscriptItem>;
   queued: boolean;
   turn: string;
 }) {
-  const { groups } = actions;
-  // Each slot holds a group of tools, or one of the other lines.
-  const shown: Array<ReactNode | ToolGroupSlot> = [];
-  const subagents = new Map<string, ToolGroupSlot>();
-  let current: ToolGroupSlot | undefined;
-  for (const item of items) {
-    if (item.kind === "tool") {
-      if (item.subagent) {
-        const group: ToolGroupSlot = {
-          key: `${turn}:${item.seq}`,
-          label: item.subagent.description,
-          tools: [item],
-        };
-        subagents.set(item.id, group);
-        shown.push(group);
-        current = undefined;
-        continue;
-      }
-      const parent = item.parent === undefined ? undefined : subagents.get(item.parent);
-      if (parent) {
-        parent.tools.push(item);
-        continue;
-      }
-      if (item.parent !== undefined) {
-        // Its sub-agent started on an earlier page: its tools are a group of their own here.
-        const group: ToolGroupSlot = { key: `${turn}:${item.seq}`, tools: [item] };
-        subagents.set(item.parent, group);
-        shown.push(group);
-        current = undefined;
-        continue;
-      }
-      if (!current) {
-        current = { key: `${turn}:${item.seq}`, tools: [] };
-        shown.push(current);
-      }
-      current.tools.push(item);
-      continue;
+  return slotsOf(turn, items).map((slot) => {
+    if (slot.kind === "stretch") {
+      const { stretch } = slot;
+      return stretch.open && !endsOpen ? null : (
+        <StretchRecap
+          actions={actions}
+          after={after}
+          key={`recap-${stretch.key}`}
+          stretch={stretch}
+          turn={turn}
+        />
+      );
     }
-    // A thought is no line of the chat, and does not part the tool calls around it.
-    if (item.kind === "thought") {
-      continue;
-    }
-    current = undefined;
+    const { item } = slot;
     if (item.kind === "message") {
       const canTakeBack = actions.canTakeBack && (item.id !== firstMessage || queued);
-      shown.push(
-        <Message actions={actions} canTakeBack={canTakeBack} item={item} key={item.seq} />,
-      );
-    } else if (item.kind === "text") {
-      shown.push(
+      return <Message actions={actions} canTakeBack={canTakeBack} item={item} key={item.seq} />;
+    }
+    if (item.kind === "text") {
+      return (
         <AgentMessage
           at={`${turn}:${item.seq}`}
           key={item.seq}
           streaming={item.streaming}
           text={item.text}
-        />,
+        />
       );
-    } else if (item.kind === "system") {
-      shown.push(
+    }
+    if (item.kind === "system") {
+      return (
         <ChatSystemMessage key={item.seq} xstyle={styles.notice}>
           {item.text}
-        </ChatSystemMessage>,
+        </ChatSystemMessage>
       );
-    } else {
-      shown.push(<Denial actions={actions} item={item} key={item.seq} turn={turn} />);
     }
-  }
-  return (
-    <>
-      {shown.map((slot) => {
-        if (!slot || typeof slot !== "object" || !("tools" in slot)) {
-          return slot as ReactNode;
-        }
-        return <ToolGroup ended={ended} group={slot} groups={groups} key={`tools-${slot.key}`} />;
-      })}
-    </>
-  );
+    if (item.kind === "denial") {
+      return <Denial actions={actions} item={item} key={item.seq} turn={turn} />;
+    }
+    // A call or a thought is a stretch's: `slotsOf` leaves none alone.
+    return null;
+  });
 }

@@ -114,11 +114,11 @@ export function stretchKey(turn: string, seq: number): string {
   return `${turn}:${seq}`;
 }
 
-/** The address of `path` with its Activity open at the stretch `key`. */
-export function stretchAddress(path: string, key: string): string {
+/** The address of `path` with its Activity open at the stretch `key`, or at none without one. */
+export function stretchAddress(path: string, key?: string): string {
   return `${path}?${new URLSearchParams([
     ["tab", "activity"],
-    [STRETCH_PARAMETER, key],
+    ...(key === undefined ? [] : [[STRETCH_PARAMETER, key]]),
   ])}`;
 }
 
