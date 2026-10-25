@@ -13,7 +13,7 @@ import { isNarrow, useWidthClass, widthClassNow } from "./layout/useWidthClass.t
 import { currentEntry } from "./routes.tsx";
 
 /** How close to its end, in pixels, the transcript still counts as read to the end. */
-export const AT_END = 24;
+const AT_END = 24;
 
 /** The element that scrolls an element: the nearest that scrolls on its own, or the window. */
 export function scroller(element: Element): HTMLElement | undefined {

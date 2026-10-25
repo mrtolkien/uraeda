@@ -190,6 +190,25 @@ describe("on a desktop, the Activity", () => {
     await expect.poll(() => inView(within(activity).getByText("src/f49.rs"), activity)).toBe(true);
   });
 
+  test("the Activity keeps its latest call in view as its part shrinks", async () => {
+    await agent.addPlan(CLI);
+    await startTurn("Read the sources.", reads(0, 40), `/f/${CLI}/session`);
+    const activity = within(column()).getByRole("region", { name: "Activity" });
+    await within(activity).findByText("src/f39.rs", undefined, LIVE);
+    await drawn();
+    await expect.poll(() => inView(within(activity).getByText("src/f39.rs"), activity)).toBe(true);
+    try {
+      // A shorter window, as the Changes drawn under it after it opened.
+      await page.viewport(1440, 600);
+      await expect.poll(() => window.innerHeight).toBe(600);
+      await expect
+        .poll(() => inView(within(activity).getByText("src/f39.rs"), activity))
+        .toBe(true);
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  });
+
   test("C2: at 1000 px a sub-agent's row gives its description more room than its word", async () => {
     await at(1000, async () => {
       await agent.addPlan(CLI);

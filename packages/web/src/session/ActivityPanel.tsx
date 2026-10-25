@@ -22,7 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { AT_END, scroller } from "../following.ts";
+import { atEnd, scroller } from "../following.ts";
 import { keepPlace, scrollInstantly, topOf } from "../keepPlace.ts";
 import { statusStyles } from "../Question.tsx";
 import { CHANGE } from "../routeHistory.ts";
@@ -208,27 +208,47 @@ function weightOf(
 
 /**
  * Keeps the Activity's latest row in view while `latest`, without a stretch to show: it opens at its
- * end, as the chat does, and follows the rows that arrive while the human is there; scrolled up,
- * nothing moves. `list` is the runs' list, in the part of the column that scrolls.
+ * end, as the chat does, and follows the rows that arrive, and its part as it shrinks, while the
+ * human is there; scrolled up, nothing moves. `list` is the runs' list, in the part of the column
+ * that scrolls, once `shown`.
  */
-function useLatestInView(list: RefObject<HTMLElement | null>, latest: boolean) {
-  // Where the rows drawn last ended: the human followed them when the view reaches it. None opens
-  // at the end, as back from a stretch's rows.
-  const end = useRef<number | undefined>(undefined);
+function useLatestInView(list: RefObject<HTMLElement | null>, latest: boolean, shown: boolean) {
+  // Whether the human was at the end when the part last scrolled: a part that shrinks or grows
+  // sends no scroll, and keeps it. Back from a stretch's rows, the latest open at their end again.
+  const following = useRef(true);
   useLayoutEffect(() => {
-    if (!latest) {
-      end.current = undefined;
+    if (latest) {
+      following.current = true;
     }
   }, [latest]);
-  useLayoutEffect(() => {
+  useEffect(() => {
     const box = list.current ? scroller(list.current) : undefined;
-    if (!latest || !box) {
+    if (!latest || !shown || !box) {
       return;
     }
-    if (end.current === undefined || box.scrollTop + box.clientHeight >= end.current - AT_END) {
+    const read = () => {
+      following.current = atEnd(box);
+    };
+    box.addEventListener("scroll", read, { passive: true });
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => {
+            if (following.current) {
+              scrollInstantly(box.scrollHeight, box);
+            }
+          });
+    observer?.observe(box);
+    return () => {
+      box.removeEventListener("scroll", read);
+      observer?.disconnect();
+    };
+  }, [latest, list, shown]);
+  useLayoutEffect(() => {
+    const box = list.current ? scroller(list.current) : undefined;
+    if (latest && box && following.current) {
       scrollInstantly(box.scrollHeight, box);
     }
-    end.current = box.scrollHeight;
   });
 }
 
@@ -292,8 +312,9 @@ function Runs({
   const after = rows.later || read.cappedAfter;
   const drawn = weightOf(runs, rows, keys);
   useLayoutEffect(() => onDrawn(read.walked));
-  useLatestInView(box, target === undefined);
-  if (drawn === 0 && !before && !after) {
+  const shown = drawn > 0 || before || after;
+  useLatestInView(box, target === undefined, shown);
+  if (!shown) {
     return <NoCall />;
   }
   return (
