@@ -173,9 +173,11 @@ From [the spec](spec.md), the words the tests pin (copy them exactly):
   `*.stories.tsx`, whose feature pages come from `.storybook/samples/` (`FEATURE_PAGES`). Server
   tests are [`server/src/__tests__/`](/packages/server/src/__tests__/); `recordRun` in
   [`testing.ts`](/packages/server/src/testing.ts) writes a feature's past turn.
-- **Validation**: `nix develop -c vp run fast` is the project's fast check, `vp check` formats,
-  lints, and type-checks, `vp test` runs the tests, `vp run ready` is the complete validation
-  (browser tests and Storybook's build included, see [`vite.tasks.ts`](/vite.tasks.ts)).
+- **Validation**: `nix develop -c vp run fast` is the project's fast check, which stops today at
+  `specs:check` (three links of `specs/done/2026-10-20-layout-look.md`, a failure already there):
+  tasks run `vp check` and their tests instead; `vp check` formats, lints, and type-checks,
+  `vp test` runs the tests, `vp run ready` is the complete validation (browser tests and Storybook's
+  build included, see [`vite.tasks.ts`](/vite.tasks.ts)).
 - [`FeaturePage.tsx`](/packages/web/src/feature/FeaturePage.tsx) (207 lines) draws the old page:
   `Stages` (Astryx stepper, `stageLine` exported and tested), `Blocking`/`LeftBanner`, `NextCard`
   beside `SessionsCard`, `Figures` (285 lines, tiles) and `FileList` (files, plus Links with a
@@ -397,7 +399,7 @@ Compute it from the same `turns` array as `featureTokens`, in `featureRecord`, a
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -502,7 +504,7 @@ does; `ask` goes to `useAskSelection`.
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -582,7 +584,7 @@ name, inside `Page`.
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -672,7 +674,7 @@ head.
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -781,7 +783,7 @@ button after the step moves; a button for an agent that is not installed.
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -881,7 +883,7 @@ Draw it as a `Pane` titled "Timeline". `FileList`'s Links part stays until task 
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -973,7 +975,7 @@ opens the folded questions (`jumpInPage` moves with the rows' view).
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -1037,7 +1039,7 @@ Next; a record part that cannot be reached from its figure; a leftover link to S
 
 - [ ] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`
+- Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
 - [ ] **Step 5: Commit**
