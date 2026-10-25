@@ -4,7 +4,6 @@
 // no plan, nothing (ruling R8). The phone's status line shows it as "3 / 7". The link reaches the
 // task's heading once the plan is read, or the plan's top when its read fails.
 import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
@@ -22,14 +21,26 @@ const styles = stylex.create({
   // A rule across the column's whole width over it, as over the split's bottom part, its content
   // kept in the column's inset (`SideColumn.tsx`'s `full`).
   progress: {
+    // Its own width decides whether the task's title fits beside the label.
     borderBlockStartColor: colorVars["--color-border"],
     borderBlockStartStyle: "solid",
     borderBlockStartWidth: borderVars["--border-width"],
+    containerType: "inline-size",
     display: "block",
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-4"],
     textDecoration: "none",
+  },
+  // The label, then the task's title beside it, apart at the row's ends; in a column narrower than
+  // a document's, as the session's at semi-wide, the title under the label, so neither wraps in a
+  // sliver of the row.
+  row: {
+    alignItems: { "@container (max-width: 360px)": "start", default: "baseline" },
+    columnGap: spacingVars["--spacing-2"],
+    display: "flex",
+    flexDirection: { "@container (max-width: 360px)": "column", default: "row" },
+    justifyContent: "space-between",
   },
   title: {
     minWidth: 0,
@@ -118,12 +129,12 @@ function Bar({ anchor, task }: { anchor: string; task: PlanTask }) {
   const here = useRepoPath();
   return (
     <Link href={here(`${task.href}${anchor}`)} type="inherit" xstyle={styles.progress}>
-      <HStack align="baseline" gap={2} justify="between">
+      <span {...stylex.props(styles.row)}>
         <Text>{task.label}</Text>
         <Text color="secondary" type="supporting" xstyle={styles.title}>
           {task.title}
         </Text>
-      </HStack>
+      </span>
       {/* The link says the same in words: the bar is drawn for the eye only. */}
       <div aria-hidden>
         <ProgressBar isLabelHidden label={task.label} max={task.total} value={task.position} />

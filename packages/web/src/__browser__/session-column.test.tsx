@@ -276,6 +276,24 @@ describe("on a desktop, at 1000 px", () => {
     });
   });
 
+  test("the plan's progress stacks its task's title under its label, side by side when wide", async () => {
+    await session();
+    // The link's first words: the bar under it says them again, hidden.
+    const label = () => within(column()).getAllByText(/^Implementation · task \d+ of \d+$/)[0]!;
+    const title = () => label().nextElementSibling!;
+    await within(column()).findAllByText(/^Implementation · task \d+ of \d+$/, undefined, LIVE);
+    expect(title().getBoundingClientRect().left).toBeGreaterThan(
+      label().getBoundingClientRect().right,
+    );
+
+    await at(1000, async () => {
+      await expect.poll(() => width(), LIVE).toBe(300);
+      const below = title().getBoundingClientRect();
+      expect(below.top).toBeGreaterThanOrEqual(label().getBoundingClientRect().bottom);
+      expect(Math.round(below.left)).toBe(Math.round(label().getBoundingClientRect().left));
+    });
+  });
+
   test("a long path in the Activity breaks after its slashes, never inside a name", async () => {
     const path = "src/recurring/tasks/complete/next-occurrence/complete.ts";
     await at(1000, async () => {
