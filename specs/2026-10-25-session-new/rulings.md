@@ -296,3 +296,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   session's column", against the status line's Activity that opens it.
 - **If wrong**: `ColumnSheet` in `packages/web/src/session/SessionColumn.tsx`.
 - **Where**: the review of tasks 7 and 9, `packages/web/src/session/SessionColumn.tsx`.
+
+## R26: The Activity's walk reads at most 4 pages for each 200 rows
+
+- **Decision**: the Activity's walk back over the pages reads at most `WALK_PAGES`, 4, pages of 100
+  items for each 200 rows it draws, 4 at first and 8 after one "Show earlier runs". When that budget
+  stops it before the session's first page, "Show earlier runs" shows, though no row may be left
+  there. Otherwise the walk reads one row past those it draws, and the button shows only when that
+  row exists.
+- **Rationale**: rows count the main agent's calls and thoughts alone, so a turn where a sub-agent
+  made 5,000 calls, or a long chat of few calls, made the walk read every page back to fill its 200
+  rows. Dense rows take two or three pages; 4 leaves room past them. The button showed whenever the
+  walk had not reached the session's first page, though the turns before held no call.
+- **Alternatives considered**: a count of the main agent's rows on the server, one more field on the
+  turn's record for one view; a budget of pages per walk that does not grow with the presses, which
+  would never reach a run older than it.
+- **If wrong**: `WALK_PAGES` in `session/ActivityPanel.tsx`, and `capped` in
+  `session/ActivityWalk.tsx`.
+- **Where**: task 8, `packages/web/src/session/ActivityWalk.tsx`.

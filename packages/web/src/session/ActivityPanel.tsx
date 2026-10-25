@@ -36,6 +36,12 @@ import { STRETCH_PARAMETER } from "./stretches.ts";
 /** How many rows the Activity mounts at first, and how many "Show earlier runs" adds. */
 export const ACTIVITY_ROWS = 200;
 
+/**
+ * How many pages the walk reads at most for each 200 rows it draws: past the two or three pages
+ * dense rows take, so a turn of a sub-agent's calls, or a chat of few calls, is not read whole.
+ */
+export const WALK_PAGES = 4;
+
 /** The items of a turn's page, as the server pages them (`TURN_PAGE`): a stretch's page by its seq. */
 const PAGE_ITEMS = 100;
 
@@ -61,12 +67,22 @@ function targetOf(
     : undefined;
 }
 
-/** Whether two walks read the same pages, as the same records. */
-const same = (a: ReadonlyArray<ReadPage> | undefined, b: ReadonlyArray<ReadPage>) =>
-  a?.length === b.length &&
-  a.every(
+/**
+ * What a walk read: its pages, whether its budget stopped it, and the rows it was walked for, which
+ * tells a press of "Show earlier runs" its rows are in.
+ */
+type Read = { capped: boolean; pages: ReadonlyArray<ReadPage>; walked: number };
+
+/** Whether two walks read the same pages, as the same records, and ended the same. */
+const same = (a: Read | undefined, b: Read) =>
+  a?.capped === b.capped &&
+  a.walked === b.walked &&
+  a.pages.length === b.pages.length &&
+  a.pages.every(
     (read, at) =>
-      read.turn === b[at]!.turn && read.page === b[at]!.page && read.items === b[at]!.items,
+      read.turn === b.pages[at]!.turn &&
+      read.page === b.pages[at]!.page &&
+      read.items === b.pages[at]!.items,
   );
 
 /** The turn's words after "Run N · ": its length (ruling R4), "live", "failed", or "stopped". */
@@ -159,8 +175,8 @@ function weightFrom(runs: ReadonlyArray<Run>, from: ReadonlyArray<number>, keys:
 
 /**
  * The runs of the pages `read`, their latest `shown` rows, and back to the stretch `target`; with
- * "Show earlier runs" above them while rows are left out before. `onDrawn` hears how many rows draw,
- * and whether any is left out, at each commit.
+ * "Show earlier runs" above them while rows are left out before, or the walk's budget stopped it.
+ * `onDrawn` hears the rows the walk drawn was walked for, at each commit.
  */
 function Runs({
   onDrawn,
@@ -170,16 +186,16 @@ function Runs({
   target,
   turns,
 }: {
-  onDrawn: (drawn: number, before: boolean) => void;
+  onDrawn: (walked: number) => void;
   onMore: (drawn: number, anchor: Element | null) => void;
-  read: ReadonlyArray<ReadPage>;
+  read: Read;
   shown: number;
   target: ActivityWalk["target"] | undefined;
   turns: ReadonlyArray<string>;
 }) {
   const keys = useOpenKeys();
   const box = useRef<HTMLDivElement>(null);
-  const runs = useMemo(() => runsOf(read), [read]);
+  const runs = useMemo(() => runsOf(read.pages), [read.pages]);
   const { earlier, from } = drawnFrom(
     runs,
     shown,
@@ -197,11 +213,10 @@ function Runs({
     },
     [target],
   );
-  const first = read[0];
-  const before =
-    earlier || (first !== undefined && (first.page > 0 || turns.indexOf(first.turn) > 0));
+  // The walk reads a row past those drawn: one left out tells that earlier rows exist.
+  const before = earlier || read.capped;
   const drawn = weightFrom(runs, from, keys);
-  useLayoutEffect(() => onDrawn(drawn, before));
+  useLayoutEffect(() => onDrawn(read.walked));
   if (drawn === 0 && !before) {
     return <NoCall />;
   }
@@ -261,9 +276,9 @@ function useShown() {
       anchor ? scroller(anchor) : undefined,
     );
   };
-  // A press is done once its rows are drawn, or all there are: nothing is left out before.
-  const onDrawn = (drawn: number, before: boolean) => {
-    const done = (press: Press) => drawn >= press.next || !before;
+  // A press is done once the rows of a walk for its count are drawn, however many it found.
+  const onDrawn = (walked: number) => {
+    const done = (press: Press) => walked >= press.next;
     const waiting = presses.current.filter(done);
     presses.current = presses.current.filter((press) => !done(press));
     waiting.forEach((press) => press.done());
@@ -276,21 +291,23 @@ function Activity({ session }: { session: string }) {
   const turns = useSession(session)?.turns ?? [];
   const stretch = new URLSearchParams(useSearch()).get(STRETCH_PARAMETER);
   const { more, onDrawn, shown } = useShown();
-  const [read, setRead] = useState<ReadonlyArray<ReadPage>>();
-  const onRead = useCallback(
-    (next: ReadonlyArray<ReadPage>) => setRead((old) => (same(old, next) ? old : next)),
-    [],
-  );
+  const [read, setRead] = useState<Read>();
   const key = turns.join(" ");
   const target = useMemo(() => targetOf(stretch, key.split(" ")), [key, stretch]);
   // The walk draws again only when what it walks changes, not as the panel draws what it read.
   const walk = useMemo(() => {
     const list = key === "" ? [] : key.split(" ");
+    const onRead = (pages: ReadonlyArray<ReadPage>, capped: boolean) => {
+      const next = { capped, pages, walked: shown };
+      setRead((old) => (same(old, next) ? old : next));
+    };
+    // A row past those drawn tells whether earlier ones exist.
     return list.length === 0 ? null : (
       <Walk
         acc={[]}
+        budget={WALK_PAGES * Math.ceil(shown / ACTIVITY_ROWS)}
         index={list.length - 1}
-        need={shown}
+        need={shown + 1}
         onRead={onRead}
         page="last"
         root
@@ -298,7 +315,7 @@ function Activity({ session }: { session: string }) {
         turns={list}
       />
     );
-  }, [key, onRead, shown, target]);
+  }, [key, shown, target]);
   if (walk === null) {
     return <NoCall />;
   }

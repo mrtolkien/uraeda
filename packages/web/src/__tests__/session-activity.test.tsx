@@ -353,6 +353,44 @@ test("Show earlier runs keeps the reader's place when its rows join the same run
   await waitFor(() => expect(all().indexOf(first) - scrolledBy()).toBe(before));
 });
 
+test("SC-002: a turn of 5,000 sub-agent calls reads a few pages back, and offers earlier runs", async () => {
+  const chat = await newChat();
+  const own = Array.from({ length: 5000 }, (_, index) =>
+    call("read", `src/agent/file-${index}.ts`, { id: `s-${index}`, parent: "agent-1" }),
+  );
+  addRun(chat.fake, chat.chat, [
+    asked("Read everything."),
+    subagent("agent-1", "Read every file"),
+    ...own,
+    said("Read."),
+  ]);
+  await renderPage(`/sessions/${chat.chat}?tab=activity`, chat.repo, { agent: chat.fake });
+  await screen.findByRole("region", { name: "Activity" });
+
+  // The sub-agent's row, on the turn's first page of 51, is not read: the budget stopped the walk,
+  // and earlier runs are offered. The chat's own transcript reads pages too, so the rows tell.
+  await activity().findByRole("button", { name: "Show earlier runs" });
+  await quiet();
+  expect(activity().queryAllByRole("listitem")).toHaveLength(0);
+  await click(activity().getByRole("button", { name: "Show earlier runs" }));
+  await quiet();
+  expect(activity().queryAllByRole("listitem")).toHaveLength(0);
+  expect(activity().getByRole("button", { name: "Show earlier runs" })).toBeTruthy();
+});
+
+test("Show earlier runs shows only while earlier rows exist", async () => {
+  const chat = await newChat();
+  addRun(chat.fake, chat.chat, [asked("Hello"), said("Hello.")]);
+  // The 200 rows the bound draws, and no call before them.
+  addRun(chat.fake, chat.chat, [asked("Read them"), ...reads(2, ACTIVITY_ROWS), said("Read.")]);
+
+  await openActivity(chat);
+  await quiet();
+
+  expect(rows()).toHaveLength(ACTIVITY_ROWS);
+  expect(activity().queryByRole("button", { name: "Show earlier runs" })).toBeNull();
+});
+
 test("review focus 2: a stretch older than the 200 rows draws back to its run", async () => {
   const chat = await newChat();
   const turn = timedRun(chat.fake, chat.chat, SCENARIO, 2 * 60_000);
@@ -425,8 +463,10 @@ test("review focus 3: an open sub-agent of 2,000 calls mounts its latest 200; Sh
     ...own,
     said("Read."),
   ]);
-  await openActivity(chat);
-  // The walk may stop short of the sub-agent's start: earlier runs draw it.
+  await renderPage(`/sessions/${chat.chat}?tab=activity`, chat.repo, { agent: chat.fake });
+  await screen.findByRole("region", { name: "Activity" });
+  await quiet();
+  // The walk's budget stops short of the sub-agent's start: earlier runs draw it.
   while (activity().queryByRole("button", { name: /Read every file/ }) === null) {
     await click(activity().getByRole("button", { name: "Show earlier runs" }));
     await quiet();
