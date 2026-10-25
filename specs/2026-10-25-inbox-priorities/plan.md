@@ -1003,20 +1003,20 @@ git commit -m "feat(inbox-priorities): h and l between columns, Enter opens the 
 - Produces: the spec's links point at the stories, as story links, and the folder has screenshots of
   each changed view, at the phone and desktop sizes, in both themes.
 
-- [ ] **Step 1: Check that each story shows its mockup's states**
+- [x] **Step 1: Check that each story shows its mockup's states**
 
 Open the five pages and their stories side by side: columns with contexts and marks in the border;
 the phone's stack; the inbox's panes; the overlay's dialog; the category delete's three lines. A
 state a mockup shows that its story does not is added to the story, not dropped.
 
-- [ ] **Step 2: Take the screenshots**
+- [x] **Step 2: Take the screenshots**
 
 - Run: `nix develop -c vp run --filter uraeda-web screenshots 2026-10-25-inbox-priorities`, with the
   views of `priorities-inbox-shots.ts` after the pattern of `questions-page-shots.ts`
 - Expected: WebP files for the priorities, the inbox, the overlay, and the category delete, at both
   sizes and in both themes, and `checkPage` clean in each. Read each image against the decisions.
 
-- [ ] **Step 3: Rewrite the spec's links and delete the mockups**
+- [x] **Step 3: Rewrite the spec's links and delete the mockups**
 
 Each link to a mockup becomes a story link, alone in its paragraph:
 `[Columns, with the current priorities](/packages/web/src/lists/WorkList.stories.tsx#Columns)`, and

@@ -172,7 +172,7 @@ column about 170 px.
   `PRIORITIES.md`: the context format, if it becomes part of the workflow.
 - `editors/nvim`: only if the context format needs the plugin; the plugin reaches files through
   `ura lsp`.
-- Prototypes: [the four mockups](mockups/) of this round, throwaway.
+- Prototypes: the four mockups (`mockups/`, deleted) of this round, throwaway.
 
 ## The proposal
 
@@ -180,10 +180,10 @@ column about 170 px.
 
 The proposal asks for several proposals of how the inbox and the priorities differ, since the
 priorities are opinionated and hierarchical and the inbox is freeform. The round compares three
-inbox looks against one priorities look: [panes by category](mockups/inbox-a-panes.html), the file
-as a buffer (`mockups/inbox-b-buffer.html`, deleted), and a category index with one category open
-(`mockups/inbox-c-index.html`, deleted), against four columns (`mockups/priorities-kanban.html`,
-deleted).
+inbox looks against one priorities look: panes by category (`mockups/inbox-a-panes.html`, deleted),
+the file as a buffer (`mockups/inbox-b-buffer.html`, deleted), and a category index with one
+category open (`mockups/inbox-c-index.html`, deleted), against four columns
+(`mockups/priorities-kanban.html`, deleted).
 
 ### "Ongoing, Now, Next, and Later" leaves Blocked out
 
@@ -267,7 +267,7 @@ Whether the keyboard and the key map belong to this feature or follow it. See
 
 ### How the inbox looks
 
-Three looks, in [the prototypes](mockups/). All keep notes whole and the terminal look.
+Three looks, in the prototypes (`mockups/`, deleted). All keep notes whole and the terminal look.
 
 | Option                    | Fits "freeform" | Phone                      | Categories                    | Keys                      |
 | ------------------------- | --------------- | -------------------------- | ----------------------------- | ------------------------- |

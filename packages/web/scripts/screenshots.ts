@@ -37,6 +37,7 @@ import { takeFeaturePage } from "./feature-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
 import { takeDecisions, takeLayoutLook } from "./layout-look-shots.ts";
+import { takePrioritiesInbox } from "./priorities-inbox-shots.ts";
 import { takeMergeChats } from "./merge-chats-shots.ts";
 import { takeQuestionsPage } from "./questions-page-shots.ts";
 import { takeRound } from "./round-shots.ts";
@@ -253,6 +254,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   const each = shooter(shots, out, views);
   // First, while nothing waits for a commit.
   await takeInbox(each, repo);
+  await takePrioritiesInbox(each);
   await takeFolds(each);
   const original = priorities(repo);
   await takePriorities(each, shots, repo);

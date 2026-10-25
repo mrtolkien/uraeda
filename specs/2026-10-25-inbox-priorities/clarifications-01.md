@@ -118,7 +118,7 @@ option shows them differently.
 - **A (recommended). A pane per category, stacked in one column, each with its title in the border
   and its notes whole.**
 
-  [Panes by category](mockups/inbox-a-panes.html)
+  Panes by category (`mockups/inbox-a-panes.html`, deleted)
 
   - [pro] it matches the file's own structure, works as one column on the phone, and looks nothing
     like the priorities' columns.

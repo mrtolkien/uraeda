@@ -86,6 +86,19 @@ type Story = StoryObj<typeof meta>;
  */
 export const Overlay: Story = { args: { text: "Git listener process" } };
 
+/** The same at 390 px: a sheet from the bottom edge, with its Close at the top, over the stacked panes. */
+export const OverlayPhone: Story = {
+  args: { text: "Git listener process" },
+  globals: { viewport: { isRotated: false, value: "phone" } },
+  parameters: {
+    viewport: {
+      options: {
+        phone: { name: "Phone", styles: { height: "844px", width: "390px" }, type: "mobile" },
+      },
+    },
+  },
+};
+
 /**
  * A drafted priority, as a click opens it: its text, its draft drawn with its slug and Start the
  * feature, its section, Delete, and its neighbours. Nothing has the focus.
