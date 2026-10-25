@@ -165,10 +165,10 @@ export function JoinedStretch({
   if (!stretch.continued || after === undefined) {
     return children(stretch);
   }
-  // The page before is read as the tail reads its pages; the line waits for it alone, rather than
-  // drawing a part of the stretch's counts first.
+  // The page before is read as the tail reads its pages. Until it is in, the line counts this
+  // page's part of the stretch, so the chat keeps its place rather than the line popping in.
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={children(stretch)}>
       <PageBefore after={after} stretch={stretch} turn={turn}>
         {children}
       </PageBefore>
