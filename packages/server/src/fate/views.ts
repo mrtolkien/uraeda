@@ -138,7 +138,12 @@ export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> &
 
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
 export type InboxRecord = Omit<Record_<Inbox>, "triage"> &
-  Added & { id: string; triage: string | null };
+  Added & {
+    id: string;
+    /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
+    removed?: string | null;
+    triage: string | null;
+  };
 
 /** The agent sessions run on, and what it can do: one record, `agent`. */
 export type AgentRecord = {
@@ -368,6 +373,7 @@ export const inboxDataView = dataView<InboxRecord>("Inbox")({
   hash: true,
   id: true,
   names: true,
+  removed: true,
   triage: true,
 });
 

@@ -79,7 +79,7 @@ import {
 
 /** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
 export function sentInbox(inbox: Inbox): InboxRecord {
-  return { ...inbox, id: INBOX_ID, triage: inbox.triage ?? null };
+  return { ...inbox, id: INBOX_ID, removed: null, triage: inbox.triage ?? null };
 }
 
 /** The priorities as they are sent: each running feature's step as `sentStep` sends it. */

@@ -579,7 +579,7 @@ git commit -m "feat(inbox-priorities): create, rename, and delete a category in 
   only on the answer of `inbox.removeCategory` and sent as null on every other answer, as `added`
   is. The priorities record's sections carry `context` as the binding sends it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/inbox.test.ts
@@ -594,30 +594,30 @@ test("a category named like another is refused with its message", async () => {}
 // fate.test.ts
 test("the priorities carry each section's context", async () => {
   expect(sectionsOf(priorities).find((s) => s.section === "next")?.context).toBe(
-    "Goals once I'm happy",
+    "What comes once Now is done",
   );
 });
 ```
 
 The break each test catches: a `removed` text lost in the record, or a context left out of the view.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp run binding:build && nix develop -c vp test packages/server/src/__tests__/inbox.test.ts`
 - Expected: FAIL, `mutation inbox.removeCategory is not defined`.
 
-- [ ] **Step 3: Implement the napi functions and the mutations**
+- [x] **Step 3: Implement the napi functions and the mutations**
 
 Follow the existing pairs of `inbox_writes.rs` and `inbox-mutations.ts`, and `refusable` for
 refusals. Regenerate the binding.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/binding packages/binding packages/server specs/2026-10-25-inbox-priorities

@@ -18,6 +18,9 @@ export declare class WatchHandle {
 /** Adds a host name, in lower case, to the allowed host names. */
 export declare function addAllowedHost(dir: string, name: string): Promise<Settings>
 
+/** Adds a category at the end of the inbox. */
+export declare function addCategory(repo: string, name: string, previous: string): Promise<Inbox>
+
 /**
  * Comments on lines of a file as committed, on lines of the decision `decision` names for a
  * spec, or on the whole file without lines.
@@ -82,6 +85,15 @@ export declare function attachNoteImages(repo: string, id: string, previous: str
  * or `null` when it has no branch, is merged, or the default branch is unknown.
  */
 export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
+
+/**
+ * A deleted category's answer: the inbox, and the file as it was, which `restoreCategory` writes
+ * back.
+ */
+export interface CategoryRemoved {
+  inbox: Inbox
+  before: string
+}
 
 /**
  * `typed`, trimmed, when it is a port, a whole number from 1 to 65535. Throws the problem
@@ -309,6 +321,12 @@ export declare function refreshPullRequests(repo: string): Promise<boolean>
 /** Removes an allowed host name. */
 export declare function removeAllowedHost(dir: string, name: string): Promise<Settings>
 
+/**
+ * Deletes a category: its notes stay without a category with `keepNotes`, and go with it
+ * otherwise.
+ */
+export declare function removeCategory(repo: string, name: string, keepNotes: boolean, previous: string): Promise<CategoryRemoved>
+
 /** Removes a pending comment. */
 export declare function removeComment(repo: string, folder: string, file: string, number: number): Promise<FileView>
 
@@ -330,8 +348,14 @@ export declare function removeRepository(dataDir: string, name: string): Promise
 /** Removes comment `number` on the settled point `subject`, over its text last read. */
 export declare function removeSettledComment(repo: string, folder: string, number: number, subject: string, previous: string): Promise<FileView>
 
+/** Renames a category, every heading of its name. */
+export declare function renameCategory(repo: string, from: string, to: string, previous: string): Promise<Inbox>
+
 /** Requests changes on a spec or a plan, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
+
+/** Takes back a delete: writes `before` back over the inbox read at `previous`. */
+export declare function restoreCategory(repo: string, before: string, previous: string): Promise<Inbox>
 
 /** Commits again what a hook refused to commit: a submitted round, or a verdict. */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>

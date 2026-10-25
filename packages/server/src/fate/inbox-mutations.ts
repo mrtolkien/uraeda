@@ -123,6 +123,15 @@ export const inboxMutations = {
     },
     type: "Inbox",
   },
+  "inbox.addCategory": {
+    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; name: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() => ctx.binding.addCategory(ctx.repo, input.name, input.hash)),
+        select,
+      ),
+    type: "Inbox",
+  },
   "inbox.category": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput & { category?: string }>) =>
       inbox(
@@ -178,6 +187,39 @@ export const inboxMutations = {
       inbox(
         ctx,
         await refusable(() => ctx.binding.removeNote(ctx.repo, input.note, input.hash)),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.removeCategory": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ hash: string; keepNotes: boolean; name: string }>) => {
+      const result = await refusable(() =>
+        ctx.binding.removeCategory(ctx.repo, input.name, input.keepNotes, input.hash),
+      );
+      return inbox(ctx, result.inbox, select, null, result.before);
+    },
+    type: "Inbox",
+  },
+  "inbox.renameCategory": {
+    resolve: async ({ ctx, input, select }: Resolver<{ from: string; hash: string; to: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.renameCategory(ctx.repo, input.from, input.to, input.hash),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.restoreCategory": {
+    resolve: async ({ ctx, input, select }: Resolver<{ before: string; hash: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() => ctx.binding.restoreCategory(ctx.repo, input.before, input.hash)),
         select,
       ),
     type: "Inbox",
