@@ -146,7 +146,9 @@ test("tapping a line opens its task view, with no menu on the list (C3)", async 
 test("an Add row adds and stays ready (US4 4)", async () => {
   const { repo } = await renderPage("/priorities");
   await add("Later", "Ship a TUI");
-  await waitFor(() => expect(read(repo)).toContain("  - with a cache\n- Ship a TUI\n"));
+  await waitFor(() =>
+    expect(read(repo)).toContain("- Benchmarks: after the runner is ready\n- Ship a TUI\n"),
+  );
   // Emptied once the save's answer comes back, after the file is written.
   await waitFor(() =>
     expect(screen.getByRole("textbox", { name: "Add to Later" })).toHaveProperty("value", ""),
@@ -182,7 +184,7 @@ test("a line can go to Later instead", async () => {
   await click(screen.getByRole("button", { name: "Add" }));
 
   expect(await toast("Added to Later, not committed")).toBeTruthy();
-  expect(read(repo)).toContain("  - with a cache\n- An idea\n");
+  expect(read(repo)).toContain("- Benchmarks: after the runner is ready\n- An idea\n");
 });
 
 /** US7.6 */
@@ -225,7 +227,7 @@ test("from a feature branch's checkout, lines go to the default branch's worktre
 
   await waitFor(() =>
     expect(readFileSync(join(repo, ".worktrees/main", PATH), "utf8")).toContain(
-      "  - with a cache\n- Ship a TUI\n",
+      "- Benchmarks: after the runner is ready\n- Ship a TUI\n",
     ),
   );
   expect(git(repo, "branch", "--show-current").trim()).toBe("2026-10-11-web-ui");

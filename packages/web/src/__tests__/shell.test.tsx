@@ -57,7 +57,9 @@ test("＋ adds to Later with a toast and Undo, and the bar does not change (US6 
   expect(
     screen.getByText("Added to Later, not committed", { ignore: "script, style, [aria-live]" }),
   ).toBeTruthy();
-  expect(read(repo)).toContain("  - with a cache\n- Show the agent's last commit\n");
+  expect(read(repo)).toContain(
+    "- Benchmarks: after the runner is ready\n- Show the agent's last commit\n",
+  );
   // The toast alone says where the line went: no count of changes or Commit shows in the
   // navigation.
   expect(bar.textContent).toBe(before);
@@ -71,7 +73,7 @@ test("＋'s Undo removes the line it added, wherever it is now (US6 5)", async (
   // Another line lands above it: the added line's place now holds another line.
   writeFileSync(
     join(repo, "specs/PRIORITIES.md"),
-    read(repo).replace("## Later\n\n", "## Later\n\n- Added elsewhere\n"),
+    read(repo).replace("another line\n\n", "another line\n\n- Added elsewhere\n"),
   );
   await click(undo);
   // Waits for the undo's whole text: a read during the write sees an empty file.

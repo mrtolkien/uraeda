@@ -102,3 +102,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   stays in the files the tests copy.
 - **If wrong**: Put the line first in Later and restore the old expectations.
 - **Where**: task 2.
+
+## R9: The tests that read the fixture's Later follow the moved Blocked line
+
+- **Decision**: The desktop and unit tests that expected "Later · 1 of 1", a new line right after
+  `  - with a cache`, the end of Later before `## Blocked`, or the section Next right after its
+  heading, expect the new fixture: Later holds two lines (the moved Benchmarks line comes last), a
+  new line follows it, and Now, Next, and Later start with their context note. The undo test of the
+  quick add lands its other line after Later's note.
+- **Rationale**: Task 2 changed the fixture on purpose, so the data these tests read moved; what
+  each test guards (position, count, order, undo) is unchanged.
+- **Alternatives considered**: Loosening the expectations to `toContain` fragments: they would stop
+  guarding the position.
+- **If wrong**: Revert the fixture and these expectations together.
+- **Where**: task 2.
