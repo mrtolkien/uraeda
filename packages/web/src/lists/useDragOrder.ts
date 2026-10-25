@@ -8,7 +8,6 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
-  KeyboardSensor,
   PointerSensor,
 } from "@dnd-kit/react";
 import { Accessibility, PointerActivationConstraints } from "@dnd-kit/dom";
@@ -28,11 +27,6 @@ export interface DragSection {
  * out of them, `Number.MAX_SAFE_INTEGER` for its end. Resolves once the move is written.
  */
 export type OnMove = (row: string, section: string, index: number) => Promise<void> | void;
-
-/** Whether a pointer event's target is a node of the page, which a handle may contain. */
-function isNode(target: EventTarget | null): target is Node {
-  return target !== null && "nodeType" in target;
-}
 
 /** The rows of each section that moves, by key, in order: what a drag reorders. */
 function orderOf(sections: ReadonlyArray<DragSection>): Order {
@@ -71,21 +65,21 @@ function announcer(now: () => { order: Order; titles: Map<string, string> }) {
   };
 }
 
-/** The sensors of a drag: the whole row on a touch screen, the handle alone otherwise; the keys. */
+/**
+ * The sensors of a drag, from anywhere on a card: a mouse or a pen after 5 px of a press, so a
+ * shorter press stays a click; a touch after half a second, with 5 px of tolerance. A press on a
+ * button, such as a card's `…`, never starts one.
+ */
 export const SENSORS = [
   PointerSensor.configure({
-    // The whole row on a touch screen, after a press of half a second; the handle alone with a
-    // mouse or a pen, at once.
+    // Anywhere on the card, not on its hidden handle (see `Card`).
     activationConstraints: (event) =>
       event.pointerType === "touch"
         ? [new PointerActivationConstraints.Delay({ tolerance: 5, value: 500 })]
-        : undefined,
+        : [new PointerActivationConstraints.Distance({ value: 5 })],
     activatorElements: (source) => [source.element],
-    preventActivation: (event, source) =>
-      event.pointerType !== "touch" &&
-      !(isNode(event.target) && source.handle?.contains(event.target)),
+    preventActivation: (event) => Boolean((event.target as Element | null)?.closest("button")),
   }),
-  KeyboardSensor,
 ];
 
 /** dnd-kit's plugins, as the provider takes them: a function of its defaults. */
@@ -100,10 +94,8 @@ function plugins(announcements: ReturnType<typeof announcer>): PluginsOf {
     ...defaults.filter((plugin) => plugin !== Accessibility),
     Accessibility.configure({
       announcements,
-      screenReaderInstructions: {
-        draggable:
-          "To move a line, press Space, then the arrow keys; Space again drops it, Escape cancels.",
-      },
+      // The keyboard moves a line from its card's menu: a card has no keyboard drag to explain.
+      screenReaderInstructions: { draggable: "" },
     }),
   ];
 }

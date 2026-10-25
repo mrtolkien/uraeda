@@ -1,27 +1,15 @@
 // The list the priorities and the inbox share: sections under a coloured heading with their count,
-// on wide screens a thin edge of the same colour, and compact rows with the drag handle on the
-// left, their text, their children as grey lines, and their marks on the right. Each row is one
-// link; its handle, a press of half a second on a touch screen, or the keyboard moves it. The keys
-// move the selection, with the pane beside the list following (see `useListKeys`).
-import { Button } from "@astryxdesign/core/Button";
+// on wide screens a thin edge of the same colour, and a card for each line (see `Card`). A card
+// drags from anywhere: past 5 px of a mouse press, or after half a second of a touch press. The
+// keys move the selection, with the pane beside the list following (see `useListKeys`).
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
-import { List, ListItem } from "@astryxdesign/core/List";
-import { StatusDot } from "@astryxdesign/core/StatusDot";
-import { Text } from "@astryxdesign/core/Text";
-import {
-  colorVars,
-  focusVars,
-  shadowVars,
-  sizeVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
-import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
 import { Fragment, type ReactNode, type Ref, use, useEffect } from "react";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { Card, type WorkRow } from "./Card.tsx";
 import { ListPaneContext } from "./listPane.ts";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
 import { useListKeys } from "./useListKeys.ts";
@@ -32,22 +20,7 @@ import { useListKeys } from "./useListKeys.ts";
  */
 export type Tone = "green" | "blue" | "neutral" | "gray" | "orange";
 
-/** A row of the list. */
-export interface WorkRow {
-  /** Where a tap on the row leads. */
-  href: string;
-  /** Whether it stays where it is: a running entry, with no handle, which moving would not move. */
-  isFixed?: boolean;
-  key: string;
-  /** Its text as drawn, with its formatting. */
-  label?: ReactNode;
-  /** Its children, each a grey line under its text. */
-  lines: ReadonlyArray<string>;
-  /** Its marks, on the right. */
-  marks?: ReactNode;
-  /** Its text, plain: the handle's label, and the row's label when `label` is absent. */
-  text: string;
-}
+export type { WorkRow };
 
 /** A section of the list: a heading of the file, the ongoing entries, or a category of the inbox. */
 export interface WorkSection {
@@ -62,9 +35,15 @@ export interface WorkSection {
 }
 
 const styles = stylex.create({
-  below: {
-    display: "block",
-    paddingBlockStart: spacingVars["--spacing-0-5"],
+  // The cards, a gap apart so each one's marks have room over its border.
+  cards: {
+    display: "flex",
+    flexDirection: "column",
+    gap: spacingVars["--spacing-3"],
+    listStyle: "none",
+    margin: 0,
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: 0,
   },
   count: {
     color: colorVars["--color-text-secondary"],
@@ -75,36 +54,9 @@ const styles = stylex.create({
     borderInlineStartWidth: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-3"],
   },
-  fixed: {
-    // The place of the handle, so a running entry's text lines up with the others'.
-    alignItems: "center",
-    display: "flex",
-    height: sizeVars["--size-element-sm"],
-    justifyContent: "center",
-    width: sizeVars["--size-element-sm"],
-  },
   footer: {
     paddingBlock: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-2"],
-  },
-  lifted: {
-    // A row lifts while it is dragged.
-    backgroundColor: colorVars["--color-background-card"],
-    boxShadow: shadowVars["--shadow-med"],
-    position: "relative",
-    zIndex: 1,
-  },
-  line: {
-    // Astryx's focus ring of the row, drawn inside it: the list clips its rows' sides. Only the
-    // offset is the app's, a value of its own, so no rule of Astryx's is written again unlayered.
-    outlineOffset: {
-      ":has(:focus-visible)": `calc(-1 * ${focusVars["--focus-outline-width"]})`,
-      default: null,
-    },
-    // The long press on a phone does not open the link's menu.
-    userSelect: "none",
-    // oxlint-disable-next-line stylex/valid-styles -- WebKit's own property, missing from StyleX's list: a long press that starts a drag must not open the link's menu
-    WebkitTouchCallout: "none",
   },
   section: {
     paddingBlock: spacingVars["--spacing-1"],
@@ -135,101 +87,6 @@ const tones = stylex.create({
   },
 });
 
-/** How a row is drawn: its item, with its handle when it moves. */
-function RowItem({
-  handleRef,
-  isDragging = false,
-  isSelected,
-  ref,
-  row,
-}: {
-  handleRef?: Ref<HTMLButtonElement>;
-  isDragging?: boolean;
-  isSelected: boolean;
-  ref?: Ref<HTMLLIElement>;
-  row: WorkRow;
-}) {
-  // On a phone, the marks go under the text, which keeps the width of the screen.
-  const narrow = isNarrow(useWidthClass());
-  const hasMarksBelow = narrow && row.marks !== undefined;
-  return (
-    <ListItem
-      // What the list's keys move between: see `useListKeys`.
-      data-row=""
-      description={
-        row.lines.length > 0 || hasMarksBelow ? (
-          <>
-            {row.lines.map((line, index) => (
-              <Text color="secondary" display="block" key={index}>
-                {line}
-              </Text>
-            ))}
-            {hasMarksBelow && <span {...stylex.props(styles.below)}>{row.marks}</span>}
-          </>
-        ) : undefined
-      }
-      endContent={narrow ? undefined : row.marks}
-      href={row.href}
-      isSelected={isSelected}
-      // A node, not a string, so a long line wraps instead of being cut.
-      label={<>{row.label ?? row.text}</>}
-      ref={ref}
-      startContent={
-        handleRef === undefined ? (
-          // The dot repeats the row's "Running" mark: screen readers hear the mark alone.
-          <span aria-hidden="true" {...stylex.props(styles.fixed)}>
-            <StatusDot label="Running" variant="success" />
-          </span>
-        ) : (
-          <Button
-            icon={<span aria-hidden="true">⠿</span>}
-            isIconOnly
-            label={`Move ${row.text}`}
-            ref={handleRef}
-            size="sm"
-            variant="ghost"
-          />
-        )
-      }
-      xstyle={[styles.line, isDragging && styles.lifted]}
-    />
-  );
-}
-
-/** A row that moves: dragged by its handle, or held on a touch screen. */
-function SortableRow({
-  index,
-  isSelected,
-  row,
-  section,
-}: {
-  index: number;
-  isSelected: boolean;
-  row: WorkRow;
-  section: string;
-}) {
-  const isReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const { handleRef, isDragging, ref } = useSortable({
-    accept: "line",
-    data: { text: row.text },
-    group: section,
-    id: row.key,
-    index,
-    type: "line",
-    // With reduced motion, the rows jump to their places instead of sliding.
-    transition: isReduced ? null : undefined,
-  });
-  return (
-    <RowItem
-      handleRef={handleRef}
-      isDragging={isDragging}
-      isSelected={isSelected}
-      ref={ref}
-      row={row}
-    />
-  );
-}
-
 /** A section's heading, rows, and footer, in its colour. */
 function SectionBody({
   ref,
@@ -256,21 +113,18 @@ function SectionBody({
         </span>
       </Heading>
       {rows.length > 0 && (
-        <List aria-label={`${section.title} lines`} density="compact" hasDividers>
-          {rows.map((row, index) =>
-            section.isFixed || row.isFixed ? (
-              <RowItem isSelected={row.key === selected} key={row.key} row={row} />
-            ) : (
-              <SortableRow
-                index={index}
-                isSelected={row.key === selected}
-                key={row.key}
-                row={row}
-                section={section.id}
-              />
-            ),
-          )}
-        </List>
+        // The cards' list: Astryx's `List` draws only its own rows, not a card.
+        <ul aria-label={`${section.title} lines`} {...stylex.props(styles.cards)}>
+          {rows.map((row, index) => (
+            <Card
+              index={index}
+              isSelected={row.key === selected}
+              key={row.key}
+              row={section.isFixed ? { ...row, isFixed: true } : row}
+              section={section.id}
+            />
+          ))}
+        </ul>
       )}
       {section.footer && <div {...stylex.props(styles.footer)}>{section.footer}</div>}
     </section>

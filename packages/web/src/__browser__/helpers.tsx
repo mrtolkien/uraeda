@@ -652,22 +652,31 @@ export function middle(element: Element) {
 }
 
 /**
- * Picks a list's line up by its handle, the button `Move <text>`, with the mouse, and leaves the
- * button down: once it returns, the drag follows the pointer. dnd-kit starts a drag once React has
- * drawn its start, frames after the press on a busy machine, and drops every pointer move before:
- * the pointer moves on only once the line is announced picked up (or moved, its place where it
- * started, which replaces it), and the drag is under way once the handle has moved with it.
+ * Picks a list's card up by its text, with the mouse, and leaves the button down: once it returns,
+ * the drag follows the pointer. A press moves a card only past 5 px, so the pointer moves 6 px
+ * first. dnd-kit starts a drag once React has drawn its start, frames after that, and drops every
+ * pointer move before: the pointer moves on only once the card is announced picked up (or moved,
+ * its place where it started, which replaces it), and the drag is under way once the card has
+ * moved with it.
  */
 export async function pickUp(text: string) {
-  const handle = screen.getByRole("button", { name: `Move ${text}` });
-  const start = middle(handle);
-  const escaped = text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-  await commands.mouse([{ type: "move", x: start.x, y: start.y }, { type: "down" }]);
+  const card = screen.getByRole("link", { name: new RegExp(escapeRegExp(text)) });
+  const start = middle(card);
+  await commands.mouse([
+    { type: "move", x: start.x, y: start.y },
+    { type: "down" },
+    { type: "move", x: start.x, y: start.y - 6 },
+  ]);
   await expect
     .poll(() => document.body.textContent)
-    .toMatch(new RegExp(`(Picked up|Moved:) ${escaped}`));
-  await commands.mouse([{ type: "move", x: start.x, y: start.y - 10 }]);
-  await expect.poll(() => Math.round(middle(handle).y - start.y)).toBe(-10);
+    .toMatch(new RegExp(`(Picked up|Moved:) ${escapeRegExp(text)}`));
+  await commands.mouse([{ type: "move", x: start.x, y: start.y - 12 }]);
+  await expect.poll(() => Math.round(middle(card).y - start.y)).toBe(-12);
+}
+
+/** A text as a regular expression's own, its characters taken literally. */
+function escapeRegExp(text: string) {
+  return text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 /** Saves an image next to a markdown file of the repository, as "Add image" does: its link. */

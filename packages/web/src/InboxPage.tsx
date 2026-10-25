@@ -38,21 +38,25 @@ export function Marks({ note }: { note: InboxNote }) {
   );
 }
 
-/** A note's marks as its row shows them, on its right: its first image, then the tags. */
-function RowMarks({ note }: { note: InboxNote }) {
-  const repo = useRepository();
-  const first = imagePath(note.images[0]);
-  if (!note.agent && !note.about && !first) {
-    return null;
+/** A note's tags as text in its card's border: `agent`, then its feature's, each apart. */
+function marksOf(note: InboxNote) {
+  if (!note.agent && !note.about) {
+    return undefined;
   }
   return (
-    <HStack align="center" gap={1} wrap="wrap">
-      {/* Decorative: the row's text says what the note is. */}
-      {first && <Thumbnail alt="" src={repoPath(repo, first)} />}
-      {note.agent && <Badge label="agent" variant="purple" />}
-      {note.about && <Badge label={note.about} variant="neutral" />}
-    </HStack>
+    <>
+      {note.agent && <span>agent</span>}
+      {note.agent && note.about && " "}
+      {note.about && <span>{note.about}</span>}
+    </>
   );
+}
+
+/** A note's first image, under its text: decorative, as the text says what the note is. */
+function Image({ note }: { note: InboxNote }) {
+  const repo = useRepository();
+  const first = imagePath(note.images[0]);
+  return first ? <Thumbnail alt="" src={repoPath(repo, first)} /> : null;
 }
 
 /** A section's id: "none" for the notes before the first category. */
@@ -82,9 +86,10 @@ function InboxList({
       href: here(`/inbox/${note.key}`),
       key: note.key,
       // The row is one link: a link of its text, like a note's draft, would nest in it.
+      image: <Image note={note} />,
       label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
       lines: note.nestedSpans.map(plain),
-      marks: <RowMarks note={note} />,
+      marks: marksOf(note),
       text: plain(note.spans),
     })),
     title: category.name ?? "No category",
