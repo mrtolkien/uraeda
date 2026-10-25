@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 2
 risk-tier: medium
 plan-review: false
@@ -8,23 +8,19 @@ plan-review: false
 
 # Spec: Inbox and priorities in the terminal look
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-25: 4 comments in spec-review.md.
+> Spec to review again, about 10 minutes.
 >
 > - You approve the priorities as scrolling columns of draggable cards, the inbox as a pane per
 >   category, a detail that opens in an overlay, a `…` menu on every line, and categories you
 >   create, rename, and delete.
-> - The vim keys and the key map are not here: you chose to build them as the next feature. This
->   spec keeps the movement keys, and adds `h l` between columns.
-> - Blocked is retired from the file's format, the template, the skill, and `ura check`. A file that
->   still has lines under it keeps them visible, with a warning.
-> - A section's context is the first `> [!NOTE]` callout under its heading, read-only in the app.
-> - The mockups are HTML layout pages, not stories: the plan's first tasks write the stories, and
->   the decision on previews allows an HTML layout mockup only beside its story.
-> - The overlay replaces the pane beside the list, which the layout decision prefers. Its own clause
->   lets a spec say why: four columns leave no room for a pane.
-> - Risk tier `medium`: the format of `PRIORITIES.md` changes for every project.
+> - Since your review: columns are 400 px wide, and a card's marks sit in its border.
+> - Since your review: the overlay is 50% bigger, about 108 characters wide and 60% of the window
+>   tall.
+> - Since your review: a section's context is the first callout of any type, all drawn the same way.
+> - Since your review: Yes, No, and Cancel are three bordered lines, with the keys Y, N, and C.
+> - Still open from before: the mockups are HTML pages, and the plan writes their stories first.
 
 The priorities and the inbox, redrawn in the look and shell of
 [layout and look](../done/2026-10-20-layout-look.md), as two views that differ on purpose. The
@@ -32,6 +28,18 @@ priorities are opinionated, so they are columns. The inbox is freeform, so it is
 the [proposal](proposal.md), the [discovery](discovery-01.md) and its
 [second round](discovery-02.md), and the clarifications of [round 01](clarifications-01.md) and
 [round 02](clarifications-02.md).
+
+## Your review
+
+- **C1** (any callout type): done. The first callout of any type is the context, whether `NOTE`,
+  `TIP`, `IMPORTANT`, `WARNING`, or `QUESTION`, and the page draws all of them the same way.
+- **C2** (400 px, marks in the border): done. Columns are at least 400 px wide. A card's marks, such
+  as "Spec", "Questions", "draft", and a note's tags, are set in the card's border like a pane's
+  title, never as words at the start or end of its line.
+- **C3** (a bigger overlay): done. The dialog is 50% wider and taller: about 108 characters wide and
+  60% of the window tall.
+- **C4** (separate, clickable choices): done. Yes, No, and Cancel are three bordered lines, each
+  showing its key: Y, N, and C.
 
 ## Decisions
 
@@ -55,8 +63,9 @@ Relied on:
 
 The priorities page shows Ongoing, Now, Next, and Later as titled panes side by side, each with its
 context under its title. Every line is a small card with its whole text wrapping. Columns are at
-least 300 px wide, so on a half screen the row scrolls sideways and Later may be cut at the edge. On
-the phone the same panes are stacked, one column. A line is dragged from anywhere on its card, with
+least 400 px wide, so on a half screen the row scrolls sideways and Later may be cut at the edge. On
+the phone the same panes are stacked, one column. A card is a small frame whose marks sit in its
+border: a running step, "draft", or a note's tags. A line is dragged from anywhere on its card, with
 no handle. Under the title, one line says what the page is for.
 
 [Columns, with the current priorities](mockups/priorities-columns-scroll.html)
@@ -84,12 +93,13 @@ More scenarios:
 
 ### US2: A section's context, and no Blocked (P1)
 
-A human writes what a section means now as a callout under its heading in `PRIORITIES.md`, and the
-page shows it above the column. Blocked is no longer a section.
+A human writes what a section means now as a callout of any type under its heading in
+`PRIORITIES.md`, and the page shows it above the column, all types the same way. Blocked is no
+longer a section.
 
 Key scenarios:
 
-1. **Given** `## Now` followed by `> [!NOTE]`, a `>` line, and `> Features for v1.0.0`, **When** the
+1. **Given** `## Now` followed by `> [!TIP]`, a `>` line, and `> Features for v1.0.0`, **When** the
    page opens, **Then** the Now pane shows "Features for v1.0.0" under its title.
 2. **Given** `## Later` whose callout marker stands alone and whose text is in a separate quote,
    **When** `ura check` runs, **Then** it warns that the section's context has no text, and the
@@ -134,9 +144,9 @@ More scenarios:
 ### US4: A line in an overlay (P1)
 
 Enter or a click on a card opens that line in an overlay over the page, with its actions, Previous
-and Next, and Close. On every width but the phone it is a dialog about 70 characters wide, over the
-dimmed page. On the phone it is a bottom sheet. The URL is the line's, so reload and Back keep it:
-Back closes it. The list's selection does not open it.
+and Next, and Close. On every width but the phone it is a dialog about 108 characters wide and 60%
+of the window tall, over the dimmed page. On the phone it is a bottom sheet. The URL is the line's,
+so reload and Back keep it: Back closes it. The list's selection does not open it.
 
 [The dialog](mockups/overlay-a-dialog.html)
 
@@ -181,7 +191,8 @@ More scenarios:
 ### US6: Categories you create, rename, and delete (P2)
 
 "New category" adds an empty pane. A pane's title is renamed in place, and its menu deletes it.
-Deleting asks "Delete the N notes too?". No keeps them, in order, under No category.
+Deleting asks "Delete the N notes too?" with three bordered lines, each showing its key: Yes (Y), No
+(N), and Cancel (C). No keeps the notes, in order, under No category.
 
 [Delete a category](mockups/category-delete.html)
 
@@ -218,7 +229,7 @@ never has to share its width. See [the overlay](discovery-02.md#the-overlay) and
 - **The retired Blocked** stays readable in the core, and `ura check` owns its warning.
 - **The card** draws a line whole, its marks, its selection, and its `…` button. It owns when the
   button shows, and it is the drag source from anywhere, with a 5 px distance before a drag starts.
-- **The columns** arrange the priorities' panes in a scrolling row of at least 300 px each, and in a
+- **The columns** arrange the priorities' panes in a scrolling row of at least 400 px each, and in a
   stack on the phone. They own the width rule and Ongoing's derived lines.
 - **The category panes** arrange the inbox's panes, with their New, rename, and delete controls.
 - **The line menu** lists a line's actions. It reuses the pane's existing actions, so no rule is
@@ -258,7 +269,7 @@ Tradeoffs:
 ## Success criteria
 
 - **SC-001** (one scroll): On a window of 1150 px, the priorities show as one row of four panes that
-  scrolls sideways, each at least 300 px wide.
+  scrolls sideways, each at least 400 px wide.
 - **SC-002** (one keypress): A selected card opens in its overlay with one Enter, at its own
   address.
 - **SC-003** (every action): Every action of a card's menu is reachable by Tab and Enter, and by tap
@@ -279,6 +290,8 @@ The points settled in the clarifications, [to check](clarifications-01.md#check-
 are the next feature's: `i a I A`, `o O`, `dd`, `u`, `H J K L`, and the key map. Round 02's check of
 the page text, and its `…` rule, follow here. Settled while writing this spec:
 
+- **The context's callout** is of any type, as your review asked, not only `NOTE` as the
+  [context answer](clarifications-01.md#q4-how-is-a-columns-context-written-in-prioritiesmd) read.
 - **The next feature** gets the answers on keys: `o` inserts after the line and `O` before it, `H L`
   put a line at the same row of the next column, and the editing keys are a layer on the shared list
   keys, on for these two pages, with a `?` map. Its keys are declared as data a later leader key
@@ -288,8 +301,8 @@ the page text, and its `…` rule, follow here. Settled while writing this spec:
   the old pane, until the next feature adds `i` and `a`.
 - **Keyboard dragging** is dropped with the handle. The menu's moves, and later `J K H L`, replace
   it.
-- **The overlay's width** is 72 characters of the page's font, about 700 px, and it is the same
-  overlay for notes and priorities.
+- **The overlay's size** is 108 characters of the page's font wide, about 1,060 px, and 60% of the
+  window tall, and it is the same overlay for notes and priorities.
 - **The mockups** are the HTML pages above. The plan writes their stories first, with the real
   components, and deletes the pages once the stories show the same states.
 - **Later's callout**, malformed in the project's own file, is fixed by the human on the default
@@ -307,3 +320,23 @@ the page text, and its `…` rule, follow here. Settled while writing this spec:
 
 **Medium**: it changes the format of `PRIORITIES.md` for every project, with a warning and no
 conversion, and adds edits to `INBOX.md`.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-25: 4 comments in spec-review.md.
+>
+> - You approve the priorities as scrolling columns of draggable cards, the inbox as a pane per
+>   category, a detail that opens in an overlay, a `…` menu on every line, and categories you
+>   create, rename, and delete.
+> - The vim keys and the key map are not here: you chose to build them as the next feature. This
+>   spec keeps the movement keys, and adds `h l` between columns.
+> - Blocked is retired from the file's format, the template, the skill, and `ura check`. A file that
+>   still has lines under it keeps them visible, with a warning.
+> - A section's context is the first `> [!NOTE]` callout under its heading, read-only in the app.
+> - The mockups are HTML layout pages, not stories: the plan's first tasks write the stories, and
+>   the decision on previews allows an HTML layout mockup only beside its story.
+> - The overlay replaces the pane beside the list, which the layout decision prefers. Its own clause
+>   lets a spec say why: four columns leave no room for a pane.
+> - Risk tier `medium`: the format of `PRIORITIES.md` changes for every project.

@@ -178,3 +178,47 @@ body.pad {
   overflow-x: auto;
   padding-bottom: 10px;
 }
+.card .lbl,
+.note .lbl {
+  position: absolute;
+  top: -0.8em;
+  left: 8px;
+  background: var(--base);
+  padding: 0 5px;
+  font-size: 0.82em;
+  color: var(--green);
+}
+.card .lbl.draft,
+.note .lbl.draft {
+  color: var(--mauve);
+}
+.note {
+  position: relative;
+  border: 1px solid var(--line);
+  margin: 12px 0 8px;
+  padding: 6px 8px;
+}
+.note.sel {
+  border-color: var(--lav);
+}
+.choices {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+.choice {
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+}
+.choice.first {
+  border-color: var(--lav);
+  color: var(--lav);
+}
+.choice kbd {
+  color: var(--lav);
+  border: 1px solid var(--line);
+  padding: 0 6px;
+  font: inherit;
+}

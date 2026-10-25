@@ -5,15 +5,15 @@ plan's.
 
 ## PRIORITIES.md
 
-The file keeps its sections. A section's context is a callout under its heading, and Blocked is
-retired.
+The file keeps its sections. A section's context is a callout of any type under its heading, and
+Blocked is retired.
 
-| Field                           | Type                | Meaning                                                                                  | Change  |
-| ------------------------------- | ------------------- | ---------------------------------------------------------------------------------------- | ------- |
-| `## Now`, `## Next`, `## Later` | heading             | A section, in this order: the columns of the priorities page                             |         |
-| Section context                 | `> [!NOTE]` callout | The first callout after a heading, before its first entry: what the section means now    | New     |
-| `## Blocked`                    | heading             | Retired: the template, the skill, and `ura check` no longer have it                      | Removed |
-| Lines under `## Blocked`        | entries             | Still read and shown while they exist, and `ura check` warns that the section is retired | Changed |
+| Field                           | Type    | Meaning                                                                                             | Change  |
+| ------------------------------- | ------- | --------------------------------------------------------------------------------------------------- | ------- |
+| `## Now`, `## Next`, `## Later` | heading | A section, in this order: the columns of the priorities page                                        |         |
+| Section context                 | callout | The first callout, of any type, after a heading, before its first entry: what the section means now | New     |
+| `## Blocked`                    | heading | Retired: the template, the skill, and `ura check` no longer have it                                 | Removed |
+| Lines under `## Blocked`        | entries | Still read and shown while they exist, and `ura check` warns that the section is retired            | Changed |
 
 The context is the callout's text, as the reader sees it. Only the first callout of a section
 counts. A callout whose marker line stands alone, with its text in a separate quote, has no text:
