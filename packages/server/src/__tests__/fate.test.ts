@@ -606,3 +606,15 @@ test("a feature's tokens are whole when every ended turn has counts", () => {
     ]),
   ).toEqual({ input: 5, output: 4, partial: false, since: "2026-10-18T10:00:00.000Z" });
 });
+
+test("the priorities carry each section's context", async () => {
+  const [priorities] = await byId(
+    (await testApp()).app,
+    "Priorities",
+    ["priorities"],
+    ["sections"],
+  );
+  const next = priorities.sections.find((s: { section: string }) => s.section === "next");
+
+  expect(next?.context).toBe("What comes once Now is done");
+});

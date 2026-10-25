@@ -4,6 +4,7 @@ import { expect, test } from "vite-plus/test";
 import { byId, type Data, fixture, fixtureRepo, git, mutate, port, testApp } from "./helpers.ts";
 
 const INBOX = ["id", "hash", "categories", "names", "count", "changes", "triage"];
+const WITH_REMOVED = [...INBOX, "removed"];
 const FILE = ["id", "folder", "name", "path", "kind", "status", "current", "missing"];
 
 type App = Awaited<ReturnType<typeof testApp>>["app"];
@@ -504,4 +505,82 @@ test("an Undo of each move puts both files back in one call", async () => {
       read(repo, path),
     ),
   ).toEqual(before);
+});
+
+test("a category is added, renamed, and deleted, and a delete's removed text restores the file", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const before = read(repo, "specs/INBOX.md");
+  const first = await readInbox(app);
+
+  const added = await mutate(
+    app,
+    "inbox.addCategory",
+    { hash: first.hash, name: "Docs" },
+    WITH_REMOVED,
+  );
+  expect(added.data.names).toEqual(["UI", "CLI", "Docs"]);
+  expect(added.data.removed).toBeNull();
+  const renamed = await mutate(
+    app,
+    "inbox.renameCategory",
+    { from: "Docs", hash: added.data.hash, to: "Guides" },
+    WITH_REMOVED,
+  );
+  expect(renamed.data.names).toEqual(["UI", "CLI", "Guides"]);
+  expect(renamed.data.removed).toBeNull();
+  const gone = await mutate(
+    app,
+    "inbox.removeCategory",
+    { hash: renamed.data.hash, keepNotes: false, name: "Guides" },
+    WITH_REMOVED,
+  );
+  expect(gone.data.names).toEqual(["UI", "CLI"]);
+
+  const deleted = await mutate(
+    app,
+    "inbox.removeCategory",
+    { hash: gone.data.hash, keepNotes: false, name: "UI" },
+    WITH_REMOVED,
+  );
+  const removedText = deleted.data.removed;
+  expect(removedText).toContain("## UI");
+  expect(read(repo, "specs/INBOX.md")).not.toContain("## UI");
+  const restored = await mutate(
+    app,
+    "inbox.restoreCategory",
+    { before: removedText, hash: deleted.data.hash },
+    WITH_REMOVED,
+  );
+  expect(restored.data.removed).toBeNull();
+  expect(restored.data.names).toEqual(["UI", "CLI"]);
+  expect(read(repo, "specs/INBOX.md")).toBe(removedText);
+  expect(removedText).toBe(before);
+});
+
+test("a delete's removed text is the file as it was", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const before = read(repo, "specs/INBOX.md");
+  const { hash } = await readInbox(app);
+
+  const deleted = await mutate(
+    app,
+    "inbox.removeCategory",
+    { hash, keepNotes: false, name: "UI" },
+    WITH_REMOVED,
+  );
+
+  expect(deleted.data.removed).toBe(before);
+});
+
+test("a category named like another is refused with its message", async () => {
+  const { app } = await testApp(fixtureRepo());
+  const { hash } = await readInbox(app);
+
+  const result = await mutate(app, "inbox.addCategory", { hash, name: "UI" }, ["id"]);
+
+  expect(result.ok).toBe(false);
+  expect(result.error?.code).toBe("BAD_REQUEST");
+  expect(result.error?.message).toBe("refused: A category named UI exists.");
 });

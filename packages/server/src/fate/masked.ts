@@ -27,10 +27,14 @@ export const priorities = (
 export const draft = (ctx: Context, record: Omit<DraftRecord, "id">, select: Array<string>) =>
   sources.masked(draftDataView, ctx, { id: record.path, ...record }, select);
 
-/** The inbox, with `added` when the answer is an add's, as for the priorities. */
+/**
+ * The inbox, with `added` when the answer is an add's, as for the priorities, and `removed`, the
+ * file as it was, when the answer is a category's delete.
+ */
 export const inbox = (
   ctx: Context,
   record: Inbox,
   select: Array<string>,
   added: AddCommit | null = null,
-) => sources.masked(inboxDataView, ctx, { ...sentInbox(record), added }, select);
+  removed: string | null = null,
+) => sources.masked(inboxDataView, ctx, { ...sentInbox(record), added, removed }, select);
