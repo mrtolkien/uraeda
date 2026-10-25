@@ -197,6 +197,7 @@ async function branchDecision(
 /** The record of a folder that is not a feature's: marked missing, its other fields empty. */
 function missingFeature(folder: string): FeatureRecord {
   return {
+    agent: null,
     files: [],
     folder,
     id: folder,
