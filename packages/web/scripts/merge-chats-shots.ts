@@ -15,7 +15,7 @@ const result = { denials: [], errors: [], interrupted: false, ok: true, type: "r
 const KINDS = {
   change: "A bug fix or a small change",
   feature: "A larger piece of work",
-  session: "It offers a change when the work grows.",
+  session: "Talk to the agent in the main checkout, like plain Claude Code.",
 } as const;
 
 const OFFER = [

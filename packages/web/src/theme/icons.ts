@@ -63,7 +63,7 @@ import {
   outline,
 } from "./lucide.ts";
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
-import { badgeCheck, lightbulb, map, scale, shield } from "./lucideParts.ts";
+import { badgeCheck, hourglass, lightbulb, map, scale, shield } from "./lucideParts.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The README's
@@ -176,11 +176,13 @@ export const uraedaIcons = {
   "uraeda:attach": attach,
   "uraeda:badge-check": badgeCheck,
   "uraeda:book-open": bookOpen,
+  "uraeda:bot": bot,
   "uraeda:comment": comment,
   "uraeda:crop": crop,
   "uraeda:database": database,
   "uraeda:enter": enter,
   "uraeda:eye": review,
+  "uraeda:file-text": fileText,
   "uraeda:flag": flag,
   "uraeda:globe": globe,
   // An unknown harness: Lucide's `bot`.
@@ -190,6 +192,7 @@ export const uraedaIcons = {
   "uraeda:harness-pi": pi,
   "uraeda:history": history,
   "uraeda:home": home,
+  "uraeda:hourglass": hourglass,
   "uraeda:inbox": inbox,
   "uraeda:key-round": keyRound,
   "uraeda:layers": layers,

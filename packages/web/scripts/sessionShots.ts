@@ -131,7 +131,7 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
 
 async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   // Two chats: one replied to, one whose action auto mode blocked.
-  await show(first, "/new", "It offers a change when the work grows.");
+  await show(first, "/new", "Talk to the agent in the main checkout, like plain Claude Code.");
   let id = await send(adapter, first, "Why is CI slow on WebKit?");
   adapter.emit({ id, type: "accepted" });
   adapter.emit({
@@ -142,7 +142,7 @@ async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   await first.waitForURL(/\/sessions\//);
   const replied = here(first);
   await each("chat", ({ page }) => show(page, replied, "draws without a GPU"));
-  await show(first, "/new", "It offers a change when the work grows.");
+  await show(first, "/new", "Talk to the agent in the main checkout, like plain Claude Code.");
   id = await send(adapter, first, "Tag v0.3.0 and push the tag.");
   adapter.emit({ id, type: "accepted" });
   adapter.emit({
@@ -166,7 +166,7 @@ async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   const chat = here(first);
   await each("chat-blocked", ({ page }) => show(page, chat, "Allow and retry"));
   await each("chat-new", ({ page }) =>
-    show(page, "/new", "It offers a change when the work grows."),
+    show(page, "/new", "Talk to the agent in the main checkout, like plain Claude Code."),
   );
 }
 

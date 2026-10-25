@@ -641,7 +641,7 @@ git commit -m "feat(session-new): column panels, a split panel, and the session 
 - Produces: `KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewKind) => void })`: a
   `radiogroup` named "What to start" of three `radio` cards named "Session", "Change", "Feature".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/new-page.test.tsx
@@ -697,13 +697,13 @@ The break each test catches:
 - Arrows: cards as buttons, with no roving focus.
 - Facts' line: the label and value in a grid column far apart, as C3 found.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/new-page.test.tsx`
 - Expected: FAIL, `Unable to find role="radio" and name "Session"` inside the cards' group, the
   segmented control's radios having no "Ends with".
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Each card is a `Pane` titled by the kind with its icon, `isActive` when picked, inside a raw element
 with `role="radio"`, `aria-checked`, and a roving `tabIndex`, in a `role="radiogroup"` (the Astryx
@@ -712,15 +712,20 @@ secondary text (not drawn at narrow widths), then "Ends with" and "Waits on you"
 icon, the label in secondary text, and its value right after it. Arrow keys move the focus and the
 pick, Home and End to the ends; a click or Space picks. Picking replaces the address, as today:
 `/new` for Session, `/new?kind=<kind>` otherwise. Three columns at semi-wide and wide, stacked at
-narrow, through the width class. The forms under the cards are unchanged.
+narrow, through the width class. The forms under the cards are unchanged, but for the Feature form's
+title and button, which wrap on the phone as the mockup's row does: the page's layout check at the
+phone found the button's text cut. The facts are a `dl`, each label a `dt` and its value a `dd`; the
+cards' icons are Lucide's `bot`, `wrench`, and `file-text`, and the facts' `flag` and `hourglass`.
+The waits of the screenshots and the tests that read the old Session sentence now read the card's.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then
-  `nix develop -c vp test run --config packages/web/vite.browser.config.ts packages/web/src/__browser__/new-cards.test.tsx packages/web/src/__browser__/new-change.test.tsx`
+  `nix develop -c vp test run --project desktop packages/web/src/__browser__/new-cards.test.tsx packages/web/src/__browser__/new-change.test.tsx`
+  and the same with `--project phone`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-25-session-new/plan.md
