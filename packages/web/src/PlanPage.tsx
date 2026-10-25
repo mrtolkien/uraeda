@@ -179,7 +179,8 @@ function PlanParts({
 
 /**
  * The plan's entries in Contents, in its file's order: each lead pane, then each section's, a
- * task's "N <title>", each with the pending comments on its lines; a comment on a block of no pane,
+ * task's "N <title>", ✓ once its steps are all checked, ○ before, each with the pending comments
+ * on its lines; a comment on a block of no pane,
  * like the title, counts on the first entry.
  */
 function planEntries(
@@ -190,7 +191,9 @@ function planEntries(
   const { opening, sections } = planParts(document, items);
   const lastLine = (ids: ReadonlyArray<number>, from: Block) =>
     document.blocks[ids.at(-1) ?? from.id]?.endLine ?? from.endLine;
-  const panes = [
+  const panes: Array<
+    { first: number; id: string; label: string; last: number } & Pick<Entry, "state">
+  > = [
     ...opening.flatMap((run) => {
       const block = run.kind === "lead" ? document.blocks[run.block] : undefined;
       return run.kind === "lead" && block
@@ -202,6 +205,7 @@ function planEntries(
       id: sectionId(heading),
       label: task ? `${task.number} ${task.title}` : (heading.heading ?? ""),
       last: lastLine(ids, heading),
+      ...(task ? { state: task.done === task.total ? "done" : "open" } : {}),
     })),
   ];
   const counts = new Map<string, number>();
@@ -212,7 +216,13 @@ function planEntries(
       counts.set(id, (counts.get(id) ?? 0) + 1);
     }
   }
-  return panes.map(({ id, label }) => ({ count: counts.get(id) ?? 0, id, label, nested: false }));
+  return panes.map(({ id, label, state }) => ({
+    count: counts.get(id) ?? 0,
+    id,
+    label,
+    nested: false,
+    ...(state ? { state } : {}),
+  }));
 }
 
 /**

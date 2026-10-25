@@ -273,12 +273,31 @@ test("a plan waiting for review has Contents and Review", async () => {
   const rows = within(panel("Contents"))
     .getAllByRole("link")
     .map((link) => link.textContent);
-  expect(rows).toEqual(["Goal", "Global constraints", "1 The repeat menu"]);
+  // A task's row says whether its steps are all checked, ○ before, as the round's questions do.
+  expect(rows).toEqual(["Goal", "Global constraints", "○ 1 The repeat menu (not done)"]);
   await click(within(tabList()).getByRole("tab", { name: /^Review/ }));
   // A plan has no risk tier and no plan review: its summary alone is at the end.
   expect(panel("Review").textContent).toContain(
     "Your summary is with the verdict at the page's end.",
   );
+});
+
+/** US6: a plan's task whose steps are all checked reads ✓ in Contents, as an answered question. */
+test("a plan's task done reads ✓ in Contents", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  commitOnBranch(repo, SPEC_FEATURE, {
+    [PLAN]: PLAN_TEXT.replace("status: awaiting-human", "status: auto-approved").replace(
+      "- [ ]",
+      "- [x]",
+    ),
+  });
+  await renderPage(`/f/${SPEC_FEATURE}/plan.md`, repo);
+  await screen.findByRole("region", { name: "Goal" });
+
+  expect(
+    within(panel("Contents")).getByRole("link", { name: /1 The repeat menu/ }).textContent,
+  ).toBe("✓ 1 The repeat menu (done)");
 });
 
 /** The plan of `PLAN_TEXT` with pending comments, `comments` their markdown given its lines. */
