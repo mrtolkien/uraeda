@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Session and New in the terminal look](/specs/2026-10-25-session-new/proposal.md)
 - [Inbox and priorities in the terminal look](/specs/2026-10-25-inbox-priorities/proposal.md)
 - [Feature page in the terminal look](/specs/2026-10-25-feature-page/proposal.md)
 

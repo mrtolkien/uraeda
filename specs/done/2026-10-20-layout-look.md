@@ -324,7 +324,7 @@ owners' approval, and neutral glyphs for the others.
 
 - The questions page, the spec and plan pages, and the lists and starts are drafts in Now:
   [questions page](2026-10-24-questions-page.md), [spec page](2026-10-24-spec-page.md), and the
-  lists and starts, since split into [session and New](../2026-10-25-session-new/proposal.md),
+  lists and starts, since split into [session and New](2026-10-25-session-new.md),
   [inbox and priorities](../2026-10-25-inbox-priorities/proposal.md), and
   [feature page](../2026-10-25-feature-page/proposal.md). The session beside a document and the
   kanban priorities wait there.
