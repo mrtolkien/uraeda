@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-
 - Full interactive UI pass: manual small fixes
 - Leader key/shortcut map
 - Empty inbox
