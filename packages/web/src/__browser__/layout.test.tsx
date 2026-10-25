@@ -739,12 +739,18 @@ test.each(MODES)("a round whose options are stories, ready, in $mode", async ({ 
   await checkLayout();
 });
 
-test.each(MODES)("the Storybook page, ready, in $mode", async ({ mode }) => {
+test.each(MODES)("the story page, ready, in $mode", async ({ mode }) => {
   await colorScheme(mode);
   await commands.addStoryFeature();
-  await show("/f/2026-10-20-sidebar-resize/storybook", "Storybook");
+  await show(
+    "/f/2026-10-20-sidebar-resize/storybook?story=packages/web/src/SidebarHandle.stories.tsx%23Dragging",
+    "Story",
+  );
+  (await screen.findByRole("figure", { name: "Dragging" })).scrollIntoView();
   await expect
-    .poll(() => commands.frameText("Storybook"), { timeout: 20_000 })
+    .poll(() => commands.frameText(`Dragging, ${window.innerWidth >= 768 ? "desktop" : "phone"}`), {
+      timeout: 20_000,
+    })
     .toContain("Dragging");
   await checkLayout();
 });

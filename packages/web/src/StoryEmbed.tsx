@@ -7,7 +7,6 @@
 // pick mode and a comment.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -21,8 +20,7 @@ import { refusal } from "./errors.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import type { Fit } from "./LiveFrame.tsx";
 import { FullScreenButton, type Live, LiveWindow, useLiveWindow } from "./LiveWindow.tsx";
-import { useRepoPath } from "./routes.tsx";
-import { PreviewBase, storybookHref } from "./stories.tsx";
+import { PreviewBase } from "./stories.tsx";
 import { StoryFrames, type Width } from "./StoryFrames.tsx";
 import {
   type EmbedComment,
@@ -48,20 +46,6 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
   },
 });
-
-/** "Open in Storybook", at a page of Uraeda's: a named icon. */
-function OpenInStorybook({ href }: { href: string }) {
-  const here = useRepoPath();
-  return (
-    <IconButton
-      href={here(href)}
-      icon={<Icon icon="externalLink" />}
-      label="Open in Storybook"
-      size="sm"
-      variant="ghost"
-    />
-  );
-}
 
 /** Why the story does not show, or its Storybook: the Storybook page shows it too. */
 export function State({ children, error = false }: { children: ReactNode; error?: boolean }) {
@@ -160,14 +144,12 @@ function ReadyStory({
   label,
   pick,
   shell,
-  storybook,
 }: {
   comment?: EmbedComment;
   frame: string;
   label: string;
   pick: StoryPick;
   shell: Shell;
-  storybook: string;
 }) {
   const { live, setFit, wide } = shell;
   const [width, setWidth] = useState<Width>(wide ? "desktop" : "phone");
@@ -188,7 +170,6 @@ function ReadyStory({
         <WidthSwitch onChange={setWidth} wide={wide} width={width} />
         {comment && <PickControls pick={pick} wide={wide} />}
         <FullScreenButton screen={live.screen} />
-        {!full && <OpenInStorybook href={storybook} />}
       </Actions>
       {comment && <PickHint picking={pick.picking} />}
       <StoryFrames
@@ -222,16 +203,9 @@ function LiveStory({
   story: StoryTarget;
 }) {
   const record = useStory(folder, story);
-  if (record?.state === "ready" && record.frame && record.storybook) {
+  if (record?.state === "ready" && record.frame) {
     return (
-      <ReadyStory
-        comment={comment}
-        frame={record.frame}
-        label={label}
-        pick={pick}
-        shell={shell}
-        storybook={record.storybook}
-      />
+      <ReadyStory comment={comment} frame={record.frame} label={label} pick={pick} shell={shell} />
     );
   }
   if (record?.state === "failed") {
@@ -247,9 +221,6 @@ function LiveStory({
   if (record?.state === "missing") {
     return (
       <>
-        <Actions shell={shell}>
-          <OpenInStorybook href={storybookHref(folder)} />
-        </Actions>
         {removed ? (
           <State>This variant was removed after your answer.</State>
         ) : (

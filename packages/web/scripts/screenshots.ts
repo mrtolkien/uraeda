@@ -19,7 +19,13 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Browser, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
-import { addStoryFeature, fixtureRepo, git, STORY_FEATURE } from "uraeda-binding/test-utils";
+import {
+  addStoryFeature,
+  fixtureRepo,
+  git,
+  STORIES_FILE,
+  STORY_FEATURE,
+} from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
@@ -462,7 +468,7 @@ async function takeReviews(each: Each, first: Page) {
   });
 }
 
-/** A spec embedding a story, in pick mode too, and the Storybook page, on the fake preview. */
+/** A spec embedding a story, in pick mode too, and the story page, on the fake preview. */
 async function takeStories(each: Each) {
   await each("story-embed", async ({ page }) => {
     await show(page, `/f/${STORY_FEATURE}/spec.md`, "Resize the sidebar");
@@ -480,11 +486,14 @@ async function takeStories(each: Each) {
     await frame.getByRole("button", { name: "Hide the sidebar" }).hover();
     await settle(page);
   });
-  await each("storybook-page", async ({ page }) => {
-    await show(page, `/f/${STORY_FEATURE}/storybook`, "Storybook");
+  await each("story-page", async ({ page }) => {
+    await show(
+      page,
+      `/f/${STORY_FEATURE}/storybook?story=${encodeURIComponent(`${STORIES_FILE}#Dragging`)}`,
+      "Story",
+    );
     await page
-      .frameLocator('iframe[title="Storybook"]')
-      .frameLocator('iframe[title="storybook-preview-iframe"]')
+      .frameLocator('iframe[title^="Dragging, "]')
       .getByText("Clicked 0 times")
       .waitFor({ timeout: 20_000 });
     await settle(page);
