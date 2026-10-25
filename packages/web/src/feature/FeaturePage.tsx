@@ -212,8 +212,8 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
           )}
         </Suspense>
         <Timeline feature={feature} history={history} progress={feature.step.progress} />
-        {inline && <FeatureColumn feature={feature} history={history} keys={keys} />}
         <RecordPart feature={feature} history={history} keys={keys} />
+        {inline && <FeatureColumn feature={feature} history={history} keys={keys} />}
         <Notes notes={feature.notes} />
       </VStack>
     </Page>
