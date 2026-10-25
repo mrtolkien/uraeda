@@ -24,10 +24,11 @@ import { sessionPath } from "../sessions.ts";
 import { StatusMark } from "../StatusMark.tsx";
 import { SessionView } from "../views.ts";
 import { clearPending, markPending } from "../writes/store.ts";
-import { cardStyles } from "./NextCard.tsx";
 import { clock, day, duration } from "./times.ts";
 
 const styles = stylex.create({
+  // The card fills its cell of the row, so it and "Next" share one height.
+  fill: { height: "100%" },
   subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
 });
 
@@ -197,8 +198,8 @@ export function SessionsCard({
 }) {
   const agent = useAgent();
   return (
-    <section aria-label="Sessions" {...stylex.props(cardStyles.fill)}>
-      <Card padding={4} xstyle={cardStyles.fill}>
+    <section aria-label="Sessions" {...stylex.props(styles.fill)}>
+      <Card padding={4} xstyle={styles.fill}>
         <VStack gap={3}>
           <HStack align="center" gap={2} justify="between" wrap="wrap">
             <Heading level={2}>Sessions</Heading>

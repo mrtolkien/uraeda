@@ -122,17 +122,21 @@ async function fakeGh(repo: string, pulls: Array<Record<string, unknown>>) {
 }
 
 /** US1.1 */
-test("a feature being built says the agent is building, with no button", async () => {
+test("a build says the agent is building, with its task and Open the session", async () => {
   const repo = fixtureRepo();
   addPlan(repo, CLI, ELEVEN);
+  const fake = await fakeAgent();
+  await liveRun(fake, repo);
 
-  await renderPage(`/f/${CLI}`, repo, { agent: true });
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
   const next = await nextCard();
   expect(next.getByRole("heading", { name: "The agent is building" })).toBeTruthy();
   expect(next.getByText("Task 7 of 11: Session column")).toBeTruthy();
   expect(next.queryByRole("button")).toBeNull();
-  expect(next.queryByRole("link")).toBeNull();
+  expect(next.getByRole("link", { name: "Open the session" }).getAttribute("href")).toBe(
+    atRepo(`/f/${CLI}/session`),
+  );
   expect(currentStage()).toBe("Build");
 });
 
@@ -416,14 +420,13 @@ test("without the agent, its card says so", async () => {
   expect(sessionsCard().getByText("Claude Code is not available on this machine.")).toBeTruthy();
 });
 
-test("an agent's step names it, and that the session starts it", async () => {
+/** US2.1 */
+test("an idle agent offers the recommended message as Continue", async () => {
   await renderPage(`/f/${CLI}`, fixtureRepo(), { agent: true });
 
   const next = await nextCard();
   expect(next.getByRole("heading", { name: "The agent writes the plan" })).toBeTruthy();
-  expect(
-    next.getByText("The agent takes it from here: open the session to start it."),
-  ).toBeTruthy();
+  expect(await next.findByRole("button", { name: "Continue, write the plan" })).toBeTruthy();
   expect(next.queryByRole("link")).toBeNull();
 });
 

@@ -134,3 +134,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   rejected, `story-embed.test.tsx` already covers the states, and R3 the layout.
 - **If wrong**: a story page's own states are untested in the browser; the browser run lists them.
 - **Where**: task 3.
+
+## R12: The web's tests live in `src/__tests__/`
+
+- **Decision**: task 5's pure test of `nextOf` is `packages/web/src/__tests__/next.test.ts`, not
+  `feature/__tests__/next.test.ts`.
+- **Rationale**: every web test, pure ones included (`done.test.ts`, `figures.test.ts`), sits in one
+  folder; `feature/` has no `__tests__`.
+- **Alternatives considered**: a new `feature/__tests__/` folder: rejected, a second place for the
+  same kind of file.
+- **If wrong**: move the file; its imports are the only change.
+- **Where**: task 5, and the later tasks' pure tests (`stageFiles`, `figureRows`) follow it.
