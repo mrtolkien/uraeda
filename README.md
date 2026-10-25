@@ -140,7 +140,7 @@ you were asked to weigh.
 specs/
   README.md                    # the folder layout, for any agent or human
   CONSTITUTION.md              # the project's principles, by priority, written with you at setup
-  PRIORITIES.md                # Now, Next, Later, Blocked
+  PRIORITIES.md                # Now, Next, Later
   INBOX.md                     # notes jotted down, waiting to be organized
   drafts/                      # upcoming features, free form: one becomes a dated folder when you
                                # say "start it"

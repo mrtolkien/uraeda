@@ -252,7 +252,7 @@ fn priorities_sections_are_symbols() {
         .flatten()
         .map(|symbol| symbol.name.as_str())
         .collect();
-    assert_eq!(sections, ["Now", "Next", "Later", "Blocked"]);
+    assert_eq!(sections, ["Now", "Next", "Later"]);
 }
 
 #[test]

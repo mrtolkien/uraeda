@@ -76,7 +76,10 @@ checks:
 - the `> [!IMPORTANT]` block of a file waiting for the human;
 - a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date, its numbered rounds and questions,
   and its opening `> [!NOTE]` block;
-- `PRIORITIES.md`'s `## Now`, `## Next`, `## Later`, and `## Blocked`;
+- `PRIORITIES.md`'s `## Now`, `## Next`, and `## Later`; a section's context is the first callout of
+  any type under its heading, its text in the same callout as its marker (a warning otherwise).
+  `## Blocked` no longer exists: a blocked line goes after what it needs, and a line left under it
+  warns;
 - `specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
 - `specs/INBOX-TRIAGE.md` and `specs/DECISIONS-CHECK.md` as rounds of questions, with their
   templates' titles and sections, their `status`, their answers, and their blocks;

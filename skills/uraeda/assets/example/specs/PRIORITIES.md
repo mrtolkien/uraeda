@@ -2,9 +2,17 @@
 
 ## Now
 
+> [!NOTE]
+>
+> The bug fix and the feature in progress
+
 1. [Completed tasks reappear after reload](/specs/changes/2026-10-14-tasks-reappear/proposal.md)
 
 ## Next
+
+> [!NOTE]
+>
+> Features for the next release, in order
 
 1. [Due date reminders](drafts/due-date-reminders.md)
 2. [Keyboard shortcuts](drafts/keyboard-shortcuts.md)
@@ -12,8 +20,9 @@
 
 ## Later
 
+> [!NOTE]
+>
+> Nice to have, and what waits on something else
+
 - [Mobile layout](backlog/mobile-layout.md)
-
-## Blocked
-
-- Sync between devices, blocked by: needs a server, against the constitution's local first principle
+- Sync between devices, after a server: against the constitution's local first principle

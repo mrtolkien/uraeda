@@ -10,7 +10,7 @@ Without it, the file names and their `status` fields still tell where each featu
 ## Layout
 
 - `CONSTITUTION.md`: the project's principles, by priority. Binding for all work.
-- `PRIORITIES.md`: what is worked on now, next, and later, and what is blocked
+- `PRIORITIES.md`: what is worked on now, next, and later
 - `INBOX.md`: notes about the software, by category, waiting to become priorities, drafts, changes,
   or nothing; and `INBOX-TRIAGE.md`, an agent's proposal for them, answered like questions
 - `DECISIONS-CHECK.md`: an agent's questions about how the decisions fit together, answered like

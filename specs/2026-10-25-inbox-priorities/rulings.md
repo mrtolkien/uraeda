@@ -49,7 +49,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   The test guarded the rule the spec removes.
 - **Alternatives considered**: None: the test's rule is gone.
 - **If wrong**: Restore the test with the requirement.
-- **Where**: task 2.
+- **Where**: task 2. The test of the CLI's `check --json` that read the same missing Blocked now
+  reads a missing Later.
 
 ## R5: A category edit acts on every heading of its name, and names compare exactly
 
@@ -88,3 +89,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   item, which axe refuses. Dropping the plugin and announcing by hand: a second announcer to keep.
 - **If wrong**: Replace the hidden handle with the announcer of the alternative.
 - **Where**: task 1.
+
+## R8: The fixture's Later holds the old Blocked line, so three tests read the end of the file
+
+- **Decision**: The fixture repository moves its Blocked line to the end of Later, and the tests
+  that expected a new line to come "before `## Blocked`" (`a_drafted_line_takes_its_children`,
+  `a_note_becomes_a_draft_linked_from_the_priorities`) expect it after that line, at the end of the
+  file.
+- **Rationale**: The plan moves the fixture's Blocked line to Later. The tests only used the heading
+  as the end of the section.
+- **Alternatives considered**: Keeping an empty `## Blocked` in the fixture: the retired section
+  stays in the files the tests copy.
+- **If wrong**: Put the line first in Later and restore the old expectations.
+- **Where**: task 2.

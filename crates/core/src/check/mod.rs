@@ -5,6 +5,7 @@ mod answers;
 mod decision;
 mod links;
 mod names;
+mod priorities;
 mod sections;
 mod spec;
 mod unapproved;
@@ -366,7 +367,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     let front = values::check_frontmatter(file, &mut problems);
     let document = markdown::Document::parse(file.text);
     match file.kind {
-        Checked::Priorities => sections::check_priorities(file, &document, &mut problems),
+        Checked::Priorities => priorities::check_priorities(file, &document, &mut problems),
         Checked::Inbox => sections::check_inbox(file, &document, &mut problems),
         Checked::Workflow(FileKind::Review) => check_review(file, &mut problems),
         _ => sections::check_sections(file, &document, &mut problems),

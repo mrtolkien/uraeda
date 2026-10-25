@@ -684,7 +684,7 @@ fn a_drafted_line_takes_its_children() {
         "{text}"
     );
     assert!(repo.read("specs/PRIORITIES.md").contains(&format!(
-        "## Later\n\n- [{NIX}](drafts/nix-docker-based-execution-environments.md)\n\n## Blocked"
+        "\n\n- [{NIX}](drafts/nix-docker-based-execution-environments.md)\n- Benchmarks: after the runner is ready\n"
     )));
 }
 
@@ -1041,4 +1041,75 @@ fn a_folder_without_its_proposal_is_no_draft() {
     assert_eq!(drafts(&repo), expected);
     repo.switch_new("2026-10-17-feature");
     assert_eq!(drafts(&repo), expected);
+}
+
+#[test]
+fn a_tip_callout_with_a_blank_quote_line_is_the_context() {
+    let text = "# Priorities\n\n## Now\n\n> [!TIP]\n>\n> Features for v1.0.0\n\n- A\n";
+
+    let read = priorities::read(text, None);
+
+    assert_eq!(
+        read.sections[0].context.as_deref(),
+        Some("Features for v1.0.0")
+    );
+    assert_eq!(read.sections[0].entries.len(), 1);
+    let contexts = priorities::contexts(text);
+    assert_eq!(contexts.len(), 1);
+    assert_eq!(contexts[0].section, Section::Now);
+    assert_eq!(contexts[0].line, 5);
+}
+
+#[test]
+fn the_text_after_the_marker_on_its_line_is_the_context() {
+    let text = "# Priorities\n\n## Next\n\n> [!question] Which *one*\n> goes first?\n\n- A\n";
+
+    assert_eq!(
+        priorities::read(text, None).sections[1].context.as_deref(),
+        Some("Which one goes first?")
+    );
+}
+
+#[test]
+fn only_the_first_callout_and_its_first_paragraph_count() {
+    let text = "# Priorities\n\n## Next\n\n> A plain quote\n\n> [!NOTE]\n> First\n> line\n>\n> Second paragraph\n\n> [!TIP]\n> Another callout\n\n- A\n\n> [!TIP]\n> After an entry\n";
+
+    let read = priorities::read(text, None);
+
+    assert_eq!(read.sections[1].context.as_deref(), Some("First line"));
+    assert_eq!(priorities::contexts(text).len(), 1);
+}
+
+#[test]
+fn a_marker_alone_has_no_context() {
+    let text = "# Priorities\n\n## Now\n\n> [!NOTE]\n\n> text\n";
+
+    let contexts = priorities::contexts(text);
+
+    assert_eq!(contexts.len(), 1);
+    assert_eq!(contexts[0].text, None);
+    assert_eq!(contexts[0].line, 5);
+    assert_eq!(priorities::read(text, None).sections[0].context, None);
+}
+
+#[test]
+fn a_section_without_a_callout_has_no_context() {
+    let text =
+        "# Priorities\n\n## Now\n\n- A\n\n## Next\n\n- B\n> [!NOTE]\n> not before an entry\n";
+
+    assert!(priorities::contexts(text).is_empty());
+    assert!(
+        priorities::read(text, None)
+            .sections
+            .iter()
+            .all(|s| s.context.is_none())
+    );
+}
+
+#[test]
+fn read_keeps_four_sections() {
+    let read = priorities::read("# Priorities\n\n## Now\n\n## Next\n\n## Later\n", None);
+
+    let titles: Vec<&str> = read.sections.iter().map(|s| s.title.as_str()).collect();
+    assert_eq!(titles, ["Now", "Next", "Later", "Blocked"]);
 }

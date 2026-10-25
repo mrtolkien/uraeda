@@ -396,22 +396,6 @@ pub(super) fn check_settled_subjects(
     }
 }
 
-pub(super) fn check_priorities(file: &File<'_>, document: &Document, problems: &mut Vec<Problem>) {
-    for section in ["Now", "Next", "Later", "Blocked"] {
-        let present = document
-            .headings
-            .iter()
-            .any(|h| h.level == 2 && h.text == section);
-        if !present {
-            problems.push(file.problem(
-                None,
-                "sections.missing",
-                format!("missing section \"## {section}\""),
-            ));
-        }
-    }
-}
-
 /// `inbox.*`: the inbox is titled `# Inbox`, and names each category once. Tools add to a repeated
 /// category's first heading, so the second is reported. An empty heading names no category.
 pub(super) fn check_inbox(file: &File<'_>, document: &Document, problems: &mut Vec<Problem>) {

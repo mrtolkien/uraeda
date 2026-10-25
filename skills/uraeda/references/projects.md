@@ -112,7 +112,7 @@ Do these only when a human asks.
   rounds, and the questions, answered or not, stay as they are. Revert the branch's edits to the
   decisions: delete the ones it created. Restore the ones it changed or removed to their text at the
   merge base with the default branch. In the same commit, move the `PRIORITIES.md` entry to the
-  right section, with the reason when it is blocked, and link it to the folder's `proposal.md`.
+  right section, after what it needs when it is blocked, and link it to the folder's `proposal.md`.
   Commit with `chore(<slug>): postpone <feature name>`, merge the branch into the default branch,
   and delete it.
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
