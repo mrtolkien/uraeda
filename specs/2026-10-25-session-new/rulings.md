@@ -280,3 +280,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `EarlierRecap` in `session/RecapLine.tsx`, drawn by `TranscriptItems`, and `follows`
   in `tailPieces.tsx`.
 - **Where**: task 6, `packages/web/src/TranscriptMessages.tsx`, `packages/web/src/tailPieces.tsx`.
+
+## R23: The phone's sheet is one, named Activity, with the column's tabs
+
+- **Decision**: on the phone, the session's column opens in one sheet, named "Activity" after the
+  status line's button that opens it, whichever panel shows. While more than one panel shows, the
+  column's tabs head it, and a tap on one replaces `?tab=` in the sheet's own history entry, so Back
+  closes the sheet rather than stepping back through its tabs. `useSheetTab` names every panel's
+  sheet "Activity", and `DocumentColumn` shares its tab list, `ColumnTabs`.
+- **Rationale**: ui-behaviour asks every action to work by tap, and the approved mockup's phone
+  sheet is the column itself, tabs included (`mockups/session.html#sheet`); a sheet per panel, as
+  the documents' status lines draw, opened the Sub-agents only from the address.
+- **Alternatives considered**: a sheet per panel, a tab switching from one to the other, which
+  closes one sheet and opens another, and pushes a history entry for each; the sheet named "The
+  session's column", against the status line's Activity that opens it.
+- **If wrong**: `ColumnSheet` in `packages/web/src/session/SessionColumn.tsx`.
+- **Where**: the review of tasks 7 and 9, `packages/web/src/session/SessionColumn.tsx`.

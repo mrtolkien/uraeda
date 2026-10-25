@@ -4,18 +4,28 @@
 // at semi-wide, so the chat keeps the weight (approval comment C2, ruling R9), its fold and dragged
 // width the documents'. A recap line's address, `?tab=activity&stretch=<turn>:<seq>`, unfolds it at
 // the Activity. On the phone, the status line's Activity, Changes, and progress instead, the first
-// two opening the column's split in a sheet kept in the address (`useSheetTab`, ruling R3). While
-// the main agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes
-// joins it (US3), and its sheet on the phone, which a reload or a width change keeps.
+// two opening the column in a sheet kept in the address (`useSheetTab`, ruling R3). While the main
+// agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes joins it
+// (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
+// change keeps.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useId, useMemo } from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session } from "uraeda-server/fate";
 import { ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
-import { type ColumnPanel, DocumentColumn, useAskedTab } from "../layout/DocumentColumn.tsx";
+import {
+  type ColumnPanel,
+  ColumnTabs,
+  DocumentColumn,
+  panelId,
+  tabId,
+  useAskedTab,
+  useColumnTab,
+} from "../layout/DocumentColumn.tsx";
 import { useSessionColumnWidth } from "../layout/documentColumnWidth.ts";
+import { Overlay } from "../layout/Overlay.tsx";
 import { splitPanel } from "../layout/SplitPanel.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useSheetTab } from "../layout/useSheetTab.ts";
@@ -124,31 +134,74 @@ function SessionChanges({ onOpen, session }: { onOpen: () => void; session: stri
   return <ChangesButton count={useSession(session)?.edited.length ?? 0} onOpen={onOpen} />;
 }
 
+/** The name of the phone's sheet of the column, the status line's Activity, which opens it. */
+const SHEET = "Activity";
+
+/**
+ * The phone's sheet of the column, open on `open`'s panel among `panels`: their tabs at its top
+ * while more than one shows, a tap on one replacing the sheet's entry's `?tab=`, so Back still
+ * closes the sheet. One sheet, named after the Activity that opens it, whichever panel shows.
+ */
+function ColumnSheet({
+  onClose,
+  open,
+  panels,
+}: {
+  onClose: () => void;
+  open: string | undefined;
+  panels: ReadonlyArray<ColumnPanel>;
+}) {
+  const [, setTab] = useColumnTab(panels.map((panel) => panel.key));
+  const ids = useId();
+  const shown = panels.find((panel) => panel.key === open) ?? panels[0];
+  const tabbed = panels.length > 1 && shown !== undefined;
+  return (
+    <Overlay isOpen={open !== undefined} label={SHEET} onClose={onClose}>
+      {tabbed && (
+        <ColumnTabs
+          ids={ids}
+          label="The session's column"
+          onChange={setTab}
+          open={shown.key}
+          panels={panels}
+        />
+      )}
+      {tabbed ? (
+        <div aria-labelledby={tabId(ids, shown.key)} id={panelId(ids, shown.key)} role="tabpanel">
+          {shown.content}
+        </div>
+      ) : (
+        shown?.content
+      )}
+    </Overlay>
+  );
+}
+
 /**
  * On the phone, the column outside the page: the status line's Activity and Changes, each opening
- * the column's split in the sheet `activity`, and the plan's progress, opening the plan at its
- * task. Each of `panels` is a sheet the address may open, as a reload or a width change does.
+ * the column's sheet at the Activity, and the plan's progress, opening the plan at its task. The
+ * sheet may open at each of `panels`, as the address asks, as a reload or a width change does.
  */
 function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<ColumnPanel> }) {
-  // A sheet for each panel, by its tab's key: the Sub-agents' too, while its tab shows.
-  const sheets = Object.fromEntries(panels.map((panel) => [panel.key, panel.label]));
+  // Every panel opens the one sheet: its tabs switch within its history entry.
+  const sheets = Object.fromEntries(panels.map((panel) => [panel.key, SHEET]));
   const sheet = useSheetTab(sheets, true);
-  const [, setSheet] = sheet;
-  const open = () => setSheet("activity");
+  const [open, setSheet] = sheet;
+  const activity = () => setSheet("activity");
   const buttons = (
     <>
       <Button
         icon={<Icon icon="uraeda:activity" />}
         label="Activity"
-        onClick={open}
+        onClick={activity}
         variant="ghost"
       />
       {/* Before its first message, the session does not exist: it changed nothing. */}
       {session === undefined ? (
-        <ChangesButton count={0} onOpen={open} />
+        <ChangesButton count={0} onOpen={activity} />
       ) : (
         <Section>
-          <SessionChanges onOpen={open} session={session} />
+          <SessionChanges onOpen={activity} session={session} />
         </Section>
       )}
       {folder !== undefined && (
@@ -159,11 +212,10 @@ function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<Co
     </>
   );
   return (
-    <ColumnStatusLine
-      buttons={buttons}
-      sheet={sheet}
-      sheets={panels.map(({ content, key, label }) => ({ key, label, panel: content }))}
-    />
+    <>
+      <ColumnStatusLine buttons={buttons} sheet={sheet} sheets={[]} />
+      <ColumnSheet onClose={() => setSheet()} open={open} panels={panels} />
+    </>
   );
 }
 

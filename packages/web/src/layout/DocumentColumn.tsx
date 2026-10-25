@@ -87,6 +87,46 @@ export function tabAddress(key: string | undefined): string {
   return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
 }
 
+/** The id of the tab `key` among the tabs `ids`. */
+export const tabId = (ids: string, key: string) => `${ids}-tab-${key}`;
+
+/** The id of the panel of the tab `key` among the tabs `ids`. */
+export const panelId = (ids: string, key: string) => `${ids}-panel-${key}`;
+
+/**
+ * The tabs of `panels`, a list named `label`, `open` selected, each controlling its panel by its
+ * id among `ids`: the column's top, and the phone's sheet of it.
+ */
+export function ColumnTabs({
+  ids,
+  label,
+  onChange,
+  open,
+  panels,
+}: {
+  ids: string;
+  label: string;
+  onChange: (key: string) => void;
+  open: string;
+  panels: ReadonlyArray<ColumnPanel>;
+}) {
+  return (
+    <TabList aria-label={label} onChange={onChange} role="tablist" size="sm" value={open}>
+      {panels.map((panel) => (
+        <Tab
+          endContent={panel.badge}
+          icon={<Icon icon={panel.icon} size="sm" />}
+          id={tabId(ids, panel.key)}
+          key={panel.key}
+          label={panel.label}
+          panelId={panelId(ids, panel.key)}
+          value={panel.key}
+        />
+      ))}
+    </TabList>
+  );
+}
+
 /** The folded column's rail: each panel's icon, named by its tab. */
 function Rail({ panels }: { panels: ReadonlyArray<ColumnPanel> }) {
   return (
@@ -141,28 +181,12 @@ function Drawn({
 }: ColumnProps & { column: DocumentColumnState }) {
   const [open, setOpen] = useColumnTab(panels.map((panel) => panel.key));
   const ids = useId();
-  const tabId = (key: string) => `${ids}-tab-${key}`;
-  const panelId = (key: string) => `${ids}-panel-${key}`;
   const shown = panels.find((panel) => panel.key === open);
   const fills = shown?.fills === true;
   return (
     <SideColumn
       content={content}
-      header={
-        <TabList aria-label={label} onChange={setOpen} role="tablist" size="sm" value={open}>
-          {panels.map((panel) => (
-            <Tab
-              endContent={panel.badge}
-              icon={<Icon icon={panel.icon} size="sm" />}
-              id={tabId(panel.key)}
-              key={panel.key}
-              label={panel.label}
-              panelId={panelId(panel.key)}
-              value={panel.key}
-            />
-          ))}
-        </TabList>
-      }
+      header={<ColumnTabs ids={ids} label={label} onChange={setOpen} open={open} panels={panels} />}
       isFilled={fills}
       isShown={isShown}
       label={label}
@@ -172,8 +196,8 @@ function Drawn({
     >
       {shown && (
         <div
-          aria-labelledby={tabId(shown.key)}
-          id={panelId(shown.key)}
+          aria-labelledby={tabId(ids, shown.key)}
+          id={panelId(ids, shown.key)}
           role="tabpanel"
           // The panel scrolls with the column, so it takes the focus that scrolls it, unless it
           // fills the column: then its own parts scroll, and take it.

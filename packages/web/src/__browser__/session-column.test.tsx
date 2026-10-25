@@ -249,6 +249,34 @@ describe("on the phone", () => {
     expect(screen.getByRole("log", { name: "Conversation" })).toBeTruthy();
   });
 
+  test("the sheet's tabs open the Sub-agents by a tap, and Back closes the sheet", async () => {
+    await session();
+    await startTurn("Plan the CLI.", [
+      {
+        id: "task",
+        input: {},
+        kind: "other",
+        name: "Task",
+        subagent: { description: "Map the runner code" },
+        type: "toolStart",
+      },
+    ]);
+    const line = within(screen.getByRole("contentinfo", { name: "Status line" }));
+    await userEvent.click(line.getByRole("button", { name: "Activity" }));
+    const sheet = await screen.findByRole("dialog", { name: "Activity" }, LIVE);
+
+    await userEvent.click(await within(sheet).findByRole("tab", { name: /^Sub-agents/ }, LIVE));
+
+    const list = await within(sheet).findByRole("list", { name: "The session's sub-agents" }, LIVE);
+    await within(list).findByText("Map the runner code", undefined, LIVE);
+    expect(new URLSearchParams(window.location.search).get("tab")).toBe("subagents");
+    window.history.back();
+
+    await expect.poll(() => screen.queryByRole("dialog"), LIVE).toBeNull();
+    expect(window.location.search).toBe("");
+    expect(screen.getByRole("log", { name: "Conversation" })).toBeTruthy();
+  });
+
   test("a recap line's address leaves the desktop's folded column folded", async () => {
     window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));
     await agent.addPlan(CLI);
