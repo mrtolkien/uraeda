@@ -6,30 +6,30 @@ import { Theme } from "@astryxdesign/core/theme";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { userEvent } from "vite-plus/test/browser";
 import { beforeEach, describe, expect, test } from "vite-plus/test";
-import { type ColumnTab, DocumentColumn } from "../layout/DocumentColumn.tsx";
+import { type ColumnPanel, DocumentColumn } from "../layout/DocumentColumn.tsx";
 import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 import { atSize, drawn } from "./helpers.tsx";
 
-/** Three tabs, their panels of unlike widths: a sentence, a path wider than the column, a line. */
-const TABS: ReadonlyArray<ColumnTab> = [
+/** Three panels of unlike widths: a sentence, a path wider than the column, a line. */
+const PANELS: ReadonlyArray<ColumnPanel> = [
   {
+    content: (
+      <p>Verdict and summary, Goal, Today, Scope, Sources, and every question of the round.</p>
+    ),
     icon: "uraeda:list",
     key: "outline",
     label: "Outline",
-    panel: (
-      <p>Verdict and summary, Goal, Today, Scope, Sources, and every question of the round.</p>
-    ),
   },
   {
+    content: (
+      <p>specs/2026-10-20-merge-chats/clarifications-01.md#settled-without-the-human-and-more</p>
+    ),
     icon: "uraeda:pencil",
     key: "notes",
     label: "Notes",
-    panel: (
-      <p>specs/2026-10-20-merge-chats/clarifications-01.md#settled-without-the-human-and-more</p>
-    ),
   },
-  { icon: "uraeda:comment", key: "session", label: "Session", panel: <p>No session yet.</p> },
+  { content: <p>No session yet.</p>, icon: "uraeda:comment", key: "session", label: "Session" },
 ];
 
 /** A document beside the column, `title` in it. */
@@ -43,7 +43,7 @@ function Page({ title }: { title: string }) {
           </section>
         }
         label="The round's column"
-        tabs={TABS}
+        panels={PANELS}
       />
     </Theme>
   );

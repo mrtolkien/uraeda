@@ -8,7 +8,7 @@ import type { Document, RoundItems } from "uraeda-binding";
 import { focusOnceDrawn, sessionTab, useColumnAsk } from "./ColumnSession.tsx";
 import { type useFile, useAgent } from "./data.ts";
 import { ColumnStatusLine } from "./layout/ColumnStatusLine.tsx";
-import { type ColumnTab, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
+import { type ColumnPanel, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { useDocumentColumnWidth } from "./layout/documentColumnWidth.ts";
 import { type SheetState, useSheetTab } from "./layout/useSheetTab.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -115,12 +115,9 @@ export function RoundColumn({
   const notesField = (
     <NotesField notes={notes} path={file.path} queued={queued} takes={file.takesImages} />
   );
-  const tabs: Array<ColumnTab> = [
+  const panels: Array<ColumnPanel> = [
     {
-      icon: "uraeda:list",
-      key: "outline",
-      label: "Outline",
-      panel: (
+      content: (
         <RoundOutline
           document={document}
           isActive={wide}
@@ -129,11 +126,14 @@ export function RoundColumn({
           round={round}
         />
       ),
+      icon: "uraeda:list",
+      key: "outline",
+      label: "Outline",
     },
-    { icon: "uraeda:pencil", key: "notes", label: "Notes", panel: notesField },
+    { content: notesField, icon: "uraeda:pencil", key: "notes", label: "Notes" },
   ];
   if (draft) {
-    tabs.push(sessionTab(draft, file.folder, agent?.kind));
+    panels.push(sessionTab(draft, file.folder, agent?.kind));
   }
   return (
     <>
@@ -141,7 +141,7 @@ export function RoundColumn({
         column={actions.column}
         content={content}
         label="The round's column"
-        tabs={tabs}
+        panels={panels}
       />
       {!wide && (
         <PhoneParts

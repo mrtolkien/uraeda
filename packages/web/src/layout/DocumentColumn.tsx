@@ -1,26 +1,49 @@
-// A document's column of tabs, at the window's right edge on wide and semi-wide screens: a labelled
-// list of tabs at its top, WAI-ARIA's tabs pattern, the arrows moving between them, and the open
-// one's panel under it. Its width is one for every tab and every document, a third of the window
-// until dragged (`documentColumnWidth.ts`), so switching tabs moves nothing on the page. The open
+// A document's column of panels, at the window's right edge on wide and semi-wide screens: each
+// panel a tab in a labelled list at its top, WAI-ARIA's tabs pattern, the arrows moving between
+// them, and the open one under it, then the column's foot (approval comment C1 of the session's
+// spec: a panel shows as a tab, and a split, `SplitPanel.tsx`, is a panel of two). Its width is
+// one for every tab and every document, a third of the window until dragged
+// (`documentColumnWidth.ts`), so switching tabs moves nothing on the page. The open
 // tab is in the address, `?tab=<key>`, so reload, Back, and a width change keep it; switching
-// replaces the history entry. `]` folds it to a rail of the tabs' icons. On narrow screens, the
+// replaces the history entry. `]` folds it to a rail of the panels' icons. On narrow screens, the
 // page alone, kept in its place in the tree as the window crosses 768 px, so its typed text stays.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { VStack } from "@astryxdesign/core/VStack";
+import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, useId } from "react";
 import { redirect, useSearch } from "../routes.tsx";
 import { useDocumentColumnWidth } from "./documentColumnWidth.ts";
 import { SideColumn } from "./SideColumn.tsx";
 
-/** A tab of the column: its key in the address, its name and icon, a badge after it, its panel. */
-export type ColumnTab = {
+/**
+ * A panel of the column, shown as its tab: its key in the address, its name and icon, a badge after
+ * them, and its content. One that `fills` takes the column's height, scrolling its own parts, as a
+ * split does, rather than the column scrolling as a whole.
+ */
+export type ColumnPanel = {
   badge?: ReactNode;
+  content: ReactNode;
+  fills?: boolean;
   icon: ComponentProps<typeof Icon>["icon"];
   key: string;
   label: string;
-  panel: ReactNode;
 };
+
+const styles = stylex.create({
+  // The foot keeps its height under a panel that fills the column.
+  foot: {
+    flexShrink: 0,
+  },
+  // A panel that fills: the column's height under its tabs and above its foot, its content a
+  // column of its own parts.
+  fills: {
+    display: "flex",
+    flexDirection: "column",
+    flexGrow: 1,
+    minHeight: 0,
+  },
+});
 
 /** The address's parameter that names the open tab. */
 const PARAMETER = "tab";
@@ -63,12 +86,12 @@ export function tabAddress(key: string | undefined): string {
   return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
 }
 
-/** The folded column's rail: each tab's icon, named by its tab. */
-function Rail({ tabs }: { tabs: ReadonlyArray<ColumnTab> }) {
+/** The folded column's rail: each panel's icon, named by its tab. */
+function Rail({ panels }: { panels: ReadonlyArray<ColumnPanel> }) {
   return (
     <VStack align="center" gap={3}>
-      {tabs.map((tab) => (
-        <Icon icon={tab.icon} key={tab.key} label={tab.label} />
+      {panels.map((panel) => (
+        <Icon icon={panel.icon} key={panel.key} label={panel.label} />
       ))}
     </VStack>
   );
@@ -78,11 +101,17 @@ function Rail({ tabs }: { tabs: ReadonlyArray<ColumnTab> }) {
 type DocumentColumnState = ReturnType<typeof useDocumentColumnWidth>;
 
 /** What `DocumentColumn` draws. */
-type ColumnProps = { content: ReactNode; label: string; tabs: ReadonlyArray<ColumnTab> };
+type ColumnProps = {
+  content: ReactNode;
+  footer?: ReactNode;
+  label: string;
+  panels: ReadonlyArray<ColumnPanel>;
+};
 
 /**
- * `content`, the document, with its column of `tabs` beside it on wide and semi-wide screens, named
- * `label`; on narrow screens, the document alone. `column` is its width and fold, when the page
+ * `content`, the document, with its column of `panels` beside it on wide and semi-wide screens,
+ * named `label`, and `footer` at its foot, under the open panel; on narrow screens, the document
+ * alone. `column` is its width and fold, when the page
  * holds them to unfold the column itself, as asking the agent does; else the column holds its own.
  */
 export function DocumentColumn({
@@ -101,36 +130,39 @@ function OwnWidth(props: ColumnProps) {
 function Drawn({
   column: { isShown, resizable, setShown },
   content,
+  footer,
   label,
-  tabs,
+  panels,
 }: ColumnProps & { column: DocumentColumnState }) {
-  const [open, setOpen] = useColumnTab(tabs.map((tab) => tab.key));
+  const [open, setOpen] = useColumnTab(panels.map((panel) => panel.key));
   const ids = useId();
   const tabId = (key: string) => `${ids}-tab-${key}`;
   const panelId = (key: string) => `${ids}-panel-${key}`;
-  const shown = tabs.find((tab) => tab.key === open);
+  const shown = panels.find((panel) => panel.key === open);
+  const fills = shown?.fills === true;
   return (
     <SideColumn
       content={content}
       header={
         <TabList aria-label={label} onChange={setOpen} role="tablist" size="sm" value={open}>
-          {tabs.map((tab) => (
+          {panels.map((panel) => (
             <Tab
-              endContent={tab.badge}
-              icon={<Icon icon={tab.icon} size="sm" />}
-              id={tabId(tab.key)}
-              key={tab.key}
-              label={tab.label}
-              panelId={panelId(tab.key)}
-              value={tab.key}
+              endContent={panel.badge}
+              icon={<Icon icon={panel.icon} size="sm" />}
+              id={tabId(panel.key)}
+              key={panel.key}
+              label={panel.label}
+              panelId={panelId(panel.key)}
+              value={panel.key}
             />
           ))}
         </TabList>
       }
+      isFilled={fills}
       isShown={isShown}
       label={label}
       onShownChange={setShown}
-      rail={<Rail tabs={tabs} />}
+      rail={<Rail panels={panels} />}
       width={resizable}
     >
       {shown && (
@@ -139,10 +171,12 @@ function Drawn({
           id={panelId(shown.key)}
           role="tabpanel"
           tabIndex={0}
+          {...stylex.props(fills && styles.fills)}
         >
-          {shown.panel}
+          {shown.content}
         </div>
       )}
+      {footer !== undefined && <div {...stylex.props(styles.foot)}>{footer}</div>}
     </SideColumn>
   );
 }

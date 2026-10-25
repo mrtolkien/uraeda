@@ -49,9 +49,21 @@ const styles = stylex.create({
     paddingBlockEnd: spacingVars["--spacing-4"],
     paddingInline: spacingVars["--spacing-4"],
   },
+  // Filled: the content takes the column's height, a column of its header and its parts, each
+  // scrolling on its own, and the column does not scroll as a whole.
+  filled: {
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+  },
+  filledPanel: {
+    overflowY: "hidden",
+  },
   header: {
     alignItems: "center",
     display: "flex",
+    flexShrink: 0,
     minHeight: sizeVars["--size-element-md"],
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
@@ -106,6 +118,7 @@ function Column({
   children,
   easing,
   header,
+  isFilled,
   isShown,
   label,
   onPointer,
@@ -116,6 +129,7 @@ function Column({
   children: ReactNode;
   easing: boolean;
   header: ReactNode;
+  isFilled: boolean;
   isShown: boolean;
   label: string;
   onPointer: (over: boolean) => void;
@@ -132,13 +146,13 @@ function Column({
         padding={0}
         role="complementary"
         width={isShown ? resizable.size : RAIL}
-        xstyle={[styles.panel, easing && styles.easing]}
+        xstyle={[styles.panel, easing && styles.easing, isShown && isFilled && styles.filledPanel]}
       >
         {isShown ? (
           <div
             onPointerEnter={() => onPointer(true)}
             onPointerLeave={() => onPointer(false)}
-            {...stylex.props(styles.full, widths.of(resizable.size))}
+            {...stylex.props(styles.full, isFilled && styles.filled, widths.of(resizable.size))}
           >
             <div {...stylex.props(styles.header)}>
               {header ?? <Text type="label">{label}</Text>}
@@ -172,6 +186,11 @@ type ColumnProps = {
   content: ReactNode;
   /** What its top shows in place of its name, like its tabs. */
   header?: ReactNode;
+  /**
+   * Whether its content fills its height, a column of parts that scroll on their own, as a split
+   * panel's do, rather than the column scrolling as a whole.
+   */
+  isFilled?: boolean;
   /** Shows its hide button as under the pointer, for a story. */
   isRevealed?: boolean;
   isShown: boolean;
@@ -221,6 +240,7 @@ function ColumnAt({
   children,
   content,
   header,
+  isFilled = false,
   isRevealed: revealedByStory,
   isShown,
   label,
@@ -269,6 +289,7 @@ function ColumnAt({
             <Column
               easing={easing}
               header={header}
+              isFilled={isFilled}
               isShown={isShown}
               label={label}
               onPointer={setPointer}

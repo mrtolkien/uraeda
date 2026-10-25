@@ -575,15 +575,15 @@ layout change there reach them all.
     label, icon, and badge, `fills: true`, holding the top's content above, scrolling on its own,
     and the bottom's under it, titled by the bottom's label as a level-3 heading, at most 40% of the
     column's height and scrolling past it.
-  - `DocumentColumn` gains `footer?: ReactNode`, drawn at the column's foot under the open panel.
-    When the open panel `fills`, the column's content takes its height and does not scroll as a
-    whole (`SideColumn`'s `isFilled`).
+  - `DocumentColumn` takes its panels as `panels` (formerly `tabs`), and gains `footer?: ReactNode`,
+    drawn at the column's foot under the open panel. When the open panel `fills`, the column's
+    content takes its height and does not scroll as a whole (`SideColumn`'s `isFilled`).
   - `useSessionColumnWidth()`, the same shape as `useDocumentColumnWidth()`, under the same key and
     fold: wide, the documents' width; semi-wide, `sessionAutoWidth(windowWidth)` = 30% of the window
     between 300 and 360 px; dragged between 300 and 720 px. It registers with `showDocumentColumn()`
     as the documents' column does.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/document-column.test.ts
@@ -600,25 +600,25 @@ documents' column narrowed with it.
 The rename and the split are checked by the existing column tests, which must keep passing, and by
 task 7's browser tests, which draw the split on a page.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/document-column.test.ts`
 - Expected: FAIL, `sessionAutoWidth is not a function`, or its import missing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The rename is mechanical; `splitPanel`'s layout is StyleX through the theme's tokens. The split's
 bottom heading is the panel's label; the 40% bound is the spec's. `useSessionColumnWidth` picks its
 auto width with `useWidthClass()`; its stored width is clamped to its own limits as it is read, as
 `followedWidth.ts` does for each reader.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`, then
-  `nix develop -c vp test run --config packages/web/vite.browser.config.ts packages/web/src/__browser__/document-column.test.tsx packages/web/src/__browser__/spec-column.test.tsx packages/web/src/__browser__/round-column.test.tsx`
+- Run: `nix develop -c vp run fast`, then, with `--project desktop` and with `--project phone`,
+  `nix develop -c vp test run --project desktop packages/web/src/__browser__/document-column.test.tsx packages/web/src/__browser__/spec-column.test.tsx packages/web/src/__browser__/round-column.test.tsx`
 - Expected: PASS: the documents' columns unchanged. Deferred to ready: the other browser suites.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-25-session-new/plan.md

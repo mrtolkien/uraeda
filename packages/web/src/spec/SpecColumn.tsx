@@ -6,7 +6,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import type { ReactNode } from "react";
-import { type ColumnTab, DocumentColumn } from "../layout/DocumentColumn.tsx";
+import { type ColumnPanel, DocumentColumn } from "../layout/DocumentColumn.tsx";
 import { type ColumnSheet, ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Review } from "../review/useReview.tsx";
@@ -38,7 +38,7 @@ function PhoneParts({
 }: {
   contents: ReactNode;
   review: { count: number; panel: ReactNode } | undefined;
-  session: { folder: string; icon: ColumnTab["icon"] } | undefined;
+  session: { folder: string; icon: ColumnPanel["icon"] } | undefined;
 }) {
   const sheet = useSheetTab(review ? SHEETS : { contents: SHEETS.contents }, true);
   const [, setSheet] = sheet;
@@ -129,7 +129,7 @@ export function SpecColumn({
 }: {
   content: ReactNode;
   contents: ReactNode;
-  extra?: ReadonlyArray<ColumnTab>;
+  extra?: ReadonlyArray<ColumnPanel>;
   file: File;
   review: Review | undefined;
 }) {
@@ -137,16 +137,16 @@ export function SpecColumn({
   const reviewPanel = review && <ReviewTab file={file} review={review} />;
   const count = review?.comments.length ?? 0;
   const session = extra.find((tab) => tab.key === "session");
-  const tabs: Array<ColumnTab> = [
-    { icon: "uraeda:list", key: "contents", label: "Contents", panel: contents },
+  const panels: Array<ColumnPanel> = [
+    { content: contents, icon: "uraeda:list", key: "contents", label: "Contents" },
     ...(review
       ? [
           {
             ...(count > 0 ? { badge: <CommentCount count={count} /> } : {}),
+            content: reviewPanel,
             icon: "uraeda:comment" as const,
             key: "review",
             label: "Review",
-            panel: reviewPanel,
           },
         ]
       : []),
@@ -154,7 +154,7 @@ export function SpecColumn({
   ];
   return (
     <>
-      <DocumentColumn content={content} label={`The ${file.kind}'s column`} tabs={tabs} />
+      <DocumentColumn content={content} label={`The ${file.kind}'s column`} panels={panels} />
       {!wide && (
         <PhoneParts
           contents={contents}
