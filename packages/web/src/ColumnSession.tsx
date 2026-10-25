@@ -9,7 +9,7 @@ import { type ColumnPanel, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { showDocumentColumn } from "./layout/documentColumnWidth.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
-import type { SessionItem } from "./SessionActions.tsx";
+import type { SessionItem } from "./dropItem.ts";
 import { SessionAnnouncer } from "./SessionAnnouncer.tsx";
 import { askAbout, sessionPath } from "./sessions.ts";
 import { NO_BRANCH, SessionPane } from "./SessionView.tsx";
