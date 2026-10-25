@@ -877,12 +877,13 @@ git commit -m "feat(session-new): stretches of calls, and their words"
     accessible name is `text` alone. On the session's page it replaces the history entry, as a tab
     does; from a document's column it opens the session's page in a new entry.
 
-- [ ] **Step 0: `tail.tsx` is at the 500-line limit**
+- [x] **Step 0: `tail.tsx` is at the 500-line limit**
 
-If replacing the live line grows it, first move `Pieces`, `useKeptStart`, and `useSettled` into
-`tailPieces.tsx` without changing them, run
-`nix develop -c vp test run packages/web/src/__tests__/session-tail.test.tsx` before and after (PASS
-both), and commit `refactor(session-new): the tail's pieces in a file of their own`.
+If replacing the live line grows it, first move `Pieces`, `TailPage`, and `PageItems`, the drawing
+of the walk's pieces, into `tailPieces.tsx` without changing them (`Pieces` draws `TailPage`, so
+moving it alone would make the two files import each other; `useKeptStart` and `useSettled` stay),
+run `nix develop -c vp test run packages/web/src/__tests__/session-tail.test.tsx` before and after
+(PASS both), and commit `refactor(session-new): the tail's pieces in a file of their own`.
 
 - [ ] **Step 1: Write the failing tests**
 
