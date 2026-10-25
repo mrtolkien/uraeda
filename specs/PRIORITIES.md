@@ -8,8 +8,7 @@
 
 - [Session and New in the terminal look](/specs/2026-10-25-session-new/proposal.md)
 - [Inbox and priorities in the terminal look](/specs/2026-10-25-inbox-priorities/proposal.md)
-
-- [Feature page in the terminal look](drafts/feature-page.md)
+- [Feature page in the terminal look](/specs/2026-10-25-feature-page/proposal.md)
 
 - Full interactive UI pass: manual small fixes
 - Leader key/shortcut map
