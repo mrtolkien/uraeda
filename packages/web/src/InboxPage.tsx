@@ -8,12 +8,14 @@ import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { CommitBar } from "./CommitBar.tsx";
-import { rereadChanges, useAgent, useInbox } from "./data.ts";
+import { rereadChanges, useAgent, useDraftTitles, useInbox, useWorkspace } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx";
 import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { NoteMenu } from "./lists/CardMenu.tsx";
+import { draftFile } from "./pane/NoteParts.tsx";
 import { WorkList, type WorkSection } from "./lists/WorkList.tsx";
 import { NOTE, openDetail } from "./pane/DetailOverlay.tsx";
 import { repoPath, useLocalPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
@@ -80,10 +82,14 @@ function InboxList({
   const fate = useFateClient();
   const here = useRepoPath();
   const pathname = useLocalPath();
+  // The drafts' titles are read once a menu is opened, for "Add to a draft".
+  const [wantsDrafts, setWantsDrafts] = useState(false);
+  const paths = (useWorkspace()?.drafts ?? []).map(draftFile);
+  const drafts = useDraftTitles(wantsDrafts ? paths : []);
   const categories = inbox.categories.filter((category) => category.notes.length > 0);
   const sections = categories.map((category): WorkSection => ({
     id: sectionId(category.name),
-    rows: category.notes.map((note) => ({
+    rows: category.notes.map((note, index) => ({
       href: here(`/inbox/${note.key}`),
       key: note.key,
       // The row is one link: a link of its text, like a note's draft, would nest in it.
@@ -91,6 +97,15 @@ function InboxList({
       label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
       lines: note.nestedSpans.map(plain),
       marks: marksOf(note),
+      menu: (
+        <NoteMenu
+          drafts={drafts}
+          inbox={inbox}
+          onOpen={() => setWantsDrafts(true)}
+          onRefused={onRefused}
+          placed={{ category: category.name, index, note }}
+        />
+      ),
       text: plain(note.spans),
     })),
     title: category.name ?? "No category",

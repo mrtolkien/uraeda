@@ -12,6 +12,8 @@ import { openDetail, PRIORITY } from "../pane/DetailOverlay.tsx";
 import { useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { PrioritiesView } from "../views.ts";
+import { fileIndex } from "./cardMoves.ts";
+import { PriorityMenu } from "./CardMenu.tsx";
 import { type Tone, WorkList, type WorkRow, type WorkSection } from "./WorkList.tsx";
 
 /** The priorities as the page reads them. */
@@ -41,6 +43,9 @@ function marksOf(entry: PriorityEntry) {
   return entry.draft.backlog ? "backlog" : "draft";
 }
 
+/** The refusal of a menu nobody listens to. */
+const NOTHING = () => undefined;
+
 /** What Ongoing is, in the spec's own words: the section is derived, so the page says it. */
 const ONGOING_CONTEXT = "Running now: an agent works or waits on you.";
 
@@ -61,21 +66,6 @@ export function byRunning(priorities: Pick<Priorities, "sections">) {
 }
 
 /**
- * Where a row dropped at `index` among a section's rows on screen goes in the file: the place of
- * the `index`-th entry that is not running, once the dragged one is taken out, or after the last of
- * them. The running entries show in "Ongoing", so a drop never lands between two of them.
- */
-export function fileIndex(entries: ReadonlyArray<PriorityEntry>, key: string, index: number) {
-  const rest = entries.filter((entry) => entry.key !== key);
-  const places = rest.flatMap((entry, place) => (entry.running ? [] : [place]));
-  if (index < places.length) {
-    return places[index];
-  }
-  const last = places.at(-1);
-  return last === undefined ? rest.length : last + 1;
-}
-
-/**
  * The sections the page draws: "Ongoing" first, only when something runs, then each section of the
  * file with its context and its Add row, but a Blocked without lines (R1). `add` writes a line to a
  * section.
@@ -84,13 +74,28 @@ function sectionsOf(
   priorities: Priorities,
   here: ReturnType<typeof useRepoPath>,
   add: (section: string) => (text: string) => Promise<string | undefined>,
+  onRefused: (message: string | undefined) => void,
 ): Array<WorkSection> {
+  const found = (entry: PriorityEntry) => {
+    for (const section of priorities.sections) {
+      const index = section.entries.findIndex((one) => one.key === entry.key);
+      if (index >= 0) {
+        return { entry, index, section };
+      }
+    }
+    return undefined;
+  };
+  const menuOf = (entry: PriorityEntry) => {
+    const place = found(entry);
+    return place && <PriorityMenu found={place} hash={priorities.hash} onRefused={onRefused} />;
+  };
   const row = (entry: PriorityEntry): WorkRow => ({
     href: here(`/priorities/${entry.key}`),
     isFixed: entry.running !== undefined,
     key: entry.key,
     lines: entry.nestedSpans.map(plain),
     marks: marksOf(entry),
+    menu: menuOf(entry),
     text: plain(entry.spans),
   });
 
@@ -189,7 +194,7 @@ export function PrioritiesList({
     onMoveRefused?.(failed);
   };
 
-  const all = sectionsOf(priorities, here, add);
+  const all = sectionsOf(priorities, here, add, onMoveRefused ?? NOTHING);
   const selected =
     select ??
     all.flatMap((section) => section.rows).find((r) => pathname === `/priorities/${r.key}`)?.key;

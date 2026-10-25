@@ -793,8 +793,10 @@ git commit -m "feat(inbox-priorities): the detail in an overlay"
 
 **Files:**
 
-- Create: `packages/web/src/lists/CardMenu.tsx`, `packages/web/src/lists/cardMoves.ts`,
-  `packages/web/src/__tests__/card-moves.test.ts`, `packages/web/src/__browser__/card-menu.test.tsx`
+- Create: `packages/web/src/lists/CardMenu.tsx`, `packages/web/src/lists/cardMoves.ts` (with
+  `fileIndex`, moved from `PrioritiesList.tsx`, ruling R17), `packages/web/src/pane/useMoveTo.ts` (a
+  priority's move with its Undo), `packages/web/src/__tests__/card-moves.test.ts`,
+  `packages/web/src/__browser__/card-menu.test.tsx`
 - Modify: `packages/web/src/lists/Card.tsx` (the slot, when it shows),
   `packages/web/src/lists/useDragOrder.ts` (`preventActivation` for the button),
   `packages/web/src/lists/PrioritiesList.tsx`, `packages/web/src/InboxPage.tsx`
@@ -803,17 +805,18 @@ git commit -m "feat(inbox-priorities): the detail in an overlay"
 **Interfaces:**
 
 - Consumes: `usePriorityActions`, `useNoteActions` (their `move`, `draft`, `startChange`, `remove`,
-  `toPriorities`, `toNewDraft`, `toDraft`, `toCategory`), `fileIndex`, Astryx's `MoreMenu`.
+  `toPriorities`, `toNewDraft`, `toDraft`, `toCategory`), `fileIndex`, Astryx's `DropdownMenu`
+  (ruling R16).
 - Produces:
   `moveIndex(entries: ReadonlyArray<PriorityEntry>, key: string, to: "up" | "down" | "top" | "bottom"): number`
   in `lists/cardMoves.ts`, the file index to pass `priorities.move`, skipping running entries.
-  `CardMenu` for a priority offers Move to Now, Next, or Later (the end of the section), Move up and
-  down, To the top and bottom, Make a draft, Start, and Delete; for a note, Move to a priority, Add
-  to a draft, Make a draft, a Category, and Delete; a running priority's menu has neither a move nor
-  Delete. The button shows on hover, on the selected card, on keyboard focus within the card, and
-  always under `(hover: none)`.
+  `PriorityMenu` and `NoteMenu`, in `CardMenu.tsx` (ruling R16), offer: for a priority, Move to Now,
+  Next, or Later (the end of the section), Move up and down, To the top and bottom, Make a draft,
+  Start, and Delete; for a note, Move to a priority, Add to a draft, Make a draft, a Category, and
+  Delete; a running priority's menu has neither a move nor Delete. The button shows on hover, on the
+  selected card, on keyboard focus within the card, and always under `(hover: none)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/src/__tests__/card-moves.test.ts
@@ -834,23 +837,23 @@ test("every card shows its … button", async () => {});
 The break each test catches: a move that lands between running entries, a menu only hover shows, a
 menu that offers a move for a derived card.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/card-moves.test.ts`
 - Expected: FAIL, `Failed to resolve import "../lists/cardMoves.ts"`.
 
-- [ ] **Step 3: Implement the menu**
+- [x] **Step 3: Implement the menu**
 
 `moveIndex` is computed from `fileIndex` of the target's screen index. The menu runs the existing
 actions: no write is repeated, and the toast with Undo is theirs. Whether "Add to a draft" is a
 submenu or a picker in the menu is the implementer's, with a ruling if it differs from the pane's.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then both browser projects on `card-menu`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-25-inbox-priorities

@@ -31,3 +31,22 @@ export function useStartChange(
     }
   };
 }
+
+/** Drafts the line `entry` of the priorities of `hash`, and opens its draft in the editor. */
+export function useDraft(
+  entry: string,
+  hash: string,
+  run: <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>,
+) {
+  const fate = useFateClient();
+  const here = useRepoPath();
+  return async () => {
+    const result = await run(() =>
+      fate.mutations.draft.create({ input: { hash, line: entry }, view: DraftView }),
+    );
+    const path = (result as { result?: { path?: unknown } }).result?.path;
+    if (!result.error && typeof path === "string") {
+      navigate(here(`/edit/${path}`));
+    }
+  };
+}
