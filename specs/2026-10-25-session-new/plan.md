@@ -943,7 +943,7 @@ The break each test catches:
   back to the stretch's start, and joins them with `joinStretches`, so it counts the whole stretch
   and links its first page's key. A stretch that is `open`, on a page before the turn's last, draws
   no line: the page after draws it, joined to its continued stretch, or, when that page does not
-  start with one, as its own line before the page's first item (ruling R20). A page reads the page
+  start with one, as its own line before the page's first item (ruling R22). A page reads the page
   before only when the tail draws it above: cut by the tail at a message, even its first item, a
   page joins and draws nothing of the page before. The line sits after the stretch's last call.
   Pages are read with `useTurnLog`, under `Suspense`, as the tail reads them.
