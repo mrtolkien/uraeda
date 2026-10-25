@@ -2,7 +2,7 @@
 // stories and on the data model's own page. The text before the first entity, then each entity, a
 // level-2 section of the file, in a pane of its own, its tables drawn by Astryx's columns, a row
 // the core marks new, changed, or removed showing its change, in its "Change" column, as a green,
-// yellow, or red badge.
+// yellow, or red badge, the column first on the phone.
 import { Badge } from "@astryxdesign/core/Badge";
 import { proportional, Table } from "@astryxdesign/core/Table";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import type { Block, DataModelItems, DataTable as Marked, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Spans } from "../Spans.tsx";
 
 /** What the data panes draw: `data-model.md`'s tree, and its sections as the core reads them. */
@@ -50,8 +51,12 @@ function cellOf(cell: Block | undefined, change: DataRow["change"], isChange: bo
   );
 }
 
-/** A table of the data model, its header row naming its columns, its marked rows' changes. */
+/**
+ * A table of the data model, its header row naming its columns, its marked rows' changes, the
+ * "Change" column first on the phone.
+ */
 function DataTable({ document, table }: { document: Document; table: Marked }) {
+  const narrow = isNarrow(useWidthClass());
   const rows = childrenOf(document, table.block);
   const header = rows[0]?.header ? childrenOf(document, rows.shift()!.id) : [];
   const changes = new Map(table.changes.map((change) => [change.row, change.kind]));
@@ -61,9 +66,16 @@ function DataTable({ document, table }: { document: Document; table: Marked }) {
     id: String(row.id),
   }));
   const count = Math.max(header.length, ...data.map((row) => row.cells.length));
+  const columns = Array.from({ length: count }, (_, index) => index);
+  // On the phone, the "Change" column first: last, it sat past the screen's edge, in the table's
+  // scrolled-off part, where no change showed without scrolling.
+  const order =
+    narrow && table.column !== undefined
+      ? [table.column, ...columns.filter((index) => index !== table.column)]
+      : columns;
   return (
     <Table<DataRow>
-      columns={Array.from({ length: count }, (_, index) => ({
+      columns={order.map((index) => ({
         header: <Spans spans={header[index]?.spans ?? []} />,
         key: `c${index}`,
         renderCell: (row: DataRow) => cellOf(row.cells[index], row.change, index === table.column),

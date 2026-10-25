@@ -2,6 +2,7 @@
 // criteria fitting the screen, and the data model's changes as green, yellow, and red pills.
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
+import { page } from "vite-plus/test/browser";
 import {
   atSize,
   checkAccessibility,
@@ -102,5 +103,24 @@ describe("on the phone", () => {
     await show(PAGE, "Date helpers");
 
     await checkParts(["Architecture", "Edge cases", "Success criteria", "Task"]);
+  });
+
+  test("at 390 px, each changed row's badge is on the screen, its table unscrolled", async () => {
+    await page.viewport(390, 874);
+    try {
+      await expect.poll(() => window.innerWidth).toBe(390);
+      await commands.addSpecFeature();
+      await commands.commitOnBranch(FOLDER, { [`specs/${FOLDER}/data-model.md`]: DATA });
+      await show(PAGE, "whether it is done");
+
+      const task = screen.getByRole("region", { name: "Task" });
+      for (const change of ["New", "Changed", "Removed"]) {
+        const box = within(task).getByText(change).getBoundingClientRect();
+        expect(box.left, change).toBeGreaterThanOrEqual(0);
+        expect(box.right, change).toBeLessThanOrEqual(window.innerWidth);
+      }
+    } finally {
+      await page.viewport(402, 874);
+    }
   });
 });
