@@ -27,6 +27,14 @@ describe("moveIndex", () => {
     expect(moveIndex(SECTION, "a", "bottom")).toBe(3);
   });
 
+  test("C up with a running entry above it lands before A, not between A and the running entry", () => {
+    // On screen A, C, D: C's place above is A's. The file index before A is 0, not C's file place
+    // less one.
+    expect(moveIndex(SECTION, "c", "up")).toBe(0);
+    expect(moveIndex(SECTION, "c", "down")).toBe(fileIndex(SECTION, "c", 2));
+    expect(moveIndex(SECTION, "c", "down")).toBe(3);
+  });
+
   test("the first card on screen has nothing above it, and the last nothing below", () => {
     expect(movesOf(SECTION, "a")).toEqual({ down: true, up: false });
     expect(movesOf(SECTION, "c")).toEqual({ down: true, up: true });

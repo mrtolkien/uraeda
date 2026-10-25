@@ -225,7 +225,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   test that a press on `…` never drags checks the outcome (the press is on the button, a drag from
   it writes nothing, and a drag from the card's text opens no menu). It also passes with
   `preventActivation` removed, so it cannot tell the guard's own effect: Astryx's trigger already
-  keeps a held press from reaching the sensor.
+  keeps a held press from reaching the sensor. A card holds no other plain button (its handle is a
+  hidden `span`), so no drag from a button of another kind can be tested either: the guard has no
+  case a test can fail on. The test also checks that a press and release on `…` opens its menu.
 - **Rationale**: A cycle `PrioritiesList` to `CardMenu` to `cardMoves` to `PrioritiesList`.
 - **Alternatives considered**: A test of dnd-kit's sensor alone: it would assert its internals.
 - **If wrong**: Move `fileIndex` back and import it in `cardMoves.ts`.

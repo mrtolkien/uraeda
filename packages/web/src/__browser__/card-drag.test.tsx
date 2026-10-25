@@ -58,6 +58,15 @@ describe("on the desktop, a card with a mouse", () => {
     await expect.poll(() => window.location.pathname).toMatch(/\/priorities\/git-listener$/);
   });
 
+  test("a press of 6 px, just over the 5 px, is a drag: it does not open the card", async () => {
+    await show("/priorities", "Git listener process");
+    const original = await commands.readRepo();
+    await pressAndMove("Git listener process", 6, 0);
+    await drawn();
+    expect(window.location.pathname).toMatch(/\/priorities$/);
+    expect(await commands.readRepo()).toBe(original);
+  });
+
   test("a press of 40 px over Later writes the line in Later", async () => {
     await show("/priorities", "Git listener process");
     const original = await commands.readRepo();
@@ -75,9 +84,12 @@ describe("on the desktop, a card with a mouse", () => {
 
   test("a drag that ends on its own card does not open it", async () => {
     await show("/priorities", "Git listener process");
+    const original = await commands.readRepo();
     await pressAndMove("Git listener process", 40, 0, { backToStart: true });
     await drawn();
     expect(window.location.pathname).toMatch(/\/priorities$/);
+    // Dropped where it was picked up: nothing is written.
+    expect(await commands.readRepo()).toBe(original);
   });
 
   test("a running card does not move", async () => {
