@@ -189,6 +189,38 @@ describe("on a desktop, the Activity", () => {
     await drawn();
     await expect.poll(() => inView(within(activity).getByText("src/f49.rs"), activity)).toBe(true);
   });
+
+  test("C2: at 1000 px a sub-agent's row gives its description more room than its word", async () => {
+    await at(1000, async () => {
+      await agent.addPlan(CLI);
+      await startTurn(
+        "Find the callers.",
+        [
+          {
+            id: "task",
+            input: {},
+            kind: "other",
+            name: "Task",
+            subagent: { description: "Find every caller of complete()" },
+            type: "toolStart",
+          },
+          { id: "g", input: {}, kind: "search", name: "Grep", parent: "task", type: "toolStart" },
+        ],
+        `/f/${CLI}/session`,
+      );
+      const activity = within(column()).getByRole("region", { name: "Activity" });
+      const label = await within(activity).findByText(
+        "Find every caller of complete()",
+        undefined,
+        LIVE,
+      );
+      await drawn();
+      // The row's word, "sub-agent · 1 call", its parts unbroken.
+      const word = within(activity).getByText("· 1 call").parentElement!;
+      expect(word.textContent).toBe("sub-agent · 1 call");
+      expect(widthOf(label)).toBeGreaterThan(widthOf(word));
+    });
+  });
 });
 
 describe("on a desktop, its edge and its fold", () => {

@@ -3,7 +3,8 @@
 // own; the bottom one sits under it, titled by its name, and takes at most 40% of the height,
 // scrolling past it (the spec's assumption), so it never pushes the top one out of view. Each part
 // is a region named by its panel, in the tab order, so the keyboard scrolls it: the column around
-// them no longer scrolls. The session column splits Activity, or Sub-agents, over Changes this way.
+// them no longer scrolls. Each part is a container of its width, which its rows' parts size by. The
+// session column splits Activity, or Sub-agents, over Changes this way.
 import { Heading } from "@astryxdesign/core/Heading";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -17,6 +18,7 @@ const styles = stylex.create({
     borderBlockStartColor: colorVars["--color-border"],
     borderBlockStartStyle: "solid",
     borderBlockStartWidth: borderVars["--border-width"],
+    containerType: "inline-size",
     flexShrink: 0,
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
     maxHeight: "40%",
@@ -34,6 +36,7 @@ const styles = stylex.create({
     minHeight: 0,
   },
   top: {
+    containerType: "inline-size",
     flexGrow: 1,
     minHeight: 0,
     overflowY: "auto",

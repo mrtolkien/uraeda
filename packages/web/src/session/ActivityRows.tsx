@@ -27,6 +27,8 @@ const styles = stylex.create({
   // changes' paths: no text is cut. In a fold's toggle, which sets a larger text and grows to its
   // content, it takes the row's text, and no width of its own, so it wraps rather than widening
   // the list.
+  // A part of a row's word, never broken.
+  group: { whiteSpace: "nowrap" },
   label: {
     contain: "inline-size",
     display: "block",
@@ -34,6 +36,12 @@ const styles = stylex.create({
     lineHeight: typeScaleVars["--text-body-leading"],
     overflowWrap: "anywhere",
     textAlign: "start",
+  },
+  // In a narrow part of the column, a row's word, "sub-agent · 2 calls", wraps between its parts,
+  // so the row's description keeps the most room (approval comment C2).
+  end: {
+    maxInlineSize: { "@container (max-width: 360px)": "min-content", default: "none" },
+    textAlign: "end",
   },
   // The live row, tinted in the accent, as the mockup's `.on`.
   live: { backgroundColor: colorVars["--color-accent-muted"] },
@@ -87,7 +95,10 @@ function callCount(count: number) {
  * A row's words: what it acted on, "Thought", or the sub-agent's description; then its word, a
  * thought's length from a second, or a sub-agent's word and calls, "sub-agent · 6 calls".
  */
-function wordsOf(item: ActivityItem, view: RunView): { end?: string; label: string } {
+function wordsOf(
+  item: ActivityItem,
+  view: RunView,
+): { calls?: string; end?: string; label: string } {
   if (item.kind === "thought") {
     return item.durationMs >= 1000
       ? { end: elapsed(item.durationMs), label: "Thought" }
@@ -96,7 +107,7 @@ function wordsOf(item: ActivityItem, view: RunView): { end?: string; label: stri
   const word = rowWord(item, view.ended);
   if (item.subagent) {
     const calls = (view.run.groups.get(item.id) ?? []).filter((own) => own.kind === "tool");
-    return { end: `${word} · ${callCount(calls.length)}`, label: item.subagent.description };
+    return { calls: callCount(calls.length), end: word, label: item.subagent.description };
   }
   return { end: word, label: item.target ?? item.name };
 }
@@ -127,7 +138,7 @@ export function rowWeight(run: Run, item: ActivityItem, keys: OpenKeys): number 
 
 /** A call or a thought of a run, marked when it belongs to the stretch the address names. */
 function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
-  const { end, label } = wordsOf(item, view);
+  const { calls, end, label } = wordsOf(item, view);
   const fold = foldOf(item, view);
   const key = foldKey(view.run.turn, item.seq);
   const isOpen = view.keys.open.includes(key);
@@ -148,8 +159,15 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
       align="first-line"
       endContent={
         end === undefined ? undefined : (
-          <Text color="secondary" type="supporting">
-            {end}
+          <Text color="secondary" type="supporting" xstyle={styles.end}>
+            {calls === undefined ? (
+              end
+            ) : (
+              <>
+                <span {...stylex.props(styles.group)}>{end}</span>{" "}
+                <span {...stylex.props(styles.group)}>{`· ${calls}`}</span>
+              </>
+            )}
           </Text>
         )
       }
