@@ -7,11 +7,12 @@
 > Features for v1.0.0
 
 - [Session and New in the terminal look](/specs/2026-10-25-session-new/proposal.md)
+- [Inbox and priorities in the terminal look](/specs/2026-10-25-inbox-priorities/proposal.md)
 
-- [Inbox and priorities in the terminal look](drafts/inbox-and-priorities.md)
 - [Feature page in the terminal look](drafts/feature-page.md)
 
 - Full interactive UI pass: manual small fixes
+- Leader key/shortcut map
 - Empty inbox
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
