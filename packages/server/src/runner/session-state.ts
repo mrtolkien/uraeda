@@ -127,7 +127,10 @@ export type Running = {
   terminate: Array<Timer>;
   /** The text block being streamed. */
   text?: { seq: number; text: string };
-  /** When the main agent's current thinking block started, in epoch milliseconds. */
+  /**
+   * When the main agent's current thinking block started, in epoch milliseconds: none once its
+   * whole thought, a text, or a tool call follows.
+   */
   thinking?: number;
   /**
    * Its tool calls not ended, or whose background sub-agent still runs: `ended` holds their

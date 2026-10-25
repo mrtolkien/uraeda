@@ -700,6 +700,34 @@ test("review focus 6: a thought lasts from its block's start to its whole block,
   }
 });
 
+test("a text or a call of the main agent ends its thinking block: a later thought is not timed from it", async () => {
+  const t0 = new Date("2026-10-25T10:00:00.000Z").getTime();
+  vi.useFakeTimers({ now: t0, toFake: ["Date"] });
+  try {
+    const server = await testServer();
+    const session = await send(server, { folder: AGENT, text: "Write the spec" });
+    const at = async (ms: number, event: AgentEvent) => {
+      vi.setSystemTime(t0 + ms);
+      server.adapter.emit(event);
+      await flush();
+    };
+    // Two thinking blocks the harness gave no whole thought for, the first ended by a text, the
+    // second by a tool call: the thoughts after them have no start to time them.
+    await at(0, { activity: { kind: "thinking" }, type: "activity" });
+    await at(1000, { text: "Reading the spec.", type: "textDelta" });
+    await at(30_000, { type: "thought" });
+    await at(31_000, { activity: { kind: "thinking" }, type: "activity" });
+    await at(32_000, { id: "read-1", input: {}, kind: "read", name: "Read", type: "toolStart" });
+    await at(90_000, { type: "thought" });
+    expect(await thoughtsOf(server, session)).toEqual([
+      { durationMs: 0, kind: "thought" },
+      { durationMs: 0, kind: "thought" },
+    ]);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test("a sub-agent's thought has no start to time it: its length is 0", async () => {
   const t0 = new Date("2026-10-25T10:00:00.000Z").getTime();
   vi.useFakeTimers({ now: t0, toFake: ["Date"] });

@@ -185,6 +185,10 @@ export class Transcript {
       turn.replied = undefined;
       if (event.type === "activity" && event.activity.kind === "thinking") {
         turn.thinking = Date.now();
+      } else if (event.type !== "thought" && event.type !== "toolEnd") {
+        // A text or a tool call starts after the thinking block: a start its whole thought did not
+        // follow would time a later thought from it.
+        turn.thinking = undefined;
       }
       this.#activity(
         live,
