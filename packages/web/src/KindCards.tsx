@@ -140,13 +140,17 @@ function moved(key: string, index: number): number | undefined {
 /**
  * The New page's cards: a `radiogroup` named "What to start" of three `radio` cards, Session,
  * Change, and Feature, the picked one the active pane and the group's one stop in the tab order. A
- * click or Space picks a card; the arrow keys, Home, and End move the focus and the pick. The
- * examples are left out on the phone, where the cards stack.
+ * click or Space picks a card; the arrow keys, Home, and End, without a modifier, move the focus and
+ * the pick. The examples are left out on the phone, where the cards stack.
  */
 export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewKind) => void }) {
   const narrow = isNarrow(useWidthClass());
   const cards = useRef<Array<HTMLDivElement | null>>([]);
   const keyDown = (event: KeyboardEvent, index: number) => {
+    // A key with a modifier is the browser's or the system's, as Alt+Left is Back.
+    if (event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
     if (event.key === " ") {
       event.preventDefault();
       onPick(KINDS[index].kind);

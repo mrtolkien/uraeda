@@ -199,6 +199,19 @@ test("US5 more 2: the arrow keys move the pick, as in a group of radio buttons",
   expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new"));
 });
 
+test("an arrow with a modifier is the browser's, as Alt+Right is Forward: the pick stays", async () => {
+  await renderPage("/new", fixtureRepo());
+  await screen.findByRole("radiogroup", { name: "What to start" });
+  card("Session").focus();
+
+  for (const modifier of ["altKey", "ctrlKey", "metaKey"]) {
+    // `fireEvent` answers false when the page took the key from the browser.
+    expect(fireEvent.keyDown(card("Session"), { key: "ArrowRight", [modifier]: true })).toBe(true);
+  }
+  expect(card("Session").getAttribute("aria-checked")).toBe("true");
+  expect(document.activeElement).toBe(card("Session"));
+});
+
 /** SC-005: the kind is the address's, so a reload, which renders the address again, keeps it. */
 test("SC-005: a reload keeps the picked kind", async () => {
   await renderPage("/new?kind=feature", fixtureRepo());
