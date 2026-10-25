@@ -311,8 +311,9 @@ How the feature's files and sessions sit together. Relies on
 | B. Editor tabs, opened and closed, with a preview | Open set per feature, in the browser | Grows with use, needs a cap | Needs restoring | Same, plus a close model to learn |
 | C. No tabs: Home with its files in its column     | None                                 | None                        | As today        | As today                          |
 
-Prototypes: [A on Home](mockups/home-a-timeline.html), [A on the spec](mockups/home-a-spec.html),
-[B](mockups/tabs-b-editor.html), [C](mockups/tabs-c-none.html).
+Prototypes: A on Home (`mockups/home-a-timeline.html`, deleted), A on the spec
+(`mockups/home-a-spec.html`, deleted), B (`mockups/tabs-b-editor.html`, deleted), C
+(`mockups/tabs-c-none.html`, deleted).
 
 ### The Home's layout
 
@@ -326,8 +327,8 @@ What the Home tab shows and in what order. Relies on
 | B. A horizontal process plan with your gates, then files and activity | A files pane   | Next pane   | An activity feed |
 | C. Today's parts in panes: stages row, Next and agent, tiles, files   | A files pane   | Next pane   | None             |
 
-Prototypes: [A](mockups/home-a-timeline.html), [B](mockups/home-b-process.html),
-[C](mockups/home-c-panes.html). The blueprint direction's process plan, which
+Prototypes: A (`mockups/home-a-timeline.html`, deleted), B (`mockups/home-b-process.html`, deleted),
+C (`mockups/home-c-panes.html`, deleted). The blueprint direction's process plan, which
 [layout and look](/specs/done/2026-10-20-layout-look.md#q3-should-any-part-come-from-a-direction-other-than-your-pick)
 said may come back, is B's.
 
