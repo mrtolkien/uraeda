@@ -601,3 +601,20 @@ test("another git write blocks the pane's Commit and Start the feature", async (
     ).not.toBe("true"),
   );
 });
+
+test("the Undo of a menu move is refused over a file changed since, and moves nothing", async () => {
+  const { repo } = await renderPage("/priorities");
+  await click(await screen.findByRole("button", { name: /^Actions of Git listener process/ }));
+  await click(await screen.findByRole("menuitem", { name: "Move to Now" }));
+  const text = 'Moved "Git listener process" to Now';
+  await screen.findByText(text, { ignore: "script, style, [aria-live]" });
+  const undo = screen.getByRole("button", { name: "Undo" });
+  // Another change lands in Now: the moved line's place now holds another line.
+  const changed = read(repo).replace("## Now\n\n", "## Now\n\n- Added elsewhere\n");
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), changed);
+  await click(undo);
+  await within(screen.getByRole("main")).findByText(
+    'Could not move "Git listener process" back: PRIORITIES.md changed on disk.',
+  );
+  expect(read(repo)).toBe(changed);
+});

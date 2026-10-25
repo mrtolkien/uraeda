@@ -1,7 +1,6 @@
 // A priority's move to a place, as a card's menu asks it: written at once over the priorities as
 // read, with a toast and an Undo that moves the line back where it was.
 import { useFateClient } from "react-fate";
-import { readPrioritiesHash } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
 import { TITLES } from "../QuickAdd.tsx";
@@ -36,12 +35,12 @@ export function useMoveTo(
     const moved = placed?.[Math.min(at, placed.length - 1)];
     const text = plain(entry.spans);
     const failed = `Could not move "${text}" back: PRIORITIES.md changed on disk.`;
-    if (moved !== undefined) {
+    if (moved !== undefined && result.result) {
       toast(`Moved "${text}" to ${TITLES.get(to) ?? to}`, async () => {
         try {
-          const now = await readPrioritiesHash(fate);
+          // Over the file as the move left it: a changed file refuses, as an id is a place.
           const back = await fate.mutations.priorities.move({
-            input: { entry: moved.id, hash: now, index, section: section.section },
+            input: { entry: moved.id, hash: result.result.hash, index, section: section.section },
             view: PrioritiesView,
           });
           return back.error ? failed : undefined;
