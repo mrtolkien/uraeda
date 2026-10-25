@@ -18,13 +18,20 @@ import { PrioritiesAddedView } from "./views.ts";
 import { useOwnWrite } from "./writes/useOwnWrite.ts";
 import { WriteButtonView, type WriteState } from "./writes/WriteFeedback.tsx";
 
-/** Each section's title, in the order the page shows them: a map, which the lint does not sort. */
+/**
+ * The sections a line goes to, with their titles, in the order the page shows them: a map, which
+ * the lint does not sort. Blocked is retired, so it is no target.
+ */
 export const TITLES = new Map([
   ["now", "Now"],
   ["next", "Next"],
   ["later", "Later"],
-  ["blocked", "Blocked"],
 ]);
+
+/** A section's title to display, a Blocked an existing file still has included. */
+export function titleOf(section: string) {
+  return section === "blocked" ? "Blocked" : (TITLES.get(section) ?? section);
+}
 
 /**
  * What "Add and commit" says when the file had other changes: the line is added, not committed.
@@ -186,7 +193,7 @@ export function AddForm({
       field.discard();
     }
     // Only added: the form stays open, saying why.
-    const why = commit ? uncommitted(answer?.added, TITLES.get(section) ?? section) : undefined;
+    const why = commit ? uncommitted(answer?.added, titleOf(section)) : undefined;
     if (why) {
       setNotice(why);
       return;

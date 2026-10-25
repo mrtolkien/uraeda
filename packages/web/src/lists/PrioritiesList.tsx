@@ -8,6 +8,7 @@ import type { PriorityEntry } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
 import { EditableLine } from "../EditableLine.tsx";
 import { stepTitle } from "../labels.ts";
+import { titleOf } from "../QuickAdd.tsx";
 import { openDetail, PRIORITY } from "../pane/DetailOverlay.tsx";
 import { useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
@@ -18,13 +19,6 @@ import { type Tone, WorkList, type WorkRow, type WorkSection } from "./WorkList.
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
-
-const TITLES: Record<string, string> = {
-  blocked: "Blocked",
-  later: "Later",
-  next: "Next",
-  now: "Now",
-};
 
 const TONES: Record<string, Tone> = {
   later: "gray",
@@ -113,7 +107,7 @@ function sectionsOf(
     (section) => section.section !== "blocked" || section.entries.length > 0,
   );
   const sections = visible.map((section): WorkSection => {
-    const title = TITLES[section.section] ?? section.section;
+    const title = titleOf(section.section);
     return {
       context: section.context ?? undefined,
       footer: (

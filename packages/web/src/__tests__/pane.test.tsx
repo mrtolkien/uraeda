@@ -618,3 +618,14 @@ test("the Undo of a menu move is refused over a file changed since, and moves no
   );
   expect(read(repo)).toBe(changed);
 });
+
+test("the section control offers Now, Next, and Later, and no retired Blocked", async () => {
+  await renderPage("/priorities/claude-code-runner-triggered-manually");
+  await screen.findByRole("radio", { name: "Next" });
+  expect(
+    screen
+      .getAllByRole("radio")
+      .map((radio) => radio.getAttribute("aria-label") ?? radio.textContent),
+  ).toEqual(["Now", "Next", "Later"]);
+  expect(screen.queryByRole("radio", { name: "Blocked" })).toBeNull();
+});

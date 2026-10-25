@@ -18,7 +18,7 @@ export function draftFile(path: string) {
   return path.endsWith(".md") ? path : `${path}/proposal.md`;
 }
 
-/** A menu of the priorities' sections, behind a button: Now, Next, Later, Blocked. */
+/** A menu of the priorities' sections, behind a button: Now, Next, Later. */
 function SectionMenu({ label, onPick }: { label: string; onPick: (section: string) => void }) {
   const wide = !isNarrow(useWidthClass());
   return (
