@@ -9,7 +9,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { Crumbs } from "../Crumbs.tsx";
-import { useFeature, useHistory } from "../data.ts";
+import { useAgent, useFeature, useHistory, useRecommendedMessage } from "../data.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
@@ -20,8 +20,8 @@ import { useOpenKeys } from "../useOpenKeys.ts";
 import { FeatureMenu } from "./FeatureMenu.tsx";
 import { Figures } from "./Figures.tsx";
 import { FileList } from "./FileList.tsx";
-import { nextOf } from "./next.ts";
-import { NextCard } from "./NextCard.tsx";
+import { nextOf, type Recommended } from "./next.ts";
+import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
 import { QUESTIONS_KEY, Record } from "./Record.tsx";
 import { Section } from "./Section.tsx";
@@ -47,6 +47,17 @@ function headerLine(feature: FeatureData): string {
   return parts.join(" · ");
 }
 
+/** The server's recommended message, as "Next" reads it: the message, or why there is none. */
+function recommendedOf(read: ReturnType<typeof useRecommendedMessage>): Recommended {
+  if (!read) {
+    return undefined;
+  }
+  if (read.name !== null && read.trigger !== null) {
+    return { name: read.name, trigger: read.trigger };
+  }
+  return read.reason === null ? undefined : { reason: read.reason };
+}
+
 /** "Next" beside its sessions: one row on a wide screen, "Next" twice as wide; stacked on the phone. */
 function NextAndSessions({
   feature,
@@ -59,11 +70,20 @@ function NextAndSessions({
 }) {
   const wide = !isNarrow(useWidthClass());
   const merge = history.stages.find((stage) => stage.name === "merged")?.started;
-  const next = nextOf(feature, { merged: merge ?? history.finished ?? undefined, working });
+  const agent = useAgent();
+  const recommended = recommendedOf(useRecommendedMessage(feature.folder));
+  const next = nextOf(feature, {
+    agent: agent ? { available: agent.available, name: agent.name } : undefined,
+    merged: merge ?? history.finished ?? undefined,
+    recommended,
+    working,
+  });
+  // A human gate is peach; the agent's turn, a build, or a merge is the active pane.
+  const tone = feature.step.waitsOn === "human" ? "attention" : "active";
   return (
     <Grid columns={wide ? 3 : 1} gap={3}>
       <GridSpan columns={wide ? 2 : 1}>
-        <NextCard next={next} />
+        <NextPane folder={feature.folder} next={next} tone={tone} />
       </GridSpan>
       <SessionsCard
         folder={feature.folder}

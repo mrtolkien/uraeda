@@ -702,9 +702,8 @@ git commit -m "feat(feature-page): rename and drop from the feature's page"
 - Create: `packages/web/src/feature/NextPane.tsx` (replaces `NextCard.tsx`, deleted; `cardStyles`
   moves with `SessionsCard` users to task 7: keep what they use until then)
 - Modify: `packages/web/src/feature/next.ts`, `packages/web/src/feature/FeaturePage.tsx`
-- Test: `packages/web/src/feature/__tests__/next.test.ts` (new, pure),
-  `__tests__/feature-page.test.tsx` (the Next tests rewritten), `__tests__/feature-next.test.tsx`
-  (new)
+- Test: `packages/web/src/__tests__/next.test.ts` (new, pure), `__tests__/feature-page.test.tsx`
+  (the Next tests rewritten), `__tests__/feature-next.test.tsx` (new)
 
 **Interfaces:**
 
@@ -725,10 +724,10 @@ git commit -m "feat(feature-page): rename and drop from the feature's page"
 - `NextPane({ next, folder, tone })` draws a pane titled "Next", named region "Next": peach
   (`attention`) for a human gate, active otherwise, its one button a `Button` (link or `handOver`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
-// feature/__tests__/next.test.ts
+// __tests__/next.test.ts
 test("an idle agent at a step offers the recommended message as its button", () => {
   const next = nextOf(plan, {
     working: false,
@@ -778,22 +777,22 @@ test("without the agent, Next says so and has no button", async () => {
 The breaks they catch: a button that sends the message itself; typed text lost or put first; a stale
 button after the step moves; a button for an agent that is not installed.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `nix develop -c vp test packages/web/src/feature/__tests__/next.test.ts`
+- Run: `nix develop -c vp test packages/web/src/__tests__/next.test.ts`
 - Expected: FAIL, `expect(next.action).toEqual(…)` received `undefined`
 
-- [ ] **Step 3: Implement `nextOf`'s new inputs, `NextPane`, and wire both in `FeaturePage`**
+- [x] **Step 3: Implement `nextOf`'s new inputs, `NextPane`, and wire both in `FeaturePage`**
 
 `FeaturePage` reads the recommended message and the agent, and passes them. `NextPane` replaces
 `NextCard` where the page drew it, still beside `SessionsCard` until task 7.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src
@@ -811,7 +810,7 @@ git commit -m "feat(feature-page): Next offers the step's recommended message"
   exported from `Timeline.tsx`)
 - Modify: `packages/web/src/feature/FeaturePage.tsx` (the timeline replaces the stepper and the
   files list, `FileList.tsx`'s Files part)
-- Test: `packages/web/src/feature/__tests__/stage-files.test.ts` (new, pure),
+- Test: `packages/web/src/__tests__/stage-files.test.ts` (new, pure),
   `__tests__/feature-page.test.tsx` (the stage tests rewritten)
 
 **Interfaces:**
@@ -880,7 +879,7 @@ The breaks they catch: a file listed twice or nowhere; a round count that reads 
 
 - [ ] **Step 2: Run them to check they fail**
 
-- Run: `nix develop -c vp test packages/web/src/feature/__tests__/stage-files.test.ts`
+- Run: `nix develop -c vp test packages/web/src/__tests__/stage-files.test.ts`
 - Expected: FAIL, `Failed to resolve import "../stageFiles.ts"`
 
 - [ ] **Step 3: Implement `stageFiles.ts` and `Timeline`, wire it, delete `Stages.tsx` and
@@ -911,7 +910,7 @@ git commit -m "feat(feature-page): a timeline of stages holding their files"
 - Modify: `packages/web/src/feature/SessionsCard.tsx` (a `Pane` titled "Sessions · n", same
   behaviour, renamed `SessionsPane.tsx`), `packages/web/src/feature/FeaturePage.tsx`; delete
   `Figures.tsx` and `FileList.tsx` (its tokens formatter `tokenCount` moves to `figureRows.ts`)
-- Test: `packages/web/src/feature/__tests__/figure-rows.test.ts` (new, pure),
+- Test: `packages/web/src/__tests__/figure-rows.test.ts` (new, pure),
   `__tests__/feature-page.test.tsx`, `feature-done.test.tsx`, `feature-sessions.test.tsx` (rewritten
   for the new look)
 
@@ -970,7 +969,7 @@ column whose width differs from the documents'.
 
 - [ ] **Step 2: Run them to check they fail**
 
-- Run: `nix develop -c vp test packages/web/src/feature/__tests__/figure-rows.test.ts`
+- Run: `nix develop -c vp test packages/web/src/__tests__/figure-rows.test.ts`
 - Expected: FAIL, `Failed to resolve import "../figureRows.ts"`
 
 - [ ] **Step 3: Implement the rows and the panes, build the column, delete `Figures.tsx` and
