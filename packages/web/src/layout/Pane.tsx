@@ -173,7 +173,8 @@ const styles = stylex.create({
     paddingBlockEnd: spacingVars["--spacing-1"],
     // The title, in the flow, takes the room above the content.
     paddingBlockStart: 0,
-    paddingInline: spacingVars["--spacing-3"],
+    // The theme's room, or a narrower one an ancestor sets, as the shell's column does.
+    paddingInline: `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
     position: "relative",
   },
   problem: { borderColor: colorVars["--color-border-red"] },
@@ -196,6 +197,15 @@ const styles = stylex.create({
     flexGrow: 1,
     fontWeight: fontWeightVars["--font-weight-normal"],
     minWidth: "var(--pane-suffix-room)",
+  },
+  // A tinted pane, as a picked card: its background the accent's muted tint. Its title's band is
+  // the page's above the border's middle and the tint's below it, so the title sits on both.
+  tinted: {
+    "--pane-surface": colorVars["--color-accent-muted"],
+    backgroundColor: colorVars["--color-accent-muted"],
+  },
+  tintedTitle: {
+    backgroundImage: `linear-gradient(to bottom, ${colorVars["--color-background-body"]} 50%, ${colorVars["--color-accent-muted"]} 50%)`,
   },
   // The title, in the flow so that its further lines push the content down: its first line
   // centred on the top border, its further lines below it, inside the pane, as wide as it at most.
@@ -242,6 +252,17 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
     return [[tone === "live" && styles.live, styles.active], styles.activeTitle] as const;
   }
   return tone === undefined ? ([null, null] as const) : TONES[tone];
+}
+
+/** The pane's and its title's styles, by its state, its colours and `isTinted`'s background. */
+function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean) {
+  const [border, ink] = colours(isActive, tone);
+  return isTinted
+    ? ([
+        [border, styles.tinted],
+        [styles.tintedTitle, ink],
+      ] as const)
+    : ([border, ink] as const);
 }
 
 /** The least room, in px, a title keeps beside the actions: less, and it goes under them. */
@@ -350,6 +371,7 @@ function PaneName({
  * before them, or under them where they leave it too little room; `titleSuffix` follows
  * the title in secondary text, as a live window's size and scale do, outside the pane's name.
  * With `id`, its heading is `<id>-title`, focusable by script, which a jump to the pane focuses.
+ * `isTinted` sets its background in the accent's muted tint, as a picked card's.
  */
 export function Pane({
   actions,
@@ -361,6 +383,7 @@ export function Pane({
   isActive = false,
   isGroup = false,
   isOpenOnPhone = false,
+  isTinted = false,
   level = 2,
   title,
   titleSuffix,
@@ -375,6 +398,7 @@ export function Pane({
   isActive?: boolean;
   isGroup?: boolean;
   isOpenOnPhone?: boolean;
+  isTinted?: boolean;
   level?: HeadingLevel;
   title: string;
   titleSuffix?: ReactNode;
@@ -384,7 +408,7 @@ export function Pane({
   const own = useRef<HTMLElement>(null);
   const actionsBox = useRef<HTMLDivElement>(null);
   const beside = besideActions(useActionsRoom(own, actionsBox, actions !== undefined));
-  const [border, ink] = colours(isActive, tone);
+  const [border, ink] = looks(isActive, tone, isTinted);
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isOpen = isOpenOnPhone && isNarrow(width) && !use(InPane);
@@ -407,7 +431,13 @@ export function Pane({
       id={id}
       ref={own}
       role={isGroup ? "group" : undefined}
-      {...stylex.props(styles.pane, isOpen && styles.openOnPhone, margin, border)}
+      {...stylex.props(
+        styles.pane,
+        isOpen && styles.openOnPhone,
+        margin,
+        border,
+        isTinted && styles.tinted,
+      )}
     >
       <Heading
         id={id === undefined ? undefined : `${id}-title`}

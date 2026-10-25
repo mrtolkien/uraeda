@@ -3,6 +3,7 @@
 // link names. Without it on a branch, the decisions page shows the default branch's.
 import { useLayoutEffect } from "react";
 import { Crumbs } from "../Crumbs.tsx";
+import { jumpTo } from "../keepPlace.ts";
 import { useBranchDecision } from "../data.ts";
 import { Page } from "../layout/Page.tsx";
 import { redirect, useHash, useRepoPath, useRestoreScroll } from "../routes.tsx";
@@ -24,7 +25,10 @@ export function BranchDecisionPage({ folder, name }: { folder: string; name: str
     if (missing) {
       redirect(here(`/decisions/${encodeURIComponent(name)}`) + window.location.hash);
     } else if (found && hash) {
-      document.getElementById(hash)?.scrollIntoView?.({ block: "start" });
+      const target = document.getElementById(hash);
+      if (target) {
+        jumpTo(target);
+      }
     }
   }, [found, hash, here, missing, name]);
   if (!decision || decision.missing) {

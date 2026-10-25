@@ -135,8 +135,8 @@ test.each<[string, Array<AgentEvent>]>([
       },
     ],
   ],
-  // A thinking block shows nothing, then the text.
-  ["text.jsonl", [{ text: "ready", type: "text" }]],
+  // A thinking block, whole, is a thought without its text, then the text.
+  ["text.jsonl", [{ type: "thought" }, { text: "ready", type: "text" }]],
   [
     "tool.jsonl",
     [
@@ -663,6 +663,22 @@ test("the main agent's thinking and tool calls being written are activities; a s
       "toolu_9",
     ),
   ).toEqual([]);
+});
+
+/** An `assistant` line holding a whole thinking block, the main agent's or a sub-agent's. */
+const thinkingLine = (thinking: string, parent: string | null = null) =>
+  JSON.stringify({
+    message: { content: [{ signature: "s", thinking, type: "thinking" }] },
+    parent_tool_use_id: parent,
+    type: "assistant",
+  });
+
+test("a thinking block, whole, is a thought; its text only when given", () => {
+  expect(parseLine(thinkingLine(""))).toEqual([{ type: "thought" }]);
+  expect(parseLine(thinkingLine("Check the rule's shape"))).toEqual([
+    { text: "Check the rule's shape", type: "thought" },
+  ]);
+  expect(parseLine(thinkingLine("", "toolu_1"))).toEqual([{ parent: "toolu_1", type: "thought" }]);
 });
 
 /** A background task's fields, as Claude Code reports them. */

@@ -6,13 +6,13 @@
  */
 import type { Page } from "playwright";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, show, settle, wait } from "./shots.ts";
+import { type Each, here, settle, show, showNew, wait } from "./shots.ts";
 
 const result = { denials: [], errors: [], interrupted: false, ok: true, type: "result" as const };
 
 /** Sends a message from the new chat's composer, and gives the chat's path once it is made. */
 async function start(adapter: FakeAdapter, page: Page, text: string) {
-  await show(page, "/new", "It offers a change when the work grows.");
+  await showNew(page);
   const sent = adapter.sent.length;
   await page.getByRole("textbox", { name: "Message Claude Code" }).fill(text);
   await page.getByRole("button", { name: "Send" }).first().click();

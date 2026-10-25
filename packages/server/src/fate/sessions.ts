@@ -2,6 +2,7 @@
 // pages, the sidebar's list and search, and the workflow's message.
 import type { FeatureView, WorkspaceView } from "uraeda-binding";
 import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
+import { TURN_PAGE } from "../limits.ts";
 import { coveredDenials } from "../runner/allow.ts";
 import type { Trigger } from "../runner/events.ts";
 import { commentsReference, runMessage } from "../runner/message.ts";
@@ -27,9 +28,6 @@ import {
   type TurnRecord,
   type WorkflowMessageRecord,
 } from "./views.ts";
-
-/** The items in each page of a turn's log. */
-export const TURN_PAGE = 100;
 
 /** The triggers a workflow message takes. */
 export const TRIGGERS: Array<Trigger> = [
@@ -95,12 +93,7 @@ function turnsOf(cache: SessionCache, session: string) {
   const turns = cache.turns(session);
   const latest = turns.at(-1);
   const running = turns.filter((turn) => turn.state === "running").at(-1);
-  const subagents: Array<SubagentRecord> = running
-    ? cache
-        .itemsOf(running.id, "tool")
-        .filter((tool) => tool.subagent !== undefined && tool.status === "in_progress")
-        .map((tool) => ({ description: tool.subagent?.description ?? "", id: tool.id }))
-    : [];
+  const subagents: Array<SubagentRecord> = running ? cache.subagentsOf(running.id) : [];
   return {
     allowable: latest ? coveredDenials(cache, latest.id).length : 0,
     blocked: latest ? cache.itemsOf(latest.id, "denial").some((denial) => !denial.allowed) : false,
@@ -188,6 +181,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     ...statusOf(row, read, feature, isLatest(ctx.sessions.cache, row)),
     archived: row.archivedAt !== null,
     backgroundCommands: ctx.sessions.backgroundCommands(row.id),
+    edited: ctx.sessions.cache.editedFiles(row.id),
     place: await placeOf(ctx, row, feature),
     subagents: read.subagents,
     turns: read.turns.map((turn) => String(turn.id)),

@@ -1,7 +1,6 @@
-// US4: a change's session has a column of its own: its step, its round or its pull request, the
-// files changed on its branch, and its files (US4.1–US4.3). Its page is a feature's page (US3.1 of
-// the feature page redesign). The sidebar tags its row "Change" (US4.4), and the phone's progress
-// line names its round (US4.5). Its session passes the UI checks at both sizes, in light and dark.
+// US4: a change's session has the session's column, the files changed on its branch, and no plan's
+// progress (US4.1). Its page is a feature's page (US3.1 of the feature page redesign). The sidebar
+// tags its row "Change" (US4.4). Its session passes the UI checks at both sizes, in light and dark.
 import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -50,32 +49,6 @@ Why it matters: the header has no room for both.
 **Answer:**
 `;
 
-/** The record of the finished change, its pull request #31. */
-const RECORD = `---
-kind: change
-finished: 2026-10-16
-pull-request: https://github.com/o/r/pull/31
----
-
-# Record: ${CENTRED_TITLE}
-
-> [!NOTE]
->
-> The record of a merged change, not instructions to follow.
-
-## What and why
-
-The x sat low in its circle.
-
-## Behaviour
-
-- The x is centred.
-
-## Design
-
-The glyph is centred on its box.
-`;
-
 afterEach(() => {});
 
 /** The change `centred-x`, with only its proposal. */
@@ -91,17 +64,12 @@ async function headerLogo() {
   });
 }
 
+/** The session's column. */
+const COLUMN = "The session's column";
+
 /** The column, by its landmark. */
 async function column() {
-  return within(await screen.findByRole("complementary", { name: "Progress" }, LIVE));
-}
-
-/** The column's section headings, in order. */
-function headings() {
-  const aside = screen.getByRole("complementary", { name: "Progress" });
-  return within(aside)
-    .getAllByRole("heading", { level: 2 })
-    .map((heading) => heading.textContent);
+  return within(await screen.findByRole("complementary", { name: COLUMN }, LIVE));
 }
 
 describe("on the desktop", () => {
@@ -120,57 +88,16 @@ describe("on the desktop", () => {
   });
 
   // US4.1
-  test("a change's session has its column", async () => {
+  test("a change's session has its column, without a plan's progress", async () => {
     await centred();
     await show(`/f/${CENTRED}/session`, CENTRED_TITLE);
 
     expect(screen.getByRole("heading", { level: 1, name: CENTRED_TITLE })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Message Claude Code" })).toBeTruthy();
     const aside = await column();
-    await aside.findByText("Nothing outside the change's folder yet.", undefined, LIVE);
-    expect(headings()).toEqual(["Change", "Changed on the branch", "Files"]);
-    expect(aside.getByText("The agent is working.")).toBeTruthy();
-    const files = aside.getByRole("list", { name: "Files" });
-    expect(within(files).getByRole("link", { name: "proposal.md" }).getAttribute("href")).toBe(
-      atRepo(`/f/${CENTRED}/proposal.md`),
-    );
-    expect(aside.queryByText("Feature page")).toBeNull();
-    expect(aside.queryByText("No plan yet.")).toBeNull();
-  });
-
-  // US4.2
-  test("a change waiting on a round links it from its column", async () => {
-    await headerLogo();
-    await show(`/f/${LOGO}/session`, LOGO_TITLE);
-
-    const aside = await column();
-    await aside.findByText("1 question", undefined, LIVE);
-    expect(headings()[0]).toBe("Answer questions");
-    expect(aside.getByRole("link", { name: "Questions, round 01" }).getAttribute("href")).toBe(
-      atRepo(`/f/${LOGO}/clarifications-01.md`),
-    );
-    expect(aside.getByText("Nothing outside the change's folder yet.")).toBeTruthy();
-  });
-
-  // US4.3
-  test("a finished change links its pull request", async () => {
-    await centred();
-    await agent.commitOnBranch(`change/${CENTRED}`, {
-      [`specs/changes/${CENTRED}/proposal.md`]: null,
-      [`specs/done/${CENTRED}.md`]: RECORD,
-    });
-    await show(`/f/${CENTRED}/session`, CENTRED_TITLE);
-
-    const aside = await column();
-    const link = await aside.findByRole("link", { name: "Pull request #31" }, LIVE);
-    expect(link.getAttribute("href")).toBe("https://github.com/o/r/pull/31");
-    expect(headings()[0]).toBe("Pull request state unknown");
-    const files = aside.getByRole("list", { name: "Files" });
-    expect(
-      within(files)
-        .getAllByRole("link")
-        .map((row) => row.textContent),
-    ).toEqual([`${CENTRED}.md`]);
+    await aside.findByText("No file changed yet.", undefined, LIVE);
+    expect(aside.getByRole("tab", { name: "Activity" })).toBeTruthy();
+    expect(aside.queryByRole("link", { name: /task \d+ of/ })).toBeNull();
   });
 
   // US1 of merge chats: one Sessions section holds changes and features, each card's name saying
@@ -201,25 +128,9 @@ describe("on the desktop", () => {
   });
 });
 
-describe("on the phone", () => {
-  atSize("phone");
-
-  // US4.5
-  test("the phone's line names the round and its questions", async () => {
-    await headerLogo();
-    await show(`/f/${LOGO}/session`, LOGO_TITLE);
-
-    const line = await screen.findByRole("button", { name: "Answer questions · 1 question" }, LIVE);
-    expect(screen.queryByRole("region", { name: "Progress" })).toBeNull();
-    await userEvent.click(line);
-    const open = within(await screen.findByRole("region", { name: "Progress" }, LIVE));
-    expect(open.getByRole("link", { name: "Questions, round 01" })).toBeTruthy();
-  });
-});
-
 const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
 
-// The UI checks on a change's session, its column shown beside it on the desktop, its line open on
+// The UI checks on a change's session, its column shown beside it on the desktop, its sheet open on
 // the phone, with a round and a file changed on its branch.
 test.each(MODES)("a change's session, in $mode", async ({ mode }) => {
   await colorScheme(mode);
@@ -231,17 +142,14 @@ test.each(MODES)("a change's session, in $mode", async ({ mode }) => {
   expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
   if (window.innerWidth >= 768) {
     const aside = await column();
-    await aside.findByText("1 question", undefined, LIVE);
-    await aside.findByText("Changed on the branch", undefined, LIVE);
+    await aside.findByText("On the branch · 1 file · +1 -0", undefined, LIVE);
     await drawn();
     await checkLayout();
-    await checkLayout(screen.getByRole("complementary", { name: "Progress" }));
+    await checkLayout(screen.getByRole("complementary", { name: COLUMN }));
   } else {
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Answer questions · 1 question" }, LIVE),
-    );
-    const open = await screen.findByRole("region", { name: "Progress" }, LIVE);
-    await within(open).findByText("Changed on the branch", undefined, LIVE);
+    await userEvent.click(await screen.findByRole("button", { name: "Activity" }, LIVE));
+    const open = await screen.findByRole("dialog", { name: "Activity" }, LIVE);
+    await within(open).findByText("On the branch · 1 file · +1 -0", undefined, LIVE);
     await grown();
     await checkLayout();
   }

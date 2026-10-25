@@ -5,6 +5,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useEffect, useRef, useState } from "react";
 import { Blocks } from "../Blocks.tsx";
+import { jumpTo } from "../keepPlace.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { currentEntry } from "../routeHistory.ts";
 import { type LedgerConstitution, versionLine } from "./ConstitutionRegion.tsx";
@@ -35,7 +36,10 @@ export function ConstitutionReader({
   // After the reader's own layout effects, which show another entry from its top.
   useEffect(() => {
     if (id && !(isFirst.current && restores)) {
-      window.document.getElementById(id)?.scrollIntoView?.({ block: "start" });
+      const target = window.document.getElementById(id);
+      if (target) {
+        jumpTo(target);
+      }
     }
     isFirst.current = false;
   }, [id, restores]);

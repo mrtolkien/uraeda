@@ -4,6 +4,7 @@ import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
+import { OUTPUT_LIMIT } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
 import { addChange, byId, byIdAt, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
 
@@ -217,10 +218,16 @@ test("US3.4: a running sub-agent shows in its session's row and record", async (
   await flush();
 
   const [record] = await byId(server.app, "Session", [session.id], ["id", "subagents"]);
-  expect(record.subagents).toEqual([{ description: "Map the runner code", id: "task-1" }]);
-  expect((await list(server))[0].subagents).toEqual([
-    { description: "Map the runner code", id: "task-1" },
-  ]);
+  const running = {
+    calls: 0,
+    description: "Map the runner code",
+    id: "task-1",
+    latest: null,
+    parent: null,
+    startedAt: expect.any(String),
+  };
+  expect(record.subagents).toEqual([running]);
+  expect((await list(server))[0].subagents).toEqual([running]);
 
   server.adapter.emit({ id: "task-1", isError: false, output: "Mapped.", type: "toolEnd" });
   await flush();
@@ -557,7 +564,16 @@ test("a turn waits for its background sub-agents to report back, and lists them 
   await flush();
 
   expect(await state()).toBe("running");
-  expect(await subagents()).toEqual([{ description: "Research the tools", id: "agent-1" }]);
+  expect(await subagents()).toEqual([
+    {
+      calls: 0,
+      description: "Research the tools",
+      id: "agent-1",
+      latest: null,
+      parent: null,
+      startedAt: expect.any(String),
+    },
+  ]);
 
   server.adapter.emit({ tasks: [], type: "background" });
   await flush();
@@ -649,6 +665,115 @@ test("a running turn says what its agent does, and since when, until it ends", a
   server.adapter.emit(result());
   await settle(server, session);
   expect(await activity()).toBeNull();
+});
+
+/** The thoughts of the session's first turn, without their sequence numbers. */
+async function thoughtsOf(server: Server, session: Record<string, Data>) {
+  await flush();
+  const [log] = await byId(server.app, "TurnLog", [`${session.turns[0]}:0`], ["id", "items"]);
+  return (log!.items as Array<Record<string, unknown>>)
+    .filter((item) => item.kind === "thought")
+    .map(({ seq: _, ...item }) => item);
+}
+
+test("review focus 6: a thought lasts from its block's start to its whole block, each its own", async () => {
+  const t0 = new Date("2026-10-25T10:00:00.000Z").getTime();
+  vi.useFakeTimers({ now: t0, toFake: ["Date"] });
+  try {
+    const server = await testServer();
+    const session = await send(server, { folder: AGENT, text: "Write the spec" });
+    const at = async (ms: number, event: AgentEvent) => {
+      vi.setSystemTime(t0 + ms);
+      server.adapter.emit(event);
+      await flush();
+    };
+    await at(0, { activity: { kind: "thinking" }, type: "activity" });
+    await at(8000, { type: "thought" });
+    await at(9000, { activity: { kind: "thinking" }, type: "activity" });
+    await at(14_000, { type: "thought" });
+    expect(await thoughtsOf(server, session)).toEqual([
+      { durationMs: 8000, kind: "thought" },
+      { durationMs: 5000, kind: "thought" },
+    ]);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a text or a call of the main agent ends its thinking block: a later thought is not timed from it", async () => {
+  const t0 = new Date("2026-10-25T10:00:00.000Z").getTime();
+  vi.useFakeTimers({ now: t0, toFake: ["Date"] });
+  try {
+    const server = await testServer();
+    const session = await send(server, { folder: AGENT, text: "Write the spec" });
+    const at = async (ms: number, event: AgentEvent) => {
+      vi.setSystemTime(t0 + ms);
+      server.adapter.emit(event);
+      await flush();
+    };
+    // Two thinking blocks the harness gave no whole thought for, the first ended by a text, the
+    // second by a tool call: the thoughts after them have no start to time them.
+    await at(0, { activity: { kind: "thinking" }, type: "activity" });
+    await at(1000, { text: "Reading the spec.", type: "textDelta" });
+    await at(30_000, { type: "thought" });
+    await at(31_000, { activity: { kind: "thinking" }, type: "activity" });
+    await at(32_000, { id: "read-1", input: {}, kind: "read", name: "Read", type: "toolStart" });
+    await at(90_000, { type: "thought" });
+    expect(await thoughtsOf(server, session)).toEqual([
+      { durationMs: 0, kind: "thought" },
+      { durationMs: 0, kind: "thought" },
+    ]);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a sub-agent's thought has no start to time it: its length is 0", async () => {
+  const t0 = new Date("2026-10-25T10:00:00.000Z").getTime();
+  vi.useFakeTimers({ now: t0, toFake: ["Date"] });
+  try {
+    const server = await testServer();
+    const session = await send(server, { folder: AGENT, text: "Map the code" });
+    // The main agent's thinking start is not the sub-agent's.
+    server.adapter.emit({ activity: { kind: "thinking" }, type: "activity" });
+    await flush();
+    vi.setSystemTime(t0 + 6000);
+    server.adapter.emit({ parent: "agent-1", text: "Look in src/", type: "thought" });
+    expect(await thoughtsOf(server, session)).toEqual([
+      { durationMs: 0, kind: "thought", parent: "agent-1", text: "Look in src/" },
+    ]);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a thought's text is cut to the tool output's limit", async () => {
+  const server = await testServer();
+  const session = await send(server, { folder: AGENT, text: "Write the spec" });
+  server.adapter.emit({ text: "x".repeat(OUTPUT_LIMIT + 10), type: "thought" });
+  const [thought] = await thoughtsOf(server, session);
+  expect(thought?.text).toBe("x".repeat(OUTPUT_LIMIT));
+});
+
+test("each call of the main agent restarts the activity's time", async () => {
+  const t0 = new Date("2026-10-25T10:00:00.000Z").getTime();
+  vi.useFakeTimers({ now: t0, toFake: ["Date"] });
+  try {
+    const server = await testServer();
+    const session = await send(server, { folder: AGENT, text: "Read the rules" });
+    const read = (id: string) =>
+      server.adapter.emit({ id, input: {}, kind: "read", name: "Read", type: "toolStart" });
+    read("read-1");
+    await flush();
+    vi.setSystemTime(t0 + 30_000);
+    read("read-2");
+    await flush();
+    const [turn] = await byId(server.app, "Turn", session.turns, ["id", "activity"]);
+    const activity = turn!.activity as { label: string; since: string };
+    expect(activity).toEqual({ label: "Working", since: new Date(t0 + 30_000).toISOString() });
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("TurnLog reads a turn's items in pages of 100, without taken-back messages", async () => {

@@ -17,7 +17,7 @@ export const WATCHDOG_MS = 30 * 60_000;
  * closed process still running this long after gets SIGTERM, and SIGKILL as long after.
  */
 export const TERMINATE_AFTER_MS = 10_000;
-/** A tool's output is cut to this many characters. */
+/** A tool's output, and a thought's text, are cut to this many characters. */
 export const OUTPUT_LIMIT = 4000;
 export { MAX_IMAGES } from "../limits.ts";
 
@@ -127,6 +127,11 @@ export type Running = {
   terminate: Array<Timer>;
   /** The text block being streamed. */
   text?: { seq: number; text: string };
+  /**
+   * When the main agent's current thinking block started, in epoch milliseconds: none once its
+   * whole thought, a text, or a tool call follows.
+   */
+  thinking?: number;
   /**
    * Its tool calls not ended, or whose background sub-agent still runs: `ended` holds their
    * result until it ends.

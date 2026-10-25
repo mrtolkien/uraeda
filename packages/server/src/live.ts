@@ -169,13 +169,9 @@ export function sessionPublisher(
       update("TurnLog", `${id}:${page}`);
     }
   };
-  /** The sub-agents running in the turns, which the sidebar lists. */
+  /** The sub-agents running in the turns, which the sidebar lists: the cache's `subagentsOf`. */
   const subagents = (turns: Iterable<number>) =>
-    [...turns]
-      .flatMap((id) => cache.itemsOf(id, "tool"))
-      .filter((tool) => tool.subagent !== undefined && tool.status === "in_progress")
-      .map((tool) => tool.id)
-      .join(" ");
+    [...turns].flatMap((id) => cache.subagentsOf(id).map((subagent) => subagent.id)).join(" ");
   /**
    * The bus of the session's repository, read when its updates go: none once its repository left
    * the list, and its updates are dropped.

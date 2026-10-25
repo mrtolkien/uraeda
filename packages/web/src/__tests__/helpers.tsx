@@ -12,6 +12,7 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
+import type { Item } from "uraeda-server/fate";
 import { fakeSessions, testSettings, testSignIn } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
@@ -140,6 +141,34 @@ export async function answered(type: string, from = 0) {
 export type Fake = ReturnType<typeof fakeSessions>;
 
 const managers: Array<Fake["sessions"]> = [];
+
+/**
+ * A turn of the session `session`, seeded in the fake agent's cache with `items` in order, as the
+ * runner would have cached them: ended in `state`, or still running. Its id comes back.
+ */
+export function addRun(
+  fake: Fake,
+  session: string,
+  items: ReadonlyArray<Item>,
+  state: "done" | "failed" | "running" = "done",
+): number {
+  const { cache } = fake.sessions;
+  const turn = cache.addTurn({
+    allowed: null,
+    kind: "chat",
+    sessionId: session,
+    state: "running",
+    step: null,
+    trigger: null,
+  });
+  for (const item of items) {
+    cache.appendItem(turn, item);
+  }
+  if (state !== "running") {
+    cache.endTurn(turn, { state });
+  }
+  return turn;
+}
 
 /** Sessions on the fake agent, checked, so the pages offer "Commit and start the agent". */
 export async function fakeAgent({ installed = true } = {}): Promise<Fake> {

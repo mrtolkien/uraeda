@@ -1,10 +1,10 @@
 // The UI checks decision, at a phone's size and a desktop's, in light and dark: on every page a UI
 // decision governs, no text is cut and nothing scrolls sideways (SC-003), paragraphs are 19 px at
-// every width (SC-004, and the UI look decision's 120%), every control is 44 px tall under a touch pointer
-// (SC-004), no line of a paragraph runs past about 110 characters, text is left-aligned,
+// every width (SC-004, and the UI look decision's 120%), every control is 44 px tall under a touch
+// pointer (SC-004), no line of a paragraph runs past about 110 characters, text is left-aligned,
 // and axe-core finds no WCAG 2.1 A or AA violation (SC-003). On the phone, questions, options,
-// stories, and scenarios start within 50 px of the screen's left edge. A change of width keeps
-// what is being typed (US7 2) and the task view's address (the edge case on crossing 768 px). The
+// stories, and scenarios start within 50 px of the screen's left edge. A change of width keeps what
+// is being typed (US7 2) and the task view's address (the edge case on crossing 768 px). The
 // session view, the chat view, and the sidebar pass the same checks (SC-004 of chat in the web UI).
 // So do the views images were added to (SC-005 of image attachments): the editor with an image's
 // link, a refusal, and the drop hint, its preview and a proposal with the image, the lightbox, the
@@ -12,13 +12,14 @@
 // The views text inputs changed pass them too: a round with a comment under a settled point and the
 // form of another open, the notes restored with their notice, and the "Leave page?" and "Discard
 // your comment?" confirmations. So do a feature's session at its implementation, its column shown
-// and hidden, the phone's progress line open, and a chat, the transcript 760 px wide beside the
-// column at 1440 px (SC-001, SC-004 of the session view), and at 1024 px with the sidebar open (its
-// edge case). So do a spec with a story embedded, ready, a round whose options are stories, and the
-// Storybook page (the UI iteration flow's UI checks). So do the sign-in screen, empty and with its
-// error, and the settings' Sign-in category and its confirmation, in `sign-in.test.tsx`.
-// So do the settings page, one form, opened at its Runs section, and a search that leaves a row
-// (SC-005 of the settings page, US5 of the layout's look).
+// and hidden, the phone's sheet of the column open, and a chat, the transcript at least 1.4 times
+// as wide as the column at 1440 px and at semi-wide (SC-001, SC-004 of the session view, ruling R21
+// of session-new), and at 1024 px with the sidebar open (its edge case). So do a spec with a story
+// embedded, ready, a round whose options are stories, and the Storybook page (the UI iteration
+// flow's UI checks). So do the sign-in screen, empty and with its error, and the settings' Sign-in
+// category and its confirmation, in `sign-in.test.tsx`. So do the settings page, one form, opened
+// at its Runs section, and a search that leaves a row (SC-005 of the settings page, US5 of the
+// layout's look).
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
@@ -90,7 +91,13 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "New session", null],
   // A feature's session before its first message, and the New page with Session picked.
   ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
-  ["a new session", "/new", "It offers a change when the work grows.", null],
+  [
+    "a new session",
+    "/new",
+    // The composer's placeholder: only Session's form shows it, not the cards.
+    "Message Claude Code",
+    null,
+  ],
   // The settings page, one form, with the test server's override note, and opened at its Runs
   // section (SC-005 of the settings page, US5 of the layout's look).
   ["the settings", "/settings", "Allowed host names", null],
@@ -374,12 +381,12 @@ test.each(
   await checkLayout();
 });
 
-/** The phone's progress line of `CLI` at Task 7 of 11. */
-const LINE = "Implementation · 7/11 · Session column";
+/** The session's column. */
+const COLUMN = "The session's column";
 
 /**
  * The feature's session at its implementation, at Task 7 of 11, working on a turn with long paths:
- * its column drawn beside it on wide screens, its progress line above it on the phone.
+ * its column drawn beside it on wide screens, its parts on the phone's status line.
  */
 async function implementation(mode: "light" | "dark") {
   await colorScheme(mode);
@@ -388,17 +395,17 @@ async function implementation(mode: "light" | "dark") {
   await agent.commitOnBranch(CLI, {
     "crates/core/src/files/plan.rs": "// The plan's tasks.\n",
     "packages/web/src/__browser__/layout.test.tsx": "// The layout checks.\n",
-    "packages/web/src/SessionAside.tsx": "// The session's column.\n",
+    "packages/web/src/session/SessionColumn.tsx": "// The session's column.\n",
   });
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Carry on with Task 7.", LONG_TURN);
   await screen.findByText(/Rate limited/, undefined, LIVE);
   if (window.innerWidth >= 768) {
-    const column = await screen.findByRole("complementary", { name: "Progress" }, LIVE);
-    await within(column).findByText("Task 7 of 11", undefined, LIVE);
-    await within(column).findByText("3 files · +3 −0", undefined, LIVE);
+    const column = await screen.findByRole("complementary", { name: COLUMN }, LIVE);
+    await within(column).findByRole("link", { name: /task 7 of 11/ }, LIVE);
+    await within(column).findByText("On the branch · 3 files · +3 -0", undefined, LIVE);
   } else {
-    await screen.findByRole("button", { name: LINE }, LIVE);
+    await screen.findByRole("link", { name: /task 7 of 11/ }, LIVE);
   }
   await grown();
 }
@@ -406,10 +413,20 @@ async function implementation(mode: "light" | "dark") {
 /** The checks on the page's main region, then on the column, which is beside it. */
 async function checkSession() {
   await checkLayout();
-  const column = screen.queryByRole("complementary", { name: "Progress" });
+  const column = screen.queryByRole("complementary", { name: COLUMN });
   if (column) {
     await checkLayout(column);
   }
+}
+
+/**
+ * Approval comment C2 of the session's spec: the transcript clearly weighs more than the column, at
+ * least 1.4 times as wide.
+ */
+function chatOutweighsColumn() {
+  const column = screen.getByRole("complementary", { name: COLUMN }).getBoundingClientRect();
+  const log = screen.getByRole("log", { name: "Conversation" }).getBoundingClientRect();
+  expect(log.width).toBeGreaterThanOrEqual(1.4 * column.width);
 }
 
 const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
@@ -421,10 +438,18 @@ test.each(MODES)(
     await implementation(mode);
     await checkSession();
     if (window.innerWidth === 1440) {
-      // SC-001: the sidebar at its default 240 px, the column shown, the transcript keeps 760 px.
-      expect(screen.getByRole("complementary", { name: "Progress" })).toBeTruthy();
-      const log = screen.getByRole("log", { name: "Conversation" });
-      expect(log.getBoundingClientRect().width).toBeGreaterThanOrEqual(760);
+      // SC-001, then approval comment C2 of the session's spec: the sidebar at its default 240 px,
+      // the column shown, the transcript keeps clearly more room than the column (ruling R21), and
+      // at semi-wide too.
+      chatOutweighsColumn();
+      try {
+        await page.viewport(1205, 900);
+        await expect.poll(() => window.innerWidth).toBe(1205);
+        await drawn();
+        chatOutweighsColumn();
+      } finally {
+        await page.viewport(1440, 900);
+      }
     }
   },
 );
@@ -437,11 +462,11 @@ describe("the session on the desktop", () => {
     "a feature's session at its implementation, with its column folded, in $mode",
     async ({ mode }) => {
       await implementation(mode);
-      await userEvent.click(screen.getByRole("button", { name: "Hide progress" }));
+      await userEvent.click(screen.getByRole("button", { name: "Hide the session's column" }));
       await expect
-        .poll(() => screen.queryByRole("separator", { name: "Resize progress" }), LIVE)
+        .poll(() => screen.queryByRole("separator", { name: "Resize the session's column" }), LIVE)
         .toBeNull();
-      await screen.findByRole("button", { name: "Show progress" });
+      await screen.findByRole("button", { name: "Show the session's column" });
       await drawn();
       await checkSession();
     },
@@ -465,14 +490,14 @@ describe("the session on the desktop", () => {
 describe("the session on the phone", () => {
   atSize("phone");
 
-  // SC-004 on the phone: the progress line opened above the transcript.
+  // SC-004 on the phone: the session's column opened as a sheet over the transcript.
   test.each(MODES)(
-    "a feature's session at its implementation, its progress line open, in $mode",
+    "a feature's session at its implementation, its column's sheet open, in $mode",
     async ({ mode }) => {
       await implementation(mode);
-      await userEvent.click(screen.getByRole("button", { name: LINE }));
-      const open = await screen.findByRole("region", { name: "Progress" }, LIVE);
-      await within(open).findByText("3 files · +3 −0", undefined, LIVE);
+      await userEvent.click(screen.getByRole("button", { name: "Activity" }));
+      const open = await screen.findByRole("dialog", { name: "Activity" }, LIVE);
+      await within(open).findByText("On the branch · 3 files · +3 -0", undefined, LIVE);
       await grown();
       await checkSession();
     },
@@ -481,7 +506,7 @@ describe("the session on the phone", () => {
 
 /** Starts a chat with a turn whose action auto mode blocked. */
 async function blockedChat() {
-  await show("/new", "It offers a change when the work grows.");
+  await show("/new", "Message Claude Code");
   await sendMessage("Tag v0.3.0 and push the tag.");
   // At once: a reply that ends the turn before the new chat's view listens still shows.
   await agent.agentAccept();
@@ -514,7 +539,7 @@ async function blockedChat() {
 // SC-004: a chat with one reply.
 test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
   await colorScheme(mode);
-  await show("/new", "It offers a change when the work grows.");
+  await show("/new", "Message Claude Code");
   await sendMessage("Why is CI slow on WebKit?");
   await agent.agentAccept();
   await agent.agentEmit([

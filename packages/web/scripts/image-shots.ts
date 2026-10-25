@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { COMMENT_FIELD, type Each, here, settle, show, SPEC, wait } from "./shots.ts";
+import { COMMENT_FIELD, type Each, here, settle, show, showNew, SPEC, wait } from "./shots.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
@@ -221,7 +221,7 @@ async function pickImages(page: Page) {
 
 /** A new chat whose message holds two screenshots, answered by the agent: its path. */
 async function chatWithImages(first: Page, adapter: FakeAdapter) {
-  await show(first, "/new", "It offers a change when the work grows.");
+  await showNew(first);
   const sent = adapter.sent.length;
   await pickImages(first);
   await first

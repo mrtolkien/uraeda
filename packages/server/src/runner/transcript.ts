@@ -27,6 +27,7 @@ type Output = Exclude<
 /** The events that show the agent working, which reopen its ended turn. */
 const RESUMES = new Set<AgentEvent["type"]>([
   "activity",
+  "thought",
   "textDelta",
   "text",
   "toolStart",
@@ -118,6 +119,9 @@ export class Transcript {
     switch (event.type) {
       case "activity":
         return;
+      case "thought":
+        this.#thought(live, turn, event);
+        return;
       case "textDelta":
       case "text":
         this.#text(live, turn, event);
@@ -172,20 +176,47 @@ export class Transcript {
     event: Exclude<Output, { type: "result" | "skipped" | "retry" }>,
   ) {
     const parent =
-      event.type === "toolStart"
+      event.type === "toolStart" || event.type === "thought"
         ? event.parent
         : event.type === "toolEnd"
           ? turn.tools.get(event.id)?.item.parent
           : undefined;
     if (parent === undefined) {
       turn.replied = undefined;
+      if (event.type === "activity" && event.activity.kind === "thinking") {
+        turn.thinking = Date.now();
+      } else if (event.type !== "thought" && event.type !== "toolEnd") {
+        // A text or a tool call starts after the thinking block: a start its whole thought did not
+        // follow would time a later thought from it.
+        turn.thinking = undefined;
+      }
       this.#activity(
         live,
         turn,
         event.type === "activity" ? activityLabel(event.activity) : WORKING,
         event.type === "textDelta",
+        // Each call restarts the time, so the live line reads the current call's.
+        event.type === "toolStart",
       );
     }
+  }
+
+  /**
+   * Records a thinking block, whole: the main agent's lasts since its block's start, and one
+   * without a start, as a sub-agent's, lasts 0. Its text is cut to `OUTPUT_LIMIT`, as a tool's
+   * output is.
+   */
+  #thought(live: Live, turn: Running, event: Extract<AgentEvent, { type: "thought" }>) {
+    const started = event.parent === undefined ? turn.thinking : undefined;
+    if (event.parent === undefined) {
+      turn.thinking = undefined;
+    }
+    this.#append(live, turn, {
+      durationMs: started === undefined ? 0 : Date.now() - started,
+      kind: "thought",
+      ...(event.parent === undefined ? {} : { parent: event.parent }),
+      ...(event.text === undefined ? {} : { text: event.text.slice(0, OUTPUT_LIMIT) }),
+    });
   }
 
   /** Records a text as it streams, then whole. */
@@ -224,11 +255,11 @@ export class Transcript {
   }
 
   /**
-   * Sets what the turn does now, reported when it changed. Since when restarts with it, and with
-   * each piece of text, which `quiet` leaves to the text's own change to report.
+   * Sets what the turn does now, reported when it changed or `restart`s. Since when restarts with
+   * it, and with each piece of text, which `quiet` leaves to the text's own change to report.
    */
-  #activity(live: Live, turn: Running, label: string, quiet = false) {
-    if (label === turn.activity.label && !quiet) {
+  #activity(live: Live, turn: Running, label: string, quiet = false, restart = false) {
+    if (label === turn.activity.label && !quiet && !restart) {
       return;
     }
     turn.activity = working(label);

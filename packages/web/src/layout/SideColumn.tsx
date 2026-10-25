@@ -4,13 +4,13 @@
 // to the keyboard and on touch, and always while the column is folded; `]` does the same, and so
 // does a click on the rail's empty space. The width eases over 200 ms, at once under reduced
 // motion. The page keeps its place in the tree as the column folds and unfolds, or the width
-// changes, so its transcript, focus, and errors stay. Astryx keeps its width under a key, or its
-// caller does, as the document's column does (`DocumentColumn.tsx`).
+// changes, so its transcript, focus, and errors stay. Its caller keeps its width, as the document's
+// column does (`DocumentColumn.tsx`).
 import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutPanel } from "@astryxdesign/core/Layout";
-import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
+import { ResizeHandle, type useResizable } from "@astryxdesign/core/Resizable";
 import { Text } from "@astryxdesign/core/Text";
 import { easeVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -49,9 +49,21 @@ const styles = stylex.create({
     paddingBlockEnd: spacingVars["--spacing-4"],
     paddingInline: spacingVars["--spacing-4"],
   },
+  // Filled: the content takes the column's height, a column of its header and its parts, each
+  // scrolling on its own, and the column does not scroll as a whole.
+  filled: {
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+  },
+  filledPanel: {
+    overflowY: "hidden",
+  },
   header: {
     alignItems: "center",
     display: "flex",
+    flexShrink: 0,
     minHeight: sizeVars["--size-element-md"],
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
@@ -106,6 +118,7 @@ function Column({
   children,
   easing,
   header,
+  isFilled,
   isShown,
   label,
   onPointer,
@@ -116,6 +129,7 @@ function Column({
   children: ReactNode;
   easing: boolean;
   header: ReactNode;
+  isFilled: boolean;
   isShown: boolean;
   label: string;
   onPointer: (over: boolean) => void;
@@ -132,13 +146,13 @@ function Column({
         padding={0}
         role="complementary"
         width={isShown ? resizable.size : RAIL}
-        xstyle={[styles.panel, easing && styles.easing]}
+        xstyle={[styles.panel, easing && styles.easing, isShown && isFilled && styles.filledPanel]}
       >
         {isShown ? (
           <div
             onPointerEnter={() => onPointer(true)}
             onPointerLeave={() => onPointer(false)}
-            {...stylex.props(styles.full, widths.of(resizable.size))}
+            {...stylex.props(styles.full, isFilled && styles.filled, widths.of(resizable.size))}
           >
             <div {...stylex.props(styles.header)}>
               {header ?? <Text type="label">{label}</Text>}
@@ -172,48 +186,30 @@ type ColumnProps = {
   content: ReactNode;
   /** What its top shows in place of its name, like its tabs. */
   header?: ReactNode;
+  /**
+   * Whether its content fills its height, a column of parts that scroll on their own, as a split
+   * panel's do, rather than the column scrolling as a whole.
+   */
+  isFilled?: boolean;
   /** Shows its hide button as under the pointer, for a story. */
   isRevealed?: boolean;
   isShown: boolean;
-  /** Its name, "Progress": its heading, and its buttons' names. */
+  /** Its name, "The session's column": its landmark's, and its buttons' and its edge's. */
   label: string;
   onShownChange: (shown: boolean) => void;
   /** What the folded rail shows: its key information, as icons and short counts. */
   rail?: ReactNode;
 };
 
-/** The column's width kept by Astryx, under a key. */
-type Stored = {
-  /** Its width at first, its least, and its most, in px: 320, 280, and 560 unless it needs more. */
-  sizes?: { default: number; max?: number; min: number };
-  /** Where its width is kept in the browser. */
-  storageKey: string;
-};
-
-/** The column's width kept by its caller, like the document's column's. */
-type Kept = { width: ReturnType<typeof useResizable> };
-
-export function SideColumn(props: ColumnProps & (Stored | Kept)) {
-  if ("width" in props) {
-    const { width, ...column } = props;
-    return <ColumnAt {...column} resizable={width} />;
-  }
-  return <StoredColumn {...props} />;
-}
-
-/** The column at a width Astryx keeps under its `storageKey`. */
-function StoredColumn({
-  sizes = { default: 320, min: 280 },
-  storageKey,
+/**
+ * The column, at the width `width` holds, which its caller keeps, as the document's column does
+ * (`DocumentColumn.tsx`).
+ */
+export function SideColumn({
+  width,
   ...props
-}: ColumnProps & Stored) {
-  const resizable = useResizable({
-    autoSaveId: storageKey,
-    defaultSize: sizes.default,
-    maxSize: sizes.max ?? 560,
-    minSize: sizes.min,
-  });
-  return <ColumnAt {...props} resizable={resizable} />;
+}: ColumnProps & { width: ReturnType<typeof useResizable> }) {
+  return <ColumnAt {...props} resizable={width} />;
 }
 
 /** The column beside its page, at the width `resizable` holds. */
@@ -221,6 +217,7 @@ function ColumnAt({
   children,
   content,
   header,
+  isFilled = false,
   isRevealed: revealedByStory,
   isShown,
   label,
@@ -269,6 +266,7 @@ function ColumnAt({
             <Column
               easing={easing}
               header={header}
+              isFilled={isFilled}
               isShown={isShown}
               label={label}
               onPointer={setPointer}

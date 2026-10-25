@@ -1,14 +1,12 @@
-// The New page, behind the sidebar's "＋ New": a selector, in the URL, picks a session, a change,
-// or a feature, each with its sentence and the steps that wait on the human. A session starts with
+// The New page, behind the sidebar's "＋ New": three cards, in the URL, pick a session, a change, or
+// a feature, each saying what it ends with and what waits on the human. A session starts with
 // its first message; a change from a typed text, an inbox note, or a priority line; a feature from
 // a new title, a note, or a line, as a draft opened in the editor.
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -17,6 +15,7 @@ import * as stylex from "@stylexjs/stylex";
 import { Composer } from "./Composer.tsx";
 import { useInbox, usePriorities } from "./data.ts";
 import { useTextField } from "./fields/useTextField.ts";
+import { KindCards } from "./KindCards.tsx";
 import { Page } from "./layout/Page.tsx";
 import { NewChange } from "./NewChangePage.tsx";
 import {
@@ -44,56 +43,6 @@ const styles = stylex.create({
     paddingInline: 0,
   },
 });
-
-/** What each kind is, and the steps that wait on the human, in order. */
-const ABOUT: Record<NewKind, { steps: Array<{ icon: string; label: string }>; text: string }> = {
-  change: {
-    steps: [
-      { icon: "uraeda:step-proposal", label: "Prompt" },
-      { icon: "uraeda:step-questions", label: "Questions, if any" },
-      { icon: "uraeda:step-pull-request", label: "Pull request" },
-    ],
-    text: "A bug fix or a small change, on its own branch. The agent asks only what it must, then opens a pull request.",
-  },
-  feature: {
-    steps: [
-      { icon: "uraeda:step-proposal", label: "Prompt" },
-      { icon: "uraeda:step-questions", label: "Questions" },
-      { icon: "uraeda:step-spec", label: "Spec" },
-      { icon: "uraeda:step-pull-request", label: "Pull request" },
-    ],
-    text: "A larger piece of work, on its own branch. You answer its questions and approve its spec before any code.",
-  },
-  session: {
-    steps: [],
-    text: "A conversation with the agent, in the main checkout, like plain Claude Code. It offers a change when the work grows.",
-  },
-};
-
-/** The kind's explanation, and its steps as a line of icons and arrows. */
-function About({ kind }: { kind: NewKind }) {
-  const { steps, text } = ABOUT[kind];
-  return (
-    <VStack gap={2}>
-      <Text color="secondary">{text}</Text>
-      {steps.length > 0 && (
-        <HStack align="center" gap={2} wrap="wrap">
-          {steps.map((step, index) => (
-            <HStack align="center" gap={1} key={step.label}>
-              {index > 0 && (
-                <Text aria-hidden color="secondary">
-                  →
-                </Text>
-              )}
-              <Icon color="secondary" icon={step.icon} size="sm" />
-              <Text type="supporting">{step.label}</Text>
-            </HStack>
-          ))}
-        </HStack>
-      )}
-    </VStack>
-  );
-}
 
 /** A note or a priority line to start from: its row opens it, and its button starts from it. */
 type Line = { href: string; label: string; start: () => Promise<unknown>; text: string };
@@ -207,7 +156,8 @@ function FeaturePart() {
   };
   return (
     <>
-      <HStack align="end" gap={2}>
+      {/* On the phone, the button goes under the field rather than squeezing its text. */}
+      <HStack align="end" gap={2} wrap="wrap">
         <TextInput label="Title" onChange={title.change} value={title.text} />
         <Button clickAction={write} isDisabled={!title.text.trim()} label="Write the proposal" />
       </HStack>
@@ -217,7 +167,7 @@ function FeaturePart() {
   );
 }
 
-/** The New page: the selector, then what the kind picked asks for. */
+/** The New page: the cards, then what the kind picked asks for. */
 export function NewPage({ kind }: { kind: NewKind }) {
   useRestoreScroll(true);
   const here = useRepoPath();
@@ -225,19 +175,11 @@ export function NewPage({ kind }: { kind: NewKind }) {
     <Page>
       <VStack gap={4}>
         <Heading level={1}>New</Heading>
-        <SegmentedControl
-          label="What to start"
+        <KindCards
+          kind={kind}
           // The kind is the address's: Back leaves the page, not the kind.
-          onChange={(value: string) =>
-            redirect(here(value === "session" ? "/new" : `/new?kind=${value}`))
-          }
-          value={kind}
-        >
-          <SegmentedControlItem label="Session" value="session" />
-          <SegmentedControlItem label="Change" value="change" />
-          <SegmentedControlItem label="Feature" value="feature" />
-        </SegmentedControl>
-        <About kind={kind} />
+          onPick={(picked) => redirect(here(picked === "session" ? "/new" : `/new?kind=${picked}`))}
+        />
         {kind === "session" && <NewSession />}
         {kind === "change" && <ChangePart />}
         {kind === "feature" && <FeaturePart />}

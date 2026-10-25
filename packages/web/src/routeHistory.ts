@@ -8,10 +8,11 @@ export const CHANGE = "uraeda:navigate";
  * What a history entry holds: its own id, the page's scroll position once left, the detail pane's
  * scroll position on wide screens (see `layout/Panes.tsx`), the path of the page it was opened
  * from and that page's scroll position then, an open overlay's label (see `layout/Overlay.tsx`),
- * the groups of tool calls opened in a session's transcript, by their turn and first call, and
- * whether the phone's progress line of a session is open (see `ProgressLine.tsx`).
+ * and the folds opened in a view (see `useOpenKeys.ts`).
  */
 type Entry = {
+  /** The count of rows a session's Activity draws, kept so Back draws as many. */
+  activity?: number;
   /** A chat its first message just created, on the page it left: its first turn is news. */
   created?: boolean;
   from?: string;
@@ -20,7 +21,6 @@ type Entry = {
   opener?: number;
   overlay?: string;
   pane?: number;
-  progress?: boolean;
   scroll?: number;
   /** The count of messages a session's transcript draws, kept so Back draws as many. */
   shown?: number;

@@ -3,12 +3,12 @@
 import { sessionTab, useColumnAsk } from "../ColumnSession.tsx";
 import { useAgent, useFeature } from "../data.ts";
 import { useRepositoryPath } from "../routes.tsx";
-import type { ColumnTab } from "../layout/DocumentColumn.tsx";
+import type { ColumnPanel } from "../layout/DocumentColumn.tsx";
 import { featureDraftKey, useDraft } from "../useDraft.ts";
 import type { File } from "./parts.ts";
 
 /** A page's session: its column's Session tab, and asking the agent with a quote. */
-export type PageSession = { ask: (quote: string) => void; tab: ColumnTab };
+export type PageSession = { ask: (quote: string) => void; tab: ColumnPanel };
 
 /**
  * The session of `file`'s page, where the feature's agent is available and the feature has its

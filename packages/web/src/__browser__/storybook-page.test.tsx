@@ -1,8 +1,8 @@
 // US5 of the UI iteration flow: Uraeda's Storybook page shows Storybook's own interface for a
 // branch, at the story an embed or an inline link names (US1.3, US5.1, US5.2), as tall as the window
-// above its status line (layout-look R20) and, on the phone, as wide (US5.4). The page's links and the session's column, a change's too,
-// list it (US4.5, US5.3), only with a preview decision; a story not in the index, and a failed
-// Storybook, say so (edge cases).
+// above its status line (layout-look R20) and, on the phone, as wide (US5.4). A feature's and a
+// change's page list it in their links (US4.5), only with a preview decision; a story not in the
+// index, and a failed Storybook, say so (edge cases).
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -52,11 +52,9 @@ async function undoRefused() {
 /** A page's links list row of Storybook, named with its description. */
 const STORYBOOK_ROW = /^Storybook/;
 
-/** Adds the change `centred-x`, with its proposal, and shows its session's column. */
-async function changeColumn() {
+/** Adds the change `centred-x`, with its proposal. */
+async function addChange() {
   await commands.addChange(CHANGE, { "proposal.md": `# ${CHANGE_TITLE}\n` });
-  await show(`/f/${CHANGE}/session`, CHANGE_TITLE);
-  return within(await screen.findByRole("complementary", { name: "Progress" }, READY));
 }
 
 describe("on a desktop", () => {
@@ -95,17 +93,13 @@ describe("on a desktop", () => {
       .toBeLessThan(0.05);
   });
 
-  test("the feature's page and the session's column list Storybook (US4.5, US5.3)", async () => {
+  test("the feature's page lists Storybook (US4.5)", async () => {
     await commands.addStoryFeature();
     await show(`/f/${FEATURE}`, "Sidebar resize");
     const links = within(await screen.findByRole("list", { name: "Links" }, READY));
     expect(links.getByRole("link", { name: STORYBOOK_ROW }).getAttribute("href")).toBe(
       atRepo(PAGE),
     );
-
-    await show(`/f/${FEATURE}/session`, "Feature page");
-    const column = await screen.findByRole("link", { name: "Storybook" });
-    expect(column.getAttribute("href")).toBe(atRepo(PAGE));
   });
 
   test("without a preview decision, neither lists Storybook, and it has no page (edge case)", async () => {
@@ -113,9 +107,6 @@ describe("on a desktop", () => {
     await show(`/f/${FEATURE}`, "Sidebar resize");
     await screen.findByRole("list", { name: "Files" }, READY);
     expect(screen.queryByRole("link", { name: STORYBOOK_ROW })).toBeNull();
-
-    await show(`/f/${FEATURE}/session`, "Feature page");
-    expect(screen.queryByRole("link", { name: "Storybook" })).toBeNull();
 
     await show(PAGE, "Nothing here.");
     expect(screen.queryByTitle("Storybook")).toBeNull();
@@ -157,18 +148,14 @@ describe("on a desktop", () => {
   });
 });
 
-describe("a change's column, on a desktop", () => {
+describe("a change's page, on a desktop", () => {
   atSize("desktop");
 
   test("lists Storybook, its checkout having a preview decision (US4.5)", async () => {
     // The decision is on `main`, which the change's branch starts from, in the main checkout the
     // change follows without a worktree.
     await commands.addStoryFeature();
-    const column = await changeColumn();
-    const row = await column.findByRole("link", { name: "Storybook" }, READY);
-    expect(row.getAttribute("href")).toBe(atRepo(`/f/${CHANGE}/storybook`));
-
-    // The change's page lists it too, in its links.
+    await addChange();
     await show(`/f/${CHANGE}`, CHANGE_TITLE);
     const links = within(await screen.findByRole("list", { name: "Links" }, READY));
     expect(links.getByRole("link", { name: STORYBOOK_ROW }).getAttribute("href")).toBe(
@@ -177,10 +164,7 @@ describe("a change's column, on a desktop", () => {
   });
 
   test("without a preview decision, does not list Storybook (edge case)", async () => {
-    const column = await changeColumn();
-    await column.findByRole("link", { name: "proposal.md" }, READY);
-    expect(column.queryByRole("link", { name: "Storybook" })).toBeNull();
-
+    await addChange();
     await show(`/f/${CHANGE}`, CHANGE_TITLE);
     await screen.findByRole("list", { name: "Files" }, READY);
     expect(screen.queryByRole("link", { name: STORYBOOK_ROW })).toBeNull();

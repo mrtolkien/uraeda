@@ -1,5 +1,6 @@
-// Lucide's glyphs for the spec's parts, beside `lucide.ts`, which is near its size limit. Written
-// without JSX, which the theme's build does not compile; registered with Astryx by `icons.ts`.
+// Lucide's glyphs for the spec's parts and the New page's cards, beside `lucide.ts`, which is near
+// its size limit. Written without JSX, which the theme's build does not compile; registered with
+// Astryx by `icons.ts`.
 import { createElement as h } from "react";
 import { outline } from "./lucide.ts";
 
@@ -43,4 +44,14 @@ export const scale = outline(
   h("path", { d: "M7 21h10" }),
   h("path", { d: "M12 3v18" }),
   h("path", { d: "M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" }),
+);
+
+/** An hourglass, for what waits on you in a New page's card: Lucide's `hourglass`. */
+export const hourglass = outline(
+  h("path", { d: "M5 22h14" }),
+  h("path", { d: "M5 2h14" }),
+  h("path", {
+    d: "M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22",
+  }),
+  h("path", { d: "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" }),
 );

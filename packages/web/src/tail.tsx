@@ -2,10 +2,6 @@
 // more. The walk from the latest turn backward, page by page, decides which pieces of which pages
 // draw. The pieces draw in a flat list, keyed by their page, so a message arriving at the end, or a
 // page added to the latest turn, leaves the pieces drawn as they are.
-import { Button } from "@astryxdesign/core/Button";
-import { ChatSystemMessage } from "@astryxdesign/core/Chat";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import {
   type RefObject,
   startTransition,
@@ -16,27 +12,17 @@ import {
   useState,
 } from "react";
 import { scroller } from "./following.ts";
-import { stepLabel } from "./labels.ts";
 import { keepPlace, topOf } from "./keepPlace.ts";
 import { currentEntry, updateEntry } from "./routes.tsx";
 import { useTurn, useTurnLog } from "./sessionData.ts";
-import { type Actions, TranscriptItems } from "./TranscriptMessages.tsx";
-import { Activity, Ending, ending } from "./TurnLines.tsx";
+import { Pieces } from "./tailPieces.tsx";
+import type { Actions } from "./TranscriptMessages.tsx";
 
 /** How many messages the tail draws, and how many "Show earlier messages" adds. */
 export const TAIL_MESSAGES = 20;
 
-const styles = stylex.create({
-  turn: {
-    // A page's lines, spaced as the list spaces them, in a box the address's anchor scrolls to.
-    display: "flex",
-    flexDirection: "column",
-    gap: spacingVars["--spacing-3"],
-  },
-});
-
 /** What the tail draws of one page of a turn: its items from `from` on. */
-type Piece = {
+export type Piece = {
   /** The messages it draws. */
   count: number;
   /** Whether messages lie before this piece: it offers "Show earlier messages". */
@@ -235,134 +221,6 @@ function Walk(props: Walking) {
     return <Settled keep={props.keep} onPieces={props.onPieces} pieces={[piece, ...props.acc]} />;
   }
   return <Walk {...props} acc={[piece, ...props.acc]} {...previous} root={false} />;
-}
-
-/**
- * A piece of a turn: its workflow divider with its first page, its items from where the tail
- * starts, and its activity and ending with its last page, in a box the address's anchor scrolls to,
- * with the button above that offers the messages before it. The press keeps the place of the box's
- * first element, which the earlier messages are drawn before. `latest` for the session's latest turn.
- */
-function TailPage({
-  actions,
-  latest,
-  onMore,
-  piece,
-}: {
-  actions: Actions;
-  latest: boolean;
-  onMore: (anchor: Element | null) => void;
-  piece: Piece;
-}) {
-  const box = useRef<HTMLDivElement>(null);
-  const turn = useTurn(piece.turn);
-  if (!turn) {
-    return null;
-  }
-  const last = turn.pages === 0 || piece.page === turn.pages - 1;
-  const ended = turn.state !== "running" && turn.state !== "queued";
-  const end = ending(turn.state, turn.reason);
-  return (
-    <>
-      {piece.earlier && (
-        <Button
-          clickAction={() => onMore(box.current?.firstElementChild ?? box.current)}
-          label="Show earlier messages"
-          variant="ghost"
-        />
-      )}
-      <div
-        id={piece.page === 0 ? `turn-${turn.id}` : undefined}
-        ref={box}
-        {...stylex.props(styles.turn)}
-      >
-        {piece.page === 0 && turn.kind === "workflow" && (
-          <ChatSystemMessage variant="divider">Run: {stepLabel(turn.step ?? "")}</ChatSystemMessage>
-        )}
-        {turn.pages > 0 && (
-          <PageItems
-            actions={actions}
-            ended={ended}
-            latest={latest && last}
-            piece={piece}
-            queued={turn.state === "queued"}
-          />
-        )}
-        {last && turn.state === "running" && turn.activity && (
-          <Activity label={turn.activity.label} since={turn.activity.since} />
-        )}
-        {last && end && <Ending state={turn.state} text={end} />}
-      </div>
-    </>
-  );
-}
-
-/** The items of a piece's page, from where the tail starts. */
-function PageItems({
-  actions,
-  ended,
-  latest,
-  piece,
-  queued,
-}: {
-  actions: Actions;
-  ended: boolean;
-  latest: boolean;
-  piece: Piece;
-  queued: boolean;
-}) {
-  const page = useTurnLog(`${piece.turn}:${piece.page}`, latest);
-  if (!page) {
-    return null;
-  }
-  // The turn's first message, which started it, is the first of its first page, whatever the tail
-  // cuts.
-  const first = piece.page === 0 ? page.items.find((item) => item.kind === "message") : undefined;
-  return (
-    <TranscriptItems
-      actions={actions}
-      ended={ended}
-      firstMessage={first?.kind === "message" ? first.id : undefined}
-      items={page.items.slice(piece.from)}
-      queued={queued}
-      turn={piece.turn}
-    />
-  );
-}
-
-/**
- * The pieces the walk settled on, drawn after it in the same pass: it is a component of its own
- * since the walk is read when it renders, not when the tail does. `version` changes with each
- * redraw the walk asks for.
- */
-function Pieces({
-  actions,
-  last,
-  onDrawn,
-  onMore,
-  sink,
-}: {
-  actions: Actions;
-  last: string;
-  /** Called with the pieces each commit draws, once they are on the page. */
-  onDrawn: (pieces: ReadonlyArray<Piece>) => void;
-  onMore: (anchor: Element | null) => void;
-  sink: RefObject<ReadonlyArray<Piece>>;
-  version: number;
-}) {
-  const pieces = sink.current;
-  // The walk hands its pieces over as it renders, so a render React sets aside may still draw them
-  // here: what is drawn is known from this commit, not from the walk's.
-  useLayoutEffect(() => onDrawn(pieces));
-  return pieces.map((piece) => (
-    <TailPage
-      actions={actions}
-      key={`${piece.turn}:${piece.page}`}
-      latest={piece.turn === last}
-      onMore={onMore}
-      piece={piece}
-    />
-  ));
 }
 
 /**

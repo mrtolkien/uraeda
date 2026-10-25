@@ -3,11 +3,13 @@ import { mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
+import { type EditedFile, editedFiles, type SubagentRow, subagentsOf } from "./cache-work.ts";
 import type { Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 import { migrate, transaction } from "./migrations.ts";
 import { CLEARED, FRESH, REPLACED, refused } from "./session-state.ts";
 
 export type { SessionRow, TurnRow } from "./cache-rows.ts";
+export type { EditedFile, SubagentRow } from "./cache-work.ts";
 export { migrations } from "./migrations.ts";
 
 /** How long a statement waits for another process's lock, by default. */
@@ -426,6 +428,16 @@ export class SessionCache {
       ({ data, seq }) =>
         ({ kind, seq, ...JSON.parse(data) }) as Extract<Item, { kind: K }> & { seq: number },
     );
+  }
+
+  /** The files the session edited, with their completed edits, in the order of their first. */
+  editedFiles(sessionId: string): Array<EditedFile> {
+    return editedFiles(this.db, sessionId);
+  }
+
+  /** The turn's sub-agents in progress, with their calls so far. */
+  subagentsOf(turnId: number): Array<SubagentRow> {
+    return subagentsOf(this.db, turnId);
   }
 
   itemCount(turnId: number): number {

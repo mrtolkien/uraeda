@@ -1,13 +1,14 @@
-// The New page: one selector, in the URL, picks a session, a change, or a feature, each with its
-// sentence and the steps that wait on the human. Session sends a first message in the main
-// checkout; Change starts a change from a typed text, an inbox note, or a priority line, and opens
-// its session; Feature drafts a new title, a note, or a priority line, and opens it in the editor.
+// The New page: three cards, a group of radios in the URL, pick a session, a change, or a feature,
+// each with its sentence, its example, what it ends with, and what waits on the human (US5).
+// Session sends a first message in the main checkout; Change starts a change from a typed text, an
+// inbox note, or a priority line, and opens its session; Feature drafts a new title, a note, or a
+// priority line, and opens it in the editor.
 // "Start the change" from a typed text opens its session, where its agent works. The edge case "No
 // agent on this machine": the session opens with the workflow's message in its composer, unsent, as
 // a feature's hand-over does. A start that answers once the human left opens nothing.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
@@ -48,12 +49,25 @@ function startingRepo() {
   return repo;
 }
 
-/** Picks a kind in the New page's selector. */
+/** A kind's card, in the New page's group of cards. */
+function card(kind: string) {
+  const group = screen.getByRole("radiogroup", { name: "What to start" });
+  return within(group).getByRole("radio", { name: kind });
+}
+
+/** A card's facts, each label then its value, as they read. */
+function facts(kind: string) {
+  const values = within(card(kind)).getAllByRole("definition");
+  return within(card(kind))
+    .getAllByRole("term")
+    .flatMap((label, index) => [label.textContent, values[index]?.textContent]);
+}
+
+/** Picks a kind by its card. */
 async function pick(kind: string) {
-  const selector = await screen.findByRole("radiogroup", { name: "What to start" });
-  const radio = within(selector).getByRole("radio", { name: kind });
-  await click(radio);
-  await waitFor(() => expect(radio.getAttribute("aria-checked")).toBe("true"));
+  await screen.findByRole("radiogroup", { name: "What to start" });
+  await click(card(kind));
+  await waitFor(() => expect(card(kind).getAttribute("aria-checked")).toBe("true"));
 }
 
 /** The entries of a section of `PRIORITIES.md`, as written. */
@@ -62,28 +76,174 @@ function entries(repo: string, title: string) {
   return section.split("\n").filter((line) => line.startsWith("- "));
 }
 
-/** US3 1 */
-test("＋ New opens Session, with its sentence", async () => {
+/** US3 1, US5 1 */
+test("US5.1: New without a kind picks Session, its composer under the cards", async () => {
   const fake = await fakeAgent();
   await renderPage("/new", fixtureRepo(), { agent: fake });
 
-  const selector = await screen.findByRole("radiogroup", { name: "What to start" });
+  await screen.findByRole("radiogroup", { name: "What to start" });
+  expect(card("Session").getAttribute("aria-checked")).toBe("true");
+  expect(card("Change").getAttribute("aria-checked")).toBe("false");
+  expect(card("Feature").getAttribute("aria-checked")).toBe("false");
   expect(
-    within(selector).getByRole("radio", { name: "Session" }).getAttribute("aria-checked"),
-  ).toBe("true");
-  expect(
-    screen.getByText(
-      "A conversation with the agent, in the main checkout, like plain Claude Code. It offers a change when the work grows.",
+    within(card("Session")).getByText(
+      "Talk to the agent in the main checkout, like plain Claude Code.",
     ),
   ).toBeTruthy();
-  expect(screen.queryByText("Prompt")).toBeNull();
-  await type(screen.getByRole("textbox", { name: "Message Claude Code" }), "List the drafts");
+  const box = screen.getByRole("textbox", { name: "Message Claude Code" });
+  // Under the cards.
+  expect(card("Feature").compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+    0,
+  );
+  await type(box, "List the drafts");
   await click(screen.getByRole("button", { name: "Send" }));
 
   await waitFor(() =>
     expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/sessions/")}[^/]+$`)),
   );
   expect(fake.adapter.sent[0].text).toBe("List the drafts");
+});
+
+/** US5 2 */
+test("US5.2: picking Feature marks it, puts it in the address, and shows its form", async () => {
+  await renderPage("/new", startingRepo(), { agent: await fakeAgent() });
+
+  await pick("Feature");
+
+  expect(card("Session").getAttribute("aria-checked")).toBe("false");
+  expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new?kind=feature"));
+  expect(screen.getByRole("textbox", { name: "Title" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Write the proposal" })).toBeTruthy();
+  expect(await screen.findByText("Or start from a note or a priority")).toBeTruthy();
+  expect(screen.queryByRole("textbox", { name: "Message Claude Code" })).toBeNull();
+});
+
+/** US5 3 */
+test("US5.3: each card says what it ends with and what waits on you", async () => {
+  await renderPage("/new", fixtureRepo());
+  await screen.findByRole("radiogroup", { name: "What to start" });
+
+  expect(facts("Session")).toEqual(["Ends with", "the chat", "Waits on you", "nothing"]);
+  expect(facts("Change")).toEqual([
+    "Ends with",
+    "a pull request",
+    "Waits on you",
+    "the pull request",
+  ]);
+  expect(facts("Feature")).toEqual([
+    "Ends with",
+    "a spec, then a pull request",
+    "Waits on you",
+    "questions, then the spec",
+  ]);
+});
+
+/** A radio's content is presentational: the card's body is its description, read with its name. */
+test("each card's sentence and facts are its radio's description", async () => {
+  await renderPage("/new", fixtureRepo());
+  await screen.findByRole("radiogroup", { name: "What to start" });
+
+  expect(
+    screen.getByRole("radio", { description: /Ends with ?a pull request/, name: "Change" }),
+  ).toBe(card("Change"));
+  expect(
+    screen.getByRole("radio", {
+      description: /Ends with ?a spec, then a pull request/,
+      name: "Feature",
+    }),
+  ).toBe(card("Feature"));
+});
+
+/** US5, each card's sentence and example. */
+test("each card has its sentence and its example", async () => {
+  await renderPage("/new", fixtureRepo());
+  await screen.findByRole("radiogroup", { name: "What to start" });
+
+  for (const [kind, sentence, example] of [
+    [
+      "Session",
+      "Talk to the agent in the main checkout, like plain Claude Code.",
+      "“Why is CI slow?”",
+    ],
+    ["Change", "A bug fix or a small change, on its own branch.", "“Fix the due-date typo”"],
+    [
+      "Feature",
+      "A larger piece of work, designed with the agent before any code.",
+      "“Add recurring tasks”",
+    ],
+  ]) {
+    expect(within(card(kind)).getByText(sentence)).toBeTruthy();
+    expect(within(card(kind)).getByText(example)).toBeTruthy();
+  }
+});
+
+/** Presses a key on the element that has the focus. */
+async function press(key: string) {
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement!, { key });
+  });
+}
+
+/** Waits for a kind's card to be picked, as the address changes. */
+async function picked(kind: string) {
+  await waitFor(() => expect(card(kind).getAttribute("aria-checked")).toBe("true"));
+}
+
+/** US5 more 2 */
+test("US5 more 2: the arrow keys move the pick, and Space picks, as in a group of radio buttons", async () => {
+  await renderPage("/new", fixtureRepo());
+  await screen.findByRole("radiogroup", { name: "What to start" });
+  // One stop in the tab order: the picked card.
+  expect(card("Session").tabIndex).toBe(0);
+  expect(card("Change").tabIndex).toBe(-1);
+  card("Session").focus();
+
+  await press("ArrowRight");
+  await picked("Change");
+  expect(document.activeElement).toBe(card("Change"));
+  expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new?kind=change"));
+
+  await press("End");
+  await picked("Feature");
+  expect(document.activeElement).toBe(card("Feature"));
+  // Past the last, the first.
+  await press("ArrowDown");
+  await picked("Session");
+  await press("ArrowLeft");
+  await picked("Feature");
+  await press("Home");
+  await picked("Session");
+  expect(document.activeElement).toBe(card("Session"));
+  expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new"));
+
+  // Space picks the focused card, unpicked.
+  card("Change").focus();
+  await press(" ");
+  await picked("Change");
+  expect(document.activeElement).toBe(card("Change"));
+});
+
+test("an arrow with a modifier is the browser's, as Alt+Right is Forward: the pick stays", async () => {
+  await renderPage("/new", fixtureRepo());
+  await screen.findByRole("radiogroup", { name: "What to start" });
+  card("Session").focus();
+
+  for (const modifier of ["altKey", "ctrlKey", "metaKey"]) {
+    // `fireEvent` answers false when the page took the key from the browser.
+    expect(fireEvent.keyDown(card("Session"), { key: "ArrowRight", [modifier]: true })).toBe(true);
+  }
+  expect(card("Session").getAttribute("aria-checked")).toBe("true");
+  expect(document.activeElement).toBe(card("Session"));
+});
+
+/** SC-005: the kind is the address's, so a reload, which renders the address again, keeps it. */
+test("SC-005: a reload keeps the picked kind", async () => {
+  await renderPage("/new?kind=feature", fixtureRepo());
+
+  await screen.findByRole("radiogroup", { name: "What to start" });
+  expect(card("Feature").getAttribute("aria-checked")).toBe("true");
+  expect(card("Session").getAttribute("aria-checked")).toBe("false");
+  expect(screen.getByRole("textbox", { name: "Title" })).toBeTruthy();
 });
 
 /** The ui-layout decision: the kind picked is in the URL. */
@@ -237,26 +397,6 @@ test("a feature from a priority line", async () => {
   await waitFor(() =>
     expect(window.location.pathname).toBe(atRepo("/edit/specs/drafts/empty-inbox.md")),
   );
-});
-
-/** US3, its paragraph */
-test("the steps that wait on you", async () => {
-  await renderPage("/new?kind=change", fixtureRepo());
-
-  await screen.findByText(
-    "A bug fix or a small change, on its own branch. The agent asks only what it must, then opens a pull request.",
-  );
-  for (const step of ["Prompt", "Questions, if any", "Pull request"]) {
-    expect(screen.getByText(step)).toBeTruthy();
-  }
-  expect(screen.queryByText("Spec")).toBeNull();
-  await pick("Feature");
-  await screen.findByText(
-    "A larger piece of work, on its own branch. You answer its questions and approve its spec before any code.",
-  );
-  for (const step of ["Prompt", "Questions", "Spec", "Pull request"]) {
-    expect(screen.getByText(step)).toBeTruthy();
-  }
 });
 
 test("without the agent, the change's page opens with its message unsent", async () => {

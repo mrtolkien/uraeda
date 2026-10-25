@@ -133,7 +133,7 @@ test("an earlier session of a feature opens with its feature's column and crumbs
   await renderPage(`/sessions/${first.id}`, repo, { agent: fake });
 
   expect(await screen.findByRole("navigation", { name: "Breadcrumbs" })).toBeTruthy();
-  expect(await screen.findByRole("complementary", { name: "Progress" })).toBeTruthy();
+  expect(await screen.findByRole("complementary", { name: "The session's column" })).toBeTruthy();
   // Its own transcript, not the latest session's.
   const log = within(await screen.findByRole("log", { name: "Conversation" }));
   expect(await log.findByText("Planned.")).toBeTruthy();

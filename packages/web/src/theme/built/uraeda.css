@@ -312,7 +312,6 @@
     --size-round-pair: 820px;
     --size-round-measure: 75ch;
     --size-settings-search: 240px;
-    --size-session-aside: 320px;
     --size-rail: 52px;
     --size-rail-inset: calc((var(--size-rail) - var(--size-element-md)) / 2);
     --size-label-line: calc(var(--text-label-size) * var(--text-label-leading));

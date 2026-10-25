@@ -10,7 +10,7 @@ export type OpenKeys = {
 };
 
 /**
- * The items opened in a view, like a transcript's groups of tool calls or a spec's folds, kept in
+ * The items opened in a view, like a spec's folds or a feature's notes, kept in
  * the history entry for Back and reloads. Several views of a page may each keep theirs, by keys of
  * their own: each change starts from the entry's keys, so it keeps the others'.
  */
