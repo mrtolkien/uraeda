@@ -1,0 +1,114 @@
+:root {
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --text: #cdd6f4;
+  --sub: #a6adc8;
+  --line: #6c7086;
+  --lav: #b4befe;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --peach: #fab387;
+  --mauve: #cba6f7;
+  --sel: #313244;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--base);
+  color: var(--text);
+  font:
+    16.8px/1.5 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+}
+h1 {
+  font-size: 1.1em;
+  margin: 0 0 16px;
+  color: var(--lav);
+}
+.pane {
+  position: relative;
+  border: 1px solid var(--line);
+  padding: 18px 14px 10px;
+  margin-top: 14px;
+}
+.pane > .t {
+  position: absolute;
+  top: -0.8em;
+  left: 10px;
+  background: var(--base);
+  padding: 0 6px;
+  color: var(--lav);
+}
+.pane.green > .t {
+  color: var(--green);
+}
+.pane.blue > .t {
+  color: var(--blue);
+}
+.pane.peach > .t {
+  color: var(--peach);
+}
+.pane > .t small {
+  color: var(--sub);
+}
+.ctx {
+  color: var(--sub);
+  font-style: italic;
+  margin: 0 0 10px;
+}
+.note {
+  padding: 4px 8px;
+  border-left: 2px solid transparent;
+}
+.note.sel {
+  background: var(--sel);
+  border-left-color: var(--lav);
+}
+.note .sub {
+  color: var(--sub);
+  padding-left: 1.5em;
+  display: block;
+}
+.tag {
+  color: var(--mauve);
+  font-size: 0.85em;
+}
+.keys {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--mantle);
+  color: var(--sub);
+  padding: 6px 24px;
+  border-top: 1px solid var(--line);
+}
+.keys b {
+  color: var(--lav);
+  font-weight: normal;
+}
+.cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.act {
+  color: var(--sub);
+  font-size: 0.85em;
+  float: right;
+}
+.note:hover .act,
+.note.sel .act {
+  color: var(--lav);
+}
+.add {
+  color: var(--sub);
+  padding: 4px 8px;
+}
+body.pad {
+  padding-bottom: 56px;
+}
