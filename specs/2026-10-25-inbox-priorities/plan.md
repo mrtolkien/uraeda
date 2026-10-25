@@ -950,7 +950,7 @@ git commit -m "feat(inbox-priorities): the inbox as panes, with categories"
   The hints are declared once through `useStatusHints`, with `h l` named only where the list has
   columns. Home and the decisions page keep `j k`, Enter, and Escape as they were.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 test("l selects the card at the same row of the next column, or the last card when it is shorter", async () => {});
@@ -962,21 +962,21 @@ test("the status line names h l only on the columns", async () => {});
 The break each test catches: `l` that lands at the top, a selection that opens the overlay, and keys
 on the decisions page changed.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test --project desktop packages/web/src/__browser__/list-keys.test.tsx`
 - Expected: FAIL, the card at row 2 of Next is not selected after `l`.
 
-- [ ] **Step 3: Implement the keys**
+- [x] **Step 3: Implement the keys**
 
 Rows know their column: the keys read it from the card's section, not from the page.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then both browser projects on `list-keys`, `ledger`, `home`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-25-inbox-priorities

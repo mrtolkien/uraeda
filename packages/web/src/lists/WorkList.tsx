@@ -13,7 +13,7 @@ import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, type WorkRow } from "./Card.tsx";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
-import { isLayerOpen, useListKeys } from "./useListKeys.ts";
+import { type Columns, isLayerOpen, useListKeys } from "./useListKeys.ts";
 
 /** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
 export type Tone = "green" | "blue" | "neutral" | "gray";
@@ -164,6 +164,18 @@ function DropSection(props: {
   return <SectionBody ref={ref} {...props} />;
 }
 
+/** The columns of the keys: each section's rows as indexes into all the rows, without the empty. */
+function columnsOf(sections: ReadonlyArray<ReadonlyArray<WorkRow>>): Columns {
+  let start = 0;
+  return sections
+    .map((rows) => {
+      const indexes = rows.map((_, at) => start + at);
+      start += rows.length;
+      return indexes;
+    })
+    .filter((indexes) => indexes.length > 0);
+}
+
 /**
  * The selection of the list: the key the address names, once it names one, and that card after the
  * address stops naming it, as the overlay closes. It moves with the keys and with a click.
@@ -212,11 +224,19 @@ export function WorkList({
     section.isFixed
       ? section.rows
       : (drag.order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? []);
-  // The rows in the order they show, which the keys move along.
-  const rows = drag.sections.flatMap(rowsOf);
+  const isNarrowScreen = isNarrow(useWidthClass());
+  const asColumns = layout === "columns" && !isNarrowScreen;
+  const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
+  const inRow = drag.sections.filter((section) => !below.includes(section));
+  // The rows in the order they show, which the keys move along, and the indexes each column holds.
+  const shown = [...inRow, ...below].map(rowsOf);
+  const rows = shown.flat();
+  const isOpen = named !== undefined;
   const { focusSelected, ref } = useListKeys({
-    // Enter opens the focused card's link, and nothing closes: the overlay has its own Escape.
-    escapeLabel: null,
+    columns: asColumns ? columnsOf(shown) : undefined,
+    // Enter opens the focused card's link; the overlay, once open, has its own Escape.
+    escapeLabel: isOpen ? "close" : null,
+    isOff: isOpen,
     onClose: () => false,
     onEdit: () => false,
     onSelect: (index) => setSelected(rows[index].key),
@@ -246,9 +266,6 @@ export function WorkList({
     setSelected(row.key);
     onOpen?.(row.href);
   };
-  const isNarrowScreen = isNarrow(useWidthClass());
-  const asColumns = layout === "columns" && !isNarrowScreen;
-  const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
   const drawn = (section: WorkSection, isColumn: boolean) => {
     const Body = section.isFixed ? SectionBody : DropSection;
     return (
@@ -272,9 +289,7 @@ export function WorkList({
           tabIndex={asColumns ? 0 : undefined}
           {...stylex.props(asColumns ? styles.row : styles.stack)}
         >
-          {drag.sections
-            .filter((section) => !below.includes(section))
-            .map((section) => drawn(section, asColumns))}
+          {inRow.map((section) => drawn(section, asColumns))}
         </div>
         {below.map((section) => drawn(section, false))}
       </DragDropProvider>

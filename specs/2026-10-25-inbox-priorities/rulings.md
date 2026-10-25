@@ -258,3 +258,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: Save and Cancel buttons in the title: wider than a phone's pane.
 - **If wrong**: `lists/CategoryPane.tsx`, `lists/useCategoryActions.ts`, and one line of `Card`.
 - **Where**: task 8.
+
+## R20: The list's hints follow its overlay, and Escape after Next works
+
+- **Decision**: `useListKeys` takes `columns` (the rows each column holds, in order, none empty) and
+  `isOff`. With `columns`, `j k` and Home and End stay in the card's column, and `h l` and the left
+  and right arrows go to the same row of the neighbouring column, or its last card when shorter;
+  from no card, to the first card. Blocked, drawn under the row, is the last column of the keys, so
+  `l` from Later reaches it. The status line names `h l` ("column") only with `columns`. While the
+  overlay is open (`WorkList` has a `selected` the address names), the list declares only
+  `esc close`; closed, it declares `j k move`, `h l column`, `⏎ open`, and no `esc`, as nothing
+  closes. The status-line unit test that expected the list's keys and no Escape with the overlay
+  open now expects `esc close` and no `j k move`, and three tests of `lists.test.tsx` that crossed
+  sections on the desktop (↓, j, End) now stop at the column's last card, as the spec asks; the
+  phone, stacked, still crosses, in `list-keys.test.tsx`. The decisions page keeps its hints and
+  keys. Escape in WebKit after Next stepped the overlay onto the last line closes it: a new test,
+  "Escape closes the overlay after Next stepped it onto the last line", passes with no code change,
+  so R14's failure was a test timing, not our focus handling (`DetailOverlay` puts the focus back in
+  the overlay after a step).
+- **Rationale**: Hints that name keys the overlay holds would lie; Escape is the key that works
+  there. R14's test keeps Close, which also guards the selection after the step.
+- **Alternatives considered**: `esc close` always shown (nothing closes with no overlay); Blocked
+  out of reach of the keys.
+- **If wrong**: `useListKeys.ts`'s `destination` and `hints`, one condition in `WorkList`.
+- **Where**: task 9.

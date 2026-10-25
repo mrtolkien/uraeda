@@ -113,6 +113,20 @@ describe("on the desktop", () => {
     await isSelected(NEXT);
   });
 
+  test("Escape closes the overlay after Next stepped it onto the last line", async () => {
+    await show("/priorities", NEXT);
+    await userEvent.click(card(NEXT));
+    const dialog = within(await overlay());
+    await userEvent.click(dialog.getByRole("button", { name: "Next ›" }));
+    await located().toMatch(/\/priorities\/git-listener$/);
+    await drawn();
+    // The last line of Next: its Next is disabled, and the button that stepped goes with the focus.
+    expect(dialog.getByRole("button", { name: "Next ›" }).hasAttribute("disabled")).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(window.location.pathname).toBe(atRepo("/priorities"));
+  });
+
   test("Back closes it in one press", async () => {
     await show("/priorities", NEXT);
     await userEvent.click(card(NEXT));
