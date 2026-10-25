@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 2
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Inbox and priorities in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-10-25: 4 comments in spec-review.md.
 >
 > - You approve the priorities as scrolling columns of draggable cards, the inbox as a pane per
 >   category, a detail that opens in an overlay, a `…` menu on every line, and categories you
