@@ -1,0 +1,262 @@
+// A turn's items cut into stretches, the main agent's calls and thoughts between two other lines,
+// and every word said of them: a recap line's counts, the live line, and an activity row's end. One
+// table of the kinds' words serves them all, so a word changes in one place.
+import type { TranscriptItem } from "../TranscriptMessages.tsx";
+import { elapsed } from "../TurnLines.tsx";
+
+/** A tool call of a turn, as the chat draws it. */
+export type ToolItem = Extract<TranscriptItem, { kind: "tool" }>;
+
+/** A line a stretch holds: a tool call or a thought. */
+export type ActivityItem = Extract<TranscriptItem, { kind: "thought" | "tool" }>;
+
+/**
+ * The main agent's calls and thoughts between two other items of a turn, its sub-agents' starting
+ * calls included. `key` is `stretchKey` of its turn and first item.
+ */
+export type Stretch = { items: ReadonlyArray<ActivityItem>; key: string };
+
+/** A place in a page of a turn: one of its other items, or a stretch. */
+export type Slot = { item: TranscriptItem; kind: "item" } | { kind: "stretch"; stretch: Stretch };
+
+/** The address parameter that names the stretch a recap line opened. */
+export const STRETCH_PARAMETER = "stretch";
+
+/** What the words call a call: its kind, or a sub-agent, whatever its kind. */
+type CallKind = "read" | "edit" | "delete" | "move" | "search" | "fetch" | "execute" | "subagent";
+
+/** A kind's words: its past verb, its present verb, its row's word, and what it acts on. */
+type Words = {
+  doing: string;
+  /** Counts distinct targets, not calls. */
+  files?: true;
+  kind: CallKind;
+  past: string;
+  row: string;
+  /** What it counts, "file", or "times" for "once", "twice", "3 times". */
+  unit: string;
+  /** What it acts on when no target names it. */
+  what: string;
+};
+
+/**
+ * The words of each kind of call, in the order a recap line counts them (ruling R5), and its row's
+ * word (ruling R6). An array, so that order is the table's and no sort of keys changes it.
+ */
+const WORDS: ReadonlyArray<Words> = [
+  {
+    doing: "reading",
+    files: true,
+    kind: "read",
+    past: "read",
+    row: "read",
+    unit: "file",
+    what: "a file",
+  },
+  {
+    doing: "editing",
+    files: true,
+    kind: "edit",
+    past: "edited",
+    row: "edit",
+    unit: "file",
+    what: "a file",
+  },
+  {
+    doing: "deleting",
+    files: true,
+    kind: "delete",
+    past: "deleted",
+    row: "delete",
+    unit: "file",
+    what: "a file",
+  },
+  {
+    doing: "moving",
+    files: true,
+    kind: "move",
+    past: "moved",
+    row: "move",
+    unit: "file",
+    what: "a file",
+  },
+  { doing: "searching", kind: "search", past: "searched", row: "search", unit: "times", what: "" },
+  { doing: "fetching", kind: "fetch", past: "fetched", row: "fetch", unit: "page", what: "a page" },
+  {
+    doing: "running",
+    kind: "execute",
+    past: "ran",
+    row: "run",
+    unit: "command",
+    what: "a command",
+  },
+  {
+    doing: "running",
+    kind: "subagent",
+    past: "ran",
+    row: "sub-agent",
+    unit: "sub-agent",
+    what: "a sub-agent",
+  },
+];
+
+/** The words of each kind, by kind. */
+const KINDS = new Map(WORDS.map((words) => [words.kind, words]));
+
+/** The counts after the kinds of `WORDS`: other tools, then thoughts. */
+const OTHER = { doing: "using", past: "used", unit: "other tool" };
+const THOUGHT = { past: "thought", unit: "times" };
+
+/** "once", "twice", "3 times". */
+function times(count: number): string {
+  return count === 1 ? "once" : count === 2 ? "twice" : `${count} times`;
+}
+
+/** "searched twice", "read 3 files", "ran 1 command". */
+function counted(past: string, unit: string, count: number): string {
+  return unit === "times"
+    ? `${past} ${times(count)}`
+    : `${past} ${count} ${unit}${count === 1 ? "" : "s"}`;
+}
+
+/** The words of a call's kind, a sub-agent whatever its kind, or undefined for another tool. */
+function wordsOf(tool: { subagent?: unknown; toolKind: ToolItem["toolKind"] }): Words | undefined {
+  return KINDS.get(tool.subagent ? "subagent" : (tool.toolKind as CallKind));
+}
+
+/** `${turn}:${seq}`: the stretch of a turn that starts at that item. */
+export function stretchKey(turn: string, seq: number): string {
+  return `${turn}:${seq}`;
+}
+
+/** The address of `path` with its Activity open at the stretch `key`. */
+export function stretchAddress(path: string, key: string): string {
+  return `${path}?${new URLSearchParams([
+    ["tab", "activity"],
+    [STRETCH_PARAMETER, key],
+  ])}`;
+}
+
+/**
+ * A page's items in order, each run of the main agent's calls and thoughts one stretch. Items of a
+ * sub-agent, with a `parent`, are left out, and do not end a stretch: they arrive whenever the
+ * sub-agent works, after the main agent's text as well as between its calls.
+ */
+export function slotsOf(turn: string, items: ReadonlyArray<TranscriptItem>): Array<Slot> {
+  const slots: Array<Slot> = [];
+  let current: Array<ActivityItem> | undefined;
+  for (const item of items) {
+    if ((item.kind === "tool" || item.kind === "thought") && item.parent !== undefined) {
+      continue;
+    }
+    if (item.kind === "tool" || item.kind === "thought") {
+      if (!current) {
+        current = [];
+        slots.push({
+          kind: "stretch",
+          stretch: { items: current, key: stretchKey(turn, item.seq) },
+        });
+      }
+      current.push(item);
+      continue;
+    }
+    current = undefined;
+    slots.push({ item, kind: "item" });
+  }
+  return slots;
+}
+
+/** The sum of the items' lengths, in ms: a call cached without one counts 0. */
+export function lengthOf(items: ReadonlyArray<ActivityItem>): number {
+  return items.reduce((sum, item) => sum + (item.durationMs ?? 0), 0);
+}
+
+/** A single call's words: its past verb and target, "read src/tasks/undo.ts". */
+function single(tool: ToolItem): string | undefined {
+  const words = wordsOf(tool);
+  if (!words) {
+    return `${OTHER.past} ${tool.name}`;
+  }
+  // A sub-agent's target is its description, which its activity row shows.
+  if (words.kind === "subagent") {
+    return `${words.past} ${words.what}`;
+  }
+  return tool.target ? `${words.past} ${tool.target}` : undefined;
+}
+
+/** Each kind's count, in the table's order, from a stretch's calls. */
+function counts(tools: ReadonlyArray<ToolItem>): Array<string> {
+  const parts: Array<string> = [];
+  for (const words of WORDS) {
+    const calls = tools.filter((tool) => wordsOf(tool) === words);
+    // A file read twice is one file read.
+    const count = words.files
+      ? new Set(calls.map((tool) => tool.target ?? tool.id)).size
+      : calls.length;
+    if (count > 0) {
+      parts.push(counted(words.past, words.unit, count));
+    }
+  }
+  const others = tools.filter((tool) => !wordsOf(tool)).length;
+  if (others > 0) {
+    parts.push(counted(OTHER.past, OTHER.unit, others));
+  }
+  return parts;
+}
+
+/**
+ * A recap line's words: the stretch's time, then each kind's count, "2 min · read 3 files ·
+ * searched once · thought twice"; a single call reads the call, "4 s · read src/tasks/undo.ts".
+ */
+export function recapText(items: ReadonlyArray<ActivityItem>): string {
+  const tools = items.filter((item): item is ToolItem => item.kind === "tool");
+  const thoughts = items.length - tools.length;
+  const alone = tools.length === 1 ? single(tools[0]!) : undefined;
+  const parts = [elapsed(lengthOf(items)), ...(alone ? [alone] : counts(tools))];
+  if (thoughts > 0) {
+    parts.push(counted(THOUGHT.past, THOUGHT.unit, thoughts));
+  }
+  return parts.join(" · ");
+}
+
+/**
+ * What a running call does, "reading src/tasks/undo.ts": a call of the chat, or a sub-agent's
+ * latest call as the session record has it.
+ */
+export function doingText(tool: {
+  name?: string;
+  subagent?: unknown;
+  target?: string | null;
+  toolKind: ToolItem["toolKind"];
+}): string {
+  const words = wordsOf(tool);
+  if (!words) {
+    return `${OTHER.doing} ${tool.name ?? "a tool"}`;
+  }
+  const what = words.kind === "subagent" ? words.what : (tool.target ?? words.what);
+  return what ? `${words.doing} ${what}` : words.doing;
+}
+
+/**
+ * The live line of a running turn: how long its current call or thought lasts, what it does, and
+ * its running sub-agents, "12 s · reading src/tasks/undo.ts · 2 sub-agents running".
+ */
+export function liveText(lastingMs: number, doing: string, subagents: number): string {
+  const running =
+    subagents > 0 ? ` · ${subagents} sub-agent${subagents === 1 ? "" : "s"} running` : "";
+  return `${elapsed(lastingMs)} · ${doing}${running}`;
+}
+
+/**
+ * An activity row's end word: its kind's, "read" or "run", or its tool's name; "failed" for a
+ * failed or cancelled call; "not finished" for a call left going by a turn that `ended`.
+ */
+export function rowWord(tool: ToolItem, ended: boolean): string {
+  if (tool.status === "failed" || tool.status === "cancelled") {
+    return "failed";
+  }
+  if (ended && (tool.status === "pending" || tool.status === "in_progress")) {
+    return "not finished";
+  }
+  return wordsOf(tool)?.row ?? tool.name;
+}

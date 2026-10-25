@@ -761,7 +761,7 @@ git commit -m "feat(session-new): New's three kinds as cards"
   - `liveText(lastingMs: number, doing: string, subagents: number): string`.
   - `rowWord(tool: ToolItem, ended: boolean): string`: an activity row's end word.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/stretches.test.ts
@@ -816,22 +816,22 @@ The break each test catches:
 - Sub-agent: the sub-agent's later calls splitting the main agent's text from the next stretch.
 - Live: the sub-agents' count missing, or the time read from the turn's start.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/stretches.test.ts`
 - Expected: FAIL, `Failed to resolve import "../session/stretches.ts"`.
 
-- [ ] **Step 3: Implement `session/stretches.ts`**
+- [x] **Step 3: Implement `session/stretches.ts`**
 
 Pure functions, no React. One table of the kinds' words serves recap counts, single calls, doing,
 and rows, so a word changes in one place.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/session/stretches.ts packages/web/src/__tests__/stretches.test.ts specs/2026-10-25-session-new/plan.md
