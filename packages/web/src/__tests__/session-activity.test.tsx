@@ -15,6 +15,7 @@ import {
   fakeAgent,
   fixtureRepo,
   quiet,
+  refreshUntil,
   renderPage,
 } from "./helpers.tsx";
 
@@ -282,6 +283,44 @@ test("US1.3: a running sub-agent keeps its row's icon, and its own calls are not
   await click(within(group!).getByRole("button", { name: /Find every caller/ }));
   await activity().findByText("src/tasks/list.ts");
   expect(activity().queryByLabelText("Live")).toBeNull();
+});
+
+test("US1.3, live: a new call of the running turn draws as its last row", async () => {
+  const chat = await newChat();
+  const turn = addRun(
+    chat.fake,
+    chat.chat,
+    [asked("Undo a completion."), call("read", "src/tasks/complete.ts")],
+    "running",
+  );
+  await openActivity(chat);
+  expect(rows()).toHaveLength(1);
+
+  chat.fake.sessions.cache.appendItem(
+    turn,
+    call("read", "src/tasks/undo.ts", { status: "in_progress" }),
+  );
+
+  await refreshUntil(() => expect(rows()).toHaveLength(2));
+  const last = rows().at(-1)!;
+  expect(last.textContent).toContain("src/tasks/undo.ts");
+  expect(within(last).getByLabelText("Live")).toBeTruthy();
+});
+
+test("live: a running turn growing past its first page of 100 items draws on", async () => {
+  const chat = await newChat();
+  // The message and 98 reads: 99 items, the first page all but full.
+  const turn = addRun(chat.fake, chat.chat, [asked("Read them all"), ...reads(1, 98)], "running");
+  await openActivity(chat);
+  expect(rows()).toHaveLength(98);
+
+  for (const item of reads(2, 5)) {
+    chat.fake.sessions.cache.appendItem(turn, item);
+  }
+
+  await refreshUntil(() => expect(rows()).toHaveLength(103));
+  expect(rows().at(-1)!.textContent).toContain("src/run-2/file-4.ts");
+  expect(rows()[0]!.textContent).toContain("src/run-1/file-0.ts");
 });
 
 test("US1 more 3: a thought with text unfolds it; one without has no fold", async () => {
