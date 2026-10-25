@@ -355,3 +355,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   click; the column keeping its place in the history entry, which no part of the column does today.
 - **If wrong**: `useArrival` and `aimOf` in `session/ActivityPanel.tsx`.
 - **Where**: task 8, `packages/web/src/session/ActivityPanel.tsx`.
+
+## R27: Without a stretch, the Activity opens at its latest call and follows it
+
+- **Decision**: without a stretch in the address, the Activity's part opens scrolled to its end, the
+  latest call in view, and keeps its end in view as calls arrive and as the part shrinks, while the
+  human is at the end; scrolled up, nothing moves. Back from a stretch's rows, the latest rows open
+  at their end again.
+- **Rationale**: the screenshots of a long session showed the Activity at its first rows drawn, the
+  live call of US1's key scenario 3 out of view, and the phone's sheet lost its end as the Changes
+  drew under it. The spec's mockup shows the live call at the Activity's end.
+- **Alternatives considered**: opening at the top, as before, which hid the call being made; keeping
+  the part's place in the history entry, which no part of the column does (R26).
+- **If wrong**: `useLatestInView` in `session/ActivityPanel.tsx`.
+- **Where**: task 10's review of the screenshots, `packages/web/src/session/ActivityPanel.tsx`.
+
+## R28: The embedded session and the semi-wide session are taken on the desktop only
+
+- **Decision**: `embedded-session` and `session-semi` are taken at the desktop's size, in both
+  themes; `session-sheet` at the phone's only.
+- **Rationale**: a document's column, which embeds the session, shows on wider screens only, and the
+  semi-wide shot is the window at 1000 px for approval comment C2. The phone's sheet replaces the
+  column on the phone.
+- **Alternatives considered**: a phone's shot of each, which would repeat the document's page and
+  the session's page without their column.
+- **If wrong**: the `only` size of those views in `packages/web/scripts/session-new-shots.ts`.
+- **Where**: task 10, `packages/web/scripts/session-new-shots.ts`.

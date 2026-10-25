@@ -63,6 +63,7 @@ import {
 } from "./shots.ts";
 import { AGENT, takeImplementation, takeSessions } from "./sessionShots.ts";
 import { takeSessionLook } from "./session-look-shots.ts";
+import { takeSessionNew } from "./session-new-shots.ts";
 
 const web = fileURLToPath(new URL("..", import.meta.url));
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -304,6 +305,8 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
 
   await takeImplementation(each, adapter, repo);
   await takeFeaturePage(each, shots, adapter);
+  // After the feature page's views: it goes on with the working feature's session they started.
+  await takeSessionNew(each, shots, adapter);
 }
 
 /** Home, the priorities, dragged, an entry's pane, reading and editing, and the ＋ form. */

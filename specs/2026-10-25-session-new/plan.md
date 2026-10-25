@@ -1271,27 +1271,29 @@ git commit -m "feat(session-new): the Sub-agents tab, while they run"
 
 - Consumes: every earlier task.
 - Produces: screenshots `session`, `session-subagents`, `session-plain`, `session-sheet` (phone),
-  `embedded-session`, `new-session`, `new-change`, `new-feature`, each at phone and desktop sizes,
-  in light and dark, plus `session-semi` at 1000 px for C2.
+  `embedded-session` (desktop), `new-session`, `new-change`, `new-feature`, each at phone and
+  desktop sizes, in light and dark, plus `session-semi` at 1000 px for C2 (ruling R28). The
+  feature's session is the feature page's working feature's, at task 7 of 11, which
+  `takeFeaturePage` starts: the module runs after it.
 
-- [ ] **Step 1: Take them**
+- [x] **Step 1: Take them**
 
 - Run:
   `nix develop -c vp run --filter uraeda-web screenshots specs/2026-10-25-session-new session session-subagents session-plain session-sheet embedded-session new-session new-change new-feature session-semi`
 - Expected: the files in `specs/2026-10-25-session-new/screenshots/`.
 
-- [ ] **Step 2: Review them against the spec's mockups and the UI decisions**
+- [x] **Step 2: Review them against the spec's mockups and the UI decisions**
 
 Square corners, titled panes, text readable at each size, the chat's prose in the reading font, the
 column clearly lighter than the chat at semi-wide (C2), the cards' facts on one line each with their
 icons (C3). Fix what they show in the task that owns it, as a fix commit, and take them again.
 
-- [ ] **Step 3: Run the complete validation**
+- [x] **Step 3: Run the complete validation**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/scripts packages/web/samples specs/2026-10-25-session-new/screenshots specs/2026-10-25-session-new/plan.md
