@@ -110,6 +110,63 @@ describe("a card's menu", () => {
   });
 });
 
+describe("a card's menu in a section with running entries", () => {
+  atSize("desktop");
+
+  test("Move up and Move down step over the lines that show, past the running ones", async () => {
+    const original = await commands.readRepo();
+    // Now's four running lines show in Ongoing: the file has them between the plain ones.
+    const lines = original.split("\n");
+    const withPlain = lines.flatMap((line) =>
+      /^- \[(Recurring tasks|CLI TUIs|Plan review)\]/.test(line)
+        ? [`- Plain after ${line.slice(3, line.indexOf("]"))}`.replace("[", ""), line]
+        : [line],
+    );
+    await commands.writeRepo(withPlain.join("\n"));
+    await show("/priorities", "Plain after Plan review");
+    const order = async () =>
+      [...section(await commands.readRepo(), "Now").matchAll(/^- (?:\[)?([^\]\n]+)/gm)].map(
+        (found) => found[1],
+      );
+    expect(await order()).toEqual([
+      "Web UI for the workflow files",
+      "Plain after Recurring tasks",
+      "Recurring tasks",
+      "Plain after CLI TUIs",
+      "CLI TUIs",
+      "Plain after Plan review",
+      "Plan review",
+    ]);
+
+    await pick("Plain after CLI TUIs", "Move up");
+    await expect
+      .poll(order)
+      .toEqual([
+        "Web UI for the workflow files",
+        "Plain after CLI TUIs",
+        "Plain after Recurring tasks",
+        "Recurring tasks",
+        "CLI TUIs",
+        "Plain after Plan review",
+        "Plan review",
+      ]);
+
+    await pick("Plain after CLI TUIs", "Move down");
+    // On screen it is again between the two others: in the file, just before the one below it.
+    await expect
+      .poll(order)
+      .toEqual([
+        "Web UI for the workflow files",
+        "Plain after Recurring tasks",
+        "Recurring tasks",
+        "CLI TUIs",
+        "Plain after CLI TUIs",
+        "Plain after Plan review",
+        "Plan review",
+      ]);
+  });
+});
+
 describe("on the desktop, a card's menu", () => {
   atSize("desktop");
 
@@ -182,6 +239,16 @@ describe("on the desktop, a press on …", () => {
     await expect.poll(() => Number(getComputedStyle(button).opacity)).toBe(1);
     const start = middle(button);
     const now = middle(screen.getByRole("button", { name: "Add to Now" }));
+    // A press and release on the button is its click: the menu opens, with no drag started.
+    await commands.mouse([
+      { type: "move", x: start.x, y: start.y },
+      { type: "down" },
+      { type: "up" },
+    ]);
+    expect(await screen.findByRole("menu")).toBeTruthy();
+    expect(moveSent()).toBe(false);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => screen.queryByRole("menu")).toBeNull();
     await commands.mouse([{ type: "move", x: start.x, y: start.y }, { type: "down" }]);
     // The press is on the button, and a drag past it moves nothing.
     expect(button.contains(document.elementFromPoint(start.x, start.y))).toBe(true);
