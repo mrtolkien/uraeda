@@ -606,9 +606,12 @@ pages.
 
 **Files:**
 
-- Create: `packages/web/src/dropItem.ts`, `packages/web/src/feature/FeatureMenu.tsx`
+- Create: `packages/web/src/dropItem.ts` (also holds `SessionItem` and `dropQuestion`),
+  `packages/web/src/feature/FeatureMenu.tsx`
 - Modify: `packages/web/src/SessionActions.tsx` (uses `dropItem`), `packages/web/src/offers.ts` (a
-  Home key for notes, and `dismissNote`), `packages/web/src/Home.tsx` (draws Home's notes),
+  Home key for notes, `dismissNote`, and `forgetNotes`, which the tests' setup calls),
+  `packages/web/src/sidebar/FeatureSettingsDialog.tsx` (opens any feature with a folder, a label,
+  and a slug), `packages/web/src/Home.tsx` (draws Home's notes),
   `packages/web/src/feature/FeaturePage.tsx` (the head only: the menu beside the title)
 - Test: `packages/web/src/__tests__/feature-menu.test.tsx` (new); `session-actions.test.tsx` passes
   unchanged
@@ -624,14 +627,15 @@ pages.
     left, and the priorities warning when `committed === false`.
   - `HOME_NOTES = "home"`, `dismissNote(key: string, index: number)` in `offers.ts`; `Home` shows
     its notes as banners with Dismiss.
-  - `FeatureMenu({ item: SessionItem, feature })`: a `MoreMenu` named "Feature actions" or "Change
-    actions", with "Rename" (opens the shell card's settings dialog for the feature) and "Drop the
-    feature…" / "Drop the change…". On `dropped`, notes go to `HOME_NOTES` and the page navigates
-    Home; on `refused`, the message shows under the name until dismissed; `cancelled` does nothing.
-    `SessionActions` runs the same `useDropItem`, then `markDropped` and `addNote(session, …)`.
+  - `FeatureMenu({ item: SessionItem, feature, onRefused })`: a `MoreMenu` named "Feature actions"
+    or "Change actions", with "Rename" (opens the shell card's settings dialog for the feature) and
+    "Drop the feature…" / "Drop the change…". On `dropped`, notes go to `HOME_NOTES` and the page
+    navigates Home; on `refused`, `onRefused(message)` is called and `FeaturePage` shows the message
+    under the name until dismissed; `cancelled` does nothing. `SessionActions` runs the same
+    `useDropItem`, then `markDropped` and `addNote(session, …)`.
   - `FeaturePage` draws `FeatureMenu` beside the title unless the feature is done.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 test("Drop the feature… asks first, then Home says what stayed", async () => {
@@ -669,18 +673,18 @@ navigation; a dropped item left on a page that no longer has it; two copies of t
 - Run: `nix develop -c vp test packages/web/src/__tests__/feature-menu.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "Feature actions"`
 
-- [ ] **Step 3: Extract `useDropItem` from `SessionActions`, then build the menu and wire it**
+- [x] **Step 3: Extract `useDropItem` from `SessionActions`, then build the menu and wire it**
 
 Extract first, running `session-actions.test.tsx` before and after (it passes both times), and
 commit it as `refactor(feature-page): share the drop flow`. Then the menu, the Home notes, and the
 head.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

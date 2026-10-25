@@ -4,17 +4,20 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
 import { Grid, GridSpan } from "@astryxdesign/core/Grid";
 import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Crumbs } from "../Crumbs.tsx";
 import { useFeature, useHistory } from "../data.ts";
+import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
 import { useOpenKeys } from "../useOpenKeys.ts";
+import { FeatureMenu } from "./FeatureMenu.tsx";
 import { Figures } from "./Figures.tsx";
 import { FileList } from "./FileList.tsx";
 import { nextOf } from "./next.ts";
@@ -155,13 +158,40 @@ function Produced({ feature, history }: { feature: FeatureData; history: History
 /** The page of a feature that exists, with its history read from git. */
 function FeatureBody({ feature }: { feature: FeatureData }) {
   const history = useHistory(feature.folder);
+  // Why the server refused a drop, shown under the name until dismissed.
+  const [refused, setRefused] = useState<string>();
   if (!history) {
     return null;
   }
+  const done = history.current >= history.stages.length;
   return (
     <VStack gap={6}>
       <VStack gap={2}>
-        <Heading level={1}>{feature.title}</Heading>
+        <HStack align="center" gap={2} justify="between">
+          <Heading level={1}>{feature.title}</Heading>
+          {!done && (
+            <FeatureMenu
+              feature={feature}
+              item={{
+                branch: feature.branch ?? null,
+                folder: feature.folder,
+                kind: feature.kind === "change" ? "change" : "feature",
+                slug: feature.slug,
+              }}
+              onRefused={setRefused}
+            />
+          )}
+        </HStack>
+        {refused && (
+          <AnnouncedBanner
+            collapsible={false}
+            dismissLabel="Dismiss"
+            isDismissable
+            onDismiss={() => setRefused(undefined)}
+            status="error"
+            title={refused}
+          />
+        )}
         <Text color="secondary" type="supporting">
           {headerLine(feature)}
         </Text>
