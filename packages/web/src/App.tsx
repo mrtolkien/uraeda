@@ -25,18 +25,13 @@ import { LeaveGuard } from "./fields/LeaveGuard.tsx";
 import { pruneUnsaved } from "./fields/unsaved.ts";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
-import { Home } from "./Home.tsx";
-import { InboxPage } from "./InboxPage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
 import { BranchDecisionPage } from "./decisions/BranchDecision.tsx";
 import { NewPage } from "./NewPage.tsx";
-import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
-import { Panes } from "./layout/Panes.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { ListPaneContext, useListPane } from "./lists/listPane.ts";
-import { NotePane } from "./pane/NotePane.tsx";
-import { PriorityPane } from "./pane/PriorityPane.tsx";
+import { InboxRoute, PrioritiesRoute } from "./pane/DetailRoutes.tsx";
 import { RouterAnchor } from "./links.tsx";
 import {
   currentEntry,
@@ -100,15 +95,27 @@ class ServerErrorBoundary extends Component<
 }
 
 /**
- * What draws a page anew: its address, except for a list with its pane, which stays drawn while
- * the pane follows the list's keys to another row in the same history entry, and keeps the focus:
- * on the decisions page, from a principle to a decision too.
+ * What draws a page anew: its address, except for a list with the overlay of a line over it, which
+ * stays drawn while the overlay opens, closes, and shows another line, and keeps its selection, its
+ * scroll, and its focus; and the decisions page with its reader, which stays drawn while the reader
+ * follows the list's keys to another row in the same history entry: on the decisions page, from a
+ * principle to a decision too.
  */
 function pageKey(route: Route, pathname: string, entryId: string | undefined) {
   if (route.page === "decisions" || route.page === "decision" || route.page === "principle") {
     return `ledger:${entryId}`;
   }
-  return route.page === "task" || route.page === "note" ? `${route.page}:${entryId}` : pathname;
+  switch (route.page) {
+    case "home":
+    case "priorities":
+    case "task":
+      return "priorities";
+    case "inbox":
+    case "note":
+      return "inbox";
+    default:
+      return pathname;
+  }
 }
 
 /** The page of the route, and the Storybook of its feature started. */
@@ -124,19 +131,20 @@ function Page({ route }: { route: Route }) {
 function RoutePage({ route }: { route: Route }) {
   switch (route.page) {
     case "home":
-      return <Home />;
+      return <PrioritiesRoute isHome />;
     case "feature":
       return <ItemPage folder={route.folder} />;
     case "file":
       return <FilePage folder={route.folder} name={route.name} />;
     case "priorities":
-      return <PrioritiesPage />;
+      return <PrioritiesRoute isHome={false} />;
     case "task":
-      return <TaskRoute entryKey={route.key} />;
+      // A line opened from home draws its overlay over home.
+      return <PrioritiesRoute entryKey={route.key} isHome={currentEntry().from === "/"} />;
     case "note":
-      return <NoteRoute noteKey={route.key} />;
+      return <InboxRoute noteKey={route.key} />;
     case "inbox":
-      return <InboxPage />;
+      return <InboxRoute />;
     case "triage":
       return <TriagePage />;
     case "decisions-check":
@@ -174,47 +182,6 @@ function RoutePage({ route }: { route: Route }) {
     default:
       return <Nothing />;
   }
-}
-
-/**
- * A priority's pane: on wide screens, beside the list it was opened from, home or the priorities
- * page (the priorities page when opened from anywhere else), at the list's position, with its
- * Close; on narrow screens, a page of its own. The list's keys show another line in the pane.
- */
-function TaskRoute({ entryKey }: { entryKey: string }) {
-  const [{ from }] = useState(currentEntry);
-  const list = from === "/" ? "/" : "/priorities";
-  const here = useRepoPath();
-  const pane = useListPane(() => navigate(here(list)));
-  useListPosition();
-  return (
-    <ListPaneContext value={pane}>
-      <Panes
-        detail={<PriorityPane entryKey={entryKey} key={entryKey} onClose={pane.close} />}
-        detailKey={entryKey}
-        list={list === "/" ? <Home /> : <PrioritiesPage />}
-      />
-    </ListPaneContext>
-  );
-}
-
-/**
- * A note's pane: on wide screens, beside the inbox, with its Close; on narrow screens, a page of
- * its own. The inbox's keys show another note in the pane.
- */
-function NoteRoute({ noteKey }: { noteKey: string }) {
-  const here = useRepoPath();
-  const pane = useListPane(() => navigate(here("/inbox")));
-  useListPosition();
-  return (
-    <ListPaneContext value={pane}>
-      <Panes
-        detail={<NotePane key={noteKey} noteKey={noteKey} onClose={pane.close} />}
-        detailKey={noteKey}
-        list={<InboxPage />}
-      />
-    </ListPaneContext>
-  );
 }
 
 /**

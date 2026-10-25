@@ -5,7 +5,8 @@ import { useFateClient } from "react-fate";
 import { readPrioritiesHash, usePriority } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
-import { currentEntry, navigate, redirect, useRepoPath } from "../routes.tsx";
+import { currentEntry, navigate, parseLocation, redirect, useRepoPath } from "../routes.tsx";
+import { closeDetail } from "./DetailOverlay.tsx";
 import { plain } from "../Spans.tsx";
 import { useStartChange } from "./useStartChange.ts";
 import { DraftView, PrioritiesView } from "../views.ts";
@@ -14,8 +15,8 @@ import { DraftView, PrioritiesView } from "../views.ts";
 export type Found = NonNullable<ReturnType<typeof usePriority>["found"]>;
 
 /**
- * The page a pane was opened from, within its repository, which it returns to once its line is
- * deleted.
+ * The page an overlay was opened from, within its repository, which it returns to once its line
+ * is deleted.
  */
 function origin() {
   return currentEntry().from === "/" ? "/" : "/priorities";
@@ -115,7 +116,10 @@ export function usePriorityActions(
         return failed;
       }
     });
-    redirect(here(origin()));
+    // Only while the line's own overlay shows: a delete from a menu leaves the page as it is.
+    if (parseLocation(window.location.pathname).route.page === "task") {
+      closeDetail(here(origin()));
+    }
   };
 
   return { draft, message, move, remove, rename, startChange: useStartChange(entry.id, hash, run) };

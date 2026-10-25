@@ -1,51 +1,27 @@
 // The entry pane: a priority's and a note's detail, read-only on arrival, Edit in its bar. Over the
-// fixture repository's real priorities and inbox (see `.storybook/fixture.ts`), through fate;
-// beside the real list on wide screens, the page itself on narrow ones.
-import { borderVars, colorVars } from "@astryxdesign/core/theme/tokens.stylex";
+// fixture repository's real priorities and inbox (see `.storybook/fixture.ts`), through fate, in
+// the detail overlay over the real page: a dialog on wide screens, a bottom sheet on the phone.
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
-import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useEffect } from "react";
 import { userEvent, within } from "storybook/test";
 import { useInbox, usePriorities, useWorkspace } from "../data.ts";
 import { InboxPage } from "../InboxPage.tsx";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { dropUnsaved, unsavedKey } from "../fields/unsaved.ts";
 import { RepositoryPathContext, useRepositoryPath } from "../routes.tsx";
+import { DetailOverlay } from "./DetailOverlay.tsx";
 import { NotePane } from "./NotePane.tsx";
 import { PriorityPane } from "./PriorityPane.tsx";
 
-const styles = stylex.create({
-  list: { minWidth: 0 },
-  pane: {
-    borderInlineStartColor: colorVars["--color-border"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: borderVars["--border-width"],
-    boxSizing: "border-box",
-    height: "var(--size-viewport-height)",
-    overflowY: "auto",
-    position: "sticky",
-    top: 0,
-  },
-  panes: {
-    alignItems: "start",
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(var(--size-pane-min), 40%)",
-  },
-});
-
-/** The pane beside its list on wide screens, as `Panes` lays it out; alone on narrow ones. */
-function Beside({ list, pane }: { list: ReactNode; pane: ReactNode }) {
-  if (isNarrow(useWidthClass())) {
-    return <>{pane}</>;
-  }
+/** The page, with the detail in its overlay over it, as a click on a card opens it. */
+function Over({ label, list, pane }: { label: string; list: ReactNode; pane: ReactNode }) {
   return (
-    <div {...stylex.props(styles.panes)}>
-      <div {...stylex.props(styles.list)}>{list}</div>
-      <section {...stylex.props(styles.pane)} aria-label="Detail">
+    <>
+      {list}
+      <DetailOverlay label={label} onClose={() => {}}>
         {pane}
-      </section>
-    </div>
+      </DetailOverlay>
+    </>
   );
 }
 
@@ -63,10 +39,7 @@ function Priority({ text }: { text: string }) {
     return null;
   }
   return (
-    <Beside
-      list={<PrioritiesPage />}
-      pane={<PriorityPane entryKey={entry.key} onClose={() => {}} />}
-    />
+    <Over label="Priority" list={<PrioritiesPage />} pane={<PriorityPane entryKey={entry.key} />} />
   );
 }
 
@@ -78,7 +51,7 @@ function InboxNote({ text }: { text: string }) {
   if (!note) {
     return null;
   }
-  return <Beside list={<InboxPage />} pane={<NotePane noteKey={note.key} onClose={() => {}} />} />;
+  return <Over label="Note" list={<InboxPage />} pane={<NotePane noteKey={note.key} />} />;
 }
 
 /** The fixture's folder, as `App` sets it: what keeps the fields' unsaved text apart. */
@@ -108,6 +81,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
+ * The detail overlay over the priorities page: a dialog of 108 characters and 60% of the window
+ * tall over the dimmed columns, a bottom sheet on the phone, with Close, Previous and Next.
+ */
+export const Overlay: Story = { args: { text: "Git listener process" } };
+
+/**
  * A drafted priority, as a click opens it: its text, its draft drawn with its slug and Start the
  * feature, its section, Delete, and its neighbours. Nothing has the focus.
  */
@@ -119,11 +98,9 @@ export const Reading: Story = { args: { text: "Git listener process" } };
  */
 export const Editing: Story = {
   args: { text: "Git listener process" },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // The pane beside the list on wide screens; the page itself on narrow ones.
-    const detail = canvas.queryByRole("region", { name: "Detail" });
-    const pane = detail ? within(detail) : canvas;
+  play: async () => {
+    // The overlay is drawn outside the canvas, in the top layer.
+    const pane = within(await within(document.body).findByRole("dialog"));
     await userEvent.click(await pane.findByRole("button", { name: "Edit" }));
     const line = await pane.findByRole("textbox", { name: "Line" });
     await userEvent.clear(line);

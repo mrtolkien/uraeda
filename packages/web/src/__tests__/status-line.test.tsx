@@ -20,10 +20,13 @@ test("on the priorities, the status line names the list's keys, but Escape with 
   expect(await statusLine()).not.toContain("esc");
 });
 
-test("with a priority's pane open at 1440 px, the status line names Escape to close it", async () => {
+test("with a priority's overlay open at 1440 px, the status line names the list's keys, not Escape", async () => {
   atWidth(1440);
   await renderPage("/priorities/claude-code-runner-triggered-manually");
-  await waitFor(async () => expect(await statusLine()).toContain("esc close"));
+  await screen.findByRole("dialog", { name: "Priority" });
+  await waitFor(async () => expect(await statusLine()).toContain("⏎ open"));
+  // The overlay closes with Escape as any dialog does: the list has no key of its own for it.
+  expect(await statusLine()).not.toContain("esc");
 });
 
 test("on a round at 1440 px, the status line names n and p", async () => {

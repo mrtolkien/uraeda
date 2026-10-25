@@ -620,13 +620,13 @@ describe("on the phone, the end followed through a page that shortens", () => {
   });
 });
 
-// Only the wide layout shows a task view in a pane, and the width changes start from it.
+// Only the wide layout opens a task view as a dialog, and the width changes start from it.
 describe("on the desktop", () => {
   atSize("desktop");
 
-  // A session opened after a task view still opens at its end: the task view's pane keeps its own
+  // A session opened after a task view still opens at its end: the task view's overlay leaves its
   // position in its history entry, which must not hold the next pages back.
-  test("a session opened after a task view's pane opens at its end", async () => {
+  test("a session opened after a task view's overlay opens at its end", async () => {
     await show(`/f/${CLI}/session`, "CLI TUIs");
     await startTurn("Plan the CLI.", [
       {
@@ -645,9 +645,10 @@ describe("on the desktop", () => {
       LIVE,
     );
     await show("/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
-    // Scrolled, the pane has a position of its own for the task view's entry to keep.
-    const pane = screen.getByRole("region", { name: "Detail" });
-    pane.scrollTo(0, pane.scrollHeight);
+    await screen.findByRole("dialog", { name: "Priority" });
+    // The overlay is modal: it closes before the navigation is used.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => screen.queryByRole("dialog")).toBeNull();
     await drawn();
 
     // The card opens the feature's page, and the page its session.

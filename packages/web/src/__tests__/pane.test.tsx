@@ -23,14 +23,14 @@ import {
 
 const DRAFT = "specs/drafts/git-listener.md";
 
-/** The pane beside the list, as it is drawn now. */
+/** The line's overlay, a priority's or a note's, as it is drawn now. */
 function detail() {
-  return within(screen.getByRole("region", { name: "Detail" }));
+  return within(screen.getByRole("dialog", { name: /^(Priority|Note)$/ }));
 }
 
-/** The pane beside the list, once it is drawn. */
+/** The line's overlay, once it is drawn. */
 async function paneDrawn() {
-  return within(await screen.findByRole("region", { name: "Detail" }));
+  return within(await screen.findByRole("dialog", { name: /^(Priority|Note)$/ }));
 }
 
 /** A section's rows on the list beside the pane, by the section's title, once it is drawn. */
@@ -236,10 +236,11 @@ test("another row with unsaved text", async () => {
   await pressEdit();
   await type(screen.getByRole("textbox", { name: "Line" }), "Claude Code runner, by hand");
 
-  await click((await rows("Later")).getByRole("link", { name: /Nix \+ Docker/ }));
-  expect(await (await paneDrawn()).findByText("Later · 1 of 2")).toBeTruthy();
+  // The overlay is modal: another line is reached by its Next and Previous.
+  await click(detail().getByRole("button", { name: "Next ›" }));
+  expect(await (await paneDrawn()).findByText("Next · 2 of 2")).toBeTruthy();
   expect(detail().queryByRole("textbox", { name: "Line" })).toBeNull();
-  await click((await rows("Next")).getByRole("link", { name: /Claude Code runner/ }));
+  await click(detail().getByRole("button", { name: "‹ Previous" }));
 
   const line = await (await paneDrawn()).findByRole("textbox", { name: "Line" });
   expect(line).toHaveProperty("value", "Claude Code runner, by hand");
@@ -298,10 +299,11 @@ test("a reload shows the same line (US3 7)", async () => {
   ).toBeTruthy();
 });
 
-test("a removed line says so", async () => {
+test("a removed line says so, over the page, with no overlay", async () => {
   await renderPage("/priorities/nope");
-  expect(await screen.findByText("This line is no longer in PRIORITIES.md.")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Open the priorities" })).toBeTruthy();
+  expect(await screen.findByText("That line is gone.")).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(await screen.findByRole("list", { name: "Next lines" })).toBeTruthy();
 });
 
 test("a refused Undo says so", async () => {
@@ -482,7 +484,8 @@ test("an unchanged line's Save is disabled, and Cancel closes it without asking"
   expect(screen.getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true);
   expect(screen.queryByText("Unsaved changes")).toBeNull();
   await click(screen.getByRole("button", { name: "Cancel" }));
-  expect(screen.queryByRole("dialog")).toBeNull();
+  // No question: the overlay is the only dialog.
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
   expect(screen.queryByRole("textbox", { name: "Line" })).toBeNull();
 });
 
@@ -530,17 +533,17 @@ test("Escape on a changed slug asks first", async () => {
 });
 
 /** US1 6: on a phone, the entry's page, to read, Edit at its top, and no keyboard. */
-test("on a phone, the page opens to read", async () => {
+test("on a phone, the sheet opens to read", async () => {
   atWidth(402);
   try {
     await renderPage("/priorities");
 
     await click(await (await rows("Next")).findByRole("link", { name: /Git listener process/ }));
 
-    expect(await screen.findByText("Next · 2 of 2")).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Detail" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    // A bottom sheet over the list, with its own Close.
+    expect(await (await paneDrawn()).findByText("Next · 2 of 2")).toBeTruthy();
+    expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(detail().getByRole("button", { name: "Close" })).toBeTruthy();
     expect(isFieldFocused()).toBe(false);
   } finally {
     atWidth(1024);

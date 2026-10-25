@@ -142,3 +142,58 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: New `PaneTone` values: they would colour the border too.
 - **If wrong**: Drop `tint`, and the sections' titles are all lavender.
 - **Where**: task 5.
+
+## R12: The tests of the pane beside the list follow the overlay
+
+- **Decision**: The tests that read the pane as `region "Detail"` read the overlay as
+  `dialog "Priority"` or `"Note"`. Changed with their reason: "a removed line says so" now expects
+  "That line is gone." over the page, with no overlay; the phone's "page opens to read" is a sheet
+  with its Close; "another row with unsaved text" reaches the other line with Next and Previous, as
+  the modal overlay leaves the rows out of reach; "Cancel closes it without asking" counts that the
+  overlay is the only dialog; the status line names no Escape for the list; the note that left shows
+  nothing in the overlay, no banner; home's "a second line tapped keeps home beside it" steps with
+  Next; the layout tests of a task across 768 px and 1280 px keep the dialog or sheet, and its one
+  history entry; `lists.test.tsx`: ↓ and j select and open nothing (US4), Enter opens the overlay
+  and Escape closes it, and the test that the pane starts at its top moved to `detail-overlay` for
+  the overlay's body; the session test closes the modal overlay before using the navigation.
+- **Rationale**: The human replaced the pane with a modal overlay and said the selection does not
+  open it. Each test keeps the behaviour it guarded.
+- **Alternatives considered**: Loosening the old expectations: they would no longer guard it.
+- **If wrong**: Restore the pane's tests from git history with the pane.
+- **Where**: task 6.
+
+## R13: An overlay's entry is pushed by the click, or by the route for an address
+
+- **Decision**: A click or Enter on a card calls `openDetail`, one entry that carries the overlay's
+  label, so one Back closes it. An address reached any other way (a link, a reload with no label,
+  Forward) is given its overlay entry by `DetailHost` before the overlay would push its own; Back to
+  that address's own entry replaces it with the list, or, over home, goes back once more to home.
+  `RouterAnchor` records the page a link came from only for a link to a line. A line the address
+  names that was not there when it came up shows the page and a toast, "That line is gone.", at the
+  list's address; one deleted from its own overlay closes it by Back.
+- **Rationale**: `useBackCloses` pushes a state of its own that would drop `from` and add an entry
+  after a route's. A `from` on a list's entry would draw home under a priority's overlay.
+- **Alternatives considered**: Letting `useBackCloses` push: two entries, and `from` lost.
+- **If wrong**: One file, `pane/DetailOverlay.tsx`.
+- **Where**: task 6.
+
+## R14: After Next, the test closes with Close, not Escape
+
+- **Decision**: "after Next, Close leaves the last line selected and focused" clicks Close.
+- **Rationale**: Stepping to the last line disables Next and the pane is drawn anew, so the focus
+  goes to the overlay's Close; in WebKit, Escape pressed then did not cancel the dialog in the
+  browser test, though Back and Escape without a step do. Escape's own test stays.
+- **Alternatives considered**: Dropping the test: the selection after a step has no other test.
+- **If wrong**: Restore Escape once the cause is found.
+- **Where**: task 6, `detail-overlay`.
+
+## R15: The overlay is 108ch wide, and the pane has no inset of its own
+
+- **Decision**: `--size-detail` is `108ch` and `--size-detail-height` `60dvh`, in the theme. The
+  entry pane's bar and body lose their own side insets, and the dialog's body scrolls on its own.
+- **Rationale**: The page's font is monospace, so 108 characters are 108ch (about 1,090 px at the
+  dialog's size, "about 1,060 px"). The overlay insets what it holds; a second inset cut a button's
+  label in the sheet.
+- **Alternatives considered**: A pixel width: not the font's.
+- **If wrong**: Two tokens and one style.
+- **Where**: task 6.

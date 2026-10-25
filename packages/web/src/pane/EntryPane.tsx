@@ -1,13 +1,12 @@
-// The detail pane of an entry, a priority or a note, shared by both pages: a bar with its place
-// and its actions, then its body, read-only on arrival. Opening it focuses nothing: the arrows keep
-// moving through the list, and the entry reads as markdown. Edit, in the bar, turns its text into
+// The detail pane of an entry, a priority or a note, shared by both pages and drawn in their
+// overlay: a bar with its place and its actions, then its body, read-only on arrival, the entry
+// read as markdown. Edit, in the bar, turns its text into
 // the one-line field, in place (Q4, Q5 of the redesign's first round), and a drafted entry's
 // draft into its text, under it (C2).
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -21,8 +20,6 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Span } from "uraeda-binding";
 import { LineField } from "../EditableLine.tsx";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
-import { usePaneEdit } from "../lists/listPane.ts";
 import { Spans } from "../Spans.tsx";
 import type { useLineSave } from "../useLineSave.ts";
 
@@ -34,23 +31,15 @@ const styles = stylex.create({
     top: 0,
     zIndex: 1,
   },
+  // The overlay it is drawn in insets it: the bar and the body take no inset of their own.
   barContent: {
     boxSizing: "border-box",
     paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-4"],
-  },
-  barWide: {
-    paddingInline: spacingVars["--spacing-6"],
   },
   body: {
     boxSizing: "border-box",
     overflowWrap: "anywhere",
     paddingBlock: spacingVars["--spacing-4"],
-    paddingInline: spacingVars["--spacing-4"],
-  },
-  bodyWide: {
-    paddingBlock: spacingVars["--spacing-6"],
-    paddingInline: spacingVars["--spacing-6"],
   },
   child: {
     paddingBlock: spacingVars["--spacing-0-5"],
@@ -70,24 +59,21 @@ const styles = stylex.create({
   },
 });
 
-/** The pane's bar: where the entry is, then Edit, Open draft when it links one, and Close. */
+/** The pane's bar: where the entry is, then Edit and Open draft when it links one. */
 function PaneBar({
   draftHref,
   isEditing,
   location,
-  onClose,
   onEdit,
 }: {
   draftHref?: string;
   isEditing: boolean;
   location: string;
-  onClose?: () => void;
   onEdit: () => void;
 }) {
-  const wide = !isNarrow(useWidthClass());
   return (
     <div {...stylex.props(styles.bar)}>
-      <div {...stylex.props(styles.barContent, wide && styles.barWide)}>
+      <div {...stylex.props(styles.barContent)}>
         <HStack align="center" gap={2} justify="between" wrap="wrap">
           <Text color="secondary" type="supporting">
             {location}
@@ -95,15 +81,6 @@ function PaneBar({
           <HStack align="center" gap={2}>
             <Button isDisabled={isEditing} label="Edit" onClick={onEdit} variant="secondary" />
             {draftHref && <Button href={draftHref} label="Open draft" variant="secondary" />}
-            {wide && onClose && (
-              <Button
-                icon={<Icon icon="close" />}
-                isIconOnly
-                label="Close"
-                onClick={onClose}
-                variant="ghost"
-              />
-            )}
           </HStack>
         </HStack>
       </div>
@@ -189,17 +166,14 @@ export function Steps({
 
 /**
  * The pane: its bar, then its body, `text` first, then `children`, what the entry's kind adds, a
- * Delete button, and ‹ Previous / Next ›. On wide screens it sits beside the list, with Close; on
- * narrow ones it is the page itself, and Back leaves it. `onEdit`, from Edit or Enter on the list's
- * selected row, opens what the pane edits; `isEditing` says it is open, and once it closes the
- * focus goes back to the list's row.
+ * Delete button, and ‹ Previous / Next ›. The overlay it is drawn in has the Close. `onEdit`, from
+ * Edit, opens what the pane edits; `isEditing` says it is open.
  */
 export function EntryPane({
   children,
   draftHref,
   isEditing,
   location,
-  onClose,
   onDelete,
   onEdit,
   steps,
@@ -209,25 +183,15 @@ export function EntryPane({
   draftHref?: string;
   isEditing: boolean;
   location: string;
-  onClose?: () => void;
   onDelete: () => Promise<void> | void;
   onEdit: () => void;
   steps: ReactNode;
   text: ReactNode;
 }) {
-  const wide = !isNarrow(useWidthClass());
-  // Enter on the list's selected row edits, as Edit does.
-  usePaneEdit(onEdit, isEditing);
   return (
     <VStack gap={0}>
-      <PaneBar
-        draftHref={draftHref}
-        isEditing={isEditing}
-        location={location}
-        onClose={onClose}
-        onEdit={onEdit}
-      />
-      <div {...stylex.props(styles.body, wide && styles.bodyWide)}>
+      <PaneBar draftHref={draftHref} isEditing={isEditing} location={location} onEdit={onEdit} />
+      <div {...stylex.props(styles.body)}>
         <VStack gap={4}>
           {text}
           {children}

@@ -1,7 +1,7 @@
 // US2 and review focus 5, on the desktop: the shared list moves its selection with the keyboard, ↑ ↓
-// or j k, Home and End, the pane beside it following; Enter edits the selected item in its pane, and
-// Escape closes the field, then the pane. No key acts while a text field has the focus, or while a
-// Selector, a menu, or a dialog is open. Each test takes the repository in turn, on a fresh copy of the fixture.
+// or j k, Home and End, which opens nothing; Enter opens the selected card in its overlay, and
+// Escape closes it. No key acts while a text field has the focus, or while a Selector, a menu, or a
+// dialog is open. Each test takes the repository in turn, on a fresh copy of the fixture.
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
@@ -39,94 +39,75 @@ function row(name: string | RegExp) {
   return screen.getByRole("link", { name });
 }
 
-/** Where a row leads: the address the pane shows it at. */
-function address(name: string | RegExp) {
-  return new URL(row(name).getAttribute("href") ?? "", window.location.href).pathname;
-}
-
 /** The rows of the page's lists marked current, `aria-current`: the selected one. */
 function current() {
   return within(screen.getByRole("main")).queryAllByRole("listitem", { current: true });
 }
 
-/** Waits for the row of a text to be selected, focused, and shown in the pane. */
+/** Waits for the row of a text to be selected and focused, with nothing opened. */
 async function selected(name: string | RegExp) {
-  await expect.poll(() => window.location.pathname).toBe(address(name));
   await expect.poll(() => document.activeElement).toBe(row(name));
   await expect
     .poll(() => current().map((item) => within(item).queryByRole("link", { name }) === row(name)))
     .toEqual([true]);
 }
 
-/** Opens the priorities with Now's first line in the pane and the focus on its row. */
+/** Opens the priorities with the focus on Now's first line's card. */
 async function fromFirst() {
   await longList();
-  await show("/priorities/line-one", "Line seven");
+  await show("/priorities", "Line seven");
   row(/Line one/).focus();
   await drawn();
 }
 
-test("↓ selects the next row and the pane follows (US2 1, SC-003)", async () => {
+test("↓ selects the next card and opens nothing (US2 1, US4)", async () => {
   await fromFirst();
   const entries = window.history.length;
 
   await userEvent.keyboard("{ArrowDown}");
   await selected(/Line two/);
-  expect(window.location.pathname).toBe(atRepo("/priorities/line-two"));
-  // The pane shows the row selected.
-  expect(await screen.findByText("Now · 2 of 7")).toBeTruthy();
-  // The list stayed drawn as the pane followed: the focus is still on the row.
-  await drawn();
-  expect(document.activeElement).toBe(row(/Line two/));
+  // The selection does not open the card.
+  expect(window.location.pathname).toBe(atRepo("/priorities"));
+  expect(screen.queryByRole("dialog")).toBeNull();
 
-  // Nine presses from the first row reach the tenth: Later's line.
+  // Nine presses from the first card reach the tenth: Later's line.
   for (let press = 0; press < 8; press += 1) {
     await userEvent.keyboard("{ArrowDown}");
   }
   await selected(/Nix \+ Docker/);
-  expect(await screen.findByText("Later · 1 of 2")).toBeTruthy();
-  await drawn();
-  expect(document.activeElement).toBe(row(/Nix \+ Docker/));
-  // The pane followed in place: Back leaves the priorities, not each row passed.
   expect(window.history.length).toBe(entries);
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 test("j crosses sections (US2 2)", async () => {
   await longList();
-  await show("/priorities/line-seven", "Line seven");
+  await show("/priorities", "Line seven");
   row(/Line seven/).focus();
 
   await userEvent.keyboard("j");
   await selected(/Claude Code runner/);
-  expect(await screen.findByText("Next · 1 of 2")).toBeTruthy();
 });
 
-test("Enter opens the field; ↓ then moves the cursor (US2 3)", async () => {
+test("Enter opens the selected card in its overlay, and Escape closes it (US2 3, 4)", async () => {
   await fromFirst();
+  await userEvent.keyboard("{ArrowDown}");
+  await selected(/Line two/);
 
   await userEvent.keyboard("{Enter}");
-  const field = await screen.findByRole("textbox", { name: "Line" });
-  expect(document.activeElement).toBe(field);
+  expect(await screen.findByRole("dialog", { name: "Priority" })).toBeTruthy();
+  await expect.poll(() => window.location.pathname).toBe(atRepo("/priorities/line-two"));
+  // No key of the list acts under the overlay: ↓ does not move the selection.
   await userEvent.keyboard("{ArrowDown}");
   await drawn();
-  // The cursor moved in the field: the selection and the pane stayed.
-  expect(document.activeElement).toBe(field);
-  expect(window.location.pathname).toBe(atRepo("/priorities/line-one"));
-});
-
-test("Escape closes the field, then the pane (US2 4)", async () => {
-  await fromFirst();
-  await userEvent.keyboard("{Enter}");
-  await screen.findByRole("textbox", { name: "Line" });
+  expect(window.location.pathname).toBe(atRepo("/priorities/line-two"));
 
   await userEvent.keyboard("{Escape}");
-  await expect.poll(() => screen.queryByRole("textbox", { name: "Line" })).toBeNull();
-  await expect.poll(() => document.activeElement).toBe(row(/Line one/));
-  expect(window.location.pathname).toBe(atRepo("/priorities/line-one"));
-
-  await userEvent.keyboard("{Escape}");
+  await expect.poll(() => screen.queryByRole("dialog")).toBeNull();
   await expect.poll(() => window.location.pathname).toBe(atRepo("/priorities"));
-  await expect.poll(() => screen.queryByRole("region", { name: "Detail" })).toBeNull();
+  await selected(/Line two/);
+  // The keys go on from the card the overlay showed.
+  await userEvent.keyboard("{ArrowDown}");
+  await selected(/Line three/);
 });
 
 test("End and Home (US2 5)", async () => {
@@ -140,9 +121,6 @@ test("End and Home (US2 5)", async () => {
 
 test("k in the inbox (US2 7)", async () => {
   await show("/inbox", "We need a home icon");
-  await userEvent.click(row(/We'll need a model selector/));
-  await expect.poll(() => window.location.pathname).toBe(address(/We'll need a model selector/));
-  await screen.findByText("Note, in No category");
   row(/We'll need a model selector/).focus();
 
   await userEvent.keyboard("k");
@@ -169,7 +147,7 @@ test("keys do nothing while a Selector is open (review focus 5)", async () => {
     await drawn();
     expect(window.location.pathname).toBe(at);
   }
-  expect(screen.getByRole("region", { name: "Detail" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Note" })).toBeTruthy();
 });
 
 test("keys do nothing while a menu is open (review focus 5)", async () => {
@@ -189,11 +167,11 @@ test("keys do nothing while a menu is open (review focus 5)", async () => {
   await userEvent.keyboard("{Escape}");
   await drawn();
   expect(window.location.pathname).toBe(at);
-  expect(screen.getByRole("region", { name: "Detail" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Note" })).toBeTruthy();
 });
 
 test("keys do nothing while a dialog is open (review focus 5)", async () => {
-  await show("/inbox/we-need-a-home-icon", "Note, in No category");
+  await show("/inbox", "We need a home icon");
   const at = window.location.pathname;
   await userEvent.click(screen.getByRole("button", { name: "Add a note to the inbox" }));
   await screen.findByRole("dialog", { name: "Add a note" });
@@ -205,32 +183,6 @@ test("keys do nothing while a dialog is open (review focus 5)", async () => {
     await drawn();
     expect(window.location.pathname).toBe(at);
   }
-});
-
-/** Two lines, each with enough children to make its pane scroll. */
-const TALL = ["Tall one", "Tall two"];
-
-/** Task 10's follow-up: the pane shows the next row from its top, not where the last was read. */
-test("the pane starts at its top when the keys show another row", async () => {
-  const children = Array.from({ length: 40 }, (_, at) => `  - Detail ${at + 1}\n`).join("");
-  const original = await commands.readRepo();
-  await commands.writeRepo(
-    original.replace(
-      /## Now\n\n[^#]*## Next/,
-      `## Now\n\n${TALL.map((line) => `- ${line}\n${children}`).join("")}\n## Next`,
-    ),
-  );
-  await show("/priorities/tall-one", "Tall two");
-  const pane = screen.getByRole("region", { name: "Detail" });
-  pane.scrollTop = pane.scrollHeight;
-  await expect.poll(() => pane.scrollTop).toBeGreaterThan(0);
-  row(/Tall one/).focus();
-
-  await userEvent.keyboard("{ArrowDown}");
-
-  await selected(/Tall two/);
-  expect(await screen.findByText("Now · 2 of 2")).toBeTruthy();
-  expect(pane.scrollTop).toBe(0);
 });
 
 /** An element's own background, or the first one behind it: a transparent one shows its parent's. */

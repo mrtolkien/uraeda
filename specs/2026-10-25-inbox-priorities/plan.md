@@ -710,7 +710,8 @@ git commit -m "feat(inbox-priorities): the priorities as columns with their cont
 
 **Files:**
 
-- Create: `packages/web/src/pane/DetailOverlay.tsx`,
+- Create: `packages/web/src/pane/DetailOverlay.tsx` (with `DetailHost`, `openDetail`),
+  `packages/web/src/pane/DetailRoutes.tsx` (`PrioritiesRoute`, `InboxRoute`),
   `packages/web/src/__browser__/detail-overlay.test.tsx`
 - Modify: `packages/web/src/App.tsx` (`pageKey`, `TaskRoute`, `NoteRoute`),
   `packages/web/src/layout/Overlay.tsx` (a size), `packages/web/src/pane/EntryPane.tsx` (`Steps`
@@ -723,15 +724,16 @@ git commit -m "feat(inbox-priorities): the priorities as columns with their cont
 
 - Consumes: `Overlay`, `openOverlayAt`, `useBackCloses` (`layout/useBackCloses.ts`); `PriorityPane`
   and `NotePane`.
-- Produces: `Overlay`'s `size?: { height?: string; width?: string }` for the dialog on wide screens;
-  `DetailOverlay({ children, label, onClose })`, the dialog of 108 characters and 60% of the window
-  tall, or the bottom sheet on the phone, shared by both routes. `WorkList`'s `selected` seeds a
-  selection it keeps itself, and Escape, Back, and a Previous or Next leave the last opened card
-  selected, and focused. `Steps` change the address by `redirect`, replacing the entry. A line the
-  address names that is no longer there shows the page with no overlay and "That line is gone."
-  `Panes` and `ListPaneContext` stay for the decisions page only; remove what no caller uses.
+- Produces: `Overlay`'s `size?: { height?: string; width?: string }` (replacing `width`) for the
+  dialog on wide screens; `DetailOverlay({ children, label, line, onClose })`, the dialog of 108
+  characters and 60% of the window tall, or the bottom sheet on the phone, shared by both routes.
+  `WorkList`'s `selected` seeds a selection it keeps itself, and Escape, Back, and a Previous or
+  Next leave the last opened card selected, and focused. `Steps` change the address by `redirect`,
+  replacing the entry. A line the address names that is no longer there shows the page with no
+  overlay and "That line is gone." `Panes` and `ListPaneContext` stay for the decisions page only;
+  remove what no caller uses.
 
-- [ ] **Step 1: Write the failing tests, and the story**
+- [x] **Step 1: Write the failing tests, and the story**
 
 The story `Overlay` draws the priorities page with `DetailOverlay` open on a fixture line.
 
@@ -755,13 +757,13 @@ test("a tap on a card opens a bottom sheet with a visible Close", async () => {}
 The break each test catches: a remounted list (selection and scroll lost), a pushed entry per step,
 two Backs to close, a dialog the spec's size is not.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test --project desktop packages/web/src/__browser__/detail-overlay.test.tsx`
 - Expected: FAIL, `Unable to find role="dialog"` (the detail still opens in a pane beside the list).
 
-- [ ] **Step 3: Implement the overlay**
+- [x] **Step 3: Implement the overlay**
 
 `pageKey` gives `/priorities` and `/priorities/<key>` one key, and `/inbox` and `/inbox/<key>` one.
 The routes draw the page and `DetailOverlay` over it, with `openOverlayAt` for a click so the entry
@@ -770,13 +772,13 @@ opened by a reload or a link takes its entry once. The size is the spec's 108 ch
 page's font, with a height of 60% of the window. The bar's own Close goes where the overlay's header
 has one. List selection moves out of the URL into state, seeded by it.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation** (rulings R12 to R15 record the tests that changed)
 
 - Run: `nix develop -c vp run fast`, then both browser projects on `detail-overlay`, `task`,
   `ledger`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-25-inbox-priorities

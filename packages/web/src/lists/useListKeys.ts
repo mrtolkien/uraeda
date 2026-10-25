@@ -23,7 +23,7 @@ function shown(element: Element) {
 }
 
 /** Whether a layer is open: its own keys are not the list's. */
-function isLayerOpen() {
+export function isLayerOpen() {
   if (document.querySelector(EXPANDED) !== null) {
     return true;
   }

@@ -9,10 +9,11 @@ export function overlayOf(state: unknown): string | undefined {
 /**
  * Opens the overlay `label` at the address `path`, the same page's, in a history entry of its own
  * that keeps the page's, so Back closes it and puts the address before back: an overlay the address
- * names, like a sheet a reload keeps. Its `useBackCloses` takes that entry as its own.
+ * names, like a sheet a reload keeps. Its `useBackCloses` takes that entry as its own. `state`
+ * adds to, or with `undefined` takes out of, what the page's entry holds.
  */
-export function openOverlayAt(path: string, label: string) {
-  window.history.pushState({ ...(window.history.state ?? {}), overlay: label }, "", path);
+export function openOverlayAt(path: string, label: string, state?: Record<string, unknown>) {
+  window.history.pushState({ ...(window.history.state ?? {}), ...state, overlay: label }, "", path);
   window.dispatchEvent(new Event(CHANGE));
 }
 

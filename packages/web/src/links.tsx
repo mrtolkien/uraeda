@@ -53,13 +53,22 @@ export function RouterAnchor({
           return;
         }
         event.preventDefault();
-        // The page a link was followed from, within its repository, which a task view shows beside
-        // it on wide screens. A task view's link is followed from the list beside it, which it
-        // carries on.
+        // The page a link to a priority or a note was followed from, within its repository, which
+        // the line's overlay is drawn over: home or the list. Another link's page is no overlay's.
+        // A link followed from an overlay carries on the page it was opened from.
         const here = window.location.pathname;
-        navigate(href, {
-          from: parseLocation(here).route.page === "task" ? currentEntry().from : localPath(here),
-        });
+        const opensLine = ["task", "note"].includes(
+          parseLocation(new URL(href, "http://x").pathname).route.page,
+        );
+        navigate(
+          href,
+          opensLine
+            ? {
+                from:
+                  parseLocation(here).route.page === "task" ? currentEntry().from : localPath(here),
+              }
+            : undefined,
+        );
       }}
     />
   );

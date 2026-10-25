@@ -63,9 +63,9 @@ const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 const TASK = "/priorities/claude-code-runner-triggered-manually";
 
-/** The pane beside a list, on wide screens. */
+/** A priority's overlay: a dialog on wide screens, a sheet on narrow ones. */
 function detail() {
-  return within(screen.getByRole("region", { name: "Detail" }));
+  return within(screen.getByRole("dialog", { name: "Priority" }));
 }
 
 const PAGES: Array<[name: string, path: string, text: string, insets: string | null]> = [
@@ -189,32 +189,30 @@ describe("on the desktop", () => {
       // Home's Priorities now, with the fixture's lines not started moved there.
       await commands.writeRepo(nowHoldsNext(await commands.readRepo()));
       await show("/", "Claude Code runner");
-      await act(async () => {
-        fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
-      });
+      await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
       await waitFor(() => detail().getByRole("radio", { checked: true, name: "Now" }));
-      // A pane beside home, to read, with its one Close.
-      expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
-      expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
+      // A dialog over home, with its one Close.
+      expect(screen.getByRole("link", { hidden: true, name: /Git listener process/ })).toBeTruthy();
+      expect(detail().getAllByRole("button", { name: "Close" })).toHaveLength(1);
+      const entries = window.history.length;
 
       await page.viewport(700, 900);
       await expect.poll(() => window.innerWidth).toBe(700);
-      // A page of its own, at the same address.
-      await expect
-        .poll(() => screen.queryByRole("link", { name: /Git listener process/ }))
-        .toBeNull();
-      expect(screen.getByRole("radio", { checked: true, name: "Now" })).toBeTruthy();
+      // A sheet at the same address, in the same history entry, with its visible Close.
+      await waitFor(() => detail().getByRole("button", { name: "Close" }));
+      expect(detail().getByRole("radio", { checked: true, name: "Now" })).toBeTruthy();
       expect(window.location.pathname).toBe(atRepo(TASK));
-      // The pane's page, to read: Edit at its top, and no Close, which Back is.
-      expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
-      expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+      expect(window.history.length).toBe(entries);
 
       await page.viewport(1440, 900);
       await expect.poll(() => window.innerWidth).toBe(1440);
-      // A pane again.
-      expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
+      // A dialog again.
+      expect(
+        await screen.findByRole("link", { hidden: true, name: /Git listener process/ }),
+      ).toBeTruthy();
       expect(detail().getByRole("radio", { checked: true, name: "Now" })).toBeTruthy();
       expect(window.location.pathname).toBe(atRepo(TASK));
+      expect(window.history.length).toBe(entries);
     } finally {
       await page.viewport(1440, 900);
     }
@@ -258,34 +256,35 @@ describe("on the desktop", () => {
 describe("at semi-wide", () => {
   atSize("semi");
 
-  test("a task open beside the priorities keeps its pane and the list's place across 1280 px", async () => {
+  test("a task open over the priorities keeps its overlay and the list's place across 1280 px", async () => {
     // A short window, so the page scrolls at both widths: the columns are a short list.
     await page.viewport(1205, 300);
     await show("/priorities", "Claude Code runner");
-    await act(async () => {
-      fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
-    });
-    await waitFor(() => detail().getByRole("button", { name: "Edit" }));
     // The list scrolled down, as a human reading it would.
     const room = document.documentElement.scrollHeight - window.innerHeight;
     expect(room).toBeGreaterThan(0);
-    window.scrollTo(0, Math.min(200, room));
+    // Less than the room of the wider window, where the columns are shorter.
+    window.scrollTo(0, Math.min(100, room));
     await scrollStopped();
     const scrolled = window.scrollY;
     expect(scrolled).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
+    await waitFor(() => detail().getByRole("button", { name: "Edit" }));
 
     await page.viewport(1440, 300);
     await expect.poll(() => window.innerWidth).toBe(1440);
     await drawn();
-    // The same pane beside the same list, at the same place.
+    // The same overlay over the same list.
     expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();
     expect(window.location.pathname).toBe(atRepo(TASK));
-    expect(window.scrollY).toBe(scrolled);
 
     await page.viewport(1205, 300);
     await expect.poll(() => window.innerWidth).toBe(1205);
     await drawn();
     expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await drawn();
     expect(window.scrollY).toBe(scrolled);
   });
 });
