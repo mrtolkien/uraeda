@@ -4,7 +4,7 @@
 // reload. Each test takes the repository in turn, on a fresh copy of the fixture; the history is
 // read as a user sees it, `history.length` and what one Back leads to.
 import { screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, test } from "vite-plus/test";
+import { describe, expect, onTestFinished, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import {
@@ -224,7 +224,10 @@ describe("on the desktop, the history", () => {
   });
 
   test("opening and closing keep the list's scroll", async () => {
+    const { height, width } = window.visualViewport ?? { height: innerHeight, width: innerWidth };
     await page.viewport(1150, 300);
+    // The next test is drawn in the window this one was given, not the short one it shrinks to.
+    onTestFinished(() => page.viewport(Math.round(width), Math.round(height)));
     await show("/priorities", NEXT);
     const row = screen.getByRole("region", { name: "Columns" });
     row.scrollLeft = 150;
@@ -329,5 +332,42 @@ describe("on the phone", () => {
     const sheet = await overlay();
     await within(sheet).findByRole("button", { name: "Start a change from this draft" });
     checkPage(sheet);
+  });
+});
+
+describe("on both sizes, a long line", () => {
+  atSize("both");
+
+  test("Previous and Next stay in the overlay's view, and Next still steps without a history entry", async () => {
+    const children = Array.from({ length: 40 }, (_, at) => `  - Detail ${at + 1}\n`).join("");
+    const original = await commands.readRepo();
+    await commands.writeRepo(
+      original.replace(
+        /## Now\n\n[^#]*## Next/,
+        `## Now\n\n${["Tall one", "Tall two"].map((line) => `- ${line}\n${children}`).join("")}\n## Next`,
+      ),
+    );
+    await show("/priorities", "Tall two");
+    await userEvent.click(card("Tall one"));
+    const sheet = await overlay();
+    const dialog = within(sheet);
+    const opened = window.history.length;
+
+    // Without scrolling: both buttons are inside what the overlay shows of itself.
+    // (polled: a sheet slides in as it opens)
+    for (const name of ["‹ Previous", "Next ›"]) {
+      await expect
+        .poll(() => {
+          const shown = sheet.getBoundingClientRect();
+          const box = dialog.getByRole("button", { name }).getBoundingClientRect();
+          return box.top >= shown.top && box.bottom <= Math.min(shown.bottom, window.innerHeight);
+        })
+        .toBe(true);
+    }
+
+    await userEvent.click(dialog.getByRole("button", { name: "Next ›" }));
+
+    await expect.poll(() => window.location.pathname).toMatch(/\/priorities\/tall-two$/);
+    expect(window.history.length).toBe(opened);
   });
 });

@@ -41,6 +41,7 @@ const styles = stylex.create({
     overflowWrap: "anywhere",
     paddingBlock: spacingVars["--spacing-4"],
   },
+  // Previous and Next stay in view as the pane scrolls, under the body, as the bar stays over it.
   child: {
     paddingBlock: spacingVars["--spacing-0-5"],
   },
@@ -48,6 +49,16 @@ const styles = stylex.create({
     listStyleType: "disc",
     margin: 0,
     paddingInlineStart: spacingVars["--spacing-6"],
+  },
+  footer: {
+    backgroundColor: colorVars["--color-background-surface"],
+    bottom: 0,
+    paddingBlock: spacingVars["--spacing-2"],
+    position: "sticky",
+    zIndex: 1,
+  },
+  footerSteps: {
+    paddingBlockStart: spacingVars["--spacing-2"],
   },
   text: {
     // The entry's line, the pane's title.
@@ -166,7 +177,7 @@ export function Steps({
 
 /**
  * The pane: its bar, then its body, `text` first, then `children`, what the entry's kind adds, a
- * Delete button, and ‹ Previous / Next ›. The overlay it is drawn in has the Close. `onEdit`, from
+ * Delete button; then ‹ Previous / Next ›, pinned to the pane's foot. The overlay it is drawn in has the Close. `onEdit`, from
  * Edit, opens what the pane edits; `isEditing` says it is open.
  */
 export function EntryPane({
@@ -198,9 +209,11 @@ export function EntryPane({
           <HStack gap={2}>
             <Button clickAction={onDelete} label="Delete" variant="destructive" />
           </HStack>
-          <Divider />
-          {steps}
         </VStack>
+      </div>
+      <div {...stylex.props(styles.footer)}>
+        <Divider />
+        <div {...stylex.props(styles.footerSteps)}>{steps}</div>
       </div>
     </VStack>
   );
