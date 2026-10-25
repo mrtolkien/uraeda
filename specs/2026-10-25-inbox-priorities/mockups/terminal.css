@@ -112,3 +112,69 @@ h1 {
 body.pad {
   padding-bottom: 56px;
 }
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 27, 0.6);
+}
+.dlg {
+  position: fixed;
+  background: var(--base);
+  border: 1px solid var(--lav);
+  padding: 22px 20px 14px;
+}
+.dlg > .t {
+  position: absolute;
+  top: -0.8em;
+  left: 10px;
+  background: var(--base);
+  padding: 0 6px;
+  color: var(--lav);
+}
+.dlg h2 {
+  font-size: 1.1em;
+  margin: 0 0 10px;
+  font-weight: normal;
+}
+.dlg .meta {
+  color: var(--sub);
+  margin-bottom: 12px;
+}
+.dlg .btns {
+  color: var(--sub);
+  border-top: 1px dashed var(--line);
+  margin-top: 14px;
+  padding-top: 8px;
+}
+.dlg .btns b {
+  color: var(--lav);
+  font-weight: normal;
+}
+.card {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  position: relative;
+}
+.card.sel {
+  border-color: var(--lav);
+  background: var(--sel);
+}
+.card .more {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--lav);
+}
+.card .sub {
+  color: var(--sub);
+  display: block;
+}
+.scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(300px, 30%);
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
