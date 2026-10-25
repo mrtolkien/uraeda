@@ -1,7 +1,7 @@
 // US4 scenarios 5, 6, and 7, the cancelled drag, committing closing the toasts, and review focus 4:
-// dragging lines on the priorities page with a mouse, a finger, and the keyboard. Each test takes
+// dragging cards on the priorities page with a mouse and a finger (the keyboard moves a card from its menu). Each test takes
 // the repository in turn, on a fresh copy of the fixture (see `vite.browser.config.ts`).
-import { screen, within } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
@@ -87,15 +87,12 @@ afterEach(async () => {
   await commands.mouse([{ type: "up" }]);
 });
 
-/** Waits for an announcement: the page shows the last message only. */
-const announced = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
-
 describe("on the desktop, with a mouse", () => {
   atSize("desktop");
 
   test("dragging with a mouse makes room and moves the line (US4 5)", async () => {
     await show("/priorities", "Git listener process");
-    const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
+    const handle = middle(screen.getByRole("link", { name: /Git listener process/ }));
     const runner = screen.getByRole("link", { name: /Claude Code runner/ });
     const before = top(/Claude Code runner/);
     const above = runner.getBoundingClientRect().top + 2;
@@ -113,7 +110,7 @@ describe("on the desktop, with a mouse", () => {
     const moveSent = watchMoves();
     await show("/priorities", "Git listener process");
     const original = await commands.readRepo();
-    const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
+    const handle = middle(screen.getByRole("link", { name: /Git listener process/ }));
     const above = screen.getByRole("link", { name: /Claude Code runner/ }).getBoundingClientRect();
 
     await pickUp("Git listener process");
@@ -161,45 +158,18 @@ describe("on the desktop, with a mouse", () => {
 describe("on the desktop, with the keyboard", () => {
   atSize("desktop");
 
-  // The fixture's Now holds only started entries, which show in Ongoing without a handle: the
-  // keys move a line of Later.
-  test("Space, ↓, ↓, Space moves a line two places, announced (US4 7)", async () => {
-    const original = await commands.readRepo();
-    await commands.writeRepo(
-      original.replace("## Later\n\n", "## Later\n\n- First idea\n- Second idea\n"),
-    );
-    await show("/priorities", "Second idea");
-    const handle = screen.getByRole("button", { name: "Move First idea" });
-    handle.focus();
-
-    // Each key is announced once the drag has taken it, with the line's place.
-    await userEvent.keyboard("[Space]");
-    await announced("First idea, 1 of 3 in Later.");
-    await userEvent.keyboard("[ArrowDown]");
-    await announced("First idea, 2 of 3 in Later.");
-    await userEvent.keyboard("[ArrowDown]");
-    await announced("First idea, 3 of 3 in Later.");
-    await userEvent.keyboard("[Space]");
-    await announced("Dropped: First idea, 3 of 3 in Later.");
-    await expect
-      .poll(() => commands.readRepo(), { timeout: 10_000 })
-      .toContain(
-        "## Later\n\n- Second idea\n- Nix + Docker based execution environments\n  - with a cache\n- First idea\n",
-      );
-  });
-
-  // C6: the focus ring of a row, which an app style of the same atomic class as Astryx's hid.
-  test("a focused row shows the focus ring", async () => {
+  // C6: the focus ring of a card, which an app style of the same atomic class as Astryx's hid.
+  test("a focused card shows the focus ring", async () => {
     await show("/priorities", "Git listener process");
-    screen.getByRole("button", { name: "Move Claude Code runner (triggered manually)" }).focus();
+    // The Add row before Next's first card: Tab reaches the card's link.
+    screen.getByRole("button", { name: "Add to Now" }).focus();
     await userEvent.tab();
 
     const link = screen.getByRole("link", { name: /Claude Code runner/ });
     expect(document.activeElement).toBe(link);
-    const row = within(screen.getByRole("list", { name: "Next lines" })).getAllByRole(
-      "listitem",
-    )[0];
-    expect(getComputedStyle(row).outlineStyle).not.toBe("none");
+    const card = link.closest("li");
+    expect(card).not.toBeNull();
+    expect(getComputedStyle(card as Element).outlineStyle).not.toBe("none");
   });
 });
 
@@ -221,7 +191,7 @@ describe("on the desktop, started entries", () => {
     );
     await show("/priorities", "Sea line");
     expect(screen.getByRole("heading", { name: "Now · 2" })).toBeTruthy();
-    const handle = middle(screen.getByRole("button", { name: "Move Sea line" }));
+    const handle = middle(screen.getByRole("link", { name: /Sea line/ }));
     const before = top(/Bee line/);
 
     await pickUp("Sea line");

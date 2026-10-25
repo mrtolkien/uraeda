@@ -284,11 +284,11 @@ check fails, stop and start a new round of questions before any later task.
   border, a stretched link to `row.href` (a click or Enter opens it) with `data-row` on the card so
   `useListKeys` finds `[data-row] a[href]`, and an empty slot for a `…` button that task 7 fills.
   `WorkRow.marks` is a text mark, `ReactNode`, set in the border; `WorkRow.menu?: ReactNode` is that
-  slot. `SENSORS` has no handle and no keyboard sensor: a mouse or pen press activates after 5 px
-  (`Distance`), a touch press after 500 ms with 5 px of tolerance. A card with `isFixed` has no
-  drag.
+  slot; `WorkRow.image?: ReactNode` is a picture under the text (ruling R7). `SENSORS` has no handle
+  and no keyboard sensor: a mouse or pen press activates after 5 px (`Distance`), a touch press
+  after 500 ms with 5 px of tolerance. A card with `isFixed` has no drag.
 
-- [ ] **Step 1: Write the failing tests, and the helper they use**
+- [x] **Step 1: Write the failing tests, and the helper they use**
 
 A helper `pressAndMove(text, dx, dy)` in `card-drag.test.tsx` presses on the card's text, moves in
 steps, and releases (pointer events through the browser provider's mouse).
@@ -298,7 +298,7 @@ steps, and releases (pointer events through the browser provider's mouse).
 test("a press of 4 px opens the card", async () => {
   await show("/priorities", "Git listener process");
   await pressAndMove("Git listener process", 4, 0);
-  expect(window.location.pathname).toMatch(/\/priorities\/git-listener-process$/);
+  expect(window.location.pathname).toMatch(/\/priorities\/git-listener$/);
 });
 
 test("a press of 40 px over Next writes the line in Next at the drop place", async () => {
@@ -324,13 +324,13 @@ The break each test catches:
 - Own card: dnd-kit's click after a drag opening the overlay.
 - Running card: a draggable card that is derived.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test --project desktop packages/web/src/__browser__/card-drag.test.tsx`
 - Expected: FAIL at the first test, the pointer press on the text does not navigate because the
   press under 5 px started no click on a handle-activated row (or the helper finds no `Card`).
 
-- [ ] **Step 3: Implement `Card`, the sensors, and the lists on it**
+- [x] **Step 3: Implement `Card`, the sensors, and the lists on it**
 
 `Card` replaces `RowItem` and `SortableRow` in `WorkList.tsx`: `useSortable` with the card element
 as activator and no handle. The sensors follow the Interfaces block; `preventActivation` only keeps
@@ -341,7 +341,7 @@ as "● <step>", a note's tags) instead of badges. A card's first image shows un
 `PrioritiesList` and `InboxPage` keep their moves and Add rows. If the browser test shows dnd-kit
 cannot tell a 4 px press from a drag on a link, stop here.
 
-- [ ] **Step 4: Update the tests that used a handle, and run the task's validation**
+- [x] **Step 4: Update the tests that used a handle, and run the task's validation**
 
 The tests that pressed "Move <text>" or dragged by the keyboard now press the card's text; the
 keyboard drag tests are removed with the keyboard sensor (ruling R3).
@@ -349,7 +349,7 @@ keyboard drag tests are removed with the keyboard sensor (ruling R3).
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. Deferred to `ready`: the phone project's whole browser suite and the screenshots.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-25-inbox-priorities/plan.md specs/2026-10-25-inbox-priorities/rulings.md

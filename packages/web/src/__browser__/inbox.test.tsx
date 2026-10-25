@@ -397,7 +397,7 @@ async function drag(
 ) {
   await drawn();
   const target = to();
-  const start = middle(screen.getByRole("button", { name: `Move ${note}` }));
+  const start = middle(screen.getByRole("link", { name: new RegExp(note) }));
   await pickUp(note);
   const from = { x: start.x, y: start.y - 10 };
   const steps = 8;
@@ -417,7 +417,7 @@ async function drag(
   await commands.mouse([{ type: "up" }]);
 }
 
-// US5: notes drag as the priorities' lines do, by their handle or the keyboard.
+// US5: notes drag as the priorities' cards do, from anywhere on them.
 describe("on the desktop, dragging notes", () => {
   atSize("desktop");
 
@@ -472,29 +472,5 @@ describe("on the desktop, dragging notes", () => {
         "- Allow no selection in responses (after a warning)\n- Make sure agents are resumable\n- Text input feels laggy on the sessions page\n  - on long sessions\n",
       );
     expect(category(await commands.readRepo(PATH), "UI")).not.toContain("laggy");
-  });
-
-  /** US5 4 */
-  test("the keyboard moves a note", async () => {
-    await show("/inbox", "Make sure agents are resumable");
-    screen
-      .getByRole("button", { name: "Move Allow no selection in responses (after a warning)" })
-      .focus();
-
-    await userEvent.keyboard("[Space]");
-    await expect
-      .poll(() => document.body.textContent)
-      .toContain("Allow no selection in responses (after a warning), 1 of 2 in CLI.");
-    await userEvent.keyboard("[ArrowDown]");
-    await expect
-      .poll(() => document.body.textContent)
-      .toContain("Allow no selection in responses (after a warning), 2 of 2 in CLI.");
-    await userEvent.keyboard("[Space]");
-
-    await expect
-      .poll(async () => category(await commands.readRepo(PATH), "CLI"), { timeout: 10_000 })
-      .toBe(
-        "- Make sure agents are resumable\n- Allow no selection in responses (after a warning)\n",
-      );
   });
 });

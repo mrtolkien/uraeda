@@ -73,3 +73,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: Putting them before the loose notes: moves the human's older notes.
 - **If wrong**: Swap the join in `remove_category`, and its two tests.
 - **Where**: task 3.
+
+## R7: A hidden handle takes dnd-kit's attributes, and the card owns its row's picture
+
+- **Decision**: `Card` gives `useSortable` a hidden, empty handle (`aria-hidden`, `tabindex=-1`)
+  while the sensor's activator stays the whole card (`activatorElements`). `WorkRow` gains
+  `image?: ReactNode`, a picture under the text. A card has no margin: the list's gap leaves room
+  for the marks.
+- **Rationale**: dnd-kit's accessibility plugin puts `role="button"`, a tab stop, and `aria-pressed`
+  on a draggable's handle or element, which would turn the card into a button beside its link. On a
+  hidden handle they reach nobody. A lifted card is positioned from its border box, so a margin
+  offset it by the margin's width.
+- **Alternatives considered**: Pre-setting the roles on the card: `aria-pressed` stays on a list
+  item, which axe refuses. Dropping the plugin and announcing by hand: a second announcer to keep.
+- **If wrong**: Replace the hidden handle with the announcer of the alternative.
+- **Where**: task 1.

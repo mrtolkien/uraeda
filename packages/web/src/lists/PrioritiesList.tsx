@@ -1,10 +1,7 @@
 // The priorities on the shared list: "Ongoing", the entries whose feature or change runs, in green,
 // then Now, Next, Later, and Blocked, in the file's order, each with its colour and its Add row.
 // The file keeps the started entries at the top of Now; on screen they show apart.
-import { Badge } from "@astryxdesign/core/Badge";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { Text } from "@astryxdesign/core/Text";
 import { useFateClient } from "react-fate";
 import type { PriorityEntry } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
@@ -32,24 +29,15 @@ const TONES: Record<string, Tone> = {
   now: "blue",
 };
 
-/** An entry's marks: Running and its step, or Draft, or Backlog. */
-function Marks({ entry }: { entry: PriorityEntry }) {
+/** An entry's marks, as text in its border: its running step, "draft", or "backlog". */
+function marksOf(entry: PriorityEntry) {
   if (entry.running) {
-    return (
-      <HStack align="center" gap={2} wrap="wrap">
-        <Badge label="Running" variant="green" />
-        <Text color="secondary">{stepTitle(entry.running.step)}</Text>
-      </HStack>
-    );
+    return `● ${stepTitle(entry.running.step)}`;
   }
   if (!entry.draft) {
-    return null;
+    return undefined;
   }
-  return entry.draft.backlog ? (
-    <Badge label="Backlog" variant="neutral" />
-  ) : (
-    <Badge label="Draft" variant="teal" />
-  );
+  return entry.draft.backlog ? "backlog" : "draft";
 }
 
 /**
@@ -142,7 +130,7 @@ export function PrioritiesList({
     isFixed: entry.running !== undefined,
     key: entry.key,
     lines: entry.nestedSpans.map(plain),
-    marks: <Marks entry={entry} />,
+    marks: marksOf(entry),
     text: plain(entry.spans),
   });
 

@@ -58,7 +58,7 @@ function rowOf(title: string, text: string) {
   return row as HTMLElement;
 }
 
-/** C6 and US4 1: started entries show in their own section, with their step, and no handle. */
+/** C6 and US4 1: started entries show in their own section, with their step. */
 test("ongoing entries show apart, with their step", async () => {
   await renderPage("/priorities");
 
@@ -70,13 +70,11 @@ test("ongoing entries show apart, with their step", async () => {
     "CLI TUIs",
     "Plan review",
   ]);
+  // Each card's border says it runs, with its step.
   for (const row of rowsOf("Ongoing")) {
-    expect(within(row).getByText("Running")).toBeTruthy();
+    expect(within(row).getByText(/^● /)).toBeTruthy();
   }
-  expect(within(rowOf("Ongoing", "CLI TUIs")).getByText("Plan")).toBeTruthy();
-  expect(
-    screen.queryByRole("button", { name: /^Move (Web UI|Recurring|CLI TUIs|Plan)/ }),
-  ).toBeNull();
+  expect(within(rowOf("Ongoing", "CLI TUIs")).getByText("● Plan")).toBeTruthy();
   // No add row: what is added goes to Now.
   expect(screen.queryByRole("button", { name: "Add to Ongoing" })).toBeNull();
 });
@@ -87,12 +85,12 @@ test("an ongoing entry at a gate says what it asks of the human", async () => {
 
   const row = await findRow("Ongoing", "Web UI for the workflow files");
 
-  expect(within(row).getByText("Answer questions")).toBeTruthy();
+  expect(within(row).getByText("● Answer questions")).toBeTruthy();
   expect(within(row).queryByText("Waiting on you")).toBeNull();
 });
 
-/** US4 2 and 3: a draft that exists shows "Draft", a missing one nothing. */
-test("a drafted entry shows Draft, a missing draft nothing", async () => {
+/** US4 2 and 3: a draft that exists shows "draft", a missing one nothing. */
+test("a drafted entry shows draft, a missing draft nothing", async () => {
   const repo = fixtureRepo();
   writeFileSync(
     join(repo, PATH),
@@ -100,8 +98,8 @@ test("a drafted entry shows Draft, a missing draft nothing", async () => {
   );
   await renderPage("/priorities", repo);
 
-  expect(within(await findRow("Next", "Git listener process")).getByText("Draft")).toBeTruthy();
-  expect(within(rowOf("Later", "A lost idea")).queryByText("Draft")).toBeNull();
+  expect(within(await findRow("Next", "Git listener process")).getByText("draft")).toBeTruthy();
+  expect(within(rowOf("Later", "A lost idea")).queryByText("draft")).toBeNull();
 });
 
 /** A row once the page shows it. */
@@ -110,7 +108,7 @@ async function findRow(title: string, text: string) {
   return rowOf(title, text);
 }
 
-/** Edge case and review focus 4: a feature that finishes leaves Ongoing and gets its handle back. */
+/** Edge case and review focus 4: a feature that finishes leaves Ongoing and is a card that moves again. */
 test("a done feature's entry leaves Ongoing", async () => {
   const repo = fixtureRepo();
   await renderPage("/priorities", repo);
@@ -131,8 +129,8 @@ test("a done feature's entry leaves Ongoing", async () => {
   });
   expect(screen.getByRole("heading", { name: "Now · 1" })).toBeTruthy();
   const row = rowOf("Now", "CLI TUIs");
-  expect(within(row).getByRole("button", { name: "Move CLI TUIs" })).toBeTruthy();
-  expect(within(row).queryByText("Running")).toBeNull();
+  expect(within(row).getByRole("link", { name: "CLI TUIs" })).toBeTruthy();
+  expect(within(row).queryByText(/^● /)).toBeNull();
 });
 
 test("tapping a line opens its task view, with no menu on the list (C3)", async () => {

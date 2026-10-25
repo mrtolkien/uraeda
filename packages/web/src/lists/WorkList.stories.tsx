@@ -43,7 +43,7 @@ export const Selected: Story = {
 };
 
 /**
- * The inbox's categories as the same sections, every note with the same handle and its children,
+ * The inbox's categories as the same sections, every note the same card, with its children,
  * the count beside the heading and "Organize with an agent" on its right.
  */
 export const Inbox: Story = { render: () => <InboxPage /> };
