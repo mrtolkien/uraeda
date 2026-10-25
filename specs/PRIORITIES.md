@@ -6,16 +6,16 @@
 >
 > Features for v1.0.0
 
-- Coherence pass: since the terminal look was built with parallel sessions, validate that components
-  that should be shared are shared! And check all views have the new look
+- [Coherence pass: since the terminal look was built with parallel sessions, validate that components that should be shared are shared! And check all views have the new look](/specs/changes/2026-10-26-coherence-pass/proposal.md)
+
 - Leader key/shortcut map
 - Full interactive UI pass: manual small fixes
 - Empty inbox
+- Many times the implementation made undue changes due to forcing itself to pass bad tests. We need
+  to rephrase the testing strategy.
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
-- Many times the implementation made undue changes due to forcing itself to pass bad tests. We need
-  to rephrase the testing strategy.
 
 ## Next
 
