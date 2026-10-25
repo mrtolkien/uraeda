@@ -22,9 +22,11 @@ import {
   doingText,
   joinStretches,
   liveText,
+  pageEnd,
   recapText,
   slotsOf,
   type Stretch,
+  THROUGH,
   type ToolItem,
 } from "./stretches.ts";
 
@@ -176,7 +178,42 @@ export function JoinedStretch({
   );
 }
 
-/** The page `after`'s open stretch joined before `stretch`, and the pages before it in turn. */
+/**
+ * The stretch open at the end of the page `after`, joined with the pages before it that it goes on
+ * from, given to `children`, or undefined when that page ends closed. A page of a sub-agent's items
+ * alone is seen through, to the page before it.
+ */
+function OpenAt({
+  after,
+  children,
+  turn,
+}: {
+  after: number;
+  children: (open: Stretch | undefined) => ReactNode;
+  turn: string;
+}) {
+  const page = useTurnLog(`${turn}:${after}`);
+  const end = page ? pageEnd(slotsOf(turn, page.items)) : undefined;
+  if (end === THROUGH) {
+    return after > 0 ? (
+      <OpenAt after={after - 1} turn={turn}>
+        {children}
+      </OpenAt>
+    ) : (
+      children(undefined)
+    );
+  }
+  if (end === undefined) {
+    return children(undefined);
+  }
+  return (
+    <JoinedStretch after={after > 0 ? after - 1 : undefined} stretch={end} turn={turn}>
+      {children}
+    </JoinedStretch>
+  );
+}
+
+/** The open stretch that ends the page `after`, and the pages before it, joined before `stretch`. */
 function PageBefore({
   after,
   children,
@@ -188,19 +225,10 @@ function PageBefore({
   stretch: Stretch;
   turn: string;
 }) {
-  const page = useTurnLog(`${turn}:${after}`);
-  const last = slotsOf(turn, page?.items ?? []).at(-1);
-  if (last?.kind !== "stretch" || !last.stretch.open) {
-    return children(stretch);
-  }
   return (
-    <JoinedStretch
-      after={after > 0 ? after - 1 : undefined}
-      stretch={joinStretches(last.stretch, stretch)}
-      turn={turn}
-    >
-      {children}
-    </JoinedStretch>
+    <OpenAt after={after} turn={turn}>
+      {(open) => children(open ? joinStretches(open, stretch) : stretch)}
+    </OpenAt>
   );
 }
 
@@ -227,18 +255,14 @@ export function StretchRecap({
 
 /** The open stretch that ends the page `after`, its recap line, else nothing. */
 function EndOfPage({ actions, after, turn }: { actions: Actions; after: number; turn: string }) {
-  const page = useTurnLog(`${turn}:${after}`);
-  const last = slotsOf(turn, page?.items ?? []).at(-1);
-  if (last?.kind !== "stretch" || !last.stretch.open) {
-    return null;
-  }
   return (
-    <StretchRecap
-      actions={actions}
-      after={after > 0 ? after - 1 : undefined}
-      stretch={last.stretch}
-      turn={turn}
-    />
+    <OpenAt after={after} turn={turn}>
+      {(open) =>
+        open ? (
+          <RecapLine href={actions.stretchHref?.(open.key)} text={recapText(open.items)} />
+        ) : null
+      }
+    </OpenAt>
   );
 }
 
@@ -338,7 +362,18 @@ function LiveLine({
       subagents={actions.subagents ?? 0}
     />
   );
-  const last = slotsOf(turn, items).at(-1);
+  const slots = slotsOf(turn, items);
+  const last = slots.at(-1);
+  if (pageEnd(slots) === THROUGH && after !== undefined) {
+    // A last page of a sub-agent's items alone: the line stands for the stretch open before it.
+    return (
+      <Suspense fallback={line()}>
+        <OpenAt after={after} turn={turn}>
+          {(open) => line(open?.key)}
+        </OpenAt>
+      </Suspense>
+    );
+  }
   if (last?.kind !== "stretch") {
     return line();
   }

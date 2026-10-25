@@ -160,6 +160,23 @@ export function slotsOf(turn: string, items: ReadonlyArray<TranscriptItem>): Arr
   return slots;
 }
 
+/** What a page of a sub-agent's items alone is to the stretches around it: see-through. */
+export const THROUGH = "through";
+
+/**
+ * How a page's `slots` end, for the page after: at the stretch open at their end, which the page
+ * after may go on; closed by another item, undefined; or `THROUGH`, a page with no item of the main
+ * agent's, a sub-agent's alone, which neither ends a stretch nor starts one, so the page after goes
+ * on from the page before it. Every join across pages reads a page's end here.
+ */
+export function pageEnd(slots: ReadonlyArray<Slot>): Stretch | typeof THROUGH | undefined {
+  const last = slots.at(-1);
+  if (last === undefined) {
+    return THROUGH;
+  }
+  return last.kind === "stretch" && last.stretch.open ? last.stretch : undefined;
+}
+
 /**
  * One stretch from a stretch `open` at a page's end and the `continued` one that starts the next
  * page: the items of both, under the earlier one's key, so a recap line counts the whole stretch and

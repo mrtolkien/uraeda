@@ -526,6 +526,24 @@ test("review focus 2: a stretch over two pages marks its rows on both", async ()
   );
 });
 
+test("review focus 1: a stretch around a page of a sub-agent's calls alone marks both its parts", async () => {
+  const chat = await newChat();
+  // 231 items: the message, 50 reads, and 49 of the sub-agent's calls fill the first page, its
+  // calls alone the second, and the last 30 reads and the answer start the third.
+  const own = Array.from({ length: 149 }, (_, index) =>
+    call("read", `src/agent/file-${index}.ts`, { id: `s-${index}`, parent: "agent-1" }),
+  );
+  const items = [asked("Read them all"), ...reads(1, 50), ...own, ...reads(2, 30), said("Done.")];
+  const turn = addRun(chat.fake, chat.chat, items);
+  expect(chat.fake.sessions.cache.itemCount(turn)).toBe(231);
+
+  await openActivity(chat, `?tab=activity&stretch=${turn}%3A1`);
+
+  await waitFor(() =>
+    expect(activity().getAllByRole("listitem", { current: true })).toHaveLength(80),
+  );
+});
+
 test("review focus 3, edge: a sub-agent's calls are its group's rows, folded and not mounted", async () => {
   const chat = await newChat();
   addRun(chat.fake, chat.chat, [

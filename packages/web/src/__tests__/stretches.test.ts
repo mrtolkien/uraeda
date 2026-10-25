@@ -14,6 +14,7 @@ import {
   type Stretch,
   stretchKey,
 } from "../session/stretches.ts";
+import { runsOf } from "../session/activityRuns.ts";
 import type { TranscriptItem } from "../TranscriptMessages.tsx";
 
 type ToolItem = Extract<TranscriptItem, { kind: "tool" }>;
@@ -367,4 +368,18 @@ test("the stretch's address", () => {
   expect(stretchAddress("/r/x/sessions/s1", stretchKey("7", 3))).toBe(
     "/r/x/sessions/s1?tab=activity&stretch=7%3A3",
   );
+});
+
+test("review focus 1: a page of a sub-agent's calls alone leaves the stretch open across it", () => {
+  const first = [text(), read("a.ts", 1000)];
+  const between = Array.from({ length: 3 }, () =>
+    call("read", "Read", "z.ts", 9000, { parent: "agent-1" }),
+  );
+  const last = [read("b.ts", 1000), text()];
+
+  const [run] = runsOf([first, between, last].map((items, page) => ({ items, page, turn: "7" })));
+
+  const keys = [first[1]!, last[0]!].map((item) => run?.stretches.get(item.seq));
+  expect(keys[0]).toBe(stretchKey("7", first[1]!.seq));
+  expect(keys[1]).toBe(keys[0]);
 });

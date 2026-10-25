@@ -3,7 +3,14 @@
 // belongs to, joined across pages by the chat's rule (ruling R18). Which rows draw within the bound
 // is decided here too, so the panel only draws.
 import type { TranscriptItem } from "../TranscriptMessages.tsx";
-import { type ActivityItem, joinStretches, slotsOf, type Stretch } from "./stretches.ts";
+import {
+  type ActivityItem,
+  joinStretches,
+  pageEnd,
+  slotsOf,
+  type Stretch,
+  THROUGH,
+} from "./stretches.ts";
 
 /** A page of a turn the Activity read: its items, in order. */
 export type ReadPage = { items: ReadonlyArray<TranscriptItem>; page: number; turn: string };
@@ -28,7 +35,8 @@ const isActivity = (item: TranscriptItem): item is ActivityItem =>
 /**
  * The stretch of each of the main agent's items, by its `seq`, over a turn's pages in order: a
  * stretch `continued` at a page's start joins the page before's last when that one is `open`, and
- * takes its key, so a stretch over pages has one key, as its recap line does.
+ * takes its key, so a stretch over pages has one key, as its recap line does. A page of a sub-agent's
+ * items alone is seen through.
  */
 function stretchesOf(
   turn: string,
@@ -37,8 +45,13 @@ function stretchesOf(
   const keys = new Map<number, string>();
   let open: Stretch | undefined;
   for (const items of pages) {
+    const slots = slotsOf(turn, items);
+    if (pageEnd(slots) === THROUGH) {
+      // A page of a sub-agent's items alone: the stretch open before it goes on after it.
+      continue;
+    }
     let last: Stretch | undefined;
-    for (const slot of slotsOf(turn, items)) {
+    for (const slot of slots) {
       if (slot.kind === "item") {
         last = undefined;
         continue;

@@ -45,13 +45,20 @@ function addTurn(fake: Fake, session: string, kind: "chat" | "workflow" = "chat"
   });
 }
 
-/** A completed call of `toolKind` on `target`, lasting `durationMs`. */
-function call(toolKind: string, name: string, target: string, durationMs: number): Item {
+/** A completed call of `toolKind` on `target`, lasting `durationMs`, of the sub-agent `parent`. */
+function call(
+  toolKind: string,
+  name: string,
+  target: string,
+  durationMs: number,
+  parent?: string,
+): Item {
   return {
     durationMs,
     id: `call-${target}`,
     kind: "tool",
     name,
+    ...(parent === undefined ? {} : { parent }),
     status: "completed",
     target,
     toolKind: toolKind as Extract<Item, { kind: "tool" }>["toolKind"],
@@ -315,6 +322,48 @@ test("review focus 1: a stretch before the tail's cut draws once, with the earli
   expect(log.getAllByRole("link", { name })).toEqual([recap]);
   expect(precedes(log.getByText("Read them all"), recap)).toBe(true);
   expect(precedes(recap, log.getByText("Question 0"))).toBe(true);
+});
+
+test("review focus 1: a stretch around a page of a sub-agent's calls alone draws one line", async () => {
+  const own = Array.from({ length: 149 }, (_, index) =>
+    call("read", "Read", `src/agent/file-${index}.ts`, 9000, "agent-1"),
+  );
+  // 231 items: the message, 50 reads, and 49 of the sub-agent's calls fill the first page, its
+  // calls alone the second, and the last 30 reads and the answer start the third.
+  const { fake, log, turn } = await openChat(
+    [asked("Read them all"), ...calls(1, 0, 50), ...own, ...calls(2, 0, 30), said("Done.")],
+    "Done.",
+  );
+  expect(fake.sessions.cache.itemCount(turn)).toBe(231);
+
+  const recap = await log.findByRole("link", { name: "1 min 20 s · read 80 files" });
+  expect(recapsIn(log)).toEqual([recap]);
+  expect(precedes(recap, log.getByText("Done."))).toBe(true);
+  expect(recap.getAttribute("href")).toContain(`stretch=${turn}%3A1`);
+});
+
+test("review focus 1: a running turn's last page of a sub-agent's calls alone links the stretch before", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  const turn = addTurn(fake, chat.id);
+  const own = Array.from({ length: 150 }, (_, index) =>
+    call("read", "Read", `src/agent/file-${index}.ts`, 9000, "agent-1"),
+  );
+  // 201 items: the message, 50 reads, and 49 of the sub-agent's calls fill the first page, its
+  // calls alone the second, and its last starts the third.
+  seedStretch(fake, turn, [asked("Read them all"), ...calls(1, 0, 50), ...own]);
+  expect(fake.sessions.cache.itemCount(turn)).toBe(201);
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
+  const log = within(await screen.findByRole("log", { name: "Conversation" }));
+  await log.findByText("Read them all");
+
+  // The live line stands for the stretch, open across the sub-agent's pages: no line of its own.
+  await waitFor(() =>
+    expect(recapsIn(log).map((link: HTMLElement) => link.getAttribute("href"))).toEqual([
+      `${window.location.pathname}?tab=activity&stretch=${turn}%3A1`,
+    ]),
+  );
 });
 
 test("review focus 5: Back after a recap line leaves the page, as after a tab switch", async () => {

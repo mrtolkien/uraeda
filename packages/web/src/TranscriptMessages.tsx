@@ -246,10 +246,11 @@ export function TranscriptItems({
 }) {
   const slots = slotsOf(turn, items);
   // A stretch the page before ends with, which these items do not go on with, is drawn before them:
-  // the page before left it to this one.
+  // the page before left it to this one. A page of a sub-agent's items alone leaves it to the page
+  // after, unless it ends the turn.
   const first = slots[0];
   const earlier =
-    after !== undefined && first?.kind !== "stretch" ? (
+    after !== undefined && first?.kind !== "stretch" && (slots.length > 0 || endsOpen) ? (
       <EarlierRecap actions={actions} after={after} key="recap-earlier" turn={turn} />
     ) : null;
   const drawn = slots.map((slot) => {
