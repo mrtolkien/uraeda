@@ -167,9 +167,12 @@ function RunPart({
   return (
     <VStack gap={1} ref={part}>
       <HStack align="center" gap={2} justify="between" ref={title}>
-        <Heading accessibilityLevel={3} color="secondary" level={6}>
-          {`Run ${number} · `}
-          <span {...stylex.props(length === "failed" && statusStyles.error)}>{length}</span>
+        {/* The title in the time's size, as the mockup's group title: a heading to the keyboard. */}
+        <Heading accessibilityLevel={3} level={6}>
+          <Text color="secondary" type="supporting">
+            {`Run ${number} · `}
+            <span {...stylex.props(length === "failed" && statusStyles.error)}>{length}</span>
+          </Text>
         </Heading>
         {turn.startedAt && (
           <Text color="secondary" type="supporting" xstyle={styles.start}>
