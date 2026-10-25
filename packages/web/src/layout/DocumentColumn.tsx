@@ -104,6 +104,10 @@ type DocumentColumnState = ReturnType<typeof useDocumentColumnWidth>;
 /** What `DocumentColumn` draws. */
 type ColumnProps = {
   content: ReactNode;
+  /**
+   * The column's foot, under the open panel: at the column's bottom edge only under a panel that
+   * `fills`; under another, right after the panel's content, scrolling with it.
+   */
   footer?: ReactNode;
   label: string;
   panels: ReadonlyArray<ColumnPanel>;
