@@ -12,8 +12,8 @@
 // The views text inputs changed pass them too: a round with a comment under a settled point and the
 // form of another open, the notes restored with their notice, and the "Leave page?" and "Discard
 // your comment?" confirmations. So do a feature's session at its implementation, its column shown
-// and hidden, the phone's progress line open, and a chat, the transcript 760 px wide beside the
-// column at 1440 px (SC-001, SC-004 of the session view), and at 1024 px with the sidebar open (its
+// and hidden, the phone's sheet of the column open, and a chat, the transcript wider than the
+// column at 1440 px (SC-001, SC-004 of the session view, ruling R21 of session-new), and at 1024 px with the sidebar open (its
 // edge case). So do a spec with a story embedded, ready, a round whose options are stories, and the
 // Storybook page (the UI iteration flow's UI checks). So do the sign-in screen, empty and with its
 // error, and the settings' Sign-in category and its confirmation, in `sign-in.test.tsx`.
@@ -380,12 +380,12 @@ test.each(
   await checkLayout();
 });
 
-/** The phone's progress line of `CLI` at Task 7 of 11. */
-const LINE = "Implementation · 7/11 · Session column";
+/** The session's column. */
+const COLUMN = "The session's column";
 
 /**
  * The feature's session at its implementation, at Task 7 of 11, working on a turn with long paths:
- * its column drawn beside it on wide screens, its progress line above it on the phone.
+ * its column drawn beside it on wide screens, its parts on the phone's status line.
  */
 async function implementation(mode: "light" | "dark") {
   await colorScheme(mode);
@@ -394,17 +394,17 @@ async function implementation(mode: "light" | "dark") {
   await agent.commitOnBranch(CLI, {
     "crates/core/src/files/plan.rs": "// The plan's tasks.\n",
     "packages/web/src/__browser__/layout.test.tsx": "// The layout checks.\n",
-    "packages/web/src/SessionAside.tsx": "// The session's column.\n",
+    "packages/web/src/session/SessionColumn.tsx": "// The session's column.\n",
   });
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Carry on with Task 7.", LONG_TURN);
   await screen.findByText(/Rate limited/, undefined, LIVE);
   if (window.innerWidth >= 768) {
-    const column = await screen.findByRole("complementary", { name: "Progress" }, LIVE);
-    await within(column).findByText("Task 7 of 11", undefined, LIVE);
-    await within(column).findByText("3 files · +3 −0", undefined, LIVE);
+    const column = await screen.findByRole("complementary", { name: COLUMN }, LIVE);
+    await within(column).findByRole("link", { name: /task 7 of 11/ }, LIVE);
+    await within(column).findByText("On the branch · 3 files · +3 -0", undefined, LIVE);
   } else {
-    await screen.findByRole("button", { name: LINE }, LIVE);
+    await screen.findByRole("link", { name: /task 7 of 11/ }, LIVE);
   }
   await grown();
 }
@@ -412,7 +412,7 @@ async function implementation(mode: "light" | "dark") {
 /** The checks on the page's main region, then on the column, which is beside it. */
 async function checkSession() {
   await checkLayout();
-  const column = screen.queryByRole("complementary", { name: "Progress" });
+  const column = screen.queryByRole("complementary", { name: COLUMN });
   if (column) {
     await checkLayout(column);
   }
@@ -427,10 +427,13 @@ test.each(MODES)(
     await implementation(mode);
     await checkSession();
     if (window.innerWidth === 1440) {
-      // SC-001: the sidebar at its default 240 px, the column shown, the transcript keeps 760 px.
-      expect(screen.getByRole("complementary", { name: "Progress" })).toBeTruthy();
+      // SC-001, then approval comment C2 of the session's spec: the sidebar at its default 240 px,
+      // the column shown, the transcript keeps more room than the column (ruling R21).
+      const column = screen.getByRole("complementary", { name: COLUMN });
       const log = screen.getByRole("log", { name: "Conversation" });
-      expect(log.getBoundingClientRect().width).toBeGreaterThanOrEqual(760);
+      expect(log.getBoundingClientRect().width).toBeGreaterThan(
+        column.getBoundingClientRect().width,
+      );
     }
   },
 );
@@ -443,11 +446,11 @@ describe("the session on the desktop", () => {
     "a feature's session at its implementation, with its column folded, in $mode",
     async ({ mode }) => {
       await implementation(mode);
-      await userEvent.click(screen.getByRole("button", { name: "Hide progress" }));
+      await userEvent.click(screen.getByRole("button", { name: "Hide the session's column" }));
       await expect
-        .poll(() => screen.queryByRole("separator", { name: "Resize progress" }), LIVE)
+        .poll(() => screen.queryByRole("separator", { name: "Resize the session's column" }), LIVE)
         .toBeNull();
-      await screen.findByRole("button", { name: "Show progress" });
+      await screen.findByRole("button", { name: "Show the session's column" });
       await drawn();
       await checkSession();
     },
@@ -471,14 +474,14 @@ describe("the session on the desktop", () => {
 describe("the session on the phone", () => {
   atSize("phone");
 
-  // SC-004 on the phone: the progress line opened above the transcript.
+  // SC-004 on the phone: the session's column opened as a sheet over the transcript.
   test.each(MODES)(
-    "a feature's session at its implementation, its progress line open, in $mode",
+    "a feature's session at its implementation, its column's sheet open, in $mode",
     async ({ mode }) => {
       await implementation(mode);
-      await userEvent.click(screen.getByRole("button", { name: LINE }));
-      const open = await screen.findByRole("region", { name: "Progress" }, LIVE);
-      await within(open).findByText("3 files · +3 −0", undefined, LIVE);
+      await userEvent.click(screen.getByRole("button", { name: "Activity" }));
+      const open = await screen.findByRole("dialog", { name: "Activity" }, LIVE);
+      await within(open).findByText("On the branch · 3 files · +3 -0", undefined, LIVE);
       await grown();
       await checkSession();
     },

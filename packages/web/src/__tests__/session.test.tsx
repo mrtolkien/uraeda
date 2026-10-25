@@ -436,7 +436,7 @@ test("US4.6: a new current task is announced", async () => {
   const repo = fixtureRepo();
   addPlan(repo, CLI, ELEVEN);
   await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
-  await screen.findByRole("complementary", { name: "Progress" });
+  await screen.findByRole("complementary", { name: "The session's column" });
   // The task the page opens at is not news.
   expect(status().textContent).toBe("");
 

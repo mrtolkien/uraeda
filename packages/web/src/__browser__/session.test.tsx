@@ -1,8 +1,7 @@
 // US1 and its edge case "Back from a session view": a feature's session opens as a page of its own
 // at both sizes, its transcript follows its end while the human is at the end, and Back returns to
-// the same position. US3 and its edge case "Width changing across 768 px": the phone's progress
-// line keeps its open state and position across Back, and the column turns into it and back as the
-// width changes. US4.1–US4.4: scrolled up, "Jump to the latest" brings back the end, and the page
+// the same position. US3's edge case "Width changing across 768 px": the session's column turns
+// into the phone's status line and back as the width changes. US4.1–US4.4: scrolled up, "Jump to the latest" brings back the end, and the page
 // follows it again. The session view passes the layout checks at both sizes, in light and dark
 // (SC-004).
 // A chat whose last message has images opens at its end too, once they load. Round 03 Q2: a banner
@@ -418,8 +417,8 @@ function readLine(log: HTMLElement) {
     .find((element) => element.getBoundingClientRect().bottom >= third)!;
 }
 
-/** The phone's progress line of `CLI` at Task 7 of 11. */
-const LINE = "Implementation · 7/11 · Session column";
+/** The session's column. */
+const COLUMN = "The session's column";
 
 /** Scrolls the window so that an element's top is `offset` px above the line a third down it. */
 async function putAboveTheThird(element: Element, offset: number) {
@@ -472,42 +471,6 @@ describe("on the phone", () => {
     await drawn();
     expect(inView(reply)).toBe(true);
     expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
-  });
-
-  test("US3.3: the open progress line survives a file link and Back", async () => {
-    await agent.addPlan(CLI);
-    await show(`/f/${CLI}/session`, "CLI TUIs");
-    await startTurn("Plan the CLI.", lines(40, "Line"));
-    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-    await within(log).findByText("Line 40.", undefined, LIVE);
-    await drawn();
-
-    const line = screen.getByRole("button", { name: LINE });
-    await userEvent.click(line);
-    expect(line.getAttribute("aria-expanded")).toBe("true");
-    const plan = await screen.findByRole("link", { name: "plan.md" }, LIVE);
-    // The sections above the link draw once their files are read, the plan's 11 tasks moving it
-    // down: the position is read once they are drawn, or the click scrolls to the link first.
-    const open = screen.getByRole("region", { name: "Progress" });
-    await within(open).findByRole("list", { name: "Tasks" }, LIVE);
-    await within(open).findByText("Nothing outside the feature's folder yet.", undefined, LIVE);
-    await drawn();
-    // Scrolled to the plan's link, in the column's open content.
-    const box = scroller();
-    box.scrollTo(
-      0,
-      Math.round(box.scrollTop + plan.getBoundingClientRect().top - box.clientHeight / 2),
-    );
-    await drawn();
-    const position = Math.round(box.scrollTop);
-    expect(position).toBeGreaterThan(0);
-
-    await followAndComeBack(plan, `/f/${CLI}/plan.md`);
-
-    const back = await screen.findByRole("button", { name: LINE }, LIVE);
-    expect(back.getAttribute("aria-expanded")).toBe("true");
-    expect(await screen.findByRole("link", { name: "plan.md" }, LIVE)).toBeTruthy();
-    await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
   });
 });
 
@@ -723,7 +686,7 @@ describe("on the desktop", () => {
 
       await page.viewport(402, 874);
       await expect.poll(() => window.innerWidth).toBe(402);
-      await screen.findByRole("button", { name: "Plan" }, LIVE);
+      await screen.findByRole("button", { name: "Activity" }, LIVE);
       await drawn();
 
       expect(Math.abs(paragraph.getBoundingClientRect().top - top)).toBeLessThan(2);
@@ -736,14 +699,14 @@ describe("on the desktop", () => {
 describe("on the desktop, the column across 768 px", () => {
   atSize("desktop");
 
-  test("the column turns into the collapsed progress line across 768 px, at the same position", async () => {
+  test("the column turns into the status line's parts across 768 px, at the same position", async () => {
     try {
       await agent.addPlan(CLI);
       await show(`/f/${CLI}/session`, "CLI TUIs");
       await startTurn("Plan the CLI.", lines(60, "Line"));
       const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
       await within(log).findByText("Line 60.", undefined, LIVE);
-      await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+      await screen.findByRole("complementary", { name: COLUMN }, LIVE);
       await drawn();
       const box = scroller();
       box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
@@ -755,9 +718,9 @@ describe("on the desktop, the column across 768 px", () => {
 
       await page.viewport(402, 874);
       await expect.poll(() => window.innerWidth).toBe(402);
-      const line = await screen.findByRole("button", { name: LINE }, LIVE);
-      expect(line.getAttribute("aria-expanded")).toBe("false");
-      expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+      await screen.findByRole("button", { name: "Activity" }, LIVE);
+      expect(screen.queryByRole("dialog", { name: "Activity" })).toBeNull();
+      expect(screen.queryByRole("complementary", { name: COLUMN })).toBeNull();
       await drawn();
       // The same page, not a new one: its transcript stays, the line read where it was.
       expect(log.isConnected).toBe(true);
@@ -770,8 +733,8 @@ describe("on the desktop, the column across 768 px", () => {
 
       await page.viewport(1440, 900);
       await expect.poll(() => window.innerWidth).toBe(1440);
-      await screen.findByRole("complementary", { name: "Progress" }, LIVE);
-      expect(screen.queryByRole("button", { name: LINE })).toBeNull();
+      await screen.findByRole("complementary", { name: COLUMN }, LIVE);
+      expect(screen.queryByRole("button", { name: "Activity" })).toBeNull();
       await drawn();
       expect(log.isConnected).toBe(true);
       expect(Math.abs(readNarrow.getBoundingClientRect().top - topNarrow)).toBeLessThan(2);

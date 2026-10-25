@@ -85,10 +85,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R8: The column's tasks, links, round, and phone line go
 
 - **Decision**: the progress bar shows only while the plan's implementation has a current task. The
-  column's list of tasks, the feature's links, a change's round and pull request rows, and the
-  phone's progress line are removed, and their tests with them: they are replaced by the spec's
-  column of activity, changes, and progress, and the phone's status line. A change has no plan, so
-  no bar.
+  column's list of tasks, the feature's links (its Storybook row and a change's list of files among
+  them), a change's round and pull request rows, the column's running sub-agents, and the phone's
+  progress line are removed, and their tests with them: they are replaced by the spec's column of
+  activity, changes, and progress, and the phone's status line, and the running sub-agents by task
+  9's tab. A change has no plan, so no bar.
 - **Rationale**: the spec's architecture: the changes "replace 'Changed on the branch' of the
   current column", the progress bar "replaces the step and tasks of the current column". The
   feature's files and its round stay one click away, in the crumbs and the navigation.
@@ -232,3 +233,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   named by its text, which a screen reader would hear change each second.
 - **If wrong**: `endsOpen` in `tailPieces.tsx`, and the live link's name in `session/RecapLine.tsx`.
 - **Where**: task 6, `packages/web/src/session/RecapLine.tsx` and `packages/web/src/tailPieces.tsx`.
+
+## R20: The session column's fold is the documents' fold, kept for the page alone without storage
+
+- **Decision**: the session's column folds and unfolds as the documents' column does, under
+  `uraeda.documentColumn`: its buttons read "Hide the session's column" and "Show the session's
+  column", and where the browser refuses storage, the fold lasts for the page only. The old column's
+  test that a refused storage kept the fold on the next session's page goes with its own key,
+  `uraeda.sessionAside`; the fold kept after a reload, with storage, is kept.
+- **Rationale**: ruling R9 shares the fold and the dragged width with the documents' column, whose
+  width hook keeps a refused fold for the page alone (ruling R15).
+- **Alternatives considered**: a module-wide memory of the fold for refused storage, in the shared
+  width hook, for every column, which no spec asks for.
+- **If wrong**: the refused fold kept in memory by `useFollowedWidth`.
+- **Where**: task 7, `packages/web/src/session/SessionColumn.tsx`.
+
+## R21: At 1440 px, the chat keeps more room than the column, not 760 px
+
+- **Decision**: the layout checks' assertion that a feature's session at 1440 px, beside the
+  sidebar's 240 px and its column, keeps a transcript at least 760 px wide becomes a transcript
+  wider than the column. The session column takes the documents' third at wide (ruling R9), 480 px
+  at 1440 px, which leaves the transcript 704 px.
+- **Rationale**: the old 760 px followed the old column's 320 px; the approved architecture gives
+  the session column the documents' width at wide, and approval comment C2 asks that the chat
+  clearly weigh more than the column, which the new assertion states.
+- **Alternatives considered**: a narrower column at wide too, against ruling R9 and the UI layout
+  decision's column of at least 400 px beside a document.
+- **If wrong**: the wide share of `useSessionColumnWidth`, and the assertion back at 760 px.
+- **Where**: task 7, `packages/web/src/__browser__/layout.test.tsx`.

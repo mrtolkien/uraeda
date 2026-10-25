@@ -4,7 +4,6 @@ import { useSession } from "./sessionData.ts";
 import { type Draft, featureDraftKey, useDraft } from "./useDraft.ts";
 import type { SessionItem } from "./SessionActions.tsx";
 import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
-import { useAsideShown } from "./SessionAside.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
 import {
@@ -31,7 +30,6 @@ import { type Handing, Missing, NO_BRANCH, SessionPane } from "./SessionView.tsx
 function FeatureSession({ folder, id: given }: { folder: string; id?: string }) {
   const feature = useFeature(folder);
   const here = useRepoPath();
-  const aside = useAsideShown();
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
   // The feature's latest session's draft, which the round's column holds too: moving between them
@@ -100,7 +98,6 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
         </Suspense>
       )}
       <SessionPane
-        aside={aside}
         crumbs={folder}
         draft={draft}
         folder={folder}

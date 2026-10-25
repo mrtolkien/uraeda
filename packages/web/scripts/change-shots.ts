@@ -152,18 +152,18 @@ const code = (count: number) =>
   Array.from({ length: count }, (_, index) => `// line ${index + 1}`).join("\n");
 
 /**
- * A change's session, its column's first section shown on the desktop, and its progress line on
- * the phone, at the top of the page unless the transcript's latest is wanted.
+ * A change's session, its column's Changes shown on the desktop, and its status line's parts on the
+ * phone, at the top of the page unless the transcript's latest is wanted.
  */
-async function changePage(page: Page, folder: string, title: string, section: string, top = true) {
+async function changePage(page: Page, folder: string, title: string, top = true) {
   await show(page, `/f/${folder}/session`, title);
   if (page.viewportSize()!.width >= 768) {
     await page
-      .getByRole("complementary", { name: "Progress" })
-      .getByRole("heading", { exact: true, name: section })
+      .getByRole("complementary", { name: "The session's column" })
+      .getByRole("region", { name: "Changes" })
       .waitFor();
   } else {
-    await page.getByRole("button", { name: new RegExp(`^${section}`) }).waitFor();
+    await page.getByRole("button", { name: "Activity" }).waitFor();
     if (top) {
       await page.evaluate(() => window.scrollTo(0, 0));
     }
@@ -264,7 +264,7 @@ async function phoneShots(each: Each, centred: string, logo: string) {
   await each(
     "change-sidebar",
     async ({ page }) => {
-      await changePage(page, centred, CENTRED_TITLE, "Change", false);
+      await changePage(page, centred, CENTRED_TITLE, false);
       await openSessionsTab(page);
       await page.getByRole("link", { name: /^centred-x, / }).waitFor();
       await settle(page);
@@ -274,7 +274,7 @@ async function phoneShots(each: Each, centred: string, logo: string) {
   await each(
     "change-round-open",
     async ({ page }) => {
-      await changePage(page, logo, LOGO_TITLE, "Answer questions");
+      await changePage(page, logo, LOGO_TITLE);
       await page.getByRole("button", { name: "Answer questions · 1 question" }).click();
       await page.getByRole("link", { name: "Questions, round 01" }).waitFor();
       await settle(page);
@@ -297,14 +297,10 @@ async function newChange(page: Page) {
 export async function takeChanges(each: Each, first: Page, adapter: FakeAdapter, repo: string) {
   const logo = await waitingOnRound(adapter, first, repo);
   const centred = await atWork(adapter, first, repo);
-  await each("change-working", ({ page }) =>
-    changePage(page, centred, CENTRED_TITLE, "Change", false),
-  );
-  await each("change-round", ({ page }) => changePage(page, logo, LOGO_TITLE, "Answer questions"));
+  await each("change-working", ({ page }) => changePage(page, centred, CENTRED_TITLE, false));
+  await each("change-round", ({ page }) => changePage(page, logo, LOGO_TITLE));
   await phoneShots(each, centred, logo);
   await finished(adapter, repo, centred);
-  await each("change-pull-request", ({ page }) =>
-    changePage(page, centred, CENTRED_TITLE, "Pull request state unknown"),
-  );
+  await each("change-pull-request", ({ page }) => changePage(page, centred, CENTRED_TITLE));
   await each("new-change", ({ page }) => newChange(page));
 }

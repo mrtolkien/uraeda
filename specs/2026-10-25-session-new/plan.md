@@ -1001,7 +1001,7 @@ git commit -m "feat(session-new): recap lines in the chat, for every stretch of 
   - `addRun(fake: Fake, session: string, items: ReadonlyArray<Item>, state?: "done" | "failed" | "running"): number`
     in `helpers.tsx`: a turn of the session with those items, ended unless running, its id.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/session-column.test.tsx
@@ -1048,12 +1048,12 @@ The break each test catches:
 - 40%: the changes pushing the activity out of view.
 - Phone: a sheet outside the address, so Back leaves the page.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/session-column.test.tsx`
 - Expected: FAIL, `Unable to find role="complementary" and name "The session's column"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `SessionColumn` draws `DocumentColumn` with `useSessionColumnWidth()`; `Framed` uses it for every
   page session, with or without a folder (Q4), and the boxed pane has no column.
@@ -1067,13 +1067,15 @@ The break each test catches:
 - `ActivityPanel`: "No call yet." for now.
 - The column's rail shows its panels' icons.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
-- Run: `nix develop -c vp run fast`, then
-  `nix develop -c vp test run --config packages/web/vite.browser.config.ts packages/web/src/__browser__/session-column.test.tsx packages/web/src/__browser__/session.test.tsx packages/web/src/__browser__/status-line.test.tsx packages/web/src/__browser__/document-column.test.tsx`
+- Run: `nix develop -c vp run fast`, then, with `--project desktop` and with `--project phone`,
+  `nix develop -c vp test run --project desktop packages/web/src/__browser__/session-column.test.tsx packages/web/src/__browser__/session.test.tsx packages/web/src/__browser__/status-line.test.tsx packages/web/src/__browser__/document-column.test.tsx`,
+  and the browser tests that read the old column: `layout.test.tsx`, `change.test.tsx`,
+  `storybook-page.test.tsx`.
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-25-session-new/plan.md specs/2026-10-25-session-new/rulings.md
