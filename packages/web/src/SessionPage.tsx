@@ -119,7 +119,8 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
 
 /**
  * A session by its ID, with its announcer: a change's or a feature's draws as its session page,
- * its crumbs and column, and a session without a workflow alone.
+ * with its crumbs, and a session without a workflow as its own page; each with the session's
+ * column.
  */
 function IdSession({ draft, id }: { draft: Draft; id: string }) {
   const created = useCreatedHere();

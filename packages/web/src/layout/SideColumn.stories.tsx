@@ -1,4 +1,6 @@
-// Mockups of the session's right column, "Progress": resized from its edge, folded to a rail from its top.
+// Mockups of a page's right column, as the session's: resized from its edge, folded to a rail from
+// its top, its width kept by its caller.
+import { useResizable } from "@astryxdesign/core/Resizable";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -7,14 +9,15 @@ import { SideColumn } from "./SideColumn.tsx";
 
 function Column({ isRevealed, shown }: { isRevealed?: boolean; shown: boolean }) {
   const [isShown, setShown] = useState(shown);
+  const width = useResizable({ defaultSize: 360, maxSize: 720, minSize: 300 });
   return (
     <SideColumn
       content={<Text>{"The session's transcript."}</Text>}
       isShown={isShown}
-      label="Progress"
+      label="The session's column"
       onShownChange={setShown}
       rail={<Text type="supporting">7/11</Text>}
-      storageKey="uraeda.story.column"
+      width={width}
       {...(isRevealed === undefined ? {} : { isRevealed })}
     >
       <VStack gap={2}>
