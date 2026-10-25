@@ -14,9 +14,11 @@ use super::default_round::DefaultRound;
 use super::place::Place;
 use super::{ActionError, Change, Committed, STALE, changes, commit, draft};
 
+mod categories;
 mod image;
 mod undo;
 
+pub use categories::{add_category, remove_category, rename_category, restore_category};
 pub use image::{NoteImage, add_with_image, attach_to_note, with_images};
 pub use undo::{
     undo_add, undo_as_draft, undo_category, undo_committed, undo_to_draft, undo_to_priorities,

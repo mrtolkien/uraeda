@@ -5,6 +5,7 @@ use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 
 use super::lines::{self, Item, item_marker};
 
+pub mod categories;
 mod diff;
 mod found;
 mod read;
@@ -55,7 +56,7 @@ type Heading = Option<(usize, String)>;
 
 /// The name of a `##` heading, or `None` for any other line. As in CommonMark, a closing run of
 /// `#` after a space is not part of it: `## UI ##` is `UI`, and `## ##` is empty.
-fn category_of(line: &str) -> Option<String> {
+pub(crate) fn category_of(line: &str) -> Option<String> {
     let rest = line.strip_prefix("##")?;
     if !(rest.is_empty() || rest.starts_with([' ', '\t'])) {
         return None;

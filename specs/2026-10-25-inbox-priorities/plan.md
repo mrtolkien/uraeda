@@ -490,7 +490,7 @@ give back byte for byte.
   named {name}.", and "{name} cannot be written as a heading." when `category_of("## {name}")` does
   not give the name back.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/categories.rs
@@ -528,12 +528,12 @@ fn a_name_is_refused_when_empty_taken_missing_or_not_a_heading() {
 The break each test catches: a delete that drops the notes it should keep, a restore that normalizes
 line endings, a stale restore that overwrites a later edit, and a name written as another one.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test categories`
 - Expected: FAIL, `unresolved import uraeda_core::files::inbox::categories`.
 
-- [ ] **Step 3: Implement the text edits, the checked edits, and the API**
+- [x] **Step 3: Implement the text edits, the checked edits, and the API**
 
 A delete acts on every heading of the name (ruling R5): with `keep_notes`, the body (every line
 until the next `##` heading, trailing blank lines trimmed) goes to the end of the lines before the
@@ -542,12 +542,12 @@ first heading, joined directly, and the heading goes; without it, the heading an
 Edits preserve the file's line endings. Settle the ordering of the kept notes as R6: after the notes
 already without a category.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates specs/2026-10-25-inbox-priorities
