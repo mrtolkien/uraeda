@@ -376,6 +376,58 @@ test("a column's read that fails leaves the session and the rest of the column",
   expect(bar.getAttribute("href")).toBe(atRepo(`/f/${CLI}/plan.md`));
 });
 
+test("a column's read refused with nothing to stand for it leaves the rest of the column", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const fake = await fakeAgent();
+  const session = await fake.sessions.featureSession(repo, CLI);
+  // The first turn's page, its message, 99 edits, and its answer, is the Activity's alone: the
+  // chat's tail, the 20 messages of the second turn, stops before it.
+  const turn = addRun(fake, session.id, [
+    { id: "m", kind: "message", origin: "human", state: "read", text: "Edit them all" },
+    ...Array.from({ length: 99 }, (_, index) => edit(`r${index}`, `src/r${index}.ts`)),
+    { kind: "text", streaming: false, text: "Edited." },
+  ]);
+  addRun(
+    fake,
+    session.id,
+    Array.from({ length: 10 }, (_, index): Array<Item> => [
+      {
+        id: `q${index}`,
+        kind: "message",
+        origin: "human",
+        state: "read",
+        text: `Question ${index}`,
+      },
+      { kind: "text", streaming: false, text: `Answer ${index}` },
+    ]).flat(),
+  );
+  // The server fails to read that page alone.
+  const { cache } = fake.sessions;
+  const items = cache.items.bind(cache);
+  let refused = false;
+  vi.spyOn(cache, "items").mockImplementation((at, offset, limit) => {
+    if (at === turn && offset === 0) {
+      refused = true;
+      throw new Error("The disk went away.");
+    }
+    return items(at, offset, limit);
+  });
+  vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+  await waitFor(() => expect(refused).toBe(true));
+
+  // The Activity is left out; the chat, the Changes, and the progress go on.
+  expect(await screen.findByText("Answer 9")).toBeTruthy();
+  await findColumn();
+  expect(await changes().findByText("This session · 99 files")).toBeTruthy();
+  expect(
+    await column().findByRole("link", { name: /^Implementation · task 7 of 11/ }),
+  ).toBeTruthy();
+  const activity = within(column().getByRole("region", { name: "Activity" }));
+  expect(activity.queryByText("src/r98.ts")).toBeNull();
+});
+
 test("a merged feature, without a branch: no branch part", async () => {
   // Committed on the default branch: merged, with no branch left.
   await renderPage("/f/2026-10-10-cli-core/session", fixtureRepo(), { agent: await fakeAgent() });

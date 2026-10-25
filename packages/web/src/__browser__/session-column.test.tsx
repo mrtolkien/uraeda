@@ -76,6 +76,12 @@ function reads(from: number, to: number) {
   }).flat();
 }
 
+/** Where a control is drawn, to the pixel. */
+function placeOf(element: Element) {
+  const { x, y } = element.getBoundingClientRect();
+  return [Math.round(x), Math.round(y)];
+}
+
 /** Whether `element` shows whole inside the box `box` scrolls. */
 function inView(element: Element, box: Element) {
   const row = element.getBoundingClientRect();
@@ -355,6 +361,21 @@ describe("on a desktop, its edge and its fold", () => {
     await reload("CLI TUIs");
     await screen.findByRole("complementary", { name: NAME }, LIVE);
     await expect.poll(() => width()).toBe(dragged);
+  });
+
+  test("one button folds and unfolds the column at the same spot, in view while folded", async () => {
+    await session();
+    await userEvent.hover(column());
+    const hide = screen.getByRole("button", { name: "Hide the session's column" });
+    await expect.poll(() => getComputedStyle(hide).opacity).toBe("1");
+    const before = placeOf(hide);
+
+    await userEvent.click(hide);
+
+    await expect.poll(() => width()).toBe(RAIL);
+    const shows = screen.getByRole("button", { name: "Show the session's column" });
+    expect(placeOf(shows)).toEqual(before);
+    expect(getComputedStyle(shows).opacity).toBe("1");
   });
 
   test("folded, a click in its rail's space unfolds it", async () => {

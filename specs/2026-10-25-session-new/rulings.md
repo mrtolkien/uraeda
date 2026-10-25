@@ -396,3 +396,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   their icons, which leaves the words out.
 - **If wrong**: `isCompact` of `ColumnTabs` in `layout/DocumentColumn.tsx`.
 - **Where**: the final review, `packages/web/src/layout/DocumentColumn.tsx`.
+
+## R30: A plan that cannot be read keeps the progress, linking to the plan's top
+
+- **Decision**: when the read of `plan.md`, which only gives the current task's heading, fails, the
+  progress bar and the phone's chip still show, linking to the plan's top. The test "a column's read
+  that fails leaves the session and the rest of the column" now expects the bar, at the plan's top,
+  where it expected no bar. A refused read with nothing to stand for it, the Activity's page, is
+  tested apart: its part is left out, and the rest of the column goes on.
+- **Rationale**: the task's position and title come from the feature's record, not the plan: a
+  failed read of the plan lost only the anchor, yet hid the whole progress.
+- **Alternatives considered**: hiding the progress, as before, which hid what the record still knew.
+- **If wrong**: `AtTask` in `session/PlanProgress.tsx`, its `Section`'s `failed`.
+- **Where**: the final review, `packages/web/src/__tests__/session-column.test.tsx`.
