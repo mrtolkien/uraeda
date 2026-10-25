@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Session and New in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 5 questions, about 15 minutes.
+> Answered on 2026-10-25. 5 questions, about 15 minutes.
 >
 > - Verdict: worth building, with changes. The split of chat and activity is cheap, but Claude Code
 >   gives no thinking text today, and the server keeps no content of an edit.

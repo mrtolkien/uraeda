@@ -796,3 +796,129 @@ h1 {
   cursor: pointer;
   padding: 0 6px;
 }
+
+/* The widths of the UI layout decision: narrow under 768 px, semi-wide to 1280 px, then wide. */
+.rail,
+.topbar,
+.narrow-only {
+  display: none;
+}
+.btn.square {
+  padding: 0;
+  width: 38.4px;
+  height: 38.4px;
+  justify-content: center;
+}
+.rail-logo .logo {
+  width: 28.8px;
+  height: 28.8px;
+}
+.rail-i {
+  display: grid;
+  place-items: center;
+  width: 38.4px;
+  height: 38.4px;
+}
+.rail-i.current {
+  background: var(--neutral);
+}
+.rail-rule {
+  width: 28px;
+  border-top: 1px solid var(--overlay);
+}
+@media (max-width: 1279px) {
+  .nav {
+    display: none;
+  }
+  .rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9.6px;
+    padding: 9.6px 0;
+    background: var(--base);
+    border-right: 1px solid var(--overlay);
+  }
+  .app,
+  .app.with-column {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+  .app.with-column {
+    grid-template-columns: 58px minmax(0, 1fr) 400px;
+  }
+  .page-inner {
+    padding: 28.8px 24px;
+  }
+  .proto {
+    left: 70px;
+  }
+}
+@media (max-width: 767px) {
+  body {
+    overflow: hidden;
+  }
+  .rail,
+  .column,
+  .wide-only {
+    display: none;
+  }
+  .narrow-only {
+    display: flex;
+    gap: 9.6px;
+    width: 100%;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 9.6px 0 19px;
+    border-bottom: 1px solid var(--overlay);
+    background: var(--base);
+  }
+  .badged {
+    position: relative;
+  }
+  .badged b {
+    position: absolute;
+    top: -12px;
+    left: 8px;
+    background: var(--mauve);
+    color: var(--on);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 0 4px;
+  }
+  .app,
+  .app.with-column {
+    display: block;
+    height: calc(100vh - 56px - 38.4px);
+  }
+  .page {
+    height: 100%;
+  }
+  .page-inner {
+    padding: 14.4px;
+  }
+  .mine {
+    max-width: 92%;
+  }
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9.6px;
+  }
+  .status-line {
+    justify-content: flex-start;
+  }
+  .proto {
+    display: none;
+  }
+}
+.wide-only {
+  display: flex;
+  gap: 19.2px;
+  align-items: center;
+}
+.subline {
+  flex-wrap: wrap;
+}

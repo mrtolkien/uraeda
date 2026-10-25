@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Embedded session: the session's chat in the spec page's column</title>
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="session.css" />
+    <script src="shell.js"></script>
+  </head>
+  <body>
+    <div class="app with-column">
+      <nav class="nav" data-current="recurring"></nav>
+
+      <main class="page">
+        <div class="page-inner">
+          <div class="crumbs">
+            Home <i data-i="chevron-right"></i> Recurring tasks <i data-i="chevron-right"></i>
+            <b>spec.md</b>
+          </div>
+          <h1>Spec: Recurring tasks</h1>
+          <section class="pane accent" style="margin-top: 28.8px">
+            <h2><i data-i="circle-alert"></i> Spec to review, about 15 minutes.</h2>
+            <div class="body">
+              <p style="margin: 0 0 9.6px; font-weight: 600; font-size: 20.4px">
+                You approve tasks that repeat from a menu, a custom screen, or a phrase in their
+                title.
+              </p>
+              <p class="sub" style="margin: 0">
+                Task storage changes: an upgrade that cannot read a saved value clears it and logs
+                it.
+              </p>
+            </div>
+          </section>
+          <section class="pane" style="margin-top: 28.8px">
+            <h2>Decisions · 4</h2>
+            <div class="body agent">
+              <p>
+                <b>New: Repeating tasks.</b> A task repeats by a rule, and completing it moves it to
+                its next due date.
+              </p>
+              <p class="quoted">
+                <b>Changed: Task storage.</b> Data MUST be stored in IndexedDB, and an upgrade keeps
+                every earlier version.
+              </p>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <aside class="column embedded">
+        <div class="tabs">
+          <span><i data-i="list"></i> Contents</span>
+          <span><i data-i="message-square"></i> Review</span>
+          <span class="on"><i data-i="bot"></i> Session</span>
+        </div>
+        <div class="embedded-head">
+          <span class="working"><span class="live small"></span><b>Working</b></span>
+          <span class="sub sm">Claude Code</span>
+          <a class="open mauve sm">Open the session's page <i data-i="arrow-right"></i></a>
+        </div>
+        <div class="transcript">
+          <div class="mine">
+            <div class="bubble">
+              <span class="sub sm">specs/decisions/task-storage.md, line 14</span><br />
+              &gt; Data MUST be stored in IndexedDB<br />Why not keep localStorage for small lists?
+            </div>
+            <time>04:02 PM</time>
+          </div>
+          <a class="recap">
+            <i data-i="wrench"></i>
+            <span><b>40 s</b> · read 2 files · thought once</span>
+            <span class="open"><i data-i="arrow-right"></i></span>
+          </a>
+          <div class="agent">
+            <p>
+              localStorage holds about 5 MB per origin and blocks the page on every write. A user
+              with a few thousand tasks and their history passes that limit, and the upgrade in this
+              spec writes every task at once.
+            </p>
+          </div>
+        </div>
+        <div class="composer-wrap">
+          <div class="composer">
+            <div class="input" style="min-height: 44px">Message Claude Code</div>
+            <div class="bar">
+              <span class="round"><i data-i="paperclip"></i></span>
+              <span class="round send"><i data-i="arrow-up"></i></span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div class="proto">
+      Embedded session · the session's compact chat in a document's column, recap lines open the
+      session's page
+    </div>
+  </body>
+</html>

@@ -1,0 +1,168 @@
+/* The session page's column, split in two: the calls above, the changes below, progress last. */
+.session-column {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+.session-column .tabs {
+  justify-content: flex-start;
+  padding-left: 19.2px;
+}
+.calls {
+  flex: 1 1 60%;
+  min-height: 0;
+  overflow: auto;
+}
+.changes {
+  flex: 0 1 auto;
+  max-height: 40%;
+  overflow: auto;
+  border-top: 1px solid var(--overlay);
+  margin: 0 -19.2px;
+  padding: 0 19.2px 9.6px;
+}
+.changes h4 {
+  margin: 9.6px 0 0;
+}
+.progress {
+  display: block;
+  border-top: 1px solid var(--overlay);
+  margin: 0 -19.2px;
+  padding: 7.2px 19.2px 9.6px;
+  font-size: 14.4px;
+}
+.progress .bar-progress {
+  display: block;
+  height: 6px;
+  margin: 4.8px 0 0;
+}
+.progress .grow {
+  flex: 1;
+}
+.live.small {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex: none;
+}
+.agent-row {
+  align-items: flex-start !important;
+}
+.agent-row .meta {
+  display: block;
+  font-size: 14.4px;
+  color: var(--sub);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4.8px;
+  padding: 2px 9.6px;
+  background: var(--neutral);
+  color: var(--text);
+}
+.sheet-close {
+  display: none;
+}
+
+/* The states the anchor names. */
+.plain-only,
+.subagents-only,
+.subagents-panel {
+  display: none !important;
+}
+.state-plain .plain-only {
+  display: revert !important;
+}
+.state-plain .feature-only {
+  display: none !important;
+}
+.state-subagents .subagents-only {
+  display: revert !important;
+}
+.tab-activity {
+  color: var(--text) !important;
+  font-weight: 600;
+  border-color: var(--mauve) !important;
+}
+.state-subagents .tab-activity {
+  color: var(--sub) !important;
+  font-weight: 400;
+  border-color: transparent !important;
+}
+.state-subagents .tab-subagents {
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--mauve);
+}
+.state-subagents .activity-panel {
+  display: none;
+}
+.state-subagents .subagents-panel {
+  display: block !important;
+}
+
+/* On the phone, the column opens as a sheet from the status line. */
+@media (max-width: 767px) {
+  .state-sheet .session-column {
+    display: flex;
+    position: fixed;
+    inset: 30vh 0 38.4px 0;
+    z-index: 4;
+    background: var(--base);
+    border-top: 1px solid var(--overlay);
+    border-left: 0;
+    box-shadow: 0 -8px 24px #4c4f6933;
+  }
+  .state-sheet .sheet-close {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    right: 9.6px;
+    top: 6px;
+    width: 38.4px;
+    height: 38.4px;
+    border: 0;
+    background: none;
+    color: var(--text);
+    z-index: 1;
+  }
+}
+@media (max-width: 767px) {
+  .progress .sm {
+    display: none;
+  }
+}
+
+/* The embedded session: the chat alone, compact, in a document's column. */
+.embedded {
+  display: flex;
+  flex-direction: column;
+}
+.embedded .transcript {
+  gap: 9.6px;
+  flex: 1;
+  overflow: auto;
+}
+.embedded .agent {
+  font-size: 16px;
+}
+.embedded .mine .bubble {
+  padding: 9.6px 14.4px;
+}
+.embedded-head {
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+  padding: 2.4px 0 9.6px;
+}
+.embedded-head .open {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4.8px;
+  align-items: center;
+}
+.quoted {
+  background: color-mix(in srgb, var(--yellow) 14%, var(--base));
+}

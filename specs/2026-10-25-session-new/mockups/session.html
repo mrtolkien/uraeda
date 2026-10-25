@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Session: the chat, and the column split in activity and changes</title>
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="session.css" />
+    <script src="shell.js"></script>
+    <script>
+      // The page's states, from the address's anchor: #subagents, #plain, #sheet.
+      const STATE = location.hash.slice(1);
+      document.documentElement.classList.add(`state-${STATE || "feature"}`);
+    </script>
+  </head>
+  <body>
+    <div class="app with-column">
+      <nav class="nav" data-current="recurring"></nav>
+
+      <main class="page">
+        <div class="page-inner session">
+          <div class="crumbs feature-only">
+            Home <i data-i="chevron-right"></i> Recurring tasks <i data-i="chevron-right"></i>
+            <b>Session</b>
+          </div>
+          <h1 class="feature-only">Recurring tasks</h1>
+          <h1 class="plain-only">Why does completing a repeating task not create the next one?</h1>
+          <div class="subline">
+            <span class="working"><span class="live"></span><b>Working</b></span>
+            <i data-i="bot"></i> Claude Code ·
+            <span class="feature-only">branch 2026-10-06-recurring-tasks</span>
+            <span class="plain-only">main checkout, branch main</span>
+          </div>
+
+          <div class="transcript" style="margin-top: 19.2px">
+            <div class="run-divider feature-only">Run: Implementation</div>
+            <div class="mine">
+              <div class="bubble">
+                Why does completing a repeating task not create the next one? Check the code and the
+                library's docs before you change anything.
+              </div>
+              <time>03:41 PM</time>
+            </div>
+
+            <a class="recap">
+              <i data-i="wrench"></i>
+              <span
+                ><b>2 min</b> · read 3 files · searched once · fetched 1 page · thought twice</span
+              >
+              <span class="open">Activity <i data-i="chevron-right"></i></span>
+            </a>
+
+            <div class="agent">
+              <p>
+                The next occurrence is only created in <code>complete.ts</code> when the task has a
+                <code>repeat</code> rule. Your task stores the rule as
+                <code>repeat: "weekly"</code>, a string, and the check expects an object.
+              </p>
+              <p>
+                The library's docs confirm that <code>rrule</code> strings are valid input, so no
+                migration is needed. I'll fix the check to accept both and add a test.
+              </p>
+            </div>
+
+            <a class="recap">
+              <i data-i="wrench"></i>
+              <span><b>1 min</b> · edited 2 files · ran 1 command</span>
+              <span class="open">Activity <i data-i="chevron-right"></i></span>
+            </a>
+
+            <div class="agent">
+              <p>
+                Done: <code>complete.ts</code> reads both shapes, and a new test completes a weekly
+                task and checks the next one is due a week later. <code>pnpm test</code> passes.
+              </p>
+            </div>
+
+            <a class="recap live-recap">
+              <span class="live small"></span>
+              <span
+                ><b>12 s</b> · reading src/tasks/undo.ts<span class="subagents-only">
+                  · 2 sub-agents running</span
+                ></span
+              >
+              <span class="open">Activity <i data-i="chevron-right"></i></span>
+            </a>
+          </div>
+
+          <div class="composer-wrap">
+            <div class="composer">
+              <div class="input">Message Claude Code</div>
+              <div class="bar">
+                <span class="round"><i data-i="paperclip"></i></span>
+                <span class="round send"><i data-i="arrow-up"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="column session-column">
+        <button class="sheet-close" type="button" aria-label="Close">
+          <i data-i="x"></i>
+        </button>
+        <div class="tabs">
+          <span class="tab-activity"><i data-i="activity"></i> Activity</span>
+          <span class="tab-subagents subagents-only"
+            ><i data-i="users"></i> Sub-agents <span class="n">2</span></span
+          >
+        </div>
+
+        <div class="calls activity-panel">
+          <div class="group-title"><span>Run 1 · 2 min</span><span>03:41 PM</span></div>
+          <ul class="list">
+            <li class="sub">
+              <i data-i="brain"></i><span class="grow">Thought</span><span class="when">8 s</span>
+            </li>
+            <li>
+              <i data-i="file-text"></i><span class="grow">src/tasks/complete.ts</span
+              ><span class="when">read</span>
+            </li>
+            <li>
+              <i data-i="file-text"></i><span class="grow">src/tasks/repeat.ts</span
+              ><span class="when">read</span>
+            </li>
+            <li>
+              <i data-i="file-text"></i><span class="grow">src/tasks/repeat.test.ts</span
+              ><span class="when">read</span>
+            </li>
+            <li>
+              <i data-i="search"></i><span class="grow">"rrule next occurrence"</span
+              ><span class="when">search</span>
+            </li>
+            <li>
+              <i data-i="globe"></i><span class="grow">github.com/jkbrzt/rrule#usage</span
+              ><span class="when">fetch</span>
+            </li>
+            <li class="sub">
+              <i data-i="brain"></i><span class="grow">Thought</span><span class="when">5 s</span>
+            </li>
+          </ul>
+          <div class="group-title"><span>Run 2 · 1 min</span><span>03:44 PM</span></div>
+          <ul class="list">
+            <li>
+              <i data-i="file-pen-line"></i><span class="grow">src/tasks/complete.ts</span
+              ><span class="when">edit</span>
+            </li>
+            <li>
+              <i data-i="file-pen-line"></i><span class="grow">src/tasks/complete.test.ts</span
+              ><span class="when">edit</span>
+            </li>
+            <li>
+              <i data-i="square-terminal"></i><span class="grow">pnpm test</span
+              ><span class="when green">passed</span>
+            </li>
+          </ul>
+          <div class="group-title"><span>Run 3 · live</span><span>03:46 PM</span></div>
+          <ul class="list">
+            <li class="subagents-only">
+              <i data-i="bot"></i><span class="grow">Research rrule's undo of an occurrence</span
+              ><span class="when">sub-agent · 6 calls</span>
+            </li>
+            <li class="subagents-only">
+              <i data-i="bot"></i><span class="grow">Find every caller of complete()</span
+              ><span class="when">sub-agent · 3 calls</span>
+            </li>
+            <li class="on">
+              <i data-i="loader-circle"></i><span class="grow">src/tasks/undo.ts</span
+              ><span class="when">read</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="calls subagents-panel">
+          <ul class="list">
+            <li class="agent-row">
+              <i data-i="loader-circle"></i>
+              <span class="grow wrap"
+                ><b>Research rrule's undo of an occurrence</b
+                ><span class="meta"
+                  >6 calls · fetching github.com/jkbrzt/rrule/issues/412</span
+                ></span
+              ><span class="when">1 min</span>
+            </li>
+            <li class="agent-row">
+              <i data-i="loader-circle"></i>
+              <span class="grow wrap"
+                ><b>Find every caller of complete()</b
+                ><span class="meta">3 calls · searching "complete("</span></span
+              ><span class="when">20 s</span>
+            </li>
+          </ul>
+        </div>
+
+        <section class="changes">
+          <h4>Changes</h4>
+          <div class="group-title"><span>This session · 2 files</span></div>
+          <ul class="list">
+            <li>
+              <i data-i="file-pen-line"></i><span class="grow">src/tasks/complete.ts</span
+              ><span class="when">2 edits</span>
+            </li>
+            <li>
+              <i data-i="file-pen-line"></i><span class="grow">src/tasks/complete.test.ts</span
+              ><span class="when">1 edit</span>
+            </li>
+          </ul>
+          <div class="group-title feature-only">
+            <span>On the branch · 14 files</span
+            ><span><span class="green">+312</span> <span class="red">-41</span></span>
+          </div>
+          <ul class="list feature-only">
+            <li>
+              <span class="grow">src/tasks/repeat.ts</span
+              ><span class="when"><span class="green">+88</span> <span class="red">-12</span></span>
+            </li>
+            <li>
+              <span class="grow">src/tasks/RepeatMenu.tsx</span
+              ><span class="when"><span class="green">+74</span> <span class="red">-0</span></span>
+            </li>
+            <li class="sub"><span class="grow">12 more files</span></li>
+          </ul>
+        </section>
+
+        <a class="progress feature-only">
+          <span class="row"
+            ><span class="grow">Implementation · task 3 of 7</span
+            ><span class="sm sub">Complete a repeating task</span></span
+          >
+          <span class="bar-progress"><i style="width: 36%"></i></span>
+        </a>
+      </aside>
+    </div>
+
+    <template class="status-narrow">
+      <span class="chip"><i data-i="activity"></i> Activity</span>
+      <span class="chip"><i data-i="git-compare"></i> Changes 2</span>
+      <span class="chip feature-only"><i data-i="list-checks"></i> 3 / 7</span>
+    </template>
+
+    <div class="proto">
+      Session · states: <a href="#">feature</a> · <a href="#subagents">sub-agents running</a> ·
+      <a href="#plain">main checkout</a> · <a href="#sheet">phone, column open</a>
+    </div>
+    <script>
+      for (const a of document.querySelectorAll(".proto a"))
+        a.onclick = () => setTimeout(() => location.reload());
+    </script>
+  </body>
+</html>

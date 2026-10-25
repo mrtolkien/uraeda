@@ -66,6 +66,12 @@ const ICONS = {
     '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/>',
   "message-circle-question-mark":
     '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  users:
+    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
+  "git-commit-horizontal":
+    '<circle cx="12" cy="12" r="3"/><line x1="3" x2="9" y1="12" y2="12"/><line x1="15" x2="21" y1="12" y2="12"/>',
+  square: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
 };
 
 const icon = (name) =>
@@ -126,6 +132,25 @@ function nav(current) {
   </section>`;
 }
 
+function rail(current) {
+  const at = (name) => (current === name ? " current" : "");
+  return `
+  <span class="rail-logo">${logo}</span>
+  <span class="btn primary square">${icon("plus")}</span>
+  <span class="rail-i">${icon("search")}</span>
+  <span class="rail-rule"></span>
+  <span class="rail-i">${icon("house")}</span>
+  <span class="rail-i">${icon("inbox")}</span>
+  <span class="rail-i">${icon("list")}</span>
+  <span class="rail-i">${icon("ruler")}</span>
+  <span class="rail-rule"></span>
+  <span class="rail-i peach">${icon("message-circle-question-mark")}</span>
+  <span class="rail-i${at("chat")}">${icon("bot")}</span>
+  <span class="rail-i${at("recurring")}">${icon("list-checks")}</span>`;
+}
+
+const TOP = `<span>${icon("house")}</span><span class="badged">${icon("inbox")}<b>10</b></span><span>${icon("list")}</span><span class="badged">${icon("activity")}<b>1</b></span><span>${icon("ruler")}</span><span>${icon("settings")}</span><span class="btn primary square">${icon("plus")}</span>`;
+
 const STATUS = `<span class="peach">3 need you</span><span>${icon("activity")} 1 running</span>`;
 
 function scheme(next) {
@@ -138,8 +163,16 @@ document.addEventListener("DOMContentLoaded", () => {
       (matchMedia("(prefers-color-scheme: dark)").matches ? "mocha" : "latte"),
   );
   const navEl = document.querySelector("nav.nav");
-  if (navEl) navEl.innerHTML = nav(navEl.dataset.current);
-  document.body.insertAdjacentHTML("beforeend", `<footer class="status-line">${STATUS}</footer>`);
+  if (navEl) {
+    navEl.innerHTML = nav(navEl.dataset.current);
+    navEl.insertAdjacentHTML("afterend", `<nav class="rail">${rail(navEl.dataset.current)}</nav>`);
+    document.body.insertAdjacentHTML("afterbegin", `<header class="topbar">${TOP}</header>`);
+  }
+  const narrow = document.querySelector("template.status-narrow");
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    `<footer class="status-line"><span class="wide-only">${STATUS}</span>${narrow ? `<span class="narrow-only">${narrow.innerHTML}</span>` : ""}</footer>`,
+  );
   for (const el of document.querySelectorAll("i[data-i]")) el.outerHTML = icon(el.dataset.i);
   const proto = document.querySelector(".proto");
   if (proto) {

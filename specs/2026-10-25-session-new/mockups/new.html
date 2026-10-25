@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>New: three cards, the picked kind's form under them</title>
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="new.css" />
+    <script src="shell.js"></script>
+    <script>
+      // The kind picked, as the address's ?kind= holds it: #session, #change, or #feature.
+      const KIND = location.hash.slice(1) || "feature";
+      document.documentElement.classList.add(`picked-${KIND}`);
+      addEventListener("hashchange", () => location.reload());
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <nav class="nav" data-current="new"></nav>
+      <main class="page">
+        <div class="page-inner">
+          <h1>New</h1>
+          <div class="kinds" role="radiogroup" aria-label="What are you starting?">
+            <a class="kind kind-session" href="#session">
+              <span class="kind-head"><span class="radio"></span><i data-i="bot"></i> Session</span>
+              <span class="kind-what"
+                >Talk to the agent in the main checkout, like plain Claude Code.</span
+              >
+              <span class="kind-facts">
+                <span class="k">Ends with</span><b>the chat</b> <span class="k">Waits on you</span
+                ><b>nothing</b>
+              </span>
+              <span class="kind-example">“Why is CI slow?”</span>
+            </a>
+            <a class="kind kind-change" href="#change">
+              <span class="kind-head"
+                ><span class="radio"></span><i data-i="wrench"></i> Change</span
+              >
+              <span class="kind-what">A bug fix or a small change, on its own branch.</span>
+              <span class="kind-facts">
+                <span class="k">Ends with</span><b>a pull request</b>
+                <span class="k">Waits on you</span><b>the pull request</b>
+              </span>
+              <span class="kind-example">“Fix the due-date typo”</span>
+            </a>
+            <a class="kind kind-feature" href="#feature">
+              <span class="kind-head"
+                ><span class="radio"></span><i data-i="file-text"></i> Feature</span
+              >
+              <span class="kind-what"
+                >A larger piece of work, designed with the agent before any code.</span
+              >
+              <span class="kind-facts">
+                <span class="k">Ends with</span><b>a spec, then a pull request</b>
+                <span class="k">Waits on you</span><b>questions, then the spec</b>
+              </span>
+              <span class="kind-example">“Add recurring tasks”</span>
+            </a>
+          </div>
+
+          <section class="form form-session">
+            <div class="composer">
+              <div class="input">Message Claude Code</div>
+              <div class="bar">
+                <span class="round"><i data-i="paperclip"></i></span>
+                <span class="round send"><i data-i="arrow-up"></i></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="form form-change">
+            <div class="lead">Describe the bug or the change. The first line is its title.</div>
+            <div class="composer">
+              <div class="input">Message Claude Code</div>
+              <div class="bar">
+                <span class="round"><i data-i="paperclip"></i></span>
+                <span class="btn primary" style="margin-left: auto; opacity: 0.6"
+                  >Start the change Ctrl ↵</span
+                >
+              </div>
+            </div>
+            <div class="field" style="margin-top: 14.4px">
+              <label>Slug</label>
+              <div class="sm sub" style="margin-bottom: 4.8px">
+                Two words at most: it names the folder and the branch.
+              </div>
+              <div class="input-box"></div>
+            </div>
+            <div class="start-title">Or start from a note or a priority</div>
+            <ul class="list starts">
+              <li>
+                <a>Inbox · Specs are still way too long and hard to read</a
+                ><span class="btn">Start the change</span>
+              </li>
+              <li>
+                <a>Inbox · We'll need a model selector for each step</a
+                ><span class="btn">Start the change</span>
+              </li>
+              <li>
+                <a>Priorities · Git listener process</a><span class="btn">Start the change</span>
+              </li>
+            </ul>
+          </section>
+
+          <section class="form form-feature">
+            <div class="row" style="align-items: flex-end; gap: 9.6px; flex-wrap: wrap">
+              <div class="field">
+                <label>Title</label>
+                <div class="input-box">Add recurring tasks</div>
+              </div>
+              <span class="btn primary">Write the proposal</span>
+            </div>
+            <div class="start-title">Or start from a note or a priority</div>
+            <ul class="list starts">
+              <li>
+                <a>Inbox · Specs are still way too long and hard to read</a
+                ><span class="btn">Open the draft</span>
+              </li>
+              <li>
+                <a>Inbox · We'll need a model selector for each step</a
+                ><span class="btn">Open the draft</span>
+              </li>
+              <li>
+                <a>Priorities · Git listener process</a><span class="btn">Open the draft</span>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div class="proto">
+      New · picked: <a href="#session">Session</a> · <a href="#change">Change</a> ·
+      <a href="#feature">Feature</a>
+    </div>
+  </body>
+</html>
