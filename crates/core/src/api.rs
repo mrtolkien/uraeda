@@ -21,6 +21,7 @@ use crate::workspace::{Feature, FileKind, Problem, Severity, Source, Workspace, 
 
 mod answered;
 mod answers;
+mod category_edits;
 mod decision;
 mod default_branch;
 mod drafts;
@@ -38,6 +39,7 @@ mod since;
 mod start;
 
 pub use answers::*;
+pub use category_edits::*;
 pub(crate) use decision::fingerprints as branch_decision_fingerprints;
 pub use decision::{BranchDecision, read_decision};
 pub(crate) use default_branch::default_checkout;
