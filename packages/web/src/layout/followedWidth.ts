@@ -1,7 +1,7 @@
 // A column's width and fold, kept in the browser under a key of its own: a share of the window,
 // within its own limits, until the human drags its edge, then the width they chose, within the
-// drag's limits. A kept width outside those, from a hand edit or an older build, is clamped as it
-// is read. The shell's navigation and the document's column keep theirs this way.
+// drag's limits. A kept width outside those, from a hand edit, an older build, or a column sharing
+// the key, is clamped as it is drawn. The shell's navigation and the document's column keep theirs this way.
 import { useResizable } from "@astryxdesign/core/Resizable";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
@@ -61,6 +61,9 @@ export function readStored(key: string, limits: WidthLimits): StoredWidth {
   }
 }
 
+/** No limits: a kept width read as it is, only rounded. */
+const UNLIMITED = { max: Number.POSITIVE_INFINITY, min: 0 };
+
 /** Keeps the column under `key`, when the browser's storage allows. */
 function writeStored(key: string, column: StoredWidth) {
   try {
@@ -85,12 +88,16 @@ function useWindowWidth(): number {
  * A column's width, its resize, and its fold, kept under `key`: the width follows the window, by
  * `auto`, until the human drags the edge within `limits`, which keeps the width they chose; `keep`
  * changes and keeps the fold. `read` reads what the browser keeps, `key`'s value by default.
+ *
+ * `stored` holds the width as kept, and only the width drawn is clamped to `limits`: two columns
+ * sharing a key with other limits, as a session's and the documents', each draw the kept width
+ * within their own, and a fold written by one keeps the width the other was dragged to.
  */
 export function useFollowedWidth({
   auto,
   key,
   limits,
-  read = () => readStored(key, limits),
+  read = () => readStored(key, UNLIMITED),
 }: {
   auto: AutoWidth;
   key: string;
@@ -99,7 +106,7 @@ export function useFollowedWidth({
 }) {
   const [stored, setStored] = useState(read);
   const following = autoWidthOf(auto, useWindowWidth());
-  const width = stored.width ?? following;
+  const width = stored.width === undefined ? following : clampTo(limits, stored.width);
   // Set while the column follows the window: a resize of its own, not the human's.
   const isFollowing = useRef(false);
   const keep = useCallback(

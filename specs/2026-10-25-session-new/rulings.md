@@ -163,3 +163,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   old assertions, which would loosen them.
 - **If wrong**: the two queries move back into the class.
 - **Where**: task 2.
+
+## R15: The shared column keeps its width as dragged, and clamps it as drawn
+
+- **Decision**: `useFollowedWidth` holds the kept width as the browser keeps it, and clamps only the
+  width it draws to the column's limits. The documents' column draws a session's 320 px drag at 400
+  px, and its fold, by `]` or `showDocumentColumn`, writes the 320 px back.
+- **Rationale**: the session's and the documents' columns share `uraeda.documentColumn` with
+  different least widths (R9). Holding the clamped width, the documents' column wrote its 400 px
+  back with each fold, and lost the session's drag.
+- **Alternatives considered**: merging each fold into a fresh read of the browser's value, which
+  still loses the drag when the storage is refused, and keeps two meanings of the state.
+- **If wrong**: the default `read` of `useFollowedWidth` and its drawn width.
+- **Where**: fix 1 of tasks 1-3's review, `packages/web/src/layout/followedWidth.ts`.

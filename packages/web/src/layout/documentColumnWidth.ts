@@ -1,9 +1,11 @@
 // The document's column's one width and fold, kept in the browser under `uraeda.documentColumn`
 // for every document page: a third of the window, between 400 and 600 px, until the human drags its
 // edge, then the width they chose, between 400 and 720 px. A kept width outside those, from a hand
-// edit or an older build, is clamped as it is read (plan, Review focus 6). The open tab never
+// edit or an older build, is clamped as it is drawn (plan, Review focus 6). The open tab never
 // changes it. A session's column shares that width and fold, but is narrower at semi-wide, so the
-// chat keeps the weight (approval comment C2 of the session's spec, its ruling R9).
+// chat keeps the weight (approval comment C2 of the session's spec, its ruling R9). The browser
+// keeps the width as dragged, so a session's 320 px draws the documents' column at 400 px, and its
+// fold keeps the 320 px (ruling R15).
 import { useCallback, useEffect } from "react";
 import { autoWidthOf, readStored, type StoredWidth, useFollowedWidth } from "./followedWidth.ts";
 import { useWidthClass } from "./useWidthClass.ts";
@@ -59,7 +61,7 @@ export function useDocumentColumnWidth() {
 /**
  * A session's column's width, its resize, and its fold, the documents' column's own, under its key:
  * at wide, the documents' width; at semi-wide, `sessionAutoWidth`; dragged, between 300 and 720 px.
- * A kept width is clamped to those as it is read.
+ * A kept width is clamped to those as it is drawn.
  */
 export function useSessionColumnWidth() {
   return useKeptColumn(useWidthClass() === "semi" ? SESSION_AUTO : AUTO, SESSION_LIMITS);
