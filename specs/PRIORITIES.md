@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Feature page in the terminal look](/specs/2026-10-25-feature-page/proposal.md)
-
 - Coherence pass: since the terminal look was built with parallel sessions, validate that components
   that should be shared are shared! And check all views have the new look
 - Leader key/shortcut map
