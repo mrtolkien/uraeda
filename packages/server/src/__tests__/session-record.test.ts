@@ -62,23 +62,39 @@ test("a session's edited files, with their completed edits, in order", async () 
   emit(server, [
     ...call("edit-1", "edit", "src/tasks/complete.ts"),
     ...call("edit-2", "edit", "src/tasks/complete.test.ts"),
-    ...call("edit-3", "edit", "src/tasks/complete.ts"),
+    ...call("edit-3", "edit", "src/tasks/complete.test.ts"),
+    {
+      id: "agent-1",
+      input: {},
+      kind: "other",
+      name: "Agent",
+      subagent: { description: "Write the rule" },
+      type: "toolStart",
+    },
+    // A sub-agent's edit is the session's too.
+    ...call("edit-4", "edit", "src/tasks/repeat.ts", { parent: "agent-1" }),
+    { id: "agent-1", isError: false, output: "", type: "toolEnd" },
     result,
   ]);
   await server.sessions.settled(Number(first.turns.at(-1)));
   const second = await send(server, "Go on");
   emit(server, [
-    ...call("edit-4", "edit", "src/tasks/undo.ts", { failed: true }),
+    ...call("edit-5", "edit", "src/tasks/undo.ts", { failed: true }),
     ...call("read-1", "read", "src/tasks/repeat.ts"),
+    // Files first edited in the first turn: one place each, their edits of both turns counted.
+    ...call("edit-6", "edit", "src/tasks/complete.ts"),
+    ...call("edit-7", "edit", "src/tasks/complete.test.ts"),
     result,
   ]);
   await server.sessions.settled(Number(second.turns.at(-1)));
 
   const [record] = await byId(server.app, "Session", [first.id], ["id", "edited"]);
 
+  // In the order of their first edit, not of their count.
   expect(record.edited).toEqual([
     { edits: 2, path: "src/tasks/complete.ts" },
-    { edits: 1, path: "src/tasks/complete.test.ts" },
+    { edits: 3, path: "src/tasks/complete.test.ts" },
+    { edits: 1, path: "src/tasks/repeat.ts" },
   ]);
 });
 
