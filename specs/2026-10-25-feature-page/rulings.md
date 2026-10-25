@@ -70,15 +70,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: rename the route's segment and redirect the old one; one place, `routeTable.ts`.
 - **Where**: task 3.
 
-## R7: A drop done with its commit refused opens Home with the warning
+## R7: A drop whose commit failed keeps the page, as the spec says
 
-- **Decision**: a drop the server refuses (an error) keeps the page and shows the refusal under the
-  name until dismissed. A drop that happened but whose priorities commit did not
-  (`committed: false`) opens Home with the dropped note and the warning, as the session says them.
-- **Rationale**: the drop removed the worktree and archived the sessions before the commit: the page
-  would draw an item that is gone. The spec's "the page stays" holds for a drop that did not happen.
-- **Alternatives considered**: staying on the page for both: rejected, the feature no longer exists.
-- **If wrong**: stay on the page for `committed: false` too, in `FeatureMenu`.
+- **Decision**: a drop the server refuses (an error), or one that happened but whose priorities
+  commit did not (`committed: false`), keeps the page and shows the refusal under the name until
+  dismissed: the approved spec's edge case wins over an earlier ruling. The dropped note and the
+  other warnings go to Home only when the commit succeeded.
+- **Rationale**: a ruling cannot override the approved spec.
+- **Alternatives considered**: opening Home with the warning for `committed: false`: rejected, it
+  contradicted the spec.
+- **If wrong**: open Home with the notes for `committed: false` too, in `FeatureMenu`.
 - **Where**: task 4.
 
 ## R8: Build lists its tasks by number, without waves or times

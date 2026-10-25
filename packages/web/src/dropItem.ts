@@ -31,7 +31,7 @@ export function dropQuestion({ kind, slug }: SessionItem, branch: string) {
  * Why a drop's priorities stay uncommitted: they held the human's own edits, a hook refused the
  * commit, or Now did not list the item, so nothing was removed.
  */
-const UNCOMMITTED =
+export const UNCOMMITTED =
   "The priorities were not committed: if Now listed it, its entry’s removal waits in specs/PRIORITIES.md.";
 
 /**
@@ -41,7 +41,7 @@ const UNCOMMITTED =
 export type Dropped =
   | { kind: "cancelled" }
   | { kind: "refused"; message: string }
-  | { kind: "dropped"; notes: Array<MoveNote> };
+  | { committed: boolean; kind: "dropped"; notes: Array<MoveNote> };
 
 /**
  * Drops the item once confirmed: its entry leaves **Now**, its worktree is removed unless it holds
@@ -66,6 +66,7 @@ export function useDropItem(): (item: SessionItem) => Promise<Dropped> {
       | { branch?: string; committed?: boolean; worktreeLeft?: string | null }
       | undefined;
     return {
+      committed: dropped?.committed !== false,
       kind: "dropped",
       notes: [
         {
