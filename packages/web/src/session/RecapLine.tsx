@@ -2,6 +2,7 @@
 // a running turn: what the agent did, or does, and for how long, as a link that opens the
 // session's Activity at that stretch. The words are `stretches.ts`'s; this file draws them, and
 // joins a stretch that a turn's pages of 100 items cut.
+import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
@@ -10,7 +11,6 @@ import {
   colorVars,
   fontWeightVars,
   sizeVars,
-  spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type ReactNode, Suspense, useEffect, useState } from "react";
@@ -31,26 +31,18 @@ import {
 const styles = stylex.create({
   line: {
     // A rule at its start, as the mockup's recap lines: apart from the agent's text, quieter.
-    alignItems: "center",
     borderInlineStartColor: colorVars["--color-border"],
     borderInlineStartStyle: "solid",
     borderInlineStartWidth: `calc(2 * ${borderVars["--border-width"]})`,
-    display: "flex",
-    gap: spacingVars["--spacing-2"],
     // As tall as a control: a finger's 44 px under a coarse pointer.
     minHeight: sizeVars["--size-element-sm"],
-    paddingBlock: spacingVars["--spacing-0-5"],
-    paddingInlineStart: spacingVars["--spacing-3"],
   },
   link: {
     display: "block",
   },
   open: {
-    alignItems: "center",
     color: colorVars["--color-text-accent"],
-    display: "inline-flex",
     flexShrink: 0,
-    gap: spacingVars["--spacing-1"],
     marginInlineStart: "auto",
   },
   time: {
@@ -106,7 +98,14 @@ export function RecapLine({
   const here = usePathname();
   const inPage = href !== undefined && new URL(href, window.location.href).pathname === here;
   const line = (
-    <span {...stylex.props(styles.line)}>
+    <HStack
+      align="center"
+      as="span"
+      gap={2}
+      paddingBlock={0.5}
+      paddingInlineStart={3}
+      xstyle={styles.line}
+    >
       {live ? <StatusMark label={activity} small status="working" /> : <Icon icon="wrench" />}
       {live ? (
         <span aria-hidden>
@@ -116,13 +115,14 @@ export function RecapLine({
         <Words text={text} />
       )}
       {href !== undefined && (
-        // Where it leads, for the eye: the link's name is the stretch's words.
-        <span aria-hidden {...stylex.props(styles.open)}>
+        // Where it leads, for the eye: the link's name is the stretch's words. On the session's
+        // page, its Activity beside; from a document's column, away to the session's page.
+        <HStack align="center" aria-hidden as="span" gap={1} xstyle={styles.open}>
           {inPage && "Activity"}
-          <Icon icon="chevronRight" size="xsm" />
-        </span>
+          <Icon icon={inPage ? "chevronRight" : "uraeda:arrow-right"} size="xsm" />
+        </HStack>
       )}
-    </span>
+    </HStack>
   );
   if (href === undefined) {
     return (

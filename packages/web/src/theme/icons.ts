@@ -174,6 +174,8 @@ export function decisionIcon(name: string | null | undefined): `uraeda:decision-
 
 export const uraedaIcons = {
   "uraeda:activity": activity,
+  // Lucide's `arrow-right`: a link away, to another page.
+  "uraeda:arrow-right": then,
   "uraeda:attach": attach,
   "uraeda:badge-check": badgeCheck,
   "uraeda:book-open": bookOpen,
