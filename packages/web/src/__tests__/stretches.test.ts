@@ -167,7 +167,7 @@ test("edge: a single call with no target reads the call, not a count", () => {
   expect(recapText([call("search", "Grep", undefined, 4000)])).toBe("4 s · searched once");
 });
 
-test("edge: a single sub-agent or other tool reads the call (ruling R20)", () => {
+test("edge: a single sub-agent or other tool reads the call (ruling R17)", () => {
   expect(
     recapText([
       call("other", "Task", "Find the tests", 4000, {

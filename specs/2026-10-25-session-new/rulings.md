@@ -202,7 +202,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one branch of `single` in `session/stretches.ts`.
 - **Where**: task 5; tasks 6 and 8 keep these words.
 
-## R21: A stretch says whether its page cut it, and two halves join under the first key
+## R18: A stretch says whether its page cut it, and two halves join under the first key
 
 - **Decision**: `slotsOf` marks a page's stretch `continued` when only a sub-agent's items precede
   it on the page, and `open` when only a sub-agent's items follow it; `joinStretches` makes an open

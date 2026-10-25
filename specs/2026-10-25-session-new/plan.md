@@ -750,7 +750,7 @@ git commit -m "feat(session-new): New's three kinds as cards"
     calls included; `key` is `stretchKey(turn, firstSeq)`. `continued`: only items with a `parent`
     precede it on its page, so on a page after the turn's first it goes on from the page before.
     `open`: only items with a `parent` follow it on its page, so it may go on in the page after
-    (ruling R21).
+    (ruling R18).
   - `type Slot = { item: TranscriptItem; kind: "item" } | { kind: "stretch"; stretch: Stretch }`.
   - `slotsOf(turn: string, items: ReadonlyArray<TranscriptItem>): Array<Slot>`: a page's items in
     order, each run of the main agent's calls and thoughts one stretch. Items with a `parent` are
@@ -811,7 +811,7 @@ N sub-agent(s)"; other tools "used N other tool(s)"; thoughts "thought once", "t
 single call: its past verb and target, "read src/tasks/undo.ts", "ran pnpm test", with no target
 what it acts on, "read a file", "searched once"; a single sub-agent "ran a sub-agent", another tool
 "used TodoWrite", thoughts around it counted after it, "7 s · edited src/a.ts · thought once"
-(ruling R20); a single thought: "thought once". The time is `elapsed(lengthOf(items))` from
+(ruling R17); a single thought: "thought once". The time is `elapsed(lengthOf(items))` from
 `TurnLines.tsx`. Doing: "reading", "editing", "deleting", "moving", "searching", "fetching",
 "running", then the target; a sub-agent "running a sub-agent"; another tool "using <name>". Row
 words (ruling R6): "read", "edit", "delete", "move", "search", "fetch", "run", "sub-agent", the

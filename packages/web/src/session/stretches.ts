@@ -185,7 +185,7 @@ function single(tool: ToolItem): string {
   if (!words) {
     return `${OTHER.past} ${tool.name}`;
   }
-  // A sub-agent's target is its description, which its activity row shows (ruling R20). A call
+  // A sub-agent's target is its description, which its activity row shows (ruling R17). A call
   // with no target reads what it acts on, "read a file", and a search, which has no word for it,
   // "searched once".
   const acted = words.kind === "subagent" ? what(words) : (tool.target ?? what(words));
