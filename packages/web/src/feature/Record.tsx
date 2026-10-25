@@ -1,32 +1,21 @@
 // A done feature's record, drawn in place: its what and why and its behaviour, its decisions drawn
 // as the spec page draws them, or as its record lists them when its commits were not found, its
-// questions folded, then its follow-ups and its file.
-import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
+// questions folded, then its follow-ups, each part a pane. Its file is the Merged stage's link.
 import { VStack } from "@astryxdesign/core/VStack";
-import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { useFile } from "../data.ts";
+import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import { DecisionCard } from "../spec/DecisionCard.tsx";
 import { decisionId, GROUPS } from "../spec/parts.ts";
-import { Section } from "./Section.tsx";
 
 const styles = stylex.create({
-  // The fold's title and the file's link, each a control's height for a finger.
-  control: {
-    alignItems: "center",
-    display: "flex",
-    minHeight: sizeVars["--size-element-md"],
-  },
   // The decisions in a layer of their own, under the top bar: on the phone, a card's sticking head,
   // pushed up as its card scrolls away, slides under the bar rather than over it.
   layer: { isolation: "isolate" },
-  link: { alignSelf: "start" },
 });
 
 /** What the record reads of the history: its counts and its decisions' changes. */
@@ -42,7 +31,7 @@ export type RecordHistory = {
  * A `##` section's blocks, found by its heading's anchor: its heading, then each top-level block up
  * to the next heading of its level or above. None when the record has no such section.
  */
-function section(document: Document, anchor: string): { body: Array<number>; heading?: number } {
+function section(document: Document, anchor: string): { body: Array<number>; title?: string } {
   const top = document.blocks.filter((block) => block.parent === undefined);
   const start = top.findIndex(
     (block) => block.kind === "heading" && block.level === 2 && block.anchor === anchor,
@@ -54,27 +43,31 @@ function section(document: Document, anchor: string): { body: Array<number>; hea
   const end = rest.findIndex((block) => block.kind === "heading" && (block.level ?? 0) <= 2);
   return {
     body: (end < 0 ? rest : rest.slice(0, end)).map((block) => block.id),
-    heading: top[start]!.id,
+    title: top[start]!.heading ?? anchor,
   };
 }
 
-/** A section of the record, its heading included, as its file has it. */
+/** A section of the record as a pane titled by its heading, its anchor as id, as its file has it. */
 function RecordSection({ anchor, document }: { anchor: string; document: Document }) {
-  const { body, heading } = section(document, anchor);
-  if (heading === undefined) {
+  const { body, title } = section(document, anchor);
+  if (title === undefined) {
     return null;
   }
-  return <Blocks document={document} ids={[heading, ...body]} />;
+  return (
+    <Pane id={anchor} isOpenOnPhone title={title}>
+      <Blocks document={document} ids={body} />
+    </Pane>
+  );
 }
 
-/** The decisions the feature made or changed, each drawn as its change, at `#record-decisions`. */
+/** The decisions the feature made or changed, each drawn as its change, in the pane `#record-decisions`. */
 function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) {
   const here = useRepoPath();
   if (decisions.length === 0) {
     return null;
   }
   return (
-    <Section id="record-decisions" title="Decisions">
+    <Pane count={decisions.length} id="record-decisions" isOpenOnPhone title="Decisions">
       <VStack gap={4} xstyle={styles.layer}>
         {decisions.map((change) => (
           <DecisionCard
@@ -91,14 +84,14 @@ function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) 
           />
         ))}
       </VStack>
-    </Section>
+    </Pane>
   );
 }
 
 /** The key of the record's questions in the history entry's open items. */
 export const QUESTIONS_KEY = "record:questions";
 
-/** The record's questions, folded under their count, at `#record-questions`, open as `keys` keep them. */
+/** The record's questions, a pane folded to its count at `#record-questions`, open as `keys` keep them. */
 function Questions({
   document,
   history,
@@ -113,22 +106,19 @@ function Questions({
   if (body.length === 0 || rounds === 0) {
     return null;
   }
-  const title = `Questions · ${history.questions ?? 0} in ${rounds} ${rounds === 1 ? "round" : "rounds"}`;
   return (
-    <section aria-label="Questions" id="record-questions">
-      <Collapsible
-        isOpen={keys.open.includes(QUESTIONS_KEY)}
-        onOpenChange={(isOpen: boolean) => keys.onOpenChange(QUESTIONS_KEY, isOpen)}
-        trigger={
-          // A button holds no heading: the section is named, as the spec's folded history.
-          <Text size="xl" weight="semibold" xstyle={styles.control}>
-            {title}
-          </Text>
-        }
-      >
-        <Blocks document={document} ids={body} />
-      </Collapsible>
-    </section>
+    <Pane
+      count={history.questions ?? 0}
+      fold={{
+        isOpen: keys.open.includes(QUESTIONS_KEY),
+        onOpenChange: (isOpen) => keys.onOpenChange(QUESTIONS_KEY, isOpen),
+      }}
+      id="record-questions"
+      title="Questions"
+      titleSuffix={`in ${rounds} ${rounds === 1 ? "round" : "rounds"}`}
+    >
+      <Blocks document={document} ids={body} />
+    </Pane>
   );
 }
 
@@ -147,7 +137,6 @@ export function Record({
   keys: OpenKeys;
   name: string;
 }) {
-  const here = useRepoPath();
   const file = useFile(folder, name);
   const document = file?.current?.document;
   if (!file || file.missing || !document) {
@@ -165,9 +154,6 @@ export function Record({
       )}
       <Questions document={document} history={history} keys={keys} />
       <RecordSection anchor="follow-ups" document={document} />
-      <Link hasUnderline href={here(`/f/${folder}/${name}`)} xstyle={[styles.control, styles.link]}>
-        Open the record file
-      </Link>
     </VStack>
   );
 }

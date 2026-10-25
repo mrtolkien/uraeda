@@ -214,7 +214,7 @@ test("a build started the next day shows its date", async () => {
   await renderPage(`/f/${CLI}`, repo, { agent: true });
 
   await nextCard();
-  expect(stageLine("Plan")).toContain("15:08 · 18 h 2 min");
+  expect(stageLine("Plan")).toContain("15:08 · 18 h 02 min");
   expect(stageLine("Build")).toContain("Oct 18, 09:10");
 });
 
@@ -303,6 +303,11 @@ test("the pull request opens in a new tab from Next and from the links", async (
   }
 });
 
+/** Whether `first` comes before `second` in the page. */
+function before(first: Element, second: Element): boolean {
+  return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+}
+
 /** US6.2, the page; edge case: invalid status */
 test("a spec whose status cannot be read stops the page", async () => {
   const repo = fixtureRepo();
@@ -322,6 +327,13 @@ test("a spec whose status cannot be read stops the page", async () => {
   const next = await nextCard();
   expect(next.getByRole("heading", { name: "Nothing can go on" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /format note/ })).toBeNull();
+  // The banner says it before Next does.
+  expect(
+    before(
+      screen.getByText("This feature cannot go on"),
+      screen.getByRole("region", { name: "Next" }),
+    ),
+  ).toBe(true);
 });
 
 /** US6.2, the page: a change names itself */
@@ -352,9 +364,11 @@ test("format notes are folded at the bottom", async () => {
 
   await renderPage(`/f/${folder}`, repo, { agent: true });
 
-  const notes = await screen.findByRole("button", { name: "1 format note" });
+  const notes = await screen.findByRole("button", { name: "Format notes · 1" });
   expect(notes.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByText("This feature cannot go on")).toBeNull();
+  // Under the panes: after Next and the timeline.
+  expect(before(screen.getByRole("list", { name: "Stages" }), notes)).toBe(true);
   await click(notes);
   expect(
     screen.getByText("They block nothing: the next agent step rewrites what drifted."),
@@ -373,13 +387,15 @@ test("the format notes opened are open again on Back", async () => {
   const proposal = join(repo, worktree ?? ".", `specs/${folder}/proposal.md`);
   writeFileSync(proposal, `${readFileSync(proposal, "utf8")}\nSee [the notes](missing.md).\n`);
   await renderPage(`/f/${folder}`, repo, { agent: true });
-  await click(await screen.findByRole("button", { name: "1 format note" }));
+  await click(await screen.findByRole("button", { name: "Format notes · 1" }));
 
   await act(async () => navigate(atRepo(`/f/${folder}/proposal.md`)));
-  await waitFor(() => expect(screen.queryByRole("button", { name: "1 format note" })).toBeNull());
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Format notes · 1" })).toBeNull(),
+  );
   await act(async () => window.history.back());
 
-  const notes = await screen.findByRole("button", { name: "1 format note" });
+  const notes = await screen.findByRole("button", { name: "Format notes · 1" });
   expect(notes.getAttribute("aria-expanded")).toBe("true");
 });
 
@@ -445,6 +461,12 @@ test("a merged feature still says to run ura clean", async () => {
   expect(screen.getByText("Worktree and branch left")).toBeTruthy();
   expect(screen.getByText(`.worktrees/${DONE}`)).toBeTruthy();
   const next = await nextCard();
+  expect(
+    before(
+      screen.getByText("Worktree and branch left"),
+      screen.getByRole("region", { name: "Next" }),
+    ),
+  ).toBe(true);
   expect(next.getByRole("heading", { name: "Merged" })).toBeTruthy();
   expect(within(stage("Merged")).getByRole("link", { name: "Record" })).toBeTruthy();
   expect(currentStage()).toBeUndefined();
@@ -799,7 +821,7 @@ test("Produced so far reads agent time and elapsed", async () => {
 
   await screen.findByRole("region", { name: "Produced so far" });
   expect(produced("agent time").textContent).toContain("2 h 51 min");
-  expect(produced("elapsed").textContent).toContain("6 h 2 min");
+  expect(produced("elapsed").textContent).toContain("6 h 02 min");
 });
 
 /** US3 more 1 */

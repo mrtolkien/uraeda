@@ -33,7 +33,7 @@ export function clock(iso: string, previous?: string): string {
     : time;
 }
 
-/** A duration in seconds: "< 1 min", "26 min", "2 h 50 min", or "1 d 3 h". */
+/** A duration in seconds: "< 1 min", "26 min", "2 h 05 min" (minutes padded after an hour), or "1 d 3 h". */
 export function duration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   if (minutes < 1) {
@@ -44,7 +44,9 @@ export function duration(seconds: number): string {
   }
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
+    return minutes % 60 === 0
+      ? `${hours} h`
+      : `${hours} h ${String(minutes % 60).padStart(2, "0")} min`;
   }
   const days = Math.floor(hours / 24);
   return hours % 24 === 0 ? `${days} d` : `${days} d ${hours % 24} h`;

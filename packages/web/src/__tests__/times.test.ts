@@ -12,6 +12,8 @@ test("a time shows its date only when the day changes", () => {
 test("durations", () => {
   expect(duration(26 * 60)).toBe("26 min");
   expect(duration(2 * 3600 + 50 * 60)).toBe("2 h 50 min");
+  expect(duration(6 * 3600 + 2 * 60)).toBe("6 h 02 min");
+  expect(duration(2 * 3600)).toBe("2 h");
   expect(duration(27 * 3600)).toBe("1 d 3 h");
   expect(duration(20)).toBe("< 1 min");
 });
