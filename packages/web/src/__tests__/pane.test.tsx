@@ -629,3 +629,22 @@ test("the section control offers Now, Next, and Later, and no retired Blocked", 
   ).toEqual(["Now", "Next", "Later"]);
   expect(screen.queryByRole("radio", { name: "Blocked" })).toBeNull();
 });
+
+test("a menu move the server fails shows the failure in the page's banner, and moves nothing", async () => {
+  const repo = fixtureRepo();
+  const server = serverFetch(repo);
+  const failing: typeof fetch = async (input, init) => {
+    if (typeof init?.body === "string" && init.body.includes("priorities.move")) {
+      throw new TypeError("Failed to fetch");
+    }
+    return server(input, init);
+  };
+  await renderPage("/priorities", repo, { fetch: failing });
+  const before = read(repo);
+  await click(await screen.findByRole("button", { name: /^Actions of Git listener process/ }));
+  await click(await screen.findByRole("menuitem", { name: "Move to Now" }));
+  const main = within(screen.getByRole("main"));
+  expect(await main.findByText(/Failed to fetch/)).toBeTruthy();
+  expect(main.getAllByRole("alert").length).toBeGreaterThan(0);
+  expect(read(repo)).toBe(before);
+});
