@@ -149,3 +149,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `fast` does not do; drawing the thought, which the spec keeps out of the chat.
 - **If wrong**: one condition in the chat, which task 6 rewrites.
 - **Where**: task 1, `packages/web/src/TranscriptMessages.tsx`.
+
+## R14: The session record's two reads live in their own module
+
+- **Decision**: `editedFiles` and `subagentsOf` are `SessionCache` methods that call the SQL of a
+  new module, `runner/cache-work.ts`, which also defines `SubagentRow`; `SubagentRecord` is that
+  type. The three assertions of `sessions.test.ts` that compared a running sub-agent with
+  `{ description, id }` now compare the whole new record: its 0 calls, null latest, null parent, and
+  any start.
+- **Rationale**: `cache.ts` had 467 of its 500 lines; the runner does not import the fate layer's
+  types. The old assertions' exact equality fails on the fields task 2 adds.
+- **Alternatives considered**: the SQL in `cache.ts`, over the file limit; `objectContaining` in the
+  old assertions, which would loosen them.
+- **If wrong**: the two queries move back into the class.
+- **Where**: task 2.

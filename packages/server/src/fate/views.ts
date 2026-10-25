@@ -16,6 +16,7 @@ import type {
   WorkspaceView,
 } from "uraeda-binding";
 import type { Capabilities } from "../runner/adapter.ts";
+import type { EditedFile, SubagentRow } from "../runner/cache.ts";
 import type {
   Item,
   Trigger,
@@ -155,8 +156,11 @@ export type AgentRecord = {
   weekLimit: UsageLimit | null;
 };
 
-/** A sub-agent working in a session's running turn. */
-export type SubagentRecord = { description: string; id: string };
+/**
+ * A sub-agent working in a session's running turn: its calls, the latest of them, the sub-agent
+ * that started it, and when it started.
+ */
+export type SubagentRecord = SubagentRow;
 
 /** A session, without its turns' items. */
 export type SessionRecord = {
@@ -167,6 +171,11 @@ export type SessionRecord = {
   archived: boolean;
   /** The background commands of its running turn still running. */
   backgroundCommands: number;
+  /**
+   * The files its completed edit calls changed, of every turn and sub-agent, in the order of their
+   * first edit, with their count of completed edits: a failed edit does not count.
+   */
+  edited: Array<EditedFile>;
   /** The feature's folder, null for a chat. */
   folder: string | null;
   id: string;
@@ -378,6 +387,7 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   allowable: true,
   archived: true,
   backgroundCommands: true,
+  edited: true,
   folder: true,
   id: true,
   name: true,

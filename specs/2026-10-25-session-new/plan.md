@@ -459,10 +459,14 @@ git commit -m "feat(session-new): record the agent's thoughts, and time each cal
 
 **Files:**
 
-- Modify: `packages/server/src/runner/cache.ts` (two reads)
+- Modify: `packages/server/src/runner/cache.ts` (two reads, calling `cache-work.ts`)
+- Create: `packages/server/src/runner/cache-work.ts` (the two reads' SQL, and `SubagentRow`: R14)
 - Modify: `packages/server/src/fate/sessions.ts` (`turnsOf`, the session record)
 - Modify: `packages/server/src/fate/views.ts` (`SubagentRecord`, `SessionRecord`, the data view)
 - Modify: `packages/web/src/views.ts` (`SessionView`)
+- Modify: `packages/web/src/__focused__/helpers.tsx` (`sessionRecord`, `edited: []`)
+- Modify: `packages/server/src/__tests__/sessions.test.ts` (the running sub-agent's whole record:
+  R14)
 - Test: `packages/server/src/__tests__/session-record.test.ts` (new)
 
 **Interfaces:**
@@ -482,7 +486,7 @@ git commit -m "feat(session-new): record the agent's thoughts, and time each cal
   - `SessionCache.editedFiles(sessionId: string): Array<{ edits: number; path: string }>` and
     `SessionCache.subagentsOf(turnId: number): Array<SubagentRecord>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/session-record.test.ts
@@ -518,12 +522,12 @@ The break each test catches:
   session.
 - Sub-agents: calls of the other sub-agents counted, or `latest` the first call.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/server/src/__tests__/session-record.test.ts`
 - Expected: FAIL, `expected undefined to deeply equal [ { edits: 2, … } ]`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The two cache reads use SQL over the `items` table, the JSON fields read with `json_extract`, so no
 page is read into memory: `editedFiles` over the session's turns, `kind = 'tool'`,
@@ -532,13 +536,13 @@ seq; `subagentsOf` over the running turn. `turnsOf` uses `subagentsOf`; the sess
 `edited`. Keep `turnsOf` within the function limit: move the sub-agents' read into the cache, not
 into the function.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. Deferred to ready: the web's tests, whose session records now carry the new
   fields.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src packages/web/src/views.ts specs/2026-10-25-session-new/plan.md

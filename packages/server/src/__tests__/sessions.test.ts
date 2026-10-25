@@ -217,10 +217,16 @@ test("US3.4: a running sub-agent shows in its session's row and record", async (
   await flush();
 
   const [record] = await byId(server.app, "Session", [session.id], ["id", "subagents"]);
-  expect(record.subagents).toEqual([{ description: "Map the runner code", id: "task-1" }]);
-  expect((await list(server))[0].subagents).toEqual([
-    { description: "Map the runner code", id: "task-1" },
-  ]);
+  const running = {
+    calls: 0,
+    description: "Map the runner code",
+    id: "task-1",
+    latest: null,
+    parent: null,
+    startedAt: expect.any(String),
+  };
+  expect(record.subagents).toEqual([running]);
+  expect((await list(server))[0].subagents).toEqual([running]);
 
   server.adapter.emit({ id: "task-1", isError: false, output: "Mapped.", type: "toolEnd" });
   await flush();
@@ -557,7 +563,16 @@ test("a turn waits for its background sub-agents to report back, and lists them 
   await flush();
 
   expect(await state()).toBe("running");
-  expect(await subagents()).toEqual([{ description: "Research the tools", id: "agent-1" }]);
+  expect(await subagents()).toEqual([
+    {
+      calls: 0,
+      description: "Research the tools",
+      id: "agent-1",
+      latest: null,
+      parent: null,
+      startedAt: expect.any(String),
+    },
+  ]);
 
   server.adapter.emit({ tasks: [], type: "background" });
   await flush();
