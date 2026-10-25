@@ -318,21 +318,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `entriesOf`, and the Contents tests' "Decisions · 4".
 - **Where**: fix of Task 10's review, `spec/SpecPage.tsx`, `src/__tests__/spec-panes.test.tsx`.
 
-## R22: The spec's and the plan's phone sheets are in the address, the round's not yet
+## R22: The phone's sheets are in the address, the spec's, the plan's, and the round's alike
 
-- **Decision**: on narrow screens, the spec's and the plan's open sheet, Contents or Review, is the
-  address's `?tab=`, the parameter of the column's open tab on wide screens (`spec/useSheetTab.ts`):
-  a reload keeps it, and crossing to a wide screen opens that tab. The tab is in the sheet's own
-  history entry only, so Back closes the sheet and lands on the address without it. The questions
-  page's `RoundColumn` keeps its sheets in component state, as before.
+- **Decision**: on narrow screens, the open sheet of a document's column, the spec's and the plan's
+  Contents or Review, and the round's Outline or Notes, is the address's `?tab=`, the parameter of
+  the column's open tab on wide screens (`layout/useSheetTab.ts`): a reload keeps it, and crossing
+  to a wide screen opens that tab. The tab is in the sheet's own history entry only, which keeps the
+  page's state, so Back closes the sheet and lands on the address without it, and the leave guard
+  takes that Back for the sheet's. The three pages draw their status line and sheets through one
+  `ColumnStatusLine` (`layout/ColumnStatusLine.tsx`), with their own buttons and panels.
 - **Rationale**: the layout decision says "An open detail, tab, or sheet MUST be in the URL", which
-  Task 10's sheets broke. The round's sheets have the same gap, from the questions page's Task 8,
-  outside this fix's scope; the same hook applies there when that page is next changed.
+  Task 10's sheets broke. The round's sheets, from the questions page's Task 8, came into the
+  address through a hook of their own (`useRoundSheet`); the final review found two status lines and
+  two sheet hooks for one kind of information, against the UI coherence decision, and the round
+  follows the shared ones now.
 - **Alternatives considered**: a separate `?sheet=` parameter, which the width change would have to
-  translate to `?tab=` and back.
-- **If wrong**: `useSheetTab` goes back to a `useState` in `spec/SpecColumn.tsx`.
-- **Where**: fix of Task 10's review, `spec/useSheetTab.ts`, `spec/SpecColumn.tsx`,
-  `src/__tests__/spec-column-phone.test.tsx`.
+  translate to `?tab=` and back; keeping the round's own hook, which left two implementations.
+- **If wrong**: `useSheetTab` goes back to a `useState` in each page's status line.
+- **Where**: fix of Task 10's review and of the final review, `layout/useSheetTab.ts`,
+  `layout/ColumnStatusLine.tsx`, `spec/SpecColumn.tsx`, `RoundColumn.tsx`,
+  `src/__tests__/spec-column-phone.test.tsx`, `src/__tests__/round-column.test.tsx`.
 
 ## R23: A spec's feature without a branch has no Session tab, a round's shows it blocked
 

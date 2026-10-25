@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
+import { overlayOf } from "../layout/useBackCloses.ts";
 import {
   atRepo,
   atWidth,
@@ -374,6 +375,23 @@ test("on the phone, Back over the Outline sheet closes it", async () => {
   expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe(
     `${atRepo(PAGE)}#Q3`,
   );
+});
+
+/** The UI layout decision: the Outline sheet is in the address, as the spec's sheets are (R22). */
+test("on the phone, a reload keeps the open Outline sheet, and Close takes it out of the address", async () => {
+  atWidth(390);
+  const repo = round();
+  await open(PAGE, repo);
+
+  await click(screen.getByRole("button", { name: /^0\/\d+ answered, outline$/ }));
+  await screen.findByRole("dialog", { name: "Outline" });
+  await renderPage(`${PAGE}?tab=outline`, repo, { agent: true, reload: true });
+
+  const sheet = await screen.findByRole("dialog", { name: "Outline" });
+  await click(within(sheet).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Outline" })).toBeNull());
+  expect(new URLSearchParams(window.location.search).get("tab")).toBeNull();
+  expect(overlayOf(window.history.state)).toBeUndefined();
 });
 
 /** The UI layout decision: a width change keeps the open tab, as a sheet, and the reverse. */

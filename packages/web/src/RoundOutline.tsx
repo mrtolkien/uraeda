@@ -10,7 +10,6 @@ import * as stylex from "@stylexjs/stylex";
 import { useEffect, useId } from "react";
 import type { Document, RoundItems, SettledGroup, SettledKind } from "uraeda-binding";
 import { OutlineRows, type OutlineRow, type StateNames } from "./layout/OutlineRows.tsx";
-import { Overlay } from "./layout/Overlay.tsx";
 import { openAnchor } from "./routeHistory.ts";
 import { PART_IDS } from "./roundPartIds.ts";
 import {
@@ -257,18 +256,16 @@ export function RoundIndex({ questions }: { questions: ReadonlyArray<NavQuestion
 }
 
 /**
- * On the phone, the outline's rows in a sheet, the part at the top marked: a tap on a row closes
- * the sheet, then brings its part to the top once the page can scroll again.
+ * On the phone, the outline's rows in its sheet, the part at the top marked: a tap on a row closes
+ * the sheet, `onClose`, then brings its part to the top once the page can scroll again.
  */
-export function OutlineSheet({
+export function OutlineSheetPanel({
   document,
-  isOpen,
   onClose,
   questions,
   round,
 }: {
   document: Document;
-  isOpen: boolean;
   onClose: () => void;
   questions: ReadonlyArray<NavQuestion>;
   round: RoundItems;
@@ -276,20 +273,17 @@ export function OutlineSheet({
   const runs = rowsOf(round, document, questions);
   const parts = runs.flat().map((row) => row.id);
   return (
-    // No field to type in: the sheet needs no room for a keyboard, and the round shows above.
-    <Overlay isOpen={isOpen} label="Outline" onClose={onClose} sheetHeight="capped">
-      <VStack gap={2}>
-        <Text color="secondary">{countOf(questions)}</Text>
-        <OutlineRows
-          current={questionAtTop(parts) ?? parts[0]}
-          onPick={(id) => {
-            onClose();
-            afterSheetCloses(() => goTo(id));
-          }}
-          runs={runs}
-          stateNames={ANSWERED}
-        />
-      </VStack>
-    </Overlay>
+    <VStack gap={2}>
+      <Text color="secondary">{countOf(questions)}</Text>
+      <OutlineRows
+        current={questionAtTop(parts) ?? parts[0]}
+        onPick={(id) => {
+          onClose();
+          afterSheetCloses(() => goTo(id));
+        }}
+        runs={runs}
+        stateNames={ANSWERED}
+      />
+    </VStack>
   );
 }

@@ -4,12 +4,10 @@
 // opening the same panels in sheets, Verdict bringing the page's end into view, or, with no review,
 // Session, opening the session's page.
 import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import type { ReactNode } from "react";
 import { type ColumnTab, DocumentColumn } from "../layout/DocumentColumn.tsx";
-import { Overlay } from "../layout/Overlay.tsx";
-import { TopBarSlot } from "../layout/TopBarSlot.tsx";
+import { type ColumnSheet, ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Review } from "../review/useReview.tsx";
 import { ColumnGo, ColumnVerdict } from "./columnGo.ts";
@@ -21,12 +19,15 @@ import { afterOverlayCloses } from "../layout/useBackCloses.ts";
 import { afterSheetCloses } from "../roundJump.ts";
 import { navigateHere } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
-import { SHEETS, useSheetTab } from "./useSheetTab.ts";
+import { useSheetTab } from "../layout/useSheetTab.ts";
+
+/** The phone's sheets of the spec's and the plan's column, by their tab's key. */
+const SHEETS = { contents: "Contents", review: "Review" } as const;
 
 /**
  * On the phone, the column's panels outside the page: the status line's Contents, the comments'
  * count and Verdict while a review waits, Contents and the count each opening its panel in a sheet,
- * kept in the address (`useSheetTab`);
+ * kept in the address (`useSheetTab`, R22);
  * with no review, Session, with the Session tab's icon, opening the session's page of `session`'s
  * folder, the feature's, where the page has a Session tab.
  */
@@ -39,7 +40,8 @@ function PhoneParts({
   review: { count: number; panel: ReactNode } | undefined;
   session: { folder: string; icon: ColumnTab["icon"] } | undefined;
 }) {
-  const [sheet, setSheet] = useSheetTab(review !== undefined);
+  const sheet = useSheetTab(review ? SHEETS : { contents: SHEETS.contents }, true);
+  const [, setSheet] = sheet;
   const close = () => setSheet();
   const go = (run: () => void) => {
     close();
@@ -56,57 +58,60 @@ function PhoneParts({
         resolve(done);
       });
     });
-  return (
+  const buttons = (
     <>
-      <TopBarSlot>
-        <HStack align="center" gap={1}>
+      <Button
+        icon={<Icon icon="uraeda:list" />}
+        label="Contents"
+        onClick={() => setSheet("contents")}
+        variant="ghost"
+      />
+      {review && (
+        <>
           <Button
-            icon={<Icon icon="uraeda:list" />}
-            label="Contents"
-            onClick={() => setSheet("contents")}
+            icon={<Icon icon="uraeda:comment" />}
+            label={commentsLabel(review.count)}
+            onClick={() => setSheet("review")}
             variant="ghost"
-          />
-          {review && (
-            <>
-              <Button
-                icon={<Icon icon="uraeda:comment" />}
-                label={commentsLabel(review.count)}
-                onClick={() => setSheet("review")}
-                variant="ghost"
-              >
-                {review.count}
-              </Button>
-              <Button label="Verdict" onClick={toVerdict} variant="primary" />
-            </>
-          )}
-          {!review && session !== undefined && (
-            <Button
-              icon={<Icon icon={session.icon} />}
-              label="Session"
-              onClick={() => navigateHere(sessionPath(session.folder))}
-              variant="ghost"
-            />
-          )}
-        </HStack>
-      </TopBarSlot>
-      <ColumnGo value={go}>
-        {/* No field to type in: the sheet needs no room for a keyboard, the page showing above. */}
-        <Overlay
-          isOpen={sheet === "contents"}
-          label={SHEETS.contents}
-          onClose={close}
-          sheetHeight="capped"
-        >
-          {contents}
-        </Overlay>
-        {review && (
-          <Overlay isOpen={sheet === "review"} label={SHEETS.review} onClose={close}>
-            <ColumnVerdict value={commit}>{review.panel}</ColumnVerdict>
-          </Overlay>
-        )}
-      </ColumnGo>
+          >
+            {review.count}
+          </Button>
+          <Button label="Verdict" onClick={toVerdict} variant="primary" />
+        </>
+      )}
+      {!review && session !== undefined && (
+        <Button
+          icon={<Icon icon={session.icon} />}
+          label="Session"
+          onClick={() => navigateHere(sessionPath(session.folder))}
+          variant="ghost"
+        />
+      )}
     </>
   );
+  // No field to type in Contents: its sheet needs no room for a keyboard, the page showing above.
+  const sheets: Array<ColumnSheet> = [
+    {
+      height: "capped",
+      key: "contents",
+      label: SHEETS.contents,
+      panel: <ColumnGo value={go}>{contents}</ColumnGo>,
+    },
+    ...(review
+      ? [
+          {
+            key: "review",
+            label: SHEETS.review,
+            panel: (
+              <ColumnGo value={go}>
+                <ColumnVerdict value={commit}>{review.panel}</ColumnVerdict>
+              </ColumnGo>
+            ),
+          },
+        ]
+      : []),
+  ];
+  return <ColumnStatusLine buttons={buttons} sheet={sheet} sheets={sheets} />;
 }
 
 /**
