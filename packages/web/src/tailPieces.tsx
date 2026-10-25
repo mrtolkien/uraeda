@@ -29,11 +29,14 @@ const styles = stylex.create({
  */
 function TailPage({
   actions,
+  follows,
   latest,
   onMore,
   piece,
 }: {
   actions: Actions;
+  /** Whether the piece before is its turn's page before, drawn whole to its end. */
+  follows: boolean;
   latest: boolean;
   onMore: (anchor: Element | null) => void;
   piece: Piece;
@@ -68,6 +71,7 @@ function TailPage({
           <PageItems
             actions={actions}
             endsOpen={last && !live}
+            follows={follows}
             latest={latest && last}
             piece={piece}
             queued={turn.state === "queued"}
@@ -84,6 +88,7 @@ function TailPage({
 function PageItems({
   actions,
   endsOpen,
+  follows,
   latest,
   piece,
   queued,
@@ -91,6 +96,7 @@ function PageItems({
   actions: Actions;
   /** Whether a stretch open at the page's end draws its line here. */
   endsOpen: boolean;
+  follows: boolean;
   latest: boolean;
   piece: Piece;
   queued: boolean;
@@ -105,8 +111,9 @@ function PageItems({
   return (
     <TranscriptItems
       actions={actions}
-      // Cut by the tail at a message, the items go on from no stretch of the page before.
-      after={piece.page > 0 && piece.from === 0 ? piece.page - 1 : undefined}
+      // Cut by the tail at a message, even the page's first, the items go on from no stretch of the
+      // page before, and draw none of it: it is before the cut.
+      after={follows ? piece.page - 1 : undefined}
       endsOpen={endsOpen}
       firstMessage={first?.kind === "message" ? first.id : undefined}
       items={page.items.slice(piece.from)}
@@ -140,9 +147,10 @@ export function Pieces({
   // The walk hands its pieces over as it renders, so a render React sets aside may still draw them
   // here: what is drawn is known from this commit, not from the walk's.
   useLayoutEffect(() => onDrawn(pieces));
-  return pieces.map((piece) => (
+  return pieces.map((piece, at) => (
     <TailPage
       actions={actions}
+      follows={pieces[at - 1]?.turn === piece.turn && pieces[at - 1]?.page === piece.page - 1}
       key={`${piece.turn}:${piece.page}`}
       latest={piece.turn === last}
       onMore={onMore}

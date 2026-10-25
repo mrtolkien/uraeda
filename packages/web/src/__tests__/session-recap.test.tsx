@@ -268,6 +268,55 @@ test("review focus 1: a stretch of 250 calls over three pages draws one line, af
   expect(recap.getAttribute("href")).toContain(`stretch=${turn}%3A1`);
 });
 
+test("review focus 1: a stretch that ends its page draws its line on the page after", async () => {
+  // 101 items: the message and 99 reads fill the first page, and the answer starts the second.
+  const { log } = await openChat(
+    [asked("Read them all"), ...calls(1, 0, 99), said("Done.")],
+    "Done.",
+  );
+
+  const recap = await log.findByRole("link", { name: "1 min 39 s · read 99 files" });
+  expect(recapsIn(log)).toEqual([recap]);
+  expect(precedes(recap, log.getByText("Done."))).toBe(true);
+});
+
+test("review focus 1: a running turn draws the stretch that ended its page before", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  const turn = addTurn(fake, chat.id);
+  seedStretch(fake, turn, [asked("Read them all"), ...calls(1, 0, 99), said("Halfway.")]);
+  await renderPage(`/sessions/${chat.id}`, repo, { agent: fake });
+  const log = within(await screen.findByRole("log", { name: "Conversation" }));
+  await log.findByText("Halfway.");
+
+  const recap = await log.findByRole("link", { name: "1 min 39 s · read 99 files" });
+  expect(log.getAllByRole("link", { name: "1 min 39 s · read 99 files" })).toEqual([recap]);
+  expect(precedes(recap, log.getByText("Halfway."))).toBe(true);
+});
+
+test("review focus 1: a stretch before the tail's cut draws once, with the earlier messages", async () => {
+  // The first page ends with the stretch; the second holds the tail's 20 messages, from its first.
+  const exchange = Array.from({ length: 10 }, (_, index) => [
+    asked(`Question ${index}`),
+    said(`Answer ${index}`),
+  ]).flat();
+  const { log } = await openChat(
+    [asked("Read them all"), ...calls(1, 0, 99), ...exchange],
+    "Answer 9",
+  );
+  const name = "1 min 39 s · read 99 files";
+  expect(log.queryByText("Read them all")).toBeNull();
+  expect(log.queryByRole("link", { name })).toBeNull();
+
+  await click(await log.findByRole("button", { name: "Show earlier messages" }));
+
+  const recap = await log.findByRole("link", { name });
+  expect(log.getAllByRole("link", { name })).toEqual([recap]);
+  expect(precedes(log.getByText("Read them all"), recap)).toBe(true);
+  expect(precedes(recap, log.getByText("Question 0"))).toBe(true);
+});
+
 test("review focus 5: Back after a recap line leaves the page, as after a tab switch", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();

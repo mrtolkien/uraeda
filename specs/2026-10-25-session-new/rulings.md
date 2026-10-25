@@ -261,3 +261,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   decision's column of at least 400 px beside a document.
 - **If wrong**: the wide share of `useSessionColumnWidth`, and the assertion back at 760 px.
 - **Where**: task 7, `packages/web/src/__browser__/layout.test.tsx`.
+
+## R22: A stretch that ends its page draws its line on the page after
+
+- **Decision**: a stretch `open` at the end of a page before the turn's last, which the next page
+  does not go on with (that page starts with another item), draws its recap line before that page's
+  first item, joined back through the pages before as a continued stretch is. A page reads the page
+  before only when the tail draws that page above it: `PageItems`' `after` is set when the piece
+  before is its turn's page before, not when the page merely starts at its first item, since the
+  tail may cut a page at a message that is its first item.
+- **Rationale**: the page before leaves an open stretch to the page after, so a stretch ending
+  exactly at a page's end, `[message, 99 reads, "Done."]`, drew no line at all on either page. A
+  stretch before the tail's cut is not the tail's to draw, and once "Show earlier messages" draws
+  its page it is drawn once, by the page after.
+- **Alternatives considered**: the page before drawing its open stretch when the next page does not
+  go on with it, which reads the page after from the page before, a page the tail may not draw.
+- **If wrong**: `EarlierRecap` in `session/RecapLine.tsx`, drawn by `TranscriptItems`, and `follows`
+  in `tailPieces.tsx`.
+- **Where**: task 6, `packages/web/src/TranscriptMessages.tsx`, `packages/web/src/tailPieces.tsx`.

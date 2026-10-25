@@ -942,8 +942,11 @@ The break each test catches:
   page before: its recap line reads the pages before, while their last stretch is `continued` too,
   back to the stretch's start, and joins them with `joinStretches`, so it counts the whole stretch
   and links its first page's key. A stretch that is `open`, on a page before the turn's last, draws
-  no line: the page after draws it. The line sits after the stretch's last call. Pages are read with
-  `useTurnLog`, under `Suspense`, as the tail reads them.
+  no line: the page after draws it, joined to its continued stretch, or, when that page does not
+  start with one, as its own line before the page's first item (ruling R20). A page reads the page
+  before only when the tail draws it above: cut by the tail at a message, even its first item, a
+  page joins and draws nothing of the page before. The line sits after the stretch's last call.
+  Pages are read with `useTurnLog`, under `Suspense`, as the tail reads them.
 - A running turn's end, in `TailPage`, draws the live `RecapLine`:
   `liveText(now - activity.since, doing, running sub-agents)`, `doing` the latest in-progress main
   call's `doingText`, else the activity's label in lower case. It ticks each second, and is

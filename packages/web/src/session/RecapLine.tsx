@@ -225,6 +225,45 @@ export function StretchRecap({
   );
 }
 
+/** The open stretch that ends the page `after`, its recap line, else nothing. */
+function EndOfPage({ actions, after, turn }: { actions: Actions; after: number; turn: string }) {
+  const page = useTurnLog(`${turn}:${after}`);
+  const last = slotsOf(turn, page?.items ?? []).at(-1);
+  if (last?.kind !== "stretch" || !last.stretch.open) {
+    return null;
+  }
+  return (
+    <StretchRecap
+      actions={actions}
+      after={after > 0 ? after - 1 : undefined}
+      stretch={last.stretch}
+      turn={turn}
+    />
+  );
+}
+
+/**
+ * The recap line of a stretch that the page `after` ends with and that its page after does not go
+ * on with: that page did not draw it, waiting for the page after, which draws it before its first
+ * item.
+ */
+export function EarlierRecap({
+  actions,
+  after,
+  turn,
+}: {
+  actions: Actions;
+  after: number;
+  turn: string;
+}) {
+  // The page before is drawn above, so it is in already: the wait is for its first read alone.
+  return (
+    <Suspense fallback={null}>
+      <EndOfPage actions={actions} after={after} turn={turn} />
+    </Suspense>
+  );
+}
+
 /** The time now, again each second. */
 function useNow() {
   const [now, setNow] = useState(() => Date.now());

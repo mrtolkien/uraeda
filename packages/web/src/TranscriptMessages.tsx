@@ -15,7 +15,7 @@ import { refusal } from "./errors.ts";
 import { statusStyles } from "./Question.tsx";
 import { ProseMarkdown } from "./Prose.tsx";
 import { MessageBody } from "./MessageBody.tsx";
-import { StretchRecap } from "./session/RecapLine.tsx";
+import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
 import { slotsOf } from "./session/stretches.ts";
 import { useOfferPlugins } from "./SessionOffers.tsx";
 import { SessionView } from "./views.ts";
@@ -228,8 +228,9 @@ export function TranscriptItems({
 }: {
   actions: Actions;
   /**
-   * The page before these items, whose open stretch their first one goes on: undefined on the
-   * turn's first page, or when the items do not start their page.
+   * The page before these items, drawn above them, whose open stretch their first one goes on, or
+   * whose open stretch is drawn before them when they do not go on with it: undefined on the
+   * turn's first page, when the items do not start their page, or when the page before is not drawn.
    */
   after: number | undefined;
   /**
@@ -243,7 +244,15 @@ export function TranscriptItems({
   queued: boolean;
   turn: string;
 }) {
-  return slotsOf(turn, items).map((slot) => {
+  const slots = slotsOf(turn, items);
+  // A stretch the page before ends with, which these items do not go on with, is drawn before them:
+  // the page before left it to this one.
+  const first = slots[0];
+  const earlier =
+    after !== undefined && first?.kind !== "stretch" ? (
+      <EarlierRecap actions={actions} after={after} key="recap-earlier" turn={turn} />
+    ) : null;
+  const drawn = slots.map((slot) => {
     if (slot.kind === "stretch") {
       const { stretch } = slot;
       return stretch.open && !endsOpen ? null : (
@@ -284,4 +293,5 @@ export function TranscriptItems({
     // A call or a thought is a stretch's: `slotsOf` leaves none alone.
     return null;
   });
+  return [earlier, ...drawn];
 }
