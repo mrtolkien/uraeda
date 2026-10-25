@@ -1,5 +1,7 @@
 // Runs before each test file of the UI's happy-dom tests.
 import nodeConsole from "node:console";
+import { afterEach } from "vite-plus/test";
+import { endJump } from "../roundJump.ts";
 
 /**
  * happy-dom prints an error for each frame it does not load, as `vite.config.ts` asks of it, on the
@@ -28,4 +30,12 @@ if (typeof document !== "undefined") {
   const popovers = document.createElement("style");
   popovers.textContent = "[popover] { display: none; }";
   document.head.append(popovers);
+}
+
+/**
+ * A jump ends a second after its scroll's last move: one a test started would end after the test
+ * file's page is gone, its timer then reaching for a `window` that is no more. Each test ends its.
+ */
+if (typeof window !== "undefined") {
+  afterEach(() => endJump());
 }
