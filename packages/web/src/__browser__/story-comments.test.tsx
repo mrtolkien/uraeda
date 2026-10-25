@@ -255,7 +255,7 @@ describe("on a desktop, around the embed", () => {
 describe("on the phone", () => {
   atSize("phone");
 
-  test("on the phone, the toolbar is three named icons, picking asks for a tap, and the form is a sheet (US1.5)", async () => {
+  test("on the phone, the toolbar is two named icons, picking asks for a tap, and the form is a sheet (US1.5)", async () => {
     await readyEmbed();
     // Shown once a frame said it has the pick script.
     const pickButton = await within(embed()).findByRole("button", { name: PICK }, READY);
@@ -263,7 +263,6 @@ describe("on the phone", () => {
     const controls = [
       [pickButton, PICK],
       [within(embed()).getByRole("button", { name: "Comment" }), "Comment"],
-      [within(embed()).getByRole("link", { name: "Open in Storybook" }), "Open in Storybook"],
     ] as const;
     for (const [control, name] of controls) {
       expect(control.textContent).not.toContain(name);

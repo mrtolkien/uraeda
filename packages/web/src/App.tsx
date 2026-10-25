@@ -15,7 +15,7 @@ import {
 } from "react";
 import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
-import { usePreview, useRepositories } from "./data.ts";
+import { MAIN_CHECKOUT, usePreview, useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
 import { CheckPage } from "./decisions/CheckPage.tsx";
 import { DecisionsPage, type LedgerOpen } from "./decisions/DecisionsPage.tsx";
@@ -45,12 +45,13 @@ import {
   useRepoPath,
   useRestoreScroll,
   useRoute,
+  useSearch,
 } from "./routes.tsx";
 import { ListClientContext, useOpenRepository } from "./RepositoryMenu.tsx";
 import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.tsx";
 import { SessionPage } from "./SessionPage.tsx";
 import { SettingsPage } from "./settings/SettingsPage.tsx";
-import { StorybookPage } from "./StorybookPage.tsx";
+import { StoryPage, storyOf } from "./StoryPage.tsx";
 import { TriagePage } from "./TriagePage.tsx";
 import { Shell } from "./Shell.tsx";
 import { SessionsPage } from "./shell/SessionsPage.tsx";
@@ -164,7 +165,7 @@ function RoutePage({ route }: { route: Route }) {
     case "session":
       return <SessionRoute folder={route.folder} />;
     case "storybook":
-      return <StorybookPage folder={route.folder} />;
+      return <StoryRoute folder={route.folder} />;
     case "run":
       return <RunRedirect folder={route.folder} id={route.id} />;
     case "session-id":
@@ -244,6 +245,21 @@ function ItemPage({ folder }: { folder: string }) {
 /** A feature's session: a page of its own at every width. */
 function SessionRoute({ folder }: { folder: string }) {
   return <SessionPage folder={folder} />;
+}
+
+/**
+ * The old Storybook address: with `?story=`, the story's page; without, the feature's page, or Home
+ * for the main checkout's, which no longer has a page of its own.
+ */
+function StoryRoute({ folder }: { folder: string }) {
+  const here = useRepoPath();
+  const story = storyOf(useSearch());
+  useLayoutEffect(() => {
+    if (!story) {
+      redirect(here(folder === MAIN_CHECKOUT ? "/" : `/f/${encodeURIComponent(folder)}`));
+    }
+  }, [folder, here, story]);
+  return story ? <StoryPage folder={folder} story={story} /> : null;
 }
 
 /** An old run's address: its feature's session, at the turn the run became. */

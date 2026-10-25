@@ -540,7 +540,7 @@ transcripts, change meaning.
   main checkout's. `storybookHref` keeps building the address; its last user outside links,
   `FileList`, goes in task 8. `StartsStorybook` stays.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 test("a story linked in a sentence opens on a page of its own, in the live window", async () => {
@@ -548,11 +548,11 @@ test("a story linked in a sentence opens on a page of its own, in the live windo
     agent: true,
   });
 
-  expect(await screen.findByRole("group", { name: /Phone|Desktop/ })).toBeTruthy(); // the window's width switch
+  expect(await screen.findByRole("figure", { name: "Dragging" })).toBeTruthy(); // the live window
   expect(screen.queryByRole("link", { name: "Open in Storybook" })).toBeNull();
 });
 
-test("the Storybook address opens Home", async () => {
+test("the Storybook address of a feature opens its page", async () => {
   await renderPage(`/f/${RECURRING}/storybook`, fixtureRepo(), { agent: true });
 
   expect(await screen.findByRole("heading", { name: "Recurring tasks" })).toBeTruthy();
@@ -560,8 +560,9 @@ test("the Storybook address opens Home", async () => {
 });
 
 test("a story that is gone reads as such, without Open in Storybook", async () => {
-  /* embed in a spec */
+  /* embed in a spec: the browser test of `story-embed.test.tsx` */
 });
+test("the main checkout's Storybook address opens Home", async () => {});
 test.each(["session", "change"])("the %s's column does not link Storybook", async () => {
   /* no 'Storybook' row */
 });
@@ -569,25 +570,27 @@ test.each(["session", "change"])("the %s's column does not link Storybook", asyn
 
 Replace the keep-alive test of the page by the same assertion on the story page (a story page asks
 again every 5 minutes, as an embed does), and the browser test of the page ready by the story page
-ready, in both modes. Each replaced test gets a ruling (R2, R3). The breaks they catch: an inline
-link that goes nowhere; a bookmark that opens a blank page; a link left in a column (SC-005).
+ready, in both modes. Each replaced test gets a ruling (R2, R3).
+`__browser__/storybook-page.test.tsx` wholly tested the removed page and goes (R11). The breaks they
+catch: an inline link that goes nowhere; a bookmark that opens a blank page; a link left in a column
+(SC-005).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/story-page.test.tsx`
 - Expected: FAIL, the old page draws Storybook's frame, not the live window
 
-- [ ] **Step 3: Replace the page, remove the rows and the link, adjust the route**
+- [x] **Step 3: Replace the page, remove the rows and the link, adjust the route**
 
 `StoryPage` reads nothing of its own: it passes the story to `StoryEmbed` with `label` the export's
 name, inside `Page`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

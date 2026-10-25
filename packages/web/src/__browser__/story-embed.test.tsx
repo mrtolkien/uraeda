@@ -434,7 +434,7 @@ describe("on a desktop, the embed among other windows and boxes", () => {
 describe("on the phone", () => {
   atSize("phone");
 
-  // R3, R7: the phone's width first, scaled to fit the screen, its switch and links named icons.
+  // R3, R7: the phone's width first, scaled to fit the screen, its switch named icons.
   test("on the phone, the story shows at the phone width, scaled to fit, with named icons (US1.5)", async () => {
     await commands.addStoryFeature();
     await showSpec();
@@ -450,7 +450,6 @@ describe("on the phone", () => {
     const controls = [
       within(embed()).getByRole("radio", { name: "Phone" }),
       within(embed()).getByRole("radio", { name: "Desktop" }),
-      within(embed()).getByRole("link", { name: "Open in Storybook" }),
     ];
     for (const control of controls) {
       expect(control.textContent).toBe("");
@@ -493,7 +492,7 @@ test("each state says why the story does not show", async () => {
   ).toBeTruthy();
 });
 
-test("a story the branch does not have says so, with Open in Storybook", async () => {
+test("a story the branch does not have says so", async () => {
   await commands.addStoryFeature();
   // The proposal, as on disk in the worktree, links an export the stories file does not have.
   const proposal = `.worktrees/${FEATURE}/specs/${FEATURE}/proposal.md`;
@@ -506,7 +505,7 @@ test("a story the branch does not have says so, with Open in Storybook", async (
   expect(
     await within(embed()).findByText(`No story “Missing” in ${STORIES} on this branch.`, {}, READY),
   ).toBeTruthy();
-  expect(within(embed()).getByRole("link", { name: "Open in Storybook" })).toBeTruthy();
+  expect(within(embed()).queryByRole("link", { name: "Open in Storybook" })).toBeNull();
 });
 
 test("a feature without a worktree says its stories cannot run", async () => {

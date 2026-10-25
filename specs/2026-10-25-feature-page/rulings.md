@@ -118,3 +118,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   layer for no rule.
 - **If wrong**: moving the call up is a one-line change in each page.
 - **Where**: task 2.
+
+## R11: The browser file of the Storybook page goes, and Storybook's own interface is no longer framed
+
+- **Decision**: `__browser__/storybook-page.test.tsx` is deleted: every test in it was of the
+  removed page (its frame, its `?path=` address, its rows in the pages' lists, the "Open in
+  Storybook" links). The story page is covered by `__tests__/story-page.test.tsx` and R3's browser
+  test. `scripts/validate-storybook.ts`, run by hand and outside `vp run ready`, framed Storybook's
+  interface through that page and no longer reaches it; it is left for a later task. The unit test
+  of the story page reads the live window (a `figure` named by the export), not its width switch,
+  because unit tests run no Storybook.
+- **Rationale**: a test of a page that no longer exists guards nothing; what the page carried (a
+  failed Storybook says why, a missing story says so) lives on in the embed's tests.
+- **Alternatives considered**: keeping the file with its tests rewritten for the story page:
+  rejected, `story-embed.test.tsx` already covers the states, and R3 the layout.
+- **If wrong**: a story page's own states are untested in the browser; the browser run lists them.
+- **Where**: task 3.

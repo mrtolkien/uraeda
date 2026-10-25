@@ -30,7 +30,7 @@ export const Starting: Story = { args: { folder: CHECKOUTS.starting, story: drag
 /** A Storybook that exited, with its last line and "Try again". */
 export const Failed: Story = { args: { folder: CHECKOUTS.failed, story: dragging } };
 
-/** A story the branch does not have, with "Open in Storybook". */
+/** A story the branch does not have. */
 export const Missing: Story = { args: { folder: CHECKOUTS.ready, story: resizing } };
 
 /** A variant of an answered round that the agent removed after the answer. */
