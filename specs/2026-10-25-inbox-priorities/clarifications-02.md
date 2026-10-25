@@ -106,14 +106,14 @@ sets how much of the board you still see.
 
 - **B. A large float, over most of the window, like an nvim floating window.**
 
-  [A large float](mockups/overlay-b-large-float.html)
+  A large float (`mockups/overlay-b-large-float.html`, deleted)
 
   - [pro] room for a long note, its draft, and images.
   - [con] it hides the board, and a short line floats in a large empty box.
 
 - **C. A drawer on the right edge, over the dimmed page.**
 
-  [A drawer](mockups/overlay-c-drawer.html)
+  A drawer (`mockups/overlay-c-drawer.html`, deleted)
 
   - [pro] it keeps most of the board in view, like GitHub's side panel.
   - [con] it needs Astryx's `Drawer`, which the shared overlay does not use, and it covers the

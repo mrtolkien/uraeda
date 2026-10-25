@@ -128,14 +128,14 @@ option shows them differently.
 
 - **B. The file drawn as a buffer: line numbers, `## UI` headings as lines, notes as bullets.**
 
-  [The file as a buffer](mockups/inbox-b-buffer.html)
+  The file as a buffer (`mockups/inbox-b-buffer.html`, deleted)
 
   - [pro] the closest to nvim, where you manage the inbox now.
   - [con] reads as raw markdown, less readable for long notes, and tags and images fit badly.
 
 - **C. An index of categories on the left and one category's notes on the right.**
 
-  [Index and one category](mockups/inbox-c-index.html)
+  Index and one category (`mockups/inbox-c-index.html`, deleted)
 
   - [pro] short pages, and `h l` moves between categories.
   - [con] one category at a time hides the rest, and the phone needs two pages.
