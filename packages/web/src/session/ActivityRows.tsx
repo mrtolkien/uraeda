@@ -41,7 +41,6 @@ const styles = stylex.create({
   // so the row's description keeps the most room (approval comment C2).
   end: {
     maxInlineSize: { "@container (max-width: 360px)": "min-content", default: "none" },
-    textAlign: "end",
   },
   // The live row, tinted in the accent, as the mockup's `.on`.
   live: { backgroundColor: colorVars["--color-accent-muted"] },
