@@ -209,7 +209,9 @@ function Runs({
     <VStack gap={3}>
       {before && (
         <Button
-          clickAction={() => onMore(drawn, box.current?.firstElementChild ?? null)}
+          // The place kept is the first row drawn: the rows added may join its run, above it,
+          // and leave the run's block where it was.
+          clickAction={() => onMore(drawn, box.current?.querySelector("li") ?? null)}
           label="Show earlier runs"
           size="sm"
           variant="ghost"

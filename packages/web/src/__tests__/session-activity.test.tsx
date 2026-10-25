@@ -179,6 +179,23 @@ function watchScrolls() {
   };
 }
 
+/**
+ * Lays the page out as `watchScrolls` does, each element's top its place in the document, and
+ * returns how far the page scrolled since, in px, all boxes and the window together.
+ */
+function watchShifts() {
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    return new DOMRect(0, all().indexOf(this), 100, 1);
+  });
+  let total = 0;
+  const add = (options?: ScrollToOptions | number) => {
+    total += typeof options === "number" ? 0 : (options?.top ?? 0);
+  };
+  vi.spyOn(Element.prototype, "scrollBy").mockImplementation(add);
+  vi.spyOn(window, "scrollBy").mockImplementation(add);
+  return () => total;
+}
+
 test("US1.2: the stretch's address scrolls to its run, and marks its rows", async () => {
   const chat = await newChat();
   const turn = timedRun(chat.fake, chat.chat, SCENARIO, 2 * 60_000);
@@ -286,6 +303,22 @@ test("SC-002: a session of 5,000 calls mounts at most 200 rows; Show earlier run
   await click(activity().getByRole("button", { name: "Show earlier runs" }));
   await waitFor(() => expect(rows()).toHaveLength(2 * ACTIVITY_ROWS));
   expect(activity().getByText("src/run-5/file-600.ts")).toBeTruthy();
+});
+
+test("Show earlier runs keeps the reader's place when its rows join the same run", async () => {
+  const chat = await newChat();
+  addRun(chat.fake, chat.chat, [asked("Read them all"), ...reads(1, 1000), said("Done.")]);
+  await openActivity(chat);
+  const scrolledBy = watchShifts();
+  const first = rows()[0]!;
+  const before = all().indexOf(first);
+
+  await click(activity().getByRole("button", { name: "Show earlier runs" }));
+
+  await waitFor(() => expect(rows()).toHaveLength(2 * ACTIVITY_ROWS));
+  // The row first drawn moved down by the rows drawn above it, and the scroll followed it.
+  expect(all().indexOf(first)).toBeGreaterThan(before);
+  await waitFor(() => expect(all().indexOf(first) - scrolledBy()).toBe(before));
 });
 
 test("review focus 2: a stretch older than the 200 rows draws back to its run", async () => {
