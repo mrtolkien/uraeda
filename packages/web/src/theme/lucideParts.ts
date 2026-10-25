@@ -1,6 +1,6 @@
 // Lucide's glyphs for the spec's parts and the New page's cards, beside `lucide.ts`, which is near
-// its size limit. Written
-// without JSX, which the theme's build does not compile; registered with Astryx by `icons.ts`.
+// its size limit. Written without JSX, which the theme's build does not compile; registered with
+// Astryx by `icons.ts`.
 import { createElement as h } from "react";
 import { outline } from "./lucide.ts";
 

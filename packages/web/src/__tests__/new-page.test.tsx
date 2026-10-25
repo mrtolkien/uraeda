@@ -1,7 +1,8 @@
 // The New page: three cards, a group of radios in the URL, pick a session, a change, or a feature,
 // each with its sentence, its example, what it ends with, and what waits on the human (US5).
-// Session sends a first message in the main checkout; Change starts a change from a typed text, an inbox note, or a priority line, and opens
-// its session; Feature drafts a new title, a note, or a priority line, and opens it in the editor.
+// Session sends a first message in the main checkout; Change starts a change from a typed text, an
+// inbox note, or a priority line, and opens its session; Feature drafts a new title, a note, or a
+// priority line, and opens it in the editor.
 // "Start the change" from a typed text opens its session, where its agent works. The edge case "No
 // agent on this machine": the session opens with the workflow's message in its composer, unsent, as
 // a feature's hand-over does. A start that answers once the human left opens nothing.
