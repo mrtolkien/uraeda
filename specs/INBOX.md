@@ -21,6 +21,7 @@
 - "drafting a priority" is ass btw. It should be "Turn a priority into a draft".
 - In clarifications of inbox triage, most notes were cut -> very hard to read
 - Need more space between the last card and "settle without you" in questions
+- [session-new] Questions page needs a bit more borders on desktop, the frames feel way too tight
 
 ## Prompts
 
