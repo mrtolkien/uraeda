@@ -230,6 +230,18 @@ export const InboxView = view<Inbox>()({
   triage: true,
 });
 
+/** The inbox as a category's delete answers it: with `removed`, the file as it was. */
+export const InboxRemovedView = view<Inbox>()({
+  categories: true,
+  changes: true,
+  count: true,
+  hash: true,
+  id: true,
+  names: true,
+  removed: true,
+  triage: true,
+});
+
 /** The inbox as an add answers it: with `added`, whether "Add and commit" committed. */
 export const InboxAddedView = view<Inbox>()({
   added: { committed: true, message: true, reason: true },

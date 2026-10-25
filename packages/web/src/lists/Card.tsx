@@ -178,7 +178,8 @@ export function Card({
           {line}
         </Text>
       ))}
-      {row.image}
+      {/* A block of its own: under the text, as a note's row draws it, not beside it. */}
+      {row.image !== undefined && <div>{row.image}</div>}
       {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
       {row.menu !== undefined && <span {...stylex.props(styles.menu)}>{row.menu}</span>}
     </li>

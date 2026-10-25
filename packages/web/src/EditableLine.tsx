@@ -99,9 +99,12 @@ export function EditableLine({
  * restore notice of its unsaved text, and its save's status.
  */
 export function LineField({
+  isBare = false,
   label,
   line,
 }: {
+  /** Only the restore notice and the field, for a line that is a title: Enter and Escape decide. */
+  isBare?: boolean;
   label: string;
   line: ReturnType<typeof useLineSave>;
 }) {
@@ -130,22 +133,24 @@ export function LineField({
         status={line.error ? { message: line.error, type: "error" } : undefined}
         value={field.text}
       />
-      <HStack align="center" gap={2} wrap="wrap">
-        <Button label="Cancel" onClick={() => void line.cancel()} size="sm" variant="secondary" />
-        <Button
-          isDisabled={!field.dirty}
-          label="Save"
-          onClick={() => void line.save()}
-          size="sm"
-          variant="primary"
-        />
-        <SaveStatus dirty={field.dirty} state={line.state} />
-        {wide && (
-          <Text color="secondary" type="supporting">
-            Enter saves · Escape cancels
-          </Text>
-        )}
-      </HStack>
+      {!isBare && (
+        <HStack align="center" gap={2} wrap="wrap">
+          <Button label="Cancel" onClick={() => void line.cancel()} size="sm" variant="secondary" />
+          <Button
+            isDisabled={!field.dirty}
+            label="Save"
+            onClick={() => void line.save()}
+            size="sm"
+            variant="primary"
+          />
+          <SaveStatus dirty={field.dirty} state={line.state} />
+          {wide && (
+            <Text color="secondary" type="supporting">
+              Enter saves · Escape cancels
+            </Text>
+          )}
+        </HStack>
+      )}
     </VStack>
   );
 }

@@ -324,7 +324,7 @@ The break each test catches:
 - Own card: dnd-kit's click after a drag opening the overlay.
 - Running card: a draggable card that is derived.
 
-- [x] **Step 2: Run them to check they fail**
+- [ ] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test --project desktop packages/web/src/__browser__/card-drag.test.tsx`
 - Expected: FAIL at the first test, the pointer press on the text does not navigate because the
@@ -418,7 +418,7 @@ The `init` test: `ura init` writes a `PRIORITIES.md` with Now, Next, and Later, 
 `ura check` reports nothing for it. The break each test catches: a context read from any `>` line
 (the marker's text); a Blocked required again; a Blocked warning that fails the check.
 
-- [x] **Step 2: Run them to check they fail**
+- [ ] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test priorities --test check`
 - Expected: FAIL, `no field context on type SectionItems`.
@@ -528,7 +528,7 @@ fn a_name_is_refused_when_empty_taken_missing_or_not_a_heading() {
 The break each test catches: a delete that drops the notes it should keep, a restore that normalizes
 line endings, a stale restore that overwrites a later edit, and a name written as another one.
 
-- [x] **Step 2: Run them to check they fail**
+- [ ] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test categories`
 - Expected: FAIL, `unresolved import uraeda_core::files::inbox::categories`.
@@ -601,7 +601,7 @@ test("the priorities carry each section's context", async () => {
 
 The break each test catches: a `removed` text lost in the record, or a context left out of the view.
 
-- [x] **Step 2: Run them to check they fail**
+- [ ] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp run binding:build && nix develop -c vp test packages/server/src/__tests__/inbox.test.ts`
@@ -675,7 +675,7 @@ test("the panes are stacked in the order Ongoing, Now, Next, Later", async () =>
 The break each test catches: columns that shrink to fit instead of scrolling, a Blocked pane for an
 empty section, a drop that writes into a derived Ongoing, a context drawn for a section with none.
 
-- [x] **Step 2: Run them to check they fail**
+- [ ] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test --project desktop packages/web/src/__browser__/priorities-columns.test.tsx`
@@ -757,7 +757,7 @@ test("a tap on a card opens a bottom sheet with a visible Close", async () => {}
 The break each test catches: a remounted list (selection and scroll lost), a pushed entry per step,
 two Backs to close, a dialog the spec's size is not.
 
-- [x] **Step 2: Run them to check they fail**
+- [ ] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test --project desktop packages/web/src/__browser__/detail-overlay.test.tsx`
@@ -837,7 +837,7 @@ test("every card shows its … button", async () => {});
 The break each test catches: a move that lands between running entries, a menu only hover shows, a
 menu that offers a move for a derived card.
 
-- [x] **Step 2: Run them to check they fail**
+- [ ] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/card-moves.test.ts`
 - Expected: FAIL, `Failed to resolve import "../lists/cardMoves.ts"`.
@@ -879,13 +879,13 @@ git commit -m "feat(inbox-priorities): a menu on every card"
 - Produces: the inbox's panes in file order with the notes without a category first, an empty
   category shown as an empty pane, "New category", a title renamed in place, and a pane menu that
   deletes it, asking "Delete the N notes too?" with three bordered lines, Yes (Y), No (N), and
-  Cancel (C), keys included. `useCategoryActions(inbox)` returns `add(name)`, `rename(from, to)`,
-  `remove(name, count)`, each refusal as a message by the pane, and a conflict read again. An Undo
-  toast follows a delete, and calls `inbox.restoreCategory` with the answer's `removed`. The page
-  says "Things noticed, not decided: turn each into a priority, a draft, or nothing." under its
+  Cancel (C), keys included. `useCategoryActions(hash)` returns `add(name)`, `rename(from, to)`,
+  `remove(name, keepNotes)`, each refusal as a message by the pane, and a conflict read again. An
+  Undo toast follows a delete, and calls `inbox.restoreCategory` with the answer's `removed`. The
+  page says "Things noticed, not decided: turn each into a priority, a draft, or nothing." under its
   title. An empty inbox shows that line and "New category", and no empty pane without a heading.
 
-- [ ] **Step 1: Write the failing tests, and the stories**
+- [x] **Step 1: Write the failing tests, and the stories**
 
 Stories `Inbox` (panes with notes) and `CategoryDelete` (the dialog open).
 
@@ -912,18 +912,18 @@ category invisible, a name refused with the wrong text.
 - Run: `nix develop -c vp test --project desktop packages/web/src/__browser__/inbox-panes.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "New category"`.
 
-- [ ] **Step 3: Implement the panes and their controls**
+- [x] **Step 3: Implement the panes and their controls**
 
 An empty category's pane comes from `names` minus the categories with notes. The dialog's three
 choices are bordered lines of the terminal look, each showing its key, and the keys work while it is
 open.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then both browser projects on `inbox`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-25-inbox-priorities
