@@ -5,23 +5,23 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
 import type { Block, CommentItem, Document, PlanItems } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
-import { type Folds, useHashFold } from "./Folds.tsx";
+import { useHashFold } from "./Folds.tsx";
 import { Page } from "./layout/Page.tsx";
 import { Pane } from "./layout/Pane.tsx";
+import { type Drawing, SectionPane } from "./document/SectionPane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { type OpeningRun, type PlanSection, planParts, sectionId } from "./planParts.ts";
+import { type OpeningRun, planParts, sectionId } from "./planParts.ts";
 import { ReviewEnd, ReviewHost, ReviewIntro, useReview } from "./review/useReview.tsx";
 import { type PageSession, usePageSession } from "./spec/pageSession.ts";
 import { SpecColumn } from "./spec/SpecColumn.tsx";
 import { Contents, type Entry } from "./spec/SpecContents.tsx";
-import { Selectable, type Selection, SelectionRoom } from "./Selection.tsx";
+import { Selectable, SelectionRoom } from "./Selection.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import { SinceWords, wordCount } from "./sinceMarks.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -29,9 +29,6 @@ import { StoriesProvider } from "./stories.tsx";
 import { fileStatusBadge } from "./labels.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-/** What the plan's parts draw with: its tree, and while it waits, its review's folds and taps. */
-type Drawing = { document: Document; folds?: Folds; selection?: Selection };
 
 /** A lead pane's id: "lead-" then its label as an anchor, `lead-tech-stack`, unlike a section's. */
 const leadId = (label: string) =>
@@ -65,62 +62,6 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
       <SelectionRoom selection={drawing.selection}>
         <Blocks {...drawing} ids={[run.block]} override={override} />
       </SelectionRoom>
-    </Pane>
-  );
-}
-
-/**
- * While the plan waits for review, its section's heading line, as written, which its pane's title
- * says: tapped, it takes a comment, shown under it. Read-only, nothing.
- */
-function HeadingLine({ heading, selection }: { heading: Block; selection?: Selection }) {
-  if (!selection) {
-    return null;
-  }
-  return (
-    <Selectable block={heading} selection={selection}>
-      <Text as="div" color="secondary" display="block" type="inherit">
-        {"## "}
-        <Spans spans={heading.spans} />
-      </Text>
-    </Selectable>
-  );
-}
-
-/**
- * A section in a pane titled by its heading, its anchor as id, open on the phone as the spec's parts
- * are; a task's titled "Task N · <title>",
- * with its steps checked out of its total, so a link to the heading lands on its pane.
- */
-function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSection }) {
-  const { heading, ids, task } = section;
-  const blocks = (
-    <SelectionRoom selection={drawing.selection}>
-      <HeadingLine heading={heading} selection={drawing.selection} />
-      {ids.length > 0 && <Blocks {...drawing} ids={ids} />}
-    </SelectionRoom>
-  );
-  if (!task) {
-    return (
-      <Pane id={sectionId(heading)} isOpenOnPhone title={heading.heading ?? ""}>
-        {blocks}
-      </Pane>
-    );
-  }
-  const badge = (
-    <Badge
-      label={`${task.done}/${task.total}`}
-      variant={task.done === task.total ? "success" : "neutral"}
-    />
-  );
-  return (
-    <Pane
-      id={sectionId(heading)}
-      isOpenOnPhone
-      title={`Task ${task.number} · ${task.title}`}
-      titleSuffix={badge}
-    >
-      {blocks}
     </Pane>
   );
 }
