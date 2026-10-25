@@ -173,7 +173,8 @@ const styles = stylex.create({
     paddingBlockEnd: spacingVars["--spacing-1"],
     // The title, in the flow, takes the room above the content.
     paddingBlockStart: 0,
-    paddingInline: spacingVars["--spacing-3"],
+    // The theme's room, or a narrower one an ancestor sets, as the shell's column does.
+    paddingInline: `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
     position: "relative",
   },
   problem: { borderColor: colorVars["--color-border-red"] },

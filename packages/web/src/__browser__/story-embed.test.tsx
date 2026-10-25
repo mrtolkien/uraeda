@@ -57,6 +57,35 @@ async function atPhoneWidth() {
 /** A frame's height on the page, in px. */
 const heightOf = (title: string) => screen.getByTitle(title).getBoundingClientRect().height;
 
+/** The width inside a box's borders and padding: the room it gives what it holds, in px. */
+function roomIn(element: Element) {
+  const style = getComputedStyle(element);
+  const insets = [
+    style.borderLeftWidth,
+    style.borderRightWidth,
+    style.paddingLeft,
+    style.paddingRight,
+  ].reduce((sum, inset) => sum + Number.parseFloat(inset), 0);
+  return element.getBoundingClientRect().width - insets;
+}
+
+/**
+ * The boxes from a frame up to `top` a pixel or more off the room their parent gives them: none
+ * when the frame is scaled to the whole room, narrowed by the insets around it alone, whatever
+ * their sizes in the theme.
+ */
+function offTheirRoom(frame: Element, top: Element) {
+  const off: Array<string> = [];
+  for (let box = frame; box !== top && box.parentElement; box = box.parentElement) {
+    const room = roomIn(box.parentElement);
+    const width = box.getBoundingClientRect().width;
+    if (Math.abs(room - width) >= 1) {
+      off.push(`${box.tagName}: ${width} px in ${room} px`);
+    }
+  }
+  return off;
+}
+
 describe("on a desktop", () => {
   atSize("desktop");
 
@@ -91,10 +120,8 @@ describe("on a desktop", () => {
     await showSpec();
     await storyShown(DESKTOP);
     const frame = within(embed()).getByTitle(DESKTOP);
-    // The desktop width, scaled to the whole embed.
-    expect(frame.getBoundingClientRect().width).toBeGreaterThan(
-      embed().getBoundingClientRect().width - 50,
-    );
+    // The desktop width, scaled to the whole embed: only its pane's and its stage's insets narrow it.
+    expect(offTheirRoom(frame, embed())).toEqual([]);
     await commands.frameClick(DESKTOP, "button", "Hide the sidebar");
     await expect.poll(() => commands.frameText(DESKTOP)).toContain("Clicked 1 time");
 
@@ -415,7 +442,10 @@ describe("on the phone", () => {
     const phone = await within(embed()).findByTitle(PHONE, {}, READY);
     await storyShown(PHONE);
     expect(phone.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
-    expect(phone.getBoundingClientRect().width).toBeGreaterThan(window.innerWidth - 60);
+    // The screen's whole width: only the page's, the pane's, and the stage's insets narrow it.
+    const main = phone.closest('[role="main"]')!;
+    expect(main.getBoundingClientRect().width).toBe(window.innerWidth);
+    expect(offTheirRoom(phone, main)).toEqual([]);
     expect(within(embed()).queryByTitle(DESKTOP)).toBeNull();
     const controls = [
       within(embed()).getByRole("radio", { name: "Phone" }),

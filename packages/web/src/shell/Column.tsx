@@ -29,6 +29,9 @@ const styles = stylex.create({
     transitionTimingFunction: easeVars["--ease-standard"],
   },
   nav: {
+    // Its panes' narrow inset: their rows carry their own, and a row's label, such as Priorities
+    // beside its count and its ＋, keeps its room in the 256 px column.
+    "--pane-inset": spacingVars["--spacing-1"],
     // As tall as the window: its heading and foot stay, and the panes between them scroll.
     backgroundColor: colorVars["--color-background-body"],
     borderInlineEndColor: colorVars["--color-border"],

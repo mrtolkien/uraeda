@@ -409,3 +409,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: hiding the progress, as before, which hid what the record still knew.
 - **If wrong**: `AtTask` in `session/PlanProgress.tsx`, its `Section`'s `failed`.
 - **Where**: the final review, `packages/web/src/__tests__/session-column.test.tsx`.
+
+## R31: The column's panes keep their narrow inset under main's wider pane padding
+
+- **Decision**: main's `2a53f9ab` widened a pane's inset from `--spacing-1` to `--spacing-3`, which
+  three browser tests failed on `main` itself, the first in light and dark:
+  - the sidebar's layout check, "the sidebar with sessions, searched for “”" (desktop), guards that
+    no text is cut: "Priorities", beside its count and its ＋, was cut to "Prioriti…" in the 256 px
+    column, 101 px of text in 92. A real defect, fixed in the code: the pane's inset is now
+    `var(--pane-inset, --spacing-3)`, and the shell's column sets `--pane-inset` to `--spacing-1`,
+    so its panes, whose rows carry their own inset, keep the room they had. Every other pane takes
+    the wider inset. The test is unchanged.
+  - "Phone and Desktop resize the one frame… (US1.2)" (desktop) guards that the desktop's width is
+    scaled to the whole embed; "on the phone, the story shows at the phone width, scaled to fit…
+    (US1.5)" (phone) guards that the phone's width is scaled to the whole screen. Their slack, 50
+    and 60 px under the embed's and the screen's widths, was a fixed number the wider inset passed.
+    Both now measure the room: each box from the frame up to the embed, or up to the main region as
+    wide as the screen, is within a pixel of the room its parent gives it, so only the insets around
+    the frame narrow it, whatever the theme's sizes. Tighter than the slack: a frame scaled to 95%
+    of its stage fails them.
+- **Rationale**: the wider inset is the human's request, for frames that felt too tight; a test that
+  fails because of it is changed, and a text it cuts is a defect.
+- **Alternatives considered**: a wider column, 272 px, which changes the column's approved 256 px
+  and its tests; the wider inset in the column too, with "Priorities" cut; new slacks of 70 and 80
+  px, a fixed number again.
+- **If wrong**: `--pane-inset` of `nav` in `packages/web/src/shell/Column.tsx`, and `offTheirRoom`
+  in `packages/web/src/__browser__/story-embed.test.tsx`.
+- **Where**: a fix on top of main, `packages/web/src/layout/Pane.tsx`.
