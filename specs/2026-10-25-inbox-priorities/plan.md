@@ -630,8 +630,8 @@ git commit -m "feat(inbox-priorities): category edits and section context throug
 
 **Files:**
 
-- Create: `packages/web/src/lists/Columns.tsx`,
-  `packages/web/src/__browser__/priorities-columns.test.tsx`
+- Create: `packages/web/src/__browser__/priorities-columns.test.tsx` (the columns live in
+  `WorkList.tsx`, with no `Columns.tsx`: a pane of the row is the section's own pane)
 - Modify: `packages/web/src/lists/WorkList.tsx` (sections as titled panes; `layout`),
   `packages/web/src/lists/PrioritiesList.tsx` (context, Blocked, Ongoing's context, `blocked` tone
   gone), `packages/web/src/PrioritiesPage.tsx` (purpose line),
@@ -647,7 +647,7 @@ git commit -m "feat(inbox-priorities): category edits and section context throug
   narrow class, as `stack`. A section whose title is "Blocked" is drawn under the row, and only when
   it has entries; `fileIndex` and `byRunning` keep their signatures.
 
-- [ ] **Step 1: Write the failing tests, and the story**
+- [x] **Step 1: Write the failing tests, and the story**
 
 First, the story `Columns` of `WorkList.stories.tsx` (the priorities over the fixture, Ongoing, Now,
 Next, Later with their contexts), and `Phone`, the same at 390 px with the viewport parameter.
@@ -675,13 +675,13 @@ test("the panes are stacked in the order Ongoing, Now, Next, Later", async () =>
 The break each test catches: columns that shrink to fit instead of scrolling, a Blocked pane for an
 empty section, a drop that writes into a derived Ongoing, a context drawn for a section with none.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test --project desktop packages/web/src/__browser__/priorities-columns.test.tsx`
 - Expected: FAIL, `Unable to find role="region" and name "Now"` (the sections are not panes yet).
 
-- [ ] **Step 3: Implement the columns**
+- [x] **Step 3: Implement the columns**
 
 Drawing sections as titled panes (title and count in the border, the context under it, then the
 cards and the Add row) is `WorkList`'s; the arrangement is `layout`. Ongoing's context is the spec's
@@ -689,7 +689,7 @@ exact text, written by the app; Ongoing still shows only when something runs, as
 are fixed and a drop on it writes nothing. Blocked is a normal section of the data, and the page
 drops it when it has no entries. The purpose line sits under the page's title.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then
   `nix develop -c vp test --project desktop --project phone packages/web/src/__browser__/priorities`

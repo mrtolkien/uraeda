@@ -259,8 +259,8 @@ describe("at semi-wide", () => {
   atSize("semi");
 
   test("a task open beside the priorities keeps its pane and the list's place across 1280 px", async () => {
-    // A short window, so the list scrolls at both widths.
-    await page.viewport(1205, 500);
+    // A short window, so the page scrolls at both widths: the columns are a short list.
+    await page.viewport(1205, 300);
     await show("/priorities", "Claude Code runner");
     await act(async () => {
       fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
@@ -274,7 +274,7 @@ describe("at semi-wide", () => {
     const scrolled = window.scrollY;
     expect(scrolled).toBeGreaterThan(0);
 
-    await page.viewport(1440, 500);
+    await page.viewport(1440, 300);
     await expect.poll(() => window.innerWidth).toBe(1440);
     await drawn();
     // The same pane beside the same list, at the same place.
@@ -282,7 +282,7 @@ describe("at semi-wide", () => {
     expect(window.location.pathname).toBe(atRepo(TASK));
     expect(window.scrollY).toBe(scrolled);
 
-    await page.viewport(1205, 500);
+    await page.viewport(1205, 300);
     await expect.poll(() => window.innerWidth).toBe(1205);
     await drawn();
     expect(detail().getByRole("button", { name: "Edit" })).toBeTruthy();

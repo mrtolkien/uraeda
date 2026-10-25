@@ -94,8 +94,9 @@ const styles = stylex.create({
     // Over the stretched link, so a press on it reaches it.
     zIndex: 2,
   },
+  // The mauve tint of a selected row, apart from the pane's own background.
   selected: {
-    backgroundColor: colorVars["--color-background-card"],
+    backgroundColor: colorVars["--color-accent-muted"],
     borderColor: colorVars["--color-accent"],
   },
   // The link's text, and the link stretched over the whole card by its pseudo-element.

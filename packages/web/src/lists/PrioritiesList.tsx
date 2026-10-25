@@ -1,5 +1,6 @@
 // The priorities on the shared list: "Ongoing", the entries whose feature or change runs, in green,
-// then Now, Next, Later, and Blocked, in the file's order, each with its colour and its Add row.
+// then Now, Next, Later, and Blocked, in the file's order, as columns, each with its context, its
+// colour, and its Add row. Blocked shows only when it has lines.
 // The file keeps the started entries at the top of Now; on screen they show apart.
 import { Icon } from "@astryxdesign/core/Icon";
 import { useFateClient } from "react-fate";
@@ -23,7 +24,6 @@ const TITLES: Record<string, string> = {
 };
 
 const TONES: Record<string, Tone> = {
-  blocked: "orange",
   later: "gray",
   next: "neutral",
   now: "blue",
@@ -39,6 +39,9 @@ function marksOf(entry: PriorityEntry) {
   }
   return entry.draft.backlog ? "backlog" : "draft";
 }
+
+/** What Ongoing is, in the spec's own words: the section is derived, so the page says it. */
+const ONGOING_CONTEXT = "Running now: an agent works or waits on you.";
 
 /**
  * The priorities as the lists show them (R10): the running entries of every section, apart, then
@@ -69,6 +72,66 @@ export function fileIndex(entries: ReadonlyArray<PriorityEntry>, key: string, in
   }
   const last = places.at(-1);
   return last === undefined ? rest.length : last + 1;
+}
+
+/**
+ * The sections the page draws: "Ongoing" first, only when something runs, then each section of the
+ * file with its context and its Add row, but a Blocked without lines (R1). `add` writes a line to a
+ * section.
+ */
+function sectionsOf(
+  priorities: Priorities,
+  here: ReturnType<typeof useRepoPath>,
+  add: (section: string) => (text: string) => Promise<string | undefined>,
+): Array<WorkSection> {
+  const row = (entry: PriorityEntry): WorkRow => ({
+    href: here(`/priorities/${entry.key}`),
+    isFixed: entry.running !== undefined,
+    key: entry.key,
+    lines: entry.nestedSpans.map(plain),
+    marks: marksOf(entry),
+    text: plain(entry.spans),
+  });
+
+  const shown = byRunning(priorities);
+  const ongoing: WorkSection = {
+    context: ONGOING_CONTEXT,
+    id: "ongoing",
+    isFixed: true,
+    rows: shown.ongoing.map(row),
+    title: "Ongoing",
+    tone: "green",
+  };
+  // A Blocked without lines is not drawn (R1): the file keeps it, the page does not show it.
+  const visible = shown.sections.filter(
+    (section) => section.section !== "blocked" || section.entries.length > 0,
+  );
+  const sections = visible.map((section): WorkSection => {
+    const title = TITLES[section.section] ?? section.section;
+    return {
+      context: section.context ?? undefined,
+      footer: (
+        <EditableLine
+          display={
+            <>
+              <Icon icon="uraeda:plus" size="sm" /> Add to {title}
+            </>
+          }
+          field={`priorities#add:${section.section}`}
+          label={`Add to ${title}`}
+          onSave={add(section.section)}
+          stayOpen
+          value=""
+        />
+      ),
+      id: section.section,
+      rows: section.entries.map(row),
+      title,
+      tone: TONES[section.section] ?? "neutral",
+    };
+  });
+  // "Ongoing" shows only when something runs.
+  return ongoing.rows.length > 0 ? [ongoing, ...sections] : sections;
 }
 
 /**
@@ -125,51 +188,18 @@ export function PrioritiesList({
     onMoveRefused?.(failed);
   };
 
-  const row = (entry: PriorityEntry): WorkRow => ({
-    href: here(`/priorities/${entry.key}`),
-    isFixed: entry.running !== undefined,
-    key: entry.key,
-    lines: entry.nestedSpans.map(plain),
-    marks: marksOf(entry),
-    text: plain(entry.spans),
-  });
-
-  const shown = byRunning(priorities);
-  const ongoing: WorkSection = {
-    id: "ongoing",
-    isFixed: true,
-    rows: shown.ongoing.map(row),
-    title: "Ongoing",
-    tone: "green",
-  };
-  const sections = shown.sections.map((section): WorkSection => {
-    const title = TITLES[section.section] ?? section.section;
-    return {
-      footer: (
-        <EditableLine
-          display={
-            <>
-              <Icon icon="uraeda:plus" size="sm" /> Add to {title}
-            </>
-          }
-          field={`priorities#add:${section.section}`}
-          label={`Add to ${title}`}
-          onSave={add(section.section)}
-          stayOpen
-          value=""
-        />
-      ),
-      id: section.section,
-      rows: section.entries.map(row),
-      title,
-      tone: TONES[section.section] ?? "neutral",
-    };
-  });
-  // "Ongoing" shows only when something runs.
-  const all = ongoing.rows.length > 0 ? [ongoing, ...sections] : sections;
+  const all = sectionsOf(priorities, here, add);
   const selected =
     select ??
     all.flatMap((section) => section.rows).find((r) => pathname === `/priorities/${r.key}`)?.key;
 
-  return <WorkList isFocused={isFocused} onMove={onMove} sections={all} selected={selected} />;
+  return (
+    <WorkList
+      isFocused={isFocused}
+      layout="columns"
+      onMove={onMove}
+      sections={all}
+      selected={selected}
+    />
+  );
 }

@@ -7,6 +7,7 @@ import { CommitBar } from "./CommitBar.tsx";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
 import { PrioritiesList } from "./lists/PrioritiesList.tsx";
 import { useRestoreScroll } from "./routes.tsx";
 import { PrioritiesView } from "./views.ts";
@@ -49,6 +50,9 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
     <Page>
       <VStack gap={2}>
         <Heading level={1}>Priorities</Heading>
+        <Paragraph color="secondary">
+          What is worked on, in order: Ongoing runs now, then Now, Next, and Later.
+        </Paragraph>
         {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         <PrioritiesList
           isFocused={isFocused}
