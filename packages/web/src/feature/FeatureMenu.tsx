@@ -1,8 +1,8 @@
 // The feature's "…" beside its title: Rename, which opens the shell card's settings, and Drop,
 // behind its confirmation, as the session's "…" has it. A dropped item leaves its page for Home,
-// where what stayed is said.
+// where what stayed is said, once the priorities commit succeeded.
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { type SessionItem, useDropItem } from "../dropItem.ts";
+import { type SessionItem, UNCOMMITTED, useDropItem } from "../dropItem.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { addNote, HOME_NOTES } from "../offers.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
@@ -10,7 +10,7 @@ import { useOpenSettings } from "../sidebar/FeatureSettingsDialog.tsx";
 
 /**
  * "Feature actions", or "Change actions": "Rename" and "Drop the feature…" or "Drop the change…". A
- * drop the server refuses is told to `onRefused`, which shows it under the name; one the human
+ * drop the server refuses, or whose priorities commit failed, is told to `onRefused`, which shows it under the name; one the human
  * keeps changes nothing.
  */
 export function FeatureMenu({
@@ -30,6 +30,9 @@ export function FeatureMenu({
     const result = await dropItem(item);
     if (result.kind === "refused") {
       onRefused(result.message);
+    } else if (result.kind === "dropped" && !result.committed) {
+      // The spec's edge case: a refused commit keeps the page, with the refusal under the name.
+      onRefused(UNCOMMITTED);
     } else if (result.kind === "dropped") {
       addNote(HOME_NOTES, ...result.notes);
       navigate(here("/"));

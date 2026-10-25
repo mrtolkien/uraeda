@@ -86,7 +86,7 @@ test("a refused drop keeps the page and shows why until dismissed", async () => 
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
-test("a drop whose priorities were not committed opens Home with the warning", async () => {
+test("a drop whose priorities were not committed keeps the page and shows the warning until dismissed", async () => {
   await renderPage(`/f/${RECURRING}`, fixtureRepo(), {
     agent: true,
     binding: {
@@ -101,13 +101,9 @@ test("a drop whose priorities were not committed opens Home with the warning", a
   await pick("Drop the feature…");
   await click(await screen.findByRole("button", { name: "Drop the feature" }));
 
-  expect(
-    await screen.findByText(`Dropped the feature recurring-tasks: its branch ${RECURRING} stays.`),
-  ).toBeTruthy();
-  expect(
-    screen.getByText(
-      "The priorities were not committed: if Now listed it, its entry’s removal waits in specs/PRIORITIES.md.",
-    ),
-  ).toBeTruthy();
-  expect(window.location.pathname).toBe(atRepo("/"));
+  const alert = await screen.findByRole("alert");
+  expect(alert.textContent).toContain("The priorities were not committed");
+  expect(window.location.pathname).toBe(atRepo(`/f/${RECURRING}`));
+  await click(within(alert).getByRole("button", { name: "Dismiss" }));
+  expect(screen.queryByRole("alert")).toBeNull();
 });
