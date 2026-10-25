@@ -8,6 +8,7 @@
 ## UI
 
 - I want to try monaspace font family for the website, using the different styles
+- In 1440px wide, the right column in questions/clarification is a bit too big...
 
 > Below points are likely obsolete
 

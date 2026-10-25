@@ -6,8 +6,11 @@
 >
 > Features for v1.0.0
 
-- [Lists and starts in the terminal look](drafts/lists-and-starts.md)
+- [Session and New in the terminal look](drafts/session-and-new.md)
+- [Inbox and priorities in the terminal look](drafts/inbox-and-priorities.md)
+- [Feature page in the terminal look](drafts/feature-page.md)
 
+- Full interactive UI pass: manual small fixes
 - Empty inbox
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
