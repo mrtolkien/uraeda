@@ -935,11 +935,11 @@ git commit -m "feat(feature-page): a timeline of stages holding their files"
 - [x] **Step 1: Write the failing tests**
 
 ```ts
-test("agent time and elapsed read 2 h 51 min and 6 h 2 min", () => {
+test("agent time and elapsed read 2 h 51 min and 6 h 02 min", () => {
   const now = Date.parse("2026-10-06T15:14:00Z");
   const rows = figureRows({ ...LIVE, agent: { seconds: 10260, runningSince: null }, now });
   expect(rows.find((r) => r.label === "agent time")?.value).toBe("2 h 51 min");
-  expect(rows.find((r) => r.label === "elapsed")?.value).toBe("6 h 2 min"); // started 09:12
+  expect(rows.find((r) => r.label === "elapsed")?.value).toBe("6 h 02 min"); // started 09:12
 });
 test("a running turn counts to now", () => {
   /* runningSince 4 min before now: agent time "4 min" */
@@ -1000,8 +1000,8 @@ git commit -m "feat(feature-page): the Home's column of sessions, figures, and l
 - Modify: `packages/web/src/feature/FeaturePage.tsx` (order: head, blocking banner, left banner,
   Next, timeline, record, notes; the column beside or after), `packages/web/src/feature/Record.tsx`
   (each part a `Pane`, ids `record-questions`, `record-decisions`; "Open the record file" goes: the
-  record file is Merged's link), `packages/web/src/feature/Notes.tsx` (folded as today, in a pane),
-  `packages/web/src/feature/Section.tsx` (deleted if unused)
+  record file is Merged's link), `packages/web/src/feature/Notes.tsx` (folded as today, in a "Format
+  notes" pane), `packages/web/src/feature/Section.tsx` (deleted if unused)
 - Test: `__tests__/feature-page.test.tsx`, `feature-done.test.tsx`, `feature-settings.test.tsx`
   (rewritten for panes), the browser `__browser__/feature.test.tsx`
 
@@ -1011,7 +1011,7 @@ git commit -m "feat(feature-page): the Home's column of sessions, figures, and l
 - Produces: the page's final order and the removal of every old-look part (`Stages`, `NextCard`,
   `Figures`, `FileList`, `Section`); `storybookHref`'s last use outside links goes with `FileList`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 test("a blocked feature says it cannot go on before Next", async () => {
@@ -1036,19 +1036,19 @@ The old tests of the stepper, the cards, the tiles, and the files list are repla
 ruling (R1): they asserted a look the human asked to replace. The breaks they catch: a banner after
 Next; a record part that cannot be reached from its figure; a leftover link to Storybook.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/feature-done.test.tsx`
 - Expected: FAIL, the old record layout (no "record-questions" pane)
 
-- [ ] **Step 3: Assemble the page, redraw `Record` in panes, delete what no longer has a user**
+- [x] **Step 3: Assemble the page, redraw `Record` in panes, delete what no longer has a user**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

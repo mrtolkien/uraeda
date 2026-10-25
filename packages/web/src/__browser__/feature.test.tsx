@@ -33,6 +33,24 @@ describe("Next and the Home's column", () => {
   });
 });
 
+describe("the Home on the phone", () => {
+  atSize("phone");
+
+  test("stacks Next, the timeline, Sessions, Produced, and Links", async () => {
+    await commands.addFeaturePages();
+    await show(`/f/${FEATURE_PAGES.working}`, "The agent is building");
+    await drawn();
+    const tops = [
+      screen.getByRole("region", { name: "Next" }),
+      screen.getByRole("list", { name: "Stages" }),
+      screen.getByRole("region", { name: "Sessions" }),
+      screen.getByRole("region", { name: "Produced so far" }),
+      screen.getByRole("region", { name: "Links" }),
+    ].map((element) => element.getBoundingClientRect().top);
+    expect(tops).toEqual([...tops].sort((a, b) => a - b));
+  });
+});
+
 /** The red, green, and blue of an element's text colour. */
 function rgb(element: Element): Array<number> {
   return (getComputedStyle(element).color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);

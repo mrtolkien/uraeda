@@ -1,5 +1,5 @@
-// The page of a feature or a change, top to bottom: where it is, what blocks it, what's next, a
-// done one's record, and its notes, folded; beside them, or after them on the phone, its column of
+// The page of a feature or a change, top to bottom: where it is, what blocks it, what's next, its
+// timeline, a done one's record, and its notes, folded; beside them, or after them on the phone, its column of
 // sessions, figures, and links.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
@@ -198,7 +198,6 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
             {headerLine(feature)}
           </Text>
         </VStack>
-        <Timeline feature={feature} history={history} progress={feature.step.progress} />
         <Blocking
           change={feature.kind === "change"}
           folder={feature.folder}
@@ -212,6 +211,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
             <NextStep feature={feature} history={history} />
           )}
         </Suspense>
+        <Timeline feature={feature} history={history} progress={feature.step.progress} />
         {inline && <FeatureColumn feature={feature} history={history} keys={keys} />}
         <RecordPart feature={feature} history={history} keys={keys} />
         <Notes notes={feature.notes} />

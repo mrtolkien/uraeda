@@ -2,19 +2,12 @@
 // "Next", and the notes that do not, folded at the bottom of the page.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
+import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { useOpenKeys } from "../useOpenKeys.ts";
-
-const styles = stylex.create({
-  // The fold's row, a control's height for a finger.
-  trigger: { alignItems: "center", display: "flex", minHeight: sizeVars["--size-element-md"] },
-});
 
 /** A check's result: its file from the repository's top, its line, and its message. */
 type Problem = { file: string; line?: number | null; message: string };
@@ -76,23 +69,20 @@ export function Blocking({
 /** The fold's key in the history entry, kept open across Back. */
 const NOTES_KEY = "notes";
 
-/** The check's notes, which block nothing, folded and muted, open as the history entry keeps them. */
+/** The check's notes, which block nothing, a pane folded to its count, open as the history entry keeps them. */
 export function Notes({ notes }: { notes: Array<Problem> }) {
   const keys = useOpenKeys();
   if (notes.length === 0) {
     return null;
   }
   return (
-    <Collapsible
-      isOpen={keys.open.includes(NOTES_KEY)}
-      onOpenChange={(isOpen: boolean) => keys.onOpenChange(NOTES_KEY, isOpen)}
-      trigger={
-        <span {...stylex.props(styles.trigger)}>
-          <Text color="secondary">
-            {notes.length} format {notes.length === 1 ? "note" : "notes"}
-          </Text>
-        </span>
-      }
+    <Pane
+      count={notes.length}
+      fold={{
+        isOpen: keys.open.includes(NOTES_KEY),
+        onOpenChange: (isOpen) => keys.onOpenChange(NOTES_KEY, isOpen),
+      }}
+      title="Format notes"
     >
       <VStack gap={2}>
         <Text color="secondary" type="supporting">
@@ -100,6 +90,6 @@ export function Notes({ notes }: { notes: Array<Problem> }) {
         </Text>
         <ProblemLines problems={notes} />
       </VStack>
-    </Collapsible>
+    </Pane>
   );
 }

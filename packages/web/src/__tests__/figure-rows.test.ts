@@ -31,11 +31,11 @@ const valueOf = (rows: ReturnType<typeof figureRows>, label: string) =>
   rows.find((row) => row.label === label)?.value;
 
 /** US3.1 */
-test("agent time and elapsed read 2 h 51 min and 6 h 2 min", () => {
+test("agent time and elapsed read 2 h 51 min and 6 h 02 min", () => {
   const rows = figureRows({ ...LIVE, agent: { runningSince: null, seconds: 10_260 } });
   expect(valueOf(rows, "agent time")).toBe("2 h 51 min");
   // Started 09:12, now 15:14.
-  expect(valueOf(rows, "elapsed")).toBe("6 h 2 min");
+  expect(valueOf(rows, "elapsed")).toBe("6 h 02 min");
 });
 
 /** US3 more 1: a summed running turn would be counted twice */
